@@ -8,7 +8,6 @@ import (
 	"go/token"
 	"go/types"
 	"iter"
-	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -258,13 +257,11 @@ func (BinaryMarshaler) decl()              {}
 func (u BinaryMarshaler) DeclName() string { return u.Name }
 
 type Config struct {
-	Output  string            `help:"Output file to write generated protobuf schema to." short:"o" xor:"output"`
-	JSON    bool              `help:"Dump intermediate JSON represesentation." short:"j" xor:"output"`
-	Options map[string]string `placeholder:"OPTION=VALUE" help:"Additional options to include in the generated protobuf schema. Note: strings must be double quoted." short:"O" mapsep:"\\0"`
-	Mappers bool              `help:"Generate ToProto and FromProto mappers for each message." short:"m"`
+	Output  string `help:"Output file to write generated protobuf schema to." short:"o" xor:"output"`
+	JSON    bool   `help:"Dump intermediate JSON represesentation." short:"j" xor:"output"`
+	Mappers bool   `help:"Generate ToProto and FromProto mappers for each message." short:"m"`
 
-	Package string   `arg:"" help:"Package name to use in the generated protobuf schema."`
-	Ref     []string `arg:"" help:"Type to generate protobuf schema from in the form PKG.TYPE. eg. github.com/foo/bar/waz.Waz or ./waz.Waz" required:"true" placeholder:"PKG.TYPE"`
+	Ref []string `arg:"" help:"Type to generate protobuf schema from in the form PKG.TYPE. eg. github.com/foo/bar/waz.Waz or ./waz.Waz" required:"true" placeholder:"PKG.TYPE"`
 }
 
 func main() {
@@ -306,19 +303,17 @@ func run(cli Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to load package %s: %w", resolved.Path, err)
 	}
-	commentMap := ast.CommentMap{}
 	for _, pkg := range pkgs {
 		resolved.Pkg = pkg
 		if len(pkg.Errors) > 0 {
 			fmt.Fprintf(os.Stderr, "go2proto: warning: %s\n", pkg.Errors[0])
 			break
 		}
-		for _, file := range pkg.Syntax {
-			fcmap := ast.NewCommentMap(fset, file, file.Comments)
-			maps.Copy(commentMap, fcmap)
-		}
 	}
-	resolved.Comments = commentMap
+	directives, err := parsePackageDirectives(pkgs)
+	if err != nil {
+		return err
+	}
 	if resolved.Pkg.Types == nil {
 		return fmt.Errorf("package %s had fatal errors, cannot continue", resolved.Path)
 	}
@@ -341,7 +336,7 @@ func run(cli Config) error {
 		return nil
 	}
 
-	err = render(out, cli, file)
+	err = render(out, directives, cli, file)
 	if err != nil {
 		return fmt.Errorf("failed to render template: %w", err)
 	}
@@ -353,7 +348,7 @@ func run(cli Config) error {
 		}
 		defer os.Remove(w.Name())
 		defer w.Close()
-		err = renderToProto(w, cli, file)
+		err = renderToProto(w, directives, cli, file)
 		if err != nil {
 			return err
 		}
@@ -381,11 +376,10 @@ func (g GenError) Error() string { return g.err.Error() }
 func (g GenError) Unwrap() error { return g.err }
 
 type PkgRefs struct {
-	Comments ast.CommentMap
-	Path     string
-	Ref      string
-	Refs     []string
-	Pkg      *packages.Package
+	Path string
+	Ref  string
+	Refs []string
+	Pkg  *packages.Package
 }
 
 type State struct {
@@ -477,7 +471,7 @@ func (s *State) extractStruct(n *types.Named) error {
 	decl := &Message{
 		Name: name,
 	}
-	if comment := findCommentsForObject(n.Obj(), s.Pkg.Syntax); comment != nil {
+	if comment := findCommentsForObject(n.Obj().Pos(), s.Pkg.Syntax); comment != nil {
 		decl.Comment = comment.Text()
 	}
 	// First pass over structs we just want to extract type information. The fields themselves will be populated in the
@@ -552,7 +546,7 @@ func (s *State) extractSumType(obj types.Object, i *types.Interface) error {
 		Name:     sumTypeName,
 		Variants: map[string]int{},
 	}
-	if comment := findCommentsForObject(obj, s.Pkg.Syntax); comment != nil {
+	if comment := findCommentsForObject(obj.Pos(), s.Pkg.Syntax); comment != nil {
 		decl.Comment = comment.Text()
 	}
 	scope := s.Pkg.Types.Scope()
@@ -568,7 +562,7 @@ func (s *State) extractSumType(obj types.Object, i *types.Interface) error {
 			interfaceType = true
 		}
 
-		if comments := findCommentsForObject(sym, s.Pkg.Syntax); comments != nil {
+		if comments := findCommentsForObject(sym.Pos(), s.Pkg.Syntax); comments != nil {
 			for _, line := range comments.List {
 				if strings.HasPrefix(line.Text, "//protobuf:") {
 					tag, err := parsePBTag(strings.TrimPrefix(line.Text, "//protobuf:"))
@@ -619,7 +613,7 @@ func (s *State) extractEnum(t *types.Named) error {
 		Name:   enumName,
 		Values: map[string]int{},
 	}
-	if comment := findCommentsForObject(t.Obj(), s.Pkg.Syntax); comment != nil {
+	if comment := findCommentsForObject(t.Obj().Pos(), s.Pkg.Syntax); comment != nil {
 		decl.Comment = comment.Text()
 	}
 	scope := s.Pkg.Types.Scope()
@@ -736,9 +730,9 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 	return nil
 }
 
-func findCommentsForObject(obj types.Object, syntax []*ast.File) *ast.CommentGroup {
+func findCommentsForObject(pos token.Pos, syntax []*ast.File) *ast.CommentGroup {
 	for _, file := range syntax {
-		if file.Pos() <= obj.Pos() && obj.Pos() <= file.End() {
+		if file.Pos() <= pos && pos <= file.End() {
 			// Use ast.Inspect to traverse the AST and locate the node
 			var comments *ast.CommentGroup
 			ast.Inspect(file, func(n ast.Node) bool {
@@ -748,7 +742,7 @@ func findCommentsForObject(obj types.Object, syntax []*ast.File) *ast.CommentGro
 				// If found, get the documentation comments
 				if node, ok := n.(*ast.GenDecl); ok {
 					for _, spec := range node.Specs {
-						if spec.Pos() == obj.Pos() {
+						if spec.Pos() == pos {
 							comments = node.Doc
 							return false // Stop the traversal once the node is found
 						}
@@ -849,4 +843,45 @@ func loadInterface(pkg, symbol string) *types.Interface {
 		}
 	}
 	panic("could not find " + pkg + "." + symbol)
+}
+
+// Directives captures the directives in the protobuf:XYZ directives extracted from package comments.
+type Directives struct {
+	Package string
+	Options map[string]string
+}
+
+func parsePackageDirectives(pkgs []*packages.Package) (Directives, error) {
+	directives := Directives{
+		Options: map[string]string{},
+	}
+	for _, pkg := range pkgs {
+		for _, file := range pkg.Syntax {
+			if file.Doc == nil {
+				continue
+			}
+			for _, comment := range file.Doc.List {
+				if !strings.HasPrefix(comment.Text, "//protobuf:") {
+					continue
+				}
+				input := strings.TrimPrefix(comment.Text, "//protobuf:")
+				parts := strings.SplitN(input, " ", 2)
+				//protobuf:package xyz.block.ftl.schema.v1
+				//protobuf:option go_package="github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1;schemapb"
+				switch parts[0] {
+				case "package":
+					directives.Package = parts[1]
+				case "option":
+					option := strings.SplitN(parts[1], "=", 2)
+					if len(option) != 2 {
+						return directives, genErrorf(comment.Pos(), "invalid option directive")
+					}
+					directives.Options[option[0]] = option[1]
+				default:
+					return directives, genErrorf(comment.Pos(), "unknown directive %q", parts[0])
+				}
+			}
+		}
+	}
+	return directives, nil
 }

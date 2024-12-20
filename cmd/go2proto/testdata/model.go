@@ -1,3 +1,5 @@
+//protobuf:package xyz.block.ftl.go2proto.test
+//protobuf:option go_package="github.com/block/ftl/cmd/go2proto/testdata/testdatapb"
 package testdata
 
 import (

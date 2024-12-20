@@ -157,17 +157,16 @@ func {{ .Name }}ToProto(value {{ .Name }}) *destpb.{{ .Name }} {
 		`))
 
 type Go2ProtoContext struct {
+	Directives
 	Config
 	File
 }
 
-func renderToProto(out *os.File, config Config, file File) error {
-	if config.Options["go_package"] == "" {
-		return fmt.Errorf("go_package must be set in the protobuf options")
-	}
+func renderToProto(out *os.File, directives Directives, config Config, file File) error {
 	err := go2protoTmpl.Execute(out, Go2ProtoContext{
-		Config: config,
-		File:   file,
+		Directives: directives,
+		Config:     config,
+		File:       file,
 	})
 	if err != nil {
 		return fmt.Errorf("template error: %w", err)

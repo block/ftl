@@ -1,3 +1,6 @@
+//protobuf:package xyz.block.ftl.schema.v1
+//protobuf:option go_package="github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1;schemapb"
+//protobuf:option java_multiple_files=true
 package schema
 
 import (
