@@ -54,10 +54,9 @@ func TestPubSub(t *testing.T) {
 }
 
 func TestRetry(t *testing.T) {
-	// retriesPerCall := 2
+	retriesPerCall := 2
 	in.Run(t,
-		// in.WithLanguages("java", "go"),
-		in.WithLanguages("java"),
+		in.WithLanguages("java", "go"),
 
 		in.WithPubSub(),
 		in.CopyModule("publisher"),
@@ -65,18 +64,17 @@ func TestRetry(t *testing.T) {
 		in.Deploy("publisher"),
 		in.Deploy("subscriber"),
 
-		in.Call("subscriber", "consumeFromDeadLetter", in.Obj{"error": "example", "event": map[string]any{"time": "2020-12-09T16:09:53+00:00", "haystack": "abc"}}, func(t testing.TB, resp in.Obj) {}),
+		// publish events
+		in.Call("publisher", "publishOneToTopic2", map[string]any{"haystack": "firstCall"}, func(t testing.TB, resp in.Obj) {}),
+		in.Call("publisher", "publishOneToTopic2", map[string]any{"haystack": "secondCall"}, func(t testing.TB, resp in.Obj) {}),
 
-		// // publish events
-		// in.Call("publisher", "publishOneToTopic2", map[string]any{"haystack": "firstCall"}, func(t testing.TB, resp in.Obj) {}),
-		// in.Call("publisher", "publishOneToTopic2", map[string]any{"haystack": "secondCall"}, func(t testing.TB, resp in.Obj) {}),
+		in.Sleep(time.Second*7),
 
-		// in.Sleep(time.Second*7),
+		checkConsumed("subscriber", "consumeButFailAndRetry", false, retriesPerCall+1, optional.Some("firstCall")),
+		checkConsumed("subscriber", "consumeButFailAndRetry", false, retriesPerCall+1, optional.Some("secondCall")),
+		checkPublished("subscriber", "consumeButFailAndRetryFailed", 2),
 
-		// checkConsumed("subscriber", "consumeButFailAndRetry", false, retriesPerCall+1, optional.Some("firstCall")),
-		// checkConsumed("subscriber", "consumeButFailAndRetry", false, retriesPerCall+1, optional.Some("secondCall")),
-		// checkPublished("subscriber", "consumeButFailAndRetryFailed", 2),
-		// checkConsumed("subscriber", "consumeFromDeadLetter", true, 2, optional.None[string]()),
+		in.IfLanguage("go", checkConsumed("subscriber", "consumeFromDeadLetter", true, 2, optional.None[string]())),
 	)
 }
 
