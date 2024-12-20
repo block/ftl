@@ -52,7 +52,7 @@ func newPublisher(module string, t *schema.Topic, deployment model.DeploymentKey
 }
 
 func (p *publisher) publish(ctx context.Context, data []byte, key string, caller schema.Ref) error {
-	logger := log.FromContext(ctx).AppendScope("topic:" + p.topic.Name)
+	logger := log.FromContext(ctx)
 	requestKey, err := rpc.RequestKeyFromContext(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get request key: %w", err)
@@ -78,12 +78,12 @@ func (p *publisher) publish(ctx context.Context, data []byte, key string, caller
 	})
 	if err != nil {
 		timelineEvent.Error = optional.Some(err.Error())
-		logger.Errorf(err, "Failed to publish message")
-		return fmt.Errorf("failed to publish message: %w", err)
+		logger.Errorf(err, "Failed to publish message to %s", p.topic.Name)
+		return fmt.Errorf("failed to publish message to %s: %w", p.topic.Name, err)
 	}
 	timelineEvent.Partition = int(partition)
 	timelineEvent.Offset = int(offset)
 	p.timelineClient.Publish(ctx, timelineEvent)
-	logger.Debugf("Published to partition %v with offset %v)", partition, offset)
+	logger.Debugf("Published to %v[%v:%v]", p.topic.Name, partition, offset)
 	return nil
 }
