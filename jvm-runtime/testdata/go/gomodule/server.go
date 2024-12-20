@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"ftl/builtin"
+
 	"github.com/decentralized-identity/web5-go/dids/did"
 
 	"github.com/block/ftl/go-runtime/ftl"
@@ -216,6 +218,11 @@ func TimeVerb(ctx context.Context, val time.Time) (time.Time, error) {
 
 //ftl:verb export
 func TestObjectVerb(ctx context.Context, val TestObject) (TestObject, error) {
+	return val, nil
+}
+
+//ftl:verb export
+func TestGenericType(ctx context.Context, val builtin.FailedEvent[TestObject]) (builtin.FailedEvent[TestObject], error) {
 	return val, nil
 }
 

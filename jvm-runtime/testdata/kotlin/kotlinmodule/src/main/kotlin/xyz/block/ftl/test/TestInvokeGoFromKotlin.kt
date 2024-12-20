@@ -1,5 +1,6 @@
 package xyz.block.ftl.test
 
+import ftl.builtin.FailedEvent
 import ftl.gomodule.*
 import web5.sdk.dids.didcore.Did
 import xyz.block.ftl.Export
@@ -115,6 +116,12 @@ fun testObjectOptionalFieldsVerb(
   client: TestObjectOptionalFieldsVerbClient
 ): TestObjectOptionalFields {
   return client.testObjectOptionalFieldsVerb(payload)
+}
+
+@Export
+@Verb
+fun testGenericType(payload: FailedEvent<TestObject>, client: TestGenericTypeClient): FailedEvent<TestObject> {
+  return client.testGenericType(payload)
 }
 
 // now the same again but with option return / input types

@@ -3,8 +3,9 @@ package gomodule
 
 import (
 	"context"
-	"github.com/block/ftl/go-runtime/ftl"
+	ftlbuiltin "ftl/builtin"
 	"github.com/block/ftl/common/reflection"
+	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/decentralized-identity/web5-go/dids/did"
 	stdtime "time"
 )
@@ -64,6 +65,8 @@ type StringEnumVerbClient func(context.Context, ShapeWrapper) (ShapeWrapper, err
 type StringMapVerbClient func(context.Context, map[string]string) (map[string]string, error)
 
 type StringVerbClient func(context.Context, string) (string, error)
+
+type TestGenericTypeClient func(context.Context, ftlbuiltin.FailedEvent[TestObject]) (ftlbuiltin.FailedEvent[TestObject], error)
 
 type TestObjectOptionalFieldsVerbClient func(context.Context, TestObjectOptionalFields) (TestObjectOptionalFields, error)
 
@@ -171,6 +174,9 @@ func init() {
 		),
 		reflection.ProvideResourcesForVerb(
 			StringVerb,
+		),
+		reflection.ProvideResourcesForVerb(
+			TestGenericType,
 		),
 		reflection.ProvideResourcesForVerb(
 			TestObjectOptionalFieldsVerb,

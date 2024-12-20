@@ -152,6 +152,7 @@ func TestJVMCoreFunctionality(t *testing.T) {
 		})
 	})...)
 	tests = append(tests, AllRuntimesVerbTest("testObjectVerb", exampleObject)...)
+	tests = append(tests, AllRuntimesVerbTest("testGenericType", FailedEvent[TestObject]{Event: exampleObject, Error: "failed"})...)
 	tests = append(tests, AllRuntimesVerbTest("testObjectOptionalFieldsVerb", exampleOptionalFieldsObject)...)
 	tests = append(tests, AllRuntimesVerbTest("objectMapVerb", map[string]TestObject{"hello": exampleObject})...)
 	tests = append(tests, AllRuntimesVerbTest("objectArrayVerb", []TestObject{exampleObject})...)
@@ -480,3 +481,8 @@ type Thing struct{}
 
 func (Word) tag()  {}
 func (Thing) tag() {}
+
+type FailedEvent[Event any] struct {
+	Event Event  `json:"event"`
+	Error string `json:"error"`
+}
