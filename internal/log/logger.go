@@ -48,16 +48,6 @@ func (l Logger) Scope(scope string) *Logger {
 	return l.Attrs(map[string]string{scopeKey: scope})
 }
 
-func (l Logger) AppendScope(scope string) *Logger {
-	s, ok := l.attributes[scopeKey]
-	if ok {
-		s = s + ":" + scope
-	} else {
-		s = scope
-	}
-	return l.Attrs(map[string]string{scopeKey: s})
-}
-
 func (l Logger) Module(module string) *Logger {
 	return l.Attrs(map[string]string{moduleKey: module})
 }
