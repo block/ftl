@@ -128,7 +128,6 @@ func main() {
 		sm := terminal.NewStatusManager(ctx)
 		csm.statusManager = optional.Some(sm)
 		ctx = sm.IntoContext(ctx)
-		defer sm.Close()
 	}
 	rpc.InitialiseClients(cli.Authenticators, cli.Insecure)
 
@@ -171,7 +170,14 @@ func main() {
 	ctx = bindContext(ctx, kctx)
 
 	err = kctx.Run(ctx)
-	kctx.FatalIfErrorf(err)
+
+	if sm, ok := csm.statusManager.Get(); ok {
+		sm.Close()
+	}
+
+	if err != nil {
+		kctx.FatalIfErrorf(err)
+	}
 }
 
 func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
