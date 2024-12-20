@@ -40,7 +40,6 @@ JVM_RUNTIME_OUT := "jvm-runtime/ftl-runtime//java/runtime/target/ftl-java-runtim
   "jvm-runtime/ftl-runtime//kotlin/runtime/target/ftl-kotlin-runtime-1.0-SNAPSHOT.jar " + \
   "jvm-runtime/ftl-runtime//common/runtime/target/ftl-jvm-runtime-1.0-SNAPSHOT.jar"
 
-GO_SCHEMA_ROOTS := "./common/schema.{Schema,ModuleRuntimeEvent,DatabaseRuntimeEvent,TopicRuntimeEvent,VerbRuntimeEvent,RuntimeEvent}"
 # Configuration for building Docker images
 DOCKER_IMAGES := '''
 {
@@ -111,7 +110,7 @@ build-generate:
 
 # Generate testdata for go2proto. This should be run after any changes to go2proto.
 build-go2proto-testdata:
-  @mk cmd/go2proto/testdata/go2proto.to.go cmd/go2proto/testdata/testdatapb/model.proto : cmd/go2proto/*.go cmd/go2proto/testdata/model.go -- go2proto -m -o ./cmd/go2proto/testdata/testdatapb/model.proto ./cmd/go2proto/testdata.Root && bin/gofmt -w cmd/go2proto/testdata/go2proto.to.go
+  @mk cmd/go2proto/testdata/go2proto.to.go cmd/go2proto/testdata/testdatapb/model.proto : cmd/go2proto/*.go cmd/go2proto/testdata/model.go -- go2proto -m -o ./cmd/go2proto/testdata/testdatapb/model.proto ./cmd/go2proto/testdata && bin/gofmt -w cmd/go2proto/testdata/go2proto.to.go
   @mk cmd/go2proto/testdata/testdatapb/model.pb.go : cmd/go2proto/testdata/testdatapb/model.proto -- '(cd ./cmd/go2proto/testdata/testdatapb && protoc --go_out=paths=source_relative:. model.proto) && go build ./cmd/go2proto/testdata'
 
 # Build command-line tools
@@ -234,7 +233,7 @@ build-protos: go2proto
 # Generate .proto files from .go types.
 go2proto:
   @mk "{{SCHEMA_OUT}}" common/schema/go2proto.to.go : cmd/go2proto common/schema -- \
-    "go2proto -m -o \"{{SCHEMA_OUT}}\" {{GO_SCHEMA_ROOTS}} && buf format -w && buf lint && bin/gofmt -w common/schema/go2proto.to.go"
+    "go2proto -m -o \"{{SCHEMA_OUT}}\" ./common/schema && buf format -w && buf lint && bin/gofmt -w common/schema/go2proto.to.go"
 
 # Unconditionally rebuild protos
 build-protos-unconditionally: go2proto lint-protos pnpm-install

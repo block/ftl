@@ -14,6 +14,7 @@ type VerbRuntime struct {
 }
 
 //protobuf:4 RuntimeEvent
+//protobuf:export
 type VerbRuntimeEvent struct {
 	ID      string             `protobuf:"1"`
 	Payload VerbRuntimePayload `protobuf:"2"`

@@ -124,6 +124,7 @@ func DatabaseConnectorFromProto(s *schemapb.DatabaseConnector) DatabaseConnector
 }
 
 //protobuf:5 RuntimeEvent
+//protobuf:export
 type DatabaseRuntimeEvent struct {
 	ID      string                      `parser:"" protobuf:"1"`
 	Payload DatabaseRuntimeEventPayload `parser:"" protobuf:"2"`

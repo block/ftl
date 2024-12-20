@@ -9,6 +9,7 @@ import (
 	"github.com/block/ftl/internal/model"
 )
 
+//protobuf:export
 type Root struct {
 	Int            int                 `protobuf:"1"`
 	String         string              `protobuf:"2"`

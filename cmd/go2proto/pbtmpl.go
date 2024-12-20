@@ -65,16 +65,14 @@ message {{ .Name }} {
 `))
 
 type RenderContext struct {
-	Directives
-	Config
+	PackageDirectives
 	File
 }
 
-func render(out *os.File, directives Directives, config Config, file File) error {
+func render(out *os.File, directives PackageDirectives, file File) error {
 	err := tmpl.Execute(out, RenderContext{
-		Directives: directives,
-		Config:     config,
-		File:       file,
+		PackageDirectives: directives,
+		File:              file,
 	})
 	if err != nil {
 		return fmt.Errorf("template error: %w", err)

@@ -12,5 +12,6 @@
     }
   },
   "python.analysis.extraPaths": ["./python-runtime/ftl/src"],
-  "npm.packageManager": "pnpm"
+  "npm.packageManager": "pnpm",
+  "ftl.automaticallyStartServer": "never"
 }

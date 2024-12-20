@@ -25,14 +25,15 @@ const help = `Generate a Protobuf schema from Go types.
 
 It supports converting structs to messages, Go "sum types" to oneof fields, and Go "enums" to Protobuf enums.
 
-The generator works by extracting protobuf tags from the source Go types. There are two locations where these tags must
-be specified:
+The generator works by scanning a package for types marked with //protobuf:export directives. For each exported type,
+it extracts protobuf tags from the source Go types. There are two locations where these tags must be specified:
 
   1. For fields using a tag in the form ` + "`protobuf:\"<id>[,optional]\"`" + `.
   2. For sum types as comment directives in the form //protobuf:<id>.
 
 An example showing all three supported types and the corresponding protobuf tags:
 
+	//protobuf:export
 	type UserType int
 
 	const (
@@ -44,6 +45,7 @@ An example showing all three supported types and the corresponding protobuf tags
 	// Entity is a "sum type" consisting of User and Group.
 	//
 	// Every sum type element must have a comment directive in the form //protobuf:<id>.
+	//protobuf:export
 	type Entity interface { entity() }
 
 	//protobuf:1
@@ -59,6 +61,7 @@ An example showing all three supported types and the corresponding protobuf tags
 	}
 	func (Group) entity() {}
 
+	//protobuf:export
 	type Role struct {
 		Name string ` + "`protobuf:\"1\"`" + `
 		Entities []Entity ` + "`protobuf:\"2\"`" + `
@@ -261,7 +264,7 @@ type Config struct {
 	JSON    bool   `help:"Dump intermediate JSON represesentation." short:"j" xor:"output"`
 	Mappers bool   `help:"Generate ToProto and FromProto mappers for each message." short:"m"`
 
-	Ref []string `arg:"" help:"Type to generate protobuf schema from in the form PKG.TYPE. eg. github.com/foo/bar/waz.Waz or ./waz.Waz" required:"true" placeholder:"PKG.TYPE"`
+	Package string `arg:"" help:"Package to scan for types with //protobuf:export directives" required:"true" placeholder:"PKG"`
 }
 
 func main() {
@@ -271,60 +274,88 @@ func main() {
 	kctx.FatalIfErrorf(err)
 }
 
+// findExportedTypes scans a package for types marked with //protobuf:export directives
+func findExportedTypes(pkg *packages.Package) []string {
+	var exports []string
+	for _, file := range pkg.Syntax {
+		ast.Inspect(file, func(n ast.Node) bool {
+			if genDecl, ok := n.(*ast.GenDecl); ok {
+				if genDecl.Doc == nil {
+					return true
+				}
+				for _, comment := range genDecl.Doc.List {
+					if strings.TrimSpace(comment.Text) == "//protobuf:export" {
+						for _, spec := range genDecl.Specs {
+							if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+								exports = append(exports, typeSpec.Name.Name)
+							}
+						}
+					}
+				}
+			}
+			return true
+		})
+	}
+	return exports
+}
+
 func run(cli Config) error {
 	out := os.Stdout
 	if cli.Output != "" {
 		var err error
 		out, err = os.Create(cli.Output + "~")
 		if err != nil {
-			return fmt.Errorf("")
+			return fmt.Errorf("failed to create output file: %w", err)
 		}
 		defer out.Close()
 		defer os.Remove(cli.Output + "~")
 	}
 
-	var resolved *PkgRefs
-	for _, ref := range cli.Ref {
-		parts := strings.Split(ref, ".")
-		pkg := strings.Join(parts[:len(parts)-1], ".")
-		if resolved != nil && resolved.Path != pkg {
-			return fmt.Errorf("only a single package is supported")
-		} else if resolved == nil {
-			resolved = &PkgRefs{Ref: ref, Path: pkg}
-		}
-		resolved.Refs = append(resolved.Refs, parts[len(parts)-1])
-	}
 	fset := token.NewFileSet()
 	pkgs, err := packages.Load(&packages.Config{
 		Fset: fset,
 		Mode: packages.NeedTypes | packages.NeedTypesInfo | packages.NeedDeps | packages.NeedImports | packages.NeedSyntax |
 			packages.NeedFiles | packages.NeedName,
-	}, resolved.Path)
+	}, cli.Package)
 	if err != nil {
-		return fmt.Errorf("unable to load package %s: %w", resolved.Path, err)
+		return fmt.Errorf("unable to load package %s: %w", cli.Package, err)
 	}
-	for _, pkg := range pkgs {
-		resolved.Pkg = pkg
-		if len(pkg.Errors) > 0 {
-			fmt.Fprintf(os.Stderr, "go2proto: warning: %s\n", pkg.Errors[0])
-			break
-		}
+
+	if len(pkgs) == 0 {
+		return fmt.Errorf("no packages found matching %s", cli.Package)
 	}
+
+	pkg := pkgs[0]
+	if len(pkg.Errors) > 0 {
+		fmt.Fprintf(os.Stderr, "go2proto: warning: %s\n", pkg.Errors[0])
+	}
+
+	if pkg.Types == nil {
+		return fmt.Errorf("package %s had fatal errors, cannot continue", cli.Package)
+	}
+
+	exports := findExportedTypes(pkg)
+	if len(exports) == 0 {
+		return fmt.Errorf("no types found with //protobuf:export directive in package %s", cli.Package)
+	}
+
+	resolved := &PkgRefs{
+		Path: cli.Package,
+		Pkg:  pkg,
+		Refs: exports,
+	}
+
 	directives, err := parsePackageDirectives(pkgs)
 	if err != nil {
 		return err
 	}
-	if resolved.Pkg.Types == nil {
-		return fmt.Errorf("package %s had fatal errors, cannot continue", resolved.Path)
-	}
+
 	file, err := extract(cli, resolved)
 	if gerr := new(GenError); errors.As(err, &gerr) {
 		pos := fset.Position(gerr.pos)
 		return fmt.Errorf("%s:%d: %w", pos.Filename, pos.Line, err)
-	} else {
-		if err != nil {
-			return err
-		}
+	} else if err != nil {
+		return err
 	}
 
 	if cli.JSON {
@@ -336,23 +367,23 @@ func run(cli Config) error {
 		return nil
 	}
 
-	err = render(out, directives, cli, file)
+	err = render(out, directives, file)
 	if err != nil {
 		return fmt.Errorf("failed to render template: %w", err)
 	}
 
 	if cli.Mappers {
-		w, err := os.CreateTemp(resolved.Path, "go2proto.to.go-*")
+		w, err := os.CreateTemp(cli.Package, "go2proto.to.go-*")
 		if err != nil {
 			return fmt.Errorf("create temp: %w", err)
 		}
 		defer os.Remove(w.Name())
 		defer w.Close()
-		err = renderToProto(w, directives, cli, file)
+		err = renderToProto(w, directives, file)
 		if err != nil {
 			return err
 		}
-		err = os.Rename(w.Name(), filepath.Join(resolved.Path, "go2proto.to.go"))
+		err = os.Rename(w.Name(), filepath.Join(cli.Package, "go2proto.to.go"))
 		if err != nil {
 			return fmt.Errorf("rename: %w", err)
 		}
@@ -565,9 +596,12 @@ func (s *State) extractSumType(obj types.Object, i *types.Interface) error {
 		if comments := findCommentsForObject(sym.Pos(), s.Pkg.Syntax); comments != nil {
 			for _, line := range comments.List {
 				if strings.HasPrefix(line.Text, "//protobuf:") {
-					tag, err := parsePBTag(strings.TrimPrefix(line.Text, "//protobuf:"))
+					tag, ok, err := parsePBTag(strings.TrimPrefix(line.Text, "//protobuf:"))
 					if err != nil {
 						return genErrorf(sym.Pos(), "invalid //protobuf: directive %q: %w", line.Text, err)
+					}
+					if !ok {
+						continue
 					}
 					pbDirectives = append(pbDirectives, &tag)
 				}
@@ -779,7 +813,10 @@ func iterFields(n *types.Named) (iter.Seq2[*types.Var, pbTag], func() error) {
 				return
 			}
 			var pbt pbTag
-			pbt, err = parsePBTag(pb)
+			pbt, ok, err = parsePBTag(pb)
+			if !ok {
+				err = genErrorf(rf.Pos(), "invalid protobuf tag")
+			}
 			if err != nil {
 				return
 			}
@@ -796,10 +833,10 @@ type pbTag struct {
 	Optional bool
 }
 
-func parsePBTag(tag string) (pbTag, error) {
+func parsePBTag(tag string) (pbTag, bool, error) {
 	parts := strings.Split(tag, ",")
 	if len(parts) == 0 {
-		return pbTag{}, fmt.Errorf("missing tag")
+		return pbTag{}, false, fmt.Errorf("missing tag")
 	}
 
 	idParts := strings.Split(parts[0], " ")
@@ -810,7 +847,7 @@ func parsePBTag(tag string) (pbTag, error) {
 
 	id, err := strconv.Atoi(idParts[0])
 	if err != nil {
-		return pbTag{}, fmt.Errorf("invalid id: %w", err)
+		return pbTag{}, false, nil
 	}
 	out := pbTag{ID: id, SumType: sumType}
 	for _, part := range parts[1:] {
@@ -819,10 +856,10 @@ func parsePBTag(tag string) (pbTag, error) {
 			out.Optional = true
 
 		default:
-			return pbTag{}, fmt.Errorf("unknown tag: %s", tag)
+			return pbTag{}, false, fmt.Errorf("unknown tag: %s", tag)
 		}
 	}
-	return out, nil
+	return out, true, nil
 }
 
 func loadInterface(pkg, symbol string) *types.Interface {
@@ -845,14 +882,14 @@ func loadInterface(pkg, symbol string) *types.Interface {
 	panic("could not find " + pkg + "." + symbol)
 }
 
-// Directives captures the directives in the protobuf:XYZ directives extracted from package comments.
-type Directives struct {
+// PackageDirectives captures the directives in the protobuf:XYZ directives extracted from package comments.
+type PackageDirectives struct {
 	Package string
 	Options map[string]string
 }
 
-func parsePackageDirectives(pkgs []*packages.Package) (Directives, error) {
-	directives := Directives{
+func parsePackageDirectives(pkgs []*packages.Package) (PackageDirectives, error) {
+	directives := PackageDirectives{
 		Options: map[string]string{},
 	}
 	for _, pkg := range pkgs {
@@ -882,6 +919,9 @@ func parsePackageDirectives(pkgs []*packages.Package) (Directives, error) {
 				}
 			}
 		}
+	}
+	if directives.Package == "" {
+		return directives, fmt.Errorf("missing //protobuf:package directive in package comments. Add a comment like '//protobuf:package xyz.block.ftl.schema.v1' to specify the protobuf package name")
 	}
 	return directives, nil
 }
