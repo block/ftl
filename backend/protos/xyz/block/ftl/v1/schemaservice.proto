@@ -23,52 +23,75 @@ message GetSchemaResponse {
   repeated Changeset changesets = 2;
 }
 
-enum ChangeType {
-  CHANGE_TYPE_UNSPECIFIED = 0;
-  CHANGE_TYPE_ADDED = 1;
-  CHANGE_TYPE_REMOVED = 2;
-  CHANGE_TYPE_CHANGED = 3;
-}
-
 enum ChangesetState {
   CHANGESET_STATE_PROVISIONING = 0;
-  CHANGESET_STATE_FAILED = 1;
+  CHANGESET_STATE_COMMITED = 1;
+  CHANGESET_STATE_FAILED = 2;
 }
 
 message PullSchemaRequest {}
 message PullSchemaResponse {
-  message Changeset {
+  // ChangesetCreated is sent when a new changeset is created.
+  // TODO: consider whether to:
+  // - include all modules in the message? and don't publish individual DeploymentCreated messages for them
+  // - Let deployments be created into a changeset after the changeset is created
+  //     - Add a way to indicate how many deployments are expected in the changeset? So listeners can determine if they have the full changeset?
+  message ChangesetCreated {
     string key = 1;
     google.protobuf.Timestamp created_time = 2;
     ChangesetState state = 3;
+    // repeated ftl.schema.v1.Module modules = 4;
+    optional string error = 5;
   }
 
-  message Deployment {
+  // ChangesetFailed is sent when a changeset fails.
+  message ChangesetFailed {
+    string key = 1;
+    string error = 2;
+  }
+
+  // ChangesetFailed is sent when a changeset becomes canonical.
+  message ChangesetCommited {
+    string key = 1;
+  }
+
+  message DeploymentCreated {
     // Will not be set for builtin modules.
     optional string key = 1;
     string module_name = 2;
-    
     // If present, the deployment is not yet canonical as it is currently part of a changeset.
-    // Also not present for deletes.
     optional string changeset = 3;
 
-    // For deletes this will not be present.
     optional ftl.schema.v1.Module schema = 4;
-
-    optional string error = 5;
-    
-    // If this is true then the module was removed as well as the deployment. This is only set for DEPLOYMENT_REMOVED.
-    bool module_removed = 6;
-
-    // TODO: possibly separate out module deletion message as a different item type as the information is different enough
   }
 
-  oneof item {
-    Changeset changeset = 1;
-    Deployment deployment = 2;
+  message DeploymentUpdated {
+    // Will not be set for builtin modules.
+    optional string key = 1;
+    string module_name = 2;
+    // If present, the deployment is not yet canonical as it is currently part of a changeset.
+    optional string changeset = 3;
+
+    optional ftl.schema.v1.Module schema = 4;
   }
 
-  ChangeType change_type = 3;
+  message DeploymentRemoved {
+    // Will not be set for builtin modules.
+    optional string key = 1;
+    string module_name = 2;
+
+    // If this is true then the module was removed as well as the deployment.
+    bool module_removed = 3;
+  }
+
+  oneof event {
+    ChangesetCreated changesetCreated = 1;
+    ChangesetFailed changesetFailed = 2;
+    ChangesetCommited changesetCommited = 3;
+    DeploymentCreated deploymentCreated = 4;
+    DeploymentUpdated deploymentUpdated = 5;
+    DeploymentRemoved deploymentRemoved = 6;
+  }
 
   // If true there are more schema changes immediately following this one as part of the initial batch.
   // If false this is the last schema change in the initial batch, but others may follow later.
