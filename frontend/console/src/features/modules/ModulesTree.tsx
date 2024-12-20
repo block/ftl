@@ -43,9 +43,9 @@ const DeclNode = ({ decl, href, isSelected }: { decl: DeclInfo; href: string; is
         <div
           ref={declRef}
           className={classNames(
-            isSelected ? 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 hover:dark:bg-gray-600' : 'hover:bg-gray-200 hover:dark:bg-gray-700',
+            isSelected ? 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-300 hover:dark:bg-gray-600' : 'hover:bg-gray-200 hover:dark:bg-gray-700',
             declSumTypeIsExported(decl.value) ? '' : 'text-gray-400 dark:text-gray-500',
-            'group flex items-center gap-x-2 pl-4 pr-2 text-sm font-light leading-6 w-full cursor-pointer scroll-mt-10',
+            'group flex items-center gap-x-2 pl-4 pr-2 text-sm font-light leading-6 w-full cursor-pointer scroll-mt-10 rounded-md',
           )}
         >
           <span title={declType}>
@@ -94,8 +94,8 @@ const ModuleSection = ({
         ref={moduleRef}
         id={`module-${module.name}-tree-group`}
         className={classNames(
-          isSelected ? 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 hover:dark:bg-gray-600' : 'hover:bg-gray-200 hover:dark:bg-gray-700',
-          'group flex w-full modules-center gap-x-2 space-y-1 text-left text-sm font-medium cursor-pointer leading-6',
+          isSelected ? 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-300 hover:dark:bg-gray-600' : 'hover:bg-gray-200 hover:dark:bg-gray-700',
+          'group flex w-full modules-center gap-x-2 space-y-1 text-left text-sm font-medium cursor-pointer leading-6 rounded-md',
         )}
         onClick={() => toggleExpansion(module.name)}
       >
@@ -175,23 +175,23 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
   modules.sort((m1, m2) => Number(m1.isBuiltin) - Number(m2.isBuiltin))
 
   return (
-    <div className='flex flex-col h-full bg-gray-100 dark:bg-gray-900'>
-      <nav className='h-full overflow-y-auto'>
-        <div className='sticky top-0 border-b border-gray-300 bg-gray-100 dark:border-gray-800 dark:bg-gray-900 z-10'>
-          <div className='flex items-center gap-1 p-2'>
-            <div className='flex-1 min-w-0'>
-              <Multiselect allOpts={declTypeMultiselectOpts} selectedOpts={selectedDeclTypes} onChange={msOnChange} />
-            </div>
-            <div className='flex gap-1'>
-              <Button id='hide-exported' variant='secondary' size='sm' onClick={() => setHideUnexportedState(!hideUnexported)} title='Show/hide unexported'>
-                {hideUnexported ? <ViewOffSlashIcon className='size-5' /> : <ViewIcon className='size-5' />}
-              </Button>
-              <Button variant='secondary' size='sm' onClick={collapseAll} title='Collapse all modules'>
-                <ArrowShrink02Icon className='size-5' />
-              </Button>
-            </div>
+    <div className='flex flex-col h-full border-r border-gray-300 dark:border-gray-700'>
+      <div className='border-b border-gray-120 dark:border-gray-700'>
+        <div className='flex items-center gap-1 p-2 bg-white dark:bg-gray-800 shadow-sm'>
+          <div className='flex-1 min-w-0 h-6'>
+            <Multiselect allOpts={declTypeMultiselectOpts} selectedOpts={selectedDeclTypes} onChange={msOnChange} />
+          </div>
+          <div className='flex gap-1'>
+            <Button id='hide-exported' variant='secondary' size='xs' onClick={() => setHideUnexportedState(!hideUnexported)} title='Show/hide unexported'>
+              {hideUnexported ? <ViewOffSlashIcon className='size-4' /> : <ViewIcon className='size-4' />}
+            </Button>
+            <Button variant='secondary' size='xs' onClick={collapseAll} title='Collapse all modules'>
+              <ArrowShrink02Icon className='size-4' />
+            </Button>
           </div>
         </div>
+      </div>
+      <nav className='overflow-y-auto flex-1'>
         <ul className='p-2'>
           {modules.map((m) => (
             <ModuleSection

@@ -1,5 +1,7 @@
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from '@headlessui/react'
 import { ArrowDown01Icon, CheckmarkSquare02Icon, MinusSignSquareIcon, SquareIcon } from 'hugeicons-react'
+import { bgColor, borderColor } from '../utils'
+import { textColor } from '../utils/style.utils'
 import { Button } from './Button'
 
 export interface MultiselectOpt {
@@ -77,10 +79,12 @@ export const Multiselect = ({
     <div className='w-full'>
       <Listbox multiple value={selectedOpts} onChange={onChange}>
         <div className='relative w-full'>
-          <ListboxButton className='w-full py-1 px-2 border border-gray-300 dark:border-gray-600 rounded shadow-sm text-sm bg-white dark:bg-gray-900 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'>
-            <span className='block truncate w-[calc(100%-24px)] h-5 text-left'>{getSelectionText(selectedOpts, allOpts)}</span>
-            <span className='pointer-events-none absolute inset-y-0 right-2 flex items-center'>
-              <ArrowDown01Icon className='w-5 text-gray-400' />
+          <ListboxButton
+            className={`relative w-full cursor-pointer rounded-md ${bgColor} ${textColor} py-1 pl-2 pr-10 text-xs text-left shadow-sm ring-1 ring-inset ${borderColor} focus:outline-none focus:ring-2 focus:ring-indigo-600`}
+          >
+            <span className='block truncate'>{getSelectionText(selectedOpts, allOpts)}</span>
+            <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1'>
+              <ArrowDown01Icon className='h-5 w-5 text-gray-400' aria-hidden='true' />
             </span>
           </ListboxButton>
         </div>

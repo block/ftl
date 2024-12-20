@@ -159,20 +159,12 @@ export const TimelineTimeControls = ({
         )}
         {!isTailing && (
           <span className={`isolate inline-flex rounded-md shadow-sm h-6 ${textColor} ${bgColor}`}>
-            <button
-              type='button'
-              onClick={handleTimeBackward}
-              className={`relative inline-flex items-center rounded-l-md px-1.5 text-sm font-semibold ring-1 ring-inset ${borderColor} hover:bg-gray-50 dark:hover:bg-indigo-700`}
-            >
+            <Button variant='secondary' size='xs' onClick={handleTimeBackward} className='rounded-r-none'>
               <Backward02Icon className='w-4 h-4' />
-            </button>
-            <button
-              type='button'
-              onClick={handleTimeForward}
-              className={`relative -ml-px inline-flex items-center rounded-r-md px-1.5 text-sm font-semibold ring-1 ring-inset ${borderColor} hover:bg-gray-50 dark:hover:bg-indigo-700`}
-            >
+            </Button>
+            <Button variant='secondary' size='xs' onClick={handleTimeForward} className='rounded-l-none'>
               <Forward02Icon className='w-4 h-4' />
-            </button>
+            </Button>
           </span>
         )}
       </div>
