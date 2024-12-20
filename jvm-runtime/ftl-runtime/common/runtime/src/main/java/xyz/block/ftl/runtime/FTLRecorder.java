@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.BiFunction;
 
 import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
@@ -27,7 +26,7 @@ public class FTLRecorder {
     public static final String X_FTL_VERB = "X-ftl-verb";
 
     public void registerVerb(String module, String verbName, String methodName, List<Class<?>> parameterTypes,
-            Class<?> verbHandlerClass, List<BiFunction<ObjectMapper, CallRequest, Object>> paramMappers,
+            Class<?> verbHandlerClass, List<VerbRegistry.ParameterSupplier> paramMappers,
             boolean allowNullReturn) {
         //TODO: this sucks
         try {
@@ -67,11 +66,11 @@ public class FTLRecorder {
         }
     }
 
-    public BiFunction<ObjectMapper, CallRequest, Object> topicSupplier(String className, String callingVerb) {
+    public VerbRegistry.ParameterSupplier topicSupplier(String className, String callingVerb) {
         try {
             var cls = Thread.currentThread().getContextClassLoader().loadClass(className.replace("/", "."));
             var topic = cls.getDeclaredConstructor(String.class).newInstance(callingVerb);
-            return new BiFunction<ObjectMapper, CallRequest, Object>() {
+            return new VerbRegistry.ParameterSupplier() {
                 @Override
                 public Object apply(ObjectMapper mapper, CallRequest callRequest) {
                     return topic;
@@ -82,11 +81,11 @@ public class FTLRecorder {
         }
     }
 
-    public BiFunction<ObjectMapper, CallRequest, Object> verbClientSupplier(String className) {
+    public VerbRegistry.ParameterSupplier verbClientSupplier(String className) {
         try {
             var cls = Thread.currentThread().getContextClassLoader().loadClass(className.replace("/", "."));
             var client = cls.getDeclaredConstructor().newInstance();
-            return new BiFunction<ObjectMapper, CallRequest, Object>() {
+            return new VerbRegistry.ParameterSupplier() {
                 @Override
                 public Object apply(ObjectMapper mapper, CallRequest callRequest) {
                     return client;
@@ -97,8 +96,8 @@ public class FTLRecorder {
         }
     }
 
-    public BiFunction<ObjectMapper, CallRequest, Object> leaseClientSupplier() {
-        return new BiFunction<ObjectMapper, CallRequest, Object>() {
+    public VerbRegistry.ParameterSupplier leaseClientSupplier() {
+        return new VerbRegistry.ParameterSupplier() {
 
             @Override
             public Object apply(ObjectMapper mapper, CallRequest callRequest) {

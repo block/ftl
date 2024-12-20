@@ -3,6 +3,7 @@ package xyz.block.ftl.runtime;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.google.protobuf.ByteString;
 
 import io.quarkus.arc.Arc;
@@ -37,7 +39,7 @@ public class VerbRegistry {
     }
 
     public void register(String module, String name, InstanceHandle<?> verbHandlerClass, Method method,
-            List<BiFunction<ObjectMapper, CallRequest, Object>> paramMappers, boolean allowNullReturn) {
+            List<ParameterSupplier> paramMappers, boolean allowNullReturn) {
         verbs.put(new Key(module, name), new AnnotatedEndpointHandler(verbHandlerClass, method, paramMappers, allowNullReturn));
     }
 
@@ -61,15 +63,18 @@ public class VerbRegistry {
     private class AnnotatedEndpointHandler implements VerbInvoker {
         final InstanceHandle<?> verbHandlerClass;
         final Method method;
-        final List<BiFunction<ObjectMapper, CallRequest, Object>> parameterSuppliers;
+        final List<ParameterSupplier> parameterSuppliers;
         final boolean allowNull;
 
         private AnnotatedEndpointHandler(InstanceHandle<?> verbHandlerClass, Method method,
-                List<BiFunction<ObjectMapper, CallRequest, Object>> parameterSuppliers, boolean allowNull) {
+                List<ParameterSupplier> parameterSuppliers, boolean allowNull) {
             this.verbHandlerClass = verbHandlerClass;
             this.method = method;
             this.parameterSuppliers = parameterSuppliers;
             this.allowNull = allowNull;
+            for (ParameterSupplier parameterSupplier : parameterSuppliers) {
+                parameterSupplier.init(method);
+            }
         }
 
         public CallResponse handle(CallRequest in) {
@@ -106,19 +111,36 @@ public class VerbRegistry {
         }
     }
 
-    public record BodySupplier(Class<?> inputClass) implements BiFunction<ObjectMapper, CallRequest, Object> {
+    public static class BodySupplier implements ParameterSupplier {
+
+        final int parameterIndex;
+        volatile Type inputClass;
+
+        public BodySupplier(int parameterIndex) {
+            this.parameterIndex = parameterIndex;
+        }
+
+        public void init(Method method) {
+            inputClass = method.getGenericParameterTypes()[parameterIndex];
+        }
 
         @Override
         public Object apply(ObjectMapper mapper, CallRequest in) {
             try {
-                return mapper.createParser(in.getBody().newInput()).readValueAs(inputClass);
+                ObjectReader reader = mapper.reader();
+                return reader.forType(reader.getTypeFactory().constructType(inputClass))
+                        .readValue(in.getBody().newInput());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
+
+        public int getParameterIndex() {
+            return parameterIndex;
+        }
     }
 
-    public static class SecretSupplier implements BiFunction<ObjectMapper, CallRequest, Object>, ParameterExtractor {
+    public static class SecretSupplier implements ParameterSupplier, ParameterExtractor {
 
         final String name;
         final Class<?> inputClass;
@@ -153,7 +175,7 @@ public class VerbRegistry {
         }
     }
 
-    public static class ConfigSupplier implements BiFunction<ObjectMapper, CallRequest, Object>, ParameterExtractor {
+    public static class ConfigSupplier implements ParameterSupplier, ParameterExtractor {
 
         final String name;
         final Class<?> inputClass;
@@ -187,4 +209,12 @@ public class VerbRegistry {
         }
     }
 
+    public interface ParameterSupplier extends BiFunction<ObjectMapper, CallRequest, Object> {
+
+        // TODO: this is pretty yuck, but it lets us avoid a whole heap of nasty stuff to get the generic type
+        default void init(Method method) {
+
+        }
+
+    }
 }
