@@ -24,9 +24,9 @@ export const Button = ({ children, size = 'md', variant = 'primary', fullWidth =
   const baseClasses = 'font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
   const variantClasses = {
     primary:
-      'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-500 dark:hover:bg-indigo-400 focus-visible:outline-indigo-600 dark:focus-visible:outline-indigo-500 disabled:bg-indigo-200/50 dark:disabled:bg-indigo-500/20 disabled:cursor-not-allowed disabled:hover:bg-indigo-200',
+      'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-500 dark:hover:bg-indigo-400 focus-visible:outline-indigo-600 dark:focus-visible:outline-indigo-500 disabled:bg-indigo-200/50 dark:disabled:bg-indigo-500/20 disabled:cursor-not-allowed disabled:hover:bg-indigo-200 dark:ring-0',
     secondary:
-      'bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-gray-600 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 dark:ring-0 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-white/5 dark:disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:bg-gray-100',
+      'bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-gray-600 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 dark:ring-1 dark:ring-white/10 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-white/5 dark:disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:bg-gray-100',
   }
 
   return (
