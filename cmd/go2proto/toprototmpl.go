@@ -157,16 +157,14 @@ func {{ .Name }}ToProto(value {{ .Name }}) *destpb.{{ .Name }} {
 		`))
 
 type Go2ProtoContext struct {
-	Directives
-	Config
+	PackageDirectives
 	File
 }
 
-func renderToProto(out *os.File, directives Directives, config Config, file File) error {
+func renderToProto(out *os.File, directives PackageDirectives, file File) error {
 	err := go2protoTmpl.Execute(out, Go2ProtoContext{
-		Directives: directives,
-		Config:     config,
-		File:       file,
+		PackageDirectives: directives,
+		File:              file,
 	})
 	if err != nil {
 		return fmt.Errorf("template error: %w", err)

@@ -17,6 +17,7 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
+//protobuf:export
 type Schema struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 

@@ -84,6 +84,7 @@ func TopicRuntimeFromProto(t *schemapb.TopicRuntime) *TopicRuntime {
 }
 
 //protobuf:6 RuntimeEvent
+//protobuf:export
 type TopicRuntimeEvent struct {
 	ID      string        `parser:"" protobuf:"1"`
 	Payload *TopicRuntime `parser:"" protobuf:"2"`

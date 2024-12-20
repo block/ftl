@@ -54,6 +54,7 @@ func ModuleRuntimeEventFromProto(s *schemapb.ModuleRuntimeEvent) ModuleRuntimeEv
 }
 
 //sumtype:decl
+//protobuf:export
 type ModuleRuntimeEvent interface {
 	RuntimeEvent
 
