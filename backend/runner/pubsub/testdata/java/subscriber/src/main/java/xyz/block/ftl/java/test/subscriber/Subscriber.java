@@ -44,6 +44,6 @@ public class Subscriber {
 
     @Subscription(topic = ConsumeButFailAndRetryFailedTopic.class, from = FromOffset.BEGINNING)
     public void consumeFromDeadLetter(FailedEvent<PubSubEvent> event) {
-        throw new RuntimeException("always error: event " + event.getEvent().getTime());
+        Log.infof("consumeFromDeadLetter: %s", event.getEvent().getTime());
     }
 }
