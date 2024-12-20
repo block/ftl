@@ -74,7 +74,7 @@ func TestRetry(t *testing.T) {
 		checkConsumed("subscriber", "consumeButFailAndRetry", false, retriesPerCall+1, optional.Some("secondCall")),
 		checkPublished("subscriber", "consumeButFailAndRetryFailed", 2),
 
-		in.IfLanguage("go", checkConsumed("subscriber", "consumeFromDeadLetter", true, 2, optional.None[string]())),
+		checkConsumed("subscriber", "consumeFromDeadLetter", true, 2, optional.None[string]()),
 	)
 }
 

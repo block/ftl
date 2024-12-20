@@ -7,47 +7,8 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import ftl.gomodule.AnimalWrapper;
-import ftl.gomodule.BoolVerbClient;
-import ftl.gomodule.BytesVerbClient;
-import ftl.gomodule.ColorWrapper;
-import ftl.gomodule.EmptyVerbClient;
-import ftl.gomodule.ErrorEmptyVerbClient;
-import ftl.gomodule.ExternalTypeVerbClient;
-import ftl.gomodule.FloatVerbClient;
-import ftl.gomodule.IntVerbClient;
-import ftl.gomodule.ObjectArrayVerbClient;
-import ftl.gomodule.ObjectMapVerbClient;
-import ftl.gomodule.OptionalBoolVerbClient;
-import ftl.gomodule.OptionalBytesVerbClient;
-import ftl.gomodule.OptionalFloatVerbClient;
-import ftl.gomodule.OptionalIntVerbClient;
-import ftl.gomodule.OptionalStringArrayVerbClient;
-import ftl.gomodule.OptionalStringMapVerbClient;
-import ftl.gomodule.OptionalStringVerbClient;
-import ftl.gomodule.OptionalTestObjectOptionalFieldsVerbClient;
-import ftl.gomodule.OptionalTestObjectVerbClient;
-import ftl.gomodule.OptionalTimeVerbClient;
-import ftl.gomodule.ParameterizedObjectVerbClient;
-import ftl.gomodule.ParameterizedType;
-import ftl.gomodule.Scalar;
-import ftl.gomodule.ShapeWrapper;
-import ftl.gomodule.SinkVerbClient;
-import ftl.gomodule.SourceVerbClient;
-import ftl.gomodule.StringArrayVerbClient;
-import ftl.gomodule.StringEnumVerbClient;
-import ftl.gomodule.StringList;
-import ftl.gomodule.StringMapVerbClient;
-import ftl.gomodule.StringVerbClient;
-import ftl.gomodule.TestObject;
-import ftl.gomodule.TestObjectOptionalFields;
-import ftl.gomodule.TestObjectOptionalFieldsVerbClient;
-import ftl.gomodule.TestObjectVerbClient;
-import ftl.gomodule.TimeVerbClient;
-import ftl.gomodule.TypeEnumVerbClient;
-import ftl.gomodule.TypeEnumWrapper;
-import ftl.gomodule.TypeWrapperEnumVerbClient;
-import ftl.gomodule.ValueEnumVerbClient;
+import ftl.builtin.FailedEvent;
+import ftl.gomodule.*;
 import web5.sdk.dids.didcore.Did;
 import xyz.block.ftl.Export;
 import xyz.block.ftl.Verb;
@@ -152,6 +113,13 @@ public class TestInvokeGoFromJava {
     @Verb
     public @NotNull TestObject testObjectVerb(@NotNull TestObject val, TestObjectVerbClient client) {
         return client.testObjectVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull FailedEvent<TestObject> testGenericType(@NotNull FailedEvent<TestObject> val,
+            TestGenericTypeClient client) {
+        return client.testGenericType(val);
     }
 
     @Export

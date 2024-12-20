@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -36,7 +35,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.arc.processor.DotNames;
 import xyz.block.ftl.Config;
@@ -73,7 +71,6 @@ import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.TypeAlias;
 import xyz.block.ftl.schema.v1.Unit;
 import xyz.block.ftl.schema.v1.Verb;
-import xyz.block.ftl.v1.CallRequest;
 
 public class ModuleBuilder {
 
@@ -190,7 +187,7 @@ public class ModuleBuilder {
             boolean exported, BodyType bodyType, Consumer<Verb.Builder> metadataCallback) {
         try {
             List<Class<?>> parameterTypes = new ArrayList<>();
-            List<BiFunction<ObjectMapper, CallRequest, Object>> paramMappers = new ArrayList<>();
+            List<VerbRegistry.ParameterSupplier> paramMappers = new ArrayList<>();
             org.jboss.jandex.Type bodyParamType = null;
             Nullability bodyParamNullability = Nullability.MISSING;
 
@@ -199,7 +196,9 @@ public class ModuleBuilder {
             MetadataCalls.Builder callsMetadata = MetadataCalls.newBuilder();
             MetadataConfig.Builder configMetadata = MetadataConfig.newBuilder();
             MetadataSecrets.Builder secretMetadata = MetadataSecrets.newBuilder();
+            var pos = -1;
             for (var param : method.parameters()) {
+                pos++;
                 if (param.hasAnnotation(Secret.class)) {
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
                     parameterTypes.add(paramType);
@@ -248,7 +247,7 @@ public class ModuleBuilder {
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
                     parameterTypes.add(paramType);
                     //TODO: map and list types
-                    paramMappers.add(new VerbRegistry.BodySupplier(paramType));
+                    paramMappers.add(new VerbRegistry.BodySupplier(pos));
                 } else {
                     throw new RuntimeException("Unknown parameter type " + param.type() + " on FTL method: "
                             + method.declaringClass().name() + "." + method.name());
