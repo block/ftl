@@ -127,9 +127,11 @@ func installHermitFTL(ctx context.Context, dir string) error {
 	normalRelease := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 	normal := normalRelease.MatchString(ftlVersion)
 	if !normal {
-		ftlVersion = "latest"
+		ftlVersion = "@latest"
+	} else {
+		ftlVersion = "-" + ftlVersion
 	}
-	args := []string{"install", "ftl@" + ftlVersion}
+	args := []string{"install", "ftl" + ftlVersion}
 	if err := exec.Command(ctx, log.Debug, dir, "./bin/hermit", args...).RunBuffered(ctx); err != nil {
 		return fmt.Errorf("unable to install hermit package ftl %w", err)
 	}
