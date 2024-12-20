@@ -12,9 +12,9 @@ import xyz.block.ftl.Topic;
 import xyz.block.ftl.TopicPartitionMapper;
 import xyz.block.ftl.WriteableTopic;
 
-class PartitionMapper implements TopicPartitionMapper<PubSubEvent> {
-    public String getPartitionKey(PubSubEvent event) {
-        return event.getTime().toString();
+class PartitionMapper implements TopicPartitionMapper<FailedEvent<PubSubEvent>> {
+    public String getPartitionKey(FailedEvent<PubSubEvent> event) {
+        return event.getEvent().getTime().toString();
     }
 }
 
@@ -32,7 +32,7 @@ public class Subscriber {
 
     // Java requires the topic to be explicitly defined as an interface for consuming to work
     @Topic("consumeButFailAndRetryFailed")
-    interface ConsumeButFailAndRetryFailedTopic extends WriteableTopic<PubSubEvent, PartitionMapper> {
+    interface ConsumeButFailAndRetryFailedTopic extends WriteableTopic<FailedEvent<PubSubEvent>, PartitionMapper> {
 
     }
 
@@ -43,7 +43,7 @@ public class Subscriber {
     }
 
     @Subscription(topic = ConsumeButFailAndRetryFailedTopic.class, from = FromOffset.BEGINNING)
-    public void consumeFromDeadLetter(builtin.FailedEvent<PubSubEvent> event) {
+    public void consumeFromDeadLetter(FailedEvent<PubSubEvent> event) {
         throw new RuntimeException("always error: event " + event.getEvent().getTime());
     }
 }
