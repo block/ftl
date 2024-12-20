@@ -74,8 +74,6 @@ func TestRetry(t *testing.T) {
 		checkConsumed("subscriber", "consumeButFailAndRetry", false, retriesPerCall+1, optional.Some("firstCall")),
 		checkConsumed("subscriber", "consumeButFailAndRetry", false, retriesPerCall+1, optional.Some("secondCall")),
 		checkPublished("subscriber", "consumeButFailAndRetryFailed", 2),
-
-		// jvm does not allow subscribing to dead letter topics yet
 		checkConsumed("subscriber", "consumeFromDeadLetter", true, 2, optional.None[string]()),
 	)
 }
