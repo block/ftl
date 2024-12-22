@@ -46,7 +46,7 @@ func (x *Message) ToProto() *destpb.Message {
 		return nil
 	}
 	return &destpb.Message{
-		Time:     string(protoMust(x.Time.MarshalText())),
+		Time:     timestamppb.New(x.Time),
 		Duration: durationpb.New(x.Duration),
 		Nested:   x.Nested.ToProto(),
 	}
