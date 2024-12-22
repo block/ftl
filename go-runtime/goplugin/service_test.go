@@ -114,12 +114,11 @@ func TestGoConfigDefaults(t *testing.T) {
 
 func defaultsFromProto(proto *langpb.ModuleConfigDefaultsResponse) moduleconfig.CustomDefaults {
 	return moduleconfig.CustomDefaults{
-		DeployDir:          proto.DeployDir,
-		Watch:              proto.Watch,
-		Build:              optional.Ptr(proto.Build),
-		DevModeBuild:       optional.Ptr(proto.DevModeBuild),
-		GeneratedSchemaDir: optional.Ptr(proto.GeneratedSchemaDir),
-		LanguageConfig:     proto.LanguageConfig.AsMap(),
-		SQLMigrationDir:    proto.SqlMigrationDir,
+		DeployDir:       proto.DeployDir,
+		Watch:           proto.Watch,
+		Build:           optional.Ptr(proto.Build),
+		DevModeBuild:    optional.Ptr(proto.DevModeBuild),
+		LanguageConfig:  proto.LanguageConfig.AsMap(),
+		SQLMigrationDir: proto.SqlMigrationDir,
 	}
 }

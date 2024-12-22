@@ -241,14 +241,13 @@ func (p *LanguagePlugin) ModuleConfigDefaults(ctx context.Context, dir string) (
 
 func customDefaultsFromProto(proto *langpb.ModuleConfigDefaultsResponse) moduleconfig.CustomDefaults {
 	return moduleconfig.CustomDefaults{
-		DeployDir:          proto.DeployDir,
-		Watch:              proto.Watch,
-		Build:              optional.Ptr(proto.Build),
-		DevModeBuild:       optional.Ptr(proto.DevModeBuild),
-		BuildLock:          optional.Ptr(proto.BuildLock),
-		GeneratedSchemaDir: optional.Ptr(proto.GeneratedSchemaDir),
-		LanguageConfig:     proto.LanguageConfig.AsMap(),
-		SQLMigrationDir:    proto.SqlMigrationDir,
+		DeployDir:       proto.DeployDir,
+		Watch:           proto.Watch,
+		Build:           optional.Ptr(proto.Build),
+		DevModeBuild:    optional.Ptr(proto.DevModeBuild),
+		BuildLock:       optional.Ptr(proto.BuildLock),
+		LanguageConfig:  proto.LanguageConfig.AsMap(),
+		SQLMigrationDir: proto.SqlMigrationDir,
 	}
 }
 
@@ -300,7 +299,7 @@ func (p *LanguagePlugin) GenerateStubs(ctx context.Context, dir string, module *
 // import the modules when users start reference them.
 //
 // It is optional to do anything with this call.
-func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleconfig.ModuleConfig, dir string, moduleNames []string) error {
+func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleconfig.ModuleConfig, dir string, moduleNames []string, view *schema.Schema) error {
 	configProto, err := langpb.ModuleConfigToProto(config.Abs())
 	if err != nil {
 		return fmt.Errorf("could not create proto for native module config: %w", err)
@@ -309,6 +308,7 @@ func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleco
 		StubsRoot:    dir,
 		Modules:      moduleNames,
 		ModuleConfig: configProto,
+		Schema:       view.ToProto(),
 	}))
 	if err != nil {
 		return fmt.Errorf("plugin failed to sync stub references: %w", err)

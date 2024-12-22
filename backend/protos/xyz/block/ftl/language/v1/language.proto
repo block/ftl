@@ -103,9 +103,6 @@ message ModuleConfigDefaultsResponse {
   // Build lock path to prevent concurrent builds
   optional string build_lock = 4;
 
-  // Default relative path to the directory containing generated schema files
-  optional string generated_schema_dir = 5;
-
   // Default patterns to watch for file changes, relative to the module directory
   repeated string watch = 6;
 
@@ -289,6 +286,9 @@ message SyncStubReferencesRequest {
 
   // The names of all modules that have had stubs generated
   repeated string modules = 3;
+
+  // The complete FTL schema
+  ftl.schema.v1.Schema schema = 4;
 }
 
 message SyncStubReferencesResponse {}

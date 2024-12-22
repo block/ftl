@@ -22,12 +22,11 @@ func TestDefaulting(t *testing.T) {
 				Language: "test",
 			},
 			defaults: CustomDefaults{
-				Build:              optional.Some("build"),
-				DevModeBuild:       optional.Some("devmodebuild"),
-				BuildLock:          optional.Some("customdefaultlock"),
-				DeployDir:          "deploydir",
-				GeneratedSchemaDir: optional.Some("generatedschemadir"),
-				Watch:              []string{"a", "b", "c"},
+				Build:        optional.Some("build"),
+				DevModeBuild: optional.Some("devmodebuild"),
+				BuildLock:    optional.Some("customdefaultlock"),
+				DeployDir:    "deploydir",
+				Watch:        []string{"a", "b", "c"},
 			},
 			expected: ModuleConfig{
 				Realm:        "home",
@@ -57,11 +56,10 @@ func TestDefaulting(t *testing.T) {
 				},
 			},
 			defaults: CustomDefaults{
-				Build:              optional.Some("build"),
-				DevModeBuild:       optional.Some("devmodebuild"),
-				DeployDir:          "deploydir",
-				GeneratedSchemaDir: optional.Some("generatedschemadir"),
-				Watch:              []string{"a", "b", "c"},
+				Build:        optional.Some("build"),
+				DevModeBuild: optional.Some("devmodebuild"),
+				DeployDir:    "deploydir",
+				Watch:        []string{"a", "b", "c"},
 			},
 			expected: ModuleConfig{
 				Realm:        "home",
