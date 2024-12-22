@@ -1,2 +1,2 @@
-openjdk-17.0.8_7
+openjdk-21.0.3_9
 maven-3.9.9
