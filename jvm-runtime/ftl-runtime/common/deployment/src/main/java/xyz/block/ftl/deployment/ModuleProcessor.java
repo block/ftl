@@ -2,6 +2,7 @@ package xyz.block.ftl.deployment;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -101,6 +102,9 @@ public class ModuleProcessor {
         Path errorOutput = outputTargetBuildItem.getOutputDirectory().resolve(ERRORS_OUT);
         devModeProblemTimer = new Timer("FTL Dev Mode Error Report", true);
         devModeProblemTimer.schedule(new TimerTask() {
+
+            String errorHash;
+
             @Override
             public void run() {
                 Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
@@ -121,15 +125,34 @@ public class ModuleProcessor {
                                 .setMsg(deploymentProblems.getMessage())
                                 .build());
                     }
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     try (var out = Files.newOutputStream(errorOutput)) {
+                        builder.build().writeTo(baos);
+                        errorHash = HashUtil.sha256(baos.toByteArray());
                         builder.build().writeTo(out);
                     } catch (IOException e) {
                         log.error("Failed to write error list", e);
                     }
+                } else if (errorHash != null) {
+                    if (!Files.exists(errorOutput)) {
+                        // File already cleared
+                        errorHash = null;
+                    } else {
+                        try {
+                            var currentHash = HashUtil.sha256(Files.readAllBytes(errorOutput));
+                            if (currentHash.equals(errorHash)) {
+                                try (OutputStream output = Files.newOutputStream(errorOutput)) {
+                                    ErrorList.newBuilder().build().writeTo(output);
+                                }
+                            }
+                        } catch (IOException e) {
+                            log.errorf("Failed to read error list", e);
+                        }
+                    }
                 }
             }
         }, 1000, 1000);
-        ((QuarkusClassLoader) Thread.currentThread().getContextClassLoader()).addCloseTask(new Runnable() {
+        ((QuarkusClassLoader) ModuleProcessor.class.getClassLoader()).addCloseTask(new Runnable() {
             @Override
             public void run() {
                 devModeProblemTimer.cancel();
