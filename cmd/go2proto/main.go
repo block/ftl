@@ -173,6 +173,13 @@ func (m Message) DeclName() string { return m.Name }
 
 type Kind string
 
+func (k Kind) String() string {
+	if k == KindUnspecified {
+		return "Unspecified"
+	}
+	return string(k)
+}
+
 const (
 	KindUnspecified     Kind = ""
 	KindBuiltin         Kind = "Builtin"
@@ -699,12 +706,6 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 		}
 
 	case *types.Named:
-		if s.canMarshal(t, field, t.Obj().Name()) {
-			return nil
-		}
-		if err := s.extractDecl(t.Obj(), t); err != nil {
-			return err
-		}
 		ref := t.Obj().Pkg().Path() + "." + t.Obj().Name()
 		if bt, ok := stdTypes[ref]; ok {
 			field.ProtoType = bt.ref
@@ -712,6 +713,12 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 			field.OriginType = t.Obj().Name()
 			field.Kind = KindStdlib
 		} else {
+			if s.canMarshal(t, field, t.Obj().Name()) {
+				return nil
+			}
+			if err := s.extractDecl(t.Obj(), t); err != nil {
+				return err
+			}
 			field.ProtoType = t.Obj().Name()
 			field.ProtoGoType = protoName(t.Obj().Name())
 			field.OriginType = t.Obj().Name()

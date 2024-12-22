@@ -14,7 +14,7 @@ enum Enum {
 }
 
 message Message {
-  string time = 1;
+  google.protobuf.Timestamp time = 1;
   google.protobuf.Duration duration = 2;
   Nested nested = 3;
 }
