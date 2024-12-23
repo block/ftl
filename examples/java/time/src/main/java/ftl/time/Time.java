@@ -12,4 +12,10 @@ public class Time {
     public TimeResponse time() {
         return new TimeResponse(OffsetDateTime.now().plusDays(1));
     }
+
+    @Verb
+    @Export
+    public TimeResponse time2() {
+        return new TimeResponse(OffsetDateTime.now().plusDays(1));
+    }
 }

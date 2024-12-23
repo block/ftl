@@ -496,13 +496,6 @@ export class ModuleConfigDefaultsResponse extends Message<ModuleConfigDefaultsRe
   buildLock?: string;
 
   /**
-   * Default relative path to the directory containing generated schema files
-   *
-   * @generated from field: optional string generated_schema_dir = 5;
-   */
-  generatedSchemaDir?: string;
-
-  /**
    * Default patterns to watch for file changes, relative to the module directory
    *
    * @generated from field: repeated string watch = 6;
@@ -536,7 +529,6 @@ export class ModuleConfigDefaultsResponse extends Message<ModuleConfigDefaultsRe
     { no: 2, name: "build", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 3, name: "dev_mode_build", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 4, name: "build_lock", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 5, name: "generated_schema_dir", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 6, name: "watch", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 7, name: "language_config", kind: "message", T: Struct },
     { no: 8, name: "sql_migration_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -1451,6 +1443,13 @@ export class SyncStubReferencesRequest extends Message<SyncStubReferencesRequest
    */
   modules: string[] = [];
 
+  /**
+   * The complete FTL schema
+   *
+   * @generated from field: xyz.block.ftl.schema.v1.Schema schema = 4;
+   */
+  schema?: Schema;
+
   constructor(data?: PartialMessage<SyncStubReferencesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1462,6 +1461,7 @@ export class SyncStubReferencesRequest extends Message<SyncStubReferencesRequest
     { no: 1, name: "module_config", kind: "message", T: ModuleConfig },
     { no: 2, name: "stubs_root", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "modules", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "schema", kind: "message", T: Schema },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SyncStubReferencesRequest {

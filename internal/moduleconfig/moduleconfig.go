@@ -56,12 +56,11 @@ type AbsModuleConfig ModuleConfig
 type UnvalidatedModuleConfig ModuleConfig
 
 type CustomDefaults struct {
-	DeployDir          string
-	Watch              []string
-	BuildLock          optional.Option[string]
-	Build              optional.Option[string]
-	DevModeBuild       optional.Option[string]
-	GeneratedSchemaDir optional.Option[string]
+	DeployDir    string
+	Watch        []string
+	BuildLock    optional.Option[string]
+	Build        optional.Option[string]
+	DevModeBuild optional.Option[string]
 
 	// only the root keys in LanguageConfig are used to find missing values that can be defaulted
 	LanguageConfig map[string]any `toml:"-"`

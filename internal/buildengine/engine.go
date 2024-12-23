@@ -913,7 +913,7 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 		}
 
 		// Sync references to stubs if needed by the runtime
-		err = SyncStubReferences(ctx, e.projectConfig.Root(), moduleNames, metasMap)
+		err = SyncStubReferences(ctx, e.projectConfig.Root(), moduleNames, metasMap, &schema.Schema{Modules: maps.Values(builtModules)})
 		if err != nil {
 			return err
 		}

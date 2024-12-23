@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/slices"
@@ -1049,4 +1050,28 @@ func TestParseTypeMap(t *testing.T) {
 	assert.NoError(t, err)
 	actual = Normalise(actual)
 	assert.Equal(t, testSchema.Modules[4], actual, assert.Exclude[Position]())
+}
+
+func TestModuleDependencies(t *testing.T) {
+	input := `
+// A comment
+module a {
+  export verb m(Unit) Unit
+  	+calls b.m
+}
+module b {
+  export verb m(Unit) Unit
+  	+calls c.m
+}
+module c {
+  export verb m(Unit) Unit
+}
+`
+	actual, err := ParseString("", input)
+	assert.NoError(t, err)
+	actual = Normalise(actual)
+	assert.Equal(t, []string{"b", "c"}, maps.Keys(actual.ModuleDependencies("a")))
+	assert.Equal(t, []string{"c"}, maps.Keys(actual.ModuleDependencies("b")))
+	assert.Equal(t, []string{}, maps.Keys(actual.ModuleDependencies("c")))
+
 }

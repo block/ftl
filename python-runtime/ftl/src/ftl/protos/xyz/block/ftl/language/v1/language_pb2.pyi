@@ -95,12 +95,11 @@ class ModuleConfigDefaultsRequest(_message.Message):
     def __init__(self, dir: _Optional[str] = ...) -> None: ...
 
 class ModuleConfigDefaultsResponse(_message.Message):
-    __slots__ = ("deploy_dir", "build", "dev_mode_build", "build_lock", "generated_schema_dir", "watch", "language_config", "sql_migration_dir")
+    __slots__ = ("deploy_dir", "build", "dev_mode_build", "build_lock", "watch", "language_config", "sql_migration_dir")
     DEPLOY_DIR_FIELD_NUMBER: _ClassVar[int]
     BUILD_FIELD_NUMBER: _ClassVar[int]
     DEV_MODE_BUILD_FIELD_NUMBER: _ClassVar[int]
     BUILD_LOCK_FIELD_NUMBER: _ClassVar[int]
-    GENERATED_SCHEMA_DIR_FIELD_NUMBER: _ClassVar[int]
     WATCH_FIELD_NUMBER: _ClassVar[int]
     LANGUAGE_CONFIG_FIELD_NUMBER: _ClassVar[int]
     SQL_MIGRATION_DIR_FIELD_NUMBER: _ClassVar[int]
@@ -108,11 +107,10 @@ class ModuleConfigDefaultsResponse(_message.Message):
     build: str
     dev_mode_build: str
     build_lock: str
-    generated_schema_dir: str
     watch: _containers.RepeatedScalarFieldContainer[str]
     language_config: _struct_pb2.Struct
     sql_migration_dir: str
-    def __init__(self, deploy_dir: _Optional[str] = ..., build: _Optional[str] = ..., dev_mode_build: _Optional[str] = ..., build_lock: _Optional[str] = ..., generated_schema_dir: _Optional[str] = ..., watch: _Optional[_Iterable[str]] = ..., language_config: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., sql_migration_dir: _Optional[str] = ...) -> None: ...
+    def __init__(self, deploy_dir: _Optional[str] = ..., build: _Optional[str] = ..., dev_mode_build: _Optional[str] = ..., build_lock: _Optional[str] = ..., watch: _Optional[_Iterable[str]] = ..., language_config: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., sql_migration_dir: _Optional[str] = ...) -> None: ...
 
 class GetDependenciesRequest(_message.Message):
     __slots__ = ("module_config",)
@@ -277,14 +275,16 @@ class GenerateStubsResponse(_message.Message):
     def __init__(self) -> None: ...
 
 class SyncStubReferencesRequest(_message.Message):
-    __slots__ = ("module_config", "stubs_root", "modules")
+    __slots__ = ("module_config", "stubs_root", "modules", "schema")
     MODULE_CONFIG_FIELD_NUMBER: _ClassVar[int]
     STUBS_ROOT_FIELD_NUMBER: _ClassVar[int]
     MODULES_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
     module_config: ModuleConfig
     stubs_root: str
     modules: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, module_config: _Optional[_Union[ModuleConfig, _Mapping]] = ..., stubs_root: _Optional[str] = ..., modules: _Optional[_Iterable[str]] = ...) -> None: ...
+    schema: _schema_pb2.Schema
+    def __init__(self, module_config: _Optional[_Union[ModuleConfig, _Mapping]] = ..., stubs_root: _Optional[str] = ..., modules: _Optional[_Iterable[str]] = ..., schema: _Optional[_Union[_schema_pb2.Schema, _Mapping]] = ...) -> None: ...
 
 class SyncStubReferencesResponse(_message.Message):
     __slots__ = ()

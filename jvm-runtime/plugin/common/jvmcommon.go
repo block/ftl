@@ -148,6 +148,19 @@ func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb
 }
 
 func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[langpb.SyncStubReferencesRequest]) (*connect.Response[langpb.SyncStubReferencesResponse], error) {
+
+	sch, err := schema.FromProto(req.Msg.Schema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse schema from proto: %w", err)
+	}
+	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse module config from proto: %w", err)
+	}
+	err = s.writeGenericSchemaFiles(ctx, sch, config)
+	if err != nil {
+		return nil, err
+	}
 	return connect.NewResponse(&langpb.SyncStubReferencesResponse{}), nil
 }
 
@@ -165,12 +178,18 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	if err != nil {
 		return err
 	}
-	err = s.writeGenericSchemaFiles(ctx, buildCtx)
+	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write generic schema files: %w", err)
 	}
 	if req.Msg.RebuildAutomatically {
 		return s.runDevMode(ctx, req, buildCtx, stream)
+	}
+
+	if s.acceptsContextUpdates.Load() {
+		// Already running in dev mode, we don't need to rebuild
+		s.updatesTopic.Publish(buildContextUpdatedEvent{buildCtx: buildCtx})
+		return nil
 	}
 
 	// Initial build
@@ -522,10 +541,6 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, err
 	}
-	err = s.writeGenericSchemaFiles(ctx, buildCtx)
-	if err != nil {
-		return nil, err
-	}
 
 	s.updatesTopic.Publish(buildContextUpdatedEvent{
 		buildCtx: buildCtx,
@@ -585,10 +600,9 @@ func loadJavaConfig(languageConfig any, language string) (JavaConfig, error) {
 
 func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
 	defaults := langpb.ModuleConfigDefaultsResponse{
-		GeneratedSchemaDir: ptr("src/main/ftl-module-schema"),
-		LanguageConfig:     &structpb.Struct{Fields: map[string]*structpb.Value{}},
-		Watch:              []string{"pom.xml", "src/**", "build/generated", "target/generated-sources"},
-		SqlMigrationDir:    "src/main/db",
+		LanguageConfig:  &structpb.Struct{Fields: map[string]*structpb.Value{}},
+		Watch:           []string{"pom.xml", "src/**", "build/generated", "target/generated-sources"},
+		SqlMigrationDir: "src/main/db",
 	}
 	dir := req.Msg.Dir
 	pom := filepath.Join(dir, "pom.xml")
@@ -803,17 +817,21 @@ func ptr(s string) *string {
 	return &s
 }
 
-func (s *Service) writeGenericSchemaFiles(ctx context.Context, buildContext buildContext) error {
+func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema, config moduleconfig.AbsModuleConfig) error {
 
-	modPath := filepath.Join(buildContext.Config.Dir, "src", "main", "ftl-module-schema")
+	logger := log.FromContext(ctx)
+	modPath := filepath.Join(config.Dir, "src", "main", "ftl-module-schema")
 	err := os.MkdirAll(modPath, 0750)
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", modPath, err)
 	}
-	logger := log.FromContext(ctx)
 
-	for _, mod := range buildContext.Schema.Modules {
-		if mod.Name == buildContext.Config.Module {
+	for _, mod := range v.Modules {
+		if mod.Name == config.Module {
+			continue
+		}
+		deps := v.ModuleDependencies(mod.Name)
+		if deps[config.Module] != nil {
 			continue
 		}
 		data, err := schema.ModuleToBytes(mod)

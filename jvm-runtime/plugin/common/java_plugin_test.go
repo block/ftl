@@ -30,10 +30,9 @@ func TestJavaConfigDefaults(t *testing.T) {
 			language: "kotlin",
 			dir:      "testdata/kotlin/echo",
 			expected: moduleconfig.CustomDefaults{
-				Build:              optional.Some("mvn -B clean package"),
-				DevModeBuild:       optional.Some("mvn clean quarkus:dev"),
-				DeployDir:          "target",
-				GeneratedSchemaDir: optional.Some("src/main/ftl-module-schema"),
+				Build:        optional.Some("mvn -B clean package"),
+				DevModeBuild: optional.Some("mvn clean quarkus:dev"),
+				DeployDir:    "target",
 				LanguageConfig: map[string]any{
 					"build-tool": "maven",
 				},
@@ -50,10 +49,9 @@ func TestJavaConfigDefaults(t *testing.T) {
 			language: "kotlin",
 			dir:      "testdata/kotlin/external",
 			expected: moduleconfig.CustomDefaults{
-				Build:              optional.Some("mvn -B clean package"),
-				DevModeBuild:       optional.Some("mvn clean quarkus:dev"),
-				DeployDir:          "target",
-				GeneratedSchemaDir: optional.Some("src/main/ftl-module-schema"),
+				Build:        optional.Some("mvn -B clean package"),
+				DevModeBuild: optional.Some("mvn clean quarkus:dev"),
+				DeployDir:    "target",
 				LanguageConfig: map[string]any{
 					"build-tool": "maven",
 				},
