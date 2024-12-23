@@ -16,6 +16,8 @@ components:
   ingress-service: { in: backend/ingress/** }
   timeline-service: { in: backend/timeline/** }
   provisioner-service: { in: backend/provisioner/** }
+  admin-service: { in: backend/admin/** }
+  console-service: { in: backend/console/** }
   backend-protos: {in: backend/protos/**}
 
   ftl: { in: . }
@@ -31,15 +33,16 @@ components:
 
   ftl-runner-cmd: { in: cmd/ftl-runner/** }
   ftl-gen-lsp-cmd: { in: cmd/ftl-gen-lsp/** }
-  ftl-initdb-cmd: { in: cmd/ftl-initdb/** }
   ftl-provisioner-cloudformation-cmd: { in: cmd/ftl-provisioner-cloudformation/** }
   ftl-lease-cmd: { in: cmd/ftl-lease/** }
   ftl-http-ingress-cmd: { in: cmd/ftl-http-ingress/** }
   ftl-cron-cmd: { in: cmd/ftl-cron/** }
   ftl-timeline-cmd: { in: cmd/ftl-timeline/** }
   ftl-provisioner-cmd: { in: cmd/ftl-provisioner/** }
+  ftl-admin-cmd: { in: cmd/ftl-admin/** }
+  ftl-console-cmd: { in: cmd/ftl-console/** }
   ftl-proxy-pg-cmd: { in: cmd/ftl-proxy-pg/** }
-  devel-provisioner-cmd: { in: cmd/devel-provisioner/** }
+  ftl-raft-tester-cmd: { in: cmd/raft-tester/** }
 
   go2proto: { in: cmd/go2proto/** }
 
@@ -53,6 +56,7 @@ excludeFiles:
   - ".*/\\.ftl/.*"
   - "/examples/.*"
   - "/jvm-runtime/.*"
+  - ".*_test.go"
 
 allow:
   depOnAnyVendor: true
@@ -110,6 +114,8 @@ deps:
       - internal
       - backend-protos
       - lease-service
+      - admin-service
+      - console-service
   ftl-controller-cmd:
     mayDependOn:
       - controller
@@ -122,9 +128,6 @@ deps:
       - runner
       - internal
       - backend-protos
-  ftl-initdb-cmd:
-    mayDependOn:
-      - internal
   ftl-cron-cmd:
     mayDependOn:
       - cron-service
@@ -160,6 +163,16 @@ deps:
       - lease-service
       - internal
       - backend-protos
+  ftl-admin-cmd:
+    mayDependOn:
+      - admin-service
+      - internal
+      - backend-protos
+  ftl-console-cmd:
+    mayDependOn:
+      - console-service
+      - internal
+      - backend-protos
   cron-service:
     mayDependOn:
       - cron-service
@@ -182,6 +195,14 @@ deps:
       - internal
       - backend-protos
   lease-service:
+    mayDependOn:
+      - internal
+      - backend-protos
+  admin-service:
+    mayDependOn:
+      - internal
+      - backend-protos
+  console-service:
     mayDependOn:
       - internal
       - backend-protos
