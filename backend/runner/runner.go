@@ -27,9 +27,9 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
+
 	"github.com/block/ftl/backend/controller/artefacts"
 	ftldeploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
@@ -43,6 +43,7 @@ import (
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/download"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/exec"
@@ -113,12 +114,14 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 		observability.Runner.StartupFailed(ctx)
 		return fmt.Errorf("failed to marshal labels: %w", err)
 	}
+	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
 
 	svc := &Service{
 		key:                key,
 		config:             config,
 		storage:            storage,
 		controllerClient:   controllerClient,
+		timelineClient:     timelineClient,
 		labels:             labels,
 		deploymentLogQueue: make(chan log.Entry, 10000),
 		cancelFunc:         doneFunc,
@@ -163,9 +166,9 @@ func (s *Service) startDeployment(ctx context.Context, key model.DeploymentKey, 
 		// It is managed externally by the scaling system
 		return err
 	}
+	go s.streamLogsLoop(ctx)
 	go func() {
 		go rpc.RetryStreamingClientStream(ctx, backoff.Backoff{}, s.controllerClient.RegisterRunner, s.registrationLoop)
-		go rpc.RetryStreamingClientStream(ctx, backoff.Backoff{}, s.controllerClient.StreamDeploymentLogs, s.streamLogsLoop)
 	}()
 	return fmt.Errorf("failure in runner: %w", rpc.Serve(ctx, s.config.Bind,
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s),
@@ -250,6 +253,7 @@ type Service struct {
 	config           Config
 	storage          *artefacts.OCIArtefactService
 	controllerClient ftlv1connect.ControllerServiceClient
+	timelineClient   *timeline.Client
 	// Failed to register with the Controller
 	registrationFailure atomic.Value[optional.Option[error]]
 	labels              *structpb.Struct
@@ -342,10 +346,9 @@ func (s *Service) deploy(ctx context.Context, key model.DeploymentKey, module *s
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
-	timelineClient := timeline.NewClient(ctx, s.config.TimelineEndpoint)
-	s.proxy = proxy.New(deploymentServiceClient, leaseServiceClient, timelineClient)
+	s.proxy = proxy.New(deploymentServiceClient, leaseServiceClient, s.timelineClient)
 
-	pubSub, err := pubsub.New(module, key, s, timelineClient)
+	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
 		return fmt.Errorf("failed to create pubsub service: %w", err)
@@ -557,14 +560,16 @@ func (s *Service) registrationLoop(ctx context.Context, send func(request *ftlv1
 	return nil
 }
 
-func (s *Service) streamLogsLoop(ctx context.Context, send func(request *ftlv1.StreamDeploymentLogsRequest) error) error {
-	delay := time.Millisecond * 500
-
-	select {
-	case entry := <-s.deploymentLogQueue:
-		deploymentKey, ok := entry.Attributes["deployment"]
-		if !ok {
-			return fmt.Errorf("missing deployment key")
+func (s *Service) streamLogsLoop(ctx context.Context) {
+	for entry := range channels.IterContext(ctx, s.deploymentLogQueue) {
+		dep, ok := entry.Attributes["deployment"]
+		var deploymentKey model.DeploymentKey
+		var err error
+		if ok {
+			deploymentKey, err = model.ParseDeploymentKey(dep)
+			if err != nil {
+				continue
+			}
 		}
 
 		var errorString *string
@@ -572,30 +577,24 @@ func (s *Service) streamLogsLoop(ctx context.Context, send func(request *ftlv1.S
 			errStr := entry.Error.Error()
 			errorString = &errStr
 		}
-		var request *string
+		var request optional.Option[model.RequestKey]
 		if reqStr, ok := entry.Attributes["request"]; ok {
-			request = &reqStr
+			req, err := model.ParseRequestKey(reqStr) //nolint:errcheck // best effort
+			if err == nil {
+				request = optional.Some(req)
+			}
 		}
-
-		err := send(&ftlv1.StreamDeploymentLogsRequest{
-			RequestKey:    request,
+		s.timelineClient.Publish(ctx, &timeline.Log{
 			DeploymentKey: deploymentKey,
-			TimeStamp:     timestamppb.New(entry.Time),
-			LogLevel:      int32(entry.Level.Severity()),
+			RequestKey:    request,
+			Level:         int32(entry.Level),
+			Time:          entry.Time,
 			Attributes:    entry.Attributes,
 			Message:       entry.Message,
-			Error:         errorString,
+			Error:         optional.Ptr(errorString),
 		})
-		if err != nil {
-			return err
-		}
-	case <-time.After(delay):
-	case <-ctx.Done():
-		err := context.Cause(ctx)
-		return err
 	}
 
-	return nil
 }
 
 func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey model.DeploymentKey) *log.Logger {

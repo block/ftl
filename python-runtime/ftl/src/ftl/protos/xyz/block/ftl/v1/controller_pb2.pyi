@@ -1,5 +1,4 @@
 from google.protobuf import struct_pb2 as _struct_pb2
-from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from xyz.block.ftl.schema.v1 import schema_pb2 as _schema_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
 from google.protobuf.internal import containers as _containers
@@ -128,35 +127,6 @@ class ReplaceDeployRequest(_message.Message):
     def __init__(self, deployment_key: _Optional[str] = ..., min_replicas: _Optional[int] = ...) -> None: ...
 
 class ReplaceDeployResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class StreamDeploymentLogsRequest(_message.Message):
-    __slots__ = ("deployment_key", "request_key", "time_stamp", "log_level", "attributes", "message", "error")
-    class AttributesEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: str
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
-    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
-    REQUEST_KEY_FIELD_NUMBER: _ClassVar[int]
-    TIME_STAMP_FIELD_NUMBER: _ClassVar[int]
-    LOG_LEVEL_FIELD_NUMBER: _ClassVar[int]
-    ATTRIBUTES_FIELD_NUMBER: _ClassVar[int]
-    MESSAGE_FIELD_NUMBER: _ClassVar[int]
-    ERROR_FIELD_NUMBER: _ClassVar[int]
-    deployment_key: str
-    request_key: str
-    time_stamp: _timestamp_pb2.Timestamp
-    log_level: int
-    attributes: _containers.ScalarMap[str, str]
-    message: str
-    error: str
-    def __init__(self, deployment_key: _Optional[str] = ..., request_key: _Optional[str] = ..., time_stamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., log_level: _Optional[int] = ..., attributes: _Optional[_Mapping[str, str]] = ..., message: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
-
-class StreamDeploymentLogsResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 

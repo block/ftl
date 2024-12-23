@@ -3,7 +3,6 @@ syntax = "proto3";
 package xyz.block.ftl.v1;
 
 import "google/protobuf/struct.proto";
-import "google/protobuf/timestamp.proto";
 import "xyz/block/ftl/schema/v1/schema.proto";
 import "xyz/block/ftl/v1/ftl.proto";
 
@@ -79,17 +78,6 @@ message ReplaceDeployRequest {
   int32 min_replicas = 2;
 }
 message ReplaceDeployResponse {}
-
-message StreamDeploymentLogsRequest {
-  string deployment_key = 1;
-  optional string request_key = 2;
-  google.protobuf.Timestamp time_stamp = 3;
-  int32 log_level = 4;
-  map<string, string> attributes = 5;
-  string message = 6;
-  optional string error = 7;
-}
-message StreamDeploymentLogsResponse {}
 
 message StatusRequest {}
 message StatusResponse {
@@ -186,7 +174,4 @@ service ControllerService {
   // If a deployment already exists for the module of the new deployment,
   // it will be scaled down and replaced by the new one.
   rpc ReplaceDeploy(ReplaceDeployRequest) returns (ReplaceDeployResponse);
-
-  // Stream logs from a deployment
-  rpc StreamDeploymentLogs(stream StreamDeploymentLogsRequest) returns (StreamDeploymentLogsResponse);
 }

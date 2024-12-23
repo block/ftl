@@ -325,38 +325,6 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	return connect.NewResponse(resp), nil
 }
 
-func (s *Service) StreamDeploymentLogs(ctx context.Context, stream *connect.ClientStream[ftlv1.StreamDeploymentLogsRequest]) (*connect.Response[ftlv1.StreamDeploymentLogsResponse], error) {
-	for stream.Receive() {
-		msg := stream.Msg()
-		deploymentKey, err := model.ParseDeploymentKey(msg.DeploymentKey)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
-		}
-		var requestKey optional.Option[model.RequestKey]
-		if msg.RequestKey != nil {
-			rkey, err := model.ParseRequestKey(*msg.RequestKey)
-			if err != nil {
-				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid request key: %w", err))
-			}
-			requestKey = optional.Some(rkey)
-		}
-
-		s.timelineClient.Publish(ctx, timeline.Log{
-			DeploymentKey: deploymentKey,
-			RequestKey:    requestKey,
-			Time:          msg.TimeStamp.AsTime(),
-			Level:         msg.LogLevel,
-			Attributes:    msg.Attributes,
-			Message:       msg.Message,
-			Error:         optional.Ptr(msg.Error),
-		})
-	}
-	if stream.Err() != nil {
-		return nil, stream.Err()
-	}
-	return connect.NewResponse(&ftlv1.StreamDeploymentLogsResponse{}), nil
-}
-
 func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
 	view, err := s.controllerState.View(ctx)
 	if err != nil {
