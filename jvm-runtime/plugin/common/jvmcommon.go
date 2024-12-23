@@ -328,7 +328,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		command.Env = append(command.Env, fmt.Sprintf("FTL_RUNNER_INFO=%s", runnerInfoFile))
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr
-		err = command.RunBuffered(ctx)
+		err = command.Run()
 		if err != nil {
 			logger.Errorf(err, "Dev mode process exited with error")
 		} else {
@@ -610,7 +610,7 @@ func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request
 	buildGradleKts := filepath.Join(dir, "build.gradle.kts")
 	if fileExists(pom) {
 		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolMaven)
-		defaults.DevModeBuild = ptr("mvn clean quarkus:dev")
+		defaults.DevModeBuild = ptr("mvn -Dquarkus.console.enabled=false -q clean quarkus:dev")
 		defaults.Build = ptr("mvn -B clean package")
 		defaults.DeployDir = "target"
 	} else if fileExists(buildGradle) || fileExists(buildGradleKts) {
