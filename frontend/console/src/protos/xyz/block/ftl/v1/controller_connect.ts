@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CreateDeploymentRequest, CreateDeploymentResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetDeploymentRequest, GetDeploymentResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, ReplaceDeployRequest, ReplaceDeployResponse, StatusRequest, StatusResponse, StreamDeploymentLogsRequest, StreamDeploymentLogsResponse, UpdateDeployRequest, UpdateDeployResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
+import { CreateDeploymentRequest, CreateDeploymentResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetDeploymentRequest, GetDeploymentResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, ReplaceDeployRequest, ReplaceDeployResponse, StatusRequest, StatusResponse, UpdateDeployRequest, UpdateDeployResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.ControllerService
@@ -141,17 +141,6 @@ export const ControllerService = {
       I: ReplaceDeployRequest,
       O: ReplaceDeployResponse,
       kind: MethodKind.Unary,
-    },
-    /**
-     * Stream logs from a deployment
-     *
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.StreamDeploymentLogs
-     */
-    streamDeploymentLogs: {
-      name: "StreamDeploymentLogs",
-      I: StreamDeploymentLogsRequest,
-      O: StreamDeploymentLogsResponse,
-      kind: MethodKind.ClientStreaming,
     },
   }
 } as const;

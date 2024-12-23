@@ -65,9 +65,6 @@ const (
 	// ControllerServiceReplaceDeployProcedure is the fully-qualified name of the ControllerService's
 	// ReplaceDeploy RPC.
 	ControllerServiceReplaceDeployProcedure = "/xyz.block.ftl.v1.ControllerService/ReplaceDeploy"
-	// ControllerServiceStreamDeploymentLogsProcedure is the fully-qualified name of the
-	// ControllerService's StreamDeploymentLogs RPC.
-	ControllerServiceStreamDeploymentLogsProcedure = "/xyz.block.ftl.v1.ControllerService/StreamDeploymentLogs"
 )
 
 // ControllerServiceClient is a client for the xyz.block.ftl.v1.ControllerService service.
@@ -102,8 +99,6 @@ type ControllerServiceClient interface {
 	// If a deployment already exists for the module of the new deployment,
 	// it will be scaled down and replaced by the new one.
 	ReplaceDeploy(context.Context, *connect.Request[v1.ReplaceDeployRequest]) (*connect.Response[v1.ReplaceDeployResponse], error)
-	// Stream logs from a deployment
-	StreamDeploymentLogs(context.Context) *connect.ClientStreamForClient[v1.StreamDeploymentLogsRequest, v1.StreamDeploymentLogsResponse]
 }
 
 // NewControllerServiceClient constructs a client for the xyz.block.ftl.v1.ControllerService
@@ -172,11 +167,6 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			baseURL+ControllerServiceReplaceDeployProcedure,
 			opts...,
 		),
-		streamDeploymentLogs: connect.NewClient[v1.StreamDeploymentLogsRequest, v1.StreamDeploymentLogsResponse](
-			httpClient,
-			baseURL+ControllerServiceStreamDeploymentLogsProcedure,
-			opts...,
-		),
 	}
 }
 
@@ -193,7 +183,6 @@ type controllerServiceClient struct {
 	registerRunner         *connect.Client[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
 	updateDeploy           *connect.Client[v1.UpdateDeployRequest, v1.UpdateDeployResponse]
 	replaceDeploy          *connect.Client[v1.ReplaceDeployRequest, v1.ReplaceDeployResponse]
-	streamDeploymentLogs   *connect.Client[v1.StreamDeploymentLogsRequest, v1.StreamDeploymentLogsResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.ControllerService.Ping.
@@ -251,11 +240,6 @@ func (c *controllerServiceClient) ReplaceDeploy(ctx context.Context, req *connec
 	return c.replaceDeploy.CallUnary(ctx, req)
 }
 
-// StreamDeploymentLogs calls xyz.block.ftl.v1.ControllerService.StreamDeploymentLogs.
-func (c *controllerServiceClient) StreamDeploymentLogs(ctx context.Context) *connect.ClientStreamForClient[v1.StreamDeploymentLogsRequest, v1.StreamDeploymentLogsResponse] {
-	return c.streamDeploymentLogs.CallClientStream(ctx)
-}
-
 // ControllerServiceHandler is an implementation of the xyz.block.ftl.v1.ControllerService service.
 type ControllerServiceHandler interface {
 	// Ping service for readiness.
@@ -288,8 +272,6 @@ type ControllerServiceHandler interface {
 	// If a deployment already exists for the module of the new deployment,
 	// it will be scaled down and replaced by the new one.
 	ReplaceDeploy(context.Context, *connect.Request[v1.ReplaceDeployRequest]) (*connect.Response[v1.ReplaceDeployResponse], error)
-	// Stream logs from a deployment
-	StreamDeploymentLogs(context.Context, *connect.ClientStream[v1.StreamDeploymentLogsRequest]) (*connect.Response[v1.StreamDeploymentLogsResponse], error)
 }
 
 // NewControllerServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -354,11 +336,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		svc.ReplaceDeploy,
 		opts...,
 	)
-	controllerServiceStreamDeploymentLogsHandler := connect.NewClientStreamHandler(
-		ControllerServiceStreamDeploymentLogsProcedure,
-		svc.StreamDeploymentLogs,
-		opts...,
-	)
 	return "/xyz.block.ftl.v1.ControllerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ControllerServicePingProcedure:
@@ -383,8 +360,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 			controllerServiceUpdateDeployHandler.ServeHTTP(w, r)
 		case ControllerServiceReplaceDeployProcedure:
 			controllerServiceReplaceDeployHandler.ServeHTTP(w, r)
-		case ControllerServiceStreamDeploymentLogsProcedure:
-			controllerServiceStreamDeploymentLogsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -436,8 +411,4 @@ func (UnimplementedControllerServiceHandler) UpdateDeploy(context.Context, *conn
 
 func (UnimplementedControllerServiceHandler) ReplaceDeploy(context.Context, *connect.Request[v1.ReplaceDeployRequest]) (*connect.Response[v1.ReplaceDeployResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.ReplaceDeploy is not implemented"))
-}
-
-func (UnimplementedControllerServiceHandler) StreamDeploymentLogs(context.Context, *connect.ClientStream[v1.StreamDeploymentLogsRequest]) (*connect.Response[v1.StreamDeploymentLogsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.StreamDeploymentLogs is not implemented"))
 }
