@@ -1070,7 +1070,7 @@ module c {
 	actual, err := ParseString("", input)
 	assert.NoError(t, err)
 	actual = Normalise(actual)
-	assert.Equal(t, []string{"b", "c"}, maps.Keys(actual.ModuleDependencies("a")))
+	assert.Equal(t, slices.Sort([]string{"b", "c"}), slices.Sort(maps.Keys(actual.ModuleDependencies("a"))))
 	assert.Equal(t, []string{"c"}, maps.Keys(actual.ModuleDependencies("b")))
 	assert.Equal(t, []string{}, maps.Keys(actual.ModuleDependencies("c")))
 
