@@ -6,15 +6,15 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 var _ log.Sink = (*deploymentLogsSink)(nil)
 
-func newDeploymentLogsSink(ctx context.Context, timelineClient *timeline.Client) *deploymentLogsSink {
+func newDeploymentLogsSink(ctx context.Context, timelineClient *timelineclient.Client) *deploymentLogsSink {
 	sink := &deploymentLogsSink{
 		logQueue: make(chan log.Entry, 10000),
 	}
@@ -40,7 +40,7 @@ func (d *deploymentLogsSink) Log(entry log.Entry) error {
 	return nil
 }
 
-func (d *deploymentLogsSink) processLogs(ctx context.Context, timelineClient *timeline.Client) {
+func (d *deploymentLogsSink) processLogs(ctx context.Context, timelineClient *timelineclient.Client) {
 	for entry := range channels.IterContext(ctx, d.logQueue) {
 		var deployment model.DeploymentKey
 		depStr, ok := entry.Attributes["deployment"]
@@ -67,7 +67,7 @@ func (d *deploymentLogsSink) processLogs(ctx context.Context, timelineClient *ti
 			errorStr = optional.Some(entry.Error.Error())
 		}
 
-		timelineClient.Publish(ctx, &timeline.Log{
+		timelineClient.Publish(ctx, &timelineclient.Log{
 			RequestKey:    request,
 			DeploymentKey: deployment,
 			Time:          entry.Time,

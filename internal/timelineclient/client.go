@@ -1,4 +1,4 @@
-package timeline
+package timelineclient
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
+	v1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 )
@@ -26,6 +27,10 @@ type Client struct {
 	entries          chan *timelinepb.CreateEventsRequest_EventEntry
 	lastDroppedError atomic.Value[time.Time]
 	lastFailedError  atomic.Value[time.Time]
+}
+
+func (c *Client) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+	return connect.NewResponse(&v1.PingResponse{}), nil
 }
 
 func NewClient(ctx context.Context, endpoint *url.URL) *Client {

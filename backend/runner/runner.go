@@ -38,7 +38,6 @@ import (
 	"github.com/block/ftl/backend/runner/observability"
 	"github.com/block/ftl/backend/runner/proxy"
 	"github.com/block/ftl/backend/runner/pubsub"
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -51,6 +50,7 @@ import (
 	ftlobservability "github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/pgproxy"
 	"github.com/block/ftl/internal/rpc"
+	timeline "github.com/block/ftl/internal/timelineclient"
 	"github.com/block/ftl/internal/unstoppable"
 )
 

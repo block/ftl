@@ -8,11 +8,11 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type publisher struct {
@@ -21,10 +21,10 @@ type publisher struct {
 	topic      *schema.Topic
 	producer   sarama.SyncProducer
 
-	timelineClient *timeline.Client
+	timelineClient *timelineclient.Client
 }
 
-func newPublisher(module string, t *schema.Topic, deployment model.DeploymentKey, timelineClient *timeline.Client) (*publisher, error) {
+func newPublisher(module string, t *schema.Topic, deployment model.DeploymentKey, timelineClient *timelineclient.Client) (*publisher, error) {
 	if t.Runtime == nil {
 		return nil, fmt.Errorf("topic %s has no runtime", t.Name)
 	}
@@ -62,7 +62,7 @@ func (p *publisher) publish(ctx context.Context, data []byte, key string, caller
 		requestKeyStr = optional.Some(r.String())
 	}
 
-	timelineEvent := timeline.PubSubPublish{
+	timelineEvent := timelineclient.PubSubPublish{
 		DeploymentKey: p.deployment,
 		RequestKey:    requestKeyStr,
 		Time:          time.Now(),

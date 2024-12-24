@@ -13,7 +13,6 @@ import (
 	"github.com/block/ftl/backend/controller/observability"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
@@ -21,6 +20,7 @@ import (
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 var _ CallClient = (*VerbCallRouter)(nil)
@@ -33,7 +33,7 @@ type CallClient interface {
 type VerbCallRouter struct {
 	routingTable   *RouteTable
 	moduleClients  *xsync.MapOf[string, optional.Option[ftlv1connect.VerbServiceClient]]
-	timelineClient *timeline.Client
+	timelineClient *timelineclient.Client
 }
 
 func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
@@ -60,7 +60,7 @@ func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.Ca
 		headers.SetRequestKey(req.Header(), requestKey)
 	}
 
-	callEvent := &timeline.Call{
+	callEvent := &timelineclient.Call{
 		DeploymentKey: deployment,
 		RequestKey:    requestKey,
 		StartTime:     start,
@@ -83,7 +83,7 @@ func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.Ca
 	return resp, nil
 }
 
-func NewVerbRouterFromTable(ctx context.Context, routeTable *RouteTable, timelineClient *timeline.Client) *VerbCallRouter {
+func NewVerbRouterFromTable(ctx context.Context, routeTable *RouteTable, timelineClient *timelineclient.Client) *VerbCallRouter {
 	svc := &VerbCallRouter{
 		routingTable:   routeTable,
 		moduleClients:  xsync.NewMapOf[string, optional.Option[ftlv1connect.VerbServiceClient]](),
@@ -97,7 +97,7 @@ func NewVerbRouterFromTable(ctx context.Context, routeTable *RouteTable, timelin
 	}()
 	return svc
 }
-func NewVerbRouter(ctx context.Context, changes schemaeventsource.EventSource, timelineClient *timeline.Client) *VerbCallRouter {
+func NewVerbRouter(ctx context.Context, changes schemaeventsource.EventSource, timelineClient *timelineclient.Client) *VerbCallRouter {
 	return NewVerbRouterFromTable(ctx, New(ctx, changes), timelineClient)
 }
 

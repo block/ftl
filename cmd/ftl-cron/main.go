@@ -9,13 +9,13 @@ import (
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/cron"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/timeline"
 	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
@@ -39,7 +39,7 @@ func main() {
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.CronConfig.SchemaServiceEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, schemaClient)
 
-	timelineClient := timeline.NewClient(ctx, cli.CronConfig.TimelineEndpoint)
+	timelineClient := timelineclient.NewClient(ctx, cli.CronConfig.TimelineEndpoint)
 	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, schemaClient), timelineClient)
 
 	err = cron.Start(ctx, eventSource, routeManager, timelineClient)

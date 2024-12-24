@@ -15,7 +15,6 @@ import (
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/timeline"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	frontend "github.com/block/ftl/frontend/console"
@@ -25,6 +24,7 @@ import (
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type Config struct {
@@ -36,14 +36,14 @@ type Config struct {
 type service struct {
 	schemaEventSource schemaeventsource.EventSource
 	controllerClient  ftlv1connect.ControllerServiceClient
-	timelineClient    *timeline.Client
+	timelineClient    *timelineclient.Client
 	adminClient       admin.Client
 	callClient        routing.CallClient
 }
 
 var _ consolepbconnect.ConsoleServiceHandler = (*service)(nil)
 
-func Start(ctx context.Context, config Config, eventSource schemaeventsource.EventSource, controllerClient ftlv1connect.ControllerServiceClient, timelineClient *timeline.Client, adminClient admin.Client, client routing.CallClient) error {
+func Start(ctx context.Context, config Config, eventSource schemaeventsource.EventSource, controllerClient ftlv1connect.ControllerServiceClient, timelineClient *timelineclient.Client, adminClient admin.Client, client routing.CallClient) error {
 	logger := log.FromContext(ctx).Scope("console")
 	ctx = log.ContextWithLogger(ctx, logger)
 

@@ -14,12 +14,12 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 func TestIngress(t *testing.T) {
@@ -108,7 +108,7 @@ func TestIngress(t *testing.T) {
 			svc := &service{
 				view:           syncView(ctx, schemaeventsource.NewUnattached()),
 				client:         fv,
-				timelineClient: timeline.NewClient(ctx, timelineEndpoint),
+				timelineClient: timelineclient.NewClient(ctx, timelineEndpoint),
 			}
 			svc.handleHTTP(time.Now(), sch, reqKey, routes, rec, req, fv)
 			result := rec.Result()

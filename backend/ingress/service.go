@@ -12,7 +12,6 @@ import (
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
-	"github.com/block/ftl/backend/timeline"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/cors"
@@ -21,6 +20,7 @@ import (
 	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type Config struct {
@@ -40,11 +40,11 @@ type service struct {
 	// Complete schema synchronised from the database.
 	view           *atomic.Value[materialisedView]
 	client         routing.CallClient
-	timelineClient *timeline.Client
+	timelineClient *timelineclient.Client
 }
 
 // Start the HTTP ingress service. Blocks until the context is cancelled.
-func Start(ctx context.Context, config Config, schemaEventSource schemaeventsource.EventSource, client routing.CallClient, timelineClient *timeline.Client) error {
+func Start(ctx context.Context, config Config, schemaEventSource schemaeventsource.EventSource, client routing.CallClient, timelineClient *timelineclient.Client) error {
 	logger := log.FromContext(ctx).Scope("http-ingress")
 	ctx = log.ContextWithLogger(ctx, logger)
 	svc := &service{

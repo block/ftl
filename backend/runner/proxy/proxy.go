@@ -17,12 +17,12 @@ import (
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/rpc/headers"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 var _ ftlv1connect.VerbServiceHandler = &Service{}
@@ -37,10 +37,10 @@ type Service struct {
 	controllerDeploymentService ftldeploymentconnect.DeploymentServiceClient
 	controllerLeaseService      ftlleaseconnect.LeaseServiceClient
 	moduleVerbService           *xsync.MapOf[string, moduleVerbService]
-	timelineClient              *timeline.Client
+	timelineClient              *timelineclient.Client
 }
 
-func New(controllerModuleService ftldeploymentconnect.DeploymentServiceClient, leaseClient ftlleaseconnect.LeaseServiceClient, timelineClient *timeline.Client) *Service {
+func New(controllerModuleService ftldeploymentconnect.DeploymentServiceClient, leaseClient ftlleaseconnect.LeaseServiceClient, timelineClient *timelineclient.Client) *Service {
 	proxy := &Service{
 		controllerDeploymentService: controllerModuleService,
 		controllerLeaseService:      leaseClient,
@@ -142,7 +142,7 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		headers.SetRequestKey(req.Header(), requestKey)
 	}
 
-	callEvent := &timeline.Call{
+	callEvent := &timelineclient.Call{
 		DeploymentKey: verbService.deployment,
 		RequestKey:    requestKey,
 		StartTime:     start,

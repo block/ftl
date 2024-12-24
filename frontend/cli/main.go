@@ -23,7 +23,6 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/internal"
 	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/configuration"
@@ -35,6 +34,7 @@ import (
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/terminal"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type InteractiveCLI struct {
@@ -254,7 +254,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelFunc) terminal.Kon
 		ctx = rpc.ContextWithClient(ctx, provisionerServiceClient)
 		kctx.BindTo(provisionerServiceClient, (*provisionerconnect.ProvisionerServiceClient)(nil))
 
-		timelineClient := timeline.NewClient(ctx, cli.TimelineEndpoint)
+		timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 		kctx.Bind(timelineClient)
 
 		leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, cli.LeaseEndpoint.String(), log.Error)

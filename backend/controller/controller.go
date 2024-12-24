@@ -37,7 +37,6 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/runner/pubsub"
-	"github.com/block/ftl/backend/timeline"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
@@ -52,6 +51,7 @@ import (
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 // CommonConfig between the production controller and development server.
@@ -95,7 +95,7 @@ func Start(
 	config Config,
 	storage *artefacts.OCIArtefactService,
 	adminClient ftlv1connect.AdminServiceClient,
-	timelineClient *timeline.Client,
+	timelineClient *timelineclient.Client,
 	devel bool,
 ) error {
 	config.SetDefaults()
@@ -140,7 +140,7 @@ type Service struct {
 
 	tasks          *scheduledtask.Scheduler
 	pubSub         *pubsub.Service
-	timelineClient *timeline.Client
+	timelineClient *timelineclient.Client
 	storage        *artefacts.OCIArtefactService
 
 	// Map from runnerKey.String() to client.
@@ -156,7 +156,7 @@ type Service struct {
 func New(
 	ctx context.Context,
 	adminClient ftlv1connect.AdminServiceClient,
-	timelineClient *timeline.Client,
+	timelineClient *timelineclient.Client,
 	storage *artefacts.OCIArtefactService,
 	config Config,
 	devel bool,
@@ -418,7 +418,7 @@ func (s *Service) setDeploymentReplicas(ctx context.Context, key model.Deploymen
 			return fmt.Errorf("could not activate deployment: %w", err)
 		}
 	}
-	s.timelineClient.Publish(ctx, timeline.DeploymentUpdated{
+	s.timelineClient.Publish(ctx, timelineclient.DeploymentUpdated{
 		DeploymentKey:   key,
 		MinReplicas:     minReplicas,
 		PrevMinReplicas: deployment.MinReplicas,
@@ -481,7 +481,7 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 		}
 	}
 
-	s.timelineClient.Publish(ctx, timeline.DeploymentCreated{
+	s.timelineClient.Publish(ctx, timelineclient.DeploymentCreated{
 		DeploymentKey:      newDeploymentKey,
 		Language:           newDeployment.Language,
 		ModuleName:         newDeployment.Module,
@@ -842,7 +842,7 @@ func (s *Service) callWithRequest(
 		return nil, fmt.Errorf("deployment not found for module %q", module)
 	}
 
-	callEvent := &timeline.Call{
+	callEvent := &timelineclient.Call{
 		DeploymentKey:    deployment,
 		RequestKey:       requestKey,
 		ParentRequestKey: parentKey,

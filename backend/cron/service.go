@@ -11,7 +11,6 @@ import (
 
 	"github.com/block/ftl/backend/cron/observability"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/cron"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -20,6 +19,7 @@ import (
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type cronJob struct {
@@ -46,7 +46,7 @@ func (c cronJob) String() string {
 }
 
 // Start the cron service. Blocks until the context is cancelled.
-func Start(ctx context.Context, eventSource schemaeventsource.EventSource, client routing.CallClient, timelineClient *timeline.Client) error {
+func Start(ctx context.Context, eventSource schemaeventsource.EventSource, client routing.CallClient, timelineClient *timelineclient.Client) error {
 	logger := log.FromContext(ctx).Scope("cron")
 	ctx = log.ContextWithLogger(ctx, logger)
 	// Map of cron jobs for each module.
@@ -136,11 +136,11 @@ func callCronJob(ctx context.Context, verbClient routing.CallClient, cronJob cro
 	}
 }
 
-func scheduleNext(ctx context.Context, cronQueue []cronJob, timelineClient *timeline.Client) (time.Duration, bool) {
+func scheduleNext(ctx context.Context, cronQueue []cronJob, timelineClient *timelineclient.Client) (time.Duration, bool) {
 	if len(cronQueue) == 0 {
 		return 0, false
 	}
-	timelineClient.Publish(ctx, timeline.CronScheduled{
+	timelineClient.Publish(ctx, timelineclient.CronScheduled{
 		DeploymentKey: cronQueue[0].deployment,
 		Verb:          schema.Ref{Module: cronQueue[0].module, Name: cronQueue[0].verb.Name},
 		ScheduledAt:   cronQueue[0].next,
