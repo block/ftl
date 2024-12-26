@@ -14,7 +14,6 @@ import (
 	"github.com/block/ftl/backend/admin"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/configuration"
@@ -26,6 +25,7 @@ import (
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/terminal"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type devCmd struct {
@@ -49,7 +49,7 @@ func (d *devCmd) Run(
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
 	controllerClient ftlv1connect.ControllerServiceClient,
 	provisionerClient provisionerconnect.ProvisionerServiceClient,
-	timelineClient *timeline.Client,
+	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	verbClient ftlv1connect.VerbServiceClient,
 ) error {

@@ -46,6 +46,7 @@ import (
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type serveCmd struct {
@@ -87,7 +88,7 @@ func (s *serveCmd) Run(
 	projConfig projectconfig.Config,
 	controllerClient ftlv1connect.ControllerServiceClient,
 	provisionerClient provisionerconnect.ProvisionerServiceClient,
-	timelineClient *timeline.Client,
+	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
@@ -111,7 +112,7 @@ func (s *serveCommonConfig) run(
 	bindAllocator *bind.BindAllocator,
 	controllerClient ftlv1connect.ControllerServiceClient,
 	provisionerClient provisionerconnect.ProvisionerServiceClient,
-	timelineClient *timeline.Client,
+	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
 	verbClient ftlv1connect.VerbServiceClient,

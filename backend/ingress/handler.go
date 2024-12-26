@@ -12,12 +12,12 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/timeline"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/routing"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 // handleHTTP HTTP ingress routes.
@@ -37,7 +37,7 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 
 	verbRef := &schemapb.Ref{Module: route.module, Name: route.verb}
 
-	ingressEvent := timeline.Ingress{
+	ingressEvent := timelineclient.Ingress{
 		RequestKey:      requestKey,
 		StartTime:       startTime,
 		Verb:            &schema.Ref{Name: route.verb, Module: route.module},
@@ -154,7 +154,7 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 
 func (s *service) recordIngressErrorEvent(
 	ctx context.Context,
-	ingressEvent timeline.Ingress,
+	ingressEvent timelineclient.Ingress,
 	statusCode int,
 	errorMsg string,
 ) {

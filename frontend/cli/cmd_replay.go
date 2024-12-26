@@ -12,12 +12,12 @@ import (
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 	status "github.com/block/ftl/internal/terminal"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type replayCmd struct {
@@ -29,7 +29,7 @@ func (c *replayCmd) Run(
 	ctx context.Context,
 	verbClient ftlv1connect.VerbServiceClient,
 	schemaClient ftlv1connect.SchemaServiceClient,
-	timelineClient *timeline.Client,
+	timelineClient *timelineclient.Client,
 ) error {
 	// Wait timeout is for both pings to complete, not each ping individually
 	startTime := time.Now()

@@ -12,11 +12,11 @@ import (
 	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/timeline"
 	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
@@ -60,7 +60,7 @@ func main() {
 
 	kctx.FatalIfErrorf(err)
 
-	timelineClient := timeline.NewClient(ctx, cli.TimelineEndpoint)
+	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 	err = controller.Start(ctx, cli.ControllerConfig, storage, adminClient, timelineClient, false)
 	kctx.FatalIfErrorf(err)
 }

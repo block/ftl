@@ -10,13 +10,13 @@ import (
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/console"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/timeline"
 	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
@@ -42,7 +42,7 @@ func main() {
 	err := observability.Init(ctx, false, "", "ftl-console", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
-	timelineClient := timeline.NewClient(ctx, cli.TimelineEndpoint)
+	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaServiceEndpoint.String(), log.Error)
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.ControllerEndpoint.String(), log.Error)
 	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)

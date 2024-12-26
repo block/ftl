@@ -16,13 +16,13 @@ import (
 
 	"github.com/block/ftl/backend/controller/observability"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type consumer struct {
@@ -35,11 +35,11 @@ type consumer struct {
 	deadLetterPublisher optional.Option[*publisher]
 
 	verbClient     VerbClient
-	timelineClient *timeline.Client
+	timelineClient *timelineclient.Client
 }
 
 func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.MetadataSubscriber, deployment model.DeploymentKey,
-	deadLetterPublisher optional.Option[*publisher], verbClient VerbClient, timelineClient *timeline.Client) (*consumer, error) {
+	deadLetterPublisher optional.Option[*publisher], verbClient VerbClient, timelineClient *timelineclient.Client) (*consumer, error) {
 	if verb.Runtime == nil {
 		return nil, fmt.Errorf("subscription %s has no runtime", verb.Name)
 	}
@@ -211,7 +211,7 @@ func (c *consumer) call(ctx context.Context, body []byte, partition, offset int)
 		Verb: schema.RefKey{Module: c.moduleName, Name: c.verb.Name}.ToProto(),
 		Body: body,
 	}
-	consumeEvent := timeline.PubSubConsume{
+	consumeEvent := timelineclient.PubSubConsume{
 		DeploymentKey: c.deployment,
 		RequestKey:    optional.Some(requestKey.String()),
 		Time:          time.Now(),
@@ -222,7 +222,7 @@ func (c *consumer) call(ctx context.Context, body []byte, partition, offset int)
 	}
 	defer c.timelineClient.Publish(ctx, consumeEvent)
 
-	callEvent := &timeline.Call{
+	callEvent := &timelineclient.Call{
 		DeploymentKey: c.deployment,
 		RequestKey:    requestKey,
 		StartTime:     start,
