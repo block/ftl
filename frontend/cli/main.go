@@ -46,25 +46,26 @@ type InteractiveCLI struct {
 	AdminEndpoint       *url.URL         `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
 	Trace               string           `help:"File to write golang runtime/trace output to." hidden:""`
 
-	Ping     pingCmd     `cmd:"" help:"Ping the FTL cluster."`
-	Status   statusCmd   `cmd:"" help:"Show FTL status."`
-	Init     initCmd     `cmd:"" help:"Initialize a new FTL project."`
-	Profile  profileCmd  `cmd:"" help:"Manage profiles."`
-	New      newCmd      `cmd:"" help:"Create a new FTL module. See language specific flags with 'ftl new <language> --help'."`
-	PS       psCmd       `cmd:"" help:"List deployments."`
-	Call     callCmd     `cmd:"" help:"Call an FTL function."`
-	Bench    benchCmd    `cmd:"" help:"Benchmark an FTL function."`
-	Replay   replayCmd   `cmd:"" help:"Call an FTL function with the same request body as the last invocation."`
-	Update   updateCmd   `cmd:"" help:"Update a deployment."`
-	Kill     killCmd     `cmd:"" help:"Kill a deployment."`
-	Schema   schemaCmd   `cmd:"" help:"FTL schema commands."`
-	Build    buildCmd    `cmd:"" help:"Build all modules found in the specified directories."`
-	Deploy   deployCmd   `cmd:"" help:"Build and deploy all modules found in the specified directories."`
-	Download downloadCmd `cmd:"" help:"Download a deployment."`
-	Secret   secretCmd   `cmd:"" help:"Manage secrets."`
-	Config   configCmd   `cmd:"" help:"Manage configuration."`
-	Pubsub   pubsubCmd   `cmd:"" help:"Manage pub/sub."`
-	Release  releaseCmd  `cmd:"" help:"Manage releases."`
+	Ping            pingCmd            `cmd:"" help:"Ping the FTL cluster."`
+	Status          statusCmd          `cmd:"" help:"Show FTL status."`
+	Init            initCmd            `cmd:"" help:"Initialize a new FTL project."`
+	Profile         profileCmd         `cmd:"" help:"Manage profiles."`
+	New             newCmd             `cmd:"" help:"Create a new FTL module. See language specific flags with 'ftl new <language> --help'."`
+	PS              psCmd              `cmd:"" help:"List deployments."`
+	Call            callCmd            `cmd:"" help:"Call an FTL function."`
+	Bench           benchCmd           `cmd:"" help:"Benchmark an FTL function."`
+	Replay          replayCmd          `cmd:"" help:"Call an FTL function with the same request body as the last invocation."`
+	Update          updateCmd          `cmd:"" help:"Update a deployment."`
+	Kill            killCmd            `cmd:"" help:"Kill a deployment."`
+	Schema          schemaCmd          `cmd:"" help:"FTL schema commands."`
+	Build           buildCmd           `cmd:"" help:"Build all modules found in the specified directories."`
+	Deploy          deployCmd          `cmd:"" help:"Build and deploy all modules found in the specified directories."`
+	Download        downloadCmd        `cmd:"" help:"Download a deployment."`
+	Secret          secretCmd          `cmd:"" help:"Manage secrets."`
+	Config          configCmd          `cmd:"" help:"Manage configuration."`
+	Pubsub          pubsubCmd          `cmd:"" help:"Manage pub/sub."`
+	Release         releaseCmd         `cmd:"" help:"Manage releases."`
+	NewSQLMigration newSQLMigrationCmd `cmd:"" help:"Create a new SQL Database migration."`
 }
 
 type CLI struct {

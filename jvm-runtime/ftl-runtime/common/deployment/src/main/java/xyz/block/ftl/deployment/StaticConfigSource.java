@@ -33,6 +33,6 @@ public class StaticConfigSource implements ConfigSource {
 
     @Override
     public String getName() {
-        return "Quarkus Static Config Source";
+        return "FTL Static Config Source";
     }
 }
