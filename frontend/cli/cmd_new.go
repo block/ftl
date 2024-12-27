@@ -35,7 +35,7 @@ type newCmd struct {
 // - environment variable overrides
 //
 // Language plugins take time to launch, so we return the one we created so it can be reused in Run().
-func prepareNewCmd(ctx context.Context, k *kong.Kong, args []string) (optionalPlugin optional.Option[*languageplugin.LanguagePlugin], err error) {
+func prepareNewCmd(ctx context.Context, k *kong.Kong, args []string) (optionalPlugin languagePluginHolder, err error) {
 	if len(args) < 2 {
 		return optionalPlugin, nil
 	} else if args[0] != "new" {
@@ -55,24 +55,10 @@ func prepareNewCmd(ctx context.Context, k *kong.Kong, args []string) (optionalPl
 		return optionalPlugin, fmt.Errorf("could not find new command")
 	}
 
-	projConfigPath, ok := projectconfig.DefaultConfigPath().Get()
-	if !ok {
-		return optionalPlugin, fmt.Errorf("could not find project config path")
-	}
-	_, err = projectconfig.Load(ctx, projConfigPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return optionalPlugin, fmt.Errorf(`could not find FTL project config: try running "ftl init"`)
-		}
-		return optionalPlugin, fmt.Errorf("could not load project config: %w", err)
-	}
-
-	plugin, err := languageplugin.New(ctx, filepath.Dir(projConfigPath), language, "new")
-
+	plugin, err := createLanguagePlugin(ctx, language)
 	if err != nil {
 		return optionalPlugin, fmt.Errorf("could not create plugin for %v: %w", language, err)
 	}
-
 	flags, err := plugin.GetCreateModuleFlags(ctx)
 	if err != nil {
 		return optionalPlugin, fmt.Errorf("could not get CLI flags for %v plugin: %w", language, err)
@@ -90,10 +76,32 @@ func prepareNewCmd(ctx context.Context, k *kong.Kong, args []string) (optionalPl
 		}
 	}
 	newCmdNode.Flags = append(newCmdNode.Flags, flags...)
-	return optional.Some(plugin), nil
+	return languagePluginHolder{plugin: optional.Some(plugin)}, nil
 }
 
-func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconfig.Config, plugin *languageplugin.LanguagePlugin) error {
+func createLanguagePlugin(ctx context.Context, language string) (plugin *languageplugin.LanguagePlugin, err error) {
+	projConfigPath, ok := projectconfig.DefaultConfigPath().Get()
+	if !ok {
+		return plugin, fmt.Errorf("could not find project config path")
+	}
+	_, err = projectconfig.Load(ctx, projConfigPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return plugin, fmt.Errorf(`could not find FTL project config: try running "ftl init"`)
+		}
+		return plugin, fmt.Errorf("could not load project config: %w", err)
+	}
+
+	plugin, err = languageplugin.New(ctx, filepath.Dir(projConfigPath), language, "new")
+
+	if err != nil {
+		return plugin, fmt.Errorf("could not create plugin for %v: %w", language, err)
+	}
+
+	return plugin, nil
+}
+
+func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconfig.Config, pluginHolder languagePluginHolder) error {
 	name, path, err := validateModule(i.Dir, i.Name)
 	if err != nil {
 		return err
@@ -120,6 +128,11 @@ func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconf
 			return fmt.Errorf("expected %v value to be a string but it was %T", f.Name, f.Target.Interface())
 		}
 		flags[f.Name] = flagValue
+	}
+
+	plugin, err := pluginHolder.Plugin(ctx, i.Language)
+	if err != nil {
+		return err
 	}
 
 	err = plugin.CreateModule(ctx, config, moduleConfig, flags)
@@ -173,4 +186,20 @@ func isValidModuleName(name string) bool {
 		return false
 	}
 	return true
+}
+
+type languagePluginHolder struct {
+	plugin optional.Option[*languageplugin.LanguagePlugin]
+}
+
+func (r *languagePluginHolder) Plugin(ctx context.Context, language string) (*languageplugin.LanguagePlugin, error) {
+	if plugin, ok := r.plugin.Get(); ok {
+		return plugin, nil
+	}
+	p, err := createLanguagePlugin(ctx, language)
+	if err != nil {
+		return nil, err
+	}
+	r.plugin = optional.Some(p)
+	return p, nil
 }
