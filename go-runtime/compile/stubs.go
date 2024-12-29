@@ -7,11 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/alecthomas/types/optional"
 	"github.com/block/scaffolder"
 	"golang.org/x/exp/maps"
 	"golang.org/x/mod/modfile"
+	"golang.org/x/mod/module"
 	"golang.org/x/mod/semver"
 
 	"github.com/block/ftl"
@@ -50,6 +52,18 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 			goModVersion = runtime.Version()[2:]
 		}
 		replacements = []*modfile.Replace{}
+		if !ftl.IsRelease(ftl.Version) {
+			path, err := os.Executable()
+			if err != nil {
+				return fmt.Errorf("failed to get executable path %w", err)
+			}
+			ftlpath := "block/ftl"
+			idx := strings.LastIndex(path, ftlpath)
+			if idx > 0 {
+				path = path[:idx+len(ftlpath)]
+				replacements = append(replacements, &modfile.Replace{Old: module.Version{Path: "github.com/block/ftl"}, New: module.Version{Path: path}})
+			}
+		}
 	} else {
 		replacements, goModVersion, err = updateGoModule(filepath.Join(config.Dir, "go.mod"))
 		if err != nil {
