@@ -1,4 +1,4 @@
-FROM ubuntu:24.04 AS builder
+FROM ubuntu:24.04@sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab AS builder
 RUN apt-get update
 RUN apt-get install -y curl git zip
 
@@ -10,7 +10,7 @@ RUN hermit install openjdk-21.0.3_9
 RUN mvn -B --version
 
 # Finally create the runtime image.
-FROM ftl0/ftl-runner:latest
+FROM ftl0/ftl-runner:latest@sha256:2e1f3791d65051c6936a95ef364a1c321990aeedf366864776b948a48c2c0430
 
 WORKDIR /root/
 

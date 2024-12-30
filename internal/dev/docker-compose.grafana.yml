@@ -1,6 +1,6 @@
 services:
   otel-lgtm:
-    image: ${FTL_GRAFANA_IMAGE:-grafana/otel-lgtm}
+    image: ${FTL_GRAFANA_IMAGE:-grafana/otel-lgtm@sha256:a4786717c4b29705e6464e2e82196fcb925de3c7f1970e923d8becac4ffd0c2a}
     ports:
       - 3000:3000 # Portal Endpoint
       - 9090:9090 # Prometheus
