@@ -321,6 +321,9 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	if err == nil {
 		devModeBuild = fmt.Sprintf("%s -Ddebug=%d", devModeBuild, debugPort.Port)
 	}
+	if os.Getenv("FTL_SUSPEND") == "true" {
+		devModeBuild += " -Dsuspend "
+	}
 	go func() {
 		logger.Infof("Using dev mode build command '%s'", devModeBuild)
 		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
