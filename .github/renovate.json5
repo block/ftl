@@ -38,13 +38,14 @@
       matchCategories: [
         'docker',
       ],
-      additionalBranchPrefix: 'java-',
+      additionalBranchPrefix: 'docker-',
       pinDigests: true
     },
     {
       matchUpdateTypes: [
         'minor',
         'patch',
+        'digest'
       ],
       automerge: true,
     },
