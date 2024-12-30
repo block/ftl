@@ -29,3 +29,7 @@ func (n noopStatusLine) Close() {
 func (r *noopStatusManager) NewStatus(message string) StatusLine {
 	return &noopStatusLine{}
 }
+
+func (r *noopStatusManager) NewDecoratedStatus(prefix string, suffix string, message string) StatusLine {
+	return &noopStatusLine{}
+}

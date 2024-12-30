@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"slices"
@@ -83,6 +84,7 @@ func init() {
 type StatusManager interface {
 	Close()
 	NewStatus(message string) StatusLine
+	NewDecoratedStatus(prefix string, suffix string, message string) StatusLine
 	IntoContext(ctx context.Context) context.Context
 	SetModuleState(module string, state BuildState)
 }
@@ -314,7 +316,13 @@ func (r *terminalStatusManager) NewStatus(message string) StatusLine {
 	r.newStatusInternal(line)
 	return line
 }
-
+func (r *terminalStatusManager) NewDecoratedStatus(prefix string, suffix string, message string) StatusLine {
+	r.statusLock.Lock()
+	defer r.statusLock.Unlock()
+	line := &terminalStatusLine{manager: r, message: message, prefix: prefix, suffix: suffix}
+	r.newStatusInternal(line)
+	return line
+}
 func (r *terminalStatusManager) newStatusInternal(line *terminalStatusLine) {
 	if r.closed.Load() {
 		return
@@ -393,7 +401,7 @@ func (r *terminalStatusManager) redrawStatus() {
 		return
 	}
 	for i := len(r.lines) - 1; i >= 0; i-- {
-		msg := r.lines[i].message
+		msg := r.lines[i].prefix + r.lines[i].message + r.lines[i].suffix
 		if msg != "" {
 			r.underlyingWrite("\r" + msg + "\n")
 		}
@@ -444,7 +452,7 @@ func (r *terminalStatusManager) recalculateLines() {
 	for _, i := range r.lines {
 		if i.message != "" && i != r.moduleLine {
 			total++
-			total += countLines(i.message, r.width)
+			total += countLines(i.prefix+i.message+i.suffix, r.width)
 		}
 	}
 	if r.console {
@@ -484,6 +492,8 @@ type terminalStatusLine struct {
 	manager  *terminalStatusManager
 	message  string
 	priority int
+	prefix   string
+	suffix   string
 }
 
 func (r *terminalStatusLine) Close() {
@@ -523,4 +533,27 @@ func LaunchEmbeddedConsole(ctx context.Context, k *kong.Kong, binder KongContext
 			}
 		}()
 	}
+}
+
+var _ io.Writer = &statusLineWriter{}
+
+func StatusLineAsWriter(status StatusLine) io.Writer {
+	return &statusLineWriter{status: status}
+}
+
+type statusLineWriter struct {
+	status StatusLine
+	line   string
+}
+
+func (s *statusLineWriter) Write(p []byte) (n int, err error) {
+	for _, c := range p {
+		if c == '\n' {
+			s.status.SetMessage(s.line)
+			s.line = ""
+		} else {
+			s.line += string(c)
+		}
+	}
+	return len(p), nil
 }

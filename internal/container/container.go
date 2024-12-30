@@ -24,7 +24,10 @@ import (
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/terminal"
 )
+
+const ansiResetTextColor = "\u001B[39m"
 
 var dockerClient = once.Once(func(ctx context.Context) (*client.Client, error) {
 	return client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -73,9 +76,10 @@ func Pull(ctx context.Context, imageName string) error {
 	}
 	defer reader.Close()
 
-	logger := log.FromContext(ctx).Scope(imageName)
-	w := logger.WriterAt(log.Info)
-	if err := jsonmessage.DisplayJSONMessagesStream(reader, w, 0, false, nil); err != nil {
+	sm := terminal.FromContext(ctx)
+	statusLine := sm.NewStatus("Pulling image " + imageName)
+	defer statusLine.Close()
+	if err := jsonmessage.DisplayJSONMessagesStream(reader, terminal.StatusLineAsWriter(statusLine), 0, false, nil); err != nil {
 		return fmt.Errorf("failed to display pull messages: %w", err)
 	}
 
@@ -383,10 +387,15 @@ func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.O
 		args = append(args, "--profile", profile)
 	}
 	args = append(args, "-f", "-", "-p", "ftl", "up", "-d", "--wait")
-
+	sm := terminal.FromContext(ctx)
+	statusLine := sm.NewDecoratedStatus("\u001B[92mDocker: "+name+"\u001B[94m", ansiResetTextColor, "starting")
+	defer statusLine.Close()
 	cmd := exec.CommandWithEnv(ctx, log.Debug, ".", envars, "docker", args...)
 	cmd.Stdin = bytes.NewReader([]byte(composeYAML))
-	if err := cmd.RunStderrError(ctx); err != nil {
+	writer := terminal.StatusLineAsWriter(statusLine)
+	cmd.Stdout = writer
+	cmd.Stderr = writer
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run docker compose up: %w", err)
 	}
 	return nil
