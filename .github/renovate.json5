@@ -1,69 +1,98 @@
 {
-  $schema: "https://docs.renovatebot.com/renovate-schema.json",
-  labels: ["run-all"],
-  allowedPostUpgradeCommands: ["pnpm install"],
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  labels: [
+    'run-all',
+  ],
+  allowedPostUpgradeCommands: [
+    'pnpm install',
+  ],
   extends: [
-    "config:recommended",
-    ":semanticCommits",
-    ":semanticCommitTypeAll(chore)",
-    ":semanticCommitScope(deps)",
-    "group:allNonMajor",
-    "schedule:earlyMondays",
+    'config:recommended',
+    ':semanticCommits',
+    ':semanticCommitTypeAll(chore)',
+    ':semanticCommitScope(deps)',
+    'group:allNonMajor',
+    'schedule:earlyMondays',
   ],
   constraints: {
-    "node": ">=22.7.0"
+    node: '>=22.7.0',
   },
-  "js": {
-    "managerBranchPrefix": "js-"
-  },
-  "java": {
-    "managerBranchPrefix": "java-"
-  },
-  postUpdateOptions: ["gomodTidy", "pnpmDedupe"],
+  postUpdateOptions: [
+    'gomodTidy',
+    'pnpmDedupe',
+  ],
   packageRules: [
     {
-      matchUpdateTypes: ["minor", "patch"],
+      matchCategories: [
+        'js',
+      ],
+      additionalBranchPrefix: 'js-',
+    },
+    {
+      matchCategories: [
+        'java',
+      ],
+      additionalBranchPrefix: 'java-',
+    },
+    {
+      matchUpdateTypes: [
+        'minor',
+        'patch',
+      ],
       automerge: true,
     },
     {
       matchPackageNames: [
-        "jbr",
-        "ktfmt",
-        "golangci-lint",
-        "svu",
-        "lefthook", // Everything after 1.6.14 is broken
-        "github.com/tliron/kutil", // This requires go 1.23 to move to the next version
+        'jbr',
+        'ktfmt',
+        'golangci-lint',
+        'svu',
+        'lefthook',
+        'github.com/tliron/kutil',
       ],
-      matchManagers: ["hermit"],
+      matchManagers: [
+        'hermit',
+      ],
       enabled: false,
     },
     {
       matchPackageNames: [
-        "openjdk", // We don't want automatic major version updates, just minors
+        'openjdk',
       ],
-      matchManagers: ["hermit"],
-      matchUpdateTypes: ["major"],
+      matchManagers: [
+        'hermit',
+      ],
+      matchUpdateTypes: [
+        'major',
+      ],
       enabled: false,
     },
     {
-      matchFileNames: ["**/testdata/**/go.mod"],
+      matchFileNames: [
+        '**/testdata/**/go.mod',
+      ],
       enabled: false,
     },
     {
       matchPackageNames: [
-        "@bufbuild/protobuf",      // We can't update this until we update buf
-        "@bufbuild/protoc-gen-es", // We can't update this until we update buf
-        "@connectrpc/connect",     // We can't update this until we update buf
-        "@connectrpc/connect-web", // We can't update this until we update buf
-        "codemirror",
-        "codemirror-json-schema",
+        '@bufbuild/protobuf',
+        '@bufbuild/protoc-gen-es',
+        '@connectrpc/connect',
+        '@connectrpc/connect-web',
+        'codemirror',
+        'codemirror-json-schema',
       ],
       enabled: false,
-      matchFileNames: ["frontend/console/**", "extensions/**"],
+      matchFileNames: [
+        'frontend/console/**',
+        'extensions/**',
+      ],
     },
     {
-      matchPackageNames: ["connectrpc.com/connect"],
+      matchPackageNames: [
+        'connectrpc.com/connect',
+      ],
       enabled: false,
-    }
+    },
   ],
 }
