@@ -2,7 +2,6 @@ package xyz.block.ftl.runtime;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -24,6 +23,7 @@ import xyz.block.ftl.v1.CallRequest;
 public class FTLRecorder {
 
     public static final String X_FTL_VERB = "X-ftl-verb";
+    public static final String DEV_MODE_RUNNER_INFO_PATH = "ftl.dev.runner.info";
 
     public void registerVerb(String module, String verbName, String methodName, List<Class<?>> parameterTypes,
             Class<?> verbHandlerClass, List<VerbRegistry.ParameterSupplier> paramMappers,
@@ -177,8 +177,8 @@ public class FTLRecorder {
         FTLController.instance().registerDatabase(dbKind, name);
     }
 
-    public void handleDevModeRunnerStart(String runnerInfo, ShutdownContext shutdownContext) {
-        FTLController.instance().waitForDevModeStart(Path.of(runnerInfo));
+    public void handleDevModeRunnerStart(ShutdownContext shutdownContext) {
+        FTLController.instance().readDevModeRunnerInfo();
         shutdownContext.addShutdownTask(new Runnable() {
             @Override
             public void run() {

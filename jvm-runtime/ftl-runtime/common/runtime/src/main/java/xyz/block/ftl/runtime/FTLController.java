@@ -58,12 +58,8 @@ public class FTLController implements LeaseClient {
     private FTLRunnerConnection getRunnerConnection() {
         if (runnerConnection == null) {
             synchronized (this) {
-                while (!haveRunnerInfo) {
-                    try {
-                        this.wait();
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+                if (!haveRunnerInfo) {
+                    readDevModeRunnerInfo();
                 }
                 if (runnerConnection == null) {
                     runnerConnection = new FTLRunnerConnection(runnerDetails.getProxyAddress(),
@@ -74,8 +70,11 @@ public class FTLController implements LeaseClient {
         return runnerConnection;
     }
 
-    public void waitForDevModeStart(Path runnerInfo) {
+    public void readDevModeRunnerInfo() {
         synchronized (this) {
+            if (haveRunnerInfo) {
+                return;
+            }
             if (runnerConnection != null) {
                 try {
                     runnerConnection.close();
@@ -85,13 +84,14 @@ public class FTLController implements LeaseClient {
                 runnerConnection = null;
             }
             runnerDetails.close();
-            runnerDetails = new DevModeRunnerDetails(runnerInfo);
+            runnerDetails = new DevModeRunnerDetails(Path.of(System.getProperty(FTLRecorder.DEV_MODE_RUNNER_INFO_PATH)));
             haveRunnerInfo = true;
             this.notifyAll();
         }
     }
 
     public void devModeShutdown() {
+        log.infof("Shutting down dev mode runner connection");
         synchronized (this) {
             if (runnerConnection != null) {
                 try {
