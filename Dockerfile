@@ -2,7 +2,7 @@
 ARG RUNTIME=scratch-runtime
 
 # Get certificates from Alpine (smaller than Ubuntu)
-FROM alpine:latest AS certs
+FROM alpine:latest@sha256:21dc6063fd678b478f57c0e13f47560d0ea4eeba26dfc947b2a4f81f686b9f45 AS certs
 # No need to update here, we just use this for the certs
 RUN apk add ca-certificates
 
@@ -11,7 +11,7 @@ FROM scratch AS scratch-runtime
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Used for ftl-runner
-FROM ubuntu:24.04 AS ubuntu-runtime
+FROM ubuntu:24.04@sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab AS ubuntu-runtime
 RUN apt-get update && apt-get install -y ca-certificates
 RUN mkdir -p /root/deployments
 

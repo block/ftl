@@ -1,5 +1,5 @@
 services:
   registry:
-    image: ${FTL_REGISTRY_IMAGE:-registry:2}
+    image: ${FTL_REGISTRY_IMAGE:-registry:2@sha256:543dade69668e02e5768d7ea2b0aa4fae6aa7384c9a5a8dbecc2be5136079ddb}
     ports:
       -  "${FTL_REGISTRY_PORT:-15000}:5000"
