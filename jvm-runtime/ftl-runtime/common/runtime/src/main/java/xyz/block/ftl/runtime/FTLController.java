@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.logging.Logger;
 
+import io.quarkus.runtime.LaunchMode;
 import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
@@ -19,6 +20,7 @@ public class FTLController implements LeaseClient {
     private volatile FTLRunnerConnection runnerConnection;
 
     private static volatile FTLController controller;
+    private volatile boolean haveRunnerInfo = false;
     /**
      * The details of how to connect to the runners proxy. For dev mode this needs to be determined after startup,
      * which is why this needs to be pluggable.
@@ -40,6 +42,9 @@ public class FTLController implements LeaseClient {
 
     FTLController() {
         this.moduleName = System.getProperty("ftl.module.name");
+        if (LaunchMode.current() != LaunchMode.DEVELOPMENT) {
+            haveRunnerInfo = true;
+        }
     }
 
     public void registerDatabase(String name, GetDeploymentContextResponse.DbType type) {
@@ -53,6 +58,13 @@ public class FTLController implements LeaseClient {
     private FTLRunnerConnection getRunnerConnection() {
         if (runnerConnection == null) {
             synchronized (this) {
+                while (!haveRunnerInfo) {
+                    try {
+                        this.wait();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
                 if (runnerConnection == null) {
                     runnerConnection = new FTLRunnerConnection(runnerDetails.getProxyAddress(),
                             runnerDetails.getDeploymentKey(), moduleName);
@@ -74,8 +86,25 @@ public class FTLController implements LeaseClient {
             }
             runnerDetails.close();
             runnerDetails = new DevModeRunnerDetails(runnerInfo);
+            haveRunnerInfo = true;
+            this.notifyAll();
         }
+    }
 
+    public void devModeShutdown() {
+        synchronized (this) {
+            if (runnerConnection != null) {
+                try {
+                    runnerConnection.close();
+                } catch (Exception e) {
+                    log.error("Failed to close runner connection", e);
+                }
+                runnerConnection = null;
+            }
+            runnerDetails.close();
+            runnerDetails = DefaultRunnerDetails.INSTANCE;
+            haveRunnerInfo = false;
+        }
     }
 
     public byte[] getConfig(String config) {
