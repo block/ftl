@@ -33,7 +33,6 @@ type devCmd struct {
 	NoServe        bool              `help:"Do not start the FTL server." default:"false"`
 	Lsp            bool              `help:"Run the language server." default:"false"`
 	ServeCmd       serveCommonConfig `embed:""`
-	InitDB         bool              `help:"Initialize the database and exit." default:"false"`
 	languageServer *lsp.Server
 	Build          buildCmd `embed:""`
 }
@@ -41,7 +40,6 @@ type devCmd struct {
 func (d *devCmd) Run(
 	ctx context.Context,
 	k *kong.Kong,
-	kctx *kong.Context,
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
@@ -76,13 +74,6 @@ func (d *devCmd) Run(
 		return KillBackgroundServe(logger)
 	}
 
-	if d.InitDB {
-		err := dev.SetupPostgres(ctx, optional.Some(d.ServeCmd.DatabaseImage), d.ServeCmd.DBPort, true)
-		if err != nil {
-			return fmt.Errorf("failed to setup database: %w", err)
-		}
-		return nil
-	}
 	statusManager := terminal.FromContext(ctx)
 	defer statusManager.Close()
 	starting := statusManager.NewStatus("\u001B[92mStarting FTL Server 🚀\u001B[39m")
