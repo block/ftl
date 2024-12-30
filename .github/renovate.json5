@@ -27,12 +27,22 @@
         'js',
       ],
       additionalBranchPrefix: 'js-',
+      commitMessgeSuffix: ' (js)',
     },
     {
       matchCategories: [
         'java',
       ],
       additionalBranchPrefix: 'java-',
+      commitMessgeSuffix: ' (java)',
+    },
+    {
+      matchCategories: [
+        'docker',
+      ],
+      additionalBranchPrefix: 'java-',
+      commitMessgeSuffix: ' (docker)',
+      pinDigests: true
     },
     {
       matchUpdateTypes: [
