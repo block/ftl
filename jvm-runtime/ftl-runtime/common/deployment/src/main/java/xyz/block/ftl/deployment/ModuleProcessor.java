@@ -228,6 +228,7 @@ public class ModuleProcessor {
             DefaultOptionalBuildItem defaultOptionalBuildItem,
             List<SchemaContributorBuildItem> schemaContributorBuildItems,
             LaunchModeBuildItem launchModeBuildItem,
+            ShutdownContextBuildItem shutdownContextBuildItem,
             CommentsBuildItem comments) throws Exception {
         String moduleName = moduleNameBuildItem.getModuleName();
 
@@ -263,7 +264,7 @@ public class ModuleProcessor {
                 // Delete the runner info file if it already exists
                 Files.deleteIfExists(path);
                 // This method tells the runtime not to actually start until we have updated runner details
-                recorder.handleDevModeRunnerStart(runnerInfo);
+                recorder.handleDevModeRunnerStart(runnerInfo, shutdownContextBuildItem);
             }
         }
         recorder.loadModuleContextOnStartup();

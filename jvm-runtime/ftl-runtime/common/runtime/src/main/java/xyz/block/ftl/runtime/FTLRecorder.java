@@ -177,8 +177,14 @@ public class FTLRecorder {
         FTLController.instance().registerDatabase(dbKind, name);
     }
 
-    public void handleDevModeRunnerStart(String runnerInfo) {
+    public void handleDevModeRunnerStart(String runnerInfo, ShutdownContext shutdownContext) {
         FTLController.instance().waitForDevModeStart(Path.of(runnerInfo));
+        shutdownContext.addShutdownTask(new Runnable() {
+            @Override
+            public void run() {
+                FTLController.instance().devModeShutdown();
+            }
+        });
     }
 
     public void loadModuleContextOnStartup() {
