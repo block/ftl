@@ -92,9 +92,7 @@ type ShardHandle[E Event, Q any, R any] struct {
 
 // Propose an event to the shard.
 func (s *ShardHandle[E, Q, R]) Propose(ctx context.Context, msg E) error {
-	if s.cluster.nh == nil {
-		panic("cluster not started")
-	}
+	s.verifyReady()
 
 	msgBytes, err := msg.MarshalBinary()
 	if err != nil {
@@ -113,9 +111,7 @@ func (s *ShardHandle[E, Q, R]) Propose(ctx context.Context, msg E) error {
 
 // Query the state of the shard.
 func (s *ShardHandle[E, Q, R]) Query(ctx context.Context, query Q) (R, error) {
-	if s.cluster.nh == nil {
-		panic("cluster not started")
-	}
+	s.verifyReady()
 
 	var zero R
 
@@ -130,6 +126,15 @@ func (s *ShardHandle[E, Q, R]) Query(ctx context.Context, query Q) (R, error) {
 	}
 
 	return response, nil
+}
+
+func (s *ShardHandle[E, Q, R]) verifyReady() {
+	if s.cluster == nil {
+		panic("cluster not built")
+	}
+	if s.cluster.nh == nil {
+		panic("cluster not started")
+	}
 }
 
 // Start the cluster. Blocks until the cluster instance is ready.
