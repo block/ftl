@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
+	"net"
 	"testing"
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/internal/local"
 	"github.com/block/ftl/internal/raft"
 	"golang.org/x/sync/errgroup"
 )
@@ -43,15 +45,18 @@ func TestCluster(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))
 	defer cancel()
 
-	members := []string{"localhost:51001", "localhost:51002"}
+	members, err := local.FreeTCPAddresses(2)
+	assert.NoError(t, err)
 
-	cluster1 := testCluster(t, members, 1, members[0])
-	shard1_1 := raft.AddShard(ctx, cluster1, 1, &IntStateMachine{})
-	shard1_2 := raft.AddShard(ctx, cluster1, 2, &IntStateMachine{})
+	builder1 := testBuilder(t, members, 1, members[0].String())
+	shard1_1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
+	shard1_2 := raft.AddShard(ctx, builder1, 2, &IntStateMachine{})
+	cluster1 := builder1.Build(ctx)
 
-	cluster2 := testCluster(t, members, 2, members[1])
-	shard2_1 := raft.AddShard(ctx, cluster2, 1, &IntStateMachine{})
-	shard2_2 := raft.AddShard(ctx, cluster2, 2, &IntStateMachine{})
+	builder2 := testBuilder(t, members, 2, members[1].String())
+	shard2_1 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
+	shard2_2 := raft.AddShard(ctx, builder2, 2, &IntStateMachine{})
+	cluster2 := builder2.Build(ctx)
 
 	wg, wctx := errgroup.WithContext(ctx)
 	wg.Go(func() error { return cluster1.Start(wctx) })
@@ -74,13 +79,16 @@ func TestJoiningExistingCluster(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))
 	defer cancel()
 
-	members := []string{"localhost:51001", "localhost:51002"}
+	members, err := local.FreeTCPAddresses(4)
+	assert.NoError(t, err)
 
-	cluster1 := testCluster(t, members, 1, members[0])
-	shard1 := raft.AddShard(ctx, cluster1, 1, &IntStateMachine{})
+	builder1 := testBuilder(t, members[:2], 1, members[0].String())
+	shard1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
+	cluster1 := builder1.Build(ctx)
 
-	cluster2 := testCluster(t, members, 2, members[1])
-	shard2 := raft.AddShard(ctx, cluster2, 1, &IntStateMachine{})
+	builder2 := testBuilder(t, members[:2], 2, members[1].String())
+	shard2 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
+	cluster2 := builder2.Build(ctx)
 
 	wg, wctx := errgroup.WithContext(ctx)
 	wg.Go(func() error { return cluster1.Start(wctx) })
@@ -90,10 +98,11 @@ func TestJoiningExistingCluster(t *testing.T) {
 	defer cluster2.Stop()
 
 	// join to the existing cluster as a new member
-	cluster3 := testCluster(t, nil, 3, "localhost:51003")
-	shard3 := raft.AddShard(ctx, cluster3, 1, &IntStateMachine{})
+	builder3 := testBuilder(t, nil, 3, members[2].String())
+	shard3 := raft.AddShard(ctx, builder3, 1, &IntStateMachine{})
+	cluster3 := builder3.Build(ctx)
 
-	assert.NoError(t, cluster1.AddMember(ctx, 1, 3, "localhost:51003"))
+	assert.NoError(t, cluster1.AddMember(ctx, 1, 3, members[2].String()))
 
 	assert.NoError(t, cluster3.Join(ctx))
 	defer cluster3.Stop()
@@ -103,10 +112,11 @@ func TestJoiningExistingCluster(t *testing.T) {
 	assertShardValue(ctx, t, 1, shard1, shard2, shard3)
 
 	// join through the new member
-	cluster4 := testCluster(t, nil, 4, "localhost:51004")
-	shard4 := raft.AddShard(ctx, cluster4, 1, &IntStateMachine{})
+	builder4 := testBuilder(t, nil, 4, members[3].String())
+	shard4 := raft.AddShard(ctx, builder4, 1, &IntStateMachine{})
+	cluster4 := builder4.Build(ctx)
 
-	assert.NoError(t, cluster3.AddMember(ctx, 1, 4, "localhost:51004"))
+	assert.NoError(t, cluster3.AddMember(ctx, 1, 4, members[3].String()))
 	assert.NoError(t, cluster4.Join(ctx))
 	defer cluster4.Stop()
 
@@ -115,8 +125,13 @@ func TestJoiningExistingCluster(t *testing.T) {
 	assertShardValue(ctx, t, 2, shard1, shard2, shard3, shard4)
 }
 
-func testCluster(t *testing.T, members []string, id uint64, address string) *raft.Cluster {
-	return raft.New(&raft.RaftConfig{
+func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address string) *raft.Builder {
+	members := make([]string, len(addresses))
+	for i, member := range addresses {
+		members[i] = member.String()
+	}
+
+	return raft.NewBuilder(&raft.RaftConfig{
 		ReplicaID:          id,
 		RaftAddress:        address,
 		DataDir:            t.TempDir(),

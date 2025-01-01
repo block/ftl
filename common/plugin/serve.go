@@ -22,6 +22,7 @@ import (
 
 	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	ftlhttp "github.com/block/ftl/internal/http"
+	"github.com/block/ftl/internal/local"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 )
@@ -170,15 +171,11 @@ func Start[Impl any, Iface any, Config any](
 }
 
 func AllocatePort() (*net.TCPAddr, error) {
-	l, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
-
+	addresses, err := local.FreeTCPAddresses(1)
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate port: %w", err)
 	}
-	if err := l.Close(); err != nil {
-		return nil, fmt.Errorf("could not close connection during port check: %w", err)
-	}
-	return l.Addr().(*net.TCPAddr), nil //nolint:forcetypeassert
+	return addresses[0], nil
 }
 
 func cleanup(logger *log.Logger, pidFile string) error {

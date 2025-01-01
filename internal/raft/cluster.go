@@ -27,11 +27,55 @@ type RaftConfig struct {
 	CompactionOverhead uint64        `help:"Compaction overhead" default:"100"`
 }
 
+// Builder for a Raft Cluster.
+type Builder struct {
+	config *RaftConfig
+	shards map[uint64]statemachine.CreateStateMachineFunc
+
+	handles []*ShardHandle[Event, any, any]
+}
+
+func NewBuilder(cfg *RaftConfig) *Builder {
+	return &Builder{
+		config: cfg,
+		shards: map[uint64]statemachine.CreateStateMachineFunc{},
+	}
+}
+
+// AddShard adds a shard to the cluster Builder.
+func AddShard[Q any, R any, E Event, EPtr Unmarshallable[E]](
+	ctx context.Context,
+	to *Builder,
+	shardID uint64,
+	sm StateMachine[Q, R, E, EPtr],
+) *ShardHandle[E, Q, R] {
+	to.shards[shardID] = newStateMachineShim[Q, R, E, EPtr](sm)
+
+	handle := &ShardHandle[E, Q, R]{
+		shardID: shardID,
+	}
+	to.handles = append(to.handles, (*ShardHandle[Event, any, any])(handle))
+	return handle
+}
+
 // Cluster of dragonboat nodes.
 type Cluster struct {
 	config *RaftConfig
 	nh     *dragonboat.NodeHost
 	shards map[uint64]statemachine.CreateStateMachineFunc
+}
+
+func (b *Builder) Build(ctx context.Context) *Cluster {
+	cluster := &Cluster{
+		config: b.config,
+		shards: b.shards,
+	}
+
+	for _, handle := range b.handles {
+		handle.cluster = cluster
+	}
+
+	return cluster
 }
 
 // ShardHandle is a handle to a shard in the cluster.
@@ -86,32 +130,6 @@ func (s *ShardHandle[E, Q, R]) Query(ctx context.Context, query Q) (R, error) {
 	}
 
 	return response, nil
-}
-
-// New creates a new cluster.
-func New(cfg *RaftConfig) *Cluster {
-	return &Cluster{
-		config: cfg,
-		shards: make(map[uint64]statemachine.CreateStateMachineFunc),
-	}
-}
-
-// AddShard adds a shard to the cluster.
-// This can be only called before the cluster is started.
-func AddShard[Q any, R any, E Event, EPtr Unmarshallable[E]](
-	ctx context.Context,
-	to *Cluster,
-	shardID uint64,
-	sm StateMachine[Q, R, E, EPtr],
-) *ShardHandle[E, Q, R] {
-	if to.nh != nil {
-		panic("cluster already started")
-	}
-	to.shards[shardID] = newStateMachineShim[Q, R, E, EPtr](sm)
-	return &ShardHandle[E, Q, R]{
-		shardID: shardID,
-		cluster: to,
-	}
 }
 
 // Start the cluster. Blocks until the cluster instance is ready.

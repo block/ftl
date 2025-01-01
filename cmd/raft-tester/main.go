@@ -73,8 +73,9 @@ func main() {
 	kctx := kong.Parse(&cli)
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
 
-	cluster := raft.New(&cli.RaftConfig)
-	shard := raft.AddShard(ctx, cluster, 1, &IntStateMachine{})
+	builder := raft.NewBuilder(&cli.RaftConfig)
+	shard := raft.AddShard(ctx, builder, 1, &IntStateMachine{})
+	cluster := builder.Build(ctx)
 
 	wg, ctx := errgroup.WithContext(ctx)
 	messages := make(chan int)
