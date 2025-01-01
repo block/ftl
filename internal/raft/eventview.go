@@ -84,13 +84,14 @@ func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Recover(reader io.Reader) er
 	return nil
 }
 
-func NewRaftEventStream[
+// AddEventView to the Builder
+func AddEventView[
 	V encoding.BinaryMarshaler,
 	VPtr Unmarshallable[V],
 	E RaftStreamEvent[V, VPtr],
 	EPtr Unmarshallable[E],
-](ctx context.Context, cluster *Cluster, shardID uint64) eventstream.EventView[V, E] {
+](ctx context.Context, builder *Builder, shardID uint64) eventstream.EventView[V, E] {
 	sm := &eventStreamStateMachine[V, VPtr, E, EPtr]{}
-	shard := AddShard[UnitQuery, V, E, EPtr](ctx, cluster, shardID, sm)
+	shard := AddShard[UnitQuery, V, E, EPtr](ctx, builder, shardID, sm)
 	return &RaftEventView[V, VPtr, E]{shard: shard}
 }

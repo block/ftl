@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/internal/local"
 	"github.com/block/ftl/internal/raft"
 	"golang.org/x/sync/errgroup"
 )
@@ -41,16 +42,20 @@ func (v *IntSumView) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func TestEventStream(t *testing.T) {
+func TestEventView(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))
 	defer cancel()
 
-	members := []string{"localhost:51001", "localhost:51002"}
+	members, err := local.FreeTCPAddresses(2)
+	assert.NoError(t, err)
 
-	cluster1 := testCluster(t, members, 1, members[0])
-	stream1 := raft.NewRaftEventStream[IntSumView, *IntSumView, IntStreamEvent](ctx, cluster1, 1)
-	cluster2 := testCluster(t, members, 2, members[1])
-	stream2 := raft.NewRaftEventStream[IntSumView, *IntSumView, IntStreamEvent](ctx, cluster2, 1)
+	builder1 := testBuilder(t, members, 1, members[0].String())
+	view1 := raft.AddEventView[IntSumView, *IntSumView, IntStreamEvent](ctx, builder1, 1)
+	cluster1 := builder1.Build(ctx)
+
+	builder2 := testBuilder(t, members, 2, members[1].String())
+	view2 := raft.AddEventView[IntSumView, *IntSumView, IntStreamEvent](ctx, builder2, 1)
+	cluster2 := builder2.Build(ctx)
 
 	eg, wctx := errgroup.WithContext(ctx)
 	eg.Go(func() error { return cluster1.Start(wctx) })
@@ -59,13 +64,13 @@ func TestEventStream(t *testing.T) {
 	defer cluster1.Stop()
 	defer cluster2.Stop()
 
-	assert.NoError(t, stream1.Publish(ctx, IntStreamEvent{Value: 1}))
+	assert.NoError(t, view1.Publish(ctx, IntStreamEvent{Value: 1}))
 
-	view, err := stream1.View(ctx)
+	view, err := view1.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, IntSumView{Sum: 1}, view)
 
-	view, err = stream2.View(ctx)
+	view, err = view2.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, IntSumView{Sum: 1}, view)
 }
