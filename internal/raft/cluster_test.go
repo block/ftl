@@ -64,8 +64,8 @@ func TestCluster(t *testing.T) {
 	wg.Go(func() error { return cluster1.Start(wctx) })
 	wg.Go(func() error { return cluster2.Start(wctx) })
 	assert.NoError(t, wg.Wait())
-	defer cluster1.Stop()
-	defer cluster2.Stop()
+	defer cluster1.Stop(ctx) //nolint:errcheck
+	defer cluster2.Stop(ctx) //nolint:errcheck
 
 	assert.NoError(t, shard1_1.Propose(ctx, IntEvent(1)))
 	assert.NoError(t, shard2_1.Propose(ctx, IntEvent(2)))
@@ -97,8 +97,8 @@ func TestJoiningExistingCluster(t *testing.T) {
 	wg.Go(func() error { return cluster1.Start(wctx) })
 	wg.Go(func() error { return cluster2.Start(wctx) })
 	assert.NoError(t, wg.Wait())
-	defer cluster1.Stop()
-	defer cluster2.Stop()
+	defer cluster1.Stop(ctx) //nolint:errcheck
+	defer cluster2.Stop(ctx) //nolint:errcheck
 
 	t.Log("join to the existing cluster as a new member")
 	builder3 := testBuilder(t, nil, 3, members[2].String())
@@ -108,7 +108,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 	assert.NoError(t, cluster1.AddMember(ctx, 1, 3, members[2].String()))
 
 	assert.NoError(t, cluster3.Join(ctx))
-	defer cluster3.Stop()
+	defer cluster3.Stop(ctx) //nolint:errcheck
 
 	assert.NoError(t, shard3.Propose(ctx, IntEvent(1)))
 
@@ -121,7 +121,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 
 	assert.NoError(t, cluster3.AddMember(ctx, 1, 4, members[3].String()))
 	assert.NoError(t, cluster4.Join(ctx))
-	defer cluster4.Stop()
+	defer cluster4.Stop(ctx) //nolint:errcheck
 
 	assert.NoError(t, shard4.Propose(ctx, IntEvent(1)))
 
@@ -151,17 +151,16 @@ func TestLeavingCluster(t *testing.T) {
 	wg.Go(func() error { return cluster2.Start(wctx) })
 	wg.Go(func() error { return cluster3.Start(wctx) })
 	assert.NoError(t, wg.Wait())
-	defer cluster1.Stop() //nolint:errcheck
-	defer cluster2.Stop() //nolint:errcheck
-	defer cluster3.Stop() //nolint:errcheck
+	defer cluster1.Stop(ctx) //nolint:errcheck
+	defer cluster2.Stop(ctx) //nolint:errcheck
+	defer cluster3.Stop(ctx) //nolint:errcheck
 
 	t.Log("proposing event")
 	assert.NoError(t, shard1.Propose(ctx, IntEvent(1)))
 	assertShardValue(ctx, t, 1, shard1, shard2, shard3)
 
 	t.Log("removing member")
-	assert.NoError(t, cluster2.RemoveMember(ctx, 1, 1))
-	assert.NoError(t, cluster1.Stop())
+	assert.NoError(t, cluster1.Stop(ctx))
 
 	t.Log("proposing event after removal")
 	assert.NoError(t, shard2.Propose(ctx, IntEvent(1)))
@@ -180,7 +179,7 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 		DataDir:            t.TempDir(),
 		InitialMembers:     members,
 		HeartbeatRTT:       1,
-		ElectionRTT:        10,
+		ElectionTimeoutRTT: 10,
 		SnapshotEntries:    10,
 		CompactionOverhead: 10,
 		RTT:                10 * time.Millisecond,
