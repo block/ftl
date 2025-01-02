@@ -24,7 +24,7 @@ type RaftConfig struct {
 	ShardReadyTimeout time.Duration `help:"Timeout for shard to be ready" default:"5s"`
 	// Raft configuration
 	RTT                time.Duration `help:"Estimated average round trip time between nodes" default:"200ms"`
-	ElectionRTT        uint64        `help:"Election RTT as a multiple of RTT" default:"10"`
+	ElectionTimeoutRTT uint64        `help:"Election timeout RTT as a multiple of RTT" default:"10"`
 	HeartbeatRTT       uint64        `help:"Heartbeat RTT as a multiple of RTT" default:"1"`
 	SnapshotEntries    uint64        `help:"Snapshot entries" default:"10"`
 	CompactionOverhead uint64        `help:"Compaction overhead" default:"100"`
@@ -106,7 +106,7 @@ func (s *ShardHandle[E, Q, R]) Propose(ctx context.Context, msg E) error {
 		s.session = s.cluster.nh.GetNoOPSession(s.shardID)
 	}
 
-	if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.config.ReplicaID, func() error {
+	if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.config.ReplicaID, func(ctx context.Context) error {
 		_, err := s.cluster.nh.SyncPropose(ctx, s.session, msgBytes)
 		return err //nolint:wrapcheck
 	}); err != nil {
@@ -177,7 +177,7 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 			ReplicaID:          c.config.ReplicaID,
 			ShardID:            shardID,
 			CheckQuorum:        true,
-			ElectionRTT:        c.config.ElectionRTT,
+			ElectionRTT:        c.config.ElectionTimeoutRTT,
 			HeartbeatRTT:       c.config.HeartbeatRTT,
 			SnapshotEntries:    c.config.SnapshotEntries,
 			CompactionOverhead: c.config.CompactionOverhead,
@@ -208,9 +208,15 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 }
 
 // Stop the node host and all shards.
-func (c *Cluster) Stop() error {
+func (c *Cluster) Stop(ctx context.Context) error {
 	if c.nh == nil {
 		return nil
+	}
+
+	for shardID := range c.shards {
+		if err := c.removeShardMember(ctx, shardID, c.config.ReplicaID); err != nil {
+			return fmt.Errorf("failed to remove shard (%d) member: %w", shardID, err)
+		}
 	}
 
 	c.nh.Close()
@@ -225,7 +231,7 @@ func (c *Cluster) AddMember(ctx context.Context, shardID uint64, replicaID uint6
 	logger := log.FromContext(ctx).Scope("raft")
 	logger.Infof("adding member %s to shard %d on replica %d", address, shardID, replicaID)
 
-	if err := c.withRetry(ctx, shardID, replicaID, func() error {
+	if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
 		return c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0)
 	}); err != nil {
 		return fmt.Errorf("failed to add member: %w", err)
@@ -233,27 +239,23 @@ func (c *Cluster) AddMember(ctx context.Context, shardID uint64, replicaID uint6
 	return nil
 }
 
-// RemoveMember from the cluster. This needs to be called on an existing running cluster member,
-// before the member is stopped.
-func (c *Cluster) RemoveMember(ctx context.Context, shardID uint64, replicaID uint64) error {
+// removeShardMember from the given shard. This removes the given member from the membership group
+// and blocks until the change has been committed
+func (c *Cluster) removeShardMember(ctx context.Context, shardID uint64, replicaID uint64) error {
 	logger := log.FromContext(ctx).Scope("raft")
-	logger.Infof("removing member from shard %d on replica %d", shardID, replicaID)
+	logger.Infof("removing replica %d from shard %d", shardID, replicaID)
 
-	if err := c.withRetry(ctx, shardID, replicaID, func() error {
+	if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
 		return c.nh.SyncRequestDeleteReplica(ctx, shardID, replicaID, 0)
 	}); err != nil {
 		return fmt.Errorf("failed to remove member: %w", err)
-	}
-	// if we removed the leader, we wait for the shard to be ready again
-	if err := c.waitReady(ctx, shardID); err != nil {
-		return fmt.Errorf("failed to wait for shard %d to be ready on replica %d: %w", shardID, replicaID, err)
 	}
 	return nil
 }
 
 // withTimeout runs an async dragonboat call and blocks until it succeeds or the context is cancelled.
 // the call is retried if the request is dropped, which can happen if the leader is not available.
-func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f func() error) error {
+func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f func(ctx context.Context) error) error {
 	retry := backoff.Backoff{
 		Min:    c.config.RTT,
 		Max:    c.config.ShardReadyTimeout,
@@ -263,16 +265,30 @@ func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f fu
 	logger := log.FromContext(ctx).Scope("raft")
 
 	for {
-		err := f()
+		// Timeout for the proposal to reach the leader and reach a quorum.
+		// If the leader is not available, the proposal will time out, in which case
+		// we retry the operation.
+		timeout := time.Duration(c.config.ElectionTimeoutRTT) * c.config.RTT
+		ctx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+
+		err := f(ctx)
+		duration := retry.Duration()
 		if errors.Is(err, dragonboat.ErrShardNotReady) {
-			logger.Debugf("shard not ready, retrying in %s", retry.Duration())
-			time.Sleep(retry.Duration())
+			logger.Debugf("shard not ready, retrying in %s", duration)
+			time.Sleep(duration)
 			if _, ok := <-ctx.Done(); ok {
 				return fmt.Errorf("context cancelled")
 			}
 			continue
-		}
-		if err != nil {
+		} else if errors.Is(err, dragonboat.ErrTimeout) {
+			logger.Debugf("timeout, retrying in %s", duration)
+			time.Sleep(duration)
+			if _, ok := <-ctx.Done(); ok {
+				return fmt.Errorf("context cancelled")
+			}
+			continue
+		} else if err != nil {
 			return fmt.Errorf("failed to submit request to shard %d on replica %d: %w", shardID, replicaID, err)
 		}
 		return nil
