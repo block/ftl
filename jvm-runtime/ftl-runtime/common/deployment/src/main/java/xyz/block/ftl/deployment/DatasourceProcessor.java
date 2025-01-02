@@ -12,6 +12,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.GeneratedResourceBuildItem;
+import io.quarkus.deployment.builditem.HotDeploymentWatchedFileBuildItem;
 import io.quarkus.deployment.builditem.SystemPropertyBuildItem;
 import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.runtime.FTLDatasourceCredentials;
@@ -73,5 +74,13 @@ public class DatasourceProcessor {
                 String.join("\n", namedDatasources).getBytes(StandardCharsets.UTF_8)));
         return new SchemaContributorBuildItem(decls);
 
+    }
+
+    @BuildStep
+    HotDeploymentWatchedFileBuildItem sqlMigrations() {
+        return HotDeploymentWatchedFileBuildItem.builder().setRestartNeeded(true)
+                .setLocationPredicate((s) -> {
+                    return s.startsWith("db/") && s.endsWith(".sql");
+                }).build();
     }
 }
