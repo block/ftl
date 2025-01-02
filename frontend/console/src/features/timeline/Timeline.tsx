@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { timeFilter, useTimeline } from '../../api/timeline/index.ts'
 import { Loader } from '../../components/Loader.tsx'
@@ -31,6 +31,7 @@ export const Timeline = ({ timeSettings, filters }: { timeSettings: TimeSettings
   const streamTimeline = timeSettings.isTailing && !timeSettings.isPaused
 
   const timeline = useTimeline(streamTimeline, eventFilters)
+  const entries = useMemo(() => (timeline.data?.pages ?? []).flatMap((page): Event[] => (Array.isArray(page) ? page : [])), [timeline.data?.pages])
 
   useEffect(() => {
     if (!isOpen) {
@@ -93,8 +94,6 @@ export const Timeline = ({ timeSettings, filters }: { timeSettings: TimeSettings
       </div>
     )
   }
-
-  const entries = timeline.data || []
 
   return (
     <div className='border border-gray-100 dark:border-slate-700 rounded m-2'>
