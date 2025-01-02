@@ -409,7 +409,7 @@ func Build(ctx context.Context, projectRootDir, stubsRoot string, config modulec
 		return moduleSch, nil, ErrInvalidateDependencies
 	}
 
-	replacements, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"))
+	replacements, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module)
 	if err != nil {
 		return moduleSch, nil, err
 	}
@@ -1371,10 +1371,16 @@ func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames ex
 }
 
 // Update go.mod file to include the FTL version and return the Go version and any replace directives.
-func updateGoModule(goModPath string) (replacements []*modfile.Replace, goVersion string, err error) {
+func updateGoModule(goModPath string, expectedModule string) (replacements []*modfile.Replace, goVersion string, err error) {
 	goModFile, replacements, err := goModFileWithReplacements(goModPath)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to update %s: %w", goModPath, err)
+	}
+
+	// Validate module name matches
+	if !strings.HasPrefix(goModFile.Module.Mod.Path, "ftl/"+expectedModule) {
+		return nil, "", fmt.Errorf("module name mismatch: expected 'ftl/%s' but got '%s' in go.mod",
+			expectedModule, goModFile.Module.Mod.Path)
 	}
 
 	// Early return if we're not updating anything.
