@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/block/ftl/internal/log"
 	"github.com/jpillora/backoff"
 	"github.com/lni/dragonboat/v4"
 	"github.com/lni/dragonboat/v4/client"
 	"github.com/lni/dragonboat/v4/config"
 	"github.com/lni/dragonboat/v4/statemachine"
+
+	"github.com/block/ftl/internal/log"
 )
 
 type RaftConfig struct {
