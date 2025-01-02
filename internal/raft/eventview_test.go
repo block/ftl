@@ -8,6 +8,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/block/ftl/internal/local"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
 	"golang.org/x/sync/errgroup"
 )
@@ -43,7 +44,8 @@ func (v *IntSumView) UnmarshalBinary(data []byte) error {
 }
 
 func TestEventView(t *testing.T) {
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(60*time.Second))
 	defer cancel()
 
 	members, err := local.FreeTCPAddresses(2)

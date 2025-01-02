@@ -10,6 +10,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/block/ftl/internal/local"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
 	"golang.org/x/sync/errgroup"
 )
@@ -42,7 +43,8 @@ func (s *IntStateMachine) Save(writer io.Writer) error     { return nil }
 func (s *IntStateMachine) Close() error                    { return nil }
 
 func TestCluster(t *testing.T) {
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Second))
 	defer cancel()
 
 	members, err := local.FreeTCPAddresses(2)
@@ -76,7 +78,8 @@ func TestCluster(t *testing.T) {
 }
 
 func TestJoiningExistingCluster(t *testing.T) {
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Second))
 	defer cancel()
 
 	members, err := local.FreeTCPAddresses(4)
@@ -97,7 +100,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 	defer cluster1.Stop()
 	defer cluster2.Stop()
 
-	// join to the existing cluster as a new member
+	t.Log("join to the existing cluster as a new member")
 	builder3 := testBuilder(t, nil, 3, members[2].String())
 	shard3 := raft.AddShard(ctx, builder3, 1, &IntStateMachine{})
 	cluster3 := builder3.Build(ctx)
@@ -111,7 +114,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 
 	assertShardValue(ctx, t, 1, shard1, shard2, shard3)
 
-	// join through the new member
+	t.Log("join through the new member")
 	builder4 := testBuilder(t, nil, 4, members[3].String())
 	shard4 := raft.AddShard(ctx, builder4, 1, &IntStateMachine{})
 	cluster4 := builder4.Build(ctx)
@@ -123,6 +126,46 @@ func TestJoiningExistingCluster(t *testing.T) {
 	assert.NoError(t, shard4.Propose(ctx, IntEvent(1)))
 
 	assertShardValue(ctx, t, 2, shard1, shard2, shard3, shard4)
+}
+
+func TestLeavingCluster(t *testing.T) {
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Second))
+	defer cancel()
+
+	members, err := local.FreeTCPAddresses(3)
+	assert.NoError(t, err)
+
+	builder1 := testBuilder(t, members, 1, members[0].String())
+	shard1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
+	cluster1 := builder1.Build(ctx)
+	builder2 := testBuilder(t, members, 2, members[1].String())
+	shard2 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
+	cluster2 := builder2.Build(ctx)
+	builder3 := testBuilder(t, members, 3, members[2].String())
+	shard3 := raft.AddShard(ctx, builder3, 1, &IntStateMachine{})
+	cluster3 := builder3.Build(ctx)
+
+	wg, wctx := errgroup.WithContext(ctx)
+	wg.Go(func() error { return cluster1.Start(wctx) })
+	wg.Go(func() error { return cluster2.Start(wctx) })
+	wg.Go(func() error { return cluster3.Start(wctx) })
+	assert.NoError(t, wg.Wait())
+	defer cluster1.Stop() //nolint:errcheck
+	defer cluster2.Stop() //nolint:errcheck
+	defer cluster3.Stop() //nolint:errcheck
+
+	t.Log("proposing event")
+	assert.NoError(t, shard1.Propose(ctx, IntEvent(1)))
+	assertShardValue(ctx, t, 1, shard1, shard2, shard3)
+
+	t.Log("removing member")
+	assert.NoError(t, cluster2.RemoveMember(ctx, 1, 1))
+	assert.NoError(t, cluster1.Stop())
+
+	t.Log("proposing event after removal")
+	assert.NoError(t, shard2.Propose(ctx, IntEvent(1)))
+	assertShardValue(ctx, t, 2, shard3, shard2)
 }
 
 func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address string) *raft.Builder {
@@ -141,7 +184,7 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 		SnapshotEntries:    10,
 		CompactionOverhead: 10,
 		RTT:                10 * time.Millisecond,
-		ShardReadyTimeout:  1 * time.Second,
+		ShardReadyTimeout:  5 * time.Second,
 	})
 }
 
