@@ -76,14 +76,16 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 				return nil, fmt.Errorf("invalid DSN: %w", err)
 			}
 
-			db := dbmate.New(u)
-			db.AutoDumpSchema = false
-			db.Log = log.FromContext(ctx).Scope("migrate").WriterAt(log.Info)
-			db.MigrationsDir = []string{dir}
-			err = db.CreateAndMigrate()
+			dbm := dbmate.New(u)
+			dbm.AutoDumpSchema = false
+			dbm.Log = log.FromContext(ctx).Scope("migrate").WriterAt(log.Info)
+			dbm.MigrationsDir = []string{dir}
+			err = dbm.CreateAndMigrate()
 			if err != nil {
 				return nil, fmt.Errorf("failed to create and migrate database: %w", err)
 			}
+			logger := log.FromContext(ctx)
+			logger.Infof("Provisioned SQL migration for: %s.%s", moduleName, db.Name)
 		}
 		return nil, nil
 	}

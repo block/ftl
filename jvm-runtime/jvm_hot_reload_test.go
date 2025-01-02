@@ -88,6 +88,7 @@ create table StockPrice (
     stock varchar(255) not null,
     primary key (id)
 );
+INSERT INTO StockPrice VALUES (0, 100.0, 'FOO');
 
 -- migrate:down
 
@@ -96,7 +97,6 @@ create table StockPrice (
 			return false, nil
 		}, "src/main/resources/db/"),
 		in.Sleep(time.Second*2),
-		// TODO: this is currently broken, we need the provisioner to listed to schema changes to fix this
-		// in.QueryRow("echo_testdb", "SELECT id from StockPrice", nil),
+		in.QueryRow("echo_testdb", "SELECT stock from StockPrice", "FOO"),
 	)
 }

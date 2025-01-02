@@ -314,7 +314,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	schemaHash := sha256.SHA256{}
 	migrationHash := watch.FileHashes{}
 	if fileExists(buildCtx.Config.SQLMigrationDirectory) {
-		migrationHash, err = watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"*.sql"})
+		migrationHash, err = watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"**/*.sql"})
 		if err != nil {
 			return fmt.Errorf("could not compute file hashes: %w", err)
 		}
@@ -390,7 +390,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			}
 
 			if fileExists(buildCtx.Config.SQLMigrationDirectory) {
-				newMigrationHash, err := watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"*.sql"})
+				newMigrationHash, err := watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"**/*.sql"})
 				if err != nil {
 					logger.Errorf(err, "could not compute file hashes")
 				} else if !reflect.DeepEqual(newMigrationHash, migrationHash) {
@@ -428,6 +428,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					continue
 				}
 
+				logger.Infof("Live reload schema changed, sending build success event")
 				err = stream.Send(&langpb.BuildResponse{
 					Event: &langpb.BuildResponse_BuildSuccess{
 						BuildSuccess: &langpb.BuildSuccess{
