@@ -378,6 +378,31 @@ func EditFile(module string, editFunc func([]byte) []byte, path ...string) Actio
 	}
 }
 
+// EditFile edits a files in a modules directory
+func EditFiles(module string, editFunc func(path string, contents []byte) (bool, []byte), path ...string) Action {
+	return func(t testing.TB, ic TestContext) {
+		parts := []string{ic.workDir, module}
+		parts = append(parts, path...)
+		dir := filepath.Join(parts...)
+		filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+			assert.NoError(t, err)
+			if info.IsDir() {
+				return nil
+			}
+			Infof("Editing %s", path)
+			contents, err := os.ReadFile(path)
+			assert.NoError(t, err)
+			ok, contents := editFunc(path, contents)
+			if ok {
+				err = os.WriteFile(path, contents, os.FileMode(0))
+				assert.NoError(t, err)
+			}
+			return nil
+		})
+
+	}
+}
+
 // MoveFile moves a file within a module
 func MoveFile(module, from, to string) Action {
 	return func(t testing.TB, ic TestContext) {

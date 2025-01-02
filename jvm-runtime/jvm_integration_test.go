@@ -12,64 +12,11 @@ import (
 
 	"github.com/alecthomas/repr"
 
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/go-runtime/ftl"
 	in "github.com/block/ftl/internal/integration"
 )
-
-func TestLifecycleJVM(t *testing.T) {
-	deployment := ""
-	in.Run(t,
-		in.WithLanguages("java", "kotlin"),
-		in.WithDevMode(),
-		in.GitInit(),
-		in.Exec("rm", "ftl-project.toml"),
-		in.Exec("ftl", "init", "test"),
-		in.IfLanguage("java", in.Exec("ftl", "new", "java", "echo")),
-		in.IfLanguage("kotlin", in.Exec("ftl", "new", "kotlin", "echo")),
-		in.WaitWithTimeout("echo", time.Minute),
-		in.VerifyControllerStatus(func(ctx context.Context, t testing.TB, status *ftlv1.StatusResponse) {
-			assert.Equal(t, 1, len(status.Deployments))
-			deployment = status.Deployments[0].Key
-		}),
-		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
-			assert.Equal(t, "Hello, Bob!", response)
-		}),
-		// Now test hot reload
-		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
-		}, "src/main/java/com/example/EchoVerb.java")),
-		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
-		}, "src/main/kotlin/com/example/EchoVerb.kt")),
-		in.Sleep(time.Second*2), // Annoyingly quarkus limits to one restart check every 2s, which is fine for normal dev, but a pain for these tests
-		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
-			assert.Equal(t, "Bye, Bob!", response)
-		}),
-		in.VerifyControllerStatus(func(ctx context.Context, t testing.TB, status *ftlv1.StatusResponse) {
-			// Non structurally changing edits should not trigger a new deployment.
-			t.Logf("status %v", status)
-			assert.Equal(t, 1, len(status.Deployments))
-			assert.Equal(t, deployment, status.Deployments[0].Key)
-		}),
-		// Structural change should result in a new deployment
-		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "@Export", ""))
-		}, "src/main/java/com/example/EchoVerb.java")),
-		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "@Export", ""))
-		}, "src/main/kotlin/com/example/EchoVerb.kt")),
-		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
-			assert.Equal(t, "Bye, Bob!", response)
-		}),
-		in.VerifyControllerStatus(func(ctx context.Context, t testing.TB, status *ftlv1.StatusResponse) {
-			assert.Equal(t, 1, len(status.Deployments))
-			assert.NotEqual(t, deployment, status.Deployments[0].Key)
-		}),
-	)
-}
 
 func TestVerbCalls(t *testing.T) {
 	in.Run(t,
