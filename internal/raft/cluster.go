@@ -2,9 +2,11 @@ package raft
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/block/ftl/internal/log"
 	"github.com/jpillora/backoff"
 	"github.com/lni/dragonboat/v4"
 	"github.com/lni/dragonboat/v4/client"
@@ -102,10 +104,14 @@ func (s *ShardHandle[E, Q, R]) Propose(ctx context.Context, msg E) error {
 		// use a no-op session for now. This means that a retry on timeout could result into duplicate events.
 		s.session = s.cluster.nh.GetNoOPSession(s.shardID)
 	}
-	_, err = s.cluster.nh.SyncPropose(ctx, s.session, msgBytes)
-	if err != nil {
+
+	if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.config.ReplicaID, func() error {
+		_, err := s.cluster.nh.SyncPropose(ctx, s.session, msgBytes)
+		return err //nolint:wrapcheck
+	}); err != nil {
 		return fmt.Errorf("failed to propose event: %w", err)
 	}
+
 	return nil
 }
 
@@ -191,7 +197,6 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 	}
 
 	// Wait for all shards to be ready
-	// TODO: WaitReady in the config should do this, but for some reason it doesn't work.
 	for shardID := range c.shards {
 		if err := c.waitReady(ctx, shardID); err != nil {
 			return fmt.Errorf("failed to wait for shard %d to be ready on replica %d: %w", shardID, c.config.ReplicaID, err)
@@ -201,42 +206,100 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 	return nil
 }
 
-func (c *Cluster) Stop() {
+// Stop the node host and all shards.
+func (c *Cluster) Stop() error {
 	if c.nh == nil {
-		return
+		return nil
 	}
+
 	c.nh.Close()
 	c.nh = nil
+
+	return nil
 }
 
 // AddMember to the cluster. This needs to be called on an existing running cluster member,
 // before the new member is started.
 func (c *Cluster) AddMember(ctx context.Context, shardID uint64, replicaID uint64, address string) error {
-	if err := c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0); err != nil {
+	logger := log.FromContext(ctx).Scope("raft")
+	logger.Infof("adding member %s to shard %d on replica %d", address, shardID, replicaID)
+
+	if err := c.withRetry(ctx, shardID, replicaID, func() error {
+		return c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0)
+	}); err != nil {
 		return fmt.Errorf("failed to add member: %w", err)
 	}
 	return nil
 }
 
-func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
+// RemoveMember from the cluster. This needs to be called on an existing running cluster member,
+// before the member is stopped.
+func (c *Cluster) RemoveMember(ctx context.Context, shardID uint64, replicaID uint64) error {
+	logger := log.FromContext(ctx).Scope("raft")
+	logger.Infof("removing member from shard %d on replica %d", shardID, replicaID)
+
+	if err := c.withRetry(ctx, shardID, replicaID, func() error {
+		return c.nh.SyncRequestDeleteReplica(ctx, shardID, replicaID, 0)
+	}); err != nil {
+		return fmt.Errorf("failed to remove member: %w", err)
+	}
+	// if we removed the leader, we wait for the shard to be ready again
+	if err := c.waitReady(ctx, shardID); err != nil {
+		return fmt.Errorf("failed to wait for shard %d to be ready on replica %d: %w", shardID, replicaID, err)
+	}
+	return nil
+}
+
+// withTimeout runs an async dragonboat call and blocks until it succeeds or the context is cancelled.
+// the call is retried if the request is dropped, which can happen if the leader is not available.
+func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f func() error) error {
 	retry := backoff.Backoff{
-		Min:    5 * time.Millisecond,
+		Min:    c.config.RTT,
 		Max:    c.config.ShardReadyTimeout,
 		Factor: 2,
 		Jitter: true,
 	}
+	logger := log.FromContext(ctx).Scope("raft")
+
 	for {
-		rs, err := c.nh.ReadIndex(shardID, c.config.ShardReadyTimeout)
+		err := f()
+		if errors.Is(err, dragonboat.ErrShardNotReady) {
+			logger.Debugf("shard not ready, retrying in %s", retry.Duration())
+			time.Sleep(retry.Duration())
+			if _, ok := <-ctx.Done(); ok {
+				return fmt.Errorf("context cancelled")
+			}
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("failed to submit request to shard %d on replica %d: %w", shardID, replicaID, err)
+		}
+		return nil
+	}
+}
+
+func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
+	retry := backoff.Backoff{
+		Min:    c.config.RTT,
+		Max:    c.config.ShardReadyTimeout,
+		Factor: 2,
+		Jitter: true,
+	}
+	logger := log.FromContext(ctx).Scope("raft")
+	for {
+		wait := retry.Duration()
+		rs, err := c.nh.ReadIndex(shardID, wait)
 		if err != nil || rs == nil {
 			return fmt.Errorf("failed to read index: %w", err)
 		}
 		res := <-rs.ResultC()
 		rs.Release()
 		if !res.Completed() {
+			logger.Debugf("waiting for shard %d to be ready on replica %d: %s", shardID, c.config.ReplicaID, wait)
 			select {
 			case <-ctx.Done():
 				return fmt.Errorf("context cancelled")
-			case <-time.After(retry.Duration()):
+			case <-time.After(wait):
 			}
 			continue
 		}
