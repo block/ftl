@@ -10,7 +10,7 @@ RUN hermit install openjdk-21.0.3_9
 RUN mvn -B --version
 
 # Finally create the runtime image.
-FROM ftl0/ftl-runner:latest@sha256:2e1f3791d65051c6936a95ef364a1c321990aeedf366864776b948a48c2c0430
+FROM ftl0/ftl-runner:latest
 
 WORKDIR /root/
 

@@ -36,6 +36,15 @@
     },
     {
       matchCategories: [
+        'docker'
+      ],
+      matchPackageNames: [
+        'ftl0/ftl-runner',
+      ],
+      pinDigests: false
+    },
+    {
+      matchCategories: [
         'docker',
       ],
       additionalBranchPrefix: 'docker-',
