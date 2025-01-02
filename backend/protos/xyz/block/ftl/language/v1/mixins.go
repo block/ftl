@@ -90,12 +90,13 @@ func PosFromProto(pos *Position) optional.Option[builderrors.Position] {
 // Absolute configs are used because relative paths may change resolve differently between parties.
 func ModuleConfigToProto(config moduleconfig.AbsModuleConfig) (*ModuleConfig, error) {
 	proto := &ModuleConfig{
-		Name:      config.Module,
-		Dir:       config.Dir,
-		DeployDir: config.DeployDir,
-		BuildLock: config.BuildLock,
-		Watch:     config.Watch,
-		Language:  config.Language,
+		Name:            config.Module,
+		Dir:             config.Dir,
+		DeployDir:       config.DeployDir,
+		BuildLock:       config.BuildLock,
+		Watch:           config.Watch,
+		Language:        config.Language,
+		SqlMigrationDir: config.SQLMigrationDirectory,
 	}
 	if config.Build != "" {
 		proto.Build = &config.Build

@@ -88,7 +88,7 @@ func ComputeFileHashes(dir string, skipGitIgnoredFiles bool, patterns []string) 
 		})
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not compute file hashes for %s: %w", rootDir, err)
 		}
 	}
 
