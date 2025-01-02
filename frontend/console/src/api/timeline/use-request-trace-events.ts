@@ -1,6 +1,7 @@
 import {
   type AsyncExecuteEvent,
   type CallEvent,
+  type Event,
   EventType,
   type IngressEvent,
   type PubSubConsumeEvent,
@@ -18,15 +19,20 @@ export const useRequestTraceEvents = (requestKey?: string, filters: GetTimelineR
   const allFilters = [...filters, requestKeysFilter([requestKey || '']), eventTypesFilter(eventTypes)]
   const timelineQuery = useTimeline(true, allFilters, 500, !!requestKey)
 
-  const data =
-    timelineQuery.data?.filter(
+  const data = (timelineQuery.data?.pages ?? [])
+    .flatMap((page): Event[] => (Array.isArray(page) ? page : []))
+    .filter(
       (event) =>
-        event.entry.case === 'call' ||
-        event.entry.case === 'ingress' ||
-        event.entry.case === 'asyncExecute' ||
-        event.entry.case === 'pubsubPublish' ||
-        event.entry.case === 'pubsubConsume',
-    ) ?? []
+        'entry' in event &&
+        event.entry &&
+        typeof event.entry === 'object' &&
+        'case' in event.entry &&
+        (event.entry.case === 'call' ||
+          event.entry.case === 'ingress' ||
+          event.entry.case === 'asyncExecute' ||
+          event.entry.case === 'pubsubPublish' ||
+          event.entry.case === 'pubsubConsume'),
+    )
 
   return {
     ...timelineQuery,
