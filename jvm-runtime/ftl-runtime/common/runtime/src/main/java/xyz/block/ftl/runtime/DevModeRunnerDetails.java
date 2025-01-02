@@ -96,11 +96,18 @@ public class DevModeRunnerDetails implements RunnerDetails {
         if (closed) {
             return Optional.empty();
         }
-        String connectionString = databases.get(database);
-        if (connectionString == null) {
+        String address = databases.get(database);
+        if (address == null) {
             return Optional.empty();
         }
-        return Optional.of(new DatasourceDetails(connectionString, "ftl", "ftl"));
+        switch (type) {
+            case DB_TYPE_POSTGRES:
+                return Optional.of(new DatasourceDetails("jdbc:postgresql://" + address + "/" + database, "ftl", "ftl"));
+            case DB_TYPE_MYSQL:
+                return Optional.of(new DatasourceDetails("jdbc:mysql://" + address + "/" + database, "ftl", "ftl"));
+            default:
+                return Optional.empty();
+        }
     }
 
     @Override
