@@ -46,7 +46,7 @@ func (v *IntSumView) UnmarshalBinary(data []byte) error {
 func TestEventView(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(60*time.Second))
-	defer cancel()
+	t.Cleanup(cancel)
 
 	members, err := local.FreeTCPAddresses(2)
 	assert.NoError(t, err)
@@ -63,8 +63,10 @@ func TestEventView(t *testing.T) {
 	eg.Go(func() error { return cluster1.Start(wctx) })
 	eg.Go(func() error { return cluster2.Start(wctx) })
 	assert.NoError(t, eg.Wait())
-	defer cluster1.Stop(ctx) //nolint:errcheck
-	defer cluster2.Stop(ctx) //nolint:errcheck
+	t.Cleanup(func() {
+		cluster1.Stop(ctx)
+		cluster2.Stop(ctx)
+	})
 
 	assert.NoError(t, view1.Publish(ctx, IntStreamEvent{Value: 1}))
 
