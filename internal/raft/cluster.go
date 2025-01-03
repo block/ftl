@@ -14,11 +14,10 @@ import (
 	"github.com/lni/dragonboat/v4/config"
 	"github.com/lni/dragonboat/v4/statemachine"
 
-	"github.com/block/ftl/internal/log"
-
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	raftpbconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/internal/log"
 )
 
 type RaftConfig struct {
