@@ -50,6 +50,7 @@ func SendInvoiceEmail(ctx context.Context, in Invoice) error {
 Events can be published to a topic by injecting the topic type into a verb:
 
 ```go
+//ftl:verb
 func PublishInvoice(ctx context.Context, topic Invoices) error {
    topic.Publish(ctx, Invoice{...})
    // ...
