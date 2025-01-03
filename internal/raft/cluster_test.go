@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	"github.com/block/ftl/internal/local"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
@@ -109,7 +111,12 @@ func TestJoiningExistingCluster(t *testing.T) {
 	shard3 := raft.AddShard(ctx, builder3, 1, &IntStateMachine{})
 	cluster3 := builder3.Build(ctx)
 
-	assert.NoError(t, cluster1.AddMember(ctx, 1, 3, members[2].String()))
+	_, err = cluster1.AddMember(ctx, connect.NewRequest(&raftpb.AddMemberRequest{
+		Address:   members[2].String(),
+		ReplicaId: 3,
+		ShardIds:  []uint64{1},
+	}))
+	assert.NoError(t, err)
 
 	assert.NoError(t, cluster3.Join(ctx))
 	defer cluster3.Stop(ctx) //nolint:errcheck
@@ -123,7 +130,12 @@ func TestJoiningExistingCluster(t *testing.T) {
 	shard4 := raft.AddShard(ctx, builder4, 1, &IntStateMachine{})
 	cluster4 := builder4.Build(ctx)
 
-	assert.NoError(t, cluster3.AddMember(ctx, 1, 4, members[3].String()))
+	_, err = cluster3.AddMember(ctx, connect.NewRequest(&raftpb.AddMemberRequest{
+		Address:   members[3].String(),
+		ReplicaId: 4,
+		ShardIds:  []uint64{1},
+	}))
+	assert.NoError(t, err)
 	assert.NoError(t, cluster4.Join(ctx))
 	defer cluster4.Stop(ctx) //nolint:errcheck
 

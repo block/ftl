@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package xyz.block.ftl.raft.v1;
+
+import "xyz/block/ftl/v1/ftl.proto";
+
+option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1;raftpb";
+option java_multiple_files = true;
+
+message AddMemberRequest {
+  string address = 1;
+  uint64 replica_id = 2;
+  repeated uint64 shard_ids = 3;
+}
+
+message AddMemberResponse {}
+
+service RaftService {
+  // Ping service for readiness.
+  rpc Ping(xyz.block.ftl.v1.PingRequest) returns (xyz.block.ftl.v1.PingResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Add a new member to the cluster.
+  rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
+}
