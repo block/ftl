@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"regexp"
 	"strings"
 
 	"github.com/block/scaffolder"
@@ -124,9 +123,8 @@ func installHermitFTL(ctx context.Context, dir string) error {
 		}
 	}
 	ftlVersion := ftl.Version
-	normalRelease := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
-	normal := normalRelease.MatchString(ftlVersion)
-	if !normal {
+
+	if !ftl.IsRelease(ftlVersion) {
 		ftlVersion = "@latest"
 	} else {
 		ftlVersion = "-" + ftlVersion

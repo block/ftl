@@ -22,6 +22,14 @@ Install the FTL CLI via [Hermit](https://cashapp.github.io/hermit), [Homebrew](h
 
 {% code_selector() %}
 
+<!-- homebrew -->
+
+#### Homebrew (Mac or Linux)
+
+```
+brew tap block/ftl && brew install ftl
+```
+
 <!-- hermit -->
 
 #### Hermit (Mac or Linux)
@@ -36,14 +44,6 @@ Alternatively you can add [hermit-ftl](https://github.com/block/hermit-ftl) to y
 
 ```hcl
 sources = ["https://github.com/block/hermit-ftl.git", "https://github.com/cashapp/hermit-packages.git"]
-```
-
-<!-- homebrew -->
-
-#### Homebrew (Mac or Linux)
-
-```
-brew tap block/ftl && brew install ftl
 ```
 
 <!-- manual -->
@@ -69,10 +69,11 @@ Once FTL is installed, initialize an FTL project:
 ```
 mkdir myproject
 cd myproject
-ftl init myproject . --hermit
+ftl init myproject .
 ```
 
-This will create an `ftl-project.toml` file, a git repository, and a `bin/` directory with Hermit tooling.
+This will create an `ftl-project.toml` file, a git repository, and a `bin/` directory with Hermit tooling. The Hermit tooling
+includes the current version of FTL, and language support for go and JVM based languages.
 
 ### Create a new module
 
