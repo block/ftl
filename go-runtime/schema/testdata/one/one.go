@@ -91,6 +91,21 @@ func (ValueEnum) tag() {}
 //ftl:enum
 type PrivateEnum interface{ privateEnum() }
 
+//ftl:enum
+type Animal interface{ animal() }
+type Lion struct{}
+type Dog struct{}
+
+func (Lion) animal() {}
+func (Dog) animal()  {}
+
+//ftl:enum
+type Pet interface{ pet() }
+type Cat struct{}
+
+func (Cat) pet() {}
+func (Dog) pet() {}
+
 //ftl:data export
 type ExportedStruct struct{}
 
