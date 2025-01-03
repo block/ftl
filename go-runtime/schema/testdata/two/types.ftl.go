@@ -4,8 +4,8 @@ package two
 import (
 	"context"
 	ftlbuiltin "ftl/builtin"
-	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/common/reflection"
+	"github.com/block/ftl/go-runtime/ftl"
 	lib "github.com/block/ftl/go-runtime/schema/testdata"
 	"github.com/block/ftl/go-runtime/server"
 	"github.com/jpillora/backoff"

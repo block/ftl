@@ -72,6 +72,11 @@ func testExtractModuleSchema(t *testing.T) {
 
   database postgres testDb
 
+  enum Animal {
+    Dog one.Dog
+    Lion one.Lion
+  }
+
   export enum BlobOrList {
     Blob String
     List [String]
@@ -100,6 +105,11 @@ func testExtractModuleSchema(t *testing.T) {
     Third = 5
   }
 
+  enum Pet {
+    Cat one.Cat
+    Dog one.Dog
+  }
+
   enum PrivateEnum {
     ExportedStruct one.ExportedStruct
     PrivateStruct one.PrivateStruct
@@ -119,12 +129,18 @@ func testExtractModuleSchema(t *testing.T) {
     ValueEnum one.ColorInt
   }
 
+  data Cat {
+  }
+
   data Config {
     field String
   }
 
   data DataWithType<T> {
     value T
+  }
+
+  data Dog {
   }
 
   export data ExportedData {
@@ -135,6 +151,9 @@ func testExtractModuleSchema(t *testing.T) {
   }
 
   data InlineStruct {
+  }
+
+  data Lion {
   }
 
   export data Nested {

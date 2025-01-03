@@ -4,8 +4,8 @@ package one
 import (
 	"context"
 	ftlbuiltin "ftl/builtin"
-	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/common/reflection"
+	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/server"
 	stdtime "time"
 )
@@ -26,9 +26,17 @@ type VerbClient func(context.Context, Req) (Resp, error)
 
 func init() {
 	reflection.Register(
+		reflection.SumType[Animal](
+			*new(Dog),
+			*new(Lion),
+		),
 		reflection.SumType[BlobOrList](
 			*new(Blob),
 			*new(List),
+		),
+		reflection.SumType[Pet](
+			*new(Cat),
+			*new(Dog),
 		),
 		reflection.SumType[PrivateEnum](
 			*new(ExportedStruct),
