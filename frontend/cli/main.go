@@ -25,6 +25,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal"
 	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
+	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
@@ -95,14 +96,12 @@ func main() {
 	app := createKongApplication(&cli, csm)
 
 	// Dynamically update the kong app with language specific flags for the "ftl new" command.
-	languagePlugin, err := prepareNewCmd(log.ContextWithNewDefaultLogger(ctx), app, os.Args[1:])
+	languagePlugin, err := languageplugin.PrepareNewCmd(log.ContextWithNewDefaultLogger(ctx), app, os.Args[1:])
 	app.FatalIfErrorf(err)
-	if plugin, ok := languagePlugin.plugin.Get(); ok {
+	addToExit(app, func(code int) {
 		// Kill the plugin when the app exits due to an error, or after showing help.
-		addToExit(app, func(code int) {
-			_ = plugin.Kill() //nolint:errcheck
-		})
-	}
+		languagePlugin.Close()
+	})
 
 	kctx, err := app.Parse(os.Args[1:])
 	app.FatalIfErrorf(err)
@@ -298,7 +297,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelFunc) terminal.Kon
 		kctx.BindTo(ctx, (*context.Context)(nil))
 		kctx.Bind(bindContext)
 		kctx.BindTo(cancel, (*context.CancelFunc)(nil))
-		kctx.Bind(languagePluginHolder{})
+		kctx.Bind(languageplugin.InitializedPlugins{})
 		return ctx
 	}
 	return bindContext

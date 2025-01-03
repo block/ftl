@@ -10,6 +10,7 @@ import (
 
 	"github.com/amacneil/dbmate/v2/pkg/dbmate"
 
+	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/watch"
@@ -54,7 +55,7 @@ func (i newSQLMigrationCmd) Run(ctx context.Context) error {
 	migrationDir := module.SQLMigrationDirectory
 	if migrationDir == "" {
 		language := module.Language
-		plugin, err := createLanguagePlugin(ctx, language)
+		plugin, err := languageplugin.CreateLanguagePlugin(ctx, language)
 		if err != nil {
 			return fmt.Errorf("could not create plugin for language %q: %w", language, err)
 		}

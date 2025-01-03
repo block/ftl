@@ -16,6 +16,7 @@ import (
 	"github.com/kballard/go-shellquote"
 	"github.com/posener/complete"
 
+	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -149,11 +150,18 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 					panic(r)
 				}
 			}()
+			// Dynamically update the kong app with language specific flags for the "ftl new" command.
+			languagePlugin, err := languageplugin.PrepareNewCmd(ctx, k, args)
+			if err != nil {
+				errorf("%s", err)
+				return
+			}
 			kctx, err := k.Parse(args)
 			if err != nil {
 				errorf("%s", err)
 				return
 			}
+			kctx.Bind(languagePlugin)
 			subctx := r.binder(ctx, kctx)
 
 			err = kctx.Run(subctx)
