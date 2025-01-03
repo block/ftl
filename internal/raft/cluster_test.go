@@ -119,7 +119,9 @@ func TestJoiningExistingCluster(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.NoError(t, cluster3.Join(ctx))
-	defer cluster3.Stop(ctx) //nolint:errcheck
+	t.Cleanup(func() {
+		cluster3.Stop(ctx)
+	})
 
 	assert.NoError(t, shard3.Propose(ctx, IntEvent(1)))
 
@@ -137,7 +139,9 @@ func TestJoiningExistingCluster(t *testing.T) {
 	}))
 	assert.NoError(t, err)
 	assert.NoError(t, cluster4.Join(ctx))
-	defer cluster4.Stop(ctx) //nolint:errcheck
+	t.Cleanup(func() {
+		cluster4.Stop(ctx)
+	})
 
 	assert.NoError(t, shard4.Propose(ctx, IntEvent(1)))
 
