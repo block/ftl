@@ -1,10 +1,12 @@
 package compile
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/block/ftl/common/schema"
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/common/schema"
 )
 
 func TestImportAliases(t *testing.T) {
@@ -74,4 +76,29 @@ func TestImportAliases(t *testing.T) {
 		"ftl/moduleclash":                  "ftlmoduleclash",
 		"github.com/ftlmoduleclash":        "github_com_ftlmoduleclash",
 	}, imports)
+}
+
+func TestUpdateGoModuleValidatesModuleName(t *testing.T) {
+	dir := t.TempDir()
+	goModPath := filepath.Join(dir, "go.mod")
+
+	// Matching module name
+	err := os.WriteFile(goModPath, []byte(`module ftl/mymodule
+
+go 1.23.0
+`), 0600)
+	assert.NoError(t, err)
+
+	_, _, err = updateGoModule(goModPath, "mymodule")
+	assert.NoError(t, err)
+
+	// Mismatched module name
+	err = os.WriteFile(goModPath, []byte(`module ftl/wrongname
+
+go 1.23.0
+`), 0600)
+	assert.NoError(t, err)
+
+	_, _, err = updateGoModule(goModPath, "mymodule")
+	assert.Contains(t, err.Error(), "module name mismatch: expected 'ftl/mymodule' but got 'ftl/wrongname'")
 }

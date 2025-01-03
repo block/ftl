@@ -43,7 +43,7 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 			return fmt.Errorf("no native module config provided")
 		}
 		goModPath := filepath.Join(nativeConfig.Dir, "go.mod")
-		_, goModVersion, err = updateGoModule(goModPath)
+		_, goModVersion, err = updateGoModule(goModPath, nativeConfig.Module)
 		if err != nil {
 			return fmt.Errorf("could not read go.mod %s", goModPath)
 		}
@@ -65,7 +65,7 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 			}
 		}
 	} else {
-		replacements, goModVersion, err = updateGoModule(filepath.Join(config.Dir, "go.mod"))
+		replacements, goModVersion, err = updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module)
 		if err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func SyncGeneratedStubReferences(ctx context.Context, config moduleconfig.AbsMod
 		sharedModulePaths = append(sharedModulePaths, filepath.Join(stubsDir, mod))
 	}
 
-	_, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"))
+	_, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module)
 	if err != nil {
 		return err
 	}
