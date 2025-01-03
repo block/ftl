@@ -51,11 +51,11 @@ func TestEventView(t *testing.T) {
 	members, err := local.FreeTCPAddresses(2)
 	assert.NoError(t, err)
 
-	builder1 := testBuilder(t, members, 1, members[0].String())
+	builder1 := testBuilder(t, members, 1, members[0].String(), nil)
 	view1 := raft.AddEventView[IntSumView, *IntSumView, IntStreamEvent](ctx, builder1, 1)
 	cluster1 := builder1.Build(ctx)
 
-	builder2 := testBuilder(t, members, 2, members[1].String())
+	builder2 := testBuilder(t, members, 2, members[1].String(), nil)
 	view2 := raft.AddEventView[IntSumView, *IntSumView, IntStreamEvent](ctx, builder2, 1)
 	cluster2 := builder2.Build(ctx)
 

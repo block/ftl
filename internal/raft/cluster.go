@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -18,15 +20,19 @@ import (
 	raftpbconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/retry"
+	"github.com/block/ftl/internal/rpc"
 )
 
 type RaftConfig struct {
-	InitialMembers    []string      `help:"Initial members" required:""`
-	ReplicaID         uint64        `help:"Node ID" required:""`
-	DataDir           string        `help:"Data directory" required:""`
-	RaftAddress       string        `help:"Address to advertise to other nodes" required:""`
-	ListenAddress     string        `help:"Address to listen for incoming traffic. If empty, RaftAddress will be used."`
-	ShardReadyTimeout time.Duration `help:"Timeout for shard to be ready" default:"5s"`
+	InitialMembers    []string          `help:"Initial members"`
+	ReplicaID         uint64            `help:"Node ID" required:""`
+	DataDir           string            `help:"Data directory" required:""`
+	Address           string            `help:"Address to advertise to other nodes" required:""`
+	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used."`
+	ControlBind       *url.URL          `help:"Address to listen for control traffic. If empty, no control listener will be started."`
+	ShardReadyTimeout time.Duration     `help:"Timeout for shard to be ready" default:"5s"`
+	Retry             retry.RetryConfig `help:"Connection retry configuration" prefix:"retry-" embed:""`
 	// Raft configuration
 	RTT                time.Duration `help:"Estimated average round trip time between nodes" default:"200ms"`
 	ElectionRTT        uint64        `help:"Election RTT as a multiple of RTT" default:"10"`
@@ -37,8 +43,9 @@ type RaftConfig struct {
 
 // Builder for a Raft Cluster.
 type Builder struct {
-	config *RaftConfig
-	shards map[uint64]statemachine.CreateStateMachineFunc
+	config        *RaftConfig
+	shards        map[uint64]statemachine.CreateStateMachineFunc
+	controlClient *http.Client
 
 	handles []*ShardHandle[Event, any, any]
 }
@@ -48,6 +55,13 @@ func NewBuilder(cfg *RaftConfig) *Builder {
 		config: cfg,
 		shards: map[uint64]statemachine.CreateStateMachineFunc{},
 	}
+}
+
+// WithControlClient sets the http client used to communicate with
+// the control plane.
+func (b *Builder) WithControlClient(client *http.Client) *Builder {
+	b.controlClient = client
+	return b
 }
 
 // AddShard adds a shard to the cluster Builder.
@@ -68,17 +82,26 @@ func AddShard[Q any, R any, E Event, EPtr Unmarshallable[E]](
 
 // Cluster of dragonboat nodes.
 type Cluster struct {
-	config *RaftConfig
-	nh     *dragonboat.NodeHost
-	shards map[uint64]statemachine.CreateStateMachineFunc
+	config        *RaftConfig
+	nh            *dragonboat.NodeHost
+	shards        map[uint64]statemachine.CreateStateMachineFunc
+	controlClient *http.Client
+
+	closeControlService context.CancelFunc
 }
 
 var _ raftpbconnect.RaftServiceHandler = (*Cluster)(nil)
 
 func (b *Builder) Build(ctx context.Context) *Cluster {
+	controlClient := b.controlClient
+	if controlClient == nil {
+		controlClient = http.DefaultClient
+	}
+
 	cluster := &Cluster{
-		config: b.config,
-		shards: b.shards,
+		config:        b.config,
+		shards:        b.shards,
+		controlClient: controlClient,
 	}
 
 	for _, handle := range b.handles {
@@ -104,6 +127,8 @@ type ShardHandle[E Event, Q any, R any] struct {
 
 // Propose an event to the shard.
 func (s *ShardHandle[E, Q, R]) Propose(ctx context.Context, msg E) error {
+	logger := log.FromContext(ctx).Scope("raft")
+
 	// client session is not thread safe, so we need to lock
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -116,6 +141,7 @@ func (s *ShardHandle[E, Q, R]) Propose(ctx context.Context, msg E) error {
 	}
 	if s.session == nil {
 		if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.config.ReplicaID, func(ctx context.Context) error {
+			logger.Debugf("getting session for shard %d on replica %d", s.shardID, s.cluster.config.ReplicaID)
 			s.session, err = s.cluster.nh.SyncGetSession(ctx, s.shardID)
 			return err //nolint:wrapcheck
 		}); err != nil {
@@ -124,7 +150,7 @@ func (s *ShardHandle[E, Q, R]) Propose(ctx context.Context, msg E) error {
 	}
 
 	if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.config.ReplicaID, func(ctx context.Context) error {
-		s.session.PrepareForPropose()
+		logger.Debugf("proposing event to shard %d on replica %d", s.shardID, s.cluster.config.ReplicaID)
 		_, err := s.cluster.nh.SyncPropose(ctx, s.session, msgBytes)
 		if err != nil {
 			return err //nolint:wrapcheck
@@ -168,11 +194,41 @@ func (s *ShardHandle[E, Q, R]) verifyReady() {
 
 // Start the cluster. Blocks until the cluster instance is ready.
 func (c *Cluster) Start(ctx context.Context) error {
+	if c.nh != nil {
+		panic("cluster already started")
+	}
+
 	return c.start(ctx, false)
 }
 
 // Join the cluster as a new member. Blocks until the cluster instance is ready.
-func (c *Cluster) Join(ctx context.Context) error {
+func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
+	logger := log.FromContext(ctx).Scope("raft")
+
+	// call control server to join the cluster
+	client := raftpbconnect.NewRaftServiceClient(http.DefaultClient, controlAddress)
+
+	shardIDs := make([]uint64, 0, len(c.shards))
+	for shardID := range c.shards {
+		shardIDs = append(shardIDs, shardID)
+	}
+
+	retry := c.config.Retry.Backoff()
+	for i := 0; true; i++ {
+		_, err := client.AddMember(ctx, connect.NewRequest(&raftpb.AddMemberRequest{
+			ShardIds:  shardIDs,
+			ReplicaId: c.config.ReplicaID,
+			Address:   c.config.Address,
+		}))
+		if err != nil {
+			duration := retry.Duration()
+			logger.Warnf("failed to join cluster: %s, retrying in %s", err, duration)
+			time.Sleep(duration)
+			continue
+		}
+		break
+	}
+
 	return c.start(ctx, true)
 }
 
@@ -182,7 +238,7 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 		WALDir:         c.config.DataDir,
 		NodeHostDir:    c.config.DataDir,
 		RTTMillisecond: uint64(c.config.RTT.Milliseconds()),
-		RaftAddress:    c.config.RaftAddress,
+		RaftAddress:    c.config.Address,
 		ListenAddress:  c.config.ListenAddress,
 	}
 
@@ -195,27 +251,8 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 
 	// Start replicas for each shard
 	for shardID, sm := range c.shards {
-		cfg := config.Config{
-			ReplicaID:          c.config.ReplicaID,
-			ShardID:            shardID,
-			CheckQuorum:        true,
-			ElectionRTT:        c.config.ElectionRTT,
-			HeartbeatRTT:       c.config.HeartbeatRTT,
-			SnapshotEntries:    c.config.SnapshotEntries,
-			CompactionOverhead: c.config.CompactionOverhead,
-			WaitReady:          true,
-		}
-
-		peers := make(map[uint64]string)
-		if !join {
-			for idx, peer := range c.config.InitialMembers {
-				peers[uint64(idx+1)] = peer
-			}
-		}
-
-		// Start the raft node for this shard
-		if err := nh.StartReplica(peers, join, sm, cfg); err != nil {
-			return fmt.Errorf("failed to start replica %d for shard %d: %w", c.config.ReplicaID, shardID, err)
+		if err := c.startShard(nh, shardID, sm, join); err != nil {
+			return err
 		}
 	}
 
@@ -226,6 +263,59 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 		}
 	}
 
+	if err := c.startControlServer(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statemachine.CreateStateMachineFunc, join bool) error {
+	cfg := config.Config{
+		ReplicaID:          c.config.ReplicaID,
+		ShardID:            shardID,
+		CheckQuorum:        true,
+		ElectionRTT:        c.config.ElectionRTT,
+		HeartbeatRTT:       c.config.HeartbeatRTT,
+		SnapshotEntries:    c.config.SnapshotEntries,
+		CompactionOverhead: c.config.CompactionOverhead,
+		WaitReady:          true,
+	}
+
+	peers := make(map[uint64]string)
+	if !join {
+		for idx, peer := range c.config.InitialMembers {
+			peers[uint64(idx+1)] = peer
+		}
+	}
+
+	// Start the raft node for this shard
+	if err := nh.StartReplica(peers, join, sm, cfg); err != nil {
+		return fmt.Errorf("failed to start replica %d for shard %d: %w", c.config.ReplicaID, shardID, err)
+	}
+	return nil
+}
+
+func (c *Cluster) startControlServer(ctx context.Context) error {
+	logger := log.FromContext(ctx).Scope("raft")
+
+	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	c.closeControlService = cancel
+
+	if c.config.ControlBind == nil {
+		return nil
+	}
+
+	logger.Infof("starting control server on %s", c.config.ControlBind.String())
+	go func() {
+		err := rpc.Serve(ctx, c.config.ControlBind,
+			rpc.GRPC(raftpbconnect.NewRaftServiceHandler, c),
+			rpc.PProf())
+		if err != nil && !errors.Is(err, context.Canceled) {
+			logger.Errorf(err, "error serving control listener")
+		}
+		logger.Infof("control server stopped")
+	}()
 	return nil
 }
 
@@ -237,6 +327,7 @@ func (c *Cluster) Stop(ctx context.Context) {
 			c.removeShardMember(ctx, shardID, c.config.ReplicaID)
 		}
 		c.nh.Close()
+		c.closeControlService()
 		c.nh = nil
 		c.shards = nil
 	}
@@ -255,6 +346,7 @@ func (c *Cluster) AddMember(ctx context.Context, req *connect.Request[raftpb.Add
 
 	for _, shardID := range shards {
 		if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
+			logger.Debugf("requesting add replica to shard %d on replica %d", shardID, replicaID)
 			return c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0)
 		}); err != nil {
 			return nil, fmt.Errorf("failed to add member: %w", err)
@@ -270,6 +362,7 @@ func (c *Cluster) removeShardMember(ctx context.Context, shardID uint64, replica
 	logger.Infof("removing replica %d from shard %d", shardID, replicaID)
 
 	if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
+		logger.Debugf("requesting delete replica from shard %d on replica %d", shardID, replicaID)
 		return c.nh.SyncRequestDeleteReplica(ctx, shardID, replicaID, 0)
 	}); err != nil {
 		// This can happen if the cluster is shutting down and no longer has quorum.
@@ -285,12 +378,7 @@ func (c *Cluster) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 // withTimeout runs an async dragonboat call and blocks until it succeeds or the context is cancelled.
 // the call is retried if the request is dropped, which can happen if the leader is not available.
 func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f func(ctx context.Context) error) error {
-	retry := backoff.Backoff{
-		Min:    c.config.RTT,
-		Max:    c.config.ShardReadyTimeout,
-		Factor: 2,
-		Jitter: true,
-	}
+	retry := c.config.Retry.Backoff()
 	logger := log.FromContext(ctx).Scope("raft")
 
 	for {
@@ -309,6 +397,7 @@ func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f fu
 			if _, ok := <-ctx.Done(); ok {
 				return fmt.Errorf("context cancelled")
 			}
+			cancel()
 			continue
 		} else if errors.Is(err, dragonboat.ErrTimeout) {
 			logger.Debugf("timeout, retrying in %s", duration)
@@ -316,6 +405,7 @@ func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f fu
 			if _, ok := <-ctx.Done(); ok {
 				return fmt.Errorf("context cancelled")
 			}
+			cancel()
 			continue
 		} else if err != nil {
 			return fmt.Errorf("failed to submit request to shard %d on replica %d: %w", shardID, replicaID, err)
