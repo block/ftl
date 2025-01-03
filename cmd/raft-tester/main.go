@@ -2,84 +2,65 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
-	"errors"
 	"fmt"
-	"io"
-	"log"
-	"os"
-	"os/signal"
+	"net/url"
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/lni/dragonboat/v4"
 	"golang.org/x/exp/rand"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
 )
 
 var cli struct {
 	RaftConfig raft.RaftConfig `embed:"" prefix:"raft-"`
+
+	Start startCmd `cmd:"" help:"Start the raft tester cluster."`
+	Join  joinCmd  `cmd:"" help:"Join the raft tester cluster."`
 }
 
-type IntStateMachine struct {
-	sum int64
-}
+type startCmd struct{}
 
-type IntEvent int64
-
-func (i *IntEvent) UnmarshalBinary(data []byte) error { //nolint:unparam
-	*i = IntEvent(binary.BigEndian.Uint64(data))
-	return nil
-}
-
-func (i IntEvent) MarshalBinary() ([]byte, error) { //nolint:unparam
-	return binary.BigEndian.AppendUint64([]byte{}, uint64(i)), nil
-}
-
-var _ raft.StateMachine[int64, int64, IntEvent, *IntEvent] = &IntStateMachine{}
-
-func (s IntStateMachine) Lookup(key int64) (int64, error) {
-	return s.sum, nil
-}
-
-func (s *IntStateMachine) Update(msg IntEvent) error {
-	s.sum += int64(msg)
-	return nil
-}
-
-func (s IntStateMachine) Close() error {
-	return nil
-}
-
-func (s IntStateMachine) Recover(reader io.Reader) error {
-	err := binary.Read(reader, binary.BigEndian, &s.sum)
-	if err != nil {
-		return fmt.Errorf("failed to recover from snapshot: %w", err)
-	}
-	return nil
-}
-
-func (s IntStateMachine) Save(writer io.Writer) error {
-	err := binary.Write(writer, binary.BigEndian, s.sum)
-	if err != nil {
-		return fmt.Errorf("failed to save snapshot: %w", err)
-	}
-	return nil
-}
-
-func main() {
-	kctx := kong.Parse(&cli)
-	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
+func (s *startCmd) Run() error {
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
 
 	builder := raft.NewBuilder(&cli.RaftConfig)
 	shard := raft.AddShard(ctx, builder, 1, &IntStateMachine{})
 	cluster := builder.Build(ctx)
 
-	wg, ctx := errgroup.WithContext(ctx)
+	if err := cluster.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start cluster: %w", err)
+	}
+	defer cluster.Stop(ctx)
+
+	return run(ctx, shard)
+}
+
+type joinCmd struct {
+	ControlAddress *url.URL `help:"Control address to use to join the cluster."`
+}
+
+func (j *joinCmd) Run() error {
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
+
+	builder := raft.NewBuilder(&cli.RaftConfig)
+	shard := raft.AddShard(ctx, builder, 1, &IntStateMachine{})
+	cluster := builder.Build(ctx)
+
+	if err := cluster.Join(ctx, j.ControlAddress.String()); err != nil {
+		return fmt.Errorf("failed to join cluster: %w", err)
+	}
+	defer cluster.Stop(ctx)
+
+	return run(ctx, shard)
+}
+
+func run(ctx context.Context, shard *raft.ShardHandle[IntEvent, int64, int64]) error {
 	messages := make(chan int)
 
+	wg, ctx := errgroup.WithContext(ctx)
 	wg.Go(func() error {
 		defer close(messages)
 		// send a random number every 10 seconds
@@ -94,32 +75,26 @@ func main() {
 			}
 		}
 	})
-	wg.Go(func() error {
-		return cluster.Start(ctx)
-	})
+
 	wg.Go(func() error {
 		ticker := time.NewTicker(10 * time.Second)
 		for {
 			select {
 			case msg := <-messages:
-				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-				defer cancel()
-
 				err := shard.Propose(ctx, IntEvent(msg))
-				if errors.Is(err, dragonboat.ErrShardNotReady) {
-					log.Println("shard not ready")
-				} else if err != nil {
+				if err != nil {
 					return fmt.Errorf("failed to propose event: %w", err)
 				}
 			case <-ticker.C:
-				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 				defer cancel()
 
 				state, err := shard.Query(ctx, 1)
 				if err != nil {
 					return fmt.Errorf("failed to query shard: %w", err)
 				}
-				log.Println("state: ", state)
+				cancel()
+				fmt.Println("state: ", state)
 			case <-ctx.Done():
 				return nil
 			}
@@ -127,6 +102,16 @@ func main() {
 	})
 
 	if err := wg.Wait(); err != nil {
+		return fmt.Errorf("failed to run: %w", err)
+	}
+
+	return nil
+}
+
+func main() {
+	kctx := kong.Parse(&cli)
+
+	if err := kctx.Run(); err != nil {
 		kctx.FatalIfErrorf(err)
 	}
 }

@@ -3,17 +3,18 @@ package raft_test
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
-	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	"github.com/block/ftl/internal/local"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
+	"github.com/block/ftl/internal/retry"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -52,12 +53,12 @@ func TestCluster(t *testing.T) {
 	members, err := local.FreeTCPAddresses(2)
 	assert.NoError(t, err)
 
-	builder1 := testBuilder(t, members, 1, members[0].String())
+	builder1 := testBuilder(t, members, 1, members[0].String(), nil)
 	shard1_1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
 	shard1_2 := raft.AddShard(ctx, builder1, 2, &IntStateMachine{})
 	cluster1 := builder1.Build(ctx)
 
-	builder2 := testBuilder(t, members, 2, members[1].String())
+	builder2 := testBuilder(t, members, 2, members[1].String(), nil)
 	shard2_1 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
 	shard2_2 := raft.AddShard(ctx, builder2, 2, &IntStateMachine{})
 	cluster2 := builder2.Build(ctx)
@@ -72,12 +73,14 @@ func TestCluster(t *testing.T) {
 	})
 
 	assert.NoError(t, shard1_1.Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shard1_1.Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shard1_1.Propose(ctx, IntEvent(1)))
 	assert.NoError(t, shard2_1.Propose(ctx, IntEvent(2)))
 
 	assert.NoError(t, shard1_2.Propose(ctx, IntEvent(1)))
 	assert.NoError(t, shard2_2.Propose(ctx, IntEvent(1)))
 
-	assertShardValue(ctx, t, 3, shard1_1, shard2_1)
+	assertShardValue(ctx, t, 5, shard1_1, shard2_1)
 	assertShardValue(ctx, t, 2, shard1_2, shard2_2)
 }
 
@@ -86,14 +89,18 @@ func TestJoiningExistingCluster(t *testing.T) {
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Second))
 	t.Cleanup(cancel)
 
-	members, err := local.FreeTCPAddresses(4)
+	addresses, err := local.FreeTCPAddresses(5)
+	assert.NoError(t, err)
+	members := addresses[:4]
+	controlAddress := fmt.Sprintf("http://%s", addresses[4].String())
+	controlBind, err := url.Parse(controlAddress)
 	assert.NoError(t, err)
 
-	builder1 := testBuilder(t, members[:2], 1, members[0].String())
+	builder1 := testBuilder(t, members[:2], 1, members[0].String(), controlBind)
 	shard1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
 	cluster1 := builder1.Build(ctx)
 
-	builder2 := testBuilder(t, members[:2], 2, members[1].String())
+	builder2 := testBuilder(t, members[:2], 2, members[1].String(), controlBind)
 	shard2 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
 	cluster2 := builder2.Build(ctx)
 
@@ -107,18 +114,11 @@ func TestJoiningExistingCluster(t *testing.T) {
 	})
 
 	t.Log("join to the existing cluster as a new member")
-	builder3 := testBuilder(t, nil, 3, members[2].String())
+	builder3 := testBuilder(t, nil, 3, members[2].String(), nil)
 	shard3 := raft.AddShard(ctx, builder3, 1, &IntStateMachine{})
 	cluster3 := builder3.Build(ctx)
 
-	_, err = cluster1.AddMember(ctx, connect.NewRequest(&raftpb.AddMemberRequest{
-		Address:   members[2].String(),
-		ReplicaId: 3,
-		ShardIds:  []uint64{1},
-	}))
-	assert.NoError(t, err)
-
-	assert.NoError(t, cluster3.Join(ctx))
+	assert.NoError(t, cluster3.Join(ctx, controlAddress))
 	t.Cleanup(func() {
 		cluster3.Stop(ctx)
 	})
@@ -128,17 +128,11 @@ func TestJoiningExistingCluster(t *testing.T) {
 	assertShardValue(ctx, t, 1, shard1, shard2, shard3)
 
 	t.Log("join through the new member")
-	builder4 := testBuilder(t, nil, 4, members[3].String())
+	builder4 := testBuilder(t, nil, 4, members[3].String(), nil)
 	shard4 := raft.AddShard(ctx, builder4, 1, &IntStateMachine{})
 	cluster4 := builder4.Build(ctx)
 
-	_, err = cluster3.AddMember(ctx, connect.NewRequest(&raftpb.AddMemberRequest{
-		Address:   members[3].String(),
-		ReplicaId: 4,
-		ShardIds:  []uint64{1},
-	}))
-	assert.NoError(t, err)
-	assert.NoError(t, cluster4.Join(ctx))
+	assert.NoError(t, cluster4.Join(ctx, controlAddress))
 	t.Cleanup(func() {
 		cluster4.Stop(ctx)
 	})
@@ -156,13 +150,13 @@ func TestLeavingCluster(t *testing.T) {
 	members, err := local.FreeTCPAddresses(3)
 	assert.NoError(t, err)
 
-	builder1 := testBuilder(t, members, 1, members[0].String())
+	builder1 := testBuilder(t, members, 1, members[0].String(), nil)
 	shard1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
 	cluster1 := builder1.Build(ctx)
-	builder2 := testBuilder(t, members, 2, members[1].String())
+	builder2 := testBuilder(t, members, 2, members[1].String(), nil)
 	shard2 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
 	cluster2 := builder2.Build(ctx)
-	builder3 := testBuilder(t, members, 3, members[2].String())
+	builder3 := testBuilder(t, members, 3, members[2].String(), nil)
 	shard3 := raft.AddShard(ctx, builder3, 1, &IntStateMachine{})
 	cluster3 := builder3.Build(ctx)
 
@@ -189,7 +183,7 @@ func TestLeavingCluster(t *testing.T) {
 	assertShardValue(ctx, t, 2, shard3, shard2)
 }
 
-func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address string) *raft.Builder {
+func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address string, controlBind *url.URL) *raft.Builder {
 	members := make([]string, len(addresses))
 	for i, member := range addresses {
 		members[i] = member.String()
@@ -197,7 +191,8 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 
 	return raft.NewBuilder(&raft.RaftConfig{
 		ReplicaID:          id,
-		RaftAddress:        address,
+		Address:            address,
+		ControlBind:        controlBind,
 		DataDir:            t.TempDir(),
 		InitialMembers:     members,
 		HeartbeatRTT:       1,
@@ -206,6 +201,12 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 		CompactionOverhead: 10,
 		RTT:                10 * time.Millisecond,
 		ShardReadyTimeout:  5 * time.Second,
+		Retry: retry.RetryConfig{
+			Min:    10 * time.Millisecond,
+			Max:    1 * time.Second,
+			Factor: 2,
+			Jitter: true,
+		},
 	})
 }
 
