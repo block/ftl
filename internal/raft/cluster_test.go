@@ -183,6 +183,41 @@ func TestLeavingCluster(t *testing.T) {
 	assertShardValue(ctx, t, 2, shard3, shard2)
 }
 
+func TestChanges(t *testing.T) {
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Second))
+	t.Cleanup(cancel)
+
+	members, err := local.FreeTCPAddresses(2)
+	assert.NoError(t, err)
+
+	builder1 := testBuilder(t, members, 1, members[0].String(), nil)
+	shard1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
+	cluster1 := builder1.Build(ctx)
+
+	builder2 := testBuilder(t, members, 2, members[1].String(), nil)
+	shard2 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
+	cluster2 := builder2.Build(ctx)
+
+	wg, wctx := errgroup.WithContext(ctx)
+	wg.Go(func() error { return cluster1.Start(wctx) })
+	wg.Go(func() error { return cluster2.Start(wctx) })
+	assert.NoError(t, wg.Wait())
+	t.Cleanup(func() {
+		cluster1.Stop(ctx)
+		cluster2.Stop(ctx)
+	})
+
+	changes, err := shard1.Changes(ctx, 0)
+	assert.NoError(t, err)
+
+	assert.NoError(t, shard1.Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shard2.Propose(ctx, IntEvent(1)))
+
+	<-changes
+	<-changes
+}
+
 func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address string, controlBind *url.URL) *raft.Builder {
 	members := make([]string, len(addresses))
 	for i, member := range addresses {
@@ -201,6 +236,8 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 		CompactionOverhead: 10,
 		RTT:                10 * time.Millisecond,
 		ShardReadyTimeout:  5 * time.Second,
+		ChangesInterval:    5 * time.Millisecond,
+		ChangesTimeout:     1 * time.Second,
 		Retry: retry.RetryConfig{
 			Min:    10 * time.Millisecond,
 			Max:    1 * time.Second,
