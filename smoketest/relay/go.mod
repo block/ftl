@@ -2,7 +2,7 @@ module ftl/relay
 
 go 1.23.0
 
-require github.com/block/ftl v0.419.0
+require github.com/block/ftl v0.420.1
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
@@ -56,7 +56,7 @@ require (
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241209162323-e6fa225c2576 // indirect
