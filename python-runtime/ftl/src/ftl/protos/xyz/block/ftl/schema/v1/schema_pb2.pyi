@@ -274,7 +274,7 @@ class Map(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., key: _Optional[_Union[Type, _Mapping]] = ..., value: _Optional[_Union[Type, _Mapping]] = ...) -> None: ...
 
 class Metadata(_message.Message):
-    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "databases", "encoding", "ingress", "publisher", "retry", "sql_migration", "secrets", "subscriber", "type_map")
+    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "databases", "encoding", "ingress", "partitions", "publisher", "retry", "sql_migration", "secrets", "subscriber", "type_map")
     ALIAS_FIELD_NUMBER: _ClassVar[int]
     ARTEFACT_FIELD_NUMBER: _ClassVar[int]
     CALLS_FIELD_NUMBER: _ClassVar[int]
@@ -283,6 +283,7 @@ class Metadata(_message.Message):
     DATABASES_FIELD_NUMBER: _ClassVar[int]
     ENCODING_FIELD_NUMBER: _ClassVar[int]
     INGRESS_FIELD_NUMBER: _ClassVar[int]
+    PARTITIONS_FIELD_NUMBER: _ClassVar[int]
     PUBLISHER_FIELD_NUMBER: _ClassVar[int]
     RETRY_FIELD_NUMBER: _ClassVar[int]
     SQL_MIGRATION_FIELD_NUMBER: _ClassVar[int]
@@ -297,13 +298,14 @@ class Metadata(_message.Message):
     databases: MetadataDatabases
     encoding: MetadataEncoding
     ingress: MetadataIngress
+    partitions: MetadataPartitions
     publisher: MetadataPublisher
     retry: MetadataRetry
     sql_migration: MetadataSQLMigration
     secrets: MetadataSecrets
     subscriber: MetadataSubscriber
     type_map: MetadataTypeMap
-    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
+    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., partitions: _Optional[_Union[MetadataPartitions, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
 
 class MetadataAlias(_message.Message):
     __slots__ = ("pos", "kind", "alias")
@@ -380,6 +382,14 @@ class MetadataIngress(_message.Message):
     method: str
     path: _containers.RepeatedCompositeFieldContainer[IngressPathComponent]
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., type: _Optional[str] = ..., method: _Optional[str] = ..., path: _Optional[_Iterable[_Union[IngressPathComponent, _Mapping]]] = ...) -> None: ...
+
+class MetadataPartitions(_message.Message):
+    __slots__ = ("pos", "partitions")
+    POS_FIELD_NUMBER: _ClassVar[int]
+    PARTITIONS_FIELD_NUMBER: _ClassVar[int]
+    pos: Position
+    partitions: int
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., partitions: _Optional[int] = ...) -> None: ...
 
 class MetadataPublisher(_message.Message):
     __slots__ = ("pos", "topics")
@@ -594,20 +604,22 @@ class Time(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ...) -> None: ...
 
 class Topic(_message.Message):
-    __slots__ = ("pos", "runtime", "comments", "export", "name", "event")
+    __slots__ = ("pos", "runtime", "comments", "export", "name", "event", "metadata")
     POS_FIELD_NUMBER: _ClassVar[int]
     RUNTIME_FIELD_NUMBER: _ClassVar[int]
     COMMENTS_FIELD_NUMBER: _ClassVar[int]
     EXPORT_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     EVENT_FIELD_NUMBER: _ClassVar[int]
+    METADATA_FIELD_NUMBER: _ClassVar[int]
     pos: Position
     runtime: TopicRuntime
     comments: _containers.RepeatedScalarFieldContainer[str]
     export: bool
     name: str
     event: Type
-    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., runtime: _Optional[_Union[TopicRuntime, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., export: bool = ..., name: _Optional[str] = ..., event: _Optional[_Union[Type, _Mapping]] = ...) -> None: ...
+    metadata: _containers.RepeatedCompositeFieldContainer[Metadata]
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., runtime: _Optional[_Union[TopicRuntime, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., export: bool = ..., name: _Optional[str] = ..., event: _Optional[_Union[Type, _Mapping]] = ..., metadata: _Optional[_Iterable[_Union[Metadata, _Mapping]]] = ...) -> None: ...
 
 class TopicRuntime(_message.Message):
     __slots__ = ("kafka_brokers", "topic_id")

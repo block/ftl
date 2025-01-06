@@ -252,6 +252,40 @@ func (d *DirectiveRetry) Catch() optional.Option[schema.Ref] {
 	})
 }
 
+// DirectiveTopic is used to configure options for a topic.
+type DirectiveTopic struct {
+	Pos token.Pos
+
+	Export     bool `parser:"'topic' @'export'?"`
+	Partitions int  `parser:"'partitions' '=' @Number"`
+}
+
+func (*DirectiveTopic) directive() {}
+
+func (d *DirectiveTopic) String() string {
+	components := []string{"topic"}
+	if d.Export {
+		components = append(components, "export")
+	}
+	components = append(components, "partitions="+strconv.Itoa(d.Partitions))
+	return strings.Join(components, " ")
+}
+
+func (*DirectiveTopic) GetTypeName() string { return "topic" }
+func (d *DirectiveTopic) SetPosition(pos token.Pos) {
+	d.Pos = pos
+}
+func (d *DirectiveTopic) GetPosition() token.Pos {
+	return d.Pos
+}
+func (*DirectiveTopic) MustAnnotate() []ast.Node {
+	return []ast.Node{&ast.FuncDecl{}, &ast.GenDecl{}}
+}
+
+func (d *DirectiveTopic) IsExported() bool {
+	return d.Export
+}
+
 // DirectiveSubscriber is used to subscribe a sink to a subscription
 type DirectiveSubscriber struct {
 	Pos token.Pos
@@ -374,7 +408,7 @@ var DirectiveParser = participle.MustBuild[directiveWrapper](
 	participle.UseLookahead(2),
 	participle.Union[Directive](&DirectiveVerb{}, &DirectiveData{}, &DirectiveEnum{}, &DirectiveTypeAlias{},
 		&DirectiveIngress{}, &DirectiveCronJob{}, &DirectiveRetry{}, &DirectiveSubscriber{}, &DirectiveExport{},
-		&DirectiveTypeMap{}, &DirectiveEncoding{}),
+		&DirectiveTypeMap{}, &DirectiveEncoding{}, &DirectiveTopic{}),
 	participle.Union[schema.IngressPathComponent](&schema.IngressPathLiteral{}, &schema.IngressPathParameter{}),
 )
 

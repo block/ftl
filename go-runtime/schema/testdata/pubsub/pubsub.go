@@ -11,6 +11,7 @@ type PayinEvent struct {
 	Name string
 }
 
+//ftl:topic partitions=4
 type Payins = ftl.TopicHandle[PayinEvent, ftl.SinglePartitionMap[PayinEvent]]
 
 //ftl:verb

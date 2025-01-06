@@ -13,10 +13,11 @@ type Topic struct {
 	Pos     Position      `parser:"" protobuf:"1,optional"`
 	Runtime *TopicRuntime `parser:"" protobuf:"31634,optional"`
 
-	Comments []string `parser:"@Comment*" protobuf:"2"`
-	Export   bool     `parser:"@'export'?" protobuf:"3"`
-	Name     string   `parser:"'topic' @Ident" protobuf:"4"`
-	Event    Type     `parser:"@@" protobuf:"5"`
+	Comments []string   `parser:"@Comment*" protobuf:"2"`
+	Export   bool       `parser:"@'export'?" protobuf:"3"`
+	Name     string     `parser:"'topic' @Ident" protobuf:"4"`
+	Event    Type       `parser:"@@" protobuf:"5"`
+	Metadata []Metadata `parser:"@@*" protobuf:"6"`
 }
 
 var _ Decl = (*Topic)(nil)
@@ -28,10 +29,14 @@ func (*Topic) schemaDecl()          {}
 func (*Topic) schemaSymbol()        {}
 func (t *Topic) provisioned()       {}
 func (t *Topic) schemaChildren() []Node {
-	if t.Event == nil {
-		return nil
+	children := []Node{}
+	for _, c := range t.Metadata {
+		children = append(children, c)
 	}
-	return []Node{t.Event}
+	if t.Event != nil {
+		children = append(children, t.Event)
+	}
+	return children
 }
 
 func (t *Topic) GetName() string  { return t.Name }
@@ -44,6 +49,7 @@ func (t *Topic) String() string {
 		fmt.Fprint(w, "export ")
 	}
 	fmt.Fprintf(w, "topic %s %s", t.Name, t.Event)
+	fmt.Fprint(w, indent(encodeMetadata(t.Metadata)))
 	return w.String()
 }
 func (t *Topic) GetProvisioned() ResourceSet {
@@ -65,6 +71,7 @@ func TopicFromProto(t *schemapb.Topic) *Topic {
 		Export:   t.Export,
 		Event:    TypeFromProto(t.Event),
 		Comments: t.Comments,
+		Metadata: metadataListToSchema(t.Metadata),
 	}
 }
 

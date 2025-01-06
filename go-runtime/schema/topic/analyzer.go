@@ -50,6 +50,12 @@ func Extract(pass *analysis.Pass, obj types.Object, node *ast.TypeSpec) optional
 	if md, ok := common.GetFactForObject[*common.ExtractedMetadata](pass, obj).Get(); ok {
 		topic.Comments = md.Comments
 		topic.Export = md.IsExported
+
+		for _, c := range md.Metadata {
+			if pm, ok := c.(*schema.MetadataPartitions); ok {
+				topic.Metadata = append(topic.Metadata, pm)
+			}
+		}
 	}
 
 	// mapper fact
