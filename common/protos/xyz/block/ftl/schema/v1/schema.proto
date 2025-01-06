@@ -192,6 +192,7 @@ message Metadata {
     MetadataDatabases databases = 4;
     MetadataEncoding encoding = 9;
     MetadataIngress ingress = 2;
+    MetadataPartitions partitions = 15;
     MetadataPublisher publisher = 12;
     MetadataRetry retry = 6;
     MetadataSQLMigration sql_migration = 13;
@@ -247,6 +248,11 @@ message MetadataIngress {
   string type = 2;
   string method = 3;
   repeated IngressPathComponent path = 4;
+}
+
+message MetadataPartitions {
+  optional Position pos = 1;
+  int64 partitions = 2;
 }
 
 message MetadataPublisher {
@@ -392,6 +398,7 @@ message Topic {
   bool export = 3;
   string name = 4;
   Type event = 5;
+  repeated Metadata metadata = 6;
 }
 
 message TopicRuntime {

@@ -410,6 +410,10 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Ingress{value.ToProto()},
 		}
+	case *MetadataPartitions:
+		return &destpb.Metadata{
+			Value: &destpb.Metadata_Partitions{value.ToProto()},
+		}
 	case *MetadataPublisher:
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Publisher{value.ToProto()},
@@ -522,6 +526,16 @@ func (x *MetadataIngress) ToProto() *destpb.MetadataIngress {
 		Type:   string(x.Type),
 		Method: string(x.Method),
 		Path:   protoSlicef(x.Path, IngressPathComponentToProto),
+	}
+}
+
+func (x *MetadataPartitions) ToProto() *destpb.MetadataPartitions {
+	if x == nil {
+		return nil
+	}
+	return &destpb.MetadataPartitions{
+		Pos:        x.Pos.ToProto(),
+		Partitions: int64(x.Partitions),
 	}
 }
 
@@ -799,6 +813,7 @@ func (x *Topic) ToProto() *destpb.Topic {
 		Export:   bool(x.Export),
 		Name:     string(x.Name),
 		Event:    TypeToProto(x.Event),
+		Metadata: protoSlicef(x.Metadata, MetadataToProto),
 	}
 }
 

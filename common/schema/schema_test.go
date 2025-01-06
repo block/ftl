@@ -428,6 +428,7 @@ func TestParsing(t *testing.T) {
 			input: `
 				module test {
 					export topic topicA test.eventA
+						+partitions 12
 
 					topic topicB test.eventB
 
@@ -492,6 +493,11 @@ func TestParsing(t *testing.T) {
 							Event: &Ref{
 								Module: "test",
 								Name:   "eventA",
+							},
+							Metadata: []Metadata{
+								&MetadataPartitions{
+									Partitions: 12,
+								},
 							},
 						},
 						&Topic{

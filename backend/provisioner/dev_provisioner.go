@@ -214,10 +214,14 @@ func provisionTopic() InMemResourceProvisionerFn {
 		if len(topicMetas) != 1 {
 			return nil, fmt.Errorf("expected topic metadata from kafka but received none")
 		}
+		partitions := 1
+		if pm, ok := slices.FindVariant[*schema.MetadataPartitions](topic.Metadata); ok {
+			partitions = pm.Partitions
+		}
 		if topicMetas[0].Err == sarama.ErrUnknownTopicOrPartition {
 			// No topic exists yet. Create it
 			err = admin.CreateTopic(topicID, &sarama.TopicDetail{
-				NumPartitions:     8,
+				NumPartitions:     int32(partitions),
 				ReplicationFactor: 1,
 				ReplicaAssignment: nil,
 			}, false)
@@ -226,6 +230,14 @@ func provisionTopic() InMemResourceProvisionerFn {
 			}
 		} else if topicMetas[0].Err != sarama.ErrNoError {
 			return nil, fmt.Errorf("failed to describe topic %q: %w", topicID, topicMetas[0].Err)
+		} else if len(topicMetas[0].Partitions) != partitions {
+			var plural string
+			if len(topicMetas[0].Partitions) == 1 {
+				plural = "partition"
+			} else {
+				plural = "partitions"
+			}
+			return nil, fmt.Errorf("existing topic %s has %d %s instead of %d", topicID, len(topicMetas[0].Partitions), plural, partitions)
 		}
 
 		return &RuntimeEvent{

@@ -1396,6 +1396,12 @@ export class Metadata extends Message<Metadata> {
     case: "ingress";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.MetadataPartitions partitions = 15;
+     */
+    value: MetadataPartitions;
+    case: "partitions";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.MetadataPublisher publisher = 12;
      */
     value: MetadataPublisher;
@@ -1448,6 +1454,7 @@ export class Metadata extends Message<Metadata> {
     { no: 4, name: "databases", kind: "message", T: MetadataDatabases, oneof: "value" },
     { no: 9, name: "encoding", kind: "message", T: MetadataEncoding, oneof: "value" },
     { no: 2, name: "ingress", kind: "message", T: MetadataIngress, oneof: "value" },
+    { no: 15, name: "partitions", kind: "message", T: MetadataPartitions, oneof: "value" },
     { no: 12, name: "publisher", kind: "message", T: MetadataPublisher, oneof: "value" },
     { no: 6, name: "retry", kind: "message", T: MetadataRetry, oneof: "value" },
     { no: 13, name: "sql_migration", kind: "message", T: MetadataSQLMigration, oneof: "value" },
@@ -1854,6 +1861,49 @@ export class MetadataIngress extends Message<MetadataIngress> {
 
   static equals(a: MetadataIngress | PlainMessage<MetadataIngress> | undefined, b: MetadataIngress | PlainMessage<MetadataIngress> | undefined): boolean {
     return proto3.util.equals(MetadataIngress, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.MetadataPartitions
+ */
+export class MetadataPartitions extends Message<MetadataPartitions> {
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  /**
+   * @generated from field: int64 partitions = 2;
+   */
+  partitions = protoInt64.zero;
+
+  constructor(data?: PartialMessage<MetadataPartitions>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.MetadataPartitions";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position, opt: true },
+    { no: 2, name: "partitions", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetadataPartitions {
+    return new MetadataPartitions().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetadataPartitions {
+    return new MetadataPartitions().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetadataPartitions {
+    return new MetadataPartitions().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetadataPartitions | PlainMessage<MetadataPartitions> | undefined, b: MetadataPartitions | PlainMessage<MetadataPartitions> | undefined): boolean {
+    return proto3.util.equals(MetadataPartitions, a, b);
   }
 }
 
@@ -2955,6 +3005,11 @@ export class Topic extends Message<Topic> {
    */
   event?: Type;
 
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Metadata metadata = 6;
+   */
+  metadata: Metadata[] = [];
+
   constructor(data?: PartialMessage<Topic>) {
     super();
     proto3.util.initPartial(data, this);
@@ -2969,6 +3024,7 @@ export class Topic extends Message<Topic> {
     { no: 3, name: "export", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "event", kind: "message", T: Type },
+    { no: 6, name: "metadata", kind: "message", T: Metadata, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Topic {

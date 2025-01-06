@@ -204,6 +204,11 @@ func metadataToSchema(s *schemapb.Metadata) Metadata {
 			Path:       s.Artefact.Path,
 			Digest:     s.Artefact.Digest,
 		}
+	case *schemapb.Metadata_Partitions:
+		return &MetadataPartitions{
+			Pos:        PosFromProto(s.Partitions.Pos),
+			Partitions: int(s.Partitions.Partitions),
+		}
 
 	default:
 		panic(fmt.Sprintf("unhandled metadata type: %T", s))
