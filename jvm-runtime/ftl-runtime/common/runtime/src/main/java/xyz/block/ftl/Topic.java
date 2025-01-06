@@ -12,7 +12,7 @@ public @interface Topic {
      *
      * @return The name of the topic
      */
-    String value();
+    String name();
 
     /**
      *
@@ -20,4 +20,9 @@ public @interface Topic {
      */
     String module() default "";
 
+    /**
+     *
+     * @return The number of partitions for the topic.
+     */
+    int partitions() default 1;
 }

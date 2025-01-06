@@ -83,7 +83,7 @@ public class SubscriptionProcessor {
             throw new IllegalArgumentException(
                     "topicClass must be annotated with @TopicDefinition for subscription " + subscriptions);
         }
-        topicName = annotation.value().asString();
+        topicName = annotation.value("name").asString();
         AnnotationValue moduleValue = annotation.value("module");
         AnnotationValue deadLetterValue = subscriptions.value("deadLetter");
         boolean deadLetter = deadLetterValue != null && !deadLetterValue.asString().isEmpty() && deadLetterValue.asBoolean();

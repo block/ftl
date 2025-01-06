@@ -24,6 +24,7 @@ func (PartitionMapper) PartitionKey(event PubSubEvent) string {
 //ftl:topic export partitions=10
 type TestTopic = ftl.TopicHandle[PubSubEvent, PartitionMapper]
 
+//ftl:topic partitions=1
 type LocalTopic = ftl.TopicHandle[PubSubEvent, PartitionMapper]
 
 //ftl:export
