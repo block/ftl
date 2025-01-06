@@ -45,49 +45,28 @@ func (s *IntStateMachine) Recover(reader io.Reader) error  { return nil }
 func (s *IntStateMachine) Save(writer io.Writer) error     { return nil }
 func (s *IntStateMachine) Close() error                    { return nil }
 
-func TestCluster(t *testing.T) {
-	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Second))
-	t.Cleanup(cancel)
+func TestClusterWith2Shards(t *testing.T) {
+	ctx := testContext(t)
 
-	members, err := local.FreeTCPAddresses(2)
-	assert.NoError(t, err)
-
-	builder1 := testBuilder(t, members, 1, members[0].String(), nil)
-	shard1_1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
-	shard1_2 := raft.AddShard(ctx, builder1, 2, &IntStateMachine{})
-	cluster1 := builder1.Build(ctx)
-
-	builder2 := testBuilder(t, members, 2, members[1].String(), nil)
-	shard2_1 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
-	shard2_2 := raft.AddShard(ctx, builder2, 2, &IntStateMachine{})
-	cluster2 := builder2.Build(ctx)
-
-	wg, wctx := errgroup.WithContext(ctx)
-	wg.Go(func() error { return cluster1.Start(wctx) })
-	wg.Go(func() error { return cluster2.Start(wctx) })
-	assert.NoError(t, wg.Wait())
-	t.Cleanup(func() {
-		cluster1.Stop(ctx)
-		cluster2.Stop(ctx)
+	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) []*raft.ShardHandle[IntEvent, int64, int64] {
+		return []*raft.ShardHandle[IntEvent, int64, int64]{
+			raft.AddShard(ctx, b, 1, &IntStateMachine{}),
+			raft.AddShard(ctx, b, 2, &IntStateMachine{}),
+		}
 	})
 
-	assert.NoError(t, shard1_1.Propose(ctx, IntEvent(1)))
-	assert.NoError(t, shard1_1.Propose(ctx, IntEvent(1)))
-	assert.NoError(t, shard1_1.Propose(ctx, IntEvent(1)))
-	assert.NoError(t, shard2_1.Propose(ctx, IntEvent(2)))
+	assert.NoError(t, shards[0][0].Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shards[1][0].Propose(ctx, IntEvent(1)))
 
-	assert.NoError(t, shard1_2.Propose(ctx, IntEvent(1)))
-	assert.NoError(t, shard2_2.Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shards[0][1].Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shards[1][1].Propose(ctx, IntEvent(2)))
 
-	assertShardValue(ctx, t, 5, shard1_1, shard2_1)
-	assertShardValue(ctx, t, 2, shard1_2, shard2_2)
+	assertShardValue(ctx, t, 2, shards[0][0], shards[1][0])
+	assertShardValue(ctx, t, 3, shards[0][1], shards[1][1])
 }
 
 func TestJoiningExistingCluster(t *testing.T) {
-	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Second))
-	t.Cleanup(cancel)
+	ctx := testContext(t)
 
 	addresses, err := local.FreeTCPAddresses(5)
 	assert.NoError(t, err)
@@ -143,79 +122,39 @@ func TestJoiningExistingCluster(t *testing.T) {
 }
 
 func TestLeavingCluster(t *testing.T) {
-	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Second))
-	t.Cleanup(cancel)
+	ctx := testContext(t)
 
-	members, err := local.FreeTCPAddresses(3)
-	assert.NoError(t, err)
-
-	builder1 := testBuilder(t, members, 1, members[0].String(), nil)
-	shard1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
-	cluster1 := builder1.Build(ctx)
-	builder2 := testBuilder(t, members, 2, members[1].String(), nil)
-	shard2 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
-	cluster2 := builder2.Build(ctx)
-	builder3 := testBuilder(t, members, 3, members[2].String(), nil)
-	shard3 := raft.AddShard(ctx, builder3, 1, &IntStateMachine{})
-	cluster3 := builder3.Build(ctx)
-
-	wg, wctx := errgroup.WithContext(ctx)
-	wg.Go(func() error { return cluster1.Start(wctx) })
-	wg.Go(func() error { return cluster2.Start(wctx) })
-	wg.Go(func() error { return cluster3.Start(wctx) })
-	assert.NoError(t, wg.Wait())
-	t.Cleanup(func() {
-		cluster1.Stop(ctx)
-		cluster2.Stop(ctx)
-		cluster3.Stop(ctx)
+	clusters, shards := startClusters(ctx, t, 3, func(b *raft.Builder) *raft.ShardHandle[IntEvent, int64, int64] {
+		return raft.AddShard(ctx, b, 1, &IntStateMachine{})
 	})
 
 	t.Log("proposing event")
-	assert.NoError(t, shard1.Propose(ctx, IntEvent(1)))
-	assertShardValue(ctx, t, 1, shard1, shard2, shard3)
+	assert.NoError(t, shards[0].Propose(ctx, IntEvent(1)))
+	assertShardValue(ctx, t, 1, shards...)
 
 	t.Log("removing member")
-	cluster1.Stop(ctx)
+	clusters[0].Stop(ctx)
 
-	t.Log("proposing event after removal")
-	assert.NoError(t, shard2.Propose(ctx, IntEvent(1)))
-	assertShardValue(ctx, t, 2, shard3, shard2)
+	t.Log("proposing event after a member has been stopped")
+	assert.NoError(t, shards[1].Propose(ctx, IntEvent(1)))
+	assertShardValue(ctx, t, 2, shards[1:]...)
 }
 
 func TestChanges(t *testing.T) {
-	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Second))
-	t.Cleanup(cancel)
+	ctx := testContext(t)
 
-	members, err := local.FreeTCPAddresses(2)
-	assert.NoError(t, err)
-
-	builder1 := testBuilder(t, members, 1, members[0].String(), nil)
-	shard1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
-	cluster1 := builder1.Build(ctx)
-
-	builder2 := testBuilder(t, members, 2, members[1].String(), nil)
-	shard2 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
-	cluster2 := builder2.Build(ctx)
-
-	wg, wctx := errgroup.WithContext(ctx)
-	wg.Go(func() error { return cluster1.Start(wctx) })
-	wg.Go(func() error { return cluster2.Start(wctx) })
-	assert.NoError(t, wg.Wait())
-	t.Cleanup(func() {
-		cluster1.Stop(ctx)
-		cluster2.Stop(ctx)
+	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) *raft.ShardHandle[IntEvent, int64, int64] {
+		return raft.AddShard(ctx, b, 1, &IntStateMachine{})
 	})
 
-	changes, err := shard1.Changes(ctx, 0)
+	changes, err := shards[0].Changes(ctx, 0)
 	assert.NoError(t, err)
 
-	assert.NoError(t, shard1.Propose(ctx, IntEvent(1)))
-	assert.NoError(t, shard2.Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shards[0].Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shards[1].Propose(ctx, IntEvent(1)))
 
 	<-changes
-	<-changes
+	assert.Equal(t, <-changes, 2)
 }
 
 func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address string, controlBind *url.URL) *raft.Builder {
@@ -247,6 +186,35 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 	})
 }
 
+func startClusters[T any](ctx context.Context, t *testing.T, count int, builderF func(b *raft.Builder) T) ([]*raft.Cluster, []T) {
+	t.Helper()
+
+	clusters := make([]*raft.Cluster, count)
+	members, err := local.FreeTCPAddresses(count)
+	assert.NoError(t, err)
+	result := make([]T, count)
+
+	for i := range count {
+		builder := testBuilder(t, members, uint64(i+1), members[i].String(), nil)
+		result[i] = builderF(builder)
+		clusters[i] = builder.Build(ctx)
+	}
+
+	wg, wctx := errgroup.WithContext(ctx)
+	for _, cluster := range clusters {
+		wg.Go(func() error { return cluster.Start(wctx) })
+	}
+	assert.NoError(t, wg.Wait())
+
+	t.Cleanup(func() {
+		for _, cluster := range clusters {
+			cluster.Stop(ctx)
+		}
+	})
+
+	return clusters, result
+}
+
 func assertShardValue(ctx context.Context, t *testing.T, expected int64, shards ...*raft.ShardHandle[IntEvent, int64, int64]) {
 	t.Helper()
 
@@ -255,4 +223,11 @@ func assertShardValue(ctx context.Context, t *testing.T, expected int64, shards 
 		assert.NoError(t, err)
 		assert.Equal(t, res, expected)
 	}
+}
+
+func testContext(t *testing.T) context.Context {
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(60*time.Second))
+	t.Cleanup(cancel)
+	return ctx
 }

@@ -92,8 +92,8 @@ type Cluster struct {
 	controlClient *http.Client
 
 	// runningCtx is cancelled when the cluster is stopped.
-	runningCtx    context.Context
-	runningCancel context.CancelFunc
+	runningCtx       context.Context
+	runningCtxCancel context.CancelFunc
 }
 
 var _ raftpbconnect.RaftServiceHandler = (*Cluster)(nil)
@@ -227,25 +227,22 @@ func (s *ShardHandle[E, Q, R]) Changes(ctx context.Context, query Q) (chan R, er
 
 				return
 			case <-timer.C:
-				reader, err := s.cluster.nh.GetLogReader(s.shardID)
+				last, err := s.getLastIndex()
 				if err != nil {
-					logger.Errorf(err, "failed to get log reader")
-				} else {
-					_, last := reader.GetRange()
-					if last > s.lastKnownIndex.Load() {
-						logger.Debugf("changes detected, last known index: %d, new index: %d", s.lastKnownIndex.Load(), last)
+					logger.Warnf("failed to get last index: %s", err)
+				} else if last > s.lastKnownIndex.Load() {
+					logger.Debugf("changes detected, last known index: %d, new index: %d", s.lastKnownIndex.Load(), last)
 
-						s.lastKnownIndex.Store(last)
+					s.lastKnownIndex.Store(last)
 
-						ctx, cancel := context.WithTimeout(ctx, s.cluster.config.ChangesTimeout)
-						res, err := s.Query(ctx, query)
-						cancel()
+					ctx, cancel := context.WithTimeout(ctx, s.cluster.config.ChangesTimeout)
+					res, err := s.Query(ctx, query)
+					cancel()
 
-						if err != nil {
-							logger.Errorf(err, "failed to query shard")
-						} else {
-							result <- res
-						}
+					if err != nil {
+						logger.Errorf(err, "failed to query shard")
+					} else {
+						result <- res
 					}
 				}
 			}
@@ -253,6 +250,20 @@ func (s *ShardHandle[E, Q, R]) Changes(ctx context.Context, query Q) (chan R, er
 	}()
 
 	return result, nil
+}
+
+func (s *ShardHandle[E, Q, R]) getLastIndex() (uint64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.verifyReady()
+
+	reader, err := s.cluster.nh.GetLogReader(s.shardID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get log reader: %w", err)
+	}
+	_, last := reader.GetRange()
+	return last, nil
 }
 
 func (s *ShardHandle[E, Q, R]) verifyReady() {
@@ -336,7 +347,7 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 	}
 
 	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
-	c.runningCancel = cancel
+	c.runningCtxCancel = cancel
 	c.runningCtx = ctx
 
 	if err := c.startControlServer(ctx); err != nil {
@@ -399,8 +410,8 @@ func (c *Cluster) Stop(ctx context.Context) {
 		for shardID := range c.shards {
 			c.removeShardMember(ctx, shardID, c.config.ReplicaID)
 		}
+		c.runningCtxCancel()
 		c.nh.Close()
-		c.runningCancel()
 		c.nh = nil
 		c.shards = nil
 	}
