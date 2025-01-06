@@ -1,50 +1,20 @@
 package raft
 
 import (
-	"encoding"
 	"fmt"
 	"io"
 
+	sm "github.com/block/ftl/internal/statemachine"
 	"github.com/lni/dragonboat/v4/statemachine"
 )
 
-// Event to update the state machine. These are stored in the Raft log.
-type Event interface {
-	encoding.BinaryMarshaler
-}
-
-// Unmarshallable is a type that can be unmarshalled from a binary representation.
-type Unmarshallable[T any] interface {
-	*T
-	encoding.BinaryUnmarshaler
-}
-
-// StateMachine is a typed interface to dragonboat's statemachine.IStateMachine.
-// It is used to implement the state machine for a single shard.
-//
-// Q is the query type.
-// R is the query response type.
-// E is the event type.
-type StateMachine[Q any, R any, E Event, EPtr Unmarshallable[E]] interface {
-	// Query the state of the state machine.
-	Lookup(key Q) (R, error)
-	// Update the state of the state machine.
-	Update(msg E) error
-	// Save the state of the state machine to a snapshot.
-	Save(writer io.Writer) error
-	// Recover the state of the state machine from a snapshot.
-	Recover(reader io.Reader) error
-	// Close the state machine.
-	Close() error
-}
-
 // stateMachineShim is a shim to convert a typed StateMachine to a dragonboat statemachine.IStateMachine.
-type stateMachineShim[Q any, R any, E Event, EPtr Unmarshallable[E]] struct {
-	sm StateMachine[Q, R, E, EPtr]
+type stateMachineShim[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable[E]] struct {
+	sm sm.SnapshottingStateMachine[Q, R, E]
 }
 
-func newStateMachineShim[Q any, R any, E Event, EPtr Unmarshallable[E]](
-	sm StateMachine[Q, R, E, EPtr],
+func newStateMachineShim[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable[E]](
+	sm sm.SnapshottingStateMachine[Q, R, E],
 ) statemachine.CreateStateMachineFunc {
 	return func(clusterID uint64, nodeID uint64) statemachine.IStateMachine {
 		return &stateMachineShim[Q, R, E, EPtr]{sm: sm}

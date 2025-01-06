@@ -7,21 +7,25 @@ import (
 	"io"
 
 	"github.com/block/ftl/internal/eventstream"
+	sm "github.com/block/ftl/internal/statemachine"
 )
 
 type UnitQuery struct{}
 
-type RaftStreamEvent[View encoding.BinaryMarshaler, VPtr Unmarshallable[View]] interface {
+type RaftStreamEvent[View encoding.BinaryMarshaler, VPtr sm.Unmarshallable[View]] interface {
 	encoding.BinaryMarshaler
 	eventstream.Event[View]
 }
 
-type RaftEventView[V encoding.BinaryMarshaler, VPrt Unmarshallable[V], E RaftStreamEvent[V, VPrt]] struct {
-	shard *ShardHandle[E, UnitQuery, V]
+type RaftEventView[V encoding.BinaryMarshaler, VPrt sm.Unmarshallable[V], E RaftStreamEvent[V, VPrt]] struct {
+	shard sm.StateMachineHandle[UnitQuery, V, E]
 }
 
 func (s *RaftEventView[V, VPrt, E]) Publish(ctx context.Context, event E) error {
-	return s.shard.Propose(ctx, event)
+	if err := s.shard.Update(ctx, event); err != nil {
+		return fmt.Errorf("failed to update shard: %w", err)
+	}
+	return nil
 }
 
 func (s *RaftEventView[V, VPrt, E]) View(ctx context.Context) (V, error) {
@@ -46,9 +50,9 @@ func (s *RaftEventView[V, VPrt, E]) Changes(ctx context.Context) (chan V, error)
 
 type eventStreamStateMachine[
 	V encoding.BinaryMarshaler,
-	VPrt Unmarshallable[V],
+	VPrt sm.Unmarshallable[V],
 	E RaftStreamEvent[V, VPrt],
-	EPtr Unmarshallable[E],
+	EPtr sm.Unmarshallable[E],
 ] struct {
 	view V
 }
@@ -96,9 +100,9 @@ func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Recover(reader io.Reader) er
 // AddEventView to the Builder
 func AddEventView[
 	V encoding.BinaryMarshaler,
-	VPtr Unmarshallable[V],
+	VPtr sm.Unmarshallable[V],
 	E RaftStreamEvent[V, VPtr],
-	EPtr Unmarshallable[E],
+	EPtr sm.Unmarshallable[E],
 ](ctx context.Context, builder *Builder, shardID uint64) eventstream.EventView[V, E] {
 	sm := &eventStreamStateMachine[V, VPtr, E, EPtr]{}
 	shard := AddShard[UnitQuery, V, E, EPtr](ctx, builder, shardID, sm)
