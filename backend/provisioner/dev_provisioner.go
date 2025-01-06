@@ -237,7 +237,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 			} else {
 				plural = "partitions"
 			}
-			return nil, fmt.Errorf("existing topic %s has %d %s instead of %d", topicID, len(topicMetas[0].Partitions), plural, partitions)
+			logger.Warnf("Using existing topic %s with %d %s instead of %d", topicID, len(topicMetas[0].Partitions), plural, partitions)
 		}
 
 		return &RuntimeEvent{
