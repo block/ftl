@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/atomic"
 	"github.com/jpillora/backoff"
 	"github.com/lni/dragonboat/v4"
 	"github.com/lni/dragonboat/v4/client"
@@ -33,6 +34,9 @@ type RaftConfig struct {
 	ControlBind       *url.URL          `help:"Address to listen for control traffic. If empty, no control listener will be started."`
 	ShardReadyTimeout time.Duration     `help:"Timeout for shard to be ready" default:"5s"`
 	Retry             retry.RetryConfig `help:"Connection retry configuration" prefix:"retry-" embed:""`
+	ChangesInterval   time.Duration     `help:"Interval for changes to be checked" default:"10ms"`
+	ChangesTimeout    time.Duration     `help:"Timeout for changes to be checked" default:"1s"`
+
 	// Raft configuration
 	RTT                time.Duration `help:"Estimated average round trip time between nodes" default:"200ms"`
 	ElectionRTT        uint64        `help:"Election RTT as a multiple of RTT" default:"10"`
@@ -87,7 +91,9 @@ type Cluster struct {
 	shards        map[uint64]statemachine.CreateStateMachineFunc
 	controlClient *http.Client
 
-	closeControlService context.CancelFunc
+	// runningCtx is cancelled when the cluster is stopped.
+	runningCtx       context.Context
+	runningCtxCancel context.CancelFunc
 }
 
 var _ raftpbconnect.RaftServiceHandler = (*Cluster)(nil)
@@ -121,6 +127,8 @@ type ShardHandle[E Event, Q any, R any] struct {
 	shardID uint64
 	cluster *Cluster
 	session *client.Session
+
+	lastKnownIndex atomic.Value[uint64]
 
 	mu sync.Mutex
 }
@@ -181,6 +189,81 @@ func (s *ShardHandle[E, Q, R]) Query(ctx context.Context, query Q) (R, error) {
 	}
 
 	return response, nil
+}
+
+// Changes returns a channel that will receive the result of the query when the
+// shard state changes.
+//
+// This can only be called when the cluster is running.
+//
+// Note, that this is not guaranteed to receive an event for every change, but
+// will always receive the latest state of the shard.
+func (s *ShardHandle[E, Q, R]) Changes(ctx context.Context, query Q) (chan R, error) {
+	if s.cluster.nh == nil {
+		panic("cluster not started")
+	}
+
+	result := make(chan R)
+	logger := log.FromContext(ctx).Scope("raft")
+
+	// get the last known index as the starting point
+	reader, err := s.cluster.nh.GetLogReader(s.shardID)
+	if err != nil {
+		logger.Errorf(err, "failed to get log reader")
+	}
+	_, last := reader.GetRange()
+	s.lastKnownIndex.Store(last)
+
+	go func() {
+		// poll, as dragoboat does not have a way to listen to changes directly
+		timer := time.NewTicker(s.cluster.config.ChangesInterval)
+		defer timer.Stop()
+
+		for {
+			select {
+			case <-s.cluster.runningCtx.Done():
+				logger.Infof("changes channel closed")
+				close(result)
+
+				return
+			case <-timer.C:
+				last, err := s.getLastIndex()
+				if err != nil {
+					logger.Warnf("failed to get last index: %s", err)
+				} else if last > s.lastKnownIndex.Load() {
+					logger.Debugf("changes detected, last known index: %d, new index: %d", s.lastKnownIndex.Load(), last)
+
+					s.lastKnownIndex.Store(last)
+
+					ctx, cancel := context.WithTimeout(ctx, s.cluster.config.ChangesTimeout)
+					res, err := s.Query(ctx, query)
+					cancel()
+
+					if err != nil {
+						logger.Errorf(err, "failed to query shard")
+					} else {
+						result <- res
+					}
+				}
+			}
+		}
+	}()
+
+	return result, nil
+}
+
+func (s *ShardHandle[E, Q, R]) getLastIndex() (uint64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.verifyReady()
+
+	reader, err := s.cluster.nh.GetLogReader(s.shardID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get log reader: %w", err)
+	}
+	_, last := reader.GetRange()
+	return last, nil
 }
 
 func (s *ShardHandle[E, Q, R]) verifyReady() {
@@ -263,6 +346,10 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 		}
 	}
 
+	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	c.runningCtxCancel = cancel
+	c.runningCtx = ctx
+
 	if err := c.startControlServer(ctx); err != nil {
 		return err
 	}
@@ -299,9 +386,6 @@ func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statema
 func (c *Cluster) startControlServer(ctx context.Context) error {
 	logger := log.FromContext(ctx).Scope("raft")
 
-	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
-	c.closeControlService = cancel
-
 	if c.config.ControlBind == nil {
 		return nil
 	}
@@ -326,8 +410,8 @@ func (c *Cluster) Stop(ctx context.Context) {
 		for shardID := range c.shards {
 			c.removeShardMember(ctx, shardID, c.config.ReplicaID)
 		}
+		c.runningCtxCancel()
 		c.nh.Close()
-		c.closeControlService()
 		c.nh = nil
 		c.shards = nil
 	}

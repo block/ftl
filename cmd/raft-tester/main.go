@@ -76,8 +76,12 @@ func run(ctx context.Context, shard *raft.ShardHandle[IntEvent, int64, int64]) e
 		}
 	})
 
+	changes, err := shard.Changes(ctx, 1)
+	if err != nil {
+		return fmt.Errorf("failed to get changes: %w", err)
+	}
+
 	wg.Go(func() error {
-		ticker := time.NewTicker(10 * time.Second)
 		for {
 			select {
 			case msg := <-messages:
@@ -85,18 +89,10 @@ func run(ctx context.Context, shard *raft.ShardHandle[IntEvent, int64, int64]) e
 				if err != nil {
 					return fmt.Errorf("failed to propose event: %w", err)
 				}
-			case <-ticker.C:
-				ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-				defer cancel()
-
-				state, err := shard.Query(ctx, 1)
-				if err != nil {
-					return fmt.Errorf("failed to query shard: %w", err)
-				}
-				cancel()
-				fmt.Println("state: ", state)
 			case <-ctx.Done():
 				return nil
+			case c := <-changes:
+				fmt.Println("state: ", c)
 			}
 		}
 	})
