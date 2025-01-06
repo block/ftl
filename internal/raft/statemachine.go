@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	sm "github.com/block/ftl/internal/statemachine"
 	"github.com/lni/dragonboat/v4/statemachine"
+
+	sm "github.com/block/ftl/internal/statemachine"
 )
 
 // stateMachineShim is a shim to convert a typed StateMachine to a dragonboat statemachine.IStateMachine.
