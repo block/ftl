@@ -34,11 +34,15 @@ PROTOS_OUT := "backend/protos/xyz/block/ftl/console/v1/console.pb.go " + \
               CONSOLE_ROOT + "/src/protos/xyz/block/ftl/publish/v1/publish_pb.ts"
 JVM_RUNTIME_IN :=  "jvm-runtime/ftl-runtime/pom.xml " + \
   "jvm-runtime/ftl-runtime/java/runtime/src " + \
+  "jvm-runtime/ftl-runtime/java/deployment/src " + \
   "jvm-runtime/ftl-runtime/kotlin/runtime/src " + \
+  "jvm-runtime/ftl-runtime/kotlin/deployment/src " + \
   "jvm-runtime/ftl-runtime/common/deployment/src " + \
   "jvm-runtime/ftl-runtime/common/runtime/src"
 JVM_RUNTIME_OUT := "jvm-runtime/ftl-runtime/java/runtime/target/ftl-java-runtime-1.0-SNAPSHOT.jar " + \
+  "jvm-runtime/ftl-runtime/java/deployment/target/ftl-java-runtime-deployment-1.0-SNAPSHOT.jar " + \
   "jvm-runtime/ftl-runtime/kotlin/runtime/target/ftl-kotlin-runtime-1.0-SNAPSHOT.jar " + \
+  "jvm-runtime/ftl-runtime/kotlin/deployment/target/ftl-kotlin-runtime-deployment-1.0-SNAPSHOT.jar " + \
   "jvm-runtime/ftl-runtime/common/deployment/target/ftl-jvm-runtime-deployment-1.0-SNAPSHOT.jar " + \
   "jvm-runtime/ftl-runtime/common/runtime/target/ftl-jvm-runtime-1.0-SNAPSHOT.jar"
 
