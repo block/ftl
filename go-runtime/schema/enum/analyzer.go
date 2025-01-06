@@ -111,31 +111,33 @@ func validateVariant(pass *analysis.Pass, obj types.Object, variant *schema.Enum
 }
 
 func findTypeValueVariants(pass *analysis.Pass, obj types.Object) []*schema.EnumVariant {
-	var variants []*schema.EnumVariant
+	variantMap := make(map[string]*schema.EnumVariant)
+
 	for vObj, facts := range common.GetAllFactsOfType[*common.MaybeTypeEnumVariant](pass) {
-		// there shouldn't be more than one of this type of fact on an object, but even if there are,
-		// we don't care. We just need to know if there are any.
-		if len(facts) < 1 {
-			continue
-		}
-		fact := facts[0]
+		for _, fact := range facts {
+			// Only process variants that belong to this enum
+			if fact.Parent != obj {
+				continue
+			}
 
-		if fact.Parent != obj {
-			continue
-		}
-		// extract variant type here rather than in the `typeenumvariant` extractor so that we only
-		// call `common.ExtractType` if the enum/variant is actually part of the schema.
-		//
-		// the call to common.ExtractType sometimes results in transitive extraction, which we don't want during
-		// the initial pass marking all *possible* variants, as some may never be used.
-		value, ok := fact.GetValue(pass).Get()
-		if !ok {
-			common.NoEndColumnErrorf(pass, vObj.Pos(), "invalid type for enum variant %q", fact.Variant.Name)
-			continue
-		}
-		fact.Variant.Value = value
-		variants = append(variants, fact.Variant)
+			value, ok := fact.GetValue(pass).Get()
+			if !ok {
+				common.NoEndColumnErrorf(pass, vObj.Pos(), "invalid type for enum variant %q", fact.Variant.Name)
+				continue
+			}
+			fact.Variant.Value = value
 
+			// Only add if we haven't seen this variant name before
+			if _, exists := variantMap[fact.Variant.Name]; !exists {
+				variantMap[fact.Variant.Name] = fact.Variant
+			}
+		}
 	}
+
+	variants := make([]*schema.EnumVariant, 0, len(variantMap))
+	for _, variant := range variantMap {
+		variants = append(variants, variant)
+	}
+
 	return variants
 }
