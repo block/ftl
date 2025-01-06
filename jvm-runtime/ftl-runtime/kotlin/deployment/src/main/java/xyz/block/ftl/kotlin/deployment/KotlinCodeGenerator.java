@@ -92,7 +92,7 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         var partitions = 1;
         for (var metadata : data.getMetadataList()) {
             if (metadata.hasPartitions()) {
-                partitions = (int)metadata.getPartitions().getPartitions();
+                partitions = (int) metadata.getPartitions().getPartitions();
                 break;
             }
         }
