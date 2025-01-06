@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Get the absolute path of the project root
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+RESOURCES_DIR="${PROJECT_ROOT}/internal/sqlc/resources"
+
+# Determine the SQLC version using Hermit
+if [ ! "${HERMIT_ENV:-}" ]; then
+    # shellcheck disable=SC1091
+    . "${PROJECT_ROOT}/bin/activate-hermit"
+fi
+
+SQLC_VERSION=$(hermit info sqlc | grep "Version:" | cut -d' ' -f2)
+
+if [ -z "$SQLC_VERSION" ]; then
+    echo "Failed to get SQLC version from Hermit."
+    exit 1
+fi
+
+# Create resources directory if it doesn't exist
+mkdir -p "${RESOURCES_DIR}"
+
+# Run the Docker container with the determined variables
+docker build -t sqlc-downloader -f internal/sqlc/Dockerfile .
+docker run --rm \
+    -v "${RESOURCES_DIR}:/app/build" \
+    -e SQLC_VERSION="${SQLC_VERSION}" \
+    sqlc-downloader
+
+# If on macOS, sign the binaries locally
+if [[ "$(uname)" == "Darwin" ]] && ! [[ -n "${CI-}" ]]; then
+    echo "Detected macOS environment, signing binaries..."
+    for arch in amd64 arm64; do
+        echo "Signing darwin_${arch} binary..."
+        codesign --remove-signature "internal/sqlc/resources/darwin_${arch}/sqlc" 2>/dev/null || true
+        codesign -s - --force "internal/sqlc/resources/darwin_${arch}/sqlc"
+    done
+fi

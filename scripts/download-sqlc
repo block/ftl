@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure SQLC_VERSION is set
+if [ -z "${SQLC_VERSION:-}" ]; then
+    echo "SQLC_VERSION is not set."
+    exit 1
+fi
+
+PLATFORMS=("linux" "darwin")
+ARCHITECTURES=("amd64" "arm64")
+
+# Clean and recreate the directory
+rm -rf /app/build/*
+
+# Download binaries for each platform and architecture
+for OS in "${PLATFORMS[@]}"; do
+    for ARCH in "${ARCHITECTURES[@]}"; do
+        SQLC_URL="https://github.com/sqlc-dev/sqlc/releases/download/v${SQLC_VERSION}/sqlc_${SQLC_VERSION}_${OS}_${ARCH}.tar.gz"
+        DEST_DIR="/app/build/${OS}_${ARCH}"
+
+        if curl --output /dev/null --silent --head --fail "$SQLC_URL"; then
+            mkdir -p "$DEST_DIR"
+            echo "Downloading sqlc version ${SQLC_VERSION} for ${OS}_${ARCH}..."
+            
+            curl -L --fail --silent -o "${DEST_DIR}/sqlc.tar.gz" "$SQLC_URL"
+            cd "$DEST_DIR"
+
+            tar xzf sqlc.tar.gz
+            rm sqlc.tar.gz
+            chmod +x sqlc
+        else
+            echo "No binary available for ${OS}_${ARCH}, skipping..."
+        fi
+    done
+done

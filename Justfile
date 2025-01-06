@@ -19,7 +19,7 @@ ZIP_DIRS := "go-runtime/compile/build-template " + \
 CONSOLE_ROOT := "frontend/console"
 FRONTEND_OUT := CONSOLE_ROOT + "/dist/index.html"
 EXTENSION_OUT := "frontend/vscode/dist/extension.js"
-SQLC_GEN_FTL_OUT := "sqlc-gen-ftl/target/wasm32-wasip1/release/sqlc-gen-ftl.wasm"
+SQLC_GEN_FTL_OUT := "internal/sqlc/resources/sqlc-gen-ftl.wasm"
 PROTOS_IN := "common/protos backend/protos"
 PROTOS_OUT := "backend/protos/xyz/block/ftl/console/v1/console.pb.go " + \
               "backend/protos/xyz/block/ftl//v1/ftl.pb.go " + \
@@ -194,10 +194,17 @@ build-extension: pnpm-install
   @mk {{EXTENSION_OUT}} : frontend/vscode/src frontend/vscode/package.json -- "cd frontend/vscode && rm -f ftl-*.vsix && pnpm run compile"
 
 # Build the sqlc-ftl-gen plugin, used to generate FTL schema from SQL
-build-sqlc-gen-ftl: build-rust-protos
+build-sqlc-gen-ftl: build-rust-protos download-sqlc
     @mk {{SQLC_GEN_FTL_OUT}} : sqlc-gen-ftl/src -- \
-        "cd sqlc-gen-ftl && \
-        cargo build --target wasm32-wasip1 --release"
+        "cargo build --manifest-path sqlc-gen-ftl/Cargo.toml --target wasm32-wasip1 --release && \
+        cp sqlc-gen-ftl/target/wasm32-wasip1/release/sqlc-gen-ftl.wasm internal/sqlc/resources"
+
+test-sqlc-gen-ftl:
+    @cd sqlc-gen-ftl && cargo test --features ci --test sqlc_gen_ftl_test -- --nocapture
+
+# Download SQLC binaries, embedded in the FTL binary as resources
+download-sqlc:
+  @bash scripts/provide-sqlc-resources
 
 # Generate Rust protos
 build-rust-protos:

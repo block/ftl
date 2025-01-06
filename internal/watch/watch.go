@@ -33,9 +33,10 @@ type WatchEventModuleRemoved struct {
 func (WatchEventModuleRemoved) watchEvent() {}
 
 type WatchEventModuleChanged struct {
-	Config  moduleconfig.UnvalidatedModuleConfig
-	Changes []FileChange
-	Time    time.Time
+	Config              moduleconfig.UnvalidatedModuleConfig
+	Changes             []FileChange
+	Time                time.Time
+	GenerateQueries     bool
 }
 
 func (c WatchEventModuleChanged) String() string {
@@ -168,7 +169,20 @@ func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []
 					if len(changes) == 0 {
 						continue
 					}
-					event := WatchEventModuleChanged{Config: existingModule.Config, Changes: changes, Time: time.Now()}
+
+					// check if any changes are in the config.SQLMigrationDirectory
+					generateQueries := false
+					if config.SQLMigrationDirectory != "" {
+						for _, change := range changes {
+							migrationPath := filepath.Clean(filepath.Join(config.Dir, config.SQLMigrationDirectory))
+							if strings.HasPrefix(change.Path, migrationPath) {
+								generateQueries = true
+								break
+							}
+						}
+					}
+
+					event := WatchEventModuleChanged{Config: existingModule.Config, Changes: changes, Time: time.Now(), GenerateQueries: generateQueries}
 					logger.Debugf("changed %q: %s", config.Module, event)
 					topic.Publish(event)
 					w.existingModules[config.Dir] = moduleHashes{Hashes: hashes, Config: existingModule.Config}
