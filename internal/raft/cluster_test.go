@@ -79,7 +79,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 	shard1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
 	cluster1 := builder1.Build(ctx)
 
-	builder2 := testBuilder(t, members[:2], 2, members[1].String(), controlBind)
+	builder2 := testBuilder(t, members[:2], 2, members[1].String(), nil)
 	shard2 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
 	cluster2 := builder2.Build(ctx)
 
@@ -178,7 +178,7 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 		ChangesInterval:    5 * time.Millisecond,
 		ChangesTimeout:     1 * time.Second,
 		Retry: retry.RetryConfig{
-			Min:    10 * time.Millisecond,
+			Min:    50 * time.Millisecond,
 			Max:    1 * time.Second,
 			Factor: 2,
 			Jitter: true,
