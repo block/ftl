@@ -263,3 +263,14 @@ const treeWidthStorageKey = 'tree_w'
 export const getTreeWidthFromLS = () => Number(localStorage.getItem(treeWidthStorageKey)) || 300
 
 export const setTreeWidthInLS = (newWidth: number) => localStorage.setItem(treeWidthStorageKey, `${newWidth}`)
+
+const EXPANDED_DECL_TYPES_KEY = 'expanded-decl-types'
+
+export function getExpandedDeclTypesFromLocalStorage(): string[] {
+  const stored = localStorage.getItem(EXPANDED_DECL_TYPES_KEY)
+  return stored ? JSON.parse(stored) : []
+}
+
+export function setExpandedDeclTypesInLocalStorage(types: string[]) {
+  localStorage.setItem(EXPANDED_DECL_TYPES_KEY, JSON.stringify(types))
+}
