@@ -99,7 +99,7 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         dataBuilder.addAnnotation(AnnotationSpec.builder(xyz.block.ftl.Topic.class)
                 .addMember("name=\"" + data.getName() + "\"")
                 .addMember("module=\"" + module.getName() + "\"")
-                .addMember("partitions", String.valueOf(partitions))
+                .addMember("partitions=" + String.valueOf(partitions))
                 .build());
 
         FileSpec javaFile = FileSpec.builder(packageName, thisType)

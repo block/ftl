@@ -92,7 +92,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                 break;
             }
         }
-        
+
         dataBuilder.addAnnotation(AnnotationSpec.builder(xyz.block.ftl.Topic.class)
                 .addMember("name", "\"" + data.getName() + "\"")
                 .addMember("module", "\"" + module.getName() + "\"")
