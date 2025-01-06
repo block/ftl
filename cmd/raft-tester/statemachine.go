@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/block/ftl/internal/raft"
+	sm "github.com/block/ftl/internal/statemachine"
 )
 
 type IntStateMachine struct {
@@ -23,7 +23,7 @@ func (i IntEvent) MarshalBinary() ([]byte, error) { //nolint:unparam
 	return binary.BigEndian.AppendUint64([]byte{}, uint64(i)), nil
 }
 
-var _ raft.StateMachine[int64, int64, IntEvent, *IntEvent] = &IntStateMachine{}
+var _ sm.SnapshottingStateMachine[int64, int64, IntEvent] = &IntStateMachine{}
 
 func (s IntStateMachine) Lookup(key int64) (int64, error) {
 	return s.sum, nil

@@ -12,6 +12,7 @@ import (
 
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
+	sm "github.com/block/ftl/internal/statemachine"
 )
 
 var cli struct {
@@ -57,7 +58,7 @@ func (j *joinCmd) Run() error {
 	return run(ctx, shard)
 }
 
-func run(ctx context.Context, shard *raft.ShardHandle[IntEvent, int64, int64]) error {
+func run(ctx context.Context, shard sm.StateMachineHandle[int64, int64, IntEvent]) error {
 	messages := make(chan int)
 
 	wg, ctx := errgroup.WithContext(ctx)
@@ -85,7 +86,7 @@ func run(ctx context.Context, shard *raft.ShardHandle[IntEvent, int64, int64]) e
 		for {
 			select {
 			case msg := <-messages:
-				err := shard.Propose(ctx, IntEvent(msg))
+				err := shard.Update(ctx, IntEvent(msg))
 				if err != nil {
 					return fmt.Errorf("failed to propose event: %w", err)
 				}

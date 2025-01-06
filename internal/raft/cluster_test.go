@@ -15,6 +15,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
 	"github.com/block/ftl/internal/retry"
+	sm "github.com/block/ftl/internal/statemachine"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -33,7 +34,7 @@ type IntStateMachine struct {
 	sum int64
 }
 
-var _ raft.StateMachine[int64, int64, IntEvent, *IntEvent] = &IntStateMachine{}
+var _ sm.SnapshottingStateMachine[int64, int64, IntEvent] = &IntStateMachine{}
 
 func (s *IntStateMachine) Update(event IntEvent) error {
 	s.sum += int64(event)
@@ -48,18 +49,18 @@ func (s *IntStateMachine) Close() error                    { return nil }
 func TestClusterWith2Shards(t *testing.T) {
 	ctx := testContext(t)
 
-	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) []*raft.ShardHandle[IntEvent, int64, int64] {
-		return []*raft.ShardHandle[IntEvent, int64, int64]{
+	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) []sm.StateMachineHandle[int64, int64, IntEvent] {
+		return []sm.StateMachineHandle[int64, int64, IntEvent]{
 			raft.AddShard(ctx, b, 1, &IntStateMachine{}),
 			raft.AddShard(ctx, b, 2, &IntStateMachine{}),
 		}
 	})
 
-	assert.NoError(t, shards[0][0].Propose(ctx, IntEvent(1)))
-	assert.NoError(t, shards[1][0].Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shards[0][0].Update(ctx, IntEvent(1)))
+	assert.NoError(t, shards[1][0].Update(ctx, IntEvent(1)))
 
-	assert.NoError(t, shards[0][1].Propose(ctx, IntEvent(1)))
-	assert.NoError(t, shards[1][1].Propose(ctx, IntEvent(2)))
+	assert.NoError(t, shards[0][1].Update(ctx, IntEvent(1)))
+	assert.NoError(t, shards[1][1].Update(ctx, IntEvent(2)))
 
 	assertShardValue(ctx, t, 2, shards[0][0], shards[1][0])
 	assertShardValue(ctx, t, 3, shards[0][1], shards[1][1])
@@ -102,7 +103,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 		cluster3.Stop(ctx)
 	})
 
-	assert.NoError(t, shard3.Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shard3.Update(ctx, IntEvent(1)))
 
 	assertShardValue(ctx, t, 1, shard1, shard2, shard3)
 
@@ -116,7 +117,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 		cluster4.Stop(ctx)
 	})
 
-	assert.NoError(t, shard4.Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shard4.Update(ctx, IntEvent(1)))
 
 	assertShardValue(ctx, t, 2, shard1, shard2, shard3, shard4)
 }
@@ -124,34 +125,34 @@ func TestJoiningExistingCluster(t *testing.T) {
 func TestLeavingCluster(t *testing.T) {
 	ctx := testContext(t)
 
-	clusters, shards := startClusters(ctx, t, 3, func(b *raft.Builder) *raft.ShardHandle[IntEvent, int64, int64] {
+	clusters, shards := startClusters(ctx, t, 3, func(b *raft.Builder) sm.StateMachineHandle[int64, int64, IntEvent] {
 		return raft.AddShard(ctx, b, 1, &IntStateMachine{})
 	})
 
 	t.Log("proposing event")
-	assert.NoError(t, shards[0].Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shards[0].Update(ctx, IntEvent(1)))
 	assertShardValue(ctx, t, 1, shards...)
 
 	t.Log("removing member")
 	clusters[0].Stop(ctx)
 
 	t.Log("proposing event after a member has been stopped")
-	assert.NoError(t, shards[1].Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shards[1].Update(ctx, IntEvent(1)))
 	assertShardValue(ctx, t, 2, shards[1:]...)
 }
 
 func TestChanges(t *testing.T) {
 	ctx := testContext(t)
 
-	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) *raft.ShardHandle[IntEvent, int64, int64] {
+	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) sm.StateMachineHandle[int64, int64, IntEvent] {
 		return raft.AddShard(ctx, b, 1, &IntStateMachine{})
 	})
 
 	changes, err := shards[0].Changes(ctx, 0)
 	assert.NoError(t, err)
 
-	assert.NoError(t, shards[0].Propose(ctx, IntEvent(1)))
-	assert.NoError(t, shards[1].Propose(ctx, IntEvent(1)))
+	assert.NoError(t, shards[0].Update(ctx, IntEvent(1)))
+	assert.NoError(t, shards[1].Update(ctx, IntEvent(1)))
 
 	<-changes
 	assert.Equal(t, <-changes, 2)
@@ -215,7 +216,7 @@ func startClusters[T any](ctx context.Context, t *testing.T, count int, builderF
 	return clusters, result
 }
 
-func assertShardValue(ctx context.Context, t *testing.T, expected int64, shards ...*raft.ShardHandle[IntEvent, int64, int64]) {
+func assertShardValue(ctx context.Context, t *testing.T, expected int64, shards ...sm.StateMachineHandle[int64, int64, IntEvent]) {
 	t.Helper()
 
 	for _, shard := range shards {

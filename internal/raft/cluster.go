@@ -23,6 +23,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/retry"
 	"github.com/block/ftl/internal/rpc"
+	sm "github.com/block/ftl/internal/statemachine"
 )
 
 type RaftConfig struct {
@@ -51,7 +52,7 @@ type Builder struct {
 	shards        map[uint64]statemachine.CreateStateMachineFunc
 	controlClient *http.Client
 
-	handles []*ShardHandle[Event, any, any]
+	handles []*ShardHandle[sm.Marshallable, any, any]
 }
 
 func NewBuilder(cfg *RaftConfig) *Builder {
@@ -69,18 +70,18 @@ func (b *Builder) WithControlClient(client *http.Client) *Builder {
 }
 
 // AddShard adds a shard to the cluster Builder.
-func AddShard[Q any, R any, E Event, EPtr Unmarshallable[E]](
+func AddShard[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable[E]](
 	ctx context.Context,
 	to *Builder,
 	shardID uint64,
-	sm StateMachine[Q, R, E, EPtr],
-) *ShardHandle[E, Q, R] {
-	to.shards[shardID] = newStateMachineShim[Q, R, E, EPtr](sm)
+	statemachine sm.SnapshottingStateMachine[Q, R, E],
+) sm.StateMachineHandle[Q, R, E] {
+	to.shards[shardID] = newStateMachineShim[Q, R, E, EPtr](statemachine)
 
 	handle := &ShardHandle[E, Q, R]{
 		shardID: shardID,
 	}
-	to.handles = append(to.handles, (*ShardHandle[Event, any, any])(handle))
+	to.handles = append(to.handles, (*ShardHandle[sm.Marshallable, any, any])(handle))
 	return handle
 }
 
@@ -123,7 +124,7 @@ func (b *Builder) Build(ctx context.Context) *Cluster {
 // E is the event type.
 // Q is the query type.
 // R is the query response type.
-type ShardHandle[E Event, Q any, R any] struct {
+type ShardHandle[E sm.Marshallable, Q any, R any] struct {
 	shardID uint64
 	cluster *Cluster
 	session *client.Session
@@ -133,13 +134,13 @@ type ShardHandle[E Event, Q any, R any] struct {
 	mu sync.Mutex
 }
 
-// Propose an event to the shard.
-func (s *ShardHandle[E, Q, R]) Propose(ctx context.Context, msg E) error {
-	logger := log.FromContext(ctx).Scope("raft")
-
+// Update the shard with an event.
+func (s *ShardHandle[E, Q, R]) Update(ctx context.Context, msg E) error {
 	// client session is not thread safe, so we need to lock
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	logger := log.FromContext(ctx).Scope("raft")
 
 	s.verifyReady()
 
@@ -207,11 +208,10 @@ func (s *ShardHandle[E, Q, R]) Changes(ctx context.Context, query Q) (chan R, er
 	logger := log.FromContext(ctx).Scope("raft")
 
 	// get the last known index as the starting point
-	reader, err := s.cluster.nh.GetLogReader(s.shardID)
+	last, err := s.getLastIndex()
 	if err != nil {
-		logger.Errorf(err, "failed to get log reader")
+		logger.Errorf(err, "failed to get last index")
 	}
-	_, last := reader.GetRange()
 	s.lastKnownIndex.Store(last)
 
 	go func() {
@@ -253,9 +253,6 @@ func (s *ShardHandle[E, Q, R]) Changes(ctx context.Context, query Q) (chan R, er
 }
 
 func (s *ShardHandle[E, Q, R]) getLastIndex() (uint64, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	s.verifyReady()
 
 	reader, err := s.cluster.nh.GetLogReader(s.shardID)
