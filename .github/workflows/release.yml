@@ -62,9 +62,25 @@ jobs:
             docker tag "ftl0/ftl-${image}:latest" "ftl0/ftl-${image}:${version}"
             docker push -a "ftl0/ftl-${image}"
           done
+  build-wasm-plugin:
+    name: Build WASM Plugin and Download SQLC Binaries 
+    runs-on: macos-latest # Must be macos to sign the Darwin SQLC binaries
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@v1.1.3
+      - name: Build Cache
+        uses: ./.github/actions/build-cache
+      - name: Build WASM Plugin
+        run: |
+          just build-sqlc-gen-ftl
   create-go-release:
     name: Release Go Binaries
     runs-on: ubuntu-latest
+    needs: [build-wasm-plugin]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
