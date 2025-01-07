@@ -28,12 +28,20 @@ var userHermitPackages string
 
 type initCmd struct {
 	Name        string   `arg:"" help:"Name of the project."`
+	Dir         string   `arg:"" optional:"" help:"Directory to initialize the project in. If not specified, creates a new directory with the project name." default:"."`
 	Hermit      bool     `help:"Include Hermit language-specific toolchain binaries." negatable:"" default:"true"`
-	Dir         string   `arg:"" help:"Directory to initialize the project in." default:"." required:""`
 	ModuleDirs  []string `help:"Child directories of existing modules."`
 	ModuleRoots []string `help:"Root directories of existing modules."`
 	NoGit       bool     `help:"Don't add files to the git repository."`
 	Startup     string   `help:"Command to run on startup."`
+}
+
+func (i initCmd) Help() string {
+	return `
+Examples:
+  ftl init my-app        # Creates a new folder named "my-app" and initializes it
+  ftl init my-app .      # Initializes the current directory as "my-app"
+  ftl init my-app custom # Creates a folder named "custom" and initializes it as "my-app"`
 }
 
 func (i initCmd) Run(
@@ -42,7 +50,15 @@ func (i initCmd) Run(
 	configRegistry *providers.Registry[configuration.Configuration],
 	secretsRegistry *providers.Registry[configuration.Secrets],
 ) error {
+	if i.Dir == "." && !strings.Contains(i.Name, "/") {
+		i.Dir = i.Name
+	}
+
 	logger.Debugf("Initializing FTL project in %s", i.Dir)
+	if err := os.MkdirAll(i.Dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
 	if err := scaffold(ctx, i.Hermit, projectinit.Files(), i.Dir, i); err != nil {
 		return err
 	}
