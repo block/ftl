@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	"github.com/alecthomas/types/optional"
 	"github.com/google/uuid"
 	"github.com/puzpuzpuz/xsync/v3"
 
@@ -15,6 +16,7 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -75,6 +77,11 @@ func (d *InMemProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingRequ
 	return &connect.Response[ftlv1.PingResponse]{}, nil
 }
 
+type stepCompletedEvent struct {
+	step  *inMemProvisioningStep
+	event optional.Option[*RuntimeEvent]
+}
+
 func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[provisioner.ProvisionRequest]) (*connect.Response[provisioner.ProvisionResponse], error) {
 	logger := log.FromContext(ctx)
 
@@ -95,35 +102,52 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 	desiredNodes := schema.GetProvisioned(desiredModule)
 
 	task := &inMemProvisioningTask{}
+	// use chans to safely collect all events before completing each task
+	completions := make(chan stepCompletedEvent, 16)
+
 	for id, desired := range desiredNodes {
 		previous, ok := previousNodes[id]
 
 		for _, resource := range desired.GetProvisioned() {
 			if !ok || !resource.IsEqual(previous.GetProvisioned().Get(resource.Kind)) {
 				if slices.Contains(kinds, resource.Kind) {
-					if handler, ok := d.handlers[resource.Kind]; ok {
-						step := &inMemProvisioningStep{Done: atomic.New(false)}
-						task.steps = append(task.steps, step)
-						go func() {
-							defer step.Done.Store(true)
-							event, err := handler(ctx, desiredModule.Name, desired)
-							if err != nil {
-								step.Err = err
-								logger.Errorf(err, "failed to provision resource %s:%s", resource.Kind, desired.ResourceID())
-								return
-							}
-							if event != nil {
-								task.events = append(task.events, event)
-							}
-						}()
-					} else {
+					handler, ok := d.handlers[resource.Kind]
+					if !ok {
 						err := fmt.Errorf("unsupported resource type: %s", resource.Kind)
 						return nil, connect.NewError(connect.CodeInvalidArgument, err)
 					}
+					step := &inMemProvisioningStep{Done: atomic.New(false)}
+					task.steps = append(task.steps, step)
+					go func() {
+						event, err := handler(ctx, desiredModule.Name, desired)
+						if err != nil {
+							step.Err = err
+							logger.Errorf(err, "failed to provision resource %s:%s", resource.Kind, desired.ResourceID())
+							completions <- stepCompletedEvent{step: step}
+							return
+						}
+						completions <- stepCompletedEvent{
+							step:  step,
+							event: optional.From(event, event != nil),
+						}
+					}()
 				}
 			}
 		}
 	}
+
+	go func() {
+		for c := range channels.IterContext(ctx, completions) {
+			if e, ok := c.event.Get(); ok {
+				task.events = append(task.events, e)
+			}
+			c.step.Done.Store(true)
+			done, err := task.Done()
+			if done || err != nil {
+				return
+			}
+		}
+	}()
 
 	token := uuid.New().String()
 	logger.Debugf("started a task with token %s", token)
