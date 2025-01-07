@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/alecthomas/types/optional"
 
@@ -14,7 +15,17 @@ import (
 //go:embed docker-compose.redpanda.yml
 var redpandaDockerCompose string
 
+// use this lock while checking redPandaRunning status and running `docker compose up` if needed
+var redPandaLock *sync.Mutex = &sync.Mutex{}
+var redPandaRunning bool
+
 func SetUpRedPanda(ctx context.Context) error {
+	redPandaLock.Lock()
+	defer redPandaLock.Unlock()
+
+	if redPandaRunning {
+		return nil
+	}
 	var profile optional.Option[string]
 	if _, ci := os.LookupEnv("CI"); !ci {
 		// include console except in CI
@@ -24,5 +35,6 @@ func SetUpRedPanda(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("could not start redpanda: %w", err)
 	}
+	redPandaRunning = true
 	return nil
 }
