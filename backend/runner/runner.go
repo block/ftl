@@ -350,7 +350,7 @@ func (s *Service) deploy(ctx context.Context, key model.DeploymentKey, module *s
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
-		return fmt.Errorf("failed to create pubsub service: %w", err)
+		return fmt.Errorf("failed to set up pubsub: %w", err)
 	}
 	s.pubSub = pubSub
 
