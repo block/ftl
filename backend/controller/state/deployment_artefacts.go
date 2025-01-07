@@ -17,6 +17,5 @@ type DeploymentArtefactCreatedEvent struct {
 }
 
 func (d *DeploymentArtefactCreatedEvent) Handle(view State) (State, error) {
-	view.artifacts[d.Digest.String()] = true
 	return view, nil
 }
