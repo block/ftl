@@ -5,7 +5,7 @@ title = "FTL"
 # The homepage contents
 [extra]
 lead = 'Towards a 𝝺-calculus for large-scale systems'
-url = "/docs/getting-started/introduction/"
+url = "/docs/getting-started/quick-start/"
 url_button = "Get started"
 repo_version = "0.248.0"
 repo_license = "Open-source Apache License."
