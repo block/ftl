@@ -9,7 +9,6 @@ type State struct {
 	activeDeployments   map[string]*Deployment
 	runners             map[string]*Runner
 	runnersByDeployment map[string][]*Runner
-	artifacts           map[string]bool
 }
 
 type ControllerEvent interface {
