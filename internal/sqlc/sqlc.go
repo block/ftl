@@ -31,7 +31,7 @@ var (
 		tmpDir string
 		mu     sync.Mutex
 	}
-	initOnce   sync.Once
+	initOnce       sync.Once
 	sqlcBinaryName = "sqlc"
 )
 
