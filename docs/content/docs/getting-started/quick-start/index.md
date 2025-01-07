@@ -18,7 +18,7 @@ top = false
 
 ### Install the FTL CLI
 
-Install the FTL CLI via [Hermit](https://cashapp.github.io/hermit), [Homebrew](https://brew.sh/), or manually.
+Install the FTL CLI via [Homebrew](https://brew.sh/), [Hermit](https://cashapp.github.io/hermit), or manually.
 
 {% code_selector() %}
 
@@ -190,6 +190,10 @@ You can call verbs from the console:
 Or from a terminal use `ftl call` to call your verb:
 
 [![ftl call](ftlcall.png)](ftlcall.png)
+
+And view your trace in the console:
+
+![console trace](consoletrace.png)
 
 ### Create another module
 
