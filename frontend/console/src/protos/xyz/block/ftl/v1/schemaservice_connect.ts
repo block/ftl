@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse } from "./schemaservice_pb.js";
+import { GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, WatchRequest, WatchResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -49,6 +49,18 @@ export const SchemaService = {
       name: "PullSchema",
       I: PullSchemaRequest,
       O: PullSchemaResponse,
+      kind: MethodKind.ServerStreaming,
+      idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * Watch for schema changes.
+     *
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.Watch
+     */
+    watch: {
+      name: "Watch",
+      I: WatchRequest,
+      O: WatchResponse,
       kind: MethodKind.ServerStreaming,
       idempotency: MethodIdempotency.NoSideEffects,
     },

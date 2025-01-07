@@ -288,3 +288,71 @@ export class UpdateDeploymentRuntimeResponse extends Message<UpdateDeploymentRun
   }
 }
 
+/**
+ * @generated from message xyz.block.ftl.v1.WatchRequest
+ */
+export class WatchRequest extends Message<WatchRequest> {
+  constructor(data?: PartialMessage<WatchRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.WatchRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WatchRequest {
+    return new WatchRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WatchRequest {
+    return new WatchRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WatchRequest {
+    return new WatchRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: WatchRequest | PlainMessage<WatchRequest> | undefined, b: WatchRequest | PlainMessage<WatchRequest> | undefined): boolean {
+    return proto3.util.equals(WatchRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.WatchResponse
+ */
+export class WatchResponse extends Message<WatchResponse> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Schema schema = 1;
+   */
+  schema?: Schema;
+
+  constructor(data?: PartialMessage<WatchResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.WatchResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "schema", kind: "message", T: Schema },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WatchResponse {
+    return new WatchResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WatchResponse {
+    return new WatchResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WatchResponse {
+    return new WatchResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: WatchResponse | PlainMessage<WatchResponse> | undefined, b: WatchResponse | PlainMessage<WatchResponse> | undefined): boolean {
+    return proto3.util.equals(WatchResponse, a, b);
+  }
+}
+

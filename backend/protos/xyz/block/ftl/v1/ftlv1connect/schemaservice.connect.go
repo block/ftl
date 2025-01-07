@@ -40,6 +40,8 @@ const (
 	// SchemaServicePullSchemaProcedure is the fully-qualified name of the SchemaService's PullSchema
 	// RPC.
 	SchemaServicePullSchemaProcedure = "/xyz.block.ftl.v1.SchemaService/PullSchema"
+	// SchemaServiceWatchProcedure is the fully-qualified name of the SchemaService's Watch RPC.
+	SchemaServiceWatchProcedure = "/xyz.block.ftl.v1.SchemaService/Watch"
 	// SchemaServiceUpdateDeploymentRuntimeProcedure is the fully-qualified name of the SchemaService's
 	// UpdateDeploymentRuntime RPC.
 	SchemaServiceUpdateDeploymentRuntimeProcedure = "/xyz.block.ftl.v1.SchemaService/UpdateDeploymentRuntime"
@@ -56,6 +58,8 @@ type SchemaServiceClient interface {
 	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
 	// just retrieving the schema. Use GetSchema for that.
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest]) (*connect.ServerStreamForClient[v1.PullSchemaResponse], error)
+	// Watch for schema changes.
+	Watch(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error)
 	// UpdateModuleRuntime is used to update the runtime configuration of a module.
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error)
 }
@@ -88,6 +92,12 @@ func NewSchemaServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		watch: connect.NewClient[v1.WatchRequest, v1.WatchResponse](
+			httpClient,
+			baseURL+SchemaServiceWatchProcedure,
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		updateDeploymentRuntime: connect.NewClient[v1.UpdateDeploymentRuntimeRequest, v1.UpdateDeploymentRuntimeResponse](
 			httpClient,
 			baseURL+SchemaServiceUpdateDeploymentRuntimeProcedure,
@@ -101,6 +111,7 @@ type schemaServiceClient struct {
 	ping                    *connect.Client[v1.PingRequest, v1.PingResponse]
 	getSchema               *connect.Client[v1.GetSchemaRequest, v1.GetSchemaResponse]
 	pullSchema              *connect.Client[v1.PullSchemaRequest, v1.PullSchemaResponse]
+	watch                   *connect.Client[v1.WatchRequest, v1.WatchResponse]
 	updateDeploymentRuntime *connect.Client[v1.UpdateDeploymentRuntimeRequest, v1.UpdateDeploymentRuntimeResponse]
 }
 
@@ -119,6 +130,11 @@ func (c *schemaServiceClient) PullSchema(ctx context.Context, req *connect.Reque
 	return c.pullSchema.CallServerStream(ctx, req)
 }
 
+// Watch calls xyz.block.ftl.v1.SchemaService.Watch.
+func (c *schemaServiceClient) Watch(ctx context.Context, req *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error) {
+	return c.watch.CallServerStream(ctx, req)
+}
+
 // UpdateDeploymentRuntime calls xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime.
 func (c *schemaServiceClient) UpdateDeploymentRuntime(ctx context.Context, req *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error) {
 	return c.updateDeploymentRuntime.CallUnary(ctx, req)
@@ -135,6 +151,8 @@ type SchemaServiceHandler interface {
 	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
 	// just retrieving the schema. Use GetSchema for that.
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error
+	// Watch for schema changes.
+	Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error
 	// UpdateModuleRuntime is used to update the runtime configuration of a module.
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error)
 }
@@ -163,6 +181,12 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	schemaServiceWatchHandler := connect.NewServerStreamHandler(
+		SchemaServiceWatchProcedure,
+		svc.Watch,
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	schemaServiceUpdateDeploymentRuntimeHandler := connect.NewUnaryHandler(
 		SchemaServiceUpdateDeploymentRuntimeProcedure,
 		svc.UpdateDeploymentRuntime,
@@ -176,6 +200,8 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 			schemaServiceGetSchemaHandler.ServeHTTP(w, r)
 		case SchemaServicePullSchemaProcedure:
 			schemaServicePullSchemaHandler.ServeHTTP(w, r)
+		case SchemaServiceWatchProcedure:
+			schemaServiceWatchHandler.ServeHTTP(w, r)
 		case SchemaServiceUpdateDeploymentRuntimeProcedure:
 			schemaServiceUpdateDeploymentRuntimeHandler.ServeHTTP(w, r)
 		default:
@@ -197,6 +223,10 @@ func (UnimplementedSchemaServiceHandler) GetSchema(context.Context, *connect.Req
 
 func (UnimplementedSchemaServiceHandler) PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.PullSchema is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.Watch is not implemented"))
 }
 
 func (UnimplementedSchemaServiceHandler) UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error) {

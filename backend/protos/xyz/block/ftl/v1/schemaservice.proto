@@ -42,6 +42,11 @@ message UpdateDeploymentRuntimeRequest {
 
 message UpdateDeploymentRuntimeResponse {}
 
+message WatchRequest {}
+message WatchResponse {
+  ftl.schema.v1.Schema schema = 1;
+}
+
 service SchemaService {
   // Ping service for readiness.
   rpc Ping(PingRequest) returns (PingResponse) {
@@ -58,6 +63,11 @@ service SchemaService {
   // Note that if there are no deployments this will block indefinitely, making it unsuitable for
   // just retrieving the schema. Use GetSchema for that.
   rpc PullSchema(PullSchemaRequest) returns (stream PullSchemaResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Watch for schema changes.
+  rpc Watch(WatchRequest) returns (stream WatchResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 

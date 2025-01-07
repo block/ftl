@@ -59,3 +59,13 @@ class UpdateDeploymentRuntimeRequest(_message.Message):
 class UpdateDeploymentRuntimeResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class WatchRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class WatchResponse(_message.Message):
+    __slots__ = ("schema",)
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    schema: _schema_pb2.Schema
+    def __init__(self, schema: _Optional[_Union[_schema_pb2.Schema, _Mapping]] = ...) -> None: ...
