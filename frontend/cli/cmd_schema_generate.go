@@ -54,11 +54,11 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 
 	absTemplatePath, err := filepath.Abs(s.Template)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get absolute path for template: %w", err)
 	}
 	absDestPath, err := filepath.Abs(s.Dest)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get absolute path for destination: %w", err)
 	}
 
 	if strings.HasPrefix(absDestPath, absTemplatePath) {
@@ -69,7 +69,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 	logger.Debugf("Watching %s", s.Template)
 
 	if err := watch.AddRecursive(s.Template); err != nil {
-		return err
+		return fmt.Errorf("failed to watch template directory: %w", err)
 	}
 
 	wg, ctx := errgroup.WithContext(ctx)
@@ -80,7 +80,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 		for {
 			stream, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to pull schema: %w", err)
 			}
 
 			modules := map[string]*schema.Module{}
@@ -105,6 +105,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 					if msg.ModuleRemoved {
 						delete(modules, msg.Schema.Name)
 					}
+				default:
 				}
 				if !msg.More {
 					regenerate = true
@@ -128,18 +129,18 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 	for {
 		select {
 		case <-ctx.Done():
-			return wg.Wait()
+			return fmt.Errorf("context cancelled: %w", wg.Wait())
 
 		case event := <-watch.Event:
 			logger.Debugf("Template changed (%s), regenerating modules", event.Path)
 			if err := s.regenerateModules(logger, previousModules); err != nil {
-				return err
+				return fmt.Errorf("failed to regenerate modules: %w", err)
 			}
 
 		case modules := <-moduleChange:
 			previousModules = modules
 			if err := s.regenerateModules(logger, modules); err != nil {
-				return err
+				return fmt.Errorf("failed to regenerate modules: %w", err)
 			}
 		}
 	}
@@ -147,14 +148,14 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 
 func (s *schemaGenerateCmd) regenerateModules(logger *log.Logger, modules []*schema.Module) error {
 	if err := os.RemoveAll(s.Dest); err != nil {
-		return err
+		return fmt.Errorf("failed to remove destination directory: %w", err)
 	}
 
 	for _, module := range modules {
 		if err := scaffolder.Scaffold(s.Template, s.Dest, module,
 			scaffolder.Extend(javascript.Extension("template.js", javascript.WithLogger(makeJSLoggerAdapter(logger)))),
 		); err != nil {
-			return err
+			return fmt.Errorf("failed to scaffold module %s: %w", module.Name, err)
 		}
 	}
 	logger.Debugf("Generated %d modules in %s", len(modules), s.Dest)
