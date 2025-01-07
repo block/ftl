@@ -16,7 +16,7 @@ import (
 var redpandaDockerCompose string
 
 // use this lock while checking redPandaRunning status and running `docker compose up` if needed
-var redPandaLock *sync.Mutex = &sync.Mutex{}
+var redPandaLock = &sync.Mutex{}
 var redPandaRunning bool
 
 func SetUpRedPanda(ctx context.Context) error {
