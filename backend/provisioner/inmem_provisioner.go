@@ -16,6 +16,7 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -136,19 +137,14 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 	}
 
 	go func() {
-		for {
+		for c := range channels.IterContext(ctx, completions) {
+			if e, ok := c.event.Get(); ok {
+				task.events = append(task.events, e)
+			}
+			c.step.Done.Store(true)
 			done, err := task.Done()
 			if done || err != nil {
 				return
-			}
-			select {
-			case <-ctx.Done():
-				return
-			case c := <-completions:
-				if e, ok := c.event.Get(); ok {
-					task.events = append(task.events, e)
-				}
-				c.step.Done.Store(true)
 			}
 		}
 	}()
