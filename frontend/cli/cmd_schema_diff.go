@@ -17,7 +17,6 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/terminal"
@@ -131,26 +130,13 @@ func localSchema(ctx context.Context, projectConfig projectconfig.Config) (*sche
 	}
 	return sch, nil
 }
-
 func schemaForURL(ctx context.Context, schemaClient ftlv1connect.SchemaServiceClient, url url.URL) (*schema.Schema, error) {
-	resp, err := schemaClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
+	resp, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("url %s: failed to pull schema: %w", url.String(), err)
+		return nil, fmt.Errorf("url %s: failed to get schema: %w", url.String(), err)
 	}
 
-	pb := &schemapb.Schema{}
-	for resp.Receive() {
-		msg := resp.Msg()
-		pb.Modules = append(pb.Modules, msg.Schema)
-		if !msg.More {
-			break
-		}
-	}
-	if resp.Err() != nil {
-		return nil, fmt.Errorf("url %s: failed to receive schema: %w", url.String(), resp.Err())
-	}
-
-	s, err := schema.FromProto(pb)
+	s, err := schema.FromProto(resp.Msg.Schema)
 	if err != nil {
 		return nil, fmt.Errorf("url %s: failed to parse schema: %w", url.String(), err)
 	}
