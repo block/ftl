@@ -170,7 +170,7 @@ func TestSchemaEventSource(t *testing.T) {
 			ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_REMOVED,
 			ModuleRemoved: true,
 		})
-		var expected Event = EventRemove{Module: echo1, Deleted: true}
+		var expected Event = EventRemove{Module: echo1}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
 		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2}}, changes.View())

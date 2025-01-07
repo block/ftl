@@ -153,12 +153,6 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]cronJob, change s
 	logger := log.FromContext(ctx).Scope("cron")
 	switch change := change.(type) {
 	case schemaeventsource.EventRemove:
-		// We see the new state of the module before we see the removed deployment.
-		// We only want to actually remove if it was not replaced by a new deployment.
-		if !change.Deleted {
-			logger.Debugf("Not removing cron jobs for %s as module is still present", change.Deployment)
-			return nil
-		}
 		logger.Debugf("Removing cron jobs for module %s", change.Module.Name)
 		delete(cronJobs, change.Module.Name)
 

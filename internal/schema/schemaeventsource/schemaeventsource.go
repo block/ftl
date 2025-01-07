@@ -44,8 +44,6 @@ type EventRemove struct {
 	// None for builtin modules.
 	Deployment optional.Option[model.DeploymentKey]
 	Module     *schema.Module
-	// True if the underlying module was deleted in addition to the deployment itself.
-	Deleted bool
 
 	schema *schema.Schema
 	more   bool
@@ -136,9 +134,7 @@ func (e EventSource) Publish(event Event) {
 	clone := reflect.DeepCopy(e.View())
 	switch event := event.(type) {
 	case EventRemove:
-		if event.Deleted {
-			clone.Modules = slices.DeleteFunc(clone.Modules, func(m *schema.Module) bool { return m.Name == event.Module.Name })
-		}
+		clone.Modules = slices.DeleteFunc(clone.Modules, func(m *schema.Module) bool { return m.Name == event.Module.Name })
 		event.schema = clone
 		e.view.Store(clone)
 		e.events <- event
@@ -198,7 +194,6 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 			event := EventRemove{
 				Deployment: someDeploymentKey,
 				Module:     sch,
-				Deleted:    resp.ModuleRemoved,
 				more:       more,
 			}
 			out.Publish(event)

@@ -21,10 +21,6 @@ func syncView(ctx context.Context, schemaEventSource schemaeventsource.EventSour
 	logger.Debugf("Starting routing sync from schema")
 	go func() {
 		for event := range channels.IterContext(ctx, schemaEventSource.Events()) {
-			if event, ok := event.(schemaeventsource.EventRemove); ok && !event.Deleted {
-				logger.Debugf("Not removing ingress for %s as it is not the current deployment", event.Deployment)
-				continue
-			}
 			state := extractIngressRoutingEntries(event.Schema())
 			out.Store(state)
 		}
