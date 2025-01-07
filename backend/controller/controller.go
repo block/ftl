@@ -886,10 +886,6 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 			logger.Errorf(err, "Invalid digest %s", artefact.Digest)
 			return nil, fmt.Errorf("invalid digest: %w", err)
 		}
-		err = s.controllerState.Publish(ctx, &state.DeploymentArtefactCreatedEvent{})
-		if err != nil {
-			return nil, fmt.Errorf("could not create deployment artefact: %w", err)
-		}
 		artefacts[i] = &state.DeploymentArtefact{
 			Executable: artefact.Executable,
 			Path:       artefact.Path,

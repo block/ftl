@@ -9,13 +9,3 @@ type DeploymentArtefact struct {
 	Path       string
 	Executable bool
 }
-
-var _ ControllerEvent = (*DeploymentArtefactCreatedEvent)(nil)
-
-type DeploymentArtefactCreatedEvent struct {
-	Digest sha256.SHA256
-}
-
-func (d *DeploymentArtefactCreatedEvent) Handle(view State) (State, error) {
-	return view, nil
-}
