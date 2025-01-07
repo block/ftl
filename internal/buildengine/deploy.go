@@ -38,11 +38,6 @@ type DeployClient interface {
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
 
-type SchemaClient interface {
-	GetSchema(ctx context.Context, req *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error)
-	PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest]) (*connect.ServerStreamForClient[ftlv1.PullSchemaResponse], error)
-}
-
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
 func Deploy(ctx context.Context, projectConfig projectconfig.Config, module Module, deploy []string, replicas int32, waitForDeployOnline bool, client DeployClient) error {
 	logger := log.FromContext(ctx).Module(module.Config.Module).Scope("deploy")
