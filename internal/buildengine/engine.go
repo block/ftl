@@ -316,12 +316,12 @@ func (e *Engine) startSchemaSync(ctx context.Context) {
 	if !e.schemaSource.Live() {
 		logger.Debugf("Schema source is not live, skipping initial sync.")
 	} else {
-	initialSync:
-		for event := range channels.IterContext(ctx, e.schemaSource.Events()) {
-			e.processEvent(event)
-			if !event.More() {
-				break initialSync
-			}
+		if !e.schemaSource.WaitForInitialSync(ctx) {
+			logger.Warnf("Schema sync timed out")
+		}
+		view := e.schemaSource.View()
+		for _, module := range view.Modules {
+			e.controllerSchema.Store(module.Name, module)
 		}
 	}
 

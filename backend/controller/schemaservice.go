@@ -72,12 +72,8 @@ func (s *Service) Watch(ctx context.Context, req *connect.Request[ftlv1.WatchReq
 		return fmt.Errorf("failed to get controller state: %w", err)
 	}
 	// Send the initial schema as the first message
-	err = stream.Send(&ftlv1.WatchResponse{
-		Schema: &schemapb.Schema{
-			Modules: slices.Map(view.GetActiveDeploymentSchemas(), func(m *schema.Module) *schemapb.Module { return m.ToProto() }),
-		},
-	})
-	if err != nil {
+	modulespb := slices.Map(view.GetActiveDeploymentSchemas(), func(m *schema.Module) *schemapb.Module { return m.ToProto() })
+	if err := stream.Send(&ftlv1.WatchResponse{Schema: &schemapb.Schema{Modules: modulespb}}); err != nil {
 		return fmt.Errorf("failed to send initial schema: %w", err)
 	}
 

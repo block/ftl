@@ -32,8 +32,6 @@ func (v *View) Get() *schema.Schema { return v.view.Load() }
 //
 //sumtype:decl
 type Event interface {
-	// More returns true if there are more changes to come as part of the initial sync.
-	More() bool
 	// Schema is the READ-ONLY full schema after this event was applied.
 	Schema() *schema.Schema
 	change()
@@ -46,11 +44,9 @@ type EventRemove struct {
 	Module     *schema.Module
 
 	schema *schema.Schema
-	more   bool
 }
 
 func (c EventRemove) change()                {}
-func (c EventRemove) More() bool             { return c.more }
 func (c EventRemove) Schema() *schema.Schema { return c.schema }
 
 // EventUpsert represents that a module has been added or updated in the schema.
@@ -61,12 +57,9 @@ type EventUpsert struct {
 	// None for builtin modules.
 	Deployment optional.Option[model.DeploymentKey]
 	Module     *schema.Module
-
-	more bool
 }
 
 func (c EventUpsert) change()                {}
-func (c EventUpsert) More() bool             { return c.more }
 func (c EventUpsert) Schema() *schema.Schema { return c.schema }
 
 // NewUnattached creates a new EventSource that is not attached to a SchemaService.
@@ -158,7 +151,6 @@ func (e EventSource) Publish(event Event) {
 func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSource {
 	logger := log.FromContext(ctx).Scope("schema-sync")
 	out := NewUnattached()
-	more := true
 	initialSyncComplete := false
 	logger.Debugf("Starting schema pull")
 
@@ -168,56 +160,92 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 	resp, err := client.Ping(pingCtx, connect.NewRequest(&ftlv1.PingRequest{}))
 	out.live.Store(err == nil && resp.Msg.NotReady == nil)
 
-	go rpc.RetryStreamingServerStream(ctx, "schema-sync", backoff.Backoff{}, &ftlv1.PullSchemaRequest{}, client.PullSchema, func(_ context.Context, resp *ftlv1.PullSchemaResponse) error {
+	go rpc.RetryStreamingServerStream(ctx, "schema-sync", backoff.Backoff{}, &ftlv1.WatchRequest{}, client.Watch, func(_ context.Context, resp *ftlv1.WatchResponse) error {
 		out.live.Store(true)
-		sch, err := schema.ModuleFromProto(resp.Schema)
-		if err != nil {
-			return fmt.Errorf("schema-sync: failed to decode module schema: %w", err)
-		}
-		var someDeploymentKey optional.Option[model.DeploymentKey]
-		if resp.DeploymentKey != nil {
-			deploymentKey, err := model.ParseDeploymentKey(resp.GetDeploymentKey())
+		modules := make([]*schema.Module, len(resp.Schema.Modules))
+		for i, module := range resp.Schema.Modules {
+			m, err := schema.ModuleFromProto(module)
 			if err != nil {
-				return fmt.Errorf("schema-sync: invalid deployment key %q: %w", resp.GetDeploymentKey(), err)
+				return fmt.Errorf("schema-sync: failed to decode module schema: %w", err)
 			}
-			someDeploymentKey = optional.Some(deploymentKey)
+			modules[i] = m
 		}
-		// resp.More can become true again if the streaming client reconnects, but we don't want downstream to have to
-		// care about a new initial sync restarting.
-		more = more && resp.More
-		switch resp.ChangeType {
-		case ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_REMOVED:
-			if !resp.ModuleRemoved {
-				return nil
-			}
-			logger.Debugf("Module %s removed", sch.Name)
-			event := EventRemove{
-				Deployment: someDeploymentKey,
-				Module:     sch,
-				more:       more,
-			}
-			out.Publish(event)
 
-		case ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED, ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_CHANGED:
-			logger.Tracef("Module %s upserted", sch.Name)
-			event := EventUpsert{
-				Deployment: someDeploymentKey,
-				Module:     sch,
-				more:       more,
+		// do not report changes until the initial sync is complete
+		if initialSyncComplete {
+			currentModules := out.View().Modules
+			events := changeEvents(ctx, currentModules, modules)
+			for _, event := range events {
+				out.Publish(event)
 			}
-			out.Publish(event)
-
-		default:
-			return fmt.Errorf("schema-sync: unknown change type %q", resp.ChangeType)
 		}
-		if !more && !initialSyncComplete {
+
+		out.view.Store(&schema.Schema{Modules: modules})
+
+		if !initialSyncComplete {
 			initialSyncComplete = true
+			out.initialSyncComplete <- struct{}{}
 			close(out.initialSyncComplete)
 		}
+
 		return nil
 	}, func(_ error) bool {
 		out.live.Store(false)
 		return true
 	})
 	return out
+}
+
+func changeEvents(ctx context.Context, currentModules []*schema.Module, newModules []*schema.Module) []Event {
+	logger := log.FromContext(ctx).Scope("schema-sync")
+
+	currentByName := map[string]*schema.Module{}
+	for _, module := range currentModules {
+		currentByName[module.Name] = module
+	}
+	newByName := map[string]*schema.Module{}
+	for _, module := range newModules {
+		newByName[module.Name] = module
+	}
+
+	result := []Event{}
+	for _, sch := range newModules {
+		if current, ok := currentByName[sch.Name]; !ok {
+			logger.Tracef("Module %s added", sch.Name)
+			result = append(result, EventUpsert{
+				Deployment: deploymentKey(sch),
+				Module:     sch,
+			})
+		} else if !current.Equals(sch) {
+			logger.Tracef("Module %s updated", sch.Name)
+			result = append(result, EventUpsert{
+				Deployment: deploymentKey(sch),
+				Module:     sch,
+			})
+		}
+	}
+
+	for _, module := range currentModules {
+		if _, ok := newByName[module.Name]; !ok {
+			logger.Tracef("Module %s removed", module.Name)
+			result = append(result, EventRemove{
+				Deployment: deploymentKey(module),
+				Module:     module,
+			})
+		}
+	}
+
+	return result
+}
+
+// TODO: can this be removed from the events?
+func deploymentKey(module *schema.Module) optional.Option[model.DeploymentKey] {
+	if module.Runtime == nil || module.Runtime.Deployment == nil || module.Runtime.Deployment.DeploymentKey == "" {
+		return optional.None[model.DeploymentKey]()
+	}
+	deploymentKey, err := model.ParseDeploymentKey(module.Runtime.Deployment.DeploymentKey)
+	if err != nil {
+		return optional.None[model.DeploymentKey]()
+	}
+	return optional.Some(deploymentKey)
 }
