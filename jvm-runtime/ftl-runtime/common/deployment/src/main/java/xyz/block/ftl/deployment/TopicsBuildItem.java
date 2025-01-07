@@ -21,7 +21,7 @@ public final class TopicsBuildItem extends SimpleBuildItem {
     }
 
     public record DiscoveredTopic(String topicName, String generatedProducer, Type eventType, boolean exported,
-            String interfaceName) {
+            String interfaceName, int partitions) {
 
     }
 }

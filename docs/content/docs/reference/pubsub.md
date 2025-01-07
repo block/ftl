@@ -68,7 +68,7 @@ import com.block.ftl.WriteableTopic
 data class Invoice(val invoiceNo: String)
 
 @Export
-@Topic("invoices")
+@Topic(name = "invoices", partitions = 8)
 internal interface InvoiceTopic : WriteableTopic<Invoice>
 ```
 
@@ -108,7 +108,7 @@ import com.block.ftl.WriteableTopic;
 record Invoice(String invoiceNo) {}
 
 @Export
-@Topic("invoices")
+@Topic(name = "invoices", partitions = 8)
 public interface InvoiceTopic extends WriteableTopic<Invoice> {}
 ```
 

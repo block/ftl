@@ -23,6 +23,8 @@ import xyz.block.ftl.Export;
 import xyz.block.ftl.WriteableTopic;
 import xyz.block.ftl.runtime.TopicHelper;
 import xyz.block.ftl.schema.v1.Decl;
+import xyz.block.ftl.schema.v1.Metadata;
+import xyz.block.ftl.schema.v1.MetadataPartitions;
 
 public class TopicsProcessor {
 
@@ -69,7 +71,12 @@ public class TopicsProcessor {
             var partitionMapperClass = partitionMapperType.name();
             beans.produce(AdditionalBeanBuildItem.unremovableOf(partitionMapperClass.toString()));
 
-            String name = topicDefinition.value().asString();
+            var partitions = 1;
+            if (topicDefinition.value("partitions") != null) {
+                partitions = topicDefinition.value("partitions").asInt();
+            }
+
+            String name = topicDefinition.value("name").asString();
             if (names.contains(name)) {
                 throw new RuntimeException("Multiple topic definitions found for topic " + name);
             }
@@ -92,7 +99,9 @@ public class TopicsProcessor {
                         publish.getMethodParam(0), publish.loadClass(partitionMapperClass.toString()));
                 publish.returnVoid();
                 topics.put(iface.name(), new TopicsBuildItem.DiscoveredTopic(name, cc.getClassName(), paramType,
-                        iface.hasAnnotation(Export.class), iface.name().toString()));
+                        iface.hasAnnotation(Export.class), iface.name().toString(),
+                        partitions));
+
             }
         }
         return new TopicsBuildItem(topics);
@@ -110,6 +119,10 @@ public class TopicsProcessor {
                             .setPos(PositionUtils.forClass(topic.interfaceName()))
                             .setName(topic.topicName())
                             .setEvent(moduleBuilder.buildType(topic.eventType(), topic.exported(), Nullability.NOT_NULL))
+                            .addMetadata(Metadata.newBuilder()
+                                    .setPartitions(MetadataPartitions.newBuilder()
+                                            .setPartitions(topic.partitions()).build())
+                                    .build())
                             .build()).build());
                 }
             }

@@ -18,18 +18,18 @@ class PartitionMapper implements TopicPartitionMapper<PubSubEvent> {
 public class Publisher {
 
     @Export
-    @Topic("testTopic")
+    @Topic(name = "testTopic", partitions = 10)
     interface TestTopic extends WriteableTopic<PubSubEvent, PartitionMapper> {
 
     }
 
-    @Topic("localTopic")
+    @Topic(name = "localTopic")
     interface LocalTopic extends WriteableTopic<PubSubEvent, PartitionMapper> {
 
     }
 
     @Export
-    @Topic("topic2")
+    @Topic(name = "topic2", partitions = 1)
     interface Topic2 extends WriteableTopic<PubSubEvent, PartitionMapper> {
 
     }

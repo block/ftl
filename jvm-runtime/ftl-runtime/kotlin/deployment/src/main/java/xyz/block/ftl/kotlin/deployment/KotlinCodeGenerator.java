@@ -89,9 +89,17 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
             dataBuilder.addKdoc("Subscription to the topic of type {@link $L}",
                     data.getEvent().getRef().getName());
         }
+        var partitions = 1;
+        for (var metadata : data.getMetadataList()) {
+            if (metadata.hasPartitions()) {
+                partitions = (int) metadata.getPartitions().getPartitions();
+                break;
+            }
+        }
         dataBuilder.addAnnotation(AnnotationSpec.builder(xyz.block.ftl.Topic.class)
-                .addMember("value=\"" + data.getName() + "\"")
+                .addMember("name=\"" + data.getName() + "\"")
                 .addMember("module=\"" + module.getName() + "\"")
+                .addMember("partitions=" + String.valueOf(partitions))
                 .build());
 
         FileSpec javaFile = FileSpec.builder(packageName, thisType)

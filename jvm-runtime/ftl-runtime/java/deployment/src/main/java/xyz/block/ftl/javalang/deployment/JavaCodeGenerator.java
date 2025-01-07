@@ -85,9 +85,18 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
             dataBuilder.addJavadoc("Topic {@link $L}",
                     data.getEvent().getRef().getName());
         }
+        var partitions = 1;
+        for (var metadata : data.getMetadataList()) {
+            if (metadata.hasPartitions()) {
+                partitions = (int) metadata.getPartitions().getPartitions();
+                break;
+            }
+        }
+
         dataBuilder.addAnnotation(AnnotationSpec.builder(xyz.block.ftl.Topic.class)
-                .addMember("value", "\"" + data.getName() + "\"")
+                .addMember("name", "\"" + data.getName() + "\"")
                 .addMember("module", "\"" + module.getName() + "\"")
+                .addMember("partitions", String.valueOf(partitions))
                 .build());
 
         JavaFile javaFile = JavaFile.builder(packageName, dataBuilder.build())

@@ -31,7 +31,7 @@ public class Subscriber {
     }
 
     // Java requires the topic to be explicitly defined as an interface for consuming to work
-    @Topic("consumeButFailAndRetryFailed")
+    @Topic(name = "consumeButFailAndRetryFailed")
     interface ConsumeButFailAndRetryFailedTopic extends WriteableTopic<FailedEvent<PubSubEvent>, PartitionMapper> {
 
     }
