@@ -67,13 +67,11 @@ The [FTL VSCode extension](https://marketplace.visualstudio.com/items?itemName=F
 Once FTL is installed, initialize an FTL project:
 
 ```
-mkdir myproject
+ftl init myproject
 cd myproject
-ftl init myproject .
 ```
 
-This will create an `ftl-project.toml` file, a git repository, and a `bin/` directory with Hermit tooling. The Hermit tooling
-includes the current version of FTL, and language support for go and JVM based languages.
+This will create a new `myproject` directory containing an `ftl-project.toml` file, a git repository, and a `bin/` directory with Hermit tooling. The Hermit tooling includes the current version of FTL, and language support for go and JVM based languages.
 
 ### Create a new module
 

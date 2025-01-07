@@ -28,7 +28,7 @@ var userHermitPackages string
 
 type initCmd struct {
 	Name        string   `arg:"" help:"Name of the project."`
-	Dir         string   `arg:"" optional:"" help:"Directory to initialize the project in. If not specified, creates a new directory with the project name." default:"."`
+	Dir         string   `arg:"" optional:"" help:"Directory to initialize the project in. If not specified, creates a new directory with the project name."`
 	Hermit      bool     `help:"Include Hermit language-specific toolchain binaries." negatable:"" default:"true"`
 	ModuleDirs  []string `help:"Child directories of existing modules."`
 	ModuleRoots []string `help:"Root directories of existing modules."`
@@ -39,9 +39,9 @@ type initCmd struct {
 func (i initCmd) Help() string {
 	return `
 Examples:
-  ftl init my-app        # Creates a new folder named "my-app" and initializes it
-  ftl init my-app .      # Initializes the current directory as "my-app"
-  ftl init my-app custom # Creates a folder named "custom" and initializes it as "my-app"`
+  ftl init myproject        # Creates a new folder named "myproject" and initializes it
+  ftl init myproject .      # Initializes the current directory as "myproject"
+  ftl init myproject custom # Creates a folder named "custom" and initializes it as "myproject"`
 }
 
 func (i initCmd) Run(
@@ -50,12 +50,13 @@ func (i initCmd) Run(
 	configRegistry *providers.Registry[configuration.Configuration],
 	secretsRegistry *providers.Registry[configuration.Secrets],
 ) error {
-	if i.Dir == "." && !strings.Contains(i.Name, "/") {
+	// If the directory is not specified, use the project name as the directory name.
+	if i.Dir == "" {
 		i.Dir = i.Name
 	}
 
 	logger.Debugf("Initializing FTL project in %s", i.Dir)
-	if err := os.MkdirAll(i.Dir, 0755); err != nil {
+	if err := os.MkdirAll(i.Dir, 0750); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -117,6 +118,13 @@ func (i initCmd) Run(
 			}
 		}
 	}
+
+	fmt.Printf("Successfully created FTL project '%s' in %s\n\n", i.Name, i.Dir)
+	fmt.Printf("To get started:\n")
+	if i.Dir != "." {
+		fmt.Printf("  cd %s\n", i.Dir)
+	}
+	fmt.Printf("  ftl dev\n")
 	return nil
 }
 
