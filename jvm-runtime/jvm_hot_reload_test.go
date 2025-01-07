@@ -21,7 +21,7 @@ func TestLifecycleJVM(t *testing.T) {
 		in.WithDevMode(),
 		in.GitInit(),
 		in.Exec("rm", "ftl-project.toml"),
-		in.Exec("ftl", "init", "test"),
+		in.Exec("ftl", "init", "test", "."),
 		in.IfLanguage("java", in.Exec("ftl", "new", "java", "echo")),
 		in.IfLanguage("kotlin", in.Exec("ftl", "new", "kotlin", "echo")),
 		in.WaitWithTimeout("echo", time.Minute),
