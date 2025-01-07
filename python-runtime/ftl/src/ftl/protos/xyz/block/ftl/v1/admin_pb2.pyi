@@ -1,4 +1,5 @@
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
+from xyz.block.ftl.schema.v1 import schema_pb2 as _schema_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -198,3 +199,13 @@ class MapSecretsForModuleResponse(_message.Message):
     VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.ScalarMap[str, bytes]
     def __init__(self, values: _Optional[_Mapping[str, bytes]] = ...) -> None: ...
+
+class ResetSubscriptionRequest(_message.Message):
+    __slots__ = ("subscription",)
+    SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    subscription: _schema_pb2.Ref
+    def __init__(self, subscription: _Optional[_Union[_schema_pb2.Ref, _Mapping]] = ...) -> None: ...
+
+class ResetSubscriptionResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...

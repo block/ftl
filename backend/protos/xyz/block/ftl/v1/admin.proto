@@ -3,6 +3,7 @@ syntax = "proto3";
 package xyz.block.ftl.v1;
 
 import "xyz/block/ftl/v1/ftl.proto";
+import "xyz/block/ftl/schema/v1/schema.proto";
 
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1";
 option java_multiple_files = true;
@@ -123,6 +124,12 @@ message MapSecretsForModuleResponse {
   map<string, bytes> values = 1;
 }
 
+message ResetSubscriptionRequest {
+  ftl.schema.v1.Ref subscription = 1;
+}
+
+message ResetSubscriptionResponse {}
+
 // AdminService is the service that provides and updates admin data. For example,
 // it is used to encapsulate configuration and secrets.
 service AdminService {
@@ -161,4 +168,7 @@ service AdminService {
   // MapSecretsForModule combines all secrets visible to the module.
   // Local values take precedence.
   rpc MapSecretsForModule(MapSecretsForModuleRequest) returns (MapSecretsForModuleResponse);
+
+  // Reset the offset for a subscription to the latest of each partition.
+  rpc ResetSubscription(ResetSubscriptionRequest) returns (ResetSubscriptionResponse);
 }

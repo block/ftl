@@ -3,16 +3,23 @@ package admin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
+	"sync"
 
 	"connectrpc.com/connect"
+	"github.com/IBM/sarama"
 	_ "github.com/jackc/pgx/v5/stdlib"
+
+	"slices"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
+	islices "github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
@@ -322,4 +329,114 @@ func (s *AdminService) validateAgainstSchema(ctx context.Context, isSecret bool,
 	}
 
 	return nil
+}
+
+func (s *AdminService) ResetSubscription(ctx context.Context, req *connect.Request[ftlv1.ResetSubscriptionRequest]) (*connect.Response[ftlv1.ResetSubscriptionResponse], error) {
+	// Find nodes in schema
+	sch, err := s.schr.GetActiveSchema(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get the active schema: %w", err)
+	}
+	module, ok := islices.Find(sch.Modules, func(m *schema.Module) bool {
+		return m.Name == req.Msg.Subscription.Module
+	})
+	if !ok {
+		return nil, fmt.Errorf("module %q not found", req.Msg.Subscription.Module)
+	}
+	verb, ok := islices.Find(slices.Collect(islices.FilterVariants[*schema.Verb](module.Decls)), func(v *schema.Verb) bool {
+		return v.Name == req.Msg.Subscription.Name
+	})
+	if !ok {
+		return nil, fmt.Errorf("verb %q not found in module %q", req.Msg.Subscription.Name, req.Msg.Subscription.Module)
+	}
+	subscriber, ok := islices.FindVariant[*schema.MetadataSubscriber](verb.Metadata)
+	if !ok {
+		return nil, fmt.Errorf("%q is not a subscriber", req.Msg.Subscription)
+	}
+	if verb.Runtime == nil || verb.Runtime.Subscription == nil || len(verb.Runtime.Subscription.KafkaBrokers) == 0 {
+		return nil, fmt.Errorf("no Kafka brokers for subscription %q", req.Msg.Subscription)
+	}
+
+	// If we have an active deployment, ask runner to reset the offset for each partition it is handling
+	if module.Runtime != nil && module.Runtime.Deployment != nil {
+		// TODO: implement
+	}
+
+	// Reset any partitions that were not reset by runners
+	config := sarama.NewConfig()
+	config.Consumer.Return.Errors = true
+
+	admin, err := sarama.NewClusterAdmin(verb.Runtime.Subscription.KafkaBrokers, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kafka admin client: %w", err)
+	}
+	defer admin.Close()
+
+	client, err := sarama.NewClient(verb.Runtime.Subscription.KafkaBrokers, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kafka client: %w", err)
+	}
+	defer client.Close()
+
+	groupID := req.Msg.Subscription.String()
+	topicID := subscriber.Topic.String()
+
+	topicMetas, err := admin.DescribeTopics([]string{topicID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe topic %s: %w", topicID, err)
+	}
+	if len(topicMetas) != 1 {
+		return nil, fmt.Errorf("expected topic metadata for %s from kafka but received none", topicID)
+	}
+	if topicMetas[0].Err == sarama.ErrUnknownTopicOrPartition {
+		return nil, fmt.Errorf("can not reset subscription for topic %s that does not exist yet: %w", topicID, err)
+	} else if topicMetas[0].Err != sarama.ErrNoError {
+		return nil, fmt.Errorf("failed to describe topic %s: %w", topicID, topicMetas[0].Err)
+	}
+
+	offsetManager, err := sarama.NewOffsetManagerFromClient(groupID, client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create offset manager for %s: %w", groupID, err)
+	}
+
+	// Collect all errors from each partition offset manager's error channel
+	errs := make(chan error, len(topicMetas[0].Partitions))
+	wg := &sync.WaitGroup{}
+
+	for _, partition := range topicMetas[0].Partitions {
+		pom, err := offsetManager.ManagePartition(topicID, partition.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to manage partition %d: %w", partition.ID, err)
+		}
+
+		wg.Add(1)
+		go func() {
+			for err := range channels.IterContext(ctx, pom.Errors()) {
+				errs <- fmt.Errorf("error managing partition %v of %s: %w", partition.ID, groupID, err)
+			}
+			wg.Done()
+		}()
+
+		pom.MarkOffset(sarama.OffsetNewest, "")
+
+		offsetManager.Commit()
+	}
+	if err := offsetManager.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close offset manager: %w", err)
+	}
+
+	// TODO: does each chan get closed properly??
+	wg.Wait()
+	collectedErrs := []error{}
+	for {
+		select {
+		case err := <-errs:
+			collectedErrs = append(collectedErrs, err)
+		default:
+			if len(collectedErrs) > 0 {
+				return nil, errors.Join(collectedErrs...)
+			}
+			return connect.NewResponse(&ftlv1.ResetSubscriptionResponse{}), nil
+		}
+	}
 }

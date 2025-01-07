@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse } from "./admin_pb.js";
+import { ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse } from "./admin_pb.js";
 
 /**
  * AdminService is the service that provides and updates admin data. For example,
@@ -136,6 +136,17 @@ export const AdminService = {
       name: "MapSecretsForModule",
       I: MapSecretsForModuleRequest,
       O: MapSecretsForModuleResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Reset the offset for a subscription to the latest of each partition.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.ResetSubscription
+     */
+    resetSubscription: {
+      name: "ResetSubscription",
+      I: ResetSubscriptionRequest,
+      O: ResetSubscriptionResponse,
       kind: MethodKind.Unary,
     },
   }
