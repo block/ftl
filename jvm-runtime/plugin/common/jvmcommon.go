@@ -369,18 +369,16 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	for {
 		select {
 		case <-ctx.Done():
-			if firstAttempt {
-				// the context is done before we notified the build engine
-				// we need to send a build failure event
-				err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-					BuildFailure: &langpb.BuildFailure{
-						IsAutomaticRebuild: !firstAttempt,
-						ContextId:          buildCtx.ID,
-						Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
-					}}})
-				if err != nil {
-					return fmt.Errorf("could not send build event: %w", err)
-				}
+			// the context is done before we notified the build engine
+			// we need to send a build failure event
+			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+				BuildFailure: &langpb.BuildFailure{
+					IsAutomaticRebuild: !firstAttempt,
+					ContextId:          buildCtx.ID,
+					Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
+				}}})
+			if err != nil {
+				return fmt.Errorf("could not send build event: %w", err)
 			}
 			return nil
 		case bc := <-events:
@@ -440,7 +438,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				moduleProto, err := readSchema(buildCtx)
 				if err != nil {
 					// This is likely a transient error
-					logger.Errorf(err, "failed to schema")
+					logger.Errorf(err, "failed to read schema")
 					continue
 				}
 
