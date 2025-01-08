@@ -143,7 +143,7 @@ func copyAny(src any, ptrs map[uintptr]any, copyConf *copyConfig) (dst any) {
 		reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
 		reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64,
 		reflect.Complex64, reflect.Complex128, reflect.Func:
-		dst = copyPremitive(src, ptrs, copyConf)
+		dst = copyPrimitive(src, ptrs, copyConf)
 	case reflect.String:
 		dst = strings.Clone(src.(string))
 	case reflect.Slice:
@@ -167,9 +167,6 @@ func copyAny(src any, ptrs map[uintptr]any, copyConf *copyConfig) (dst any) {
 }
 
 func copyList(src *list.List, ptrs map[uintptr]any, copyConf *copyConfig) *list.List {
-	if src == nil {
-		return nil
-	}
 	dst := list.New()
 	for e := src.Front(); e != nil; e = e.Next() {
 		copiedValue := copyAny(e.Value, ptrs, copyConf)
@@ -178,7 +175,7 @@ func copyList(src *list.List, ptrs map[uintptr]any, copyConf *copyConfig) *list.
 	return dst
 }
 
-func copyPremitive(src any, ptr map[uintptr]any, copyConf *copyConfig) (dst any) {
+func copyPrimitive(src any, ptr map[uintptr]any, copyConf *copyConfig) (dst any) {
 	kind := reflect.ValueOf(src).Kind()
 	switch kind {
 	case reflect.Array, reflect.Chan, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice, reflect.Struct, reflect.UnsafePointer:
@@ -193,6 +190,9 @@ func copySlice(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 	kind := v.Kind()
 	if kind != reflect.Slice {
 		panic(fmt.Sprintf("reflect: internal error: type %v is not a slice", kind))
+	}
+	if v.IsNil() {
+		return x
 	}
 
 	size := v.Len()
