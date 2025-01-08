@@ -297,3 +297,7 @@ func moduleListToSchema(s []*schemapb.Module) ([]*Module, error) {
 	}
 	return out, nil
 }
+
+func (m *Module) Equals(other *Module) bool {
+	return reflect.DeepEqual(m, other)
+}

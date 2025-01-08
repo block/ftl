@@ -40,9 +40,17 @@ type SnapshottingStateMachine[Q any, R any, E any] interface {
 	Close() error
 }
 
+// ListenableStateMachine adds change notification capabilities to a StateMachine.
+type ListenableStateMachine[Q any, R any, E any] interface {
+	StateMachine[Q, R, E]
+
+	// Subscribe returns a channel that emits an event when the state of the state machine changes.
+	Subscribe(ctx context.Context) (<-chan struct{}, error)
+}
+
 // StateMachineHandle is a handle to update and query a state machine.
 type StateMachineHandle[Q any, R any, E any] interface {
 	Update(ctx context.Context, msg E) error
 	Query(ctx context.Context, query Q) (R, error)
-	Changes(ctx context.Context, query Q) (chan R, error)
+	Changes(ctx context.Context, query Q) (<-chan R, error)
 }

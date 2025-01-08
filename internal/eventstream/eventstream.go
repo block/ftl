@@ -16,7 +16,7 @@ type EventView[View any, E Event[View]] interface {
 	View(ctx context.Context) (View, error)
 
 	Publish(ctx context.Context, event E) error
-	Changes(ctx context.Context) (chan View, error)
+	Changes(ctx context.Context) (<-chan View, error)
 }
 
 // EventStream is a stream of events that can be published and subscribed to, that update a materialized view
@@ -72,7 +72,7 @@ func (i *inMemoryEventStream[T, E]) Publish(ctx context.Context, e E) error {
 	return nil
 }
 
-func (i *inMemoryEventStream[T, E]) Changes(ctx context.Context) (chan T, error) {
+func (i *inMemoryEventStream[T, E]) Changes(ctx context.Context) (<-chan T, error) {
 	updates := i.Updates().Subscribe(nil)
 	result := make(chan T)
 	go func() {

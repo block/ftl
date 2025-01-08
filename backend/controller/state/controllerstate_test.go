@@ -16,8 +16,8 @@ import (
 func TestRunnerState(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 
-	cs := state.NewInMemoryState()
-	view, err := cs.View(ctx)
+	cs := state.NewInMemoryState(ctx)
+	view, err := cs.Query(ctx, struct{}{})
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(view.Runners()))
 	key := model.NewLocalRunnerKey(1)
@@ -26,7 +26,7 @@ func TestRunnerState(t *testing.T) {
 	module := "test"
 	deploymentKey := model.NewDeploymentKey(module)
 
-	err = cs.Publish(ctx, &state.RunnerRegisteredEvent{
+	err = cs.Update(ctx, &state.RunnerRegisteredEvent{
 		Key:        key,
 		Time:       create,
 		Endpoint:   endpoint,
@@ -34,7 +34,7 @@ func TestRunnerState(t *testing.T) {
 		Deployment: deploymentKey,
 	})
 	assert.NoError(t, err)
-	view, err = cs.View(ctx)
+	view, err = cs.Query(ctx, struct{}{})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(view.Runners()))
 	assert.Equal(t, key, view.Runners()[0].Key)
@@ -44,7 +44,7 @@ func TestRunnerState(t *testing.T) {
 	assert.Equal(t, module, view.Runners()[0].Module)
 	assert.Equal(t, deploymentKey, view.Runners()[0].Deployment)
 	seen := time.Now()
-	err = cs.Publish(ctx, &state.RunnerRegisteredEvent{
+	err = cs.Update(ctx, &state.RunnerRegisteredEvent{
 		Key:        key,
 		Time:       seen,
 		Endpoint:   endpoint,
@@ -52,15 +52,15 @@ func TestRunnerState(t *testing.T) {
 		Deployment: deploymentKey,
 	})
 	assert.NoError(t, err)
-	view, err = cs.View(ctx)
+	view, err = cs.Query(ctx, struct{}{})
 	assert.NoError(t, err)
 	assert.Equal(t, seen, view.Runners()[0].LastSeen)
 
-	err = cs.Publish(ctx, &state.RunnerDeletedEvent{
+	err = cs.Update(ctx, &state.RunnerDeletedEvent{
 		Key: key,
 	})
 	assert.NoError(t, err)
-	view, err = cs.View(ctx)
+	view, err = cs.Query(ctx, struct{}{})
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(view.Runners()))
 
@@ -68,42 +68,42 @@ func TestRunnerState(t *testing.T) {
 
 func TestDeploymentState(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	cs := state.NewInMemoryState()
-	view, err := cs.View(ctx)
+	cs := state.NewInMemoryState(ctx)
+	view, err := cs.Query(ctx, struct{}{})
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(view.GetDeployments()))
 
 	deploymentKey := model.NewDeploymentKey("test-deployment")
 	create := time.Now()
-	err = cs.Publish(ctx, &state.DeploymentCreatedEvent{
+	err = cs.Update(ctx, &state.DeploymentCreatedEvent{
 		Key:       deploymentKey,
 		CreatedAt: create,
 		Schema:    &schema.Module{Name: "test"},
 	})
 	assert.NoError(t, err)
-	view, err = cs.View(ctx)
+	view, err = cs.Query(ctx, struct{}{})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(view.GetDeployments()))
 	assert.Equal(t, deploymentKey, view.GetDeployments()[deploymentKey.String()].Key)
 	assert.Equal(t, create, view.GetDeployments()[deploymentKey.String()].CreatedAt)
 
 	activate := time.Now()
-	err = cs.Publish(ctx, &state.DeploymentActivatedEvent{
+	err = cs.Update(ctx, &state.DeploymentActivatedEvent{
 		Key:         deploymentKey,
 		ActivatedAt: activate,
 		MinReplicas: 1,
 	})
 	assert.NoError(t, err)
-	view, err = cs.View(ctx)
+	view, err = cs.Query(ctx, struct{}{})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, view.GetDeployments()[deploymentKey.String()].MinReplicas)
 	assert.Equal(t, activate, view.GetDeployments()[deploymentKey.String()].ActivatedAt.MustGet())
 
-	err = cs.Publish(ctx, &state.DeploymentDeactivatedEvent{
+	err = cs.Update(ctx, &state.DeploymentDeactivatedEvent{
 		Key: deploymentKey,
 	})
 	assert.NoError(t, err)
-	view, err = cs.View(ctx)
+	view, err = cs.Query(ctx, struct{}{})
 	assert.NoError(t, err)
 	assert.Equal(t, 0, view.GetDeployments()[deploymentKey.String()].MinReplicas)
 }

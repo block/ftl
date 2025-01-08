@@ -15,7 +15,7 @@ import (
 )
 
 func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
-	view, err := s.controllerState.View(ctx)
+	view, err := s.controllerState.Query(ctx, struct{}{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
@@ -38,7 +38,7 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
-	view, err := s.controllerState.View(ctx)
+	view, err := s.controllerState.Query(ctx, struct{}{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
@@ -52,7 +52,7 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	}
 	event := schema.ModuleRuntimeEventFromProto(req.Msg.Event)
 	module.Runtime.ApplyEvent(event)
-	err = s.controllerState.Publish(ctx, &state.DeploymentSchemaUpdatedEvent{
+	err = s.controllerState.Update(ctx, &state.DeploymentSchemaUpdatedEvent{
 		Key:    deployment,
 		Schema: module,
 	})

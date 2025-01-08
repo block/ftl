@@ -199,7 +199,7 @@ func (s *ShardHandle[E, Q, R]) Query(ctx context.Context, query Q) (R, error) {
 //
 // Note, that this is not guaranteed to receive an event for every change, but
 // will always receive the latest state of the shard.
-func (s *ShardHandle[E, Q, R]) Changes(ctx context.Context, query Q) (chan R, error) {
+func (s *ShardHandle[E, Q, R]) Changes(ctx context.Context, query Q) (<-chan R, error) {
 	if s.cluster.nh == nil {
 		panic("cluster not started")
 	}

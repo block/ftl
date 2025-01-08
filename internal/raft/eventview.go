@@ -39,7 +39,7 @@ func (s *RaftEventView[V, VPrt, E]) View(ctx context.Context) (V, error) {
 	return view, nil
 }
 
-func (s *RaftEventView[V, VPrt, E]) Changes(ctx context.Context) (chan V, error) {
+func (s *RaftEventView[V, VPrt, E]) Changes(ctx context.Context) (<-chan V, error) {
 	res, err := s.shard.Changes(ctx, UnitQuery{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get changes: %w", err)
