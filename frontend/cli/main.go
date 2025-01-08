@@ -95,8 +95,11 @@ func main() {
 
 	app := createKongApplication(&cli, csm)
 
-	// Dynamically update the kong app with language specific flags for the "ftl new" command.
-	languagePlugin, err := languageplugin.PrepareNewCmd(log.ContextWithNewDefaultLogger(ctx), app, os.Args[1:])
+	err := kong.ApplyDefaults(&cli.LogConfig)
+	app.FatalIfErrorf(err)
+
+	pluginCtx := log.ContextWithLogger(ctx, log.Configure(os.Stderr, cli.LogConfig))
+	languagePlugin, err := languageplugin.PrepareNewCmd(pluginCtx, app, os.Args[1:])
 	app.FatalIfErrorf(err)
 	addToExit(app, func(code int) {
 		// Kill the plugin when the app exits due to an error, or after showing help.

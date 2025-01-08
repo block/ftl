@@ -76,6 +76,8 @@ func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconf
 		}
 	}
 	_ = plugin.Kill() //nolint:errcheck
+
+	fmt.Printf("Successfully created %s module %q in %s\n", i.Language, name, path)
 	return nil
 }
 

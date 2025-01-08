@@ -92,7 +92,7 @@ func provisionerIDToProvisioner(ctx context.Context, id string, controller ftlv1
 	default:
 		plugin, _, err := plugin.Spawn(
 			ctx,
-			log.Debug,
+			log.FromContext(ctx).GetLevel(),
 			"ftl-provisioner-"+id,
 			".",
 			"ftl-provisioner-"+id,
