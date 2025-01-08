@@ -155,9 +155,6 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 		return nil, fmt.Errorf("failed to parse schema from proto: %w", err)
 	}
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse module config from proto: %w", err)
-	}
 	err = s.writeGenericSchemaFiles(ctx, sch, config)
 	if err != nil {
 		return nil, err
