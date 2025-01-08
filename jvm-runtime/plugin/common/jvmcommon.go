@@ -249,7 +249,9 @@ func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, err
 // watchFiles watches for file changes in the module directory and triggers a rebuild when changes are detected.
 // This is only used when quarkus:dev is not running, e.g. if the module is so broken that it can't start.
 func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext) error {
-	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
+	watchCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	watchTopic, err := watcher.Watch(watchCtx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
 		return fmt.Errorf("could not watch for file changes: %w", err)
 	}
