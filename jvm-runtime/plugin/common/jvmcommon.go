@@ -37,6 +37,7 @@ import (
 	"github.com/block/ftl/common/sha256"
 	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
@@ -202,8 +203,22 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 }
 
 func (s *Service) runDevMode(ctx context.Context, req *connect.Request[langpb.BuildRequest], buildCtx buildContext, stream *connect.ServerStream[langpb.BuildResponse]) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	s.acceptsContextUpdates.Store(true)
 	defer s.acceptsContextUpdates.Store(false)
+
+	watchPatterns, err := relativeWatchPatterns(buildCtx.Config.Dir, buildCtx.Config.Watch)
+	if err != nil {
+		return err
+	}
+	watcher := watch.NewWatcher(watchPatterns...)
+	fileEvents := make(chan watch.WatchEventModuleChanged, 32)
+	if err := watchFiles(ctx, watcher, buildCtx, fileEvents); err != nil {
+		return err
+	}
+
 	first := true
 	for {
 		if !first {
@@ -217,19 +232,8 @@ func (s *Service) runDevMode(ctx context.Context, req *connect.Request[langpb.Bu
 		if err != nil {
 			return err
 		}
-		select {
-		case <-ctx.Done():
+		if !waitForFileChanges(ctx, fileEvents) {
 			return nil
-		default:
-		}
-		watchPatterns, err := relativeWatchPatterns(buildCtx.Config.Dir, buildCtx.Config.Watch)
-		if err != nil {
-			return err
-		}
-
-		watcher := watch.NewWatcher(watchPatterns...)
-		if err := watchFiles(ctx, watcher, buildCtx); err != nil {
-			return err
 		}
 	}
 }
@@ -246,12 +250,28 @@ func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, err
 	return relativePaths, nil
 }
 
-// watchFiles watches for file changes in the module directory and triggers a rebuild when changes are detected.
-// This is only used when quarkus:dev is not running, e.g. if the module is so broken that it can't start.
-func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext) error {
-	watchCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	watchTopic, err := watcher.Watch(watchCtx, time.Second, []string{buildCtx.Config.Dir})
+// Waits for file changes or context cancellation.
+// If file changes are found, the chan is drained and true is returned.
+func waitForFileChanges(ctx context.Context, fileEvents chan watch.WatchEventModuleChanged) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-fileEvents:
+		// Files changed. Now consume the rest of the events so that it is empty for the next build attempt
+		for {
+			select {
+			case <-fileEvents:
+			default:
+				return true
+			}
+		}
+	}
+}
+
+// watchFiles begin watching files in the module directory
+// This is only used to restart quarkus:dev if it ends (such as when the initial build fails).
+func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan watch.WatchEventModuleChanged) error {
+	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
 		return fmt.Errorf("could not watch for file changes: %w", err)
 	}
@@ -272,21 +292,18 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 		return fmt.Errorf("context done: %w", ctx.Err())
 	}
 
-	select {
-	case e := <-watchEvents:
-		if change, ok := e.(watch.WatchEventModuleChanged); ok {
-			log.FromContext(ctx).Infof("Found file changes: %s", change)
-			return nil
+	go func() {
+		for e := range channels.IterContext(ctx, watchEvents) {
+			if change, ok := e.(watch.WatchEventModuleChanged); ok {
+				events <- change
+			}
 		}
-	case <-ctx.Done():
-		return nil
-	}
-
+	}()
 	return nil
 }
+
 func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse], firstAttempt bool) error {
 	logger := log.FromContext(ctx)
-	// cancel context when stream ends so that watcher can be stopped
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
