@@ -199,6 +199,9 @@ build-sqlc-gen-ftl: build-rust-protos
         "cd sqlc-gen-ftl && \
         cargo build --target wasm32-wasip1 --release"
 
+test-sqlc-gen-ftl:
+    @cargo test --manifest-path sqlc-gen-ftl/Cargo.toml --features ci --test sqlc_gen_ftl_test -- --nocapture
+
 # Generate Rust protos
 build-rust-protos:
     @mk sqlc-gen-ftl/src/protos : backend/protos -- \

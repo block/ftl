@@ -110,7 +110,7 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Test WASM
-        run: cd sqlc-gen-ftl && cargo test --features ci --test sqlc_gen_ftl_test -- --nocapture
+        run: just test-sqlc-gen-ftl
       - name: Check for uncommitted changes
         run: |
           if [[ -n $(git status -s) ]]; then

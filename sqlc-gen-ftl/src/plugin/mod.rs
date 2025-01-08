@@ -57,13 +57,19 @@ fn to_verb(query: &pluginpb::Query, module_name: &str) -> schemapb::Decl {
     let request_type = if !query.params.is_empty() {
         Some(to_schema_ref(module_name, &format!("{}Query", query.name)))
     } else {
-        None
+        Some(to_schema_unit())
     };
 
-    let response_type = if query.cmd == ":exec" {
-        None
-    } else {
-        Some(to_schema_ref(module_name, &format!("{}Result", query.name)))
+    let response_type = match query.cmd.as_str() {
+        ":exec" => Some(to_schema_unit()),
+        ":one" => Some(to_schema_ref(module_name, &format!("{}Result", query.name))),
+        ":many" => Some(schemapb::Type {
+            value: Some(schemapb::r#type::Value::Array(Box::new(schemapb::Array {
+                pos: None,
+                element: Some(Box::new(to_schema_ref(module_name, &format!("{}Result", query.name)))),
+            }))),
+        }),
+        _ => Some(to_schema_unit()),
     };
 
     schemapb::Decl {
@@ -87,9 +93,12 @@ fn to_verb_request(query: &pluginpb::Query) -> schemapb::Decl {
             export: false,
             type_parameters: Vec::new(),
             fields: query.params.iter().map(|param| {
-                let name = param.column.as_ref()
-                    .map(|col| col.name.clone())
-                    .unwrap_or_else(|| format!("param{}", param.number));
+                let name = if let Some(col) = &param.column {
+                    col.name.clone()
+                } else {
+                    format!("arg{}", param.number)
+                };
+                
                 let sql_type = param.column.as_ref().and_then(|col| col.r#type.as_ref());
                 to_schema_field(name, sql_type)
             }).collect(),
@@ -138,6 +147,14 @@ fn to_schema_ref(module_name: &str, name: &str) -> schemapb::Type {
             name: name.to_string(),
             pos: None,
             type_parameters: vec![],
+        }))
+    }
+}
+
+fn to_schema_unit() -> schemapb::Type {
+    schemapb::Type {
+        value: Some(schemapb::r#type::Value::Unit(schemapb::Unit {
+            pos: None,
         }))
     }
 }
