@@ -172,15 +172,20 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
         name: 'fcose',
         animate: false,
         quality: 'default',
-        nodeSeparation: 50,
-        idealEdgeLength: 50,
-        nodeRepulsion: 4500,
-        padding: 20,
+        nodeSeparation: 150,
+        idealEdgeLength: 200,
+        nodeRepulsion: 8000,
+        padding: 50,
         randomize: false,
-        // Make the layout more deterministic
         tile: true,
-        tilingPaddingVertical: 20,
-        tilingPaddingHorizontal: 20,
+        tilingPaddingVertical: 50,
+        tilingPaddingHorizontal: 150,
+        fit: true,
+        componentSpacing: 100,
+        edgeElasticity: 0.45,
+        gravity: 0.25,
+        numIter: 2500,
+        initialEnergyOnIncremental: 0.5,
       } as FcoseLayoutOptions
 
       const layout = cy.layout(layoutOptions)
