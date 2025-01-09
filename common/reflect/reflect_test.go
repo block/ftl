@@ -3,6 +3,7 @@ package reflect
 import (
 	"container/list"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/assert"
 )
@@ -92,6 +93,11 @@ func TestNilTypeCopyIsNil(t *testing.T) {
 	assert.Assert(t, DeepCopy([]int(nil)) == nil)
 	// TODO: fix map, and all "panic: assignment to entry in nil map" failures this fix will cause
 	// assert.Assert(t, DeepCopy(map[string]int(nil)) == nil)
+}
+
+func TestDeepCopyTime(t *testing.T) {
+	now := time.Now()
+	assert.Equal(t, now, DeepCopy(now))
 }
 
 func testEqualityOfStruct(t *testing.T, expected, actual *structOfPointers) {
