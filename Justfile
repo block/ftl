@@ -204,8 +204,9 @@ test-sqlc-gen-ftl:
 
 # Generate Rust protos
 build-rust-protos:
-    @mk sqlc-gen-ftl/src/protos : backend/protos -- \
-        "cd backend/protos && buf generate --template buf.gen.rust.yaml"
+    @mk sqlc-gen-ftl/src/protos : {{PROTOS_IN}} -- \
+        "cd backend/protos && buf generate --template buf.gen.rust.yaml && \
+        cd ../../common/protos && buf generate --template buf.gen.rust.yaml"
 
 # Install development version of VSCode extension
 install-extension: build-extension
