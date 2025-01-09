@@ -70,7 +70,7 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 		return nil, nil, fmt.Errorf("failed to extract migrations %w", err)
 	}
 	result.Deploy = append(result.Deploy, migrationFiles...)
-	logger.Infof("Migrations extracted %v from %s", migrationFiles, config.SQLMigrationDirectory)
+	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLMigrationDirectory)
 
 	// write schema proto to deploy directory
 	schemaBytes, err := proto.Marshal(result.Schema.ToProto())
