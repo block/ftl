@@ -2,6 +2,7 @@ package lease
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -72,6 +73,9 @@ func (s *service) AcquireLease(ctx context.Context, stream *connect.BidiStream[f
 		if err != nil {
 			logger.Errorf(err, "Could not receive lease request")
 			return fmt.Errorf("could not receive lease request: %w", err)
+		}
+		if len(msg.Key) == 0 {
+			return errors.New("lease key must not be empty")
 		}
 		logger.Debugf("Acquiring lease for: %v", msg.Key)
 		success := c.handleMessage(msg.Key, msg.Ttl.AsDuration())

@@ -25,12 +25,17 @@ type clientLeaser struct {
 }
 
 func (c clientLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Duration) (Lease, context.Context, error) {
+	if len(key) == 0 {
+		return nil, nil, errors.New("lease key must not be empty")
+	}
 	if ttl.Seconds() < 5 {
 		return nil, nil, errors.New("ttl must be at least 5 seconds")
 	}
 	lease := c.client.AcquireLease(ctx)
 	// Send the initial request to acquire the lease.
-	err := lease.Send(&leasepb.AcquireLeaseRequest{})
+	err := lease.Send(&leasepb.AcquireLeaseRequest{
+		Key: key,
+	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to send acquire lease request: %w", err)
 	}
@@ -53,7 +58,9 @@ func (c clientLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Durati
 				done()
 				return
 			case <-time.After(ttl / 2):
-				err := lease.Send(&leasepb.AcquireLeaseRequest{})
+				err := lease.Send(&leasepb.AcquireLeaseRequest{
+					Key: key,
+				})
 				if err != nil {
 					done()
 					return
