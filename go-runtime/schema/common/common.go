@@ -32,6 +32,8 @@ var (
 	FtlConfigTypePath = "github.com/block/ftl/go-runtime/ftl.Config"
 	// FtlSecretTypePath is the path to the FTL secret handle type.
 	FtlSecretTypePath = "github.com/block/ftl/go-runtime/ftl.Secret" //nolint:gosec
+	// FtlSinglePartitionMapPath is the path to the single partition map type.
+	FtlSinglePartitionMapPath = "github.com/block/ftl/go-runtime/ftl.SinglePartitionMap[E any]"
 
 	extractorRegistery = xsync.NewMapOf[reflect.Type, ExtractDeclFunc[schema.Decl, ast.Node]]()
 )
