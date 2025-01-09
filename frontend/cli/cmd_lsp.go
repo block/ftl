@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"golang.org/x/sync/errgroup"
+
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	enginepbconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
-
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/lsp"
 	"github.com/block/ftl/internal/rpc"
-	"golang.org/x/sync/errgroup"
 )
 
 type lspCmd struct {

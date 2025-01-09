@@ -8,8 +8,6 @@ import (
 	"os"
 	"strings"
 
-	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
-	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/puzpuzpuz/xsync/v3"
 	_ "github.com/tliron/commonlog/simple"
 	"github.com/tliron/glsp"
@@ -17,6 +15,8 @@ import (
 	glspServer "github.com/tliron/glsp/server"
 	"github.com/tliron/kutil/version"
 
+	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
+	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/internal/log"
 )

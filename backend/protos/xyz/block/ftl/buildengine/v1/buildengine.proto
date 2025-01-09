@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package xyz.block.ftl.buildengine.v1;
 
-import "xyz/block/ftl/v1/ftl.proto";
 import "xyz/block/ftl/language/v1/language.proto";
+import "xyz/block/ftl/v1/ftl.proto";
 
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1;buildenginepb";
 
@@ -94,6 +94,6 @@ service BuildEngineService {
   rpc Ping(ftl.v1.PingRequest) returns (ftl.v1.PingResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
-  
+
   rpc StreamEngineEvents(StreamEngineEventsRequest) returns (stream StreamEngineEventsResponse) {}
 }
