@@ -30,7 +30,8 @@ func (p Position) String() string {
 type ErrorLevel int
 
 const (
-	INFO ErrorLevel = iota
+	UNDEFINED ErrorLevel = iota
+	INFO
 	WARN
 	ERROR
 )

@@ -2,6 +2,7 @@ package buildengine_test
 
 import (
 	"context"
+	"net/url"
 	"path/filepath"
 	"testing"
 
@@ -21,7 +22,10 @@ func TestGraph(t *testing.T) {
 		Path: filepath.Join(t.TempDir(), "ftl-project.toml"),
 		Name: "test",
 	}
-	engine, err := buildengine.New(ctx, nil, schemaeventsource.NewUnattached(), projConfig, []string{"testdata/alpha", "testdata/other", "testdata/another"})
+
+	endpoint, err := url.Parse("http://localhost:8900")
+	assert.NoError(t, err)
+	engine, err := buildengine.New(ctx, nil, schemaeventsource.NewUnattached(), projConfig, []string{"testdata/alpha", "testdata/other", "testdata/another"}, endpoint)
 	assert.NoError(t, err)
 
 	defer engine.Close()

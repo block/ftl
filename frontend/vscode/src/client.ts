@@ -29,12 +29,12 @@ export class FTLClient {
     const serverOptions: ServerOptions = {
       run: {
         command: `${ftlPath}`,
-        args: ['dev', ...flags],
+        args: ['lsp', ...flags],
         options: { cwd: cwd },
       },
       debug: {
         command: `${ftlPath}`,
-        args: ['dev', ...flags],
+        args: ['lsp', ...flags],
         options: { cwd: cwd },
       },
     }

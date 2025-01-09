@@ -8,7 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alecthomas/types/pubsub"
+	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
+	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/puzpuzpuz/xsync/v3"
 	_ "github.com/tliron/commonlog/simple"
 	"github.com/tliron/glsp"
@@ -17,9 +18,6 @@ import (
 	"github.com/tliron/kutil/version"
 
 	"github.com/block/ftl/common/builderrors"
-	ftlErrors "github.com/block/ftl/common/errors"
-	"github.com/block/ftl/internal/buildengine"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -74,80 +72,69 @@ func (s *Server) Run() error {
 
 type errSet []builderrors.Error
 
-func (s *Server) Subscribe(ctx context.Context, topic *pubsub.Topic[buildengine.EngineEvent]) {
-	events := make(chan buildengine.EngineEvent, 64)
-	topic.Subscribe(events)
-	go func() {
-		defer topic.Unsubscribe(events)
-		for event := range channels.IterContext(ctx, events) {
-			switch event := event.(type) {
-			case buildengine.EngineStarted:
-				s.publishBuildState(buildStateBuilding, nil)
+func (s *Server) HandleBuildEvent(ctx context.Context, response *buildenginepb.StreamEngineEventsResponse) {
+	logger := log.FromContext(ctx).Scope("lsp")
+	logger.Warnf("Handling build event: %v", response)
+	switch event := response.Event.Event.(type) {
+	case *buildenginepb.EngineEvent_EngineStarted:
+		s.publishBuildState(buildStateBuilding, nil)
 
-			case buildengine.EngineEnded:
-				if len(event.ModuleErrors) == 0 {
-					s.publishBuildState(buildStateSuccess, nil)
-					continue
-				}
-				errs := []error{}
-				for module, e := range event.ModuleErrors {
-					errs = append(errs, fmt.Errorf("%s: %w", module, e))
-				}
-				s.publishBuildState(buildStateFailure, errors.Join(errs...))
-
-			case buildengine.ModuleBuildStarted:
-				dirURI := "file://" + event.Config.Dir
-
-				s.diagnostics.Range(func(uri protocol.DocumentUri, diagnostics []protocol.Diagnostic) bool {
-					if strings.HasPrefix(uri, dirURI) {
-						s.diagnostics.Delete(uri)
-						s.publishDiagnostics(uri, []protocol.Diagnostic{})
-					}
-					return true
-				})
-
-			case *buildengine.ModuleBuildFailed:
-				s.post(event.Error)
-			case *buildengine.ModuleDeployFailed:
-				s.post(event.Error)
-
-			case buildengine.ModuleBuildSuccess, buildengine.ModuleAdded,
-				buildengine.ModuleRemoved, buildengine.ModuleBuildWaiting, buildengine.ModuleDeployStarted,
-				buildengine.ModuleDeploySuccess:
-			}
+	case *buildenginepb.EngineEvent_EngineEnded:
+		if len(event.EngineEnded.ModuleErrors) == 0 {
+			s.publishBuildState(buildStateSuccess, nil)
+			return
 		}
-	}()
+		errs := []error{}
+		for module, e := range event.EngineEnded.ModuleErrors {
+			errs = append(errs, fmt.Errorf("%s: %v", module, e))
+		}
+		s.publishBuildState(buildStateFailure, errors.Join(errs...))
+
+	case *buildenginepb.EngineEvent_ModuleBuildStarted:
+		dirURI := "file://" + event.ModuleBuildStarted.Config.Dir
+
+		s.diagnostics.Range(func(uri protocol.DocumentUri, diagnostics []protocol.Diagnostic) bool {
+			if strings.HasPrefix(uri, dirURI) {
+				s.diagnostics.Delete(uri)
+				s.publishDiagnostics(uri, []protocol.Diagnostic{})
+			}
+			return true
+		})
+
+	case *buildenginepb.EngineEvent_ModuleBuildFailed:
+		s.post(event.ModuleBuildFailed.Errors)
+	case *buildenginepb.EngineEvent_ModuleDeployFailed:
+		s.post(event.ModuleDeployFailed.Errors)
+
+	case *buildenginepb.EngineEvent_ModuleBuildSuccess, *buildenginepb.EngineEvent_ModuleAdded,
+		*buildenginepb.EngineEvent_ModuleRemoved, *buildenginepb.EngineEvent_ModuleBuildWaiting, *buildenginepb.EngineEvent_ModuleDeployStarted,
+		*buildenginepb.EngineEvent_ModuleDeploySuccess:
+	}
 }
 
 // Post sends diagnostics to the client.
-func (s *Server) post(err error) {
+func (s *Server) post(err *langpb.ErrorList) {
 	errByFilename := make(map[string]errSet)
 	errUnspecified := []error{}
 
-	// Deduplicate and associate by filename.
-	for _, e := range ftlErrors.DeduplicateErrors(ftlErrors.UnwrapAll(err)) {
-		if !ftlErrors.Innermost(e) {
-			continue
-		}
-		var ce builderrors.Error
-		if !errors.As(e, &ce) {
-			errUnspecified = append(errUnspecified, err)
-			continue
-		}
-		if ce.Type == builderrors.COMPILER {
+	buildErrors := langpb.ErrorsFromProto(err)
+
+	// Associate by filename.
+	for _, e := range buildErrors {
+		if e.Type == builderrors.COMPILER {
 			// ignore compiler errors
 			continue
 		}
-		pos, ok := ce.Pos.Get()
+		pos, ok := e.Pos.Get()
 		if !ok {
-			errUnspecified = append(errUnspecified, err)
+			errUnspecified = append(errUnspecified, e)
 			continue
 		}
 		filename := pos.Filename
 		if _, exists := errByFilename[filename]; !exists {
 			errByFilename[filename] = errSet{}
 		}
-		errByFilename[filename] = append(errByFilename[filename], ce)
+		errByFilename[filename] = append(errByFilename[filename], e)
 	}
 
 	go publishPositionalErrors(errByFilename, s)

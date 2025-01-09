@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"net/url"
 	"runtime"
 	"strings"
 	"time"
@@ -241,6 +242,7 @@ func New(
 	schemaSource schemaeventsource.EventSource,
 	projectConfig projectconfig.Config,
 	moduleDirs []string,
+	updatesEndpoint *url.URL,
 	options ...Option,
 ) (*Engine, error) {
 	ctx = rpc.ContextWithClient(ctx, client)
@@ -276,6 +278,7 @@ func New(
 
 	go e.watchForPluginEvents(ctx)
 	go e.watchForEventsToPublish(ctx)
+	go e.startUpdatesService(ctx, updatesEndpoint)
 
 	configs, err := watch.DiscoverModules(ctx, moduleDirs)
 	if err != nil {

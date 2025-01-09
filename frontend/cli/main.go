@@ -67,6 +67,7 @@ type InteractiveCLI struct {
 	Pubsub          pubsubCmd          `cmd:"" help:"Manage pub/sub."`
 	Release         releaseCmd         `cmd:"" help:"Manage releases."`
 	NewSQLMigration newSQLMigrationCmd `cmd:"" help:"Create a new SQL Database migration."`
+	LSP             lspCmd             `cmd:"" help:"Start the LSP server."`
 }
 
 type CLI struct {

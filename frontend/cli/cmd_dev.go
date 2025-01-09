@@ -20,7 +20,6 @@ import (
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/lsp"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -29,12 +28,10 @@ import (
 )
 
 type devCmd struct {
-	Watch          time.Duration     `help:"Watch template directory at this frequency and regenerate on change." default:"500ms"`
-	NoServe        bool              `help:"Do not start the FTL server." default:"false"`
-	Lsp            bool              `help:"Run the language server." default:"false"`
-	ServeCmd       serveCommonConfig `embed:""`
-	languageServer *lsp.Server
-	Build          buildCmd `embed:""`
+	Watch    time.Duration     `help:"Watch template directory at this frequency and regenerate on change." default:"500ms"`
+	NoServe  bool              `help:"Do not start the FTL server." default:"false"`
+	ServeCmd serveCommonConfig `embed:""`
+	Build    buildCmd          `embed:""`
 }
 
 func (d *devCmd) Run(
@@ -115,21 +112,11 @@ func (d *devCmd) Run(
 		starting.Close()
 
 		opts := []buildengine.Option{buildengine.Parallelism(d.Build.Parallelism), buildengine.BuildEnv(d.Build.BuildEnv), buildengine.WithDevMode(devModeEndpointUpdates), buildengine.WithStartTime(startTime)}
-		if d.Lsp {
-			d.languageServer = lsp.NewServer(ctx)
-			ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).AddSink(lsp.NewLogSink(d.languageServer)))
-			g.Go(func() error {
-				return d.languageServer.Run()
-			})
-		}
-
-		engine, err := buildengine.New(ctx, client, schemaEventSourceFactory(), projConfig, d.Build.Dirs, opts...)
+		engine, err := buildengine.New(ctx, client, schemaEventSourceFactory(), projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, opts...)
 		if err != nil {
 			return err
 		}
-		if d.languageServer != nil {
-			d.languageServer.Subscribe(ctx, engine.EngineUpdates)
-		}
+
 		return engine.Dev(ctx, d.Watch)
 	})
 

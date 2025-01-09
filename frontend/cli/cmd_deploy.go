@@ -34,7 +34,7 @@ func (d *deployCmd) Run(
 	}
 	defer cancel()
 	engine, err := buildengine.New(
-		ctx, provisionerClient, schemaSourceFactory(), projConfig, d.Build.Dirs,
+		ctx, provisionerClient, schemaSourceFactory(), projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint,
 		buildengine.BuildEnv(d.Build.BuildEnv),
 		buildengine.Parallelism(d.Build.Parallelism),
 	)
