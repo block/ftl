@@ -22,4 +22,5 @@
         "typescript",
         "typescriptreact"
     ],
+    "npm.packageManager": "pnpm",
 }

@@ -44,13 +44,18 @@ export const getFTLVersion = async (ftlPath: string): Promise<string> => {
 }
 
 export const checkMinimumVersion = (version: string, minimumVersion: string): boolean => {
-  // Always pass if the version is 'dev'
-  if (version === 'dev') {
+  // Always pass if the version starts with 'dev'
+  if (version.startsWith('dev')) {
     return true
   }
 
-  // Strip any pre-release suffixes for comparison
-  const cleanVersion = version.split('-')[0]
+  // Extract version number from string that might include a date
+  const versionMatch = version.match(/(\d+\.\d+\.\d+)/)
+  if (!versionMatch) {
+    return false
+  }
+  const cleanVersion = versionMatch[1]
+
   return semver.valid(cleanVersion) ? semver.gte(cleanVersion, minimumVersion) : false
 }
 
