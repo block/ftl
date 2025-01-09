@@ -7,12 +7,20 @@ import (
 	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
 
+type PartitionMapper struct{}
+
+var _ ftl.TopicPartitionMap[PayinEvent] = PartitionMapper{}
+
+func (PartitionMapper) PartitionKey(event PayinEvent) string {
+	return event.Name
+}
+
 type PayinEvent struct {
 	Name string
 }
 
 //ftl:topic partitions=4
-type Payins = ftl.TopicHandle[PayinEvent, ftl.SinglePartitionMap[PayinEvent]]
+type Payins = ftl.TopicHandle[PayinEvent, PartitionMapper]
 
 //ftl:verb
 func Payin(ctx context.Context, topic Payins) error {

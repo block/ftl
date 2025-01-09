@@ -24,7 +24,7 @@ func init() {
 		),
 		reflection.ProvideResourcesForVerb(
 			Payin,
-			server.TopicHandle[PayinEvent, ftl.SinglePartitionMap[PayinEvent]]("pubsub", "payins"),
+			server.TopicHandle[PayinEvent, PartitionMapper]("pubsub", "payins"),
 		),
 		reflection.ProvideResourcesForVerb(
 			ProcessBroadcast,

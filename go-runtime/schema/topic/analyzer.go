@@ -47,6 +47,7 @@ func Extract(pass *analysis.Pass, obj types.Object, node *ast.TypeSpec) optional
 		Name:  name,
 		Event: typ,
 	}
+	partitions := 1
 	if md, ok := common.GetFactForObject[*common.ExtractedMetadata](pass, obj).Get(); ok {
 		topic.Comments = md.Comments
 		topic.Export = md.IsExported
@@ -54,6 +55,7 @@ func Extract(pass *analysis.Pass, obj types.Object, node *ast.TypeSpec) optional
 		for _, c := range md.Metadata {
 			if pm, ok := c.(*schema.MetadataPartitions); ok {
 				topic.Metadata = append(topic.Metadata, pm)
+				partitions = pm.Partitions
 			}
 		}
 	}
@@ -63,6 +65,9 @@ func Extract(pass *analysis.Pass, obj types.Object, node *ast.TypeSpec) optional
 	if !ok {
 		common.Errorf(pass, node, "could not find type for topic partition mapper")
 		return optional.None[*schema.Topic]()
+	}
+	if mapperObj.Type().String() == common.FtlSinglePartitionMapPath && partitions > 1 {
+		common.Errorf(pass, node, "single partition map can not have more than one partition")
 	}
 
 	var associatedMapperObj optional.Option[types.Object]

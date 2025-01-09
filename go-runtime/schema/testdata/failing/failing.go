@@ -199,3 +199,6 @@ func Empty(ctx context.Context) error {
 func CallsEmptyDirectly(ctx context.Context) error {
 	return Empty(ctx)
 }
+
+//ftl:topic partitions=10
+type FailingTopic = ftl.TopicHandle[string, ftl.SinglePartitionMap[string]]

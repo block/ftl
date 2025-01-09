@@ -586,6 +586,7 @@ func testErrorReporting(t *testing.T) {
 		`178:6: unsupported type "ftl/failing/child.BadChildStruct" for field "child"`,
 		`183:6: duplicate data declaration for "failing.Redeclared"; already declared at "27:6"`,
 		`200:9: direct verb calls are not allowed; use the provided EmptyClient instead. See https://block.github.io/ftl/docs/reference/verbs/#calling-verbs`,
+		`204:6-76: single partition map can not have more than one partition`,
 	}
 
 	// failing/child/child.go
