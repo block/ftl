@@ -213,3 +213,8 @@ func Save(config Config) error {
 func (c Config) SchemaPath(module string) string {
 	return filepath.Join(c.Root(), ".ftl", "schemas", module+".pb")
 }
+
+// SQLCGenFTLPath returns the path to the sqlc-gen-ftl WASM plugin, used to generate FTL schema from SQL.
+func (c Config) SQLCGenFTLPath() string {
+	return filepath.Join(c.Root(), ".ftl", "resources", "sqlc-gen-ftl.wasm")
+}

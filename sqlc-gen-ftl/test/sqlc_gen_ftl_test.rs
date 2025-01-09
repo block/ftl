@@ -317,7 +317,7 @@ mod tests {
                 temp_dir.path().join("queries.sql")
             )?;
             std::fs::copy(
-                root_dir.join("target/wasm32-wasip1/release/sqlc-gen-ftl.wasm"),
+                root_dir.join("../internal/sqlc/resources/sqlc-gen-ftl.wasm"),
                 &wasm_path
             )?;
             
