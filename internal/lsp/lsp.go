@@ -106,9 +106,14 @@ func (s *Server) Subscribe(ctx context.Context, topic *pubsub.Topic[buildengine.
 					return true
 				})
 
-			case buildengine.ModuleBuildSuccess, buildengine.ModuleBuildFailed, buildengine.ModuleAdded,
+			case *buildengine.ModuleBuildFailed:
+				s.post(event.Error)
+			case *buildengine.ModuleDeployFailed:
+				s.post(event.Error)
+
+			case buildengine.ModuleBuildSuccess, buildengine.ModuleAdded,
 				buildengine.ModuleRemoved, buildengine.ModuleBuildWaiting, buildengine.ModuleDeployStarted,
-				buildengine.ModuleDeploySuccess, buildengine.ModuleDeployFailed:
+				buildengine.ModuleDeploySuccess:
 			}
 		}
 	}()
