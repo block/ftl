@@ -1,0 +1,15 @@
+version: '2'
+plugins:
+- name: ftl
+  wasm:
+    url: {{ .Plugin.URL }}
+    sha256: {{ .Plugin.SHA256 }}
+sql:
+- schema: {{ .SchemaDir }}
+  queries: {{ .QueriesDir }}
+  engine: {{ .Engine }}
+  codegen:
+  - out: .
+    plugin: ftl
+    options:
+      module: {{ .Module }}
