@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 	"unsafe"
 )
 
@@ -277,7 +278,16 @@ func copyStruct(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 	t := reflect.TypeOf(x)
 	dc := reflect.New(t)
 	for i := 0; i < t.NumField(); i++ {
-		if copyConf.disallowCopyUnexported {
+		if t == reflect.TypeOf(time.Time{}) && v.Field(i).Type() == reflect.TypeOf(&time.Location{}) {
+			// time.Time compares location pointers to a hard coded global pointer when determining
+			// the location if the location is the default struct.
+			//
+			// this is a hack to make copied times equal to the original
+			iv := reflect.ValueOf(valueInterfaceUnsafe(v.Field(i)))
+			if iv.IsValid() {
+				setField(dc.Elem().Field(i), iv)
+			}
+		} else if copyConf.disallowCopyUnexported {
 			f := t.Field(i)
 			if f.PkgPath != "" {
 				continue
