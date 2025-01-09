@@ -51,7 +51,10 @@ func (l *lspCmd) Run(ctx context.Context) error {
 		}
 	})
 
-	return g.Wait()
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("error waiting for build events: %w", err)
+	}
+	return nil
 }
 
 func (l *lspCmd) streamBuildEvents(ctx context.Context, client enginepbconnect.BuildEngineServiceClient) error {
@@ -65,5 +68,8 @@ func (l *lspCmd) streamBuildEvents(ctx context.Context, client enginepbconnect.B
 		l.languageServer.HandleBuildEvent(ctx, msg)
 	}
 
-	return stream.Err()
+	if err := stream.Err(); err != nil {
+		return fmt.Errorf("error streaming build events: %w", err)
+	}
+	return nil
 }

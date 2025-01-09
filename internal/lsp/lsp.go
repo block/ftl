@@ -73,8 +73,6 @@ func (s *Server) Run() error {
 type errSet []builderrors.Error
 
 func (s *Server) HandleBuildEvent(ctx context.Context, response *buildenginepb.StreamEngineEventsResponse) {
-	logger := log.FromContext(ctx).Scope("lsp")
-	logger.Warnf("Handling build event: %v", response)
 	switch event := response.Event.Event.(type) {
 	case *buildenginepb.EngineEvent_EngineStarted:
 		s.publishBuildState(buildStateBuilding, nil)

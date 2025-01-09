@@ -16,8 +16,6 @@ provides support for
 
 3.  Open any FTL project with a `ftl-project.toml` or `ftl.toml` file.
 
-4.  The extension will prompt to start the FTL development server.
-
 ## Settings
 
 Configure the FTL extension by setting the following options in your Visual Studio Code settings.json:
@@ -33,17 +31,10 @@ Configure the FTL extension by setting the following options in your Visual Stud
   }
   ```
 
-- `ftl.devCommandFlags`: Defines flags to pass to the FTL executable when starting the development environment.
+- `ftl.lspCommandFlags`: Defines flags to pass to the FTL executable when starting the development environment.
 
   ```json
   {
-    "ftl.devCommandFlags": ["--parallelism=4"]
-  }
-  ```
-
-- `ftl.automaticallyStartServer`: Controls if and when to automatically start the FTL development server. Available options are "always" and "never". If not set, the extension will prompt to start the server when opening a FTL project.
-  ```json
-  {
-    "ftl.automaticallyStartServer": "always"
+    "ftl.lspCommandFlags": []
   }
   ```

@@ -29,36 +29,17 @@
           "type": "string",
           "description": "Path to the FTL executable. Leave as 'ftl' to use the system PATH."
         },
-        "ftl.devCommandFlags": {
+        "ftl.lspCommandFlags": {
           "type": "array",
           "default": [],
           "items": {
             "type": "string"
           },
-          "description": "Flags to pass to the FTL executable when starting ftl dev"
-        },
-        "ftl.automaticallyStartServer": {
-          "type": "string",
-          "enum": [
-            "always",
-            "never"
-          ],
-          "default": null,
-          "description": "Control if and when to automatically start the FTL dev server."
+          "description": "Flags to pass to the FTL executable when starting ftl lsp"
         }
       }
     },
     "commands": [
-      {
-        "command": "ftl.restart",
-        "title": "Restart Service",
-        "category": "FTL"
-      },
-      {
-        "command": "ftl.stop",
-        "title": "Stop Service",
-        "category": "FTL"
-      },
       {
         "command": "ftl.showLogs",
         "title": "Show Logs",
