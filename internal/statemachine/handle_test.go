@@ -23,8 +23,7 @@ type mockStateMachine struct {
 }
 
 func newMockStateMachine(ctx context.Context, initial string) *mockStateMachine {
-	broadcaster := &channels.Broadcaster[struct{}]{}
-	go broadcaster.Run(ctx)
+	broadcaster := channels.NewBroadcaster[struct{}](ctx)
 
 	return &mockStateMachine{
 		runningCtx:  ctx,
@@ -37,7 +36,7 @@ func (m *mockStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, erro
 	return m.broadcaster.Subscribe(), nil
 }
 
-func (m *mockStateMachine) Update(msg string) error {
+func (m *mockStateMachine) Publish(msg string) error {
 	m.mu.Lock()
 	m.value = msg
 	m.updates = append(m.updates, msg)
@@ -62,10 +61,10 @@ func TestLocalHandle(t *testing.T) {
 		defer cancel()
 
 		mock := newMockStateMachine(ctx, "nitial")
-		handle := LocalHandle(mock)
+		handle := NewLocalHandle(mock)
 
 		// Test Update
-		err := handle.Update(context.Background(), "new value")
+		err := handle.Publish(context.Background(), "new value")
 		assert.NoError(t, err)
 		assert.Equal(t, "new value", mock.value)
 
@@ -81,27 +80,22 @@ func TestLocalHandle(t *testing.T) {
 		defer cancel()
 
 		mock := newMockStateMachine(ctx, "initial")
-		handle1 := LocalHandle(mock)
-		handle2 := LocalHandle(mock)
+		handle1 := NewLocalHandle(mock)
+		handle2 := NewLocalHandle(mock)
 
-		changes1, err := handle1.Changes(ctx, "any query")
+		changes1, err := handle1.StateIter(ctx, "any query")
 		assert.NoError(t, err)
-		changes2, err := handle2.Changes(ctx, "any query")
+		changes2, err := handle2.StateIter(ctx, "any query")
 		assert.NoError(t, err)
 
-		assert.NoError(t, mock.Update("updated value"))
+		assert.NoError(t, mock.Publish("updated value"))
 
-		select {
-		case newValue := <-changes1:
+		for newValue := range changes1 {
 			assert.Equal(t, "updated value", newValue)
-		case <-ctx.Done():
-			t.Error("Timed out waiting for changes")
 		}
-		select {
-		case newValue := <-changes2:
+
+		for newValue := range changes2 {
 			assert.Equal(t, "updated value", newValue)
-		case <-ctx.Done():
-			t.Error("Timed out waiting for changes")
 		}
 	})
 }

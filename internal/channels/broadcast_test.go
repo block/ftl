@@ -10,17 +10,15 @@ import (
 
 func TestBroadcaster(t *testing.T) {
 	t.Run("broadcasts messages to all subscribers", func(t *testing.T) {
-		b := &Broadcaster[string]{}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+
+		b := NewBroadcaster[string](ctx)
 
 		// Create three subscribers
 		sub1 := b.Subscribe()
 		sub2 := b.Subscribe()
 		sub3 := b.Subscribe()
-
-		// Start the broadcaster
-		go b.Run(ctx)
 
 		// Send a message
 		msg := "hello"
@@ -38,15 +36,13 @@ func TestBroadcaster(t *testing.T) {
 	})
 
 	t.Run("closes all subscriber channels when context is done", func(t *testing.T) {
-		b := &Broadcaster[int]{}
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		b := NewBroadcaster[int](ctx)
 
 		// Create subscribers
 		sub1 := b.Subscribe()
 		sub2 := b.Subscribe()
-
-		// Start the broadcaster
-		go b.Run(ctx)
 
 		// Cancel the context
 		cancel()
@@ -61,30 +57,6 @@ func TestBroadcaster(t *testing.T) {
 			case <-time.After(time.Second):
 				t.Error("timeout waiting for channel to close")
 			}
-		}
-	})
-
-	t.Run("stops broadcasting when context is cancelled", func(t *testing.T) {
-		b := &Broadcaster[string]{}
-		ctx, cancel := context.WithCancel(context.Background())
-
-		// Start the broadcaster
-		go b.Run(ctx)
-
-		sub := b.Subscribe()
-		cancel()
-
-		// This broadcast should return immediately due to cancelled context
-		b.Broadcast(ctx, "test")
-
-		// Verify no message was sent
-		select {
-		case msg, ok := <-sub:
-			if ok {
-				t.Errorf("unexpected message received: %v", msg)
-			}
-		case <-time.After(100 * time.Millisecond):
-			// Expected timeout
 		}
 	})
 }

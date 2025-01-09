@@ -23,13 +23,13 @@ func (i IntEvent) MarshalBinary() ([]byte, error) { //nolint:unparam
 	return binary.BigEndian.AppendUint64([]byte{}, uint64(i)), nil
 }
 
-var _ sm.SnapshottingStateMachine[int64, int64, IntEvent] = &IntStateMachine{}
+var _ sm.Snapshotting[int64, int64, IntEvent] = &IntStateMachine{}
 
 func (s IntStateMachine) Lookup(key int64) (int64, error) {
 	return s.sum, nil
 }
 
-func (s *IntStateMachine) Update(msg IntEvent) error {
+func (s *IntStateMachine) Publish(msg IntEvent) error {
 	s.sum += int64(msg)
 	return nil
 }

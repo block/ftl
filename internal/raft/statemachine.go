@@ -11,11 +11,11 @@ import (
 
 // stateMachineShim is a shim to convert a typed StateMachine to a dragonboat statemachine.IStateMachine.
 type stateMachineShim[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable[E]] struct {
-	sm sm.SnapshottingStateMachine[Q, R, E]
+	sm sm.Snapshotting[Q, R, E]
 }
 
 func newStateMachineShim[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable[E]](
-	sm sm.SnapshottingStateMachine[Q, R, E],
+	sm sm.Snapshotting[Q, R, E],
 ) statemachine.CreateStateMachineFunc {
 	return func(clusterID uint64, nodeID uint64) statemachine.IStateMachine {
 		return &stateMachineShim[Q, R, E, EPtr]{sm: sm}
@@ -43,7 +43,7 @@ func (s *stateMachineShim[Q, R, E, EPtr]) Update(entry statemachine.Entry) (stat
 	if err := toptr.UnmarshalBinary(entry.Cmd); err != nil {
 		return statemachine.Result{}, fmt.Errorf("failed to unmarshal event: %w", err)
 	}
-	if err := s.sm.Update(to); err != nil {
+	if err := s.sm.Publish(to); err != nil {
 		return statemachine.Result{}, fmt.Errorf("failed to update state machine: %w", err)
 	}
 

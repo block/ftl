@@ -20,8 +20,6 @@ type ControllerEvent interface {
 	Handle(view State) (State, error)
 }
 
-type ControllerState statemachine.StateMachineHandle[struct{}, State, ControllerEvent]
-
 type controllerStateMachine struct {
 	state State
 
@@ -29,13 +27,13 @@ type controllerStateMachine struct {
 	runningCtx  context.Context
 }
 
-var _ statemachine.ListenableStateMachine[struct{}, State, ControllerEvent] = &controllerStateMachine{}
+var _ statemachine.Listenable[struct{}, State, ControllerEvent] = &controllerStateMachine{}
 
 func (c *controllerStateMachine) Lookup(key struct{}) (State, error) {
 	return reflect.DeepCopy(c.state), nil
 }
 
-func (c *controllerStateMachine) Update(msg ControllerEvent) error {
+func (c *controllerStateMachine) Publish(msg ControllerEvent) error {
 	var err error
 	c.state, err = msg.Handle(c.state)
 	if err != nil {
@@ -50,11 +48,9 @@ func (c *controllerStateMachine) Subscribe(ctx context.Context) (<-chan struct{}
 	return c.broadcaster.Subscribe(), nil
 }
 
-func NewInMemoryState(ctx context.Context) ControllerState {
-	broadcaster := &channels.Broadcaster[struct{}]{}
-	go broadcaster.Run(ctx)
-
-	return statemachine.LocalHandle(&controllerStateMachine{
+func NewInMemoryState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, State, ControllerEvent] {
+	broadcaster := channels.NewBroadcaster[struct{}](ctx)
+	handle := statemachine.NewLocalHandle(&controllerStateMachine{
 		broadcaster: broadcaster,
 		runningCtx:  ctx,
 		state: State{
@@ -64,4 +60,6 @@ func NewInMemoryState(ctx context.Context) ControllerState {
 			runnersByDeployment: map[string][]*Runner{},
 		},
 	})
+
+	return statemachine.NewSingleQueryHandle(handle, struct{}{})
 }

@@ -58,7 +58,7 @@ func (j *joinCmd) Run() error {
 	return run(ctx, shard)
 }
 
-func run(ctx context.Context, shard sm.StateMachineHandle[int64, int64, IntEvent]) error {
+func run(ctx context.Context, shard sm.Handle[int64, int64, IntEvent]) error {
 	messages := make(chan int)
 
 	wg, ctx := errgroup.WithContext(ctx)
@@ -77,7 +77,7 @@ func run(ctx context.Context, shard sm.StateMachineHandle[int64, int64, IntEvent
 		}
 	})
 
-	changes, err := shard.Changes(ctx, 1)
+	changes, err := shard.StateIter(ctx, 1)
 	if err != nil {
 		return fmt.Errorf("failed to get changes: %w", err)
 	}
@@ -86,17 +86,21 @@ func run(ctx context.Context, shard sm.StateMachineHandle[int64, int64, IntEvent
 		for {
 			select {
 			case msg := <-messages:
-				err := shard.Update(ctx, IntEvent(msg))
+				err := shard.Publish(ctx, IntEvent(msg))
 				if err != nil {
 					return fmt.Errorf("failed to propose event: %w", err)
 				}
 			case <-ctx.Done():
 				return nil
-			case c := <-changes:
-				fmt.Println("state: ", c)
 			}
 		}
 	})
+
+	go func() {
+		for c := range changes {
+			fmt.Println("state: ", c)
+		}
+	}()
 
 	if err := wg.Wait(); err != nil {
 		return fmt.Errorf("failed to run: %w", err)
