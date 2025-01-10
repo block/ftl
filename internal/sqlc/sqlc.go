@@ -10,6 +10,7 @@ import (
 
 	sqlc "github.com/sqlc-dev/sqlc/pkg/cli"
 
+	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
@@ -42,22 +43,27 @@ type WASMPlugin struct {
 	SHA256 string
 }
 
-func Generate(pc projectconfig.Config, mc moduleconfig.ModuleConfig) error {
+func Generate(pc projectconfig.Config, mc moduleconfig.ModuleConfig) (*schema.Module, error) {
 	cfg, err := newConfigContext(pc, mc)
 	if err != nil {
-		return fmt.Errorf("failed to create SQLC config: %w", err)
+		return nil, fmt.Errorf("failed to create SQLC config: %w", err)
 	}
 
 	if err := cfg.scaffoldFile(); err != nil {
-		return err
+		return nil, fmt.Errorf("failed to scaffold SQLC config file: %w", err)
 	}
 
 	args := []string{"generate", "--file", cfg.getSQLCConfigPath()}
 	if exitCode := sqlc.Run(args); exitCode != 0 {
-		return fmt.Errorf("sqlc generate failed with exit code %d", exitCode)
+		return nil, fmt.Errorf("sqlc generate failed with exit code %d", exitCode)
 	}
 
-	return nil
+	sch, err := schema.ModuleFromProtoFile(filepath.Join(cfg.OutDir, "queries.pb"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse generated schema: %w", err)
+	}
+
+	return sch, nil
 }
 
 func newConfigContext(pc projectconfig.Config, mc moduleconfig.ModuleConfig) (ConfigContext, error) {

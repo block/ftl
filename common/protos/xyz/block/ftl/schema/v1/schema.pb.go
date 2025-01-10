@@ -1812,6 +1812,7 @@ type Metadata struct {
 	//	*Metadata_Calls
 	//	*Metadata_Config
 	//	*Metadata_CronJob
+	//	*Metadata_DbColumn
 	//	*Metadata_Databases
 	//	*Metadata_Encoding
 	//	*Metadata_Ingress
@@ -1819,6 +1820,7 @@ type Metadata struct {
 	//	*Metadata_Publisher
 	//	*Metadata_Retry
 	//	*Metadata_SqlMigration
+	//	*Metadata_SqlQuery
 	//	*Metadata_Secrets
 	//	*Metadata_Subscriber
 	//	*Metadata_TypeMap
@@ -1909,6 +1911,15 @@ func (x *Metadata) GetCronJob() *MetadataCronJob {
 	return nil
 }
 
+func (x *Metadata) GetDbColumn() *MetadataDBColumn {
+	if x != nil {
+		if x, ok := x.Value.(*Metadata_DbColumn); ok {
+			return x.DbColumn
+		}
+	}
+	return nil
+}
+
 func (x *Metadata) GetDatabases() *MetadataDatabases {
 	if x != nil {
 		if x, ok := x.Value.(*Metadata_Databases); ok {
@@ -1972,6 +1983,15 @@ func (x *Metadata) GetSqlMigration() *MetadataSQLMigration {
 	return nil
 }
 
+func (x *Metadata) GetSqlQuery() *MetadataSQLQuery {
+	if x != nil {
+		if x, ok := x.Value.(*Metadata_SqlQuery); ok {
+			return x.SqlQuery
+		}
+	}
+	return nil
+}
+
 func (x *Metadata) GetSecrets() *MetadataSecrets {
 	if x != nil {
 		if x, ok := x.Value.(*Metadata_Secrets); ok {
@@ -2023,6 +2043,10 @@ type Metadata_CronJob struct {
 	CronJob *MetadataCronJob `protobuf:"bytes,3,opt,name=cron_job,json=cronJob,proto3,oneof"`
 }
 
+type Metadata_DbColumn struct {
+	DbColumn *MetadataDBColumn `protobuf:"bytes,17,opt,name=db_column,json=dbColumn,proto3,oneof"`
+}
+
 type Metadata_Databases struct {
 	Databases *MetadataDatabases `protobuf:"bytes,4,opt,name=databases,proto3,oneof"`
 }
@@ -2051,6 +2075,10 @@ type Metadata_SqlMigration struct {
 	SqlMigration *MetadataSQLMigration `protobuf:"bytes,13,opt,name=sql_migration,json=sqlMigration,proto3,oneof"`
 }
 
+type Metadata_SqlQuery struct {
+	SqlQuery *MetadataSQLQuery `protobuf:"bytes,16,opt,name=sql_query,json=sqlQuery,proto3,oneof"`
+}
+
 type Metadata_Secrets struct {
 	Secrets *MetadataSecrets `protobuf:"bytes,11,opt,name=secrets,proto3,oneof"`
 }
@@ -2073,6 +2101,8 @@ func (*Metadata_Config) isMetadata_Value() {}
 
 func (*Metadata_CronJob) isMetadata_Value() {}
 
+func (*Metadata_DbColumn) isMetadata_Value() {}
+
 func (*Metadata_Databases) isMetadata_Value() {}
 
 func (*Metadata_Encoding) isMetadata_Value() {}
@@ -2086,6 +2116,8 @@ func (*Metadata_Publisher) isMetadata_Value() {}
 func (*Metadata_Retry) isMetadata_Value() {}
 
 func (*Metadata_SqlMigration) isMetadata_Value() {}
+
+func (*Metadata_SqlQuery) isMetadata_Value() {}
 
 func (*Metadata_Secrets) isMetadata_Value() {}
 
@@ -2379,6 +2411,67 @@ func (x *MetadataCronJob) GetCron() string {
 	return ""
 }
 
+// MetadataDBColumn designates a database column.
+type MetadataDBColumn struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pos           *Position              `protobuf:"bytes,1,opt,name=pos,proto3,oneof" json:"pos,omitempty"`
+	Table         string                 `protobuf:"bytes,2,opt,name=table,proto3" json:"table,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetadataDBColumn) Reset() {
+	*x = MetadataDBColumn{}
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetadataDBColumn) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetadataDBColumn) ProtoMessage() {}
+
+func (x *MetadataDBColumn) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetadataDBColumn.ProtoReflect.Descriptor instead.
+func (*MetadataDBColumn) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *MetadataDBColumn) GetPos() *Position {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+func (x *MetadataDBColumn) GetTable() string {
+	if x != nil {
+		return x.Table
+	}
+	return ""
+}
+
+func (x *MetadataDBColumn) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 type MetadataDatabases struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Pos           *Position              `protobuf:"bytes,1,opt,name=pos,proto3,oneof" json:"pos,omitempty"`
@@ -2389,7 +2482,7 @@ type MetadataDatabases struct {
 
 func (x *MetadataDatabases) Reset() {
 	*x = MetadataDatabases{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[32]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2401,7 +2494,7 @@ func (x *MetadataDatabases) String() string {
 func (*MetadataDatabases) ProtoMessage() {}
 
 func (x *MetadataDatabases) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[32]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2414,7 +2507,7 @@ func (x *MetadataDatabases) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataDatabases.ProtoReflect.Descriptor instead.
 func (*MetadataDatabases) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{32}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *MetadataDatabases) GetPos() *Position {
@@ -2442,7 +2535,7 @@ type MetadataEncoding struct {
 
 func (x *MetadataEncoding) Reset() {
 	*x = MetadataEncoding{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[33]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2454,7 +2547,7 @@ func (x *MetadataEncoding) String() string {
 func (*MetadataEncoding) ProtoMessage() {}
 
 func (x *MetadataEncoding) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[33]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2467,7 +2560,7 @@ func (x *MetadataEncoding) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataEncoding.ProtoReflect.Descriptor instead.
 func (*MetadataEncoding) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{33}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *MetadataEncoding) GetPos() *Position {
@@ -2503,7 +2596,7 @@ type MetadataIngress struct {
 
 func (x *MetadataIngress) Reset() {
 	*x = MetadataIngress{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[34]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2515,7 +2608,7 @@ func (x *MetadataIngress) String() string {
 func (*MetadataIngress) ProtoMessage() {}
 
 func (x *MetadataIngress) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[34]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2528,7 +2621,7 @@ func (x *MetadataIngress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataIngress.ProtoReflect.Descriptor instead.
 func (*MetadataIngress) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{34}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *MetadataIngress) GetPos() *Position {
@@ -2569,7 +2662,7 @@ type MetadataPartitions struct {
 
 func (x *MetadataPartitions) Reset() {
 	*x = MetadataPartitions{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[35]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2581,7 +2674,7 @@ func (x *MetadataPartitions) String() string {
 func (*MetadataPartitions) ProtoMessage() {}
 
 func (x *MetadataPartitions) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[35]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2594,7 +2687,7 @@ func (x *MetadataPartitions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataPartitions.ProtoReflect.Descriptor instead.
 func (*MetadataPartitions) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{35}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *MetadataPartitions) GetPos() *Position {
@@ -2621,7 +2714,7 @@ type MetadataPublisher struct {
 
 func (x *MetadataPublisher) Reset() {
 	*x = MetadataPublisher{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[36]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2633,7 +2726,7 @@ func (x *MetadataPublisher) String() string {
 func (*MetadataPublisher) ProtoMessage() {}
 
 func (x *MetadataPublisher) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[36]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2646,7 +2739,7 @@ func (x *MetadataPublisher) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataPublisher.ProtoReflect.Descriptor instead.
 func (*MetadataPublisher) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{36}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *MetadataPublisher) GetPos() *Position {
@@ -2676,7 +2769,7 @@ type MetadataRetry struct {
 
 func (x *MetadataRetry) Reset() {
 	*x = MetadataRetry{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[37]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2688,7 +2781,7 @@ func (x *MetadataRetry) String() string {
 func (*MetadataRetry) ProtoMessage() {}
 
 func (x *MetadataRetry) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[37]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2701,7 +2794,7 @@ func (x *MetadataRetry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataRetry.ProtoReflect.Descriptor instead.
 func (*MetadataRetry) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{37}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *MetadataRetry) GetPos() *Position {
@@ -2749,7 +2842,7 @@ type MetadataSQLMigration struct {
 
 func (x *MetadataSQLMigration) Reset() {
 	*x = MetadataSQLMigration{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[38]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2761,7 +2854,7 @@ func (x *MetadataSQLMigration) String() string {
 func (*MetadataSQLMigration) ProtoMessage() {}
 
 func (x *MetadataSQLMigration) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[38]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2774,7 +2867,7 @@ func (x *MetadataSQLMigration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataSQLMigration.ProtoReflect.Descriptor instead.
 func (*MetadataSQLMigration) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{38}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *MetadataSQLMigration) GetPos() *Position {
@@ -2791,6 +2884,59 @@ func (x *MetadataSQLMigration) GetDigest() string {
 	return ""
 }
 
+// MetadataQuery designates a query verb; a verb generated from a SQL query.
+type MetadataSQLQuery struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pos           *Position              `protobuf:"bytes,1,opt,name=pos,proto3,oneof" json:"pos,omitempty"`
+	Query         string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetadataSQLQuery) Reset() {
+	*x = MetadataSQLQuery{}
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetadataSQLQuery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetadataSQLQuery) ProtoMessage() {}
+
+func (x *MetadataSQLQuery) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetadataSQLQuery.ProtoReflect.Descriptor instead.
+func (*MetadataSQLQuery) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *MetadataSQLQuery) GetPos() *Position {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+func (x *MetadataSQLQuery) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
 // MetadataSecrets represents a metadata block with a list of config items that are used.
 type MetadataSecrets struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2802,7 +2948,7 @@ type MetadataSecrets struct {
 
 func (x *MetadataSecrets) Reset() {
 	*x = MetadataSecrets{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[39]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2814,7 +2960,7 @@ func (x *MetadataSecrets) String() string {
 func (*MetadataSecrets) ProtoMessage() {}
 
 func (x *MetadataSecrets) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[39]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2827,7 +2973,7 @@ func (x *MetadataSecrets) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataSecrets.ProtoReflect.Descriptor instead.
 func (*MetadataSecrets) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{39}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *MetadataSecrets) GetPos() *Position {
@@ -2856,7 +3002,7 @@ type MetadataSubscriber struct {
 
 func (x *MetadataSubscriber) Reset() {
 	*x = MetadataSubscriber{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[40]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2868,7 +3014,7 @@ func (x *MetadataSubscriber) String() string {
 func (*MetadataSubscriber) ProtoMessage() {}
 
 func (x *MetadataSubscriber) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[40]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2881,7 +3027,7 @@ func (x *MetadataSubscriber) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataSubscriber.ProtoReflect.Descriptor instead.
 func (*MetadataSubscriber) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{40}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *MetadataSubscriber) GetPos() *Position {
@@ -2923,7 +3069,7 @@ type MetadataTypeMap struct {
 
 func (x *MetadataTypeMap) Reset() {
 	*x = MetadataTypeMap{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[41]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2935,7 +3081,7 @@ func (x *MetadataTypeMap) String() string {
 func (*MetadataTypeMap) ProtoMessage() {}
 
 func (x *MetadataTypeMap) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[41]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2948,7 +3094,7 @@ func (x *MetadataTypeMap) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetadataTypeMap.ProtoReflect.Descriptor instead.
 func (*MetadataTypeMap) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{41}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *MetadataTypeMap) GetPos() *Position {
@@ -2987,7 +3133,7 @@ type Module struct {
 
 func (x *Module) Reset() {
 	*x = Module{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[42]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2999,7 +3145,7 @@ func (x *Module) String() string {
 func (*Module) ProtoMessage() {}
 
 func (x *Module) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[42]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3012,7 +3158,7 @@ func (x *Module) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Module.ProtoReflect.Descriptor instead.
 func (*Module) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{42}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *Module) GetPos() *Position {
@@ -3076,7 +3222,7 @@ type ModuleRuntime struct {
 
 func (x *ModuleRuntime) Reset() {
 	*x = ModuleRuntime{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[43]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3088,7 +3234,7 @@ func (x *ModuleRuntime) String() string {
 func (*ModuleRuntime) ProtoMessage() {}
 
 func (x *ModuleRuntime) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[43]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3101,7 +3247,7 @@ func (x *ModuleRuntime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModuleRuntime.ProtoReflect.Descriptor instead.
 func (*ModuleRuntime) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{43}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ModuleRuntime) GetBase() *ModuleRuntimeBase {
@@ -3138,7 +3284,7 @@ type ModuleRuntimeBase struct {
 
 func (x *ModuleRuntimeBase) Reset() {
 	*x = ModuleRuntimeBase{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[44]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3150,7 +3296,7 @@ func (x *ModuleRuntimeBase) String() string {
 func (*ModuleRuntimeBase) ProtoMessage() {}
 
 func (x *ModuleRuntimeBase) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[44]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3163,7 +3309,7 @@ func (x *ModuleRuntimeBase) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModuleRuntimeBase.ProtoReflect.Descriptor instead.
 func (*ModuleRuntimeBase) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{44}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ModuleRuntimeBase) GetCreateTime() *timestamppb.Timestamp {
@@ -3211,7 +3357,7 @@ type ModuleRuntimeDeployment struct {
 
 func (x *ModuleRuntimeDeployment) Reset() {
 	*x = ModuleRuntimeDeployment{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[45]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3223,7 +3369,7 @@ func (x *ModuleRuntimeDeployment) String() string {
 func (*ModuleRuntimeDeployment) ProtoMessage() {}
 
 func (x *ModuleRuntimeDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[45]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3236,7 +3382,7 @@ func (x *ModuleRuntimeDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModuleRuntimeDeployment.ProtoReflect.Descriptor instead.
 func (*ModuleRuntimeDeployment) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{45}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ModuleRuntimeDeployment) GetEndpoint() string {
@@ -3267,7 +3413,7 @@ type ModuleRuntimeEvent struct {
 
 func (x *ModuleRuntimeEvent) Reset() {
 	*x = ModuleRuntimeEvent{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[46]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3279,7 +3425,7 @@ func (x *ModuleRuntimeEvent) String() string {
 func (*ModuleRuntimeEvent) ProtoMessage() {}
 
 func (x *ModuleRuntimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[46]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3292,7 +3438,7 @@ func (x *ModuleRuntimeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModuleRuntimeEvent.ProtoReflect.Descriptor instead.
 func (*ModuleRuntimeEvent) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{46}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ModuleRuntimeEvent) GetValue() isModuleRuntimeEvent_Value {
@@ -3360,7 +3506,7 @@ type ModuleRuntimeScaling struct {
 
 func (x *ModuleRuntimeScaling) Reset() {
 	*x = ModuleRuntimeScaling{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[47]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3372,7 +3518,7 @@ func (x *ModuleRuntimeScaling) String() string {
 func (*ModuleRuntimeScaling) ProtoMessage() {}
 
 func (x *ModuleRuntimeScaling) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[47]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3385,7 +3531,7 @@ func (x *ModuleRuntimeScaling) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModuleRuntimeScaling.ProtoReflect.Descriptor instead.
 func (*ModuleRuntimeScaling) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{47}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ModuleRuntimeScaling) GetMinReplicas() int32 {
@@ -3406,7 +3552,7 @@ type Optional struct {
 
 func (x *Optional) Reset() {
 	*x = Optional{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[48]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3418,7 +3564,7 @@ func (x *Optional) String() string {
 func (*Optional) ProtoMessage() {}
 
 func (x *Optional) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[48]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3431,7 +3577,7 @@ func (x *Optional) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Optional.ProtoReflect.Descriptor instead.
 func (*Optional) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{48}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *Optional) GetPos() *Position {
@@ -3459,7 +3605,7 @@ type Position struct {
 
 func (x *Position) Reset() {
 	*x = Position{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[49]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3471,7 +3617,7 @@ func (x *Position) String() string {
 func (*Position) ProtoMessage() {}
 
 func (x *Position) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[49]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3484,7 +3630,7 @@ func (x *Position) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Position.ProtoReflect.Descriptor instead.
 func (*Position) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{49}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *Position) GetFilename() string {
@@ -3521,7 +3667,7 @@ type Ref struct {
 
 func (x *Ref) Reset() {
 	*x = Ref{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[50]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3533,7 +3679,7 @@ func (x *Ref) String() string {
 func (*Ref) ProtoMessage() {}
 
 func (x *Ref) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[50]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3546,7 +3692,7 @@ func (x *Ref) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ref.ProtoReflect.Descriptor instead.
 func (*Ref) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{50}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *Ref) GetPos() *Position {
@@ -3595,7 +3741,7 @@ type RuntimeEvent struct {
 
 func (x *RuntimeEvent) Reset() {
 	*x = RuntimeEvent{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[51]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3607,7 +3753,7 @@ func (x *RuntimeEvent) String() string {
 func (*RuntimeEvent) ProtoMessage() {}
 
 func (x *RuntimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[51]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3620,7 +3766,7 @@ func (x *RuntimeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeEvent.ProtoReflect.Descriptor instead.
 func (*RuntimeEvent) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{51}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *RuntimeEvent) GetValue() isRuntimeEvent_Value {
@@ -3734,7 +3880,7 @@ type Schema struct {
 
 func (x *Schema) Reset() {
 	*x = Schema{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[52]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3746,7 +3892,7 @@ func (x *Schema) String() string {
 func (*Schema) ProtoMessage() {}
 
 func (x *Schema) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[52]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3759,7 +3905,7 @@ func (x *Schema) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Schema.ProtoReflect.Descriptor instead.
 func (*Schema) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{52}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *Schema) GetPos() *Position {
@@ -3788,7 +3934,7 @@ type Secret struct {
 
 func (x *Secret) Reset() {
 	*x = Secret{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[53]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3800,7 +3946,7 @@ func (x *Secret) String() string {
 func (*Secret) ProtoMessage() {}
 
 func (x *Secret) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[53]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3813,7 +3959,7 @@ func (x *Secret) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Secret.ProtoReflect.Descriptor instead.
 func (*Secret) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{53}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *Secret) GetPos() *Position {
@@ -3853,7 +3999,7 @@ type String struct {
 
 func (x *String) Reset() {
 	*x = String{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[54]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3865,7 +4011,7 @@ func (x *String) String() string {
 func (*String) ProtoMessage() {}
 
 func (x *String) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[54]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3878,7 +4024,7 @@ func (x *String) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use String.ProtoReflect.Descriptor instead.
 func (*String) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{54}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *String) GetPos() *Position {
@@ -3898,7 +4044,7 @@ type StringValue struct {
 
 func (x *StringValue) Reset() {
 	*x = StringValue{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[55]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3910,7 +4056,7 @@ func (x *StringValue) String() string {
 func (*StringValue) ProtoMessage() {}
 
 func (x *StringValue) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[55]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3923,7 +4069,7 @@ func (x *StringValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StringValue.ProtoReflect.Descriptor instead.
 func (*StringValue) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{55}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *StringValue) GetPos() *Position {
@@ -3949,7 +4095,7 @@ type Time struct {
 
 func (x *Time) Reset() {
 	*x = Time{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[56]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3961,7 +4107,7 @@ func (x *Time) String() string {
 func (*Time) ProtoMessage() {}
 
 func (x *Time) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[56]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3974,7 +4120,7 @@ func (x *Time) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Time.ProtoReflect.Descriptor instead.
 func (*Time) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{56}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *Time) GetPos() *Position {
@@ -3999,7 +4145,7 @@ type Topic struct {
 
 func (x *Topic) Reset() {
 	*x = Topic{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[57]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4011,7 +4157,7 @@ func (x *Topic) String() string {
 func (*Topic) ProtoMessage() {}
 
 func (x *Topic) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[57]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4024,7 +4170,7 @@ func (x *Topic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Topic.ProtoReflect.Descriptor instead.
 func (*Topic) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{57}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *Topic) GetPos() *Position {
@@ -4086,7 +4232,7 @@ type TopicRuntime struct {
 
 func (x *TopicRuntime) Reset() {
 	*x = TopicRuntime{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[58]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4098,7 +4244,7 @@ func (x *TopicRuntime) String() string {
 func (*TopicRuntime) ProtoMessage() {}
 
 func (x *TopicRuntime) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[58]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4111,7 +4257,7 @@ func (x *TopicRuntime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopicRuntime.ProtoReflect.Descriptor instead.
 func (*TopicRuntime) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{58}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *TopicRuntime) GetKafkaBrokers() []string {
@@ -4138,7 +4284,7 @@ type TopicRuntimeEvent struct {
 
 func (x *TopicRuntimeEvent) Reset() {
 	*x = TopicRuntimeEvent{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[59]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4150,7 +4296,7 @@ func (x *TopicRuntimeEvent) String() string {
 func (*TopicRuntimeEvent) ProtoMessage() {}
 
 func (x *TopicRuntimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[59]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4163,7 +4309,7 @@ func (x *TopicRuntimeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopicRuntimeEvent.ProtoReflect.Descriptor instead.
 func (*TopicRuntimeEvent) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{59}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *TopicRuntimeEvent) GetId() string {
@@ -4204,7 +4350,7 @@ type Type struct {
 
 func (x *Type) Reset() {
 	*x = Type{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[60]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4216,7 +4362,7 @@ func (x *Type) String() string {
 func (*Type) ProtoMessage() {}
 
 func (x *Type) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[60]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4229,7 +4375,7 @@ func (x *Type) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Type.ProtoReflect.Descriptor instead.
 func (*Type) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{60}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *Type) GetValue() isType_Value {
@@ -4437,7 +4583,7 @@ type TypeAlias struct {
 
 func (x *TypeAlias) Reset() {
 	*x = TypeAlias{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[61]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4449,7 +4595,7 @@ func (x *TypeAlias) String() string {
 func (*TypeAlias) ProtoMessage() {}
 
 func (x *TypeAlias) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[61]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4462,7 +4608,7 @@ func (x *TypeAlias) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeAlias.ProtoReflect.Descriptor instead.
 func (*TypeAlias) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{61}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *TypeAlias) GetPos() *Position {
@@ -4517,7 +4663,7 @@ type TypeParameter struct {
 
 func (x *TypeParameter) Reset() {
 	*x = TypeParameter{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[62]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4529,7 +4675,7 @@ func (x *TypeParameter) String() string {
 func (*TypeParameter) ProtoMessage() {}
 
 func (x *TypeParameter) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[62]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4542,7 +4688,7 @@ func (x *TypeParameter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeParameter.ProtoReflect.Descriptor instead.
 func (*TypeParameter) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{62}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *TypeParameter) GetPos() *Position {
@@ -4569,7 +4715,7 @@ type TypeValue struct {
 
 func (x *TypeValue) Reset() {
 	*x = TypeValue{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[63]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4581,7 +4727,7 @@ func (x *TypeValue) String() string {
 func (*TypeValue) ProtoMessage() {}
 
 func (x *TypeValue) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[63]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4594,7 +4740,7 @@ func (x *TypeValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeValue.ProtoReflect.Descriptor instead.
 func (*TypeValue) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{63}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *TypeValue) GetPos() *Position {
@@ -4620,7 +4766,7 @@ type Unit struct {
 
 func (x *Unit) Reset() {
 	*x = Unit{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[64]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4632,7 +4778,7 @@ func (x *Unit) String() string {
 func (*Unit) ProtoMessage() {}
 
 func (x *Unit) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[64]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4645,7 +4791,7 @@ func (x *Unit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Unit.ProtoReflect.Descriptor instead.
 func (*Unit) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{64}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *Unit) GetPos() *Position {
@@ -4670,7 +4816,7 @@ type Value struct {
 
 func (x *Value) Reset() {
 	*x = Value{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4682,7 +4828,7 @@ func (x *Value) String() string {
 func (*Value) ProtoMessage() {}
 
 func (x *Value) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4695,7 +4841,7 @@ func (x *Value) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Value.ProtoReflect.Descriptor instead.
 func (*Value) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{65}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *Value) GetValue() isValue_Value {
@@ -4770,7 +4916,7 @@ type Verb struct {
 
 func (x *Verb) Reset() {
 	*x = Verb{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4782,7 +4928,7 @@ func (x *Verb) String() string {
 func (*Verb) ProtoMessage() {}
 
 func (x *Verb) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4795,7 +4941,7 @@ func (x *Verb) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Verb.ProtoReflect.Descriptor instead.
 func (*Verb) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{66}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *Verb) GetPos() *Position {
@@ -4864,7 +5010,7 @@ type VerbRuntime struct {
 
 func (x *VerbRuntime) Reset() {
 	*x = VerbRuntime{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4876,7 +5022,7 @@ func (x *VerbRuntime) String() string {
 func (*VerbRuntime) ProtoMessage() {}
 
 func (x *VerbRuntime) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4889,7 +5035,7 @@ func (x *VerbRuntime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntime.ProtoReflect.Descriptor instead.
 func (*VerbRuntime) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{67}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *VerbRuntime) GetBase() *VerbRuntimeBase {
@@ -4916,7 +5062,7 @@ type VerbRuntimeBase struct {
 
 func (x *VerbRuntimeBase) Reset() {
 	*x = VerbRuntimeBase{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4928,7 +5074,7 @@ func (x *VerbRuntimeBase) String() string {
 func (*VerbRuntimeBase) ProtoMessage() {}
 
 func (x *VerbRuntimeBase) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4941,7 +5087,7 @@ func (x *VerbRuntimeBase) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntimeBase.ProtoReflect.Descriptor instead.
 func (*VerbRuntimeBase) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{68}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *VerbRuntimeBase) GetCreateTime() *timestamppb.Timestamp {
@@ -4968,7 +5114,7 @@ type VerbRuntimeEvent struct {
 
 func (x *VerbRuntimeEvent) Reset() {
 	*x = VerbRuntimeEvent{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4980,7 +5126,7 @@ func (x *VerbRuntimeEvent) String() string {
 func (*VerbRuntimeEvent) ProtoMessage() {}
 
 func (x *VerbRuntimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4993,7 +5139,7 @@ func (x *VerbRuntimeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntimeEvent.ProtoReflect.Descriptor instead.
 func (*VerbRuntimeEvent) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{69}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *VerbRuntimeEvent) GetId() string {
@@ -5023,7 +5169,7 @@ type VerbRuntimePayload struct {
 
 func (x *VerbRuntimePayload) Reset() {
 	*x = VerbRuntimePayload{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5035,7 +5181,7 @@ func (x *VerbRuntimePayload) String() string {
 func (*VerbRuntimePayload) ProtoMessage() {}
 
 func (x *VerbRuntimePayload) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5048,7 +5194,7 @@ func (x *VerbRuntimePayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntimePayload.ProtoReflect.Descriptor instead.
 func (*VerbRuntimePayload) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{70}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *VerbRuntimePayload) GetValue() isVerbRuntimePayload_Value {
@@ -5101,7 +5247,7 @@ type VerbRuntimeSubscription struct {
 
 func (x *VerbRuntimeSubscription) Reset() {
 	*x = VerbRuntimeSubscription{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5113,7 +5259,7 @@ func (x *VerbRuntimeSubscription) String() string {
 func (*VerbRuntimeSubscription) ProtoMessage() {}
 
 func (x *VerbRuntimeSubscription) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5126,7 +5272,7 @@ func (x *VerbRuntimeSubscription) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntimeSubscription.ProtoReflect.Descriptor instead.
 func (*VerbRuntimeSubscription) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{71}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *VerbRuntimeSubscription) GetKafkaBrokers() []string {
@@ -5425,8 +5571,8 @@ var file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = []byte{
 	0x79, 0x12, 0x33, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b,
 	0x32, 0x1d, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c,
 	0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x54, 0x79, 0x70, 0x65, 0x52,
-	0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0xce,
-	0x08, 0x0a, 0x08, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x12, 0x3e, 0x0a, 0x05, 0x61,
+	0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0xe2,
+	0x09, 0x0a, 0x08, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x12, 0x3e, 0x0a, 0x05, 0x61,
 	0x6c, 0x69, 0x61, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e, 0x78, 0x79, 0x7a,
 	0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d,
 	0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x41, 0x6c, 0x69,
@@ -5447,167 +5593,191 @@ var file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = []byte{
 	0x6a, 0x6f, 0x62, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x78, 0x79, 0x7a, 0x2e,
 	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61,
 	0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x43, 0x72, 0x6f, 0x6e,
-	0x4a, 0x6f, 0x62, 0x48, 0x00, 0x52, 0x07, 0x63, 0x72, 0x6f, 0x6e, 0x4a, 0x6f, 0x62, 0x12, 0x4a,
-	0x0a, 0x09, 0x64, 0x61, 0x74, 0x61, 0x62, 0x61, 0x73, 0x65, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x2a, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74,
+	0x4a, 0x6f, 0x62, 0x48, 0x00, 0x52, 0x07, 0x63, 0x72, 0x6f, 0x6e, 0x4a, 0x6f, 0x62, 0x12, 0x48,
+	0x0a, 0x09, 0x64, 0x62, 0x5f, 0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x18, 0x11, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x29, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74,
 	0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61,
-	0x64, 0x61, 0x74, 0x61, 0x44, 0x61, 0x74, 0x61, 0x62, 0x61, 0x73, 0x65, 0x73, 0x48, 0x00, 0x52,
-	0x09, 0x64, 0x61, 0x74, 0x61, 0x62, 0x61, 0x73, 0x65, 0x73, 0x12, 0x47, 0x0a, 0x08, 0x65, 0x6e,
-	0x63, 0x6f, 0x64, 0x69, 0x6e, 0x67, 0x18, 0x09, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x29, 0x2e, 0x78,
-	0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68,
-	0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x45,
-	0x6e, 0x63, 0x6f, 0x64, 0x69, 0x6e, 0x67, 0x48, 0x00, 0x52, 0x08, 0x65, 0x6e, 0x63, 0x6f, 0x64,
-	0x69, 0x6e, 0x67, 0x12, 0x44, 0x0a, 0x07, 0x69, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b,
-	0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d,
-	0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x49, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x48, 0x00,
-	0x52, 0x07, 0x69, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x12, 0x4d, 0x0a, 0x0a, 0x70, 0x61, 0x72,
-	0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x0f, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2b, 0x2e,
+	0x64, 0x61, 0x74, 0x61, 0x44, 0x42, 0x43, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x48, 0x00, 0x52, 0x08,
+	0x64, 0x62, 0x43, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x12, 0x4a, 0x0a, 0x09, 0x64, 0x61, 0x74, 0x61,
+	0x62, 0x61, 0x73, 0x65, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x78, 0x79,
+	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65,
+	0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x44, 0x61,
+	0x74, 0x61, 0x62, 0x61, 0x73, 0x65, 0x73, 0x48, 0x00, 0x52, 0x09, 0x64, 0x61, 0x74, 0x61, 0x62,
+	0x61, 0x73, 0x65, 0x73, 0x12, 0x47, 0x0a, 0x08, 0x65, 0x6e, 0x63, 0x6f, 0x64, 0x69, 0x6e, 0x67,
+	0x18, 0x09, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x29, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f,
+	0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31,
+	0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x63, 0x6f, 0x64, 0x69, 0x6e,
+	0x67, 0x48, 0x00, 0x52, 0x08, 0x65, 0x6e, 0x63, 0x6f, 0x64, 0x69, 0x6e, 0x67, 0x12, 0x44, 0x0a,
+	0x07, 0x69, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28,
+	0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73,
+	0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74,
+	0x61, 0x49, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x48, 0x00, 0x52, 0x07, 0x69, 0x6e, 0x67, 0x72,
+	0x65, 0x73, 0x73, 0x12, 0x4d, 0x0a, 0x0a, 0x70, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e,
+	0x73, 0x18, 0x0f, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2b, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c,
+	0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76,
+	0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74,
+	0x69, 0x6f, 0x6e, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x70, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f,
+	0x6e, 0x73, 0x12, 0x4a, 0x0a, 0x09, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x65, 0x72, 0x18,
+	0x0c, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63,
+	0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e,
+	0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x65,
+	0x72, 0x48, 0x00, 0x52, 0x09, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x65, 0x72, 0x12, 0x3e,
+	0x0a, 0x05, 0x72, 0x65, 0x74, 0x72, 0x79, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e,
 	0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63,
 	0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61,
-	0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x70, 0x61,
-	0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x4a, 0x0a, 0x09, 0x70, 0x75, 0x62, 0x6c,
-	0x69, 0x73, 0x68, 0x65, 0x72, 0x18, 0x0c, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x78, 0x79,
-	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65,
-	0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x50, 0x75,
-	0x62, 0x6c, 0x69, 0x73, 0x68, 0x65, 0x72, 0x48, 0x00, 0x52, 0x09, 0x70, 0x75, 0x62, 0x6c, 0x69,
-	0x73, 0x68, 0x65, 0x72, 0x12, 0x3e, 0x0a, 0x05, 0x72, 0x65, 0x74, 0x72, 0x79, 0x18, 0x06, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e,
-	0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65,
-	0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x52, 0x65, 0x74, 0x72, 0x79, 0x48, 0x00, 0x52, 0x05, 0x72,
-	0x65, 0x74, 0x72, 0x79, 0x12, 0x54, 0x0a, 0x0d, 0x73, 0x71, 0x6c, 0x5f, 0x6d, 0x69, 0x67, 0x72,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x0d, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2d, 0x2e, 0x78, 0x79,
-	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65,
-	0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x51,
-	0x4c, 0x4d, 0x69, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x0c, 0x73, 0x71,
-	0x6c, 0x4d, 0x69, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x44, 0x0a, 0x07, 0x73, 0x65,
-	0x63, 0x72, 0x65, 0x74, 0x73, 0x18, 0x0b, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x78, 0x79,
-	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65,
-	0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x65,
-	0x63, 0x72, 0x65, 0x74, 0x73, 0x48, 0x00, 0x52, 0x07, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73,
-	0x12, 0x4d, 0x0a, 0x0a, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65, 0x72, 0x18, 0x07,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x2b, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b,
-	0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d,
-	0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65,
-	0x72, 0x48, 0x00, 0x52, 0x0a, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65, 0x72, 0x12,
-	0x45, 0x0a, 0x08, 0x74, 0x79, 0x70, 0x65, 0x5f, 0x6d, 0x61, 0x70, 0x18, 0x08, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x28, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74,
-	0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61,
-	0x64, 0x61, 0x74, 0x61, 0x54, 0x79, 0x70, 0x65, 0x4d, 0x61, 0x70, 0x48, 0x00, 0x52, 0x07, 0x74,
-	0x79, 0x70, 0x65, 0x4d, 0x61, 0x70, 0x42, 0x07, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22,
-	0x9f, 0x01, 0x0a, 0x0d, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x41, 0x6c, 0x69, 0x61,
-	0x73, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21,
-	0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73,
-	0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f,
-	0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x36, 0x0a, 0x04, 0x6b,
-	0x69, 0x6e, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x22, 0x2e, 0x78, 0x79, 0x7a, 0x2e,
-	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61,
-	0x2e, 0x76, 0x31, 0x2e, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x4b, 0x69, 0x6e, 0x64, 0x52, 0x04, 0x6b,
-	0x69, 0x6e, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f,
-	0x73, 0x22, 0xa0, 0x01, 0x0a, 0x10, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x41, 0x72,
-	0x74, 0x65, 0x66, 0x61, 0x63, 0x74, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e,
-	0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f,
-	0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01,
-	0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
-	0x70, 0x61, 0x74, 0x68, 0x12, 0x16, 0x0a, 0x06, 0x64, 0x69, 0x67, 0x65, 0x73, 0x74, 0x18, 0x03,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x64, 0x69, 0x67, 0x65, 0x73, 0x74, 0x12, 0x1e, 0x0a, 0x0a,
-	0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x08,
-	0x52, 0x0a, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x42, 0x06, 0x0a, 0x04,
-	0x5f, 0x70, 0x6f, 0x73, 0x22, 0x85, 0x01, 0x0a, 0x0d, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74,
-	0x61, 0x43, 0x61, 0x6c, 0x6c, 0x73, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e,
-	0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f,
-	0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01,
-	0x12, 0x32, 0x0a, 0x05, 0x63, 0x61, 0x6c, 0x6c, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32,
-	0x1c, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e,
-	0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x66, 0x52, 0x05, 0x63,
-	0x61, 0x6c, 0x6c, 0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x88, 0x01, 0x0a,
-	0x0e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12,
-	0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78,
-	0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68,
-	0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48,
-	0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x34, 0x0a, 0x06, 0x63, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x78, 0x79, 0x7a, 0x2e,
-	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61,
-	0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x66, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x42,
-	0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x67, 0x0a, 0x0f, 0x4d, 0x65, 0x74, 0x61, 0x64,
-	0x61, 0x74, 0x61, 0x43, 0x72, 0x6f, 0x6e, 0x4a, 0x6f, 0x62, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f,
+	0x52, 0x65, 0x74, 0x72, 0x79, 0x48, 0x00, 0x52, 0x05, 0x72, 0x65, 0x74, 0x72, 0x79, 0x12, 0x54,
+	0x0a, 0x0d, 0x73, 0x71, 0x6c, 0x5f, 0x6d, 0x69, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18,
+	0x0d, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2d, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63,
+	0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e,
+	0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x51, 0x4c, 0x4d, 0x69, 0x67, 0x72, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x0c, 0x73, 0x71, 0x6c, 0x4d, 0x69, 0x67, 0x72, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x12, 0x48, 0x0a, 0x09, 0x73, 0x71, 0x6c, 0x5f, 0x71, 0x75, 0x65, 0x72,
+	0x79, 0x18, 0x10, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x29, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c,
+	0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76,
+	0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x51, 0x4c, 0x51, 0x75, 0x65,
+	0x72, 0x79, 0x48, 0x00, 0x52, 0x08, 0x73, 0x71, 0x6c, 0x51, 0x75, 0x65, 0x72, 0x79, 0x12, 0x44,
+	0x0a, 0x07, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x18, 0x0b, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x28, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e,
+	0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61,
+	0x74, 0x61, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73, 0x48, 0x00, 0x52, 0x07, 0x73, 0x65, 0x63,
+	0x72, 0x65, 0x74, 0x73, 0x12, 0x4d, 0x0a, 0x0a, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62,
+	0x65, 0x72, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2b, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62,
+	0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e,
+	0x76, 0x31, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x75, 0x62, 0x73, 0x63,
+	0x72, 0x69, 0x62, 0x65, 0x72, 0x48, 0x00, 0x52, 0x0a, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69,
+	0x62, 0x65, 0x72, 0x12, 0x45, 0x0a, 0x08, 0x74, 0x79, 0x70, 0x65, 0x5f, 0x6d, 0x61, 0x70, 0x18,
+	0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63,
+	0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e,
+	0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x54, 0x79, 0x70, 0x65, 0x4d, 0x61, 0x70, 0x48,
+	0x00, 0x52, 0x07, 0x74, 0x79, 0x70, 0x65, 0x4d, 0x61, 0x70, 0x42, 0x07, 0x0a, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x22, 0x9f, 0x01, 0x0a, 0x0d, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61,
+	0x41, 0x6c, 0x69, 0x61, 0x73, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66,
+	0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73,
+	0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12,
+	0x36, 0x0a, 0x04, 0x6b, 0x69, 0x6e, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x22, 0x2e,
+	0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63,
+	0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x4b, 0x69, 0x6e,
+	0x64, 0x52, 0x04, 0x6b, 0x69, 0x6e, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x42, 0x06, 0x0a,
+	0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0xa0, 0x01, 0x0a, 0x10, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61,
+	0x74, 0x61, 0x41, 0x72, 0x74, 0x65, 0x66, 0x61, 0x63, 0x74, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f,
 	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c,
 	0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76,
 	0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f,
-	0x73, 0x88, 0x01, 0x01, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x72, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x04, 0x63, 0x72, 0x6f, 0x6e, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73,
-	0x22, 0x89, 0x01, 0x0a, 0x11, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x44, 0x61, 0x74,
-	0x61, 0x62, 0x61, 0x73, 0x65, 0x73, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e,
-	0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f,
-	0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01,
-	0x12, 0x32, 0x0a, 0x05, 0x63, 0x61, 0x6c, 0x6c, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32,
-	0x1c, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e,
-	0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x66, 0x52, 0x05, 0x63,
-	0x61, 0x6c, 0x6c, 0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x82, 0x01, 0x0a,
-	0x10, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x63, 0x6f, 0x64, 0x69, 0x6e,
-	0x67, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21,
-	0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73,
-	0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f,
-	0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x12, 0x0a, 0x04, 0x74,
-	0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12,
-	0x18, 0x0a, 0x07, 0x6c, 0x65, 0x6e, 0x69, 0x65, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x08,
-	0x52, 0x07, 0x6c, 0x65, 0x6e, 0x69, 0x65, 0x6e, 0x74, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f,
-	0x73, 0x22, 0xc2, 0x01, 0x0a, 0x0f, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x49, 0x6e,
-	0x67, 0x72, 0x65, 0x73, 0x73, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01,
+	0x73, 0x88, 0x01, 0x01, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x12, 0x16, 0x0a, 0x06, 0x64, 0x69, 0x67, 0x65,
+	0x73, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x64, 0x69, 0x67, 0x65, 0x73, 0x74,
+	0x12, 0x1e, 0x0a, 0x0a, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x18, 0x04,
+	0x20, 0x01, 0x28, 0x08, 0x52, 0x0a, 0x65, 0x78, 0x65, 0x63, 0x75, 0x74, 0x61, 0x62, 0x6c, 0x65,
+	0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x85, 0x01, 0x0a, 0x0d, 0x4d, 0x65, 0x74,
+	0x61, 0x64, 0x61, 0x74, 0x61, 0x43, 0x61, 0x6c, 0x6c, 0x73, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f,
+	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c,
+	0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76,
+	0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f,
+	0x73, 0x88, 0x01, 0x01, 0x12, 0x32, 0x0a, 0x05, 0x63, 0x61, 0x6c, 0x6c, 0x73, 0x18, 0x02, 0x20,
+	0x03, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e,
+	0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65,
+	0x66, 0x52, 0x05, 0x63, 0x61, 0x6c, 0x6c, 0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73,
+	0x22, 0x88, 0x01, 0x0a, 0x0e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x43, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c,
+	0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74,
+	0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x34, 0x0a,
+	0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1c, 0x2e,
+	0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63,
+	0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x66, 0x52, 0x06, 0x63, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x67, 0x0a, 0x0f, 0x4d,
+	0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x43, 0x72, 0x6f, 0x6e, 0x4a, 0x6f, 0x62, 0x12, 0x38,
+	0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79,
+	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65,
+	0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00,
+	0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x72, 0x6f, 0x6e,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x63, 0x72, 0x6f, 0x6e, 0x42, 0x06, 0x0a, 0x04,
+	0x5f, 0x70, 0x6f, 0x73, 0x22, 0x7e, 0x0a, 0x10, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61,
+	0x44, 0x42, 0x43, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63,
+	0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e,
+	0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88,
+	0x01, 0x01, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x05, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x42, 0x06, 0x0a, 0x04,
+	0x5f, 0x70, 0x6f, 0x73, 0x22, 0x89, 0x01, 0x0a, 0x11, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74,
+	0x61, 0x44, 0x61, 0x74, 0x61, 0x62, 0x61, 0x73, 0x65, 0x73, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f,
+	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c,
+	0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76,
+	0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f,
+	0x73, 0x88, 0x01, 0x01, 0x12, 0x32, 0x0a, 0x05, 0x63, 0x61, 0x6c, 0x6c, 0x73, 0x18, 0x02, 0x20,
+	0x03, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e,
+	0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65,
+	0x66, 0x52, 0x05, 0x63, 0x61, 0x6c, 0x6c, 0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73,
+	0x22, 0x82, 0x01, 0x0a, 0x10, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x63,
+	0x6f, 0x64, 0x69, 0x6e, 0x67, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66,
 	0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73,
 	0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12,
 	0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74,
-	0x79, 0x70, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x12, 0x41, 0x0a, 0x04, 0x70,
-	0x61, 0x74, 0x68, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2d, 0x2e, 0x78, 0x79, 0x7a, 0x2e,
-	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61,
-	0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x50, 0x61, 0x74, 0x68, 0x43,
-	0x6f, 0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x42, 0x06,
-	0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x76, 0x0a, 0x12, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61,
-	0x74, 0x61, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x38, 0x0a, 0x03,
-	0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e,
-	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61,
-	0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03,
-	0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x61, 0x72, 0x74, 0x69, 0x74,
-	0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0a, 0x70, 0x61, 0x72, 0x74,
-	0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x8b,
-	0x01, 0x0a, 0x11, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x50, 0x75, 0x62, 0x6c, 0x69,
-	0x73, 0x68, 0x65, 0x72, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74,
-	0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69,
-	0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x34,
-	0x0a, 0x06, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1c,
-	0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73,
-	0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x66, 0x52, 0x06, 0x74, 0x6f,
-	0x70, 0x69, 0x63, 0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0xfb, 0x01, 0x0a,
-	0x0d, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x52, 0x65, 0x74, 0x72, 0x79, 0x12, 0x38,
-	0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79,
-	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65,
-	0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00,
-	0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x19, 0x0a, 0x05, 0x63, 0x6f, 0x75, 0x6e,
-	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x48, 0x01, 0x52, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74,
-	0x88, 0x01, 0x01, 0x12, 0x1f, 0x0a, 0x0b, 0x6d, 0x69, 0x6e, 0x5f, 0x62, 0x61, 0x63, 0x6b, 0x6f,
-	0x66, 0x66, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x6d, 0x69, 0x6e, 0x42, 0x61, 0x63,
-	0x6b, 0x6f, 0x66, 0x66, 0x12, 0x1f, 0x0a, 0x0b, 0x6d, 0x61, 0x78, 0x5f, 0x62, 0x61, 0x63, 0x6b,
-	0x6f, 0x66, 0x66, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x6d, 0x61, 0x78, 0x42, 0x61,
-	0x63, 0x6b, 0x6f, 0x66, 0x66, 0x12, 0x37, 0x0a, 0x05, 0x63, 0x61, 0x74, 0x63, 0x68, 0x18, 0x05,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b,
-	0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x52,
-	0x65, 0x66, 0x48, 0x02, 0x52, 0x05, 0x63, 0x61, 0x74, 0x63, 0x68, 0x88, 0x01, 0x01, 0x42, 0x06,
-	0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x42, 0x08, 0x0a, 0x06, 0x5f, 0x63, 0x6f, 0x75, 0x6e, 0x74,
-	0x42, 0x08, 0x0a, 0x06, 0x5f, 0x63, 0x61, 0x74, 0x63, 0x68, 0x22, 0x70, 0x0a, 0x14, 0x4d, 0x65,
-	0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x51, 0x4c, 0x4d, 0x69, 0x67, 0x72, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x79, 0x70, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x6c, 0x65, 0x6e, 0x69, 0x65, 0x6e, 0x74, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x6c, 0x65, 0x6e, 0x69, 0x65, 0x6e, 0x74, 0x42, 0x06, 0x0a,
+	0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0xc2, 0x01, 0x0a, 0x0f, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61,
+	0x74, 0x61, 0x49, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f,
+	0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31,
+	0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73,
+	0x88, 0x01, 0x01, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f,
+	0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x12,
+	0x41, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2d, 0x2e,
+	0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63,
+	0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6e, 0x67, 0x72, 0x65, 0x73, 0x73, 0x50,
+	0x61, 0x74, 0x68, 0x43, 0x6f, 0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x52, 0x04, 0x70, 0x61,
+	0x74, 0x68, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x76, 0x0a, 0x12, 0x4d, 0x65,
+	0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x50, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73,
+	0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e,
+	0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63,
+	0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e,
+	0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x61,
+	0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0a,
+	0x70, 0x61, 0x72, 0x74, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70,
+	0x6f, 0x73, 0x22, 0x8b, 0x01, 0x0a, 0x11, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x50,
+	0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x65, 0x72, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63,
+	0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e,
+	0x50, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88,
+	0x01, 0x01, 0x12, 0x34, 0x0a, 0x06, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x18, 0x02, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66,
+	0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x66,
+	0x52, 0x06, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73,
+	0x22, 0xfb, 0x01, 0x0a, 0x0d, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x52, 0x65, 0x74,
+	0x72, 0x79, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e,
 	0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69, 0x74, 0x69,
-	0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x16, 0x0a, 0x06,
-	0x64, 0x69, 0x67, 0x65, 0x73, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x64, 0x69,
-	0x67, 0x65, 0x73, 0x74, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x8b, 0x01, 0x0a,
+	0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x19, 0x0a, 0x05,
+	0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x48, 0x01, 0x52, 0x05, 0x63,
+	0x6f, 0x75, 0x6e, 0x74, 0x88, 0x01, 0x01, 0x12, 0x1f, 0x0a, 0x0b, 0x6d, 0x69, 0x6e, 0x5f, 0x62,
+	0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x6d, 0x69,
+	0x6e, 0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x12, 0x1f, 0x0a, 0x0b, 0x6d, 0x61, 0x78, 0x5f,
+	0x62, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x6d,
+	0x61, 0x78, 0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x12, 0x37, 0x0a, 0x05, 0x63, 0x61, 0x74,
+	0x63, 0x68, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62,
+	0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e,
+	0x76, 0x31, 0x2e, 0x52, 0x65, 0x66, 0x48, 0x02, 0x52, 0x05, 0x63, 0x61, 0x74, 0x63, 0x68, 0x88,
+	0x01, 0x01, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x42, 0x08, 0x0a, 0x06, 0x5f, 0x63,
+	0x6f, 0x75, 0x6e, 0x74, 0x42, 0x08, 0x0a, 0x06, 0x5f, 0x63, 0x61, 0x74, 0x63, 0x68, 0x22, 0x70,
+	0x0a, 0x14, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x51, 0x4c, 0x4d, 0x69, 0x67,
+	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e,
+	0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f,
+	0x73, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01,
+	0x12, 0x16, 0x0a, 0x06, 0x64, 0x69, 0x67, 0x65, 0x73, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x06, 0x64, 0x69, 0x67, 0x65, 0x73, 0x74, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73,
+	0x22, 0x6a, 0x0a, 0x10, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x51, 0x4c, 0x51,
+	0x75, 0x65, 0x72, 0x79, 0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x21, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74,
+	0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x6f, 0x73, 0x69,
+	0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x88, 0x01, 0x01, 0x12, 0x14,
+	0x0a, 0x05, 0x71, 0x75, 0x65, 0x72, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x71,
+	0x75, 0x65, 0x72, 0x79, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x8b, 0x01, 0x0a,
 	0x0f, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x73,
 	0x12, 0x38, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e,
 	0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63,
@@ -6053,7 +6223,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP() []byte {
 }
 
 var file_xyz_block_ftl_schema_v1_schema_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 72)
+var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 74)
 var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(AliasKind)(0),                          // 0: xyz.block.ftl.schema.v1.AliasKind
 	(FromOffset)(0),                         // 1: xyz.block.ftl.schema.v1.FromOffset
@@ -6089,63 +6259,65 @@ var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(*MetadataCalls)(nil),                   // 31: xyz.block.ftl.schema.v1.MetadataCalls
 	(*MetadataConfig)(nil),                  // 32: xyz.block.ftl.schema.v1.MetadataConfig
 	(*MetadataCronJob)(nil),                 // 33: xyz.block.ftl.schema.v1.MetadataCronJob
-	(*MetadataDatabases)(nil),               // 34: xyz.block.ftl.schema.v1.MetadataDatabases
-	(*MetadataEncoding)(nil),                // 35: xyz.block.ftl.schema.v1.MetadataEncoding
-	(*MetadataIngress)(nil),                 // 36: xyz.block.ftl.schema.v1.MetadataIngress
-	(*MetadataPartitions)(nil),              // 37: xyz.block.ftl.schema.v1.MetadataPartitions
-	(*MetadataPublisher)(nil),               // 38: xyz.block.ftl.schema.v1.MetadataPublisher
-	(*MetadataRetry)(nil),                   // 39: xyz.block.ftl.schema.v1.MetadataRetry
-	(*MetadataSQLMigration)(nil),            // 40: xyz.block.ftl.schema.v1.MetadataSQLMigration
-	(*MetadataSecrets)(nil),                 // 41: xyz.block.ftl.schema.v1.MetadataSecrets
-	(*MetadataSubscriber)(nil),              // 42: xyz.block.ftl.schema.v1.MetadataSubscriber
-	(*MetadataTypeMap)(nil),                 // 43: xyz.block.ftl.schema.v1.MetadataTypeMap
-	(*Module)(nil),                          // 44: xyz.block.ftl.schema.v1.Module
-	(*ModuleRuntime)(nil),                   // 45: xyz.block.ftl.schema.v1.ModuleRuntime
-	(*ModuleRuntimeBase)(nil),               // 46: xyz.block.ftl.schema.v1.ModuleRuntimeBase
-	(*ModuleRuntimeDeployment)(nil),         // 47: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	(*ModuleRuntimeEvent)(nil),              // 48: xyz.block.ftl.schema.v1.ModuleRuntimeEvent
-	(*ModuleRuntimeScaling)(nil),            // 49: xyz.block.ftl.schema.v1.ModuleRuntimeScaling
-	(*Optional)(nil),                        // 50: xyz.block.ftl.schema.v1.Optional
-	(*Position)(nil),                        // 51: xyz.block.ftl.schema.v1.Position
-	(*Ref)(nil),                             // 52: xyz.block.ftl.schema.v1.Ref
-	(*RuntimeEvent)(nil),                    // 53: xyz.block.ftl.schema.v1.RuntimeEvent
-	(*Schema)(nil),                          // 54: xyz.block.ftl.schema.v1.Schema
-	(*Secret)(nil),                          // 55: xyz.block.ftl.schema.v1.Secret
-	(*String)(nil),                          // 56: xyz.block.ftl.schema.v1.String
-	(*StringValue)(nil),                     // 57: xyz.block.ftl.schema.v1.StringValue
-	(*Time)(nil),                            // 58: xyz.block.ftl.schema.v1.Time
-	(*Topic)(nil),                           // 59: xyz.block.ftl.schema.v1.Topic
-	(*TopicRuntime)(nil),                    // 60: xyz.block.ftl.schema.v1.TopicRuntime
-	(*TopicRuntimeEvent)(nil),               // 61: xyz.block.ftl.schema.v1.TopicRuntimeEvent
-	(*Type)(nil),                            // 62: xyz.block.ftl.schema.v1.Type
-	(*TypeAlias)(nil),                       // 63: xyz.block.ftl.schema.v1.TypeAlias
-	(*TypeParameter)(nil),                   // 64: xyz.block.ftl.schema.v1.TypeParameter
-	(*TypeValue)(nil),                       // 65: xyz.block.ftl.schema.v1.TypeValue
-	(*Unit)(nil),                            // 66: xyz.block.ftl.schema.v1.Unit
-	(*Value)(nil),                           // 67: xyz.block.ftl.schema.v1.Value
-	(*Verb)(nil),                            // 68: xyz.block.ftl.schema.v1.Verb
-	(*VerbRuntime)(nil),                     // 69: xyz.block.ftl.schema.v1.VerbRuntime
-	(*VerbRuntimeBase)(nil),                 // 70: xyz.block.ftl.schema.v1.VerbRuntimeBase
-	(*VerbRuntimeEvent)(nil),                // 71: xyz.block.ftl.schema.v1.VerbRuntimeEvent
-	(*VerbRuntimePayload)(nil),              // 72: xyz.block.ftl.schema.v1.VerbRuntimePayload
-	(*VerbRuntimeSubscription)(nil),         // 73: xyz.block.ftl.schema.v1.VerbRuntimeSubscription
-	(*timestamppb.Timestamp)(nil),           // 74: google.protobuf.Timestamp
+	(*MetadataDBColumn)(nil),                // 34: xyz.block.ftl.schema.v1.MetadataDBColumn
+	(*MetadataDatabases)(nil),               // 35: xyz.block.ftl.schema.v1.MetadataDatabases
+	(*MetadataEncoding)(nil),                // 36: xyz.block.ftl.schema.v1.MetadataEncoding
+	(*MetadataIngress)(nil),                 // 37: xyz.block.ftl.schema.v1.MetadataIngress
+	(*MetadataPartitions)(nil),              // 38: xyz.block.ftl.schema.v1.MetadataPartitions
+	(*MetadataPublisher)(nil),               // 39: xyz.block.ftl.schema.v1.MetadataPublisher
+	(*MetadataRetry)(nil),                   // 40: xyz.block.ftl.schema.v1.MetadataRetry
+	(*MetadataSQLMigration)(nil),            // 41: xyz.block.ftl.schema.v1.MetadataSQLMigration
+	(*MetadataSQLQuery)(nil),                // 42: xyz.block.ftl.schema.v1.MetadataSQLQuery
+	(*MetadataSecrets)(nil),                 // 43: xyz.block.ftl.schema.v1.MetadataSecrets
+	(*MetadataSubscriber)(nil),              // 44: xyz.block.ftl.schema.v1.MetadataSubscriber
+	(*MetadataTypeMap)(nil),                 // 45: xyz.block.ftl.schema.v1.MetadataTypeMap
+	(*Module)(nil),                          // 46: xyz.block.ftl.schema.v1.Module
+	(*ModuleRuntime)(nil),                   // 47: xyz.block.ftl.schema.v1.ModuleRuntime
+	(*ModuleRuntimeBase)(nil),               // 48: xyz.block.ftl.schema.v1.ModuleRuntimeBase
+	(*ModuleRuntimeDeployment)(nil),         // 49: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
+	(*ModuleRuntimeEvent)(nil),              // 50: xyz.block.ftl.schema.v1.ModuleRuntimeEvent
+	(*ModuleRuntimeScaling)(nil),            // 51: xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	(*Optional)(nil),                        // 52: xyz.block.ftl.schema.v1.Optional
+	(*Position)(nil),                        // 53: xyz.block.ftl.schema.v1.Position
+	(*Ref)(nil),                             // 54: xyz.block.ftl.schema.v1.Ref
+	(*RuntimeEvent)(nil),                    // 55: xyz.block.ftl.schema.v1.RuntimeEvent
+	(*Schema)(nil),                          // 56: xyz.block.ftl.schema.v1.Schema
+	(*Secret)(nil),                          // 57: xyz.block.ftl.schema.v1.Secret
+	(*String)(nil),                          // 58: xyz.block.ftl.schema.v1.String
+	(*StringValue)(nil),                     // 59: xyz.block.ftl.schema.v1.StringValue
+	(*Time)(nil),                            // 60: xyz.block.ftl.schema.v1.Time
+	(*Topic)(nil),                           // 61: xyz.block.ftl.schema.v1.Topic
+	(*TopicRuntime)(nil),                    // 62: xyz.block.ftl.schema.v1.TopicRuntime
+	(*TopicRuntimeEvent)(nil),               // 63: xyz.block.ftl.schema.v1.TopicRuntimeEvent
+	(*Type)(nil),                            // 64: xyz.block.ftl.schema.v1.Type
+	(*TypeAlias)(nil),                       // 65: xyz.block.ftl.schema.v1.TypeAlias
+	(*TypeParameter)(nil),                   // 66: xyz.block.ftl.schema.v1.TypeParameter
+	(*TypeValue)(nil),                       // 67: xyz.block.ftl.schema.v1.TypeValue
+	(*Unit)(nil),                            // 68: xyz.block.ftl.schema.v1.Unit
+	(*Value)(nil),                           // 69: xyz.block.ftl.schema.v1.Value
+	(*Verb)(nil),                            // 70: xyz.block.ftl.schema.v1.Verb
+	(*VerbRuntime)(nil),                     // 71: xyz.block.ftl.schema.v1.VerbRuntime
+	(*VerbRuntimeBase)(nil),                 // 72: xyz.block.ftl.schema.v1.VerbRuntimeBase
+	(*VerbRuntimeEvent)(nil),                // 73: xyz.block.ftl.schema.v1.VerbRuntimeEvent
+	(*VerbRuntimePayload)(nil),              // 74: xyz.block.ftl.schema.v1.VerbRuntimePayload
+	(*VerbRuntimeSubscription)(nil),         // 75: xyz.block.ftl.schema.v1.VerbRuntimeSubscription
+	(*timestamppb.Timestamp)(nil),           // 76: google.protobuf.Timestamp
 }
 var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
-	51,  // 0: xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 1: xyz.block.ftl.schema.v1.Any.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 2: xyz.block.ftl.schema.v1.Array.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 3: xyz.block.ftl.schema.v1.Array.element:type_name -> xyz.block.ftl.schema.v1.Type
-	51,  // 4: xyz.block.ftl.schema.v1.Bool.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 5: xyz.block.ftl.schema.v1.Bytes.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 6: xyz.block.ftl.schema.v1.Config.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 7: xyz.block.ftl.schema.v1.Config.type:type_name -> xyz.block.ftl.schema.v1.Type
-	51,  // 8: xyz.block.ftl.schema.v1.DSNDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 9: xyz.block.ftl.schema.v1.Data.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	64,  // 10: xyz.block.ftl.schema.v1.Data.type_parameters:type_name -> xyz.block.ftl.schema.v1.TypeParameter
+	53,  // 0: xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 1: xyz.block.ftl.schema.v1.Any.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 2: xyz.block.ftl.schema.v1.Array.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 3: xyz.block.ftl.schema.v1.Array.element:type_name -> xyz.block.ftl.schema.v1.Type
+	53,  // 4: xyz.block.ftl.schema.v1.Bool.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 5: xyz.block.ftl.schema.v1.Bytes.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 6: xyz.block.ftl.schema.v1.Config.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 7: xyz.block.ftl.schema.v1.Config.type:type_name -> xyz.block.ftl.schema.v1.Type
+	53,  // 8: xyz.block.ftl.schema.v1.DSNDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 9: xyz.block.ftl.schema.v1.Data.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	66,  // 10: xyz.block.ftl.schema.v1.Data.type_parameters:type_name -> xyz.block.ftl.schema.v1.TypeParameter
 	20,  // 11: xyz.block.ftl.schema.v1.Data.fields:type_name -> xyz.block.ftl.schema.v1.Field
 	28,  // 12: xyz.block.ftl.schema.v1.Data.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	51,  // 13: xyz.block.ftl.schema.v1.Database.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 13: xyz.block.ftl.schema.v1.Database.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	12,  // 14: xyz.block.ftl.schema.v1.Database.runtime:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntime
 	28,  // 15: xyz.block.ftl.schema.v1.Database.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
 	2,   // 16: xyz.block.ftl.schema.v1.DatabaseConnector.awsiam_auth_database_connector:type_name -> xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector
@@ -6160,140 +6332,144 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	9,   // 25: xyz.block.ftl.schema.v1.Decl.data:type_name -> xyz.block.ftl.schema.v1.Data
 	10,  // 26: xyz.block.ftl.schema.v1.Decl.database:type_name -> xyz.block.ftl.schema.v1.Database
 	18,  // 27: xyz.block.ftl.schema.v1.Decl.enum:type_name -> xyz.block.ftl.schema.v1.Enum
-	55,  // 28: xyz.block.ftl.schema.v1.Decl.secret:type_name -> xyz.block.ftl.schema.v1.Secret
-	59,  // 29: xyz.block.ftl.schema.v1.Decl.topic:type_name -> xyz.block.ftl.schema.v1.Topic
-	63,  // 30: xyz.block.ftl.schema.v1.Decl.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
-	68,  // 31: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
-	51,  // 32: xyz.block.ftl.schema.v1.Enum.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 33: xyz.block.ftl.schema.v1.Enum.type:type_name -> xyz.block.ftl.schema.v1.Type
+	57,  // 28: xyz.block.ftl.schema.v1.Decl.secret:type_name -> xyz.block.ftl.schema.v1.Secret
+	61,  // 29: xyz.block.ftl.schema.v1.Decl.topic:type_name -> xyz.block.ftl.schema.v1.Topic
+	65,  // 30: xyz.block.ftl.schema.v1.Decl.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
+	70,  // 31: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
+	53,  // 32: xyz.block.ftl.schema.v1.Enum.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 33: xyz.block.ftl.schema.v1.Enum.type:type_name -> xyz.block.ftl.schema.v1.Type
 	19,  // 34: xyz.block.ftl.schema.v1.Enum.variants:type_name -> xyz.block.ftl.schema.v1.EnumVariant
-	51,  // 35: xyz.block.ftl.schema.v1.EnumVariant.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	67,  // 36: xyz.block.ftl.schema.v1.EnumVariant.value:type_name -> xyz.block.ftl.schema.v1.Value
-	51,  // 37: xyz.block.ftl.schema.v1.Field.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 38: xyz.block.ftl.schema.v1.Field.type:type_name -> xyz.block.ftl.schema.v1.Type
+	53,  // 35: xyz.block.ftl.schema.v1.EnumVariant.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	69,  // 36: xyz.block.ftl.schema.v1.EnumVariant.value:type_name -> xyz.block.ftl.schema.v1.Value
+	53,  // 37: xyz.block.ftl.schema.v1.Field.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 38: xyz.block.ftl.schema.v1.Field.type:type_name -> xyz.block.ftl.schema.v1.Type
 	28,  // 39: xyz.block.ftl.schema.v1.Field.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	51,  // 40: xyz.block.ftl.schema.v1.Float.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 40: xyz.block.ftl.schema.v1.Float.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	23,  // 41: xyz.block.ftl.schema.v1.IngressPathComponent.ingress_path_literal:type_name -> xyz.block.ftl.schema.v1.IngressPathLiteral
 	24,  // 42: xyz.block.ftl.schema.v1.IngressPathComponent.ingress_path_parameter:type_name -> xyz.block.ftl.schema.v1.IngressPathParameter
-	51,  // 43: xyz.block.ftl.schema.v1.IngressPathLiteral.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 44: xyz.block.ftl.schema.v1.IngressPathParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 45: xyz.block.ftl.schema.v1.Int.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 46: xyz.block.ftl.schema.v1.IntValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 47: xyz.block.ftl.schema.v1.Map.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 48: xyz.block.ftl.schema.v1.Map.key:type_name -> xyz.block.ftl.schema.v1.Type
-	62,  // 49: xyz.block.ftl.schema.v1.Map.value:type_name -> xyz.block.ftl.schema.v1.Type
+	53,  // 43: xyz.block.ftl.schema.v1.IngressPathLiteral.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 44: xyz.block.ftl.schema.v1.IngressPathParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 45: xyz.block.ftl.schema.v1.Int.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 46: xyz.block.ftl.schema.v1.IntValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 47: xyz.block.ftl.schema.v1.Map.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 48: xyz.block.ftl.schema.v1.Map.key:type_name -> xyz.block.ftl.schema.v1.Type
+	64,  // 49: xyz.block.ftl.schema.v1.Map.value:type_name -> xyz.block.ftl.schema.v1.Type
 	29,  // 50: xyz.block.ftl.schema.v1.Metadata.alias:type_name -> xyz.block.ftl.schema.v1.MetadataAlias
 	30,  // 51: xyz.block.ftl.schema.v1.Metadata.artefact:type_name -> xyz.block.ftl.schema.v1.MetadataArtefact
 	31,  // 52: xyz.block.ftl.schema.v1.Metadata.calls:type_name -> xyz.block.ftl.schema.v1.MetadataCalls
 	32,  // 53: xyz.block.ftl.schema.v1.Metadata.config:type_name -> xyz.block.ftl.schema.v1.MetadataConfig
 	33,  // 54: xyz.block.ftl.schema.v1.Metadata.cron_job:type_name -> xyz.block.ftl.schema.v1.MetadataCronJob
-	34,  // 55: xyz.block.ftl.schema.v1.Metadata.databases:type_name -> xyz.block.ftl.schema.v1.MetadataDatabases
-	35,  // 56: xyz.block.ftl.schema.v1.Metadata.encoding:type_name -> xyz.block.ftl.schema.v1.MetadataEncoding
-	36,  // 57: xyz.block.ftl.schema.v1.Metadata.ingress:type_name -> xyz.block.ftl.schema.v1.MetadataIngress
-	37,  // 58: xyz.block.ftl.schema.v1.Metadata.partitions:type_name -> xyz.block.ftl.schema.v1.MetadataPartitions
-	38,  // 59: xyz.block.ftl.schema.v1.Metadata.publisher:type_name -> xyz.block.ftl.schema.v1.MetadataPublisher
-	39,  // 60: xyz.block.ftl.schema.v1.Metadata.retry:type_name -> xyz.block.ftl.schema.v1.MetadataRetry
-	40,  // 61: xyz.block.ftl.schema.v1.Metadata.sql_migration:type_name -> xyz.block.ftl.schema.v1.MetadataSQLMigration
-	41,  // 62: xyz.block.ftl.schema.v1.Metadata.secrets:type_name -> xyz.block.ftl.schema.v1.MetadataSecrets
-	42,  // 63: xyz.block.ftl.schema.v1.Metadata.subscriber:type_name -> xyz.block.ftl.schema.v1.MetadataSubscriber
-	43,  // 64: xyz.block.ftl.schema.v1.Metadata.type_map:type_name -> xyz.block.ftl.schema.v1.MetadataTypeMap
-	51,  // 65: xyz.block.ftl.schema.v1.MetadataAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	0,   // 66: xyz.block.ftl.schema.v1.MetadataAlias.kind:type_name -> xyz.block.ftl.schema.v1.AliasKind
-	51,  // 67: xyz.block.ftl.schema.v1.MetadataArtefact.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 68: xyz.block.ftl.schema.v1.MetadataCalls.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	52,  // 69: xyz.block.ftl.schema.v1.MetadataCalls.calls:type_name -> xyz.block.ftl.schema.v1.Ref
-	51,  // 70: xyz.block.ftl.schema.v1.MetadataConfig.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	52,  // 71: xyz.block.ftl.schema.v1.MetadataConfig.config:type_name -> xyz.block.ftl.schema.v1.Ref
-	51,  // 72: xyz.block.ftl.schema.v1.MetadataCronJob.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 73: xyz.block.ftl.schema.v1.MetadataDatabases.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	52,  // 74: xyz.block.ftl.schema.v1.MetadataDatabases.calls:type_name -> xyz.block.ftl.schema.v1.Ref
-	51,  // 75: xyz.block.ftl.schema.v1.MetadataEncoding.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 76: xyz.block.ftl.schema.v1.MetadataIngress.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	22,  // 77: xyz.block.ftl.schema.v1.MetadataIngress.path:type_name -> xyz.block.ftl.schema.v1.IngressPathComponent
-	51,  // 78: xyz.block.ftl.schema.v1.MetadataPartitions.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 79: xyz.block.ftl.schema.v1.MetadataPublisher.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	52,  // 80: xyz.block.ftl.schema.v1.MetadataPublisher.topics:type_name -> xyz.block.ftl.schema.v1.Ref
-	51,  // 81: xyz.block.ftl.schema.v1.MetadataRetry.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	52,  // 82: xyz.block.ftl.schema.v1.MetadataRetry.catch:type_name -> xyz.block.ftl.schema.v1.Ref
-	51,  // 83: xyz.block.ftl.schema.v1.MetadataSQLMigration.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 84: xyz.block.ftl.schema.v1.MetadataSecrets.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	52,  // 85: xyz.block.ftl.schema.v1.MetadataSecrets.secrets:type_name -> xyz.block.ftl.schema.v1.Ref
-	51,  // 86: xyz.block.ftl.schema.v1.MetadataSubscriber.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	52,  // 87: xyz.block.ftl.schema.v1.MetadataSubscriber.topic:type_name -> xyz.block.ftl.schema.v1.Ref
-	1,   // 88: xyz.block.ftl.schema.v1.MetadataSubscriber.from_offset:type_name -> xyz.block.ftl.schema.v1.FromOffset
-	51,  // 89: xyz.block.ftl.schema.v1.MetadataTypeMap.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 90: xyz.block.ftl.schema.v1.Module.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	28,  // 91: xyz.block.ftl.schema.v1.Module.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	17,  // 92: xyz.block.ftl.schema.v1.Module.decls:type_name -> xyz.block.ftl.schema.v1.Decl
-	45,  // 93: xyz.block.ftl.schema.v1.Module.runtime:type_name -> xyz.block.ftl.schema.v1.ModuleRuntime
-	46,  // 94: xyz.block.ftl.schema.v1.ModuleRuntime.base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
-	49,  // 95: xyz.block.ftl.schema.v1.ModuleRuntime.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
-	47,  // 96: xyz.block.ftl.schema.v1.ModuleRuntime.deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	74,  // 97: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
-	46,  // 98: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.module_runtime_base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
-	47,  // 99: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	49,  // 100: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
-	51,  // 101: xyz.block.ftl.schema.v1.Optional.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 102: xyz.block.ftl.schema.v1.Optional.type:type_name -> xyz.block.ftl.schema.v1.Type
-	51,  // 103: xyz.block.ftl.schema.v1.Ref.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 104: xyz.block.ftl.schema.v1.Ref.type_parameters:type_name -> xyz.block.ftl.schema.v1.Type
-	15,  // 105: xyz.block.ftl.schema.v1.RuntimeEvent.database_runtime_event:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntimeEvent
-	46,  // 106: xyz.block.ftl.schema.v1.RuntimeEvent.module_runtime_base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
-	47,  // 107: xyz.block.ftl.schema.v1.RuntimeEvent.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	49,  // 108: xyz.block.ftl.schema.v1.RuntimeEvent.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
-	61,  // 109: xyz.block.ftl.schema.v1.RuntimeEvent.topic_runtime_event:type_name -> xyz.block.ftl.schema.v1.TopicRuntimeEvent
-	71,  // 110: xyz.block.ftl.schema.v1.RuntimeEvent.verb_runtime_event:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeEvent
-	51,  // 111: xyz.block.ftl.schema.v1.Schema.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	44,  // 112: xyz.block.ftl.schema.v1.Schema.modules:type_name -> xyz.block.ftl.schema.v1.Module
-	51,  // 113: xyz.block.ftl.schema.v1.Secret.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 114: xyz.block.ftl.schema.v1.Secret.type:type_name -> xyz.block.ftl.schema.v1.Type
-	51,  // 115: xyz.block.ftl.schema.v1.String.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 116: xyz.block.ftl.schema.v1.StringValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 117: xyz.block.ftl.schema.v1.Time.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 118: xyz.block.ftl.schema.v1.Topic.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	60,  // 119: xyz.block.ftl.schema.v1.Topic.runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
-	62,  // 120: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
-	28,  // 121: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	60,  // 122: xyz.block.ftl.schema.v1.TopicRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
-	3,   // 123: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
-	4,   // 124: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
-	5,   // 125: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
-	6,   // 126: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
-	21,  // 127: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
-	25,  // 128: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
-	27,  // 129: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
-	50,  // 130: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
-	52,  // 131: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
-	56,  // 132: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
-	58,  // 133: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
-	66,  // 134: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
-	51,  // 135: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 136: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
-	28,  // 137: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	51,  // 138: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	51,  // 139: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 140: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
-	51,  // 141: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	26,  // 142: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
-	57,  // 143: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
-	65,  // 144: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
-	51,  // 145: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	62,  // 146: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
-	62,  // 147: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
-	28,  // 148: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	69,  // 149: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
-	70,  // 150: xyz.block.ftl.schema.v1.VerbRuntime.base:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeBase
-	73,  // 151: xyz.block.ftl.schema.v1.VerbRuntime.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
-	74,  // 152: xyz.block.ftl.schema.v1.VerbRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
-	74,  // 153: xyz.block.ftl.schema.v1.VerbRuntimeBase.start_time:type_name -> google.protobuf.Timestamp
-	72,  // 154: xyz.block.ftl.schema.v1.VerbRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.VerbRuntimePayload
-	70,  // 155: xyz.block.ftl.schema.v1.VerbRuntimePayload.verb_runtime_base:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeBase
-	73,  // 156: xyz.block.ftl.schema.v1.VerbRuntimePayload.verb_runtime_subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
-	157, // [157:157] is the sub-list for method output_type
-	157, // [157:157] is the sub-list for method input_type
-	157, // [157:157] is the sub-list for extension type_name
-	157, // [157:157] is the sub-list for extension extendee
-	0,   // [0:157] is the sub-list for field type_name
+	34,  // 55: xyz.block.ftl.schema.v1.Metadata.db_column:type_name -> xyz.block.ftl.schema.v1.MetadataDBColumn
+	35,  // 56: xyz.block.ftl.schema.v1.Metadata.databases:type_name -> xyz.block.ftl.schema.v1.MetadataDatabases
+	36,  // 57: xyz.block.ftl.schema.v1.Metadata.encoding:type_name -> xyz.block.ftl.schema.v1.MetadataEncoding
+	37,  // 58: xyz.block.ftl.schema.v1.Metadata.ingress:type_name -> xyz.block.ftl.schema.v1.MetadataIngress
+	38,  // 59: xyz.block.ftl.schema.v1.Metadata.partitions:type_name -> xyz.block.ftl.schema.v1.MetadataPartitions
+	39,  // 60: xyz.block.ftl.schema.v1.Metadata.publisher:type_name -> xyz.block.ftl.schema.v1.MetadataPublisher
+	40,  // 61: xyz.block.ftl.schema.v1.Metadata.retry:type_name -> xyz.block.ftl.schema.v1.MetadataRetry
+	41,  // 62: xyz.block.ftl.schema.v1.Metadata.sql_migration:type_name -> xyz.block.ftl.schema.v1.MetadataSQLMigration
+	42,  // 63: xyz.block.ftl.schema.v1.Metadata.sql_query:type_name -> xyz.block.ftl.schema.v1.MetadataSQLQuery
+	43,  // 64: xyz.block.ftl.schema.v1.Metadata.secrets:type_name -> xyz.block.ftl.schema.v1.MetadataSecrets
+	44,  // 65: xyz.block.ftl.schema.v1.Metadata.subscriber:type_name -> xyz.block.ftl.schema.v1.MetadataSubscriber
+	45,  // 66: xyz.block.ftl.schema.v1.Metadata.type_map:type_name -> xyz.block.ftl.schema.v1.MetadataTypeMap
+	53,  // 67: xyz.block.ftl.schema.v1.MetadataAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	0,   // 68: xyz.block.ftl.schema.v1.MetadataAlias.kind:type_name -> xyz.block.ftl.schema.v1.AliasKind
+	53,  // 69: xyz.block.ftl.schema.v1.MetadataArtefact.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 70: xyz.block.ftl.schema.v1.MetadataCalls.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	54,  // 71: xyz.block.ftl.schema.v1.MetadataCalls.calls:type_name -> xyz.block.ftl.schema.v1.Ref
+	53,  // 72: xyz.block.ftl.schema.v1.MetadataConfig.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	54,  // 73: xyz.block.ftl.schema.v1.MetadataConfig.config:type_name -> xyz.block.ftl.schema.v1.Ref
+	53,  // 74: xyz.block.ftl.schema.v1.MetadataCronJob.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 75: xyz.block.ftl.schema.v1.MetadataDBColumn.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 76: xyz.block.ftl.schema.v1.MetadataDatabases.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	54,  // 77: xyz.block.ftl.schema.v1.MetadataDatabases.calls:type_name -> xyz.block.ftl.schema.v1.Ref
+	53,  // 78: xyz.block.ftl.schema.v1.MetadataEncoding.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 79: xyz.block.ftl.schema.v1.MetadataIngress.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	22,  // 80: xyz.block.ftl.schema.v1.MetadataIngress.path:type_name -> xyz.block.ftl.schema.v1.IngressPathComponent
+	53,  // 81: xyz.block.ftl.schema.v1.MetadataPartitions.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 82: xyz.block.ftl.schema.v1.MetadataPublisher.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	54,  // 83: xyz.block.ftl.schema.v1.MetadataPublisher.topics:type_name -> xyz.block.ftl.schema.v1.Ref
+	53,  // 84: xyz.block.ftl.schema.v1.MetadataRetry.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	54,  // 85: xyz.block.ftl.schema.v1.MetadataRetry.catch:type_name -> xyz.block.ftl.schema.v1.Ref
+	53,  // 86: xyz.block.ftl.schema.v1.MetadataSQLMigration.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 87: xyz.block.ftl.schema.v1.MetadataSQLQuery.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 88: xyz.block.ftl.schema.v1.MetadataSecrets.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	54,  // 89: xyz.block.ftl.schema.v1.MetadataSecrets.secrets:type_name -> xyz.block.ftl.schema.v1.Ref
+	53,  // 90: xyz.block.ftl.schema.v1.MetadataSubscriber.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	54,  // 91: xyz.block.ftl.schema.v1.MetadataSubscriber.topic:type_name -> xyz.block.ftl.schema.v1.Ref
+	1,   // 92: xyz.block.ftl.schema.v1.MetadataSubscriber.from_offset:type_name -> xyz.block.ftl.schema.v1.FromOffset
+	53,  // 93: xyz.block.ftl.schema.v1.MetadataTypeMap.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 94: xyz.block.ftl.schema.v1.Module.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	28,  // 95: xyz.block.ftl.schema.v1.Module.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	17,  // 96: xyz.block.ftl.schema.v1.Module.decls:type_name -> xyz.block.ftl.schema.v1.Decl
+	47,  // 97: xyz.block.ftl.schema.v1.Module.runtime:type_name -> xyz.block.ftl.schema.v1.ModuleRuntime
+	48,  // 98: xyz.block.ftl.schema.v1.ModuleRuntime.base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
+	51,  // 99: xyz.block.ftl.schema.v1.ModuleRuntime.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	49,  // 100: xyz.block.ftl.schema.v1.ModuleRuntime.deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
+	76,  // 101: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
+	48,  // 102: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.module_runtime_base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
+	49,  // 103: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
+	51,  // 104: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	53,  // 105: xyz.block.ftl.schema.v1.Optional.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 106: xyz.block.ftl.schema.v1.Optional.type:type_name -> xyz.block.ftl.schema.v1.Type
+	53,  // 107: xyz.block.ftl.schema.v1.Ref.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 108: xyz.block.ftl.schema.v1.Ref.type_parameters:type_name -> xyz.block.ftl.schema.v1.Type
+	15,  // 109: xyz.block.ftl.schema.v1.RuntimeEvent.database_runtime_event:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntimeEvent
+	48,  // 110: xyz.block.ftl.schema.v1.RuntimeEvent.module_runtime_base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
+	49,  // 111: xyz.block.ftl.schema.v1.RuntimeEvent.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
+	51,  // 112: xyz.block.ftl.schema.v1.RuntimeEvent.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	63,  // 113: xyz.block.ftl.schema.v1.RuntimeEvent.topic_runtime_event:type_name -> xyz.block.ftl.schema.v1.TopicRuntimeEvent
+	73,  // 114: xyz.block.ftl.schema.v1.RuntimeEvent.verb_runtime_event:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeEvent
+	53,  // 115: xyz.block.ftl.schema.v1.Schema.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	46,  // 116: xyz.block.ftl.schema.v1.Schema.modules:type_name -> xyz.block.ftl.schema.v1.Module
+	53,  // 117: xyz.block.ftl.schema.v1.Secret.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 118: xyz.block.ftl.schema.v1.Secret.type:type_name -> xyz.block.ftl.schema.v1.Type
+	53,  // 119: xyz.block.ftl.schema.v1.String.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 120: xyz.block.ftl.schema.v1.StringValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 121: xyz.block.ftl.schema.v1.Time.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 122: xyz.block.ftl.schema.v1.Topic.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	62,  // 123: xyz.block.ftl.schema.v1.Topic.runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
+	64,  // 124: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
+	28,  // 125: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	62,  // 126: xyz.block.ftl.schema.v1.TopicRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
+	3,   // 127: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
+	4,   // 128: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
+	5,   // 129: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
+	6,   // 130: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
+	21,  // 131: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
+	25,  // 132: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
+	27,  // 133: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
+	52,  // 134: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
+	54,  // 135: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
+	58,  // 136: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
+	60,  // 137: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
+	68,  // 138: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
+	53,  // 139: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 140: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
+	28,  // 141: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	53,  // 142: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	53,  // 143: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 144: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
+	53,  // 145: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	26,  // 146: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
+	59,  // 147: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
+	67,  // 148: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
+	53,  // 149: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	64,  // 150: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
+	64,  // 151: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
+	28,  // 152: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	71,  // 153: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
+	72,  // 154: xyz.block.ftl.schema.v1.VerbRuntime.base:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeBase
+	75,  // 155: xyz.block.ftl.schema.v1.VerbRuntime.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
+	76,  // 156: xyz.block.ftl.schema.v1.VerbRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
+	76,  // 157: xyz.block.ftl.schema.v1.VerbRuntimeBase.start_time:type_name -> google.protobuf.Timestamp
+	74,  // 158: xyz.block.ftl.schema.v1.VerbRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.VerbRuntimePayload
+	72,  // 159: xyz.block.ftl.schema.v1.VerbRuntimePayload.verb_runtime_base:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeBase
+	75,  // 160: xyz.block.ftl.schema.v1.VerbRuntimePayload.verb_runtime_subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
+	161, // [161:161] is the sub-list for method output_type
+	161, // [161:161] is the sub-list for method input_type
+	161, // [161:161] is the sub-list for extension type_name
+	161, // [161:161] is the sub-list for extension extendee
+	0,   // [0:161] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_schema_v1_schema_proto_init() }
@@ -6347,6 +6523,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 		(*Metadata_Calls)(nil),
 		(*Metadata_Config)(nil),
 		(*Metadata_CronJob)(nil),
+		(*Metadata_DbColumn)(nil),
 		(*Metadata_Databases)(nil),
 		(*Metadata_Encoding)(nil),
 		(*Metadata_Ingress)(nil),
@@ -6354,6 +6531,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 		(*Metadata_Publisher)(nil),
 		(*Metadata_Retry)(nil),
 		(*Metadata_SqlMigration)(nil),
+		(*Metadata_SqlQuery)(nil),
 		(*Metadata_Secrets)(nil),
 		(*Metadata_Subscriber)(nil),
 		(*Metadata_TypeMap)(nil),
@@ -6376,14 +6554,16 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[42].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[43].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[44].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[46].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[45].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[46].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[48].OneofWrappers = []any{
 		(*ModuleRuntimeEvent_ModuleRuntimeBase)(nil),
 		(*ModuleRuntimeEvent_ModuleRuntimeDeployment)(nil),
 		(*ModuleRuntimeEvent_ModuleRuntimeScaling)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[48].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[50].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[51].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[52].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[53].OneofWrappers = []any{
 		(*RuntimeEvent_DatabaseRuntimeEvent)(nil),
 		(*RuntimeEvent_ModuleRuntimeBase)(nil),
 		(*RuntimeEvent_ModuleRuntimeDeployment)(nil),
@@ -6391,13 +6571,13 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 		(*RuntimeEvent_TopicRuntimeEvent)(nil),
 		(*RuntimeEvent_VerbRuntimeEvent)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[52].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[53].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[54].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[55].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[56].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[57].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[60].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[58].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[59].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[62].OneofWrappers = []any{
 		(*Type_Any)(nil),
 		(*Type_Array)(nil),
 		(*Type_Bool)(nil),
@@ -6411,19 +6591,19 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 		(*Type_Time)(nil),
 		(*Type_Unit)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[61].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[62].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[63].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[64].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67].OneofWrappers = []any{
 		(*Value_IntValue)(nil),
 		(*Value_StringValue)(nil),
 		(*Value_TypeValue)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72].OneofWrappers = []any{
 		(*VerbRuntimePayload_VerbRuntimeBase)(nil),
 		(*VerbRuntimePayload_VerbRuntimeSubscription)(nil),
 	}
@@ -6433,7 +6613,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_xyz_block_ftl_schema_v1_schema_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   72,
+			NumMessages:   74,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

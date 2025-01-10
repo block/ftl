@@ -35,7 +35,7 @@ module todo {
   }
 
   export data CreateResponse {
-    name [String] +alias json "rsn"
+    name [String] +alias json "rsn" +data column "requests"."name"
   }
 
   data DestroyRequest {
@@ -53,6 +53,7 @@ module todo {
 	+database calls todo.testdb
     +secrets todo.secretValue
     +config todo.configValue
+	+sql query "INSERT INTO requests (name) VALUES (?)"
 
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
       +ingress http GET /todo/destroy/{name}
@@ -172,6 +173,7 @@ Module
       Array
         String
       MetadataAlias
+      MetadataDBColumn
   Data
     Field
       String
@@ -191,6 +193,7 @@ Module
       Ref
     MetadataConfig
       Ref
+    MetadataSQLQuery
   Verb
     Ref
       Unit
@@ -771,7 +774,7 @@ module todo {
     name {String: String}? +alias json "rqn"
   }
   export data CreateResponse {
-    name [String] +alias json "rsn"
+    name [String] +alias json "rsn" +data column "requests"."name"
   }
   data DestroyRequest {
     // A comment
@@ -782,7 +785,7 @@ module todo {
 	when Time
   }
   export verb create(todo.CreateRequest) todo.CreateResponse
-  	+calls todo.destroy +database calls todo.testdb +secrets todo.secretValue +config todo.configValue
+  	+calls todo.destroy +database calls todo.testdb +secrets todo.secretValue +config todo.configValue +sql query "INSERT INTO requests (name) VALUES (?)"
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
   	+ingress http GET /todo/destroy/{name}
   verb scheduled(Unit) Unit
@@ -869,7 +872,7 @@ var testSchema = MustValidate(&Schema{
 					Name:   "CreateResponse",
 					Export: true,
 					Fields: []*Field{
-						{Name: "name", Type: &Array{Element: &String{}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rsn"}}},
+						{Name: "name", Type: &Array{Element: &String{}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rsn"}, &MetadataDBColumn{Table: "requests", Name: "name"}}},
 					},
 				},
 				&Data{
@@ -894,6 +897,7 @@ var testSchema = MustValidate(&Schema{
 						&MetadataDatabases{Calls: []*Ref{{Module: "todo", Name: "testdb"}}},
 						&MetadataSecrets{Secrets: []*Ref{{Module: "todo", Name: "secretValue"}}},
 						&MetadataConfig{Config: []*Ref{{Module: "todo", Name: "configValue"}}},
+						&MetadataSQLQuery{Query: "INSERT INTO requests (name) VALUES (?)"},
 					}},
 				&Verb{Name: "destroy",
 					Export:   true,

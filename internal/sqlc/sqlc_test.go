@@ -13,6 +13,10 @@ import (
 )
 
 func TestGenerate(t *testing.T) {
+	if err := os.RemoveAll(filepath.Join(os.TempDir(), ".ftl")); err != nil {
+		t.Fatal(err)
+	}
+
 	tmpDir, err := os.MkdirTemp("", "sqlc-test-*")
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
@@ -30,11 +34,8 @@ func TestGenerate(t *testing.T) {
 		DeployDir:             ".ftl",
 	}
 
-	err = Generate(pc, mc)
+	actual, err := Generate(pc, mc)
 	assert.NoError(t, err)
-
-	actual, err := schema.ModuleFromProtoFile(filepath.Join(tmpDir, ".ftl", "queries.pb"))
-	assert.NoError(t, err, "failed to parse generated schema")
 
 	expected := &schema.Module{
 		Name: "test",
@@ -42,19 +43,42 @@ func TestGenerate(t *testing.T) {
 			&schema.Data{
 				Name: "CreateRequestQuery",
 				Fields: []*schema.Field{
-					{Name: "data", Type: &schema.String{}},
+					{
+						Name: "data",
+						Type: &schema.String{},
+						Metadata: []schema.Metadata{
+							&schema.MetadataDBColumn{
+								Table: "requests",
+								Name:  "data",
+							},
+						},
+					},
 				},
 			},
 			&schema.Data{
 				Name: "GetRequestDataResult",
 				Fields: []*schema.Field{
-					{Name: "data", Type: &schema.String{}},
+					{
+						Name: "data",
+						Type: &schema.String{},
+						Metadata: []schema.Metadata{
+							&schema.MetadataDBColumn{
+								Table: "requests",
+								Name:  "data",
+							},
+						},
+					},
 				},
 			},
 			&schema.Verb{
 				Name:     "CreateRequest",
 				Request:  &schema.Ref{Module: "test", Name: "CreateRequestQuery"},
 				Response: &schema.Unit{},
+				Metadata: []schema.Metadata{
+					&schema.MetadataSQLQuery{
+						Query: "INSERT INTO requests (data) VALUES (?)",
+					},
+				},
 			},
 			&schema.Verb{
 				Name:    "GetRequestData",
@@ -63,6 +87,11 @@ func TestGenerate(t *testing.T) {
 					Module: "test",
 					Name:   "GetRequestDataResult",
 				}},
+				Metadata: []schema.Metadata{
+					&schema.MetadataSQLQuery{
+						Query: "SELECT data FROM requests",
+					},
+				},
 			},
 		},
 	}

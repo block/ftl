@@ -24,9 +24,6 @@ pub struct ModuleConfig {
     /// Build lock path to prevent concurrent builds
     #[prost(string, tag="7")]
     pub build_lock: ::prost::alloc::string::String,
-    /// The directory to generate protobuf schema files into. These can be picked up by language specific build tools
-    #[prost(string, optional, tag="8")]
-    pub generated_schema_dir: ::core::option::Option<::prost::alloc::string::String>,
     /// Patterns to watch for file changes
     #[prost(string, repeated, tag="9")]
     pub watch: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
@@ -125,9 +122,6 @@ pub struct ModuleConfigDefaultsResponse {
     /// Build lock path to prevent concurrent builds
     #[prost(string, optional, tag="4")]
     pub build_lock: ::core::option::Option<::prost::alloc::string::String>,
-    /// Default relative path to the directory containing generated schema files
-    #[prost(string, optional, tag="5")]
-    pub generated_schema_dir: ::core::option::Option<::prost::alloc::string::String>,
     /// Default patterns to watch for file changes, relative to the module directory
     #[prost(string, repeated, tag="6")]
     pub watch: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
@@ -404,6 +398,9 @@ pub struct SyncStubReferencesRequest {
     /// The names of all modules that have had stubs generated
     #[prost(string, repeated, tag="3")]
     pub modules: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// The complete FTL schema
+    #[prost(message, optional, tag="4")]
+    pub schema: ::core::option::Option<super::super::schema::v1::Schema>,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct SyncStubReferencesResponse {

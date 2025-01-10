@@ -51,6 +51,7 @@ pub struct DsnDatabaseConnector {
     #[prost(string, tag="2")]
     pub dsn: ::prost::alloc::string::String,
 }
+/// A Data structure.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Data {
     #[prost(message, optional, tag="1")]
@@ -135,6 +136,7 @@ pub mod database_runtime_event_payload {
         DatabaseRuntimeConnectionsEvent(super::DatabaseRuntimeConnectionsEvent),
     }
 }
+/// Decl represents user-defined data types in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Decl {
     #[prost(oneof="decl::Value", tags="6, 1, 3, 4, 7, 9, 5, 2")]
@@ -256,9 +258,10 @@ pub struct Map {
     #[prost(message, optional, boxed, tag="3")]
     pub value: ::core::option::Option<::prost::alloc::boxed::Box<Type>>,
 }
+/// Metadata represents a metadata Node in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Metadata {
-    #[prost(oneof="metadata::Value", tags="5, 14, 1, 10, 3, 4, 9, 2, 12, 6, 13, 11, 7, 8")]
+    #[prost(oneof="metadata::Value", tags="5, 14, 1, 10, 3, 17, 4, 9, 2, 15, 12, 6, 13, 16, 11, 7, 8")]
     pub value: ::core::option::Option<metadata::Value>,
 }
 /// Nested message and enum types in `Metadata`.
@@ -275,18 +278,24 @@ pub mod metadata {
         Config(super::MetadataConfig),
         #[prost(message, tag="3")]
         CronJob(super::MetadataCronJob),
+        #[prost(message, tag="17")]
+        DbColumn(super::MetadataDbColumn),
         #[prost(message, tag="4")]
         Databases(super::MetadataDatabases),
         #[prost(message, tag="9")]
         Encoding(super::MetadataEncoding),
         #[prost(message, tag="2")]
         Ingress(super::MetadataIngress),
+        #[prost(message, tag="15")]
+        Partitions(super::MetadataPartitions),
         #[prost(message, tag="12")]
         Publisher(super::MetadataPublisher),
         #[prost(message, tag="6")]
         Retry(super::MetadataRetry),
         #[prost(message, tag="13")]
         SqlMigration(super::MetadataSqlMigration),
+        #[prost(message, tag="16")]
+        SqlQuery(super::MetadataSqlQuery),
         #[prost(message, tag="11")]
         Secrets(super::MetadataSecrets),
         #[prost(message, tag="7")]
@@ -315,6 +324,7 @@ pub struct MetadataArtefact {
     #[prost(bool, tag="4")]
     pub executable: bool,
 }
+/// MetadataCalls represents a metadata block with a list of calls.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataCalls {
     #[prost(message, optional, tag="1")]
@@ -322,6 +332,7 @@ pub struct MetadataCalls {
     #[prost(message, repeated, tag="2")]
     pub calls: ::prost::alloc::vec::Vec<Ref>,
 }
+/// MetadataConfig represents a metadata block with a list of config items that are used.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataConfig {
     #[prost(message, optional, tag="1")]
@@ -335,6 +346,16 @@ pub struct MetadataCronJob {
     pub pos: ::core::option::Option<Position>,
     #[prost(string, tag="2")]
     pub cron: ::prost::alloc::string::String,
+}
+/// MetadataDBColumn designates a database column.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetadataDbColumn {
+    #[prost(message, optional, tag="1")]
+    pub pos: ::core::option::Option<Position>,
+    #[prost(string, tag="2")]
+    pub table: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub name: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataDatabases {
@@ -364,6 +385,13 @@ pub struct MetadataIngress {
     pub path: ::prost::alloc::vec::Vec<IngressPathComponent>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetadataPartitions {
+    #[prost(message, optional, tag="1")]
+    pub pos: ::core::option::Option<Position>,
+    #[prost(int64, tag="2")]
+    pub partitions: i64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataPublisher {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
@@ -390,6 +418,15 @@ pub struct MetadataSqlMigration {
     #[prost(string, tag="2")]
     pub digest: ::prost::alloc::string::String,
 }
+/// MetadataQuery designates a query verb; a verb generated from a SQL query.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetadataSqlQuery {
+    #[prost(message, optional, tag="1")]
+    pub pos: ::core::option::Option<Position>,
+    #[prost(string, tag="2")]
+    pub query: ::prost::alloc::string::String,
+}
+/// MetadataSecrets represents a metadata block with a list of config items that are used.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataSecrets {
     #[prost(message, optional, tag="1")]
@@ -434,6 +471,7 @@ pub struct Module {
     #[prost(message, optional, tag="31634")]
     pub runtime: ::core::option::Option<ModuleRuntime>,
 }
+/// ModuleRuntime is runtime configuration for a module that can be dynamically updated.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModuleRuntime {
     #[prost(message, optional, tag="1")]
@@ -485,6 +523,7 @@ pub struct ModuleRuntimeScaling {
     #[prost(int32, tag="1")]
     pub min_replicas: i32,
 }
+/// Optional represents a Type whose value may be optional.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Optional {
     #[prost(message, optional, tag="1")]
@@ -501,6 +540,7 @@ pub struct Position {
     #[prost(int64, tag="3")]
     pub column: i64,
 }
+/// Ref is an untyped reference to a symbol.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Ref {
     #[prost(message, optional, tag="1")]
@@ -512,6 +552,7 @@ pub struct Ref {
     #[prost(message, repeated, tag="4")]
     pub type_parameters: ::prost::alloc::vec::Vec<Type>,
 }
+/// RuntimeEvent is an event modifying a runtime part of the schema.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RuntimeEvent {
     #[prost(oneof="runtime_event::Value", tags="5, 1, 3, 2, 6, 4")]
@@ -584,6 +625,8 @@ pub struct Topic {
     pub name: ::prost::alloc::string::String,
     #[prost(message, optional, tag="5")]
     pub event: ::core::option::Option<Type>,
+    #[prost(message, repeated, tag="6")]
+    pub metadata: ::prost::alloc::vec::Vec<Metadata>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TopicRuntime {
@@ -599,6 +642,7 @@ pub struct TopicRuntimeEvent {
     #[prost(message, optional, tag="2")]
     pub payload: ::core::option::Option<TopicRuntime>,
 }
+/// Type represents a Type Node in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Type {
     #[prost(oneof="r#type::Value", tags="9, 7, 5, 4, 2, 1, 8, 12, 11, 3, 6, 10")]
@@ -668,6 +712,7 @@ pub struct Unit {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
 }
+/// Value represents a value Node in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Value {
     #[prost(oneof="value::Value", tags="2, 1, 3")]
@@ -745,6 +790,7 @@ pub struct VerbRuntimeSubscription {
     #[prost(string, repeated, tag="1")]
     pub kafka_brokers: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
+/// AliasKind is the kind of alias.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AliasKind {
