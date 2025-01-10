@@ -19,7 +19,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
-	"github.com/alecthomas/types/tuple"
 	"github.com/jackc/pgx/v5"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/jpillora/backoff"
@@ -1052,7 +1051,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 	}
 	logger.Tracef("Seeded %d deployments", initialCount)
 
-	for notification := range iterops.Changes(stateIter, view, eventExtractor) {
+	for notification := range iterops.Changes(stateIter, view, state.EventExtractor) {
 		switch event := notification.(type) {
 		case *state.DeploymentCreatedEvent:
 			err := sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
@@ -1142,44 +1141,4 @@ func validateCallBody(body []byte, verb *schema.Verb, sch *schema.Schema) error 
 		return fmt.Errorf("could not validate call request body: %w", err)
 	}
 	return nil
-}
-
-// eventExtractor calculates controller events from changes to the state.
-func eventExtractor(diff tuple.Pair[state.State, state.State]) []state.ControllerEvent {
-	var events []state.ControllerEvent
-
-	previous := diff.A
-	current := diff.B
-
-	previousAll := previous.GetDeployments()
-	for _, deployment := range current.GetDeployments() {
-		pd, ok := previousAll[deployment.Key.String()]
-		if !ok {
-			events = append(events, &state.DeploymentCreatedEvent{
-				Module:    deployment.Module,
-				Key:       deployment.Key,
-				CreatedAt: deployment.CreatedAt,
-				Schema:    deployment.Schema,
-				Language:  deployment.Language,
-			})
-		} else if !pd.Schema.Equals(deployment.Schema) {
-			events = append(events, &state.DeploymentSchemaUpdatedEvent{
-				Key:    deployment.Key,
-				Schema: deployment.Schema,
-			})
-		}
-	}
-
-	currentActive := current.GetActiveDeployments()
-	currentAll := current.GetDeployments()
-	for _, deployment := range previous.GetActiveDeployments() {
-		if _, ok := currentActive[deployment.Key.String()]; !ok {
-			_, ok2 := currentAll[deployment.Key.String()]
-			events = append(events, &state.DeploymentDeactivatedEvent{
-				Key:           deployment.Key,
-				ModuleRemoved: !ok2,
-			})
-		}
-	}
-	return events
 }
