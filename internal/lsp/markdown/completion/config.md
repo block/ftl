@@ -3,10 +3,11 @@ Declare a config variable.
 Configuration values are named, typed values. They are managed by the `ftl config` command-line.
 
 ```go
-var defaultUser = ftl.Config[string]("defaultUser")
+// Will create a config value called "myConfig" in the FTL schema
+type MyConfig = ftl.Config[string]
 ```
 
 See https://block.github.io/ftl/docs/reference/secretsconfig/
 ---
 
-var ${1:configVar} = ftl.Config[${2:Type}]("${1:configVar}")
+type ${1:Name} = ftl.Config[${2:Type}]

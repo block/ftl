@@ -1,6 +1,6 @@
-Declare a type enum (sum types).
+Declare a type enum (sum type).
 
-A type enum is a set of types that can be used as a single type, which `go` does not directly support.
+Type enums allow you to define a set of related types that implement a common interface. This provides sum type functionality that Go doesn't natively support.
 
 ```go
 //ftl:enum
@@ -20,4 +20,5 @@ See https://block.github.io/ftl/docs/reference/types/
 type ${1:Type} interface { ${2:interface}() }
 
 type ${3:Value} struct {}
+
 func (${3:Value}) ${2:interface}() {}

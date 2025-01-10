@@ -4,12 +4,12 @@ A value enum is an enumerated set of string or integer values.
 
 ```go
 //ftl:enum
-type Colour string
+type Color string
 
 const (
-  Red   Colour = "red"
-  Green Colour = "green"
-  Blue  Colour = "blue"
+  Red   Color = "red"
+  Green Color = "green"
+  Blue  Color = "blue"
 )
 ```
 
