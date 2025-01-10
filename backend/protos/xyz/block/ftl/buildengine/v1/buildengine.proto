@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package xyz.block.ftl.buildengine.v1;
+
+import "xyz/block/ftl/language/v1/language.proto";
+import "xyz/block/ftl/v1/ftl.proto";
+
+option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1;buildenginepb";
+
+// EngineStarted is published when the engine becomes busy building and deploying modules.
+message EngineStarted {}
+
+// EngineEnded is published when the engine is no longer building or deploying any modules.
+// If there are any remaining errors, they will be included in the ModuleErrors map.
+message EngineEnded {
+  map<string, xyz.block.ftl.language.v1.ErrorList> module_errors = 1; // module name -> error
+}
+
+// ModuleAdded is published when the engine discovers a module.
+message ModuleAdded {
+  string module = 1;
+}
+
+// ModuleRemoved is published when the engine discovers a module has been removed.
+message ModuleRemoved {
+  string module = 1;
+}
+
+// ModuleBuildWaiting is published when a build is waiting for dependencies to build
+message ModuleBuildWaiting {
+  xyz.block.ftl.language.v1.ModuleConfig config = 1;
+}
+
+// ModuleBuildStarted is published when a build has started for a module.
+message ModuleBuildStarted {
+  xyz.block.ftl.language.v1.ModuleConfig config = 1;
+  bool is_auto_rebuild = 2;
+}
+
+// ModuleBuildFailed is published for any build failures.
+message ModuleBuildFailed {
+  xyz.block.ftl.language.v1.ModuleConfig config = 1;
+  xyz.block.ftl.language.v1.ErrorList errors = 2;
+  bool is_auto_rebuild = 3;
+}
+
+// ModuleBuildSuccess is published when all modules have been built successfully built.
+message ModuleBuildSuccess {
+  xyz.block.ftl.language.v1.ModuleConfig config = 1;
+  bool is_auto_rebuild = 2;
+}
+
+// ModuleDeployStarted is published when a deploy has begun for a module.
+message ModuleDeployStarted {
+  string module = 1;
+}
+
+// ModuleDeployFailed is published for any deploy failures.
+message ModuleDeployFailed {
+  string module = 1;
+  xyz.block.ftl.language.v1.ErrorList errors = 2;
+}
+
+// ModuleDeploySuccess is published when all modules have been built successfully deployed.
+message ModuleDeploySuccess {
+  string module = 1;
+}
+
+// EngineEvent is an event published by the engine as modules get built and deployed.
+message EngineEvent {
+  oneof event {
+    EngineStarted engine_started = 1;
+    EngineEnded engine_ended = 2;
+    ModuleAdded module_added = 3;
+    ModuleRemoved module_removed = 4;
+    ModuleBuildWaiting module_build_waiting = 5;
+    ModuleBuildStarted module_build_started = 6;
+    ModuleBuildFailed module_build_failed = 7;
+    ModuleBuildSuccess module_build_success = 8;
+    ModuleDeployStarted module_deploy_started = 9;
+    ModuleDeployFailed module_deploy_failed = 10;
+    ModuleDeploySuccess module_deploy_success = 11;
+  }
+}
+
+message StreamEngineEventsRequest {}
+
+message StreamEngineEventsResponse {
+  EngineEvent event = 1;
+}
+
+service BuildEngineService {
+  // Ping service for readiness.
+  rpc Ping(ftl.v1.PingRequest) returns (ftl.v1.PingResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  rpc StreamEngineEvents(StreamEngineEventsRequest) returns (stream StreamEngineEventsResponse) {}
+}

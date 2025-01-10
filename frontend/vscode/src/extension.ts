@@ -2,7 +2,7 @@ import type { ExtensionContext } from 'vscode'
 
 import * as vscode from 'vscode'
 import { FTLClient } from './client'
-import { MIN_FTL_VERSION, checkMinimumVersion, getFTLVersion, getProjectOrWorkspaceRoot, isFTLRunning, resolveFtlPath } from './config'
+import { MIN_FTL_VERSION, checkMinimumVersion, getFTLVersion, getProjectOrWorkspaceRoot, resolveFtlPath } from './config'
 import { FTLStatus } from './status'
 
 const extensionId = 'ftl'
@@ -20,26 +20,12 @@ export const activate = async (context: ExtensionContext) => {
 
   client = new FTLClient(statusBarItem, outputChannel)
 
-  const restartCmd = vscode.commands.registerCommand(`${extensionId}.restart`, async () => {
-    console.log('Restarting FTL client')
-    await client.stop()
-    console.log('FTL client stopped')
-    await startClient(context)
-    console.log('FTL client started')
-  })
-
-  const stopCmd = vscode.commands.registerCommand(`${extensionId}.stop`, async () => client.stop())
-
   const showLogsCommand = vscode.commands.registerCommand('ftl.showLogs', () => {
     outputChannel.show()
   })
 
   const showCommands = vscode.commands.registerCommand('ftl.statusItemClicked', () => {
-    const ftlCommands = [
-      { label: 'FTL: Restart Service', command: 'ftl.restart' },
-      { label: 'FTL: Stop Service', command: 'ftl.stop' },
-      { label: 'FTL: Show Logs', command: 'ftl.showLogs' },
-    ]
+    const ftlCommands = [{ label: 'FTL: Show Logs', command: 'ftl.showLogs' }]
 
     vscode.window.showQuickPick(ftlCommands, { placeHolder: 'Select an FTL command' }).then((selected) => {
       if (selected) {
@@ -48,20 +34,14 @@ export const activate = async (context: ExtensionContext) => {
     })
   })
 
-  promptStartClient(context)
+  await startClient(context)
 
-  context.subscriptions.push(restartCmd, stopCmd, statusBarItem, showCommands, showLogsCommand)
+  context.subscriptions.push(statusBarItem, showCommands, showLogsCommand)
 }
 
 export const deactivate = async () => client.stop()
 
 const FTLPreflightCheck = async (ftlPath: string) => {
-  const ftlRunning = await isFTLRunning(ftlPath)
-  if (ftlRunning) {
-    vscode.window.showErrorMessage('FTL is already running. Please stop the other instance and restart the service.')
-    return false
-  }
-
   let version: string
   try {
     version = await getFTLVersion(ftlPath)
@@ -80,52 +60,6 @@ const FTLPreflightCheck = async (ftlPath: string) => {
   return true
 }
 
-const AUTOMATICALLY_START_SERVER_VAR = 'automaticallyStartServer' as const
-const PROMPT_OPTIONS = ['Always', 'Yes', 'No', 'Never'] as const
-type PromptOption = (typeof PROMPT_OPTIONS)[number]
-type AutoStartOption = 'always' | 'never' | 'prompt'
-
-const promptStartClient = async (context: vscode.ExtensionContext) => {
-  const configuration = vscode.workspace.getConfiguration('ftl')
-  outputChannel.appendLine(`FTL configuration: ${JSON.stringify(configuration)}`)
-  const automaticallyStartServer = configuration.get<AutoStartOption | undefined>(AUTOMATICALLY_START_SERVER_VAR)
-
-  FTLStatus.ftlStopped(statusBarItem)
-
-  if (automaticallyStartServer === 'always') {
-    outputChannel.appendLine('FTL development server automatically started')
-    await startClient(context)
-    return
-  }
-  if (automaticallyStartServer === 'never') {
-    outputChannel.appendLine(`FTL development server not started ('${AUTOMATICALLY_START_SERVER_VAR}' set to 'never' in workspace settings.json)`)
-    return
-  }
-
-  vscode.window
-    .showInformationMessage('FTL project detected. Would you like to start the FTL development server for this workspace?', ...PROMPT_OPTIONS)
-    .then(async (result: PromptOption | undefined) => {
-      switch (result) {
-        case 'Always':
-          configuration.update(AUTOMATICALLY_START_SERVER_VAR, 'always', vscode.ConfigurationTarget.Workspace)
-          await startClient(context)
-          break
-        case 'Yes':
-          await startClient(context)
-          break
-        case 'No':
-          outputChannel.appendLine('FTL development server disabled')
-          FTLStatus.ftlStopped(statusBarItem)
-          break
-        case 'Never':
-          outputChannel.appendLine('FTL development server set to never auto start')
-          configuration.update(AUTOMATICALLY_START_SERVER_VAR, 'never', vscode.ConfigurationTarget.Workspace)
-          FTLStatus.ftlStopped(statusBarItem)
-          break
-      }
-    })
-}
-
 const startClient = async (context: ExtensionContext) => {
   FTLStatus.ftlStarting(statusBarItem)
 
@@ -142,9 +76,9 @@ const startClient = async (context: ExtensionContext) => {
     return
   }
 
-  const userFlags = ftlConfig.get<string[]>('devCommandFlags') ?? []
+  const userFlags = ftlConfig.get<string[]>('lspCommandFlags') ?? []
 
-  const flags = [...userFlags, '--lsp']
+  const flags = [...userFlags]
 
   return client.start(resolvedFtlPath, workspaceRootPath, flags, context)
 }
