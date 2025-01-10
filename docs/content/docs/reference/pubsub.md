@@ -15,7 +15,7 @@ top = false
 
 FTL has first-class support for PubSub, modelled on the concepts of topics (where events are sent) and subscribers (a verb which consumes events). Subscribers are, as you would expect, sinks. Each subscriber is a cursor over the topic it is associated with. Each topic may have multiple subscriptions. Each published event has an at least once delivery guarantee for each subscription.
 
-A topic can be exported to allow other module to subscribe to it. Subscriptions are always private to their module.
+A topic can be exported to allow other modules to subscribe to it. Subscriptions are always private to their module.
 
 When a subscription is first created in an environment, it can start consuming from the beginning of the topic or only consume events published afterwards.
 
