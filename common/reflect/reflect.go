@@ -228,6 +228,10 @@ func copyMap(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 	if v.Kind() != reflect.Map {
 		panic(fmt.Errorf("reflect: internal error: must be a Map; got %v", v.Kind()))
 	}
+	if v.IsNil() {
+		return x
+	}
+
 	t := reflect.TypeOf(x)
 	dc := reflect.MakeMapWithSize(t, v.Len())
 	iter := v.MapRange()

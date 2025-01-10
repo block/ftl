@@ -91,8 +91,7 @@ func TestCopyStructOfPointers(t *testing.T) {
 
 func TestNilTypeCopyIsNil(t *testing.T) {
 	assert.Assert(t, DeepCopy([]int(nil)) == nil)
-	// TODO: fix map, and all "panic: assignment to entry in nil map" failures this fix will cause
-	// assert.Assert(t, DeepCopy(map[string]int(nil)) == nil)
+	assert.Assert(t, DeepCopy(map[string]int(nil)) == nil)
 }
 
 func TestDeepCopyTime(t *testing.T) {
