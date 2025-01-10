@@ -11,7 +11,6 @@ import (
 	"github.com/jpillora/backoff"
 
 	"github.com/block/ftl/backend/controller/leases"
-	"github.com/block/ftl/backend/controller/state"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/model"
 )
@@ -26,22 +25,22 @@ func TestScheduledTask(t *testing.T) {
 	var multiCount atomic.Int64
 
 	type controller struct {
-		controller state.Controller
-		cron       *Scheduler
+		controllerKey model.ControllerKey
+		cron          *Scheduler
 	}
 
 	controllers := []*controller{
-		{controller: state.Controller{Key: model.NewControllerKey("localhost", "8080")}},
-		{controller: state.Controller{Key: model.NewControllerKey("localhost", "8081")}},
-		{controller: state.Controller{Key: model.NewControllerKey("localhost", "8082")}},
-		{controller: state.Controller{Key: model.NewControllerKey("localhost", "8083")}},
+		{controllerKey: model.NewControllerKey("localhost", "8080")},
+		{controllerKey: model.NewControllerKey("localhost", "8081")},
+		{controllerKey: model.NewControllerKey("localhost", "8082")},
+		{controllerKey: model.NewControllerKey("localhost", "8083")},
 	}
 
 	clock := clock.NewMock()
 	leaser := leases.NewFakeLeaser()
 
 	for _, c := range controllers {
-		c.cron = NewForTesting(ctx, c.controller.Key, clock, leaser)
+		c.cron = NewForTesting(ctx, c.controllerKey, clock, leaser)
 		c.cron.Singleton("singleton", backoff.Backoff{}, func(ctx context.Context) (time.Duration, error) {
 			singletonCount.Add(1)
 			return time.Second, nil
