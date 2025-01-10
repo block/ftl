@@ -15,8 +15,8 @@ import (
 type StateMachine[Q any, R any, E any] interface {
 	// Query the state of the state machine.
 	Lookup(key Q) (R, error)
-	// Update the state of the state machine.
-	Update(msg E) error
+	// Publish an event to the state machine.
+	Publish(msg E) error
 }
 
 // Unmarshallable is a type that can be unmarshalled from a binary representation.
@@ -28,8 +28,8 @@ type Unmarshallable[T any] interface {
 // Marshallable is a type that can be marshalled to a binary representation.
 type Marshallable encoding.BinaryMarshaler
 
-// SnapshottingStateMachine adds snapshotting capabilities to a StateMachine.
-type SnapshottingStateMachine[Q any, R any, E any] interface {
+// Snapshotting adds snapshotting capabilities to a StateMachine.
+type Snapshotting[Q any, R any, E any] interface {
 	StateMachine[Q, R, E]
 
 	// Save the state of the state machine to a snapshot.
@@ -40,9 +40,10 @@ type SnapshottingStateMachine[Q any, R any, E any] interface {
 	Close() error
 }
 
-// StateMachineHandle is a handle to update and query a state machine.
-type StateMachineHandle[Q any, R any, E any] interface {
-	Update(ctx context.Context, msg E) error
-	Query(ctx context.Context, query Q) (R, error)
-	Changes(ctx context.Context, query Q) (chan R, error)
+// Listenable adds change notification capabilities to a StateMachine.
+type Listenable[Q any, R any, E any] interface {
+	StateMachine[Q, R, E]
+
+	// Subscribe returns a channel that emits an event when the state of the state machine changes.
+	Subscribe(ctx context.Context) (<-chan struct{}, error)
 }

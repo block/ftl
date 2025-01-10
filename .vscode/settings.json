@@ -13,5 +13,6 @@
   },
   "python.analysis.extraPaths": ["./python-runtime/ftl/src"],
   "npm.packageManager": "pnpm",
-  "ftl.automaticallyStartServer": "never"
+  "ftl.automaticallyStartServer": "never",
+  "go.testFlags": ["-race"]
 }

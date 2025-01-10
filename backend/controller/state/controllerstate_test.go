@@ -16,7 +16,7 @@ import (
 func TestRunnerState(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 
-	cs := state.NewInMemoryState()
+	cs := state.NewInMemoryState(ctx)
 	view, err := cs.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(view.Runners()))
@@ -68,7 +68,7 @@ func TestRunnerState(t *testing.T) {
 
 func TestDeploymentState(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	cs := state.NewInMemoryState()
+	cs := state.NewInMemoryState(ctx)
 	view, err := cs.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(view.GetDeployments()))

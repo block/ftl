@@ -5,6 +5,7 @@ import (
 	"encoding"
 	"fmt"
 	"io"
+	"iter"
 
 	"github.com/block/ftl/internal/eventstream"
 	sm "github.com/block/ftl/internal/statemachine"
@@ -18,11 +19,11 @@ type RaftStreamEvent[View encoding.BinaryMarshaler, VPtr sm.Unmarshallable[View]
 }
 
 type RaftEventView[V encoding.BinaryMarshaler, VPrt sm.Unmarshallable[V], E RaftStreamEvent[V, VPrt]] struct {
-	shard sm.StateMachineHandle[UnitQuery, V, E]
+	shard sm.Handle[UnitQuery, V, E]
 }
 
 func (s *RaftEventView[V, VPrt, E]) Publish(ctx context.Context, event E) error {
-	if err := s.shard.Update(ctx, event); err != nil {
+	if err := s.shard.Publish(ctx, event); err != nil {
 		return fmt.Errorf("failed to update shard: %w", err)
 	}
 	return nil
@@ -39,8 +40,8 @@ func (s *RaftEventView[V, VPrt, E]) View(ctx context.Context) (V, error) {
 	return view, nil
 }
 
-func (s *RaftEventView[V, VPrt, E]) Changes(ctx context.Context) (chan V, error) {
-	res, err := s.shard.Changes(ctx, UnitQuery{})
+func (s *RaftEventView[V, VPrt, E]) Changes(ctx context.Context) (iter.Seq[V], error) {
+	res, err := s.shard.StateIter(ctx, UnitQuery{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get changes: %w", err)
 	}
@@ -65,7 +66,7 @@ func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Lookup(key UnitQuery) (V, er
 	return s.view, nil
 }
 
-func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Update(msg E) error {
+func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Publish(msg E) error {
 	v, err := msg.Handle(s.view)
 	if err != nil {
 		return fmt.Errorf("failed to handle event: %w", err)

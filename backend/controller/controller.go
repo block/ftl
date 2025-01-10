@@ -19,6 +19,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
+	"github.com/alecthomas/types/tuple"
 	"github.com/jackc/pgx/v5"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/jpillora/backoff"
@@ -36,12 +37,11 @@ import (
 	deploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/runner/pubsub"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/deploymentcontext"
+	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/log"
 	ftlmaps "github.com/block/ftl/internal/maps"
 	"github.com/block/ftl/internal/model"
@@ -50,6 +50,7 @@ import (
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/statemachine"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
@@ -138,7 +139,6 @@ type Service struct {
 	adminClient        ftlv1connect.AdminServiceClient
 
 	tasks          *scheduledtask.Scheduler
-	pubSub         *pubsub.Service
 	timelineClient *timelineclient.Client
 	storage        *artefacts.OCIArtefactService
 
@@ -149,7 +149,7 @@ type Service struct {
 	config Config
 
 	routeTable      *routing.RouteTable
-	controllerState state.ControllerState
+	controllerState *statemachine.SingleQueryHandle[struct{}, state.State, state.ControllerEvent]
 }
 
 func New(
@@ -186,7 +186,7 @@ func New(
 		config:          config,
 		routeTable:      routingTable,
 		storage:         storage,
-		controllerState: state.NewInMemoryState(),
+		controllerState: state.NewInMemoryState(ctx),
 		adminClient:     adminClient,
 	}
 
@@ -711,7 +711,7 @@ func hashRoutesTable(h hash.Hash, m map[string]string) error {
 }
 
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
-	return s.callWithRequest(ctx, headers.CopyRequestForForwarding(req), optional.None[model.RequestKey](), optional.None[model.RequestKey](), "")
+	return s.callWithRequest(ctx, headers.CopyRequestForForwarding(req), optional.None[model.RequestKey](), optional.None[model.RequestKey]())
 }
 
 func (s *Service) callWithRequest(
@@ -719,7 +719,6 @@ func (s *Service) callWithRequest(
 	req *connect.Request[ftlv1.CallRequest],
 	key optional.Option[model.RequestKey],
 	parentKey optional.Option[model.RequestKey],
-	sourceAddress string,
 ) (*connect.Response[ftlv1.CallResponse], error) {
 	logger := log.FromContext(ctx)
 	start := time.Now()
@@ -774,7 +773,6 @@ func (s *Service) callWithRequest(
 			return nil, err
 		} else if !ok {
 			requestKey = model.NewRequestKey(model.OriginIngress, "grpc")
-			sourceAddress = req.Peer().Addr
 			isNewRequestKey = true
 		} else {
 			requestKey = k
@@ -929,18 +927,6 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	return connect.NewResponse(&ftlv1.CreateDeploymentResponse{DeploymentKey: dkey.String()}), nil
 }
 
-func stripNonAlphanumeric(s string) string {
-	var result strings.Builder
-	for _, r := range s {
-		if ('a' <= r && r <= 'z') ||
-			('A' <= r && r <= 'Z') ||
-			('0' <= r && r <= '9') {
-			result.WriteRune(r)
-		}
-	}
-	return result.String()
-}
-
 // Load schemas for existing modules, combine with our new one, and validate the new module in the context
 // of the whole schema.
 func (s *Service) validateModuleSchema(ctx context.Context, module *schema.Module) (*schema.Module, error) {
@@ -949,7 +935,7 @@ func (s *Service) validateModuleSchema(ctx context.Context, module *schema.Modul
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
 	existingModules := view.GetActiveDeployments()
-	schemaMap := ftlmaps.FromSlice[string, *schema.Module, *state.Deployment](maps.Values(existingModules), func(el *state.Deployment) (string, *schema.Module) { return el.Module, el.Schema })
+	schemaMap := ftlmaps.FromSlice(maps.Values(existingModules), func(el *state.Deployment) (string, *schema.Module) { return el.Module, el.Schema })
 	schemaMap[module.Name] = module
 	fullSchema := &schema.Schema{Modules: maps.Values(schemaMap)}
 	schema, err := schema.ValidateModuleInSchema(fullSchema, optional.Some[*schema.Module](module))
@@ -1022,8 +1008,13 @@ func (s *Service) reapStaleRunners(ctx context.Context) (time.Duration, error) {
 func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
 	logger := log.FromContext(ctx)
 
-	updates := s.controllerState.Updates().Subscribe(nil)
-	defer s.controllerState.Updates().Unsubscribe(updates)
+	uctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stateIter, err := s.controllerState.StateIter(uctx)
+	if err != nil {
+		return fmt.Errorf("failed to get controller state iterator: %w", err)
+	}
+
 	view, err := s.controllerState.View(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get controller state: %w", err)
@@ -1061,7 +1052,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 	}
 	logger.Tracef("Seeded %d deployments", initialCount)
 
-	for notification := range channels.IterContext(ctx, updates) {
+	for notification := range iterops.Changes(stateIter, view, eventExtractor) {
 		switch event := notification.(type) {
 		case *state.DeploymentCreatedEvent:
 			err := sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
@@ -1151,4 +1142,44 @@ func validateCallBody(body []byte, verb *schema.Verb, sch *schema.Schema) error 
 		return fmt.Errorf("could not validate call request body: %w", err)
 	}
 	return nil
+}
+
+// eventExtractor calculates controller events from changes to the state.
+func eventExtractor(diff tuple.Pair[state.State, state.State]) []state.ControllerEvent {
+	var events []state.ControllerEvent
+
+	previous := diff.A
+	current := diff.B
+
+	previousAll := previous.GetDeployments()
+	for _, deployment := range current.GetDeployments() {
+		pd, ok := previousAll[deployment.Key.String()]
+		if !ok {
+			events = append(events, &state.DeploymentCreatedEvent{
+				Module:    deployment.Module,
+				Key:       deployment.Key,
+				CreatedAt: deployment.CreatedAt,
+				Schema:    deployment.Schema,
+				Language:  deployment.Language,
+			})
+		} else if !pd.Schema.Equals(deployment.Schema) {
+			events = append(events, &state.DeploymentSchemaUpdatedEvent{
+				Key:    deployment.Key,
+				Schema: deployment.Schema,
+			})
+		}
+	}
+
+	currentActive := current.GetActiveDeployments()
+	currentAll := current.GetDeployments()
+	for _, deployment := range previous.GetActiveDeployments() {
+		if _, ok := currentActive[deployment.Key.String()]; !ok {
+			_, ok2 := currentAll[deployment.Key.String()]
+			events = append(events, &state.DeploymentDeactivatedEvent{
+				Key:           deployment.Key,
+				ModuleRemoved: !ok2,
+			})
+		}
+	}
+	return events
 }

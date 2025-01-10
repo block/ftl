@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"iter"
 	"net/http"
 	"net/url"
 	"sync"
@@ -20,6 +21,7 @@ import (
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	raftpbconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/retry"
 	"github.com/block/ftl/internal/rpc"
@@ -52,7 +54,7 @@ type Builder struct {
 	shards        map[uint64]statemachine.CreateStateMachineFunc
 	controlClient *http.Client
 
-	handles []*ShardHandle[sm.Marshallable, any, any]
+	handles []*ShardHandle[any, any, sm.Marshallable]
 }
 
 func NewBuilder(cfg *RaftConfig) *Builder {
@@ -74,14 +76,14 @@ func AddShard[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable[E]](
 	ctx context.Context,
 	to *Builder,
 	shardID uint64,
-	statemachine sm.SnapshottingStateMachine[Q, R, E],
-) sm.StateMachineHandle[Q, R, E] {
+	statemachine sm.Snapshotting[Q, R, E],
+) sm.Handle[Q, R, E] {
 	to.shards[shardID] = newStateMachineShim[Q, R, E, EPtr](statemachine)
 
-	handle := &ShardHandle[E, Q, R]{
+	handle := &ShardHandle[Q, R, E]{
 		shardID: shardID,
 	}
-	to.handles = append(to.handles, (*ShardHandle[sm.Marshallable, any, any])(handle))
+	to.handles = append(to.handles, (*ShardHandle[any, any, sm.Marshallable])(handle))
 	return handle
 }
 
@@ -124,7 +126,7 @@ func (b *Builder) Build(ctx context.Context) *Cluster {
 // E is the event type.
 // Q is the query type.
 // R is the query response type.
-type ShardHandle[E sm.Marshallable, Q any, R any] struct {
+type ShardHandle[Q any, R any, E sm.Marshallable] struct {
 	shardID uint64
 	cluster *Cluster
 	session *client.Session
@@ -134,8 +136,10 @@ type ShardHandle[E sm.Marshallable, Q any, R any] struct {
 	mu sync.Mutex
 }
 
-// Update the shard with an event.
-func (s *ShardHandle[E, Q, R]) Update(ctx context.Context, msg E) error {
+var _ sm.Handle[any, any, sm.Marshallable] = (*ShardHandle[any, any, sm.Marshallable])(nil)
+
+// Publish an event to the shard.
+func (s *ShardHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 	// client session is not thread safe, so we need to lock
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -174,7 +178,7 @@ func (s *ShardHandle[E, Q, R]) Update(ctx context.Context, msg E) error {
 }
 
 // Query the state of the shard.
-func (s *ShardHandle[E, Q, R]) Query(ctx context.Context, query Q) (R, error) {
+func (s *ShardHandle[Q, R, E]) Query(ctx context.Context, query Q) (R, error) {
 	s.verifyReady()
 
 	var zero R
@@ -192,14 +196,14 @@ func (s *ShardHandle[E, Q, R]) Query(ctx context.Context, query Q) (R, error) {
 	return response, nil
 }
 
-// Changes returns a channel that will receive the result of the query when the
+// StateIter returns an iterator that will return the result of the query when the
 // shard state changes.
 //
 // This can only be called when the cluster is running.
 //
 // Note, that this is not guaranteed to receive an event for every change, but
 // will always receive the latest state of the shard.
-func (s *ShardHandle[E, Q, R]) Changes(ctx context.Context, query Q) (chan R, error) {
+func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq[R], error) {
 	if s.cluster.nh == nil {
 		panic("cluster not started")
 	}
@@ -249,10 +253,10 @@ func (s *ShardHandle[E, Q, R]) Changes(ctx context.Context, query Q) (chan R, er
 		}
 	}()
 
-	return result, nil
+	return channels.IterContext(ctx, result), nil
 }
 
-func (s *ShardHandle[E, Q, R]) getLastIndex() (uint64, error) {
+func (s *ShardHandle[Q, R, E]) getLastIndex() (uint64, error) {
 	s.verifyReady()
 
 	reader, err := s.cluster.nh.GetLogReader(s.shardID)
@@ -263,7 +267,7 @@ func (s *ShardHandle[E, Q, R]) getLastIndex() (uint64, error) {
 	return last, nil
 }
 
-func (s *ShardHandle[E, Q, R]) verifyReady() {
+func (s *ShardHandle[Q, R, E]) verifyReady() {
 	if s.cluster == nil {
 		panic("cluster not built")
 	}
