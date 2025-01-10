@@ -84,10 +84,6 @@ func errorToLangError(err error) []*langpb.Error {
 			continue
 		}
 
-		if berr.Type == builderrors.COMPILER {
-			continue
-		}
-
 		pbError := &langpb.Error{
 			Msg:   berr.Msg,
 			Level: langpb.Error_ErrorLevel(berr.Level),
