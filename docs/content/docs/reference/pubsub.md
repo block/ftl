@@ -41,7 +41,7 @@ type Invoice struct {
 // ftl.TopicPartitionMap is an interface for mapping each event to a partition in the topic.
 // 
 // If creating a topic with multiple partitions, you'll need to define a partition mapper for your event type.
-// Otherwise you can use ftl.SingpePartitionMap[Event]
+// Otherwise you can use ftl.SinglePartitionMap[Event]
 type PartitionMapper struct{}
 
 var _ ftl.TopicPartitionMap[PubSubEvent] = PartitionMapper{}
