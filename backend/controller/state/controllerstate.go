@@ -11,7 +11,7 @@ import (
 
 type State struct {
 	deployments         map[string]*Deployment
-	activeDeployments   map[string]*Deployment
+	activeDeployments   map[string]bool
 	runners             map[string]*Runner
 	runnersByDeployment map[string][]*Runner
 }
@@ -55,7 +55,7 @@ func NewInMemoryState(ctx context.Context) *statemachine.SingleQueryHandle[struc
 		runningCtx:  ctx,
 		state: State{
 			deployments:         map[string]*Deployment{},
-			activeDeployments:   map[string]*Deployment{},
+			activeDeployments:   map[string]bool{},
 			runners:             map[string]*Runner{},
 			runnersByDeployment: map[string][]*Runner{},
 		},
