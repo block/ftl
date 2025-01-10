@@ -7,8 +7,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 
-	pb "github.com/block/ftl/backend/protos/xyz/block/ftl/publish/v1"
-	pbconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/publish/v1/publishpbconnect"
+	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/schema"
 	sl "github.com/block/ftl/common/slices"
@@ -26,7 +26,8 @@ type VerbClient interface {
 	Call(ctx context.Context, c *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error)
 }
 
-var _ pbconnect.PublishServiceHandler = (*Service)(nil)
+var _ pubsubpbconnect.PublishServiceHandler = (*Service)(nil)
+var _ pubsubpbconnect.PubSubAdminServiceHandler = (*Service)(nil)
 
 func New(module *schema.Module, deployment key.Deployment, verbClient VerbClient, timelineClient *timelineclient.Client) (*Service, error) {
 	publishers := map[string]*publisher{}
@@ -76,7 +77,11 @@ func (s *Service) Consume(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) PublishEvent(ctx context.Context, req *connect.Request[pb.PublishEventRequest]) (*connect.Response[pb.PublishEventResponse], error) {
+func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
+	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+}
+
+func (s *Service) PublishEvent(ctx context.Context, req *connect.Request[pubsubpb.PublishEventRequest]) (*connect.Response[pubsubpb.PublishEventResponse], error) {
 	publisher, ok := s.publishers[req.Msg.Topic.Name]
 	if !ok {
 		return nil, fmt.Errorf("topic %s not found", req.Msg.Topic.Name)
@@ -89,9 +94,21 @@ func (s *Service) PublishEvent(ctx context.Context, req *connect.Request[pb.Publ
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.PublishEventResponse{}), nil
+	return connect.NewResponse(&pubsubpb.PublishEventResponse{}), nil
 }
 
-func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+func (s *Service) ResetOffsetsOfSubscription(ctx context.Context, req *connect.Request[pubsubpb.ResetOffsetsOfSubscriptionRequest]) (*connect.Response[pubsubpb.ResetOffsetsOfSubscriptionResponse], error) {
+	consumer, ok := s.consumers[req.Msg.Subscription.Name]
+	if !ok {
+		return connect.NewResponse(&pubsubpb.ResetOffsetsOfSubscriptionResponse{}), nil
+	}
+	partitions, err := consumer.ResetOffsetsForClaimedPartitions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pubsubpb.ResetOffsetsOfSubscriptionResponse{
+		Partitions: sl.Map(partitions, func(p int) int32 {
+			return int32(p)
+		}),
+	}), nil
 }

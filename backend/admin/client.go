@@ -50,6 +50,9 @@ type Client interface {
 	// MapSecretsForModule combines all secrets visible to the module.
 	// Local values take precedence.
 	MapSecretsForModule(ctx context.Context, req *connect.Request[ftlv1.MapSecretsForModuleRequest]) (*connect.Response[ftlv1.MapSecretsForModuleResponse], error)
+
+	// Reset a subscription.
+	ResetSubscription(ctx context.Context, req *connect.Request[ftlv1.ResetSubscriptionRequest]) (*connect.Response[ftlv1.ResetSubscriptionResponse], error)
 }
 
 // ShouldUseLocalClient returns whether a local admin client should be used based on the admin service client and the endpoint.

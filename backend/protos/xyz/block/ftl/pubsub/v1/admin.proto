@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package xyz.block.ftl.pubsub.v1;
+
+import "xyz/block/ftl/schema/v1/schema.proto";
+import "xyz/block/ftl/v1/ftl.proto";
+
+option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1;pubsubpb";
+option java_multiple_files = true;
+
+message ResetOffsetsOfSubscriptionRequest {
+  ftl.schema.v1.Ref subscription = 1;
+}
+
+message ResetOffsetsOfSubscriptionResponse {
+  repeated int32 partitions = 1;
+}
+
+// PubSubAdminService administers PubSub resources.
+service PubSubAdminService {
+  // Ping service for readiness.
+  rpc Ping(xyz.block.ftl.v1.PingRequest) returns (xyz.block.ftl.v1.PingResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Reset the offset for a subscription to the latest of each claimed partition.
+  // If the receiver does not currently claim any partitions for a consumer group, then an empty response is returned.
+  rpc ResetOffsetsOfSubscription(ResetOffsetsOfSubscriptionRequest) returns (ResetOffsetsOfSubscriptionResponse);
+}

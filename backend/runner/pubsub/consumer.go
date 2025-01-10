@@ -3,9 +3,11 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -25,6 +27,31 @@ import (
 	"github.com/block/ftl/internal/timelineclient"
 )
 
+//sumtype:decl
+type partitionEvent interface {
+	partitionEvent()
+}
+
+type claimedPartitionEvent struct {
+	partition int
+
+	resetOffset chan chan error
+}
+
+func (claimedPartitionEvent) partitionEvent() {}
+
+type lostPartitionEvent struct {
+	partition int
+}
+
+func (lostPartitionEvent) partitionEvent() {}
+
+type resetOffsetsEvent struct {
+	result chan result.Result[[]int]
+}
+
+func (resetOffsetsEvent) partitionEvent() {}
+
 type consumer struct {
 	moduleName          string
 	deployment          key.Deployment
@@ -36,6 +63,8 @@ type consumer struct {
 
 	verbClient     VerbClient
 	timelineClient *timelineclient.Client
+
+	claimedPartitionsChan chan partitionEvent
 }
 
 func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.MetadataSubscriber, deployment key.Deployment,
@@ -73,6 +102,8 @@ func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.Metada
 
 		verbClient:     verbClient,
 		timelineClient: timelineClient,
+
+		claimedPartitionsChan: make(chan partitionEvent, 16),
 	}
 	retryMetada, ok := slices.FindVariant[*schema.MetadataRetry](verb.Metadata)
 	if ok {
@@ -100,6 +131,7 @@ func (c *consumer) Begin(ctx context.Context) error {
 	// set up config
 	log.FromContext(ctx).Debugf("Starting subscription for %v", c.verb.Name)
 
+	go c.watchPartitions(ctx)
 	go c.watchErrors(ctx)
 	go c.subscribe(ctx)
 	return nil
@@ -135,6 +167,63 @@ func (c *consumer) subscribe(ctx context.Context) {
 	}
 }
 
+func (c *consumer) watchPartitions(ctx context.Context) {
+	activePartitions := map[int]claimedPartitionEvent{}
+	for event := range channels.IterContext(ctx, c.claimedPartitionsChan) {
+		switch event := event.(type) {
+		case claimedPartitionEvent:
+			activePartitions[event.partition] = event
+
+		case lostPartitionEvent:
+			delete(activePartitions, event.partition)
+
+		case resetOffsetsEvent:
+			log.FromContext(ctx).Debugf("Resetting offsets for %v with activePartitions: %v", c.verb.Name, activePartitions)
+			results := make(chan result.Result[int], len(activePartitions))
+			wg := &sync.WaitGroup{}
+			for _, partition := range activePartitions {
+				wg.Add(1)
+				go func() {
+					resultChan := make(chan error)
+					partition.resetOffset <- resultChan
+					log.FromContext(ctx).Debugf("started chan to get reset result")
+					err := <-resultChan
+					log.FromContext(ctx).Debugf("receirved message on chan to get reset result")
+					if err != nil {
+						log.FromContext(ctx).Errorf(err, "Failed to reset offset for %v partition %v", c.verb.Name, partition.partition)
+						results <- result.Err[int](fmt.Errorf("could not reset offset for %v partition %v: %w", c.verb.Name, partition.partition, err))
+					} else {
+						log.FromContext(ctx).Debugf("Did reset offset for %v partition %v", c.verb.Name, partition.partition)
+						results <- result.Ok(partition.partition)
+					}
+					wg.Done()
+				}()
+			}
+			log.FromContext(ctx).Debugf("Waiting for reset results for %v", c.verb.Name)
+			wg.Wait()
+			close(results)
+			errs := []error{}
+
+			partitions := []int{}
+			for r := range results {
+				p, err := r.Result()
+				if err != nil {
+					errs = append(errs, err)
+				} else {
+					partitions = append(partitions, p)
+				}
+			}
+			if len(errs) > 0 {
+				log.FromContext(ctx).Debugf("posting final result to chan: err")
+				event.result <- result.Err[[]int](errors.Join(errs...))
+			} else {
+				log.FromContext(ctx).Debugf("posting final result to chan: ok")
+				event.result <- result.Ok(partitions)
+			}
+		}
+	}
+}
+
 // Setup is run at the beginning of a new session, before ConsumeClaim.
 func (c *consumer) Setup(session sarama.ConsumerGroupSession) error {
 	logger := log.FromContext(session.Context())
@@ -157,46 +246,91 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 	ctx := session.Context()
 	logger := log.FromContext(ctx)
 
-	for msg := range channels.IterContext(ctx, claim.Messages()) {
-		if msg == nil {
-			// Channel closed, rebalance or shutdown needed
-			return nil
-		}
-		logger.Debugf("Consuming message from %v[%v:%v]", c.verb.Name, msg.Partition, msg.Offset)
-		remainingRetries := c.retryParams.Count
-		backoff := c.retryParams.MinBackoff
-		for {
-			err := c.call(ctx, msg.Value, int(msg.Partition), int(msg.Offset))
-			if err == nil {
-				break
-			}
-			select {
-			case <-ctx.Done():
-				// Do not commit the message if we did not succeed and the context is done.
-				// No need to retry message either.
-				logger.Errorf(err, "Failed to consume message from %v[%v,%v]", c.verb.Name, msg.Partition, msg.Offset)
-				return nil
-			default:
-			}
-			if remainingRetries == 0 {
-				logger.Errorf(err, "Failed to consume message from %v[%v,%v]", c.verb.Name, msg.Partition, msg.Offset)
-				if !c.publishToDeadLetterTopic(ctx, msg, err) {
-					return nil
-				}
-				break
-			}
-			logger.Errorf(err, "Failed to consume message from %v[%v,%v] and will retry in %vs", c.verb.Name, msg.Partition, msg.Offset, int(backoff.Seconds()))
-			time.Sleep(backoff)
-			remainingRetries--
-			backoff *= 2
-			if backoff > c.retryParams.MaxBackoff {
-				backoff = c.retryParams.MaxBackoff
-			}
-		}
-		session.MarkMessage(msg, "")
+	closed := make(chan struct{})
+	defer func() {
+		c.claimedPartitionsChan <- lostPartitionEvent{partition: int(claim.Partition())}
+		close(closed)
+	}()
+
+	resetOffset := make(chan chan error)
+	c.claimedPartitionsChan <- claimedPartitionEvent{
+		partition:   int(claim.Partition()),
+		resetOffset: resetOffset,
 	}
-	// Rebalance or shutdown needed
-	return nil
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+
+		case resultChan := <-resetOffset:
+			resultChan <- c.resetPartitionOffset(ctx, session, int(claim.Partition()))
+			// We have to exit because current events in claim.Messages() will not be relevant anymore
+			// return fmt.Errorf("cancelled due to offset reset")
+			return nil
+		case msg, ok := <-claim.Messages():
+			if !ok {
+				return nil
+			}
+			if msg == nil {
+				// Channel closed, rebalance or shutdown needed
+				return nil
+			}
+			logger.Debugf("Consuming message from %v[%v:%v]", c.verb.Name, msg.Partition, msg.Offset)
+			remainingRetries := c.retryParams.Count
+			backoff := c.retryParams.MinBackoff
+			for {
+				callCtx, callCancel := context.WithCancel(ctx)
+				callChan := make(chan error)
+				go func() {
+					callChan <- c.call(callCtx, msg.Value, int(msg.Partition), int(msg.Offset))
+				}()
+				var err error
+				select {
+				case resultChan := <-resetOffset:
+					// Don't wait for call to end before resetting offsets as it may take a while.
+					callCancel()
+					resultChan <- c.resetPartitionOffset(ctx, session, int(claim.Partition()))
+
+					// We have to exit because current events in claim.Messages() will not be relevant anymore
+					// return fmt.Errorf("cancelled due to offset reset")
+					return nil
+
+				case err = <-callChan:
+					// close call context now that the call is finished
+					callCancel()
+				}
+
+				if err == nil {
+					break
+				}
+				select {
+				case <-ctx.Done():
+					// Do not commit the message if we did not succeed and the context is done.
+					// No need to retry message either.
+					logger.Errorf(err, "Failed to consume message from %v[%v,%v]", c.verb.Name, msg.Partition, msg.Offset)
+					return nil
+				default:
+				}
+				if remainingRetries == 0 {
+					logger.Errorf(err, "Failed to consume message from %v[%v,%v]", c.verb.Name, msg.Partition, msg.Offset)
+					if !c.publishToDeadLetterTopic(ctx, msg, err) {
+						return nil
+					}
+					break
+				}
+				logger.Errorf(err, "Failed to consume message from %v[%v,%v] and will retry in %vs", c.verb.Name, msg.Partition, msg.Offset, int(backoff.Seconds()))
+				time.Sleep(backoff)
+				remainingRetries--
+				backoff *= 2
+				if backoff > c.retryParams.MaxBackoff {
+					backoff = c.retryParams.MaxBackoff
+				}
+			}
+			log.FromContext(ctx).Debugf("Marking message as processed from %v[%v,%v]", c.verb.Name, msg.Partition, msg.Offset)
+			session.MarkMessage(msg, "")
+		}
+	}
 }
 
 func (c *consumer) call(ctx context.Context, body []byte, partition, offset int) error {
@@ -287,4 +421,46 @@ func (c *consumer) publishToDeadLetterTopic(ctx context.Context, msg *sarama.Con
 			return true
 		}
 	}
+}
+
+func (c *consumer) ResetOffsetsForClaimedPartitions(ctx context.Context) (partitions []int, err error) {
+	resultChan := make(chan result.Result[[]int])
+	c.claimedPartitionsChan <- resetOffsetsEvent{result: resultChan}
+	log.FromContext(ctx).Debugf("Waiting for reset offsets result for %v", c.verb.Name)
+	result, err := (<-resultChan).Result()
+	log.FromContext(ctx).Debugf("Received for reset offsets result for %v: %v %v", c.verb.Name, result, err)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *consumer) resetPartitionOffset(ctx context.Context, session sarama.ConsumerGroupSession, partition int) error {
+	config := sarama.NewConfig()
+	client, error := sarama.NewClient(c.verb.Runtime.Subscription.KafkaBrokers, config)
+	if error != nil {
+		return fmt.Errorf("failed to create client for subscription %s: %w", c.verb.Name, error)
+	}
+
+	newOffset, err := client.GetOffset(c.kafkaTopicID(), int32(partition), sarama.OffsetNewest)
+	if err != nil {
+		return fmt.Errorf("failed to get offset for %v partition %v: %w", c.verb.Name, partition, err)
+	}
+
+	log.FromContext(ctx).Debugf("Resetting offset for %v partition %v to %v", c.verb.Name, partition, newOffset)
+	session.MarkOffset(c.kafkaTopicID(), int32(partition), newOffset, "")
+	session.Commit()
+	log.FromContext(ctx).Debugf("Commited reset of offset for %v partition %v to %v", c.verb.Name, partition, newOffset)
+	// TODO: can't get error? Feed in Errors() channel that we are reading elsewhere?
+	// this doesnt actually get the offset, just the latest offset
+	// afterOffset, err := client.GetOffset(c.kafkaTopicID(), int32(partition), sarama.OffsetNewest)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get offset for %v after resetting offset for %v: %w", c.verb.Name, partition, err)
+	// }
+	// log.FromContext(ctx).Debugf("Checked offset for %v partition %v as %v", c.verb.Name, partition, afterOffset)
+	// if afterOffset != newOffset {
+	// 	return fmt.Errorf("offset did not reset as expected for %v partition %v to %v, got %v", c.verb.Name, partition, newOffset, afterOffset)
+	// }
+
+	return nil
 }
