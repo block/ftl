@@ -15,6 +15,12 @@ top = false
 
 FTL has first-class support for PubSub, modelled on the concepts of topics (where events are sent) and subscribers (a verb which consumes events). Subscribers are, as you would expect, sinks. Each subscriber is a cursor over the topic it is associated with. Each topic may have multiple subscriptions. Each published event has an at least once delivery guarantee for each subscription.
 
+A topic can be exported to allow other modules to subscribe to it. Subscriptions are always private to their module.
+
+When a subscription is first created in an environment, it can start consuming from the beginning of the topic or only consume events published afterwards.
+
+Topics allow configuring the number of partitions and how each event should be mapped to a partition, allowing for greater throughput. Subscriptions will consume in order within each partition. There are cases where a small amount of progress on a subscription will be lost, so subscriptions should be able to handle receiving some events that have already been consumed.
+
 {% code_selector() %}
 <!-- go -->
 
@@ -26,21 +32,37 @@ package payments
 import (
   "github.com/block/ftl/go-runtime/ftl"
 )
+
+// Define an event type
 type Invoice struct {
   InvoiceNo string
 }
 
-//ftl:export
-type Invoices = ftl.TopicHandle[Invoice, ftl.SinglePartitionMap[Invoice]]
+// ftl.TopicPartitionMap is an interface for mapping each event to a partition in the topic.
+// 
+// If creating a topic with multiple partitions, you'll need to define a partition mapper for your event type.
+// Otherwise you can use ftl.SinglePartitionMap[Event]
+type PartitionMapper struct{}
+
+var _ ftl.TopicPartitionMap[PubSubEvent] = PartitionMapper{}
+
+func (PartitionMapper) PartitionKey(event PubSubEvent) string {
+	return event.Time.String()
+}
+
+//ftl:topic export partitions=10
+type Invoices = ftl.TopicHandle[Invoice, PartitionMapper]
 ```
 
 Note that the name of the topic as represented in the FTL schema is the lower camel case version of the type name.
 
-The `Invoices` type is a handle to the topic. It is a generic type that takes two arguments: the event type and the partition map type. The partition map type is used to map events to partitions. In this case, we are using a single partition map, which means that all events are sent to the same partition.
+The `Invoices` type is a handle to the topic. It is a generic type that takes two arguments: the event type and the partition map type. The partition map type is used to map events to partitions.
 
 Then define a Sink to consume from the topic:
 
 ```go
+// Configure initial event consumption with either from=beginning or from=latest
+//
 //ftl:subscribe payments.invoices from=beginning
 func SendInvoiceEmail(ctx context.Context, in Invoice) error {
   // ...
@@ -59,13 +81,21 @@ func PublishInvoice(ctx context.Context, topic Invoices) error {
 
 <!-- kotlin -->
 
-First, declare a new topic :
+First, declare a new topic:
 
 ```kotlin
 
 import com.block.ftl.WriteableTopic
 
+// Define the event type for the topic
 data class Invoice(val invoiceNo: String)
+
+// PartitionMapper maps each to a partition in the topic
+class PartitionMapper : TopicPartitionMapper<Invoice> {
+    override fun getPartitionKey(invoice: Invoice): String {
+        return invoice.getInvoiceNo()
+    }
+}
 
 @Export
 @Topic(name = "invoices", partitions = 8)
@@ -105,7 +135,15 @@ First, declare a new topic:
 ```java
 import com.block.ftl.WriteableTopic;
 
+// Define the event type for the topic
 record Invoice(String invoiceNo) {}
+
+// PartitionMapper maps each to a partition in the topic
+class PartitionMapper implements TopicPartitionMapper<Invoice> {
+    public String getPartitionKey(Invoice invoice) {
+        return invoice.getInvoiceNo();
+    }
+}
 
 @Export
 @Topic(name = "invoices", partitions = 8)
