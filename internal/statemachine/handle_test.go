@@ -17,23 +17,23 @@ type mockStateMachine struct {
 	updates  []string
 	queryErr error
 
-	broadcaster *channels.Broadcaster[struct{}]
-	mu          sync.Mutex
-	runningCtx  context.Context
+	notifier   *channels.Notifier
+	mu         sync.Mutex
+	runningCtx context.Context
 }
 
 func newMockStateMachine(ctx context.Context, initial string) *mockStateMachine {
-	broadcaster := channels.NewBroadcaster[struct{}](ctx)
+	broadcaster := channels.NewNotifier(ctx)
 
 	return &mockStateMachine{
-		runningCtx:  ctx,
-		value:       initial,
-		broadcaster: broadcaster,
+		runningCtx: ctx,
+		value:      initial,
+		notifier:   broadcaster,
 	}
 }
 
 func (m *mockStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, error) {
-	return m.broadcaster.Subscribe(), nil
+	return m.notifier.Subscribe(), nil
 }
 
 func (m *mockStateMachine) Publish(msg string) error {
@@ -42,7 +42,7 @@ func (m *mockStateMachine) Publish(msg string) error {
 	m.updates = append(m.updates, msg)
 	m.mu.Unlock()
 
-	m.broadcaster.Broadcast(m.runningCtx, struct{}{})
+	m.notifier.Notify(m.runningCtx)
 	return nil
 }
 

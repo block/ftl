@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 	"time"
-
-	"github.com/alecthomas/assert/v2"
 )
 
 func TestBroadcaster(t *testing.T) {
@@ -13,7 +11,7 @@ func TestBroadcaster(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		b := NewBroadcaster[string](ctx)
+		b := NewNotifier(ctx)
 
 		// Create three subscribers
 		sub1 := b.Subscribe()
@@ -21,14 +19,12 @@ func TestBroadcaster(t *testing.T) {
 		sub3 := b.Subscribe()
 
 		// Send a message
-		msg := "hello"
-		b.Broadcast(ctx, msg)
+		b.Notify(ctx)
 
 		// Check that all subscribers received the message
-		for _, ch := range []<-chan string{sub1, sub2, sub3} {
+		for _, ch := range []<-chan struct{}{sub1, sub2, sub3} {
 			select {
-			case received := <-ch:
-				assert.Equal(t, msg, received)
+			case <-ch:
 			case <-ctx.Done():
 				t.Error("timeout waiting for message")
 			}
@@ -38,7 +34,7 @@ func TestBroadcaster(t *testing.T) {
 	t.Run("closes all subscriber channels when context is done", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		b := NewBroadcaster[int](ctx)
+		b := NewNotifier(ctx)
 
 		// Create subscribers
 		sub1 := b.Subscribe()
@@ -48,7 +44,7 @@ func TestBroadcaster(t *testing.T) {
 		cancel()
 
 		// Check that channels are closed
-		for _, ch := range []<-chan int{sub1, sub2} {
+		for _, ch := range []<-chan struct{}{sub1, sub2} {
 			select {
 			case _, ok := <-ch:
 				if ok {
