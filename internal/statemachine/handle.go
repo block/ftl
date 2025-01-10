@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"iter"
-	"reflect"
 
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/iterops"
@@ -23,7 +22,12 @@ type Handle[Q any, R any, E any] interface {
 	// Query retrieves the current state of the state machine.
 	Query(ctx context.Context, query Q) (R, error)
 
-	// StateIter returns a stream of state based on a query.
+	// StateIter returns an iterator of state based on a query.
+	//
+	// The current state is returned as the first element of the iterator,
+	// followed by a stream of states for each change.
+	//
+	// The iterator is finished when the context is cancelled.
 	StateIter(ctx context.Context, query Q) (iter.Seq[R], error)
 }
 
@@ -69,18 +73,17 @@ func (l *localHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 		return nil, err
 	}
 
-	return iterops.FlatMap(channels.IterContext(ctx, subs), func(struct{}) []R {
-		r, err := l.Query(ctx, query)
-		if err != nil {
-			logger.Warnf("query for changes failed: %s", err)
-			return nil
-		}
-		if reflect.DeepEqual(previous, r) {
-			return nil
-		}
-		previous = r
-		return []R{r}
-	}), nil
+	return iterops.Concat(
+		iterops.Const(previous),
+		iterops.FlatMap(channels.IterContext(ctx, subs), func(struct{}) iter.Seq[R] {
+			r, err := l.Query(ctx, query)
+			if err != nil {
+				logger.Warnf("query for changes failed: %s", err)
+				return iterops.Empty[R]()
+			}
+			return iterops.Const(r)
+		}),
+	), nil
 }
 
 // SingleQueryHandle is a handle to a state machine that only supports a single query.
@@ -117,6 +120,8 @@ func (h *SingleQueryHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 }
 
 // StateIter returns a stream of state machine based on a query.
+// The current state is returned as the first element of the iterator,
+// followed by a stream of states for each change.
 //
 // The iterator is finished when the context is cancelled.
 func (h *SingleQueryHandle[Q, R, E]) StateIter(ctx context.Context) (iter.Seq[R], error) {

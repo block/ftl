@@ -2,6 +2,7 @@ package statemachine
 
 import (
 	"context"
+	"iter"
 	"sync"
 	"testing"
 	"time"
@@ -38,17 +39,19 @@ func (m *mockStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, erro
 
 func (m *mockStateMachine) Publish(msg string) error {
 	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.value = msg
 	m.updates = append(m.updates, msg)
-	m.mu.Unlock()
-
 	m.notifier.Notify(m.runningCtx)
+
 	return nil
 }
 
 func (m *mockStateMachine) Lookup(_ string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
 	if m.queryErr != nil {
 		return "", m.queryErr
 	}
@@ -74,7 +77,7 @@ func TestLocalHandle(t *testing.T) {
 		assert.Equal(t, "new value", result)
 	})
 
-	t.Run("changes channel", func(t *testing.T) {
+	t.Run("StateIter", func(t *testing.T) {
 		ctx := log.ContextWithNewDefaultLogger(context.Background())
 		ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 		defer cancel()
@@ -90,12 +93,23 @@ func TestLocalHandle(t *testing.T) {
 
 		assert.NoError(t, mock.Publish("updated value"))
 
-		for newValue := range changes1 {
-			assert.Equal(t, "updated value", newValue)
-		}
+		pull1, _ := iter.Pull[string](changes1)
+		pull2, _ := iter.Pull[string](changes2)
 
-		for newValue := range changes2 {
-			assert.Equal(t, "updated value", newValue)
-		}
+		v1, ok := pull1()
+		assert.True(t, ok)
+		assert.Equal(t, "initial", v1)
+
+		v2, ok := pull2()
+		assert.True(t, ok)
+		assert.Equal(t, "initial", v2)
+
+		v1, ok = pull1()
+		assert.True(t, ok)
+		assert.Equal(t, "updated value", v1)
+
+		v2, ok = pull2()
+		assert.True(t, ok)
+		assert.Equal(t, "updated value", v2)
 	})
 }

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -127,7 +128,7 @@ func TestEventExtractor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := EventExtractor(tuple.PairOf(tt.previous, tt.current))
+			got := slices.Collect(EventExtractor(tuple.PairOf(tt.previous, tt.current)))
 			assert.Equal(t, tt.want, got)
 		})
 	}
