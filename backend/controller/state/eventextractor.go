@@ -4,6 +4,7 @@ import (
 	"iter"
 
 	"github.com/alecthomas/types/tuple"
+
 	"github.com/block/ftl/internal/iterops"
 )
 
