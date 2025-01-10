@@ -262,7 +262,6 @@ func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.Pr
 }
 
 func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error) {
-	controller := state.Controller{Key: s.key, Endpoint: s.config.Bind.String()}
 	currentState, err := s.controllerState.View(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
@@ -312,8 +311,8 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	}
 	resp := &ftlv1.StatusResponse{
 		Controllers: []*ftlv1.StatusResponse_Controller{{
-			Key:      controller.Key.String(),
-			Endpoint: controller.Endpoint,
+			Key:      s.key.String(),
+			Endpoint: s.config.Bind.String(),
 			Version:  ftl.Version,
 		}},
 		Runners:     protoRunners,
