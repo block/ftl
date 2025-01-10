@@ -13,7 +13,7 @@ func Process(ctx context.Context, in Invoice) error {
 See https://block.github.io/ftl/docs/reference/retries/
 ---
 
-//ftl:retry ${1:10} ${2:5s} ${3:1m}
+//ftl:retry ${1:attempts} ${2:minBackoff} ${3:maxBackoff}
 func ${4:Process}(ctx context.Context, in ${5:Type}) error {
 	${6:// TODO: Implement}
 	return nil
