@@ -1,6 +1,6 @@
 Declare an ingress function.
 
-Verbs annotated with `ftl:ingress` will be exposed via HTTP (http is the default ingress type). These endpoints will then be available on one of our default ingress ports (local development defaults to http://localhost:8891).
+Verbs annotated with `ftl:ingress` will be exposed via HTTP. These endpoints will be available on default ingress ports (local development defaults to http://localhost:8891).
 
 ```go
 type GetPathParams struct {
@@ -34,7 +34,7 @@ type ${1:Func}Response struct {
 }
 
 //ftl:ingress ${2:GET} ${3:/url/path}
-func ${1:Func}(ctx context.Context, req builtin.HttpRequest[ftl.Unit, flt.Unit, ${1:Func}Request]) (builtin.HttpResponse[${1:Func}Response, string], error) {
+func ${1:Func}(ctx context.Context, req builtin.HttpRequest[ftl.Unit, ftl.Unit, ${1:Func}Request]) (builtin.HttpResponse[${1:Func}Response, string], error) {
 	${4:// TODO: Implement}
 	return builtin.HttpResponse[${1:Func}Response, string]{
 		Status: 200,

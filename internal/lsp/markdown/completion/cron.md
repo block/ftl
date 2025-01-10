@@ -1,6 +1,6 @@
 Declare a cron job.
 
-A cron job is an Empty verb that will be called on a schedule.
+A cron job is an Empty verb that will be called on a schedule. Supports both cron expressions and duration format.
 
 ```go
 //ftl:cron 0 * * * *

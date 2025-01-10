@@ -34,20 +34,20 @@ var cronExpressionCompletionDocs string
 //go:embed markdown/completion/retry.md
 var retryCompletionDocs string
 
-//go:embed markdown/completion/configDeclare.md
-var declareConfigCompletionDocs string
+//go:embed markdown/completion/retryWithCatch.md
+var retryWithCatchCompletionDocs string
 
-//go:embed markdown/completion/secretDeclare.md
-var declareSecretCompletionDocs string
+//go:embed markdown/completion/config.md
+var configCompletionDocs string
+
+//go:embed markdown/completion/secret.md
+var secretCompletionDocs string
 
 //go:embed markdown/completion/pubSubTopic.md
-var declarePubSubTopicCompletionDocs string
+var pubSubTopicCompletionDocs string
 
 //go:embed markdown/completion/pubSubSubscription.md
-var declarePubSubSubscriptionCompletionDocs string
-
-//go:embed markdown/completion/pubSubSink.md
-var definePubSubSinkCompletionDocs string
+var pubSubSubscriptionCompletionDocs string
 
 // Markdown is split by "---". First half is completion docs, second half is insert text.
 var completionItems = []protocol.CompletionItem{
@@ -59,11 +59,11 @@ var completionItems = []protocol.CompletionItem{
 	completionItem("ftl:cron", "FTL Cron", cronCompletionDocs),
 	completionItem("ftl:cron:expression", "FTL Cron with expression", cronExpressionCompletionDocs),
 	completionItem("ftl:retry", "FTL Retry", retryCompletionDocs),
-	completionItem("ftl:config:declare", "Declare config", declareConfigCompletionDocs),
-	completionItem("ftl:secret:declare", "Declare secret", declareSecretCompletionDocs),
-	completionItem("ftl:pubsub:topic", "Declare PubSub topic", declarePubSubTopicCompletionDocs),
-	completionItem("ftl:pubsub:subscription", "Declare a PubSub subscription", declarePubSubSubscriptionCompletionDocs),
-	completionItem("ftl:pubsub:sink", "Define a PubSub sink", definePubSubSinkCompletionDocs),
+	completionItem("ftl:retry:catch", "FTL Retry with catch", retryWithCatchCompletionDocs),
+	completionItem("ftl:config", "Create a new configuration value", configCompletionDocs),
+	completionItem("ftl:secret", "Create a new secret value", secretCompletionDocs),
+	completionItem("ftl:pubsub:topic", "Create a PubSub topic", pubSubTopicCompletionDocs),
+	completionItem("ftl:pubsub:subscription", "Create a PubSub subscription", pubSubSubscriptionCompletionDocs),
 }
 
 // Track which directives are //ftl: prefixed, so the we can autocomplete them via `/`.

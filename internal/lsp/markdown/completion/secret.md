@@ -3,10 +3,11 @@ Declare a secret.
 Secrets are encrypted, named, typed values. They are managed by the `ftl secret` command-line.
 
 ```go
-var apiKey = ftl.Secret[string]("apiKey")
+// Will create a secret value called "mySecret" in the FTL schema
+type MySecret = ftl.Secret[string]
 ```
 
 See https://block.github.io/ftl/docs/reference/secretsconfig/
 ---
 
-var ${1:secretVar} = ftl.Secret[${2:Type}]("${1:secretVar}")
+type ${1:Name} = ftl.Secret[${2:Type}]
