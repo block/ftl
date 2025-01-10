@@ -345,26 +345,6 @@ pub struct ReplaceDeployRequest {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ReplaceDeployResponse {
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct StreamDeploymentLogsRequest {
-    #[prost(string, tag="1")]
-    pub deployment_key: ::prost::alloc::string::String,
-    #[prost(string, optional, tag="2")]
-    pub request_key: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(message, optional, tag="3")]
-    pub time_stamp: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(int32, tag="4")]
-    pub log_level: i32,
-    #[prost(map="string, string", tag="5")]
-    pub attributes: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
-    #[prost(string, tag="6")]
-    pub message: ::prost::alloc::string::String,
-    #[prost(string, optional, tag="7")]
-    pub error: ::core::option::Option<::prost::alloc::string::String>,
-}
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct StreamDeploymentLogsResponse {
-}
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct StatusRequest {
 }

@@ -23,12 +23,26 @@ fn build_wasm() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn expected_module_schema() -> schemapb::Module {
+fn expected_module_schema(engine: &str) -> schemapb::Module {
+    let (param1, param2) = match engine {
+        "postgresql" => ("$1", "$2"),
+        "mysql" => ("?", "?"),
+        _ => panic!("Unsupported engine: {}", engine),
+    };
+
+    let queries = [
+        format!("SELECT id, name, email FROM users WHERE id = {}", param1),
+        format!("INSERT INTO users (name, email) VALUES ({}, {})", param1, param2),
+        "SELECT data FROM requests".to_string(),
+        format!("INSERT INTO requests (data) VALUES ({})", param1),
+    ];
+
     schemapb::Module {
         name: "echo".to_string(),
         builtin: false,
         runtime: None,
         comments: vec![],
+        metadata: vec![],
         pos: None,
         decls: vec![
             schemapb::Decl {
@@ -44,7 +58,13 @@ fn expected_module_schema() -> schemapb::Module {
                             }),
                             pos: None,
                             comments: vec![],
-                            metadata: vec![],
+                            metadata: vec![schemapb::Metadata {
+                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    pos: None,
+                                    table: "users".to_string(),
+                                    name: "id".to_string(),
+                                }))
+                            }],
                         }
                     ],
                     pos: None,
@@ -65,7 +85,13 @@ fn expected_module_schema() -> schemapb::Module {
                             }),
                             pos: None,
                             comments: vec![],
-                            metadata: vec![],
+                            metadata: vec![schemapb::Metadata {
+                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    pos: None,
+                                    table: "users".to_string(),
+                                    name: "id".to_string(),
+                                }))
+                            }],
                         },
                         schemapb::Field {
                             name: "name".to_string(),
@@ -74,7 +100,13 @@ fn expected_module_schema() -> schemapb::Module {
                             }),
                             pos: None,
                             comments: vec![],
-                            metadata: vec![],
+                            metadata: vec![schemapb::Metadata {
+                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    pos: None,
+                                    table: "users".to_string(),
+                                    name: "name".to_string(),
+                                }))
+                            }],
                         },
                         schemapb::Field {
                             name: "email".to_string(),
@@ -83,7 +115,13 @@ fn expected_module_schema() -> schemapb::Module {
                             }),
                             pos: None,
                             comments: vec![],
-                            metadata: vec![],
+                            metadata: vec![schemapb::Metadata {
+                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    pos: None,
+                                    table: "users".to_string(),
+                                    name: "email".to_string(),
+                                }))
+                            }],
                         }
                     ],
                     pos: None,
@@ -114,7 +152,12 @@ fn expected_module_schema() -> schemapb::Module {
                     }),
                     pos: None,
                     comments: vec![],
-                    metadata: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
+                            pos: None,
+                            query: queries[0].clone(),
+                        })),
+                    }],
                 })),
             },
             schemapb::Decl {
@@ -130,7 +173,13 @@ fn expected_module_schema() -> schemapb::Module {
                             }),
                             pos: None,
                             comments: vec![],
-                            metadata: vec![],
+                            metadata: vec![schemapb::Metadata {
+                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    pos: None,
+                                    table: "users".to_string(),
+                                    name: "name".to_string(),
+                                }))
+                            }],
                         },
                         schemapb::Field {
                             name: "email".to_string(),
@@ -139,7 +188,13 @@ fn expected_module_schema() -> schemapb::Module {
                             }),
                             pos: None,
                             comments: vec![],
-                            metadata: vec![],
+                            metadata: vec![schemapb::Metadata {
+                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    pos: None,
+                                    table: "users".to_string(),
+                                    name: "email".to_string(),
+                                }))
+                            }],
                         }
                     ],
                     pos: None,
@@ -165,7 +220,12 @@ fn expected_module_schema() -> schemapb::Module {
                     }),
                     pos: None,
                     comments: vec![],
-                    metadata: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
+                            pos: None,
+                            query: queries[1].clone(),
+                        })),
+                    }],
                 })),
             },
             schemapb::Decl {
@@ -181,7 +241,13 @@ fn expected_module_schema() -> schemapb::Module {
                             }),
                             pos: None,
                             comments: vec![],
-                            metadata: vec![],
+                            metadata: vec![schemapb::Metadata {
+                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    pos: None,
+                                    table: "requests".to_string(),
+                                    name: "data".to_string(),
+                                }))
+                            }],
                         }
                     ],
                     pos: None,
@@ -212,7 +278,12 @@ fn expected_module_schema() -> schemapb::Module {
                     }),
                     pos: None,
                     comments: vec![],
-                    metadata: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
+                            pos: None,
+                            query: queries[2].clone(),
+                        })),
+                    }],
                 })),
             },
             schemapb::Decl {
@@ -228,7 +299,13 @@ fn expected_module_schema() -> schemapb::Module {
                             }),
                             pos: None,
                             comments: vec![],
-                            metadata: vec![],
+                            metadata: vec![schemapb::Metadata {
+                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    pos: None,
+                                    table: "requests".to_string(),
+                                    name: "data".to_string(),
+                                }))
+                            }],
                         }
                     ],
                     pos: None,
@@ -254,7 +331,12 @@ fn expected_module_schema() -> schemapb::Module {
                     }),
                     pos: None,
                     comments: vec![],
-                    metadata: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
+                            pos: None,
+                            query: queries[3].clone(),
+                        })),
+                    }],
                 })),
             },
         ],
@@ -343,7 +425,7 @@ mod tests {
 
             let pb_contents = std::fs::read(gen_dir.join("queries.pb"))?;
             let actual_module = schemapb::Module::decode(&*pb_contents)?;
-            let expected_module = expected_module_schema();
+            let expected_module = expected_module_schema(engine);
 
             assert_eq!(
                 &actual_module, 

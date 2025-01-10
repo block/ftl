@@ -194,7 +194,7 @@ build-extension: pnpm-install
   @mk {{EXTENSION_OUT}} : frontend/vscode/src frontend/vscode/package.json -- "cd frontend/vscode && rm -f ftl-*.vsix && pnpm run compile"
 
 # Build the sqlc-ftl-gen plugin, used to generate FTL schema from SQL
-build-sqlc-gen-ftl: build-rust-protos
+build-sqlc-gen-ftl: build-rust-protos update-sqlc-plugin-codegen-proto
     @mk {{SQLC_GEN_FTL_OUT}} : sqlc-gen-ftl/src -- \
         "cargo build --manifest-path sqlc-gen-ftl/Cargo.toml --target wasm32-wasip1 --release && \
         cp sqlc-gen-ftl/target/wasm32-wasip1/release/sqlc-gen-ftl.wasm internal/sqlc/resources/sqlc-gen-ftl.wasm"

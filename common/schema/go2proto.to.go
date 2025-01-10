@@ -398,6 +398,10 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_CronJob{value.ToProto()},
 		}
+	case *MetadataDBColumn:
+		return &destpb.Metadata{
+			Value: &destpb.Metadata_DbColumn{value.ToProto()},
+		}
 	case *MetadataDatabases:
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Databases{value.ToProto()},
@@ -425,6 +429,10 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 	case *MetadataSQLMigration:
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_SqlMigration{value.ToProto()},
+		}
+	case *MetadataSQLQuery:
+		return &destpb.Metadata{
+			Value: &destpb.Metadata_SqlQuery{value.ToProto()},
 		}
 	case *MetadataSecrets:
 		return &destpb.Metadata{
@@ -493,6 +501,17 @@ func (x *MetadataCronJob) ToProto() *destpb.MetadataCronJob {
 	return &destpb.MetadataCronJob{
 		Pos:  x.Pos.ToProto(),
 		Cron: string(x.Cron),
+	}
+}
+
+func (x *MetadataDBColumn) ToProto() *destpb.MetadataDBColumn {
+	if x == nil {
+		return nil
+	}
+	return &destpb.MetadataDBColumn{
+		Pos:   x.Pos.ToProto(),
+		Table: string(x.Table),
+		Name:  string(x.Name),
 	}
 }
 
@@ -569,6 +588,16 @@ func (x *MetadataSQLMigration) ToProto() *destpb.MetadataSQLMigration {
 	return &destpb.MetadataSQLMigration{
 		Pos:    x.Pos.ToProto(),
 		Digest: string(x.Digest),
+	}
+}
+
+func (x *MetadataSQLQuery) ToProto() *destpb.MetadataSQLQuery {
+	if x == nil {
+		return nil
+	}
+	return &destpb.MetadataSQLQuery{
+		Pos:   x.Pos.ToProto(),
+		Query: string(x.Query),
 	}
 }
 

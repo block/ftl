@@ -48,6 +48,7 @@ fn generate_schema(request: &pluginpb::GenerateRequest) -> Result<schemapb::Modu
         builtin: false,
         runtime: None,
         comments: Vec::new(),
+        metadata: Vec::new(),
         pos: None,
         decls,
     })
@@ -72,6 +73,13 @@ fn to_verb(query: &pluginpb::Query, module_name: &str) -> schemapb::Decl {
         _ => Some(to_schema_unit()),
     };
 
+    let sql_query_metadata = schemapb::Metadata {
+        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
+            pos: None,
+            query: query.text.clone(),
+        })),
+    };
+
     schemapb::Decl {
         value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
             name: query.name.clone(),
@@ -81,7 +89,7 @@ fn to_verb(query: &pluginpb::Query, module_name: &str) -> schemapb::Decl {
             response: response_type,
             pos: None,
             comments: Vec::new(),
-            metadata: Vec::new(),
+            metadata: vec![sql_query_metadata],
         })),
     }
 }
@@ -100,7 +108,7 @@ fn to_verb_request(query: &pluginpb::Query) -> schemapb::Decl {
                 };
                 
                 let sql_type = param.column.as_ref().and_then(|col| col.r#type.as_ref());
-                to_schema_field(name, sql_type)
+                to_schema_field(name, param.column.as_ref(), sql_type)
             }).collect(),
             pos: None,
             comments: Vec::new(),
@@ -116,7 +124,7 @@ fn to_verb_response(query: &pluginpb::Query) -> schemapb::Decl {
             export: false,
             type_parameters: Vec::new(),
             fields: query.columns.iter().map(|col| {
-                to_schema_field(col.name.clone(), col.r#type.as_ref())
+                to_schema_field(col.name.clone(), Some(col), col.r#type.as_ref())
             }).collect(),
             pos: None,
             comments: Vec::new(),
@@ -125,18 +133,34 @@ fn to_verb_response(query: &pluginpb::Query) -> schemapb::Decl {
     }
 }
 
-fn to_schema_field(name: String, sql_type: Option<&pluginpb::Identifier>) -> schemapb::Field {
+fn to_schema_field(name: String, col: Option<&pluginpb::Column>, sql_type: Option<&pluginpb::Identifier>) -> schemapb::Field {
+    let mut metadata = Vec::new();
+
+    if let Some(col) = col {
+        if let Some(table) = &col.table {
+            let db_column = schemapb::Metadata {
+                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                    pos: None,
+                    table: table.name.clone(),
+                    name: col.name.clone(),
+                })),
+            };
+            metadata.push(db_column);
+        }
+    }
+
+    // No associated data column
     schemapb::Field {
         name,
         r#type: Some(sql_type.map_or_else(
             || schemapb::Type {
-                value: Some(TypeValue::Any(schemapb::Any { pos: None })),
+                value: Some(schemapb::r#type::Value::Any(schemapb::Any { pos: None })),
             },
             to_schema_type
         )),
         pos: None,
         comments: Vec::new(),
-        metadata: Vec::new(),
+        metadata,
     }
 }
 

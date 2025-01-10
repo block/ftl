@@ -1378,6 +1378,12 @@ export class Metadata extends Message<Metadata> {
     case: "cronJob";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.MetadataDBColumn db_column = 17;
+     */
+    value: MetadataDBColumn;
+    case: "dbColumn";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.MetadataDatabases databases = 4;
      */
     value: MetadataDatabases;
@@ -1420,6 +1426,12 @@ export class Metadata extends Message<Metadata> {
     case: "sqlMigration";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.MetadataSQLQuery sql_query = 16;
+     */
+    value: MetadataSQLQuery;
+    case: "sqlQuery";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.MetadataSecrets secrets = 11;
      */
     value: MetadataSecrets;
@@ -1451,6 +1463,7 @@ export class Metadata extends Message<Metadata> {
     { no: 1, name: "calls", kind: "message", T: MetadataCalls, oneof: "value" },
     { no: 10, name: "config", kind: "message", T: MetadataConfig, oneof: "value" },
     { no: 3, name: "cron_job", kind: "message", T: MetadataCronJob, oneof: "value" },
+    { no: 17, name: "db_column", kind: "message", T: MetadataDBColumn, oneof: "value" },
     { no: 4, name: "databases", kind: "message", T: MetadataDatabases, oneof: "value" },
     { no: 9, name: "encoding", kind: "message", T: MetadataEncoding, oneof: "value" },
     { no: 2, name: "ingress", kind: "message", T: MetadataIngress, oneof: "value" },
@@ -1458,6 +1471,7 @@ export class Metadata extends Message<Metadata> {
     { no: 12, name: "publisher", kind: "message", T: MetadataPublisher, oneof: "value" },
     { no: 6, name: "retry", kind: "message", T: MetadataRetry, oneof: "value" },
     { no: 13, name: "sql_migration", kind: "message", T: MetadataSQLMigration, oneof: "value" },
+    { no: 16, name: "sql_query", kind: "message", T: MetadataSQLQuery, oneof: "value" },
     { no: 11, name: "secrets", kind: "message", T: MetadataSecrets, oneof: "value" },
     { no: 7, name: "subscriber", kind: "message", T: MetadataSubscriber, oneof: "value" },
     { no: 8, name: "type_map", kind: "message", T: MetadataTypeMap, oneof: "value" },
@@ -1714,6 +1728,57 @@ export class MetadataCronJob extends Message<MetadataCronJob> {
 
   static equals(a: MetadataCronJob | PlainMessage<MetadataCronJob> | undefined, b: MetadataCronJob | PlainMessage<MetadataCronJob> | undefined): boolean {
     return proto3.util.equals(MetadataCronJob, a, b);
+  }
+}
+
+/**
+ * MetadataDBColumn designates a database column.
+ *
+ * @generated from message xyz.block.ftl.schema.v1.MetadataDBColumn
+ */
+export class MetadataDBColumn extends Message<MetadataDBColumn> {
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  /**
+   * @generated from field: string table = 2;
+   */
+  table = "";
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name = "";
+
+  constructor(data?: PartialMessage<MetadataDBColumn>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.MetadataDBColumn";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position, opt: true },
+    { no: 2, name: "table", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetadataDBColumn {
+    return new MetadataDBColumn().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetadataDBColumn {
+    return new MetadataDBColumn().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetadataDBColumn {
+    return new MetadataDBColumn().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetadataDBColumn | PlainMessage<MetadataDBColumn> | undefined, b: MetadataDBColumn | PlainMessage<MetadataDBColumn> | undefined): boolean {
+    return proto3.util.equals(MetadataDBColumn, a, b);
   }
 }
 
@@ -2051,6 +2116,51 @@ export class MetadataSQLMigration extends Message<MetadataSQLMigration> {
 
   static equals(a: MetadataSQLMigration | PlainMessage<MetadataSQLMigration> | undefined, b: MetadataSQLMigration | PlainMessage<MetadataSQLMigration> | undefined): boolean {
     return proto3.util.equals(MetadataSQLMigration, a, b);
+  }
+}
+
+/**
+ * MetadataQuery designates a query verb; a verb generated from a SQL query.
+ *
+ * @generated from message xyz.block.ftl.schema.v1.MetadataSQLQuery
+ */
+export class MetadataSQLQuery extends Message<MetadataSQLQuery> {
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  /**
+   * @generated from field: string query = 2;
+   */
+  query = "";
+
+  constructor(data?: PartialMessage<MetadataSQLQuery>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.MetadataSQLQuery";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position, opt: true },
+    { no: 2, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetadataSQLQuery {
+    return new MetadataSQLQuery().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetadataSQLQuery {
+    return new MetadataSQLQuery().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetadataSQLQuery {
+    return new MetadataSQLQuery().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetadataSQLQuery | PlainMessage<MetadataSQLQuery> | undefined, b: MetadataSQLQuery | PlainMessage<MetadataSQLQuery> | undefined): boolean {
+    return proto3.util.equals(MetadataSQLQuery, a, b);
   }
 }
 

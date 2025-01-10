@@ -189,6 +189,7 @@ message Metadata {
     MetadataCalls calls = 1;
     MetadataConfig config = 10;
     MetadataCronJob cron_job = 3;
+    MetadataDBColumn db_column = 17;
     MetadataDatabases databases = 4;
     MetadataEncoding encoding = 9;
     MetadataIngress ingress = 2;
@@ -196,6 +197,7 @@ message Metadata {
     MetadataPublisher publisher = 12;
     MetadataRetry retry = 6;
     MetadataSQLMigration sql_migration = 13;
+    MetadataSQLQuery sql_query = 16;
     MetadataSecrets secrets = 11;
     MetadataSubscriber subscriber = 7;
     MetadataTypeMap type_map = 8;
@@ -230,6 +232,13 @@ message MetadataConfig {
 message MetadataCronJob {
   optional Position pos = 1;
   string cron = 2;
+}
+
+// MetadataDBColumn designates a database column.
+message MetadataDBColumn {
+  optional Position pos = 1;
+  string table = 2;
+  string name = 3;
 }
 
 message MetadataDatabases {
@@ -271,6 +280,12 @@ message MetadataRetry {
 message MetadataSQLMigration {
   optional Position pos = 1;
   string digest = 2;
+}
+
+// MetadataQuery designates a query verb; a verb generated from a SQL query.
+message MetadataSQLQuery {
+  optional Position pos = 1;
+  string query = 2;
 }
 
 // MetadataSecrets represents a metadata block with a list of config items that are used.

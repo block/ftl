@@ -209,6 +209,17 @@ func metadataToSchema(s *schemapb.Metadata) Metadata {
 			Pos:        PosFromProto(s.Partitions.Pos),
 			Partitions: int(s.Partitions.Partitions),
 		}
+	case *schemapb.Metadata_SqlQuery:
+		return &MetadataSQLQuery{
+			Pos:   PosFromProto(s.SqlQuery.Pos),
+			Query: s.SqlQuery.Query,
+		}
+	case *schemapb.Metadata_DbColumn:
+		return &MetadataDBColumn{
+			Pos:   PosFromProto(s.DbColumn.Pos),
+			Table: s.DbColumn.Table,
+			Name:  s.DbColumn.Name,
+		}
 
 	default:
 		panic(fmt.Sprintf("unhandled metadata type: %T", s))
