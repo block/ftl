@@ -23,8 +23,8 @@ type ControllerEvent interface {
 type controllerStateMachine struct {
 	state State
 
-	broadcaster *channels.Broadcaster[struct{}]
-	runningCtx  context.Context
+	notifier   *channels.Notifier
+	runningCtx context.Context
 }
 
 var _ statemachine.Listenable[struct{}, State, ControllerEvent] = &controllerStateMachine{}
@@ -40,19 +40,19 @@ func (c *controllerStateMachine) Publish(msg ControllerEvent) error {
 		return fmt.Errorf("update: %w", err)
 	}
 	// Notify all subscribers using broadcaster
-	c.broadcaster.Broadcast(c.runningCtx, struct{}{})
+	c.notifier.Notify(c.runningCtx)
 	return nil
 }
 
 func (c *controllerStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, error) {
-	return c.broadcaster.Subscribe(), nil
+	return c.notifier.Subscribe(), nil
 }
 
 func NewInMemoryState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, State, ControllerEvent] {
-	broadcaster := channels.NewBroadcaster[struct{}](ctx)
+	notifier := channels.NewNotifier(ctx)
 	handle := statemachine.NewLocalHandle(&controllerStateMachine{
-		broadcaster: broadcaster,
-		runningCtx:  ctx,
+		notifier:   notifier,
+		runningCtx: ctx,
 		state: State{
 			deployments:         map[string]*Deployment{},
 			activeDeployments:   map[string]bool{},
