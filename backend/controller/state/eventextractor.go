@@ -1,9 +1,14 @@
 package state
 
-import "github.com/alecthomas/types/tuple"
+import (
+	"iter"
+
+	"github.com/alecthomas/types/tuple"
+	"github.com/block/ftl/internal/iterops"
+)
 
 // EventExtractor calculates controller events from changes to the state.
-func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) []SchemaEvent {
+func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEvent] {
 	var events []SchemaEvent
 
 	previous := diff.A
@@ -43,5 +48,5 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) []SchemaEvent {
 			})
 		}
 	}
-	return events
+	return iterops.Const(events...)
 }

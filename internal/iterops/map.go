@@ -12,10 +12,10 @@ func Map[T any, U any](in iter.Seq[T], fn func(T) U) iter.Seq[U] {
 	}
 }
 
-func FlatMap[T any, U any](in iter.Seq[T], fn func(T) []U) iter.Seq[U] {
+func FlatMap[T any, U any](in iter.Seq[T], fn func(T) iter.Seq[U]) iter.Seq[U] {
 	return func(yield func(U) bool) {
 		for n := range in {
-			for _, u := range fn(n) {
+			for u := range fn(n) {
 				if !yield(u) {
 					return
 				}

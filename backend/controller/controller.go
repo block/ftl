@@ -1063,7 +1063,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 	}
 	logger.Tracef("Seeded %d deployments", initialCount)
 
-	for notification := range iterops.Changes(stateIter, view, state.EventExtractor) {
+	for notification := range iterops.Changes(stateIter, state.EventExtractor) {
 		switch event := notification.(type) {
 		case *state.DeploymentCreatedEvent:
 			err := sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert

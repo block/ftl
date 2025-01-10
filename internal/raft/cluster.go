@@ -22,6 +22,7 @@ import (
 	raftpbconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/retry"
 	"github.com/block/ftl/internal/rpc"
@@ -208,8 +209,15 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 		panic("cluster not started")
 	}
 
-	result := make(chan R)
+	result := make(chan R, 64)
 	logger := log.FromContext(ctx).Scope("raft")
+
+	previous, err := s.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	result <- previous
 
 	// get the last known index as the starting point
 	last, err := s.getLastIndex()
@@ -253,7 +261,8 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 		}
 	}()
 
-	return channels.IterContext(ctx, result), nil
+	// dedup, as we might get false positives due to index changes caused by membership changes
+	return iterops.Dedup(channels.IterContext(ctx, result)), nil
 }
 
 func (s *ShardHandle[Q, R, E]) getLastIndex() (uint64, error) {

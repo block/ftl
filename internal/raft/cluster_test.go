@@ -5,13 +5,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"iter"
 	"net"
 	"net/url"
 	"testing"
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/local"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
@@ -142,7 +142,7 @@ func TestLeavingCluster(t *testing.T) {
 	assertShardValue(ctx, t, 2, shards[1:]...)
 }
 
-func TestChanges(t *testing.T) {
+func TestStateIter(t *testing.T) {
 	ctx := testContext(t)
 
 	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) sm.Handle[int64, int64, IntEvent] {
@@ -155,10 +155,7 @@ func TestChanges(t *testing.T) {
 	assert.NoError(t, shards[0].Publish(ctx, IntEvent(1)))
 	assert.NoError(t, shards[1].Publish(ctx, IntEvent(1)))
 
-	next, _ := iter.Pull(changes)
-	_, _ = next()
-	v, _ := next()
-	assert.Equal(t, v, 2)
+	assert.True(t, iterops.Contains(changes, 2))
 }
 
 func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address string, controlBind *url.URL) *raft.Builder {
