@@ -18,7 +18,7 @@ type Runner struct {
 	Deployment model.DeploymentKey
 }
 
-func (r *State) Runner(s string) optional.Option[Runner] {
+func (r *RunnerState) Runner(s string) optional.Option[Runner] {
 	result, ok := r.runners[s]
 	if ok {
 		return optional.Ptr(result)
@@ -26,7 +26,7 @@ func (r *State) Runner(s string) optional.Option[Runner] {
 	return optional.None[Runner]()
 }
 
-func (r *State) Runners() []Runner {
+func (r *RunnerState) Runners() []Runner {
 	var ret []Runner
 	for _, v := range r.runners {
 		ret = append(ret, *v)
@@ -34,7 +34,7 @@ func (r *State) Runners() []Runner {
 	return ret
 }
 
-func (r *State) RunnersForDeployment(deployment string) []Runner {
+func (r *RunnerState) RunnersForDeployment(deployment string) []Runner {
 	var ret []Runner
 	for _, v := range r.runnersByDeployment[deployment] {
 		ret = append(ret, *v)
@@ -42,9 +42,9 @@ func (r *State) RunnersForDeployment(deployment string) []Runner {
 	return ret
 }
 
-var _ ControllerEvent = (*RunnerRegisteredEvent)(nil)
+var _ RunnerEvent = (*RunnerRegisteredEvent)(nil)
 var _ eventstream.VerboseMessage = (*RunnerRegisteredEvent)(nil)
-var _ ControllerEvent = (*RunnerDeletedEvent)(nil)
+var _ RunnerEvent = (*RunnerDeletedEvent)(nil)
 
 type RunnerRegisteredEvent struct {
 	Key        model.RunnerKey
@@ -58,7 +58,7 @@ func (r *RunnerRegisteredEvent) VerboseMessage() {
 	// Stops this message being logged every second
 }
 
-func (r *RunnerRegisteredEvent) Handle(t State) (State, error) {
+func (r *RunnerRegisteredEvent) Handle(t RunnerState) (RunnerState, error) {
 	if existing := t.runners[r.Key.String()]; existing != nil {
 		existing.LastSeen = r.Time
 		return t, nil
@@ -80,7 +80,7 @@ type RunnerDeletedEvent struct {
 	Key model.RunnerKey
 }
 
-func (r *RunnerDeletedEvent) Handle(t State) (State, error) {
+func (r *RunnerDeletedEvent) Handle(t RunnerState) (RunnerState, error) {
 	existing := t.runners[r.Key.String()]
 	if existing != nil {
 		delete(t.runners, r.Key.String())

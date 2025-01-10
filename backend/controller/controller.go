@@ -40,6 +40,7 @@ import (
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/deploymentcontext"
+	"github.com/block/ftl/internal/eventstream"
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/log"
 	ftlmaps "github.com/block/ftl/internal/maps"
@@ -147,8 +148,9 @@ type Service struct {
 
 	config Config
 
-	routeTable      *routing.RouteTable
-	controllerState *statemachine.SingleQueryHandle[struct{}, state.State, state.ControllerEvent]
+	routeTable  *routing.RouteTable
+	schemaState *statemachine.SingleQueryHandle[struct{}, state.SchemaState, state.SchemaEvent]
+	runnerState eventstream.EventStream[state.RunnerState, state.RunnerEvent]
 }
 
 func New(
@@ -177,16 +179,17 @@ func New(
 	routingTable := routing.New(ctx, schemaeventsource.New(ctx, rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx)))
 
 	svc := &Service{
-		tasks:           scheduler,
-		timelineClient:  timelineClient,
-		leaser:          ldb,
-		key:             key,
-		clients:         ttlcache.New(ttlcache.WithTTL[string, clients](time.Minute)),
-		config:          config,
-		routeTable:      routingTable,
-		storage:         storage,
-		controllerState: state.NewInMemoryState(ctx),
-		adminClient:     adminClient,
+		tasks:          scheduler,
+		timelineClient: timelineClient,
+		leaser:         ldb,
+		key:            key,
+		clients:        ttlcache.New(ttlcache.WithTTL[string, clients](time.Minute)),
+		config:         config,
+		routeTable:     routingTable,
+		storage:        storage,
+		schemaState:    state.NewInMemorySchemaState(ctx),
+		runnerState:    state.NewInMemoryRunnerState(ctx),
+		adminClient:    adminClient,
 	}
 
 	svc.deploymentLogsSink = newDeploymentLogsSink(ctx, timelineClient)
@@ -233,11 +236,16 @@ func New(
 }
 
 func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.ProcessListRequest]) (*connect.Response[ftlv1.ProcessListResponse], error) {
-	currentState, err := s.controllerState.View(ctx)
+	currentState, err := s.runnerState.View(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get controller state: %w", err)
+		return nil, fmt.Errorf("failed to get runner state: %w", err)
 	}
 	runners := currentState.Runners()
+
+	schemaState, err := s.schemaState.View(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get schema state: %w", err)
+	}
 
 	out, err := slices.MapErr(runners, func(p state.Runner) (*ftlv1.ProcessListResponse_Process, error) {
 		runner := &ftlv1.ProcessListResponse_ProcessRunner{
@@ -245,7 +253,7 @@ func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.Pr
 			Endpoint: p.Endpoint,
 		}
 		minReplicas := int32(0)
-		deployment, err := currentState.GetDeployment(p.Deployment)
+		deployment, err := schemaState.GetDeployment(p.Deployment)
 		if err == nil {
 			minReplicas = int32(deployment.MinReplicas)
 		}
@@ -262,12 +270,17 @@ func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.Pr
 }
 
 func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error) {
-	currentState, err := s.controllerState.View(ctx)
+	currentSchemaState, err := s.schemaState.View(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get controller state: %w", err)
+		return nil, fmt.Errorf("failed to get schema state: %w", err)
 	}
-	runners := currentState.Runners()
-	status := currentState.GetActiveDeployments()
+	currentRunnerState, err := s.runnerState.View(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get runner state: %w", err)
+	}
+
+	runners := currentRunnerState.Runners()
+	status := currentSchemaState.GetActiveDeployments()
 	allModules := s.routeTable.Current()
 	routes := slices.Map(allModules.Schema().Modules, func(module *schema.Module) (out *ftlv1.StatusResponse_Route) {
 		key := ""
@@ -342,7 +355,7 @@ func (s *Service) UpdateDeploy(ctx context.Context, req *connect.Request[ftlv1.U
 
 func (s *Service) setDeploymentReplicas(ctx context.Context, key model.DeploymentKey, minReplicas int) (err error) {
 
-	view, err := s.controllerState.View(ctx)
+	view, err := s.schemaState.View(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get controller state: %w", err)
 	}
@@ -351,17 +364,17 @@ func (s *Service) setDeploymentReplicas(ctx context.Context, key model.Deploymen
 		return fmt.Errorf("could not get deployment: %w", err)
 	}
 
-	err = s.controllerState.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: key, Replicas: minReplicas})
+	err = s.schemaState.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: key, Replicas: minReplicas})
 	if err != nil {
 		return fmt.Errorf("could not update deployment replicas: %w", err)
 	}
 	if minReplicas == 0 {
-		err = s.controllerState.Publish(ctx, &state.DeploymentDeactivatedEvent{Key: key, ModuleRemoved: true})
+		err = s.schemaState.Publish(ctx, &state.DeploymentDeactivatedEvent{Key: key, ModuleRemoved: true})
 		if err != nil {
 			return fmt.Errorf("could not deactivate deployment: %w", err)
 		}
 	} else if deployment.MinReplicas == 0 {
-		err = s.controllerState.Publish(ctx, &state.DeploymentActivatedEvent{Key: key, ActivatedAt: time.Now(), MinReplicas: minReplicas})
+		err = s.schemaState.Publish(ctx, &state.DeploymentActivatedEvent{Key: key, ActivatedAt: time.Now(), MinReplicas: minReplicas})
 		if err != nil {
 			return fmt.Errorf("could not activate deployment: %w", err)
 		}
@@ -383,7 +396,7 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 	logger := s.getDeploymentLogger(ctx, newDeploymentKey)
 	logger.Debugf("Replace deployment for: %s", newDeploymentKey)
 
-	view, err := s.controllerState.View(ctx)
+	view, err := s.schemaState.View(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
@@ -393,7 +406,7 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("deployment not found"))
 	}
 	minReplicas := int(c.Msg.MinReplicas)
-	err = s.controllerState.Publish(ctx, &state.DeploymentActivatedEvent{Key: newDeploymentKey, ActivatedAt: time.Now(), MinReplicas: minReplicas})
+	err = s.schemaState.Publish(ctx, &state.DeploymentActivatedEvent{Key: newDeploymentKey, ActivatedAt: time.Now(), MinReplicas: minReplicas})
 	if err != nil {
 		return nil, fmt.Errorf("replace deployment failed to activate: %w", err)
 	}
@@ -412,18 +425,18 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 		if oldDeployment.Key.String() == newDeploymentKey.String() {
 			return nil, fmt.Errorf("replace deployment failed: deployment already exists from %v to %v", oldDeployment.Key, newDeploymentKey)
 		}
-		err = s.controllerState.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
+		err = s.schemaState.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
 		if err != nil {
 			return nil, fmt.Errorf("replace deployment failed to set new deployment replicas from %v to %v: %w", oldDeployment.Key, newDeploymentKey, err)
 		}
-		err = s.controllerState.Publish(ctx, &state.DeploymentDeactivatedEvent{Key: oldDeployment.Key})
+		err = s.schemaState.Publish(ctx, &state.DeploymentDeactivatedEvent{Key: oldDeployment.Key})
 		if err != nil {
 			return nil, fmt.Errorf("replace deployment failed to deactivate old deployment %v: %w", oldDeployment.Key, err)
 		}
 		replacedDeploymentKey = optional.Some(oldDeployment.Key)
 	} else {
 		// Set the desired replicas for the new deployment
-		err = s.controllerState.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
+		err = s.schemaState.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
 		if err != nil {
 			return nil, fmt.Errorf("replace deployment failed to set replicas for %v: %w", newDeploymentKey, err)
 		}
@@ -470,7 +483,7 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 		// The created event does not matter if it is a new runner or not.
-		err = s.controllerState.Publish(ctx, &state.RunnerRegisteredEvent{
+		err = s.runnerState.Publish(ctx, &state.RunnerRegisteredEvent{
 			Key:        runnerKey,
 			Endpoint:   msg.Endpoint,
 			Deployment: deploymentKey,
@@ -482,7 +495,7 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 		if !deferredDeregistration {
 			// Deregister the runner if the Runner disconnects.
 			defer func() {
-				err := s.controllerState.Publish(ctx, &state.RunnerDeletedEvent{Key: runnerKey})
+				err := s.runnerState.Publish(ctx, &state.RunnerDeletedEvent{Key: runnerKey})
 				if err != nil {
 					logger.Errorf(err, "Could not deregister runner %s", runnerStr)
 				}
@@ -588,9 +601,9 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 	if err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
-	cs, err := s.controllerState.View(ctx)
+	cs, err := s.schemaState.View(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get controller state: %w", err)
+		return fmt.Errorf("failed to get schema state: %w", err)
 	}
 	deployment, err := cs.GetDeployment(key)
 	if err != nil {
@@ -907,7 +920,7 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	}
 
 	dkey := model.NewDeploymentKey(module.Name)
-	err = s.controllerState.Publish(ctx, &state.DeploymentCreatedEvent{
+	err = s.schemaState.Publish(ctx, &state.DeploymentCreatedEvent{
 		Module:    module.Name,
 		Key:       dkey,
 		CreatedAt: time.Now(),
@@ -928,9 +941,9 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 // Load schemas for existing modules, combine with our new one, and validate the new module in the context
 // of the whole schema.
 func (s *Service) validateModuleSchema(ctx context.Context, module *schema.Module) (*schema.Module, error) {
-	view, err := s.controllerState.View(ctx)
+	view, err := s.schemaState.View(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get controller state: %w", err)
+		return nil, fmt.Errorf("failed to get schema state: %w", err)
 	}
 	existingModules := view.GetActiveDeployments()
 	schemaMap := ftlmaps.FromSlice(maps.Values(existingModules), func(el *state.Deployment) (string, *schema.Module) { return el.Module, el.Schema })
@@ -948,9 +961,9 @@ func (s *Service) getDeployment(ctx context.Context, key string) (*state.Deploym
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
-	view, err := s.controllerState.View(ctx)
+	view, err := s.schemaState.View(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get controller state: %w", err)
+		return nil, fmt.Errorf("failed to get schema state: %w", err)
 	}
 	deployment, err := view.GetDeployment(dkey)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -986,16 +999,16 @@ func (s *Service) clientsForEndpoint(endpoint string) clients {
 
 func (s *Service) reapStaleRunners(ctx context.Context) (time.Duration, error) {
 	logger := log.FromContext(ctx)
-	cs, err := s.controllerState.View(ctx)
+	cs, err := s.runnerState.View(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get controller state: %w", err)
+		return 0, fmt.Errorf("failed to get runner state: %w", err)
 	}
 
 	for _, runner := range cs.Runners() {
 		if runner.LastSeen.Add(s.config.RunnerTimeout).Before(time.Now()) {
 			runnerKey := runner.Key
 			logger.Debugf("Reaping stale runner %s with last seen %v", runnerKey, runner.LastSeen.String())
-			if err := s.controllerState.Publish(ctx, &state.RunnerDeletedEvent{Key: runnerKey}); err != nil {
+			if err := s.runnerState.Publish(ctx, &state.RunnerDeletedEvent{Key: runnerKey}); err != nil {
 				return 0, fmt.Errorf("failed to publish runner deleted event: %w", err)
 			}
 		}
@@ -1008,14 +1021,14 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 
 	uctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	stateIter, err := s.controllerState.StateIter(uctx)
+	stateIter, err := s.schemaState.StateIter(uctx)
 	if err != nil {
-		return fmt.Errorf("failed to get controller state iterator: %w", err)
+		return fmt.Errorf("failed to get schema state iterator: %w", err)
 	}
 
-	view, err := s.controllerState.View(ctx)
+	view, err := s.schemaState.View(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get controller state: %w", err)
+		return fmt.Errorf("failed to get schema state: %w", err)
 	}
 
 	// Seed the notification channel with the current deployments.
@@ -1063,9 +1076,9 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 				return err
 			}
 		case *state.DeploymentDeactivatedEvent:
-			view, err := s.controllerState.View(ctx)
+			view, err := s.schemaState.View(ctx)
 			if err != nil {
-				return fmt.Errorf("failed to get controller state: %w", err)
+				return fmt.Errorf("failed to get schema state: %w", err)
 			}
 			dep, err := view.GetDeployment(event.Key)
 			if err != nil {
@@ -1083,9 +1096,9 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 				return err
 			}
 		case *state.DeploymentSchemaUpdatedEvent:
-			view, err := s.controllerState.View(ctx)
+			view, err := s.schemaState.View(ctx)
 			if err != nil {
-				return fmt.Errorf("failed to get controller state: %w", err)
+				return fmt.Errorf("failed to get schema state: %w", err)
 			}
 			dep, err := view.GetDeployment(event.Key)
 			if err != nil {

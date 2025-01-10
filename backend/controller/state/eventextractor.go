@@ -3,8 +3,8 @@ package state
 import "github.com/alecthomas/types/tuple"
 
 // EventExtractor calculates controller events from changes to the state.
-func EventExtractor(diff tuple.Pair[State, State]) []ControllerEvent {
-	var events []ControllerEvent
+func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) []SchemaEvent {
+	var events []SchemaEvent
 
 	previous := diff.A
 	current := diff.B
