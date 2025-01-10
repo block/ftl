@@ -594,9 +594,8 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 				if len(moduleErrors) > 0 {
 					var errs []error
 					for module, errList := range moduleErrors {
-						// Convert each ErrorList into a formatted error
 						if errList != nil && len(errList.Errors) > 0 {
-							moduleErr := fmt.Errorf("%s: %s", module, errList.String())
+							moduleErr := fmt.Errorf("%s: %s", module, langpb.ErrorListString(errList))
 							errs = append(errs, moduleErr)
 						}
 					}
@@ -654,7 +653,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 					delete(explicitlyBuilding, rawEvent.ModuleBuildFailed.Config.Name)
 				}
 				moduleErrors[rawEvent.ModuleBuildFailed.Config.Name] = rawEvent.ModuleBuildFailed.Errors
-				moduleErr := fmt.Errorf("%s: %s", rawEvent.ModuleBuildFailed.Config.Name, rawEvent.ModuleBuildFailed.Errors)
+				moduleErr := fmt.Errorf("%s: %s", rawEvent.ModuleBuildFailed.Config.Name, langpb.ErrorListString(rawEvent.ModuleBuildFailed.Errors))
 				log.FromContext(ctx).Module(rawEvent.ModuleBuildFailed.Config.Name).Scope("build").Errorf(moduleErr, "Build failed")
 			case *buildenginepb.EngineEvent_ModuleBuildSuccess:
 				if rawEvent.ModuleBuildSuccess.IsAutoRebuild {

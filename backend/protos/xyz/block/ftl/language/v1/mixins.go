@@ -2,6 +2,7 @@ package languagepb
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alecthomas/types/optional"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -22,6 +23,41 @@ func ErrorsFromProto(e *ErrorList) []builderrors.Error {
 
 func ErrorsToProto(errs []builderrors.Error) *ErrorList {
 	return &ErrorList{Errors: slices.Map(errs, errorToProto)}
+}
+
+// ErrorString formats a languagepb.Error with its position (if available) and message
+func ErrorString(err *Error) string {
+	if err.Pos != nil {
+		return fmt.Sprintf("%s: %s", positionString(err.Pos), err.Msg)
+	}
+	return err.Msg
+}
+
+// ErrorListString formats all errors in a languagepb.ErrorList, one per line
+func ErrorListString(errList *ErrorList) string {
+	if errList == nil || len(errList.Errors) == 0 {
+		return ""
+	}
+	result := make([]string, len(errList.Errors))
+	for i, err := range errList.Errors {
+		result[i] = ErrorString(err)
+	}
+	return strings.Join(result, "\n")
+}
+
+// positionString formats a languagepb.Position similar to builderrors.Position
+func positionString(pos *Position) string {
+	if pos == nil {
+		return ""
+	}
+	columnStr := fmt.Sprintf("%d", pos.StartColumn)
+	if pos.StartColumn != pos.EndColumn {
+		columnStr += fmt.Sprintf("-%d", pos.EndColumn)
+	}
+	if pos.Filename == "" {
+		return fmt.Sprintf("%d:%s", pos.Line, columnStr)
+	}
+	return fmt.Sprintf("%s:%d:%s", pos.Filename, pos.Line, columnStr)
 }
 
 func levelFromProto(level Error_ErrorLevel) builderrors.ErrorLevel {
