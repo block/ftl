@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/alecthomas/types/optional"
-
 	"github.com/block/ftl/backend/controller/state"
 )
 

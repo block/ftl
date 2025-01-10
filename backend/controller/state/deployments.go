@@ -23,7 +23,7 @@ type Deployment struct {
 	Language    string
 }
 
-func (r *State) GetDeployment(deployment model.DeploymentKey) (*Deployment, error) {
+func (r *SchemaState) GetDeployment(deployment model.DeploymentKey) (*Deployment, error) {
 	d, ok := r.deployments[deployment.String()]
 	if !ok {
 		return nil, fmt.Errorf("deployment %s not found", deployment)
@@ -31,11 +31,11 @@ func (r *State) GetDeployment(deployment model.DeploymentKey) (*Deployment, erro
 	return d, nil
 }
 
-func (r *State) GetDeployments() map[string]*Deployment {
+func (r *SchemaState) GetDeployments() map[string]*Deployment {
 	return r.deployments
 }
 
-func (r *State) GetActiveDeployments() map[string]*Deployment {
+func (r *SchemaState) GetActiveDeployments() map[string]*Deployment {
 	deployments := map[string]*Deployment{}
 	for key, active := range r.activeDeployments {
 		if active {
@@ -45,16 +45,16 @@ func (r *State) GetActiveDeployments() map[string]*Deployment {
 	return deployments
 }
 
-func (r *State) GetActiveDeploymentSchemas() []*schema.Module {
+func (r *SchemaState) GetActiveDeploymentSchemas() []*schema.Module {
 	rows := r.GetActiveDeployments()
 	return slices.Map(maps.Values(rows), func(in *Deployment) *schema.Module { return in.Schema })
 }
 
-var _ ControllerEvent = (*DeploymentCreatedEvent)(nil)
-var _ ControllerEvent = (*DeploymentActivatedEvent)(nil)
-var _ ControllerEvent = (*DeploymentDeactivatedEvent)(nil)
-var _ ControllerEvent = (*DeploymentSchemaUpdatedEvent)(nil)
-var _ ControllerEvent = (*DeploymentReplicasUpdatedEvent)(nil)
+var _ SchemaEvent = (*DeploymentCreatedEvent)(nil)
+var _ SchemaEvent = (*DeploymentActivatedEvent)(nil)
+var _ SchemaEvent = (*DeploymentDeactivatedEvent)(nil)
+var _ SchemaEvent = (*DeploymentSchemaUpdatedEvent)(nil)
+var _ SchemaEvent = (*DeploymentReplicasUpdatedEvent)(nil)
 
 type DeploymentCreatedEvent struct {
 	Key       model.DeploymentKey
@@ -65,7 +65,7 @@ type DeploymentCreatedEvent struct {
 	Language  string
 }
 
-func (r *DeploymentCreatedEvent) Handle(t State) (State, error) {
+func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	if existing := t.deployments[r.Key.String()]; existing != nil {
 		return t, nil
 	}
@@ -93,7 +93,7 @@ type DeploymentSchemaUpdatedEvent struct {
 	Schema *schema.Module
 }
 
-func (r *DeploymentSchemaUpdatedEvent) Handle(t State) (State, error) {
+func (r *DeploymentSchemaUpdatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	existing, ok := t.deployments[r.Key.String()]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
@@ -107,7 +107,7 @@ type DeploymentReplicasUpdatedEvent struct {
 	Replicas int
 }
 
-func (r *DeploymentReplicasUpdatedEvent) Handle(t State) (State, error) {
+func (r *DeploymentReplicasUpdatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	existing, ok := t.deployments[r.Key.String()]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
@@ -129,7 +129,7 @@ type DeploymentActivatedEvent struct {
 	MinReplicas int
 }
 
-func (r *DeploymentActivatedEvent) Handle(t State) (State, error) {
+func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	existing, ok := t.deployments[r.Key.String()]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
@@ -146,7 +146,7 @@ type DeploymentDeactivatedEvent struct {
 	ModuleRemoved bool
 }
 
-func (r *DeploymentDeactivatedEvent) Handle(t State) (State, error) {
+func (r *DeploymentDeactivatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	existing, ok := t.deployments[r.Key.String()]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
