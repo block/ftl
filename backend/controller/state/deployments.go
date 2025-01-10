@@ -36,7 +36,13 @@ func (r *State) GetDeployments() map[string]*Deployment {
 }
 
 func (r *State) GetActiveDeployments() map[string]*Deployment {
-	return r.activeDeployments
+	deployments := map[string]*Deployment{}
+	for key, active := range r.activeDeployments {
+		if active {
+			deployments[key] = r.deployments[key]
+		}
+	}
+	return deployments
 }
 
 func (r *State) GetActiveDeploymentSchemas() []*schema.Module {
@@ -131,7 +137,7 @@ func (r *DeploymentActivatedEvent) Handle(t State) (State, error) {
 	}
 	existing.ActivatedAt = optional.Some(r.ActivatedAt)
 	existing.MinReplicas = r.MinReplicas
-	t.activeDeployments[r.Key.String()] = existing
+	t.activeDeployments[r.Key.String()] = true
 	return t, nil
 }
 
