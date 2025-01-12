@@ -17,7 +17,7 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEv
 
 	previousAll := previous.GetDeployments()
 	for _, deployment := range current.GetDeployments() {
-		pd, ok := previousAll[deployment.Key.String()]
+		pd, ok := previousAll[deployment.Key]
 		if !ok {
 			events = append(events, &DeploymentCreatedEvent{
 				Module:    deployment.Module,
@@ -41,7 +41,7 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEv
 		currentModules[deployment.Module] = true
 	}
 	for _, deployment := range previous.GetActiveDeployments() {
-		if _, ok := currentActive[deployment.Key.String()]; !ok {
+		if _, ok := currentActive[deployment.Key]; !ok {
 			_, ok2 := currentModules[deployment.Module]
 			events = append(events, &DeploymentDeactivatedEvent{
 				Key:           deployment.Key,

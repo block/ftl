@@ -17,22 +17,21 @@ func TestDeploymentKey(t *testing.T) {
 		{key: NewDeploymentKey("time"),
 			expected: DeploymentKey{
 				Payload: DeploymentPayload{Module: "time"},
-				Suffix:  []byte("\x01\x94\xfd\xc2\xfa/\xfc\xc0A\xd3"),
+				Suffix:  "17snepfuemu5iab",
 			},
 		},
 		{key: NewDeploymentKey("time"),
 			expected: DeploymentKey{
 				Payload: DeploymentPayload{Module: "time"},
-				Suffix:  []byte("\xff\x12\x04[s\xc8nO\xf9_"),
+				Suffix:  "5g5cadeqxpqe574v",
 			},
 		},
 		{str: "-0011223344", expectedErr: `expected prefix "dpl" for key "-0011223344"`},
 		{key: NewDeploymentKey("module-with-hyphens"), expected: DeploymentKey{
 			Payload: DeploymentPayload{Module: "module-with-hyphens"},
-			Suffix:  []byte("\xf6b\xa5\xee\xe8*\xbd\xf4J-"),
+			Suffix:  "59gwlv6lkyexwxf1",
 		},
 		},
-		// {str: "-", decodeErr: true},
 	} {
 		keyStr := test.str
 		if keyStr == "" {

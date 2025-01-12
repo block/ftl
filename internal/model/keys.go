@@ -35,9 +35,9 @@ type KeyPayload interface {
 }
 
 // KeyType is a helper type to avoid having to write a bunch of boilerplate.
-type KeyType[T any, TP keyPayloadConstraint[T]] struct {
+type KeyType[T comparable, TP keyPayloadConstraint[T]] struct {
 	Payload T
-	Suffix  []byte
+	Suffix  string
 }
 
 var _ interface {
@@ -91,7 +91,7 @@ func (d KeyType[T, TP]) String() string {
 	if payload := payload.String(); payload != "" {
 		parts = append(parts, payload)
 	}
-	parts = append(parts, base36.EncodeToStringLc(d.Suffix))
+	parts = append(parts, d.Suffix)
 	return strings.Join(parts, "-")
 }
 
@@ -105,20 +105,33 @@ func (d *KeyType[T, TP]) UnmarshalText(bytes []byte) error {
 	return nil
 }
 
+func suffixFromBytes(bytes []byte) string {
+	return base36.EncodeToStringLc(bytes)
+}
+
+func bytesFromSuffix(suffix string) ([]byte, error) {
+	bytes, err := base36.DecodeString(suffix)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode suffix %q: %w", suffix, err)
+	}
+	return bytes, nil
+}
+
 // Generate a new key.
 //
 // If the payload specifies a randomness greater than 0, a random suffix will be generated.
 // The payload will be parsed from payloadComponents, which must be a hyphen-separated string.
-func newKey[T any, TP keyPayloadConstraint[T]](components ...string) (kt KeyType[T, TP]) {
+func newKey[T comparable, TP keyPayloadConstraint[T]](components ...string) (kt KeyType[T, TP]) {
 	var payload TP = &kt.Payload
 	if err := payload.Parse(components); err != nil {
 		panic(fmt.Errorf("failed to parse payload %q: %w", strings.Join(components, "-"), err))
 	}
 	if randomness := payload.RandomBytes(); randomness > 0 {
-		kt.Suffix = make([]byte, randomness)
-		if _, err := randRead(kt.Suffix); err != nil {
+		bytes := make([]byte, randomness)
+		if _, err := randRead(bytes); err != nil {
 			panic(fmt.Errorf("failed to generate random suffix: %w", err))
 		}
+		kt.Suffix = suffixFromBytes(bytes)
 	}
 	return kt
 }
@@ -126,7 +139,7 @@ func newKey[T any, TP keyPayloadConstraint[T]](components ...string) (kt KeyType
 // Parse a key in the form <kind>[-<payload>][-<suffix>]
 //
 // Suffix will be parsed if the payload specifies a randomness greater than 0.
-func parseKey[T any, TP keyPayloadConstraint[T]](key string) (kt KeyType[T, TP], err error) {
+func parseKey[T comparable, TP keyPayloadConstraint[T]](key string) (kt KeyType[T, TP], err error) {
 	components := strings.Split(key, "-")
 	if len(components) == 0 {
 		return kt, fmt.Errorf("expected a prefix for key %q", key)
@@ -145,12 +158,12 @@ func parseKey[T any, TP keyPayloadConstraint[T]](key string) (kt KeyType[T, TP],
 		if len(components) == 0 {
 			return kt, fmt.Errorf("expected a suffix for key %q", key)
 		}
-		var err error
-		kt.Suffix, err = base36.DecodeString(components[len(components)-1])
+		kt.Suffix = components[len(components)-1]
+		bytes, err := bytesFromSuffix(kt.Suffix)
 		if err != nil {
 			return kt, fmt.Errorf("expected a base36 suffix for key %q: %w", key, err)
 		}
-		if len(kt.Suffix) != randomness {
+		if len(bytes) != randomness {
 			return kt, fmt.Errorf("expected a suffix of %d bytes for key %q, not %d", randomness, key, len(kt.Suffix))
 		}
 		components = components[:len(components)-1]

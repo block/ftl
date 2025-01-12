@@ -24,19 +24,19 @@ type Deployment struct {
 }
 
 func (r *SchemaState) GetDeployment(deployment model.DeploymentKey) (*Deployment, error) {
-	d, ok := r.deployments[deployment.String()]
+	d, ok := r.deployments[deployment]
 	if !ok {
 		return nil, fmt.Errorf("deployment %s not found", deployment)
 	}
 	return d, nil
 }
 
-func (r *SchemaState) GetDeployments() map[string]*Deployment {
+func (r *SchemaState) GetDeployments() map[model.DeploymentKey]*Deployment {
 	return r.deployments
 }
 
-func (r *SchemaState) GetActiveDeployments() map[string]*Deployment {
-	deployments := map[string]*Deployment{}
+func (r *SchemaState) GetActiveDeployments() map[model.DeploymentKey]*Deployment {
+	deployments := map[model.DeploymentKey]*Deployment{}
 	for key, active := range r.activeDeployments {
 		if active {
 			deployments[key] = r.deployments[key]
@@ -66,7 +66,7 @@ type DeploymentCreatedEvent struct {
 }
 
 func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	if existing := t.deployments[r.Key.String()]; existing != nil {
+	if existing := t.deployments[r.Key]; existing != nil {
 		return t, nil
 	}
 	n := Deployment{
@@ -84,7 +84,7 @@ func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 			Executable: a.Executable,
 		}
 	}
-	t.deployments[r.Key.String()] = &n
+	t.deployments[r.Key] = &n
 	return t, nil
 }
 
@@ -94,7 +94,7 @@ type DeploymentSchemaUpdatedEvent struct {
 }
 
 func (r *DeploymentSchemaUpdatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	existing, ok := t.deployments[r.Key.String()]
+	existing, ok := t.deployments[r.Key]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 	}
@@ -108,7 +108,7 @@ type DeploymentReplicasUpdatedEvent struct {
 }
 
 func (r *DeploymentReplicasUpdatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	existing, ok := t.deployments[r.Key.String()]
+	existing, ok := t.deployments[r.Key]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 	}
@@ -130,14 +130,14 @@ type DeploymentActivatedEvent struct {
 }
 
 func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	existing, ok := t.deployments[r.Key.String()]
+	existing, ok := t.deployments[r.Key]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 
 	}
 	existing.ActivatedAt = optional.Some(r.ActivatedAt)
 	existing.MinReplicas = r.MinReplicas
-	t.activeDeployments[r.Key.String()] = true
+	t.activeDeployments[r.Key] = true
 	return t, nil
 }
 
@@ -147,12 +147,12 @@ type DeploymentDeactivatedEvent struct {
 }
 
 func (r *DeploymentDeactivatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	existing, ok := t.deployments[r.Key.String()]
+	existing, ok := t.deployments[r.Key]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 
 	}
 	existing.MinReplicas = 0
-	delete(t.activeDeployments, r.Key.String())
+	delete(t.activeDeployments, r.Key)
 	return t, nil
 }
