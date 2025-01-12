@@ -21,6 +21,7 @@ type Deployment struct {
 	ActivatedAt optional.Option[time.Time]
 	Artefacts   map[string]*DeploymentArtefact
 	Language    string
+	IsActive    bool
 }
 
 func (r *SchemaState) GetDeployment(deployment model.DeploymentKey) (*Deployment, error) {
@@ -37,9 +38,9 @@ func (r *SchemaState) GetDeployments() map[string]*Deployment {
 
 func (r *SchemaState) GetActiveDeployments() map[string]*Deployment {
 	deployments := map[string]*Deployment{}
-	for key, active := range r.activeDeployments {
-		if active {
-			deployments[key] = r.deployments[key]
+	for _, deployment := range r.deployments {
+		if deployment.IsActive {
+			deployments[deployment.Key.String()] = deployment
 		}
 	}
 	return deployments
@@ -137,7 +138,7 @@ func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	}
 	existing.ActivatedAt = optional.Some(r.ActivatedAt)
 	existing.MinReplicas = r.MinReplicas
-	t.activeDeployments[r.Key.String()] = true
+	existing.IsActive = true
 	return t, nil
 }
 
@@ -153,6 +154,6 @@ func (r *DeploymentDeactivatedEvent) Handle(t SchemaState) (SchemaState, error) 
 
 	}
 	existing.MinReplicas = 0
-	delete(t.activeDeployments, r.Key.String())
+	existing.IsActive = false
 	return t, nil
 }

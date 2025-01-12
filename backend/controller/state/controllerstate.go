@@ -13,8 +13,7 @@ type SchemaEvent interface {
 }
 
 type SchemaState struct {
-	deployments       map[string]*Deployment
-	activeDeployments map[string]bool
+	deployments map[string]*Deployment
 }
 
 func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, SchemaEvent] {
@@ -23,8 +22,7 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 		notifier:   notifier,
 		runningCtx: ctx,
 		state: SchemaState{
-			deployments:       map[string]*Deployment{},
-			activeDeployments: map[string]bool{},
+			deployments: map[string]*Deployment{},
 		},
 	})
 
