@@ -10,14 +10,14 @@ import (
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 type RouteView struct {
 	byDeployment       map[string]*url.URL
-	moduleToDeployment map[string]model.DeploymentKey
+	moduleToDeployment map[string]key.Deployment
 	schema             *schema.Schema
 }
 
@@ -61,7 +61,7 @@ func (r *RouteTable) Current() RouteView {
 }
 
 // Get returns the URL for the given deployment or None if it doesn't exist.
-func (r RouteView) Get(deployment model.DeploymentKey) optional.Option[url.URL] {
+func (r RouteView) Get(deployment key.Deployment) optional.Option[url.URL] {
 	mod := r.byDeployment[deployment.String()]
 	if mod == nil {
 		return optional.None[url.URL]()
@@ -79,7 +79,7 @@ func (r RouteView) GetForModule(module string) optional.Option[url.URL] {
 }
 
 // GetDeployment returns the deployment key for the given module or None if it doesn't exist.
-func (r RouteView) GetDeployment(module string) optional.Option[model.DeploymentKey] {
+func (r RouteView) GetDeployment(module string) optional.Option[key.Deployment] {
 	return optional.Zero(r.moduleToDeployment[module])
 }
 
@@ -97,17 +97,17 @@ func (r *RouteTable) Unsubscribe(s chan string) {
 
 func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
 	if sch == nil {
-		return RouteView{moduleToDeployment: map[string]model.DeploymentKey{}, byDeployment: map[string]*url.URL{}, schema: &schema.Schema{}}
+		return RouteView{moduleToDeployment: map[string]key.Deployment{}, byDeployment: map[string]*url.URL{}, schema: &schema.Schema{}}
 	}
 	logger := log.FromContext(ctx)
-	moduleToDeployment := make(map[string]model.DeploymentKey, len(sch.Modules))
+	moduleToDeployment := make(map[string]key.Deployment, len(sch.Modules))
 	byDeployment := make(map[string]*url.URL, len(sch.Modules))
 	for _, module := range sch.Modules {
 		if module.Runtime == nil || module.Runtime.Deployment == nil {
 			continue
 		}
 		rt := module.Runtime.Deployment
-		key, err := model.ParseDeploymentKey(rt.DeploymentKey)
+		key, err := key.ParseDeploymentKey(rt.DeploymentKey)
 		if err != nil {
 			logger.Warnf("Failed to parse deployment key for module %q: %v", module.Name, err)
 			continue

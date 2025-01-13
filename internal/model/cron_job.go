@@ -6,11 +6,12 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 )
 
 type CronJob struct {
-	Key           CronJobKey
-	DeploymentKey DeploymentKey
+	Key           key.CronJob
+	DeploymentKey key.Deployment
 	Verb          schema.Ref
 	Schedule      string
 	StartTime     time.Time

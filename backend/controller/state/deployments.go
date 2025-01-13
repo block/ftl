@@ -9,11 +9,11 @@ import (
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 type Deployment struct {
-	Key         model.DeploymentKey
+	Key         key.Deployment
 	Module      string
 	Schema      *schema.Module
 	MinReplicas int
@@ -23,7 +23,7 @@ type Deployment struct {
 	Language    string
 }
 
-func (r *SchemaState) GetDeployment(deployment model.DeploymentKey) (*Deployment, error) {
+func (r *SchemaState) GetDeployment(deployment key.Deployment) (*Deployment, error) {
 	d, ok := r.deployments[deployment]
 	if !ok {
 		return nil, fmt.Errorf("deployment %s not found", deployment)
@@ -31,12 +31,12 @@ func (r *SchemaState) GetDeployment(deployment model.DeploymentKey) (*Deployment
 	return d, nil
 }
 
-func (r *SchemaState) GetDeployments() map[model.DeploymentKey]*Deployment {
+func (r *SchemaState) GetDeployments() map[key.Deployment]*Deployment {
 	return r.deployments
 }
 
-func (r *SchemaState) GetActiveDeployments() map[model.DeploymentKey]*Deployment {
-	deployments := map[model.DeploymentKey]*Deployment{}
+func (r *SchemaState) GetActiveDeployments() map[key.Deployment]*Deployment {
+	deployments := map[key.Deployment]*Deployment{}
 	for key, active := range r.activeDeployments {
 		if active {
 			deployments[key] = r.deployments[key]
@@ -57,7 +57,7 @@ var _ SchemaEvent = (*DeploymentSchemaUpdatedEvent)(nil)
 var _ SchemaEvent = (*DeploymentReplicasUpdatedEvent)(nil)
 
 type DeploymentCreatedEvent struct {
-	Key       model.DeploymentKey
+	Key       key.Deployment
 	CreatedAt time.Time
 	Module    string
 	Schema    *schema.Module
@@ -89,7 +89,7 @@ func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 }
 
 type DeploymentSchemaUpdatedEvent struct {
-	Key    model.DeploymentKey
+	Key    key.Deployment
 	Schema *schema.Module
 }
 
@@ -103,7 +103,7 @@ func (r *DeploymentSchemaUpdatedEvent) Handle(t SchemaState) (SchemaState, error
 }
 
 type DeploymentReplicasUpdatedEvent struct {
-	Key      model.DeploymentKey
+	Key      key.Deployment
 	Replicas int
 }
 
@@ -124,7 +124,7 @@ func (r *DeploymentReplicasUpdatedEvent) Handle(t SchemaState) (SchemaState, err
 }
 
 type DeploymentActivatedEvent struct {
-	Key         model.DeploymentKey
+	Key         key.Deployment
 	ActivatedAt time.Time
 	MinReplicas int
 }
@@ -142,7 +142,7 @@ func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
 }
 
 type DeploymentDeactivatedEvent struct {
-	Key           model.DeploymentKey
+	Key           key.Deployment
 	ModuleRemoved bool
 }
 

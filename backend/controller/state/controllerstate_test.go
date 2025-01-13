@@ -9,8 +9,8 @@ import (
 
 	"github.com/block/ftl/backend/controller/state"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 )
 
 func TestRunnerState(t *testing.T) {
@@ -20,14 +20,14 @@ func TestRunnerState(t *testing.T) {
 	view, err := cs.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(view.Runners()))
-	key := model.NewLocalRunnerKey(1)
+	runnerkey := key.NewLocalRunnerKey(1)
 	create := time.Now()
 	endpoint := "http://localhost:8080"
 	module := "test"
-	deploymentKey := model.NewDeploymentKey(module)
+	deploymentKey := key.NewDeploymentKey(module)
 
 	err = cs.Publish(ctx, &state.RunnerRegisteredEvent{
-		Key:        key,
+		Key:        runnerkey,
 		Time:       create,
 		Endpoint:   endpoint,
 		Module:     module,
@@ -37,7 +37,7 @@ func TestRunnerState(t *testing.T) {
 	view, err = cs.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(view.Runners()))
-	assert.Equal(t, key, view.Runners()[0].Key)
+	assert.Equal(t, runnerkey, view.Runners()[0].Key)
 	assert.Equal(t, create, view.Runners()[0].Create)
 	assert.Equal(t, create, view.Runners()[0].LastSeen)
 	assert.Equal(t, endpoint, view.Runners()[0].Endpoint)
@@ -45,7 +45,7 @@ func TestRunnerState(t *testing.T) {
 	assert.Equal(t, deploymentKey, view.Runners()[0].Deployment)
 	seen := time.Now()
 	err = cs.Publish(ctx, &state.RunnerRegisteredEvent{
-		Key:        key,
+		Key:        runnerkey,
 		Time:       seen,
 		Endpoint:   endpoint,
 		Module:     module,
@@ -57,7 +57,7 @@ func TestRunnerState(t *testing.T) {
 	assert.Equal(t, seen, view.Runners()[0].LastSeen)
 
 	err = cs.Publish(ctx, &state.RunnerDeletedEvent{
-		Key: key,
+		Key: runnerkey,
 	})
 	assert.NoError(t, err)
 	view, err = cs.View(ctx)
@@ -73,7 +73,7 @@ func TestDeploymentState(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(view.GetDeployments()))
 
-	deploymentKey := model.NewDeploymentKey("test-deployment")
+	deploymentKey := key.NewDeploymentKey("test-deployment")
 	create := time.Now()
 	err = cs.Publish(ctx, &state.DeploymentCreatedEvent{
 		Key:       deploymentKey,

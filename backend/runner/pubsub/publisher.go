@@ -9,22 +9,22 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
 type publisher struct {
 	module     string
-	deployment model.DeploymentKey
+	deployment key.Deployment
 	topic      *schema.Topic
 	producer   sarama.SyncProducer
 
 	timelineClient *timelineclient.Client
 }
 
-func newPublisher(module string, t *schema.Topic, deployment model.DeploymentKey, timelineClient *timelineclient.Client) (*publisher, error) {
+func newPublisher(module string, t *schema.Topic, deployment key.Deployment, timelineClient *timelineclient.Client) (*publisher, error) {
 	if t.Runtime == nil {
 		return nil, fmt.Errorf("topic %s has no runtime", t.Name)
 	}

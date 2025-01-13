@@ -7,12 +7,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 type Log struct {
-	DeploymentKey model.DeploymentKey
-	RequestKey    optional.Option[model.RequestKey]
+	DeploymentKey key.Deployment
+	RequestKey    optional.Option[key.Request]
 	Time          time.Time
 	Level         int32
 	Attributes    map[string]string

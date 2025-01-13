@@ -15,8 +15,8 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/rpc"
 )
 
@@ -42,7 +42,7 @@ type Event interface {
 // EventRemove represents that a deployment (or module) was removed.
 type EventRemove struct {
 	// None for builtin modules.
-	Deployment optional.Option[model.DeploymentKey]
+	Deployment optional.Option[key.Deployment]
 	Module     *schema.Module
 
 	schema *schema.Schema
@@ -59,7 +59,7 @@ type EventUpsert struct {
 	schema *schema.Schema
 
 	// None for builtin modules.
-	Deployment optional.Option[model.DeploymentKey]
+	Deployment optional.Option[key.Deployment]
 	Module     *schema.Module
 
 	more bool
@@ -174,9 +174,9 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 		if err != nil {
 			return fmt.Errorf("schema-sync: failed to decode module schema: %w", err)
 		}
-		var someDeploymentKey optional.Option[model.DeploymentKey]
+		var someDeploymentKey optional.Option[key.Deployment]
 		if resp.DeploymentKey != nil {
-			deploymentKey, err := model.ParseDeploymentKey(resp.GetDeploymentKey())
+			deploymentKey, err := key.ParseDeploymentKey(resp.GetDeploymentKey())
 			if err != nil {
 				return fmt.Errorf("schema-sync: invalid deployment key %q: %w", resp.GetDeploymentKey(), err)
 			}

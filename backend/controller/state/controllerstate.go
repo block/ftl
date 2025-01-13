@@ -5,7 +5,7 @@ import (
 
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/eventstream"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/statemachine"
 )
 
@@ -14,8 +14,8 @@ type SchemaEvent interface {
 }
 
 type SchemaState struct {
-	deployments       map[model.DeploymentKey]*Deployment
-	activeDeployments map[model.DeploymentKey]bool
+	deployments       map[key.Deployment]*Deployment
+	activeDeployments map[key.Deployment]bool
 }
 
 func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, SchemaEvent] {
@@ -24,8 +24,8 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 		notifier:   notifier,
 		runningCtx: ctx,
 		state: SchemaState{
-			deployments:       map[model.DeploymentKey]*Deployment{},
-			activeDeployments: map[model.DeploymentKey]bool{},
+			deployments:       map[key.Deployment]*Deployment{},
+			activeDeployments: map[key.Deployment]bool{},
 		},
 	})
 
@@ -33,8 +33,8 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 }
 
 type RunnerState struct {
-	runners             map[model.RunnerKey]*Runner
-	runnersByDeployment map[model.DeploymentKey][]*Runner
+	runners             map[key.Runner]*Runner
+	runnersByDeployment map[key.Deployment][]*Runner
 }
 
 type RunnerEvent interface {
@@ -43,7 +43,7 @@ type RunnerEvent interface {
 
 func NewInMemoryRunnerState(ctx context.Context) eventstream.EventStream[RunnerState, RunnerEvent] {
 	return eventstream.NewInMemory[RunnerState, RunnerEvent](RunnerState{
-		runners:             map[model.RunnerKey]*Runner{},
-		runnersByDeployment: map[model.DeploymentKey][]*Runner{},
+		runners:             map[key.Runner]*Runner{},
+		runnersByDeployment: map[key.Deployment][]*Runner{},
 	})
 }

@@ -2,11 +2,12 @@ package model
 
 import (
 	"github.com/alecthomas/types/optional"
+	"github.com/block/ftl/internal/key"
 )
 
 type Subscription struct {
 	Name   string
-	Key    SubscriptionKey
-	Topic  TopicKey
-	Cursor optional.Option[TopicEventKey]
+	Key    key.Subscription
+	Topic  key.Topic
+	Cursor optional.Option[key.TopicEvent]
 }

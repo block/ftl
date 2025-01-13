@@ -8,7 +8,7 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 // Headers used by the internal RPC system.
@@ -52,37 +52,37 @@ func SetDirectRouted(header http.Header) {
 	header.Set(DirectRoutingHeader, "1")
 }
 
-func SetRequestKey(header http.Header, key model.RequestKey) {
+func SetRequestKey(header http.Header, key key.Request) {
 	header.Set(RequestIDHeader, key.String())
 }
 
-func SetParentRequestKey(header http.Header, key model.RequestKey) {
+func SetParentRequestKey(header http.Header, key key.Request) {
 	header.Set(ParentRequestIDHeader, key.String())
 }
 
 // GetRequestKey from an incoming request.
 //
 // Will return ("", false, nil) if no request key is present.
-func GetRequestKey(header http.Header) (model.RequestKey, bool, error) {
+func GetRequestKey(header http.Header) (key.Request, bool, error) {
 	keyStr := header.Get(RequestIDHeader)
 	return getRequestKeyFromKeyStr(keyStr)
 }
 
-func GetParentRequestKey(header http.Header) (model.RequestKey, bool, error) {
+func GetParentRequestKey(header http.Header) (key.Request, bool, error) {
 	keyStr := header.Get(ParentRequestIDHeader)
 	return getRequestKeyFromKeyStr(keyStr)
 }
 
-func getRequestKeyFromKeyStr(keyStr string) (model.RequestKey, bool, error) {
+func getRequestKeyFromKeyStr(keyStr string) (key.Request, bool, error) {
 	if keyStr == "" {
-		return model.RequestKey{}, false, nil
+		return key.Request{}, false, nil
 	}
 
-	key, err := model.ParseRequestKey(keyStr)
+	parsedKey, err := key.ParseRequestKey(keyStr)
 	if err != nil {
-		return model.RequestKey{}, false, err
+		return key.Request{}, false, fmt.Errorf("invalid %s header %q: %w", RequestIDHeader, keyStr, err)
 	}
-	return key, true, nil
+	return parsedKey, true, nil
 }
 
 // GetCallers history from an incoming request.

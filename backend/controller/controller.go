@@ -42,9 +42,9 @@ import (
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/eventstream"
 	"github.com/block/ftl/internal/iterops"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	ftlmaps "github.com/block/ftl/internal/maps"
-	"github.com/block/ftl/internal/model"
 	internalobservability "github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
@@ -62,14 +62,14 @@ type CommonConfig struct {
 }
 
 type Config struct {
-	Bind                         *url.URL            `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
-	Key                          model.ControllerKey `help:"Controller key (auto)." placeholder:"KEY"`
-	Advertise                    *url.URL            `help:"Endpoint the Controller should advertise (must be unique across the cluster, defaults to --bind if omitted)." env:"FTL_ADVERTISE"`
-	RunnerTimeout                time.Duration       `help:"Runner heartbeat timeout." default:"10s"`
-	ControllerTimeout            time.Duration       `help:"Controller heartbeat timeout." default:"10s"`
-	DeploymentReservationTimeout time.Duration       `help:"Deployment reservation timeout." default:"120s"`
-	ModuleUpdateFrequency        time.Duration       `help:"Frequency to send module updates." default:"30s"`
-	ArtefactChunkSize            int                 `help:"Size of each chunk streamed to the client." default:"1048576"`
+	Bind                         *url.URL       `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
+	Key                          key.Controller `help:"Controller key (auto)." placeholder:"KEY"`
+	Advertise                    *url.URL       `help:"Endpoint the Controller should advertise (must be unique across the cluster, defaults to --bind if omitted)." env:"FTL_ADVERTISE"`
+	RunnerTimeout                time.Duration  `help:"Runner heartbeat timeout." default:"10s"`
+	ControllerTimeout            time.Duration  `help:"Controller heartbeat timeout." default:"10s"`
+	DeploymentReservationTimeout time.Duration  `help:"Deployment reservation timeout." default:"120s"`
+	ModuleUpdateFrequency        time.Duration  `help:"Frequency to send module updates." default:"30s"`
+	ArtefactChunkSize            int            `help:"Size of each chunk streamed to the client." default:"1048576"`
 	CommonConfig
 }
 
@@ -134,7 +134,7 @@ type clients struct {
 
 type Service struct {
 	leaser             leases.Leaser
-	key                model.ControllerKey
+	key                key.Controller
 	deploymentLogsSink *deploymentLogsSink
 	adminClient        ftlv1connect.AdminServiceClient
 
@@ -161,9 +161,9 @@ func New(
 	config Config,
 	devel bool,
 ) (*Service, error) {
-	key := config.Key
+	controllerKey := config.Key
 	if config.Key.IsZero() {
-		key = model.NewControllerKey(config.Bind.Hostname(), config.Bind.Port())
+		controllerKey = key.NewControllerKey(config.Bind.Hostname(), config.Bind.Port())
 	}
 	config.SetDefaults()
 
@@ -174,7 +174,7 @@ func New(
 	}
 
 	ldb := leases.NewClientLeaser(ctx)
-	scheduler := scheduledtask.New(ctx, key, ldb)
+	scheduler := scheduledtask.New(ctx, controllerKey, ldb)
 
 	routingTable := routing.New(ctx, schemaeventsource.New(ctx, rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx)))
 
@@ -182,7 +182,7 @@ func New(
 		tasks:          scheduler,
 		timelineClient: timelineClient,
 		leaser:         ldb,
-		key:            key,
+		key:            controllerKey,
 		clients:        ttlcache.New(ttlcache.WithTTL[string, clients](time.Minute)),
 		config:         config,
 		routeTable:     routingTable,
@@ -336,7 +336,7 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 }
 
 func (s *Service) UpdateDeploy(ctx context.Context, req *connect.Request[ftlv1.UpdateDeployRequest]) (response *connect.Response[ftlv1.UpdateDeployResponse], err error) {
-	deploymentKey, err := model.ParseDeploymentKey(req.Msg.DeploymentKey)
+	deploymentKey, err := key.ParseDeploymentKey(req.Msg.DeploymentKey)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
@@ -353,7 +353,7 @@ func (s *Service) UpdateDeploy(ctx context.Context, req *connect.Request[ftlv1.U
 	return connect.NewResponse(&ftlv1.UpdateDeployResponse{}), nil
 }
 
-func (s *Service) setDeploymentReplicas(ctx context.Context, key model.DeploymentKey, minReplicas int) (err error) {
+func (s *Service) setDeploymentReplicas(ctx context.Context, key key.Deployment, minReplicas int) (err error) {
 
 	view, err := s.schemaState.View(ctx)
 	if err != nil {
@@ -389,7 +389,7 @@ func (s *Service) setDeploymentReplicas(ctx context.Context, key model.Deploymen
 }
 
 func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.ReplaceDeployRequest]) (*connect.Response[ftlv1.ReplaceDeployResponse], error) {
-	newDeploymentKey, err := model.ParseDeploymentKey(c.Msg.DeploymentKey)
+	newDeploymentKey, err := key.ParseDeploymentKey(c.Msg.DeploymentKey)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -412,7 +412,7 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 	}
 
 	// If there's an existing deployment, set its desired replicas to 0
-	var replacedDeploymentKey optional.Option[model.DeploymentKey]
+	var replacedDeploymentKey optional.Option[key.Deployment]
 	// TODO: remove all this, it needs to be event driven
 	var oldDeployment *state.Deployment
 	for _, dep := range view.GetActiveDeployments() {
@@ -470,7 +470,7 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 		if endpoint.Scheme != "http" && endpoint.Scheme != "https" {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid endpoint scheme %q", endpoint.Scheme))
 		}
-		runnerKey, err := model.ParseRunnerKey(msg.Key)
+		runnerKey, err := key.ParseRunnerKey(msg.Key)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid key: %w", err))
 		}
@@ -478,7 +478,7 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 		runnerStr := fmt.Sprintf("%s (%s)", endpoint, runnerKey)
 		logger.Tracef("Heartbeat received from runner %s", runnerStr)
 
-		deploymentKey, err := model.ParseDeploymentKey(msg.Deployment)
+		deploymentKey, err := key.ParseDeploymentKey(msg.Deployment)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
@@ -597,7 +597,7 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 	updates := s.routeTable.Subscribe()
 	defer s.routeTable.Unsubscribe(updates)
 	depName := req.Msg.Deployment
-	key, err := model.ParseDeploymentKey(depName)
+	key, err := key.ParseDeploymentKey(depName)
 	if err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
@@ -722,14 +722,14 @@ func hashRoutesTable(h hash.Hash, m map[string]string) error {
 }
 
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
-	return s.callWithRequest(ctx, headers.CopyRequestForForwarding(req), optional.None[model.RequestKey](), optional.None[model.RequestKey]())
+	return s.callWithRequest(ctx, headers.CopyRequestForForwarding(req), optional.None[key.Request](), optional.None[key.Request]())
 }
 
 func (s *Service) callWithRequest(
 	ctx context.Context,
 	req *connect.Request[ftlv1.CallRequest],
-	key optional.Option[model.RequestKey],
-	parentKey optional.Option[model.RequestKey],
+	requestKeyOpt optional.Option[key.Request],
+	parentKey optional.Option[key.Request],
 ) (*connect.Response[ftlv1.CallResponse], error) {
 	logger := log.FromContext(ctx)
 	start := time.Now()
@@ -772,9 +772,9 @@ func (s *Service) callWithRequest(
 		currentCaller = callers[len(callers)-1]
 	}
 
-	var requestKey model.RequestKey
+	var requestKey key.Request
 	var isNewRequestKey bool
-	if k, ok := key.Get(); ok {
+	if k, ok := requestKeyOpt.Get(); ok {
 		requestKey = k
 		isNewRequestKey = false
 	} else {
@@ -783,7 +783,7 @@ func (s *Service) callWithRequest(
 			observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get request key"))
 			return nil, err
 		} else if !ok {
-			requestKey = model.NewRequestKey(model.OriginIngress, "grpc")
+			requestKey = key.NewRequestKey(key.OriginIngress, "grpc")
 			isNewRequestKey = true
 		} else {
 			requestKey = k
@@ -919,7 +919,7 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 		return nil, fmt.Errorf("invalid module schema: %w", err)
 	}
 
-	dkey := model.NewDeploymentKey(module.Name)
+	dkey := key.NewDeploymentKey(module.Name)
 	err = s.schemaState.Publish(ctx, &state.DeploymentCreatedEvent{
 		Module:    module.Name,
 		Key:       dkey,
@@ -956,8 +956,8 @@ func (s *Service) validateModuleSchema(ctx context.Context, module *schema.Modul
 	return schema.Module(module.Name).MustGet(), nil
 }
 
-func (s *Service) getDeployment(ctx context.Context, key string) (*state.Deployment, error) {
-	dkey, err := model.ParseDeploymentKey(key)
+func (s *Service) getDeployment(ctx context.Context, keyStr string) (*state.Deployment, error) {
+	dkey, err := key.ParseDeploymentKey(keyStr)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
@@ -1119,7 +1119,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 	return nil
 }
 
-func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey model.DeploymentKey) *log.Logger {
+func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey key.Deployment) *log.Logger {
 	attrs := map[string]string{"deployment": deploymentKey.String()}
 	if requestKey, _ := rpc.RequestKeyFromContext(ctx); requestKey.Ok() { //nolint:errcheck // best effort?
 		attrs["request"] = requestKey.MustGet().String()

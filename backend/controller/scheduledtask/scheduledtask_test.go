@@ -11,8 +11,8 @@ import (
 	"github.com/jpillora/backoff"
 
 	"github.com/block/ftl/backend/controller/leases"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 )
 
 func TestScheduledTask(t *testing.T) {
@@ -25,15 +25,15 @@ func TestScheduledTask(t *testing.T) {
 	var multiCount atomic.Int64
 
 	type controller struct {
-		controllerKey model.ControllerKey
+		controllerKey key.Controller
 		cron          *Scheduler
 	}
 
 	controllers := []*controller{
-		{controllerKey: model.NewControllerKey("localhost", "8080")},
-		{controllerKey: model.NewControllerKey("localhost", "8081")},
-		{controllerKey: model.NewControllerKey("localhost", "8082")},
-		{controllerKey: model.NewControllerKey("localhost", "8083")},
+		{controllerKey: key.NewControllerKey("localhost", "8080")},
+		{controllerKey: key.NewControllerKey("localhost", "8081")},
+		{controllerKey: key.NewControllerKey("localhost", "8082")},
+		{controllerKey: key.NewControllerKey("localhost", "8083")},
 	}
 
 	clock := clock.NewMock()

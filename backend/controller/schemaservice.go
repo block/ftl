@@ -11,7 +11,7 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
@@ -34,7 +34,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 }
 
 func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Request[ftlv1.UpdateDeploymentRuntimeRequest]) (*connect.Response[ftlv1.UpdateDeploymentRuntimeResponse], error) {
-	deployment, err := model.ParseDeploymentKey(req.Msg.Deployment)
+	deployment, err := key.ParseDeploymentKey(req.Msg.Deployment)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}

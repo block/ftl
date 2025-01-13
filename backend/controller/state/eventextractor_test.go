@@ -8,7 +8,7 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/tuple"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 func TestEventExtractor(t *testing.T) {
@@ -24,7 +24,7 @@ func TestEventExtractor(t *testing.T) {
 			name:     "new deployment creates deployment event",
 			previous: SchemaState{},
 			current: SchemaState{
-				deployments: map[model.DeploymentKey]*Deployment{
+				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Module:    "test",
 						Key:       deploymentKey(t, "dpl-test-sjkfislfjslfas"),
@@ -47,7 +47,7 @@ func TestEventExtractor(t *testing.T) {
 		{
 			name: "schema update creates schema updated event",
 			previous: SchemaState{
-				deployments: map[model.DeploymentKey]*Deployment{
+				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Module:    "test",
 						Key:       deploymentKey(t, "dpl-test-sjkfislfjslfas"),
@@ -58,7 +58,7 @@ func TestEventExtractor(t *testing.T) {
 				},
 			},
 			current: SchemaState{
-				deployments: map[model.DeploymentKey]*Deployment{
+				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Module: "test",
 						Key:    deploymentKey(t, "dpl-test-sjkfislfjslfas"),
@@ -76,24 +76,24 @@ func TestEventExtractor(t *testing.T) {
 		{
 			name: "deactivated deployment creates deactivation event",
 			previous: SchemaState{
-				deployments: map[model.DeploymentKey]*Deployment{
+				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Module: "test",
 						Key:    deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					},
 				},
-				activeDeployments: map[model.DeploymentKey]bool{
+				activeDeployments: map[key.Deployment]bool{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): true,
 				},
 			},
 			current: SchemaState{
-				deployments: map[model.DeploymentKey]*Deployment{
+				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Module: "test",
 						Key:    deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					},
 				},
-				activeDeployments: map[model.DeploymentKey]bool{},
+				activeDeployments: map[key.Deployment]bool{},
 			},
 			want: []SchemaEvent{
 				&DeploymentDeactivatedEvent{
@@ -104,18 +104,18 @@ func TestEventExtractor(t *testing.T) {
 		}, {
 			name: "removing an active deployment creates module removed event",
 			previous: SchemaState{
-				deployments: map[model.DeploymentKey]*Deployment{
+				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfaa"): {
 						Module: "test",
 						Key:    deploymentKey(t, "dpl-test-sjkfislfjslfaa"),
 					},
 				},
-				activeDeployments: map[model.DeploymentKey]bool{
+				activeDeployments: map[key.Deployment]bool{
 					deploymentKey(t, "dpl-test-sjkfislfjslfaa"): true,
 				},
 			},
 			current: SchemaState{
-				deployments: map[model.DeploymentKey]*Deployment{},
+				deployments: map[key.Deployment]*Deployment{},
 			},
 			want: []SchemaEvent{
 				&DeploymentDeactivatedEvent{
@@ -134,9 +134,9 @@ func TestEventExtractor(t *testing.T) {
 	}
 }
 
-func deploymentKey(t *testing.T, name string) model.DeploymentKey {
+func deploymentKey(t *testing.T, name string) key.Deployment {
 	t.Helper()
-	key, err := model.ParseDeploymentKey(name)
+	key, err := key.ParseDeploymentKey(name)
 	if err != nil {
 		t.Fatalf("failed to parse deployment key: %v", err)
 	}

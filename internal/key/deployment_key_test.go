@@ -1,4 +1,4 @@
-package model
+package key
 
 import (
 	"testing"
@@ -9,25 +9,25 @@ import (
 func TestDeploymentKey(t *testing.T) {
 	ensureDeterministicRand(t)
 	for _, test := range []struct {
-		key         DeploymentKey
+		key         Deployment
 		str         string
-		expected    DeploymentKey
+		expected    Deployment
 		expectedErr string
 	}{
 		{key: NewDeploymentKey("time"),
-			expected: DeploymentKey{
+			expected: Deployment{
 				Payload: DeploymentPayload{Module: "time"},
 				Suffix:  "17snepfuemu5iab",
 			},
 		},
 		{key: NewDeploymentKey("time"),
-			expected: DeploymentKey{
+			expected: Deployment{
 				Payload: DeploymentPayload{Module: "time"},
 				Suffix:  "5g5cadeqxpqe574v",
 			},
 		},
 		{str: "-0011223344", expectedErr: `expected prefix "dpl" for key "-0011223344"`},
-		{key: NewDeploymentKey("module-with-hyphens"), expected: DeploymentKey{
+		{key: NewDeploymentKey("module-with-hyphens"), expected: Deployment{
 			Payload: DeploymentPayload{Module: "module-with-hyphens"},
 			Suffix:  "59gwlv6lkyexwxf1",
 		},

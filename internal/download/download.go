@@ -15,12 +15,12 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/sha256"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 )
 
 // Artefacts downloads artefacts for a deployment from the Controller.
-func Artefacts(ctx context.Context, client ftlv1connect.ControllerServiceClient, key model.DeploymentKey, dest string) error {
+func Artefacts(ctx context.Context, client ftlv1connect.ControllerServiceClient, key key.Deployment, dest string) error {
 	logger := log.FromContext(ctx)
 	stream, err := client.GetDeploymentArtefacts(ctx, connect.NewRequest(&ftlv1.GetDeploymentArtefactsRequest{
 		DeploymentKey: key.String(),
@@ -72,7 +72,7 @@ func Artefacts(ctx context.Context, client ftlv1connect.ControllerServiceClient,
 }
 
 // ArtefactsFromOCI downloads artefacts for a deployment from an OCI registry.
-func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.ControllerServiceClient, key model.DeploymentKey, dest string, service *artefacts.OCIArtefactService) error {
+func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.ControllerServiceClient, key key.Deployment, dest string, service *artefacts.OCIArtefactService) error {
 	logger := log.FromContext(ctx)
 	response, err := client.GetDeployment(ctx, connect.NewRequest(&ftlv1.GetDeploymentRequest{
 		DeploymentKey: key.String(),

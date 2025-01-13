@@ -1,16 +1,16 @@
-package model
+package key
 
 import (
 	"errors"
 )
 
-type CronJobKey = KeyType[CronJobPayload, *CronJobPayload]
+type CronJob = KeyType[CronJobPayload, *CronJobPayload]
 
-func NewCronJobKey(module, verb string) CronJobKey {
+func NewCronJobKey(module, verb string) CronJob {
 	return newKey[CronJobPayload](module, verb)
 }
 
-func ParseCronJobKey(key string) (CronJobKey, error) { return parseKey[CronJobPayload](key) }
+func ParseCronJobKey(key string) (CronJob, error) { return parseKey[CronJobPayload](key) }
 
 type CronJobPayload struct {
 	Module string

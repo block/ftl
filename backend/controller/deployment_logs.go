@@ -7,8 +7,8 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
@@ -42,21 +42,21 @@ func (d *deploymentLogsSink) Log(entry log.Entry) error {
 
 func (d *deploymentLogsSink) processLogs(ctx context.Context, timelineClient *timelineclient.Client) {
 	for entry := range channels.IterContext(ctx, d.logQueue) {
-		var deployment model.DeploymentKey
+		var deployment key.Deployment
 		depStr, ok := entry.Attributes["deployment"]
 		if !ok {
 			continue
 		}
 
-		dep, err := model.ParseDeploymentKey(depStr)
+		dep, err := key.ParseDeploymentKey(depStr)
 		if err != nil {
 			continue
 		}
 		deployment = dep
 
-		var request optional.Option[model.RequestKey]
+		var request optional.Option[key.Request]
 		if reqStr, ok := entry.Attributes["request"]; ok {
-			req, err := model.ParseRequestKey(reqStr)
+			req, err := key.ParseRequestKey(reqStr)
 			if err == nil {
 				request = optional.Some(req)
 			}

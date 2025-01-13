@@ -1,16 +1,16 @@
-package model
+package key
 
 import (
 	"errors"
 )
 
-type TopicEventKey = KeyType[TopicEventPayload, *TopicEventPayload]
+type TopicEvent = KeyType[TopicEventPayload, *TopicEventPayload]
 
-func NewTopicEventKey(module, topic string) TopicEventKey {
+func NewTopicEventKey(module, topic string) TopicEvent {
 	return newKey[TopicEventPayload](module, topic)
 }
 
-func ParseTopicEventKey(key string) (TopicEventKey, error) { return parseKey[TopicEventPayload](key) }
+func ParseTopicEventKey(key string) (TopicEvent, error) { return parseKey[TopicEventPayload](key) }
 
 type TopicEventPayload struct {
 	Module string

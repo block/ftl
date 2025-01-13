@@ -13,8 +13,8 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/rpc/headers"
 )
 
@@ -62,35 +62,35 @@ func IsDirectRouted(ctx context.Context) bool {
 // RequestKeyFromContext returns the request key from the context, if any.
 //
 // TODO: Return an Option here instead of a bool.
-func RequestKeyFromContext(ctx context.Context) (optional.Option[model.RequestKey], error) {
+func RequestKeyFromContext(ctx context.Context) (optional.Option[key.Request], error) {
 	value := ctx.Value(requestIDKey{})
 	return requestKeyFromContextValue(value)
 }
 
 // WithRequestKey adds the request key to the context.
-func WithRequestKey(ctx context.Context, key model.RequestKey) context.Context {
+func WithRequestKey(ctx context.Context, key key.Request) context.Context {
 	return context.WithValue(ctx, requestIDKey{}, key.String())
 }
 
-func ParentRequestKeyFromContext(ctx context.Context) (optional.Option[model.RequestKey], error) {
+func ParentRequestKeyFromContext(ctx context.Context) (optional.Option[key.Request], error) {
 	value := ctx.Value(parentRequestIDKey{})
 	return requestKeyFromContextValue(value)
 }
 
-func WithParentRequestKey(ctx context.Context, key model.RequestKey) context.Context {
+func WithParentRequestKey(ctx context.Context, key key.Request) context.Context {
 	return context.WithValue(ctx, parentRequestIDKey{}, key.String())
 }
 
-func requestKeyFromContextValue(value any) (optional.Option[model.RequestKey], error) {
+func requestKeyFromContextValue(value any) (optional.Option[key.Request], error) {
 	keyStr, ok := value.(string)
 	if !ok {
-		return optional.None[model.RequestKey](), nil
+		return optional.None[key.Request](), nil
 	}
-	key, err := model.ParseRequestKey(keyStr)
+	parsedKey, err := key.ParseRequestKey(keyStr)
 	if err != nil {
-		return optional.None[model.RequestKey](), fmt.Errorf("invalid request key: %w", err)
+		return optional.None[key.Request](), fmt.Errorf("invalid request key: %w", err)
 	}
-	return optional.Some(key), nil
+	return optional.Some(parsedKey), nil
 }
 
 func DefaultClientOptions(level log.Level) []connect.ClientOption {

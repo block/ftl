@@ -18,8 +18,8 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/timelineclient"
@@ -30,7 +30,7 @@ var _ ftldeploymentconnect.DeploymentServiceHandler = &Service{}
 
 type moduleVerbService struct {
 	client     ftlv1connect.VerbServiceClient
-	deployment model.DeploymentKey
+	deployment key.Deployment
 }
 
 type Service struct {
@@ -64,7 +64,7 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 			for _, route := range moduleContext.Msg().Routes {
 				logger.Debugf("Adding route: %s -> %s", route.Deployment, route.Uri)
 
-				deployment, err := model.ParseDeploymentKey(route.Deployment)
+				deployment, err := key.ParseDeploymentKey(route.Deployment)
 				if err != nil {
 					return fmt.Errorf("failed to parse deployment key: %w", err)
 				}
@@ -138,7 +138,7 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get request key"))
 		return nil, fmt.Errorf("could not process headers for request key: %w", err)
 	} else if !ok {
-		requestKey = model.NewRequestKey(model.OriginIngress, "grpc")
+		requestKey = key.NewRequestKey(key.OriginIngress, "grpc")
 		headers.SetRequestKey(req.Header(), requestKey)
 	}
 

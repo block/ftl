@@ -1,4 +1,4 @@
-package model
+package key
 
 import (
 	"database/sql"
@@ -8,17 +8,17 @@ import (
 	"strings"
 )
 
-type DeploymentKey = KeyType[DeploymentPayload, *DeploymentPayload]
+type Deployment = KeyType[DeploymentPayload, *DeploymentPayload]
 
 var _ interface {
 	sql.Scanner
 	driver.Valuer
 	encoding.TextUnmarshaler
 	encoding.TextMarshaler
-} = (*DeploymentKey)(nil)
+} = (*Deployment)(nil)
 
-func NewDeploymentKey(module string) DeploymentKey { return newKey[DeploymentPayload](module) }
-func ParseDeploymentKey(key string) (DeploymentKey, error) {
+func NewDeploymentKey(module string) Deployment { return newKey[DeploymentPayload](module) }
+func ParseDeploymentKey(key string) (Deployment, error) {
 	return parseKey[DeploymentPayload](key)
 }
 

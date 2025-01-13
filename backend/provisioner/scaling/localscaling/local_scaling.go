@@ -20,9 +20,9 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/dev"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/localdebug"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 )
 
 var _ scaling.RunnerScaling = &localScaling{}
@@ -59,7 +59,7 @@ func (l *localScaling) StartDeployment(ctx context.Context, module string, deplo
 func (l *localScaling) setReplicas(module string, deployment string, language string, replicas int32) error {
 	l.lock.Lock()
 	defer l.lock.Unlock()
-	deploymentKey, err := model.ParseDeploymentKey(deployment)
+	deploymentKey, err := key.ParseDeploymentKey(deployment)
 	if err != nil {
 		return fmt.Errorf("failed to parse deployment key: %w", err)
 	}
@@ -102,7 +102,7 @@ func (l *localScaling) TerminatePreviousDeployments(ctx context.Context, module 
 type devModeRunner struct {
 	uri url.URL
 	// The deployment key of the deployment that is currently running
-	deploymentKey  optional.Option[model.DeploymentKey]
+	deploymentKey  optional.Option[key.Deployment]
 	debugPort      int
 	runnerInfoFile optional.Option[string]
 }
@@ -166,7 +166,7 @@ type deploymentInfo struct {
 	runner   optional.Option[runnerInfo]
 	module   string
 	replicas int32
-	key      model.DeploymentKey
+	key      key.Deployment
 	language string
 	exits    int
 }
@@ -245,7 +245,7 @@ func (l *localScaling) reconcileRunners(ctx context.Context, deploymentRunners *
 	return nil
 }
 
-func (l *localScaling) startRunner(ctx context.Context, deploymentKey model.DeploymentKey, info *deploymentInfo) error {
+func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deployment, info *deploymentInfo) error {
 	select {
 	case <-ctx.Done():
 		// In some cases this gets called with an expired context, generally after the lease is released
@@ -300,7 +300,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey model.Depl
 		Bind:               bindURL,
 		ControllerEndpoint: controllerEndpoint,
 		LeaseEndpoint:      l.leaseAddress,
-		Key:                model.NewLocalRunnerKey(keySuffix),
+		Key:                key.NewLocalRunnerKey(keySuffix),
 		Deployment:         deploymentKey,
 		DebugPort:          debugPort,
 		DevEndpoint:        devURI,
@@ -329,7 +329,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey model.Depl
 		defer l.lock.Unlock()
 		if devEndpoint != nil {
 			// Runner is complete, clear the deployment key
-			devEndpoint.deploymentKey = optional.None[model.DeploymentKey]()
+			devEndpoint.deploymentKey = optional.None[key.Deployment]()
 		}
 		// Don't count context.Canceled as an a restart error
 		if err != nil && !errors.Is(err, context.Canceled) {

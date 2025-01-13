@@ -1,16 +1,16 @@
-package model
+package key
 
 import (
 	"errors"
 )
 
-type SubscriptionKey = KeyType[SubscriptionPayload, *SubscriptionPayload]
+type Subscription = KeyType[SubscriptionPayload, *SubscriptionPayload]
 
-func NewSubscriptionKey(module, name string) SubscriptionKey {
+func NewSubscriptionKey(module, name string) Subscription {
 	return newKey[SubscriptionPayload](module, name)
 }
 
-func ParseSubscriptionKey(key string) (SubscriptionKey, error) {
+func ParseSubscriptionKey(key string) (Subscription, error) {
 	return parseKey[SubscriptionPayload](key)
 }
 

@@ -12,12 +12,12 @@ import (
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 type Ingress struct {
-	DeploymentKey   model.DeploymentKey
-	RequestKey      model.RequestKey
+	DeploymentKey   key.Deployment
+	RequestKey      key.Request
 	StartTime       time.Time
 	Verb            *schema.Ref
 	RequestMethod   string

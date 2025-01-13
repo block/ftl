@@ -6,12 +6,12 @@ import (
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal/download"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 type downloadCmd struct {
-	Dest       string              `short:"d" help:"Destination directory." default:"."`
-	Deployment model.DeploymentKey `help:"Deployment to download." arg:""`
+	Dest       string         `short:"d" help:"Destination directory." default:"."`
+	Deployment key.Deployment `help:"Deployment to download." arg:""`
 }
 
 func (d *downloadCmd) Run(ctx context.Context, client ftlv1connect.ControllerServiceClient) error {

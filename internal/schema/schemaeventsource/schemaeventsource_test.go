@@ -18,8 +18,8 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/rpc"
 )
 
@@ -40,7 +40,7 @@ func TestSchemaEventSource(t *testing.T) {
 
 	send := func(t testing.TB, resp *ftlv1.PullSchemaResponse) {
 		resp.ModuleName = resp.Schema.Name
-		resp.DeploymentKey = proto.String(model.NewDeploymentKey(resp.ModuleName).String())
+		resp.DeploymentKey = proto.String(key.NewDeploymentKey(resp.ModuleName).String())
 		select {
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
@@ -200,5 +200,5 @@ func (m *mockSchemaService) PullSchema(ctx context.Context, req *connect.Request
 
 func assertEqual[T comparable](t testing.TB, expected, actual T) {
 	t.Helper()
-	assert.Equal(t, expected, actual, assert.Exclude[optional.Option[model.DeploymentKey]](), assert.Exclude[*schema.Schema]())
+	assert.Equal(t, expected, actual, assert.Exclude[optional.Option[key.Deployment]](), assert.Exclude[*schema.Schema]())
 }

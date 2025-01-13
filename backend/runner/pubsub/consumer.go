@@ -20,14 +20,14 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
 type consumer struct {
 	moduleName          string
-	deployment          model.DeploymentKey
+	deployment          key.Deployment
 	verb                *schema.Verb
 	subscriber          *schema.MetadataSubscriber
 	retryParams         schema.RetryParams
@@ -38,7 +38,7 @@ type consumer struct {
 	timelineClient *timelineclient.Client
 }
 
-func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.MetadataSubscriber, deployment model.DeploymentKey,
+func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.MetadataSubscriber, deployment key.Deployment,
 	deadLetterPublisher optional.Option[*publisher], verbClient VerbClient, timelineClient *timelineclient.Client) (*consumer, error) {
 	if verb.Runtime == nil {
 		return nil, fmt.Errorf("subscription %s has no runtime", verb.Name)
@@ -202,7 +202,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 func (c *consumer) call(ctx context.Context, body []byte, partition, offset int) error {
 	start := time.Now()
 
-	requestKey := model.NewRequestKey(model.OriginPubsub, schema.RefKey{Module: c.moduleName, Name: c.verb.Name}.String())
+	requestKey := key.NewRequestKey(key.OriginPubsub, schema.RefKey{Module: c.moduleName, Name: c.verb.Name}.String())
 	destRef := &schema.Ref{
 		Module: c.moduleName,
 		Name:   c.verb.Name,

@@ -14,14 +14,14 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
 // handleHTTP HTTP ingress routes.
-func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey model.RequestKey, routesForMethod []ingressRoute, w http.ResponseWriter, r *http.Request, client routing.CallClient) {
+func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey key.Request, routesForMethod []ingressRoute, w http.ResponseWriter, r *http.Request, client routing.CallClient) {
 	logger := log.FromContext(r.Context()).Scope(fmt.Sprintf("ingress:%s:%s", r.Method, r.URL.Path))
 	logger.Debugf("Start ingress request")
 

@@ -1,16 +1,16 @@
-package model
+package key
 
 import (
 	"errors"
 )
 
-type TopicKey = KeyType[TopicPayload, *TopicPayload]
+type Topic = KeyType[TopicPayload, *TopicPayload]
 
-func NewTopicKey(module, name string) TopicKey {
+func NewTopicKey(module, name string) Topic {
 	return newKey[TopicPayload](module, name)
 }
 
-func ParseTopicKey(key string) (TopicKey, error) { return parseKey[TopicPayload](key) }
+func ParseTopicKey(key string) (Topic, error) { return parseKey[TopicPayload](key) }
 
 type TopicPayload struct {
 	Module string
