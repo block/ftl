@@ -15,8 +15,8 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -56,7 +56,7 @@ func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.Ca
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get request key"))
 		return nil, fmt.Errorf("could not process headers for request key: %w", err)
 	} else if !ok {
-		requestKey = model.NewRequestKey(model.OriginIngress, "grpc")
+		requestKey = key.NewRequestKey(key.OriginIngress, "grpc")
 		headers.SetRequestKey(req.Header(), requestKey)
 	}
 
@@ -101,11 +101,11 @@ func NewVerbRouter(ctx context.Context, changes schemaeventsource.EventSource, t
 	return NewVerbRouterFromTable(ctx, New(ctx, changes), timelineClient)
 }
 
-func (s *VerbCallRouter) LookupClient(module string) (client ftlv1connect.VerbServiceClient, deployment model.DeploymentKey, ok bool) {
+func (s *VerbCallRouter) LookupClient(module string) (client ftlv1connect.VerbServiceClient, deployment key.Deployment, ok bool) {
 	current := s.routingTable.Current()
 	deployment, ok = current.GetDeployment(module).Get()
 	if !ok {
-		return nil, model.DeploymentKey{}, false
+		return nil, key.Deployment{}, false
 	}
 
 	res, _ := s.moduleClients.LoadOrCompute(module, func() optional.Option[ftlv1connect.VerbServiceClient] {
@@ -117,7 +117,7 @@ func (s *VerbCallRouter) LookupClient(module string) (client ftlv1connect.VerbSe
 	})
 
 	if !res.Ok() {
-		return nil, model.DeploymentKey{}, false
+		return nil, key.Deployment{}, false
 	}
 
 	return res.MustGet(), deployment, true

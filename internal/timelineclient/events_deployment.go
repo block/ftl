@@ -6,16 +6,16 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 type DeploymentCreated struct {
-	DeploymentKey      model.DeploymentKey
+	DeploymentKey      key.Deployment
 	Time               time.Time
 	Language           string
 	ModuleName         string
 	MinReplicas        int
-	ReplacedDeployment optional.Option[model.DeploymentKey]
+	ReplacedDeployment optional.Option[key.Deployment]
 }
 
 var _ Event = DeploymentCreated{}
@@ -41,7 +41,7 @@ func (d DeploymentCreated) ToEntry() (*timelinepb.CreateEventsRequest_EventEntry
 }
 
 type DeploymentUpdated struct {
-	DeploymentKey   model.DeploymentKey
+	DeploymentKey   key.Deployment
 	Time            time.Time
 	MinReplicas     int
 	PrevMinReplicas int

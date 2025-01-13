@@ -16,8 +16,8 @@ import (
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/cors"
 	ftlhttp "github.com/block/ftl/internal/http"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"
@@ -78,7 +78,7 @@ func (s *service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	start := time.Now()
 	method := strings.ToLower(r.Method)
-	requestKey := model.NewRequestKey(model.OriginIngress, fmt.Sprintf("%s %s", method, r.URL.Path))
+	requestKey := key.NewRequestKey(key.OriginIngress, fmt.Sprintf("%s %s", method, r.URL.Path))
 
 	state := s.view.Load()
 	routes := state.routes[r.Method]

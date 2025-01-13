@@ -1,5 +1,5 @@
 //nolint:revive
-package model
+package key
 
 import (
 	"crypto/rand"

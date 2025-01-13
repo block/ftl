@@ -6,19 +6,19 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/eventstream"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 type Runner struct {
-	Key        model.RunnerKey
+	Key        key.Runner
 	Create     time.Time
 	LastSeen   time.Time
 	Endpoint   string
 	Module     string
-	Deployment model.DeploymentKey
+	Deployment key.Deployment
 }
 
-func (r *RunnerState) Runner(s model.RunnerKey) optional.Option[Runner] {
+func (r *RunnerState) Runner(s key.Runner) optional.Option[Runner] {
 	result, ok := r.runners[s]
 	if ok {
 		return optional.Ptr(result)
@@ -34,7 +34,7 @@ func (r *RunnerState) Runners() []Runner {
 	return ret
 }
 
-func (r *RunnerState) RunnersForDeployment(deployment model.DeploymentKey) []Runner {
+func (r *RunnerState) RunnersForDeployment(deployment key.Deployment) []Runner {
 	var ret []Runner
 	for _, v := range r.runnersByDeployment[deployment] {
 		ret = append(ret, *v)
@@ -47,11 +47,11 @@ var _ eventstream.VerboseMessage = (*RunnerRegisteredEvent)(nil)
 var _ RunnerEvent = (*RunnerDeletedEvent)(nil)
 
 type RunnerRegisteredEvent struct {
-	Key        model.RunnerKey
+	Key        key.Runner
 	Time       time.Time
 	Endpoint   string
 	Module     string
-	Deployment model.DeploymentKey
+	Deployment key.Deployment
 }
 
 func (r *RunnerRegisteredEvent) VerboseMessage() {
@@ -77,7 +77,7 @@ func (r *RunnerRegisteredEvent) Handle(t RunnerState) (RunnerState, error) {
 }
 
 type RunnerDeletedEvent struct {
-	Key model.RunnerKey
+	Key key.Runner
 }
 
 func (r *RunnerDeletedEvent) Handle(t RunnerState) (RunnerState, error) {

@@ -6,12 +6,13 @@ import (
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
+	"github.com/block/ftl/internal/key"
 )
 
 type Deployment struct {
 	Module   string
 	Language string
-	Key      DeploymentKey
+	Key      key.Deployment
 	Schema   *schema.Module
 }
 

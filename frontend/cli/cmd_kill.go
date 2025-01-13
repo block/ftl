@@ -7,11 +7,11 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 type killCmd struct {
-	Deployment model.DeploymentKey `arg:"" help:"Deployment to kill."`
+	Deployment key.Deployment `arg:"" help:"Deployment to kill."`
 }
 
 func (k *killCmd) Run(ctx context.Context, client ftlv1connect.ControllerServiceClient) error {

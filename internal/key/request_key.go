@@ -1,4 +1,4 @@
-package model
+package key
 
 import (
 	"fmt"
@@ -6,14 +6,14 @@ import (
 	"strings"
 )
 
-// A RequestKey represents an inbound request into the cluster.
-type RequestKey = KeyType[RequestKeyPayload, *RequestKeyPayload]
+// A Request represents an inbound request into the cluster.
+type Request = KeyType[RequestKeyPayload, *RequestKeyPayload]
 
-func NewRequestKey(origin Origin, key string) RequestKey {
+func NewRequestKey(origin Origin, key string) Request {
 	return newKey[RequestKeyPayload](string(origin), key)
 }
 
-func ParseRequestKey(name string) (RequestKey, error) {
+func ParseRequestKey(name string) (Request, error) {
 	return parseKey[RequestKeyPayload](name)
 }
 

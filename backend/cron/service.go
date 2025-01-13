@@ -14,6 +14,7 @@ import (
 	"github.com/block/ftl/common/cron"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/routing"
@@ -24,7 +25,7 @@ import (
 
 type cronJob struct {
 	module     string
-	deployment model.DeploymentKey
+	deployment key.Deployment
 	verb       *schema.Verb
 	cronmd     *schema.MetadataCronJob
 	pattern    cron.Pattern
@@ -92,7 +93,7 @@ func Start(ctx context.Context, eventSource schemaeventsource.EventSource, clien
 
 			cronModel := model.CronJob{
 				// TODO: We don't have the runner key available here.
-				Key:           model.NewCronJobKey(job.module, job.verb.Name),
+				Key:           key.NewCronJobKey(job.module, job.verb.Name),
 				Verb:          schema.Ref{Module: job.module, Name: job.verb.Name},
 				Schedule:      job.pattern.String(),
 				StartTime:     time.Now(),
@@ -120,7 +121,7 @@ func callCronJob(ctx context.Context, verbClient routing.CallClient, cronJob cro
 		Metadata: &ftlv1.Metadata{},
 	})
 
-	requestKey := model.NewRequestKey(model.OriginCron, schema.RefKey{Module: ref.Module, Name: ref.Name}.String())
+	requestKey := key.NewRequestKey(key.OriginCron, schema.RefKey{Module: ref.Module, Name: ref.Name}.String())
 	headers.SetRequestKey(req.Header(), requestKey)
 
 	resp, err := verbClient.Call(ctx, req)
@@ -201,7 +202,7 @@ func extractCronJobs(module *schema.Module) ([]cronJob, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cronmd.Pos, err)
 		}
-		deploymentKey, err := model.ParseDeploymentKey(module.Runtime.Deployment.DeploymentKey)
+		deploymentKey, err := key.ParseDeploymentKey(module.Runtime.Deployment.DeploymentKey)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cronmd.Pos, err)
 		}

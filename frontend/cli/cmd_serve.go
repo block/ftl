@@ -39,8 +39,8 @@ import (
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/exec"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/routing"
@@ -250,7 +250,7 @@ func (s *serveCommonConfig) run(
 		config := controller.Config{
 			CommonConfig: s.CommonConfig,
 			Bind:         controllerAddresses[i],
-			Key:          model.NewLocalControllerKey(i),
+			Key:          key.NewLocalControllerKey(i),
 		}
 		config.SetDefaults()
 		config.ModuleUpdateFrequency = time.Second * 1

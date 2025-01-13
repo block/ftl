@@ -12,7 +12,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/schema"
 	sl "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
@@ -28,7 +28,7 @@ type VerbClient interface {
 
 var _ pbconnect.PublishServiceHandler = (*Service)(nil)
 
-func New(module *schema.Module, deployment model.DeploymentKey, verbClient VerbClient, timelineClient *timelineclient.Client) (*Service, error) {
+func New(module *schema.Module, deployment key.Deployment, verbClient VerbClient, timelineClient *timelineclient.Client) (*Service, error) {
 	publishers := map[string]*publisher{}
 	for t := range sl.FilterVariants[*schema.Topic](module.Decls) {
 		publisher, err := newPublisher(module.Name, t, deployment, timelineClient)

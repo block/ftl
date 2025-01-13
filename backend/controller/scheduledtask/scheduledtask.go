@@ -13,8 +13,8 @@ import (
 
 	"github.com/block/ftl/backend/controller/leases"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 )
 
 type descriptor struct {
@@ -41,18 +41,18 @@ type Job func(ctx context.Context) (time.Duration, error)
 // as the hash ring is only updated periodically and controllers may have
 // inconsistent views of the hash ring.
 type Scheduler struct {
-	key    model.ControllerKey
+	key    key.Controller
 	jobs   chan *descriptor
 	clock  clock.Clock
 	leaser leases.Leaser
 }
 
 // New creates a new [Scheduler].
-func New(ctx context.Context, id model.ControllerKey, leaser leases.Leaser) *Scheduler {
+func New(ctx context.Context, id key.Controller, leaser leases.Leaser) *Scheduler {
 	return NewForTesting(ctx, id, clock.New(), leaser)
 }
 
-func NewForTesting(ctx context.Context, id model.ControllerKey, clock clock.Clock, leaser leases.Leaser) *Scheduler {
+func NewForTesting(ctx context.Context, id key.Controller, clock clock.Clock, leaser leases.Leaser) *Scheduler {
 	s := &Scheduler{
 		key:    id,
 		jobs:   make(chan *descriptor),

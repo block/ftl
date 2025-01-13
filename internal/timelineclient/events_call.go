@@ -12,13 +12,13 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 type Call struct {
-	DeploymentKey    model.DeploymentKey
-	RequestKey       model.RequestKey
-	ParentRequestKey optional.Option[model.RequestKey]
+	DeploymentKey    key.Deployment
+	RequestKey       key.Request
+	ParentRequestKey optional.Option[key.Request]
 	StartTime        time.Time
 	DestVerb         *schema.Ref
 	Callers          []*schema.Ref

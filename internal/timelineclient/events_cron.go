@@ -9,11 +9,11 @@ import (
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 type CronScheduled struct {
-	DeploymentKey model.DeploymentKey
+	DeploymentKey key.Deployment
 	Verb          schema.Ref
 	Time          time.Time
 	ScheduledAt   time.Time

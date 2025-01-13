@@ -1,4 +1,4 @@
-package model
+package key
 
 import (
 	"math/rand"
@@ -19,13 +19,13 @@ func ensureDeterministicRand(t *testing.T) {
 func TestRunnerKey(t *testing.T) {
 	ensureDeterministicRand(t)
 	for _, test := range []struct {
-		key         RunnerKey
-		expected    RunnerKey
+		key         Runner
+		expected    Runner
 		expectedStr string
 	}{
 		// Production Keys
 		{key: NewRunnerKey("0.0.0.0", "8080"),
-			expected: RunnerKey{
+			expected: Runner{
 				Payload: RunnerPayload{HostPortMixin{Hostname: optional.Some("0.0.0.0"), Port: "8080"}},
 				Suffix:  "17snepfuemu5iab",
 			},
@@ -37,7 +37,7 @@ func TestRunnerKey(t *testing.T) {
 		{key: NewRunnerKey("rnr-hostwithsameprefix", "80"),
 			expectedStr: "rnr-rnr-hostwithsameprefix-80-8ta4kn0wr7k2mlc"},
 		{key: NewRunnerKey("rnr-hostwithprefixandfakeport-80", "80"),
-			expected: RunnerKey{
+			expected: Runner{
 				Payload: RunnerPayload{HostPortMixin{Hostname: optional.Some("rnr-hostwithprefixandfakeport-80"), Port: "80"}},
 				Suffix:  "3s5h946y6kylrxx4",
 			},
@@ -48,7 +48,7 @@ func TestRunnerKey(t *testing.T) {
 		{key: NewLocalRunnerKey(1), expectedStr: "rnr-1-6i7pgd8mri5ti7f"},
 	} {
 		key := test.key
-		t.Run(test.key.String(), func(t *testing.T) {
+		t.Run(key.String(), func(t *testing.T) {
 			parsed, err := ParseRunnerKey(key.String())
 			assert.NoError(t, err)
 			assert.Equal(t, key, parsed, "expected %v for %v after parsing", key, parsed)
@@ -61,12 +61,12 @@ func TestRunnerKey(t *testing.T) {
 			assert.True(t, ok, "expected string value for key %v", key)
 			assert.Equal(t, test.expectedStr, value)
 
-			var scanKey RunnerKey
+			var scanKey Runner
 			err = scanKey.Scan(value)
 			assert.NoError(t, err)
 			assert.Equal(t, key, scanKey)
 
-			var zero RunnerKey
+			var zero Runner
 			if !assert.Compare(t, zero, test.expected) {
 				assert.Equal(t, test.expected, key)
 			}

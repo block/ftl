@@ -45,8 +45,8 @@ import (
 	"github.com/block/ftl/internal/download"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/exec"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/model"
 	ftlobservability "github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/pgproxy"
 	"github.com/block/ftl/internal/rpc"
@@ -57,7 +57,7 @@ import (
 type Config struct {
 	Config                []string                 `name:"config" short:"C" help:"Paths to FTL project configuration files." env:"FTL_CONFIG" placeholder:"FILE[,FILE,...]" type:"existingfile"`
 	Bind                  *url.URL                 `help:"Endpoint the Runner should bind to and advertise." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
-	Key                   model.RunnerKey          `help:"Runner key (auto)."`
+	Key                   key.Runner               `help:"Runner key (auto)."`
 	ControllerEndpoint    *url.URL                 `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	LeaseEndpoint         *url.URL                 `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	TimelineEndpoint      *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
@@ -66,7 +66,7 @@ type Config struct {
 	DeploymentKeepHistory int                      `help:"Number of deployments to keep history for." default:"3"`
 	HeartbeatPeriod       time.Duration            `help:"Minimum period between heartbeats." default:"3s"`
 	HeartbeatJitter       time.Duration            `help:"Jitter to add to heartbeat period." default:"2s"`
-	Deployment            model.DeploymentKey      `help:"The deployment this runner is for." env:"FTL_DEPLOYMENT"`
+	Deployment            key.Deployment           `help:"The deployment this runner is for." env:"FTL_DEPLOYMENT"`
 	DebugPort             int                      `help:"The port to use for debugging." env:"FTL_DEBUG_PORT"`
 	DevEndpoint           optional.Option[url.URL] `help:"An existing endpoint to connect to in development mode" hidden:""`
 	DevRunnerInfoFile     optional.Option[string]  `help:"The path to a file that we write dev endpoint information to." hidden:""`
@@ -99,9 +99,9 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, config.ControllerEndpoint.String(), log.Error)
 
-	key := config.Key
-	if key.IsZero() {
-		key = model.NewRunnerKey(config.Bind.Hostname(), config.Bind.Port())
+	runnerKey := config.Key
+	if runnerKey.IsZero() {
+		runnerKey = key.NewRunnerKey(config.Bind.Hostname(), config.Bind.Port())
 	}
 	labels, err := structpb.NewStruct(map[string]any{
 		"hostname": hostname,
@@ -116,7 +116,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
 
 	svc := &Service{
-		key:                key,
+		key:                runnerKey,
 		config:             config,
 		storage:            storage,
 		controllerClient:   controllerClient,
@@ -156,7 +156,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	return fmt.Errorf("failure in runner: %w", g.Wait())
 }
 
-func (s *Service) startDeployment(ctx context.Context, key model.DeploymentKey, module *schema.Module, dbAddresses *xsync.MapOf[string, string]) error {
+func (s *Service) startDeployment(ctx context.Context, key key.Deployment, module *schema.Module, dbAddresses *xsync.MapOf[string, string]) error {
 	err := s.deploy(ctx, key, module, dbAddresses)
 	if err != nil {
 		// If we fail to deploy we just exit
@@ -235,7 +235,7 @@ func manageDeploymentDirectory(logger *log.Logger, config Config) error {
 var _ ftlv1connect.VerbServiceHandler = (*Service)(nil)
 
 type deployment struct {
-	key model.DeploymentKey
+	key key.Deployment
 	// Cancelled when plugin terminates
 	ctx      context.Context
 	cmd      optional.Option[exec.Cmd]
@@ -244,7 +244,7 @@ type deployment struct {
 }
 
 type Service struct {
-	key        model.RunnerKey
+	key        key.Runner
 	lock       sync.Mutex
 	deployment atomic.Value[optional.Option[*deployment]]
 	readyTime  atomic.Value[time.Time]
@@ -289,7 +289,7 @@ func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
 }
 
-func (s *Service) getModule(ctx context.Context, key model.DeploymentKey) (*schema.Module, error) {
+func (s *Service) getModule(ctx context.Context, key key.Deployment) (*schema.Module, error) {
 	gdResp, err := s.controllerClient.GetDeployment(ctx, connect.NewRequest(&ftlv1.GetDeploymentRequest{DeploymentKey: s.config.Deployment.String()}))
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
@@ -304,7 +304,7 @@ func (s *Service) getModule(ctx context.Context, key model.DeploymentKey) (*sche
 	return module, nil
 }
 
-func (s *Service) deploy(ctx context.Context, key model.DeploymentKey, module *schema.Module, dbAddresses *xsync.MapOf[string, string]) error {
+func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema.Module, dbAddresses *xsync.MapOf[string, string]) error {
 	logger := log.FromContext(ctx)
 
 	if err, ok := s.registrationFailure.Load().Get(); ok {
@@ -500,7 +500,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s *Service) makeDeployment(ctx context.Context, key model.DeploymentKey, plugin *plugin.Plugin[ftlv1connect.VerbServiceClient, ftlv1.PingRequest, ftlv1.PingResponse, *ftlv1.PingResponse]) *deployment {
+func (s *Service) makeDeployment(ctx context.Context, key key.Deployment, plugin *plugin.Plugin[ftlv1connect.VerbServiceClient, ftlv1.PingRequest, ftlv1.PingResponse, *ftlv1.PingResponse]) *deployment {
 	return &deployment{
 		ctx:      ctx,
 		key:      key,
@@ -562,10 +562,10 @@ func (s *Service) registrationLoop(ctx context.Context, send func(request *ftlv1
 func (s *Service) streamLogsLoop(ctx context.Context) {
 	for entry := range channels.IterContext(ctx, s.deploymentLogQueue) {
 		dep, ok := entry.Attributes["deployment"]
-		var deploymentKey model.DeploymentKey
+		var deploymentKey key.Deployment
 		var err error
 		if ok {
-			deploymentKey, err = model.ParseDeploymentKey(dep)
+			deploymentKey, err = key.ParseDeploymentKey(dep)
 			if err != nil {
 				continue
 			}
@@ -576,9 +576,9 @@ func (s *Service) streamLogsLoop(ctx context.Context) {
 			errStr := entry.Error.Error()
 			errorString = &errStr
 		}
-		var request optional.Option[model.RequestKey]
+		var request optional.Option[key.Request]
 		if reqStr, ok := entry.Attributes["request"]; ok {
-			req, err := model.ParseRequestKey(reqStr) //nolint:errcheck // best effort
+			req, err := key.ParseRequestKey(reqStr) //nolint:errcheck // best effort
 			if err == nil {
 				request = optional.Some(req)
 			}
@@ -596,7 +596,7 @@ func (s *Service) streamLogsLoop(ctx context.Context) {
 
 }
 
-func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey model.DeploymentKey) *log.Logger {
+func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey key.Deployment) *log.Logger {
 	attrs := map[string]string{"deployment": deploymentKey.String()}
 	if requestKey, _ := rpc.RequestKeyFromContext(ctx); requestKey.Ok() { //nolint:errcheck // best effort
 		attrs["request"] = requestKey.MustGet().String()
