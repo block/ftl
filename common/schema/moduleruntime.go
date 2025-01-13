@@ -111,8 +111,10 @@ func ModuleRuntimeScalingFromProto(s *schemapb.ModuleRuntimeScaling) *ModuleRunt
 //protobuf:3 RuntimeEvent
 type ModuleRuntimeDeployment struct {
 	// Endpoint is the endpoint of the deployed module.
-	Endpoint      string `protobuf:"1"`
-	DeploymentKey string `protobuf:"2"`
+	Endpoint      string    `protobuf:"1"`
+	DeploymentKey string    `protobuf:"2"`
+	CreatedAt     time.Time `protobuf:"3"`
+	ActivatedAt   time.Time `protobuf:"4"`
 }
 
 func (m *ModuleRuntimeDeployment) moduleRuntime() {}

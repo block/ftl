@@ -2512,6 +2512,16 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
    */
   deploymentKey = "";
 
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 3;
+   */
+  createdAt?: Timestamp;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp activated_at = 4;
+   */
+  activatedAt?: Timestamp;
+
   constructor(data?: PartialMessage<ModuleRuntimeDeployment>) {
     super();
     proto3.util.initPartial(data, this);
@@ -2522,6 +2532,8 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "created_at", kind: "message", T: Timestamp },
+    { no: 4, name: "activated_at", kind: "message", T: Timestamp },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeDeployment {

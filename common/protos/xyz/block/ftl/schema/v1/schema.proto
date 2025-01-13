@@ -335,6 +335,8 @@ message ModuleRuntimeBase {
 message ModuleRuntimeDeployment {
   string endpoint = 1;
   string deployment_key = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp activated_at = 4;
 }
 
 message ModuleRuntimeEvent {

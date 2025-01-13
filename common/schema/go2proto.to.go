@@ -680,6 +680,8 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 	return &destpb.ModuleRuntimeDeployment{
 		Endpoint:      string(x.Endpoint),
 		DeploymentKey: string(x.DeploymentKey),
+		CreatedAt:     timestamppb.New(x.CreatedAt),
+		ActivatedAt:   timestamppb.New(x.ActivatedAt),
 	}
 }
 
