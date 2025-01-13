@@ -92,6 +92,32 @@ proto3.util.setEnumType(SecretProvider, "xyz.block.ftl.v1.SecretProvider", [
 ]);
 
 /**
+ * @generated from enum xyz.block.ftl.v1.SubscriptionOffset
+ */
+export enum SubscriptionOffset {
+  /**
+   * @generated from enum value: SUBSCRIPTION_OFFSET_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SUBSCRIPTION_OFFSET_EARLIEST = 1;
+   */
+  EARLIEST = 1,
+
+  /**
+   * @generated from enum value: SUBSCRIPTION_OFFSET_LATEST = 2;
+   */
+  LATEST = 2,
+}
+// Retrieve enum metadata with: proto3.getEnumType(SubscriptionOffset)
+proto3.util.setEnumType(SubscriptionOffset, "xyz.block.ftl.v1.SubscriptionOffset", [
+  { no: 0, name: "SUBSCRIPTION_OFFSET_UNSPECIFIED" },
+  { no: 1, name: "SUBSCRIPTION_OFFSET_EARLIEST" },
+  { no: 2, name: "SUBSCRIPTION_OFFSET_LATEST" },
+]);
+
+/**
  * @generated from message xyz.block.ftl.v1.ConfigRef
  */
 export class ConfigRef extends Message<ConfigRef> {
@@ -1005,6 +1031,11 @@ export class ResetSubscriptionRequest extends Message<ResetSubscriptionRequest> 
    */
   subscription?: Ref;
 
+  /**
+   * @generated from field: xyz.block.ftl.v1.SubscriptionOffset offset = 2;
+   */
+  offset = SubscriptionOffset.UNSPECIFIED;
+
   constructor(data?: PartialMessage<ResetSubscriptionRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1014,6 +1045,7 @@ export class ResetSubscriptionRequest extends Message<ResetSubscriptionRequest> 
   static readonly typeName = "xyz.block.ftl.v1.ResetSubscriptionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "subscription", kind: "message", T: Ref },
+    { no: 2, name: "offset", kind: "enum", T: proto3.getEnumType(SubscriptionOffset) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ResetSubscriptionRequest {

@@ -124,8 +124,15 @@ message MapSecretsForModuleResponse {
   map<string, bytes> values = 1;
 }
 
+enum SubscriptionOffset {
+  SUBSCRIPTION_OFFSET_UNSPECIFIED = 0;
+  SUBSCRIPTION_OFFSET_EARLIEST = 1;
+  SUBSCRIPTION_OFFSET_LATEST = 2;
+}
+
 message ResetSubscriptionRequest {
   ftl.schema.v1.Ref subscription = 1;
+  SubscriptionOffset offset = 2;
 }
 
 message ResetSubscriptionResponse {}

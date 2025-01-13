@@ -22,6 +22,12 @@ class SecretProvider(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SECRET_PROVIDER_KEYCHAIN: _ClassVar[SecretProvider]
     SECRET_PROVIDER_OP: _ClassVar[SecretProvider]
     SECRET_PROVIDER_ASM: _ClassVar[SecretProvider]
+
+class SubscriptionOffset(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SUBSCRIPTION_OFFSET_UNSPECIFIED: _ClassVar[SubscriptionOffset]
+    SUBSCRIPTION_OFFSET_EARLIEST: _ClassVar[SubscriptionOffset]
+    SUBSCRIPTION_OFFSET_LATEST: _ClassVar[SubscriptionOffset]
 CONFIG_PROVIDER_UNSPECIFIED: ConfigProvider
 CONFIG_PROVIDER_INLINE: ConfigProvider
 CONFIG_PROVIDER_ENVAR: ConfigProvider
@@ -31,6 +37,9 @@ SECRET_PROVIDER_ENVAR: SecretProvider
 SECRET_PROVIDER_KEYCHAIN: SecretProvider
 SECRET_PROVIDER_OP: SecretProvider
 SECRET_PROVIDER_ASM: SecretProvider
+SUBSCRIPTION_OFFSET_UNSPECIFIED: SubscriptionOffset
+SUBSCRIPTION_OFFSET_EARLIEST: SubscriptionOffset
+SUBSCRIPTION_OFFSET_LATEST: SubscriptionOffset
 
 class ConfigRef(_message.Message):
     __slots__ = ("module", "name")
@@ -201,10 +210,12 @@ class MapSecretsForModuleResponse(_message.Message):
     def __init__(self, values: _Optional[_Mapping[str, bytes]] = ...) -> None: ...
 
 class ResetSubscriptionRequest(_message.Message):
-    __slots__ = ("subscription",)
+    __slots__ = ("subscription", "offset")
     SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    OFFSET_FIELD_NUMBER: _ClassVar[int]
     subscription: _schema_pb2.Ref
-    def __init__(self, subscription: _Optional[_Union[_schema_pb2.Ref, _Mapping]] = ...) -> None: ...
+    offset: SubscriptionOffset
+    def __init__(self, subscription: _Optional[_Union[_schema_pb2.Ref, _Mapping]] = ..., offset: _Optional[_Union[SubscriptionOffset, str]] = ...) -> None: ...
 
 class ResetSubscriptionResponse(_message.Message):
     __slots__ = ()

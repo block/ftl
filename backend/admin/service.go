@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"slices"
 
 	"connectrpc.com/connect"
+	"github.com/IBM/sarama"
 	_ "github.com/jackc/pgx/v5/stdlib"
-
-	"slices"
 
 	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
@@ -347,131 +347,67 @@ func (s *AdminService) ResetSubscription(ctx context.Context, req *connect.Reque
 	if !ok {
 		return nil, fmt.Errorf("verb %q not found in module %q", req.Msg.Subscription.Name, req.Msg.Subscription.Module)
 	}
-	_, ok = islices.FindVariant[*schema.MetadataSubscriber](verb.Metadata)
+	subscriber, ok := islices.FindVariant[*schema.MetadataSubscriber](verb.Metadata)
 	if !ok {
 		return nil, fmt.Errorf("%q is not a subscriber", req.Msg.Subscription)
 	}
 	if verb.Runtime == nil || verb.Runtime.Subscription == nil || len(verb.Runtime.Subscription.KafkaBrokers) == 0 {
 		return nil, fmt.Errorf("no Kafka brokers for subscription %q", req.Msg.Subscription)
 	}
-
-	// If we have an active deployment, ask runner to reset the offset for each partition it is handling
-	if module.Runtime != nil && module.Runtime.Deployment != nil {
-		// TODO: implement
-		// TODO: check log level
-		client := rpc.Dial(pubsubpbconnect.NewPubSubAdminServiceClient, module.Runtime.Deployment.Endpoint, log.Debug)
-		resp, err := client.ResetOffsetsOfSubscription(ctx, connect.NewRequest(&pubsubpb.ResetOffsetsOfSubscriptionRequest{
-			Subscription: req.Msg.Subscription,
-		}))
-		if err != nil {
-			return nil, fmt.Errorf("failed to reset subscription: %w", err)
-
-		}
-		log.FromContext(ctx).Debugf("reset subscription response: %v", resp)
-		// TODO: confirm we received a reset from all partitions
-		return connect.NewResponse(&ftlv1.ResetSubscriptionResponse{}), nil
-		// module.Runtime.Deployment.Endpoint
+	if module.Runtime == nil || module.Runtime.Deployment == nil {
+		return nil, fmt.Errorf("no deployment for module %s", req.Msg.Subscription.Module)
 	}
-	panic("implement me")
-	// Reset any partitions that were not reset by runners
-	// config := sarama.NewConfig()
-	// // config.Consumer.Return.Errors = true
-	// config.Consumer.Offsets.AutoCommit.Enable = true
+	topicID := subscriber.Topic.String()
+	totalPartitions, err := kafkaPartitionCount(ctx, verb.Runtime.Subscription.KafkaBrokers, topicID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get partition count for topic %s: %w", topicID, err)
+	}
 
-	// admin, err := sarama.NewClusterAdmin(verb.Runtime.Subscription.KafkaBrokers, config)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create kafka admin client: %w", err)
-	// }
-	// defer admin.Close()
+	client := rpc.Dial(pubsubpbconnect.NewPubSubAdminServiceClient, module.Runtime.Deployment.Endpoint, log.Error)
+	resp, err := client.ResetOffsetsOfSubscription(ctx, connect.NewRequest(&pubsubpb.ResetOffsetsOfSubscriptionRequest{
+		Subscription: req.Msg.Subscription,
+		Offset:       req.Msg.Offset,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to reset subscription: %w", err)
+	}
 
-	// client, err := sarama.NewClient(verb.Runtime.Subscription.KafkaBrokers, config)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create kafka client: %w", err)
-	// }
-	// defer client.Close()
-
-	// groupID := req.Msg.Subscription.String()
-	// topicID := subscriber.Topic.String()
-
-	// topicMetas, err := admin.DescribeTopics([]string{topicID})
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to describe topic %s: %w", topicID, err)
-	// }
-	// log.FromContext(ctx).Infof("topic metadata for %s: %v", topicID, topicMetas)
-	// if len(topicMetas) != 1 {
-	// 	return nil, fmt.Errorf("expected topic metadata for %s from kafka but received none", topicID)
-	// }
-	// if topicMetas[0].Err == sarama.ErrUnknownTopicOrPartition {
-	// 	return nil, fmt.Errorf("can not reset subscription for topic %s that does not exist yet: %w", topicID, err)
-	// } else if topicMetas[0].Err != sarama.ErrNoError {
-	// 	return nil, fmt.Errorf("failed to describe topic %s: %w", topicID, topicMetas[0].Err)
-	// }
-
-	// offsetManager, err := sarama.NewOffsetManagerFromClient(groupID, client)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create offset manager for %s: %w", groupID, err)
-	// }
-
-	// Collect all errors from each partition offset manager's error channel
-
-	// wg := &sync.WaitGroup{}
-
-	// for _, partition := range topicMetas[0].Partitions {
-	// 	pom, err := offsetManager.ManagePartition(topicID, partition.ID)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("failed to manage partition %d: %w", partition.ID, err)
-	// 	}
-	// 	// errs := make(chan error, len(topicMetas[0].Partitions))
-	// 	// wg.Add(1)
-	// 	// go func() {
-	// 	// 	for err := range channels.IterContext(ctx, pom.Errors()) {
-	// 	// 		log.FromContext(ctx).Debugf("errrrr: %v", err)
-	// 	// 		errs <- fmt.Errorf("error managing partition %v of %s: %w", partition.ID, groupID, err)
-	// 	// 	}
-	// 	// 	log.FromContext(ctx).Debugf("closed")
-	// 	// 	close(errs)
-	// 	// 	// wg.Done()
-	// 	// }()
-
-	// 	newestOffset, err := client.GetOffset(topicID, partition.ID, sarama.OffsetNewest)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("failed to get newest offset for partition %d of %s: %w", partition.ID, topicID, err)
-	// 	}
-
-	// 	log.FromContext(ctx).Debugf("resetting offset to %v for partition %d of %s", sarama.OffsetOldest, partition.ID, groupID)
-	// 	pom.MarkOffset(newestOffset, "")
-
-	// 	// log.FromContext(ctx).Debugf("closing pom (errors = %v)", pom.Errors())
-	// 	// if err := pom.Close(); err != nil {
-	// 	// 	return nil, fmt.Errorf("failed to close partition offset manager for partition %d of %s: %w", partition.ID, topicID, err)
-	// 	// }
-
-	// 	// pom.AsyncClose()
-
-	// 	// err = <-pom.Errors()
-	// 	// log.FromContext(ctx).Debugf("received err: %v", err)
-	// 	// if err != nil {
-	// 	// return nil, err
-	// 	// }
-	// }
-	// log.FromContext(ctx).Debugf("Committing")
-	// offsetManager.Commit()
-	// log.FromContext(ctx).Debugf("Closing")
-	// if err := offsetManager.Close(); err != nil {
-	// 	return nil, fmt.Errorf("failed to close offset manager: %w", err)
-	// }
-
-	// wg.Wait()
-	// collectedErrs := []error{}
-	// for {
-	// 	select {
-	// 	case err := <-errs:
-	// 		collectedErrs = append(collectedErrs, err)
-	// 	default:
-	// 		if len(collectedErrs) > 0 {
-	// 			return nil, errors.Join(collectedErrs...)
-	// 		}
+	var successfulPartitions = resp.Msg.Partitions
+	slices.Sort(successfulPartitions)
+	var failedPartitions = []int{}
+	for p := range totalPartitions {
+		if p >= len(successfulPartitions) || int(successfulPartitions[p]) != p {
+			failedPartitions = append(failedPartitions, p)
+		}
+	}
+	if len(failedPartitions) > 0 {
+		return nil, fmt.Errorf("failed to reset partitions %v: no runner had partition claim", failedPartitions)
+	}
 	return connect.NewResponse(&ftlv1.ResetSubscriptionResponse{}), nil
-	// 	}
-	// }
+}
+
+// kafkaPartitionCount returns the number of partitions for a given topic in kafka. This may differ from the number
+// of partitions in the schema if the topic was originally provisioned with a different number of partitions.
+func kafkaPartitionCount(ctx context.Context, brokers []string, topicID string) (int, error) {
+	config := sarama.NewConfig()
+	admin, err := sarama.NewClusterAdmin(brokers, config)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create kafka admin client: %w", err)
+	}
+	defer admin.Close()
+
+	topicMetas, err := admin.DescribeTopics([]string{topicID})
+	if err != nil {
+		return 0, fmt.Errorf("failed to describe topic %s: %w", topicID, err)
+	}
+	log.FromContext(ctx).Infof("topic metadata for %s: %v", topicID, topicMetas)
+	if len(topicMetas) != 1 {
+		return 0, fmt.Errorf("expected topic metadata for %s from kafka but received none", topicID)
+	}
+	if topicMetas[0].Err == sarama.ErrUnknownTopicOrPartition {
+		return 0, fmt.Errorf("can not reset subscription for topic %s that does not exist yet: %w", topicID, err)
+	} else if topicMetas[0].Err != sarama.ErrNoError {
+		return 0, fmt.Errorf("failed to describe topic %s: %w", topicID, topicMetas[0].Err)
+	}
+	return len(topicMetas[0].Partitions), nil
 }

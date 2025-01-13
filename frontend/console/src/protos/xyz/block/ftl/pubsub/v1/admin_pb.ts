@@ -6,6 +6,7 @@
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
 import { Ref } from "../../schema/v1/schema_pb.js";
+import { SubscriptionOffset } from "../../v1/admin_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.pubsub.v1.ResetOffsetsOfSubscriptionRequest
@@ -16,6 +17,11 @@ export class ResetOffsetsOfSubscriptionRequest extends Message<ResetOffsetsOfSub
    */
   subscription?: Ref;
 
+  /**
+   * @generated from field: xyz.block.ftl.v1.SubscriptionOffset offset = 2;
+   */
+  offset = SubscriptionOffset.UNSPECIFIED;
+
   constructor(data?: PartialMessage<ResetOffsetsOfSubscriptionRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -25,6 +31,7 @@ export class ResetOffsetsOfSubscriptionRequest extends Message<ResetOffsetsOfSub
   static readonly typeName = "xyz.block.ftl.pubsub.v1.ResetOffsetsOfSubscriptionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "subscription", kind: "message", T: Ref },
+    { no: 2, name: "offset", kind: "enum", T: proto3.getEnumType(SubscriptionOffset) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ResetOffsetsOfSubscriptionRequest {
