@@ -16,7 +16,6 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/sha256"
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
@@ -83,11 +82,20 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, module Modu
 		logger.Debugf("Uploaded %s as %s:%s", relToCWD(file.localPath), sha256.FromBytes(resp.Msg.Digest), file.Path)
 	}
 
+	for _, artefact := range filesByHash {
+		moduleSchema.Metadata = append(moduleSchema.Metadata, &schemapb.Metadata{
+			Value: &schemapb.Metadata_Artefact{
+				Artefact: &schemapb.MetadataArtefact{
+					Path:       artefact.Path,
+					Digest:     artefact.Digest,
+					Executable: artefact.Executable,
+				},
+			},
+		})
+	}
+
 	resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ftlv1.CreateDeploymentRequest{
 		Schema: moduleSchema,
-		Artefacts: slices.Map(maps.Values(filesByHash), func(a deploymentArtefact) *ftlv1.DeploymentArtefact {
-			return a.DeploymentArtefact
-		}),
 	}))
 	if err != nil {
 		return err

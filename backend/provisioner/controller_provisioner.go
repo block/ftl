@@ -19,26 +19,13 @@ func NewControllerProvisioner(client ftlv1connect.ControllerServiceClient) *InMe
 			logger := log.FromContext(ctx)
 			logger.Debugf("Provisioning module: %s", moduleName)
 
-			var artefacts []*ftlv1.DeploymentArtefact
-
 			module, ok := res.(*schema.Module)
 			if !ok {
 				return nil, fmt.Errorf("expected module, got %T", res)
 			}
 
-			for _, artefact := range module.Metadata {
-				if metadata, ok := artefact.(*schema.MetadataArtefact); ok {
-					artefacts = append(artefacts, &ftlv1.DeploymentArtefact{
-						Path:       metadata.Path,
-						Digest:     metadata.Digest,
-						Executable: metadata.Executable,
-					})
-				}
-			}
-
 			resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ftlv1.CreateDeploymentRequest{
-				Schema:    module.ToProto(),
-				Artefacts: artefacts,
+				Schema: module.ToProto(),
 			}))
 			if err != nil {
 				return nil, fmt.Errorf("failed to create deployment: %w", err)

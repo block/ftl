@@ -19,7 +19,6 @@ type Deployment struct {
 	MinReplicas int
 	CreatedAt   time.Time
 	ActivatedAt optional.Option[time.Time]
-	Artefacts   map[string]*DeploymentArtefact
 	Language    string
 }
 
@@ -61,7 +60,6 @@ type DeploymentCreatedEvent struct {
 	CreatedAt time.Time
 	Module    string
 	Schema    *schema.Module
-	Artefacts []*DeploymentArtefact
 	Language  string
 }
 
@@ -74,15 +72,7 @@ func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 		CreatedAt: r.CreatedAt,
 		Schema:    r.Schema,
 		Module:    r.Module,
-		Artefacts: map[string]*DeploymentArtefact{},
 		Language:  r.Language,
-	}
-	for _, a := range r.Artefacts {
-		n.Artefacts[a.Digest.String()] = &DeploymentArtefact{
-			Digest:     a.Digest,
-			Path:       a.Path,
-			Executable: a.Executable,
-		}
 	}
 	t.deployments[r.Key] = &n
 	return t, nil

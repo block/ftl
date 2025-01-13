@@ -521,9 +521,17 @@ func (s *Service) GetDeployment(ctx context.Context, req *connect.Request[ftlv1.
 	logger := s.getDeploymentLogger(ctx, deployment.Key)
 	logger.Debugf("Get deployment for: %s", deployment.Key.String())
 
+	artefacts := []*ftlv1.DeploymentArtefact{}
+	for artefact := range slices.FilterVariants[schema.MetadataArtefact](deployment.Schema.Metadata) {
+		artefacts = append(artefacts, &ftlv1.DeploymentArtefact{
+			Digest:     artefact.Digest,
+			Path:       artefact.Path,
+			Executable: artefact.Executable,
+		})
+	}
+
 	return connect.NewResponse(&ftlv1.GetDeploymentResponse{
-		Schema:    deployment.Schema.ToProto(),
-		Artefacts: slices.Map(maps.Values(deployment.Artefacts), ftlv1.ArtefactToProto),
+		Schema: deployment.Schema.ToProto(),
 	}), nil
 }
 
@@ -538,13 +546,22 @@ func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Reque
 
 	chunk := make([]byte, s.config.ArtefactChunkSize)
 nextArtefact:
-	for _, artefact := range deployment.Artefacts {
+	for artefact := range slices.FilterVariants[schema.MetadataArtefact](deployment.Schema.Metadata) {
+		digest, err := sha256.ParseSHA256(artefact.Digest)
+		if err != nil {
+			return fmt.Errorf("invalid digest: %w", err)
+		}
+		deploymentArtefact := &state.DeploymentArtefact{
+			Digest:     digest,
+			Path:       artefact.Path,
+			Executable: artefact.Executable,
+		}
 		for _, clientArtefact := range req.Msg.HaveArtefacts {
-			if proto.Equal(ftlv1.ArtefactToProto(artefact), clientArtefact) {
+			if proto.Equal(ftlv1.ArtefactToProto(deploymentArtefact), clientArtefact) {
 				continue nextArtefact
 			}
 		}
-		reader, err := s.storage.Download(ctx, artefact.Digest)
+		reader, err := s.storage.Download(ctx, digest)
 		if err != nil {
 			return fmt.Errorf("could not download artefact: %w", err)
 		}
@@ -554,7 +571,7 @@ nextArtefact:
 			n, err := reader.Read(chunk)
 			if n != 0 {
 				if err := resp.Send(&ftlv1.GetDeploymentArtefactsResponse{
-					Artefact: ftlv1.ArtefactToProto(artefact),
+					Artefact: ftlv1.ArtefactToProto(deploymentArtefact),
 					Chunk:    chunk[:n],
 				}); err != nil {
 					return fmt.Errorf("could not send artefact chunk: %w", err)
@@ -888,19 +905,6 @@ func (s *Service) UploadArtefact(ctx context.Context, req *connect.Request[ftlv1
 func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftlv1.CreateDeploymentRequest]) (*connect.Response[ftlv1.CreateDeploymentResponse], error) {
 	logger := log.FromContext(ctx)
 
-	artefacts := make([]*state.DeploymentArtefact, len(req.Msg.Artefacts))
-	for i, artefact := range req.Msg.Artefacts {
-		digest, err := sha256.ParseSHA256(artefact.Digest)
-		if err != nil {
-			logger.Errorf(err, "Invalid digest %s", artefact.Digest)
-			return nil, fmt.Errorf("invalid digest: %w", err)
-		}
-		artefacts[i] = &state.DeploymentArtefact{
-			Executable: artefact.Executable,
-			Path:       artefact.Path,
-			Digest:     digest,
-		}
-	}
 	ms := req.Msg.Schema
 	if ms.Runtime == nil {
 		err := errors.New("missing runtime metadata")
@@ -925,7 +929,6 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 		Key:       dkey,
 		CreatedAt: time.Now(),
 		Schema:    module,
-		Artefacts: artefacts,
 		Language:  ms.Runtime.Base.Language,
 	})
 	if err != nil {

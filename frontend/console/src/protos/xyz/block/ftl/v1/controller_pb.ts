@@ -221,11 +221,6 @@ export class CreateDeploymentRequest extends Message<CreateDeploymentRequest> {
    */
   schema?: Module;
 
-  /**
-   * @generated from field: repeated xyz.block.ftl.v1.DeploymentArtefact artefacts = 2;
-   */
-  artefacts: DeploymentArtefact[] = [];
-
   constructor(data?: PartialMessage<CreateDeploymentRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -235,7 +230,6 @@ export class CreateDeploymentRequest extends Message<CreateDeploymentRequest> {
   static readonly typeName = "xyz.block.ftl.v1.CreateDeploymentRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "schema", kind: "message", T: Module },
-    { no: 2, name: "artefacts", kind: "message", T: DeploymentArtefact, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateDeploymentRequest {
@@ -432,11 +426,6 @@ export class GetDeploymentResponse extends Message<GetDeploymentResponse> {
    */
   schema?: Module;
 
-  /**
-   * @generated from field: repeated xyz.block.ftl.v1.DeploymentArtefact artefacts = 2;
-   */
-  artefacts: DeploymentArtefact[] = [];
-
   constructor(data?: PartialMessage<GetDeploymentResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -446,7 +435,6 @@ export class GetDeploymentResponse extends Message<GetDeploymentResponse> {
   static readonly typeName = "xyz.block.ftl.v1.GetDeploymentResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "schema", kind: "message", T: Module },
-    { no: 2, name: "artefacts", kind: "message", T: DeploymentArtefact, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDeploymentResponse {
