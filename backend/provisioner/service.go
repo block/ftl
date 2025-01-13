@@ -20,7 +20,6 @@ import (
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 )
@@ -80,19 +79,6 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 
 	if existingModule != nil {
 		syncExistingRuntimes(existingModule, desiredModule)
-	}
-
-	// Place artefacts to the metdata
-	desiredModule.Metadata = slices.Filter(desiredModule.Metadata, func(m schema.Metadata) bool {
-		_, ok := m.(*schema.MetadataArtefact)
-		return !ok
-	})
-	for _, artefact := range req.Msg.Artefacts {
-		desiredModule.Metadata = append(desiredModule.Metadata, &schema.MetadataArtefact{
-			Path:       artefact.Path,
-			Digest:     artefact.Digest,
-			Executable: artefact.Executable,
-		})
 	}
 
 	deployment := s.registry.CreateDeployment(ctx, desiredModule, existingModule)

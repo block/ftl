@@ -33,7 +33,6 @@ message DeploymentArtefact {
 
 message CreateDeploymentRequest {
   ftl.schema.v1.Module schema = 1;
-  repeated DeploymentArtefact artefacts = 2;
 }
 message CreateDeploymentResponse {
   string deployment_key = 1;
@@ -55,7 +54,6 @@ message GetDeploymentRequest {
 }
 message GetDeploymentResponse {
   ftl.schema.v1.Module schema = 1;
-  repeated DeploymentArtefact artefacts = 2;
 }
 
 message RegisterRunnerRequest {

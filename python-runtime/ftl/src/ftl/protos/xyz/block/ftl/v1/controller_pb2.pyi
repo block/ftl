@@ -45,12 +45,10 @@ class DeploymentArtefact(_message.Message):
     def __init__(self, digest: _Optional[str] = ..., path: _Optional[str] = ..., executable: bool = ...) -> None: ...
 
 class CreateDeploymentRequest(_message.Message):
-    __slots__ = ("schema", "artefacts")
+    __slots__ = ("schema",)
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
-    ARTEFACTS_FIELD_NUMBER: _ClassVar[int]
     schema: _schema_pb2.Module
-    artefacts: _containers.RepeatedCompositeFieldContainer[DeploymentArtefact]
-    def __init__(self, schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., artefacts: _Optional[_Iterable[_Union[DeploymentArtefact, _Mapping]]] = ...) -> None: ...
+    def __init__(self, schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
 
 class CreateDeploymentResponse(_message.Message):
     __slots__ = ("deployment_key", "active_deployment_key")
@@ -83,12 +81,10 @@ class GetDeploymentRequest(_message.Message):
     def __init__(self, deployment_key: _Optional[str] = ...) -> None: ...
 
 class GetDeploymentResponse(_message.Message):
-    __slots__ = ("schema", "artefacts")
+    __slots__ = ("schema",)
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
-    ARTEFACTS_FIELD_NUMBER: _ClassVar[int]
     schema: _schema_pb2.Module
-    artefacts: _containers.RepeatedCompositeFieldContainer[DeploymentArtefact]
-    def __init__(self, schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., artefacts: _Optional[_Iterable[_Union[DeploymentArtefact, _Mapping]]] = ...) -> None: ...
+    def __init__(self, schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
 
 class RegisterRunnerRequest(_message.Message):
     __slots__ = ("key", "endpoint", "deployment", "labels")

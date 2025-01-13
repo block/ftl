@@ -8,6 +8,7 @@ output:
 linters:
   enable-all: true
   disable:
+    - sqlclosecheck # This crashes
     - mnd # So annoying
     - execinquery
     - lll
