@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/block/ftl/cmd/go2proto/testdata/testdatapb"
-	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/key"
 )
 
 func TestModel(t *testing.T) {
@@ -29,7 +29,7 @@ func TestModel(t *testing.T) {
 		RepeatedInt:    []int{1, 2, 3},
 		RepeatedMsg:    []*Message{&Message{Time: time.Now()}, &Message{Time: time.Now()}},
 		URL:            must.Get(url.Parse("http://127.0.0.1")),
-		Key:            model.NewDeploymentKey("echo"),
+		Key:            key.NewDeploymentKey("echo"),
 	}
 	pb := model.ToProto()
 	fmt.Println(pb)
