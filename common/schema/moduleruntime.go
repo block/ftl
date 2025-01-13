@@ -128,3 +128,17 @@ func ModuleRuntimeDeploymentFromProto(s *schemapb.ModuleRuntimeDeployment) *Modu
 		DeploymentKey: s.DeploymentKey,
 	}
 }
+
+func (m *ModuleRuntime) GetScaling() *ModuleRuntimeScaling {
+	if m == nil {
+		return nil
+	}
+	return m.Scaling
+}
+
+func (m *ModuleRuntimeScaling) GetMinReplicas() int32 {
+	if m == nil {
+		return 0
+	}
+	return m.MinReplicas
+}

@@ -15,7 +15,6 @@ import (
 type Deployment struct {
 	Key         key.Deployment
 	Schema      *schema.Module
-	MinReplicas int
 	CreatedAt   time.Time
 	ActivatedAt optional.Option[time.Time]
 }
@@ -96,14 +95,7 @@ func (r *DeploymentReplicasUpdatedEvent) Handle(t SchemaState) (SchemaState, err
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 	}
-	if existing.Schema.Runtime == nil {
-		existing.Schema.Runtime = &schema.ModuleRuntime{}
-	}
-	if existing.Schema.Runtime.Scaling == nil {
-		existing.Schema.Runtime.Scaling = &schema.ModuleRuntimeScaling{}
-	}
-	existing.Schema.Runtime.Scaling.MinReplicas = int32(r.Replicas)
-	existing.MinReplicas = r.Replicas
+	setMinReplicas(existing.Schema, r.Replicas)
 	return t, nil
 }
 
@@ -120,7 +112,7 @@ func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
 
 	}
 	existing.ActivatedAt = optional.Some(r.ActivatedAt)
-	existing.MinReplicas = r.MinReplicas
+	setMinReplicas(existing.Schema, r.MinReplicas)
 	t.activeDeployments[r.Key] = true
 	return t, nil
 }
@@ -136,7 +128,17 @@ func (r *DeploymentDeactivatedEvent) Handle(t SchemaState) (SchemaState, error) 
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 
 	}
-	existing.MinReplicas = 0
+	setMinReplicas(existing.Schema, 0)
 	delete(t.activeDeployments, r.Key)
 	return t, nil
+}
+
+func setMinReplicas(s *schema.Module, minReplicas int) {
+	if s.Runtime == nil {
+		s.Runtime = &schema.ModuleRuntime{}
+	}
+	if s.Runtime.Scaling == nil {
+		s.Runtime.Scaling = &schema.ModuleRuntimeScaling{}
+	}
+	s.Runtime.Scaling.MinReplicas = int32(minReplicas)
 }
