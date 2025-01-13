@@ -301,3 +301,10 @@ func moduleListToSchema(s []*schemapb.Module) ([]*Module, error) {
 func (m *Module) Equals(other *Module) bool {
 	return reflect.DeepEqual(m, other)
 }
+
+func (m *Module) GetRuntime() *ModuleRuntime {
+	if m == nil {
+		return nil
+	}
+	return m.Runtime
+}

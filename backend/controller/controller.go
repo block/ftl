@@ -255,7 +255,7 @@ func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.Pr
 		minReplicas := int32(0)
 		deployment, err := schemaState.GetDeployment(p.Deployment)
 		if err == nil {
-			minReplicas = int32(deployment.MinReplicas)
+			minReplicas = deployment.Schema.GetRuntime().GetScaling().GetMinReplicas()
 		}
 		return &ftlv1.ProcessListResponse_Process{
 			Deployment:  p.Deployment.String(),
@@ -313,7 +313,7 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 		return &ftlv1.StatusResponse_Deployment{
 			Key:         d.Key.String(),
 			Name:        d.Schema.Name,
-			MinReplicas: int32(d.MinReplicas),
+			MinReplicas: d.Schema.GetRuntime().GetScaling().GetMinReplicas(),
 			Replicas:    replicas[d.Key.String()],
 			Schema:      d.Schema.ToProto(),
 		}, nil
@@ -372,7 +372,7 @@ func (s *Service) setDeploymentReplicas(ctx context.Context, key key.Deployment,
 		if err != nil {
 			return fmt.Errorf("could not deactivate deployment: %w", err)
 		}
-	} else if deployment.MinReplicas == 0 {
+	} else if deployment.Schema.GetRuntime().GetScaling().GetMinReplicas() == 0 {
 		err = s.schemaState.Publish(ctx, &state.DeploymentActivatedEvent{Key: key, ActivatedAt: time.Now(), MinReplicas: minReplicas})
 		if err != nil {
 			return fmt.Errorf("could not activate deployment: %w", err)
@@ -381,7 +381,7 @@ func (s *Service) setDeploymentReplicas(ctx context.Context, key key.Deployment,
 	s.timelineClient.Publish(ctx, timelineclient.DeploymentUpdated{
 		DeploymentKey:   key,
 		MinReplicas:     minReplicas,
-		PrevMinReplicas: deployment.MinReplicas,
+		PrevMinReplicas: int(deployment.Schema.GetRuntime().GetScaling().GetMinReplicas()),
 	})
 
 	return nil
