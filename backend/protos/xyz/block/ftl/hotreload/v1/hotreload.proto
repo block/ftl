@@ -21,6 +21,7 @@ message WatchResponse {
 }
 
 message ReloadRequest {
+  bool force = 1;
 }
 
 message ReloadResponse {
