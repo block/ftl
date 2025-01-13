@@ -3,8 +3,6 @@ package xyz.block.ftl.runtime;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
@@ -155,22 +153,6 @@ public class FTLRecorder {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public void startReloadTimer(ShutdownContext shutdownContext) {
-        Timer t = new Timer("FTL Hot Reload Timer", true);
-        t.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                HotReloadSetup.doScan(false);
-            }
-        }, 1000, 1000);
-        shutdownContext.addShutdownTask(new Runnable() {
-            @Override
-            public void run() {
-                t.cancel();
-            }
-        });
     }
 
     public void registerDatabase(String dbKind, GetDeploymentContextResponse.DbType name) {

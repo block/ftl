@@ -22,7 +22,6 @@ import org.tomlj.Toml;
 import org.tomlj.TomlParseResult;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
-import io.quarkus.deployment.IsDevelopment;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
@@ -243,11 +242,5 @@ public class ModuleProcessor {
             BuildProducer<RequireSocketHttpBuildItem> socket) throws IOException {
         socket.produce(RequireSocketHttpBuildItem.MARKER);
         virtual.produce(RequireVirtualHttpBuildItem.MARKER);
-    }
-
-    @Record(ExecutionTime.RUNTIME_INIT)
-    @BuildStep(onlyIf = IsDevelopment.class)
-    void hotReload(ShutdownContextBuildItem shutdownContextBuildItem, FTLRecorder recorder) {
-        recorder.startReloadTimer(shutdownContextBuildItem);
     }
 }

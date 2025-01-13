@@ -1,11 +1,20 @@
 package xyz.block.ftl.deployment;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.jboss.logging.Logger;
+
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.quarkus.bootstrap.classloading.QuarkusClassLoader;
 import io.quarkus.deployment.dev.RuntimeUpdatesProcessor;
-import org.jboss.logging.Logger;
 import xyz.block.ftl.hotreload.v1.HotReloadServiceGrpc;
 import xyz.block.ftl.hotreload.v1.ReloadFailed;
 import xyz.block.ftl.hotreload.v1.ReloadRequest;
@@ -16,14 +25,6 @@ import xyz.block.ftl.language.v1.ErrorList;
 import xyz.block.ftl.schema.v1.Module;
 import xyz.block.ftl.v1.PingRequest;
 import xyz.block.ftl.v1.PingResponse;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplBase {
 
@@ -41,7 +42,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
-        doScan(true);
+        doScan(request.getForce());
         Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
         Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();
         if (compileProblem != null || deploymentProblems != null) {
@@ -62,12 +63,14 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             }
             responseObserver.onNext(ReloadResponse.newBuilder()
                     .setReloadFailed(ReloadFailed.newBuilder()
-                            .setErrors(builder).build()).build());
+                            .setErrors(builder).build())
+                    .build());
             responseObserver.onCompleted();
         } else if (module != null) {
             responseObserver.onNext(ReloadResponse.newBuilder()
                     .setReloadSuccess(ReloadSuccess.newBuilder()
-                            .setModule(module).build()).build());
+                            .setModule(module).build())
+                    .build());
         } else {
             responseObserver.onError(new RuntimeException("schema not generated"));
         }
@@ -96,7 +99,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                     .addService(INSTANCE)
                     .build()
                     .start();
-            ((QuarkusClassLoader)HotReloadHandler.class.getClassLoader()).addCloseTask(new Runnable() {
+            ((QuarkusClassLoader) HotReloadHandler.class.getClassLoader()).addCloseTask(new Runnable() {
                 @Override
                 public void run() {
                     server.shutdownNow();

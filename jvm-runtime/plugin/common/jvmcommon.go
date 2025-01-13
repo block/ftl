@@ -24,11 +24,14 @@ import (
 	"github.com/beevik/etree"
 	"github.com/block/scaffolder"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/block/ftl"
+	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	langconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -45,6 +48,7 @@ import (
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -357,7 +361,8 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	}
 
 	ctx = log.ContextWithLogger(ctx, logger)
-	bind := fmt.Sprintf("http://localhost:%d", address.Port)
+	devModeEndpoint := fmt.Sprintf("http://localhost:%d", address.Port)
+	bind := devModeEndpoint
 	devModeBuild := buildCtx.Config.DevModeBuild
 	debugPort, err := plugin.AllocatePort()
 	debugPort32 := int32(debugPort.Port)
@@ -391,7 +396,14 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	}()
 
 	forceUpdate := false
-	schemaChangeTicker := time.NewTicker(100 * time.Millisecond)
+	// Wait for the plugin to start.
+	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, fmt.Sprintf("http://localhost:%d", protoPort), log.Trace)
+	err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
+	if err != nil {
+		return fmt.Errorf("timed out waiting for start %w", err)
+	}
+
+	schemaChangeTicker := time.NewTicker(500 * time.Millisecond)
 	defer schemaChangeTicker.Stop()
 	for {
 		select {
@@ -411,20 +423,15 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		case bc := <-events:
 			buildCtx = bc.buildCtx
 			forceUpdate = true
-
-			// Force a hot reload by sending a HEAD request to the dev server
-			req, err := http.NewRequestWithContext(ctx, http.MethodHead, bind, nil)
+			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
 			if err != nil {
-				logger.Errorf(err, "could not create request to force build context update")
-				continue
+				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			resp, err := http.DefaultClient.Do(req)
+			resp := s.toBuildResponse(result.Msg, &bc.buildCtx, false, devModeEndpoint, debugPort32, runnerInfoFile)
+			err = stream.Send(resp)
 			if err != nil {
-				logger.Errorf(err, "could not send request to force build context update")
-				continue
+				return fmt.Errorf("failed to send response %w", err)
 			}
-			resp.Body.Close()
-
 		case <-schemaChangeTicker.C:
 
 			changed := false
@@ -497,7 +504,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 							ContextId:          buildCtx.ID,
 							IsAutomaticRebuild: auto,
 							Module:             moduleProto,
-							DevEndpoint:        ptr(fmt.Sprintf("http://localhost:%d", address.Port)),
+							DevEndpoint:        ptr(devModeEndpoint),
 							DevRunnerInfoFile:  &runnerInfoFile,
 							DebugPort:          &debugPort32,
 							Deploy:             []string{SchemaFile},
@@ -949,6 +956,34 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 	}
 	if !changed {
 		return nil
+	}
+	return nil
+}
+
+func (s *Service) toBuildResponse(result *hotreloadpb.ReloadResponse, bc *buildContext, auto bool, devEndpoint string, debugPort int32, devRunnerInfoFile string) (ret *langpb.BuildResponse) {
+	ret = &langpb.BuildResponse{}
+	switch e := result.Event.(type) {
+	case *hotreloadpb.ReloadResponse_ReloadSuccess:
+		ret.Event = &langpb.BuildResponse_BuildSuccess{
+			BuildSuccess: &langpb.BuildSuccess{
+				ContextId:          bc.ID,
+				IsAutomaticRebuild: auto,
+				Module:             e.ReloadSuccess.Module,
+				Errors:             e.ReloadSuccess.Errors,
+				DevEndpoint:        &devEndpoint,
+				DebugPort:          &debugPort,
+				DevRunnerInfoFile:  &devRunnerInfoFile,
+			},
+		}
+
+	case *hotreloadpb.ReloadResponse_ReloadFailed:
+		ret.Event = &langpb.BuildResponse_BuildFailure{
+			BuildFailure: &langpb.BuildFailure{
+				ContextId:          bc.ID,
+				IsAutomaticRebuild: auto,
+				Errors:             e.ReloadFailed.Errors,
+			},
+		}
 	}
 	return nil
 }
