@@ -2884,7 +2884,7 @@ func (x *MetadataSQLMigration) GetDigest() string {
 	return ""
 }
 
-// MetadataQuery designates a query verb; a verb generated from a SQL query.
+// MetadataSQLQuery designates a query verb; a verb generated from a SQL query.
 type MetadataSQLQuery struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Pos           *Position              `protobuf:"bytes,1,opt,name=pos,proto3,oneof" json:"pos,omitempty"`

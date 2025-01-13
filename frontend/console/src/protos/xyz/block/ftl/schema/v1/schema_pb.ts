@@ -2120,7 +2120,7 @@ export class MetadataSQLMigration extends Message<MetadataSQLMigration> {
 }
 
 /**
- * MetadataQuery designates a query verb; a verb generated from a SQL query.
+ * MetadataSQLQuery designates a query verb; a verb generated from a SQL query.
  *
  * @generated from message xyz.block.ftl.schema.v1.MetadataSQLQuery
  */

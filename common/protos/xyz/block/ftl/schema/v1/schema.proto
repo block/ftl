@@ -282,7 +282,7 @@ message MetadataSQLMigration {
   string digest = 2;
 }
 
-// MetadataQuery designates a query verb; a verb generated from a SQL query.
+// MetadataSQLQuery designates a query verb; a verb generated from a SQL query.
 message MetadataSQLQuery {
   optional Position pos = 1;
   string query = 2;

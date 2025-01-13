@@ -345,6 +345,12 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	if err == nil {
 		devModeBuild = fmt.Sprintf("%s -Ddebug=%d", devModeBuild, debugPort.Port)
 	}
+	protoPort, err := plugin.AllocatePort()
+	if err != nil {
+		return fmt.Errorf("could not allocate port: %w", err)
+	}
+	devModeBuild = fmt.Sprintf("%s -Dftl.language.port=%d", devModeBuild, protoPort.Port)
+
 	if os.Getenv("FTL_SUSPEND") == "true" {
 		devModeBuild += " -Dsuspend "
 	}
@@ -577,6 +583,7 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, err
 	}
+	s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
 
 	s.updatesTopic.Publish(buildContextUpdatedEvent{
 		buildCtx: buildCtx,

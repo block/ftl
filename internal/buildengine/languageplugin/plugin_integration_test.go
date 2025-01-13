@@ -66,7 +66,7 @@ const (
 func TestBuilds(t *testing.T) {
 	sch := generateInitialSchema(t)
 	in.Run(t,
-		in.WithLanguages("go"),
+		in.WithLanguages("java"),
 		in.WithoutController(),
 		in.WithoutProvisioner(),
 		in.WithoutTimeline(),
