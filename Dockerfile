@@ -2,7 +2,7 @@
 ARG RUNTIME=scratch-runtime
 
 # Get certificates from Alpine (smaller than Ubuntu)
-FROM alpine:latest@sha256:21dc6063fd678b478f57c0e13f47560d0ea4eeba26dfc947b2a4f81f686b9f45 AS certs
+FROM alpine:latest@sha256:56fa17d2a7e7f168a043a2712e63aed1f8543aeafdcee47c58dcffe38ed51099 AS certs
 # No need to update here, we just use this for the certs
 RUN apk add ca-certificates
 
