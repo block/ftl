@@ -18,7 +18,7 @@ type Runner struct {
 	Deployment model.DeploymentKey
 }
 
-func (r *RunnerState) Runner(s string) optional.Option[Runner] {
+func (r *RunnerState) Runner(s model.RunnerKey) optional.Option[Runner] {
 	result, ok := r.runners[s]
 	if ok {
 		return optional.Ptr(result)
@@ -34,7 +34,7 @@ func (r *RunnerState) Runners() []Runner {
 	return ret
 }
 
-func (r *RunnerState) RunnersForDeployment(deployment string) []Runner {
+func (r *RunnerState) RunnersForDeployment(deployment model.DeploymentKey) []Runner {
 	var ret []Runner
 	for _, v := range r.runnersByDeployment[deployment] {
 		ret = append(ret, *v)
@@ -59,7 +59,7 @@ func (r *RunnerRegisteredEvent) VerboseMessage() {
 }
 
 func (r *RunnerRegisteredEvent) Handle(t RunnerState) (RunnerState, error) {
-	if existing := t.runners[r.Key.String()]; existing != nil {
+	if existing := t.runners[r.Key]; existing != nil {
 		existing.LastSeen = r.Time
 		return t, nil
 	}
@@ -71,8 +71,8 @@ func (r *RunnerRegisteredEvent) Handle(t RunnerState) (RunnerState, error) {
 		Module:     r.Module,
 		Deployment: r.Deployment,
 	}
-	t.runners[r.Key.String()] = &n
-	t.runnersByDeployment[r.Deployment.String()] = append(t.runnersByDeployment[r.Deployment.String()], &n)
+	t.runners[r.Key] = &n
+	t.runnersByDeployment[r.Deployment] = append(t.runnersByDeployment[r.Deployment], &n)
 	return t, nil
 }
 
@@ -81,9 +81,9 @@ type RunnerDeletedEvent struct {
 }
 
 func (r *RunnerDeletedEvent) Handle(t RunnerState) (RunnerState, error) {
-	existing := t.runners[r.Key.String()]
+	existing := t.runners[r.Key]
 	if existing != nil {
-		delete(t.runners, r.Key.String())
+		delete(t.runners, r.Key)
 	}
 	return t, nil
 }

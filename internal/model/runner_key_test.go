@@ -27,7 +27,7 @@ func TestRunnerKey(t *testing.T) {
 		{key: NewRunnerKey("0.0.0.0", "8080"),
 			expected: RunnerKey{
 				Payload: RunnerPayload{HostPortMixin{Hostname: optional.Some("0.0.0.0"), Port: "8080"}},
-				Suffix:  []byte("\x01\x94\xfd\xc2\xfa/\xfc\xc0A\xd3"),
+				Suffix:  "17snepfuemu5iab",
 			},
 			expectedStr: "rnr-0.0.0.0-8080-17snepfuemu5iab"},
 		{key: NewRunnerKey("example-host-with-hyphens", "0"),
@@ -39,7 +39,7 @@ func TestRunnerKey(t *testing.T) {
 		{key: NewRunnerKey("rnr-hostwithprefixandfakeport-80", "80"),
 			expected: RunnerKey{
 				Payload: RunnerPayload{HostPortMixin{Hostname: optional.Some("rnr-hostwithprefixandfakeport-80"), Port: "80"}},
-				Suffix:  []byte("\xb1\r9FQ\x85\x0fԡx"),
+				Suffix:  "3s5h946y6kylrxx4",
 			},
 			expectedStr: "rnr-rnr-hostwithprefixandfakeport-80-80-3s5h946y6kylrxx4"},
 
