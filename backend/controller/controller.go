@@ -313,7 +313,7 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 		return &ftlv1.StatusResponse_Deployment{
 			Key:         d.Key.String(),
 			Language:    d.Language,
-			Name:        d.Module,
+			Name:        d.Schema.Name,
 			MinReplicas: int32(d.MinReplicas),
 			Replicas:    replicas[d.Key.String()],
 			Schema:      d.Schema.ToProto(),
@@ -416,7 +416,7 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 	// TODO: remove all this, it needs to be event driven
 	var oldDeployment *state.Deployment
 	for _, dep := range view.GetActiveDeployments() {
-		if dep.Module == newDeployment.Module {
+		if dep.Schema.Name == newDeployment.Schema.Name {
 			oldDeployment = dep
 			break
 		}
@@ -445,7 +445,7 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 	s.timelineClient.Publish(ctx, timelineclient.DeploymentCreated{
 		DeploymentKey:      newDeploymentKey,
 		Language:           newDeployment.Language,
-		ModuleName:         newDeployment.Module,
+		ModuleName:         newDeployment.Schema.Name,
 		MinReplicas:        minReplicas,
 		ReplacedDeployment: replacedDeploymentKey,
 	})
@@ -626,7 +626,7 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 	if err != nil {
 		return fmt.Errorf("could not get deployment: %w", err)
 	}
-	module := deployment.Module
+	module := deployment.Schema.Name
 
 	// Initialize checksum to -1; a zero checksum does occur when the context contains no settings
 	lastChecksum := int64(-1)
@@ -925,7 +925,6 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 
 	dkey := key.NewDeploymentKey(module.Name)
 	err = s.schemaState.Publish(ctx, &state.DeploymentCreatedEvent{
-		Module:    module.Name,
 		Key:       dkey,
 		CreatedAt: time.Now(),
 		Schema:    module,
@@ -949,7 +948,7 @@ func (s *Service) validateModuleSchema(ctx context.Context, module *schema.Modul
 		return nil, fmt.Errorf("failed to get schema state: %w", err)
 	}
 	existingModules := view.GetActiveDeployments()
-	schemaMap := ftlmaps.FromSlice(maps.Values(existingModules), func(el *state.Deployment) (string, *schema.Module) { return el.Module, el.Schema })
+	schemaMap := ftlmaps.FromSlice(maps.Values(existingModules), func(el *state.Deployment) (string, *schema.Module) { return el.Schema.Name, el.Schema })
 	schemaMap[module.Name] = module
 	fullSchema := &schema.Schema{Modules: maps.Values(schemaMap)}
 	schema, err := schema.ValidateModuleInSchema(fullSchema, optional.Some[*schema.Module](module))
@@ -1070,7 +1069,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 		switch event := notification.(type) {
 		case *state.DeploymentCreatedEvent:
 			err := sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				ModuleName:    event.Module,
+				ModuleName:    event.Schema.Name,
 				DeploymentKey: proto.String(event.Key.String()),
 				Schema:        event.Schema.ToProto(),
 				ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
@@ -1089,7 +1088,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 				continue
 			}
 			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				ModuleName:    dep.Module,
+				ModuleName:    dep.Schema.Name,
 				DeploymentKey: proto.String(event.Key.String()),
 				Schema:        dep.Schema.ToProto(),
 				ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_REMOVED,
@@ -1109,7 +1108,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 				continue
 			}
 			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				ModuleName:    dep.Module,
+				ModuleName:    dep.Schema.Name,
 				DeploymentKey: proto.String(event.Key.String()),
 				Schema:        event.Schema.ToProto(),
 				ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_CHANGED,

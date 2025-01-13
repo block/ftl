@@ -14,7 +14,6 @@ import (
 
 type Deployment struct {
 	Key         key.Deployment
-	Module      string
 	Schema      *schema.Module
 	MinReplicas int
 	CreatedAt   time.Time
@@ -58,7 +57,6 @@ var _ SchemaEvent = (*DeploymentReplicasUpdatedEvent)(nil)
 type DeploymentCreatedEvent struct {
 	Key       key.Deployment
 	CreatedAt time.Time
-	Module    string
 	Schema    *schema.Module
 	Language  string
 }
@@ -71,7 +69,6 @@ func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 		Key:       r.Key,
 		CreatedAt: r.CreatedAt,
 		Schema:    r.Schema,
-		Module:    r.Module,
 		Language:  r.Language,
 	}
 	t.deployments[r.Key] = &n
