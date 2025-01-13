@@ -26,7 +26,7 @@ class FTLLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
   override fun createCommandLine(): GeneralCommandLine {
     val settings = AppSettings.getInstance().state
     val generalCommandLine =
-      GeneralCommandLine(listOf(settings.lspServerPath) + settings.lspServerArguments.split(Pattern.compile("\\s+")))
+      GeneralCommandLine(listOf(settings.lspServerPath))
     generalCommandLine.setWorkDirectory(project.basePath)
     displayMessageInToolWindow("LSP Server Command: " + generalCommandLine.commandLineString)
     displayMessageInToolWindow("Working Directory: " + generalCommandLine.workDirectory)

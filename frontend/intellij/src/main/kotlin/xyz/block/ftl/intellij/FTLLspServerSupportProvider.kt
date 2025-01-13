@@ -94,7 +94,7 @@ class FTLLspServerSupportProvider : LspServerSupportProvider {
   private fun stopViaCommand(project: Project): OSProcessHandler {
     val settings = AppSettings.getInstance().state
     val generalCommandLine =
-      GeneralCommandLine(listOf(settings.lspServerPath) + settings.lspServerStopArguments.split(Pattern.compile("\\s+"))).withCharset(
+      GeneralCommandLine(listOf(settings.lspServerPath)).withCharset(
         Charsets.UTF_8
       )
     generalCommandLine.setWorkDirectory(project.basePath)

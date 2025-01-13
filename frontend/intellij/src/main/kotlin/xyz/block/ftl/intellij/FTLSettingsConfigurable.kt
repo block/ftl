@@ -24,23 +24,17 @@ class FTLSettingsConfigurable : Configurable {
 
   override fun isModified(): Boolean {
     val state = AppSettings.getInstance().state
-    return mySettingsComponent?.getLspServerPath() != state.lspServerPath ||
-      mySettingsComponent?.getLspServerArguments() != state.lspServerArguments ||
-      mySettingsComponent?.getLspServerStopArguments() != state.lspServerStopArguments
+    return mySettingsComponent?.getLspServerPath() != state.lspServerPath
   }
 
   override fun apply() {
     val state = AppSettings.getInstance().state
     state.lspServerPath = mySettingsComponent?.getLspServerPath() ?: "ftl"
-    state.lspServerArguments = mySettingsComponent?.getLspServerArguments() ?: " dev --lsp"
-    state.lspServerStopArguments = mySettingsComponent?.getLspServerStopArguments() ?: "serve --stop"
   }
 
   override fun reset() {
     val state = AppSettings.getInstance().state
     mySettingsComponent?.setLspServerPath(state.lspServerPath)
-    mySettingsComponent?.setLspServerArguments(state.lspServerArguments)
-    mySettingsComponent?.setLspServerStopArguments(state.lspServerStopArguments)
   }
 
   override fun disposeUIResources() {
