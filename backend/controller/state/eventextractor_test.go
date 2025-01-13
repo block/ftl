@@ -28,8 +28,7 @@ func TestEventExtractor(t *testing.T) {
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Key:       deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 						CreatedAt: now,
-						Schema:    &schema.Module{Name: "test"},
-						Language:  "go",
+						Schema:    &schema.Module{Name: "test", Runtime: &schema.ModuleRuntime{Base: schema.ModuleRuntimeBase{Language: "go"}}},
 					},
 				},
 			},
@@ -37,8 +36,7 @@ func TestEventExtractor(t *testing.T) {
 				&DeploymentCreatedEvent{
 					Key:       deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					CreatedAt: now,
-					Schema:    &schema.Module{Name: "test"},
-					Language:  "go",
+					Schema:    &schema.Module{Name: "test", Runtime: &schema.ModuleRuntime{Base: schema.ModuleRuntimeBase{Language: "go"}}},
 				},
 			},
 		},
@@ -49,8 +47,7 @@ func TestEventExtractor(t *testing.T) {
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Key:       deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 						CreatedAt: now,
-						Schema:    &schema.Module{Name: "test"},
-						Language:  "go",
+						Schema:    &schema.Module{Name: "test", Runtime: &schema.ModuleRuntime{Base: schema.ModuleRuntimeBase{Language: "go"}}},
 					},
 				},
 			},

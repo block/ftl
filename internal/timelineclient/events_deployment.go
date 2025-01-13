@@ -12,7 +12,6 @@ import (
 type DeploymentCreated struct {
 	DeploymentKey      key.Deployment
 	Time               time.Time
-	Language           string
 	ModuleName         string
 	MinReplicas        int
 	ReplacedDeployment optional.Option[key.Deployment]
@@ -31,7 +30,6 @@ func (d DeploymentCreated) ToEntry() (*timelinepb.CreateEventsRequest_EventEntry
 		Entry: &timelinepb.CreateEventsRequest_EventEntry_DeploymentCreated{
 			DeploymentCreated: &timelinepb.DeploymentCreatedEvent{
 				Key:         d.DeploymentKey.String(),
-				Language:    d.Language,
 				ModuleName:  d.ModuleName,
 				MinReplicas: int32(d.MinReplicas),
 				Replaced:    replaced,

@@ -312,7 +312,6 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	deployments, err := slices.MapErr(maps.Values(status), func(d *state.Deployment) (*ftlv1.StatusResponse_Deployment, error) {
 		return &ftlv1.StatusResponse_Deployment{
 			Key:         d.Key.String(),
-			Language:    d.Language,
 			Name:        d.Schema.Name,
 			MinReplicas: int32(d.MinReplicas),
 			Replicas:    replicas[d.Key.String()],
@@ -444,7 +443,6 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 
 	s.timelineClient.Publish(ctx, timelineclient.DeploymentCreated{
 		DeploymentKey:      newDeploymentKey,
-		Language:           newDeployment.Language,
 		ModuleName:         newDeployment.Schema.Name,
 		MinReplicas:        minReplicas,
 		ReplacedDeployment: replacedDeploymentKey,
@@ -928,7 +926,6 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 		Key:       dkey,
 		CreatedAt: time.Now(),
 		Schema:    module,
-		Language:  ms.Runtime.Base.Language,
 	})
 	if err != nil {
 		logger.Errorf(err, "Could not create deployment event")
