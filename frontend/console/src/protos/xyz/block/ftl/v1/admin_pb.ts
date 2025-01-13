@@ -5,6 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
+import { Ref } from "../schema/v1/schema_pb.js";
 
 /**
  * @generated from enum xyz.block.ftl.v1.ConfigProvider
@@ -88,6 +89,32 @@ proto3.util.setEnumType(SecretProvider, "xyz.block.ftl.v1.SecretProvider", [
   { no: 3, name: "SECRET_PROVIDER_KEYCHAIN" },
   { no: 4, name: "SECRET_PROVIDER_OP" },
   { no: 5, name: "SECRET_PROVIDER_ASM" },
+]);
+
+/**
+ * @generated from enum xyz.block.ftl.v1.SubscriptionOffset
+ */
+export enum SubscriptionOffset {
+  /**
+   * @generated from enum value: SUBSCRIPTION_OFFSET_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SUBSCRIPTION_OFFSET_EARLIEST = 1;
+   */
+  EARLIEST = 1,
+
+  /**
+   * @generated from enum value: SUBSCRIPTION_OFFSET_LATEST = 2;
+   */
+  LATEST = 2,
+}
+// Retrieve enum metadata with: proto3.getEnumType(SubscriptionOffset)
+proto3.util.setEnumType(SubscriptionOffset, "xyz.block.ftl.v1.SubscriptionOffset", [
+  { no: 0, name: "SUBSCRIPTION_OFFSET_UNSPECIFIED" },
+  { no: 1, name: "SUBSCRIPTION_OFFSET_EARLIEST" },
+  { no: 2, name: "SUBSCRIPTION_OFFSET_LATEST" },
 ]);
 
 /**
@@ -992,6 +1019,80 @@ export class MapSecretsForModuleResponse extends Message<MapSecretsForModuleResp
 
   static equals(a: MapSecretsForModuleResponse | PlainMessage<MapSecretsForModuleResponse> | undefined, b: MapSecretsForModuleResponse | PlainMessage<MapSecretsForModuleResponse> | undefined): boolean {
     return proto3.util.equals(MapSecretsForModuleResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.ResetSubscriptionRequest
+ */
+export class ResetSubscriptionRequest extends Message<ResetSubscriptionRequest> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Ref subscription = 1;
+   */
+  subscription?: Ref;
+
+  /**
+   * @generated from field: xyz.block.ftl.v1.SubscriptionOffset offset = 2;
+   */
+  offset = SubscriptionOffset.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<ResetSubscriptionRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.ResetSubscriptionRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "subscription", kind: "message", T: Ref },
+    { no: 2, name: "offset", kind: "enum", T: proto3.getEnumType(SubscriptionOffset) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ResetSubscriptionRequest {
+    return new ResetSubscriptionRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ResetSubscriptionRequest {
+    return new ResetSubscriptionRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ResetSubscriptionRequest {
+    return new ResetSubscriptionRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ResetSubscriptionRequest | PlainMessage<ResetSubscriptionRequest> | undefined, b: ResetSubscriptionRequest | PlainMessage<ResetSubscriptionRequest> | undefined): boolean {
+    return proto3.util.equals(ResetSubscriptionRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.ResetSubscriptionResponse
+ */
+export class ResetSubscriptionResponse extends Message<ResetSubscriptionResponse> {
+  constructor(data?: PartialMessage<ResetSubscriptionResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.ResetSubscriptionResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ResetSubscriptionResponse {
+    return new ResetSubscriptionResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ResetSubscriptionResponse {
+    return new ResetSubscriptionResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ResetSubscriptionResponse {
+    return new ResetSubscriptionResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ResetSubscriptionResponse | PlainMessage<ResetSubscriptionResponse> | undefined, b: ResetSubscriptionResponse | PlainMessage<ResetSubscriptionResponse> | undefined): boolean {
+    return proto3.util.equals(ResetSubscriptionResponse, a, b);
   }
 }
 

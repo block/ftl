@@ -60,6 +60,9 @@ const (
 	// AdminServiceMapSecretsForModuleProcedure is the fully-qualified name of the AdminService's
 	// MapSecretsForModule RPC.
 	AdminServiceMapSecretsForModuleProcedure = "/xyz.block.ftl.v1.AdminService/MapSecretsForModule"
+	// AdminServiceResetSubscriptionProcedure is the fully-qualified name of the AdminService's
+	// ResetSubscription RPC.
+	AdminServiceResetSubscriptionProcedure = "/xyz.block.ftl.v1.AdminService/ResetSubscription"
 )
 
 // AdminServiceClient is a client for the xyz.block.ftl.v1.AdminService service.
@@ -87,6 +90,8 @@ type AdminServiceClient interface {
 	// MapSecretsForModule combines all secrets visible to the module.
 	// Local values take precedence.
 	MapSecretsForModule(context.Context, *connect.Request[v1.MapSecretsForModuleRequest]) (*connect.Response[v1.MapSecretsForModuleResponse], error)
+	// Reset the offset for a subscription to the latest of each partition.
+	ResetSubscription(context.Context, *connect.Request[v1.ResetSubscriptionRequest]) (*connect.Response[v1.ResetSubscriptionResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the xyz.block.ftl.v1.AdminService service. By
@@ -155,6 +160,11 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			baseURL+AdminServiceMapSecretsForModuleProcedure,
 			opts...,
 		),
+		resetSubscription: connect.NewClient[v1.ResetSubscriptionRequest, v1.ResetSubscriptionResponse](
+			httpClient,
+			baseURL+AdminServiceResetSubscriptionProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -171,6 +181,7 @@ type adminServiceClient struct {
 	secretUnset         *connect.Client[v1.SecretUnsetRequest, v1.SecretUnsetResponse]
 	mapConfigsForModule *connect.Client[v1.MapConfigsForModuleRequest, v1.MapConfigsForModuleResponse]
 	mapSecretsForModule *connect.Client[v1.MapSecretsForModuleRequest, v1.MapSecretsForModuleResponse]
+	resetSubscription   *connect.Client[v1.ResetSubscriptionRequest, v1.ResetSubscriptionResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.AdminService.Ping.
@@ -228,6 +239,11 @@ func (c *adminServiceClient) MapSecretsForModule(ctx context.Context, req *conne
 	return c.mapSecretsForModule.CallUnary(ctx, req)
 }
 
+// ResetSubscription calls xyz.block.ftl.v1.AdminService.ResetSubscription.
+func (c *adminServiceClient) ResetSubscription(ctx context.Context, req *connect.Request[v1.ResetSubscriptionRequest]) (*connect.Response[v1.ResetSubscriptionResponse], error) {
+	return c.resetSubscription.CallUnary(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the xyz.block.ftl.v1.AdminService service.
 type AdminServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -253,6 +269,8 @@ type AdminServiceHandler interface {
 	// MapSecretsForModule combines all secrets visible to the module.
 	// Local values take precedence.
 	MapSecretsForModule(context.Context, *connect.Request[v1.MapSecretsForModuleRequest]) (*connect.Response[v1.MapSecretsForModuleResponse], error)
+	// Reset the offset for a subscription to the latest of each partition.
+	ResetSubscription(context.Context, *connect.Request[v1.ResetSubscriptionRequest]) (*connect.Response[v1.ResetSubscriptionResponse], error)
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -317,6 +335,11 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		svc.MapSecretsForModule,
 		opts...,
 	)
+	adminServiceResetSubscriptionHandler := connect.NewUnaryHandler(
+		AdminServiceResetSubscriptionProcedure,
+		svc.ResetSubscription,
+		opts...,
+	)
 	return "/xyz.block.ftl.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServicePingProcedure:
@@ -341,6 +364,8 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceMapConfigsForModuleHandler.ServeHTTP(w, r)
 		case AdminServiceMapSecretsForModuleProcedure:
 			adminServiceMapSecretsForModuleHandler.ServeHTTP(w, r)
+		case AdminServiceResetSubscriptionProcedure:
+			adminServiceResetSubscriptionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -392,4 +417,8 @@ func (UnimplementedAdminServiceHandler) MapConfigsForModule(context.Context, *co
 
 func (UnimplementedAdminServiceHandler) MapSecretsForModule(context.Context, *connect.Request[v1.MapSecretsForModuleRequest]) (*connect.Response[v1.MapSecretsForModuleResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.MapSecretsForModule is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) ResetSubscription(context.Context, *connect.Request[v1.ResetSubscriptionRequest]) (*connect.Response[v1.ResetSubscriptionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.ResetSubscription is not implemented"))
 }

@@ -37,12 +37,13 @@ func protoMust[T any](v T, err error) T {
 	return v
 }
 
+
 func (x *AWSIAMAuthDatabaseConnector) ToProto() *destpb.AWSIAMAuthDatabaseConnector {
 	if x == nil {
 		return nil
 	}
 	return &destpb.AWSIAMAuthDatabaseConnector{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Username: string(x.Username),
 		Endpoint: string(x.Endpoint),
 		Database: string(x.Database),
@@ -67,7 +68,7 @@ func (x *Array) ToProto() *destpb.Array {
 		return nil
 	}
 	return &destpb.Array{
-		Pos:     x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Element: TypeToProto(x.Element),
 	}
 }
@@ -95,10 +96,10 @@ func (x *Config) ToProto() *destpb.Config {
 		return nil
 	}
 	return &destpb.Config{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Name:     string(x.Name),
-		Type:     TypeToProto(x.Type),
+		Name: string(x.Name),
+		Type: TypeToProto(x.Type),
 	}
 }
 
@@ -117,13 +118,13 @@ func (x *Data) ToProto() *destpb.Data {
 		return nil
 	}
 	return &destpb.Data{
-		Pos:            x.Pos.ToProto(),
-		Comments:       protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Export:         bool(x.Export),
-		Name:           string(x.Name),
+		Pos: x.Pos.ToProto(),
+		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Export: bool(x.Export),
+		Name: string(x.Name),
 		TypeParameters: protoSlice[*destpb.TypeParameter](x.TypeParameters),
-		Fields:         protoSlice[*destpb.Field](x.Fields),
-		Metadata:       protoSlicef(x.Metadata, MetadataToProto),
+		Fields: protoSlice[*destpb.Field](x.Fields),
+		Metadata: protoSlicef(x.Metadata, MetadataToProto),
 	}
 }
 
@@ -132,11 +133,11 @@ func (x *Database) ToProto() *destpb.Database {
 		return nil
 	}
 	return &destpb.Database{
-		Pos:      x.Pos.ToProto(),
-		Runtime:  x.Runtime.ToProto(),
+		Pos: x.Pos.ToProto(),
+		Runtime: x.Runtime.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Type:     string(x.Type),
-		Name:     string(x.Name),
+		Type: string(x.Type),
+		Name: string(x.Name),
 		Metadata: protoSlicef(x.Metadata, MetadataToProto),
 	}
 }
@@ -173,7 +174,7 @@ func (x *DatabaseRuntimeConnections) ToProto() *destpb.DatabaseRuntimeConnection
 		return nil
 	}
 	return &destpb.DatabaseRuntimeConnections{
-		Read:  DatabaseConnectorToProto(x.Read),
+		Read: DatabaseConnectorToProto(x.Read),
 		Write: DatabaseConnectorToProto(x.Write),
 	}
 }
@@ -192,7 +193,7 @@ func (x *DatabaseRuntimeEvent) ToProto() *destpb.DatabaseRuntimeEvent {
 		return nil
 	}
 	return &destpb.DatabaseRuntimeEvent{
-		Id:      string(x.ID),
+		Id: string(x.ID),
 		Payload: DatabaseRuntimeEventPayloadToProto(x.Payload),
 	}
 }
@@ -258,11 +259,11 @@ func (x *Enum) ToProto() *destpb.Enum {
 		return nil
 	}
 	return &destpb.Enum{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Export:   bool(x.Export),
-		Name:     string(x.Name),
-		Type:     TypeToProto(x.Type),
+		Export: bool(x.Export),
+		Name: string(x.Name),
+		Type: TypeToProto(x.Type),
 		Variants: protoSlice[*destpb.EnumVariant](x.Variants),
 	}
 }
@@ -272,10 +273,10 @@ func (x *EnumVariant) ToProto() *destpb.EnumVariant {
 		return nil
 	}
 	return &destpb.EnumVariant{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Name:     string(x.Name),
-		Value:    ValueToProto(x.Value),
+		Name: string(x.Name),
+		Value: ValueToProto(x.Value),
 	}
 }
 
@@ -284,10 +285,10 @@ func (x *Field) ToProto() *destpb.Field {
 		return nil
 	}
 	return &destpb.Field{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Name:     string(x.Name),
-		Type:     TypeToProto(x.Type),
+		Name: string(x.Name),
+		Type: TypeToProto(x.Type),
 		Metadata: protoSlicef(x.Metadata, MetadataToProto),
 	}
 }
@@ -328,7 +329,7 @@ func (x *IngressPathLiteral) ToProto() *destpb.IngressPathLiteral {
 		return nil
 	}
 	return &destpb.IngressPathLiteral{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Text: string(x.Text),
 	}
 }
@@ -338,7 +339,7 @@ func (x *IngressPathParameter) ToProto() *destpb.IngressPathParameter {
 		return nil
 	}
 	return &destpb.IngressPathParameter{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Name: string(x.Name),
 	}
 }
@@ -357,7 +358,7 @@ func (x *IntValue) ToProto() *destpb.IntValue {
 		return nil
 	}
 	return &destpb.IntValue{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Value: int64(x.Value),
 	}
 }
@@ -367,8 +368,8 @@ func (x *Map) ToProto() *destpb.Map {
 		return nil
 	}
 	return &destpb.Map{
-		Pos:   x.Pos.ToProto(),
-		Key:   TypeToProto(x.Key),
+		Pos: x.Pos.ToProto(),
+		Key: TypeToProto(x.Key),
 		Value: TypeToProto(x.Value),
 	}
 }
@@ -456,8 +457,8 @@ func (x *MetadataAlias) ToProto() *destpb.MetadataAlias {
 		return nil
 	}
 	return &destpb.MetadataAlias{
-		Pos:   x.Pos.ToProto(),
-		Kind:  x.Kind.ToProto(),
+		Pos: x.Pos.ToProto(),
+		Kind: x.Kind.ToProto(),
 		Alias: string(x.Alias),
 	}
 }
@@ -467,9 +468,9 @@ func (x *MetadataArtefact) ToProto() *destpb.MetadataArtefact {
 		return nil
 	}
 	return &destpb.MetadataArtefact{
-		Pos:        x.Pos.ToProto(),
-		Path:       string(x.Path),
-		Digest:     string(x.Digest),
+		Pos: x.Pos.ToProto(),
+		Path: string(x.Path),
+		Digest: string(x.Digest),
 		Executable: bool(x.Executable),
 	}
 }
@@ -479,7 +480,7 @@ func (x *MetadataCalls) ToProto() *destpb.MetadataCalls {
 		return nil
 	}
 	return &destpb.MetadataCalls{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Calls: protoSlice[*destpb.Ref](x.Calls),
 	}
 }
@@ -489,7 +490,7 @@ func (x *MetadataConfig) ToProto() *destpb.MetadataConfig {
 		return nil
 	}
 	return &destpb.MetadataConfig{
-		Pos:    x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Config: protoSlice[*destpb.Ref](x.Config),
 	}
 }
@@ -499,7 +500,7 @@ func (x *MetadataCronJob) ToProto() *destpb.MetadataCronJob {
 		return nil
 	}
 	return &destpb.MetadataCronJob{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Cron: string(x.Cron),
 	}
 }
@@ -520,7 +521,7 @@ func (x *MetadataDatabases) ToProto() *destpb.MetadataDatabases {
 		return nil
 	}
 	return &destpb.MetadataDatabases{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Calls: protoSlice[*destpb.Ref](x.Calls),
 	}
 }
@@ -530,8 +531,8 @@ func (x *MetadataEncoding) ToProto() *destpb.MetadataEncoding {
 		return nil
 	}
 	return &destpb.MetadataEncoding{
-		Pos:     x.Pos.ToProto(),
-		Type:    string(x.Type),
+		Pos: x.Pos.ToProto(),
+		Type: string(x.Type),
 		Lenient: bool(x.Lenient),
 	}
 }
@@ -541,10 +542,10 @@ func (x *MetadataIngress) ToProto() *destpb.MetadataIngress {
 		return nil
 	}
 	return &destpb.MetadataIngress{
-		Pos:    x.Pos.ToProto(),
-		Type:   string(x.Type),
+		Pos: x.Pos.ToProto(),
+		Type: string(x.Type),
 		Method: string(x.Method),
-		Path:   protoSlicef(x.Path, IngressPathComponentToProto),
+		Path: protoSlicef(x.Path, IngressPathComponentToProto),
 	}
 }
 
@@ -553,7 +554,7 @@ func (x *MetadataPartitions) ToProto() *destpb.MetadataPartitions {
 		return nil
 	}
 	return &destpb.MetadataPartitions{
-		Pos:        x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Partitions: int64(x.Partitions),
 	}
 }
@@ -563,7 +564,7 @@ func (x *MetadataPublisher) ToProto() *destpb.MetadataPublisher {
 		return nil
 	}
 	return &destpb.MetadataPublisher{
-		Pos:    x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Topics: protoSlice[*destpb.Ref](x.Topics),
 	}
 }
@@ -573,11 +574,11 @@ func (x *MetadataRetry) ToProto() *destpb.MetadataRetry {
 		return nil
 	}
 	return &destpb.MetadataRetry{
-		Pos:        x.Pos.ToProto(),
-		Count:      proto.Int64(int64(*x.Count)),
+		Pos: x.Pos.ToProto(),
+		Count: proto.Int64(int64(*x.Count)),
 		MinBackoff: string(x.MinBackoff),
 		MaxBackoff: string(x.MaxBackoff),
-		Catch:      x.Catch.ToProto(),
+		Catch: x.Catch.ToProto(),
 	}
 }
 
@@ -586,7 +587,7 @@ func (x *MetadataSQLMigration) ToProto() *destpb.MetadataSQLMigration {
 		return nil
 	}
 	return &destpb.MetadataSQLMigration{
-		Pos:    x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Digest: string(x.Digest),
 	}
 }
@@ -606,7 +607,7 @@ func (x *MetadataSecrets) ToProto() *destpb.MetadataSecrets {
 		return nil
 	}
 	return &destpb.MetadataSecrets{
-		Pos:     x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Secrets: protoSlice[*destpb.Ref](x.Secrets),
 	}
 }
@@ -616,8 +617,8 @@ func (x *MetadataSubscriber) ToProto() *destpb.MetadataSubscriber {
 		return nil
 	}
 	return &destpb.MetadataSubscriber{
-		Pos:        x.Pos.ToProto(),
-		Topic:      x.Topic.ToProto(),
+		Pos: x.Pos.ToProto(),
+		Topic: x.Topic.ToProto(),
 		FromOffset: x.FromOffset.ToProto(),
 		DeadLetter: bool(x.DeadLetter),
 	}
@@ -628,8 +629,8 @@ func (x *MetadataTypeMap) ToProto() *destpb.MetadataTypeMap {
 		return nil
 	}
 	return &destpb.MetadataTypeMap{
-		Pos:        x.Pos.ToProto(),
-		Runtime:    string(x.Runtime),
+		Pos: x.Pos.ToProto(),
+		Runtime: string(x.Runtime),
 		NativeName: string(x.NativeName),
 	}
 }
@@ -639,13 +640,13 @@ func (x *Module) ToProto() *destpb.Module {
 		return nil
 	}
 	return &destpb.Module{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Builtin:  bool(x.Builtin),
-		Name:     string(x.Name),
+		Builtin: bool(x.Builtin),
+		Name: string(x.Name),
 		Metadata: protoSlicef(x.Metadata, MetadataToProto),
-		Decls:    protoSlicef(x.Decls, DeclToProto),
-		Runtime:  x.Runtime.ToProto(),
+		Decls: protoSlicef(x.Decls, DeclToProto),
+		Runtime: x.Runtime.ToProto(),
 	}
 }
 
@@ -654,8 +655,8 @@ func (x *ModuleRuntime) ToProto() *destpb.ModuleRuntime {
 		return nil
 	}
 	return &destpb.ModuleRuntime{
-		Base:       x.Base.ToProto(),
-		Scaling:    x.Scaling.ToProto(),
+		Base: x.Base.ToProto(),
+		Scaling: x.Scaling.ToProto(),
 		Deployment: x.Deployment.ToProto(),
 	}
 }
@@ -666,10 +667,10 @@ func (x *ModuleRuntimeBase) ToProto() *destpb.ModuleRuntimeBase {
 	}
 	return &destpb.ModuleRuntimeBase{
 		CreateTime: timestamppb.New(x.CreateTime),
-		Language:   string(x.Language),
-		Os:         proto.String(string(x.OS)),
-		Arch:       proto.String(string(x.Arch)),
-		Image:      proto.String(string(x.Image)),
+		Language: string(x.Language),
+		Os: proto.String(string(x.OS)),
+		Arch: proto.String(string(x.Arch)),
+		Image: proto.String(string(x.Image)),
 	}
 }
 
@@ -678,7 +679,7 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 		return nil
 	}
 	return &destpb.ModuleRuntimeDeployment{
-		Endpoint:      string(x.Endpoint),
+		Endpoint: string(x.Endpoint),
 		DeploymentKey: string(x.DeploymentKey),
 	}
 }
@@ -719,7 +720,7 @@ func (x *Optional) ToProto() *destpb.Optional {
 		return nil
 	}
 	return &destpb.Optional{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Type: TypeToProto(x.Type),
 	}
 }
@@ -730,8 +731,8 @@ func (x *Position) ToProto() *destpb.Position {
 	}
 	return &destpb.Position{
 		Filename: string(x.Filename),
-		Line:     int64(x.Line),
-		Column:   int64(x.Column),
+		Line: int64(x.Line),
+		Column: int64(x.Column),
 	}
 }
 
@@ -740,9 +741,9 @@ func (x *Ref) ToProto() *destpb.Ref {
 		return nil
 	}
 	return &destpb.Ref{
-		Pos:            x.Pos.ToProto(),
-		Module:         string(x.Module),
-		Name:           string(x.Name),
+		Pos: x.Pos.ToProto(),
+		Module: string(x.Module),
+		Name: string(x.Name),
 		TypeParameters: protoSlicef(x.TypeParameters, TypeToProto),
 	}
 }
@@ -786,7 +787,7 @@ func (x *Schema) ToProto() *destpb.Schema {
 		return nil
 	}
 	return &destpb.Schema{
-		Pos:     x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Modules: protoSlice[*destpb.Module](x.Modules),
 	}
 }
@@ -796,10 +797,10 @@ func (x *Secret) ToProto() *destpb.Secret {
 		return nil
 	}
 	return &destpb.Secret{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Name:     string(x.Name),
-		Type:     TypeToProto(x.Type),
+		Name: string(x.Name),
+		Type: TypeToProto(x.Type),
 	}
 }
 
@@ -817,7 +818,7 @@ func (x *StringValue) ToProto() *destpb.StringValue {
 		return nil
 	}
 	return &destpb.StringValue{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Value: string(x.Value),
 	}
 }
@@ -836,12 +837,12 @@ func (x *Topic) ToProto() *destpb.Topic {
 		return nil
 	}
 	return &destpb.Topic{
-		Pos:      x.Pos.ToProto(),
-		Runtime:  x.Runtime.ToProto(),
+		Pos: x.Pos.ToProto(),
+		Runtime: x.Runtime.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Export:   bool(x.Export),
-		Name:     string(x.Name),
-		Event:    TypeToProto(x.Event),
+		Export: bool(x.Export),
+		Name: string(x.Name),
+		Event: TypeToProto(x.Event),
 		Metadata: protoSlicef(x.Metadata, MetadataToProto),
 	}
 }
@@ -852,7 +853,7 @@ func (x *TopicRuntime) ToProto() *destpb.TopicRuntime {
 	}
 	return &destpb.TopicRuntime{
 		KafkaBrokers: protoSlicef(x.KafkaBrokers, func(v string) string { return string(v) }),
-		TopicId:      string(x.TopicID),
+		TopicId: string(x.TopicID),
 	}
 }
 
@@ -861,7 +862,7 @@ func (x *TopicRuntimeEvent) ToProto() *destpb.TopicRuntimeEvent {
 		return nil
 	}
 	return &destpb.TopicRuntimeEvent{
-		Id:      string(x.ID),
+		Id: string(x.ID),
 		Payload: x.Payload.ToProto(),
 	}
 }
@@ -929,11 +930,11 @@ func (x *TypeAlias) ToProto() *destpb.TypeAlias {
 		return nil
 	}
 	return &destpb.TypeAlias{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Export:   bool(x.Export),
-		Name:     string(x.Name),
-		Type:     TypeToProto(x.Type),
+		Export: bool(x.Export),
+		Name: string(x.Name),
+		Type: TypeToProto(x.Type),
 		Metadata: protoSlicef(x.Metadata, MetadataToProto),
 	}
 }
@@ -943,7 +944,7 @@ func (x *TypeParameter) ToProto() *destpb.TypeParameter {
 		return nil
 	}
 	return &destpb.TypeParameter{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Name: string(x.Name),
 	}
 }
@@ -953,7 +954,7 @@ func (x *TypeValue) ToProto() *destpb.TypeValue {
 		return nil
 	}
 	return &destpb.TypeValue{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Value: TypeToProto(x.Value),
 	}
 }
@@ -994,14 +995,14 @@ func (x *Verb) ToProto() *destpb.Verb {
 		return nil
 	}
 	return &destpb.Verb{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
-		Export:   bool(x.Export),
-		Name:     string(x.Name),
-		Request:  TypeToProto(x.Request),
+		Export: bool(x.Export),
+		Name: string(x.Name),
+		Request: TypeToProto(x.Request),
 		Response: TypeToProto(x.Response),
 		Metadata: protoSlicef(x.Metadata, MetadataToProto),
-		Runtime:  x.Runtime.ToProto(),
+		Runtime: x.Runtime.ToProto(),
 	}
 }
 
@@ -1010,7 +1011,7 @@ func (x *VerbRuntime) ToProto() *destpb.VerbRuntime {
 		return nil
 	}
 	return &destpb.VerbRuntime{
-		Base:         x.Base.ToProto(),
+		Base: x.Base.ToProto(),
 		Subscription: x.Subscription.ToProto(),
 	}
 }
@@ -1021,7 +1022,7 @@ func (x *VerbRuntimeBase) ToProto() *destpb.VerbRuntimeBase {
 	}
 	return &destpb.VerbRuntimeBase{
 		CreateTime: timestamppb.New(x.CreateTime),
-		StartTime:  timestamppb.New(x.StartTime),
+		StartTime: timestamppb.New(x.StartTime),
 	}
 }
 
@@ -1030,7 +1031,7 @@ func (x *VerbRuntimeEvent) ToProto() *destpb.VerbRuntimeEvent {
 		return nil
 	}
 	return &destpb.VerbRuntimeEvent{
-		Id:      string(x.ID),
+		Id: string(x.ID),
 		Payload: VerbRuntimePayloadToProto(x.Payload),
 	}
 }
@@ -1061,3 +1062,5 @@ func (x *VerbRuntimeSubscription) ToProto() *destpb.VerbRuntimeSubscription {
 		KafkaBrokers: protoSlicef(x.KafkaBrokers, func(v string) string { return string(v) }),
 	}
 }
+
+		

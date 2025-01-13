@@ -5,14 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"slices"
 
 	"connectrpc.com/connect"
+	"github.com/IBM/sarama"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
+	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
@@ -322,4 +327,87 @@ func (s *AdminService) validateAgainstSchema(ctx context.Context, isSecret bool,
 	}
 
 	return nil
+}
+
+func (s *AdminService) ResetSubscription(ctx context.Context, req *connect.Request[ftlv1.ResetSubscriptionRequest]) (*connect.Response[ftlv1.ResetSubscriptionResponse], error) {
+	// Find nodes in schema
+	sch, err := s.schr.GetActiveSchema(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get the active schema: %w", err)
+	}
+	module, ok := islices.Find(sch.Modules, func(m *schema.Module) bool {
+		return m.Name == req.Msg.Subscription.Module
+	})
+	if !ok {
+		return nil, fmt.Errorf("module %q not found", req.Msg.Subscription.Module)
+	}
+	verb, ok := islices.Find(slices.Collect(islices.FilterVariants[*schema.Verb](module.Decls)), func(v *schema.Verb) bool {
+		return v.Name == req.Msg.Subscription.Name
+	})
+	if !ok {
+		return nil, fmt.Errorf("verb %q not found in module %q", req.Msg.Subscription.Name, req.Msg.Subscription.Module)
+	}
+	subscriber, ok := islices.FindVariant[*schema.MetadataSubscriber](verb.Metadata)
+	if !ok {
+		return nil, fmt.Errorf("%q is not a subscriber", req.Msg.Subscription)
+	}
+	if verb.Runtime == nil || verb.Runtime.Subscription == nil || len(verb.Runtime.Subscription.KafkaBrokers) == 0 {
+		return nil, fmt.Errorf("no Kafka brokers for subscription %q", req.Msg.Subscription)
+	}
+	if module.Runtime == nil || module.Runtime.Deployment == nil {
+		return nil, fmt.Errorf("no deployment for module %s", req.Msg.Subscription.Module)
+	}
+	topicID := subscriber.Topic.String()
+	totalPartitions, err := kafkaPartitionCount(ctx, verb.Runtime.Subscription.KafkaBrokers, topicID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get partition count for topic %s: %w", topicID, err)
+	}
+
+	client := rpc.Dial(pubsubpbconnect.NewPubSubAdminServiceClient, module.Runtime.Deployment.Endpoint, log.Error)
+	resp, err := client.ResetOffsetsOfSubscription(ctx, connect.NewRequest(&pubsubpb.ResetOffsetsOfSubscriptionRequest{
+		Subscription: req.Msg.Subscription,
+		Offset:       req.Msg.Offset,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to reset subscription: %w", err)
+	}
+
+	var successfulPartitions = resp.Msg.Partitions
+	slices.Sort(successfulPartitions)
+	var failedPartitions = []int{}
+	for p := range totalPartitions {
+		if p >= len(successfulPartitions) || int(successfulPartitions[p]) != p {
+			failedPartitions = append(failedPartitions, p)
+		}
+	}
+	if len(failedPartitions) > 0 {
+		return nil, fmt.Errorf("failed to reset partitions %v: no runner had partition claim", failedPartitions)
+	}
+	return connect.NewResponse(&ftlv1.ResetSubscriptionResponse{}), nil
+}
+
+// kafkaPartitionCount returns the number of partitions for a given topic in kafka. This may differ from the number
+// of partitions in the schema if the topic was originally provisioned with a different number of partitions.
+func kafkaPartitionCount(ctx context.Context, brokers []string, topicID string) (int, error) {
+	config := sarama.NewConfig()
+	admin, err := sarama.NewClusterAdmin(brokers, config)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create kafka admin client: %w", err)
+	}
+	defer admin.Close()
+
+	topicMetas, err := admin.DescribeTopics([]string{topicID})
+	if err != nil {
+		return 0, fmt.Errorf("failed to describe topic %s: %w", topicID, err)
+	}
+	log.FromContext(ctx).Infof("topic metadata for %s: %v", topicID, topicMetas)
+	if len(topicMetas) != 1 {
+		return 0, fmt.Errorf("expected topic metadata for %s from kafka but received none", topicID)
+	}
+	if topicMetas[0].Err == sarama.ErrUnknownTopicOrPartition {
+		return 0, fmt.Errorf("can not reset subscription for topic %s that does not exist yet: %w", topicID, err)
+	} else if topicMetas[0].Err != sarama.ErrNoError {
+		return 0, fmt.Errorf("failed to describe topic %s: %w", topicID, topicMetas[0].Err)
+	}
+	return len(topicMetas[0].Partitions), nil
 }

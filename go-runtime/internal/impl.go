@@ -10,8 +10,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/puzpuzpuz/xsync/v3"
 
-	pubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/publish/v1"
-	pubconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/publish/v1/publishpbconnect"
+	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/common/schema"
@@ -54,12 +54,12 @@ func (r *RealFTL) PublishEvent(ctx context.Context, topic *schema.Ref, event any
 	if topic.Module != caller.Module {
 		return fmt.Errorf("can not publish to another module's topic: %s", topic)
 	}
-	client := rpc.ClientFromContext[pubconnect.PublishServiceClient](ctx)
+	client := rpc.ClientFromContext[pubsubpbconnect.PublishServiceClient](ctx)
 	body, err := encoding.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
-	_, err = client.PublishEvent(ctx, connect.NewRequest(&pubpb.PublishEventRequest{
+	_, err = client.PublishEvent(ctx, connect.NewRequest(&pubsubpb.PublishEventRequest{
 		Topic:  topic.ToProto(),
 		Caller: caller.Name,
 		Body:   body,

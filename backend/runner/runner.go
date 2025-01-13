@@ -32,7 +32,7 @@ import (
 	"github.com/block/ftl/backend/controller/artefacts"
 	ftldeploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
-	pubconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/publish/v1/publishpbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/runner/observability"
@@ -171,6 +171,7 @@ func (s *Service) startDeployment(ctx context.Context, key key.Deployment, modul
 	}()
 	return fmt.Errorf("failure in runner: %w", rpc.Serve(ctx, s.config.Bind,
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s),
+		rpc.GRPC(pubsubpbconnect.NewPubSubAdminServiceHandler, s.pubSub),
 		rpc.HTTP("/", s),
 		rpc.HealthCheck(s.healthCheck),
 	))
@@ -362,7 +363,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s.proxy),
 		rpc.GRPC(ftldeploymentconnect.NewDeploymentServiceHandler, s.proxy),
 		rpc.GRPC(ftlleaseconnect.NewLeaseServiceHandler, s.proxy),
-		rpc.GRPC(pubconnect.NewPublishServiceHandler, s.pubSub),
+		rpc.GRPC(pubsubpbconnect.NewPublishServiceHandler, s.pubSub),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)

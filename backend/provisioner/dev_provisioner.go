@@ -203,7 +203,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 		config := sarama.NewConfig()
 		admin, err := sarama.NewClusterAdmin(redPandaBrokers, config)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create cluster admin: %w", err)
+			return nil, fmt.Errorf("failed to create kafka admin client: %w", err)
 		}
 		defer admin.Close()
 

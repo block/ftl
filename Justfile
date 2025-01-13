@@ -25,13 +25,16 @@ PROTOS_OUT := "backend/protos/xyz/block/ftl/console/v1/console.pb.go " + \
               "backend/protos/xyz/block/ftl//v1/ftl.pb.go " + \
               "backend/protos/xyz/block/ftl/timeline/v1/timeline.pb.go " + \
               "backend/protos/xyz/block/ftl//v1/schemaservice.pb.go " + \
+              "backend/protos/xyz/block/ftl/pubsub/v1/admin.pb.go " + \
+              "backend/protos/xyz/block/ftl/pubsub/v1/publish.pb.go " + \
               "common/protos/xyz/block/ftl/schema/v1/schema.pb.go " + \
               CONSOLE_ROOT + "/src/protos/xyz/block/ftl/console/v1/console_pb.ts " + \
               CONSOLE_ROOT + "/src/protos/xyz/block/ftl/v1/ftl_pb.ts " + \
               CONSOLE_ROOT + "/src/protos/xyz/block/ftl/timeline/v1/timeline_pb.ts " + \
               CONSOLE_ROOT + "/src/protos/xyz/block/ftl/v1/schemaservice_pb.ts " + \
               CONSOLE_ROOT + "/src/protos/xyz/block/ftl/schema/v1/schema_pb.ts " + \
-              CONSOLE_ROOT + "/src/protos/xyz/block/ftl/publish/v1/publish_pb.ts"
+              CONSOLE_ROOT + "/src/protos/xyz/block/ftl/pubsub/v1/admin_pb.ts " + \
+              CONSOLE_ROOT + "/src/protos/xyz/block/ftl/pubsub/v1/publish_pb.ts"
 JVM_RUNTIME_IN :=  "jvm-runtime/ftl-runtime/pom.xml " + \
   "jvm-runtime/ftl-runtime/java/runtime/src " + \
   "jvm-runtime/ftl-runtime/java/deployment/src " + \
