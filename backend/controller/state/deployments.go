@@ -18,7 +18,6 @@ type Deployment struct {
 	MinReplicas int
 	CreatedAt   time.Time
 	ActivatedAt optional.Option[time.Time]
-	Language    string
 }
 
 func (r *SchemaState) GetDeployment(deployment key.Deployment) (*Deployment, error) {
@@ -58,7 +57,6 @@ type DeploymentCreatedEvent struct {
 	Key       key.Deployment
 	CreatedAt time.Time
 	Schema    *schema.Module
-	Language  string
 }
 
 func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
@@ -69,7 +67,6 @@ func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 		Key:       r.Key,
 		CreatedAt: r.CreatedAt,
 		Schema:    r.Schema,
-		Language:  r.Language,
 	}
 	t.deployments[r.Key] = &n
 	return t, nil

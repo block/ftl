@@ -23,7 +23,6 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEv
 				Key:       deployment.Key,
 				CreatedAt: deployment.CreatedAt,
 				Schema:    deployment.Schema,
-				Language:  deployment.Language,
 			})
 		} else if !pd.Schema.Equals(deployment.Schema) {
 			events = append(events, &DeploymentSchemaUpdatedEvent{
