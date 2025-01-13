@@ -26,7 +26,6 @@ func TestEventExtractor(t *testing.T) {
 			current: SchemaState{
 				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
-						Module:    "test",
 						Key:       deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 						CreatedAt: now,
 						Schema:    &schema.Module{Name: "test"},
@@ -36,7 +35,6 @@ func TestEventExtractor(t *testing.T) {
 			},
 			want: []SchemaEvent{
 				&DeploymentCreatedEvent{
-					Module:    "test",
 					Key:       deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					CreatedAt: now,
 					Schema:    &schema.Module{Name: "test"},
@@ -49,7 +47,6 @@ func TestEventExtractor(t *testing.T) {
 			previous: SchemaState{
 				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
-						Module:    "test",
 						Key:       deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 						CreatedAt: now,
 						Schema:    &schema.Module{Name: "test"},
@@ -60,7 +57,6 @@ func TestEventExtractor(t *testing.T) {
 			current: SchemaState{
 				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
-						Module: "test",
 						Key:    deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 						Schema: &schema.Module{Name: "test", Metadata: []schema.Metadata{&schema.MetadataArtefact{}}},
 					},
@@ -78,7 +74,7 @@ func TestEventExtractor(t *testing.T) {
 			previous: SchemaState{
 				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
-						Module: "test",
+						Schema: &schema.Module{Name: "test"},
 						Key:    deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					},
 				},
@@ -89,7 +85,7 @@ func TestEventExtractor(t *testing.T) {
 			current: SchemaState{
 				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
-						Module: "test",
+						Schema: &schema.Module{Name: "test"},
 						Key:    deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					},
 				},
@@ -106,7 +102,7 @@ func TestEventExtractor(t *testing.T) {
 			previous: SchemaState{
 				deployments: map[key.Deployment]*Deployment{
 					deploymentKey(t, "dpl-test-sjkfislfjslfaa"): {
-						Module: "test",
+						Schema: &schema.Module{Name: "test"},
 						Key:    deploymentKey(t, "dpl-test-sjkfislfjslfaa"),
 					},
 				},
