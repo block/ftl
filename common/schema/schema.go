@@ -210,6 +210,9 @@ func TypeName(v any) string {
 
 // FromProto converts a protobuf Schema to a Schema and validates it.
 func FromProto(s *schemapb.Schema) (*Schema, error) {
+	if s == nil {
+		return &Schema{}, nil
+	}
 	modules, err := moduleListToSchema(s.Modules)
 	if err != nil {
 		return nil, err
