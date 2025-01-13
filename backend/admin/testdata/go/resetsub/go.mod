@@ -49,4 +49,4 @@ require (
 	google.golang.org/protobuf v1.36.1 // indirect
 )
 
-replace github.com/block/ftl => /Users/mtoohey/Code/ftl
+replace github.com/block/ftl => ./../../../../..
