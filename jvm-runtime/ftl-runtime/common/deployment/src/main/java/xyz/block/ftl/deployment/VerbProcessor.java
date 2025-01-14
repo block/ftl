@@ -174,7 +174,7 @@ public class VerbProcessor {
 
             schemaContributorBuildItemBuildProducer.produce(
                     new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
-                            false, ModuleBuilder.BodyType.ALLOWED, (builder -> builder.addMetadata(Metadata.newBuilder()
+                            false, ModuleBuilder.BodyType.DISALLOWED, (builder -> builder.addMetadata(Metadata.newBuilder()
                                     .setCronJob(MetadataCronJob.newBuilder().setCron(cron.value().asString()))
                                     .build())))));
         }
