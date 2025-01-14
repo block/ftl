@@ -85,7 +85,7 @@ func TestDeploymentState(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(view.GetDeployments()))
 	assert.Equal(t, deploymentKey, view.GetDeployments()[deploymentKey].Key)
-	assert.Equal(t, create, view.GetDeployments()[deploymentKey].CreatedAt)
+	assert.Equal(t, create, view.GetDeployments()[deploymentKey].Schema.GetRuntime().GetDeployment().CreatedAt)
 
 	activate := time.Now()
 	err = cs.Publish(ctx, &state.DeploymentActivatedEvent{

@@ -158,3 +158,17 @@ func (m *ModuleRuntime) ModDeployment() *ModuleRuntimeDeployment {
 	}
 	return m.Deployment
 }
+
+func (m *ModuleRuntimeDeployment) GetCreatedAt() time.Time {
+	if m == nil {
+		return time.Time{}
+	}
+	return m.CreatedAt
+}
+
+func (m *ModuleRuntimeDeployment) GetDeploymentKey() string {
+	if m == nil {
+		return ""
+	}
+	return m.DeploymentKey
+}
