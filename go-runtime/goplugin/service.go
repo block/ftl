@@ -158,7 +158,7 @@ func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.
 // ModuleConfigDefaults provides default values for ModuleConfig for values that are not configured in the ftl.toml file.
 func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
 	deployDir := ".ftl"
-	watch := []string{"**/*.go", "go.mod", "go.sum"}
+	watch := []string{"**/*.go", "**/*.sql", "go.mod", "go.sum"}
 	additionalWatch, err := replacementWatches(req.Msg.Dir, deployDir)
 	watch = append(watch, additionalWatch...)
 	if err != nil {
