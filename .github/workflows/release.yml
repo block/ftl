@@ -105,8 +105,10 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Set Version
-        working-directory: ./jvm-runtime/ftl-runtime
-        run: mvn versions:set -DnewVersion="$(echo ${{ github.ref_name }} | sed s/v//)"
+        working-directory: ./jvm-runtime
+        run: |
+          mvn versions:set -DnewVersion="$(echo ${{ github.ref_name }} | sed s/v//)"
+          find . -name pom.xml -exec sed -i "s/\${project.version}/${{ github.ref_name }}/" {} \;
 
       - name: Build, Test, and Deploy to Maven Central
         working-directory: ./jvm-runtime/ftl-runtime

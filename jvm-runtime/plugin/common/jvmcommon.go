@@ -126,16 +126,22 @@ func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.
 		opts = append(opts, scaffolder.Exclude("^bin"))
 	}
 
+	version := ftl.Version
+	if !ftl.IsRelease(version) {
+		version = "1.0-SNAPSHOT"
+	}
 	sctx := struct {
 		Dir        string
 		Name       string
 		Group      string
 		PackageDir string
+		Version    string
 	}{
 		Dir:        projConfig.Path,
 		Name:       req.Msg.Name,
 		Group:      group,
 		PackageDir: packageDir,
+		Version:    version,
 	}
 	// scaffold at one directory above the module directory
 	parentPath := filepath.Dir(req.Msg.Dir)
@@ -767,11 +773,7 @@ func extractKotlinFTLImports(self, dir string) ([]string, error) {
 func setPOMProperties(ctx context.Context, baseDir string) error {
 	logger := log.FromContext(ctx)
 	ftlVersion := ftl.Version
-	// If we are running in dev mode, ftl.Version will be "dev"
-	// If we are running on CI it is a git sha
-	normalRelease := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
-	normal := normalRelease.MatchString(ftlVersion)
-	if !normal {
+	if !ftl.IsRelease(ftlVersion) {
 		ftlVersion = "1.0-SNAPSHOT"
 	}
 
