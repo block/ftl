@@ -9,7 +9,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>ftl-jvm-runtime</artifactId>
-    <name>Ftl Java Runtime - Runtime</name>
+    <name>FTL Java Runtime - Runtime</name>
 
     <dependencies>
         <dependency>

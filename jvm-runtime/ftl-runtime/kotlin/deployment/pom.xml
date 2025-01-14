@@ -8,7 +8,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>ftl-kotlin-runtime-deployment</artifactId>
-    <name>Ftl Kotlin Runtime - Deployment</name>
+    <name>FTL Kotlin Runtime - Deployment</name>
 
     <dependencies>
         <dependency>

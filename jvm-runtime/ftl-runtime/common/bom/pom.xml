@@ -9,7 +9,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>ftl-jvm-bom</artifactId>
-    <name>Ftl JVM BOM</name>
+    <name>FTL JVM BOM</name>
 
     <dependencyManagement>
         <dependencies>

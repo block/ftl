@@ -8,7 +8,7 @@
     </parent>
     <artifactId>ftl-build-parent</artifactId>
     <packaging>pom</packaging>
-    <name>Ftl JVM Build Parent POM</name>
+    <name>FTL JVM Build Parent POM</name>
     <description>This pom.xml can be used as a parent pom to inherit all required configuration to build a FTL app.</description>
     <properties>
         <ftl.version>1.0-SNAPSHOT</ftl.version>

@@ -8,7 +8,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>ftl-jvm-test-framework</artifactId>
-    <name>Ftl JVM Runtime - Test Framework</name>
+    <name>FTL JVM Runtime - Test Framework</name>
 
     <dependencies>
         <dependency>
