@@ -8,6 +8,7 @@ import xyz.block.ftl.Topic;
 import xyz.block.ftl.TopicPartitionMapper;
 import xyz.block.ftl.Verb;
 import xyz.block.ftl.WriteableTopic;
+import xyz.block.ftl.SinglePartitionMapper;
 
 class PartitionMapper implements TopicPartitionMapper<PubSubEvent> {
     public String getPartitionKey(PubSubEvent event) {
@@ -30,7 +31,7 @@ public class Publisher {
 
     @Export
     @Topic(name = "topic2", partitions = 1)
-    interface Topic2 extends WriteableTopic<PubSubEvent, PartitionMapper> {
+    interface Topic2 extends WriteableTopic<PubSubEvent, SinglePartitionMapper> {
 
     }
 

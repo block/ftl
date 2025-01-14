@@ -20,7 +20,7 @@ class Publisher {
 
     @Export
     @Topic(name = "topic2", partitions = 1)
-    interface Topic2 : WriteableTopic<PubSubEvent, PartitionMapper>
+    interface Topic2 : WriteableTopic<PubSubEvent, SinglePartitionMapper>
 
     @Verb
     @Throws(Exception::class)
