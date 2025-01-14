@@ -38,10 +38,24 @@ type Invoice struct {
   InvoiceNo string
 }
 
-// ftl.TopicPartitionMap is an interface for mapping each event to a partition in the topic.
-// 
-// If creating a topic with multiple partitions, you'll need to define a partition mapper for your event type.
-// Otherwise you can use ftl.SinglePartitionMap[Event]
+//ftl:topic partitions=1
+type Invoices = ftl.TopicHandle[Invoice, ftl.SinglePartitionMap[Invoice]]
+```
+
+If you want multiple partitions in the topic, you'll also need to write a partition mapper:
+
+```go
+package payments
+
+import (
+  "github.com/block/ftl/go-runtime/ftl"
+)
+
+// Define an event type
+type Invoice struct {
+  InvoiceNo string
+}
+
 type PartitionMapper struct{}
 
 var _ ftl.TopicPartitionMap[PubSubEvent] = PartitionMapper{}
@@ -50,7 +64,7 @@ func (PartitionMapper) PartitionKey(event PubSubEvent) string {
 	return event.Time.String()
 }
 
-//ftl:topic export partitions=10
+//ftl:topic partitions=10
 type Invoices = ftl.TopicHandle[Invoice, PartitionMapper]
 ```
 
@@ -84,27 +98,26 @@ func PublishInvoice(ctx context.Context, topic Invoices) error {
 First, declare a new topic:
 
 ```kotlin
-
+import xyz.block.ftl.Export;
+import xyz.block.ftl.SinglePartitionMapper
+import xyz.block.ftl.Topic
 import xyz.block.ftl.WriteableTopic
 
 // Define the event type for the topic
 data class Invoice(val invoiceNo: String)
 
-// PartitionMapper maps each to a partition in the topic
-class PartitionMapper : TopicPartitionMapper<Invoice> {
-    override fun getPartitionKey(invoice: Invoice): String {
-        return invoice.getInvoiceNo()
-    }
-}
-
-@Export
+// Add @Export if you want other modules to be able to consum from this topic
 @Topic(name = "invoices", partitions = 1)
-internal interface InvoiceTopic : WriteableTopic<Invoice, SinglePartitionMapper<Invoice>>
+internal interface InvoicesTopic : WriteableTopic<Invoice, SinglePartitionMapper>
 ```
+
 If you want multiple partitions in the topic, you'll also need to write a partition mapper:
 
 ```kotlin
-
+import xyz.block.ftl.Export;
+import xyz.block.ftl.SinglePartitionMapper
+import xyz.block.ftl.Topic
+import xyz.block.ftl.TopicPartitionMapper
 import xyz.block.ftl.WriteableTopic
 
 // Define the event type for the topic
@@ -113,28 +126,35 @@ data class Invoice(val invoiceNo: String)
 // PartitionMapper maps each to a partition in the topic
 class PartitionMapper : TopicPartitionMapper<Invoice> {
     override fun getPartitionKey(invoice: Invoice): String {
-        return invoice.getInvoiceNo()
+        return invoice.invoiceNo
     }
 }
 
-@Export
+// Add @Export if you want other modules to be able to consum from this topic
 @Topic(name = "invoices", partitions = 8)
-internal interface InvoiceTopic : WriteableTopic<Invoice, PartitionMapper>
+internal interface InvoicesTopic : WriteableTopic<Invoice, PartitionMapper>
 ```
 
 Events can be published to a topic by injecting it into an `@Verb` method:
 
 ```kotlin
 @Verb
-fun publishInvoice(request: InvoiceRequest, topic: InvoiceTopic) {
-    topic.publish(Invoice(request.getInvoiceNo()))
+fun publishInvoice(request: InvoiceRequest, topic: InvoicesTopic) {
+    topic.publish(Invoice(request.invoiceNo))
 }
 ```
 
 To subscribe to a topic use the `@Subscription` annotation, referencing the topic class and providing a method to consume the event:
 
 ```kotlin
-@Subscription(topic = InvoiceTopic::class, from = FromOffset.LATEST)
+// if subscribing from another module, import the event and topic
+import ftl.publisher.Invoice
+import ftl.publisher.InvoicesTopic
+
+import xyz.block.ftl.FromOffset
+import xyz.block.ftl.Subscription
+
+@Subscription(topic = InvoicesTopic::class, from = FromOffset.LATEST)
 fun consumeInvoice(event: Invoice) {
     // ...
 }
@@ -145,7 +165,7 @@ topic cannot be published to, only subscribed to:
 
 ```kotlin
 @Topic(name="invoices", module="publisher")
-internal interface InvoiceTopic : ConsumableTopic<Invoice>
+internal interface InvoicesTopic : ConsumableTopic<Invoice>
 ```
 
 <!-- java -->
@@ -153,51 +173,70 @@ internal interface InvoiceTopic : ConsumableTopic<Invoice>
 First, declare a new topic:
 
 ```java
-import xyz.block.ftl.WriteableTopic;
+import xyz.block.ftl.Export;
 import xyz.block.ftl.SinglePartitionMapper;
+import xyz.block.ftl.Topic;
+import xyz.block.ftl.WriteableTopic;
 
 // Define the event type for the topic
-record Invoice(String invoiceNo) {}
+record Invoice(String invoiceNo) {
+}
 
-@Export
+// Add @Export if you want other modules to be able to consum from this topic
 @Topic(name = "invoices", partitions = 1)
-public interface InvoiceTopic extends WriteableTopic<Invoice, SinglePartitionMapper<Invoice>> {}
+interface InvoicesTopic extends WriteableTopic<Invoice, SinglePartitionMapper> {
+}
 ```
 
 If you want multiple partitions in the topic, you'll also need to write a partition mapper:
+
 ```java
+import xyz.block.ftl.Export;
+import xyz.block.ftl.Topic;
+import xyz.block.ftl.TopicPartitionMapper;
 import xyz.block.ftl.WriteableTopic;
 
 // Define the event type for the topic
-record Invoice(String invoiceNo) {}
+record Invoice(String invoiceNo) {
+}
 
 // PartitionMapper maps each to a partition in the topic
 class PartitionMapper implements TopicPartitionMapper<Invoice> {
     public String getPartitionKey(Invoice invoice) {
-        return invoice.getInvoiceNo();
+        return invoice.invoiceNo();
     }
 }
 
-@Export
+// Add @Export if you want other modules to be able to consum from this topic
 @Topic(name = "invoices", partitions = 8)
-public interface InvoiceTopic extends WriteableTopic<Invoice, PartitionMapper> {}
+interface InvoicesTopic extends WriteableTopic<Invoice, PartitionMapper> {
+}
 ```
 
 Events can be published to a topic by injecting it into an `@Verb` method:
 
 ```java
 @Verb
-void publishInvoice(InvoiceRequest request, InvoiceTopic topic) throws Exception {
-    topic.publish(new Invoice(request.getInvoiceNo()));
+void publishInvoice(InvoiceRequest request, InvoicesTopic topic) throws Exception {
+    topic.publish(new Invoice(request.invoiceNo()));
 }
 ```
 
 To subscribe to a topic use the `@Subscription` annotation, referencing the topic class and providing a method to consume the event:
 
 ```java
-@Subscription(topic = InvoiceTopic.class, from = FromOffset.LATEST)
-public void consumeInvoice(Invoice event) {
-    // ...
+// if subscribing from another module, import the event and topic
+import ftl.othermodule.Invoice;
+import ftl.othermodule.InvoicesTopic;
+
+import xyz.block.ftl.FromOffset;
+import xyz.block.ftl.Subscription;
+
+class Subscriber {
+    @Subscription(topic = InvoicesTopic.class, from = FromOffset.LATEST)
+    public void consumeInvoice(Invoice event) {
+        // ...
+    }
 }
 ```
 
@@ -206,7 +245,7 @@ topic cannot be published to, only subscribed to:
 
 ```java
 @Topic(name="invoices", module="publisher")
- interface InvoiceTopic extends ConsumableTopic<Invoice> {}
+ interface InvoicesTopic extends ConsumableTopic<Invoice> {}
 ```
 
 {% end %}
