@@ -12,6 +12,7 @@ import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.Secret;
 import xyz.block.ftl.Subscription;
 import xyz.block.ftl.Topic;
+import xyz.block.ftl.TopicPartitionMapper;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.Verb;
@@ -35,4 +36,5 @@ public class FTLDotNames {
     public static final DotName LEASE_CLIENT = DotName.createSimple(LeaseClient.class);
     public static final DotName GENERATED_REF = DotName.createSimple(GeneratedRef.class);
     public static final DotName TOPIC = DotName.createSimple(Topic.class);
+    public static final DotName TOPIC_PARTITION_MAPPER = DotName.createSimple(TopicPartitionMapper.class);
 }

@@ -21,6 +21,7 @@ import io.quarkus.gizmo.MethodDescriptor;
 import xyz.block.ftl.ConsumableTopic;
 import xyz.block.ftl.Export;
 import xyz.block.ftl.WriteableTopic;
+import xyz.block.ftl.runtime.ToStringPartitionMapper;
 import xyz.block.ftl.runtime.TopicHelper;
 import xyz.block.ftl.schema.v1.Decl;
 import xyz.block.ftl.schema.v1.Metadata;
@@ -35,6 +36,7 @@ public class TopicsProcessor {
     @BuildStep
     TopicsBuildItem handleTopics(CombinedIndexBuildItem index, BuildProducer<GeneratedClassBuildItem> generatedTopicProducer,
             BuildProducer<AdditionalBeanBuildItem> beans) {
+        var beansBuilder = new AdditionalBeanBuildItem.Builder().setUnremovable();
         var topicDefinitions = index.getComputingIndex().getAnnotations(FTLDotNames.TOPIC);
         log.infof("Processing %d topic definition annotations into decls", topicDefinitions.size());
         Map<DotName, TopicsBuildItem.DiscoveredTopic> topics = new HashMap<>();
@@ -69,7 +71,10 @@ public class TopicsProcessor {
                                 + " with a concrete type parameter " + iface.name() + " does not extend this interface");
             }
             var partitionMapperClass = partitionMapperType.name();
-            beans.produce(AdditionalBeanBuildItem.unremovableOf(partitionMapperClass.toString()));
+            if (partitionMapperClass.equals(FTLDotNames.TOPIC_PARTITION_MAPPER)) {
+                partitionMapperClass = DotName.createSimple(ToStringPartitionMapper.class);
+            }
+            beansBuilder.addBeanClass(partitionMapperClass.toString());
 
             var partitions = 1;
             if (topicDefinition.value("partitions") != null) {
@@ -104,6 +109,7 @@ public class TopicsProcessor {
 
             }
         }
+        beans.produce(beansBuilder.build());
         return new TopicsBuildItem(topics);
     }
 

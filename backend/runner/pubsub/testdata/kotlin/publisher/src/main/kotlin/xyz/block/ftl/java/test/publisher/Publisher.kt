@@ -16,7 +16,7 @@ class Publisher {
     interface TestTopic : WriteableTopic<PubSubEvent, PartitionMapper>
 
     @Topic(name = "localTopic")
-    interface LocalTopic : WriteableTopic<PubSubEvent, PartitionMapper>
+    interface LocalTopic : WriteableTopic<PubSubEvent, TopicPartitionMapper<PubSubEvent>>
 
     @Export
     @Topic(name = "topic2", partitions = 1)

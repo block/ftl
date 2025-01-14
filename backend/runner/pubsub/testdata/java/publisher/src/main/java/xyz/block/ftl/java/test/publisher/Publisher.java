@@ -24,7 +24,7 @@ public class Publisher {
     }
 
     @Topic(name = "localTopic")
-    interface LocalTopic extends WriteableTopic<PubSubEvent, PartitionMapper> {
+    interface LocalTopic extends WriteableTopic<PubSubEvent, TopicPartitionMapper<PubSubEvent>> {
 
     }
 
