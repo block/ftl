@@ -2,6 +2,7 @@ import { JSONSchemaFaker } from 'json-schema-faker'
 import type { JsonValue } from 'type-fest/source/basic'
 import type { Module, Verb } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { MetadataCalls, MetadataCronJob, MetadataIngress, MetadataSubscriber, Ref } from '../../../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import { defaultForType } from '../../type.utils'
 
 const basePath = `${window.location.protocol}//${window.location.hostname}:8891/`
 
@@ -65,8 +66,13 @@ export const simpleJsonSchema = (verb: Verb): any => {
 }
 
 export const defaultRequest = (verb?: Verb): string => {
-  if (!verb || !verb.jsonRequestSchema) {
-    return '{}'
+  if (!verb) {
+    return ''
+  }
+
+  if (!verb.jsonRequestSchema) {
+    const defaultValue = verb.verb?.request ? defaultForType(verb.verb.request) : null
+    return defaultValue ? JSON.stringify(defaultValue, null, 2) : '{}'
   }
 
   const schema = simpleJsonSchema(verb)
