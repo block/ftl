@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/schema"
@@ -13,10 +12,9 @@ import (
 )
 
 type Deployment struct {
-	Key         key.Deployment
-	Schema      *schema.Module
-	CreatedAt   time.Time
-	ActivatedAt optional.Option[time.Time]
+	Key       key.Deployment
+	Schema    *schema.Module
+	CreatedAt time.Time
 }
 
 func (r *SchemaState) GetDeployment(deployment key.Deployment) (*Deployment, error) {
@@ -111,7 +109,7 @@ func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 
 	}
-	existing.ActivatedAt = optional.Some(r.ActivatedAt)
+	existing.Schema.ModRuntime().ModDeployment().ActivatedAt = r.ActivatedAt
 	setMinReplicas(existing.Schema, r.MinReplicas)
 	t.activeDeployments[r.Key] = true
 	return t, nil

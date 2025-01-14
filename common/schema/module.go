@@ -308,3 +308,10 @@ func (m *Module) GetRuntime() *ModuleRuntime {
 	}
 	return m.Runtime
 }
+
+func (m *Module) ModRuntime() *ModuleRuntime {
+	if m.Runtime == nil {
+		m.Runtime = &ModuleRuntime{}
+	}
+	return m.Runtime
+}

@@ -144,3 +144,17 @@ func (m *ModuleRuntimeScaling) GetMinReplicas() int32 {
 	}
 	return m.MinReplicas
 }
+
+func (m *ModuleRuntime) GetDeployment() *ModuleRuntimeDeployment {
+	if m == nil {
+		return nil
+	}
+	return m.Deployment
+}
+
+func (m *ModuleRuntime) ModDeployment() *ModuleRuntimeDeployment {
+	if m.Deployment == nil {
+		m.Deployment = &ModuleRuntimeDeployment{}
+	}
+	return m.Deployment
+}
