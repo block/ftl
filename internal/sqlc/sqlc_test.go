@@ -41,7 +41,7 @@ func TestGenerate(t *testing.T) {
 		Name: "test",
 		Decls: []schema.Decl{
 			&schema.Data{
-				Name: "CreateRequestQuery",
+				Name: "GetRequestDataResult",
 				Fields: []*schema.Field{
 					{
 						Name: "data",
@@ -55,8 +55,21 @@ func TestGenerate(t *testing.T) {
 					},
 				},
 			},
+			&schema.Verb{
+				Name:    "GetRequestData",
+				Request: &schema.Unit{},
+				Response: &schema.Array{Element: &schema.Ref{
+					Module: "test",
+					Name:   "GetRequestDataResult",
+				}},
+				Metadata: []schema.Metadata{
+					&schema.MetadataSQLQuery{
+						Query: "SELECT data FROM requests",
+					},
+				},
+			},
 			&schema.Data{
-				Name: "GetRequestDataResult",
+				Name: "CreateRequestQuery",
 				Fields: []*schema.Field{
 					{
 						Name: "data",
@@ -77,19 +90,6 @@ func TestGenerate(t *testing.T) {
 				Metadata: []schema.Metadata{
 					&schema.MetadataSQLQuery{
 						Query: "INSERT INTO requests (data) VALUES (?)",
-					},
-				},
-			},
-			&schema.Verb{
-				Name:    "GetRequestData",
-				Request: &schema.Unit{},
-				Response: &schema.Array{Element: &schema.Ref{
-					Module: "test",
-					Name:   "GetRequestDataResult",
-				}},
-				Metadata: []schema.Metadata{
-					&schema.MetadataSQLQuery{
-						Query: "SELECT data FROM requests",
 					},
 				},
 			},

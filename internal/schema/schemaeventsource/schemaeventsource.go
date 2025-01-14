@@ -170,7 +170,10 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 
 	go rpc.RetryStreamingServerStream(ctx, "schema-sync", backoff.Backoff{}, &ftlv1.PullSchemaRequest{}, client.PullSchema, func(_ context.Context, resp *ftlv1.PullSchemaResponse) error {
 		out.live.Store(true)
-		sch := schema.ModuleFromProto(resp.Schema)
+		sch, err := schema.ValidatedModuleFromProto(resp.Schema)
+		if err != nil {
+			return fmt.Errorf("invalid module: %w", err)
+		}
 		var someDeploymentKey optional.Option[key.Deployment]
 		if resp.DeploymentKey != nil {
 			deploymentKey, err := key.ParseDeploymentKey(resp.GetDeploymentKey())

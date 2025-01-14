@@ -89,7 +89,10 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 					if msg.Schema == nil {
 						return fmt.Errorf("schema is nil for added/changed deployment %q", msg.GetDeploymentKey())
 					}
-					module := schema.ModuleFromProto(msg.Schema)
+					module, err := schema.ValidatedModuleFromProto(msg.Schema)
+					if err != nil {
+						return fmt.Errorf("invalid module: %w", err)
+					}
 					modules[module.Name] = module
 
 				case ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_REMOVED:

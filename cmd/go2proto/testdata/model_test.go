@@ -17,17 +17,19 @@ import (
 
 func TestModel(t *testing.T) {
 	intv := 1
+	// UTC, as proto conversion does not preserve timezone
+	now := time.Now().UTC()
 	model := Root{
 		Int:            1,
 		String:         "foo",
-		MessagePtr:     &Message{Time: time.Now()},
+		MessagePtr:     &Message{Time: now},
 		Enum:           EnumA,
 		SumType:        &SumTypeA{A: "bar"},
 		OptionalInt:    2,
 		OptionalIntPtr: &intv,
-		OptionalMsg:    &Message{Time: time.Now()},
+		OptionalMsg:    &Message{Time: now},
 		RepeatedInt:    []int{1, 2, 3},
-		RepeatedMsg:    []*Message{&Message{Time: time.Now()}, &Message{Time: time.Now()}},
+		RepeatedMsg:    []*Message{&Message{Time: now}, &Message{Time: now}},
 		URL:            must.Get(url.Parse("http://127.0.0.1")),
 		Key:            key.NewDeploymentKey("echo"),
 	}
@@ -42,4 +44,14 @@ func TestModel(t *testing.T) {
 	err = proto.Unmarshal(data, out)
 	assert.NoError(t, err)
 	assert.Equal(t, pb.String(), out.String())
+
+	testModelRoundtrip(t, &model)
+}
+
+func testModelRoundtrip(t *testing.T, model *Root) {
+	t.Helper()
+
+	pb := model.ToProto()
+	model2 := RootFromProto(pb)
+	assert.Equal(t, model, model2)
 }

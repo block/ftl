@@ -61,6 +61,13 @@ func ptr[T any, O any](v *O, o T) *T {
 	return &o
 }
 
+func fromPtr[T any](v *T) T {
+	if v == nil {
+		return *new(T)
+	}
+	return *v
+}
+
 func (x *AWSIAMAuthDatabaseConnector) ToProto() *destpb.AWSIAMAuthDatabaseConnector {
 	if x == nil {
 		return nil
@@ -74,9 +81,12 @@ func (x *AWSIAMAuthDatabaseConnector) ToProto() *destpb.AWSIAMAuthDatabaseConnec
 }
 
 func AWSIAMAuthDatabaseConnectorFromProto(v *destpb.AWSIAMAuthDatabaseConnector) *AWSIAMAuthDatabaseConnector {
+	if v == nil {
+		return nil
+	}
 
 	return &AWSIAMAuthDatabaseConnector{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Username: string(v.Username),
 		Endpoint: string(v.Endpoint),
 		Database: string(v.Database),
@@ -101,9 +111,12 @@ func (x *Any) ToProto() *destpb.Any {
 }
 
 func AnyFromProto(v *destpb.Any) *Any {
+	if v == nil {
+		return nil
+	}
 
 	return &Any{
-		Pos: *PositionFromProto(v.Pos),
+		Pos: fromPtr(PositionFromProto(v.Pos)),
 	}
 }
 
@@ -118,9 +131,12 @@ func (x *Array) ToProto() *destpb.Array {
 }
 
 func ArrayFromProto(v *destpb.Array) *Array {
+	if v == nil {
+		return nil
+	}
 
 	return &Array{
-		Pos:     *PositionFromProto(v.Pos),
+		Pos:     fromPtr(PositionFromProto(v.Pos)),
 		Element: TypeFromProto(v.Element),
 	}
 }
@@ -135,9 +151,12 @@ func (x *Bool) ToProto() *destpb.Bool {
 }
 
 func BoolFromProto(v *destpb.Bool) *Bool {
+	if v == nil {
+		return nil
+	}
 
 	return &Bool{
-		Pos: *PositionFromProto(v.Pos),
+		Pos: fromPtr(PositionFromProto(v.Pos)),
 	}
 }
 
@@ -151,9 +170,12 @@ func (x *Bytes) ToProto() *destpb.Bytes {
 }
 
 func BytesFromProto(v *destpb.Bytes) *Bytes {
+	if v == nil {
+		return nil
+	}
 
 	return &Bytes{
-		Pos: *PositionFromProto(v.Pos),
+		Pos: fromPtr(PositionFromProto(v.Pos)),
 	}
 }
 
@@ -170,9 +192,12 @@ func (x *Config) ToProto() *destpb.Config {
 }
 
 func ConfigFromProto(v *destpb.Config) *Config {
+	if v == nil {
+		return nil
+	}
 
 	return &Config{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Name:     string(v.Name),
 		Type:     TypeFromProto(v.Type),
@@ -190,9 +215,12 @@ func (x *DSNDatabaseConnector) ToProto() *destpb.DSNDatabaseConnector {
 }
 
 func DSNDatabaseConnectorFromProto(v *destpb.DSNDatabaseConnector) *DSNDatabaseConnector {
+	if v == nil {
+		return nil
+	}
 
 	return &DSNDatabaseConnector{
-		Pos: *PositionFromProto(v.Pos),
+		Pos: fromPtr(PositionFromProto(v.Pos)),
 		DSN: string(v.Dsn),
 	}
 }
@@ -213,9 +241,12 @@ func (x *Data) ToProto() *destpb.Data {
 }
 
 func DataFromProto(v *destpb.Data) *Data {
+	if v == nil {
+		return nil
+	}
 
 	return &Data{
-		Pos:            *PositionFromProto(v.Pos),
+		Pos:            fromPtr(PositionFromProto(v.Pos)),
 		Comments:       sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Export:         bool(v.Export),
 		Name:           string(v.Name),
@@ -240,9 +271,12 @@ func (x *Database) ToProto() *destpb.Database {
 }
 
 func DatabaseFromProto(v *destpb.Database) *Database {
+	if v == nil {
+		return nil
+	}
 
 	return &Database{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Runtime:  DatabaseRuntimeFromProto(v.Runtime),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Type:     string(v.Type),
@@ -270,6 +304,9 @@ func DatabaseConnectorToProto(value DatabaseConnector) *destpb.DatabaseConnector
 }
 
 func DatabaseConnectorFromProto(v *destpb.DatabaseConnector) DatabaseConnector {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.DatabaseConnector_AwsiamAuthDatabaseConnector:
 		return AWSIAMAuthDatabaseConnectorFromProto(v.GetAwsiamAuthDatabaseConnector())
@@ -290,6 +327,9 @@ func (x *DatabaseRuntime) ToProto() *destpb.DatabaseRuntime {
 }
 
 func DatabaseRuntimeFromProto(v *destpb.DatabaseRuntime) *DatabaseRuntime {
+	if v == nil {
+		return nil
+	}
 
 	return &DatabaseRuntime{
 		Connections: DatabaseRuntimeConnectionsFromProto(v.Connections),
@@ -307,6 +347,9 @@ func (x *DatabaseRuntimeConnections) ToProto() *destpb.DatabaseRuntimeConnection
 }
 
 func DatabaseRuntimeConnectionsFromProto(v *destpb.DatabaseRuntimeConnections) *DatabaseRuntimeConnections {
+	if v == nil {
+		return nil
+	}
 
 	return &DatabaseRuntimeConnections{
 		Read:  DatabaseConnectorFromProto(v.Read),
@@ -324,6 +367,9 @@ func (x *DatabaseRuntimeConnectionsEvent) ToProto() *destpb.DatabaseRuntimeConne
 }
 
 func DatabaseRuntimeConnectionsEventFromProto(v *destpb.DatabaseRuntimeConnectionsEvent) *DatabaseRuntimeConnectionsEvent {
+	if v == nil {
+		return nil
+	}
 
 	return &DatabaseRuntimeConnectionsEvent{
 		Connections: DatabaseRuntimeConnectionsFromProto(v.Connections),
@@ -341,6 +387,9 @@ func (x *DatabaseRuntimeEvent) ToProto() *destpb.DatabaseRuntimeEvent {
 }
 
 func DatabaseRuntimeEventFromProto(v *destpb.DatabaseRuntimeEvent) *DatabaseRuntimeEvent {
+	if v == nil {
+		return nil
+	}
 
 	return &DatabaseRuntimeEvent{
 		ID:      string(v.Id),
@@ -363,6 +412,9 @@ func DatabaseRuntimeEventPayloadToProto(value DatabaseRuntimeEventPayload) *dest
 }
 
 func DatabaseRuntimeEventPayloadFromProto(v *destpb.DatabaseRuntimeEventPayload) DatabaseRuntimeEventPayload {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.DatabaseRuntimeEventPayload_DatabaseRuntimeConnectionsEvent:
 		return DatabaseRuntimeConnectionsEventFromProto(v.GetDatabaseRuntimeConnectionsEvent())
@@ -414,6 +466,9 @@ func DeclToProto(value Decl) *destpb.Decl {
 }
 
 func DeclFromProto(v *destpb.Decl) Decl {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.Decl_Config:
 		return ConfigFromProto(v.GetConfig())
@@ -451,9 +506,12 @@ func (x *Enum) ToProto() *destpb.Enum {
 }
 
 func EnumFromProto(v *destpb.Enum) *Enum {
+	if v == nil {
+		return nil
+	}
 
 	return &Enum{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Export:   bool(v.Export),
 		Name:     string(v.Name),
@@ -475,9 +533,12 @@ func (x *EnumVariant) ToProto() *destpb.EnumVariant {
 }
 
 func EnumVariantFromProto(v *destpb.EnumVariant) *EnumVariant {
+	if v == nil {
+		return nil
+	}
 
 	return &EnumVariant{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Name:     string(v.Name),
 		Value:    ValueFromProto(v.Value),
@@ -498,9 +559,12 @@ func (x *Field) ToProto() *destpb.Field {
 }
 
 func FieldFromProto(v *destpb.Field) *Field {
+	if v == nil {
+		return nil
+	}
 
 	return &Field{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Name:     string(v.Name),
 		Type:     TypeFromProto(v.Type),
@@ -518,9 +582,12 @@ func (x *Float) ToProto() *destpb.Float {
 }
 
 func FloatFromProto(v *destpb.Float) *Float {
+	if v == nil {
+		return nil
+	}
 
 	return &Float{
-		Pos: *PositionFromProto(v.Pos),
+		Pos: fromPtr(PositionFromProto(v.Pos)),
 	}
 }
 
@@ -551,6 +618,9 @@ func IngressPathComponentToProto(value IngressPathComponent) *destpb.IngressPath
 }
 
 func IngressPathComponentFromProto(v *destpb.IngressPathComponent) IngressPathComponent {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.IngressPathComponent_IngressPathLiteral:
 		return IngressPathLiteralFromProto(v.GetIngressPathLiteral())
@@ -572,9 +642,12 @@ func (x *IngressPathLiteral) ToProto() *destpb.IngressPathLiteral {
 }
 
 func IngressPathLiteralFromProto(v *destpb.IngressPathLiteral) *IngressPathLiteral {
+	if v == nil {
+		return nil
+	}
 
 	return &IngressPathLiteral{
-		Pos:  *PositionFromProto(v.Pos),
+		Pos:  fromPtr(PositionFromProto(v.Pos)),
 		Text: string(v.Text),
 	}
 }
@@ -590,9 +663,12 @@ func (x *IngressPathParameter) ToProto() *destpb.IngressPathParameter {
 }
 
 func IngressPathParameterFromProto(v *destpb.IngressPathParameter) *IngressPathParameter {
+	if v == nil {
+		return nil
+	}
 
 	return &IngressPathParameter{
-		Pos:  *PositionFromProto(v.Pos),
+		Pos:  fromPtr(PositionFromProto(v.Pos)),
 		Name: string(v.Name),
 	}
 }
@@ -607,9 +683,12 @@ func (x *Int) ToProto() *destpb.Int {
 }
 
 func IntFromProto(v *destpb.Int) *Int {
+	if v == nil {
+		return nil
+	}
 
 	return &Int{
-		Pos: *PositionFromProto(v.Pos),
+		Pos: fromPtr(PositionFromProto(v.Pos)),
 	}
 }
 
@@ -624,9 +703,12 @@ func (x *IntValue) ToProto() *destpb.IntValue {
 }
 
 func IntValueFromProto(v *destpb.IntValue) *IntValue {
+	if v == nil {
+		return nil
+	}
 
 	return &IntValue{
-		Pos:   *PositionFromProto(v.Pos),
+		Pos:   fromPtr(PositionFromProto(v.Pos)),
 		Value: int(v.Value),
 	}
 }
@@ -643,9 +725,12 @@ func (x *Map) ToProto() *destpb.Map {
 }
 
 func MapFromProto(v *destpb.Map) *Map {
+	if v == nil {
+		return nil
+	}
 
 	return &Map{
-		Pos:   *PositionFromProto(v.Pos),
+		Pos:   fromPtr(PositionFromProto(v.Pos)),
 		Key:   TypeFromProto(v.Key),
 		Value: TypeFromProto(v.Value),
 	}
@@ -730,6 +815,9 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 }
 
 func MetadataFromProto(v *destpb.Metadata) Metadata {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.Metadata_Alias:
 		return MetadataAliasFromProto(v.GetAlias())
@@ -782,9 +870,12 @@ func (x *MetadataAlias) ToProto() *destpb.MetadataAlias {
 }
 
 func MetadataAliasFromProto(v *destpb.MetadataAlias) *MetadataAlias {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataAlias{
-		Pos:   *PositionFromProto(v.Pos),
+		Pos:   fromPtr(PositionFromProto(v.Pos)),
 		Kind:  AliasKindFromProto(v.Kind),
 		Alias: string(v.Alias),
 	}
@@ -803,9 +894,12 @@ func (x *MetadataArtefact) ToProto() *destpb.MetadataArtefact {
 }
 
 func MetadataArtefactFromProto(v *destpb.MetadataArtefact) *MetadataArtefact {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataArtefact{
-		Pos:        *PositionFromProto(v.Pos),
+		Pos:        fromPtr(PositionFromProto(v.Pos)),
 		Path:       string(v.Path),
 		Digest:     string(v.Digest),
 		Executable: bool(v.Executable),
@@ -823,9 +917,12 @@ func (x *MetadataCalls) ToProto() *destpb.MetadataCalls {
 }
 
 func MetadataCallsFromProto(v *destpb.MetadataCalls) *MetadataCalls {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataCalls{
-		Pos:   *PositionFromProto(v.Pos),
+		Pos:   fromPtr(PositionFromProto(v.Pos)),
 		Calls: sliceMap(v.Calls, RefFromProto),
 	}
 }
@@ -841,9 +938,12 @@ func (x *MetadataConfig) ToProto() *destpb.MetadataConfig {
 }
 
 func MetadataConfigFromProto(v *destpb.MetadataConfig) *MetadataConfig {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataConfig{
-		Pos:    *PositionFromProto(v.Pos),
+		Pos:    fromPtr(PositionFromProto(v.Pos)),
 		Config: sliceMap(v.Config, RefFromProto),
 	}
 }
@@ -859,9 +959,12 @@ func (x *MetadataCronJob) ToProto() *destpb.MetadataCronJob {
 }
 
 func MetadataCronJobFromProto(v *destpb.MetadataCronJob) *MetadataCronJob {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataCronJob{
-		Pos:  *PositionFromProto(v.Pos),
+		Pos:  fromPtr(PositionFromProto(v.Pos)),
 		Cron: string(v.Cron),
 	}
 }
@@ -878,9 +981,12 @@ func (x *MetadataDBColumn) ToProto() *destpb.MetadataDBColumn {
 }
 
 func MetadataDBColumnFromProto(v *destpb.MetadataDBColumn) *MetadataDBColumn {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataDBColumn{
-		Pos:   *PositionFromProto(v.Pos),
+		Pos:   fromPtr(PositionFromProto(v.Pos)),
 		Table: string(v.Table),
 		Name:  string(v.Name),
 	}
@@ -897,9 +1003,12 @@ func (x *MetadataDatabases) ToProto() *destpb.MetadataDatabases {
 }
 
 func MetadataDatabasesFromProto(v *destpb.MetadataDatabases) *MetadataDatabases {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataDatabases{
-		Pos:   *PositionFromProto(v.Pos),
+		Pos:   fromPtr(PositionFromProto(v.Pos)),
 		Calls: sliceMap(v.Calls, RefFromProto),
 	}
 }
@@ -916,9 +1025,12 @@ func (x *MetadataEncoding) ToProto() *destpb.MetadataEncoding {
 }
 
 func MetadataEncodingFromProto(v *destpb.MetadataEncoding) *MetadataEncoding {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataEncoding{
-		Pos:     *PositionFromProto(v.Pos),
+		Pos:     fromPtr(PositionFromProto(v.Pos)),
 		Type:    string(v.Type),
 		Lenient: bool(v.Lenient),
 	}
@@ -937,9 +1049,12 @@ func (x *MetadataIngress) ToProto() *destpb.MetadataIngress {
 }
 
 func MetadataIngressFromProto(v *destpb.MetadataIngress) *MetadataIngress {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataIngress{
-		Pos:    *PositionFromProto(v.Pos),
+		Pos:    fromPtr(PositionFromProto(v.Pos)),
 		Type:   string(v.Type),
 		Method: string(v.Method),
 		Path:   sliceMap(v.Path, IngressPathComponentFromProto),
@@ -957,9 +1072,12 @@ func (x *MetadataPartitions) ToProto() *destpb.MetadataPartitions {
 }
 
 func MetadataPartitionsFromProto(v *destpb.MetadataPartitions) *MetadataPartitions {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataPartitions{
-		Pos:        *PositionFromProto(v.Pos),
+		Pos:        fromPtr(PositionFromProto(v.Pos)),
 		Partitions: int(v.Partitions),
 	}
 }
@@ -975,9 +1093,12 @@ func (x *MetadataPublisher) ToProto() *destpb.MetadataPublisher {
 }
 
 func MetadataPublisherFromProto(v *destpb.MetadataPublisher) *MetadataPublisher {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataPublisher{
-		Pos:    *PositionFromProto(v.Pos),
+		Pos:    fromPtr(PositionFromProto(v.Pos)),
 		Topics: sliceMap(v.Topics, RefFromProto),
 	}
 }
@@ -996,9 +1117,12 @@ func (x *MetadataRetry) ToProto() *destpb.MetadataRetry {
 }
 
 func MetadataRetryFromProto(v *destpb.MetadataRetry) *MetadataRetry {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataRetry{
-		Pos:        *PositionFromProto(v.Pos),
+		Pos:        fromPtr(PositionFromProto(v.Pos)),
 		Count:      ptr(v.Count, int(orZero(v.Count))),
 		MinBackoff: string(v.MinBackoff),
 		MaxBackoff: string(v.MaxBackoff),
@@ -1017,9 +1141,12 @@ func (x *MetadataSQLMigration) ToProto() *destpb.MetadataSQLMigration {
 }
 
 func MetadataSQLMigrationFromProto(v *destpb.MetadataSQLMigration) *MetadataSQLMigration {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataSQLMigration{
-		Pos:    *PositionFromProto(v.Pos),
+		Pos:    fromPtr(PositionFromProto(v.Pos)),
 		Digest: string(v.Digest),
 	}
 }
@@ -1035,9 +1162,12 @@ func (x *MetadataSQLQuery) ToProto() *destpb.MetadataSQLQuery {
 }
 
 func MetadataSQLQueryFromProto(v *destpb.MetadataSQLQuery) *MetadataSQLQuery {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataSQLQuery{
-		Pos:   *PositionFromProto(v.Pos),
+		Pos:   fromPtr(PositionFromProto(v.Pos)),
 		Query: string(v.Query),
 	}
 }
@@ -1053,9 +1183,12 @@ func (x *MetadataSecrets) ToProto() *destpb.MetadataSecrets {
 }
 
 func MetadataSecretsFromProto(v *destpb.MetadataSecrets) *MetadataSecrets {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataSecrets{
-		Pos:     *PositionFromProto(v.Pos),
+		Pos:     fromPtr(PositionFromProto(v.Pos)),
 		Secrets: sliceMap(v.Secrets, RefFromProto),
 	}
 }
@@ -1073,9 +1206,12 @@ func (x *MetadataSubscriber) ToProto() *destpb.MetadataSubscriber {
 }
 
 func MetadataSubscriberFromProto(v *destpb.MetadataSubscriber) *MetadataSubscriber {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataSubscriber{
-		Pos:        *PositionFromProto(v.Pos),
+		Pos:        fromPtr(PositionFromProto(v.Pos)),
 		Topic:      RefFromProto(v.Topic),
 		FromOffset: FromOffsetFromProto(v.FromOffset),
 		DeadLetter: bool(v.DeadLetter),
@@ -1094,9 +1230,12 @@ func (x *MetadataTypeMap) ToProto() *destpb.MetadataTypeMap {
 }
 
 func MetadataTypeMapFromProto(v *destpb.MetadataTypeMap) *MetadataTypeMap {
+	if v == nil {
+		return nil
+	}
 
 	return &MetadataTypeMap{
-		Pos:        *PositionFromProto(v.Pos),
+		Pos:        fromPtr(PositionFromProto(v.Pos)),
 		Runtime:    string(v.Runtime),
 		NativeName: string(v.NativeName),
 	}
@@ -1118,9 +1257,12 @@ func (x *Module) ToProto() *destpb.Module {
 }
 
 func ModuleFromProto(v *destpb.Module) *Module {
+	if v == nil {
+		return nil
+	}
 
 	return &Module{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Builtin:  bool(v.Builtin),
 		Name:     string(v.Name),
@@ -1142,9 +1284,12 @@ func (x *ModuleRuntime) ToProto() *destpb.ModuleRuntime {
 }
 
 func ModuleRuntimeFromProto(v *destpb.ModuleRuntime) *ModuleRuntime {
+	if v == nil {
+		return nil
+	}
 
 	return &ModuleRuntime{
-		Base:       *ModuleRuntimeBaseFromProto(v.Base),
+		Base:       fromPtr(ModuleRuntimeBaseFromProto(v.Base)),
 		Scaling:    ModuleRuntimeScalingFromProto(v.Scaling),
 		Deployment: ModuleRuntimeDeploymentFromProto(v.Deployment),
 	}
@@ -1164,6 +1309,9 @@ func (x *ModuleRuntimeBase) ToProto() *destpb.ModuleRuntimeBase {
 }
 
 func ModuleRuntimeBaseFromProto(v *destpb.ModuleRuntimeBase) *ModuleRuntimeBase {
+	if v == nil {
+		return nil
+	}
 
 	return &ModuleRuntimeBase{
 		CreateTime: v.CreateTime.AsTime(),
@@ -1187,12 +1335,15 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 }
 
 func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) *ModuleRuntimeDeployment {
+	if v == nil {
+		return nil
+	}
 	f2 := &key.Deployment{}
 	f2.UnmarshalText([]byte(v.DeploymentKey))
 
 	return &ModuleRuntimeDeployment{
 		Endpoint:      string(v.Endpoint),
-		DeploymentKey: *f2,
+		DeploymentKey: fromPtr(f2),
 		CreatedAt:     v.CreatedAt.AsTime(),
 		ActivatedAt:   v.ActivatedAt.AsTime(),
 	}
@@ -1221,6 +1372,9 @@ func ModuleRuntimeEventToProto(value ModuleRuntimeEvent) *destpb.ModuleRuntimeEv
 }
 
 func ModuleRuntimeEventFromProto(v *destpb.ModuleRuntimeEvent) ModuleRuntimeEvent {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.ModuleRuntimeEvent_ModuleRuntimeBase:
 		return ModuleRuntimeBaseFromProto(v.GetModuleRuntimeBase())
@@ -1243,6 +1397,9 @@ func (x *ModuleRuntimeScaling) ToProto() *destpb.ModuleRuntimeScaling {
 }
 
 func ModuleRuntimeScalingFromProto(v *destpb.ModuleRuntimeScaling) *ModuleRuntimeScaling {
+	if v == nil {
+		return nil
+	}
 
 	return &ModuleRuntimeScaling{
 		MinReplicas: int32(v.MinReplicas),
@@ -1260,9 +1417,12 @@ func (x *Optional) ToProto() *destpb.Optional {
 }
 
 func OptionalFromProto(v *destpb.Optional) *Optional {
+	if v == nil {
+		return nil
+	}
 
 	return &Optional{
-		Pos:  *PositionFromProto(v.Pos),
+		Pos:  fromPtr(PositionFromProto(v.Pos)),
 		Type: TypeFromProto(v.Type),
 	}
 }
@@ -1279,6 +1439,9 @@ func (x *Position) ToProto() *destpb.Position {
 }
 
 func PositionFromProto(v *destpb.Position) *Position {
+	if v == nil {
+		return nil
+	}
 
 	return &Position{
 		Filename: string(v.Filename),
@@ -1300,9 +1463,12 @@ func (x *Ref) ToProto() *destpb.Ref {
 }
 
 func RefFromProto(v *destpb.Ref) *Ref {
+	if v == nil {
+		return nil
+	}
 
 	return &Ref{
-		Pos:            *PositionFromProto(v.Pos),
+		Pos:            fromPtr(PositionFromProto(v.Pos)),
 		Module:         string(v.Module),
 		Name:           string(v.Name),
 		TypeParameters: sliceMap(v.TypeParameters, TypeFromProto),
@@ -1344,6 +1510,9 @@ func RuntimeEventToProto(value RuntimeEvent) *destpb.RuntimeEvent {
 }
 
 func RuntimeEventFromProto(v *destpb.RuntimeEvent) RuntimeEvent {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.RuntimeEvent_DatabaseRuntimeEvent:
 		return DatabaseRuntimeEventFromProto(v.GetDatabaseRuntimeEvent())
@@ -1373,9 +1542,12 @@ func (x *Schema) ToProto() *destpb.Schema {
 }
 
 func SchemaFromProto(v *destpb.Schema) *Schema {
+	if v == nil {
+		return nil
+	}
 
 	return &Schema{
-		Pos:     *PositionFromProto(v.Pos),
+		Pos:     fromPtr(PositionFromProto(v.Pos)),
 		Modules: sliceMap(v.Modules, ModuleFromProto),
 	}
 }
@@ -1393,9 +1565,12 @@ func (x *Secret) ToProto() *destpb.Secret {
 }
 
 func SecretFromProto(v *destpb.Secret) *Secret {
+	if v == nil {
+		return nil
+	}
 
 	return &Secret{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Name:     string(v.Name),
 		Type:     TypeFromProto(v.Type),
@@ -1412,9 +1587,12 @@ func (x *String) ToProto() *destpb.String {
 }
 
 func StringFromProto(v *destpb.String) *String {
+	if v == nil {
+		return nil
+	}
 
 	return &String{
-		Pos: *PositionFromProto(v.Pos),
+		Pos: fromPtr(PositionFromProto(v.Pos)),
 	}
 }
 
@@ -1429,9 +1607,12 @@ func (x *StringValue) ToProto() *destpb.StringValue {
 }
 
 func StringValueFromProto(v *destpb.StringValue) *StringValue {
+	if v == nil {
+		return nil
+	}
 
 	return &StringValue{
-		Pos:   *PositionFromProto(v.Pos),
+		Pos:   fromPtr(PositionFromProto(v.Pos)),
 		Value: string(v.Value),
 	}
 }
@@ -1446,9 +1627,12 @@ func (x *Time) ToProto() *destpb.Time {
 }
 
 func TimeFromProto(v *destpb.Time) *Time {
+	if v == nil {
+		return nil
+	}
 
 	return &Time{
-		Pos: *PositionFromProto(v.Pos),
+		Pos: fromPtr(PositionFromProto(v.Pos)),
 	}
 }
 
@@ -1468,9 +1652,12 @@ func (x *Topic) ToProto() *destpb.Topic {
 }
 
 func TopicFromProto(v *destpb.Topic) *Topic {
+	if v == nil {
+		return nil
+	}
 
 	return &Topic{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Runtime:  TopicRuntimeFromProto(v.Runtime),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Export:   bool(v.Export),
@@ -1491,6 +1678,9 @@ func (x *TopicRuntime) ToProto() *destpb.TopicRuntime {
 }
 
 func TopicRuntimeFromProto(v *destpb.TopicRuntime) *TopicRuntime {
+	if v == nil {
+		return nil
+	}
 
 	return &TopicRuntime{
 		KafkaBrokers: sliceMap(v.KafkaBrokers, func(v string) string { return string(v) }),
@@ -1509,6 +1699,9 @@ func (x *TopicRuntimeEvent) ToProto() *destpb.TopicRuntimeEvent {
 }
 
 func TopicRuntimeEventFromProto(v *destpb.TopicRuntimeEvent) *TopicRuntimeEvent {
+	if v == nil {
+		return nil
+	}
 
 	return &TopicRuntimeEvent{
 		ID:      string(v.Id),
@@ -1575,6 +1768,9 @@ func TypeToProto(value Type) *destpb.Type {
 }
 
 func TypeFromProto(v *destpb.Type) Type {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.Type_Any:
 		return AnyFromProto(v.GetAny())
@@ -1620,9 +1816,12 @@ func (x *TypeAlias) ToProto() *destpb.TypeAlias {
 }
 
 func TypeAliasFromProto(v *destpb.TypeAlias) *TypeAlias {
+	if v == nil {
+		return nil
+	}
 
 	return &TypeAlias{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Export:   bool(v.Export),
 		Name:     string(v.Name),
@@ -1642,9 +1841,12 @@ func (x *TypeParameter) ToProto() *destpb.TypeParameter {
 }
 
 func TypeParameterFromProto(v *destpb.TypeParameter) *TypeParameter {
+	if v == nil {
+		return nil
+	}
 
 	return &TypeParameter{
-		Pos:  *PositionFromProto(v.Pos),
+		Pos:  fromPtr(PositionFromProto(v.Pos)),
 		Name: string(v.Name),
 	}
 }
@@ -1660,9 +1862,12 @@ func (x *TypeValue) ToProto() *destpb.TypeValue {
 }
 
 func TypeValueFromProto(v *destpb.TypeValue) *TypeValue {
+	if v == nil {
+		return nil
+	}
 
 	return &TypeValue{
-		Pos:   *PositionFromProto(v.Pos),
+		Pos:   fromPtr(PositionFromProto(v.Pos)),
 		Value: TypeFromProto(v.Value),
 	}
 }
@@ -1677,9 +1882,12 @@ func (x *Unit) ToProto() *destpb.Unit {
 }
 
 func UnitFromProto(v *destpb.Unit) *Unit {
+	if v == nil {
+		return nil
+	}
 
 	return &Unit{
-		Pos: *PositionFromProto(v.Pos),
+		Pos: fromPtr(PositionFromProto(v.Pos)),
 	}
 }
 
@@ -1706,6 +1914,9 @@ func ValueToProto(value Value) *destpb.Value {
 }
 
 func ValueFromProto(v *destpb.Value) Value {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.Value_IntValue:
 		return IntValueFromProto(v.GetIntValue())
@@ -1735,9 +1946,12 @@ func (x *Verb) ToProto() *destpb.Verb {
 }
 
 func VerbFromProto(v *destpb.Verb) *Verb {
+	if v == nil {
+		return nil
+	}
 
 	return &Verb{
-		Pos:      *PositionFromProto(v.Pos),
+		Pos:      fromPtr(PositionFromProto(v.Pos)),
 		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
 		Export:   bool(v.Export),
 		Name:     string(v.Name),
@@ -1759,9 +1973,12 @@ func (x *VerbRuntime) ToProto() *destpb.VerbRuntime {
 }
 
 func VerbRuntimeFromProto(v *destpb.VerbRuntime) *VerbRuntime {
+	if v == nil {
+		return nil
+	}
 
 	return &VerbRuntime{
-		Base:         *VerbRuntimeBaseFromProto(v.Base),
+		Base:         fromPtr(VerbRuntimeBaseFromProto(v.Base)),
 		Subscription: VerbRuntimeSubscriptionFromProto(v.Subscription),
 	}
 }
@@ -1777,6 +1994,9 @@ func (x *VerbRuntimeBase) ToProto() *destpb.VerbRuntimeBase {
 }
 
 func VerbRuntimeBaseFromProto(v *destpb.VerbRuntimeBase) *VerbRuntimeBase {
+	if v == nil {
+		return nil
+	}
 
 	return &VerbRuntimeBase{
 		CreateTime: v.CreateTime.AsTime(),
@@ -1795,6 +2015,9 @@ func (x *VerbRuntimeEvent) ToProto() *destpb.VerbRuntimeEvent {
 }
 
 func VerbRuntimeEventFromProto(v *destpb.VerbRuntimeEvent) *VerbRuntimeEvent {
+	if v == nil {
+		return nil
+	}
 
 	return &VerbRuntimeEvent{
 		ID:      string(v.Id),
@@ -1821,6 +2044,9 @@ func VerbRuntimePayloadToProto(value VerbRuntimePayload) *destpb.VerbRuntimePayl
 }
 
 func VerbRuntimePayloadFromProto(v *destpb.VerbRuntimePayload) VerbRuntimePayload {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.VerbRuntimePayload_VerbRuntimeBase:
 		return VerbRuntimeBaseFromProto(v.GetVerbRuntimeBase())
@@ -1841,6 +2067,9 @@ func (x *VerbRuntimeSubscription) ToProto() *destpb.VerbRuntimeSubscription {
 }
 
 func VerbRuntimeSubscriptionFromProto(v *destpb.VerbRuntimeSubscription) *VerbRuntimeSubscription {
+	if v == nil {
+		return nil
+	}
 
 	return &VerbRuntimeSubscription{
 		KafkaBrokers: sliceMap(v.KafkaBrokers, func(v string) string { return string(v) }),

@@ -109,7 +109,10 @@ func findSuggestions(
 
 	modules := make([]*schema.Module, 0, len(res.Msg.GetSchema().GetModules()))
 	for _, pbmodule := range res.Msg.GetSchema().GetModules() {
-		module := schema.ModuleFromProto(pbmodule)
+		module, err := schema.ValidatedModuleFromProto(pbmodule)
+		if err != nil {
+			return nil, fmt.Errorf("invalid module: %w", err)
+		}
 		modules = append(modules, module)
 	}
 	verbs := []string{}

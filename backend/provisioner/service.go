@@ -72,7 +72,10 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	moduleName := req.Msg.Schema.Name
 
 	existingModule, _ := s.currentModules.Load(moduleName)
-	desiredModule := schema.ModuleFromProto(req.Msg.Schema)
+	desiredModule, err := schema.ValidatedModuleFromProto(req.Msg.Schema)
+	if err != nil {
+		return nil, fmt.Errorf("invalid desired module: %w", err)
+	}
 
 	if existingModule != nil {
 		syncExistingRuntimes(existingModule, desiredModule)

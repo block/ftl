@@ -184,14 +184,17 @@ func (s *Service) GetDependencies(ctx context.Context, req *connect.Request[lang
 }
 
 func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb.GenerateStubsRequest]) (*connect.Response[langpb.GenerateStubsResponse], error) {
-	moduleSchema := schema.ModuleFromProto(req.Msg.Module)
+	moduleSchema, err := schema.ValidatedModuleFromProto(req.Msg.Module)
+	if err != nil {
+		return nil, fmt.Errorf("invalid module: %w", err)
+	}
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
 	var nativeConfig optional.Option[moduleconfig.AbsModuleConfig]
 	if req.Msg.NativeModuleConfig != nil {
 		nativeConfig = optional.Some(langpb.ModuleConfigFromProto(req.Msg.NativeModuleConfig))
 	}
 
-	err := compile.GenerateStubs(ctx, req.Msg.Dir, moduleSchema, config, nativeConfig)
+	err = compile.GenerateStubs(ctx, req.Msg.Dir, moduleSchema, config, nativeConfig)
 	if err != nil {
 		return nil, fmt.Errorf("could not generate stubs: %w", err)
 	}

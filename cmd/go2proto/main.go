@@ -734,8 +734,8 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 	field.OriginType = originType(t)
 	field.Import = importStr(t)
 
-	// TODO: Proper equality check
-	if strings.HasSuffix(field.Import, s.Dest.GoPackage) {
+	// remove imports to the current package
+	if field.Import == s.PkgRefs.Pkg.String() {
 		field.Import = ""
 	}
 

@@ -53,7 +53,10 @@ func (c *replayCmd) Run(
 
 	found := false
 	for _, pbmodule := range res.Msg.GetSchema().GetModules() {
-		module := schema.ModuleFromProto(pbmodule)
+		module, err := schema.ValidatedModuleFromProto(pbmodule)
+		if err != nil {
+			return fmt.Errorf("invalid module: %w", err)
+		}
 		if module.Name == c.Verb.Module {
 			for _, v := range module.Verbs() {
 				if v.Name == c.Verb.Name {

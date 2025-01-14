@@ -109,6 +109,13 @@ func ptr[T any, O any](v *O, o T) *T {
 	return &o
 }
 
+func fromPtr[T any](v *T) T {
+	if v == nil {
+		return *new(T)
+	}
+	return *v
+}
+
 {{range $decl := .OrderedDecls }}
 {{- if eq (typeof $decl) "Message" }}
 func (x *{{ .Name }}) ToProto() *destpb.{{ .Name }} {
@@ -159,6 +166,9 @@ func (x *{{ .Name }}) ToProto() *destpb.{{ .Name }} {
 }
 
 func {{ .Name }}FromProto(v *destpb.{{ .Name }}) *{{ .Name }} {
+	if v == nil {
+		return nil
+	}
 
 {{- range $field := .Fields }}
 {{- if eq $field.Kind "BinaryMarshaler" }}
@@ -195,7 +205,7 @@ func {{ .Name }}FromProto(v *destpb.{{ .Name }}) *{{ .Name }} {
 {{- if $field.Pointer}}
 		{{ $field.Name }}: {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}),
 {{- else}}
-		{{ $field.Name }}: *{{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}),
+		{{ $field.Name }}: fromPtr({{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }})),
 {{- end}}
 {{- end}}
 {{- else if eq .Kind "Enum" }}
@@ -214,13 +224,13 @@ func {{ .Name }}FromProto(v *destpb.{{ .Name }}) *{{ .Name }} {
 {{- if $field.Pointer}}
 		{{ $field.Name }}: f{{ $field.ID }},
 {{- else}}
-		{{ $field.Name }}: *f{{ $field.ID }},
+		{{ $field.Name }}: fromPtr(f{{ $field.ID }}),
 {{- end}}
 {{- else if eq $field.Kind "TextMarshaler" }}
 {{- if $field.Pointer}}
 		{{ $field.Name }}: f{{ $field.ID }},
 {{- else}}
-		{{ $field.Name }}: *f{{ $field.ID }},
+		{{ $field.Name }}: fromPtr(f{{ $field.ID }}),
 {{- end}}
 {{- else }}
 		{{ $field.Name }}: ??, // v.{{ $field.EscapedName }}.ToProto() // Unknown type {{ $field.OriginType }} of kind {{ $field.Kind }}
@@ -256,6 +266,9 @@ func {{ .Name }}ToProto(value {{ .Name }}) *destpb.{{ .Name }} {
 }
 
 func {{ $sumtype.Name }}FromProto(v *destpb.{{ $sumtype.Name }}) {{ $sumtype.Name }} {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	{{- range $variant, $id := .Variants }}
 	case *destpb.{{ $sumtype.Name | toUpperCamel }}_{{ sumTypeVariantName $sumtype.Name $variant }}:

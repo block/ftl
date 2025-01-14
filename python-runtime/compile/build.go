@@ -61,7 +61,10 @@ func Build(ctx context.Context, projectRootDir, stubsRoot string, config modulec
 		return nil, nil, fmt.Errorf("failed to unmarshal module proto: %w", err)
 	}
 
-	module := schema.ModuleFromProto(&modulepb)
+	module, err := schema.ValidatedModuleFromProto(&modulepb)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid module: %w", err)
+	}
 	if err := internal.ScaffoldZip(buildTemplateFiles(), buildDir, mctx, scaffolder.Functions(scaffoldFuncs)); err != nil {
 		return moduleSch, nil, fmt.Errorf("failed to scaffold build template: %w", err)
 	}

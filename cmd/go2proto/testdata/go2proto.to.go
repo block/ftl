@@ -8,8 +8,8 @@ import "google.golang.org/protobuf/proto"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
 
-import "net/url"
 import "github.com/block/ftl/internal/key"
+import "net/url"
 
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
@@ -62,6 +62,13 @@ func ptr[T any, O any](v *O, o T) *T {
 	return &o
 }
 
+func fromPtr[T any](v *T) T {
+	if v == nil {
+		return *new(T)
+	}
+	return *v
+}
+
 func (x Enum) ToProto() destpb.Enum {
 	return destpb.Enum(x)
 }
@@ -82,11 +89,14 @@ func (x *Message) ToProto() *destpb.Message {
 }
 
 func MessageFromProto(v *destpb.Message) *Message {
+	if v == nil {
+		return nil
+	}
 
 	return &Message{
 		Time:     v.Time.AsTime(),
 		Duration: v.Duration.AsDuration(),
-		Nested:   *NestedFromProto(v.Nested),
+		Nested:   fromPtr(NestedFromProto(v.Nested)),
 	}
 }
 
@@ -100,6 +110,9 @@ func (x *Nested) ToProto() *destpb.Nested {
 }
 
 func NestedFromProto(v *destpb.Nested) *Nested {
+	if v == nil {
+		return nil
+	}
 
 	return &Nested{
 		Nested: string(v.Nested),
@@ -127,6 +140,9 @@ func (x *Root) ToProto() *destpb.Root {
 }
 
 func RootFromProto(v *destpb.Root) *Root {
+	if v == nil {
+		return nil
+	}
 	f12 := &url.URL{}
 	f12.UnmarshalBinary(v.Url)
 	f13 := &key.Deployment{}
@@ -144,7 +160,7 @@ func RootFromProto(v *destpb.Root) *Root {
 		RepeatedInt:    sliceMap(v.RepeatedInt, func(v int64) int { return int(v) }),
 		RepeatedMsg:    sliceMap(v.RepeatedMsg, MessageFromProto),
 		URL:            f12,
-		Key:            *f13,
+		Key:            fromPtr(f13),
 	}
 }
 
@@ -167,6 +183,9 @@ func SubSumTypeToProto(value SubSumType) *destpb.SubSumType {
 }
 
 func SubSumTypeFromProto(v *destpb.SubSumType) SubSumType {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.SubSumType_A:
 		return SubSumTypeAFromProto(v.GetA())
@@ -187,6 +206,9 @@ func (x *SubSumTypeA) ToProto() *destpb.SubSumTypeA {
 }
 
 func SubSumTypeAFromProto(v *destpb.SubSumTypeA) *SubSumTypeA {
+	if v == nil {
+		return nil
+	}
 
 	return &SubSumTypeA{
 		A: string(v.A),
@@ -203,6 +225,9 @@ func (x *SubSumTypeB) ToProto() *destpb.SubSumTypeB {
 }
 
 func SubSumTypeBFromProto(v *destpb.SubSumTypeB) *SubSumTypeB {
+	if v == nil {
+		return nil
+	}
 
 	return &SubSumTypeB{
 		A: string(v.A),
@@ -240,6 +265,9 @@ func SumTypeToProto(value SumType) *destpb.SumType {
 }
 
 func SumTypeFromProto(v *destpb.SumType) SumType {
+	if v == nil {
+		return nil
+	}
 	switch v.Value.(type) {
 	case *destpb.SumType_SubSumTypeA:
 		return SubSumTypeAFromProto(v.GetSubSumTypeA())
@@ -266,6 +294,9 @@ func (x *SumTypeA) ToProto() *destpb.SumTypeA {
 }
 
 func SumTypeAFromProto(v *destpb.SumTypeA) *SumTypeA {
+	if v == nil {
+		return nil
+	}
 
 	return &SumTypeA{
 		A: string(v.A),
@@ -282,6 +313,9 @@ func (x *SumTypeB) ToProto() *destpb.SumTypeB {
 }
 
 func SumTypeBFromProto(v *destpb.SumTypeB) *SumTypeB {
+	if v == nil {
+		return nil
+	}
 
 	return &SumTypeB{
 		B: int(v.B),
@@ -298,6 +332,9 @@ func (x *SumTypeC) ToProto() *destpb.SumTypeC {
 }
 
 func SumTypeCFromProto(v *destpb.SumTypeC) *SumTypeC {
+	if v == nil {
+		return nil
+	}
 
 	return &SumTypeC{
 		C: float64(v.C),
