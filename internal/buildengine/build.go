@@ -19,6 +19,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/sqlc"
 )
 
 var errInvalidateDependencies = errors.New("dependencies need to be updated")
@@ -31,6 +32,14 @@ var errInvalidateDependencies = errors.New("dependencies need to be updated")
 func build(ctx context.Context, plugin *languageplugin.LanguagePlugin, projectConfig projectconfig.Config, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
 	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
+
+	if hasQueries(bctx.Config) {
+		queryVerbs, err := sqlc.Generate(projectConfig, bctx.Config)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to generate queries for %s: %w", bctx.Config.Module, err)
+		}
+		bctx.Schema.Modules = append(bctx.Schema.Modules, queryVerbs)
+	}
 
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
 	return handleBuildResult(ctx, projectConfig, bctx.Config, result.From(plugin.Build(ctx, projectConfig.Root(), stubsRoot, bctx, devMode)), devModeEndpoints)
@@ -94,4 +103,17 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 		}
 	}
 	return result.Schema, result.Deploy, nil
+}
+
+func hasQueries(config moduleconfig.ModuleConfig) bool {
+	if config.SQLMigrationDirectory == "" || config.SQLQueryDirectory == "" {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(config.Dir, config.SQLMigrationDirectory)); err != nil {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(config.Dir, config.SQLQueryDirectory)); err != nil {
+		return false
+	}
+	return true
 }

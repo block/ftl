@@ -17,6 +17,9 @@ var externalModuleTemplateBytes []byte
 //go:embed build-template.zip
 var buildTemplateBytes []byte
 
+//go:embed queries-template.zip
+var queriesTemplateBytes []byte
+
 func mainWorkTemplateFiles() *zip.Reader {
 	zr, err := zip.NewReader(bytes.NewReader(mainWorkTemplateBytes), int64(len(mainWorkTemplateBytes)))
 	if err != nil {
@@ -35,6 +38,14 @@ func externalModuleTemplateFiles() *zip.Reader {
 
 func buildTemplateFiles() *zip.Reader {
 	zr, err := zip.NewReader(bytes.NewReader(buildTemplateBytes), int64(len(buildTemplateBytes)))
+	if err != nil {
+		panic(err)
+	}
+	return zr
+}
+
+func queriesTemplateFiles() *zip.Reader {
+	zr, err := zip.NewReader(bytes.NewReader(queriesTemplateBytes), int64(len(queriesTemplateBytes)))
 	if err != nil {
 		panic(err)
 	}

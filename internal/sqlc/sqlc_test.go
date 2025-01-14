@@ -21,8 +21,7 @@ func TestGenerate(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	schemaDir := filepath.Join(tmpDir, "schema")
-	err = scaffolder.Scaffold("testdata", schemaDir, nil)
+	err = scaffolder.Scaffold("testdata", tmpDir, nil)
 	assert.NoError(t, err)
 	pc := projectconfig.Config{
 		Path: tmpDir,
@@ -30,7 +29,8 @@ func TestGenerate(t *testing.T) {
 	mc := moduleconfig.ModuleConfig{
 		Dir:                   tmpDir,
 		Module:                "test",
-		SQLMigrationDirectory: "schema",
+		SQLMigrationDirectory: "db/schema",
+		SQLQueryDirectory:     "db/queries",
 		DeployDir:             ".ftl",
 	}
 
@@ -56,7 +56,7 @@ func TestGenerate(t *testing.T) {
 				},
 			},
 			&schema.Verb{
-				Name:    "GetRequestData",
+				Name:    "getRequestData",
 				Request: &schema.Unit{},
 				Response: &schema.Array{Element: &schema.Ref{
 					Module: "test",
@@ -84,7 +84,7 @@ func TestGenerate(t *testing.T) {
 				},
 			},
 			&schema.Verb{
-				Name:     "CreateRequest",
+				Name:     "createRequest",
 				Request:  &schema.Ref{Module: "test", Name: "CreateRequestQuery"},
 				Response: &schema.Unit{},
 				Metadata: []schema.Metadata{
