@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.regex.Pattern
 
 class FTLLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "FTL") {
-  override fun isSupportedFile(file: VirtualFile) = file.extension == "go"
+  override fun isSupportedFile(file: VirtualFile) = file.extension == "go" || file.extension == "kt" || file.extension == "java"
 
   override fun createLsp4jClient(handler: LspServerNotificationsHandler): CustomLsp4jClient {
     return CustomLsp4jClient(handler)
@@ -25,8 +25,7 @@ class FTLLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
 
   override fun createCommandLine(): GeneralCommandLine {
     val settings = AppSettings.getInstance().state
-    val generalCommandLine =
-      GeneralCommandLine(listOf(settings.lspServerPath))
+    val generalCommandLine = GeneralCommandLine(listOf(settings.lspServerPath, "lsp"))
     generalCommandLine.setWorkDirectory(project.basePath)
     displayMessageInToolWindow("LSP Server Command: " + generalCommandLine.commandLineString)
     displayMessageInToolWindow("Working Directory: " + generalCommandLine.workDirectory)
