@@ -53,6 +53,10 @@ import destpb "{{ . | goProtoImport }}"
 import "google.golang.org/protobuf/proto"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
+{{range $gimport := .GoImports }}
+import "{{ $gimport }}"
+{{- end}}
+
 
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
@@ -81,6 +85,28 @@ func protoMust[T any](v T, err error) T {
 		panic(err)
 	}
 	return v
+}
+
+func sliceMap[T any, U any](values []T, f func(T) U) []U {
+	out := make([]U, len(values))
+	for i, v := range values {
+		out[i] = f(v)
+	}
+	return out
+}
+
+func orZero[T any](v *T) T {
+	if v == nil {
+		return *new(T)
+	}
+	return *v
+}
+
+func ptr[T any, O any](v *O, o T) *T {
+	if v == nil {
+		return nil
+	}
+	return &o
 }
 
 {{range $decl := .OrderedDecls }}
@@ -131,9 +157,85 @@ func (x *{{ .Name }}) ToProto() *destpb.{{ .Name }} {
 {{- end}}
 	}
 }
+
+func {{ .Name }}FromProto(v *destpb.{{ .Name }}) *{{ .Name }} {
+
+{{- range $field := .Fields }}
+{{- if eq $field.Kind "BinaryMarshaler" }}
+	f{{ $field.ID }} := &{{ $field.OriginType }}{}
+	f{{ $field.ID }}.UnmarshalBinary(v.{{ $field.EscapedName }})
+{{- else if eq $field.Kind "TextMarshaler" }}
+	f{{ $field.ID }} := &{{ $field.OriginType }}{}
+	f{{ $field.ID }}.UnmarshalText([]byte(v.{{ $field.EscapedName }}))
+{{- end}}
+{{- end}}
+
+	return &{{ .Name }} {
+{{- range $field := .Fields }}
+{{- if . | isBuiltin }}
+{{- if $field.Optional}}
+{{- if $field.Pointer}}
+		{{ $field.Name }}: ptr(v.{{ $field.EscapedName }}, {{ $field.OriginType }}(orZero(v.{{ $field.EscapedName }}))),
+{{- else}}
+		{{ $field.Name }}: {{ $field.OriginType }}(orZero(v.{{ $field.EscapedName }})),
+{{- end}}
+{{- else if .Repeated}}
+		{{ $field.Name }}: sliceMap(v.{{ $field.EscapedName }}, func(v {{ $field.ProtoGoType }}) {{ $field.OriginType }} { return {{ $field.OriginType }}(v) }),
+{{- else }}
+		{{ $field.Name }}: {{ $field.OriginType }}(v.{{ $field.EscapedName }}),
+{{- end}}
+{{- else if eq $field.ProtoType "google.protobuf.Timestamp" }}
+		{{ $field.Name }}: v.{{ $field.EscapedName }}.AsTime(),
+{{- else if eq $field.ProtoType "google.protobuf.Duration" }}
+		{{ $field.Name }}: v.{{ $field.EscapedName }}.AsDuration(),
+{{- else if eq .Kind "Message" }}
+{{- if .Repeated }}
+		{{ $field.Name }}: sliceMap(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto),
+{{- else}}
+{{- if $field.Pointer}}
+		{{ $field.Name }}: {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}),
+{{- else}}
+		{{ $field.Name }}: *{{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}),
+{{- end}}
+{{- end}}
+{{- else if eq .Kind "Enum" }}
+{{- if .Repeated }}
+		{{ $field.Name }}: sliceMap(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto),
+{{- else}}
+		{{ $field.Name }}: {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}),
+{{- end}}
+{{- else if eq .Kind "SumType" }}
+{{- if .Repeated }}
+		{{ $field.Name }}: sliceMap(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto),
+{{- else}}
+		{{ $field.Name }}: {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}),
+{{- end}}
+{{- else if eq $field.Kind "BinaryMarshaler" }}
+{{- if $field.Pointer}}
+		{{ $field.Name }}: f{{ $field.ID }},
+{{- else}}
+		{{ $field.Name }}: *f{{ $field.ID }},
+{{- end}}
+{{- else if eq $field.Kind "TextMarshaler" }}
+{{- if $field.Pointer}}
+		{{ $field.Name }}: f{{ $field.ID }},
+{{- else}}
+		{{ $field.Name }}: *f{{ $field.ID }},
+{{- end}}
+{{- else }}
+		{{ $field.Name }}: ??, // v.{{ $field.EscapedName }}.ToProto() // Unknown type {{ $field.OriginType }} of kind {{ $field.Kind }}
+{{- end}}
+{{- end}}
+	}
+}
+
 {{- else if eq (typeof $decl) "Enum" }}
 func (x {{ .Name }}) ToProto() destpb.{{ .Name }} {
 	return destpb.{{ .Name }}(x)
+}
+
+func {{ .Name }}FromProto(v destpb.{{ .Name }}) {{ .Name }} {
+	return {{ .Name }}(v)
 }
 {{- else if eq (typeof $decl) "SumType" }}
 {{- $sumtype := . }}
@@ -152,6 +254,17 @@ func {{ .Name }}ToProto(value {{ .Name }}) *destpb.{{ .Name }} {
 		panic(fmt.Sprintf("unknown variant: %T", value))
 	}
 }
+
+func {{ $sumtype.Name }}FromProto(v *destpb.{{ $sumtype.Name }}) {{ $sumtype.Name }} {
+	switch v.Value.(type) {
+	{{- range $variant, $id := .Variants }}
+	case *destpb.{{ $sumtype.Name | toUpperCamel }}_{{ sumTypeVariantName $sumtype.Name $variant }}:
+		return {{ $variant }}FromProto(v.Get{{ sumTypeVariantName $sumtype.Name $variant }}())
+	{{- end }}
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", v.Value))
+	}	
+}
 {{- end}}
 {{ end}}
 		`))
@@ -159,12 +272,14 @@ func {{ .Name }}ToProto(value {{ .Name }}) *destpb.{{ .Name }} {
 type Go2ProtoContext struct {
 	PackageDirectives
 	File
+	GoImports []string
 }
 
-func renderToProto(out *os.File, directives PackageDirectives, file File) error {
+func renderToProto(out *os.File, directives PackageDirectives, file File, goImports []string) error {
 	err := go2protoTmpl.Execute(out, Go2ProtoContext{
 		PackageDirectives: directives,
 		File:              file,
+		GoImports:         goImports,
 	})
 	if err != nil {
 		return fmt.Errorf("template error: %w", err)

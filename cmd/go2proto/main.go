@@ -200,6 +200,7 @@ type Field struct {
 	Optional    bool
 	Repeated    bool
 	Pointer     bool
+	Import      string // required import to create this type
 
 	Kind Kind
 }
@@ -357,7 +358,7 @@ func run(cli Config) error {
 		return err
 	}
 
-	file, err := extract(cli, resolved)
+	file, goImports, err := extract(cli, resolved)
 	if gerr := new(GenError); errors.As(err, &gerr) {
 		pos := fset.Position(gerr.pos)
 		return fmt.Errorf("%s:%d: %w", pos.Filename, pos.Line, err)
@@ -386,7 +387,7 @@ func run(cli Config) error {
 		}
 		defer os.Remove(w.Name())
 		defer w.Close()
-		err = renderToProto(w, directives, file)
+		err = renderToProto(w, directives, file, goImports)
 		if err != nil {
 			return err
 		}
@@ -421,10 +422,11 @@ type PkgRefs struct {
 }
 
 type State struct {
-	Pass     int
-	Messages map[*Message]*types.Named
-	Dest     File
-	Seen     map[string]bool
+	Pass      int
+	Messages  map[*Message]*types.Named
+	GoImports []string
+	Dest      File
+	Seen      map[string]bool
 	Config
 	*PkgRefs
 }
@@ -437,7 +439,7 @@ func genErrorf(pos token.Pos, format string, args ...any) error {
 	return &GenError{pos: pos, err: err}
 }
 
-func extract(config Config, pkg *PkgRefs) (File, error) {
+func extract(config Config, pkg *PkgRefs) (File, []string, error) {
 	state := State{
 		Messages: map[*Message]*types.Named{},
 		Seen:     map[string]bool{},
@@ -448,27 +450,40 @@ func extract(config Config, pkg *PkgRefs) (File, error) {
 	for _, sym := range pkg.Refs {
 		obj := pkg.Pkg.Types.Scope().Lookup(sym)
 		if obj == nil {
-			return File{}, fmt.Errorf("%s: not found in package %s", sym, pkg.Pkg.ID)
+			return File{}, nil, fmt.Errorf("%s: not found in package %s", sym, pkg.Pkg.ID)
 		}
 		if !strings.HasSuffix(pkg.Pkg.Name, "_test") {
 			state.Dest.GoPackage = pkg.Pkg.Name
 		}
 		named, ok := obj.Type().(*types.Named)
 		if !ok {
-			return File{}, genErrorf(obj.Pos(), "%s: expected named type, got %T", sym, obj.Type())
+			return File{}, nil, genErrorf(obj.Pos(), "%s: expected named type, got %T", sym, obj.Type())
 		}
 		if err := state.extractDecl(obj, named); err != nil {
-			return File{}, fmt.Errorf("%s: %w", sym, err)
+			return File{}, nil, fmt.Errorf("%s: %w", sym, err)
 		}
 	}
 	state.Pass++
 	// Second pass, populate the fields of messages.
 	for msg, n := range state.Messages {
 		if err := state.populateFields(msg, n); err != nil {
-			return File{}, fmt.Errorf("%s: %w", msg.Name, err)
+			return File{}, nil, fmt.Errorf("%s: %w", msg.Name, err)
 		}
 	}
-	return state.Dest, nil
+
+	imports := map[string]bool{}
+	for msg := range state.Messages {
+		for _, field := range msg.Fields {
+			if field.Import != "" {
+				imports[field.Import] = true
+			}
+		}
+	}
+	for imp := range imports {
+		state.GoImports = append(state.GoImports, imp)
+	}
+
+	return state.Dest, state.GoImports, nil
 }
 
 func (s *State) extractDecl(obj types.Object, named *types.Named) error {
@@ -697,8 +712,33 @@ func (s *State) canMarshal(t types.Type, field *Field, name string) bool {
 	return false
 }
 
+func originType(t types.Type) string {
+	str := t.String()
+	if strings.Contains(str, "/") {
+		parts := strings.Split(str, "/")
+		return parts[len(parts)-1]
+	}
+	return str
+}
+
+func importStr(t types.Type) string {
+	str := t.String()
+	if strings.Contains(str, "/") {
+		parts := strings.Split(str, ".")
+		return strings.TrimPrefix(strings.Join(parts[:len(parts)-1], "."), "*")
+	}
+	return ""
+}
+
 func (s *State) applyFieldType(t types.Type, field *Field) error {
-	field.OriginType = t.String()
+	field.OriginType = originType(t)
+	field.Import = importStr(t)
+
+	// TODO: Proper equality check
+	if strings.HasSuffix(field.Import, s.Dest.GoPackage) {
+		field.Import = ""
+	}
+
 	switch t := t.(type) {
 	case *types.Alias:
 		if s.canMarshal(t, field, t.Obj().Name()) {
