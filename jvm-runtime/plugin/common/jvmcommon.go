@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -157,6 +158,9 @@ func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb
 
 func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[langpb.SyncStubReferencesRequest]) (*connect.Response[langpb.SyncStubReferencesResponse], error) {
 
+	if req.Msg.Schema == nil {
+		return connect.NewResponse(&langpb.SyncStubReferencesResponse{}), nil
+	}
 	sch, err := schema.FromProto(req.Msg.Schema)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse schema from proto: %w", err)
@@ -370,6 +374,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		cancel()
 	}()
 
+	forceUpdate := false
 	schemaChangeTicker := time.NewTicker(100 * time.Millisecond)
 	defer schemaChangeTicker.Stop()
 	for {
@@ -389,6 +394,21 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			return nil
 		case bc := <-events:
 			buildCtx = bc.buildCtx
+			forceUpdate = true
+
+			// Force a hot reload by sending a HEAD request to the dev server
+			req, err := http.NewRequestWithContext(ctx, http.MethodHead, bind, nil)
+			if err != nil {
+				logger.Errorf(err, "could not create request to force build context update")
+				continue
+			}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				logger.Errorf(err, "could not send request to force build context update")
+				continue
+			}
+			resp.Body.Close()
+
 		case <-schemaChangeTicker.C:
 
 			changed := false
@@ -418,8 +438,14 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					migrationHash = newMigrationHash
 				}
 			}
-			if changed {
-
+			if changed || forceUpdate {
+				auto := !firstAttempt && !forceUpdate
+				if auto {
+					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
+					if err != nil {
+						return fmt.Errorf("could not send build event: %w", err)
+					}
+				}
 				buildErrs, err := loadProtoErrors(buildCtx.Config)
 				if err != nil {
 					// This is likely a transient error
@@ -430,7 +456,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					// skip reading schema
 					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 						BuildFailure: &langpb.BuildFailure{
-							IsAutomaticRebuild: !firstAttempt,
+							IsAutomaticRebuild: auto,
 							ContextId:          buildCtx.ID,
 							Errors:             buildErrs,
 						}}})
@@ -452,8 +478,8 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				err = stream.Send(&langpb.BuildResponse{
 					Event: &langpb.BuildResponse_BuildSuccess{
 						BuildSuccess: &langpb.BuildSuccess{
-							ContextId:          req.Msg.BuildContext.Id,
-							IsAutomaticRebuild: !firstAttempt,
+							ContextId:          buildCtx.ID,
+							IsAutomaticRebuild: auto,
 							Module:             moduleProto,
 							DevEndpoint:        ptr(fmt.Sprintf("http://localhost:%d", address.Port)),
 							DevRunnerInfoFile:  &runnerInfoFile,
@@ -465,6 +491,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				if err != nil {
 					return fmt.Errorf("could not send build event: %w", err)
 				}
+				forceUpdate = false
 				firstAttempt = false
 			}
 
@@ -582,6 +609,11 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
 		return nil, err
+	}
+
+	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to write generic schema files: %w", err)
 	}
 
 	s.updatesTopic.Publish(buildContextUpdatedEvent{
@@ -857,6 +889,9 @@ func ptr(s string) *string {
 
 func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema, config moduleconfig.AbsModuleConfig) error {
 
+	if v == nil {
+		return nil
+	}
 	logger := log.FromContext(ctx)
 	modPath := filepath.Join(config.Dir, "src", "main", "ftl-module-schema")
 	err := os.MkdirAll(modPath, 0750)
