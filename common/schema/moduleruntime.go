@@ -141,6 +141,8 @@ func ModuleRuntimeDeploymentFromProto(s *schemapb.ModuleRuntimeDeployment) (*Mod
 	return &ModuleRuntimeDeployment{
 		Endpoint:      s.Endpoint,
 		DeploymentKey: deploymentKey,
+		CreatedAt:     s.CreatedAt.AsTime(),
+		ActivatedAt:   s.ActivatedAt.AsTime(),
 	}, nil
 }
 
