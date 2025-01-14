@@ -129,7 +129,7 @@ func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.
 		opts = append(opts, scaffolder.Exclude("^bin"))
 	}
 
-	version := ftl.Version
+	version := ftl.BaseVersion(ftl.Version)
 	if !ftl.IsRelease(version) {
 		version = "1.0-SNAPSHOT"
 	}
@@ -806,7 +806,7 @@ func extractKotlinFTLImports(self, dir string) ([]string, error) {
 // pom.xml file in the given base directory.
 func setPOMProperties(ctx context.Context, baseDir string) error {
 	logger := log.FromContext(ctx)
-	ftlVersion := ftl.Version
+	ftlVersion := ftl.BaseVersion(ftl.Version)
 	if !ftl.IsRelease(ftlVersion) {
 		ftlVersion = "1.0-SNAPSHOT"
 	}
