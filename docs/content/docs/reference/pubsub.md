@@ -85,7 +85,27 @@ First, declare a new topic:
 
 ```kotlin
 
-import com.block.ftl.WriteableTopic
+import xyz.block.ftl.WriteableTopic
+
+// Define the event type for the topic
+data class Invoice(val invoiceNo: String)
+
+// PartitionMapper maps each to a partition in the topic
+class PartitionMapper : TopicPartitionMapper<Invoice> {
+    override fun getPartitionKey(invoice: Invoice): String {
+        return invoice.getInvoiceNo()
+    }
+}
+
+@Export
+@Topic(name = "invoices", partitions = 1)
+internal interface InvoiceTopic : WriteableTopic<Invoice, SinglePartitionMapper<Invoice>>
+```
+If you want multiple partitions in the topic, you'll also need to write a partition mapper:
+
+```kotlin
+
+import xyz.block.ftl.WriteableTopic
 
 // Define the event type for the topic
 data class Invoice(val invoiceNo: String)
@@ -99,7 +119,7 @@ class PartitionMapper : TopicPartitionMapper<Invoice> {
 
 @Export
 @Topic(name = "invoices", partitions = 8)
-internal interface InvoiceTopic : WriteableTopic<Invoice>
+internal interface InvoiceTopic : WriteableTopic<Invoice, PartitionMapper>
 ```
 
 Events can be published to a topic by injecting it into an `@Verb` method:
@@ -133,7 +153,20 @@ internal interface InvoiceTopic : ConsumableTopic<Invoice>
 First, declare a new topic:
 
 ```java
-import com.block.ftl.WriteableTopic;
+import xyz.block.ftl.WriteableTopic;
+import xyz.block.ftl.SinglePartitionMapper;
+
+// Define the event type for the topic
+record Invoice(String invoiceNo) {}
+
+@Export
+@Topic(name = "invoices", partitions = 1)
+public interface InvoiceTopic extends WriteableTopic<Invoice, SinglePartitionMapper<Invoice>> {}
+```
+
+If you want multiple partitions in the topic, you'll also need to write a partition mapper:
+```java
+import xyz.block.ftl.WriteableTopic;
 
 // Define the event type for the topic
 record Invoice(String invoiceNo) {}
@@ -147,7 +180,7 @@ class PartitionMapper implements TopicPartitionMapper<Invoice> {
 
 @Export
 @Topic(name = "invoices", partitions = 8)
-public interface InvoiceTopic extends WriteableTopic<Invoice> {}
+public interface InvoiceTopic extends WriteableTopic<Invoice, PartitionMapper> {}
 ```
 
 Events can be published to a topic by injecting it into an `@Verb` method:
