@@ -12,7 +12,16 @@ import (
 
 // IsRelease returns true if the version is a release version.
 func IsRelease(v string) bool {
-	return regexp.MustCompile(`^\d+\.\d+\.\d+$`).MatchString(v)
+	return regexp.MustCompile(`^\d+\.\d+\.\d+(-\d+-g[0-9a-f]+)?$`).MatchString(v)
+}
+
+// BaseVersion returns the version without any SHA suffix.
+// For example, "0.423.0-5-g43798ff01" becomes "0.423.0"
+func BaseVersion(v string) string {
+	if idx := regexp.MustCompile(`-\d+-g[0-9a-f]+$`).FindStringIndex(v); idx != nil {
+		return v[:idx[0]]
+	}
+	return v
 }
 
 // IsVersionAtLeastMin returns true if any of the following are true:
