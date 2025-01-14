@@ -103,23 +103,18 @@ func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
 	moduleToDeployment := make(map[string]key.Deployment, len(sch.Modules))
 	byDeployment := make(map[string]*url.URL, len(sch.Modules))
 	for _, module := range sch.Modules {
-		if module.GetRuntime().GetDeployment().GetDeploymentKey() == "" {
+		if module.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 			continue
 		}
 		rt := module.Runtime.Deployment
-		key, err := key.ParseDeploymentKey(rt.DeploymentKey)
-		if err != nil {
-			logger.Warnf("Failed to parse deployment key for module %q: %v", module.Name, err)
-			continue
-		}
 		u, err := url.Parse(rt.Endpoint)
 		if err != nil {
 			logger.Warnf("Failed to parse endpoint URL for module %q: %v", module.Name, err)
 			continue
 		}
 		logger.Debugf("Adding route for %s/%s: %s", module.Name, rt.DeploymentKey, u)
-		moduleToDeployment[module.Name] = key
-		byDeployment[rt.DeploymentKey] = u
+		moduleToDeployment[module.Name] = rt.DeploymentKey
+		byDeployment[rt.DeploymentKey.String()] = u
 	}
 	return RouteView{moduleToDeployment: moduleToDeployment, byDeployment: byDeployment, schema: sch}
 }

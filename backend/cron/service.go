@@ -185,7 +185,7 @@ func rebuildQueue(cronJobs map[string][]cronJob) []cronJob {
 }
 
 func extractCronJobs(module *schema.Module) ([]cronJob, error) {
-	if module.GetRuntime().GetDeployment().GetDeploymentKey() == "" {
+	if module.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 		return nil, nil
 	}
 	cronJobs := []cronJob{}
@@ -202,13 +202,9 @@ func extractCronJobs(module *schema.Module) ([]cronJob, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cronmd.Pos, err)
 		}
-		deploymentKey, err := key.ParseDeploymentKey(module.Runtime.Deployment.DeploymentKey)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cronmd.Pos, err)
-		}
 		cronJobs = append(cronJobs, cronJob{
 			module:     module.Name,
-			deployment: deploymentKey,
+			deployment: module.Runtime.Deployment.DeploymentKey,
 			verb:       verb,
 			cronmd:     cronmd,
 			pattern:    pattern,

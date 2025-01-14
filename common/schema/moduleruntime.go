@@ -5,6 +5,7 @@ import (
 	"time"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/internal/key"
 )
 
 // ModuleRuntime is runtime configuration for a module that can be dynamically updated.
@@ -26,24 +27,28 @@ func (m *ModuleRuntime) ApplyEvent(event ModuleRuntimeEvent) {
 	}
 }
 
-func ModuleRuntimeFromProto(s *schemapb.ModuleRuntime) *ModuleRuntime {
+func ModuleRuntimeFromProto(s *schemapb.ModuleRuntime) (*ModuleRuntime, error) {
 	if s == nil {
-		return nil
+		return nil, nil
+	}
+	deployment, err := ModuleRuntimeDeploymentFromProto(s.Deployment)
+	if err != nil {
+		return nil, err
 	}
 	return &ModuleRuntime{
 		Base:       *ModuleRuntimeBaseFromProto(s.Base),
 		Scaling:    ModuleRuntimeScalingFromProto(s.Scaling),
-		Deployment: ModuleRuntimeDeploymentFromProto(s.Deployment),
-	}
+		Deployment: deployment,
+	}, nil
 }
 
-func ModuleRuntimeEventFromProto(s *schemapb.ModuleRuntimeEvent) ModuleRuntimeEvent {
+func ModuleRuntimeEventFromProto(s *schemapb.ModuleRuntimeEvent) (ModuleRuntimeEvent, error) {
 	switch s.Value.(type) {
 	case *schemapb.ModuleRuntimeEvent_ModuleRuntimeBase:
-		return ModuleRuntimeBaseFromProto(s.GetModuleRuntimeBase())
+		return ModuleRuntimeBaseFromProto(s.GetModuleRuntimeBase()), nil
 
 	case *schemapb.ModuleRuntimeEvent_ModuleRuntimeScaling:
-		return ModuleRuntimeScalingFromProto(s.GetModuleRuntimeScaling())
+		return ModuleRuntimeScalingFromProto(s.GetModuleRuntimeScaling()), nil
 
 	case *schemapb.ModuleRuntimeEvent_ModuleRuntimeDeployment:
 		return ModuleRuntimeDeploymentFromProto(s.GetModuleRuntimeDeployment())
@@ -111,24 +116,32 @@ func ModuleRuntimeScalingFromProto(s *schemapb.ModuleRuntimeScaling) *ModuleRunt
 //protobuf:3 RuntimeEvent
 type ModuleRuntimeDeployment struct {
 	// Endpoint is the endpoint of the deployed module.
-	Endpoint      string    `protobuf:"1"`
-	DeploymentKey string    `protobuf:"2"`
-	CreatedAt     time.Time `protobuf:"3"`
-	ActivatedAt   time.Time `protobuf:"4"`
+	Endpoint      string         `protobuf:"1"`
+	DeploymentKey key.Deployment `protobuf:"2"`
+	CreatedAt     time.Time      `protobuf:"3"`
+	ActivatedAt   time.Time      `protobuf:"4"`
 }
 
 func (m *ModuleRuntimeDeployment) moduleRuntime() {}
 
 func (m *ModuleRuntimeDeployment) runtimeEvent() {}
 
-func ModuleRuntimeDeploymentFromProto(s *schemapb.ModuleRuntimeDeployment) *ModuleRuntimeDeployment {
+func ModuleRuntimeDeploymentFromProto(s *schemapb.ModuleRuntimeDeployment) (*ModuleRuntimeDeployment, error) {
 	if s == nil {
-		return nil
+		return nil, nil
+	}
+	deploymentKey := key.Deployment{}
+	if s.DeploymentKey != "" {
+		dk, err := key.ParseDeploymentKey(s.DeploymentKey)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing deployment key: %w", err)
+		}
+		deploymentKey = dk
 	}
 	return &ModuleRuntimeDeployment{
 		Endpoint:      s.Endpoint,
-		DeploymentKey: s.DeploymentKey,
-	}
+		DeploymentKey: deploymentKey,
+	}, nil
 }
 
 func (m *ModuleRuntime) GetScaling() *ModuleRuntimeScaling {
@@ -166,9 +179,9 @@ func (m *ModuleRuntimeDeployment) GetCreatedAt() time.Time {
 	return m.CreatedAt
 }
 
-func (m *ModuleRuntimeDeployment) GetDeploymentKey() string {
+func (m *ModuleRuntimeDeployment) GetDeploymentKey() key.Deployment {
 	if m == nil {
-		return ""
+		return key.Deployment{}
 	}
 	return m.DeploymentKey
 }

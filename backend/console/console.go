@@ -117,7 +117,7 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 	nilMap := map[schema.RefKey]map[schema.RefKey]bool{}
 	var modules []*consolepb.Module
 	for _, mod := range sch.Modules {
-		if mod.GetRuntime().GetDeployment().GetDeploymentKey() == "" {
+		if mod.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 			continue
 		}
 		var verbs []*consolepb.Verb
@@ -149,7 +149,7 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 
 		modules = append(modules, &consolepb.Module{
 			Name:          mod.Name,
-			DeploymentKey: mod.Runtime.Deployment.DeploymentKey,
+			DeploymentKey: mod.Runtime.Deployment.DeploymentKey.String(),
 			Language:      mod.Runtime.Base.Language,
 			Verbs:         verbs,
 			Data:          data,
@@ -186,7 +186,7 @@ func moduleFromDeployment(deployment *schema.Module, sch *schema.Schema, refMap 
 	}
 
 	module.Name = deployment.Name
-	module.DeploymentKey = deployment.Runtime.Deployment.DeploymentKey
+	module.DeploymentKey = deployment.Runtime.Deployment.DeploymentKey.String()
 	module.Language = deployment.Runtime.Base.Language
 	module.Schema = deployment.String()
 
@@ -412,7 +412,7 @@ func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.Ser
 
 	var modules []*consolepb.Module
 	for _, deployment := range deployments {
-		if deployment.GetRuntime().GetDeployment().GetDeploymentKey() == "" {
+		if deployment.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 			continue
 		}
 		module, err := moduleFromDeployment(deployment, sch, refMap)

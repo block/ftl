@@ -354,7 +354,7 @@ func (s *AdminService) ResetSubscription(ctx context.Context, req *connect.Reque
 	if verb.Runtime == nil || verb.Runtime.Subscription == nil || len(verb.Runtime.Subscription.KafkaBrokers) == 0 {
 		return nil, fmt.Errorf("no Kafka brokers for subscription %q", req.Msg.Subscription)
 	}
-	if module.GetRuntime().GetDeployment().GetDeploymentKey() == "" {
+	if module.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 		return nil, fmt.Errorf("no deployment for module %s", req.Msg.Subscription.Module)
 	}
 	topicID := subscriber.Topic.String()

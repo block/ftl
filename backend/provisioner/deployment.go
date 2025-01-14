@@ -91,7 +91,10 @@ func (t *Task) Progress(ctx context.Context) error {
 			for _, event := range events {
 				switch event.Value.(type) {
 				case *provisioner.ProvisioningEvent_ModuleRuntimeEvent:
-					moduleEvent := schema.ModuleRuntimeEventFromProto(event.GetModuleRuntimeEvent())
+					moduleEvent, err := schema.ModuleRuntimeEventFromProto(event.GetModuleRuntimeEvent())
+					if err != nil {
+						return fmt.Errorf("error parsing module runtime event: %w", err)
+					}
 					module.Runtime.ApplyEvent(moduleEvent)
 
 				case *provisioner.ProvisioningEvent_DatabaseRuntimeEvent:
