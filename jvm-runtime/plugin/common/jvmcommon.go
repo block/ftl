@@ -121,7 +121,9 @@ func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.
 	}
 
 	packageDir := strings.ReplaceAll(group, ".", "/")
-	opts := []scaffolder.Option{}
+	opts := []scaffolder.Option{
+		scaffolder.Exclude("^go.mod$"), // This is still needed, as there is an 'ignore' module in the scaffold dir
+	}
 	if !projConfig.Hermit {
 		logger.Debugf("Excluding bin directory")
 		opts = append(opts, scaffolder.Exclude("^bin"))
