@@ -7,13 +7,14 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+playwright-report/
+test-results/
+
 package-lock.json
 node_modules
 dist
 dist-ssr
 *.local
-*.vsix
-**/*.map
 
 # Editor directories and files
 .vscode/*
@@ -26,3 +27,8 @@ dist-ssr
 *.sln
 *.sw?
 */.parcel-cache
+*storybook.log
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

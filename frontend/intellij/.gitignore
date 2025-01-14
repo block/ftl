@@ -1,0 +1,34 @@
+# IntelliJ specific files
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+build/
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Compiled files
+*.class
+target/
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Debug and logs
+*.log
+*.debug
+
+# Mac OS specific
+.DS_Store
+
+# Kotlin
+.kotlin/
+*.kotlin_module
+kotlin-js-store/

@@ -16,8 +16,6 @@ class AppSettings : PersistentStateComponent<AppSettings.State> {
 
   data class State(
     @NonNls var lspServerPath: String = "ftl",
-    var lspServerArguments: String = "--lsp",
-    var lspServerStopArguments: String = "serve --stop",
     var autoRestartLspServer: Boolean = false,
   )
 

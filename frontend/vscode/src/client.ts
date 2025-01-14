@@ -112,6 +112,7 @@ export class FTLClient {
     })
 
     this.isClientStarting = false
+    FTLStatus.buildOK(this.statusBarItem)
   }
 
   public async stop() {
