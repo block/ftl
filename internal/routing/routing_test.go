@@ -11,6 +11,7 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
@@ -23,7 +24,7 @@ func TestRouting(t *testing.T) {
 			Runtime: &schema.ModuleRuntime{
 				Deployment: &schema.ModuleRuntimeDeployment{
 					Endpoint:      "http://time.ftl",
-					DeploymentKey: "dpl-time-sjkfislfjslfas",
+					DeploymentKey: deploymentKey(t, "dpl-time-sjkfislfjslfas"),
 				},
 			},
 		},
@@ -40,7 +41,7 @@ func TestRouting(t *testing.T) {
 			Runtime: &schema.ModuleRuntime{
 				Deployment: &schema.ModuleRuntimeDeployment{
 					Endpoint:      "http://echo.ftl",
-					DeploymentKey: "dpl-echo-sjkfiaslfjslfs",
+					DeploymentKey: deploymentKey(t, "dpl-echo-sjkfiaslfjslfs"),
 				},
 			},
 		},
@@ -49,4 +50,11 @@ func TestRouting(t *testing.T) {
 	time.Sleep(time.Millisecond * 250)
 	current = rt.Current()
 	assert.Equal(t, optional.Ptr(must.Get(url.Parse("http://echo.ftl"))), current.GetForModule("echo"))
+}
+
+func deploymentKey(t *testing.T, deploymentKey string) key.Deployment {
+	t.Helper()
+	key, err := key.ParseDeploymentKey(deploymentKey)
+	assert.NoError(t, err)
+	return key
 }

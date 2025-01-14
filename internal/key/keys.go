@@ -86,6 +86,10 @@ func (d KeyType[T, TP]) GoString() string {
 }
 
 func (d KeyType[T, TP]) String() string {
+	if d.IsZero() {
+		return ""
+	}
+
 	parts := []string{d.Kind()}
 	var payload TP = &d.Payload
 	if payload := payload.String(); payload != "" {

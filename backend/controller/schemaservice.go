@@ -50,7 +50,10 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if module.Runtime == nil {
 		module.Runtime = &schema.ModuleRuntime{}
 	}
-	event := schema.ModuleRuntimeEventFromProto(req.Msg.Event)
+	event, err := schema.ModuleRuntimeEventFromProto(req.Msg.Event)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing module runtime event: %w", err)
+	}
 	module.Runtime.ApplyEvent(event)
 	err = s.schemaState.Publish(ctx, &state.DeploymentSchemaUpdatedEvent{
 		Key:    deployment,

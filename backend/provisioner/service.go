@@ -95,7 +95,7 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 
 	deploymentKey := deployment.Module.Runtime.Deployment.DeploymentKey
 	return connect.NewResponse(&ftlv1.CreateDeploymentResponse{
-		DeploymentKey: deploymentKey,
+		DeploymentKey: deploymentKey.String(),
 	}), nil
 }
 

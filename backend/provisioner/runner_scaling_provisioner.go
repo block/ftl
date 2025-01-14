@@ -35,7 +35,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		}
 
 		deployment := module.Runtime.Deployment.DeploymentKey
-		if deployment == "" {
+		if deployment.IsZero() {
 			return nil, fmt.Errorf("failed to find deployment for runner")
 		}
 		logger.Debugf("provisioning runner: %s.%s for deployment %s", module, rc.ResourceID(), deployment)
@@ -56,11 +56,11 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 				}
 			}
 		}
-		if err := scaling.StartDeployment(ctx, module.Name, deployment, module, cron, http); err != nil {
+		if err := scaling.StartDeployment(ctx, module.Name, deployment.String(), module, cron, http); err != nil {
 			logger.Infof("failed to start deployment: %v", err)
 			return nil, fmt.Errorf("failed to start deployment: %w", err)
 		}
-		endpoint, err := scaling.GetEndpointForDeployment(ctx, module.Name, deployment)
+		endpoint, err := scaling.GetEndpointForDeployment(ctx, module.Name, deployment.String())
 		if err != nil || !endpoint.Ok() {
 			return nil, fmt.Errorf("failed to get endpoint for deployment: %w", err)
 		}
@@ -88,7 +88,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		schemaClient := rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx)
 		controllerClient := rpc.ClientFromContext[ftlv1connect.ControllerServiceClient](ctx)
 
-		deps, err := scaling.TerminatePreviousDeployments(ctx, module.Name, deployment)
+		deps, err := scaling.TerminatePreviousDeployments(ctx, module.Name, deployment.String())
 		if err != nil {
 			logger.Errorf(err, "failed to terminate previous deployments")
 		} else {
@@ -102,7 +102,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		}
 
 		logger.Debugf("updating module runtime for %s with endpoint %s", module, endpointURI)
-		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Deployment: deployment, Event: &schemapb.ModuleRuntimeEvent{Value: &schemapb.ModuleRuntimeEvent_ModuleRuntimeDeployment{ModuleRuntimeDeployment: &schemapb.ModuleRuntimeDeployment{DeploymentKey: deployment, Endpoint: endpointURI}}}}))
+		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Deployment: deployment.String(), Event: &schemapb.ModuleRuntimeEvent{Value: &schemapb.ModuleRuntimeEvent_ModuleRuntimeDeployment{ModuleRuntimeDeployment: &schemapb.ModuleRuntimeDeployment{DeploymentKey: deployment.String(), Endpoint: endpointURI}}}}))
 		if err != nil {
 			return nil, fmt.Errorf("failed to update module runtime: %w", err)
 		}

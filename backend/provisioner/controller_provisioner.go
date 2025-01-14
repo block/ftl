@@ -9,6 +9,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -30,10 +31,14 @@ func NewControllerProvisioner(client ftlv1connect.ControllerServiceClient) *InMe
 			if err != nil {
 				return nil, fmt.Errorf("failed to create deployment: %w", err)
 			}
+			deploymentKey, err := key.ParseDeploymentKey(resp.Msg.DeploymentKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse deployment key: %w", err)
+			}
 
 			return &RuntimeEvent{
 				Module: &schema.ModuleRuntimeDeployment{
-					DeploymentKey: resp.Msg.DeploymentKey,
+					DeploymentKey: deploymentKey,
 				},
 			}, nil
 		},
