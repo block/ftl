@@ -106,11 +106,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		if err != nil {
 			return nil, fmt.Errorf("failed to update module runtime: %w", err)
 		}
-		return &RuntimeEvent{
-			Module: &schema.ModuleRuntimeDeployment{
-				DeploymentKey: deployment,
-				Endpoint:      endpointURI,
-			},
-		}, nil
+		module.Runtime.Deployment.Endpoint = endpointURI
+		return &RuntimeEvent{Module: module.Runtime.Deployment}, nil
 	}
 }

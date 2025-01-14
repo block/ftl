@@ -12,7 +12,6 @@ import (
 )
 
 type Deployment struct {
-	Key    key.Deployment
 	Schema *schema.Module
 }
 
@@ -61,10 +60,11 @@ func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	}
 
 	n := Deployment{
-		Key:    r.Key,
 		Schema: r.Schema,
 	}
 	n.Schema.ModRuntime().ModDeployment().CreatedAt = r.CreatedAt
+	n.Schema.ModRuntime().ModDeployment().DeploymentKey = r.Key
+
 	t.deployments[r.Key] = &n
 	return t, nil
 }
