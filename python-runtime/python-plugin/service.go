@@ -136,17 +136,14 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 }
 
 func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb.GenerateStubsRequest]) (*connect.Response[langpb.GenerateStubsResponse], error) {
-	moduleSchema, err := schema.ModuleFromProto(req.Msg.Module)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse schema: %w", err)
-	}
+	moduleSchema := schema.ModuleFromProto(req.Msg.Module)
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
 	var nativeConfig optional.Option[moduleconfig.AbsModuleConfig]
 	if req.Msg.NativeModuleConfig != nil {
 		nativeConfig = optional.Some(langpb.ModuleConfigFromProto(req.Msg.NativeModuleConfig))
 	}
 
-	err = compile.GenerateStubs(ctx, req.Msg.Dir, moduleSchema, config, nativeConfig)
+	err := compile.GenerateStubs(ctx, req.Msg.Dir, moduleSchema, config, nativeConfig)
 	if err != nil {
 		return nil, fmt.Errorf("could not generate stubs: %w", err)
 	}

@@ -47,11 +47,8 @@ func (g *getSchemaCmd) Run(ctx context.Context, client ftlv1connect.SchemaServic
 			if msg.Schema == nil {
 				return fmt.Errorf("schema is nil for added/changed deployment %q", msg.GetDeploymentKey())
 			}
-			module, err := schema.ModuleFromProto(msg.Schema)
+			module := schema.ModuleFromProto(msg.Schema)
 			if len(g.Modules) == 0 || remainingNames[msg.Schema.Name] {
-				if err != nil {
-					return fmt.Errorf("invalid module schema: %w", err)
-				}
 				fmt.Println(module)
 				delete(remainingNames, msg.Schema.Name)
 			}

@@ -72,10 +72,7 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	moduleName := req.Msg.Schema.Name
 
 	existingModule, _ := s.currentModules.Load(moduleName)
-	desiredModule, err := schema.ModuleFromProto(req.Msg.Schema)
-	if err != nil {
-		return nil, fmt.Errorf("error converting module to schema: %w", err)
-	}
+	desiredModule := schema.ModuleFromProto(req.Msg.Schema)
 
 	if existingModule != nil {
 		syncExistingRuntimes(existingModule, desiredModule)
@@ -85,11 +82,12 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	running := true
 	logger.Debugf("Running deployment for module %s", moduleName)
 	for running {
-		running, err = deployment.Progress(ctx)
+		r, err := deployment.Progress(ctx)
 		if err != nil {
 			// TODO: Deal with failed deployments
 			return nil, fmt.Errorf("error running a provisioner: %w", err)
 		}
+		running = r
 	}
 	logger.Debugf("Finished deployment for module %s", moduleName)
 

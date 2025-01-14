@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/slices"
 )
 
@@ -62,32 +61,9 @@ func (t *Topic) ResourceID() string {
 	return t.Name
 }
 
-func TopicFromProto(t *schemapb.Topic) *Topic {
-	return &Topic{
-		Pos:     PosFromProto(t.Pos),
-		Runtime: TopicRuntimeFromProto(t.Runtime),
-
-		Name:     t.Name,
-		Export:   t.Export,
-		Event:    TypeFromProto(t.Event),
-		Comments: t.Comments,
-		Metadata: metadataListToSchema(t.Metadata),
-	}
-}
-
 type TopicRuntime struct {
 	KafkaBrokers []string `parser:"" protobuf:"1"`
 	TopicID      string   `parser:"" protobuf:"2"`
-}
-
-func TopicRuntimeFromProto(t *schemapb.TopicRuntime) *TopicRuntime {
-	if t == nil {
-		return nil
-	}
-	return &TopicRuntime{
-		KafkaBrokers: t.KafkaBrokers,
-		TopicID:      t.TopicId,
-	}
 }
 
 //protobuf:6 RuntimeEvent
@@ -100,13 +76,6 @@ type TopicRuntimeEvent struct {
 var _ RuntimeEvent = (*TopicRuntimeEvent)(nil)
 
 func (t *TopicRuntimeEvent) runtimeEvent() {}
-
-func TopicRuntimeEventFromProto(t *schemapb.TopicRuntimeEvent) *TopicRuntimeEvent {
-	return &TopicRuntimeEvent{
-		ID:      t.Id,
-		Payload: TopicRuntimeFromProto(t.Payload),
-	}
-}
 
 func (t *TopicRuntimeEvent) ApplyTo(m *Module) {
 	for topic := range slices.FilterVariants[*Topic](m.Decls) {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/reflect"
 )
 
@@ -173,19 +172,6 @@ func (d *Data) String() string {
 	fmt.Fprintf(w, "}")
 	fmt.Fprint(w, indent(encodeMetadata(d.Metadata)))
 	return w.String()
-}
-
-func DataFromProto(s *schemapb.Data) *Data {
-	return &Data{
-		Pos: PosFromProto(s.Pos),
-
-		Name:           s.Name,
-		Export:         s.Export,
-		TypeParameters: typeParametersToSchema(s.TypeParameters),
-		Fields:         fieldListToSchema(s.Fields),
-		Comments:       s.Comments,
-		Metadata:       metadataListToSchema(s.Metadata),
-	}
 }
 
 // MonoType returns the monomorphised type of this data type if applicable, or returns the original type.

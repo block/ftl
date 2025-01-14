@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/slices"
 )
 
@@ -43,27 +42,9 @@ func (v *VerbRuntimeEvent) ApplyTo(m *Module) {
 	}
 }
 
-func VerbRuntimeEventFromProto(p *schemapb.VerbRuntimeEvent) *VerbRuntimeEvent {
-	return &VerbRuntimeEvent{
-		ID:      p.Id,
-		Payload: VerbRuntimePayloadFromProto(p.Payload),
-	}
-}
-
 //sumtype:decl
 type VerbRuntimePayload interface {
 	verbRuntime()
-}
-
-func VerbRuntimePayloadFromProto(p *schemapb.VerbRuntimePayload) VerbRuntimePayload {
-	switch p.Value.(type) {
-	case *schemapb.VerbRuntimePayload_VerbRuntimeBase:
-		return VerbRuntimeBaseFromProto(p.GetVerbRuntimeBase())
-	case *schemapb.VerbRuntimePayload_VerbRuntimeSubscription:
-		return VerbRuntimeSubscriptionFromProto(p.GetVerbRuntimeSubscription())
-	default:
-		panic("unknown verb runtime payload type")
-	}
 }
 
 //protobuf:1
@@ -74,28 +55,9 @@ type VerbRuntimeBase struct {
 
 func (*VerbRuntimeBase) verbRuntime() {}
 
-func VerbRuntimeBaseFromProto(s *schemapb.VerbRuntimeBase) *VerbRuntimeBase {
-	if s == nil {
-		return &VerbRuntimeBase{}
-	}
-	return &VerbRuntimeBase{
-		CreateTime: s.CreateTime.AsTime(),
-		StartTime:  s.StartTime.AsTime(),
-	}
-}
-
 //protobuf:2
 type VerbRuntimeSubscription struct {
 	KafkaBrokers []string `protobuf:"1"`
 }
 
 func (*VerbRuntimeSubscription) verbRuntime() {}
-
-func VerbRuntimeSubscriptionFromProto(s *schemapb.VerbRuntimeSubscription) *VerbRuntimeSubscription {
-	if s == nil {
-		return nil
-	}
-	return &VerbRuntimeSubscription{
-		KafkaBrokers: s.KafkaBrokers,
-	}
-}

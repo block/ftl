@@ -109,11 +109,7 @@ func findSuggestions(
 
 	modules := make([]*schema.Module, 0, len(res.Msg.GetSchema().GetModules()))
 	for _, pbmodule := range res.Msg.GetSchema().GetModules() {
-		module, err := schema.ModuleFromProto(pbmodule)
-		if err != nil {
-			logger.Errorf(err, "failed to convert module from protobuf")
-			continue
-		}
+		module := schema.ModuleFromProto(pbmodule)
 		modules = append(modules, module)
 	}
 	verbs := []string{}

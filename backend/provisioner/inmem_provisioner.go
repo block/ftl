@@ -87,16 +87,10 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 
 	var previousModule *schema.Module
 	if req.Msg.PreviousModule != nil {
-		pm, err := schema.ModuleFromProto(req.Msg.PreviousModule)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		}
+		pm := schema.ModuleFromProto(req.Msg.PreviousModule)
 		previousModule = pm
 	}
-	desiredModule, err := schema.ModuleFromProto(req.Msg.DesiredModule)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
+	desiredModule := schema.ModuleFromProto(req.Msg.DesiredModule)
 	kinds := slices.Map(req.Msg.Kinds, func(k string) schema.ResourceType { return schema.ResourceType(k) })
 	previousNodes := schema.GetProvisioned(previousModule)
 	desiredNodes := schema.GetProvisioned(desiredModule)

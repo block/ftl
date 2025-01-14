@@ -42,36 +42,6 @@ func declListToSchema(s []*schemapb.Decl) []Decl {
 	return out
 }
 
-func TypeFromProto(s *schemapb.Type) Type {
-	switch s := s.Value.(type) {
-	case *schemapb.Type_Ref:
-		return RefFromProto(s.Ref)
-	case *schemapb.Type_Int:
-		return &Int{Pos: PosFromProto(s.Int.Pos)}
-	case *schemapb.Type_Float:
-		return &Float{Pos: PosFromProto(s.Float.Pos)}
-	case *schemapb.Type_String_:
-		return &String{Pos: PosFromProto(s.String_.Pos)}
-	case *schemapb.Type_Bytes:
-		return &Bytes{Pos: PosFromProto(s.Bytes.Pos)}
-	case *schemapb.Type_Time:
-		return &Time{Pos: PosFromProto(s.Time.Pos)}
-	case *schemapb.Type_Bool:
-		return &Bool{Pos: PosFromProto(s.Bool.Pos)}
-	case *schemapb.Type_Array:
-		return arrayToSchema(s.Array)
-	case *schemapb.Type_Map:
-		return mapToSchema(s.Map)
-	case *schemapb.Type_Optional:
-		return &Optional{Pos: PosFromProto(s.Optional.Pos), Type: TypeFromProto(s.Optional.Type)}
-	case *schemapb.Type_Unit:
-		return &Unit{Pos: PosFromProto(s.Unit.Pos)}
-	case *schemapb.Type_Any:
-		return &Any{Pos: PosFromProto(s.Any.Pos)}
-	}
-	panic(fmt.Sprintf("unhandled type: %T", s.Value))
-}
-
 func valueToSchema(v *schemapb.Value) Value {
 	switch s := v.Value.(type) {
 	case *schemapb.Value_IntValue:
