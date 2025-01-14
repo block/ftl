@@ -9,7 +9,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>ftl-kotlin-runtime</artifactId>
-    <name>Ftl Kotlin Runtime</name>
+    <name>FTL Kotlin Runtime</name>
 
     <dependencies>
         <dependency>

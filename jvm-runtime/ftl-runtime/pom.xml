@@ -6,7 +6,7 @@
     <artifactId>ftl-jvm-parent</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Ftl Java Runtime - Parent</name>
+    <name>FTL Java Runtime - Parent</name>
     <description>Towards a 𝝺-calculus for large-scale systems</description>
     <url>https://block.github.io/ftl/</url>
 
