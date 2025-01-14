@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -364,6 +365,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		cancel()
 	}()
 
+	forceUpdate := false
 	schemaChangeTicker := time.NewTicker(100 * time.Millisecond)
 	defer schemaChangeTicker.Stop()
 	for {
@@ -383,6 +385,21 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			return nil
 		case bc := <-events:
 			buildCtx = bc.buildCtx
+			forceUpdate = true
+
+			// Force a hot reload by sending a HEAD request to the dev server
+			req, err := http.NewRequestWithContext(ctx, "HEAD", bind, nil)
+			if err != nil {
+				logger.Errorf(err, "could not create request to force build context update")
+				continue
+			}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				logger.Errorf(err, "could not send request to force build context update")
+				continue
+			}
+			resp.Body.Close()
+
 		case <-schemaChangeTicker.C:
 
 			changed := false
@@ -412,8 +429,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					migrationHash = newMigrationHash
 				}
 			}
-			if changed {
-
+			if changed || forceUpdate {
 				buildErrs, err := loadProtoErrors(buildCtx.Config)
 				if err != nil {
 					// This is likely a transient error
@@ -443,11 +459,12 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				}
 
 				logger.Infof("Live reload schema changed, sending build success event")
+				auto := !firstAttempt && !forceUpdate
 				err = stream.Send(&langpb.BuildResponse{
 					Event: &langpb.BuildResponse_BuildSuccess{
 						BuildSuccess: &langpb.BuildSuccess{
-							ContextId:          req.Msg.BuildContext.Id,
-							IsAutomaticRebuild: !firstAttempt,
+							ContextId:          buildCtx.ID,
+							IsAutomaticRebuild: auto,
 							Module:             moduleProto,
 							DevEndpoint:        ptr(fmt.Sprintf("http://localhost:%d", address.Port)),
 							DevRunnerInfoFile:  &runnerInfoFile,
@@ -459,6 +476,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				if err != nil {
 					return fmt.Errorf("could not send build event: %w", err)
 				}
+				forceUpdate = false
 				firstAttempt = false
 			}
 
@@ -577,6 +595,8 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, err
 	}
+
+	s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
 
 	s.updatesTopic.Publish(buildContextUpdatedEvent{
 		buildCtx: buildCtx,
@@ -855,6 +875,9 @@ func ptr(s string) *string {
 
 func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema, config moduleconfig.AbsModuleConfig) error {
 
+	if v == nil {
+		return nil
+	}
 	logger := log.FromContext(ctx)
 	modPath := filepath.Join(config.Dir, "src", "main", "ftl-module-schema")
 	err := os.MkdirAll(modPath, 0750)
