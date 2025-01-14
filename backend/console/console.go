@@ -117,7 +117,7 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 	nilMap := map[schema.RefKey]map[schema.RefKey]bool{}
 	var modules []*consolepb.Module
 	for _, mod := range sch.Modules {
-		if mod.Runtime == nil || mod.Runtime.Deployment == nil {
+		if mod.GetRuntime().GetDeployment().GetDeploymentKey() == "" {
 			continue
 		}
 		var verbs []*consolepb.Verb
@@ -412,7 +412,7 @@ func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.Ser
 
 	var modules []*consolepb.Module
 	for _, deployment := range deployments {
-		if deployment.Runtime == nil || deployment.Runtime.Deployment == nil {
+		if deployment.GetRuntime().GetDeployment().GetDeploymentKey() == "" {
 			continue
 		}
 		module, err := moduleFromDeployment(deployment, sch, refMap)

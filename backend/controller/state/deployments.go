@@ -12,9 +12,8 @@ import (
 )
 
 type Deployment struct {
-	Key       key.Deployment
-	Schema    *schema.Module
-	CreatedAt time.Time
+	Key    key.Deployment
+	Schema *schema.Module
 }
 
 func (r *SchemaState) GetDeployment(deployment key.Deployment) (*Deployment, error) {
@@ -60,11 +59,12 @@ func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	if existing := t.deployments[r.Key]; existing != nil {
 		return t, nil
 	}
+
 	n := Deployment{
-		Key:       r.Key,
-		CreatedAt: r.CreatedAt,
-		Schema:    r.Schema,
+		Key:    r.Key,
+		Schema: r.Schema,
 	}
+	n.Schema.ModRuntime().ModDeployment().CreatedAt = r.CreatedAt
 	t.deployments[r.Key] = &n
 	return t, nil
 }
