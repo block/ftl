@@ -99,9 +99,8 @@ func (s *Service) GetCreateModuleFlags(ctx context.Context, req *connect.Request
 	return connect.NewResponse(&langpb.GetCreateModuleFlagsResponse{
 		Flags: []*langpb.GetCreateModuleFlagsResponse_Flag{
 			{
-				Name:    "group",
-				Help:    "The Maven groupId of the project.",
-				Default: ptr("com.example"),
+				Name: "group",
+				Help: "The Maven groupId of the project.",
 			},
 		},
 	}), nil
@@ -113,11 +112,14 @@ func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.
 	projConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
 	groupAny, ok := req.Msg.Flags.AsMap()["group"]
 	if !ok {
-		return nil, fmt.Errorf("group flag not set")
+		groupAny = ""
 	}
 	group, ok := groupAny.(string)
 	if !ok {
 		return nil, fmt.Errorf("group not a string")
+	}
+	if group == "" {
+		group = "ftl." + req.Msg.Name
 	}
 
 	packageDir := strings.ReplaceAll(group, ".", "/")
