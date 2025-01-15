@@ -1,12 +1,13 @@
 package sqlc
 
 import (
-	"archive/zip"
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	sqlc "github.com/sqlc-dev/sqlc/pkg/cli"
 
@@ -17,17 +18,17 @@ import (
 )
 
 type ConfigContext struct {
-	Dir        string
-	Module     string
-	Engine     string
-	SchemaDir  string
-	QueriesDir string
-	OutDir     string
-	Plugin     WASMPlugin
+	Dir         string
+	Module      string
+	Engine      string
+	SchemaPaths string
+	QueryPaths  string
+	OutDir      string
+	Plugin      WASMPlugin
 }
 
 func (c ConfigContext) scaffoldFile() error {
-	err := internal.ScaffoldZip(sqlcTemplateFiles(), c.OutDir, c)
+	err := internal.ScaffoldZip(Files(), c.OutDir, c)
 	if err != nil {
 		return fmt.Errorf("failed to scaffold SQLC config file: %w", err)
 	}
@@ -44,6 +45,10 @@ type WASMPlugin struct {
 }
 
 func Generate(pc projectconfig.Config, mc moduleconfig.ModuleConfig) (*schema.Module, error) {
+	if err := validateSQLConfigs(mc); err != nil {
+		return nil, fmt.Errorf("invalid SQL config: %w", err)
+	}
+
 	cfg, err := newConfigContext(pc, mc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SQLC config: %w", err)
@@ -69,23 +74,27 @@ func Generate(pc projectconfig.Config, mc moduleconfig.ModuleConfig) (*schema.Mo
 func newConfigContext(pc projectconfig.Config, mc moduleconfig.ModuleConfig) (ConfigContext, error) {
 	deployDir := filepath.Clean(filepath.Join(mc.Dir, mc.DeployDir))
 	schemaDir := filepath.Clean(filepath.Join(mc.Dir, mc.SQLMigrationDirectory))
-	relSchemaDir, err := filepath.Rel(deployDir, schemaDir)
+	queriesDir := filepath.Clean(filepath.Join(mc.Dir, mc.SQLQueryDirectory))
+	queryPaths, err := findSQLFiles(queriesDir, deployDir)
 	if err != nil {
-		return ConfigContext{}, fmt.Errorf("failed to get relative schema directory: %w", err)
+		return ConfigContext{}, fmt.Errorf("failed to find SQL files: %w", err)
 	}
-
+	schemaPaths, err := findSQLFiles(schemaDir, deployDir)
+	if err != nil {
+		return ConfigContext{}, fmt.Errorf("failed to find SQL files: %w", err)
+	}
 	plugin, err := getCachedWASMPlugin(pc)
 	if err != nil {
 		return ConfigContext{}, err
 	}
 	return ConfigContext{
-		Dir:        deployDir,
-		Module:     mc.Module,
-		Engine:     "mysql",
-		SchemaDir:  relSchemaDir,
-		QueriesDir: filepath.Join(relSchemaDir, "queries"),
-		OutDir:     deployDir,
-		Plugin:     plugin,
+		Dir:         deployDir,
+		Module:      mc.Module,
+		Engine:      "mysql",
+		SchemaPaths: schemaPaths,
+		QueryPaths:  queryPaths,
+		OutDir:      deployDir,
+		Plugin:      plugin,
 	}, nil
 }
 
@@ -124,6 +133,45 @@ func computeSHA256(path string) (string, error) {
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
-func sqlcTemplateFiles() *zip.Reader {
-	return internal.ZipRelativeToCaller("template")
+func findSQLFiles(dir string, relativeToDir string) (string, error) {
+	relDir, err := filepath.Rel(relativeToDir, dir)
+	if err != nil {
+		return "", fmt.Errorf("failed to get SQL directory relative to %s: %w", relativeToDir, err)
+	}
+	var sqlFiles []string
+	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(path, ".sql") {
+			sqlFiles = append(sqlFiles, filepath.Join(relDir, strings.TrimPrefix(path, dir)))
+		}
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to walk SQL files: %w", err)
+	}
+	return strings.Join(sqlFiles, ","), nil
+}
+
+func validateSQLConfigs(config moduleconfig.ModuleConfig) error {
+	if config.SQLMigrationDirectory == "" {
+		return fmt.Errorf("SQL schema directory is required")
+	}
+	if config.SQLQueryDirectory == "" {
+		return fmt.Errorf("SQL query directory is required")
+	}
+	if _, err := os.Stat(filepath.Join(config.Dir, config.SQLMigrationDirectory)); err != nil {
+		return fmt.Errorf("SQL schema directory %s does not exist: %w", config.SQLMigrationDirectory, err)
+	}
+	if _, err := os.Stat(filepath.Join(config.Dir, config.SQLQueryDirectory)); err != nil {
+		return fmt.Errorf("SQL query directory %s does not exist: %w", config.SQLQueryDirectory, err)
+	}
+	if strings.HasPrefix(config.SQLMigrationDirectory, config.SQLQueryDirectory) {
+		return fmt.Errorf("SQL schema directory %s cannot be a subdirectory of SQL query directory %s", config.SQLMigrationDirectory, config.SQLQueryDirectory)
+	}
+	if strings.HasPrefix(config.SQLQueryDirectory, config.SQLMigrationDirectory) {
+		return fmt.Errorf("SQL query directory %s cannot be a subdirectory of SQL schema directory %s", config.SQLQueryDirectory, config.SQLMigrationDirectory)
+	}
+	return nil
 }

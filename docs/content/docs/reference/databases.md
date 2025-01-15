@@ -102,7 +102,7 @@ To use this in your FTL code you can then just use [Hibernate directly](https://
 
 Note that this will likely change significantly in future once FTL has SQL Verbs.
 
-An example showing DB usage with Pachance is shown below:
+An example showing DB usage with Panache is shown below:
 
 ```java
 package xyz.block.ftl.java.test.database;

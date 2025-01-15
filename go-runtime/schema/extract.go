@@ -116,7 +116,7 @@ func init() {
 }
 
 // Extract statically parses Go FTL module source into a schema.Module
-func Extract(moduleDir string) (Result, error) {
+func Extract(moduleDir string, sch *schema.Schema) (Result, error) {
 	pkgConfig := packages.Config{
 		Dir:  moduleDir,
 		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedImports,
@@ -130,7 +130,7 @@ func Extract(moduleDir string) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	return combineAllPackageResults(results, diagnostics)
+	return combineAllPackageResults(sch, results, diagnostics)
 
 }
 
@@ -226,20 +226,24 @@ func (cd *combinedData) updateModule(fr finalize.Result) error {
 	return nil
 }
 
-func (cd *combinedData) validateDecl(decl schema.Decl, obj types.Object) {
+func (cd *combinedData) validateDecl(decl schema.Decl, obj types.Object) bool {
+	valid := true
 	typename := common.GetDeclTypeName(decl)
 	typeKey := fmt.Sprintf("%s-%s", typename, decl.GetName())
 	if value, ok := cd.typeUniqueness[typeKey]; ok && value.A != obj {
 		cd.error(builderrors.Errorf(decl.Position().ToErrorPos(),
 			"duplicate %s declaration for %q; already declared at %q", typename,
 			cd.module.Name+"."+decl.GetName(), value.B))
+		valid = false
 	} else if value, ok := cd.globalUniqueness[decl.GetName()]; ok && value.A != obj {
 		cd.error(builderrors.Errorf(decl.Position().ToErrorPos(),
 			"schema declaration with name %q already exists for module %q; previously declared at %q",
 			decl.GetName(), cd.module.Name, value.B))
+		valid = false
 	}
 	cd.typeUniqueness[typeKey] = tuple.Pair[types.Object, schema.Position]{A: obj, B: decl.Position()}
 	cd.globalUniqueness[decl.GetName()] = tuple.Pair[types.Object, schema.Position]{A: obj, B: decl.Position()}
+	return valid
 }
 
 func (cd *combinedData) errorDirectVerbInvocations() {
@@ -316,7 +320,7 @@ func dependenciesBeforeIndex(idx int) []*analysis.Analyzer {
 	return deps
 }
 
-func combineAllPackageResults(results map[*analysis.Analyzer][]any, diagnostics []analysis.SimpleDiagnostic) (Result, error) {
+func combineAllPackageResults(sch *schema.Schema, results map[*analysis.Analyzer][]any, diagnostics []analysis.SimpleDiagnostic) (Result, error) {
 	cd := newCombinedData(diagnostics)
 
 	fResults, ok := results[finalize.Analyzer]
@@ -358,6 +362,17 @@ func combineAllPackageResults(results map[*analysis.Analyzer][]any, diagnostics 
 			cd.verbs[obj] = d
 
 		default:
+		}
+	}
+
+	// add existing schema decls to the result, validating that there are no conflicts
+	for _, module := range sch.Modules {
+		if module.Name == cd.module.Name {
+			for _, decl := range module.Decls {
+				if cd.validateDecl(decl, nil) {
+					cd.extractedDecls[decl] = nil
+				}
+			}
 		}
 	}
 

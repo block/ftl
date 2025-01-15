@@ -164,6 +164,16 @@ pub struct MapSecretsForModuleResponse {
     #[prost(map="string, bytes", tag="1")]
     pub values: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::bytes::Bytes>,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResetSubscriptionRequest {
+    #[prost(message, optional, tag="1")]
+    pub subscription: ::core::option::Option<super::schema::v1::Ref>,
+    #[prost(enumeration="SubscriptionOffset", tag="2")]
+    pub offset: i32,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ResetSubscriptionResponse {
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ConfigProvider {
@@ -238,6 +248,35 @@ impl SecretProvider {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SubscriptionOffset {
+    Unspecified = 0,
+    Earliest = 1,
+    Latest = 2,
+}
+impl SubscriptionOffset {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SUBSCRIPTION_OFFSET_UNSPECIFIED",
+            Self::Earliest => "SUBSCRIPTION_OFFSET_EARLIEST",
+            Self::Latest => "SUBSCRIPTION_OFFSET_LATEST",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SUBSCRIPTION_OFFSET_UNSPECIFIED" => Some(Self::Unspecified),
+            "SUBSCRIPTION_OFFSET_EARLIEST" => Some(Self::Earliest),
+            "SUBSCRIPTION_OFFSET_LATEST" => Some(Self::Latest),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetArtefactDiffsRequest {
     #[prost(string, repeated, tag="1")]
@@ -274,8 +313,6 @@ pub struct DeploymentArtefact {
 pub struct CreateDeploymentRequest {
     #[prost(message, optional, tag="1")]
     pub schema: ::core::option::Option<super::schema::v1::Module>,
-    #[prost(message, repeated, tag="2")]
-    pub artefacts: ::prost::alloc::vec::Vec<DeploymentArtefact>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateDeploymentResponse {
@@ -308,8 +345,6 @@ pub struct GetDeploymentRequest {
 pub struct GetDeploymentResponse {
     #[prost(message, optional, tag="1")]
     pub schema: ::core::option::Option<super::schema::v1::Module>,
-    #[prost(message, repeated, tag="2")]
-    pub artefacts: ::prost::alloc::vec::Vec<DeploymentArtefact>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RegisterRunnerRequest {

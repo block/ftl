@@ -3,6 +3,7 @@
 use crate::protos::pluginpb;
 use crate::protos::schemapb;
 use crate::protos::schemapb::r#type::Value as TypeValue;
+use convert_case::{Case, Casing};
 use prost::Message;
 use std::io;
 
@@ -55,19 +56,20 @@ fn generate_schema(request: &pluginpb::GenerateRequest) -> Result<schemapb::Modu
 }
 
 fn to_verb(query: &pluginpb::Query, module_name: &str) -> schemapb::Decl {
+    let upper_camel_name = to_upper_camel(&query.name);
     let request_type = if !query.params.is_empty() {
-        Some(to_schema_ref(module_name, &format!("{}Query", query.name)))
+        Some(to_schema_ref(module_name, &format!("{}Query", upper_camel_name)))
     } else {
         Some(to_schema_unit())
     };
 
     let response_type = match query.cmd.as_str() {
         ":exec" => Some(to_schema_unit()),
-        ":one" => Some(to_schema_ref(module_name, &format!("{}Result", query.name))),
+        ":one" => Some(to_schema_ref(module_name, &format!("{}Result", upper_camel_name))),
         ":many" => Some(schemapb::Type {
             value: Some(schemapb::r#type::Value::Array(Box::new(schemapb::Array {
                 pos: None,
-                element: Some(Box::new(to_schema_ref(module_name, &format!("{}Result", query.name)))),
+                element: Some(Box::new(to_schema_ref(module_name, &format!("{}Result", upper_camel_name)))),
             }))),
         }),
         _ => Some(to_schema_unit()),
@@ -82,7 +84,7 @@ fn to_verb(query: &pluginpb::Query, module_name: &str) -> schemapb::Decl {
 
     schemapb::Decl {
         value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
-            name: query.name.clone(),
+            name: query.name.to_case(Case::Camel),
             export: false,
             runtime: None,
             request: request_type,
@@ -95,9 +97,10 @@ fn to_verb(query: &pluginpb::Query, module_name: &str) -> schemapb::Decl {
 }
 
 fn to_verb_request(query: &pluginpb::Query) -> schemapb::Decl {
+    let upper_camel_name = to_upper_camel(&query.name);
     schemapb::Decl {
         value: Some(schemapb::decl::Value::Data(schemapb::Data {
-            name: format!("{}Query", query.name),
+            name: format!("{}Query", upper_camel_name),
             export: false,
             type_parameters: Vec::new(),
             fields: query.params.iter().map(|param| {
@@ -118,9 +121,10 @@ fn to_verb_request(query: &pluginpb::Query) -> schemapb::Decl {
 }
 
 fn to_verb_response(query: &pluginpb::Query) -> schemapb::Decl {
+    let pascal_name = to_upper_camel(&query.name);
     schemapb::Decl {
         value: Some(schemapb::decl::Value::Data(schemapb::Data {
-            name: format!("{}Result", query.name),
+            name: format!("{}Result", pascal_name),
             export: false,
             type_parameters: Vec::new(),
             fields: query.columns.iter().map(|col| {
@@ -226,4 +230,11 @@ fn get_module_name(req: &pluginpb::GenerateRequest) -> Result<String, io::Error>
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing module name in options"))
+}
+
+fn to_upper_camel(s: &str) -> String {
+    let snake = s.to_case(Case::Snake);
+    snake.split('_')
+        .map(|part| part.to_case(Case::Title))
+        .collect()
 }

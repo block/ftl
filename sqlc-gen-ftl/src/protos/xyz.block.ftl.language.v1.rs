@@ -132,6 +132,9 @@ pub struct ModuleConfigDefaultsResponse {
     /// Default directory containing the SQL migration files
     #[prost(string, tag="8")]
     pub sql_migration_dir: ::prost::alloc::string::String,
+    /// Default directory containing the SQL query files
+    #[prost(string, tag="9")]
+    pub sql_query_dir: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetDependenciesRequest {

@@ -5,8 +5,8 @@ plugins:
     url: {{ .Plugin.URL }}
     sha256: {{ .Plugin.SHA256 }}
 sql:
-- schema: {{ .SchemaDir }}
-  queries: {{ .QueriesDir }}
+- schema: {{ .SchemaPaths }}
+  queries: {{ .QueryPaths }}
   engine: {{ .Engine }}
   codegen:
   - out: .

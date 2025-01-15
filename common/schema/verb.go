@@ -178,3 +178,18 @@ func (v *Verb) GetProvisioned() ResourceSet {
 func (v *Verb) ResourceID() string {
 	return v.Name
 }
+
+// IsGenerated returns true if the Verb is in the schema but not in the source code.
+func (v *Verb) IsGenerated() bool {
+	_, ok := v.GetRawSQLQuery()
+	return ok
+}
+
+// GetRawSQLQuery returns the raw SQL query for the Verb if it exists. If present, the Verb was generated from SQL.
+func (v *Verb) GetRawSQLQuery() (string, bool) {
+	md, found := slices.FindVariant[*MetadataSQLQuery](v.Metadata)
+	if !found {
+		return "", false
+	}
+	return md.Query, true
+}

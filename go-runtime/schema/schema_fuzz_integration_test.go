@@ -281,7 +281,7 @@ func FuzzExtract(f *testing.F) {
 			first = false
 		}
 
-		r, err := Extract(tmpDir)
+		r, err := Extract(tmpDir, &schema.Schema{})
 		assert.NoError(t, err)
 		expected := tmpl(symbolType, typenames[symbolType])
 

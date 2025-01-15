@@ -9,13 +9,15 @@ SCHEMA_OUT := "common/protos/xyz/block/ftl/schema/v1/schema.proto"
 ZIP_DIRS := "go-runtime/compile/build-template " + \
             "go-runtime/compile/external-module-template " + \
             "go-runtime/compile/main-work-template " + \
+            "go-runtime/compile/queries-template " + \
             "internal/projectinit/scaffolding " + \
             "go-runtime/scaffolding " + \
             "jvm-runtime/java/scaffolding " + \
             "jvm-runtime/kotlin/scaffolding " + \
             "python-runtime/compile/build-template " + \
             "python-runtime/compile/external-module-template " + \
-            "python-runtime/scaffolding"
+            "python-runtime/scaffolding " + \
+            "internal/sqlc/template"
 CONSOLE_ROOT := "frontend/console"
 FRONTEND_OUT := CONSOLE_ROOT + "/dist/index.html"
 EXTENSION_OUT := "frontend/vscode/dist/extension.js"
