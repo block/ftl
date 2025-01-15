@@ -55,11 +55,27 @@ func copyMetaWithUpdatedDependencies(ctx context.Context, m moduleMeta) (moduleM
 	return m, nil
 }
 
-// invalidateDependenciesEvent is published when a module needs to be rebuilt when a module
-// failed to buuld due to a change in dependencies.
-type rebuildRequest struct {
+//sumtype:decl
+type rebuildEvent interface {
+	rebuildEvent()
+}
+
+// rebuildRequestEvent is published when a module needs to be rebuilt when a module
+// failed to build due to a change in dependencies.
+type rebuildRequestEvent struct {
 	module string
 }
+
+func (rebuildRequestEvent) rebuildEvent() {}
+
+// rebuildRequiredEvent is published when a module needs to be rebuilt when a module
+// failed to build due to a change in dependencies.
+type autoRebuildCompletedEvent struct {
+	module string
+	schema *schema.Module
+}
+
+func (autoRebuildCompletedEvent) rebuildEvent() {}
 
 // Engine for building a set of modules.
 type Engine struct {
@@ -81,7 +97,7 @@ type Engine struct {
 	pluginEvents chan languageplugin.PluginEvent
 
 	// requests to rebuild modules due to dependencies changing or plugins dying
-	rebuildRequests chan rebuildRequest
+	rebuildEvents chan rebuildEvent
 
 	// internal channel for raw engine updates (does not include all state changes)
 	rawEngineUpdates chan *buildenginepb.EngineEvent
@@ -151,7 +167,7 @@ func New(
 		pluginEvents:     make(chan languageplugin.PluginEvent, 128),
 		parallelism:      runtime.NumCPU(),
 		modulesToBuild:   xsync.NewMapOf[string, bool](),
-		rebuildRequests:  make(chan rebuildRequest, 128),
+		rebuildEvents:    make(chan rebuildEvent, 128),
 		rawEngineUpdates: make(chan *buildenginepb.EngineEvent, 128),
 		EngineUpdates:    pubsub.New[*buildenginepb.EngineEvent](),
 	}
@@ -547,19 +563,58 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				}
 			}
 
-		case event := <-e.rebuildRequests:
-			// batch all pending requests together
-			modules := []string{event.module}
+		case event := <-e.rebuildEvents:
+			events := []rebuildEvent{event}
 		readLoop:
 			for {
 				select {
-				case event := <-e.rebuildRequests:
-					modules = append(modules, event.module)
+				case event := <-e.rebuildEvents:
+					events = append(events, event)
 				default:
 					break readLoop
 				}
 			}
-			_ = e.BuildAndDeploy(ctx, 1, true, modules...) //nolint:errcheck
+
+			// Batch generate stubs for all auto rebuilds
+			//
+			// This is normally part of each group in the build topology, but auto rebuilds do not go through that flow
+			modulesToStub := map[string]*schema.Module{}
+			for _, event := range events {
+				event, ok := event.(autoRebuildCompletedEvent)
+				if !ok {
+					continue
+				}
+				modulesToStub[event.module] = event.schema
+			}
+			if len(modulesToStub) > 0 {
+				metasMap := map[string]moduleMeta{}
+				e.moduleMetas.Range(func(name string, meta moduleMeta) bool {
+					metasMap[name] = meta
+					return true
+				})
+				err = GenerateStubs(ctx, e.projectConfig.Root(), maps.Values(modulesToStub), metasMap)
+				if err != nil {
+					logger.Errorf(err, "failed to generate stubs")
+				}
+
+				err = SyncStubReferences(ctx, e.projectConfig.Root(), maps.Keys(metasMap), metasMap, &schema.Schema{Modules: maps.Values(modulesToStub)})
+				if err != nil {
+					return err
+				}
+			}
+
+			// Batch together all new builds requested
+			modulesToBuild := map[string]bool{}
+			for _, event := range events {
+				event, ok := event.(rebuildRequestEvent)
+				if !ok {
+					continue
+				}
+				modulesToBuild[event.module] = true
+			}
+			if len(modulesToBuild) > 0 {
+				_ = e.BuildAndDeploy(ctx, 1, true, maps.Keys(modulesToBuild)...) //nolint:errcheck
+			}
 		}
 	}
 }
@@ -1016,7 +1071,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 		if errors.Is(err, errInvalidateDependencies) {
 			// Do not start a build directly as we are already building out a graph of modules.
 			// Instead we send to a chan so that it can be processed after.
-			e.rebuildRequests <- rebuildRequest{module: moduleName}
+			e.rebuildEvents <- rebuildRequestEvent{module: moduleName}
 		}
 		return err
 	}
@@ -1129,7 +1184,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 					}
 
 				case languageplugin.AutoRebuildEndedEvent:
-					_, deploy, err := handleBuildResult(ctx, e.projectConfig, meta.module.Config, event.Result, e.devModeEndpointUpdates)
+					moduleSch, deploy, err := handleBuildResult(ctx, e.projectConfig, meta.module.Config, event.Result, e.devModeEndpointUpdates)
 					if err != nil {
 						e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 							Event: &buildenginepb.EngineEvent_ModuleBuildFailed{
@@ -1145,7 +1200,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 						if errors.Is(err, errInvalidateDependencies) {
 							// Do not block this goroutine by building a module here.
 							// Instead we send to a chan so that it can be processed elsewhere.
-							e.rebuildRequests <- rebuildRequest{module: event.ModuleName()}
+							e.rebuildEvents <- rebuildRequestEvent{module: event.ModuleName()}
 						}
 						continue
 					}
@@ -1157,6 +1212,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 							},
 						},
 					}
+					e.rebuildEvents <- autoRebuildCompletedEvent{module: event.ModuleName(), schema: moduleSch}
 
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 						Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
@@ -1207,7 +1263,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 						return false
 					}
 					e.moduleMetas.Store(name, newMeta)
-					e.rebuildRequests <- rebuildRequest{module: name}
+					e.rebuildEvents <- rebuildRequestEvent{module: name}
 					return false
 				})
 			}
