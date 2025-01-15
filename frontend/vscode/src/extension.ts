@@ -5,7 +5,6 @@ import { FTLClient } from './client'
 import { MIN_FTL_VERSION, checkMinimumVersion, getFTLVersion, getProjectOrWorkspaceRoot, resolveFtlPath } from './config'
 import { FTLStatus } from './status'
 
-const extensionId = 'ftl'
 let client: FTLClient
 let statusBarItem: vscode.StatusBarItem
 let outputChannel: vscode.OutputChannel
