@@ -33,16 +33,17 @@ func ErrorString(err *Error) string {
 	return err.Msg
 }
 
-// ErrorListString formats all errors in a languagepb.ErrorList, one per line
+// ErrorListString formats all errors in a languagepb.ErrorList using builderrors.Error formatting
 func ErrorListString(errList *ErrorList) string {
 	if errList == nil || len(errList.Errors) == 0 {
 		return ""
 	}
-	result := make([]string, len(errList.Errors))
-	for i, err := range errList.Errors {
-		result[i] = ErrorString(err)
+	errs := ErrorsFromProto(errList)
+	result := make([]string, len(errs))
+	for i, err := range errs {
+		result[i] = err.Error()
 	}
-	return strings.Join(result, "\n")
+	return strings.Join(result, ": ")
 }
 
 // positionString formats a languagepb.Position similar to builderrors.Position

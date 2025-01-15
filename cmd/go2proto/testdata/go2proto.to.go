@@ -8,8 +8,8 @@ import "google.golang.org/protobuf/proto"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
 
-import "github.com/block/ftl/internal/key"
 import "net/url"
+import "github.com/block/ftl/internal/key"
 
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
