@@ -60,7 +60,7 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	}
 
 	if len(errs) > 0 {
-		return nil, nil, errors.Join(errs...)
+		return nil, nil, errors.Join(errs...) //errtrace:skip // errtraces messes up error reporting
 	}
 
 	logger.Infof("Module built (%.2fs)", time.Since(result.StartTime).Seconds())
