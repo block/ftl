@@ -116,7 +116,7 @@ Each module is its own Go module.
 ftl new kotlin alice
 ```
 
-This will create a new Maven `pom.xml` based project in the directory `alice` and create new example code in `alice/src/main/kotlin/com/example/EchoVerb.kt`:
+This will create a new Maven `pom.xml` based project in the directory `alice` and create new example code in `alice/src/main/kotlin/ftl/alice/EchoVerb.kt`:
 
 ```kotlin
 package com.example
@@ -133,7 +133,7 @@ fun echo(req: String): String = "Hello, $req!"
 ```
 ftl new java alice
 ```
-This will create a new Maven `pom.xml` based project in the directory `alice` and create new example code in `alice/src/main/java/com/example/EchoVerb.java`:
+This will create a new Maven `pom.xml` based project in the directory `alice` and create new example code in `alice/src/main/java/ftl/alice/EchoVerb.java`:
 
 ```java
 package com.example;

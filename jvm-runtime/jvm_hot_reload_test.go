@@ -35,10 +35,10 @@ func TestLifecycleJVM(t *testing.T) {
 		// Now test hot reload
 		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
 			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
-		}, "src/main/java/com/example/EchoVerb.java")),
+		}, "src/main/java/ftl/echo/EchoVerb.java")),
 		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
 			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
-		}, "src/main/kotlin/com/example/EchoVerb.kt")),
+		}, "src/main/kotlin/ftl/echo/EchoVerb.kt")),
 		in.Sleep(time.Second*2), // Annoyingly quarkus limits to one restart check every 2s, which is fine for normal dev, but a pain for these tests
 		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bye, Bob!", response)
@@ -52,10 +52,10 @@ func TestLifecycleJVM(t *testing.T) {
 		// Structural change should result in a new deployment
 		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
 			return []byte(strings.ReplaceAll(string(content), "@Export", ""))
-		}, "src/main/java/com/example/EchoVerb.java")),
+		}, "src/main/java/ftl/echo/EchoVerb.java")),
 		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
 			return []byte(strings.ReplaceAll(string(content), "@Export", ""))
-		}, "src/main/kotlin/com/example/EchoVerb.kt")),
+		}, "src/main/kotlin/ftl/echo/EchoVerb.kt")),
 		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bye, Bob!", response)
 		}),
