@@ -4,56 +4,63 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-//go:embed markdown/completion/verb.md
+//go:embed markdown/completion/go/verb.md
 var verbCompletionDocs string
 
-//go:embed markdown/completion/enumType.md
+//go:embed markdown/completion/go/enumType.md
 var enumTypeCompletionDocs string
 
-//go:embed markdown/completion/enumValue.md
+//go:embed markdown/completion/go/enumValue.md
 var enumValueCompletionDocs string
 
-//go:embed markdown/completion/typeAlias.md
+//go:embed markdown/completion/go/typeAlias.md
 var typeAliasCompletionDocs string
 
-//go:embed markdown/completion/ingress.md
+//go:embed markdown/completion/go/ingress.md
 var ingressCompletionDocs string
 
-//go:embed markdown/completion/cron.md
+//go:embed markdown/completion/go/cron.md
 var cronCompletionDocs string
 
-//go:embed markdown/completion/cronExpression.md
+//go:embed markdown/completion/go/cronExpression.md
 var cronExpressionCompletionDocs string
 
-//go:embed markdown/completion/retry.md
+//go:embed markdown/completion/go/retry.md
 var retryCompletionDocs string
 
-//go:embed markdown/completion/retryWithCatch.md
+//go:embed markdown/completion/go/retryWithCatch.md
 var retryWithCatchCompletionDocs string
 
-//go:embed markdown/completion/config.md
+//go:embed markdown/completion/go/config.md
 var configCompletionDocs string
 
-//go:embed markdown/completion/secret.md
+//go:embed markdown/completion/go/secret.md
 var secretCompletionDocs string
 
-//go:embed markdown/completion/pubSubTopic.md
+//go:embed markdown/completion/go/pubSubTopic.md
 var pubSubTopicCompletionDocs string
 
-//go:embed markdown/completion/pubSubSubscription.md
+//go:embed markdown/completion/go/pubSubSubscription.md
 var pubSubSubscriptionCompletionDocs string
 
+//go:embed markdown/completion/java/verb.md
+var verbCompletionDocsJava string
+
+//go:embed markdown/completion/kotlin/verb.md
+var verbCompletionDocsKotlin string
+
 // Markdown is split by "---". First half is completion docs, second half is insert text.
-var completionItems = []protocol.CompletionItem{
+var goCompletionItems = []protocol.CompletionItem{
 	completionItem("ftl:verb", "FTL Verb", verbCompletionDocs),
-	completionItem("ftl:enum (sum type)", "FTL Enum (sum type)", enumTypeCompletionDocs),
-	completionItem("ftl:enum (value)", "FTL Enum (value type)", enumValueCompletionDocs),
+	completionItem("ftl:enum:sumtype", "FTL Enum (sum type)", enumTypeCompletionDocs),
+	completionItem("ftl:enum:value", "FTL Enum (value type)", enumValueCompletionDocs),
 	completionItem("ftl:typealias", "FTL Type Alias", typeAliasCompletionDocs),
 	completionItem("ftl:ingress", "FTL Ingress", ingressCompletionDocs),
 	completionItem("ftl:cron", "FTL Cron", cronCompletionDocs),
@@ -66,9 +73,36 @@ var completionItems = []protocol.CompletionItem{
 	completionItem("ftl:pubsub:subscription", "Create a PubSub subscription", pubSubSubscriptionCompletionDocs),
 }
 
+var javaCompletionItems = []protocol.CompletionItem{
+	completionItem("ftl:verb", "FTL Verb", verbCompletionDocsJava),
+}
+
+var kotlinCompletionItems = []protocol.CompletionItem{
+	completionItem("ftl:verb", "FTL Verb", verbCompletionDocsKotlin),
+}
+
 // Track which directives are //ftl: prefixed, so the we can autocomplete them via `/`.
 // This is built at init time and does not change during runtime.
 var directiveItems = map[string]bool{}
+
+func init() {
+	// Build directiveItems map from all completion items
+	for _, item := range goCompletionItems {
+		if strings.Contains(*item.InsertText, "//ftl:") {
+			directiveItems[item.Label] = true
+		}
+	}
+	for _, item := range javaCompletionItems {
+		if strings.Contains(*item.InsertText, "//ftl:") {
+			directiveItems[item.Label] = true
+		}
+	}
+	for _, item := range kotlinCompletionItems {
+		if strings.Contains(*item.InsertText, "//ftl:") {
+			directiveItems[item.Label] = true
+		}
+	}
+}
 
 func completionItem(label, detail, markdown string) protocol.CompletionItem {
 	snippetKind := protocol.CompletionItemKindSnippet
@@ -124,6 +158,9 @@ func (s *Server) textDocumentCompletion() protocol.TextDocumentCompletionFunc {
 			character = len(lineContent)
 		}
 
+		// Get file extension to determine language
+		ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(uri), "."))
+
 		// Currently all completions are in global scope, so the completion must be triggered at the beginning of the line.
 		// To do this, check to the start of the line and if there is any whitespace, it is not completing a whole word from the start.
 		// We also want to check that the cursor is at the end of the line so we dont let stray chars shoved at the end of the completion.
@@ -145,9 +182,22 @@ func (s *Server) textDocumentCompletion() protocol.TextDocumentCompletionFunc {
 			lineContent = strings.TrimPrefix(lineContent, "/")
 		}
 
-		// Filter completion items based on the line content and if it is a directive.
+		// Get the appropriate completion items based on file extension
+		var items []protocol.CompletionItem
+		switch ext {
+		case "go":
+			items = goCompletionItems
+		case "java":
+			items = javaCompletionItems
+		case "kt":
+			items = kotlinCompletionItems
+		default:
+			return nil, nil
+		}
+
+		// Filter completion items based on the line content and if it is a directive
 		var filteredItems []protocol.CompletionItem
-		for _, item := range completionItems {
+		for _, item := range items {
 			if !strings.Contains(item.Label, lineContent) {
 				continue
 			}
