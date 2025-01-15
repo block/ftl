@@ -38,7 +38,7 @@ func Innermost(err error) bool {
 	return true
 }
 
-func Join(errs ...error) error { return errors.Join(errs...) }
+func Join(errs ...error) error { return errors.Join(errs...) } //errtrace:skip // errtraces messes up error reporting
 
 func New(text string) error { return errors.New(text) }
 
@@ -46,7 +46,7 @@ func As(err error, target interface{}) bool { return errors.As(err, target) }
 
 func Is(err, target error) bool { return errors.Is(err, target) }
 
-func Unwrap(err error) error { return errors.Unwrap(err) }
+func Unwrap(err error) error { return errors.Unwrap(err) } //errtrace:skip // errtraces messes up error reporting
 
 // DeduplicateErrors de-duplicates equivalent errors.
 func DeduplicateErrors(merr []error) []error {
