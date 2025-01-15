@@ -8,9 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/maps"
 	"github.com/block/ftl/internal/moduleconfig"
@@ -63,6 +65,8 @@ type moduleHashes struct {
 type Watcher struct {
 	isWatching bool
 
+	// lock path ensures no modules are scaffolded while a Watcher walks over the files
+	lockPath optional.Option[string]
 	// patterns are relative to each module found
 	patterns []string
 
@@ -72,10 +76,11 @@ type Watcher struct {
 	moduleTransactions map[string][]*modifyFilesTransaction
 }
 
-func NewWatcher(patterns ...string) *Watcher {
+func NewWatcher(lockPath optional.Option[string], patterns ...string) *Watcher {
 	svc := &Watcher{
 		existingModules:    map[string]moduleHashes{},
 		moduleTransactions: map[string][]*modifyFilesTransaction{},
+		lockPath:           lockPath,
 		patterns:           patterns,
 	}
 
@@ -125,10 +130,24 @@ func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []
 				return
 			}
 
+			var flockRelease func() error
+			if path, ok := w.lockPath.Get(); ok {
+				var err error
+				flockRelease, err = flock.Acquire(ctx, path, period)
+				if err != nil {
+					logger.Debugf("error acquiring modules lock to discover modules: %v", err)
+					continue
+				}
+			} else {
+				flockRelease = func() error { return nil }
+			}
 			modules, err := DiscoverModules(ctx, moduleDirs)
 			if err != nil {
 				logger.Tracef("error discovering modules: %v", err)
 				continue
+			}
+			if err := flockRelease(); err != nil {
+				logger.Debugf("error releasing modules lock after discovering modules: %v", err)
 			}
 
 			modulesByDir := maps.FromSlice(modules, func(config moduleconfig.UnvalidatedModuleConfig) (string, moduleconfig.UnvalidatedModuleConfig) {

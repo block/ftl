@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 
 	in "github.com/block/ftl/internal/integration"
@@ -23,7 +24,7 @@ func TestWatch(t *testing.T) {
 	var topic *pubsub.Topic[WatchEvent]
 	var one, two moduleconfig.UnvalidatedModuleConfig
 
-	w := NewWatcher("**/*.go", "go.mod", "go.sum")
+	w := NewWatcher(optional.None[string](), "**/*.go", "go.mod", "go.sum")
 	in.Run(t,
 		func(tb testing.TB, ic in.TestContext) {
 			events, topic = startWatching(ic, t, w, ic.WorkingDir())
@@ -68,7 +69,7 @@ func TestWatchWithBuildModifyingFiles(t *testing.T) {
 	var events chan WatchEvent
 	var topic *pubsub.Topic[WatchEvent]
 	var transaction ModifyFilesTransaction
-	w := NewWatcher("**/*.go", "go.mod", "go.sum")
+	w := NewWatcher(optional.None[string](), "**/*.go", "go.mod", "go.sum")
 
 	in.Run(t,
 		func(tb testing.TB, ic in.TestContext) {
@@ -104,7 +105,7 @@ func TestWatchWithBuildAndUserModifyingFiles(t *testing.T) {
 	var events chan WatchEvent
 	var topic *pubsub.Topic[WatchEvent]
 	var transaction ModifyFilesTransaction
-	w := NewWatcher("**/*.go", "go.mod", "go.sum")
+	w := NewWatcher(optional.None[string](), "**/*.go", "go.mod", "go.sum")
 
 	in.Run(t,
 		func(tb testing.TB, ic in.TestContext) {

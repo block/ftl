@@ -218,3 +218,8 @@ func (c Config) SchemaPath(module string) string {
 func (c Config) SQLCGenFTLPath() string {
 	return filepath.Join(c.Root(), ".ftl", "resources", "sqlc-gen-ftl.wasm")
 }
+
+// WatchModulesLockPath returns the path to the lock file used to prevent scaffolding new modules while discovering modules.
+func (c Config) WatchModulesLockPath() string {
+	return filepath.Join(c.Root(), ".ftl", "modules.lock")
+}

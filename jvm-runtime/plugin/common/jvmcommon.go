@@ -18,6 +18,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/beevik/etree"
 	"github.com/block/scaffolder"
@@ -222,7 +223,7 @@ func (s *Service) runDevMode(ctx context.Context, req *connect.Request[langpb.Bu
 	if err != nil {
 		return err
 	}
-	watcher := watch.NewWatcher(watchPatterns...)
+	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 	fileEvents := make(chan watch.WatchEventModuleChanged, 32)
 	if err := watchFiles(ctx, watcher, buildCtx, fileEvents); err != nil {
 		return err

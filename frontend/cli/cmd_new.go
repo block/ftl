@@ -7,12 +7,14 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
+	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
@@ -57,6 +59,12 @@ func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconf
 	if err != nil {
 		return err
 	}
+
+	release, err := flock.Acquire(ctx, config.WatchModulesLockPath(), 30*time.Second)
+	if err != nil {
+		return fmt.Errorf("could not acquire file lock: %w", err)
+	}
+	defer release() //nolint:errcheck
 
 	err = plugin.CreateModule(ctx, config, moduleConfig, flags)
 	if err != nil {
