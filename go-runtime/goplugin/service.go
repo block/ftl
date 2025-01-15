@@ -238,7 +238,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		return err
 	}
 
-	watcher := watch.NewWatcher(watchPatterns...)
+	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 
 	ongoingState := &compile.OngoingState{}
 
