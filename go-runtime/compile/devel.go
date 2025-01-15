@@ -19,3 +19,7 @@ func externalModuleTemplateFiles() *zip.Reader {
 func buildTemplateFiles() *zip.Reader {
 	return internal.ZipRelativeToCaller("build-template")
 }
+
+func queriesTemplateFiles() *zip.Reader {
+	return internal.ZipRelativeToCaller("queries-template")
+}

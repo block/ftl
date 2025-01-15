@@ -167,7 +167,8 @@ func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request
 	return connect.NewResponse(&langpb.ModuleConfigDefaultsResponse{
 		Watch:           watch,
 		DeployDir:       deployDir,
-		SqlMigrationDir: "db",
+		SqlMigrationDir: "db/schema",
+		SqlQueryDir:     "db/queries",
 	}), nil
 }
 

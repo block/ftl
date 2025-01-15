@@ -41,6 +41,7 @@ import (
 
 var ErrInvalidateDependencies = errors.New("dependencies need to be updated")
 var ftlTypesFilename = "types.ftl.go"
+var ftlQueriesFilename = "queries.ftl.go"
 
 type MainWorkContext struct {
 	GoVersion          string
@@ -58,6 +59,7 @@ type mainDeploymentContext struct {
 	Replacements       []*modfile.Replace
 	MainCtx            mainFileContext
 	TypesCtx           typesFileContext
+	QueriesCtx         queriesFileContext
 }
 
 func (c *mainDeploymentContext) withImports(mainModuleImport string) {
@@ -185,6 +187,11 @@ type typesFileContext struct {
 
 	SumTypes      []goSumType
 	ExternalTypes []goExternalType
+}
+
+type queriesFileContext struct {
+	Module *schema.Module
+	Decls  []schema.Decl
 }
 
 type goType interface {
@@ -362,6 +369,7 @@ func (s *OngoingState) checkIfMainDeploymentContextChanged(moduleCtx mainDeploym
 func (s *OngoingState) DetectedFileChanges(config moduleconfig.AbsModuleConfig, changes []watch.FileChange) {
 	paths := []string{
 		filepath.Join(config.Dir, ftlTypesFilename),
+		filepath.Join(config.Dir, ftlQueriesFilename),
 		filepath.Join(config.Dir, "go.mod"),
 		filepath.Join(config.Dir, "go.sum"),
 	}
@@ -453,7 +461,7 @@ func Build(ctx context.Context, projectRootDir, stubsRoot string, config modulec
 	extractResultChan := make(chan result.Result[extract.Result], 1)
 	go func() {
 		logger.Debugf("Extracting schema")
-		extractResultChan <- result.From(extract.Extract(config.Dir))
+		extractResultChan <- result.From(extract.Extract(config.Dir, sch))
 	}()
 	optimisticHashesChan := make(chan watch.FileHashes, 1)
 	optimisticCompileChan := make(chan error, 1)
@@ -567,6 +575,12 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 			scaffolder.Functions(funcs)); err != nil {
 			return fmt.Errorf("failed to scaffold build template: %w", err)
 		}
+		if len(mctx.QueriesCtx.Decls) > 0 {
+			if err := internal.ScaffoldZip(queriesTemplateFiles(), config.Dir, mctx, scaffolder.Exclude("^go.mod$"),
+				scaffolder.Functions(funcs)); err != nil {
+				return fmt.Errorf("failed to scaffold queries template: %w", err)
+			}
+		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlTypesFilename)); err != nil {
 			return fmt.Errorf("failed to mark %s as modified: %w", ftlTypesFilename, err)
 		}
@@ -659,6 +673,10 @@ func (b *mainDeploymentContextBuilder) build(goModVersion, ftlVersion, projectNa
 			SumTypes:      []goSumType{},
 			ExternalTypes: []goExternalType{},
 		},
+		QueriesCtx: queriesFileContext{
+			Module: b.mainModule,
+			Decls:  []schema.Decl{},
+		},
 	}
 
 	visited := sets.NewSet[string]()
@@ -705,8 +723,19 @@ func (b *mainDeploymentContextBuilder) visit(
 	visited sets.Set[string],
 ) error {
 	err := schema.Visit(node, func(node schema.Node, next func() error) error {
-		if ref, ok := node.(*schema.Ref); ok {
-			maybeResolved, maybeModule := b.sch.ResolveWithModule(ref)
+		switch n := node.(type) {
+		case *schema.Verb:
+			if _, isQuery := n.GetRawSQLQuery(); isQuery {
+				decls, err := b.getQueryDecls(n)
+				if err != nil {
+					return err
+				}
+				m := &schema.Module{Decls: decls}
+				schema.SortModuleDecls(m)
+				ctx.QueriesCtx.Decls = append(ctx.QueriesCtx.Decls, m.Decls...)
+			}
+		case *schema.Ref:
+			maybeResolved, maybeModule := b.sch.ResolveWithModule(n)
 			resolved, ok := maybeResolved.Get()
 			if !ok {
 				return next()
@@ -717,7 +746,7 @@ func (b *mainDeploymentContextBuilder) visit(
 			}
 			err := b.visit(ctx, m, resolved, visited)
 			if err != nil {
-				return fmt.Errorf("failed to visit children of %s: %w", ref, err)
+				return fmt.Errorf("failed to visit children of %s: %w", n, err)
 			}
 			return next()
 		}
@@ -757,11 +786,39 @@ func (b *mainDeploymentContextBuilder) visit(
 	return nil
 }
 
+func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]schema.Decl, error) {
+	decls := []schema.Decl{}
+	err := schema.Visit(node, func(node schema.Node, next func() error) error {
+		switch n := node.(type) {
+		case *schema.Verb:
+			decls = append(decls, n)
+		case *schema.Data:
+			decls = append(decls, n)
+		case *schema.Ref:
+			maybeResolved, _ := b.sch.ResolveWithModule(n)
+			resolved, ok := maybeResolved.Get()
+			if !ok {
+				return next()
+			}
+			nested, err := b.getQueryDecls(resolved)
+			if err != nil {
+				return err
+			}
+			decls = append(decls, nested...)
+		}
+		return next()
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get query decls: %w", err)
+	}
+	return decls, nil
+}
+
 func (b *mainDeploymentContextBuilder) getGoType(module *schema.Module, node schema.Node) (gotype optional.Option[goType], isLocal bool, err error) {
 	isLocal = b.visitingMainModule(module.Name)
 	switch n := node.(type) {
 	case *schema.Verb:
-		if !isLocal {
+		if !isLocal || n.IsGenerated() {
 			return optional.None[goType](), false, nil
 		}
 		goverb, err := b.processVerb(n)
@@ -1253,6 +1310,10 @@ var scaffoldFuncs = scaffolder.FuncMap{
 			return &c
 		}
 		return nil
+	},
+	"getRawSQLQuery": func(verb *schema.Verb) string {
+		query, _ := verb.GetRawSQLQuery()
+		return query
 	},
 }
 

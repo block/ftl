@@ -517,6 +517,13 @@ export class ModuleConfigDefaultsResponse extends Message<ModuleConfigDefaultsRe
    */
   sqlMigrationDir = "";
 
+  /**
+   * Default directory containing the SQL query files
+   *
+   * @generated from field: string sql_query_dir = 9;
+   */
+  sqlQueryDir = "";
+
   constructor(data?: PartialMessage<ModuleConfigDefaultsResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -532,6 +539,7 @@ export class ModuleConfigDefaultsResponse extends Message<ModuleConfigDefaultsRe
     { no: 6, name: "watch", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 7, name: "language_config", kind: "message", T: Struct },
     { no: 8, name: "sql_migration_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "sql_query_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleConfigDefaultsResponse {

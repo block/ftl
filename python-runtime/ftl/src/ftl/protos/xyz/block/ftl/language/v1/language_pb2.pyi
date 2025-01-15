@@ -95,7 +95,7 @@ class ModuleConfigDefaultsRequest(_message.Message):
     def __init__(self, dir: _Optional[str] = ...) -> None: ...
 
 class ModuleConfigDefaultsResponse(_message.Message):
-    __slots__ = ("deploy_dir", "build", "dev_mode_build", "build_lock", "watch", "language_config", "sql_migration_dir")
+    __slots__ = ("deploy_dir", "build", "dev_mode_build", "build_lock", "watch", "language_config", "sql_migration_dir", "sql_query_dir")
     DEPLOY_DIR_FIELD_NUMBER: _ClassVar[int]
     BUILD_FIELD_NUMBER: _ClassVar[int]
     DEV_MODE_BUILD_FIELD_NUMBER: _ClassVar[int]
@@ -103,6 +103,7 @@ class ModuleConfigDefaultsResponse(_message.Message):
     WATCH_FIELD_NUMBER: _ClassVar[int]
     LANGUAGE_CONFIG_FIELD_NUMBER: _ClassVar[int]
     SQL_MIGRATION_DIR_FIELD_NUMBER: _ClassVar[int]
+    SQL_QUERY_DIR_FIELD_NUMBER: _ClassVar[int]
     deploy_dir: str
     build: str
     dev_mode_build: str
@@ -110,7 +111,8 @@ class ModuleConfigDefaultsResponse(_message.Message):
     watch: _containers.RepeatedScalarFieldContainer[str]
     language_config: _struct_pb2.Struct
     sql_migration_dir: str
-    def __init__(self, deploy_dir: _Optional[str] = ..., build: _Optional[str] = ..., dev_mode_build: _Optional[str] = ..., build_lock: _Optional[str] = ..., watch: _Optional[_Iterable[str]] = ..., language_config: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., sql_migration_dir: _Optional[str] = ...) -> None: ...
+    sql_query_dir: str
+    def __init__(self, deploy_dir: _Optional[str] = ..., build: _Optional[str] = ..., dev_mode_build: _Optional[str] = ..., build_lock: _Optional[str] = ..., watch: _Optional[_Iterable[str]] = ..., language_config: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., sql_migration_dir: _Optional[str] = ..., sql_query_dir: _Optional[str] = ...) -> None: ...
 
 class GetDependenciesRequest(_message.Message):
     __slots__ = ("module_config",)

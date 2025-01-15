@@ -103,7 +103,7 @@ func RunPostgresMigration(ctx context.Context, dsn string, moduleDir string, nam
 }
 
 func runDBMateMigration(ctx context.Context, dsn string, moduleDir string, name string) error {
-	migrationDir := filepath.Join(moduleDir, "db", name)
+	migrationDir := filepath.Join(moduleDir, "db", "schema", name)
 	_, err := os.Stat(migrationDir)
 	if err != nil {
 		return nil // No migration to run

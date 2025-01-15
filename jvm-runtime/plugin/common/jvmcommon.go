@@ -679,7 +679,8 @@ func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request
 	defaults := langpb.ModuleConfigDefaultsResponse{
 		LanguageConfig:  &structpb.Struct{Fields: map[string]*structpb.Value{}},
 		Watch:           []string{"pom.xml", "src/**", "build/generated", "target/generated-sources", "src/main/resources/db"},
-		SqlMigrationDir: "src/main/resources/db",
+		SqlMigrationDir: "src/main/resources/db/schema",
+		SqlQueryDir:     "src/main/resources/db/queries",
 	}
 	dir := req.Msg.Dir
 	pom := filepath.Join(dir, "pom.xml")

@@ -418,7 +418,7 @@ pub struct MetadataSqlMigration {
     #[prost(string, tag="2")]
     pub digest: ::prost::alloc::string::String,
 }
-/// MetadataQuery designates a query verb; a verb generated from a SQL query.
+/// MetadataSQLQuery designates a query verb; a verb generated from a SQL query.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataSqlQuery {
     #[prost(message, optional, tag="1")]
@@ -500,6 +500,10 @@ pub struct ModuleRuntimeDeployment {
     pub endpoint: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub deployment_key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="3")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag="4")]
+    pub activated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModuleRuntimeEvent {

@@ -38,6 +38,8 @@ type ModuleConfig struct {
 	LanguageConfig map[string]any `toml:"-"`
 	// SQLMigrationDirectory is the directory to look for SQL migrations.
 	SQLMigrationDirectory string `toml:"sql-migration-directory"`
+	// SQLQueryDirectory is the directory to look for SQL queries. By default, it is a subdirectory of SQLMigrationDirectory named "queries".
+	SQLQueryDirectory string `toml:"sql-query-directory"`
 }
 
 func (c *ModuleConfig) UnmarshalTOML(data []byte) error {
@@ -67,6 +69,8 @@ type CustomDefaults struct {
 
 	// SQLMigrationDir is the directory to look for SQL migrations.
 	SQLMigrationDir string
+	// SQLQueryDir is the directory to look for SQL queries.
+	SQLQueryDir string
 }
 
 // LoadConfig from a directory.
@@ -165,7 +169,9 @@ func (c UnvalidatedModuleConfig) FillDefaultsAndValidate(customDefaults CustomDe
 	}
 	if c.SQLMigrationDirectory == "" {
 		c.SQLMigrationDirectory = customDefaults.SQLMigrationDir
-
+	}
+	if c.SQLQueryDirectory == "" {
+		c.SQLQueryDirectory = customDefaults.SQLQueryDir
 	}
 	if c.Watch == nil {
 		c.Watch = customDefaults.Watch

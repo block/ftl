@@ -112,6 +112,9 @@ message ModuleConfigDefaultsResponse {
 
   // Default directory containing the SQL migration files
   string sql_migration_dir = 8;
+
+  // Default directory containing the SQL query files
+  string sql_query_dir = 9;
 }
 
 message GetDependenciesRequest {

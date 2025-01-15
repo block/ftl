@@ -47,7 +47,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
         decls: vec![
             schemapb::Decl {
                 value: Some(schemapb::decl::Value::Data(schemapb::Data {
-                    name: "GetUserByIDQuery".to_string(),
+                    name: "GetUserByIdQuery".to_string(),
                     export: false,
                     type_parameters: vec![],
                     fields: vec![
@@ -74,7 +74,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
             },
             schemapb::Decl {
                 value: Some(schemapb::decl::Value::Data(schemapb::Data {
-                    name: "GetUserByIDResult".to_string(),
+                    name: "GetUserByIdResult".to_string(),
                     export: false,
                     type_parameters: vec![],
                     fields: vec![
@@ -131,13 +131,13 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
             },
             schemapb::Decl {
                 value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
-                    name: "GetUserByID".to_string(),
+                    name: "getUserById".to_string(),
                     export: false,
                     runtime: None,
                     request: Some(schemapb::Type {
                         value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
                             module: "echo".to_string(),
-                            name: "GetUserByIDQuery".to_string(),
+                            name: "GetUserByIdQuery".to_string(),
                             pos: None,
                             type_parameters: vec![],
                         }))
@@ -145,7 +145,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                     response: Some(schemapb::Type {
                         value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
                             module: "echo".to_string(),
-                            name: "GetUserByIDResult".to_string(),
+                            name: "GetUserByIdResult".to_string(),
                             pos: None,
                             type_parameters: vec![],
                         }))
@@ -204,7 +204,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
             },
             schemapb::Decl {
                 value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
-                    name: "CreateUser".to_string(),
+                    name: "createUser".to_string(),
                     export: false,
                     runtime: None,
                     request: Some(schemapb::Type {
@@ -257,7 +257,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
             },
             schemapb::Decl {
                 value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
-                    name: "GetRequestData".to_string(),
+                    name: "getRequestData".to_string(),
                     export: false,
                     runtime: None,
                     request: Some(schemapb::Type {
@@ -315,7 +315,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
             },
             schemapb::Decl {
                 value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
-                    name: "CreateRequest".to_string(),
+                    name: "createRequest".to_string(),
                     export: false,
                     runtime: None,
                     request: Some(schemapb::Type {
