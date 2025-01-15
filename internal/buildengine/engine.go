@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -594,12 +595,13 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				})
 				err = GenerateStubs(ctx, e.projectConfig.Root(), maps.Values(modulesToStub), metasMap)
 				if err != nil {
-					logger.Errorf(err, "failed to generate stubs")
+					logger.Errorf(err, "Failed to generate stubs")
 				}
 
-				err = SyncStubReferences(ctx, e.projectConfig.Root(), maps.Keys(metasMap), metasMap, &schema.Schema{Modules: maps.Values(modulesToStub)})
+				// Sync references to stubs if needed by the runtime
+				err = e.syncNewStubReferences(ctx, modulesToStub, metasMap)
 				if err != nil {
-					return err
+					logger.Errorf(err, "Failed to sync stub references")
 				}
 			}
 
@@ -949,13 +951,8 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 			return err
 		}
 
-		moduleNames := []string{}
-		for _, module := range knownSchemas {
-			moduleNames = append(moduleNames, module.Name)
-		}
-
 		// Sync references to stubs if needed by the runtime
-		err = SyncStubReferences(ctx, e.projectConfig.Root(), moduleNames, metasMap, &schema.Schema{Modules: maps.Values(builtModules)})
+		err = e.syncNewStubReferences(ctx, builtModules, metasMap)
 		if err != nil {
 			return err
 		}
@@ -1108,6 +1105,22 @@ func (e *Engine) gatherSchemas(
 	})
 
 	return nil
+}
+
+func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[string]*schema.Module, metasMap map[string]moduleMeta) error {
+	fullSchema := &schema.Schema{Modules: maps.Values(newModules)}
+	for _, module := range e.schemaSource.View().Modules {
+		if _, ok := newModules[module.Name]; !ok {
+			fullSchema.Modules = append(fullSchema.Modules, module)
+		}
+	}
+	sort.SliceStable(fullSchema.Modules, func(i, j int) bool { return fullSchema.Modules[i].Name < fullSchema.Modules[j].Name })
+
+	return SyncStubReferences(ctx,
+		e.projectConfig.Root(),
+		slices.Map(fullSchema.Modules, func(m *schema.Module) string { return m.Name }),
+		metasMap,
+		fullSchema)
 }
 
 func (e *Engine) newModuleMeta(ctx context.Context, config moduleconfig.UnvalidatedModuleConfig) (moduleMeta, error) {
