@@ -850,7 +850,7 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 		return err
 	}
 	errCh := make(chan error, 1024)
-	for idx, group := range topology {
+	for _, group := range topology {
 		knownSchemas := map[string]*schema.Module{}
 		err := e.gatherSchemas(builtModules, knownSchemas)
 		if err != nil {
@@ -889,12 +889,9 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 			newSchemas = append(newSchemas, sch)
 		}
 
-		// Generate stubs for all but the last group
-		if idx < (len(topology) - 1) {
-			err = GenerateStubs(ctx, e.projectConfig.Root(), newSchemas, metasMap)
-			if err != nil {
-				return err
-			}
+		err = GenerateStubs(ctx, e.projectConfig.Root(), newSchemas, metasMap)
+		if err != nil {
+			return err
 		}
 
 		moduleNames := []string{}
