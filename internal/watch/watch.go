@@ -3,6 +3,7 @@ package watch
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -131,8 +132,12 @@ func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []
 			}
 
 			var flockRelease func() error
+
 			if path, ok := w.lockPath.Get(); ok {
-				var err error
+				err := os.Mkdir(filepath.Dir(path), 0700)
+				if err != nil && !os.IsExist(err) {
+					logger.Debugf("error creating lock directory: %v", err)
+				}
 				flockRelease, err = flock.Acquire(ctx, path, period)
 				if err != nil {
 					logger.Debugf("error acquiring modules lock to discover modules: %v", err)
