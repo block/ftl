@@ -136,9 +136,9 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 }
 
 func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb.GenerateStubsRequest]) (*connect.Response[langpb.GenerateStubsResponse], error) {
-	moduleSchema, err := schema.ModuleFromProto(req.Msg.Module)
+	moduleSchema, err := schema.ValidatedModuleFromProto(req.Msg.Module)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse schema: %w", err)
+		return nil, fmt.Errorf("invalid module: %w", err)
 	}
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
 	var nativeConfig optional.Option[moduleconfig.AbsModuleConfig]

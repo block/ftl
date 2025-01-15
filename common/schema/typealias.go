@@ -3,8 +3,6 @@ package schema
 import (
 	"fmt"
 	"strings"
-
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )
 
 //protobuf:5
@@ -48,14 +46,3 @@ func (t *TypeAlias) schemaChildren() []Node {
 
 func (t *TypeAlias) GetName() string  { return t.Name }
 func (t *TypeAlias) IsExported() bool { return t.Export }
-
-func TypeAliasFromProto(s *schemapb.TypeAlias) *TypeAlias {
-	return &TypeAlias{
-		Pos:      PosFromProto(s.Pos),
-		Name:     s.Name,
-		Export:   s.Export,
-		Comments: s.Comments,
-		Type:     TypeFromProto(s.Type),
-		Metadata: metadataListToSchema(s.Metadata),
-	}
-}

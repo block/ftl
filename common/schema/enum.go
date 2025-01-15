@@ -57,20 +57,6 @@ func (e *Enum) schemaChildren() []Node {
 func (e *Enum) GetName() string  { return e.Name }
 func (e *Enum) IsExported() bool { return e.Export }
 
-func EnumFromProto(s *schemapb.Enum) *Enum {
-	e := &Enum{
-		Pos:      PosFromProto(s.Pos),
-		Name:     s.Name,
-		Export:   s.Export,
-		Comments: s.Comments,
-		Variants: enumVariantListToSchema(s.Variants),
-	}
-	if s.Type != nil {
-		e.Type = TypeFromProto(s.Type)
-	}
-	return e
-}
-
 // IsValueEnum determines whether this is a type or value enum using `e.Type` alone
 // because value enums must always have a unified type across all variants, whereas type
 // enums by definition cannot have a unified type.

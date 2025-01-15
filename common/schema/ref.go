@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
-	"github.com/block/ftl/common/slices"
 )
 
 // RefKey is a map key for a reference.
@@ -103,15 +102,6 @@ func (r *Ref) String() string {
 		out += ">"
 	}
 	return out
-}
-
-func RefFromProto(s *schemapb.Ref) *Ref {
-	return &Ref{
-		Pos:            PosFromProto(s.Pos),
-		Name:           s.Name,
-		Module:         s.Module,
-		TypeParameters: slices.Map(s.TypeParameters, TypeFromProto),
-	}
 }
 
 func ParseRef(ref string) (*Ref, error) {

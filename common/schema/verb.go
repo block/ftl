@@ -6,7 +6,6 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/slices"
 )
 
@@ -178,26 +177,4 @@ func (v *Verb) GetProvisioned() ResourceSet {
 
 func (v *Verb) ResourceID() string {
 	return v.Name
-}
-
-func VerbFromProto(s *schemapb.Verb) *Verb {
-	var runtime *VerbRuntime
-	if s.Runtime != nil {
-		runtime = &VerbRuntime{
-			Base: *VerbRuntimeBaseFromProto(s.Runtime.Base),
-		}
-		if s.Runtime.Base.StartTime != nil {
-			runtime.Subscription = VerbRuntimeSubscriptionFromProto(s.Runtime.Subscription)
-		}
-	}
-	return &Verb{
-		Pos:      PosFromProto(s.Pos),
-		Export:   s.Export,
-		Name:     s.Name,
-		Comments: s.Comments,
-		Request:  TypeFromProto(s.Request),
-		Response: TypeFromProto(s.Response),
-		Metadata: metadataListToSchema(s.Metadata),
-		Runtime:  runtime,
-	}
 }

@@ -560,10 +560,7 @@ func buildResultFromProto(result either.Either[*langpb.BuildResponse_BuildSucces
 	case either.Left[*langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure]:
 		buildSuccess := result.Get().BuildSuccess
 
-		moduleSch, err := schema.ModuleFromProto(buildSuccess.Module)
-		if err != nil {
-			return BuildResult{}, fmt.Errorf("failed to parse schema: %w", err)
-		}
+		moduleSch := schema.ModuleFromProto(buildSuccess.Module)
 		if moduleSch.Runtime != nil && len(strings.Split(moduleSch.Runtime.Base.Image, ":")) != 1 {
 			return BuildResult{}, fmt.Errorf("image tag not supported in runtime image: %s", moduleSch.Runtime.Base.Image)
 		}

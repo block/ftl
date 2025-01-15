@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/slices"
 )
 
@@ -72,15 +71,4 @@ func (d *Database) GetProvisioned() ResourceSet {
 
 func (d *Database) ResourceID() string {
 	return d.Name
-}
-
-func DatabaseFromProto(s *schemapb.Database) *Database {
-	return &Database{
-		Pos:      PosFromProto(s.Pos),
-		Comments: s.Comments,
-		Name:     s.Name,
-		Type:     s.Type,
-		Runtime:  DatabaseRuntimeFromProto(s.Runtime),
-		Metadata: metadataListToSchema(s.Metadata),
-	}
 }

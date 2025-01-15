@@ -41,10 +41,7 @@ func (s *schemaGenerateCmd) oneOffGenerate(ctx context.Context, schemaClient ftl
 	if err != nil {
 		return fmt.Errorf("failed to get schema: %w", err)
 	}
-	modules, err := slices.MapErr(response.Msg.Schema.Modules, schema.ModuleFromProto)
-	if err != nil {
-		return fmt.Errorf("invalid module schema: %w", err)
-	}
+	modules := slices.Map(response.Msg.Schema.Modules, schema.ModuleFromProto)
 	return s.regenerateModules(log.FromContext(ctx), modules)
 }
 
@@ -92,9 +89,9 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 					if msg.Schema == nil {
 						return fmt.Errorf("schema is nil for added/changed deployment %q", msg.GetDeploymentKey())
 					}
-					module, err := schema.ModuleFromProto(msg.Schema)
+					module, err := schema.ValidatedModuleFromProto(msg.Schema)
 					if err != nil {
-						return fmt.Errorf("failed to convert proto to module: %w", err)
+						return fmt.Errorf("invalid module: %w", err)
 					}
 					modules[module.Name] = module
 

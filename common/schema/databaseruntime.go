@@ -2,8 +2,6 @@ package schema
 
 import (
 	"fmt"
-
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )
 
 type DatabaseRuntime struct {
@@ -41,13 +39,6 @@ func (d *DatabaseRuntimeConnections) Position() Position { return d.Read.Positio
 func (d *DatabaseRuntimeConnections) schemaSymbol()      {}
 func (d *DatabaseRuntimeConnections) String() string {
 	return fmt.Sprintf("read: %s, write: %s", d.Read, d.Write)
-}
-
-func DatabaseRuntimeConnectionsFromProto(s *schemapb.DatabaseRuntimeConnections) *DatabaseRuntimeConnections {
-	return &DatabaseRuntimeConnections{
-		Read:  DatabaseConnectorFromProto(s.Read),
-		Write: DatabaseConnectorFromProto(s.Write),
-	}
 }
 
 func (d *DatabaseRuntimeConnections) schemaChildren() []Node {
@@ -93,36 +84,6 @@ func (d *AWSIAMAuthDatabaseConnector) String() string {
 
 func (d *AWSIAMAuthDatabaseConnector) schemaChildren() []Node { return nil }
 
-func DatabaseRuntimeFromProto(s *schemapb.DatabaseRuntime) *DatabaseRuntime {
-	if s == nil {
-		return nil
-	}
-	if s.Connections == nil {
-		return &DatabaseRuntime{}
-	}
-	return &DatabaseRuntime{
-		Connections: &DatabaseRuntimeConnections{
-			Read:  DatabaseConnectorFromProto(s.Connections.Read),
-			Write: DatabaseConnectorFromProto(s.Connections.Write),
-		},
-	}
-}
-
-func DatabaseConnectorFromProto(s *schemapb.DatabaseConnector) DatabaseConnector {
-	switch s := s.Value.(type) {
-	case *schemapb.DatabaseConnector_DsnDatabaseConnector:
-		return &DSNDatabaseConnector{DSN: s.DsnDatabaseConnector.Dsn}
-	case *schemapb.DatabaseConnector_AwsiamAuthDatabaseConnector:
-		return &AWSIAMAuthDatabaseConnector{
-			Username: s.AwsiamAuthDatabaseConnector.Username,
-			Endpoint: s.AwsiamAuthDatabaseConnector.Endpoint,
-			Database: s.AwsiamAuthDatabaseConnector.Database,
-		}
-	default:
-		panic(fmt.Sprintf("unknown database connector type: %T", s))
-	}
-}
-
 //protobuf:5 RuntimeEvent
 //protobuf:export
 type DatabaseRuntimeEvent struct {
@@ -145,25 +106,9 @@ func (d *DatabaseRuntimeEvent) ApplyTo(s *Module) {
 	}
 }
 
-func DatabaseRuntimeEventFromProto(s *schemapb.DatabaseRuntimeEvent) *DatabaseRuntimeEvent {
-	return &DatabaseRuntimeEvent{
-		ID:      s.Id,
-		Payload: DatabaseRuntimeEventPayloadFromProto(s.Payload),
-	}
-}
-
 //sumtype:decl
 type DatabaseRuntimeEventPayload interface {
 	databaseRuntimeEventPayload()
-}
-
-func DatabaseRuntimeEventPayloadFromProto(s *schemapb.DatabaseRuntimeEventPayload) DatabaseRuntimeEventPayload {
-	switch s := s.Value.(type) {
-	case *schemapb.DatabaseRuntimeEventPayload_DatabaseRuntimeConnectionsEvent:
-		return DatabaseRuntimeConnectionsEventFromProto(s.DatabaseRuntimeConnectionsEvent)
-	default:
-		panic(fmt.Sprintf("unknown database runtime event payload type: %T", s))
-	}
 }
 
 //protobuf:1
@@ -174,12 +119,3 @@ type DatabaseRuntimeConnectionsEvent struct {
 var _ DatabaseRuntimeEventPayload = (*DatabaseRuntimeConnectionsEvent)(nil)
 
 func (d *DatabaseRuntimeConnectionsEvent) databaseRuntimeEventPayload() {}
-
-func DatabaseRuntimeConnectionsEventFromProto(s *schemapb.DatabaseRuntimeConnectionsEvent) *DatabaseRuntimeConnectionsEvent {
-	if s == nil {
-		return nil
-	}
-	return &DatabaseRuntimeConnectionsEvent{
-		Connections: DatabaseRuntimeConnectionsFromProto(s.Connections),
-	}
-}

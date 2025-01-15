@@ -260,30 +260,12 @@ func ModuleFromProtoFile(filename string) (*Module, error) {
 	return ModuleFromBytes(data)
 }
 
-// ModuleFromProto converts a protobuf Module to a Module and validates it.
-func ModuleFromProto(s *schemapb.Module) (*Module, error) {
-	runtime, err := ModuleRuntimeFromProto(s.Runtime)
-	if err != nil {
-		return nil, err
-	}
-	module := &Module{
-		Pos:      PosFromProto(s.Pos),
-		Builtin:  s.Builtin,
-		Name:     s.Name,
-		Comments: s.Comments,
-		Decls:    declListToSchema(s.Decls),
-		Runtime:  runtime,
-		Metadata: metadataListToSchema(s.Metadata),
-	}
-	return module, ValidateModule(module)
-}
-
 func ModuleFromBytes(b []byte) (*Module, error) {
 	s := &schemapb.Module{}
 	if err := proto.Unmarshal(b, s); err != nil {
 		return nil, err
 	}
-	return ModuleFromProto(s)
+	return ModuleFromProto(s), nil
 }
 
 func ModuleToBytes(m *Module) ([]byte, error) {
@@ -293,10 +275,7 @@ func ModuleToBytes(m *Module) ([]byte, error) {
 func moduleListToSchema(s []*schemapb.Module) ([]*Module, error) {
 	var out []*Module
 	for _, n := range s {
-		module, err := ModuleFromProto(n)
-		if err != nil {
-			return nil, err
-		}
+		module := ModuleFromProto(n)
 		out = append(out, module)
 	}
 	return out, nil

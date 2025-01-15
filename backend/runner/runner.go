@@ -297,9 +297,8 @@ func (s *Service) getModule(ctx context.Context, key key.Deployment) (*schema.Mo
 		return nil, fmt.Errorf("failed to get deployment: %w", err)
 	}
 
-	module, err := schema.ModuleFromProto(gdResp.Msg.Schema)
+	module, err := schema.ValidatedModuleFromProto(gdResp.Msg.Schema)
 	if err != nil {
-		observability.Deployment.Failure(ctx, optional.Some(key.String()))
 		return nil, fmt.Errorf("invalid module: %w", err)
 	}
 	return module, nil

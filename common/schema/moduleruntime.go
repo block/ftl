@@ -1,10 +1,8 @@
 package schema
 
 import (
-	"fmt"
 	"time"
 
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/internal/key"
 )
 
@@ -24,37 +22,6 @@ func (m *ModuleRuntime) ApplyEvent(event ModuleRuntimeEvent) {
 		m.Scaling = event
 	case *ModuleRuntimeDeployment:
 		m.Deployment = event
-	}
-}
-
-func ModuleRuntimeFromProto(s *schemapb.ModuleRuntime) (*ModuleRuntime, error) {
-	if s == nil {
-		return nil, nil
-	}
-	deployment, err := ModuleRuntimeDeploymentFromProto(s.Deployment)
-	if err != nil {
-		return nil, err
-	}
-	return &ModuleRuntime{
-		Base:       *ModuleRuntimeBaseFromProto(s.Base),
-		Scaling:    ModuleRuntimeScalingFromProto(s.Scaling),
-		Deployment: deployment,
-	}, nil
-}
-
-func ModuleRuntimeEventFromProto(s *schemapb.ModuleRuntimeEvent) (ModuleRuntimeEvent, error) {
-	switch s.Value.(type) {
-	case *schemapb.ModuleRuntimeEvent_ModuleRuntimeBase:
-		return ModuleRuntimeBaseFromProto(s.GetModuleRuntimeBase()), nil
-
-	case *schemapb.ModuleRuntimeEvent_ModuleRuntimeScaling:
-		return ModuleRuntimeScalingFromProto(s.GetModuleRuntimeScaling()), nil
-
-	case *schemapb.ModuleRuntimeEvent_ModuleRuntimeDeployment:
-		return ModuleRuntimeDeploymentFromProto(s.GetModuleRuntimeDeployment())
-
-	default:
-		panic(fmt.Errorf("unknown ModuleRuntimeEvent variant %T", s.Value))
 	}
 }
 
@@ -81,18 +48,6 @@ type ModuleRuntimeBase struct {
 func (ModuleRuntimeBase) moduleRuntime() {}
 
 func (m *ModuleRuntimeBase) runtimeEvent() {}
-func ModuleRuntimeBaseFromProto(s *schemapb.ModuleRuntimeBase) *ModuleRuntimeBase {
-	if s == nil {
-		return &ModuleRuntimeBase{}
-	}
-	return &ModuleRuntimeBase{
-		CreateTime: s.GetCreateTime().AsTime(),
-		Language:   s.GetLanguage(),
-		OS:         s.GetOs(),
-		Arch:       s.GetArch(),
-		Image:      s.GetImage(),
-	}
-}
 
 //protobuf:2
 //protobuf:2 RuntimeEvent
@@ -103,14 +58,6 @@ type ModuleRuntimeScaling struct {
 func (*ModuleRuntimeScaling) moduleRuntime() {}
 
 func (m *ModuleRuntimeScaling) runtimeEvent() {}
-func ModuleRuntimeScalingFromProto(s *schemapb.ModuleRuntimeScaling) *ModuleRuntimeScaling {
-	if s == nil {
-		return nil
-	}
-	return &ModuleRuntimeScaling{
-		MinReplicas: s.MinReplicas,
-	}
-}
 
 //protobuf:3
 //protobuf:3 RuntimeEvent
@@ -125,26 +72,6 @@ type ModuleRuntimeDeployment struct {
 func (m *ModuleRuntimeDeployment) moduleRuntime() {}
 
 func (m *ModuleRuntimeDeployment) runtimeEvent() {}
-
-func ModuleRuntimeDeploymentFromProto(s *schemapb.ModuleRuntimeDeployment) (*ModuleRuntimeDeployment, error) {
-	if s == nil {
-		return nil, nil
-	}
-	deploymentKey := key.Deployment{}
-	if s.DeploymentKey != "" {
-		dk, err := key.ParseDeploymentKey(s.DeploymentKey)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing deployment key: %w", err)
-		}
-		deploymentKey = dk
-	}
-	return &ModuleRuntimeDeployment{
-		Endpoint:      s.Endpoint,
-		DeploymentKey: deploymentKey,
-		CreatedAt:     s.CreatedAt.AsTime(),
-		ActivatedAt:   s.ActivatedAt.AsTime(),
-	}, nil
-}
 
 func (m *ModuleRuntime) GetScaling() *ModuleRuntimeScaling {
 	if m == nil {

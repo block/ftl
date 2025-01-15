@@ -910,12 +910,7 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 		return nil, err
 	}
 
-	module, err := schema.ModuleFromProto(ms)
-	if err != nil {
-		logger.Errorf(err, "Invalid module schema")
-		return nil, fmt.Errorf("invalid module schema: %w", err)
-	}
-	module, err = s.validateModuleSchema(ctx, module)
+	module, err := schema.ValidatedModuleFromProto(ms)
 	if err != nil {
 		logger.Errorf(err, "Invalid module schema")
 		return nil, fmt.Errorf("invalid module schema: %w", err)

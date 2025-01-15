@@ -260,3 +260,11 @@ func (s *Schema) ModuleDependencies(module string) map[string]*Module {
 	delete(deps, module)
 	return deps
 }
+
+func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
+	module := ModuleFromProto(v)
+	if err := ValidateModule(module); err != nil {
+		return nil, err
+	}
+	return module, nil
+}

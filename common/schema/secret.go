@@ -3,8 +3,6 @@ package schema
 import (
 	"fmt"
 	"strings"
-
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )
 
 //protobuf:7
@@ -34,12 +32,3 @@ func (s *Secret) String() string {
 func (s *Secret) schemaChildren() []Node { return []Node{s.Type} }
 func (s *Secret) schemaDecl()            {}
 func (s *Secret) schemaSymbol()          {}
-
-func SecretFromProto(s *schemapb.Secret) *Secret {
-	return &Secret{
-		Pos:      PosFromProto(s.Pos),
-		Name:     s.Name,
-		Comments: s.Comments,
-		Type:     TypeFromProto(s.Type),
-	}
-}

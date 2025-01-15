@@ -53,10 +53,9 @@ func (c *replayCmd) Run(
 
 	found := false
 	for _, pbmodule := range res.Msg.GetSchema().GetModules() {
-		module, err := schema.ModuleFromProto(pbmodule)
+		module, err := schema.ValidatedModuleFromProto(pbmodule)
 		if err != nil {
-			logger.Errorf(err, "failed to convert module from protobuf")
-			continue
+			return fmt.Errorf("invalid module: %w", err)
 		}
 		if module.Name == c.Verb.Module {
 			for _, v := range module.Verbs() {
