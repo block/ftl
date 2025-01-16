@@ -181,40 +181,39 @@ public class ModuleProcessor {
             // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
             // get updated runner information, although we don't actually get this until the runner has started.
             var hash = HashUtil.sha256(schBytes);
-            if (Objects.equals(hash, schemaHash)) {
-                return;
-            }
-            schemaHash = hash;
-            String runnerInfo = System.getenv(DEV_MODE_RUNNER_INFO_FILE);
-            if (runnerInfo != null) {
-                Path path = Path.of(runnerInfo);
-                // Delete the runner info file if it already exists
-                Files.deleteIfExists(path);
-                // This method tells the runtime not to actually start until we have updated runner details
-                systemPropertyBuildItemBuildProducer
-                        .produce(new SystemPropertyBuildItem(FTLRecorder.DEV_MODE_RUNNER_INFO_PATH, path.toString()));
-                recorder.handleDevModeRunnerStart(shutdownContextBuildItem);
+            if (!Objects.equals(hash, schemaHash)) {
+                schemaHash = hash;
+                String runnerInfo = System.getenv(DEV_MODE_RUNNER_INFO_FILE);
+                if (runnerInfo != null) {
+                    Path path = Path.of(runnerInfo);
+                    // Delete the runner info file if it already exists
+                    Files.deleteIfExists(path);
+                    // This method tells the runtime not to actually start until we have updated runner details
+                    systemPropertyBuildItemBuildProducer
+                            .produce(new SystemPropertyBuildItem(FTLRecorder.DEV_MODE_RUNNER_INFO_PATH, path.toString()));
+                    recorder.handleDevModeRunnerStart(shutdownContextBuildItem);
+                }
             }
             // TODO: replace runner info file as well
             HotReloadHandler.start();
+        } else {
+            output = outputTargetBuildItem.getOutputDirectory().resolve("launch");
+            try (var out = Files.newOutputStream(output)) {
+                out.write(
+                        """
+                                #!/bin/bash
+                                if [ -n "$FTL_DEBUG_PORT" ]; then
+                                    FTL_JVM_OPTS="$FTL_JVM_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:$FTL_DEBUG_PORT"
+                                fi
+                                exec java $FTL_JVM_OPTS -jar quarkus-app/quarkus-run.jar"""
+                                .getBytes(StandardCharsets.UTF_8));
+            }
+            var perms = Files.getPosixFilePermissions(output);
+            EnumSet<PosixFilePermission> newPerms = EnumSet.copyOf(perms);
+            newPerms.add(PosixFilePermission.GROUP_EXECUTE);
+            newPerms.add(PosixFilePermission.OWNER_EXECUTE);
+            Files.setPosixFilePermissions(output, newPerms);
         }
-
-        output = outputTargetBuildItem.getOutputDirectory().resolve("launch");
-        try (var out = Files.newOutputStream(output)) {
-            out.write(
-                    """
-                            #!/bin/bash
-                            if [ -n "$FTL_DEBUG_PORT" ]; then
-                                FTL_JVM_OPTS="$FTL_JVM_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:$FTL_DEBUG_PORT"
-                            fi
-                            exec java $FTL_JVM_OPTS -jar quarkus-app/quarkus-run.jar"""
-                            .getBytes(StandardCharsets.UTF_8));
-        }
-        var perms = Files.getPosixFilePermissions(output);
-        EnumSet<PosixFilePermission> newPerms = EnumSet.copyOf(perms);
-        newPerms.add(PosixFilePermission.GROUP_EXECUTE);
-        newPerms.add(PosixFilePermission.OWNER_EXECUTE);
-        Files.setPosixFilePermissions(output, newPerms);
     }
 
     @BuildStep

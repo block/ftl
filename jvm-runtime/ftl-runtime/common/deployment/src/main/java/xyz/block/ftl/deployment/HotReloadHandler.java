@@ -31,9 +31,8 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     static final Set<Path> existingMigrations = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     static volatile Module module;
-
-    private static HotReloadHandler INSTANCE;
-    private static Server server;
+    private static final AtomicBoolean started = new AtomicBoolean();
+    private static volatile Server server;
 
     @Override
     public void ping(PingRequest request, StreamObserver<PingResponse> responseObserver) {
@@ -77,10 +76,10 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     }
 
     public static void start() {
-        if (INSTANCE == null) {
+
+        if(!started.compareAndSet(false, true)) {
             return;
         }
-        INSTANCE = new HotReloadHandler();
 
         for (var dir : RuntimeUpdatesProcessor.INSTANCE.getSourcesDir()) {
             Path migrations = dir.resolve("db");
@@ -96,7 +95,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         int port = Integer.getInteger("ftl.language.port");
         try {
             server = ServerBuilder.forPort(port)
-                    .addService(INSTANCE)
+                    .addService(new HotReloadHandler())
                     .build()
                     .start();
             ((QuarkusClassLoader) HotReloadHandler.class.getClassLoader()).addCloseTask(new Runnable() {

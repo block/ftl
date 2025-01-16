@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"

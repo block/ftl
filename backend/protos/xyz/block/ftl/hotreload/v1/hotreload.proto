@@ -9,9 +9,7 @@ import "xyz/block/ftl/v1/ftl.proto";
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1;hotreloadpb";
 option java_multiple_files = true;
 
-message WatchRequest {
-
-}
+message WatchRequest {}
 
 message WatchResponse {
   oneof event {
@@ -25,7 +23,6 @@ message ReloadRequest {
 }
 
 message ReloadResponse {
-
   oneof event {
     ReloadSuccess reload_success = 1;
     ReloadFailed reload_failed = 2;
@@ -58,5 +55,4 @@ service HotReloadService {
   // such as when the Reload context changes.
   //
   rpc Reload(ReloadRequest) returns (ReloadResponse);
-
 }
