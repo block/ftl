@@ -21,16 +21,19 @@ Configuration values are named, typed values. They are managed by the `ftl confi
 
 <!-- go -->
 
-
 To declare a configuration value use the following syntax:
 
 ```go
+// Simple string configuration
+type ApiUrl = ftl.Config[string]
+
+// Type-safe configuration
 type DefaultUser = ftl.Config[Username]
 ```
 
-Note that the name of the configuration value as represented in the FTL schema is the lower camel case version of the type name.
+Note that the name of the configuration value as represented in the FTL schema is the lower camel case version of the type name (e.g., `ApiUrl` becomes `apiUrl`).
 
-Configuration values can be injected into FTL methods, such as `@Verb`, HTTP ingress, Cron etc. To inject a configuration value, use the following syntax:
+Configuration values can be injected into FTL methods, such as //ftl:verb, HTTP ingress, Cron etc. To inject a configuration value, use the following syntax:
 
 ```go
 //ftl:verb
@@ -76,12 +79,16 @@ Secrets are encrypted, named, typed values. They are managed by the `ftl secret`
 Declare a secret with the following:
 
 ```go
+// Simple string secret
+type ApiToken = ftl.Secret[string]
+
+// Type-safe secret
 type ApiKey = ftl.Secret[Credentials]
 ```
 
-Like configuration values, the name of the secret as represented in the FTL schema is the lower camel case version of the type name.
+Like configuration values, the name of the secret as represented in the FTL schema is the lower camel case version of the type name (e.g., `ApiToken` becomes `apiToken`).
 
-Configuration values can be injected into FTL methods, such as `@Verb`, HTTP ingress, Cron etc. To inject a configuration value, use the following syntax:
+Secrets can be injected into FTL methods, such as //ftl:verb, HTTP ingress, Cron etc. To inject a secret value, use the following syntax:
 
 ```go
 //ftl:verb
@@ -93,7 +100,7 @@ func CallApi(ctx context.Context, req Request, apiKey ApiKey) error {
 
 <!-- kotlin -->
 
-Configuration values can be injected into FTL methods, such as `@Verb`, HTTP ingress, Cron etc. To inject a configuration value, use the following syntax:
+Secrets can be injected into FTL methods, such as `@Verb`, HTTP ingress, Cron etc. To inject a secret value, use the following syntax:
 
 ```kotlin
 @Export
@@ -103,7 +110,7 @@ fun hello(helloRequest: HelloRequest, @Secret("apiKey") apiKey: String): HelloRe
 }
 ```
 <!-- java -->
-Configuration values can be injected into FTL methods, such as `@Verb`, HTTP ingress, Cron etc. To inject a configuration value, use the following syntax:
+Secrets can be injected into FTL methods, such as `@Verb`, HTTP ingress, Cron etc. To inject a secret value, use the following syntax:
 
 ```java
 @Export

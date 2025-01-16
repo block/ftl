@@ -23,9 +23,7 @@ class MyCron {
 See https://block.github.io/ftl/docs/reference/cron/
 ---
 
-class ${1:Name} {
-	@Cron("${2:schedule}")
-	void ${3:name}() {
-		${4:// Add your cron job logic here}
-	}
+@Cron("${1:schedule}")
+void ${2:name}() {
+	${3:// Add your cron job logic here}
 } 

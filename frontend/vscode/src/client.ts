@@ -43,6 +43,7 @@ export class FTLClient {
       documentSelector: [
         { scheme: 'file', language: 'kotlin' },
         { scheme: 'file', language: 'go' },
+        { scheme: 'file', language: 'java' },
       ],
       outputChannel: this.outputChannel,
     }

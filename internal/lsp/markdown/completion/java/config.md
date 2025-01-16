@@ -1,27 +1,15 @@
-Declare a config variable.
+Inject a configuration value into a method.
 
-Configuration values are named, typed values. They are managed by the `ftl config` command-line.
+Configuration values can be injected into FTL methods such as @Verb, HTTP ingress, Cron etc. To inject a configuration value, use the following syntax:
 
 ```java
-// Will create a config value called "myConfig" in the FTL schema
-@Config
-public class MyConfig {
-    private String value;
-
-    public String getValue() {
-        return value;
-    }
+@Verb
+HelloResponse hello(HelloRequest helloRequest, @Config("defaultUser") String defaultUser) {
+    return new HelloResponse("Hello, " + defaultUser);
 }
 ```
 
 See https://block.github.io/ftl/docs/reference/secretsconfig/
 ---
 
-@Config
-public class ${1:Name} {
-	private ${2:Type} value;
-
-	public ${2:Type} getValue() {
-		return value;
-	}
-}
+@Config("${5:configName}")
