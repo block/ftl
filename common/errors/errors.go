@@ -8,6 +8,7 @@ import (
 )
 
 // UnwrapAll recursively unwraps all errors in err, including all intermediate errors.
+// Parent errors will always be ahead of errors they are wrapping in the resulting slice
 //
 //nolint:errorlint
 func UnwrapAll(err error) []error {
@@ -18,10 +19,10 @@ func UnwrapAll(err error) []error {
 		}
 		return out
 	}
+	out = append(out, err)
 	if inner, ok := err.(interface{ Unwrap() error }); ok && inner.Unwrap() != nil {
 		out = append(out, UnwrapAll(inner.Unwrap())...)
 	}
-	out = append(out, err)
 	return out
 }
 
@@ -38,7 +39,7 @@ func Innermost(err error) bool {
 	return true
 }
 
-func Join(errs ...error) error { return errors.Join(errs...) } //errtrace:skip // errtraces messes up error reporting
+func Join(errs ...error) error { return errors.Join(errs...) }
 
 func New(text string) error { return errors.New(text) }
 
@@ -46,7 +47,7 @@ func As(err error, target interface{}) bool { return errors.As(err, target) }
 
 func Is(err, target error) bool { return errors.Is(err, target) }
 
-func Unwrap(err error) error { return errors.Unwrap(err) } //errtrace:skip // errtraces messes up error reporting
+func Unwrap(err error) error { return errors.Unwrap(err) }
 
 // DeduplicateErrors de-duplicates equivalent errors.
 func DeduplicateErrors(merr []error) []error {
