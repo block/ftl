@@ -8,12 +8,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jboss.logging.Logger;
 
 import com.google.protobuf.ByteString;
 
+import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -43,6 +45,8 @@ class FTLRunnerConnection implements Closeable {
     private Throwable currentError;
     private volatile GetDeploymentContextResponse moduleContextResponse;
     private boolean waiters = false;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final Runnable closeHandler;
 
     final VerbServiceGrpc.VerbServiceStub verbService;
     final DeploymentServiceGrpc.DeploymentServiceStub deploymentService;
@@ -50,14 +54,25 @@ class FTLRunnerConnection implements Closeable {
     final PublishServiceGrpc.PublishServiceStub publishService;
     final StreamObserver<GetDeploymentContextResponse> moduleObserver = new ModuleObserver();
 
-    FTLRunnerConnection(final String endpoint, final String deploymentName, final String moduleName) {
+    FTLRunnerConnection(final String endpoint, final String deploymentName, final String moduleName,
+            final Runnable closeHandler) {
         var uri = URI.create(endpoint);
+        this.closeHandler = closeHandler;
         this.moduleName = moduleName;
         var channelBuilder = ManagedChannelBuilder.forAddress(uri.getHost(), uri.getPort());
         if (uri.getScheme().equals("http")) {
             channelBuilder.usePlaintext();
         }
         this.channel = channelBuilder.build();
+        this.channel.notifyWhenStateChanged(ConnectivityState.READY, () -> {
+            if (this.channel.isShutdown() || this.channel.isTerminated()) {
+                if (closed.compareAndSet(false, true)) {
+                    log.debug("Channel state changed to SHUTDOWN, closing connection");
+                    this.channel.shutdown();
+                    closeHandler.run();
+                }
+            }
+        });
         this.deploymentName = deploymentName;
         deploymentService = DeploymentServiceGrpc.newStub(channel);
         deploymentService.getDeploymentContext(GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),

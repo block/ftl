@@ -56,18 +56,28 @@ public class FTLController implements LeaseClient {
     }
 
     private FTLRunnerConnection getRunnerConnection() {
-        if (runnerConnection == null) {
+        var rc = runnerConnection;
+        if (rc == null) {
             synchronized (this) {
                 if (!haveRunnerInfo) {
                     readDevModeRunnerInfo();
                 }
-                if (runnerConnection == null) {
+                rc = runnerConnection;
+                if (rc == null) {
                     runnerConnection = new FTLRunnerConnection(runnerDetails.getProxyAddress(),
-                            runnerDetails.getDeploymentKey(), moduleName);
+                            runnerDetails.getDeploymentKey(), moduleName, new Runnable() {
+                                @Override
+                                public void run() {
+                                    synchronized (FTLController.this) {
+                                        runnerConnection = null;
+                                    }
+                                }
+                            });
+                    return runnerConnection;
                 }
             }
         }
-        return runnerConnection;
+        return rc;
     }
 
     public void readDevModeRunnerInfo() {
