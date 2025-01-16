@@ -120,7 +120,7 @@ func checkAuth(ctx context.Context, logger *log.Logger, endpoint *url.URL, creds
 	client := &http.Client{
 		Timeout: time.Second * 5,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse //errtrace:skip(the HTTP client doesn't handle wrapping errors)
+			return http.ErrUseLastResponse
 		},
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, endpoint.String(), nil)
