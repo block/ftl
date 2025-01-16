@@ -168,6 +168,50 @@ Complex query params can also be encoded as JSON using the `@json` query paramet
 curl -i http://localhost:8891/users/123/posts/456?@json=%7B%22tag%22%3A%22ftl%22%7D
 ```
 
+<!-- kotlin -->
+Kotlin uses the `@Ingress` annotation to define HTTP endpoints. These endpoints will be exposed on the default ingress port (local development defaults to `http://localhost:8891`).
+
+```kotlin
+import xyz.block.ftl.Ingress
+import xyz.block.ftl.Option
+
+// Simple GET endpoint with path and query parameters
+@Ingress("GET /users/{userId}/posts")
+fun getPost(request: Request): Response {
+    val userId = request.pathParams["userId"]
+    val postId = request.queryParams["postId"]
+    return Response.ok(Post(userId, postId))
+}
+
+// POST endpoint with request body
+@Ingress("POST /users/{userId}/posts")
+fun createPost(request: Request): Response {
+    val userId = request.pathParams["userId"]
+    val body = request.body<PostBody>()
+    return Response.created(Post(userId, body.title))
+}
+
+// Request body data class
+data class PostBody(
+    val title: String,
+    val content: String,
+    val tag: Option<String>  // Optional field using Option type
+)
+
+// Response data class
+data class Post(
+    val userId: String,
+    val title: String
+)
+```
+
+Key features:
+- The `@Ingress` annotation takes a string parameter combining the HTTP method and path
+- Path parameters are accessed via `request.pathParams`
+- Query parameters are accessed via `request.queryParams`
+- Request bodies can be automatically deserialized using `request.body<T>()`
+- Optional fields are represented using the `Option<T>` type
+- Response helpers like `Response.ok()` and `Response.created()` for common status codes
 
 <!-- java -->
 

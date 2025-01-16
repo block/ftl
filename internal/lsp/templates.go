@@ -32,9 +32,6 @@ var cronExpressionCompletionDocs string
 //go:embed markdown/completion/go/retry.md
 var retryCompletionDocs string
 
-//go:embed markdown/completion/go/retryWithCatch.md
-var retryWithCatchCompletionDocs string
-
 //go:embed markdown/completion/go/config.md
 var configCompletionDocs string
 
@@ -61,7 +58,6 @@ var goCompletionItems = []protocol.CompletionItem{
 	completionItem("ftl:pubsub:subscription", "Create a PubSub subscription", pubSubSubscriptionCompletionDocs),
 	completionItem("ftl:pubsub:topic", "Create a PubSub topic", pubSubTopicCompletionDocs),
 	completionItem("ftl:retry", "FTL Retry", retryCompletionDocs),
-	completionItem("ftl:retry:catch", "FTL Retry with catch", retryWithCatchCompletionDocs),
 	completionItem("ftl:secret", "Create a new secret value", secretCompletionDocs),
 	completionItem("ftl:typealias", "FTL Type Alias", typeAliasCompletionDocs),
 	completionItem("ftl:verb", "FTL Verb", verbCompletionDocs),
@@ -86,12 +82,16 @@ var pubSubTopicCompletionDocsKotlin string
 //go:embed markdown/completion/kotlin/pubSubSubscription.md
 var pubSubSubscriptionCompletionDocsKotlin string
 
+//go:embed markdown/completion/kotlin/secret.md
+var secretCompletionDocsKotlin string
+
 var kotlinCompletionItems = []protocol.CompletionItem{
 	completionItem("ftl:config", "Create a new configuration value", configCompletionDocsKotlin),
 	completionItem("ftl:cron", "FTL Cron", cronCompletionDocsKotlin),
 	completionItem("ftl:ingress", "FTL Ingress", ingressCompletionDocsKotlin),
 	completionItem("ftl:pubsub:subscription", "Create a PubSub subscription", pubSubSubscriptionCompletionDocsKotlin),
 	completionItem("ftl:pubsub:topic", "Create a PubSub topic", pubSubTopicCompletionDocsKotlin),
+	completionItem("ftl:secret", "Create a new secret value", secretCompletionDocsKotlin),
 	completionItem("ftl:verb", "FTL Verb", verbCompletionDocsKotlin),
 }
 
@@ -113,12 +113,16 @@ var pubSubTopicCompletionDocsJava string
 //go:embed markdown/completion/java/pubSubSubscription.md
 var pubSubSubscriptionCompletionDocsJava string
 
+//go:embed markdown/completion/java/secret.md
+var secretCompletionDocsJava string
+
 var javaCompletionItems = []protocol.CompletionItem{
 	completionItem("ftl:config", "Create a new configuration value", configCompletionDocsJava),
 	completionItem("ftl:cron", "FTL Cron", cronCompletionDocsJava),
 	completionItem("ftl:ingress", "FTL Ingress", ingressCompletionDocsJava),
 	completionItem("ftl:pubsub:subscription", "Create a PubSub subscription", pubSubSubscriptionCompletionDocsJava),
 	completionItem("ftl:pubsub:topic", "Create a PubSub topic", pubSubTopicCompletionDocsJava),
+	completionItem("ftl:secret", "Create a new secret value", secretCompletionDocsJava),
 	completionItem("ftl:verb", "FTL Verb", verbCompletionDocsJava),
 }
 
