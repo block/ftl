@@ -311,10 +311,10 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	}
 	deployments, err := slices.MapErr(maps.Values(status), func(d *state.Deployment) (*ftlv1.StatusResponse_Deployment, error) {
 		return &ftlv1.StatusResponse_Deployment{
-			Key:         d.Key.String(),
+			Key:         d.Schema.GetRuntime().GetDeployment().DeploymentKey.String(),
 			Name:        d.Schema.Name,
 			MinReplicas: d.Schema.GetRuntime().GetScaling().GetMinReplicas(),
-			Replicas:    replicas[d.Key.String()],
+			Replicas:    replicas[d.Schema.GetRuntime().GetDeployment().DeploymentKey.String()],
 			Schema:      d.Schema.ToProto(),
 		}, nil
 	})
@@ -421,18 +421,19 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 		}
 	}
 	if oldDeployment != nil {
-		if oldDeployment.Key.String() == newDeploymentKey.String() {
-			return nil, fmt.Errorf("replace deployment failed: deployment already exists from %v to %v", oldDeployment.Key, newDeploymentKey)
+		oldKey := oldDeployment.Schema.GetRuntime().GetDeployment().DeploymentKey
+		if oldKey.String() == newDeploymentKey.String() {
+			return nil, fmt.Errorf("replace deployment failed: deployment already exists from %v to %v", oldKey, newDeploymentKey)
 		}
 		err = s.schemaState.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
 		if err != nil {
-			return nil, fmt.Errorf("replace deployment failed to set new deployment replicas from %v to %v: %w", oldDeployment.Key, newDeploymentKey, err)
+			return nil, fmt.Errorf("replace deployment failed to set new deployment replicas from %v to %v: %w", oldKey, newDeploymentKey, err)
 		}
-		err = s.schemaState.Publish(ctx, &state.DeploymentDeactivatedEvent{Key: oldDeployment.Key})
+		err = s.schemaState.Publish(ctx, &state.DeploymentDeactivatedEvent{Key: oldKey})
 		if err != nil {
-			return nil, fmt.Errorf("replace deployment failed to deactivate old deployment %v: %w", oldDeployment.Key, err)
+			return nil, fmt.Errorf("replace deployment failed to deactivate old deployment %v: %w", oldKey, err)
 		}
-		replacedDeploymentKey = optional.Some(oldDeployment.Key)
+		replacedDeploymentKey = optional.Some(oldKey)
 	} else {
 		// Set the desired replicas for the new deployment
 		err = s.schemaState.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
@@ -516,8 +517,8 @@ func (s *Service) GetDeployment(ctx context.Context, req *connect.Request[ftlv1.
 		return nil, err
 	}
 
-	logger := s.getDeploymentLogger(ctx, deployment.Key)
-	logger.Debugf("Get deployment for: %s", deployment.Key.String())
+	logger := s.getDeploymentLogger(ctx, deployment.Schema.GetRuntime().GetDeployment().DeploymentKey)
+	logger.Debugf("Get deployment for: %s", deployment.Schema.GetRuntime().GetDeployment().DeploymentKey.String())
 
 	artefacts := []*ftlv1.DeploymentArtefact{}
 	for artefact := range slices.FilterVariants[schema.MetadataArtefact](deployment.Schema.Metadata) {
@@ -539,8 +540,8 @@ func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Reque
 		return fmt.Errorf("could not get deployment: %w", err)
 	}
 
-	logger := s.getDeploymentLogger(ctx, deployment.Key)
-	logger.Debugf("Get deployment artefacts for: %s", deployment.Key.String())
+	logger := s.getDeploymentLogger(ctx, deployment.Schema.GetRuntime().GetDeployment().DeploymentKey)
+	logger.Debugf("Get deployment artefacts for: %s", deployment.Schema.GetRuntime().GetDeployment().DeploymentKey.String())
 
 	chunk := make([]byte, s.config.ArtefactChunkSize)
 nextArtefact:
@@ -667,7 +668,7 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 			}
 		}
 		if !deployment.Schema.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
-			routeTable[deployment.Key.String()] = deployment.Schema.Runtime.Deployment.Endpoint
+			routeTable[deployment.Schema.GetRuntime().GetDeployment().DeploymentKey.String()] = deployment.Schema.Runtime.Deployment.Endpoint
 		}
 
 		secretsResp, err := s.adminClient.MapSecretsForModule(ctx, &connect.Request[ftlv1.MapSecretsForModuleRequest]{Msg: &ftlv1.MapSecretsForModuleRequest{Module: module}})
@@ -1046,7 +1047,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 		module := initial.Schema.ToProto()
 		err := sendChange(&ftlv1.PullSchemaResponse{
 			ModuleName:    module.Name,
-			DeploymentKey: proto.String(initial.Key.String()),
+			DeploymentKey: proto.String(initial.Schema.GetRuntime().GetDeployment().DeploymentKey.String()),
 			Schema:        module,
 			ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
 			More:          initialCount > 0,
