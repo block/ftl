@@ -79,7 +79,7 @@ func errorToLangError(err error) []*langpb.Error {
 			// If not a builderrors.Error, create a basic error
 			errs = append(errs, &langpb.Error{
 				Msg:   e.Error(),
-				Level: langpb.Error_ErrorLevel(berr.Level),
+				Level: langpb.Error_ERROR_LEVEL_ERROR,
 			})
 			continue
 		}
