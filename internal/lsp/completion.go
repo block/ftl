@@ -2,7 +2,6 @@ package lsp
 
 import (
 	_ "embed"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,76 +9,6 @@ import (
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
-
-//go:embed markdown/completion/go/verb.md
-var verbCompletionDocs string
-
-//go:embed markdown/completion/go/enumType.md
-var enumTypeCompletionDocs string
-
-//go:embed markdown/completion/go/enumValue.md
-var enumValueCompletionDocs string
-
-//go:embed markdown/completion/go/typeAlias.md
-var typeAliasCompletionDocs string
-
-//go:embed markdown/completion/go/ingress.md
-var ingressCompletionDocs string
-
-//go:embed markdown/completion/go/cron.md
-var cronCompletionDocs string
-
-//go:embed markdown/completion/go/cronExpression.md
-var cronExpressionCompletionDocs string
-
-//go:embed markdown/completion/go/retry.md
-var retryCompletionDocs string
-
-//go:embed markdown/completion/go/retryWithCatch.md
-var retryWithCatchCompletionDocs string
-
-//go:embed markdown/completion/go/config.md
-var configCompletionDocs string
-
-//go:embed markdown/completion/go/secret.md
-var secretCompletionDocs string
-
-//go:embed markdown/completion/go/pubSubTopic.md
-var pubSubTopicCompletionDocs string
-
-//go:embed markdown/completion/go/pubSubSubscription.md
-var pubSubSubscriptionCompletionDocs string
-
-//go:embed markdown/completion/java/verb.md
-var verbCompletionDocsJava string
-
-//go:embed markdown/completion/kotlin/verb.md
-var verbCompletionDocsKotlin string
-
-// Markdown is split by "---". First half is completion docs, second half is insert text.
-var goCompletionItems = []protocol.CompletionItem{
-	completionItem("ftl:verb", "FTL Verb", verbCompletionDocs),
-	completionItem("ftl:enum:sumtype", "FTL Enum (sum type)", enumTypeCompletionDocs),
-	completionItem("ftl:enum:value", "FTL Enum (value type)", enumValueCompletionDocs),
-	completionItem("ftl:typealias", "FTL Type Alias", typeAliasCompletionDocs),
-	completionItem("ftl:ingress", "FTL Ingress", ingressCompletionDocs),
-	completionItem("ftl:cron", "FTL Cron", cronCompletionDocs),
-	completionItem("ftl:cron:expression", "FTL Cron with expression", cronExpressionCompletionDocs),
-	completionItem("ftl:retry", "FTL Retry", retryCompletionDocs),
-	completionItem("ftl:retry:catch", "FTL Retry with catch", retryWithCatchCompletionDocs),
-	completionItem("ftl:config", "Create a new configuration value", configCompletionDocs),
-	completionItem("ftl:secret", "Create a new secret value", secretCompletionDocs),
-	completionItem("ftl:pubsub:topic", "Create a PubSub topic", pubSubTopicCompletionDocs),
-	completionItem("ftl:pubsub:subscription", "Create a PubSub subscription", pubSubSubscriptionCompletionDocs),
-}
-
-var javaCompletionItems = []protocol.CompletionItem{
-	completionItem("ftl:verb", "FTL Verb", verbCompletionDocsJava),
-}
-
-var kotlinCompletionItems = []protocol.CompletionItem{
-	completionItem("ftl:verb", "FTL Verb", verbCompletionDocsKotlin),
-}
 
 // Track which directives are //ftl: prefixed, so the we can autocomplete them via `/`.
 // This is built at init time and does not change during runtime.
@@ -101,39 +30,6 @@ func init() {
 		if strings.Contains(*item.InsertText, "//ftl:") {
 			directiveItems[item.Label] = true
 		}
-	}
-}
-
-func completionItem(label, detail, markdown string) protocol.CompletionItem {
-	snippetKind := protocol.CompletionItemKindSnippet
-	insertTextFormat := protocol.InsertTextFormatSnippet
-
-	parts := strings.Split(markdown, "---")
-	if len(parts) != 2 {
-		panic(fmt.Sprintf("completion item %q: invalid markdown. must contain exactly one '---' to separate completion docs from insert text", label))
-	}
-
-	insertText := strings.TrimSpace(parts[1])
-	// Warn if we see two spaces in the insert text.
-	if strings.Contains(insertText, "  ") {
-		panic(fmt.Sprintf("completion item %q: contains two spaces in the insert text. Use tabs instead!", label))
-	}
-
-	// If there is a `//ftl:` this can be autocompleted when the user types `/`.
-	if strings.Contains(insertText, "//ftl:") {
-		directiveItems[label] = true
-	}
-
-	return protocol.CompletionItem{
-		Label:      label,
-		Kind:       &snippetKind,
-		Detail:     &detail,
-		InsertText: &insertText,
-		Documentation: &protocol.MarkupContent{
-			Kind:  protocol.MarkupKindMarkdown,
-			Value: strings.TrimSpace(parts[0]),
-		},
-		InsertTextFormat: &insertTextFormat,
 	}
 }
 
@@ -161,25 +57,23 @@ func (s *Server) textDocumentCompletion() protocol.TextDocumentCompletionFunc {
 		// Get file extension to determine language
 		ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(uri), "."))
 
-		// Currently all completions are in global scope, so the completion must be triggered at the beginning of the line.
-		// To do this, check to the start of the line and if there is any whitespace, it is not completing a whole word from the start.
-		// We also want to check that the cursor is at the end of the line so we dont let stray chars shoved at the end of the completion.
-		isAtEOL := character == len(lineContent)
+		// Check if we're at the end of the content (ignoring trailing whitespace)
+		trimmedLine := strings.TrimRight(lineContent, " \t")
+		isAtEOL := character >= len(trimmedLine)
 		if !isAtEOL {
 			return nil, nil
 		}
 
-		// Is not completing from the start of the line.
-		if strings.ContainsAny(lineContent, " \t") {
+		// Trim leading whitespace to handle indentation
+		trimmedContent := strings.TrimLeft(lineContent, " \t")
+		if trimmedContent == "" {
 			return nil, nil
 		}
 
-		// If there is a single `/` at the start of the line, we can autocomplete directives. eg `/f`.
-		// This is a hint to the user that these are ftl directives.
-		// Note that what I can tell, VSCode won't trigger completion on and after `//` so we can only complete on half of a comment.
-		isSlashed := strings.HasPrefix(lineContent, "/")
+		// If there is a single `/` at the start of the trimmed content, we can autocomplete directives
+		isSlashed := strings.HasPrefix(trimmedContent, "/")
 		if isSlashed {
-			lineContent = strings.TrimPrefix(lineContent, "/")
+			trimmedContent = strings.TrimPrefix(trimmedContent, "/")
 		}
 
 		// Get the appropriate completion items based on file extension
@@ -195,10 +89,13 @@ func (s *Server) textDocumentCompletion() protocol.TextDocumentCompletionFunc {
 			return nil, nil
 		}
 
+		// Calculate the indentation level
+		indentLength := len(lineContent) - len(trimmedContent)
+
 		// Filter completion items based on the line content and if it is a directive
 		var filteredItems []protocol.CompletionItem
 		for _, item := range items {
-			if !strings.Contains(item.Label, lineContent) {
+			if !strings.Contains(item.Label, trimmedContent) {
 				continue
 			}
 
@@ -207,18 +104,17 @@ func (s *Server) textDocumentCompletion() protocol.TextDocumentCompletionFunc {
 			}
 
 			if isSlashed {
-				// Remove that / from the start of the line, so that the completion doesn't have `///`.
-				// VSCode doesn't seem to want to remove the `/` for us.
+				// Remove the / from the start of the line
 				item.AdditionalTextEdits = []protocol.TextEdit{
 					{
 						Range: protocol.Range{
 							Start: protocol.Position{
 								Line:      uint32(line),
-								Character: 0,
+								Character: uint32(indentLength),
 							},
 							End: protocol.Position{
 								Line:      uint32(line),
-								Character: 1,
+								Character: uint32(indentLength + 1),
 							},
 						},
 						NewText: "",
