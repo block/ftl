@@ -15,6 +15,7 @@ type DeploymentCreated struct {
 	ModuleName         string
 	MinReplicas        int
 	ReplacedDeployment optional.Option[key.Deployment]
+	Language           string
 }
 
 var _ Event = DeploymentCreated{}
@@ -33,6 +34,7 @@ func (d DeploymentCreated) ToEntry() (*timelinepb.CreateEventsRequest_EventEntry
 				ModuleName:  d.ModuleName,
 				MinReplicas: int32(d.MinReplicas),
 				Replaced:    replaced,
+				Language:    d.Language,
 			},
 		},
 	}, nil
