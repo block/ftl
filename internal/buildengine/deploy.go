@@ -112,7 +112,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, module Modu
 		if err != nil {
 			return err
 		}
-		logger.Debugf("Deployment %s became ready", resp.Msg.DeploymentKey)
+		logger.Infof("Deployment %s became ready", resp.Msg.DeploymentKey)
 	}
 
 	return nil
