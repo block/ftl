@@ -33,14 +33,10 @@ func build(ctx context.Context, plugin *languageplugin.LanguagePlugin, projectCo
 	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	if hasQueries(bctx.Config) {
-		queryVerbs, err := sqlc.Generate(projectConfig, bctx.Config)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to generate queries for %s: %w", bctx.Config.Module, err)
-		}
-		bctx.Schema.Modules = append(bctx.Schema.Modules, queryVerbs)
+	_, err = sqlc.AddQueriesToSchema(projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to add queries to schema: %w", err)
 	}
-
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
 	return handleBuildResult(ctx, projectConfig, bctx.Config, result.From(plugin.Build(ctx, projectConfig.Root(), stubsRoot, bctx, devMode)), devModeEndpoints)
 }
@@ -103,17 +99,4 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 		}
 	}
 	return result.Schema, result.Deploy, nil
-}
-
-func hasQueries(config moduleconfig.ModuleConfig) bool {
-	if config.SQLMigrationDirectory == "" || config.SQLQueryDirectory == "" {
-		return false
-	}
-	if _, err := os.Stat(filepath.Join(config.Dir, config.SQLMigrationDirectory)); err != nil {
-		return false
-	}
-	if _, err := os.Stat(filepath.Join(config.Dir, config.SQLQueryDirectory)); err != nil {
-		return false
-	}
-	return true
 }

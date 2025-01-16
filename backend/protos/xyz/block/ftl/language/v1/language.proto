@@ -35,6 +35,9 @@ message ModuleConfig {
 
   // The directory containing the SQL migration files
   string sql_migration_dir = 11;
+
+  // The directory containing the SQL query files
+  string sql_query_dir = 12;
 }
 
 // ProjectConfig contains the configuration for a project, found in the ftl-project.toml file.
