@@ -2,10 +2,10 @@
 package echo
 
 import (
-    "context"
-    "github.com/block/ftl/common/reflection"
-    "github.com/block/ftl/go-runtime/server"
-    ftltime "ftl/time"
+	"context"
+	ftltime "ftl/time"
+	"github.com/block/ftl/common/reflection"
+	"github.com/block/ftl/go-runtime/server"
 )
 
 type EchoClient func(context.Context, EchoRequest) (EchoResponse, error)
@@ -13,8 +13,8 @@ type EchoClient func(context.Context, EchoRequest) (EchoResponse, error)
 func init() {
 	reflection.Register(
 		reflection.ProvideResourcesForVerb(
-            Echo,
-            server.VerbClient[ftltime.TimeClient, ftltime.TimeRequest, ftltime.TimeResponse](),
+			Echo,
+			server.VerbClient[ftltime.TimeClient, ftltime.TimeRequest, ftltime.TimeResponse](),
 			server.Config[string]("echo", "default"),
 		),
 	)

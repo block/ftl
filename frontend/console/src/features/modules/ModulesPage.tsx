@@ -17,11 +17,13 @@ export const ModulesPage = ({ body }: { body: React.ReactNode }) => {
   }
 
   return (
-    <ResizableHorizontalPanels
-      leftPanelContent={<ModulesTree modules={tree} />}
-      rightPanelContent={body}
-      leftPanelWidth={treeWidth}
-      setLeftPanelWidth={setTreeWidthWithLS}
-    />
+    <div className='h-full'>
+      <ResizableHorizontalPanels
+        leftPanelContent={<ModulesTree modules={tree} />}
+        rightPanelContent={body}
+        leftPanelWidth={treeWidth}
+        setLeftPanelWidth={setTreeWidthWithLS}
+      />
+    </div>
   )
 }

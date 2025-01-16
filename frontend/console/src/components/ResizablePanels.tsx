@@ -93,7 +93,7 @@ export const ResizablePanels: React.FC<ResizablePanelsProps> = ({
             width: `${rightPanelWidth}px`,
             maxHeight: bottomPanelContent ? `calc(100vh - ${bottomPanelHeight + TOP_BAR_HEIGHT}px)` : '100vh',
           }}
-          className='flex flex-col h-full overflow-y-scroll'
+          className='flex flex-col h-full overflow-y-scroll overflow-x-visible'
         >
           <RightPanel header={rightPanelHeader} panels={rightPanelPanels} />
         </div>
