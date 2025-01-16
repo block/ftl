@@ -33,7 +33,7 @@ func build(ctx context.Context, plugin *languageplugin.LanguagePlugin, projectCo
 	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	_, err = sqlc.AddQueriesToSchema(projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
+	_, err = sqlc.AddQueriesToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to add queries to schema: %w", err)
 	}

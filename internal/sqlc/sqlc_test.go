@@ -1,12 +1,14 @@
 package sqlc
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/scaffolder"
 )
@@ -29,9 +31,9 @@ func TestAddQueriesToSchema(t *testing.T) {
 		SQLQueryDirectory:     "db/queries",
 		DeployDir:             ".ftl",
 	}
-
+	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, log.Config{Level: log.Debug}))
 	out := &schema.Schema{}
-	updated, err := AddQueriesToSchema(tmpDir, mc.Abs(), out)
+	updated, err := AddQueriesToSchema(ctx, tmpDir, mc.Abs(), out)
 	assert.NoError(t, err)
 	assert.True(t, updated)
 

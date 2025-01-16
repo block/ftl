@@ -1,6 +1,7 @@
 package sqlc
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -9,10 +10,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	sqlc "github.com/sqlc-dev/sqlc/pkg/cli"
-
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal"
+	"github.com/block/ftl/internal/exec"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 )
 
@@ -47,7 +48,7 @@ type WASMPlugin struct {
 // it is overwritten.
 //
 // Returns true if the schema was updated, false otherwise.
-func AddQueriesToSchema(projectRoot string, mc moduleconfig.AbsModuleConfig, out *schema.Schema) (bool, error) {
+func AddQueriesToSchema(ctx context.Context, projectRoot string, mc moduleconfig.AbsModuleConfig, out *schema.Schema) (bool, error) {
 	if !hasQueries(mc) {
 		return false, nil
 	}
@@ -60,14 +61,17 @@ func AddQueriesToSchema(projectRoot string, mc moduleconfig.AbsModuleConfig, out
 	if err != nil {
 		return false, fmt.Errorf("failed to create SQLC config: %w", err)
 	}
+	// directories exist but contain no SQL files
+	if cfg.QueryPaths == "" || cfg.SchemaPaths == "" {
+		return false, nil
+	}
 
 	if err := cfg.scaffoldFile(); err != nil {
 		return false, fmt.Errorf("failed to scaffold SQLC config file: %w", err)
 	}
 
-	args := []string{"generate", "--file", cfg.getSQLCConfigPath()}
-	if exitCode := sqlc.Run(args); exitCode != 0 {
-		return false, fmt.Errorf("sqlc generate failed with exit code %d", exitCode)
+	if err := exec.Command(ctx, log.Debug, ".", "ftl-sqlc", "generate", "--file", cfg.getSQLCConfigPath()).RunBuffered(ctx); err != nil {
+		return false, fmt.Errorf("sqlc generate failed: %w", err)
 	}
 
 	sch, err := schema.ModuleFromProtoFile(filepath.Join(cfg.OutDir, "queries.pb"))
