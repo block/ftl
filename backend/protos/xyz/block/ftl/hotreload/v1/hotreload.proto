@@ -9,15 +9,6 @@ import "xyz/block/ftl/v1/ftl.proto";
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1;hotreloadpb";
 option java_multiple_files = true;
 
-message WatchRequest {}
-
-message WatchResponse {
-  oneof event {
-    ReloadSuccess reload_success = 1;
-    ReloadFailed reload_failed = 2;
-  }
-}
-
 message ReloadRequest {
   bool force = 1;
 }
@@ -47,9 +38,6 @@ service HotReloadService {
   rpc Ping(xyz.block.ftl.v1.PingRequest) returns (xyz.block.ftl.v1.PingResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
-
-  // Watch returns a stream that is notified of any Reloads that are not explicit
-  rpc Watch(WatchRequest) returns (stream WatchResponse);
 
   // Forces an explicit Reload from the plugin. This is useful for when the plugin needs to trigger a Reload,
   // such as when the Reload context changes.

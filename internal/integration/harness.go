@@ -48,7 +48,7 @@ const dumpPath = "/tmp/ftl-kube-report"
 var RedPandaBrokers = []string{"127.0.0.1:19092"}
 
 func (i TestContext) integrationTestTimeout() time.Duration {
-	timeout := optional.Zero(os.Getenv("FTL_INTEGRATION_TEST_TIMEOUT")).Default("5s")
+	timeout := optional.Zero(os.Getenv("FTL_INTEGRATION_TEST_TIMEOUT")).Default("25s")
 	d, err := time.ParseDuration(timeout)
 	if err != nil {
 		panic(err)

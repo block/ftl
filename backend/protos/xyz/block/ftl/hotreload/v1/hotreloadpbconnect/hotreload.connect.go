@@ -36,8 +36,6 @@ const (
 const (
 	// HotReloadServicePingProcedure is the fully-qualified name of the HotReloadService's Ping RPC.
 	HotReloadServicePingProcedure = "/xyz.block.ftl.hotreload.v1.HotReloadService/Ping"
-	// HotReloadServiceWatchProcedure is the fully-qualified name of the HotReloadService's Watch RPC.
-	HotReloadServiceWatchProcedure = "/xyz.block.ftl.hotreload.v1.HotReloadService/Watch"
 	// HotReloadServiceReloadProcedure is the fully-qualified name of the HotReloadService's Reload RPC.
 	HotReloadServiceReloadProcedure = "/xyz.block.ftl.hotreload.v1.HotReloadService/Reload"
 )
@@ -46,8 +44,6 @@ const (
 type HotReloadServiceClient interface {
 	// Ping service for readiness.
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
-	// Watch returns a stream that is notified of any Reloads that are not explicit
-	Watch(context.Context, *connect.Request[v11.WatchRequest]) (*connect.ServerStreamForClient[v11.WatchResponse], error)
 	// Forces an explicit Reload from the plugin. This is useful for when the plugin needs to trigger a Reload,
 	// such as when the Reload context changes.
 	Reload(context.Context, *connect.Request[v11.ReloadRequest]) (*connect.Response[v11.ReloadResponse], error)
@@ -69,11 +65,6 @@ func NewHotReloadServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
-		watch: connect.NewClient[v11.WatchRequest, v11.WatchResponse](
-			httpClient,
-			baseURL+HotReloadServiceWatchProcedure,
-			opts...,
-		),
 		reload: connect.NewClient[v11.ReloadRequest, v11.ReloadResponse](
 			httpClient,
 			baseURL+HotReloadServiceReloadProcedure,
@@ -85,18 +76,12 @@ func NewHotReloadServiceClient(httpClient connect.HTTPClient, baseURL string, op
 // hotReloadServiceClient implements HotReloadServiceClient.
 type hotReloadServiceClient struct {
 	ping   *connect.Client[v1.PingRequest, v1.PingResponse]
-	watch  *connect.Client[v11.WatchRequest, v11.WatchResponse]
 	reload *connect.Client[v11.ReloadRequest, v11.ReloadResponse]
 }
 
 // Ping calls xyz.block.ftl.hotreload.v1.HotReloadService.Ping.
 func (c *hotReloadServiceClient) Ping(ctx context.Context, req *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
 	return c.ping.CallUnary(ctx, req)
-}
-
-// Watch calls xyz.block.ftl.hotreload.v1.HotReloadService.Watch.
-func (c *hotReloadServiceClient) Watch(ctx context.Context, req *connect.Request[v11.WatchRequest]) (*connect.ServerStreamForClient[v11.WatchResponse], error) {
-	return c.watch.CallServerStream(ctx, req)
 }
 
 // Reload calls xyz.block.ftl.hotreload.v1.HotReloadService.Reload.
@@ -109,8 +94,6 @@ func (c *hotReloadServiceClient) Reload(ctx context.Context, req *connect.Reques
 type HotReloadServiceHandler interface {
 	// Ping service for readiness.
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
-	// Watch returns a stream that is notified of any Reloads that are not explicit
-	Watch(context.Context, *connect.Request[v11.WatchRequest], *connect.ServerStream[v11.WatchResponse]) error
 	// Forces an explicit Reload from the plugin. This is useful for when the plugin needs to trigger a Reload,
 	// such as when the Reload context changes.
 	Reload(context.Context, *connect.Request[v11.ReloadRequest]) (*connect.Response[v11.ReloadResponse], error)
@@ -128,11 +111,6 @@ func NewHotReloadServiceHandler(svc HotReloadServiceHandler, opts ...connect.Han
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
-	hotReloadServiceWatchHandler := connect.NewServerStreamHandler(
-		HotReloadServiceWatchProcedure,
-		svc.Watch,
-		opts...,
-	)
 	hotReloadServiceReloadHandler := connect.NewUnaryHandler(
 		HotReloadServiceReloadProcedure,
 		svc.Reload,
@@ -142,8 +120,6 @@ func NewHotReloadServiceHandler(svc HotReloadServiceHandler, opts ...connect.Han
 		switch r.URL.Path {
 		case HotReloadServicePingProcedure:
 			hotReloadServicePingHandler.ServeHTTP(w, r)
-		case HotReloadServiceWatchProcedure:
-			hotReloadServiceWatchHandler.ServeHTTP(w, r)
 		case HotReloadServiceReloadProcedure:
 			hotReloadServiceReloadHandler.ServeHTTP(w, r)
 		default:
@@ -157,10 +133,6 @@ type UnimplementedHotReloadServiceHandler struct{}
 
 func (UnimplementedHotReloadServiceHandler) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.hotreload.v1.HotReloadService.Ping is not implemented"))
-}
-
-func (UnimplementedHotReloadServiceHandler) Watch(context.Context, *connect.Request[v11.WatchRequest], *connect.ServerStream[v11.WatchResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.hotreload.v1.HotReloadService.Watch is not implemented"))
 }
 
 func (UnimplementedHotReloadServiceHandler) Reload(context.Context, *connect.Request[v11.ReloadRequest]) (*connect.Response[v11.ReloadResponse], error) {

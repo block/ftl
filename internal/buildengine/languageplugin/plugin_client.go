@@ -62,7 +62,7 @@ func (p *pluginClientImpl) start(ctx context.Context, dir, language, name string
 	}
 	envvars := []string{"FTL_NAME=" + name}
 	plugin, cmdCtx, err := plugin.Spawn(ctx,
-		log.Info,
+		log.FromContext(ctx).GetLevel(),
 		name,
 		name,
 		dir,

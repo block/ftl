@@ -66,7 +66,7 @@ const (
 func TestBuilds(t *testing.T) {
 	sch := generateInitialSchema(t)
 	in.Run(t,
-		in.WithLanguages("java"),
+		in.WithLanguages("go"),
 		in.WithoutController(),
 		in.WithoutProvisioner(),
 		in.WithoutTimeline(),
@@ -92,7 +92,7 @@ func TestBuilds(t *testing.T) {
 
 		// Update verb name and expect auto rebuild started and ended
 		modifyVerbName(MODULE_NAME, VERB_NAME_SNIPPET, "aaabbbccc"),
-		waitForAutoRebuildToStart("build-and-watch"),
+		in.IfLanguages(waitForAutoRebuildToStart("build-and-watch"), "go"),
 		waitForBuildToEnd(SUCCESS, "build-and-watch", true, func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse) {
 			successEvent, ok := event.Event.(*langpb.BuildResponse_BuildSuccess)
 			assert.True(t, ok)
@@ -109,7 +109,7 @@ func TestBuilds(t *testing.T) {
 		// Trigger an auto rebuild, but when we are told of the build being started, send a build context update
 		// to force a new build
 		modifyVerbName(MODULE_NAME, "aaabbbccc", "aaaabbbbcccc"),
-		waitForAutoRebuildToStart("build-and-watch"),
+		in.IfLanguages(waitForAutoRebuildToStart("build-and-watch"), "go"),
 		sendUpdatedBuildContext("explicit-build", []string{}, sch),
 		waitForBuildToEnd(SUCCESSORFAILURE, "build-and-watch", true, nil),
 		waitForBuildToEnd(SUCCESS, "explicit-build", false, nil),

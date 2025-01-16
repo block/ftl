@@ -383,6 +383,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
 		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind))
 		command.Env = append(command.Env, fmt.Sprintf("FTL_RUNNER_INFO=%s", runnerInfoFile))
+		command.Env = append(command.Env, fmt.Sprintf("QUARKUS_LOG_LEVEL=%s", "DEBUG"))
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr
 		err = command.Run()
@@ -427,12 +428,18 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
 			resp := s.toBuildResponse(result.Msg, &bc.buildCtx, false, devModeEndpoint, debugPort32, runnerInfoFile)
-			err = stream.Send(resp)
+			if resp != nil {
+				err = stream.Send(resp)
+			}
 			if err != nil {
 				return fmt.Errorf("failed to send response %w", err)
 			}
 		case <-schemaChangeTicker.C:
 
+			_, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: false}))
+			if err != nil {
+				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
+			}
 			changed := false
 			file, err := os.ReadFile(errorFile)
 			if err == nil {
@@ -632,7 +639,6 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, err
 	}
-	s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
 
 	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
 	if err != nil {
@@ -984,5 +990,5 @@ func (s *Service) toBuildResponse(result *hotreloadpb.ReloadResponse, bc *buildC
 			},
 		}
 	}
-	return nil
+	return ret
 }
