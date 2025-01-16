@@ -262,7 +262,7 @@ func TestGradle(t *testing.T) {
 		in.WithLanguages("java"),
 		in.CopyModule("gradle"),
 		in.Deploy("gradle"),
-		in.Call("gradle", "echo", "Bob", func(t testing.TB, response string) {
+		in.Call("gradle", "hello", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Hello, Bob!", response)
 		}),
 	)

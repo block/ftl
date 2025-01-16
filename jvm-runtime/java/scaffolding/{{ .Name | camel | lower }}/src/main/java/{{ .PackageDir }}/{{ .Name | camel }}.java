@@ -1,13 +1,12 @@
-package org.acme;
+package {{ .Group }};
 
 import xyz.block.ftl.Export;
 import xyz.block.ftl.Verb;
 
-public class EchoVerb {
-
+public class {{ .Name | camel }} {
     @Export
     @Verb
-    public String echo(String request) {
+    public String hello(String request) {
         return "Hello, " + request + "!";
     }
 }
