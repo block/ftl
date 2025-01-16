@@ -446,6 +446,7 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 		ModuleName:         newDeployment.Schema.Name,
 		MinReplicas:        minReplicas,
 		ReplacedDeployment: replacedDeploymentKey,
+		Language:           newDeployment.Schema.Runtime.Base.Language,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("replace deployment failed to create event: %w", err)
