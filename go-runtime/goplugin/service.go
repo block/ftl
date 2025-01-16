@@ -28,6 +28,7 @@ import (
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/sqlc"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -274,6 +275,11 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 			})
 			if err != nil {
 				return fmt.Errorf("could not send auto rebuild started event: %w", err)
+			}
+			_, err := sqlc.AddQueriesToSchema(req.Msg.ProjectRoot, buildCtx.Config, buildCtx.Schema)
+			if err != nil {
+				log.FromContext(ctx).Warnf("failed to add queries to schema; skipping rebuild")
+				continue
 			}
 		}
 		if err = buildAndSend(ctx, stream, req.Msg.ProjectRoot, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState); err != nil {

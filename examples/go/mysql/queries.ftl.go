@@ -2,10 +2,9 @@
 package mysql
 
 import (
-	"context"
-	"github.com/block/ftl/common/reflection"
-	// "github.com/block/ftl/go-runtime/server"
+    "context"
 )
+
 
 type CreateRequestQuery struct {
   	Data string
@@ -18,12 +17,3 @@ type GetRequestDataResult struct {
 }
 
 type GetRequestDataClient func(context.Context) ([]GetRequestDataResult, error)
-
-func init() {
-	reflection.Register(
-		// reflection.ProvideResourcesForVerb(
-			// server.Query[CreateRequestClient]("INSERT INTO requests (data) VALUES (?)"),
-			// server.Query[GetRequestDataClient]("SELECT data FROM requests"),
-		//),
-	)
-}

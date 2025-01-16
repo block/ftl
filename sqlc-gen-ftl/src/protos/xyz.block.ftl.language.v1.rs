@@ -34,6 +34,9 @@ pub struct ModuleConfig {
     /// The directory containing the SQL migration files
     #[prost(string, tag="11")]
     pub sql_migration_dir: ::prost::alloc::string::String,
+    /// The directory containing the SQL query files
+    #[prost(string, tag="12")]
+    pub sql_query_dir: ::prost::alloc::string::String,
 }
 /// ProjectConfig contains the configuration for a project, found in the ftl-project.toml file.
 #[derive(Clone, PartialEq, ::prost::Message)]

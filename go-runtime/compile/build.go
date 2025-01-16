@@ -65,6 +65,7 @@ type mainDeploymentContext struct {
 func (c *mainDeploymentContext) withImports(mainModuleImport string) {
 	c.MainCtx.Imports = c.generateMainImports()
 	c.TypesCtx.Imports = c.generateTypesImports(mainModuleImport)
+	c.QueriesCtx.Imports = c.generateQueryImports()
 }
 
 func (c *mainDeploymentContext) generateMainImports() []string {
@@ -92,6 +93,23 @@ func (c *mainDeploymentContext) generateMainImports() []string {
 	out := imports.ToSlice()
 	slices.Sort(out)
 	return out
+}
+
+func (c *mainDeploymentContext) generateQueryImports() []string {
+	imports := sets.NewSet[string]()
+	imports.Add(`"context"`)
+	for _, d := range c.QueriesCtx.Decls {
+		if data, ok := d.(*schema.Data); ok {
+			for _, f := range data.Fields {
+				if _, ok := f.Type.(*schema.Time); ok {
+					imports.Add(`stdtime "time"`)
+				}
+			}
+		}
+	}
+	result := imports.ToSlice()
+	slices.Sort(result)
+	return result
 }
 
 func (c *mainDeploymentContext) generateTypesImports(mainModuleImport string) []string {
@@ -190,8 +208,9 @@ type typesFileContext struct {
 }
 
 type queriesFileContext struct {
-	Module *schema.Module
-	Decls  []schema.Decl
+	Module  *schema.Module
+	Decls   []schema.Decl
+	Imports []string
 }
 
 type goType interface {
@@ -789,7 +808,7 @@ func (b *mainDeploymentContextBuilder) visit(
 }
 
 func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]schema.Decl, error) {
-	decls := []schema.Decl{}
+	var decls []schema.Decl
 	err := schema.Visit(node, func(node schema.Node, next func() error) error {
 		switch n := node.(type) {
 		case *schema.Verb:

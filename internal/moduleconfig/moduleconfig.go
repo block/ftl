@@ -131,6 +131,7 @@ func (c ModuleConfig) Abs() AbsModuleConfig {
 	clone.Dir = dir
 	clone.DeployDir = filepath.Clean(filepath.Join(clone.Dir, clone.DeployDir))
 	clone.SQLMigrationDirectory = filepath.Clean(filepath.Join(clone.Dir, clone.SQLMigrationDirectory))
+	clone.SQLQueryDirectory = filepath.Clean(filepath.Join(clone.Dir, clone.SQLQueryDirectory))
 	if !strings.HasPrefix(clone.DeployDir, clone.Dir) {
 		panic(fmt.Sprintf("deploy-dir %q is not beneath module directory %q", clone.DeployDir, clone.Dir))
 	}

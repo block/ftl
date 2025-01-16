@@ -134,6 +134,7 @@ func ModuleConfigToProto(config moduleconfig.AbsModuleConfig) (*ModuleConfig, er
 		Watch:           config.Watch,
 		Language:        config.Language,
 		SqlMigrationDir: config.SQLMigrationDirectory,
+		SqlQueryDir:     config.SQLQueryDirectory,
 	}
 	if config.Build != "" {
 		proto.Build = &config.Build
@@ -163,6 +164,7 @@ func ModuleConfigFromProto(proto *ModuleConfig) moduleconfig.AbsModuleConfig {
 		DevModeBuild:          proto.GetDevModeBuild(),
 		BuildLock:             proto.BuildLock,
 		SQLMigrationDirectory: proto.GetSqlMigrationDir(),
+		SQLQueryDirectory:     proto.GetSqlQueryDir(),
 	}
 	if proto.LanguageConfig != nil {
 		config.LanguageConfig = proto.LanguageConfig.AsMap()

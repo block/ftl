@@ -8,11 +8,10 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/scaffolder"
 )
 
-func TestGenerate(t *testing.T) {
+func TestAddQueriesToSchema(t *testing.T) {
 	if err := os.RemoveAll(filepath.Join(os.TempDir(), ".ftl")); err != nil {
 		t.Fatal(err)
 	}
@@ -23,9 +22,6 @@ func TestGenerate(t *testing.T) {
 
 	err = scaffolder.Scaffold("testdata", tmpDir, nil)
 	assert.NoError(t, err)
-	pc := projectconfig.Config{
-		Path: tmpDir,
-	}
 	mc := moduleconfig.ModuleConfig{
 		Dir:                   tmpDir,
 		Module:                "test",
@@ -34,8 +30,18 @@ func TestGenerate(t *testing.T) {
 		DeployDir:             ".ftl",
 	}
 
-	actual, err := Generate(pc, mc)
+	out := &schema.Schema{}
+	updated, err := AddQueriesToSchema(tmpDir, mc.Abs(), out)
 	assert.NoError(t, err)
+	assert.True(t, updated)
+
+	var actual *schema.Module
+	for _, d := range out.Modules {
+		if d.Name == "test" {
+			actual = d
+			break
+		}
+	}
 
 	expected := &schema.Module{
 		Name: "test",
