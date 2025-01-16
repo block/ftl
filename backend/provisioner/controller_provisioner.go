@@ -38,6 +38,9 @@ func NewControllerProvisioner(client ftlv1connect.ControllerServiceClient) *InMe
 
 			return &RuntimeEvent{
 				Module: &schema.ModuleRuntimeDeployment{
+					CreatedAt:     module.GetRuntime().GetDeployment().GetCreatedAt(),
+					ActivatedAt:   module.GetRuntime().GetDeployment().GetActivatedAt(),
+					Endpoint:      module.GetRuntime().GetDeployment().GetEndpoint(),
 					DeploymentKey: deploymentKey,
 				},
 			}, nil

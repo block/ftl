@@ -34,7 +34,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			return nil, fmt.Errorf("expected module, got %T", rc)
 		}
 
-		deployment := module.Runtime.Deployment.DeploymentKey
+		deployment := module.GetRuntime().GetDeployment().GetDeploymentKey()
 		if deployment.IsZero() {
 			return nil, fmt.Errorf("failed to find deployment for runner")
 		}
@@ -108,6 +108,8 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		}
 		return &RuntimeEvent{
 			Module: &schema.ModuleRuntimeDeployment{
+				CreatedAt:     module.GetRuntime().GetDeployment().GetCreatedAt(),
+				ActivatedAt:   module.GetRuntime().GetDeployment().GetActivatedAt(),
 				DeploymentKey: deployment,
 				Endpoint:      endpointURI,
 			},

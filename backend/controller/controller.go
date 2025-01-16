@@ -310,11 +310,12 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 		return nil, err
 	}
 	deployments, err := slices.MapErr(maps.Values(status), func(d *state.Deployment) (*ftlv1.StatusResponse_Deployment, error) {
+		dkey := d.Schema.GetRuntime().GetDeployment().DeploymentKey
 		return &ftlv1.StatusResponse_Deployment{
-			Key:         d.Schema.GetRuntime().GetDeployment().DeploymentKey.String(),
+			Key:         dkey.String(),
 			Name:        d.Schema.Name,
 			MinReplicas: d.Schema.GetRuntime().GetScaling().GetMinReplicas(),
-			Replicas:    replicas[d.Schema.GetRuntime().GetDeployment().DeploymentKey.String()],
+			Replicas:    replicas[dkey.String()],
 			Schema:      d.Schema.ToProto(),
 		}, nil
 	})
@@ -918,8 +919,8 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	}
 
 	dkey := key.NewDeploymentKey(module.Name)
+	module.GetRuntime().ModDeployment().DeploymentKey = dkey
 	err = s.schemaState.Publish(ctx, &state.DeploymentCreatedEvent{
-		Key:       dkey,
 		CreatedAt: time.Now(),
 		Schema:    module,
 	})
@@ -1063,7 +1064,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 		case *state.DeploymentCreatedEvent:
 			err := sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
 				ModuleName:    event.Schema.Name,
-				DeploymentKey: proto.String(event.Key.String()),
+				DeploymentKey: proto.String(event.Schema.GetRuntime().GetDeployment().DeploymentKey.String()),
 				Schema:        event.Schema.ToProto(),
 				ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
 			})

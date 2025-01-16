@@ -49,22 +49,21 @@ var _ SchemaEvent = (*DeploymentSchemaUpdatedEvent)(nil)
 var _ SchemaEvent = (*DeploymentReplicasUpdatedEvent)(nil)
 
 type DeploymentCreatedEvent struct {
-	Key       key.Deployment
 	CreatedAt time.Time
 	Schema    *schema.Module
 }
 
 func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	if existing := t.deployments[r.Key]; existing != nil {
+	key := r.Schema.GetRuntime().GetDeployment().DeploymentKey
+	if existing := t.deployments[key]; existing != nil {
 		return t, nil
 	}
 
 	n := Deployment{
 		Schema: r.Schema,
 	}
-	n.Schema.ModRuntime().ModDeployment().DeploymentKey = r.Key
 	n.Schema.ModRuntime().ModDeployment().CreatedAt = r.CreatedAt
-	t.deployments[r.Key] = &n
+	t.deployments[key] = &n
 	return t, nil
 }
 

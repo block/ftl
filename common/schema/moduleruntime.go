@@ -108,6 +108,20 @@ func (m *ModuleRuntimeDeployment) GetCreatedAt() time.Time {
 	return m.CreatedAt
 }
 
+func (m *ModuleRuntimeDeployment) GetActivatedAt() time.Time {
+	if m == nil {
+		return time.Time{}
+	}
+	return m.ActivatedAt
+}
+
+func (m *ModuleRuntimeDeployment) GetEndpoint() string {
+	if m == nil {
+		return ""
+	}
+	return m.Endpoint
+}
+
 func (m *ModuleRuntimeDeployment) GetDeploymentKey() key.Deployment {
 	if m == nil {
 		return key.Deployment{}
