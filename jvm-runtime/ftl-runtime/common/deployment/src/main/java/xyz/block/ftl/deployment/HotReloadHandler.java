@@ -28,6 +28,8 @@ import xyz.block.ftl.v1.PingResponse;
 
 public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplBase {
 
+    private static final Logger LOG = Logger.getLogger(HotReloadHandler.class);
+
     static final Set<Path> existingMigrations = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     static volatile Module module;
@@ -37,6 +39,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     @Override
     public void ping(PingRequest request, StreamObserver<PingResponse> responseObserver) {
         responseObserver.onNext(PingResponse.newBuilder().build());
+        responseObserver.onCompleted();
     }
 
     @Override
@@ -77,7 +80,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     public static void start() {
 
-        if(!started.compareAndSet(false, true)) {
+        if (!started.compareAndSet(false, true)) {
             return;
         }
 
@@ -93,20 +96,22 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         }
 
         int port = Integer.getInteger("ftl.language.port");
+        server = ServerBuilder.forPort(port)
+                .addService(new HotReloadHandler())
+                .build();
         try {
-            server = ServerBuilder.forPort(port)
-                    .addService(new HotReloadHandler())
-                    .build()
-                    .start();
-            ((QuarkusClassLoader) HotReloadHandler.class.getClassLoader()).addCloseTask(new Runnable() {
-                @Override
-                public void run() {
-                    server.shutdownNow();
-                }
-            });
+            LOG.info("Starting Hot Reload gRPC server on port " + port);
+            server.start();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        ((QuarkusClassLoader) HotReloadHandler.class.getClassLoader()).addCloseTask(new Runnable() {
+            @Override
+            public void run() {
+                server.shutdownNow();
+            }
+        });
 
     }
 

@@ -396,7 +396,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 
 	forceUpdate := false
 	// Wait for the plugin to start.
-	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, fmt.Sprintf("http://localhost:%d", protoPort), log.Trace)
+	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, fmt.Sprintf("http://localhost:%d", protoPort.Port), log.Trace)
 	err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
 	if err != nil {
 		return fmt.Errorf("timed out waiting for start %w", err)
