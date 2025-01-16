@@ -3,6 +3,7 @@ package state
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/internal/channels"
@@ -14,15 +15,21 @@ type controllerStateMachine struct {
 
 	notifier   *channels.Notifier
 	runningCtx context.Context
+
+	lock sync.Mutex
 }
 
 var _ statemachine.Listenable[struct{}, SchemaState, SchemaEvent] = &controllerStateMachine{}
 
 func (c *controllerStateMachine) Lookup(key struct{}) (SchemaState, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	return reflect.DeepCopy(c.state), nil
 }
 
 func (c *controllerStateMachine) Publish(msg SchemaEvent) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	var err error
 	c.state, err = msg.Handle(c.state)
 	if err != nil {
