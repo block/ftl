@@ -5,6 +5,7 @@
 *.ipr
 out/
 build/
+bin/
 
 # Gradle
 .gradle/
