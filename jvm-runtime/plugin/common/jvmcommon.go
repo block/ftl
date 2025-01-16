@@ -924,6 +924,21 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 			return fmt.Errorf("failed to write schema file for module %s %w", mod.Name, err)
 		}
 	}
-
+	genCommand := ""
+	if config.LanguageConfig["build-tool"] == JavaBuildToolMaven {
+		genCommand = "mvn quarkus:generate-code"
+	} else {
+		genCommand = "gradle quarkusGenerateCode"
+	}
+	logger.Infof("Using generate command '%s'", genCommand)
+	command := exec.Command(ctx, log.Debug, config.Dir, "bash", "-c", genCommand)
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	err = command.RunBuffered(ctx)
+	if err != nil {
+		logger.Errorf(err, "Generate process exited with error")
+	} else {
+		logger.Infof("Generate process exited")
+	}
 	return nil
 }
