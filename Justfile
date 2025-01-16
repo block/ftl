@@ -148,7 +148,7 @@ build-without-frontend +tools: build-protos build-zips capture-hermit-versions
 
 # Build all backend binaries
 build-backend:
-  just build ftl ftl-controller ftl-runner
+  just build ftl ftl-controller ftl-runner ftl-sqlc
 
 # Build all backend tests
 build-backend-tests:

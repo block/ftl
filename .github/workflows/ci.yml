@@ -18,6 +18,8 @@ jobs:
         uses: cashapp/activate-hermit@v1.1.3
       - name: Build Language Plugins
         run: just build-language-plugins
+      - name: Build SQLC
+        run: just build ftl-sqlc
       - name: Test
         run: |
           go-test-annotate
