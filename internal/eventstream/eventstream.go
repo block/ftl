@@ -85,7 +85,10 @@ func (i *inMemoryEventStream[T, E]) Changes(ctx context.Context) (iter.Seq[T], e
 }
 
 func (i *inMemoryEventStream[T, E]) View(ctx context.Context) (T, error) {
-	return i.view, nil
+	i.lock.Lock()
+	defer i.lock.Unlock()
+	out := reflect.DeepCopy(i.view)
+	return out, nil
 }
 
 func (i *inMemoryEventStream[T, E]) Updates() *pubsub.Topic[E] {
