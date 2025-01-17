@@ -84,8 +84,7 @@ func TestDeploymentState(t *testing.T) {
 	view, err = cs.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(view.GetDeployments()))
-	assert.Equal(t, deploymentKey, view.GetDeployments()[deploymentKey].Key)
-	assert.Equal(t, create, view.GetDeployments()[deploymentKey].Schema.GetRuntime().GetDeployment().CreatedAt)
+	assert.Equal(t, create, view.GetDeployments()[deploymentKey].GetRuntime().GetDeployment().CreatedAt)
 
 	activate := time.Now()
 	err = cs.Publish(ctx, &state.DeploymentActivatedEvent{
@@ -96,8 +95,8 @@ func TestDeploymentState(t *testing.T) {
 	assert.NoError(t, err)
 	view, err = cs.View(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, view.GetDeployments()[deploymentKey].Schema.GetRuntime().GetScaling().GetMinReplicas())
-	assert.Equal(t, activate, view.GetDeployments()[deploymentKey].Schema.GetRuntime().GetDeployment().ActivatedAt)
+	assert.Equal(t, 1, view.GetDeployments()[deploymentKey].GetRuntime().GetScaling().GetMinReplicas())
+	assert.Equal(t, activate, view.GetDeployments()[deploymentKey].GetRuntime().GetDeployment().ActivatedAt)
 
 	err = cs.Publish(ctx, &state.DeploymentDeactivatedEvent{
 		Key: deploymentKey,
@@ -105,5 +104,5 @@ func TestDeploymentState(t *testing.T) {
 	assert.NoError(t, err)
 	view, err = cs.View(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, view.GetDeployments()[deploymentKey].Schema.GetRuntime().GetScaling().GetMinReplicas())
+	assert.Equal(t, 0, view.GetDeployments()[deploymentKey].GetRuntime().GetScaling().GetMinReplicas())
 }

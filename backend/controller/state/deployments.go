@@ -7,16 +7,10 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
 )
 
-type Deployment struct {
-	Key    key.Deployment
-	Schema *schema.Module
-}
-
-func (r *SchemaState) GetDeployment(deployment key.Deployment) (*Deployment, error) {
+func (r *SchemaState) GetDeployment(deployment key.Deployment) (*schema.Module, error) {
 	d, ok := r.deployments[deployment]
 	if !ok {
 		return nil, fmt.Errorf("deployment %s not found", deployment)
@@ -24,12 +18,12 @@ func (r *SchemaState) GetDeployment(deployment key.Deployment) (*Deployment, err
 	return d, nil
 }
 
-func (r *SchemaState) GetDeployments() map[key.Deployment]*Deployment {
+func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 	return r.deployments
 }
 
-func (r *SchemaState) GetActiveDeployments() map[key.Deployment]*Deployment {
-	deployments := map[key.Deployment]*Deployment{}
+func (r *SchemaState) GetActiveDeployments() map[key.Deployment]*schema.Module {
+	deployments := map[key.Deployment]*schema.Module{}
 	for key, active := range r.activeDeployments {
 		if active {
 			deployments[key] = r.deployments[key]
@@ -39,8 +33,7 @@ func (r *SchemaState) GetActiveDeployments() map[key.Deployment]*Deployment {
 }
 
 func (r *SchemaState) GetActiveDeploymentSchemas() []*schema.Module {
-	rows := r.GetActiveDeployments()
-	return slices.Map(maps.Values(rows), func(in *Deployment) *schema.Module { return in.Schema })
+	return maps.Values(r.GetActiveDeployments())
 }
 
 var _ SchemaEvent = (*DeploymentCreatedEvent)(nil)
@@ -59,13 +52,8 @@ func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	if existing := t.deployments[r.Key]; existing != nil {
 		return t, nil
 	}
-
-	n := Deployment{
-		Key:    r.Key,
-		Schema: r.Schema,
-	}
-	n.Schema.ModRuntime().ModDeployment().CreatedAt = r.CreatedAt
-	t.deployments[r.Key] = &n
+	r.Schema.ModRuntime().ModDeployment().CreatedAt = r.CreatedAt
+	t.deployments[r.Key] = r.Schema
 	return t, nil
 }
 
@@ -75,11 +63,11 @@ type DeploymentSchemaUpdatedEvent struct {
 }
 
 func (r *DeploymentSchemaUpdatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	existing, ok := t.deployments[r.Key]
+	_, ok := t.deployments[r.Key]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 	}
-	existing.Schema = r.Schema
+	t.deployments[r.Key] = r.Schema
 	return t, nil
 }
 
@@ -93,7 +81,7 @@ func (r *DeploymentReplicasUpdatedEvent) Handle(t SchemaState) (SchemaState, err
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 	}
-	setMinReplicas(existing.Schema, r.Replicas)
+	setMinReplicas(existing, r.Replicas)
 	return t, nil
 }
 
@@ -109,8 +97,8 @@ func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 
 	}
-	existing.Schema.ModRuntime().ModDeployment().ActivatedAt = r.ActivatedAt
-	setMinReplicas(existing.Schema, r.MinReplicas)
+	existing.ModRuntime().ModDeployment().ActivatedAt = r.ActivatedAt
+	setMinReplicas(existing, r.MinReplicas)
 	t.activeDeployments[r.Key] = true
 	return t, nil
 }
@@ -126,7 +114,7 @@ func (r *DeploymentDeactivatedEvent) Handle(t SchemaState) (SchemaState, error) 
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 
 	}
-	setMinReplicas(existing.Schema, 0)
+	setMinReplicas(existing, 0)
 	delete(t.activeDeployments, r.Key)
 	return t, nil
 }

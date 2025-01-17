@@ -3,6 +3,7 @@ package state
 import (
 	"context"
 
+	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/eventstream"
 	"github.com/block/ftl/internal/key"
@@ -14,7 +15,7 @@ type SchemaEvent interface {
 }
 
 type SchemaState struct {
-	deployments       map[key.Deployment]*Deployment
+	deployments       map[key.Deployment]*schema.Module
 	activeDeployments map[key.Deployment]bool
 }
 
@@ -24,7 +25,7 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 		notifier:   notifier,
 		runningCtx: ctx,
 		state: SchemaState{
-			deployments:       map[key.Deployment]*Deployment{},
+			deployments:       map[key.Deployment]*schema.Module{},
 			activeDeployments: map[key.Deployment]bool{},
 		},
 	})
