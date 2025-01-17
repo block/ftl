@@ -3,7 +3,7 @@ package modulecontext
 import (
 	"fmt"
 
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 )
 
 func FromProto(response *ftlv1.ModuleContextResponse) (ModuleContext, error) {

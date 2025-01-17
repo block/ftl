@@ -3,9 +3,9 @@ package server
 import (
 	"reflect"
 
-	"github.com/TBD54566975/ftl/go-runtime/ftl"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/internal/schema"
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/internal/schema"
 )
 
 func TopicHandle[E any](module, name string) reflection.VerbResource {

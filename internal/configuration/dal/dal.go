@@ -7,9 +7,9 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/configuration/dal/internal/sql"
-	"github.com/TBD54566975/ftl/internal/slices"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/configuration/dal/internal/sql"
+	"github.com/block/ftl/internal/slices"
 )
 
 type DAL struct {

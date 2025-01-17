@@ -17,12 +17,12 @@ import (
 	"github.com/jpillora/backoff"
 	"golang.org/x/sync/errgroup"
 
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/internal/reflect"
-	"github.com/TBD54566975/ftl/internal/rpc"
-	"github.com/TBD54566975/ftl/internal/schema"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/internal/reflect"
+	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/schema"
 )
 
 // Verb is a function that takes a request and returns a response but is not constrained by request/response type like ftl.Verb

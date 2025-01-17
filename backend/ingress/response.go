@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/TBD54566975/ftl/internal/schema"
+	"github.com/block/ftl/internal/schema"
 )
 
 // HTTPResponse mirrors builtins.HttpResponse.

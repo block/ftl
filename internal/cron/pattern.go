@@ -10,8 +10,8 @@ import (
 	"github.com/alecthomas/participle/v2/lexer"
 	"github.com/hashicorp/cronexpr"
 
-	"github.com/TBD54566975/ftl/internal/duration"
-	"github.com/TBD54566975/ftl/internal/slices"
+	"github.com/block/ftl/internal/duration"
+	"github.com/block/ftl/internal/slices"
 )
 
 var (

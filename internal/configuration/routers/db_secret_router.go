@@ -7,8 +7,8 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/internal/configuration"
-	"github.com/TBD54566975/ftl/internal/configuration/dal"
+	"github.com/block/ftl/internal/configuration"
+	"github.com/block/ftl/internal/configuration/dal"
 )
 
 // DatabaseSecrets loads values a project's secrets from the given database.

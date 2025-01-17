@@ -14,13 +14,13 @@ import (
 	"github.com/alecthomas/types/must"
 	"github.com/alecthomas/types/optional"
 
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	schemapb "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/model"
-	"github.com/TBD54566975/ftl/internal/rpc"
-	"github.com/TBD54566975/ftl/internal/schema"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	schemapb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/schema"
 )
 
 func TestSchemaEventSource(t *testing.T) {

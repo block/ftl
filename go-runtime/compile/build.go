@@ -23,19 +23,19 @@ import (
 	"golang.org/x/mod/semver"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/TBD54566975/ftl"
-	extract "github.com/TBD54566975/ftl/go-runtime/schema"
-	"github.com/TBD54566975/ftl/go-runtime/schema/common"
-	"github.com/TBD54566975/ftl/internal"
-	"github.com/TBD54566975/ftl/internal/builderrors"
-	"github.com/TBD54566975/ftl/internal/exec"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/moduleconfig"
-	"github.com/TBD54566975/ftl/internal/projectconfig"
-	"github.com/TBD54566975/ftl/internal/reflect"
-	"github.com/TBD54566975/ftl/internal/schema"
-	islices "github.com/TBD54566975/ftl/internal/slices"
-	"github.com/TBD54566975/ftl/internal/watch"
+	"github.com/block/ftl"
+	extract "github.com/block/ftl/go-runtime/schema"
+	"github.com/block/ftl/go-runtime/schema/common"
+	"github.com/block/ftl/internal"
+	"github.com/block/ftl/internal/builderrors"
+	"github.com/block/ftl/internal/exec"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/reflect"
+	"github.com/block/ftl/internal/schema"
+	islices "github.com/block/ftl/internal/slices"
+	"github.com/block/ftl/internal/watch"
 )
 
 var ErrInvalidateDependencies = errors.New("dependencies need to be updated")
@@ -67,11 +67,11 @@ func (c *mainModuleContext) withImports(mainModuleImport string) {
 func (c *mainModuleContext) generateMainImports() []string {
 	imports := sets.NewSet[string]()
 	imports.Add(`"context"`)
-	imports.Add(`"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"`)
-	imports.Add(`"github.com/TBD54566975/ftl/common/plugin"`)
-	imports.Add(`"github.com/TBD54566975/ftl/go-runtime/server"`)
+	imports.Add(`"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"`)
+	imports.Add(`"github.com/block/ftl/common/plugin"`)
+	imports.Add(`"github.com/block/ftl/go-runtime/server"`)
 	if len(c.MainCtx.SumTypes) > 0 || len(c.MainCtx.ExternalTypes) > 0 {
-		imports.Add(`"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"`)
+		imports.Add(`"github.com/block/ftl/go-runtime/ftl/reflection"`)
 	}
 
 	for _, v := range c.Verbs {
@@ -94,13 +94,13 @@ func (c *mainModuleContext) generateMainImports() []string {
 func (c *mainModuleContext) generateTypesImports(mainModuleImport string) []string {
 	imports := sets.NewSet[string]()
 	if len(c.TypesCtx.SumTypes) > 0 || len(c.TypesCtx.ExternalTypes) > 0 {
-		imports.Add(`"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"`)
+		imports.Add(`"github.com/block/ftl/go-runtime/ftl/reflection"`)
 	}
 	if len(c.Verbs) > 0 {
 		imports.Add(`"context"`)
 	}
 	if len(c.Databases) > 0 {
-		imports.Add(`"github.com/TBD54566975/ftl/go-runtime/server"`)
+		imports.Add(`"github.com/block/ftl/go-runtime/server"`)
 	}
 	for _, st := range c.TypesCtx.SumTypes {
 		imports.Add(st.importStatement())
@@ -113,7 +113,7 @@ func (c *mainModuleContext) generateTypesImports(mainModuleImport string) []stri
 	}
 	for _, v := range c.Verbs {
 		if len(v.Resources) > 0 {
-			imports.Add(`"github.com/TBD54566975/ftl/go-runtime/server"`)
+			imports.Add(`"github.com/block/ftl/go-runtime/server"`)
 		}
 		imports.Append(verbImports(v)...)
 	}
@@ -143,7 +143,7 @@ func typeImports(t goSchemaType) []string {
 func verbImports(v goVerb) []string {
 	imports := sets.NewSet[string]()
 	imports.Add(v.importStatement())
-	imports.Add(`"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"`)
+	imports.Add(`"github.com/block/ftl/go-runtime/ftl/reflection"`)
 
 	if nt, ok := v.Request.nativeType.Get(); ok && v.Request.TypeName != "ftl.Unit" {
 		imports.Add(nt.importStatement())
@@ -160,7 +160,7 @@ func verbImports(v goVerb) []string {
 
 	for _, r := range v.Resources {
 		if c, ok := r.(verbClient); ok {
-			imports.Add(`"github.com/TBD54566975/ftl/go-runtime/server"`)
+			imports.Add(`"github.com/block/ftl/go-runtime/server"`)
 			imports.Append(verbImports(c.goVerb)...)
 		}
 	}
@@ -1342,8 +1342,8 @@ func updateGoModule(goModPath string) (replacements []*modfile.Replace, goVersio
 		return replacements, goModFile.Go.Version, nil
 	}
 
-	if err := goModFile.AddRequire("github.com/TBD54566975/ftl", "v"+ftl.Version); err != nil {
-		return nil, "", fmt.Errorf("failed to add github.com/TBD54566975/ftl to %s: %w", goModPath, err)
+	if err := goModFile.AddRequire("github.com/block/ftl", "v"+ftl.Version); err != nil {
+		return nil, "", fmt.Errorf("failed to add github.com/block/ftl to %s: %w", goModPath, err)
 	}
 
 	// Atomically write the updated go.mod file.
@@ -1388,7 +1388,7 @@ func goModFileWithReplacements(goModPath string) (*modfile.File, []*modfile.Repl
 
 func shouldUpdateVersion(goModfile *modfile.File) bool {
 	for _, require := range goModfile.Require {
-		if require.Mod.Path == "github.com/TBD54566975/ftl" && require.Mod.Version == ftl.Version {
+		if require.Mod.Path == "github.com/block/ftl" && require.Mod.Version == ftl.Version {
 			return false
 		}
 	}
@@ -1455,11 +1455,11 @@ func imports(m *schema.Module, aliasesMustBeExported bool) map[string]string {
 			imports["time"] = "stdtime"
 
 		case *schema.Optional, *schema.Unit:
-			imports["github.com/TBD54566975/ftl/go-runtime/ftl"] = ""
+			imports["github.com/block/ftl/go-runtime/ftl"] = ""
 
 		case *schema.Topic:
 			if n.IsExported() {
-				imports["github.com/TBD54566975/ftl/go-runtime/ftl"] = ""
+				imports["github.com/block/ftl/go-runtime/ftl"] = ""
 			}
 
 		case *schema.TypeAlias:

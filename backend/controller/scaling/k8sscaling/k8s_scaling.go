@@ -13,9 +13,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/TBD54566975/ftl/backend/controller/leases"
-	"github.com/TBD54566975/ftl/backend/controller/scaling"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/backend/controller/leases"
+	"github.com/block/ftl/backend/controller/scaling"
+	"github.com/block/ftl/internal/log"
 )
 
 var _ scaling.RunnerScaling = &k8sScaling{}

@@ -25,8 +25,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/TBD54566975/ftl/internal/configuration"
-	"github.com/TBD54566975/ftl/internal/sha256"
+	"github.com/block/ftl/internal/configuration"
+	"github.com/block/ftl/internal/sha256"
 )
 
 type ProfileType string

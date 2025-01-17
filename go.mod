@@ -1,4 +1,4 @@
-module github.com/TBD54566975/ftl
+module github.com/block/ftl
 
 go 1.23.0
 
@@ -8,7 +8,6 @@ require (
 	connectrpc.com/otelconnect v0.7.1
 	github.com/BurntSushi/toml v1.4.0
 	github.com/IBM/sarama v1.43.3
-	github.com/TBD54566975/golang-tools v0.2.1
 	github.com/XSAM/otelsql v0.35.0
 	github.com/alecthomas/assert/v2 v2.11.0
 	github.com/alecthomas/atomic v0.1.0-alpha2
@@ -27,6 +26,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.6
 	github.com/aws/smithy-go v1.22.1
 	github.com/beevik/etree v1.4.1
+	github.com/block/ftl-golang-tools v0.3.0
 	github.com/block/ftl-mysql-auth-proxy v0.0.0-20241126024735-7acb0031b469
 	github.com/block/scaffolder v1.3.0
 	github.com/bmatcuk/doublestar/v4 v4.7.1
@@ -75,12 +75,12 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.32.0
 	go.opentelemetry.io/otel/trace v1.32.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
+	golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e
 	golang.org/x/mod v0.22.0
-	golang.org/x/net v0.31.0
-	golang.org/x/sync v0.9.0
-	golang.org/x/term v0.26.0
-	golang.org/x/tools v0.27.0
+	golang.org/x/net v0.32.0
+	golang.org/x/sync v0.10.0
+	golang.org/x/term v0.27.0
+	golang.org/x/tools v0.28.0
 	google.golang.org/protobuf v1.35.2
 	gotest.tools/v3 v3.5.1
 	istio.io/api v1.24.0
@@ -216,9 +216,9 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/swaggest/refl v1.3.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.32.0 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
-	golang.org/x/sys v0.27.0
-	golang.org/x/text v0.20.0
+	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/sys v0.28.0
+	golang.org/x/text v0.21.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20241104194629-dd2ea8efbc28 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241104194629-dd2ea8efbc28 // indirect
 	google.golang.org/grpc v1.68.0 // indirect

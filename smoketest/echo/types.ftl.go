@@ -2,8 +2,8 @@
 package echo
 
 import (
-	"github.com/TBD54566975/ftl/go-runtime/ftl"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
 )
 
 type EchoClient = ftl.Verb[string, string]

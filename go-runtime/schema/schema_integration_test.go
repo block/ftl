@@ -13,14 +13,14 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/participle/v2/lexer"
 
-	"github.com/TBD54566975/ftl/go-runtime/schema/common"
+	"github.com/block/ftl/go-runtime/schema/common"
 
-	"github.com/TBD54566975/ftl/internal/builderrors"
-	"github.com/TBD54566975/ftl/internal/errors"
-	"github.com/TBD54566975/ftl/internal/exec"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/slices"
+	"github.com/block/ftl/internal/builderrors"
+	"github.com/block/ftl/internal/errors"
+	"github.com/block/ftl/internal/exec"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/slices"
 )
 
 // this is helpful when a test requires another module to be built before running
@@ -215,15 +215,15 @@ func testExtractModuleSchemaTwo(t *testing.T) {
         		+typemap go "github.com/jpillora/backoff.Backoff"
 			typealias ExplicitAliasAlias Any
 				+typemap kotlin "com.foo.bar.NonFTLType"
-				+typemap go "github.com/TBD54566975/ftl/go-runtime/schema/testdata.lib.NonFTLType"
+				+typemap go "github.com/block/ftl/go-runtime/schema/testdata.lib.NonFTLType"
 			typealias ExplicitAliasType Any
 				+typemap kotlin "com.foo.bar.NonFTLType"
-				+typemap go "github.com/TBD54566975/ftl/go-runtime/schema/testdata.lib.NonFTLType"
+				+typemap go "github.com/block/ftl/go-runtime/schema/testdata.lib.NonFTLType"
 			typealias PaymentState String
 			typealias TransitiveAliasAlias Any
-				+typemap go "github.com/TBD54566975/ftl/go-runtime/schema/testdata.lib.NonFTLType"
+				+typemap go "github.com/block/ftl/go-runtime/schema/testdata.lib.NonFTLType"
 			typealias TransitiveAliasType Any
-				+typemap go "github.com/TBD54566975/ftl/go-runtime/schema/testdata.lib.NonFTLType"
+				+typemap go "github.com/block/ftl/go-runtime/schema/testdata.lib.NonFTLType"
 
 			enum PayinState: two.PaymentState {
 			  PayinPending = "PAYIN_PENDING"
@@ -565,15 +565,15 @@ func testErrorReporting(t *testing.T) {
 		`174:2-12: struct field unexported must be exported by starting with an uppercase letter`,
 		`178:6: unsupported type "ftl/failing/child.BadChildStruct" for field "child"`,
 		`183:6: duplicate data declaration for "failing.Redeclared"; already declared at "27:6"`,
-		`200:9: direct verb calls are not allowed; use the provided EmptyClient instead. See https://tbd54566975.github.io/ftl/docs/reference/verbs/#calling-verbs`,
+		`200:9: direct verb calls are not allowed; use the provided EmptyClient instead. See https://block.github.io/ftl/docs/reference/verbs/#calling-verbs`,
 	}
 
 	// failing/child/child.go
 	expectedChild := []string{
 		`9:2-6: unsupported type "uint64" for field "Body"`,
-		`14:2-7: unsupported type "github.com/TBD54566975/ftl/go-runtime/schema/testdata.NonFTLType" for field "Field"`,
-		`14:8: unsupported external type "github.com/TBD54566975/ftl/go-runtime/schema/testdata.NonFTLType"; see FTL docs on using external types: tbd54566975.github.io/ftl/docs/reference/externaltypes/`,
-		`19:6-41: declared type github.com/blah.lib.NonFTLType in typemap does not match native type github.com/TBD54566975/ftl/go-runtime/schema/testdata.lib.NonFTLType`,
+		`14:2-7: unsupported type "github.com/block/ftl/go-runtime/schema/testdata.NonFTLType" for field "Field"`,
+		`14:8: unsupported external type "github.com/block/ftl/go-runtime/schema/testdata.NonFTLType"; see FTL docs on using external types: block.github.io/ftl/docs/reference/externaltypes/`,
+		`19:6-41: declared type github.com/blah.lib.NonFTLType in typemap does not match native type github.com/block/ftl/go-runtime/schema/testdata.lib.NonFTLType`,
 		`24:6: multiple Go type mappings found for "ftl/failing/child.MultipleMappings"`,
 		`34:2-13: enum variant "SameVariant" conflicts with existing enum variant of "EnumVariantConflictParent" at "190:2"`,
 	}

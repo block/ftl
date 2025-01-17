@@ -28,21 +28,21 @@ FTL can be installed from the main Hermit package repository by simply:
 hermit install ftl
 ```
 
-Alternatively you can add [hermit-ftl](https://github.com/TBD54566975/hermit-ftl) to your sources by adding the following to your Hermit environment's `bin/hermit.hcl` file:
+Alternatively you can add [hermit-ftl](https://github.com/block/hermit-ftl) to your sources by adding the following to your Hermit environment's `bin/hermit.hcl` file:
 
 ```hcl
-sources = ["https://github.com/TBD54566975/hermit-ftl.git", "https://github.com/cashapp/hermit-packages.git"]
+sources = ["https://github.com/block/hermit-ftl.git", "https://github.com/cashapp/hermit-packages.git"]
 ```
 
 #### Homebrew (Mac or Linux)
 
 ```
-brew tap TBD54566975/ftl && brew install ftl
+brew tap block/ftl && brew install ftl
 ```
 
 #### Manually (Mac or Linux)
 
-Download binaries from the [latest release page](https://github.com/TBD54566975/ftl/releases/latest) and place them in your `$PATH`.
+Download binaries from the [latest release page](https://github.com/block/ftl/releases/latest) and place them in your `$PATH`.
 
 ### Install the VSCode extension
 
@@ -81,7 +81,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/TBD54566975/ftl/go-runtime/ftl" // Import the FTL SDK.
+	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
 
 type EchoRequest struct {

@@ -8,8 +8,8 @@ package sql
 import (
 	"context"
 
-	"github.com/TBD54566975/ftl/backend/controller/encryption/api"
-	"github.com/TBD54566975/ftl/internal/model"
+	"github.com/block/ftl/backend/controller/encryption/api"
+	"github.com/block/ftl/internal/model"
 )
 
 const insertTimelineDeploymentCreatedEvent = `-- name: InsertTimelineDeploymentCreatedEvent :exec

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/TBD54566975/ftl/backend/controller/identity/internal/sql"
-	"github.com/TBD54566975/ftl/backend/libdal"
+	"github.com/block/ftl/backend/controller/identity/internal/sql"
+	"github.com/block/ftl/backend/libdal"
 )
 
 type DAL struct {

@@ -10,10 +10,10 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/google/uuid"
 
-	"github.com/TBD54566975/ftl/backend/controller/leases"
-	"github.com/TBD54566975/ftl/backend/controller/sql/sqltest"
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/backend/controller/leases"
+	"github.com/block/ftl/backend/controller/sql/sqltest"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/log"
 )
 
 func leaseExists(t *testing.T, conn libdal.Connection, idempotencyKey uuid.UUID, key leases.Key) bool {

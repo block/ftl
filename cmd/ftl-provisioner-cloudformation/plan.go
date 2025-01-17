@@ -8,7 +8,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
 )
 
 func (c *CloudformationProvisioner) Plan(ctx context.Context, req *connect.Request[provisioner.PlanRequest]) (*connect.Response[provisioner.PlanResponse], error) {

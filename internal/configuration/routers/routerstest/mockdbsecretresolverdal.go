@@ -8,7 +8,7 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/internal/configuration/dal"
+	"github.com/block/ftl/internal/configuration/dal"
 )
 
 type MockDBSecretResolverDAL struct {

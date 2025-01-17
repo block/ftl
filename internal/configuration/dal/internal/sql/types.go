@@ -1,5 +1,5 @@
 package sql
 
-import "github.com/TBD54566975/ftl/backend/controller/sql/sqltypes"
+import "github.com/block/ftl/backend/controller/sql/sqltypes"
 
 type Type = sqltypes.Type

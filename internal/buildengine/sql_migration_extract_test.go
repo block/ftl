@@ -7,8 +7,8 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/sha256"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/sha256"
 )
 
 func TestExtractMigrations(t *testing.T) {

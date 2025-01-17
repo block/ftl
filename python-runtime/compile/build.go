@@ -13,14 +13,14 @@ import (
 	"github.com/block/scaffolder"
 	"google.golang.org/protobuf/proto"
 
-	schemapb "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema"
-	"github.com/TBD54566975/ftl/internal"
-	"github.com/TBD54566975/ftl/internal/builderrors"
-	"github.com/TBD54566975/ftl/internal/exec"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/moduleconfig"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/schema/strcase"
+	schemapb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
+	"github.com/block/ftl/internal"
+	"github.com/block/ftl/internal/builderrors"
+	"github.com/block/ftl/internal/exec"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/schema/strcase"
 )
 
 type mainModuleContext struct {

@@ -10,14 +10,14 @@ import (
 	"connectrpc.com/connect"
 	"github.com/puzpuzpuz/xsync/v3"
 
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	schemapb "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema"
-	"github.com/TBD54566975/ftl/go-runtime/encoding"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/internal/modulecontext"
-	"github.com/TBD54566975/ftl/internal/rpc"
-	"github.com/TBD54566975/ftl/internal/schema"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	schemapb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
+	"github.com/block/ftl/go-runtime/encoding"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/internal/modulecontext"
+	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/schema"
 )
 
 type mapCacheEntry struct {

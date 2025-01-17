@@ -12,18 +12,18 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
-	"github.com/TBD54566975/ftl/backend/provisioner"
-	"github.com/TBD54566975/ftl/go-runtime/ftl"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/go-runtime/internal"
-	"github.com/TBD54566975/ftl/go-runtime/server"
-	cf "github.com/TBD54566975/ftl/internal/configuration/manager"
-	"github.com/TBD54566975/ftl/internal/configuration/providers"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/modulecontext"
-	pc "github.com/TBD54566975/ftl/internal/projectconfig"
-	"github.com/TBD54566975/ftl/internal/schema"
-	mcu "github.com/TBD54566975/ftl/internal/testutils/modulecontext"
+	"github.com/block/ftl/backend/provisioner"
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/go-runtime/internal"
+	"github.com/block/ftl/go-runtime/server"
+	cf "github.com/block/ftl/internal/configuration/manager"
+	"github.com/block/ftl/internal/configuration/providers"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/modulecontext"
+	pc "github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/schema"
+	mcu "github.com/block/ftl/internal/testutils/modulecontext"
 )
 
 // Allows tests to mock module reflection

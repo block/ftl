@@ -16,13 +16,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
-	"github.com/TBD54566975/ftl/backend/controller/artefacts"
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
-	"github.com/TBD54566975/ftl/internal/dsn"
-	"github.com/TBD54566975/ftl/internal/errors"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/sha256"
+	"github.com/block/ftl/backend/controller/artefacts"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
+	"github.com/block/ftl/internal/dsn"
+	"github.com/block/ftl/internal/errors"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/sha256"
 )
 
 const tenMB = 1024 * 1024 * 10

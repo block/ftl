@@ -1,7 +1,7 @@
 package provisioner
 
 import (
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
 )
 
 // ResourceGraph is an in-memory graph of resources and their dependencies

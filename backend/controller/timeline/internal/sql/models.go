@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/TBD54566975/ftl/backend/controller/encryption/api"
+	"github.com/block/ftl/backend/controller/encryption/api"
 	"github.com/alecthomas/types/optional"
 )
 

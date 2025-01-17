@@ -4,36 +4,36 @@ import (
 	"fmt"
 	"go/types"
 
-	"github.com/TBD54566975/golang-tools/go/analysis"
-	"github.com/TBD54566975/golang-tools/go/analysis/passes/inspect"
-	checker "github.com/TBD54566975/golang-tools/go/analysis/programmaticchecker"
-	"github.com/TBD54566975/golang-tools/go/packages"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/tuple"
+	"github.com/block/ftl-golang-tools/go/analysis"
+	"github.com/block/ftl-golang-tools/go/analysis/passes/inspect"
+	checker "github.com/block/ftl-golang-tools/go/analysis/programmaticchecker"
+	"github.com/block/ftl-golang-tools/go/packages"
 	sets "github.com/deckarep/golang-set/v2"
 	"golang.org/x/exp/maps"
 
-	"github.com/TBD54566975/ftl/go-runtime/schema/call"
-	"github.com/TBD54566975/ftl/go-runtime/schema/common"
-	"github.com/TBD54566975/ftl/go-runtime/schema/config"
-	"github.com/TBD54566975/ftl/go-runtime/schema/data"
-	"github.com/TBD54566975/ftl/go-runtime/schema/database"
-	"github.com/TBD54566975/ftl/go-runtime/schema/enum"
-	"github.com/TBD54566975/ftl/go-runtime/schema/finalize"
-	"github.com/TBD54566975/ftl/go-runtime/schema/initialize"
-	"github.com/TBD54566975/ftl/go-runtime/schema/metadata"
-	"github.com/TBD54566975/ftl/go-runtime/schema/resourceconfig"
-	"github.com/TBD54566975/ftl/go-runtime/schema/secret"
-	"github.com/TBD54566975/ftl/go-runtime/schema/topic"
-	"github.com/TBD54566975/ftl/go-runtime/schema/transitive"
-	"github.com/TBD54566975/ftl/go-runtime/schema/typealias"
-	"github.com/TBD54566975/ftl/go-runtime/schema/typeenum"
-	"github.com/TBD54566975/ftl/go-runtime/schema/typeenumvariant"
-	"github.com/TBD54566975/ftl/go-runtime/schema/valueenumvariant"
-	"github.com/TBD54566975/ftl/go-runtime/schema/verb"
-	"github.com/TBD54566975/ftl/internal/builderrors"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/schema/strcase"
+	"github.com/block/ftl/go-runtime/schema/call"
+	"github.com/block/ftl/go-runtime/schema/common"
+	"github.com/block/ftl/go-runtime/schema/config"
+	"github.com/block/ftl/go-runtime/schema/data"
+	"github.com/block/ftl/go-runtime/schema/database"
+	"github.com/block/ftl/go-runtime/schema/enum"
+	"github.com/block/ftl/go-runtime/schema/finalize"
+	"github.com/block/ftl/go-runtime/schema/initialize"
+	"github.com/block/ftl/go-runtime/schema/metadata"
+	"github.com/block/ftl/go-runtime/schema/resourceconfig"
+	"github.com/block/ftl/go-runtime/schema/secret"
+	"github.com/block/ftl/go-runtime/schema/topic"
+	"github.com/block/ftl/go-runtime/schema/transitive"
+	"github.com/block/ftl/go-runtime/schema/typealias"
+	"github.com/block/ftl/go-runtime/schema/typeenum"
+	"github.com/block/ftl/go-runtime/schema/typeenumvariant"
+	"github.com/block/ftl/go-runtime/schema/valueenumvariant"
+	"github.com/block/ftl/go-runtime/schema/verb"
+	"github.com/block/ftl/internal/builderrors"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/schema/strcase"
 )
 
 // extractors contains all schema extractors that will run.
@@ -241,7 +241,7 @@ func (cd *combinedData) errorDirectVerbInvocations() {
 		if v, ok := cd.verbs[fnCall.Callee]; ok {
 			cd.error(builderrors.Errorf(pos.ToErrorPos(),
 				"direct verb calls are not allowed; use the provided %sClient instead. "+
-					"See https://tbd54566975.github.io/ftl/docs/reference/verbs/#calling-verbs",
+					"See https://block.github.io/ftl/docs/reference/verbs/#calling-verbs",
 				strcase.ToUpperCamel(v.Name)))
 		}
 	}

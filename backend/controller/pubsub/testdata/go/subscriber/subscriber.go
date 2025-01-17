@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TBD54566975/ftl/go-runtime/ftl"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
 	"github.com/alecthomas/atomic"
-	//"github.com/TBD54566975/ftl/go-runtime/ftl" // Import the FTL SDK.
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	//"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
 
 var catchCount atomic.Value[int]

@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	schemapb "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema"
-	proto "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner/provisionerconnect"
-	"github.com/TBD54566975/ftl/backend/provisioner"
-	"github.com/TBD54566975/ftl/internal/log"
 	"github.com/alecthomas/assert/v2"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	schemapb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
+	proto "github.com/block/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner/provisionerconnect"
+	"github.com/block/ftl/backend/provisioner"
+	"github.com/block/ftl/internal/log"
 	"github.com/google/uuid"
 )
 

@@ -113,9 +113,9 @@ build-go-binary dir binary="": build-zips build-protos build-frontend
   binary="${2:-$(basename "$1")}"
 
   if [ "${FTL_DEBUG:-}" = "true" ]; then
-    go build -o "{{RELEASE}}/${binary}" -tags release -gcflags=all="-N -l" -ldflags "-X github.com/TBD54566975/ftl.Version={{VERSION}} -X github.com/TBD54566975/ftl.Timestamp={{TIMESTAMP}}" "$1"
+    go build -o "{{RELEASE}}/${binary}" -tags release -gcflags=all="-N -l" -ldflags "-X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.Timestamp={{TIMESTAMP}}" "$1"
   else
-    mk "{{RELEASE}}/${binary}" : !(build|integration|infrastructure|node_modules|Procfile*|Dockerfile*) -- go build -o "{{RELEASE}}/${binary}" -tags release -ldflags "-X github.com/TBD54566975/ftl.Version={{VERSION}} -X github.com/TBD54566975/ftl.Timestamp={{TIMESTAMP}}" "$1"
+    mk "{{RELEASE}}/${binary}" : !(build|integration|infrastructure|node_modules|Procfile*|Dockerfile*) -- go build -o "{{RELEASE}}/${binary}" -tags release -ldflags "-X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.Timestamp={{TIMESTAMP}}" "$1"
   fi
 
 export DATABASE_URL := "postgres://postgres:secret@localhost:15432/ftl?sslmode=disable"
@@ -176,7 +176,7 @@ build-protos:
 # Generate .proto files from .go types.
 go2proto:
   @mk "{{SCHEMA_OUT}}" : cmd/go2proto internal/schema -- go2proto -o "{{SCHEMA_OUT}}" \
-    -O 'go_package="github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema;schemapb"' \
+    -O 'go_package="github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema;schemapb"' \
     -O 'java_multiple_files=true' \
     xyz.block.ftl.v1.schema ./internal/schema.Schema && buf format -w && buf lint
 

@@ -7,15 +7,15 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/backend/controller/async"
-	"github.com/TBD54566975/ftl/backend/controller/encryption"
-	"github.com/TBD54566975/ftl/backend/controller/pubsub"
-	"github.com/TBD54566975/ftl/backend/controller/sql/sqltest"
-	"github.com/TBD54566975/ftl/backend/controller/timeline"
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/model"
-	"github.com/TBD54566975/ftl/internal/schema"
+	"github.com/block/ftl/backend/controller/async"
+	"github.com/block/ftl/backend/controller/encryption"
+	"github.com/block/ftl/backend/controller/pubsub"
+	"github.com/block/ftl/backend/controller/sql/sqltest"
+	"github.com/block/ftl/backend/controller/timeline"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/schema"
 )
 
 func TestNoCallToAcquire(t *testing.T) {

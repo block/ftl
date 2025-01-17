@@ -6,9 +6,9 @@ import (
 	"go/token"
 	"unicode/utf8"
 
-	"github.com/TBD54566975/golang-tools/go/analysis"
+	"github.com/block/ftl-golang-tools/go/analysis"
 
-	"github.com/TBD54566975/ftl/internal/builderrors"
+	"github.com/block/ftl/internal/builderrors"
 )
 
 type DiagnosticCategory string

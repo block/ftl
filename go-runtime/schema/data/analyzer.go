@@ -9,12 +9,12 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/TBD54566975/golang-tools/go/analysis"
 	"github.com/alecthomas/types/optional"
+	"github.com/block/ftl-golang-tools/go/analysis"
 
-	"github.com/TBD54566975/ftl/go-runtime/schema/common"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/schema/strcase"
+	"github.com/block/ftl/go-runtime/schema/common"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/schema/strcase"
 )
 
 var (

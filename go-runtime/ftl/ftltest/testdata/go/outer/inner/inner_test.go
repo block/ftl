@@ -3,8 +3,8 @@ package inner_test
 import (
 	"testing"
 
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
 )
 
 func TestInner(t *testing.T) {

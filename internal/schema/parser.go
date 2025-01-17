@@ -9,7 +9,7 @@ import (
 	"github.com/alecthomas/participle/v2/lexer"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/TBD54566975/ftl/internal/builderrors"
+	"github.com/block/ftl/internal/builderrors"
 )
 
 var (

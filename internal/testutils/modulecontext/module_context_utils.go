@@ -5,7 +5,7 @@ package modulecontext
 import (
 	"context"
 
-	"github.com/TBD54566975/ftl/internal/modulecontext"
+	"github.com/block/ftl/internal/modulecontext"
 )
 
 type SingleContextSupplier struct {

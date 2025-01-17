@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 )
 
 func TestRPCContext(t *testing.T) {

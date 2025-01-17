@@ -10,7 +10,7 @@ func Hourly(ctx context.Context) error {}
 func EverySixHours(ctx context.Context) error {}
 ```
 
-See https://tbd54566975.github.io/ftl/docs/reference/cron/
+See https://block.github.io/ftl/docs/reference/cron/
 ---
 
 //ftl:cron ${2:Schedule}

@@ -6,8 +6,8 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	"github.com/TBD54566975/ftl/internal/configuration"
-	"github.com/TBD54566975/ftl/internal/configuration/dal"
+	"github.com/block/ftl/internal/configuration"
+	"github.com/block/ftl/internal/configuration/dal"
 )
 
 type mockDBConfigResolverDAL struct{}

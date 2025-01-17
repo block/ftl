@@ -9,15 +9,15 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/TBD54566975/ftl/backend/cron/observability"
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	schemapb "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema"
-	"github.com/TBD54566975/ftl/internal/cron"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/model"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/schema/schemaeventsource"
-	"github.com/TBD54566975/ftl/internal/slices"
+	"github.com/block/ftl/backend/cron/observability"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	schemapb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
+	"github.com/block/ftl/internal/cron"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/slices"
 )
 
 type CallClient interface {

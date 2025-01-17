@@ -8,8 +8,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 
-	pbconsole "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/console"
-	in "github.com/TBD54566975/ftl/internal/integration"
+	pbconsole "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/console"
+	in "github.com/block/ftl/internal/integration"
 )
 
 // GetModules calls console service GetModules and returns the response.

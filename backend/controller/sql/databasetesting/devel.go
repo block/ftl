@@ -10,9 +10,9 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx driver
 
-	"github.com/TBD54566975/ftl/backend/controller/sql"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/observability"
+	"github.com/block/ftl/backend/controller/sql"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/observability"
 )
 
 // CreateForDevel creates and migrates a new database for development or testing.

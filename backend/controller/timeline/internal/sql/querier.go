@@ -7,7 +7,7 @@ package sql
 import (
 	"context"
 
-	"github.com/TBD54566975/ftl/backend/controller/sql/sqltypes"
+	"github.com/block/ftl/backend/controller/sql/sqltypes"
 )
 
 type Querier interface {

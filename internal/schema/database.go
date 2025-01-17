@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	schemapb "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema"
+	schemapb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
 )
 
 const PostgresDatabaseType = "postgres"

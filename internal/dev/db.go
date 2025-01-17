@@ -8,10 +8,10 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/backend/controller/sql/databasetesting"
-	"github.com/TBD54566975/ftl/internal/container"
-	"github.com/TBD54566975/ftl/internal/dsn"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/backend/controller/sql/databasetesting"
+	"github.com/block/ftl/internal/container"
+	"github.com/block/ftl/internal/dsn"
+	"github.com/block/ftl/internal/log"
 )
 
 const postgresContainerName = "ftl-db-1"

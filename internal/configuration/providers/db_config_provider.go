@@ -7,8 +7,8 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/configuration"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/configuration"
 )
 
 const DatabaseConfigProviderKey configuration.ProviderKey = "db"

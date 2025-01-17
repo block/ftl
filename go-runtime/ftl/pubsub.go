@@ -3,8 +3,8 @@ package ftl
 import (
 	"context"
 
-	"github.com/TBD54566975/ftl/go-runtime/internal"
-	"github.com/TBD54566975/ftl/internal/schema"
+	"github.com/block/ftl/go-runtime/internal"
+	"github.com/block/ftl/internal/schema"
 )
 
 // TopicHandle accesses a topic

@@ -8,12 +8,12 @@ import (
 
 	"github.com/alecthomas/atomic"
 
-	"github.com/TBD54566975/ftl/backend/controller/encryption"
-	"github.com/TBD54566975/ftl/backend/controller/observability"
-	"github.com/TBD54566975/ftl/backend/controller/sql/sqltypes"
-	"github.com/TBD54566975/ftl/backend/controller/timeline/internal/sql"
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/backend/controller/encryption"
+	"github.com/block/ftl/backend/controller/observability"
+	"github.com/block/ftl/backend/controller/sql/sqltypes"
+	"github.com/block/ftl/backend/controller/timeline/internal/sql"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/log"
 )
 
 type EventType = sql.EventType

@@ -10,9 +10,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/sha256"
-	"github.com/TBD54566975/ftl/internal/slices"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/sha256"
+	"github.com/block/ftl/internal/slices"
 )
 
 // ExtractSQLMigrations extracts all migrations from the given directory and returns the updated schema and a list of migration files to deploy.

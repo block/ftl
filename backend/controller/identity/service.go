@@ -9,12 +9,12 @@ import (
 
 	"github.com/tink-crypto/tink-go/v2/keyset"
 
-	encryptionsvc "github.com/TBD54566975/ftl/backend/controller/encryption"
-	"github.com/TBD54566975/ftl/backend/controller/encryption/api"
-	"github.com/TBD54566975/ftl/backend/controller/identity/internal/dal"
-	"github.com/TBD54566975/ftl/backend/libdal"
-	internalidentity "github.com/TBD54566975/ftl/internal/identity"
-	"github.com/TBD54566975/ftl/internal/log"
+	encryptionsvc "github.com/block/ftl/backend/controller/encryption"
+	"github.com/block/ftl/backend/controller/encryption/api"
+	"github.com/block/ftl/backend/controller/identity/internal/dal"
+	"github.com/block/ftl/backend/libdal"
+	internalidentity "github.com/block/ftl/internal/identity"
+	"github.com/block/ftl/internal/log"
 )
 
 type Service struct {

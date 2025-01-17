@@ -8,9 +8,9 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/tink-crypto/tink-go/v2/tink"
 
-	"github.com/TBD54566975/ftl/backend/controller/encryption/api"
-	"github.com/TBD54566975/ftl/backend/controller/encryption/internal/dal"
-	"github.com/TBD54566975/ftl/backend/libdal"
+	"github.com/block/ftl/backend/controller/encryption/api"
+	"github.com/block/ftl/backend/controller/encryption/internal/dal"
+	"github.com/block/ftl/backend/libdal"
 )
 
 type Service struct {

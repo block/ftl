@@ -8,19 +8,19 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/backend/controller/async"
-	"github.com/TBD54566975/ftl/backend/controller/encryption"
-	"github.com/TBD54566975/ftl/backend/controller/encryption/api"
-	"github.com/TBD54566975/ftl/backend/controller/observability"
-	dalsql "github.com/TBD54566975/ftl/backend/controller/pubsub/internal/sql"
-	"github.com/TBD54566975/ftl/backend/controller/sql/sqltypes"
-	"github.com/TBD54566975/ftl/backend/controller/timeline"
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/model"
-	"github.com/TBD54566975/ftl/internal/rpc"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/slices"
+	"github.com/block/ftl/backend/controller/async"
+	"github.com/block/ftl/backend/controller/encryption"
+	"github.com/block/ftl/backend/controller/encryption/api"
+	"github.com/block/ftl/backend/controller/observability"
+	dalsql "github.com/block/ftl/backend/controller/pubsub/internal/sql"
+	"github.com/block/ftl/backend/controller/sql/sqltypes"
+	"github.com/block/ftl/backend/controller/timeline"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/slices"
 )
 
 type DAL struct {

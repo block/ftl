@@ -7,11 +7,11 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/backend/controller/dal/internal/sql"
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/TBD54566975/ftl/internal/model"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/sha256"
+	"github.com/block/ftl/backend/controller/dal/internal/sql"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/sha256"
 )
 
 // NotificationPayload is a row from the database.

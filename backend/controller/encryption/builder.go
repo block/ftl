@@ -6,7 +6,7 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/backend/controller/encryption/api"
+	"github.com/block/ftl/backend/controller/encryption/api"
 )
 
 // Builder constructs a DataEncryptor when used with a provider.

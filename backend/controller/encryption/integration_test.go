@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TBD54566975/ftl/backend/controller/encryption/api"
-	pbconsole "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/console"
-	in "github.com/TBD54566975/ftl/internal/integration"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/slices"
-	"github.com/TBD54566975/ftl/internal/testutils"
+	"github.com/block/ftl/backend/controller/encryption/api"
+	pbconsole "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/console"
+	in "github.com/block/ftl/internal/integration"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/slices"
+	"github.com/block/ftl/internal/testutils"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"

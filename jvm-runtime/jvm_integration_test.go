@@ -12,11 +12,11 @@ import (
 
 	"github.com/alecthomas/repr"
 
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	schemapb "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema"
-	"github.com/TBD54566975/ftl/go-runtime/ftl"
-	in "github.com/TBD54566975/ftl/internal/integration"
-	"github.com/TBD54566975/ftl/internal/schema"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	schemapb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
+	"github.com/block/ftl/go-runtime/ftl"
+	in "github.com/block/ftl/internal/integration"
+	"github.com/block/ftl/internal/schema"
 )
 
 func TestLifecycleJVM(t *testing.T) {

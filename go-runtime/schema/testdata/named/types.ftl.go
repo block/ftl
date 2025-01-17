@@ -3,7 +3,7 @@ package named
 
 import (
 	"context"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
 )
 
 type PingInternalUserClient func(context.Context, InternalUser) error

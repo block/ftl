@@ -5,7 +5,7 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/internal/schema"
+	"github.com/block/ftl/internal/schema"
 )
 
 type CronJob struct {

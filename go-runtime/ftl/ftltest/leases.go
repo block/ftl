@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TBD54566975/ftl/go-runtime/ftl"
-	"github.com/TBD54566975/ftl/internal/modulecontext"
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/internal/modulecontext"
 )
 
 // fakeLeaseClient is a simple in-memory lease client for testing.

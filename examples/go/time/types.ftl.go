@@ -3,8 +3,8 @@ package time
 
 import (
 	"context"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/go-runtime/server"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/go-runtime/server"
 )
 
 type InternalClient func(context.Context, TimeRequest) (TimeResponse, error)

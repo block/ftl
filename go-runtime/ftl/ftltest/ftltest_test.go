@@ -6,11 +6,11 @@ import (
 	"testing"
 	_ "unsafe"
 
-	"github.com/TBD54566975/ftl/go-runtime/ftl"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/go-runtime/internal"
-	"github.com/TBD54566975/ftl/internal/log"
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/go-runtime/internal"
+	"github.com/block/ftl/internal/log"
 )
 
 func PanicsWithErr(t testing.TB, substr string, fn func()) {

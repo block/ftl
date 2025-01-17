@@ -5,7 +5,7 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/internal/model"
+	"github.com/block/ftl/internal/model"
 )
 
 func ArtefactToProto(artefact *model.Artefact) *DeploymentArtefact {

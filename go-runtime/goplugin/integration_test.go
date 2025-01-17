@@ -8,7 +8,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	in "github.com/TBD54566975/ftl/internal/integration"
+	in "github.com/block/ftl/internal/integration"
 )
 
 func TestGoBuildClearsBuildDir(t *testing.T) {
@@ -30,7 +30,7 @@ func TestExternalType(t *testing.T) {
 		in.CopyModule("external"),
 		in.ExpectError(in.Build("external"),
 			`unsupported type "time.Month" for field "Month"`,
-			`unsupported external type "time.Month"; see FTL docs on using external types: tbd54566975.github.io/ftl/docs/reference/externaltypes/`,
+			`unsupported external type "time.Month"; see FTL docs on using external types: block.github.io/ftl/docs/reference/externaltypes/`,
 			`unsupported response type "ftl/external.ExternalResponse"`,
 		),
 	)

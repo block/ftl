@@ -7,10 +7,10 @@ import (
 
 	"github.com/alecthomas/kong"
 
-	"github.com/TBD54566975/ftl"
-	"github.com/TBD54566975/ftl/backend/runner"
-	_ "github.com/TBD54566975/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl"
+	"github.com/block/ftl/backend/runner"
+	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
+	"github.com/block/ftl/internal/log"
 )
 
 var cli struct {

@@ -10,9 +10,9 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	"github.com/TBD54566975/ftl/backend/controller/sql/databasetesting"
-	"github.com/TBD54566975/ftl/internal/dsn"
-	"github.com/TBD54566975/ftl/internal/flock"
+	"github.com/block/ftl/backend/controller/sql/databasetesting"
+	"github.com/block/ftl/internal/dsn"
+	"github.com/block/ftl/internal/flock"
 )
 
 // OpenForTesting opens a database connection for testing, recreating the

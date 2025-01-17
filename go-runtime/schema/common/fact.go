@@ -4,10 +4,10 @@ import (
 	"go/types"
 	"reflect"
 
-	"github.com/TBD54566975/golang-tools/go/analysis"
 	"github.com/alecthomas/types/optional"
+	"github.com/block/ftl-golang-tools/go/analysis"
 
-	"github.com/TBD54566975/ftl/internal/schema"
+	"github.com/block/ftl/internal/schema"
 )
 
 // SchemaFact is a fact that associates a schema node with a Go object.

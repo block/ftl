@@ -7,8 +7,8 @@
 package pbconsole
 
 import (
-	v1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	schema "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema"
+	v1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	schema "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"

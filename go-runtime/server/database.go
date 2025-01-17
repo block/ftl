@@ -12,10 +12,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 
-	"github.com/TBD54566975/ftl/go-runtime/ftl"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/modulecontext"
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/modulecontext"
 )
 
 func DatabaseHandle[T ftl.DatabaseConfig](dbtype string) reflection.VerbResource {

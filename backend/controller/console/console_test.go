@@ -5,7 +5,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	"github.com/TBD54566975/ftl/internal/schema"
+	"github.com/block/ftl/internal/schema"
 )
 
 func TestVerbSchemaString(t *testing.T) {

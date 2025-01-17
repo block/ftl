@@ -28,89 +28,89 @@ sql:
           - db_type: "timestamptz"
             go_type: "time.Time"
           - db_type: "pg_catalog.interval"
-            go_type: "github.com/TBD54566975/ftl/backend/controller/sql/sqltypes.Duration"
+            go_type: "github.com/block/ftl/backend/controller/sql/sqltypes.Duration"
           - db_type: "pg_catalog.interval"
             nullable: true
             go_type:
               type: "optional.Option[sqltypes.Duration]"
           - db_type: "module_schema_pb"
-            go_type: "*github.com/TBD54566975/ftl/internal/schema.Module"
+            go_type: "*github.com/block/ftl/internal/schema.Module"
           - db_type: "timestamptz"
             nullable: true
-            go_type: "github.com/TBD54566975/ftl/backend/controller/sql/sqltypes.OptionalTime"
+            go_type: "github.com/block/ftl/backend/controller/sql/sqltypes.OptionalTime"
           - db_type: "pg_catalog.varchar"
             nullable: true
             go_type: "github.com/alecthomas/types/optional.Option[string]"
           - db_type: "runner_key"
-            go_type: "github.com/TBD54566975/ftl/internal/model.RunnerKey"
+            go_type: "github.com/block/ftl/internal/model.RunnerKey"
           - db_type: "runner_key"
             nullable: true
             go_type:
               type: "optional.Option[model.RunnerKey]"
           - db_type: "schema_ref"
-            go_type: "github.com/TBD54566975/ftl/internal/schema.RefKey"
+            go_type: "github.com/block/ftl/internal/schema.RefKey"
           - db_type: "schema_ref"
             nullable: true
             go_type:
               type: "optional.Option[schema.RefKey]"
           - db_type: "schema_type"
-            go_type: "github.com/TBD54566975/ftl/backend/controller/sql/sqltypes.Type"
+            go_type: "github.com/block/ftl/backend/controller/sql/sqltypes.Type"
           - db_type: "schema_type"
             nullable: true
             go_type:
               type: "optional.Option[Type]"
           - db_type: "encrypted_identity"
-            go_type: "github.com/TBD54566975/ftl/backend/controller/encryption/api.EncryptedIdentityColumn"
+            go_type: "github.com/block/ftl/backend/controller/encryption/api.EncryptedIdentityColumn"
           - db_type: "encrypted_async"
-            go_type: "github.com/TBD54566975/ftl/backend/controller/encryption/api.EncryptedAsyncColumn"
+            go_type: "github.com/block/ftl/backend/controller/encryption/api.EncryptedAsyncColumn"
           - db_type: "encrypted_async"
             nullable: true
-            go_type: "github.com/TBD54566975/ftl/backend/controller/encryption/api.OptionalEncryptedAsyncColumn"
+            go_type: "github.com/block/ftl/backend/controller/encryption/api.OptionalEncryptedAsyncColumn"
           - db_type: "encrypted_timeline"
-            go_type: "github.com/TBD54566975/ftl/backend/controller/encryption/api.EncryptedTimelineColumn"
+            go_type: "github.com/block/ftl/backend/controller/encryption/api.EncryptedTimelineColumn"
           - db_type: "encrypted_timeline"
             nullable: true
-            go_type: "github.com/TBD54566975/ftl/backend/controller/encryption/api.OptionalEncryptedTimelineColumn"
+            go_type: "github.com/block/ftl/backend/controller/encryption/api.OptionalEncryptedTimelineColumn"
           - db_type: "lease_key"
-            go_type: "github.com/TBD54566975/ftl/backend/controller/leases.Key"
+            go_type: "github.com/block/ftl/backend/controller/leases.Key"
           - db_type: "lease_key"
             nullable: true
             go_type:
               type: "optional.Option[leases.Key]"
           - db_type: "deployment_key"
-            go_type: "github.com/TBD54566975/ftl/internal/model.DeploymentKey"
+            go_type: "github.com/block/ftl/internal/model.DeploymentKey"
           - db_type: "deployment_key"
             nullable: true
             go_type:
               type: "optional.Option[model.DeploymentKey]"
           - db_type: "controller_key"
-            go_type: "github.com/TBD54566975/ftl/internal/model.ControllerKey"
+            go_type: "github.com/block/ftl/internal/model.ControllerKey"
           - db_type: "request_key"
-            go_type: "github.com/TBD54566975/ftl/internal/model.RequestKey"
+            go_type: "github.com/block/ftl/internal/model.RequestKey"
           - db_type: "request_key"
             nullable: true
             go_type:
               type: "optional.Option[model.RequestKey]"
           - db_type: "topic_key"
-            go_type: "github.com/TBD54566975/ftl/internal/model.TopicKey"
+            go_type: "github.com/block/ftl/internal/model.TopicKey"
           - db_type: "topic_key"
             nullable: true
             go_type:
               type: "optional.Option[model.TopicKey]"
           - db_type: "subscription_key"
-            go_type: "github.com/TBD54566975/ftl/internal/model.SubscriptionKey"
+            go_type: "github.com/block/ftl/internal/model.SubscriptionKey"
           - db_type: "subscription_key"
             nullable: true
             go_type:
               type: "optional.Option[model.SubscriptionKey]"
           - db_type: "subscriber_key"
-            go_type: "github.com/TBD54566975/ftl/internal/model.SubscriberKey"
+            go_type: "github.com/block/ftl/internal/model.SubscriberKey"
           - db_type: "subscriber_key"
             nullable: true
             go_type:
               type: "optional.Option[model.SubscriberKey]"
           - db_type: "topic_event_key"
-            go_type: "github.com/TBD54566975/ftl/internal/model.TopicEventKey"
+            go_type: "github.com/block/ftl/internal/model.TopicEventKey"
           - db_type: "topic_event_key"
             nullable: true
             go_type:
@@ -137,9 +137,9 @@ sql:
             nullable: true
             go_type: "github.com/alecthomas/types/optional.Option[bool]"
           - column: "controller.key"
-            go_type: "github.com/TBD54566975/ftl/internal/model.ControllerKey"
+            go_type: "github.com/block/ftl/internal/model.ControllerKey"
           - column: "deployments.name"
-            go_type: "github.com/TBD54566975/ftl/internal/model.DeploymentKey"
+            go_type: "github.com/block/ftl/internal/model.DeploymentKey"
           - column: "events.payload"
             go_type: "encoding/json.RawMessage"
     rules:

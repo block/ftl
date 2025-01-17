@@ -5,14 +5,14 @@ import (
 	"go/token"
 	"reflect"
 
-	"github.com/TBD54566975/golang-tools/go/analysis"
-	"github.com/TBD54566975/golang-tools/go/analysis/passes/inspect"
-	"github.com/TBD54566975/golang-tools/go/ast/inspector"
 	"github.com/alecthomas/types/optional"
+	"github.com/block/ftl-golang-tools/go/analysis"
+	"github.com/block/ftl-golang-tools/go/analysis/passes/inspect"
+	"github.com/block/ftl-golang-tools/go/ast/inspector"
 	sets "github.com/deckarep/golang-set/v2"
 
-	"github.com/TBD54566975/ftl/go-runtime/schema/common"
-	"github.com/TBD54566975/ftl/internal/schema"
+	"github.com/block/ftl/go-runtime/schema/common"
+	"github.com/block/ftl/internal/schema"
 )
 
 // Extractor extracts metadata to the module schema.

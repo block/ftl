@@ -5,7 +5,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	"github.com/TBD54566975/ftl/internal/model"
+	"github.com/block/ftl/internal/model"
 )
 
 func TestBasics(t *testing.T) {

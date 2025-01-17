@@ -7,9 +7,9 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	. "github.com/TBD54566975/ftl/go-runtime/encoding"
-	"github.com/TBD54566975/ftl/go-runtime/ftl"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
+	. "github.com/block/ftl/go-runtime/encoding"
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
 )
 
 type discriminator interface {

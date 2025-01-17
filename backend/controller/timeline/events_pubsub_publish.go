@@ -8,12 +8,12 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	ftlencryption "github.com/TBD54566975/ftl/backend/controller/encryption/api"
-	"github.com/TBD54566975/ftl/backend/controller/timeline/internal/sql"
-	"github.com/TBD54566975/ftl/backend/libdal"
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/TBD54566975/ftl/internal/model"
-	"github.com/TBD54566975/ftl/internal/schema"
+	ftlencryption "github.com/block/ftl/backend/controller/encryption/api"
+	"github.com/block/ftl/backend/controller/timeline/internal/sql"
+	"github.com/block/ftl/backend/libdal"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/schema"
 )
 
 type PubSubPublishEvent struct {

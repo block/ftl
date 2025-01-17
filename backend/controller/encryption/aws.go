@@ -15,8 +15,8 @@ import (
 	"github.com/tink-crypto/tink-go/v2/testing/fakekms"
 	"github.com/tink-crypto/tink-go/v2/tink"
 
-	"github.com/TBD54566975/ftl/backend/controller/encryption/api"
-	"github.com/TBD54566975/ftl/internal/mutex"
+	"github.com/block/ftl/backend/controller/encryption/api"
+	"github.com/block/ftl/internal/mutex"
 )
 
 // KMSEncryptor encrypts and decrypts using a KMS key via tink.

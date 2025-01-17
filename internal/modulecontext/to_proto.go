@@ -1,7 +1,7 @@
 package modulecontext
 
 import (
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 )
 
 // ToProto converts a ModuleContext to a proto response.

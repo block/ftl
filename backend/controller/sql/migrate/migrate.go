@@ -15,8 +15,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/log"
 )
 
 var migrationFileNameRe = regexp.MustCompile(`^.*(\d{14})_(.*)(\.sql)?$`)

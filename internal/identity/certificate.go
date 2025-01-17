@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 )
 
 type CertificateData struct {

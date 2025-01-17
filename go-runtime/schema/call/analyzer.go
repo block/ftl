@@ -4,11 +4,11 @@ import (
 	"go/ast"
 	"go/types"
 
-	"github.com/TBD54566975/golang-tools/go/analysis"
-	"github.com/TBD54566975/golang-tools/go/analysis/passes/inspect"
-	"github.com/TBD54566975/golang-tools/go/ast/inspector"
+	"github.com/block/ftl-golang-tools/go/analysis"
+	"github.com/block/ftl-golang-tools/go/analysis/passes/inspect"
+	"github.com/block/ftl-golang-tools/go/ast/inspector"
 
-	"github.com/TBD54566975/ftl/go-runtime/schema/common"
+	"github.com/block/ftl/go-runtime/schema/common"
 )
 
 // Extractor extracts all function calls.

@@ -9,12 +9,12 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 
-	"github.com/TBD54566975/ftl/backend/controller/leader"
-	"github.com/TBD54566975/ftl/backend/controller/leases"
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/TBD54566975/ftl/internal/configuration"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/rpc"
+	"github.com/block/ftl/backend/controller/leader"
+	"github.com/block/ftl/backend/controller/leases"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/internal/configuration"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/rpc"
 )
 
 const ASMProviderKey configuration.ProviderKey = "asm"

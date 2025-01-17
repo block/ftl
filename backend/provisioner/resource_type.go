@@ -1,7 +1,7 @@
 package provisioner
 
 import (
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1beta1/provisioner"
 )
 
 // ResourceType is a type of resource used to configure provisioners

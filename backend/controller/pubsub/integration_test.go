@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TBD54566975/ftl/backend/controller/async"
-	in "github.com/TBD54566975/ftl/internal/integration"
-	"github.com/TBD54566975/ftl/internal/schema"
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/backend/controller/async"
+	in "github.com/block/ftl/internal/integration"
+	"github.com/block/ftl/internal/schema"
 )
 
 func TestPubSub(t *testing.T) {

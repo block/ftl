@@ -16,9 +16,9 @@ import (
 	"github.com/jpillora/backoff"
 	"golang.org/x/net/http2"
 
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/TBD54566975/ftl/internal/authn"
-	"github.com/TBD54566975/ftl/internal/log"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/internal/authn"
+	"github.com/block/ftl/internal/log"
 )
 
 // InitialiseClients initialises global HTTP clients used by the RPC system.

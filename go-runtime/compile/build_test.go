@@ -3,8 +3,8 @@ package compile
 import (
 	"testing"
 
-	"github.com/TBD54566975/ftl/internal/schema"
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/internal/schema"
 )
 
 func TestImportAliases(t *testing.T) {

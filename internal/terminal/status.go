@@ -18,8 +18,8 @@ import (
 	"github.com/tidwall/pretty"
 	"golang.org/x/term"
 
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 type BuildState string

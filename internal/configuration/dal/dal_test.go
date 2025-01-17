@@ -9,9 +9,9 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/backend/controller/sql/sqltest"
-	libdal "github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/backend/controller/sql/sqltest"
+	libdal "github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/log"
 )
 
 func TestDALConfiguration(t *testing.T) {

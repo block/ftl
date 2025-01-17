@@ -11,18 +11,18 @@ import (
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/TBD54566975/ftl/backend/controller/artefacts"
-	"github.com/TBD54566975/ftl/backend/controller/timeline"
+	"github.com/block/ftl/backend/controller/artefacts"
+	"github.com/block/ftl/backend/controller/timeline"
 
-	dalmodel "github.com/TBD54566975/ftl/backend/controller/dal/model"
-	"github.com/TBD54566975/ftl/backend/controller/encryption"
-	"github.com/TBD54566975/ftl/backend/controller/pubsub"
-	"github.com/TBD54566975/ftl/backend/controller/sql/sqltest"
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/model"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/sha256"
+	dalmodel "github.com/block/ftl/backend/controller/dal/model"
+	"github.com/block/ftl/backend/controller/encryption"
+	"github.com/block/ftl/backend/controller/pubsub"
+	"github.com/block/ftl/backend/controller/sql/sqltest"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/sha256"
 )
 
 func TestDAL(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/TBD54566975/ftl/internal/configuration"
-	"github.com/TBD54566975/ftl/internal/configuration/dal"
-	"github.com/TBD54566975/ftl/internal/slices"
+	"github.com/block/ftl/internal/configuration"
+	"github.com/block/ftl/internal/configuration/dal"
+	"github.com/block/ftl/internal/slices"
 )
 
 // DatabaseConfig loads values a project's configuration from the given database.

@@ -7,11 +7,11 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/go-runtime/internal"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/modulecontext"
-	. "github.com/TBD54566975/ftl/internal/testutils/modulecontext"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/go-runtime/internal"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/modulecontext"
+	. "github.com/block/ftl/internal/testutils/modulecontext"
 )
 
 func TestConfig(t *testing.T) {

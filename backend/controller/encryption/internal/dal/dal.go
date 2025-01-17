@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/TBD54566975/ftl/backend/controller/encryption/api"
-	encryptionsql "github.com/TBD54566975/ftl/backend/controller/encryption/internal/sql"
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/backend/controller/encryption/api"
+	encryptionsql "github.com/block/ftl/backend/controller/encryption/internal/sql"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/log"
 )
 
 type DAL struct {

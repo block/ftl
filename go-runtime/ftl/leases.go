@@ -13,12 +13,12 @@ import (
 	"github.com/alecthomas/types/optional"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/modulecontext"
-	"github.com/TBD54566975/ftl/internal/rpc"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/modulecontext"
+	"github.com/block/ftl/internal/rpc"
 )
 
 // ErrLeaseHeld is returned when an attempt is made to acquire a lease that is

@@ -2,11 +2,11 @@ module ftl/gomodule
 
 go 1.23.0
 
-replace github.com/TBD54566975/ftl => ./../../../..
+replace github.com/block/ftl => ./../../../..
 
 require (
-	github.com/TBD54566975/ftl v0.0.0-00010101000000-000000000000
-	github.com/tbd54566975/web5-go v0.24.0
+	github.com/block/ftl v0.0.0-00010101000000-000000000000
+	github.com/block/web5-go v0.24.0
 )
 
 require (

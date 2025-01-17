@@ -8,8 +8,8 @@ import (
 	"github.com/alecthomas/types/optional"
 	"google.golang.org/protobuf/proto"
 
-	v1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/TBD54566975/ftl/internal/model"
+	v1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/internal/model"
 )
 
 type Identity interface {

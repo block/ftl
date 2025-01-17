@@ -8,13 +8,13 @@ import (
 
 	"connectrpc.com/connect"
 
-	langpb "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/language"
-	"github.com/TBD54566975/ftl/internal/slices"
+	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/language"
+	"github.com/block/ftl/internal/slices"
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/moduleconfig"
 )
 
 func TestParseImportsFromTestData(t *testing.T) {

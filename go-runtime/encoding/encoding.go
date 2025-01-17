@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TBD54566975/ftl/go-runtime/ftl/reflection"
-	"github.com/TBD54566975/ftl/internal/schema/strcase"
+	"github.com/block/ftl/go-runtime/ftl/reflection"
+	"github.com/block/ftl/internal/schema/strcase"
 )
 
 var (

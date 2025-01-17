@@ -7,8 +7,8 @@ import (
 
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/internal/container"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/internal/container"
+	"github.com/block/ftl/internal/log"
 )
 
 const ftlGrafanaName = "ftl-otel-lgtm-1"

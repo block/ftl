@@ -10,13 +10,13 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/noop"
 
-	"github.com/TBD54566975/ftl/internal/model"
-	"github.com/TBD54566975/ftl/internal/observability"
-	"github.com/TBD54566975/ftl/internal/schema"
+	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/observability"
+	"github.com/block/ftl/internal/schema"
 )
 
 // To learn more about how sinks and subscriptions work together, check out the
-// https://tbd54566975.github.io/ftl/docs/reference/pubsub/
+// https://block.github.io/ftl/docs/reference/pubsub/
 const (
 	pubsubMeterName              = "ftl.pubsub"
 	pubsubTopicRefAttr           = "ftl.pubsub.topic.ref"

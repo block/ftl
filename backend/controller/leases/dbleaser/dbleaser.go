@@ -11,11 +11,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/sqlc-dev/pqtype"
 
-	"github.com/TBD54566975/ftl/backend/controller/leases"
-	"github.com/TBD54566975/ftl/backend/controller/leases/dbleaser/internal/sql"
-	"github.com/TBD54566975/ftl/backend/controller/sql/sqltypes"
-	"github.com/TBD54566975/ftl/backend/libdal"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/backend/controller/leases"
+	"github.com/block/ftl/backend/controller/leases/dbleaser/internal/sql"
+	"github.com/block/ftl/backend/controller/sql/sqltypes"
+	"github.com/block/ftl/backend/libdal"
+	"github.com/block/ftl/internal/log"
 )
 
 type DatabaseLeaser struct {

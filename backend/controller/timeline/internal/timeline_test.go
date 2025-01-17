@@ -12,18 +12,18 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/backend/controller/artefacts"
-	timeline2 "github.com/TBD54566975/ftl/backend/controller/timeline"
+	"github.com/block/ftl/backend/controller/artefacts"
+	timeline2 "github.com/block/ftl/backend/controller/timeline"
 
-	controllerdal "github.com/TBD54566975/ftl/backend/controller/dal"
-	dalmodel "github.com/TBD54566975/ftl/backend/controller/dal/model"
-	"github.com/TBD54566975/ftl/backend/controller/encryption"
-	"github.com/TBD54566975/ftl/backend/controller/pubsub"
-	"github.com/TBD54566975/ftl/backend/controller/sql/sqltest"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/model"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/sha256"
+	controllerdal "github.com/block/ftl/backend/controller/dal"
+	dalmodel "github.com/block/ftl/backend/controller/dal/model"
+	"github.com/block/ftl/backend/controller/encryption"
+	"github.com/block/ftl/backend/controller/pubsub"
+	"github.com/block/ftl/backend/controller/sql/sqltest"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/model"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/sha256"
 )
 
 func TestTimeline(t *testing.T) {

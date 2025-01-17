@@ -8,8 +8,8 @@ import (
 	"github.com/alecthomas/assert/v2"
 	. "github.com/alecthomas/types/optional"
 
-	"github.com/TBD54566975/ftl/internal/configuration"
-	"github.com/TBD54566975/ftl/internal/configuration/routers/routerstest"
+	"github.com/block/ftl/internal/configuration"
+	"github.com/block/ftl/internal/configuration/routers/routerstest"
 )
 
 func TestDBSecretResolverList(t *testing.T) {

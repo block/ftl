@@ -10,9 +10,9 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/jpillora/backoff"
 
-	dalmodel "github.com/TBD54566975/ftl/backend/controller/dal/model"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/model"
+	dalmodel "github.com/block/ftl/backend/controller/dal/model"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/model"
 )
 
 // DeploymentNotification is a notification from the database when a deployment changes.

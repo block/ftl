@@ -15,13 +15,13 @@ import (
 	"github.com/hexops/gotextdiff/span"
 	"github.com/mattn/go-isatty"
 
-	ftlv1 "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	schemapb "github.com/TBD54566975/ftl/backend/protos/xyz/block/ftl/v1/schema"
-	"github.com/TBD54566975/ftl/internal/projectconfig"
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/terminal"
-	"github.com/TBD54566975/ftl/internal/watch"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	schemapb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
+	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/terminal"
+	"github.com/block/ftl/internal/watch"
 )
 
 type schemaDiffCmd struct {

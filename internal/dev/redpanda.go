@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TBD54566975/ftl/internal/container"
-	"github.com/TBD54566975/ftl/internal/exec"
-	"github.com/TBD54566975/ftl/internal/log"
+	"github.com/block/ftl/internal/container"
+	"github.com/block/ftl/internal/exec"
+	"github.com/block/ftl/internal/log"
 )
 
 const redPandaContainerName = "ftl-redpanda-1"

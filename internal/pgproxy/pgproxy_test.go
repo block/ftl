@@ -8,9 +8,9 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/jackc/pgx/v5/pgproto3"
 
-	"github.com/TBD54566975/ftl/internal/dev"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/pgproxy"
+	"github.com/block/ftl/internal/dev"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/pgproxy"
 )
 
 func TestPgProxy(t *testing.T) {

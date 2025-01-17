@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TBD54566975/ftl/go-runtime/encoding"
+	"github.com/block/ftl/go-runtime/encoding"
 )
 
 // DatabasesFromSecrets finds DSNs in secrets and creates a map of databases.

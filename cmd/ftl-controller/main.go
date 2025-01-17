@@ -11,19 +11,19 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 
-	"github.com/TBD54566975/ftl"
-	"github.com/TBD54566975/ftl/backend/controller"
-	"github.com/TBD54566975/ftl/backend/controller/leases/dbleaser"
-	"github.com/TBD54566975/ftl/backend/controller/scaling/k8sscaling"
-	_ "github.com/TBD54566975/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
-	cf "github.com/TBD54566975/ftl/internal/configuration"
-	cfdal "github.com/TBD54566975/ftl/internal/configuration/dal"
-	"github.com/TBD54566975/ftl/internal/configuration/manager"
-	"github.com/TBD54566975/ftl/internal/configuration/providers"
-	"github.com/TBD54566975/ftl/internal/configuration/routers"
-	"github.com/TBD54566975/ftl/internal/dsn"
-	"github.com/TBD54566975/ftl/internal/log"
-	"github.com/TBD54566975/ftl/internal/observability"
+	"github.com/block/ftl"
+	"github.com/block/ftl/backend/controller"
+	"github.com/block/ftl/backend/controller/leases/dbleaser"
+	"github.com/block/ftl/backend/controller/scaling/k8sscaling"
+	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
+	cf "github.com/block/ftl/internal/configuration"
+	cfdal "github.com/block/ftl/internal/configuration/dal"
+	"github.com/block/ftl/internal/configuration/manager"
+	"github.com/block/ftl/internal/configuration/providers"
+	"github.com/block/ftl/internal/configuration/routers"
+	"github.com/block/ftl/internal/dsn"
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/observability"
 )
 
 var cli struct {

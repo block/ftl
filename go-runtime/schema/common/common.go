@@ -9,29 +9,29 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/TBD54566975/golang-tools/go/analysis"
-	"github.com/TBD54566975/golang-tools/go/analysis/passes/inspect"
-	"github.com/TBD54566975/golang-tools/go/ast/inspector"
 	"github.com/alecthomas/types/optional"
+	"github.com/block/ftl-golang-tools/go/analysis"
+	"github.com/block/ftl-golang-tools/go/analysis/passes/inspect"
+	"github.com/block/ftl-golang-tools/go/ast/inspector"
 	"github.com/puzpuzpuz/xsync/v3"
 
-	"github.com/TBD54566975/ftl/internal/schema"
-	"github.com/TBD54566975/ftl/internal/schema/strcase"
+	"github.com/block/ftl/internal/schema"
+	"github.com/block/ftl/internal/schema/strcase"
 )
 
 var (
 	// FtlUnitTypePath is the path to the FTL unit type.
-	FtlUnitTypePath = "github.com/TBD54566975/ftl/go-runtime/ftl.Unit"
+	FtlUnitTypePath = "github.com/block/ftl/go-runtime/ftl.Unit"
 	// FtlOptionTypePath is the path to the FTL option type.
-	FtlOptionTypePath = "github.com/TBD54566975/ftl/go-runtime/ftl.Option"
+	FtlOptionTypePath = "github.com/block/ftl/go-runtime/ftl.Option"
 	// FtlDatabaseHandlePath is the path to the FTL database handle type.
-	FtlDatabaseHandlePath = "github.com/TBD54566975/ftl/go-runtime/ftl.DatabaseHandle"
+	FtlDatabaseHandlePath = "github.com/block/ftl/go-runtime/ftl.DatabaseHandle"
 	// FtlTopicHandlePath is the path to the FTL topic handle type.
-	FtlTopicHandlePath = "github.com/TBD54566975/ftl/go-runtime/ftl.TopicHandle"
+	FtlTopicHandlePath = "github.com/block/ftl/go-runtime/ftl.TopicHandle"
 	// FtlConfigTypePath is the path to the FTL config handle type.
-	FtlConfigTypePath = "github.com/TBD54566975/ftl/go-runtime/ftl.Config"
+	FtlConfigTypePath = "github.com/block/ftl/go-runtime/ftl.Config"
 	// FtlSecretTypePath is the path to the FTL secret handle type.
-	FtlSecretTypePath = "github.com/TBD54566975/ftl/go-runtime/ftl.Secret" //nolint:gosec
+	FtlSecretTypePath = "github.com/block/ftl/go-runtime/ftl.Secret" //nolint:gosec
 
 	extractorRegistery = xsync.NewMapOf[reflect.Type, ExtractDeclFunc[schema.Decl, ast.Node]]()
 )
@@ -423,7 +423,7 @@ func extractSelectorType(pass *analysis.Pass, node ast.Node, typ *ast.SelectorEx
 
 				if IsExternalType(path) {
 					NoEndColumnErrorf(pass, node.Pos(), "unsupported external type %q; see FTL docs on using external types: %s",
-						path+"."+typ.Sel.Name, "tbd54566975.github.io/ftl/docs/reference/externaltypes/")
+						path+"."+typ.Sel.Name, "block.github.io/ftl/docs/reference/externaltypes/")
 					return optional.None[schema.Type]()
 				}
 
@@ -507,7 +507,7 @@ func extractRef(pass *analysis.Pass, node ast.Node) optional.Option[schema.Type]
 	nodePath := obj.Pkg().Path()
 	if !IsPathInModule(pass.Pkg, nodePath) && IsExternalType(nodePath) {
 		NoEndColumnErrorf(pass, node.Pos(), "unsupported external type %q; see FTL docs on using external types: %s",
-			GetNativeName(obj), "tbd54566975.github.io/ftl/docs/reference/externaltypes/")
+			GetNativeName(obj), "block.github.io/ftl/docs/reference/externaltypes/")
 		return optional.None[schema.Type]()
 	}
 
@@ -697,7 +697,7 @@ func IsSelfReference(pass *analysis.Pass, obj types.Object, t schema.Type) bool 
 	return ref.Module == moduleName && strcase.ToUpperCamel(obj.Name()) == ref.Name
 }
 
-// GetNativeName returns the fully qualified name of the object, e.g. "github.com/TBD54566975/ftl/go-runtime/ftl.Unit".
+// GetNativeName returns the fully qualified name of the object, e.g. "github.com/block/ftl/go-runtime/ftl.Unit".
 func GetNativeName(obj types.Object) string {
 	fqName := obj.Pkg().Path()
 	if parts := strings.Split(obj.Pkg().Path(), "/"); parts[len(parts)-1] != obj.Pkg().Name() {
@@ -771,17 +771,17 @@ func CallExprFromVar(node *ast.GenDecl) optional.Option[*ast.CallExpr] {
 
 // IsDatabaseConfigType will return true if the provided type implements the `DatabaseConfig` type.
 func IsDatabaseConfigType(pass *analysis.Pass, typ types.Type) bool {
-	return implementsType(pass, typ, "github.com/TBD54566975/ftl/go-runtime/ftl", "DatabaseConfig")
+	return implementsType(pass, typ, "github.com/block/ftl/go-runtime/ftl", "DatabaseConfig")
 }
 
 // IsPostgresDatabaseConfigType will return true if the provided type implements the `PostgresDatabaseConfig` type.
 func IsPostgresDatabaseConfigType(pass *analysis.Pass, typ types.Type) bool {
-	return implementsType(pass, typ, "github.com/TBD54566975/ftl/go-runtime/ftl", "PostgresDatabaseConfig")
+	return implementsType(pass, typ, "github.com/block/ftl/go-runtime/ftl", "PostgresDatabaseConfig")
 }
 
 // IsMysqlDatabaseConfigType will return true if the provided type implements the `MysqlDatabaseConfig` type.
 func IsMysqlDatabaseConfigType(pass *analysis.Pass, typ types.Type) bool {
-	return implementsType(pass, typ, "github.com/TBD54566975/ftl/go-runtime/ftl", "MySQLDatabaseConfig")
+	return implementsType(pass, typ, "github.com/block/ftl/go-runtime/ftl", "MySQLDatabaseConfig")
 }
 
 type VerbResourceType int
