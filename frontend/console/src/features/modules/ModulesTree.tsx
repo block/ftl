@@ -1,4 +1,4 @@
-import { ArrowRight01Icon, ArrowShrink02Icon, CircleArrowRight02Icon, ViewIcon, ViewOffSlashIcon } from 'hugeicons-react'
+import { ArrowRight01Icon, ArrowShrink02Icon, ViewIcon, ViewOffSlashIcon } from 'hugeicons-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
@@ -111,8 +111,12 @@ const ModuleSection = ({
       >
         <ArrowRight01Icon aria-hidden='true' className={`h-4 w-4 shrink-0 ${isExpanded ? 'rotate-90 text-gray-500' : ''}`} />
         {module.name}
-        <Link to={`/modules/${module.name}`} onClick={(e) => e.stopPropagation()}>
-          <CircleArrowRight02Icon id={`module-${module.name}-view-icon`} className='size-4 shrink-0 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600' />
+        <Link
+          to={`/modules/${module.name}`}
+          onClick={(e) => e.stopPropagation()}
+          className='opacity-0 group-hover:opacity-100 text-xs text-indigo-500 dark:text-indigo-300 hover:text-indigo-400 dark:hover:text-indigo-200 ml-auto'
+        >
+          view
         </Link>
       </div>
       {isExpanded && (
