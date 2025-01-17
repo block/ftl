@@ -2131,7 +2131,12 @@ export class MetadataSQLQuery extends Message<MetadataSQLQuery> {
   pos?: Position;
 
   /**
-   * @generated from field: string query = 2;
+   * @generated from field: string command = 2;
+   */
+  command = "";
+
+  /**
+   * @generated from field: string query = 3;
    */
   query = "";
 
@@ -2144,7 +2149,8 @@ export class MetadataSQLQuery extends Message<MetadataSQLQuery> {
   static readonly typeName = "xyz.block.ftl.schema.v1.MetadataSQLQuery";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "pos", kind: "message", T: Position, opt: true },
-    { no: 2, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "command", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetadataSQLQuery {

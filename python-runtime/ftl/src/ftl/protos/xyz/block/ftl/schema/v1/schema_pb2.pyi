@@ -436,12 +436,14 @@ class MetadataSQLMigration(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., digest: _Optional[str] = ...) -> None: ...
 
 class MetadataSQLQuery(_message.Message):
-    __slots__ = ("pos", "query")
+    __slots__ = ("pos", "command", "query")
     POS_FIELD_NUMBER: _ClassVar[int]
+    COMMAND_FIELD_NUMBER: _ClassVar[int]
     QUERY_FIELD_NUMBER: _ClassVar[int]
     pos: Position
+    command: str
     query: str
-    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., query: _Optional[str] = ...) -> None: ...
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., command: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
 
 class MetadataSecrets(_message.Message):
     __slots__ = ("pos", "secrets")

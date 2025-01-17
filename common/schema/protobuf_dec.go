@@ -181,8 +181,9 @@ func metadataToSchema(s *schemapb.Metadata) Metadata {
 		}
 	case *schemapb.Metadata_SqlQuery:
 		return &MetadataSQLQuery{
-			Pos:   PosFromProto(s.SqlQuery.Pos),
-			Query: s.SqlQuery.Query,
+			Pos:     PosFromProto(s.SqlQuery.Pos),
+			Query:   s.SqlQuery.Query,
+			Command: s.SqlQuery.Command,
 		}
 	case *schemapb.Metadata_DbColumn:
 		return &MetadataDBColumn{

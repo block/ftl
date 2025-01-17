@@ -78,7 +78,8 @@ fn to_verb(query: &pluginpb::Query, module_name: &str) -> schemapb::Decl {
     let sql_query_metadata = schemapb::Metadata {
         value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
             pos: None,
-            query: query.text.clone(),
+            query: query.text.replace('\n', " ").trim().to_string(),
+            command: query.cmd.trim_start_matches(':').to_string(),
         })),
     };
 
