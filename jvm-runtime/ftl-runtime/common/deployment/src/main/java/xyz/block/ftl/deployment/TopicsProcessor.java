@@ -36,7 +36,7 @@ public class TopicsProcessor {
     TopicsBuildItem handleTopics(CombinedIndexBuildItem index, BuildProducer<GeneratedClassBuildItem> generatedTopicProducer,
             BuildProducer<AdditionalBeanBuildItem> beans) {
         var topicDefinitions = index.getComputingIndex().getAnnotations(FTLDotNames.TOPIC);
-        log.infof("Processing %d topic definition annotations into decls", topicDefinitions.size());
+        log.debugf("Processing %d topic definition annotations into decls", topicDefinitions.size());
         Map<DotName, TopicsBuildItem.DiscoveredTopic> topics = new HashMap<>();
         Set<String> names = new HashSet<>();
         for (var topicDefinition : topicDefinitions) {

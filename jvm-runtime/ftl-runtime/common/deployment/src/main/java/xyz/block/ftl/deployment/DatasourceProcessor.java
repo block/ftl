@@ -32,7 +32,7 @@ public class DatasourceProcessor {
             BuildProducer<SystemPropertyBuildItem> systemPropProducer,
             BuildProducer<GeneratedResourceBuildItem> generatedResourceBuildItemBuildProducer,
             FTLRecorder recorder) {
-        log.infof("Processing %d datasource annotations into decls", datasources.size());
+        log.debugf("Processing %d datasource annotations into decls", datasources.size());
         List<Decl> decls = new ArrayList<>();
         List<String> namedDatasources = new ArrayList<>();
         for (var ds : datasources) {

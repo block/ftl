@@ -48,7 +48,7 @@ public class EnumProcessor {
             FTLRecorder recorder,
             CommentsBuildItem commentsBuildItem) {
         var enumAnnotations = index.getIndex().getAnnotations(FTLDotNames.ENUM);
-        log.infof("Processing %d enum annotations into decls", enumAnnotations.size());
+        log.debugf("Processing %d enum annotations into decls", enumAnnotations.size());
         return new SchemaContributorBuildItem(moduleBuilder -> {
             try {
                 var decls = extractEnumDecls(index, enumAnnotations, recorder, moduleBuilder, commentsBuildItem);

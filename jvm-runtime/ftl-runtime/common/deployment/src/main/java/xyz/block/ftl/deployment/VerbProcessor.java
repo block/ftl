@@ -43,7 +43,7 @@ public class VerbProcessor {
             ModuleNameBuildItem moduleNameBuildItem,
             LaunchModeBuildItem launchModeBuildItem) {
         var clientDefinitions = index.getComputingIndex().getAnnotations(VerbClient.class);
-        log.infof("Processing %d verb clients", clientDefinitions.size());
+        log.debugf("Processing %d verb clients", clientDefinitions.size());
         Map<DotName, VerbClientBuildItem.DiscoveredClients> clients = new HashMap<>();
         for (var clientDefinition : clientDefinitions) {
             var callMethod = clientDefinition.target().asMethod();
@@ -154,7 +154,7 @@ public class VerbProcessor {
             List<TypeAliasBuildItem> typeAliasBuildItems // included to force typealias processing before this
     ) {
         Collection<AnnotationInstance> verbAnnotations = index.getIndex().getAnnotations(FTLDotNames.VERB);
-        log.infof("Processing %d verb annotations into decls", verbAnnotations.size());
+        log.debugf("Processing %d verb annotations into decls", verbAnnotations.size());
         var beans = AdditionalBeanBuildItem.builder().setUnremovable();
         for (var verb : verbAnnotations) {
             boolean exported = verb.target().hasAnnotation(FTLDotNames.EXPORT);
@@ -166,7 +166,7 @@ public class VerbProcessor {
         }
 
         Collection<AnnotationInstance> cronAnnotations = index.getIndex().getAnnotations(FTLDotNames.CRON);
-        log.infof("Processing %d cron job annotations into decls", cronAnnotations.size());
+        log.debugf("Processing %d cron job annotations into decls", cronAnnotations.size());
         for (var cron : cronAnnotations) {
             var method = cron.target().asMethod();
             String className = method.declaringClass().name().toString();
