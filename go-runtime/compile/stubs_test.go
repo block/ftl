@@ -174,7 +174,7 @@ type SinkReq struct {
 // Here is another line for this comment!
 //
 //ftl:verb
-type SinkClient func(context.Context, SinkReq)
+type SinkClient func(context.Context, SinkReq) error
 
 type SourceResp struct {
 }
