@@ -18,12 +18,12 @@ export const TimelineCallDetails = ({ event }: { event: Event }) => {
       </div>
 
       <div className='text-sm pt-2'>Request</div>
-      <CodeBlock code={call.request ? JSON.stringify(JSON.parse(call.request || '{}'), null, 2) : ''} language='json' />
+      <CodeBlock code={JSON.stringify(JSON.parse(call.request), null, 2)} language='json' />
 
-      {call.response && call.response !== 'null' && (
+      {call.response !== 'null' && (
         <>
           <div className='text-sm pt-2'>Response</div>
-          <CodeBlock code={JSON.stringify(JSON.parse(call.response || '{}'), null, 2)} language='json' />
+          <CodeBlock code={JSON.stringify(JSON.parse(call.response), null, 2)} language='json' />
         </>
       )}
 
