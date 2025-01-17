@@ -337,6 +337,7 @@ message ModuleRuntimeDeployment {
   string deployment_key = 2;
   google.protobuf.Timestamp created_at = 3;
   google.protobuf.Timestamp activated_at = 4;
+  bool runners_provisioned = 5;
 }
 
 message ModuleRuntimeEvent {

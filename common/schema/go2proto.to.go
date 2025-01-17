@@ -1327,10 +1327,11 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 		return nil
 	}
 	return &destpb.ModuleRuntimeDeployment{
-		Endpoint:      string(x.Endpoint),
-		DeploymentKey: string(protoMust(x.DeploymentKey.MarshalText())),
-		CreatedAt:     timestamppb.New(x.CreatedAt),
-		ActivatedAt:   timestamppb.New(x.ActivatedAt),
+		Endpoint:           string(x.Endpoint),
+		DeploymentKey:      string(protoMust(x.DeploymentKey.MarshalText())),
+		CreatedAt:          timestamppb.New(x.CreatedAt),
+		ActivatedAt:        timestamppb.New(x.ActivatedAt),
+		RunnersProvisioned: bool(x.RunnersProvisioned),
 	}
 }
 
@@ -1342,10 +1343,11 @@ func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) *Module
 	f2.UnmarshalText([]byte(v.DeploymentKey))
 
 	return &ModuleRuntimeDeployment{
-		Endpoint:      string(v.Endpoint),
-		DeploymentKey: fromPtr(f2),
-		CreatedAt:     v.CreatedAt.AsTime(),
-		ActivatedAt:   v.ActivatedAt.AsTime(),
+		Endpoint:           string(v.Endpoint),
+		DeploymentKey:      fromPtr(f2),
+		CreatedAt:          v.CreatedAt.AsTime(),
+		ActivatedAt:        v.ActivatedAt.AsTime(),
+		RunnersProvisioned: bool(v.RunnersProvisioned),
 	}
 }
 

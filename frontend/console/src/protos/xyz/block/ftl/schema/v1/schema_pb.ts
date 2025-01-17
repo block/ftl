@@ -2522,6 +2522,11 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
    */
   activatedAt?: Timestamp;
 
+  /**
+   * @generated from field: bool runners_provisioned = 5;
+   */
+  runnersProvisioned = false;
+
   constructor(data?: PartialMessage<ModuleRuntimeDeployment>) {
     super();
     proto3.util.initPartial(data, this);
@@ -2534,6 +2539,7 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
     { no: 2, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "created_at", kind: "message", T: Timestamp },
     { no: 4, name: "activated_at", kind: "message", T: Timestamp },
+    { no: 5, name: "runners_provisioned", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeDeployment {

@@ -63,10 +63,11 @@ func (m *ModuleRuntimeScaling) runtimeEvent() {}
 //protobuf:3 RuntimeEvent
 type ModuleRuntimeDeployment struct {
 	// Endpoint is the endpoint of the deployed module.
-	Endpoint      string         `protobuf:"1"`
-	DeploymentKey key.Deployment `protobuf:"2"`
-	CreatedAt     time.Time      `protobuf:"3"`
-	ActivatedAt   time.Time      `protobuf:"4"`
+	Endpoint           string         `protobuf:"1"`
+	DeploymentKey      key.Deployment `protobuf:"2"`
+	CreatedAt          time.Time      `protobuf:"3"`
+	ActivatedAt        time.Time      `protobuf:"4"`
+	RunnersProvisioned bool           `protobuf:"5"`
 }
 
 func (m *ModuleRuntimeDeployment) moduleRuntime() {}

@@ -516,16 +516,18 @@ class ModuleRuntimeBase(_message.Message):
     def __init__(self, create_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., language: _Optional[str] = ..., os: _Optional[str] = ..., arch: _Optional[str] = ..., image: _Optional[str] = ...) -> None: ...
 
 class ModuleRuntimeDeployment(_message.Message):
-    __slots__ = ("endpoint", "deployment_key", "created_at", "activated_at")
+    __slots__ = ("endpoint", "deployment_key", "created_at", "activated_at", "runners_provisioned")
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     ACTIVATED_AT_FIELD_NUMBER: _ClassVar[int]
+    RUNNERS_PROVISIONED_FIELD_NUMBER: _ClassVar[int]
     endpoint: str
     deployment_key: str
     created_at: _timestamp_pb2.Timestamp
     activated_at: _timestamp_pb2.Timestamp
-    def __init__(self, endpoint: _Optional[str] = ..., deployment_key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    runners_provisioned: bool
+    def __init__(self, endpoint: _Optional[str] = ..., deployment_key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., runners_provisioned: bool = ...) -> None: ...
 
 class ModuleRuntimeEvent(_message.Message):
     __slots__ = ("module_runtime_base", "module_runtime_deployment", "module_runtime_scaling")
