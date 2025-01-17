@@ -25,7 +25,7 @@ public class TypeAliasProcessor {
             BuildProducer<AdditionalBeanBuildItem> additionalBeanBuildItem,
             BuildProducer<TypeAliasBuildItem> typeAliasBuildItemBuildProducer) {
         Collection<AnnotationInstance> typeAliasAnnotations = index.getIndex().getAnnotations(FTLDotNames.TYPE_ALIAS);
-        log.infof("Processing %d type alias annotations into decls", typeAliasAnnotations.size());
+        log.debugf("Processing %d type alias annotations into decls", typeAliasAnnotations.size());
         var beans = new AdditionalBeanBuildItem.Builder().setUnremovable();
         for (var mapper : typeAliasAnnotations) {
             boolean exported = mapper.target().hasAnnotation(FTLDotNames.EXPORT);

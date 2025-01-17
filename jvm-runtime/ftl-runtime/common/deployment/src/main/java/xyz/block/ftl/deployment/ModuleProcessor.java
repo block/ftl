@@ -241,7 +241,7 @@ public class ModuleProcessor {
             i.getSchemaContributor().accept(moduleBuilder);
         }
 
-        log.infof("Generating module '%s' schema from %d decls", moduleName, moduleBuilder.getDeclsCount());
+        log.debugf("Generating module '%s' schema from %d decls", moduleName, moduleBuilder.getDeclsCount());
         Path output = outputTargetBuildItem.getOutputDirectory().resolve(SCHEMA_OUT);
         Path errorOutput = outputTargetBuildItem.getOutputDirectory().resolve(ERRORS_OUT);
         ByteArrayOutputStream sch = new ByteArrayOutputStream();
