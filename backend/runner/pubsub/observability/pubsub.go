@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/noop"
 
-	"github.com/alecthomas/types/optional"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/observability"
 )
