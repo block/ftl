@@ -112,20 +112,38 @@ export const TimelineFilterPanel = ({
           <FilterPanelSection title='Event types'>
             <div className='space-y-1'>
               {Object.keys(EVENT_TYPES).map((key) => (
-                <div key={key} className='relative flex items-start'>
+                <div key={key} className='relative flex items-start group'>
                   <Checkbox
                     id={`event-type-${key}`}
                     checked={selectedEventTypes.includes(key)}
                     onChange={(e) => handleTypeChanged(key, e.target.checked)}
                     label={
-                      <div className='flex items-center justify-between w-full'>
+                      <div className='flex items-center justify-between w-full relative'>
                         <span className={textColor}>{EVENT_TYPES[key].label}</span>
-                        {EVENT_TYPES[key].icon}
+                        <div className='flex items-center'>
+                          <button
+                            type='button'
+                            onClick={() => setSelectedEventTypes([key])}
+                            className='opacity-0 group-hover:opacity-100 text-xs bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100 dark:bg-indigo-900 dark:text-indigo-300 dark:hover:bg-indigo-800 dark:ring-1 dark:ring-indigo-800 absolute right-5 rounded px-1 shadow-sm'
+                          >
+                            only
+                          </button>
+                          {EVENT_TYPES[key].icon}
+                        </div>
                       </div>
                     }
                   />
                 </div>
               ))}
+              <div className='relative flex items-center pt-1'>
+                <button
+                  type='button'
+                  onClick={() => setSelectedEventTypes(Object.keys(EVENT_TYPES))}
+                  className='text-indigo-500 cursor-pointer hover:text-indigo-500'
+                >
+                  Select all
+                </button>
+              </div>
             </div>
           </FilterPanelSection>
 
@@ -150,29 +168,32 @@ export const TimelineFilterPanel = ({
 
           {modules.isSuccess && (
             <FilterPanelSection title='Modules'>
-              <div className='relative flex items-center mb-2'>
-                <button
-                  type='button'
-                  onClick={() => setSelectedModules(modules.data.modules.map((module) => module.deploymentKey))}
-                  className='text-indigo-600 cursor-pointer hover:text-indigo-500'
-                >
-                  Select All
-                </button>
-                <span className='px-1 text-indigo-700'>|</span>
-                <button type='button' onClick={() => setSelectedModules([])} className='text-indigo-600 cursor-pointer hover:text-indigo-500'>
-                  Deselect All
-                </button>
-              </div>
               {modules.data.modules.map((module) => (
-                <div key={module.deploymentKey}>
+                <div key={module.deploymentKey} className='group flex items-center'>
                   <Checkbox
                     id={`module-${module.deploymentKey}`}
                     checked={selectedModules.includes(module.deploymentKey)}
                     onChange={(e) => handleModuleChanged(module.deploymentKey, e.target.checked)}
                     label={<span className={textColor}>{module.name}</span>}
                   />
+                  <button
+                    type='button'
+                    onClick={() => setSelectedModules([module.deploymentKey])}
+                    className='opacity-0 group-hover:opacity-100 text-xs bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100 dark:bg-indigo-900 dark:text-indigo-300 dark:hover:bg-indigo-800 dark:ring-1 dark:ring-indigo-800 rounded px-1 shadow-sm ml-auto'
+                  >
+                    only
+                  </button>
                 </div>
               ))}
+              <div className='relative flex items-center pt-1'>
+                <button
+                  type='button'
+                  onClick={() => setSelectedModules(modules.data.modules.map((module) => module.deploymentKey))}
+                  className='text-indigo-500 cursor-pointer hover:text-indigo-500'
+                >
+                  Select all
+                </button>{' '}
+              </div>
             </FilterPanelSection>
           )}
         </div>
