@@ -1147,8 +1147,9 @@ func (x *MetadataSQLQuery) ToProto() *destpb.MetadataSQLQuery {
 		return nil
 	}
 	return &destpb.MetadataSQLQuery{
-		Pos:   x.Pos.ToProto(),
-		Query: string(x.Query),
+		Pos:     x.Pos.ToProto(),
+		Command: string(x.Command),
+		Query:   string(x.Query),
 	}
 }
 
@@ -1158,8 +1159,9 @@ func MetadataSQLQueryFromProto(v *destpb.MetadataSQLQuery) *MetadataSQLQuery {
 	}
 
 	return &MetadataSQLQuery{
-		Pos:   fromPtr(PositionFromProto(v.Pos)),
-		Query: string(v.Query),
+		Pos:     fromPtr(PositionFromProto(v.Pos)),
+		Command: string(v.Command),
+		Query:   string(v.Query),
 	}
 }
 

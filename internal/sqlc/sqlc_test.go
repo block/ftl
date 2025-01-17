@@ -72,7 +72,8 @@ func TestAddQueriesToSchema(t *testing.T) {
 				}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataSQLQuery{
-						Query: "SELECT data FROM requests",
+						Query:   "SELECT data FROM requests",
+						Command: "many",
 					},
 				},
 			},
@@ -97,7 +98,8 @@ func TestAddQueriesToSchema(t *testing.T) {
 				Response: &schema.Unit{},
 				Metadata: []schema.Metadata{
 					&schema.MetadataSQLQuery{
-						Query: "INSERT INTO requests (data) VALUES (?)",
+						Query:   "INSERT INTO requests (data) VALUES (?)",
+						Command: "exec",
 					},
 				},
 			},

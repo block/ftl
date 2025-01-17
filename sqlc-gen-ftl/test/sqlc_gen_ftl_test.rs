@@ -156,6 +156,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                         value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
                             pos: None,
                             query: queries[0].clone(),
+                            command: "one".to_string(),
                         })),
                     }],
                 })),
@@ -224,6 +225,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                         value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
                             pos: None,
                             query: queries[1].clone(),
+                            command: "exec".to_string(),
                         })),
                     }],
                 })),
@@ -282,6 +284,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                         value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
                             pos: None,
                             query: queries[2].clone(),
+                            command: "many".to_string(),
                         })),
                     }],
                 })),
@@ -335,6 +338,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                         value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
                             pos: None,
                             query: queries[3].clone(),
+                            command: "exec".to_string(),
                         })),
                     }],
                 })),

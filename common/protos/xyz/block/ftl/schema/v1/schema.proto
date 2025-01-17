@@ -285,7 +285,8 @@ message MetadataSQLMigration {
 // MetadataSQLQuery designates a query verb; a verb generated from a SQL query.
 message MetadataSQLQuery {
   optional Position pos = 1;
-  string query = 2;
+  string command = 2;
+  string query = 3;
 }
 
 // MetadataSecrets represents a metadata block with a list of config items that are used.

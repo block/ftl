@@ -49,11 +49,11 @@ module todo {
   }
 
   export verb create(todo.CreateRequest) todo.CreateResponse
-    +calls todo.destroy
-	+database calls todo.testdb
-    +secrets todo.secretValue
-    +config todo.configValue
-	+sql query "INSERT INTO requests (name) VALUES (?)"
+      +calls todo.destroy 
+      +database calls todo.testdb 
+      +secrets todo.secretValue 
+      +config todo.configValue 
+      +sql query :exec "INSERT INTO requests (name) VALUES (?)"
 
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
       +ingress http GET /todo/destroy/{name}
@@ -234,7 +234,9 @@ Module
 }
 
 func TestParserRoundTrip(t *testing.T) {
-	actual, err := ParseString("", testSchema.String())
+	input := testSchema.String()
+	fmt.Printf("Input schema:\n%s\n", input)
+	actual, err := ParseString("", input)
 	assert.NoError(t, err, "%s", testSchema.String())
 	actual, err = ValidateSchema(actual)
 	assert.NoError(t, err)
@@ -785,7 +787,7 @@ module todo {
 	when Time
   }
   export verb create(todo.CreateRequest) todo.CreateResponse
-  	+calls todo.destroy +database calls todo.testdb +secrets todo.secretValue +config todo.configValue +sql query "INSERT INTO requests (name) VALUES (?)"
+  	+calls todo.destroy +database calls todo.testdb +secrets todo.secretValue +config todo.configValue +sql query :exec "INSERT INTO requests (name) VALUES (?)"
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
   	+ingress http GET /todo/destroy/{name}
   verb scheduled(Unit) Unit
@@ -897,7 +899,7 @@ var testSchema = MustValidate(&Schema{
 						&MetadataDatabases{Calls: []*Ref{{Module: "todo", Name: "testdb"}}},
 						&MetadataSecrets{Secrets: []*Ref{{Module: "todo", Name: "secretValue"}}},
 						&MetadataConfig{Config: []*Ref{{Module: "todo", Name: "configValue"}}},
-						&MetadataSQLQuery{Query: "INSERT INTO requests (name) VALUES (?)"},
+						&MetadataSQLQuery{Command: "exec", Query: "INSERT INTO requests (name) VALUES (?)"},
 					}},
 				&Verb{Name: "destroy",
 					Export:   true,

@@ -424,6 +424,8 @@ pub struct MetadataSqlQuery {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
     #[prost(string, tag="2")]
+    pub command: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
     pub query: ::prost::alloc::string::String,
 }
 /// MetadataSecrets represents a metadata block with a list of config items that are used.
