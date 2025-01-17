@@ -22,6 +22,7 @@ export const GraphPage = () => {
   const modules = useModules()
   const navigate = useNavigate()
   const [selectedNode, setSelectedNode] = useState<FTLNode | null>(null)
+  const [selectedModuleName, setSelectedModuleName] = useState<string | null>(null)
 
   if (!modules.isSuccess) {
     return (
@@ -31,43 +32,53 @@ export const GraphPage = () => {
     )
   }
 
+  const handleNodeTapped = (node: FTLNode | null, moduleName: string | null) => {
+    setSelectedNode(node)
+    setSelectedModuleName(moduleName)
+  }
+
   return (
     <div className='flex h-full'>
       <ResizablePanels
-        mainContent={<GraphPane onTapped={setSelectedNode} />}
-        rightPanelHeader={headerForNode(selectedNode)}
-        rightPanelPanels={panelsForNode(modules.data.modules, selectedNode, navigate)}
+        mainContent={<GraphPane onTapped={handleNodeTapped} />}
+        rightPanelHeader={headerForNode(selectedNode, selectedModuleName)}
+        rightPanelPanels={panelsForNode(modules.data.modules, selectedNode, selectedModuleName, navigate)}
         bottomPanelContent={<Timeline timeSettings={{ isTailing: true, isPaused: false }} filters={[]} />}
       />
     </div>
   )
 }
 
-const panelsForNode = (modules: Module[], node: FTLNode | null, navigate: NavigateFunction) => {
+const panelsForNode = (modules: Module[], node: FTLNode | null, moduleName: string | null, navigate: NavigateFunction) => {
   if (node instanceof Module) {
     return modulePanels(modules, node, navigate)
   }
 
+  // If no module name is provided, we can't show the panels
+  if (!moduleName) {
+    return [] as ExpandablePanelProps[]
+  }
+
   if (node instanceof Config) {
-    return configPanels(node)
+    return configPanels(moduleName, node)
   }
   if (node instanceof Secret) {
-    return secretPanels(node)
+    return secretPanels(moduleName, node)
   }
   if (node instanceof Database) {
-    return databasePanels(node)
+    return databasePanels(moduleName, node)
   }
   if (node instanceof Enum) {
-    return enumPanels(node)
+    return enumPanels(moduleName, node)
   }
   if (node instanceof Data) {
-    return dataPanels(node)
+    return dataPanels(moduleName, node)
   }
   if (node instanceof Topic) {
-    return topicPanels(node)
+    return topicPanels(moduleName, node)
   }
   if (node instanceof Verb) {
-    return verbPanels(node)
+    return verbPanels(moduleName, node)
   }
   return [] as ExpandablePanelProps[]
 }

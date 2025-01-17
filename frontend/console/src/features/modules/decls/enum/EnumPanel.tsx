@@ -23,13 +23,13 @@ export const EnumPanel = ({ value, schema, moduleName, declName }: { value: Enum
             <div className=''>
               <PanelHeader title='Enum' declRef={`${moduleName}.${declName}`} exported={false} comments={decl.comments} />
               <div className='-mx-3.5'>
-                <Schema schema={schema} />
+                <Schema schema={schema} moduleName={moduleName} />
               </div>
             </div>
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('enum', decl)} title={declName} />}
-        rightPanelPanels={enumPanels(value, schema)}
+        rightPanelPanels={enumPanels(moduleName, value, schema)}
         storageKeyPrefix='enumPanel'
       />
     </div>

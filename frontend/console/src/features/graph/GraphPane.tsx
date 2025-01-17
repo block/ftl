@@ -12,7 +12,7 @@ import { type FTLNode, getGraphData } from './graph-utils'
 cytoscape.use(fcose)
 
 interface GraphPaneProps {
-  onTapped?: (item: FTLNode | null) => void
+  onTapped?: (item: FTLNode | null, moduleName: string | null) => void
 }
 
 const ZOOM_THRESHOLD = 0.6
@@ -54,25 +54,26 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
       const nodeType = node.data('type')
       const item = node.data('item')
       const zoom = evt.cy.zoom()
+      const moduleName = node.parent().length ? node.parent().data('id') : node.data('id')
 
       if (zoom < ZOOM_THRESHOLD) {
         if (nodeType === 'node') {
           const parent = node.parent()
           if (parent.length) {
-            onTapped?.(parent.data('item'))
+            onTapped?.(parent.data('item'), parent.data('id'))
             return
           }
         }
       }
 
       if (nodeType === 'groupNode' || (nodeType === 'node' && zoom >= ZOOM_THRESHOLD)) {
-        onTapped?.(item)
+        onTapped?.(item, moduleName)
       }
     })
 
     cyInstance.current.on('tap', (evt) => {
       if (evt.target === cyInstance.current) {
-        onTapped?.(null)
+        onTapped?.(null, null)
       }
     })
 
@@ -95,6 +96,7 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
           'text-halign': 'center',
           'font-size': '18px',
           'text-max-width': '160px',
+          'text-margin-y': '0px',
           width: '180px',
         })
       } else {
@@ -111,6 +113,7 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
           'text-halign': 'center',
           'font-size': '14px',
           'text-max-width': '160px',
+          'text-margin-y': '20px',
           width: '180px',
         })
       }
@@ -122,7 +125,7 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
       }
       cyInstance.current?.destroy()
     }
-  }, [onTapped])
+  }, [])
 
   // Modify the data loading effect
   useEffect(() => {

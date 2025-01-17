@@ -23,7 +23,7 @@ export const ModulePanel = () => {
 
   return (
     <div ref={ref} className='mt-4 mx-4 h-full'>
-      <Schema schema={module.schema} />
+      <Schema schema={module.schema} moduleName={module.name} />
     </div>
   )
 }

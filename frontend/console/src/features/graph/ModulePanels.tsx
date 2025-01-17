@@ -76,7 +76,7 @@ export const modulePanels = (allModules: Module[], module: Module, navigate: Nav
   panels.push({
     title: 'Schema',
     expanded: true,
-    children: <Schema schema={module.schema} />,
+    children: <Schema schema={module.schema} moduleName={module.name} />,
   })
 
   return panels

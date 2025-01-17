@@ -2,7 +2,8 @@ import { RightPanelAttribute } from '../../../../components/RightPanelAttribute'
 import type { TypeAlias } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { ExpandablePanelProps } from '../../../graph/ExpandablePanel'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
-export const typeAliasPanels = (typeAlias: TypeAlias, schema?: string) => {
+
+export const typeAliasPanels = (moduleName: string, typeAlias: TypeAlias, schema?: string) => {
   return [
     {
       title: 'Details',
@@ -12,6 +13,6 @@ export const typeAliasPanels = (typeAlias: TypeAlias, schema?: string) => {
         <RightPanelAttribute key='export' name='Type' value={typeAlias.typealias?.type?.value.case} />,
       ],
     },
-    ...DeclDefaultPanels(schema, typeAlias.references),
+    ...DeclDefaultPanels(moduleName, schema, typeAlias.references),
   ] as ExpandablePanelProps[]
 }

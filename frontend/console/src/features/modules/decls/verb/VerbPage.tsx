@@ -65,7 +65,7 @@ export const VerbPage = ({ moduleName, declName }: { moduleName: string; declNam
           <ResizablePanels
             mainContent={<VerbRequestForm key={`${module.name}-${verb.verb?.name}`} module={module} verb={verb} />}
             rightPanelHeader={header}
-            rightPanelPanels={verbPanels(verb, callers)}
+            rightPanelPanels={verbPanels(moduleName, verb, callers)}
             bottomPanelContent={<TraceRequestList module={module.name} verb={verb.verb?.name} />}
           />
         </div>
