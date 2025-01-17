@@ -24,15 +24,6 @@ func protoSlice[P any, T interface{ ToProto() P }](values []T) []P {
 	return out
 }
 
-// protoSlicef converts a slice of values to a slice of protobuf values using a mapping function.
-func protoSlicef[P, T any](values []T, f func(T) P) []P {
-	out := make([]P, len(values))
-	for i, v := range values {
-		out[i] = f(v)
-	}
-	return out
-}
-
 func protoMust[T any](v T, err error) T {
 	if err != nil {
 		panic(err)
@@ -132,7 +123,7 @@ func (x *Root) ToProto() *destpb.Root {
 		OptionalInt:    proto.Int64(int64(x.OptionalInt)),
 		OptionalIntPtr: proto.Int64(int64(*x.OptionalIntPtr)),
 		OptionalMsg:    x.OptionalMsg.ToProto(),
-		RepeatedInt:    protoSlicef(x.RepeatedInt, func(v int) int64 { return int64(v) }),
+		RepeatedInt:    sliceMap(x.RepeatedInt, func(v int) int64 { return int64(v) }),
 		RepeatedMsg:    protoSlice[*destpb.Message](x.RepeatedMsg),
 		Url:            protoMust(x.URL.MarshalBinary()),
 		Key:            string(protoMust(x.Key.MarshalText())),
