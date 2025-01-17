@@ -72,7 +72,7 @@ export const defaultRequest = (verb?: Verb): string => {
 
   if (!verb.jsonRequestSchema) {
     const defaultValue = verb.verb?.request ? defaultForType(verb.verb.request) : null
-    return defaultValue ? JSON.stringify(defaultValue, null, 2) : '{}'
+    return defaultValue !== null ? JSON.stringify(defaultValue, null, 2) : '{}'
   }
 
   const schema = simpleJsonSchema(verb)
