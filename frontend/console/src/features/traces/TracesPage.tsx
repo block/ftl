@@ -8,6 +8,7 @@ import { TraceDetails } from './TraceDetails'
 import { TraceDetailsAsyncCall } from './details/TraceDetailsAsyncCall'
 import { TraceDetailsCall } from './details/TraceDetailsCall'
 import { TraceDetailsIngress } from './details/TraceDetailsIngress'
+import { TraceDetailsPubsubConsume } from './details/TraceDetailsPubsubConsume'
 import { TraceDetailsPubsubPublish } from './details/TraceDetailsPubsubPublish'
 
 export const TracesPage = () => {
@@ -59,6 +60,9 @@ export const TracesPage = () => {
       break
     case 'pubsubPublish':
       eventDetailsComponent = <TraceDetailsPubsubPublish event={selectedEvent} />
+      break
+    case 'pubsubConsume':
+      eventDetailsComponent = <TraceDetailsPubsubConsume event={selectedEvent} />
       break
     default:
       eventDetailsComponent = <p>No details available for this event type.</p>

@@ -18,7 +18,6 @@ import (
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/exec"
 	in "github.com/block/ftl/internal/integration"
-	"github.com/block/ftl/internal/key"
 )
 
 func TestPubSub(t *testing.T) {
@@ -211,9 +210,7 @@ func checkConsumed(module, verb string, success bool, count int, needle optional
 				return false
 			}
 			assert.NotEqual(t, nil, c.RequestKey, "pub sub calls need a request key")
-			requestKey, err := key.ParseRequestKey(*c.RequestKey)
 			assert.NoError(t, err)
-			assert.Equal(t, requestKey.Payload.Origin, key.OriginPubsub, "expected pubsub origin")
 			if needle, ok := needle.Get(); ok && !strings.Contains(c.Request, needle) {
 				return false
 			}

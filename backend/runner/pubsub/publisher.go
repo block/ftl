@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	createdAtHeader = "ftl.created_at"
+	createdAtHeader  = "ftl.created_at"
+	requestKeyHeader = "ftl.request_key"
 )
 
 type publisher struct {
@@ -78,15 +79,10 @@ func (p *publisher) publish(ctx context.Context, data []byte, key string, caller
 	}
 
 	partition, offset, err := p.producer.SendMessage(&sarama.ProducerMessage{
-		Topic: p.topic.Runtime.TopicID,
-		Value: sarama.ByteEncoder(data),
-		Key:   sarama.StringEncoder(key),
-		Headers: []sarama.RecordHeader{
-			{
-				Key:   []byte(createdAtHeader),
-				Value: []byte(createdAt.Format(time.RFC3339Nano)),
-			},
-		},
+		Topic:   p.topic.Runtime.TopicID,
+		Value:   sarama.ByteEncoder(data),
+		Key:     sarama.StringEncoder(key),
+		Headers: newHeaders(createdAt, requestKey),
 	})
 	observability.PubSub.Published(ctx, p.module, p.topic.Name, caller.Name, err)
 	if err != nil {
@@ -99,4 +95,20 @@ func (p *publisher) publish(ctx context.Context, data []byte, key string, caller
 	p.timelineClient.Publish(ctx, timelineEvent)
 	logger.Debugf("Published to %v[%v:%v]", p.topic.Name, partition, offset)
 	return nil
+}
+
+func newHeaders(createdAt time.Time, requestKey optional.Option[key.Request]) []sarama.RecordHeader {
+	headers := []sarama.RecordHeader{
+		{
+			Key:   []byte(createdAtHeader),
+			Value: []byte(createdAt.Format(time.RFC3339Nano)),
+		},
+	}
+	if requestKey, ok := requestKey.Get(); ok {
+		headers = append(headers, sarama.RecordHeader{
+			Key:   []byte(requestKeyHeader),
+			Value: []byte(requestKey.String()),
+		})
+	}
+	return headers
 }
