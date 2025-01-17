@@ -284,7 +284,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			}
 
 			logger.Debugf("Consuming message from %v[%v:%v]", c.verb.Name, msg.Partition, msg.Offset)
-			publishedAt := parseHeaders(logger, msg.Headers)
+			publishedAt, publisherRequestKey := parseHeaders(logger, msg.Headers)
 			remainingRetries := c.retryParams.Count
 			backoff := c.retryParams.MinBackoff
 			for {
@@ -292,7 +292,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				callCtx, callCancel := context.WithCancel(ctx)
 				callChan := make(chan error)
 				go func() {
-					callChan <- c.call(callCtx, msg.Value, int(msg.Partition), int(msg.Offset))
+					callChan <- c.call(callCtx, msg.Value, int(msg.Partition), int(msg.Offset), publisherRequestKey)
 				}()
 				var err error
 				select {
@@ -347,25 +347,33 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 }
 
 // parseHeaders extracts FTL header values for a kafka message
-func parseHeaders(logger *log.Logger, headers []*sarama.RecordHeader) (publishedAt optional.Option[time.Time]) {
+func parseHeaders(logger *log.Logger, headers []*sarama.RecordHeader) (publishedAt optional.Option[time.Time], requestKey optional.Option[key.Request]) {
 	for _, h := range headers {
-		key := string(h.Key)
-		if key == createdAtHeader {
+		switch string(h.Key) {
+		case createdAtHeader:
 			t, err := time.Parse(time.RFC3339Nano, string(h.Value))
 			if err != nil {
 				logger.Warnf("failed to parse %s header: %v", createdAtHeader, err)
 			} else {
 				publishedAt = optional.Some(t)
 			}
+
+		case requestKeyHeader:
+			k, err := key.ParseRequestKey(string(h.Value))
+			if err != nil {
+				logger.Warnf("failed to parse %s header: %v", requestKeyHeader, err)
+			} else {
+				requestKey = optional.Some(k)
+			}
 		}
 	}
 	return
 }
 
-func (c *consumer) call(ctx context.Context, body []byte, partition, offset int) error {
+func (c *consumer) call(ctx context.Context, body []byte, partition, offset int, publisherRequestKey optional.Option[key.Request]) error {
 	start := time.Now()
 
-	requestKey := key.NewRequestKey(key.OriginPubsub, schema.RefKey{Module: c.moduleName, Name: c.verb.Name}.String())
+	requestKey := publisherRequestKey.Default(key.NewRequestKey(key.OriginPubsub, schema.RefKey{Module: c.moduleName, Name: c.verb.Name}.String()))
 	destRef := &schema.Ref{
 		Module: c.moduleName,
 		Name:   c.verb.Name,

@@ -1,5 +1,5 @@
 import type { TraceEvent } from '../../api/timeline/use-request-trace-events'
-import { AsyncExecuteEvent, CallEvent, type Event, IngressEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
+import { AsyncExecuteEvent, CallEvent, type Event, IngressEvent, PubSubConsumeEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { classNames } from '../../utils'
 import { TimelineIcon } from '../timeline/TimelineIcon'
 import { eventBackgroundColor } from '../timeline/timeline.utils'
@@ -45,6 +45,9 @@ export const TraceDetailItem: React.FC<TraceDetailItemProps> = ({
   } else if (traceEvent instanceof PubSubPublishEvent) {
     action = 'Publish'
     eventName = `${traceEvent.topic}`
+  } else if (traceEvent instanceof PubSubConsumeEvent) {
+    action = 'Consume'
+    eventName = `${traceEvent.destVerbModule}.${traceEvent.destVerbName}`
   }
 
   const barColor = event.id === selectedEventId ? 'bg-green-500' : eventBackgroundColor(event)
