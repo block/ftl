@@ -306,27 +306,35 @@ func decodeStruct(d *json.Decoder, v reflect.Value) error {
 	}
 
 	for d.More() {
-		token, err := d.Token()
+		keyToken, err := d.Token()
 		if err != nil {
 			return err
 		}
-		key, ok := token.(string)
+		key, ok := keyToken.(string)
 		if !ok {
-			return fmt.Errorf("expected string key, got %T", token)
+			return fmt.Errorf("expected string key, got %T (value: %v)", keyToken, keyToken)
 		}
 
 		field := v.FieldByNameFunc(func(s string) bool {
 			return strcase.ToLowerCamel(s) == key
 		})
 		if !field.IsValid() {
-			// Issue #2117 #2119: ignore unknown fields
+			// Skip the value token for unknown fields
+			if _, err := d.Token(); err != nil {
+				return fmt.Errorf("failed to skip unknown field %s: %w", key, err)
+			}
 			continue
 		}
+
 		fieldTypeStr := field.Type().String()
 		switch {
 		case fieldTypeStr == "*Unit" || fieldTypeStr == "Unit":
 			if fieldTypeStr == "*Unit" && field.IsNil() {
 				field.Set(reflect.New(field.Type().Elem()))
+			}
+			// Skip the value token for Unit types
+			if _, err := d.Token(); err != nil {
+				return fmt.Errorf("failed to skip Unit field %s: %w", key, err)
 			}
 		default:
 			if err := decodeValue(d, field); err != nil {

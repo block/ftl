@@ -223,3 +223,25 @@ func (o *Option[T]) Unmarshal(
 	o.ok = true
 	return nil
 }
+
+// SetNull sets the Option to None
+func (o *Option[T]) SetNull() {
+	o.ok = false
+	var zero T
+	o.value = zero
+}
+
+// SetValue sets the Option to Some with the given value
+func (o *Option[T]) SetValue(v reflect.Value) error {
+	if !v.Type().AssignableTo(reflect.TypeOf(o.value)) {
+		return fmt.Errorf("cannot assign %v to Option[%T]", v.Type(), o.value)
+	}
+	o.value = v.Interface().(T) //nolint:forcetypeassert
+	o.ok = true
+	return nil
+}
+
+// GetType returns the type of the value in the Option
+func (o *Option[T]) GetType() reflect.Type {
+	return reflect.TypeOf(o.value)
+}

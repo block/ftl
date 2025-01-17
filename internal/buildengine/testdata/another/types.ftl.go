@@ -20,6 +20,7 @@ func init() {
 			*new(B),
 		),
 		reflection.ExternalType(*new(lib.AnotherNonFTLType)),
+
 		reflection.ProvideResourcesForVerb(
 			Echo,
 		),

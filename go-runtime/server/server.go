@@ -75,8 +75,8 @@ type Handler struct {
 	fn  func(ctx context.Context, req []byte, metadata map[internal.MetadataKey]string) ([]byte, error)
 }
 
-func HandleCall[Req, Resp any](verb any) Handler {
-	ref := reflection.FuncRef(verb)
+func HandleCall[Req, Resp any](module string, verb string) Handler {
+	ref := reflection.Ref{Module: module, Name: verb}
 	return Handler{
 		ref: ref,
 		fn: func(ctx context.Context, reqdata []byte, metadata map[internal.MetadataKey]string) ([]byte, error) {
@@ -106,16 +106,16 @@ func HandleCall[Req, Resp any](verb any) Handler {
 	}
 }
 
-func HandleSink[Req any](verb any) Handler {
-	return HandleCall[Req, ftl.Unit](verb)
+func HandleSink[Req any](module string, verb string) Handler {
+	return HandleCall[Req, ftl.Unit](module, verb)
 }
 
-func HandleSource[Resp any](verb any) Handler {
-	return HandleCall[ftl.Unit, Resp](verb)
+func HandleSource[Resp any](module string, verb string) Handler {
+	return HandleCall[ftl.Unit, Resp](module, verb)
 }
 
-func HandleEmpty(verb any) Handler {
-	return HandleCall[ftl.Unit, ftl.Unit](verb)
+func HandleEmpty(module string, verb string) Handler {
+	return HandleCall[ftl.Unit, ftl.Unit](module, verb)
 }
 
 func InvokeVerb[Req, Resp any](ref reflection.Ref) func(ctx context.Context, req Req) (resp Resp, err error) {
@@ -138,7 +138,7 @@ func InvokeVerb[Req, Resp any](ref reflection.Ref) func(ctx context.Context, req
 		}
 		resp, ok := respValue.(Resp)
 		if !ok {
-			return resp, fmt.Errorf("unexpected response type from verb %s: %T", ref, resp)
+			return resp, fmt.Errorf("unexpected response type from verb %s: %T, expected %T", ref, resp, reflect.New(reflect.TypeFor[Resp]()).Interface())
 		}
 		return resp, err
 	}

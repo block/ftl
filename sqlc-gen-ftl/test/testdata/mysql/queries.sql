@@ -1,12 +1,15 @@
--- name: GetUserByID :one
-SELECT id, name, email FROM users WHERE id = ?;
+-- name: GetAllTypes :one
+SELECT * FROM all_types WHERE id = ?;
 
--- name: CreateUser :exec
-INSERT INTO users (name, email) VALUES (?, ?);
-
--- name: GetRequestData :many
-SELECT data FROM requests;
-
--- name: CreateRequest :exec
-INSERT INTO requests (data) VALUES (?);
+-- name: CreateAllTypes :exec
+INSERT INTO all_types (
+    big_int, small_int, 
+    some_decimal, some_numeric, some_float, some_double,
+    some_varchar, some_text, some_char, nullable_text,
+    some_bool, nullable_bool,
+    some_date, some_time, some_timestamp,
+    some_blob, some_json
+) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+);
 

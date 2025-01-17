@@ -19,8 +19,8 @@ type InsertRequest struct {
 type InsertResponse struct{}
 
 //ftl:verb
-func Insert(ctx context.Context, req InsertRequest, db ftl.DatabaseHandle[MyDbConfig]) (InsertResponse, error) {
-	err := persistRequest(ctx, req, db)
+func Insert(ctx context.Context, req InsertRequest, createRequest CreateRequestClient) (InsertResponse, error) {
+	err := createRequest(ctx, CreateRequestQuery{Data: req.Data})
 	if err != nil {
 		return InsertResponse{}, err
 	}
@@ -29,16 +29,11 @@ func Insert(ctx context.Context, req InsertRequest, db ftl.DatabaseHandle[MyDbCo
 }
 
 //ftl:verb
-func Query(ctx context.Context, db ftl.DatabaseHandle[MyDbConfig]) (map[string]string, error) {
-	var result string
-	err := db.Get(ctx).QueryRowContext(ctx, "SELECT data FROM requests").Scan(&result)
-	return map[string]string{"data": result}, err
-}
-
-func persistRequest(ctx context.Context, req InsertRequest, db ftl.DatabaseHandle[MyDbConfig]) error {
-	_, err := db.Get(ctx).Exec("INSERT INTO requests (data) VALUES (?);", req.Data)
+func Query(ctx context.Context, getRequestData GetRequestDataClient) (map[string]string, error) {
+	result, err := getRequestData(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	return map[string]string{"data": result[0].Data}, nil
 }

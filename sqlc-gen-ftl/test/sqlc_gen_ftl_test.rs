@@ -23,327 +23,17 @@ fn build_wasm() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn expected_module_schema(engine: &str) -> schemapb::Module {
-    let (param1, param2) = match engine {
-        "postgresql" => ("$1", "$2"),
-        "mysql" => ("?", "?"),
-        _ => panic!("Unsupported engine: {}", engine),
-    };
-
-    let queries = [
-        format!("SELECT id, name, email FROM users WHERE id = {}", param1),
-        format!("INSERT INTO users (name, email) VALUES ({}, {})", param1, param2),
-        "SELECT data FROM requests".to_string(),
-        format!("INSERT INTO requests (data) VALUES ({})", param1),
-    ];
-
-    schemapb::Module {
-        name: "echo".to_string(),
-        builtin: false,
-        runtime: None,
-        comments: vec![],
-        metadata: vec![],
-        pos: None,
-        decls: vec![
-            schemapb::Decl {
-                value: Some(schemapb::decl::Value::Data(schemapb::Data {
-                    name: "GetUserByIdQuery".to_string(),
-                    export: false,
-                    type_parameters: vec![],
-                    fields: vec![
-                        schemapb::Field {
-                            name: "id".to_string(),
-                            r#type: Some(schemapb::Type {
-                                value: Some(schemapb::r#type::Value::Int(schemapb::Int { pos: None }))
-                            }),
-                            pos: None,
-                            comments: vec![],
-                            metadata: vec![schemapb::Metadata {
-                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
-                                    pos: None,
-                                    table: "users".to_string(),
-                                    name: "id".to_string(),
-                                }))
-                            }],
-                        }
-                    ],
-                    pos: None,
-                    comments: vec![],
-                    metadata: vec![],
-                })),
-            },
-            schemapb::Decl {
-                value: Some(schemapb::decl::Value::Data(schemapb::Data {
-                    name: "GetUserByIdResult".to_string(),
-                    export: false,
-                    type_parameters: vec![],
-                    fields: vec![
-                        schemapb::Field {
-                            name: "id".to_string(),
-                            r#type: Some(schemapb::Type {
-                                value: Some(schemapb::r#type::Value::Int(schemapb::Int { pos: None }))
-                            }),
-                            pos: None,
-                            comments: vec![],
-                            metadata: vec![schemapb::Metadata {
-                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
-                                    pos: None,
-                                    table: "users".to_string(),
-                                    name: "id".to_string(),
-                                }))
-                            }],
-                        },
-                        schemapb::Field {
-                            name: "name".to_string(),
-                            r#type: Some(schemapb::Type {
-                                value: Some(schemapb::r#type::Value::String(schemapb::String { pos: None }))
-                            }),
-                            pos: None,
-                            comments: vec![],
-                            metadata: vec![schemapb::Metadata {
-                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
-                                    pos: None,
-                                    table: "users".to_string(),
-                                    name: "name".to_string(),
-                                }))
-                            }],
-                        },
-                        schemapb::Field {
-                            name: "email".to_string(),
-                            r#type: Some(schemapb::Type {
-                                value: Some(schemapb::r#type::Value::String(schemapb::String { pos: None }))
-                            }),
-                            pos: None,
-                            comments: vec![],
-                            metadata: vec![schemapb::Metadata {
-                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
-                                    pos: None,
-                                    table: "users".to_string(),
-                                    name: "email".to_string(),
-                                }))
-                            }],
-                        }
-                    ],
-                    pos: None,
-                    comments: vec![],
-                    metadata: vec![],
-                })),
-            },
-            schemapb::Decl {
-                value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
-                    name: "getUserById".to_string(),
-                    export: false,
-                    runtime: None,
-                    request: Some(schemapb::Type {
-                        value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
-                            module: "echo".to_string(),
-                            name: "GetUserByIdQuery".to_string(),
-                            pos: None,
-                            type_parameters: vec![],
-                        }))
-                    }),
-                    response: Some(schemapb::Type {
-                        value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
-                            module: "echo".to_string(),
-                            name: "GetUserByIdResult".to_string(),
-                            pos: None,
-                            type_parameters: vec![],
-                        }))
-                    }),
-                    pos: None,
-                    comments: vec![],
-                    metadata: vec![schemapb::Metadata {
-                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
-                            pos: None,
-                            query: queries[0].clone(),
-                            command: "one".to_string(),
-                        })),
-                    }],
-                })),
-            },
-            schemapb::Decl {
-                value: Some(schemapb::decl::Value::Data(schemapb::Data {
-                    name: "CreateUserQuery".to_string(),
-                    export: false,
-                    type_parameters: vec![],
-                    fields: vec![
-                        schemapb::Field {
-                            name: "name".to_string(),
-                            r#type: Some(schemapb::Type {
-                                value: Some(schemapb::r#type::Value::String(schemapb::String { pos: None }))
-                            }),
-                            pos: None,
-                            comments: vec![],
-                            metadata: vec![schemapb::Metadata {
-                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
-                                    pos: None,
-                                    table: "users".to_string(),
-                                    name: "name".to_string(),
-                                }))
-                            }],
-                        },
-                        schemapb::Field {
-                            name: "email".to_string(),
-                            r#type: Some(schemapb::Type {
-                                value: Some(schemapb::r#type::Value::String(schemapb::String { pos: None }))
-                            }),
-                            pos: None,
-                            comments: vec![],
-                            metadata: vec![schemapb::Metadata {
-                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
-                                    pos: None,
-                                    table: "users".to_string(),
-                                    name: "email".to_string(),
-                                }))
-                            }],
-                        }
-                    ],
-                    pos: None,
-                    comments: vec![],
-                    metadata: vec![],
-                })),
-            },
-            schemapb::Decl {
-                value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
-                    name: "createUser".to_string(),
-                    export: false,
-                    runtime: None,
-                    request: Some(schemapb::Type {
-                        value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
-                            module: "echo".to_string(),
-                            name: "CreateUserQuery".to_string(),
-                            pos: None,
-                            type_parameters: vec![],
-                        }))
-                    }),
-                    response: Some(schemapb::Type {
-                        value: Some(schemapb::r#type::Value::Unit(schemapb::Unit { pos: None }))
-                    }),
-                    pos: None,
-                    comments: vec![],
-                    metadata: vec![schemapb::Metadata {
-                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
-                            pos: None,
-                            query: queries[1].clone(),
-                            command: "exec".to_string(),
-                        })),
-                    }],
-                })),
-            },
-            schemapb::Decl {
-                value: Some(schemapb::decl::Value::Data(schemapb::Data {
-                    name: "GetRequestDataResult".to_string(),
-                    export: false,
-                    type_parameters: vec![],
-                    fields: vec![
-                        schemapb::Field {
-                            name: "data".to_string(),
-                            r#type: Some(schemapb::Type {
-                                value: Some(schemapb::r#type::Value::String(schemapb::String { pos: None }))
-                            }),
-                            pos: None,
-                            comments: vec![],
-                            metadata: vec![schemapb::Metadata {
-                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
-                                    pos: None,
-                                    table: "requests".to_string(),
-                                    name: "data".to_string(),
-                                }))
-                            }],
-                        }
-                    ],
-                    pos: None,
-                    comments: vec![],
-                    metadata: vec![],
-                })),
-            },
-            schemapb::Decl {
-                value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
-                    name: "getRequestData".to_string(),
-                    export: false,
-                    runtime: None,
-                    request: Some(schemapb::Type {
-                        value: Some(schemapb::r#type::Value::Unit(schemapb::Unit { pos: None }))
-                    }),
-                    response: Some(schemapb::Type {
-                        value: Some(schemapb::r#type::Value::Array(Box::new(schemapb::Array {
-                            pos: None,
-                            element: Some(Box::new(schemapb::Type {
-                                value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
-                                    module: "echo".to_string(),
-                                    name: "GetRequestDataResult".to_string(),
-                                    pos: None,
-                                    type_parameters: vec![],
-                                }))
-                            })),
-                        })))
-                    }),
-                    pos: None,
-                    comments: vec![],
-                    metadata: vec![schemapb::Metadata {
-                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
-                            pos: None,
-                            query: queries[2].clone(),
-                            command: "many".to_string(),
-                        })),
-                    }],
-                })),
-            },
-            schemapb::Decl {
-                value: Some(schemapb::decl::Value::Data(schemapb::Data {
-                    name: "CreateRequestQuery".to_string(),
-                    export: false,
-                    type_parameters: vec![],
-                    fields: vec![
-                        schemapb::Field {
-                            name: "data".to_string(),
-                            r#type: Some(schemapb::Type {
-                                value: Some(schemapb::r#type::Value::String(schemapb::String { pos: None }))
-                            }),
-                            pos: None,
-                            comments: vec![],
-                            metadata: vec![schemapb::Metadata {
-                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
-                                    pos: None,
-                                    table: "requests".to_string(),
-                                    name: "data".to_string(),
-                                }))
-                            }],
-                        }
-                    ],
-                    pos: None,
-                    comments: vec![],
-                    metadata: vec![],
-                })),
-            },
-            schemapb::Decl {
-                value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
-                    name: "createRequest".to_string(),
-                    export: false,
-                    runtime: None,
-                    request: Some(schemapb::Type {
-                        value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
-                            module: "echo".to_string(),
-                            name: "CreateRequestQuery".to_string(),
-                            pos: None,
-                            type_parameters: vec![],
-                        }))
-                    }),
-                    response: Some(schemapb::Type {
-                        value: Some(schemapb::r#type::Value::Unit(schemapb::Unit { pos: None }))
-                    }),
-                    pos: None,
-                    comments: vec![],
-                    metadata: vec![schemapb::Metadata {
-                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
-                            pos: None,
-                            query: queries[3].clone(),
-                            command: "exec".to_string(),
-                        })),
-                    }],
-                })),
-            },
+fn get_test_queries(engine: &str) -> Vec<String> {
+    match engine {
+        "mysql" => vec![
+            "SELECT id, big_int, small_int, some_decimal, some_numeric, some_float, some_double, some_varchar, some_text, some_char, nullable_text, some_bool, nullable_bool, some_date, some_time, some_timestamp, some_blob, some_json FROM all_types WHERE id = ?".to_string(),
+            "INSERT INTO all_types (     big_int, small_int,      some_decimal, some_numeric, some_float, some_double,     some_varchar, some_text, some_char, nullable_text,     some_bool, nullable_bool,     some_date, some_time, some_timestamp,     some_blob, some_json ) VALUES (     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )".to_string(),
         ],
+        "postgresql" => vec![
+            "SELECT id, big_int, small_int, some_decimal, some_numeric, some_float, some_double, some_varchar, some_text, some_char, nullable_text, some_bool, nullable_bool, some_date, some_time, some_timestamp, some_blob, some_json FROM all_types WHERE id = $1".to_string(),
+            "INSERT INTO all_types (     big_int, small_int,      some_decimal, some_numeric, some_float, some_double,     some_varchar, some_text, some_char, nullable_text,     some_bool, nullable_bool,     some_date, some_time, some_timestamp,     some_blob, some_json ) VALUES (     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17 )".to_string(),
+        ],
+        _ => vec![],
     }
 }
 
@@ -372,6 +62,207 @@ sql:
       sha256_hash,
       engine,
     ))
+}
+
+fn expected_module_schema(engine: &str) -> schemapb::Module {
+    let queries = get_test_queries(engine);
+    let fields = vec![
+        ("bigInt", schemapb::r#type::Value::Int(schemapb::Int { pos: None }), "big_int"),
+        ("smallInt", schemapb::r#type::Value::Int(schemapb::Int { pos: None }), "small_int"),
+        ("someDecimal", schemapb::r#type::Value::String(schemapb::String { pos: None }), "some_decimal"),
+        ("someNumeric", schemapb::r#type::Value::String(schemapb::String { pos: None }), "some_numeric"),
+        ("someFloat", schemapb::r#type::Value::Float(schemapb::Float { pos: None }), "some_float"),
+        ("someDouble", schemapb::r#type::Value::Float(schemapb::Float { pos: None }), "some_double"),
+        ("someVarchar", schemapb::r#type::Value::String(schemapb::String { pos: None }), "some_varchar"),
+        ("someText", schemapb::r#type::Value::String(schemapb::String { pos: None }), "some_text"),
+        ("someChar", schemapb::r#type::Value::String(schemapb::String { pos: None }), "some_char"),
+        ("nullableText", schemapb::r#type::Value::Optional(Box::new(schemapb::Optional {
+            pos: None,
+            r#type: Some(Box::new(schemapb::Type {
+                value: Some(schemapb::r#type::Value::String(schemapb::String { pos: None }))
+            }))
+        })), "nullable_text"),
+        ("someBool", schemapb::r#type::Value::Bool(schemapb::Bool { pos: None }), "some_bool"),
+        ("nullableBool", schemapb::r#type::Value::Optional(Box::new(schemapb::Optional {
+            pos: None,
+            r#type: Some(Box::new(schemapb::Type {
+                value: Some(schemapb::r#type::Value::Bool(schemapb::Bool { pos: None }))
+            }))
+        })), "nullable_bool"),
+        ("someDate", schemapb::r#type::Value::Time(schemapb::Time { pos: None }), "some_date"),
+        ("someTime", schemapb::r#type::Value::Time(schemapb::Time { pos: None }), "some_time"),
+        ("someTimestamp", schemapb::r#type::Value::Time(schemapb::Time { pos: None }), "some_timestamp"),
+        ("someBlob", schemapb::r#type::Value::Bytes(schemapb::Bytes { pos: None }), "some_blob"),
+        ("someJson", schemapb::r#type::Value::Any(schemapb::Any { pos: None }), "some_json"),
+    ];
+
+    let create_field = |name: &str, type_value: schemapb::r#type::Value, db_name: &str| {
+        schemapb::Field {
+            name: name.to_string(),
+            r#type: Some(schemapb::Type {
+                value: Some(type_value)
+            }),
+            pos: None,
+            comments: vec![],
+            metadata: vec![schemapb::Metadata {
+                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                    pos: None,
+                    table: "all_types".to_string(),
+                    name: db_name.to_string(),
+                }))
+            }],
+        }
+    };
+
+    let create_fields = |fields: &[(& str, schemapb::r#type::Value, &str)]| {
+        fields.iter().map(|(name, type_value, db_name)| {
+            create_field(name, type_value.clone(), db_name)
+        }).collect::<Vec<_>>()
+    };
+
+    schemapb::Module {
+        name: "echo".to_string(),
+        builtin: false,
+        runtime: None,
+        comments: vec![],
+        metadata: vec![],
+        pos: None,
+        decls: vec![
+            // CreateAllTypesQuery
+            schemapb::Decl {
+                value: Some(schemapb::decl::Value::Data(schemapb::Data {
+                    name: "CreateAllTypesQuery".to_string(),
+                    export: false,
+                    type_parameters: vec![],
+                    fields: create_fields(&fields),
+                    pos: None,
+                    comments: vec![],
+                    metadata: vec![],
+                })),
+            },
+            // GetAllTypesQuery
+            schemapb::Decl {
+                value: Some(schemapb::decl::Value::Data(schemapb::Data {
+                    name: "GetAllTypesQuery".to_string(),
+                    export: false,
+                    type_parameters: vec![],
+                    fields: vec![
+                        schemapb::Field {
+                            pos: None,
+                            comments: vec![],
+                            name: "id".to_string(),
+                            r#type: Some(schemapb::Type {
+                                value: Some(schemapb::r#type::Value::Int(schemapb::Int { pos: None })),
+                            }),
+                            metadata: vec![schemapb::Metadata {
+                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    pos: None,
+                                    table: "all_types".to_string(),
+                                    name: "id".to_string(),
+                                })),
+                            }],
+                        },
+                    ],
+                    pos: None,
+                    comments: vec![],
+                    metadata: vec![],
+                })),
+            },
+            // GetAllTypesResult
+            schemapb::Decl {
+                value: Some(schemapb::decl::Value::Data(schemapb::Data {
+                    name: "GetAllTypesResult".to_string(),
+                    export: false,
+                    type_parameters: vec![],
+                    fields: {
+                        let mut result_fields = vec![
+                            schemapb::Field {
+                                name: "id".to_string(),
+                                r#type: Some(schemapb::Type {
+                                    value: Some(schemapb::r#type::Value::Int(schemapb::Int { pos: None }))
+                                }),
+                                pos: None,
+                                comments: vec![],
+                                metadata: vec![schemapb::Metadata {
+                                    value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                        pos: None,
+                                        table: "all_types".to_string(),
+                                        name: "id".to_string(),
+                                    }))
+                                }],
+                            },
+                        ];
+                        result_fields.extend(create_fields(&fields));
+                        result_fields
+                    },
+                    pos: None,
+                    comments: vec![],
+                    metadata: vec![],
+                })),
+            },
+            // CreateAllTypes verb
+            schemapb::Decl {
+                value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
+                    name: "createAllTypes".to_string(),
+                    export: false,
+                    runtime: None,
+                    request: Some(schemapb::Type {
+                        value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
+                            module: "echo".to_string(),
+                            name: "CreateAllTypesQuery".to_string(),
+                            pos: None,
+                            type_parameters: vec![],
+                        }))
+                    }),
+                    response: Some(schemapb::Type {
+                        value: Some(schemapb::r#type::Value::Unit(schemapb::Unit { pos: None }))
+                    }),
+                    pos: None,
+                    comments: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
+                            pos: None,
+                            command: "exec".to_string(),
+                            query: queries[1].clone(),
+                        })),
+                    }],
+                })),
+            },
+            // GetAllTypes verb
+            schemapb::Decl {
+                value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
+                    name: "getAllTypes".to_string(),
+                    export: false,
+                    runtime: None,
+                    request: Some(schemapb::Type {
+                        value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
+                            module: "echo".to_string(),
+                            name: "GetAllTypesQuery".to_string(),
+                            pos: None,
+                            type_parameters: vec![],
+                        }))
+                    }),
+                    response: Some(schemapb::Type {
+                        value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
+                            module: "echo".to_string(),
+                            name: "GetAllTypesResult".to_string(),
+                            pos: None,
+                            type_parameters: vec![],
+                        }))
+                    }),
+                    pos: None,
+                    comments: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
+                            pos: None,
+                            command: "one".to_string(),
+                            query: queries[0].clone(),
+                        })),
+                    }],
+                })),
+            },
+        ],
+    }
 }
 
 #[cfg(test)]
@@ -428,8 +319,36 @@ mod tests {
             }
 
             let pb_contents = std::fs::read(gen_dir.join("queries.pb"))?;
-            let actual_module = schemapb::Module::decode(&*pb_contents)?;
-            let expected_module = expected_module_schema(engine);
+            let mut actual_module = schemapb::Module::decode(&*pb_contents)?;
+            let mut expected_module = expected_module_schema(engine);
+
+            // Sort declarations by name before comparison
+            actual_module.decls.sort_by(|a, b| {
+                let name_a = match &a.value {
+                    Some(schemapb::decl::Value::Data(d)) => &d.name,
+                    Some(schemapb::decl::Value::Verb(v)) => &v.name,
+                    _ => "",
+                };
+                let name_b = match &b.value {
+                    Some(schemapb::decl::Value::Data(d)) => &d.name,
+                    Some(schemapb::decl::Value::Verb(v)) => &v.name,
+                    _ => "",
+                };
+                name_a.cmp(name_b)
+            });
+            expected_module.decls.sort_by(|a, b| {
+                let name_a = match &a.value {
+                    Some(schemapb::decl::Value::Data(d)) => &d.name,
+                    Some(schemapb::decl::Value::Verb(v)) => &v.name,
+                    _ => "",
+                };
+                let name_b = match &b.value {
+                    Some(schemapb::decl::Value::Data(d)) => &d.name,
+                    Some(schemapb::decl::Value::Verb(v)) => &v.name,
+                    _ => "",
+                };
+                name_a.cmp(name_b)
+            });
 
             assert_eq!(
                 &actual_module, 

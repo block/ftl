@@ -14,6 +14,7 @@ type EchoClient func(context.Context, EchoRequest) (EchoResponse, error)
 func init() {
 	reflection.Register(
 		reflection.ExternalType(*new(lib.AnotherNonFTLType)),
+
 		reflection.ProvideResourcesForVerb(
 			Echo,
 			server.VerbClient[ftlother.EchoClient, ftlother.EchoRequest, ftlother.EchoResponse](),

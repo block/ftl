@@ -3,6 +3,7 @@ package sqlc
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
@@ -13,10 +14,15 @@ import (
 )
 
 func TestAddQueriesToSchema(t *testing.T) {
-	t.Skip("flaky")
-	tmpDir := t.TempDir()
+	if err := os.RemoveAll(filepath.Join(os.TempDir(), ".ftl")); err != nil {
+		t.Fatal(err)
+	}
 
-	err := scaffolder.Scaffold("testdata", tmpDir, nil)
+	tmpDir, err := os.MkdirTemp("", "sqlc-test-*")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	err = scaffolder.Scaffold("testdata", tmpDir, nil)
 	assert.NoError(t, err)
 	mc := moduleconfig.ModuleConfig{
 		Dir:                   tmpDir,
@@ -43,7 +49,7 @@ func TestAddQueriesToSchema(t *testing.T) {
 		Name: "test",
 		Decls: []schema.Decl{
 			&schema.Data{
-				Name: "GetRequestDataResult",
+				Name: "CreateRequestQuery",
 				Fields: []*schema.Field{
 					{
 						Name: "data",
@@ -57,22 +63,8 @@ func TestAddQueriesToSchema(t *testing.T) {
 					},
 				},
 			},
-			&schema.Verb{
-				Name:    "getRequestData",
-				Request: &schema.Unit{},
-				Response: &schema.Array{Element: &schema.Ref{
-					Module: "test",
-					Name:   "GetRequestDataResult",
-				}},
-				Metadata: []schema.Metadata{
-					&schema.MetadataSQLQuery{
-						Query:   "SELECT data FROM requests",
-						Command: "many",
-					},
-				},
-			},
 			&schema.Data{
-				Name: "CreateRequestQuery",
+				Name: "GetRequestDataResult",
 				Fields: []*schema.Field{
 					{
 						Name: "data",
@@ -94,6 +86,20 @@ func TestAddQueriesToSchema(t *testing.T) {
 					&schema.MetadataSQLQuery{
 						Query:   "INSERT INTO requests (data) VALUES (?)",
 						Command: "exec",
+					},
+				},
+			},
+			&schema.Verb{
+				Name:    "getRequestData",
+				Request: &schema.Unit{},
+				Response: &schema.Array{Element: &schema.Ref{
+					Module: "test",
+					Name:   "GetRequestDataResult",
+				}},
+				Metadata: []schema.Metadata{
+					&schema.MetadataSQLQuery{
+						Query:   "SELECT data FROM requests",
+						Command: "many",
 					},
 				},
 			},

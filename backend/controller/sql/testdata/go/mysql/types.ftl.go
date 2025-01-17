@@ -14,13 +14,15 @@ type QueryClient func(context.Context) (map[string]string, error)
 func init() {
 	reflection.Register(
 		reflection.Database[MyDbConfig]("testdb", server.InitMySQL),
+
 		reflection.ProvideResourcesForVerb(
 			Insert,
-			server.DatabaseHandle[MyDbConfig]("mysql"),
+			server.SinkClient[CreateRequestClient, CreateRequestQuery](),
 		),
+
 		reflection.ProvideResourcesForVerb(
 			Query,
-			server.DatabaseHandle[MyDbConfig]("mysql"),
+			server.SourceClient[GetRequestDataClient, []GetRequestDataResult](),
 		),
 	)
 }

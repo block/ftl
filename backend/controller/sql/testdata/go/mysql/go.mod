@@ -4,6 +4,7 @@ go 1.23.0
 
 require (
 	github.com/alecthomas/assert/v2 v2.11.0
+	github.com/alecthomas/types v0.17.0
 	github.com/block/ftl v0.189.0
 )
 
@@ -23,7 +24,6 @@ require (
 	github.com/alecthomas/kong v1.6.0 // indirect
 	github.com/alecthomas/participle/v2 v2.1.1 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
-	github.com/alecthomas/types v0.17.0 // indirect
 	github.com/amacneil/dbmate/v2 v2.24.2 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.32.7 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.28.7 // indirect
