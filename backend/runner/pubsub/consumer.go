@@ -289,6 +289,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			remainingRetries := c.retryParams.Count
 			backoff := c.retryParams.MinBackoff
 			for {
+				startTime := time.Now()
 				callCtx, callCancel := context.WithCancel(ctx)
 				callChan := make(chan error)
 				go func() {
@@ -297,7 +298,8 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				var err error
 				select {
 				case cmd := <-resetOffset:
-					observability.AsyncCalls.Completed(ctx, schema.RefKey{Module: c.moduleName, Name: c.verb.Name})
+					logger.Debugf("Cancelled call for subscription %s due to offset reset", c.verb.Name)
+					observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, startTime, errors.New("cancelled due to offset reset"))
 
 					// Don't wait for call to end before resetting offsets as it may take a while.
 					callCancel()
@@ -313,7 +315,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 					// close call context now that the call is finished
 					callCancel()
 				}
-				observability.AsyncCalls.Completed(callCtx)
+				observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, startTime, err)
 				if err == nil {
 					break
 				}
