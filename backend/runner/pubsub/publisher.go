@@ -7,6 +7,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/types/optional"
+	"github.com/block/ftl/backend/runner/pubsub/observability"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
@@ -76,6 +77,7 @@ func (p *publisher) publish(ctx context.Context, data []byte, key string, caller
 		Value: sarama.ByteEncoder(data),
 		Key:   sarama.StringEncoder(key),
 	})
+	observability.PubSub.Published(ctx, p.module, p.topic.Name, caller.Name, err)
 	if err != nil {
 		timelineEvent.Error = optional.Some(err.Error())
 		logger.Errorf(err, "Failed to publish message to %s", p.topic.Name)
