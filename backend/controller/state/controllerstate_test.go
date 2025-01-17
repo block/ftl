@@ -84,7 +84,6 @@ func TestDeploymentState(t *testing.T) {
 	view, err = cs.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(view.GetDeployments()))
-	assert.Equal(t, deploymentKey, view.GetDeployments()[deploymentKey].Key)
 	assert.Equal(t, create, view.GetDeployments()[deploymentKey].Schema.GetRuntime().GetDeployment().CreatedAt)
 
 	activate := time.Now()
