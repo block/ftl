@@ -23,15 +23,6 @@ func protoSlice[P any, T interface{ ToProto() P }](values []T) []P {
 	return out
 }
 
-// protoSlicef converts a slice of values to a slice of protobuf values using a mapping function.
-func protoSlicef[P, T any](values []T, f func(T) P) []P {
-	out := make([]P, len(values))
-	for i, v := range values {
-		out[i] = f(v)
-	}
-	return out
-}
-
 func protoMust[T any](v T, err error) T {
 	if err != nil {
 		panic(err)
@@ -185,7 +176,7 @@ func (x *Config) ToProto() *destpb.Config {
 	}
 	return &destpb.Config{
 		Pos:      x.Pos.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Name:     string(x.Name),
 		Type:     TypeToProto(x.Type),
 	}
@@ -231,12 +222,12 @@ func (x *Data) ToProto() *destpb.Data {
 	}
 	return &destpb.Data{
 		Pos:            x.Pos.ToProto(),
-		Comments:       protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments:       sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Export:         bool(x.Export),
 		Name:           string(x.Name),
 		TypeParameters: protoSlice[*destpb.TypeParameter](x.TypeParameters),
 		Fields:         protoSlice[*destpb.Field](x.Fields),
-		Metadata:       protoSlicef(x.Metadata, MetadataToProto),
+		Metadata:       sliceMap(x.Metadata, MetadataToProto),
 	}
 }
 
@@ -263,10 +254,10 @@ func (x *Database) ToProto() *destpb.Database {
 	return &destpb.Database{
 		Pos:      x.Pos.ToProto(),
 		Runtime:  x.Runtime.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Type:     string(x.Type),
 		Name:     string(x.Name),
-		Metadata: protoSlicef(x.Metadata, MetadataToProto),
+		Metadata: sliceMap(x.Metadata, MetadataToProto),
 	}
 }
 
@@ -497,7 +488,7 @@ func (x *Enum) ToProto() *destpb.Enum {
 	}
 	return &destpb.Enum{
 		Pos:      x.Pos.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Export:   bool(x.Export),
 		Name:     string(x.Name),
 		Type:     TypeToProto(x.Type),
@@ -526,7 +517,7 @@ func (x *EnumVariant) ToProto() *destpb.EnumVariant {
 	}
 	return &destpb.EnumVariant{
 		Pos:      x.Pos.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Name:     string(x.Name),
 		Value:    ValueToProto(x.Value),
 	}
@@ -551,10 +542,10 @@ func (x *Field) ToProto() *destpb.Field {
 	}
 	return &destpb.Field{
 		Pos:      x.Pos.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Name:     string(x.Name),
 		Type:     TypeToProto(x.Type),
-		Metadata: protoSlicef(x.Metadata, MetadataToProto),
+		Metadata: sliceMap(x.Metadata, MetadataToProto),
 	}
 }
 
@@ -1044,7 +1035,7 @@ func (x *MetadataIngress) ToProto() *destpb.MetadataIngress {
 		Pos:    x.Pos.ToProto(),
 		Type:   string(x.Type),
 		Method: string(x.Method),
-		Path:   protoSlicef(x.Path, IngressPathComponentToProto),
+		Path:   sliceMap(x.Path, IngressPathComponentToProto),
 	}
 }
 
@@ -1247,11 +1238,11 @@ func (x *Module) ToProto() *destpb.Module {
 	}
 	return &destpb.Module{
 		Pos:      x.Pos.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Builtin:  bool(x.Builtin),
 		Name:     string(x.Name),
-		Metadata: protoSlicef(x.Metadata, MetadataToProto),
-		Decls:    protoSlicef(x.Decls, DeclToProto),
+		Metadata: sliceMap(x.Metadata, MetadataToProto),
+		Decls:    sliceMap(x.Decls, DeclToProto),
 		Runtime:  x.Runtime.ToProto(),
 	}
 }
@@ -1458,7 +1449,7 @@ func (x *Ref) ToProto() *destpb.Ref {
 		Pos:            x.Pos.ToProto(),
 		Module:         string(x.Module),
 		Name:           string(x.Name),
-		TypeParameters: protoSlicef(x.TypeParameters, TypeToProto),
+		TypeParameters: sliceMap(x.TypeParameters, TypeToProto),
 	}
 }
 
@@ -1558,7 +1549,7 @@ func (x *Secret) ToProto() *destpb.Secret {
 	}
 	return &destpb.Secret{
 		Pos:      x.Pos.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Name:     string(x.Name),
 		Type:     TypeToProto(x.Type),
 	}
@@ -1643,11 +1634,11 @@ func (x *Topic) ToProto() *destpb.Topic {
 	return &destpb.Topic{
 		Pos:      x.Pos.ToProto(),
 		Runtime:  x.Runtime.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Export:   bool(x.Export),
 		Name:     string(x.Name),
 		Event:    TypeToProto(x.Event),
-		Metadata: protoSlicef(x.Metadata, MetadataToProto),
+		Metadata: sliceMap(x.Metadata, MetadataToProto),
 	}
 }
 
@@ -1672,7 +1663,7 @@ func (x *TopicRuntime) ToProto() *destpb.TopicRuntime {
 		return nil
 	}
 	return &destpb.TopicRuntime{
-		KafkaBrokers: protoSlicef(x.KafkaBrokers, func(v string) string { return string(v) }),
+		KafkaBrokers: sliceMap(x.KafkaBrokers, func(v string) string { return string(v) }),
 		TopicId:      string(x.TopicID),
 	}
 }
@@ -1807,11 +1798,11 @@ func (x *TypeAlias) ToProto() *destpb.TypeAlias {
 	}
 	return &destpb.TypeAlias{
 		Pos:      x.Pos.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Export:   bool(x.Export),
 		Name:     string(x.Name),
 		Type:     TypeToProto(x.Type),
-		Metadata: protoSlicef(x.Metadata, MetadataToProto),
+		Metadata: sliceMap(x.Metadata, MetadataToProto),
 	}
 }
 
@@ -1935,12 +1926,12 @@ func (x *Verb) ToProto() *destpb.Verb {
 	}
 	return &destpb.Verb{
 		Pos:      x.Pos.ToProto(),
-		Comments: protoSlicef(x.Comments, func(v string) string { return string(v) }),
+		Comments: sliceMap(x.Comments, func(v string) string { return string(v) }),
 		Export:   bool(x.Export),
 		Name:     string(x.Name),
 		Request:  TypeToProto(x.Request),
 		Response: TypeToProto(x.Response),
-		Metadata: protoSlicef(x.Metadata, MetadataToProto),
+		Metadata: sliceMap(x.Metadata, MetadataToProto),
 		Runtime:  x.Runtime.ToProto(),
 	}
 }
@@ -2062,7 +2053,7 @@ func (x *VerbRuntimeSubscription) ToProto() *destpb.VerbRuntimeSubscription {
 		return nil
 	}
 	return &destpb.VerbRuntimeSubscription{
-		KafkaBrokers: protoSlicef(x.KafkaBrokers, func(v string) string { return string(v) }),
+		KafkaBrokers: sliceMap(x.KafkaBrokers, func(v string) string { return string(v) }),
 	}
 }
 

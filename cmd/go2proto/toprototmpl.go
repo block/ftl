@@ -71,15 +71,6 @@ func protoSlice[P any, T interface{ ToProto() P }](values []T) []P {
 	return out
 }
 
-// protoSlicef converts a slice of values to a slice of protobuf values using a mapping function.
-func protoSlicef[P, T any](values []T, f func(T) P) []P {
-	out := make([]P, len(values))
-	for i, v := range values {
-		out[i] = f(v)
-	}
-	return out
-}
-
 func protoMust[T any](v T, err error) T {
 	if err != nil {
 		panic(err)
@@ -128,7 +119,7 @@ func (x *{{ .Name }}) ToProto() *destpb.{{ .Name }} {
 {{- if $field.Optional}}
 		{{ $field.EscapedName }}: proto.{{ $field.ProtoGoType | toUpperCamel }}({{ $field.ProtoGoType }}({{if $field.Pointer}}*{{end}}x.{{ $field.Name }})),
 {{- else if .Repeated}}
-		{{ $field.EscapedName }}: protoSlicef(x.{{ $field.Name }}, func(v {{ $field.OriginType }}) {{ $field.ProtoGoType }} { return {{ $field.ProtoGoType }}(v) }),
+		{{ $field.EscapedName }}: sliceMap(x.{{ $field.Name }}, func(v {{ $field.OriginType }}) {{ $field.ProtoGoType }} { return {{ $field.ProtoGoType }}(v) }),
 {{- else }}
 		{{ $field.EscapedName }}: {{ $field.ProtoGoType }}(x.{{ $field.Name }}),
 {{- end}}
@@ -150,7 +141,7 @@ func (x *{{ .Name }}) ToProto() *destpb.{{ .Name }} {
 {{- end}}
 {{- else if eq .Kind "SumType" }}
 {{- if .Repeated }}
-		{{ $field.EscapedName }}: protoSlicef(x.{{ $field.Name }}, {{$field.OriginType}}ToProto),
+		{{ $field.EscapedName }}: sliceMap(x.{{ $field.Name }}, {{$field.OriginType}}ToProto),
 {{- else}}
 		{{ $field.EscapedName }}: {{ $field.OriginType }}ToProto(x.{{ $field.Name }}),
 {{- end}}
@@ -276,7 +267,7 @@ func {{ $sumtype.Name }}FromProto(v *destpb.{{ $sumtype.Name }}) {{ $sumtype.Nam
 	{{- end }}
 	default:
 		panic(fmt.Sprintf("unknown variant: %T", v.Value))
-	}	
+	}
 }
 {{- end}}
 {{ end}}
