@@ -31,9 +31,9 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
   const [error, setError] = useState<string | null>(null)
   const [path, setPath] = useState('')
 
-  const bodyTextKey = useMemo(() => `${module?.name}-${verb?.verb?.name}-body-text`, [module?.name, verb?.verb?.name])
-  const headersTextKey = useMemo(() => `${module?.name}-${verb?.verb?.name}-headers-text`, [module?.name, verb?.verb?.name])
-  const queryParamsTextKey = useMemo(() => `${module?.name}-${verb?.verb?.name}-query-params-text`, [module?.name, verb?.verb?.name])
+  const bodyTextKey = `${module?.name}-${verb?.verb?.name}-body-text`
+  const headersTextKey = `${module?.name}-${verb?.verb?.name}-headers-text`
+  const queryParamsTextKey = `${module?.name}-${verb?.verb?.name}-query-params-text`
   const methodsWithBody = ['POST', 'PUT', 'PATCH', 'CALL', 'CRON', 'SUB']
 
   const tabs = useMemo(() => {
@@ -58,7 +58,7 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
   useEffect(() => {
     if (verb) {
       const savedBodyValue = localStorage.getItem(bodyTextKey)
-      const bodyValue = savedBodyValue !== null ? JSON.parse(savedBodyValue) : defaultRequest(verb)
+      const bodyValue = savedBodyValue ?? defaultRequest(verb)
       setBodyText(bodyValue)
 
       setResponse(null)
@@ -67,17 +67,15 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
       // Set initial tab only when verb changes
       setActiveTabId(tabs[0].id)
     }
-  }, [verb])
+  }, [verb, bodyTextKey, tabs])
 
   useEffect(() => {
     setPath(httpPopulatedRequestPath(module, verb))
   }, [module, verb])
 
   const handleBodyTextChanged = (text: string) => {
-    if (verb) {
-      setBodyText(text)
-      localStorage.setItem(bodyTextKey, JSON.stringify(text))
-    }
+    setBodyText(text)
+    localStorage.setItem(bodyTextKey, text)
   }
 
   const handleTabClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
@@ -182,7 +180,7 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
     if (verb) {
       handleBodyTextChanged(defaultRequest(verb))
     }
-  }, [verb])
+  }, [verb, bodyTextKey])
 
   const handleCopyBody = () => {
     navigator.clipboard
