@@ -142,11 +142,16 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		headers.SetRequestKey(req.Header(), requestKey)
 	}
 
+	destVerb, err := schema.RefFromProto(req.Msg.Verb)
+	if err != nil {
+		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get verb ref"))
+		return nil, fmt.Errorf("could not get verb ref: %w", err)
+	}
 	callEvent := &timelineclient.Call{
 		DeploymentKey: verbService.deployment,
 		RequestKey:    requestKey,
 		StartTime:     start,
-		DestVerb:      schema.RefFromProto(req.Msg.Verb),
+		DestVerb:      destVerb,
 		Callers:       callers,
 		Request:       req.Msg,
 	}

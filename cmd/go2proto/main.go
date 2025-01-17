@@ -474,7 +474,7 @@ func extract(config Config, pkg *PkgRefs) (File, []string, error) {
 	imports := map[string]bool{}
 	for msg := range state.Messages {
 		for _, field := range msg.Fields {
-			if field.Import != "" {
+			if field.Import != "" && field.Pointer { // We only need imports for pointer types.
 				imports[field.Import] = true
 			}
 		}

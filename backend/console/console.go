@@ -259,7 +259,7 @@ func dataFromDecl(decl *schema.Data, module string, refMap map[schema.RefKey]map
 	d := decl.ToProto()
 	return &consolepb.Data{
 		Data:       d,
-		Schema:     schema.DataFromProto(d).String(),
+		Schema:     decl.String(),
 		References: getReferencesFromMap(refMap, module, decl.Name),
 	}
 }
@@ -301,10 +301,9 @@ func secretFromDecl(decl *schema.Secret, module string, refMap map[schema.RefKey
 
 func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) (*consolepb.Verb, error) {
 	v := decl.ToProto()
-	verbSchema := schema.VerbFromProto(v)
 	var jsonRequestSchema string
-	if verbSchema.Request != nil {
-		if requestData, ok := verbSchema.Request.(*schema.Ref); ok {
+	if decl.Request != nil {
+		if requestData, ok := decl.Request.(*schema.Ref); ok {
 			jsonSchema, err := schema.RequestResponseToJSONSchema(sch, *requestData)
 			if err != nil {
 				return nil, fmt.Errorf("failed to retrieve JSON schema: %w", err)

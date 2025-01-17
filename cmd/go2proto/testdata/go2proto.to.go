@@ -9,7 +9,6 @@ import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
 
 import "net/url"
-import "github.com/block/ftl/internal/key"
 
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
@@ -39,6 +38,17 @@ func sliceMap[T any, U any](values []T, f func(T) U) []U {
 	return out
 }
 
+func sliceMapErr[T any, U any](values []T, f func(T) (U, error)) ([]U, error) {
+	var err error
+	out := make([]U, len(values))
+	for i, v := range values {
+		if out[i], err = f(v); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
 func orZero[T any](v *T) T {
 	if v == nil {
 		return *new(T)
@@ -64,8 +74,9 @@ func (x Enum) ToProto() destpb.Enum {
 	return destpb.Enum(x)
 }
 
-func EnumFromProto(v destpb.Enum) Enum {
-	return Enum(v)
+func EnumFromProto(v destpb.Enum) (Enum, error) {
+	// TODO: Check if the value is valid.
+	return Enum(v), nil
 }
 
 func (x *Message) ToProto() *destpb.Message {
@@ -79,16 +90,20 @@ func (x *Message) ToProto() *destpb.Message {
 	}
 }
 
-func MessageFromProto(v *destpb.Message) *Message {
+func MessageFromProto(v *destpb.Message) (out *Message, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Message{
-		Time:     v.Time.AsTime(),
-		Duration: v.Duration.AsDuration(),
-		Nested:   fromPtr(NestedFromProto(v.Nested)),
+	out = &Message{}
+	out.Time = v.Time.AsTime()
+	out.Duration = v.Duration.AsDuration()
+	if fieldNested, err := NestedFromProto(v.Nested); err != nil {
+		return nil, fmt.Errorf("Nested: %w", err)
+	} else {
+		out.Nested = fromPtr(fieldNested)
 	}
+	return out, nil
 }
 
 func (x *Nested) ToProto() *destpb.Nested {
@@ -100,14 +115,14 @@ func (x *Nested) ToProto() *destpb.Nested {
 	}
 }
 
-func NestedFromProto(v *destpb.Nested) *Nested {
+func NestedFromProto(v *destpb.Nested) (out *Nested, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Nested{
-		Nested: string(v.Nested),
-	}
+	out = &Nested{}
+	out.Nested = string(v.Nested)
+	return out, nil
 }
 
 func (x *Root) ToProto() *destpb.Root {
@@ -130,29 +145,40 @@ func (x *Root) ToProto() *destpb.Root {
 	}
 }
 
-func RootFromProto(v *destpb.Root) *Root {
+func RootFromProto(v *destpb.Root) (out *Root, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
-	f12 := &url.URL{}
-	f12.UnmarshalBinary(v.Url)
-	f13 := &key.Deployment{}
-	f13.UnmarshalText([]byte(v.Key))
 
-	return &Root{
-		Int:            int(v.Int),
-		String:         string(v.String_),
-		MessagePtr:     MessageFromProto(v.MessagePtr),
-		Enum:           EnumFromProto(v.Enum),
-		SumType:        SumTypeFromProto(v.SumType),
-		OptionalInt:    int(orZero(v.OptionalInt)),
-		OptionalIntPtr: ptr(v.OptionalIntPtr, int(orZero(v.OptionalIntPtr))),
-		OptionalMsg:    MessageFromProto(v.OptionalMsg),
-		RepeatedInt:    sliceMap(v.RepeatedInt, func(v int64) int { return int(v) }),
-		RepeatedMsg:    sliceMap(v.RepeatedMsg, MessageFromProto),
-		URL:            f12,
-		Key:            fromPtr(f13),
+	out = &Root{}
+	out.Int = int(v.Int)
+	out.String = string(v.String_)
+	if out.MessagePtr, err = MessageFromProto(v.MessagePtr); err != nil {
+		return nil, fmt.Errorf("MessagePtr: %w", err)
 	}
+	if out.Enum, err = EnumFromProto(v.Enum); err != nil {
+		return nil, fmt.Errorf("Enum: %w", err)
+	}
+	if out.SumType, err = SumTypeFromProto(v.SumType); err != nil {
+		return nil, fmt.Errorf("SumType: %w", err)
+	}
+	out.OptionalInt = int(orZero(v.OptionalInt))
+	out.OptionalIntPtr = ptr(v.OptionalIntPtr, int(orZero(v.OptionalIntPtr)))
+	if out.OptionalMsg, err = MessageFromProto(v.OptionalMsg); err != nil {
+		return nil, fmt.Errorf("OptionalMsg: %w", err)
+	}
+	out.RepeatedInt = sliceMap(v.RepeatedInt, func(v int64) int { return int(v) })
+	if out.RepeatedMsg, err = sliceMapErr(v.RepeatedMsg, MessageFromProto); err != nil {
+		return nil, fmt.Errorf("RepeatedMsg: %w", err)
+	}
+	out.URL = new(url.URL)
+	if err = out.URL.UnmarshalBinary(v.Url); err != nil {
+		return nil, fmt.Errorf("URL: %w", err)
+	}
+	if err = out.Key.UnmarshalText([]byte(v.Key)); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	return out, nil
 }
 
 // SubSumTypeToProto converts a SubSumType sum type to a protobuf message.
@@ -173,9 +199,9 @@ func SubSumTypeToProto(value SubSumType) *destpb.SubSumType {
 	}
 }
 
-func SubSumTypeFromProto(v *destpb.SubSumType) SubSumType {
+func SubSumTypeFromProto(v *destpb.SubSumType) (SubSumType, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.SubSumType_A:
@@ -196,14 +222,14 @@ func (x *SubSumTypeA) ToProto() *destpb.SubSumTypeA {
 	}
 }
 
-func SubSumTypeAFromProto(v *destpb.SubSumTypeA) *SubSumTypeA {
+func SubSumTypeAFromProto(v *destpb.SubSumTypeA) (out *SubSumTypeA, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &SubSumTypeA{
-		A: string(v.A),
-	}
+	out = &SubSumTypeA{}
+	out.A = string(v.A)
+	return out, nil
 }
 
 func (x *SubSumTypeB) ToProto() *destpb.SubSumTypeB {
@@ -215,14 +241,14 @@ func (x *SubSumTypeB) ToProto() *destpb.SubSumTypeB {
 	}
 }
 
-func SubSumTypeBFromProto(v *destpb.SubSumTypeB) *SubSumTypeB {
+func SubSumTypeBFromProto(v *destpb.SubSumTypeB) (out *SubSumTypeB, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &SubSumTypeB{
-		A: string(v.A),
-	}
+	out = &SubSumTypeB{}
+	out.A = string(v.A)
+	return out, nil
 }
 
 // SumTypeToProto converts a SumType sum type to a protobuf message.
@@ -255,9 +281,9 @@ func SumTypeToProto(value SumType) *destpb.SumType {
 	}
 }
 
-func SumTypeFromProto(v *destpb.SumType) SumType {
+func SumTypeFromProto(v *destpb.SumType) (SumType, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.SumType_SubSumTypeA:
@@ -284,14 +310,14 @@ func (x *SumTypeA) ToProto() *destpb.SumTypeA {
 	}
 }
 
-func SumTypeAFromProto(v *destpb.SumTypeA) *SumTypeA {
+func SumTypeAFromProto(v *destpb.SumTypeA) (out *SumTypeA, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &SumTypeA{
-		A: string(v.A),
-	}
+	out = &SumTypeA{}
+	out.A = string(v.A)
+	return out, nil
 }
 
 func (x *SumTypeB) ToProto() *destpb.SumTypeB {
@@ -303,14 +329,14 @@ func (x *SumTypeB) ToProto() *destpb.SumTypeB {
 	}
 }
 
-func SumTypeBFromProto(v *destpb.SumTypeB) *SumTypeB {
+func SumTypeBFromProto(v *destpb.SumTypeB) (out *SumTypeB, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &SumTypeB{
-		B: int(v.B),
-	}
+	out = &SumTypeB{}
+	out.B = int(v.B)
+	return out, nil
 }
 
 func (x *SumTypeC) ToProto() *destpb.SumTypeC {
@@ -322,12 +348,12 @@ func (x *SumTypeC) ToProto() *destpb.SumTypeC {
 	}
 }
 
-func SumTypeCFromProto(v *destpb.SumTypeC) *SumTypeC {
+func SumTypeCFromProto(v *destpb.SumTypeC) (out *SumTypeC, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &SumTypeC{
-		C: float64(v.C),
-	}
+	out = &SumTypeC{}
+	out.C = float64(v.C)
+	return out, nil
 }

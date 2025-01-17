@@ -257,7 +257,11 @@ func ModuleFromProtoFile(filename string) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ModuleFromBytes(data)
+	module, err := ModuleFromBytes(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal module from %s: %w", filename, err)
+	}
+	return module, nil
 }
 
 func ModuleFromBytes(b []byte) (*Module, error) {
@@ -265,7 +269,11 @@ func ModuleFromBytes(b []byte) (*Module, error) {
 	if err := proto.Unmarshal(b, s); err != nil {
 		return nil, err
 	}
-	return ModuleFromProto(s), nil
+	module, err := ModuleFromProto(s)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal module: %w", err)
+	}
+	return module, nil
 }
 
 func ModuleToBytes(m *Module) ([]byte, error) {
@@ -275,7 +283,10 @@ func ModuleToBytes(m *Module) ([]byte, error) {
 func moduleListToSchema(s []*schemapb.Module) ([]*Module, error) {
 	var out []*Module
 	for _, n := range s {
-		module := ModuleFromProto(n)
+		module, err := ModuleFromProto(n)
+		if err != nil {
+			return nil, fmt.Errorf("%w", err)
+		}
 		out = append(out, module)
 	}
 	return out, nil

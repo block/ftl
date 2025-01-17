@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/alecthomas/types/optional"
-
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )
 
 //protobuf:4
@@ -97,20 +95,4 @@ func (e *EnumVariant) String() string {
 		}
 	}
 	return w.String()
-}
-
-func enumVariantListToSchema(e []*schemapb.EnumVariant) []*EnumVariant {
-	out := make([]*EnumVariant, 0, len(e))
-	for _, v := range e {
-		out = append(out, enumVariantToSchema(v))
-	}
-	return out
-}
-
-func enumVariantToSchema(v *schemapb.EnumVariant) *EnumVariant {
-	return &EnumVariant{
-		Pos:   PosFromProto(v.Pos),
-		Name:  v.Name,
-		Value: valueToSchema(v.Value),
-	}
 }

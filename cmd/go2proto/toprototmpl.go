@@ -86,6 +86,17 @@ func sliceMap[T any, U any](values []T, f func(T) U) []U {
 	return out
 }
 
+func sliceMapErr[T any, U any](values []T, f func(T) (U, error)) ([]U, error) {
+	var err error
+	out := make([]U, len(values))
+	for i, v := range values {
+		if out[i], err = f(v);  err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
 func orZero[T any](v *T) T {
 	if v == nil {
 		return *new(T)
@@ -156,78 +167,87 @@ func (x *{{ .Name }}) ToProto() *destpb.{{ .Name }} {
 	}
 }
 
-func {{ .Name }}FromProto(v *destpb.{{ .Name }}) *{{ .Name }} {
+func {{ .Name }}FromProto(v *destpb.{{ .Name }}) (out *{{ .Name }}, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-{{- range $field := .Fields }}
-{{- if eq $field.Kind "BinaryMarshaler" }}
-	f{{ $field.ID }} := &{{ $field.OriginType }}{}
-	f{{ $field.ID }}.UnmarshalBinary(v.{{ $field.EscapedName }})
-{{- else if eq $field.Kind "TextMarshaler" }}
-	f{{ $field.ID }} := &{{ $field.OriginType }}{}
-	f{{ $field.ID }}.UnmarshalText([]byte(v.{{ $field.EscapedName }}))
-{{- end}}
-{{- end}}
+	out = &{{ .Name }}{}
 
-	return &{{ .Name }} {
 {{- range $field := .Fields }}
 {{- if . | isBuiltin }}
 {{- if $field.Optional}}
 {{- if $field.Pointer}}
-		{{ $field.Name }}: ptr(v.{{ $field.EscapedName }}, {{ $field.OriginType }}(orZero(v.{{ $field.EscapedName }}))),
+	out.{{ $field.Name }} = ptr(v.{{ $field.EscapedName }}, {{ $field.OriginType }}(orZero(v.{{ $field.EscapedName }})))
 {{- else}}
-		{{ $field.Name }}: {{ $field.OriginType }}(orZero(v.{{ $field.EscapedName }})),
+	out.{{ $field.Name }} = {{ $field.OriginType }}(orZero(v.{{ $field.EscapedName }}))
 {{- end}}
 {{- else if .Repeated}}
-		{{ $field.Name }}: sliceMap(v.{{ $field.EscapedName }}, func(v {{ $field.ProtoGoType }}) {{ $field.OriginType }} { return {{ $field.OriginType }}(v) }),
+	out.{{ $field.Name }} = sliceMap(v.{{ $field.EscapedName }}, func(v {{ $field.ProtoGoType }}) {{ $field.OriginType }} { return {{ $field.OriginType }}(v) })
 {{- else }}
-		{{ $field.Name }}: {{ $field.OriginType }}(v.{{ $field.EscapedName }}),
+	out.{{ $field.Name }} = {{ $field.OriginType }}(v.{{ $field.EscapedName }})
 {{- end}}
 {{- else if eq $field.ProtoType "google.protobuf.Timestamp" }}
-		{{ $field.Name }}: v.{{ $field.EscapedName }}.AsTime(),
+	out.{{ $field.Name }} = v.{{ $field.EscapedName }}.AsTime()
 {{- else if eq $field.ProtoType "google.protobuf.Duration" }}
-		{{ $field.Name }}: v.{{ $field.EscapedName }}.AsDuration(),
+	out.{{ $field.Name }} = v.{{ $field.EscapedName }}.AsDuration()
 {{- else if eq .Kind "Message" }}
 {{- if .Repeated }}
-		{{ $field.Name }}: sliceMap(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto),
+	if out.{{ $field.Name }}, err = sliceMapErr(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto); err != nil {
+		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
+	}
 {{- else}}
 {{- if $field.Pointer}}
-		{{ $field.Name }}: {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}),
+	if out.{{ $field.Name }}, err = {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}); err != nil {
+		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
+	}
 {{- else}}
-		{{ $field.Name }}: fromPtr({{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }})),
+	if field{{ $field.Name }}, err := {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}); err != nil {
+		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
+	} else {
+		out.{{ $field.Name }} = fromPtr(field{{ $field.Name }})
+	}
 {{- end}}
 {{- end}}
 {{- else if eq .Kind "Enum" }}
 {{- if .Repeated }}
-		{{ $field.Name }}: sliceMap(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto),
+	if out.{{ $field.Name }}, err = sliceMapErr(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto); err != nil {
+		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
+	}
 {{- else}}
-		{{ $field.Name }}: {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}),
+	if out.{{ $field.Name }}, err = {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}); err != nil {
+		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
+	}
 {{- end}}
 {{- else if eq .Kind "SumType" }}
 {{- if .Repeated }}
-		{{ $field.Name }}: sliceMap(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto),
+	if out.{{ $field.Name }}, err = sliceMapErr(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto); err != nil {
+		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
+	}
 {{- else}}
-		{{ $field.Name }}: {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}),
+	if out.{{ $field.Name }}, err = {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}); err != nil {
+		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
+	}
 {{- end}}
 {{- else if eq $field.Kind "BinaryMarshaler" }}
 {{- if $field.Pointer}}
-		{{ $field.Name }}: f{{ $field.ID }},
-{{- else}}
-		{{ $field.Name }}: fromPtr(f{{ $field.ID }}),
+	out.{{ $field.Name }} = new({{ $field.OriginType }})
 {{- end}}
+	if err = out.{{ $field.Name }}.UnmarshalBinary(v.{{ $field.EscapedName }}); err != nil {
+		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
+	}
 {{- else if eq $field.Kind "TextMarshaler" }}
 {{- if $field.Pointer}}
-		{{ $field.Name }}: f{{ $field.ID }},
-{{- else}}
-		{{ $field.Name }}: fromPtr(f{{ $field.ID }}),
+	out.{{ $field.Name }} = new({{ $field.OriginType }})
 {{- end}}
-{{- else }}
-		{{ $field.Name }}: ??, // v.{{ $field.EscapedName }}.ToProto() // Unknown type {{ $field.OriginType }} of kind {{ $field.Kind }}
-{{- end}}
-{{- end}}
+	if err = out.{{ $field.Name }}.UnmarshalText([]byte(v.{{ $field.EscapedName }})); err != nil {
+		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
 	}
+{{- else }}
+	out.{{ $field.Name }} = ??, // v.{{ $field.EscapedName }}.ToProto() // Unknown type {{ $field.OriginType }} of kind {{ $field.Kind }}
+{{- end}}
+{{- end}}
+	return out, nil
 }
 
 {{- else if eq (typeof $decl) "Enum" }}
@@ -235,8 +255,9 @@ func (x {{ .Name }}) ToProto() destpb.{{ .Name }} {
 	return destpb.{{ .Name }}(x)
 }
 
-func {{ .Name }}FromProto(v destpb.{{ .Name }}) {{ .Name }} {
-	return {{ .Name }}(v)
+func {{ .Name }}FromProto(v destpb.{{ .Name }}) ({{ .Name }}, error) {
+	// TODO: Check if the value is valid.
+	return {{ .Name }}(v), nil
 }
 {{- else if eq (typeof $decl) "SumType" }}
 {{- $sumtype := . }}
@@ -256,9 +277,9 @@ func {{ .Name }}ToProto(value {{ .Name }}) *destpb.{{ .Name }} {
 	}
 }
 
-func {{ $sumtype.Name }}FromProto(v *destpb.{{ $sumtype.Name }}) {{ $sumtype.Name }} {
+func {{ $sumtype.Name }}FromProto(v *destpb.{{ $sumtype.Name }}) ({{ $sumtype.Name }}, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	{{- range $variant, $id := .Variants }}

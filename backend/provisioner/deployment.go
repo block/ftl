@@ -91,18 +91,31 @@ func (t *Task) Progress(ctx context.Context) error {
 			for _, event := range events {
 				switch event.Value.(type) {
 				case *provisioner.ProvisioningEvent_ModuleRuntimeEvent:
-					moduleEvent := schema.ModuleRuntimeEventFromProto(event.GetModuleRuntimeEvent())
+					moduleEvent, err := schema.ModuleRuntimeEventFromProto(event.GetModuleRuntimeEvent())
+					if err != nil {
+						return fmt.Errorf("failed to parse module runtime event: %w", err)
+					}
 					module.Runtime.ApplyEvent(moduleEvent)
 
 				case *provisioner.ProvisioningEvent_DatabaseRuntimeEvent:
-					schema.DatabaseRuntimeEventFromProto(event.GetDatabaseRuntimeEvent()).ApplyTo(module)
+					databaseEvent, err := schema.DatabaseRuntimeEventFromProto(event.GetDatabaseRuntimeEvent())
+					if err != nil {
+						return fmt.Errorf("failed to parse database runtime event: %w", err)
+					}
+					databaseEvent.ApplyTo(module)
 
 				case *provisioner.ProvisioningEvent_TopicRuntimeEvent:
-					topicEvent := schema.TopicRuntimeEventFromProto(event.GetTopicRuntimeEvent())
+					topicEvent, err := schema.TopicRuntimeEventFromProto(event.GetTopicRuntimeEvent())
+					if err != nil {
+						return fmt.Errorf("failed to parse topic runtime event: %w", err)
+					}
 					topicEvent.ApplyTo(module)
 
 				case *provisioner.ProvisioningEvent_VerbRuntimeEvent:
-					verbEvent := schema.VerbRuntimeEventFromProto(event.GetVerbRuntimeEvent())
+					verbEvent, err := schema.VerbRuntimeEventFromProto(event.GetVerbRuntimeEvent())
+					if err != nil {
+						return fmt.Errorf("failed to parse verb runtime event: %w", err)
+					}
 					verbEvent.ApplyTo(module)
 				}
 			}
