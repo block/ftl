@@ -114,3 +114,10 @@ func (m *ModuleRuntimeDeployment) GetDeploymentKey() key.Deployment {
 	}
 	return m.DeploymentKey
 }
+
+func (m *ModuleRuntime) ModScaling() *ModuleRuntimeScaling {
+	if m.Scaling == nil {
+		m.Scaling = &ModuleRuntimeScaling{}
+	}
+	return m.Scaling
+}

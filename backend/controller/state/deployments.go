@@ -81,7 +81,7 @@ func (r *DeploymentReplicasUpdatedEvent) Handle(t SchemaState) (SchemaState, err
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 	}
-	setMinReplicas(existing, r.Replicas)
+	existing.ModRuntime().ModScaling().MinReplicas = int32(r.Replicas)
 	return t, nil
 }
 
@@ -98,7 +98,7 @@ func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
 
 	}
 	existing.ModRuntime().ModDeployment().ActivatedAt = r.ActivatedAt
-	setMinReplicas(existing, r.MinReplicas)
+	existing.ModRuntime().ModScaling().MinReplicas = int32(r.MinReplicas)
 	t.activeDeployments[r.Key] = true
 	return t, nil
 }
@@ -114,17 +114,7 @@ func (r *DeploymentDeactivatedEvent) Handle(t SchemaState) (SchemaState, error) 
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 
 	}
-	setMinReplicas(existing, 0)
+	existing.ModRuntime().ModScaling().MinReplicas = 0
 	delete(t.activeDeployments, r.Key)
 	return t, nil
-}
-
-func setMinReplicas(s *schema.Module, minReplicas int) {
-	if s.Runtime == nil {
-		s.Runtime = &schema.ModuleRuntime{}
-	}
-	if s.Runtime.Scaling == nil {
-		s.Runtime.Scaling = &schema.ModuleRuntimeScaling{}
-	}
-	s.Runtime.Scaling.MinReplicas = int32(minReplicas)
 }
