@@ -16,8 +16,9 @@ import (
 	"github.com/alecthomas/types/result"
 	"github.com/jpillora/backoff"
 
-	"github.com/block/ftl/backend/controller/observability"
+	cobservability "github.com/block/ftl/backend/controller/observability"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/runner/pubsub/observability"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -277,17 +278,17 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			// return fmt.Errorf("cancelled due to offset reset")
 			return nil
 		case msg, ok := <-claim.Messages():
-			if !ok {
-				return nil
-			}
-			if msg == nil {
+			if !ok || msg == nil {
 				// Channel closed, rebalance or shutdown needed
 				return nil
 			}
+
 			logger.Debugf("Consuming message from %v[%v:%v]", c.verb.Name, msg.Partition, msg.Offset)
+			publishedAt := parseHeaders(logger, msg.Headers)
 			remainingRetries := c.retryParams.Count
 			backoff := c.retryParams.MinBackoff
 			for {
+				startTime := time.Now()
 				callCtx, callCancel := context.WithCancel(ctx)
 				callChan := make(chan error)
 				go func() {
@@ -296,6 +297,9 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				var err error
 				select {
 				case cmd := <-resetOffset:
+					logger.Debugf("Cancelled call for subscription %s due to offset reset", c.verb.Name)
+					observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, publishedAt.Default(startTime), errors.New("cancelled due to offset reset"))
+
 					// Don't wait for call to end before resetting offsets as it may take a while.
 					callCancel()
 					if err := c.resetPartitionOffset(session, int(claim.Partition()), cmd.latest); err != nil {
@@ -310,7 +314,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 					// close call context now that the call is finished
 					callCancel()
 				}
-
+				observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, publishedAt.Default(startTime), err)
 				if err == nil {
 					break
 				}
@@ -340,6 +344,22 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			session.MarkMessage(msg, "")
 		}
 	}
+}
+
+// parseHeaders extracts FTL header values for a kafka message
+func parseHeaders(logger *log.Logger, headers []*sarama.RecordHeader) (publishedAt optional.Option[time.Time]) {
+	for _, h := range headers {
+		key := string(h.Key)
+		if key == createdAtHeader {
+			t, err := time.Parse(time.RFC3339Nano, string(h.Value))
+			if err != nil {
+				logger.Warnf("failed to parse %s header: %v", createdAtHeader, err)
+			} else {
+				publishedAt = optional.Some(t)
+			}
+		}
+	}
+	return
 }
 
 func (c *consumer) call(ctx context.Context, body []byte, partition, offset int) error {
@@ -384,11 +404,11 @@ func (c *consumer) call(ctx context.Context, body []byte, partition, offset int)
 	if callErr != nil {
 		consumeEvent.Error = optional.Some(callErr.Error())
 		callEvent.Response = result.Err[*ftlv1.CallResponse](callErr)
-		observability.Calls.Request(ctx, req.Verb, start, optional.Some("verb call failed"))
+		cobservability.Calls.Request(ctx, req.Verb, start, optional.Some("verb call failed"))
 		return callErr
 	}
 	callEvent.Response = result.Ok(resp.Msg)
-	observability.Calls.Request(ctx, req.Verb, start, optional.None[string]())
+	cobservability.Calls.Request(ctx, req.Verb, start, optional.None[string]())
 	return nil
 }
 
