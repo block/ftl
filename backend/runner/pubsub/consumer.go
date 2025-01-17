@@ -16,8 +16,9 @@ import (
 	"github.com/alecthomas/types/result"
 	"github.com/jpillora/backoff"
 
-	"github.com/block/ftl/backend/controller/observability"
+	cobservability "github.com/block/ftl/backend/controller/observability"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/runner/pubsub/observability"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -296,6 +297,8 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				var err error
 				select {
 				case cmd := <-resetOffset:
+					observability.AsyncCalls.Completed(ctx, schema.RefKey{Module: c.moduleName, Name: c.verb.Name})
+
 					// Don't wait for call to end before resetting offsets as it may take a while.
 					callCancel()
 					if err := c.resetPartitionOffset(session, int(claim.Partition()), cmd.latest); err != nil {
@@ -310,7 +313,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 					// close call context now that the call is finished
 					callCancel()
 				}
-
+				observability.AsyncCalls.Completed(callCtx)
 				if err == nil {
 					break
 				}
@@ -384,11 +387,11 @@ func (c *consumer) call(ctx context.Context, body []byte, partition, offset int)
 	if callErr != nil {
 		consumeEvent.Error = optional.Some(callErr.Error())
 		callEvent.Response = result.Err[*ftlv1.CallResponse](callErr)
-		observability.Calls.Request(ctx, req.Verb, start, optional.Some("verb call failed"))
+		cobservability.Calls.Request(ctx, req.Verb, start, optional.Some("verb call failed"))
 		return callErr
 	}
 	callEvent.Response = result.Ok(resp.Msg)
-	observability.Calls.Request(ctx, req.Verb, start, optional.None[string]())
+	cobservability.Calls.Request(ctx, req.Verb, start, optional.None[string]())
 	return nil
 }
 
