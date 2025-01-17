@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/noop"
 
+	"github.com/alecthomas/types/optional"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/observability"
 )
@@ -17,14 +18,13 @@ import (
 // To learn more about how sinks and subscriptions work together, check out the
 // https://block.github.io/ftl/docs/reference/pubsub/
 const (
-	meterName              = "ftl.pubsub"
-	topicRefAttr           = "ftl.pubsub.topic.ref"
-	topicModuleAttr        = "ftl.pubsub.topic.module.name"
-	callerVerbRefAttr      = "ftl.pubsub.publish.caller.verb.ref"
-	subscriptionRefAttr    = "ftl.pubsub.subscription.ref"
-	subscriptionModuleAttr = "ftl.pubsub.subscription.module.name"
-	// We do not know publication date anymore
-	// timeSinceScheduledAtBucketAttr = "ftl.pubsub.time_since_scheduled_at_ms.bucket"
+	meterName                    = "ftl.pubsub"
+	topicRefAttr                 = "ftl.pubsub.topic.ref"
+	topicModuleAttr              = "ftl.pubsub.topic.module.name"
+	callerVerbRefAttr            = "ftl.pubsub.publish.caller.verb.ref"
+	subscriptionRefAttr          = "ftl.pubsub.subscription.ref"
+	subscriptionModuleAttr       = "ftl.pubsub.subscription.module.name"
+	timeSincePublishedBucketAttr = "ftl.pubsub.time_since_published_ms.bucket"
 )
 
 type PubSubMetrics struct {
@@ -78,8 +78,6 @@ func (m *PubSubMetrics) Published(ctx context.Context, module, topic, caller str
 }
 
 func (m *PubSubMetrics) Consumed(ctx context.Context, topic, subscription schema.RefKey, startTime time.Time, maybeErr error) {
-	// This used to be time since publication time, not consumption start time.
-	// We should consider changing this back to time since publication time.
 	msToComplete := time.Since(startTime).Milliseconds()
 
 	attrs := []attribute.KeyValue{
@@ -87,6 +85,7 @@ func (m *PubSubMetrics) Consumed(ctx context.Context, topic, subscription schema
 		attribute.String(topicModuleAttr, topic.Module),
 		attribute.String(subscriptionRefAttr, subscription.String()),
 		attribute.String(subscriptionModuleAttr, subscription.Module),
+		attribute.String(timeSincePublishedBucketAttr, pubsubLogBucket(msToComplete)),
 		observability.SuccessOrFailureStatusAttr(maybeErr == nil),
 	}
 
@@ -96,4 +95,8 @@ func (m *PubSubMetrics) Consumed(ctx context.Context, topic, subscription schema
 
 func wrapErr(signalName string, err error) error {
 	return fmt.Errorf("failed to create %q signal: %w", signalName, err)
+}
+
+func pubsubLogBucket(msToComplete int64) string {
+	return observability.LogBucket(4, msToComplete, optional.Some(4), optional.Some(6))
 }

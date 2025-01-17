@@ -16,6 +16,10 @@ import (
 	"github.com/block/ftl/internal/timelineclient"
 )
 
+const (
+	createdAtHeader = "ftl.created_at"
+)
+
 type publisher struct {
 	module     string
 	deployment key.Deployment
@@ -63,10 +67,11 @@ func (p *publisher) publish(ctx context.Context, data []byte, key string, caller
 		requestKeyStr = optional.Some(r.String())
 	}
 
+	createdAt := time.Now().UTC()
 	timelineEvent := timelineclient.PubSubPublish{
 		DeploymentKey: p.deployment,
 		RequestKey:    requestKeyStr,
-		Time:          time.Now(),
+		Time:          createdAt,
 		SourceVerb:    caller,
 		Topic:         p.topic.Name,
 		Request:       data,
@@ -76,6 +81,12 @@ func (p *publisher) publish(ctx context.Context, data []byte, key string, caller
 		Topic: p.topic.Runtime.TopicID,
 		Value: sarama.ByteEncoder(data),
 		Key:   sarama.StringEncoder(key),
+		Headers: []sarama.RecordHeader{
+			{
+				Key:   []byte(createdAtHeader),
+				Value: []byte(createdAt.Format(time.RFC3339Nano)),
+			},
+		},
 	})
 	observability.PubSub.Published(ctx, p.module, p.topic.Name, caller.Name, err)
 	if err != nil {

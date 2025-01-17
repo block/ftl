@@ -278,14 +278,13 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			// return fmt.Errorf("cancelled due to offset reset")
 			return nil
 		case msg, ok := <-claim.Messages():
-			if !ok {
-				return nil
-			}
-			if msg == nil {
+			if !ok || msg == nil {
 				// Channel closed, rebalance or shutdown needed
 				return nil
 			}
+
 			logger.Debugf("Consuming message from %v[%v:%v]", c.verb.Name, msg.Partition, msg.Offset)
+			publishedAt := parseHeaders(logger, msg.Headers)
 			remainingRetries := c.retryParams.Count
 			backoff := c.retryParams.MinBackoff
 			for {
@@ -299,7 +298,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				select {
 				case cmd := <-resetOffset:
 					logger.Debugf("Cancelled call for subscription %s due to offset reset", c.verb.Name)
-					observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, startTime, errors.New("cancelled due to offset reset"))
+					observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, publishedAt.Default(startTime), errors.New("cancelled due to offset reset"))
 
 					// Don't wait for call to end before resetting offsets as it may take a while.
 					callCancel()
@@ -315,7 +314,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 					// close call context now that the call is finished
 					callCancel()
 				}
-				observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, startTime, err)
+				observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, publishedAt.Default(startTime), err)
 				if err == nil {
 					break
 				}
@@ -345,6 +344,22 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			session.MarkMessage(msg, "")
 		}
 	}
+}
+
+// parseHeaders extracts FTL header values for a kafka message
+func parseHeaders(logger *log.Logger, headers []*sarama.RecordHeader) (publishedAt optional.Option[time.Time]) {
+	for _, h := range headers {
+		key := string(h.Key)
+		if key == createdAtHeader {
+			t, err := time.Parse(time.RFC3339Nano, string(h.Value))
+			if err != nil {
+				logger.Warnf("failed to parse %s header: %v", createdAtHeader, err)
+			} else {
+				publishedAt = optional.Some(t)
+			}
+		}
+	}
+	return
 }
 
 func (c *consumer) call(ctx context.Context, body []byte, partition, offset int) error {
