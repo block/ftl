@@ -42,11 +42,10 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
-	dep, err := view.GetDeployment(deployment)
+	module, err := view.GetDeployment(deployment)
 	if err != nil {
 		return nil, fmt.Errorf("could not get schema: %w", err)
 	}
-	module := dep.Schema
 	if module.Runtime == nil {
 		module.Runtime = &schema.ModuleRuntime{}
 	}

@@ -21,13 +21,13 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEv
 		if !ok {
 			events = append(events, &DeploymentCreatedEvent{
 				Key:       key,
-				CreatedAt: deployment.Schema.GetRuntime().GetDeployment().GetCreatedAt(),
-				Schema:    deployment.Schema,
+				CreatedAt: deployment.GetRuntime().GetDeployment().GetCreatedAt(),
+				Schema:    deployment,
 			})
-		} else if !pd.Schema.Equals(deployment.Schema) {
+		} else if !pd.Equals(deployment) {
 			events = append(events, &DeploymentSchemaUpdatedEvent{
 				Key:    key,
-				Schema: deployment.Schema,
+				Schema: deployment,
 			})
 		}
 	}
@@ -36,11 +36,11 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEv
 	currentAll := current.GetDeployments()
 	currentModules := map[string]bool{}
 	for _, deployment := range currentAll {
-		currentModules[deployment.Schema.Name] = true
+		currentModules[deployment.Name] = true
 	}
 	for key, deployment := range previous.GetActiveDeployments() {
 		if _, ok := currentActive[key]; !ok {
-			_, ok2 := currentModules[deployment.Schema.Name]
+			_, ok2 := currentModules[deployment.Name]
 			events = append(events, &DeploymentDeactivatedEvent{
 				Key:           key,
 				ModuleRemoved: !ok2,
