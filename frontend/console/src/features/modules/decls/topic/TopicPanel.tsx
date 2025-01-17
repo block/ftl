@@ -24,13 +24,13 @@ export const TopicPanel = ({ value, schema, moduleName, declName }: { value: Top
             <div className=''>
               <PanelHeader title='Topic' declRef={`${moduleName}.${declName}`} exported={decl.export} comments={decl.comments} />
               <div className='-mx-3.5'>
-                <Schema schema={schema} />
+                <Schema schema={schema} moduleName={moduleName} />
               </div>
             </div>
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('topic', decl)} title={declName} />}
-        rightPanelPanels={topicPanels(value, schema)}
+        rightPanelPanels={topicPanels(moduleName, value, schema)}
         storageKeyPrefix='topicPanel'
       />
     </div>

@@ -115,7 +115,7 @@ const SchemaLine = ({ line, moduleNameOverride, containerRect }: { line: string;
 
 // Prop moduleName should be set if defaulting to the moduleName in the URL is NOT the
 // correct behavior.
-export const Schema = ({ schema, moduleName, containerRect }: { schema: string; moduleName?: string; containerRect?: DOMRect }) => {
+export const Schema = ({ schema, moduleName, containerRect }: { schema: string; moduleName: string; containerRect?: DOMRect }) => {
   const ref = useRef<HTMLDivElement>(null)
   const rect = ref?.current?.getBoundingClientRect()
   const ll = useMemo(() => schema.split('\n'), [schema])

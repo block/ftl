@@ -23,13 +23,13 @@ export const DataPanel = ({ value, schema, moduleName, declName }: { value: Data
             <div className=''>
               <PanelHeader title='Data' declRef={`${moduleName}.${declName}`} exported={decl.export} comments={decl.comments} />
               <div className='-mx-3.5'>
-                <Schema schema={schema} />
+                <Schema schema={schema} moduleName={moduleName} />
               </div>
             </div>
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('data', decl)} title={declName} />}
-        rightPanelPanels={[...dataPanels(value)]}
+        rightPanelPanels={dataPanels(moduleName, value)}
         storageKeyPrefix='dataPanel'
       />
     </div>

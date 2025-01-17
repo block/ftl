@@ -3,7 +3,7 @@ import type { ExpandablePanelProps } from '../../graph/ExpandablePanel'
 import { Schema } from '../schema/Schema'
 import { References } from './References'
 
-export const DeclDefaultPanels = (schema?: string, references?: Ref[]) => {
+export const DeclDefaultPanels = (moduleName: string, schema?: string, references?: Ref[]) => {
   const panels = [] as ExpandablePanelProps[]
 
   if (schema?.trim()) {
@@ -11,7 +11,7 @@ export const DeclDefaultPanels = (schema?: string, references?: Ref[]) => {
       title: 'Schema',
       expanded: true,
       padding: 'p-2',
-      children: <Schema schema={schema} />,
+      children: <Schema schema={schema} moduleName={moduleName} />,
     })
   }
 

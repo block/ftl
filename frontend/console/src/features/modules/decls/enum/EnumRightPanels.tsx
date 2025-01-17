@@ -3,7 +3,7 @@ import type { Enum } from '../../../../protos/xyz/block/ftl/console/v1/console_p
 import type { ExpandablePanelProps } from '../../../graph/ExpandablePanel'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
 
-export const enumPanels = (enumDecl: Enum, schema?: string) => {
+export const enumPanels = (moduleName: string, enumDecl: Enum, schema?: string) => {
   return [
     {
       title: 'Details',
@@ -13,6 +13,6 @@ export const enumPanels = (enumDecl: Enum, schema?: string) => {
         <RightPanelAttribute key='type' name='Type' value={enumDecl.enum?.type?.value.case} />,
       ],
     },
-    ...DeclDefaultPanels(schema, enumDecl.references),
+    ...DeclDefaultPanels(moduleName, schema, enumDecl.references),
   ] as ExpandablePanelProps[]
 }

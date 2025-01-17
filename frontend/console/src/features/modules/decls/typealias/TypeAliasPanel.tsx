@@ -24,13 +24,13 @@ export const TypeAliasPanel = ({ value, schema, moduleName, declName }: { value:
             <div className=''>
               <PanelHeader title='TypeAlias' declRef={`${moduleName}.${declName}`} exported={decl.export} comments={decl.comments} />
               <div className='-mx-3.5'>
-                <Schema schema={schema} />
+                <Schema schema={schema} moduleName={moduleName} />
               </div>
             </div>
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('typealias', decl)} title={declName} />}
-        rightPanelPanels={typeAliasPanels(value, schema)}
+        rightPanelPanels={typeAliasPanels(moduleName, value, schema)}
         storageKeyPrefix='typeAliasPanel'
       />
     </div>

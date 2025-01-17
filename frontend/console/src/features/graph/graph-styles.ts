@@ -75,7 +75,6 @@ export const createGraphStyles = (isDarkMode: boolean): Stylesheet[] => {
         height: '120px',
         'text-valign': 'top',
         'text-halign': 'center',
-        'text-margin-y': 20,
         'padding-top': '30px',
         'text-wrap': 'wrap',
         'text-max-width': '120px',

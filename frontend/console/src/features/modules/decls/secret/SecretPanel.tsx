@@ -115,7 +115,7 @@ export const SecretPanel = ({ value, schema, moduleName, declName }: { value: Se
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('secret', decl)} title={declName} />}
-        rightPanelPanels={secretPanels(value, schema)}
+        rightPanelPanels={secretPanels(moduleName, value, schema)}
         storageKeyPrefix='secretPanel'
       />
     </div>

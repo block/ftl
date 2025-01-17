@@ -106,7 +106,7 @@ export const ConfigPanel = ({ value, schema, moduleName, declName }: { value: Co
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('config', decl)} title={declName} />}
-        rightPanelPanels={configPanels(value, schema)}
+        rightPanelPanels={configPanels(moduleName, value, schema)}
         storageKeyPrefix='configPanel'
       />
     </div>

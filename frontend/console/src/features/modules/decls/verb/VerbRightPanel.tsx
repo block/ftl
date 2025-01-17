@@ -15,7 +15,7 @@ const PanelRow = ({ verb }: { verb: VerbRef }) => {
   )
 }
 
-export const verbPanels = (verb?: Verb, callers?: VerbRef[]) => {
+export const verbPanels = (moduleName: string, verb?: Verb, callers?: VerbRef[]) => {
   const panels = [] as ExpandablePanelProps[]
 
   if (isHttpIngress(verb)) {
@@ -53,7 +53,7 @@ export const verbPanels = (verb?: Verb, callers?: VerbRef[]) => {
   panels.push({
     title: 'Schema',
     expanded: true,
-    children: <Schema schema={verb?.schema || ''} />,
+    children: <Schema schema={verb?.schema || ''} moduleName={moduleName} />,
   })
 
   return panels

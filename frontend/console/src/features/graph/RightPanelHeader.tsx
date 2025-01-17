@@ -4,7 +4,7 @@ import { RightPanelHeader } from '../modules/decls/RightPanelHeader'
 import { declIcon } from '../modules/module.utils'
 import type { FTLNode } from './graph-utils'
 
-export const headerForNode = (node: FTLNode | null) => {
+export const headerForNode = (node: FTLNode | null, _moduleName?: string | null) => {
   if (!node) {
     return header({
       IconComponent: CellsIcon,

@@ -3,7 +3,7 @@ import type { Database } from '../../../../protos/xyz/block/ftl/console/v1/conso
 import type { ExpandablePanelProps } from '../../../graph/ExpandablePanel'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
 
-export const databasePanels = (database: Database, schema?: string) => {
+export const databasePanels = (moduleName: string, database: Database, schema?: string) => {
   return [
     {
       title: 'Details',
@@ -13,6 +13,6 @@ export const databasePanels = (database: Database, schema?: string) => {
         <RightPanelAttribute key='type' name='Type' value={database.database?.type} />,
       ],
     },
-    ...DeclDefaultPanels(schema, database.references),
+    ...DeclDefaultPanels(moduleName, schema, database.references),
   ] as ExpandablePanelProps[]
 }
