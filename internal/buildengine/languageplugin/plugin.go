@@ -561,7 +561,10 @@ func buildResultFromProto(result either.Either[*langpb.BuildResponse_BuildSucces
 	case either.Left[*langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure]:
 		buildSuccess := result.Get().BuildSuccess
 
-		moduleSch := schema.ModuleFromProto(buildSuccess.Module)
+		moduleSch, err := schema.ModuleFromProto(buildSuccess.Module)
+		if err != nil {
+			return BuildResult{}, fmt.Errorf("failed to unmarshal module from proto: %w", err)
+		}
 		if moduleSch.Runtime != nil && len(strings.Split(moduleSch.Runtime.Base.Image, ":")) != 1 {
 			return BuildResult{}, fmt.Errorf("image tag not supported in runtime image: %s", moduleSch.Runtime.Base.Image)
 		}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/must"
 
 	"github.com/alecthomas/repr"
 
@@ -153,7 +154,7 @@ func TestJVMCoreFunctionality(t *testing.T) {
 			assert.True(t, verb.Request.GetRef() != nil, "request was not a ref")
 			fullSchema, err := schema.FromProto(sch)
 			assert.NoError(t, err, "failed to convert schema")
-			req := fullSchema.Resolve(schema.RefFromProto(verb.Request.GetRef()))
+			req := fullSchema.Resolve(must.Get(schema.RefFromProto(verb.Request.GetRef())))
 			assert.True(t, req.Ok(), "request not found")
 			if typeAlias, ok := req.MustGet().(*schema.TypeAlias); ok {
 				if _, ok := typeAlias.Type.(*schema.String); !ok {
@@ -171,7 +172,7 @@ func TestJVMCoreFunctionality(t *testing.T) {
 			assert.True(t, verb.Request.GetRef() != nil, "request was not a ref")
 			fullSchema, err := schema.FromProto(sch)
 			assert.NoError(t, err, "failed to convert schema")
-			req := fullSchema.Resolve(schema.RefFromProto(verb.Request.GetRef()))
+			req := fullSchema.Resolve(must.Get(schema.RefFromProto(verb.Request.GetRef())))
 			assert.True(t, req.Ok(), "request not found")
 			if typeAlias, ok := req.MustGet().(*schema.TypeAlias); ok {
 				if _, ok := typeAlias.Type.(*schema.Any); !ok {

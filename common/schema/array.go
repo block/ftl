@@ -1,9 +1,5 @@
 package schema
 
-import (
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
-)
-
 //protobuf:7
 type Array struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
@@ -26,10 +22,3 @@ func (a *Array) schemaChildren() []Node { return []Node{a.Element} }
 func (a *Array) schemaType()            {}
 func (a *Array) schemaSymbol()          {}
 func (a *Array) String() string         { return "[" + a.Element.String() + "]" }
-
-func arrayToSchema(s *schemapb.Array) *Array {
-	return &Array{
-		Pos:     PosFromProto(s.Pos),
-		Element: TypeFromProto(s.Element),
-	}
-}

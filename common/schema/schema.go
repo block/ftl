@@ -262,7 +262,10 @@ func (s *Schema) ModuleDependencies(module string) map[string]*Module {
 }
 
 func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
-	module := ModuleFromProto(v)
+	module, err := ModuleFromProto(v)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal module: %w", err)
+	}
 	if err := ValidateModule(module); err != nil {
 		return nil, err
 	}

@@ -52,6 +52,7 @@ func testModelRoundtrip(t *testing.T, model *Root) {
 	t.Helper()
 
 	pb := model.ToProto()
-	model2 := RootFromProto(pb)
+	model2, err := RootFromProto(pb)
+	assert.NoError(t, err)
 	assert.Equal(t, model, model2)
 }

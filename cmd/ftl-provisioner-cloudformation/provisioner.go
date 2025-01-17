@@ -139,7 +139,10 @@ func generateChangeSetName(stack string) string {
 func (c *CloudformationProvisioner) createTemplate(req *provisioner.ProvisionRequest) (string, error) {
 	template := goformation.NewTemplate()
 
-	module := schema.ModuleFromProto(req.DesiredModule)
+	module, err := schema.ModuleFromProto(req.DesiredModule)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert module from proto: %w", err)
+	}
 	var acceptedKinds []schema.ResourceType
 	for _, k := range req.Kinds {
 		acceptedKinds = append(acceptedKinds, schema.ResourceType(k))

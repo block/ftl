@@ -65,6 +65,11 @@ func (d *KeyType[T, TP]) Scan(src any) error {
 	if !ok {
 		return fmt.Errorf("expected key to be a string but it's a %T", src)
 	}
+	if input == "" {
+		var zero KeyType[T, TP]
+		*d = zero
+		return nil
+	}
 	key, err := parseKey[T, TP](input)
 	if err != nil {
 		return err
@@ -101,6 +106,11 @@ func (d KeyType[T, TP]) String() string {
 
 func (d KeyType[T, TP]) MarshalText() ([]byte, error) { return []byte(d.String()), nil }
 func (d *KeyType[T, TP]) UnmarshalText(bytes []byte) error {
+	if len(bytes) == 0 {
+		var zero KeyType[T, TP]
+		*d = zero
+		return nil
+	}
 	id, err := parseKey[T, TP](string(bytes))
 	if err != nil {
 		return err

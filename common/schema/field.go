@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/alecthomas/types/optional"
-
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )
 
 type Field struct {
@@ -47,22 +45,4 @@ func (f *Field) Alias(kind AliasKind) optional.Option[string] {
 		}
 	}
 	return optional.None[string]()
-}
-
-func fieldListToSchema(s []*schemapb.Field) []*Field {
-	var out []*Field
-	for _, n := range s {
-		out = append(out, fieldToSchema(n))
-	}
-	return out
-}
-
-func fieldToSchema(s *schemapb.Field) *Field {
-	return &Field{
-		Pos:      PosFromProto(s.Pos),
-		Name:     s.Name,
-		Comments: s.Comments,
-		Type:     TypeFromProto(s.Type),
-		Metadata: metadataListToSchema(s.Metadata),
-	}
 }

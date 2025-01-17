@@ -90,6 +90,9 @@ var _ Type = (*Ref)(nil)
 
 func (r *Ref) Position() Position { return r.Pos }
 func (r *Ref) String() string {
+	if r == nil {
+		return ""
+	}
 	out := makeRef(r.Module, r.Name)
 	if len(r.TypeParameters) > 0 {
 		out += "<"
@@ -111,12 +114,4 @@ func ParseRef(ref string) (*Ref, error) {
 	}
 	out.Pos = Position{}
 	return out, nil
-}
-
-func refListToSchema(s []*schemapb.Ref) []*Ref {
-	var out []*Ref
-	for _, n := range s {
-		out = append(out, RefFromProto(n))
-	}
-	return out
 }

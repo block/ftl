@@ -2,8 +2,6 @@ package schema
 
 import (
 	"fmt"
-
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )
 
 //protobuf:8
@@ -29,11 +27,3 @@ func (m *Map) schemaChildren() []Node { return []Node{m.Key, m.Value} }
 func (*Map) schemaType()              {}
 func (*Map) schemaSymbol()            {}
 func (m *Map) String() string         { return fmt.Sprintf("{%s: %s}", m.Key.String(), m.Value.String()) }
-
-func mapToSchema(s *schemapb.Map) *Map {
-	return &Map{
-		Pos:   PosFromProto(s.Pos),
-		Key:   TypeFromProto(s.Key),
-		Value: TypeFromProto(s.Value),
-	}
-}

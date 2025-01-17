@@ -61,9 +61,11 @@ func (m *Metrics) Request(ctx context.Context, method string, path string, verb 
 		attribute.String(ingressPathAttr, path),
 	}
 	if v, ok := verb.Get(); ok {
-		attrs = append(attrs,
-			attribute.String(observability.ModuleNameAttribute, v.Module),
-			attribute.String(ingressVerbRefAttr, schema.RefFromProto(v).String()))
+		if verb, err := schema.RefFromProto(v); err == nil {
+			attrs = append(attrs,
+				attribute.String(observability.ModuleNameAttribute, v.Module),
+				attribute.String(ingressVerbRefAttr, verb.String()))
+		}
 	}
 	if f, ok := failureMode.Get(); ok {
 		attrs = append(attrs, attribute.String(ingressFailureModeAttr, f))

@@ -774,7 +774,11 @@ func (s *Service) callWithRequest(
 	routes := s.routeTable.Current()
 	sch := routes.Schema()
 
-	verbRef := schema.RefFromProto(req.Msg.Verb)
+	verbRef, err := schema.RefFromProto(req.Msg.Verb)
+	if err != nil {
+		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("invalid request: invalid verb"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid verb: %w", err))
+	}
 	verb := &schema.Verb{}
 	logger = logger.Module(verbRef.Module)
 
@@ -869,7 +873,12 @@ func (s *Service) callWithRequest(
 	}
 	ctx = rpc.WithRequestKey(ctx, requestKey)
 	ctx = rpc.WithVerbs(ctx, append(callers, verbRef))
-	headers.AddCaller(req.Header(), schema.RefFromProto(req.Msg.Verb))
+	reqVerb, err := schema.RefFromProto(req.Msg.Verb)
+	if err != nil {
+		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("invalid request: invalid verb"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid verb: %w", err))
+	}
+	headers.AddCaller(req.Header(), reqVerb)
 
 	response, err := client.verb.Call(ctx, req)
 	var resp *connect.Response[ftlv1.CallResponse]

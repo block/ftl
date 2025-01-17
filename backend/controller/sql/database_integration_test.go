@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/must"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
@@ -47,7 +48,7 @@ func TestMySQL(t *testing.T) {
 			assert.True(t, verb.Request.GetRef() != nil, "request was not a ref")
 			fullSchema, err := schema.FromProto(sch)
 			assert.NoError(t, err, "failed to convert schema")
-			req := fullSchema.Resolve(schema.RefFromProto(verb.Request.GetRef()))
+			req := fullSchema.Resolve(must.Get(schema.RefFromProto(verb.Request.GetRef())))
 			assert.True(t, req.Ok(), "request not found")
 
 			if data, ok := req.MustGet().(*schema.Data); ok {
@@ -65,7 +66,7 @@ func TestMySQL(t *testing.T) {
 			fullSchema, err := schema.FromProto(sch)
 			assert.NoError(t, err, "failed to convert schema")
 
-			resp := fullSchema.Resolve(schema.RefFromProto(verb.Response.GetArray().Element.GetRef()))
+			resp := fullSchema.Resolve(must.Get(schema.RefFromProto(verb.Response.GetArray().Element.GetRef())))
 			assert.True(t, resp.Ok(), "response not found")
 
 			if data, ok := resp.MustGet().(*schema.Data); ok {

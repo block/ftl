@@ -3,8 +3,6 @@ package schema
 import (
 	"fmt"
 	"strings"
-
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )
 
 //protobuf:2
@@ -48,26 +46,6 @@ func (m *MetadataIngress) schemaChildren() []Node {
 }
 
 func (*MetadataIngress) schemaMetadata() {}
-
-func ingressPathComponentListToSchema(s []*schemapb.IngressPathComponent) []IngressPathComponent {
-	var out []IngressPathComponent
-	for _, n := range s {
-		switch n := n.Value.(type) {
-		case *schemapb.IngressPathComponent_IngressPathLiteral:
-			out = append(out, &IngressPathLiteral{
-				Pos:  PosFromProto(n.IngressPathLiteral.Pos),
-				Text: n.IngressPathLiteral.Text,
-			})
-		case *schemapb.IngressPathComponent_IngressPathParameter:
-			out = append(out, &IngressPathParameter{
-				Pos:  PosFromProto(n.IngressPathParameter.Pos),
-				Name: n.IngressPathParameter.Name,
-			})
-		}
-	}
-
-	return out
-}
 
 type IngressPathComponent interface {
 	Node

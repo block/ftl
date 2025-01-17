@@ -41,7 +41,10 @@ func (s *schemaGenerateCmd) oneOffGenerate(ctx context.Context, schemaClient ftl
 	if err != nil {
 		return fmt.Errorf("failed to get schema: %w", err)
 	}
-	modules := slices.Map(response.Msg.Schema.Modules, schema.ModuleFromProto)
+	modules, err := slices.MapErr(response.Msg.Schema.Modules, schema.ModuleFromProto)
+	if err != nil {
+		return fmt.Errorf("invalid module schema: %w", err)
+	}
 	return s.regenerateModules(log.FromContext(ctx), modules)
 }
 

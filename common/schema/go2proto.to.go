@@ -8,8 +8,6 @@ import "google.golang.org/protobuf/proto"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
 
-import "github.com/block/ftl/internal/key"
-
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
 var _ = durationpb.Duration{}
@@ -36,6 +34,17 @@ func sliceMap[T any, U any](values []T, f func(T) U) []U {
 		out[i] = f(v)
 	}
 	return out
+}
+
+func sliceMapErr[T any, U any](values []T, f func(T) (U, error)) ([]U, error) {
+	var err error
+	out := make([]U, len(values))
+	for i, v := range values {
+		if out[i], err = f(v); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }
 
 func orZero[T any](v *T) T {
@@ -71,25 +80,30 @@ func (x *AWSIAMAuthDatabaseConnector) ToProto() *destpb.AWSIAMAuthDatabaseConnec
 	}
 }
 
-func AWSIAMAuthDatabaseConnectorFromProto(v *destpb.AWSIAMAuthDatabaseConnector) *AWSIAMAuthDatabaseConnector {
+func AWSIAMAuthDatabaseConnectorFromProto(v *destpb.AWSIAMAuthDatabaseConnector) (out *AWSIAMAuthDatabaseConnector, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &AWSIAMAuthDatabaseConnector{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Username: string(v.Username),
-		Endpoint: string(v.Endpoint),
-		Database: string(v.Database),
+	out = &AWSIAMAuthDatabaseConnector{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Username = string(v.Username)
+	out.Endpoint = string(v.Endpoint)
+	out.Database = string(v.Database)
+	return out, nil
 }
 
 func (x AliasKind) ToProto() destpb.AliasKind {
 	return destpb.AliasKind(x)
 }
 
-func AliasKindFromProto(v destpb.AliasKind) AliasKind {
-	return AliasKind(v)
+func AliasKindFromProto(v destpb.AliasKind) (AliasKind, error) {
+	// TODO: Check if the value is valid.
+	return AliasKind(v), nil
 }
 
 func (x *Any) ToProto() *destpb.Any {
@@ -101,14 +115,18 @@ func (x *Any) ToProto() *destpb.Any {
 	}
 }
 
-func AnyFromProto(v *destpb.Any) *Any {
+func AnyFromProto(v *destpb.Any) (out *Any, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Any{
-		Pos: fromPtr(PositionFromProto(v.Pos)),
+	out = &Any{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	return out, nil
 }
 
 func (x *Array) ToProto() *destpb.Array {
@@ -121,15 +139,21 @@ func (x *Array) ToProto() *destpb.Array {
 	}
 }
 
-func ArrayFromProto(v *destpb.Array) *Array {
+func ArrayFromProto(v *destpb.Array) (out *Array, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Array{
-		Pos:     fromPtr(PositionFromProto(v.Pos)),
-		Element: TypeFromProto(v.Element),
+	out = &Array{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Element, err = TypeFromProto(v.Element); err != nil {
+		return nil, fmt.Errorf("Element: %w", err)
+	}
+	return out, nil
 }
 
 func (x *Bool) ToProto() *destpb.Bool {
@@ -141,14 +165,18 @@ func (x *Bool) ToProto() *destpb.Bool {
 	}
 }
 
-func BoolFromProto(v *destpb.Bool) *Bool {
+func BoolFromProto(v *destpb.Bool) (out *Bool, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Bool{
-		Pos: fromPtr(PositionFromProto(v.Pos)),
+	out = &Bool{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	return out, nil
 }
 
 func (x *Bytes) ToProto() *destpb.Bytes {
@@ -160,14 +188,18 @@ func (x *Bytes) ToProto() *destpb.Bytes {
 	}
 }
 
-func BytesFromProto(v *destpb.Bytes) *Bytes {
+func BytesFromProto(v *destpb.Bytes) (out *Bytes, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Bytes{
-		Pos: fromPtr(PositionFromProto(v.Pos)),
+	out = &Bytes{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	return out, nil
 }
 
 func (x *Config) ToProto() *destpb.Config {
@@ -182,17 +214,23 @@ func (x *Config) ToProto() *destpb.Config {
 	}
 }
 
-func ConfigFromProto(v *destpb.Config) *Config {
+func ConfigFromProto(v *destpb.Config) (out *Config, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Config{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Name:     string(v.Name),
-		Type:     TypeFromProto(v.Type),
+	out = &Config{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Name = string(v.Name)
+	if out.Type, err = TypeFromProto(v.Type); err != nil {
+		return nil, fmt.Errorf("Type: %w", err)
+	}
+	return out, nil
 }
 
 func (x *DSNDatabaseConnector) ToProto() *destpb.DSNDatabaseConnector {
@@ -205,15 +243,19 @@ func (x *DSNDatabaseConnector) ToProto() *destpb.DSNDatabaseConnector {
 	}
 }
 
-func DSNDatabaseConnectorFromProto(v *destpb.DSNDatabaseConnector) *DSNDatabaseConnector {
+func DSNDatabaseConnectorFromProto(v *destpb.DSNDatabaseConnector) (out *DSNDatabaseConnector, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &DSNDatabaseConnector{
-		Pos: fromPtr(PositionFromProto(v.Pos)),
-		DSN: string(v.Dsn),
+	out = &DSNDatabaseConnector{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.DSN = string(v.Dsn)
+	return out, nil
 }
 
 func (x *Data) ToProto() *destpb.Data {
@@ -231,20 +273,30 @@ func (x *Data) ToProto() *destpb.Data {
 	}
 }
 
-func DataFromProto(v *destpb.Data) *Data {
+func DataFromProto(v *destpb.Data) (out *Data, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Data{
-		Pos:            fromPtr(PositionFromProto(v.Pos)),
-		Comments:       sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Export:         bool(v.Export),
-		Name:           string(v.Name),
-		TypeParameters: sliceMap(v.TypeParameters, TypeParameterFromProto),
-		Fields:         sliceMap(v.Fields, FieldFromProto),
-		Metadata:       sliceMap(v.Metadata, MetadataFromProto),
+	out = &Data{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Export = bool(v.Export)
+	out.Name = string(v.Name)
+	if out.TypeParameters, err = sliceMapErr(v.TypeParameters, TypeParameterFromProto); err != nil {
+		return nil, fmt.Errorf("TypeParameters: %w", err)
+	}
+	if out.Fields, err = sliceMapErr(v.Fields, FieldFromProto); err != nil {
+		return nil, fmt.Errorf("Fields: %w", err)
+	}
+	if out.Metadata, err = sliceMapErr(v.Metadata, MetadataFromProto); err != nil {
+		return nil, fmt.Errorf("Metadata: %w", err)
+	}
+	return out, nil
 }
 
 func (x *Database) ToProto() *destpb.Database {
@@ -261,19 +313,27 @@ func (x *Database) ToProto() *destpb.Database {
 	}
 }
 
-func DatabaseFromProto(v *destpb.Database) *Database {
+func DatabaseFromProto(v *destpb.Database) (out *Database, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Database{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Runtime:  DatabaseRuntimeFromProto(v.Runtime),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Type:     string(v.Type),
-		Name:     string(v.Name),
-		Metadata: sliceMap(v.Metadata, MetadataFromProto),
+	out = &Database{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Runtime, err = DatabaseRuntimeFromProto(v.Runtime); err != nil {
+		return nil, fmt.Errorf("Runtime: %w", err)
+	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Type = string(v.Type)
+	out.Name = string(v.Name)
+	if out.Metadata, err = sliceMapErr(v.Metadata, MetadataFromProto); err != nil {
+		return nil, fmt.Errorf("Metadata: %w", err)
+	}
+	return out, nil
 }
 
 // DatabaseConnectorToProto converts a DatabaseConnector sum type to a protobuf message.
@@ -294,9 +354,9 @@ func DatabaseConnectorToProto(value DatabaseConnector) *destpb.DatabaseConnector
 	}
 }
 
-func DatabaseConnectorFromProto(v *destpb.DatabaseConnector) DatabaseConnector {
+func DatabaseConnectorFromProto(v *destpb.DatabaseConnector) (DatabaseConnector, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.DatabaseConnector_AwsiamAuthDatabaseConnector:
@@ -317,14 +377,16 @@ func (x *DatabaseRuntime) ToProto() *destpb.DatabaseRuntime {
 	}
 }
 
-func DatabaseRuntimeFromProto(v *destpb.DatabaseRuntime) *DatabaseRuntime {
+func DatabaseRuntimeFromProto(v *destpb.DatabaseRuntime) (out *DatabaseRuntime, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &DatabaseRuntime{
-		Connections: DatabaseRuntimeConnectionsFromProto(v.Connections),
+	out = &DatabaseRuntime{}
+	if out.Connections, err = DatabaseRuntimeConnectionsFromProto(v.Connections); err != nil {
+		return nil, fmt.Errorf("Connections: %w", err)
 	}
+	return out, nil
 }
 
 func (x *DatabaseRuntimeConnections) ToProto() *destpb.DatabaseRuntimeConnections {
@@ -337,15 +399,19 @@ func (x *DatabaseRuntimeConnections) ToProto() *destpb.DatabaseRuntimeConnection
 	}
 }
 
-func DatabaseRuntimeConnectionsFromProto(v *destpb.DatabaseRuntimeConnections) *DatabaseRuntimeConnections {
+func DatabaseRuntimeConnectionsFromProto(v *destpb.DatabaseRuntimeConnections) (out *DatabaseRuntimeConnections, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &DatabaseRuntimeConnections{
-		Read:  DatabaseConnectorFromProto(v.Read),
-		Write: DatabaseConnectorFromProto(v.Write),
+	out = &DatabaseRuntimeConnections{}
+	if out.Read, err = DatabaseConnectorFromProto(v.Read); err != nil {
+		return nil, fmt.Errorf("Read: %w", err)
 	}
+	if out.Write, err = DatabaseConnectorFromProto(v.Write); err != nil {
+		return nil, fmt.Errorf("Write: %w", err)
+	}
+	return out, nil
 }
 
 func (x *DatabaseRuntimeConnectionsEvent) ToProto() *destpb.DatabaseRuntimeConnectionsEvent {
@@ -357,14 +423,16 @@ func (x *DatabaseRuntimeConnectionsEvent) ToProto() *destpb.DatabaseRuntimeConne
 	}
 }
 
-func DatabaseRuntimeConnectionsEventFromProto(v *destpb.DatabaseRuntimeConnectionsEvent) *DatabaseRuntimeConnectionsEvent {
+func DatabaseRuntimeConnectionsEventFromProto(v *destpb.DatabaseRuntimeConnectionsEvent) (out *DatabaseRuntimeConnectionsEvent, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &DatabaseRuntimeConnectionsEvent{
-		Connections: DatabaseRuntimeConnectionsFromProto(v.Connections),
+	out = &DatabaseRuntimeConnectionsEvent{}
+	if out.Connections, err = DatabaseRuntimeConnectionsFromProto(v.Connections); err != nil {
+		return nil, fmt.Errorf("Connections: %w", err)
 	}
+	return out, nil
 }
 
 func (x *DatabaseRuntimeEvent) ToProto() *destpb.DatabaseRuntimeEvent {
@@ -377,15 +445,17 @@ func (x *DatabaseRuntimeEvent) ToProto() *destpb.DatabaseRuntimeEvent {
 	}
 }
 
-func DatabaseRuntimeEventFromProto(v *destpb.DatabaseRuntimeEvent) *DatabaseRuntimeEvent {
+func DatabaseRuntimeEventFromProto(v *destpb.DatabaseRuntimeEvent) (out *DatabaseRuntimeEvent, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &DatabaseRuntimeEvent{
-		ID:      string(v.Id),
-		Payload: DatabaseRuntimeEventPayloadFromProto(v.Payload),
+	out = &DatabaseRuntimeEvent{}
+	out.ID = string(v.Id)
+	if out.Payload, err = DatabaseRuntimeEventPayloadFromProto(v.Payload); err != nil {
+		return nil, fmt.Errorf("Payload: %w", err)
 	}
+	return out, nil
 }
 
 // DatabaseRuntimeEventPayloadToProto converts a DatabaseRuntimeEventPayload sum type to a protobuf message.
@@ -402,9 +472,9 @@ func DatabaseRuntimeEventPayloadToProto(value DatabaseRuntimeEventPayload) *dest
 	}
 }
 
-func DatabaseRuntimeEventPayloadFromProto(v *destpb.DatabaseRuntimeEventPayload) DatabaseRuntimeEventPayload {
+func DatabaseRuntimeEventPayloadFromProto(v *destpb.DatabaseRuntimeEventPayload) (DatabaseRuntimeEventPayload, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.DatabaseRuntimeEventPayload_DatabaseRuntimeConnectionsEvent:
@@ -456,9 +526,9 @@ func DeclToProto(value Decl) *destpb.Decl {
 	}
 }
 
-func DeclFromProto(v *destpb.Decl) Decl {
+func DeclFromProto(v *destpb.Decl) (Decl, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.Decl_Config:
@@ -496,19 +566,27 @@ func (x *Enum) ToProto() *destpb.Enum {
 	}
 }
 
-func EnumFromProto(v *destpb.Enum) *Enum {
+func EnumFromProto(v *destpb.Enum) (out *Enum, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Enum{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Export:   bool(v.Export),
-		Name:     string(v.Name),
-		Type:     TypeFromProto(v.Type),
-		Variants: sliceMap(v.Variants, EnumVariantFromProto),
+	out = &Enum{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Export = bool(v.Export)
+	out.Name = string(v.Name)
+	if out.Type, err = TypeFromProto(v.Type); err != nil {
+		return nil, fmt.Errorf("Type: %w", err)
+	}
+	if out.Variants, err = sliceMapErr(v.Variants, EnumVariantFromProto); err != nil {
+		return nil, fmt.Errorf("Variants: %w", err)
+	}
+	return out, nil
 }
 
 func (x *EnumVariant) ToProto() *destpb.EnumVariant {
@@ -523,17 +601,23 @@ func (x *EnumVariant) ToProto() *destpb.EnumVariant {
 	}
 }
 
-func EnumVariantFromProto(v *destpb.EnumVariant) *EnumVariant {
+func EnumVariantFromProto(v *destpb.EnumVariant) (out *EnumVariant, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &EnumVariant{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Name:     string(v.Name),
-		Value:    ValueFromProto(v.Value),
+	out = &EnumVariant{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Name = string(v.Name)
+	if out.Value, err = ValueFromProto(v.Value); err != nil {
+		return nil, fmt.Errorf("Value: %w", err)
+	}
+	return out, nil
 }
 
 func (x *Field) ToProto() *destpb.Field {
@@ -549,18 +633,26 @@ func (x *Field) ToProto() *destpb.Field {
 	}
 }
 
-func FieldFromProto(v *destpb.Field) *Field {
+func FieldFromProto(v *destpb.Field) (out *Field, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Field{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Name:     string(v.Name),
-		Type:     TypeFromProto(v.Type),
-		Metadata: sliceMap(v.Metadata, MetadataFromProto),
+	out = &Field{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Name = string(v.Name)
+	if out.Type, err = TypeFromProto(v.Type); err != nil {
+		return nil, fmt.Errorf("Type: %w", err)
+	}
+	if out.Metadata, err = sliceMapErr(v.Metadata, MetadataFromProto); err != nil {
+		return nil, fmt.Errorf("Metadata: %w", err)
+	}
+	return out, nil
 }
 
 func (x *Float) ToProto() *destpb.Float {
@@ -572,22 +664,27 @@ func (x *Float) ToProto() *destpb.Float {
 	}
 }
 
-func FloatFromProto(v *destpb.Float) *Float {
+func FloatFromProto(v *destpb.Float) (out *Float, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Float{
-		Pos: fromPtr(PositionFromProto(v.Pos)),
+	out = &Float{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	return out, nil
 }
 
 func (x FromOffset) ToProto() destpb.FromOffset {
 	return destpb.FromOffset(x)
 }
 
-func FromOffsetFromProto(v destpb.FromOffset) FromOffset {
-	return FromOffset(v)
+func FromOffsetFromProto(v destpb.FromOffset) (FromOffset, error) {
+	// TODO: Check if the value is valid.
+	return FromOffset(v), nil
 }
 
 // IngressPathComponentToProto converts a IngressPathComponent sum type to a protobuf message.
@@ -608,9 +705,9 @@ func IngressPathComponentToProto(value IngressPathComponent) *destpb.IngressPath
 	}
 }
 
-func IngressPathComponentFromProto(v *destpb.IngressPathComponent) IngressPathComponent {
+func IngressPathComponentFromProto(v *destpb.IngressPathComponent) (IngressPathComponent, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.IngressPathComponent_IngressPathLiteral:
@@ -632,15 +729,19 @@ func (x *IngressPathLiteral) ToProto() *destpb.IngressPathLiteral {
 	}
 }
 
-func IngressPathLiteralFromProto(v *destpb.IngressPathLiteral) *IngressPathLiteral {
+func IngressPathLiteralFromProto(v *destpb.IngressPathLiteral) (out *IngressPathLiteral, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &IngressPathLiteral{
-		Pos:  fromPtr(PositionFromProto(v.Pos)),
-		Text: string(v.Text),
+	out = &IngressPathLiteral{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Text = string(v.Text)
+	return out, nil
 }
 
 func (x *IngressPathParameter) ToProto() *destpb.IngressPathParameter {
@@ -653,15 +754,19 @@ func (x *IngressPathParameter) ToProto() *destpb.IngressPathParameter {
 	}
 }
 
-func IngressPathParameterFromProto(v *destpb.IngressPathParameter) *IngressPathParameter {
+func IngressPathParameterFromProto(v *destpb.IngressPathParameter) (out *IngressPathParameter, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &IngressPathParameter{
-		Pos:  fromPtr(PositionFromProto(v.Pos)),
-		Name: string(v.Name),
+	out = &IngressPathParameter{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Name = string(v.Name)
+	return out, nil
 }
 
 func (x *Int) ToProto() *destpb.Int {
@@ -673,14 +778,18 @@ func (x *Int) ToProto() *destpb.Int {
 	}
 }
 
-func IntFromProto(v *destpb.Int) *Int {
+func IntFromProto(v *destpb.Int) (out *Int, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Int{
-		Pos: fromPtr(PositionFromProto(v.Pos)),
+	out = &Int{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	return out, nil
 }
 
 func (x *IntValue) ToProto() *destpb.IntValue {
@@ -693,15 +802,19 @@ func (x *IntValue) ToProto() *destpb.IntValue {
 	}
 }
 
-func IntValueFromProto(v *destpb.IntValue) *IntValue {
+func IntValueFromProto(v *destpb.IntValue) (out *IntValue, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &IntValue{
-		Pos:   fromPtr(PositionFromProto(v.Pos)),
-		Value: int(v.Value),
+	out = &IntValue{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Value = int(v.Value)
+	return out, nil
 }
 
 func (x *Map) ToProto() *destpb.Map {
@@ -715,16 +828,24 @@ func (x *Map) ToProto() *destpb.Map {
 	}
 }
 
-func MapFromProto(v *destpb.Map) *Map {
+func MapFromProto(v *destpb.Map) (out *Map, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Map{
-		Pos:   fromPtr(PositionFromProto(v.Pos)),
-		Key:   TypeFromProto(v.Key),
-		Value: TypeFromProto(v.Value),
+	out = &Map{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Key, err = TypeFromProto(v.Key); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.Value, err = TypeFromProto(v.Value); err != nil {
+		return nil, fmt.Errorf("Value: %w", err)
+	}
+	return out, nil
 }
 
 // MetadataToProto converts a Metadata sum type to a protobuf message.
@@ -805,9 +926,9 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 	}
 }
 
-func MetadataFromProto(v *destpb.Metadata) Metadata {
+func MetadataFromProto(v *destpb.Metadata) (Metadata, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.Metadata_Alias:
@@ -860,16 +981,22 @@ func (x *MetadataAlias) ToProto() *destpb.MetadataAlias {
 	}
 }
 
-func MetadataAliasFromProto(v *destpb.MetadataAlias) *MetadataAlias {
+func MetadataAliasFromProto(v *destpb.MetadataAlias) (out *MetadataAlias, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataAlias{
-		Pos:   fromPtr(PositionFromProto(v.Pos)),
-		Kind:  AliasKindFromProto(v.Kind),
-		Alias: string(v.Alias),
+	out = &MetadataAlias{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Kind, err = AliasKindFromProto(v.Kind); err != nil {
+		return nil, fmt.Errorf("Kind: %w", err)
+	}
+	out.Alias = string(v.Alias)
+	return out, nil
 }
 
 func (x *MetadataArtefact) ToProto() *destpb.MetadataArtefact {
@@ -884,17 +1011,21 @@ func (x *MetadataArtefact) ToProto() *destpb.MetadataArtefact {
 	}
 }
 
-func MetadataArtefactFromProto(v *destpb.MetadataArtefact) *MetadataArtefact {
+func MetadataArtefactFromProto(v *destpb.MetadataArtefact) (out *MetadataArtefact, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataArtefact{
-		Pos:        fromPtr(PositionFromProto(v.Pos)),
-		Path:       string(v.Path),
-		Digest:     string(v.Digest),
-		Executable: bool(v.Executable),
+	out = &MetadataArtefact{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Path = string(v.Path)
+	out.Digest = string(v.Digest)
+	out.Executable = bool(v.Executable)
+	return out, nil
 }
 
 func (x *MetadataCalls) ToProto() *destpb.MetadataCalls {
@@ -907,15 +1038,21 @@ func (x *MetadataCalls) ToProto() *destpb.MetadataCalls {
 	}
 }
 
-func MetadataCallsFromProto(v *destpb.MetadataCalls) *MetadataCalls {
+func MetadataCallsFromProto(v *destpb.MetadataCalls) (out *MetadataCalls, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataCalls{
-		Pos:   fromPtr(PositionFromProto(v.Pos)),
-		Calls: sliceMap(v.Calls, RefFromProto),
+	out = &MetadataCalls{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Calls, err = sliceMapErr(v.Calls, RefFromProto); err != nil {
+		return nil, fmt.Errorf("Calls: %w", err)
+	}
+	return out, nil
 }
 
 func (x *MetadataConfig) ToProto() *destpb.MetadataConfig {
@@ -928,15 +1065,21 @@ func (x *MetadataConfig) ToProto() *destpb.MetadataConfig {
 	}
 }
 
-func MetadataConfigFromProto(v *destpb.MetadataConfig) *MetadataConfig {
+func MetadataConfigFromProto(v *destpb.MetadataConfig) (out *MetadataConfig, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataConfig{
-		Pos:    fromPtr(PositionFromProto(v.Pos)),
-		Config: sliceMap(v.Config, RefFromProto),
+	out = &MetadataConfig{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Config, err = sliceMapErr(v.Config, RefFromProto); err != nil {
+		return nil, fmt.Errorf("Config: %w", err)
+	}
+	return out, nil
 }
 
 func (x *MetadataCronJob) ToProto() *destpb.MetadataCronJob {
@@ -949,15 +1092,19 @@ func (x *MetadataCronJob) ToProto() *destpb.MetadataCronJob {
 	}
 }
 
-func MetadataCronJobFromProto(v *destpb.MetadataCronJob) *MetadataCronJob {
+func MetadataCronJobFromProto(v *destpb.MetadataCronJob) (out *MetadataCronJob, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataCronJob{
-		Pos:  fromPtr(PositionFromProto(v.Pos)),
-		Cron: string(v.Cron),
+	out = &MetadataCronJob{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Cron = string(v.Cron)
+	return out, nil
 }
 
 func (x *MetadataDBColumn) ToProto() *destpb.MetadataDBColumn {
@@ -971,16 +1118,20 @@ func (x *MetadataDBColumn) ToProto() *destpb.MetadataDBColumn {
 	}
 }
 
-func MetadataDBColumnFromProto(v *destpb.MetadataDBColumn) *MetadataDBColumn {
+func MetadataDBColumnFromProto(v *destpb.MetadataDBColumn) (out *MetadataDBColumn, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataDBColumn{
-		Pos:   fromPtr(PositionFromProto(v.Pos)),
-		Table: string(v.Table),
-		Name:  string(v.Name),
+	out = &MetadataDBColumn{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Table = string(v.Table)
+	out.Name = string(v.Name)
+	return out, nil
 }
 
 func (x *MetadataDatabases) ToProto() *destpb.MetadataDatabases {
@@ -993,15 +1144,21 @@ func (x *MetadataDatabases) ToProto() *destpb.MetadataDatabases {
 	}
 }
 
-func MetadataDatabasesFromProto(v *destpb.MetadataDatabases) *MetadataDatabases {
+func MetadataDatabasesFromProto(v *destpb.MetadataDatabases) (out *MetadataDatabases, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataDatabases{
-		Pos:   fromPtr(PositionFromProto(v.Pos)),
-		Calls: sliceMap(v.Calls, RefFromProto),
+	out = &MetadataDatabases{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Calls, err = sliceMapErr(v.Calls, RefFromProto); err != nil {
+		return nil, fmt.Errorf("Calls: %w", err)
+	}
+	return out, nil
 }
 
 func (x *MetadataEncoding) ToProto() *destpb.MetadataEncoding {
@@ -1015,16 +1172,20 @@ func (x *MetadataEncoding) ToProto() *destpb.MetadataEncoding {
 	}
 }
 
-func MetadataEncodingFromProto(v *destpb.MetadataEncoding) *MetadataEncoding {
+func MetadataEncodingFromProto(v *destpb.MetadataEncoding) (out *MetadataEncoding, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataEncoding{
-		Pos:     fromPtr(PositionFromProto(v.Pos)),
-		Type:    string(v.Type),
-		Lenient: bool(v.Lenient),
+	out = &MetadataEncoding{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Type = string(v.Type)
+	out.Lenient = bool(v.Lenient)
+	return out, nil
 }
 
 func (x *MetadataIngress) ToProto() *destpb.MetadataIngress {
@@ -1039,17 +1200,23 @@ func (x *MetadataIngress) ToProto() *destpb.MetadataIngress {
 	}
 }
 
-func MetadataIngressFromProto(v *destpb.MetadataIngress) *MetadataIngress {
+func MetadataIngressFromProto(v *destpb.MetadataIngress) (out *MetadataIngress, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataIngress{
-		Pos:    fromPtr(PositionFromProto(v.Pos)),
-		Type:   string(v.Type),
-		Method: string(v.Method),
-		Path:   sliceMap(v.Path, IngressPathComponentFromProto),
+	out = &MetadataIngress{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Type = string(v.Type)
+	out.Method = string(v.Method)
+	if out.Path, err = sliceMapErr(v.Path, IngressPathComponentFromProto); err != nil {
+		return nil, fmt.Errorf("Path: %w", err)
+	}
+	return out, nil
 }
 
 func (x *MetadataPartitions) ToProto() *destpb.MetadataPartitions {
@@ -1062,15 +1229,19 @@ func (x *MetadataPartitions) ToProto() *destpb.MetadataPartitions {
 	}
 }
 
-func MetadataPartitionsFromProto(v *destpb.MetadataPartitions) *MetadataPartitions {
+func MetadataPartitionsFromProto(v *destpb.MetadataPartitions) (out *MetadataPartitions, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataPartitions{
-		Pos:        fromPtr(PositionFromProto(v.Pos)),
-		Partitions: int(v.Partitions),
+	out = &MetadataPartitions{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Partitions = int(v.Partitions)
+	return out, nil
 }
 
 func (x *MetadataPublisher) ToProto() *destpb.MetadataPublisher {
@@ -1083,15 +1254,21 @@ func (x *MetadataPublisher) ToProto() *destpb.MetadataPublisher {
 	}
 }
 
-func MetadataPublisherFromProto(v *destpb.MetadataPublisher) *MetadataPublisher {
+func MetadataPublisherFromProto(v *destpb.MetadataPublisher) (out *MetadataPublisher, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataPublisher{
-		Pos:    fromPtr(PositionFromProto(v.Pos)),
-		Topics: sliceMap(v.Topics, RefFromProto),
+	out = &MetadataPublisher{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Topics, err = sliceMapErr(v.Topics, RefFromProto); err != nil {
+		return nil, fmt.Errorf("Topics: %w", err)
+	}
+	return out, nil
 }
 
 func (x *MetadataRetry) ToProto() *destpb.MetadataRetry {
@@ -1107,18 +1284,24 @@ func (x *MetadataRetry) ToProto() *destpb.MetadataRetry {
 	}
 }
 
-func MetadataRetryFromProto(v *destpb.MetadataRetry) *MetadataRetry {
+func MetadataRetryFromProto(v *destpb.MetadataRetry) (out *MetadataRetry, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataRetry{
-		Pos:        fromPtr(PositionFromProto(v.Pos)),
-		Count:      ptr(v.Count, int(orZero(v.Count))),
-		MinBackoff: string(v.MinBackoff),
-		MaxBackoff: string(v.MaxBackoff),
-		Catch:      RefFromProto(v.Catch),
+	out = &MetadataRetry{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Count = ptr(v.Count, int(orZero(v.Count)))
+	out.MinBackoff = string(v.MinBackoff)
+	out.MaxBackoff = string(v.MaxBackoff)
+	if out.Catch, err = RefFromProto(v.Catch); err != nil {
+		return nil, fmt.Errorf("Catch: %w", err)
+	}
+	return out, nil
 }
 
 func (x *MetadataSQLMigration) ToProto() *destpb.MetadataSQLMigration {
@@ -1131,15 +1314,19 @@ func (x *MetadataSQLMigration) ToProto() *destpb.MetadataSQLMigration {
 	}
 }
 
-func MetadataSQLMigrationFromProto(v *destpb.MetadataSQLMigration) *MetadataSQLMigration {
+func MetadataSQLMigrationFromProto(v *destpb.MetadataSQLMigration) (out *MetadataSQLMigration, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataSQLMigration{
-		Pos:    fromPtr(PositionFromProto(v.Pos)),
-		Digest: string(v.Digest),
+	out = &MetadataSQLMigration{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Digest = string(v.Digest)
+	return out, nil
 }
 
 func (x *MetadataSQLQuery) ToProto() *destpb.MetadataSQLQuery {
@@ -1153,16 +1340,20 @@ func (x *MetadataSQLQuery) ToProto() *destpb.MetadataSQLQuery {
 	}
 }
 
-func MetadataSQLQueryFromProto(v *destpb.MetadataSQLQuery) *MetadataSQLQuery {
+func MetadataSQLQueryFromProto(v *destpb.MetadataSQLQuery) (out *MetadataSQLQuery, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataSQLQuery{
-		Pos:     fromPtr(PositionFromProto(v.Pos)),
-		Command: string(v.Command),
-		Query:   string(v.Query),
+	out = &MetadataSQLQuery{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Command = string(v.Command)
+	out.Query = string(v.Query)
+	return out, nil
 }
 
 func (x *MetadataSecrets) ToProto() *destpb.MetadataSecrets {
@@ -1175,15 +1366,21 @@ func (x *MetadataSecrets) ToProto() *destpb.MetadataSecrets {
 	}
 }
 
-func MetadataSecretsFromProto(v *destpb.MetadataSecrets) *MetadataSecrets {
+func MetadataSecretsFromProto(v *destpb.MetadataSecrets) (out *MetadataSecrets, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataSecrets{
-		Pos:     fromPtr(PositionFromProto(v.Pos)),
-		Secrets: sliceMap(v.Secrets, RefFromProto),
+	out = &MetadataSecrets{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Secrets, err = sliceMapErr(v.Secrets, RefFromProto); err != nil {
+		return nil, fmt.Errorf("Secrets: %w", err)
+	}
+	return out, nil
 }
 
 func (x *MetadataSubscriber) ToProto() *destpb.MetadataSubscriber {
@@ -1198,17 +1395,25 @@ func (x *MetadataSubscriber) ToProto() *destpb.MetadataSubscriber {
 	}
 }
 
-func MetadataSubscriberFromProto(v *destpb.MetadataSubscriber) *MetadataSubscriber {
+func MetadataSubscriberFromProto(v *destpb.MetadataSubscriber) (out *MetadataSubscriber, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataSubscriber{
-		Pos:        fromPtr(PositionFromProto(v.Pos)),
-		Topic:      RefFromProto(v.Topic),
-		FromOffset: FromOffsetFromProto(v.FromOffset),
-		DeadLetter: bool(v.DeadLetter),
+	out = &MetadataSubscriber{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Topic, err = RefFromProto(v.Topic); err != nil {
+		return nil, fmt.Errorf("Topic: %w", err)
+	}
+	if out.FromOffset, err = FromOffsetFromProto(v.FromOffset); err != nil {
+		return nil, fmt.Errorf("FromOffset: %w", err)
+	}
+	out.DeadLetter = bool(v.DeadLetter)
+	return out, nil
 }
 
 func (x *MetadataTypeMap) ToProto() *destpb.MetadataTypeMap {
@@ -1222,16 +1427,20 @@ func (x *MetadataTypeMap) ToProto() *destpb.MetadataTypeMap {
 	}
 }
 
-func MetadataTypeMapFromProto(v *destpb.MetadataTypeMap) *MetadataTypeMap {
+func MetadataTypeMapFromProto(v *destpb.MetadataTypeMap) (out *MetadataTypeMap, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &MetadataTypeMap{
-		Pos:        fromPtr(PositionFromProto(v.Pos)),
-		Runtime:    string(v.Runtime),
-		NativeName: string(v.NativeName),
+	out = &MetadataTypeMap{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Runtime = string(v.Runtime)
+	out.NativeName = string(v.NativeName)
+	return out, nil
 }
 
 func (x *Module) ToProto() *destpb.Module {
@@ -1249,20 +1458,30 @@ func (x *Module) ToProto() *destpb.Module {
 	}
 }
 
-func ModuleFromProto(v *destpb.Module) *Module {
+func ModuleFromProto(v *destpb.Module) (out *Module, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Module{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Builtin:  bool(v.Builtin),
-		Name:     string(v.Name),
-		Metadata: sliceMap(v.Metadata, MetadataFromProto),
-		Decls:    sliceMap(v.Decls, DeclFromProto),
-		Runtime:  ModuleRuntimeFromProto(v.Runtime),
+	out = &Module{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Builtin = bool(v.Builtin)
+	out.Name = string(v.Name)
+	if out.Metadata, err = sliceMapErr(v.Metadata, MetadataFromProto); err != nil {
+		return nil, fmt.Errorf("Metadata: %w", err)
+	}
+	if out.Decls, err = sliceMapErr(v.Decls, DeclFromProto); err != nil {
+		return nil, fmt.Errorf("Decls: %w", err)
+	}
+	if out.Runtime, err = ModuleRuntimeFromProto(v.Runtime); err != nil {
+		return nil, fmt.Errorf("Runtime: %w", err)
+	}
+	return out, nil
 }
 
 func (x *ModuleRuntime) ToProto() *destpb.ModuleRuntime {
@@ -1276,16 +1495,24 @@ func (x *ModuleRuntime) ToProto() *destpb.ModuleRuntime {
 	}
 }
 
-func ModuleRuntimeFromProto(v *destpb.ModuleRuntime) *ModuleRuntime {
+func ModuleRuntimeFromProto(v *destpb.ModuleRuntime) (out *ModuleRuntime, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &ModuleRuntime{
-		Base:       fromPtr(ModuleRuntimeBaseFromProto(v.Base)),
-		Scaling:    ModuleRuntimeScalingFromProto(v.Scaling),
-		Deployment: ModuleRuntimeDeploymentFromProto(v.Deployment),
+	out = &ModuleRuntime{}
+	if fieldBase, err := ModuleRuntimeBaseFromProto(v.Base); err != nil {
+		return nil, fmt.Errorf("Base: %w", err)
+	} else {
+		out.Base = fromPtr(fieldBase)
 	}
+	if out.Scaling, err = ModuleRuntimeScalingFromProto(v.Scaling); err != nil {
+		return nil, fmt.Errorf("Scaling: %w", err)
+	}
+	if out.Deployment, err = ModuleRuntimeDeploymentFromProto(v.Deployment); err != nil {
+		return nil, fmt.Errorf("Deployment: %w", err)
+	}
+	return out, nil
 }
 
 func (x *ModuleRuntimeBase) ToProto() *destpb.ModuleRuntimeBase {
@@ -1301,18 +1528,18 @@ func (x *ModuleRuntimeBase) ToProto() *destpb.ModuleRuntimeBase {
 	}
 }
 
-func ModuleRuntimeBaseFromProto(v *destpb.ModuleRuntimeBase) *ModuleRuntimeBase {
+func ModuleRuntimeBaseFromProto(v *destpb.ModuleRuntimeBase) (out *ModuleRuntimeBase, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &ModuleRuntimeBase{
-		CreateTime: v.CreateTime.AsTime(),
-		Language:   string(v.Language),
-		OS:         string(orZero(v.Os)),
-		Arch:       string(orZero(v.Arch)),
-		Image:      string(orZero(v.Image)),
-	}
+	out = &ModuleRuntimeBase{}
+	out.CreateTime = v.CreateTime.AsTime()
+	out.Language = string(v.Language)
+	out.OS = string(orZero(v.Os))
+	out.Arch = string(orZero(v.Arch))
+	out.Image = string(orZero(v.Image))
+	return out, nil
 }
 
 func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
@@ -1327,19 +1554,19 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 	}
 }
 
-func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) *ModuleRuntimeDeployment {
+func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) (out *ModuleRuntimeDeployment, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
-	f2 := &key.Deployment{}
-	f2.UnmarshalText([]byte(v.DeploymentKey))
 
-	return &ModuleRuntimeDeployment{
-		Endpoint:      string(v.Endpoint),
-		DeploymentKey: fromPtr(f2),
-		CreatedAt:     v.CreatedAt.AsTime(),
-		ActivatedAt:   v.ActivatedAt.AsTime(),
+	out = &ModuleRuntimeDeployment{}
+	out.Endpoint = string(v.Endpoint)
+	if err = out.DeploymentKey.UnmarshalText([]byte(v.DeploymentKey)); err != nil {
+		return nil, fmt.Errorf("DeploymentKey: %w", err)
 	}
+	out.CreatedAt = v.CreatedAt.AsTime()
+	out.ActivatedAt = v.ActivatedAt.AsTime()
+	return out, nil
 }
 
 // ModuleRuntimeEventToProto converts a ModuleRuntimeEvent sum type to a protobuf message.
@@ -1364,9 +1591,9 @@ func ModuleRuntimeEventToProto(value ModuleRuntimeEvent) *destpb.ModuleRuntimeEv
 	}
 }
 
-func ModuleRuntimeEventFromProto(v *destpb.ModuleRuntimeEvent) ModuleRuntimeEvent {
+func ModuleRuntimeEventFromProto(v *destpb.ModuleRuntimeEvent) (ModuleRuntimeEvent, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.ModuleRuntimeEvent_ModuleRuntimeBase:
@@ -1389,14 +1616,14 @@ func (x *ModuleRuntimeScaling) ToProto() *destpb.ModuleRuntimeScaling {
 	}
 }
 
-func ModuleRuntimeScalingFromProto(v *destpb.ModuleRuntimeScaling) *ModuleRuntimeScaling {
+func ModuleRuntimeScalingFromProto(v *destpb.ModuleRuntimeScaling) (out *ModuleRuntimeScaling, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &ModuleRuntimeScaling{
-		MinReplicas: int32(v.MinReplicas),
-	}
+	out = &ModuleRuntimeScaling{}
+	out.MinReplicas = int32(v.MinReplicas)
+	return out, nil
 }
 
 func (x *Optional) ToProto() *destpb.Optional {
@@ -1409,15 +1636,21 @@ func (x *Optional) ToProto() *destpb.Optional {
 	}
 }
 
-func OptionalFromProto(v *destpb.Optional) *Optional {
+func OptionalFromProto(v *destpb.Optional) (out *Optional, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Optional{
-		Pos:  fromPtr(PositionFromProto(v.Pos)),
-		Type: TypeFromProto(v.Type),
+	out = &Optional{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Type, err = TypeFromProto(v.Type); err != nil {
+		return nil, fmt.Errorf("Type: %w", err)
+	}
+	return out, nil
 }
 
 func (x *Position) ToProto() *destpb.Position {
@@ -1431,16 +1664,16 @@ func (x *Position) ToProto() *destpb.Position {
 	}
 }
 
-func PositionFromProto(v *destpb.Position) *Position {
+func PositionFromProto(v *destpb.Position) (out *Position, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Position{
-		Filename: string(v.Filename),
-		Line:     int(v.Line),
-		Column:   int(v.Column),
-	}
+	out = &Position{}
+	out.Filename = string(v.Filename)
+	out.Line = int(v.Line)
+	out.Column = int(v.Column)
+	return out, nil
 }
 
 func (x *Ref) ToProto() *destpb.Ref {
@@ -1455,17 +1688,23 @@ func (x *Ref) ToProto() *destpb.Ref {
 	}
 }
 
-func RefFromProto(v *destpb.Ref) *Ref {
+func RefFromProto(v *destpb.Ref) (out *Ref, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Ref{
-		Pos:            fromPtr(PositionFromProto(v.Pos)),
-		Module:         string(v.Module),
-		Name:           string(v.Name),
-		TypeParameters: sliceMap(v.TypeParameters, TypeFromProto),
+	out = &Ref{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Module = string(v.Module)
+	out.Name = string(v.Name)
+	if out.TypeParameters, err = sliceMapErr(v.TypeParameters, TypeFromProto); err != nil {
+		return nil, fmt.Errorf("TypeParameters: %w", err)
+	}
+	return out, nil
 }
 
 // RuntimeEventToProto converts a RuntimeEvent sum type to a protobuf message.
@@ -1502,9 +1741,9 @@ func RuntimeEventToProto(value RuntimeEvent) *destpb.RuntimeEvent {
 	}
 }
 
-func RuntimeEventFromProto(v *destpb.RuntimeEvent) RuntimeEvent {
+func RuntimeEventFromProto(v *destpb.RuntimeEvent) (RuntimeEvent, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.RuntimeEvent_DatabaseRuntimeEvent:
@@ -1534,15 +1773,21 @@ func (x *Schema) ToProto() *destpb.Schema {
 	}
 }
 
-func SchemaFromProto(v *destpb.Schema) *Schema {
+func SchemaFromProto(v *destpb.Schema) (out *Schema, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Schema{
-		Pos:     fromPtr(PositionFromProto(v.Pos)),
-		Modules: sliceMap(v.Modules, ModuleFromProto),
+	out = &Schema{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Modules, err = sliceMapErr(v.Modules, ModuleFromProto); err != nil {
+		return nil, fmt.Errorf("Modules: %w", err)
+	}
+	return out, nil
 }
 
 func (x *Secret) ToProto() *destpb.Secret {
@@ -1557,17 +1802,23 @@ func (x *Secret) ToProto() *destpb.Secret {
 	}
 }
 
-func SecretFromProto(v *destpb.Secret) *Secret {
+func SecretFromProto(v *destpb.Secret) (out *Secret, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Secret{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Name:     string(v.Name),
-		Type:     TypeFromProto(v.Type),
+	out = &Secret{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Name = string(v.Name)
+	if out.Type, err = TypeFromProto(v.Type); err != nil {
+		return nil, fmt.Errorf("Type: %w", err)
+	}
+	return out, nil
 }
 
 func (x *String) ToProto() *destpb.String {
@@ -1579,14 +1830,18 @@ func (x *String) ToProto() *destpb.String {
 	}
 }
 
-func StringFromProto(v *destpb.String) *String {
+func StringFromProto(v *destpb.String) (out *String, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &String{
-		Pos: fromPtr(PositionFromProto(v.Pos)),
+	out = &String{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	return out, nil
 }
 
 func (x *StringValue) ToProto() *destpb.StringValue {
@@ -1599,15 +1854,19 @@ func (x *StringValue) ToProto() *destpb.StringValue {
 	}
 }
 
-func StringValueFromProto(v *destpb.StringValue) *StringValue {
+func StringValueFromProto(v *destpb.StringValue) (out *StringValue, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &StringValue{
-		Pos:   fromPtr(PositionFromProto(v.Pos)),
-		Value: string(v.Value),
+	out = &StringValue{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Value = string(v.Value)
+	return out, nil
 }
 
 func (x *Time) ToProto() *destpb.Time {
@@ -1619,14 +1878,18 @@ func (x *Time) ToProto() *destpb.Time {
 	}
 }
 
-func TimeFromProto(v *destpb.Time) *Time {
+func TimeFromProto(v *destpb.Time) (out *Time, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Time{
-		Pos: fromPtr(PositionFromProto(v.Pos)),
+	out = &Time{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	return out, nil
 }
 
 func (x *Topic) ToProto() *destpb.Topic {
@@ -1644,20 +1907,30 @@ func (x *Topic) ToProto() *destpb.Topic {
 	}
 }
 
-func TopicFromProto(v *destpb.Topic) *Topic {
+func TopicFromProto(v *destpb.Topic) (out *Topic, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Topic{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Runtime:  TopicRuntimeFromProto(v.Runtime),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Export:   bool(v.Export),
-		Name:     string(v.Name),
-		Event:    TypeFromProto(v.Event),
-		Metadata: sliceMap(v.Metadata, MetadataFromProto),
+	out = &Topic{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Runtime, err = TopicRuntimeFromProto(v.Runtime); err != nil {
+		return nil, fmt.Errorf("Runtime: %w", err)
+	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Export = bool(v.Export)
+	out.Name = string(v.Name)
+	if out.Event, err = TypeFromProto(v.Event); err != nil {
+		return nil, fmt.Errorf("Event: %w", err)
+	}
+	if out.Metadata, err = sliceMapErr(v.Metadata, MetadataFromProto); err != nil {
+		return nil, fmt.Errorf("Metadata: %w", err)
+	}
+	return out, nil
 }
 
 func (x *TopicRuntime) ToProto() *destpb.TopicRuntime {
@@ -1670,15 +1943,15 @@ func (x *TopicRuntime) ToProto() *destpb.TopicRuntime {
 	}
 }
 
-func TopicRuntimeFromProto(v *destpb.TopicRuntime) *TopicRuntime {
+func TopicRuntimeFromProto(v *destpb.TopicRuntime) (out *TopicRuntime, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &TopicRuntime{
-		KafkaBrokers: sliceMap(v.KafkaBrokers, func(v string) string { return string(v) }),
-		TopicID:      string(v.TopicId),
-	}
+	out = &TopicRuntime{}
+	out.KafkaBrokers = sliceMap(v.KafkaBrokers, func(v string) string { return string(v) })
+	out.TopicID = string(v.TopicId)
+	return out, nil
 }
 
 func (x *TopicRuntimeEvent) ToProto() *destpb.TopicRuntimeEvent {
@@ -1691,15 +1964,17 @@ func (x *TopicRuntimeEvent) ToProto() *destpb.TopicRuntimeEvent {
 	}
 }
 
-func TopicRuntimeEventFromProto(v *destpb.TopicRuntimeEvent) *TopicRuntimeEvent {
+func TopicRuntimeEventFromProto(v *destpb.TopicRuntimeEvent) (out *TopicRuntimeEvent, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &TopicRuntimeEvent{
-		ID:      string(v.Id),
-		Payload: TopicRuntimeFromProto(v.Payload),
+	out = &TopicRuntimeEvent{}
+	out.ID = string(v.Id)
+	if out.Payload, err = TopicRuntimeFromProto(v.Payload); err != nil {
+		return nil, fmt.Errorf("Payload: %w", err)
 	}
+	return out, nil
 }
 
 // TypeToProto converts a Type sum type to a protobuf message.
@@ -1760,9 +2035,9 @@ func TypeToProto(value Type) *destpb.Type {
 	}
 }
 
-func TypeFromProto(v *destpb.Type) Type {
+func TypeFromProto(v *destpb.Type) (Type, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.Type_Any:
@@ -1808,19 +2083,27 @@ func (x *TypeAlias) ToProto() *destpb.TypeAlias {
 	}
 }
 
-func TypeAliasFromProto(v *destpb.TypeAlias) *TypeAlias {
+func TypeAliasFromProto(v *destpb.TypeAlias) (out *TypeAlias, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &TypeAlias{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Export:   bool(v.Export),
-		Name:     string(v.Name),
-		Type:     TypeFromProto(v.Type),
-		Metadata: sliceMap(v.Metadata, MetadataFromProto),
+	out = &TypeAlias{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Export = bool(v.Export)
+	out.Name = string(v.Name)
+	if out.Type, err = TypeFromProto(v.Type); err != nil {
+		return nil, fmt.Errorf("Type: %w", err)
+	}
+	if out.Metadata, err = sliceMapErr(v.Metadata, MetadataFromProto); err != nil {
+		return nil, fmt.Errorf("Metadata: %w", err)
+	}
+	return out, nil
 }
 
 func (x *TypeParameter) ToProto() *destpb.TypeParameter {
@@ -1833,15 +2116,19 @@ func (x *TypeParameter) ToProto() *destpb.TypeParameter {
 	}
 }
 
-func TypeParameterFromProto(v *destpb.TypeParameter) *TypeParameter {
+func TypeParameterFromProto(v *destpb.TypeParameter) (out *TypeParameter, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &TypeParameter{
-		Pos:  fromPtr(PositionFromProto(v.Pos)),
-		Name: string(v.Name),
+	out = &TypeParameter{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Name = string(v.Name)
+	return out, nil
 }
 
 func (x *TypeValue) ToProto() *destpb.TypeValue {
@@ -1854,15 +2141,21 @@ func (x *TypeValue) ToProto() *destpb.TypeValue {
 	}
 }
 
-func TypeValueFromProto(v *destpb.TypeValue) *TypeValue {
+func TypeValueFromProto(v *destpb.TypeValue) (out *TypeValue, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &TypeValue{
-		Pos:   fromPtr(PositionFromProto(v.Pos)),
-		Value: TypeFromProto(v.Value),
+	out = &TypeValue{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	if out.Value, err = TypeFromProto(v.Value); err != nil {
+		return nil, fmt.Errorf("Value: %w", err)
+	}
+	return out, nil
 }
 
 func (x *Unit) ToProto() *destpb.Unit {
@@ -1874,14 +2167,18 @@ func (x *Unit) ToProto() *destpb.Unit {
 	}
 }
 
-func UnitFromProto(v *destpb.Unit) *Unit {
+func UnitFromProto(v *destpb.Unit) (out *Unit, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Unit{
-		Pos: fromPtr(PositionFromProto(v.Pos)),
+	out = &Unit{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	return out, nil
 }
 
 // ValueToProto converts a Value sum type to a protobuf message.
@@ -1906,9 +2203,9 @@ func ValueToProto(value Value) *destpb.Value {
 	}
 }
 
-func ValueFromProto(v *destpb.Value) Value {
+func ValueFromProto(v *destpb.Value) (Value, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.Value_IntValue:
@@ -1938,21 +2235,33 @@ func (x *Verb) ToProto() *destpb.Verb {
 	}
 }
 
-func VerbFromProto(v *destpb.Verb) *Verb {
+func VerbFromProto(v *destpb.Verb) (out *Verb, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &Verb{
-		Pos:      fromPtr(PositionFromProto(v.Pos)),
-		Comments: sliceMap(v.Comments, func(v string) string { return string(v) }),
-		Export:   bool(v.Export),
-		Name:     string(v.Name),
-		Request:  TypeFromProto(v.Request),
-		Response: TypeFromProto(v.Response),
-		Metadata: sliceMap(v.Metadata, MetadataFromProto),
-		Runtime:  VerbRuntimeFromProto(v.Runtime),
+	out = &Verb{}
+	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	} else {
+		out.Pos = fromPtr(fieldPos)
 	}
+	out.Comments = sliceMap(v.Comments, func(v string) string { return string(v) })
+	out.Export = bool(v.Export)
+	out.Name = string(v.Name)
+	if out.Request, err = TypeFromProto(v.Request); err != nil {
+		return nil, fmt.Errorf("Request: %w", err)
+	}
+	if out.Response, err = TypeFromProto(v.Response); err != nil {
+		return nil, fmt.Errorf("Response: %w", err)
+	}
+	if out.Metadata, err = sliceMapErr(v.Metadata, MetadataFromProto); err != nil {
+		return nil, fmt.Errorf("Metadata: %w", err)
+	}
+	if out.Runtime, err = VerbRuntimeFromProto(v.Runtime); err != nil {
+		return nil, fmt.Errorf("Runtime: %w", err)
+	}
+	return out, nil
 }
 
 func (x *VerbRuntime) ToProto() *destpb.VerbRuntime {
@@ -1965,15 +2274,21 @@ func (x *VerbRuntime) ToProto() *destpb.VerbRuntime {
 	}
 }
 
-func VerbRuntimeFromProto(v *destpb.VerbRuntime) *VerbRuntime {
+func VerbRuntimeFromProto(v *destpb.VerbRuntime) (out *VerbRuntime, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &VerbRuntime{
-		Base:         fromPtr(VerbRuntimeBaseFromProto(v.Base)),
-		Subscription: VerbRuntimeSubscriptionFromProto(v.Subscription),
+	out = &VerbRuntime{}
+	if fieldBase, err := VerbRuntimeBaseFromProto(v.Base); err != nil {
+		return nil, fmt.Errorf("Base: %w", err)
+	} else {
+		out.Base = fromPtr(fieldBase)
 	}
+	if out.Subscription, err = VerbRuntimeSubscriptionFromProto(v.Subscription); err != nil {
+		return nil, fmt.Errorf("Subscription: %w", err)
+	}
+	return out, nil
 }
 
 func (x *VerbRuntimeBase) ToProto() *destpb.VerbRuntimeBase {
@@ -1986,15 +2301,15 @@ func (x *VerbRuntimeBase) ToProto() *destpb.VerbRuntimeBase {
 	}
 }
 
-func VerbRuntimeBaseFromProto(v *destpb.VerbRuntimeBase) *VerbRuntimeBase {
+func VerbRuntimeBaseFromProto(v *destpb.VerbRuntimeBase) (out *VerbRuntimeBase, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &VerbRuntimeBase{
-		CreateTime: v.CreateTime.AsTime(),
-		StartTime:  v.StartTime.AsTime(),
-	}
+	out = &VerbRuntimeBase{}
+	out.CreateTime = v.CreateTime.AsTime()
+	out.StartTime = v.StartTime.AsTime()
+	return out, nil
 }
 
 func (x *VerbRuntimeEvent) ToProto() *destpb.VerbRuntimeEvent {
@@ -2007,15 +2322,17 @@ func (x *VerbRuntimeEvent) ToProto() *destpb.VerbRuntimeEvent {
 	}
 }
 
-func VerbRuntimeEventFromProto(v *destpb.VerbRuntimeEvent) *VerbRuntimeEvent {
+func VerbRuntimeEventFromProto(v *destpb.VerbRuntimeEvent) (out *VerbRuntimeEvent, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &VerbRuntimeEvent{
-		ID:      string(v.Id),
-		Payload: VerbRuntimePayloadFromProto(v.Payload),
+	out = &VerbRuntimeEvent{}
+	out.ID = string(v.Id)
+	if out.Payload, err = VerbRuntimePayloadFromProto(v.Payload); err != nil {
+		return nil, fmt.Errorf("Payload: %w", err)
 	}
+	return out, nil
 }
 
 // VerbRuntimePayloadToProto converts a VerbRuntimePayload sum type to a protobuf message.
@@ -2036,9 +2353,9 @@ func VerbRuntimePayloadToProto(value VerbRuntimePayload) *destpb.VerbRuntimePayl
 	}
 }
 
-func VerbRuntimePayloadFromProto(v *destpb.VerbRuntimePayload) VerbRuntimePayload {
+func VerbRuntimePayloadFromProto(v *destpb.VerbRuntimePayload) (VerbRuntimePayload, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	switch v.Value.(type) {
 	case *destpb.VerbRuntimePayload_VerbRuntimeBase:
@@ -2059,12 +2376,12 @@ func (x *VerbRuntimeSubscription) ToProto() *destpb.VerbRuntimeSubscription {
 	}
 }
 
-func VerbRuntimeSubscriptionFromProto(v *destpb.VerbRuntimeSubscription) *VerbRuntimeSubscription {
+func VerbRuntimeSubscriptionFromProto(v *destpb.VerbRuntimeSubscription) (out *VerbRuntimeSubscription, err error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
-	return &VerbRuntimeSubscription{
-		KafkaBrokers: sliceMap(v.KafkaBrokers, func(v string) string { return string(v) }),
-	}
+	out = &VerbRuntimeSubscription{}
+	out.KafkaBrokers = sliceMap(v.KafkaBrokers, func(v string) string { return string(v) })
+	return out, nil
 }
