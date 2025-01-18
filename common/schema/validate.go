@@ -42,7 +42,7 @@ var (
 //
 // This is useful for testing.
 func MustValidate(schema *Schema) *Schema {
-	clone, err := ValidateSchema(schema)
+	clone, err := schema.Validate()
 	if err != nil {
 		panic(err)
 	}
@@ -50,8 +50,8 @@ func MustValidate(schema *Schema) *Schema {
 }
 
 // ValidateSchema clones, normalises and semantically validates a schema.
-func ValidateSchema(schema *Schema) (*Schema, error) {
-	return ValidateModuleInSchema(schema, optional.None[*Module]())
+func (s *Schema) Validate() (*Schema, error) {
+	return ValidateModuleInSchema(s, optional.None[*Module]())
 }
 
 // ValidateModuleInSchema clones and normalises a schema and semantically validates a single module within it.
@@ -102,7 +102,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 			merr = append(merr, errorf(module, "duplicate module %q", module.Name))
 		}
 		modules[module.Name] = true
-		if err := ValidateModule(module); err != nil {
+		if err := module.Validate(); err != nil {
 			merr = append(merr, err)
 		}
 
@@ -245,31 +245,31 @@ func ValidateName(name string) bool {
 	return validNameRe.MatchString(name)
 }
 
-// ValidateModule performs the subset of semantic validation possible on a single module.
+// Validate performs the subset of semantic validation possible on a single module.
 //
 // It ignores references to other modules.
-func ValidateModule(module *Module) error {
+func (m *Module) Validate() error {
 	merr := []error{}
 
 	scopes := NewScopes()
 
-	if !ValidateName(module.Name) {
-		merr = append(merr, errorf(module, "module name %q is invalid", module.Name))
+	if !ValidateName(m.Name) {
+		merr = append(merr, errorf(m, "module name %q is invalid", m.Name))
 	}
-	if module.Builtin && module.Name != "builtin" {
-		merr = append(merr, errorf(module, "the \"builtin\" module is reserved"))
+	if m.Builtin && m.Name != "builtin" {
+		merr = append(merr, errorf(m, "the \"builtin\" module is reserved"))
 	}
-	if err := scopes.Add(optional.None[*Module](), module.Name, module); err != nil {
+	if err := scopes.Add(optional.None[*Module](), m.Name, m); err != nil {
 		merr = append(merr, err)
 	}
 	scopes = scopes.Push()
 
-	generateDeadLetterTopics(module)
+	generateDeadLetterTopics(m)
 
 	// Key is <type>:<name>
 	duplicateDecls := map[string]Decl{}
 
-	_ = Visit(module, func(n Node, next func() error) error { //nolint:errcheck
+	_ = Visit(m, func(n Node, next func() error) error { //nolint:errcheck
 		if scoped, ok := n.(Scoped); ok {
 			pop := scopes
 			scopes = scopes.PushScope(scoped.Scope())
@@ -300,8 +300,8 @@ func ValidateModule(module *Module) error {
 			mdecl := scopes.Resolve(*n)
 			if mdecl == nil && n.Module == "" {
 				// Fully qualify refs with module == "" to the current module if it can be resolved.
-				if internalDecl := scopes.Resolve(Ref{Module: module.Name, Name: n.Name, TypeParameters: n.TypeParameters}); internalDecl != nil {
-					n.Module = module.Name
+				if internalDecl := scopes.Resolve(Ref{Module: m.Name, Name: n.Name, TypeParameters: n.TypeParameters}); internalDecl != nil {
+					n.Module = m.Name
 					mdecl = scopes.Resolve(*n)
 				}
 			}
@@ -322,7 +322,7 @@ func ValidateModule(module *Module) error {
 
 		case *Verb:
 			n.SortMetadata()
-			merr = append(merr, validateVerbMetadata(scopes, module, n)...)
+			merr = append(merr, validateVerbMetadata(scopes, m, n)...)
 
 		case *Data:
 			for _, md := range n.Metadata {
@@ -369,7 +369,7 @@ func ValidateModule(module *Module) error {
 	})
 
 	merr = cleanErrors(merr)
-	SortModuleDecls(module)
+	SortModuleDecls(m)
 	return errors.Join(merr...)
 }
 

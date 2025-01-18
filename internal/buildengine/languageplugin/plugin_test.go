@@ -292,7 +292,7 @@ func TestRebuilds(t *testing.T) {
 
 	// send rebuild request with updated schema
 	bctx.Schema.Modules = append(bctx.Schema.Modules, &schema.Module{Name: "another"})
-	sch, err := schema.ValidateSchema(bctx.Schema)
+	sch, err := bctx.Schema.Validate()
 	assert.NoError(t, err, "schema should be valid")
 	result = beginBuild(ctx, plugin, bctx, true)
 

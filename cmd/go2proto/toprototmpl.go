@@ -247,6 +247,11 @@ func {{ .Name }}FromProto(v *destpb.{{ .Name }}) (out *{{ .Name }}, err error) {
 	out.{{ $field.Name }} = ??, // v.{{ $field.EscapedName }}.ToProto() // Unknown type {{ $field.OriginType }} of kind {{ $field.Kind }}
 {{- end}}
 {{- end}}
+{{- if .Validator }}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
+{{- end}}
 	return out, nil
 }
 

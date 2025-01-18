@@ -98,6 +98,14 @@ And this is the corresponding protobuf schema:
 `
 
 var (
+	// interface { Validate() error }
+	validatorIface = types.NewInterfaceType([]*types.Func{ //nolint:forcetypeassert
+		types.NewFunc(token.Pos(0), nil, "Validate",
+			types.NewSignatureType(nil, nil, nil,
+				types.NewTuple(),
+				types.NewTuple(types.NewVar(0, nil, "err", types.Universe.Lookup("error").(*types.TypeName).Type())),
+				false)),
+	}, nil)
 	textMarshaler   = loadInterface("encoding", "TextMarshaler")
 	binaryMarshaler = loadInterface("encoding", "BinaryMarshaler")
 	// stdTypes is a map of Go types to corresponding protobuf types.
@@ -163,9 +171,10 @@ type Decl interface {
 }
 
 type Message struct {
-	Comment string
-	Name    string
-	Fields  []*Field
+	Comment   string
+	Name      string
+	Validator bool
+	Fields    []*Field
 }
 
 func (Message) decl()              {}
@@ -522,7 +531,8 @@ func (s *State) extractStruct(n *types.Named) error {
 		return nil
 	}
 	decl := &Message{
-		Name: name,
+		Name:      name,
+		Validator: implements(n, validatorIface),
 	}
 	if comment := findCommentsForObject(n.Obj().Pos(), s.Pkg.Syntax); comment != nil {
 		decl.Comment = comment.Text()

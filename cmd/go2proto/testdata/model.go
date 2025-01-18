@@ -3,6 +3,7 @@
 package testdata
 
 import (
+	"errors"
 	"net/url"
 	"time"
 
@@ -28,7 +29,15 @@ type Root struct {
 type Message struct {
 	Time     time.Time     `protobuf:"1"`
 	Duration time.Duration `protobuf:"2"`
-	Nested   Nested        `protobuf:"3"`
+	Invalid  bool          `protobuf:"3"`
+	Nested   Nested        `protobuf:"4"`
+}
+
+func (m *Message) Validate() error {
+	if m.Invalid {
+		return errors.New("invalid message")
+	}
+	return nil
 }
 
 type Nested struct {

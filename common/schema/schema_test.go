@@ -49,10 +49,10 @@ module todo {
   }
 
   export verb create(todo.CreateRequest) todo.CreateResponse
-      +calls todo.destroy 
-      +database calls todo.testdb 
-      +secrets todo.secretValue 
-      +config todo.configValue 
+      +calls todo.destroy
+      +database calls todo.testdb
+      +secrets todo.secretValue
+      +config todo.configValue
       +sql query :exec "INSERT INTO requests (name) VALUES (?)"
 
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
@@ -238,7 +238,7 @@ func TestParserRoundTrip(t *testing.T) {
 	fmt.Printf("Input schema:\n%s\n", input)
 	actual, err := ParseString("", input)
 	assert.NoError(t, err, "%s", testSchema.String())
-	actual, err = ValidateSchema(actual)
+	actual, err = actual.Validate()
 	assert.NoError(t, err)
 	assert.Equal(t, Normalise(testSchema), Normalise(actual), assert.Exclude[Position]())
 }
