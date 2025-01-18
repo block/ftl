@@ -217,7 +217,7 @@ func FromProto(s *schemapb.Schema) (*Schema, error) {
 	schema := &Schema{
 		Modules: modules,
 	}
-	return ValidateSchema(schema)
+	return schema.Validate()
 }
 
 // ModuleDependencies returns the modules that the given module depends on
@@ -266,7 +266,7 @@ func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal module: %w", err)
 	}
-	if err := ValidateModule(module); err != nil {
+	if err := module.Validate(); err != nil {
 		return nil, err
 	}
 	return module, nil

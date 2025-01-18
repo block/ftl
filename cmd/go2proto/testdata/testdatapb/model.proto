@@ -16,7 +16,8 @@ enum Enum {
 message Message {
   google.protobuf.Timestamp time = 1;
   google.protobuf.Duration duration = 2;
-  Nested nested = 3;
+  bool invalid = 3;
+  Nested nested = 4;
 }
 
 message Nested {

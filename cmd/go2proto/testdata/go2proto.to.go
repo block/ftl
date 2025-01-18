@@ -86,6 +86,7 @@ func (x *Message) ToProto() *destpb.Message {
 	return &destpb.Message{
 		Time:     timestamppb.New(x.Time),
 		Duration: durationpb.New(x.Duration),
+		Invalid:  bool(x.Invalid),
 		Nested:   x.Nested.ToProto(),
 	}
 }
@@ -98,10 +99,14 @@ func MessageFromProto(v *destpb.Message) (out *Message, err error) {
 	out = &Message{}
 	out.Time = v.Time.AsTime()
 	out.Duration = v.Duration.AsDuration()
+	out.Invalid = bool(v.Invalid)
 	if fieldNested, err := NestedFromProto(v.Nested); err != nil {
 		return nil, fmt.Errorf("Nested: %w", err)
 	} else {
 		out.Nested = fromPtr(fieldNested)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

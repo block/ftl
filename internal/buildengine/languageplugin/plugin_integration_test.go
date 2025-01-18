@@ -225,7 +225,7 @@ func TestBuildsWhenAlreadyLocked(t *testing.T) {
 func generateInitialSchema(t *testing.T) *schema.Schema {
 	t.Helper()
 
-	sch, err := schema.ValidateSchema(&schema.Schema{
+	sch, err := (&schema.Schema{
 		Modules: []*schema.Module{
 			{
 				Name: "dependable",
@@ -237,7 +237,7 @@ func generateInitialSchema(t *testing.T) *schema.Schema {
 				},
 			},
 		},
-	})
+	}).Validate()
 	assert.NoError(t, err)
 	return sch
 }

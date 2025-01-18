@@ -2,7 +2,6 @@ package testdata
 
 import (
 	"bytes"
-	"fmt"
 	"net/url"
 	"testing"
 	"time"
@@ -34,7 +33,6 @@ func TestModel(t *testing.T) {
 		Key:            key.NewDeploymentKey("echo"),
 	}
 	pb := model.ToProto()
-	fmt.Println(pb)
 	data, err := proto.Marshal(pb)
 	assert.NoError(t, err)
 	assert.True(t, bytes.Contains(data, []byte("http://127.0.0.1")), "missing url")
@@ -46,6 +44,13 @@ func TestModel(t *testing.T) {
 	assert.Equal(t, pb.String(), out.String())
 
 	testModelRoundtrip(t, &model)
+}
+
+func TestValidate(t *testing.T) {
+	msg := &Message{Invalid: true}
+	pb := msg.ToProto()
+	_, err := MessageFromProto(pb)
+	assert.EqualError(t, err, "invalid message")
 }
 
 func testModelRoundtrip(t *testing.T, model *Root) {

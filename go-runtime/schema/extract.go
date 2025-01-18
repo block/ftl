@@ -380,7 +380,7 @@ func combineAllPackageResults(sch *schema.Schema, results map[*analysis.Analyzer
 	if builderrors.ContainsTerminalError(result.Errors) {
 		return result, nil
 	}
-	return result, schema.ValidateModule(result.Module) //nolint:wrapcheck
+	return result, result.Module.Validate() //nolint:wrapcheck
 }
 
 // updateTransitiveVisibility updates any decls that are transitively visible from d.

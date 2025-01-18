@@ -191,7 +191,7 @@ func ParseString(filename, input string) (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ValidateSchema(mod)
+	return mod.Validate()
 }
 
 func ParseModuleString(filename, input string) (*Module, error) {
@@ -199,7 +199,7 @@ func ParseModuleString(filename, input string) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	return mod, ValidateModule(mod)
+	return mod, mod.Validate()
 }
 
 func Parse(filename string, r io.Reader) (*Schema, error) {
@@ -207,7 +207,7 @@ func Parse(filename string, r io.Reader) (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ValidateSchema(mod)
+	return mod.Validate()
 }
 
 func ParseModule(filename string, r io.Reader) (*Module, error) {
@@ -215,5 +215,5 @@ func ParseModule(filename string, r io.Reader) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	return mod, ValidateModule(mod)
+	return mod, mod.Validate()
 }
