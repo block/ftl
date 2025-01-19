@@ -1,7 +1,6 @@
 package {{ .Group }};
 
-import xyz.block.ftl.Export;
-import xyz.block.ftl.Verb;
+import xyz.block.ftl.*;
 
 public class {{ .Name | camel }} {
     @Export
