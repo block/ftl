@@ -29,6 +29,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
+
 	"github.com/block/ftl/backend/controller/artefacts"
 	ftldeploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
@@ -452,8 +453,9 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	context.AfterFunc(ctx, func() {
 		err := s.Close()
 		if err != nil {
+			// This is very common, as the process will have been explicitly killed.
 			logger := log.FromContext(ctx)
-			logger.Errorf(err, "failed to terminate deployment")
+			logger.Debugf("failed to terminate deployment: %s", err.Error())
 		}
 	})
 
