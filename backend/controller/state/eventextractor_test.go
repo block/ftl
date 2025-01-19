@@ -38,8 +38,7 @@ func TestEventExtractor(t *testing.T) {
 			},
 			want: []SchemaEvent{
 				&DeploymentCreatedEvent{
-					Key:       deploymentKey(t, "dpl-test-sjkfislfjslfas"),
-					CreatedAt: now,
+					Key: deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					Schema: &schema.Module{Name: "test", Runtime: &schema.ModuleRuntime{
 						Base: schema.ModuleRuntimeBase{Language: "go"},
 						Deployment: &schema.ModuleRuntimeDeployment{

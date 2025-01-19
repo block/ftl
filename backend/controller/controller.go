@@ -937,10 +937,10 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	}
 
 	dkey := key.NewDeploymentKey(module.Name)
+	module.ModRuntime().ModDeployment().CreatedAt = time.Now()
 	err = s.schemaState.Publish(ctx, &state.DeploymentCreatedEvent{
-		Key:       dkey,
-		CreatedAt: time.Now(),
-		Schema:    module,
+		Key:    dkey,
+		Schema: module,
 	})
 	if err != nil {
 		logger.Errorf(err, "Could not create deployment event")
