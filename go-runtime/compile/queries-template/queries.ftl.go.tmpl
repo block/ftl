@@ -31,7 +31,7 @@ type {{.Name|title}}Client func(context.Context) error
 {{- else if eq (type $module .Request) "ftl.Unit"}}
 type {{.Name|title}}Client func(context.Context) ({{type $module .Response}}, error)
 {{- else if eq (type $module .Response) "ftl.Unit"}}
-type {{.Name|title}}Client func(context.Context, {{type $module .Request}})
+type {{.Name|title}}Client func(context.Context, {{type $module .Request}}) error
 {{- else}}
 type {{.Name|title}}Client func(context.Context, {{type $module .Request}}) ({{type $module .Response}}, error)
 {{- end}}
