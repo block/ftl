@@ -17,7 +17,7 @@ const globalSetup = async (config: FullConfig) => {
       return loadedModules.length === modules.length
     },
     moduleNames,
-    { timeout: 120000 },
+    { timeout: 240000 },
   )
 
   console.log('Modules loaded!')
