@@ -3,6 +3,7 @@ package common
 import (
 	"archive/zip"
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io/fs"
@@ -904,6 +905,7 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", modPath, err)
 	}
+	changed := false
 
 	for _, mod := range v.Modules {
 		if mod.Name == config.Module {
@@ -918,11 +920,24 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 			return fmt.Errorf("failed to export module schema for module %s %w", mod.Name, err)
 		}
 		schemaFile := filepath.Join(modPath, mod.Name+".pb")
+		if fileExists(schemaFile) {
+			existing, err := os.ReadFile(schemaFile)
+			if err == nil {
+				// We ignore errors, but if the read succeeded we need to check if the file has changed
+				if bytes.Equal(existing, data) {
+					continue
+				}
+			}
+		}
+		changed = true
 		err = os.WriteFile(schemaFile, data, 0644) // #nosec
 		logger.Debugf("writing schema files for %s to %s", mod.Name, schemaFile)
 		if err != nil {
 			return fmt.Errorf("failed to write schema file for module %s %w", mod.Name, err)
 		}
+	}
+	if !changed {
+		return nil
 	}
 	genCommand := ""
 	if config.LanguageConfig["build-tool"] == JavaBuildToolMaven {
