@@ -16,6 +16,9 @@ import (
 )
 
 func TestGraph(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	ctx, cancel := context.WithCancel(log.ContextWithNewDefaultLogger(context.Background()))
 	t.Cleanup(cancel)
 	projConfig := projectconfig.Config{

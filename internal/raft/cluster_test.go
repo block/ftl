@@ -48,6 +48,9 @@ func (s *IntStateMachine) Save(writer io.Writer) error     { return nil }
 func (s *IntStateMachine) Close() error                    { return nil }
 
 func TestClusterWith2Shards(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	ctx := testContext(t)
 
 	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) []sm.Handle[int64, int64, IntEvent] {
@@ -68,6 +71,9 @@ func TestClusterWith2Shards(t *testing.T) {
 }
 
 func TestJoiningExistingCluster(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	ctx := testContext(t)
 
 	addresses, err := local.FreeTCPAddresses(5)
@@ -124,6 +130,9 @@ func TestJoiningExistingCluster(t *testing.T) {
 }
 
 func TestLeavingCluster(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	ctx := testContext(t)
 
 	clusters, shards := startClusters(ctx, t, 3, func(b *raft.Builder) sm.Handle[int64, int64, IntEvent] {
@@ -143,6 +152,9 @@ func TestLeavingCluster(t *testing.T) {
 }
 
 func TestStateIter(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	ctx := testContext(t)
 
 	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) sm.Handle[int64, int64, IntEvent] {
