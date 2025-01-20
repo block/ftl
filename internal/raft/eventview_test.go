@@ -40,6 +40,9 @@ func (v *IntSumView) UnmarshalBinary(data []byte) error {
 }
 
 func TestEventView(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	ctx := testContext(t)
 
 	_, views := startClusters(ctx, t, 2, func(b *raft.Builder) eventstream.EventView[IntSumView, IntStreamEvent] {
