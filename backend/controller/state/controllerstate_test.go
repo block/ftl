@@ -74,17 +74,14 @@ func TestDeploymentState(t *testing.T) {
 	assert.Equal(t, 0, len(view.GetDeployments()))
 
 	deploymentKey := key.NewDeploymentKey("test-deployment")
-	create := time.Now()
 	err = cs.Publish(ctx, &state.DeploymentCreatedEvent{
-		Key:       deploymentKey,
-		CreatedAt: create,
-		Schema:    &schema.Module{Name: "test"},
+		Key:    deploymentKey,
+		Schema: &schema.Module{Name: "test"},
 	})
 	assert.NoError(t, err)
 	view, err = cs.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(view.GetDeployments()))
-	assert.Equal(t, create, view.GetDeployments()[deploymentKey].GetRuntime().GetDeployment().CreatedAt)
 
 	activate := time.Now()
 	err = cs.Publish(ctx, &state.DeploymentActivatedEvent{

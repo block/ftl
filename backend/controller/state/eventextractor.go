@@ -20,9 +20,8 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEv
 		pd, ok := previousAll[key]
 		if !ok {
 			events = append(events, &DeploymentCreatedEvent{
-				Key:       key,
-				CreatedAt: deployment.GetRuntime().GetDeployment().GetCreatedAt(),
-				Schema:    deployment,
+				Key:    key,
+				Schema: deployment,
 			})
 		} else if !pd.Equals(deployment) {
 			events = append(events, &DeploymentSchemaUpdatedEvent{
