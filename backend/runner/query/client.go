@@ -10,11 +10,12 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/tuple"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	querypb "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1"
 	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // SQLNullable is an interface that allows for setting a value to null/none. Optional types implement this interface.
