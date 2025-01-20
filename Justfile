@@ -177,9 +177,9 @@ _build-go-binary-fast dir binary="":
   binary="${2:-$(basename "$1")}"
 
   if [ "${FTL_DEBUG:-}" = "true" ]; then
-    go build -o "{{RELEASE}}/${binary}" -tags release -gcflags=all="-N -l" -ldflags "-X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.timestamp={{TIMESTAMP}}" "$1"
+    go build -o "{{RELEASE}}/${binary}" -tags release -gcflags=all="-N -l" -ldflags "-s -w -X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.timestamp={{TIMESTAMP}}" "$1"
   else
-    mk "{{RELEASE}}/${binary}" : !(build|integration|infrastructure|node_modules|Procfile*|Dockerfile*) -- go build -o "{{RELEASE}}/${binary}" -tags release -ldflags "-X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.timestamp={{TIMESTAMP}}" "$1"
+    mk "{{RELEASE}}/${binary}" : !(build|integration|infrastructure|node_modules|Procfile*|Dockerfile*) -- go build -o "{{RELEASE}}/${binary}" -tags release -ldflags "-s -w -X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.timestamp={{TIMESTAMP}}" "$1"
   fi
 
 # Build the ZIP files that are embedded in the FTL release binaries
