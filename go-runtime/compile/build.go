@@ -793,18 +793,21 @@ func (b *mainDeploymentContextBuilder) visit(
 					return next()
 				}
 				b.visited.Add(refName)
-				verbs, data, err := b.getQueryDecls(n)
-				if err != nil {
-					return err
+				isLocal := b.visitingMainModule(module.Name)
+				if isLocal {
+					verbs, data, err := b.getQueryDecls(n)
+					if err != nil {
+						return err
+					}
+					ctx.QueriesCtx.Verbs = append(ctx.QueriesCtx.Verbs, verbs...)
+					ctx.QueriesCtx.Data = append(ctx.QueriesCtx.Data, data...)
+					verb, err := b.getGoVerb(fmt.Sprintf("ftl/%s.%s", b.mainModule.Name, n.Name), n)
+					if err != nil {
+						return err
+					}
+					verb.IsQuery = true
+					ctx.Verbs = append(ctx.Verbs, verb)
 				}
-				ctx.QueriesCtx.Verbs = append(ctx.QueriesCtx.Verbs, verbs...)
-				ctx.QueriesCtx.Data = append(ctx.QueriesCtx.Data, data...)
-				verb, err := b.getGoVerb(fmt.Sprintf("ftl/%s.%s", b.mainModule.Name, n.Name), n)
-				if err != nil {
-					return err
-				}
-				verb.IsQuery = true
-				ctx.Verbs = append(ctx.Verbs, verb)
 			}
 		case *schema.Ref:
 			maybeResolved, maybeModule := b.sch.ResolveWithModule(n)
