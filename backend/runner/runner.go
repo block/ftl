@@ -399,7 +399,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 				logger.Errorf(err, "could not create FTL dev Config")
 			}
 		}
-		err = rpc.Wait(ctx, backoff.Backoff{}, time.Second*10, client)
+		err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
 			return fmt.Errorf("failed to ping dev endpoint: %w", err)
