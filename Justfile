@@ -235,7 +235,7 @@ format-frontend:
 
 # Install Node dependencies using pnpm
 pnpm-install:
-  retry 3 pnpm install --frozen-lockfile
+  @mk node_modules/.modules.yaml : pnpm-lock.yaml -- @retry 3 pnpm install --frozen-lockfile
 
 # Copy plugin protos from the SQLC release
 update-sqlc-plugin-codegen-proto:
