@@ -125,7 +125,13 @@ func (c *mainDeploymentContext) generateTypesImports(mainModuleImport string) []
 	if len(c.TypesCtx.SumTypes) > 0 || len(c.TypesCtx.ExternalTypes) > 0 {
 		imports.Add(`"github.com/block/ftl/common/reflection"`)
 	}
-	if len(c.Verbs) > 0 {
+	hasVerbs := false
+	for _, i := range c.Verbs {
+		if !i.IsQuery {
+			hasVerbs = true
+		}
+	}
+	if hasVerbs {
 		imports.Add(`"context"`)
 	}
 	if len(c.Databases) > 0 {
