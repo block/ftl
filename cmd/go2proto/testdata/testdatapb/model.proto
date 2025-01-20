@@ -15,9 +15,11 @@ enum Enum {
 
 message Message {
   google.protobuf.Timestamp time = 1;
-  google.protobuf.Duration duration = 2;
-  bool invalid = 3;
-  Nested nested = 4;
+  optional google.protobuf.Timestamp opt_time = 2;
+  google.protobuf.Duration duration = 3;
+  bool invalid = 4;
+  Nested nested = 5;
+  repeated Nested repeated_nested = 6;
 }
 
 message Nested {
@@ -36,8 +38,11 @@ message Root {
   repeated int64 repeated_int = 10;
   repeated Message repeated_msg = 11;
   bytes url = 12;
-  string key = 13;
+  optional string optional_wrapper = 13;
   string external_root = 14;
+  string key = 15;
+  optional google.protobuf.Timestamp optional_time = 16;
+  optional Message optional_message = 17;
 }
 
 

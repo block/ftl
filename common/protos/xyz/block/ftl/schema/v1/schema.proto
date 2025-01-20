@@ -189,13 +189,13 @@ message Metadata {
     MetadataCalls calls = 1;
     MetadataConfig config = 10;
     MetadataCronJob cron_job = 3;
-    MetadataDBColumn db_column = 17;
     MetadataDatabases databases = 4;
     MetadataEncoding encoding = 9;
     MetadataIngress ingress = 2;
     MetadataPartitions partitions = 15;
     MetadataPublisher publisher = 12;
     MetadataRetry retry = 6;
+    MetadataSQLColumn sql_column = 17;
     MetadataSQLMigration sql_migration = 13;
     MetadataSQLQuery sql_query = 16;
     MetadataSecrets secrets = 11;
@@ -234,13 +234,6 @@ message MetadataCronJob {
   string cron = 2;
 }
 
-// MetadataDBColumn designates a database column.
-message MetadataDBColumn {
-  optional Position pos = 1;
-  string table = 2;
-  string name = 3;
-}
-
 message MetadataDatabases {
   optional Position pos = 1;
   repeated Ref calls = 2;
@@ -275,6 +268,13 @@ message MetadataRetry {
   string min_backoff = 3;
   string max_backoff = 4;
   optional Ref catch = 5;
+}
+
+// MetadataSQLColumn designates a database column.
+message MetadataSQLColumn {
+  optional Position pos = 1;
+  string table = 2;
+  string name = 3;
 }
 
 message MetadataSQLMigration {

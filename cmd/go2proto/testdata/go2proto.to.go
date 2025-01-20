@@ -3,12 +3,12 @@
 package testdata
 
 import "fmt"
+import "encoding"
 import destpb "github.com/block/ftl/cmd/go2proto/testdata/testdatapb"
-import "google.golang.org/protobuf/proto"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
-
-import "net/url"
+import "github.com/alecthomas/types/optional"
+import "github.com/alecthomas/types/result"
 
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
@@ -38,15 +38,16 @@ func sliceMap[T any, U any](values []T, f func(T) U) []U {
 	return out
 }
 
-func sliceMapErr[T any, U any](values []T, f func(T) (U, error)) ([]U, error) {
-	var err error
+func sliceMapR[T any, U any](values []T, f func(T) result.Result[U]) result.Result[[]U] {
 	out := make([]U, len(values))
 	for i, v := range values {
-		if out[i], err = f(v); err != nil {
-			return nil, err
+		r := f(v)
+		if r.Err() != nil {
+			return result.Err[[]U](r.Err())
 		}
+		out[i], _ = r.Get()
 	}
-	return out, nil
+	return result.Ok[[]U](out)
 }
 
 func orZero[T any](v *T) T {
@@ -56,11 +57,32 @@ func orZero[T any](v *T) T {
 	return *v
 }
 
-func ptr[T any, O any](v *O, o T) *T {
-	if v == nil {
-		return nil
+func orZeroR[T any](v result.Result[*T]) result.Result[T] {
+	if v.Err() != nil {
+		return result.Err[T](v.Err())
 	}
+	r, _ := v.Get()
+	return result.Ok[T](orZero(r))
+}
+
+func optionalOrNil[T any](v optional.Option[T]) *T {
+	if v.Ok() {
+		r := v.MustGet()
+		return &r
+	}
+	return nil
+}
+
+func ptr[T any](o T) *T {
 	return &o
+}
+
+func ptrR[T any](o result.Result[T]) result.Result[*T] {
+	if o.Err() != nil {
+		return result.Err[*T](o.Err())
+	}
+	r, _ := o.Get()
+	return result.Ok[*T](ptr(r))
 }
 
 func fromPtr[T any](v *T) T {
@@ -68,6 +90,69 @@ func fromPtr[T any](v *T) T {
 		return *new(T)
 	}
 	return *v
+}
+
+func fromPtrR[T any](v result.Result[*T]) result.Result[T] {
+	if v.Err() != nil {
+		return result.Err[T](v.Err())
+	}
+	r, _ := v.Get()
+	return result.Ok[T](fromPtr(r))
+}
+
+func optionalR[T any](r result.Result[*T]) result.Result[optional.Option[T]] {
+	if r.Err() != nil {
+		return result.Err[optional.Option[T]](r.Err())
+	}
+	v, _ := r.Get()
+	return result.Ok[optional.Option[T]](optional.Ptr(v))
+}
+
+func setNil[T, O any](v *T, o *O) *T {
+	if o == nil {
+		return nil
+	}
+	return v
+}
+
+func setNilR[T, O any](v result.Result[*T], o *O) result.Result[*T] {
+	if v.Err() != nil {
+		return v
+	}
+	r, _ := v.Get()
+	return result.Ok[*T](setNil(r, o))
+}
+
+type binaryUnmarshallable[T any] interface {
+	*T
+	encoding.BinaryUnmarshaler
+}
+
+type textUnmarshallable[T any] interface {
+	*T
+	encoding.TextUnmarshaler
+}
+
+func unmarshallBinary[T any, TPtr binaryUnmarshallable[T]](v []byte, f TPtr) result.Result[*T] {
+	var to T
+	toptr := (TPtr)(&to)
+
+	err := toptr.UnmarshalBinary(v)
+	if err != nil {
+		return result.Err[*T](err)
+	}
+	return result.Ok[*T](&to)
+}
+
+func unmarshallText[T any, TPtr textUnmarshallable[T]](v []byte, f TPtr) result.Result[*T] {
+	var to T
+	toptr := (TPtr)(&to)
+
+	err := toptr.UnmarshalText(v)
+	if err != nil {
+		return result.Err[*T](err)
+	}
+	return result.Ok[*T](&to)
 }
 
 func (x Enum) ToProto() destpb.Enum {
@@ -84,10 +169,12 @@ func (x *Message) ToProto() *destpb.Message {
 		return nil
 	}
 	return &destpb.Message{
-		Time:     timestamppb.New(x.Time),
-		Duration: durationpb.New(x.Duration),
-		Invalid:  bool(x.Invalid),
-		Nested:   x.Nested.ToProto(),
+		Time:           timestamppb.New(x.Time),
+		OptTime:        timestamppb.New(x.OptTime),
+		Duration:       durationpb.New(x.Duration),
+		Invalid:        orZero(ptr(bool(x.Invalid))),
+		Nested:         x.Nested.ToProto(),
+		RepeatedNested: sliceMap(x.RepeatedNested, func(v Nested) *destpb.Nested { return v.ToProto() }),
 	}
 }
 
@@ -97,13 +184,23 @@ func MessageFromProto(v *destpb.Message) (out *Message, err error) {
 	}
 
 	out = &Message{}
-	out.Time = v.Time.AsTime()
-	out.Duration = v.Duration.AsDuration()
-	out.Invalid = bool(v.Invalid)
-	if fieldNested, err := NestedFromProto(v.Nested); err != nil {
+	if out.Time, err = orZeroR(result.From(setNil(ptr(v.Time.AsTime()), v.Time), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Time: %w", err)
+	}
+	if out.OptTime, err = orZeroR(result.From(setNil(ptr(v.OptTime.AsTime()), v.OptTime), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("OptTime: %w", err)
+	}
+	if out.Duration, err = orZeroR(result.From(setNil(ptr(v.Duration.AsDuration()), v.Duration), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Duration: %w", err)
+	}
+	if out.Invalid, err = orZeroR(result.From(ptr(bool(v.Invalid)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Invalid: %w", err)
+	}
+	if out.Nested, err = orZeroR(result.From(NestedFromProto(v.Nested))).Result(); err != nil {
 		return nil, fmt.Errorf("Nested: %w", err)
-	} else {
-		out.Nested = fromPtr(fieldNested)
+	}
+	if out.RepeatedNested, err = sliceMapR(v.RepeatedNested, func(v *destpb.Nested) result.Result[Nested] { return orZeroR(result.From(NestedFromProto(v))) }).Result(); err != nil {
+		return nil, fmt.Errorf("RepeatedNested: %w", err)
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -116,7 +213,7 @@ func (x *Nested) ToProto() *destpb.Nested {
 		return nil
 	}
 	return &destpb.Nested{
-		Nested: string(x.Nested),
+		Nested: orZero(ptr(string(x.Nested))),
 	}
 }
 
@@ -126,7 +223,9 @@ func NestedFromProto(v *destpb.Nested) (out *Nested, err error) {
 	}
 
 	out = &Nested{}
-	out.Nested = string(v.Nested)
+	if out.Nested, err = orZeroR(result.From(ptr(string(v.Nested)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Nested: %w", err)
+	}
 	return out, nil
 }
 
@@ -135,19 +234,22 @@ func (x *Root) ToProto() *destpb.Root {
 		return nil
 	}
 	return &destpb.Root{
-		Int:            int64(x.Int),
-		String_:        string(x.String),
-		MessagePtr:     x.MessagePtr.ToProto(),
-		Enum:           x.Enum.ToProto(),
-		SumType:        SumTypeToProto(x.SumType),
-		OptionalInt:    proto.Int64(int64(x.OptionalInt)),
-		OptionalIntPtr: proto.Int64(int64(*x.OptionalIntPtr)),
-		OptionalMsg:    x.OptionalMsg.ToProto(),
-		RepeatedInt:    sliceMap(x.RepeatedInt, func(v int) int64 { return int64(v) }),
-		RepeatedMsg:    protoSlice[*destpb.Message](x.RepeatedMsg),
-		Url:            protoMust(x.URL.MarshalBinary()),
-		Key:            string(protoMust(x.Key.MarshalText())),
-		ExternalRoot:   string(protoMust(x.ExternalRoot.MarshalText())),
+		Int:             orZero(ptr(int64(x.Int))),
+		String_:         orZero(ptr(string(x.String))),
+		MessagePtr:      x.MessagePtr.ToProto(),
+		Enum:            orZero(ptr(x.Enum.ToProto())),
+		SumType:         SumTypeToProto(x.SumType),
+		OptionalInt:     ptr(int64(x.OptionalInt)),
+		OptionalIntPtr:  setNil(ptr(int64(orZero(x.OptionalIntPtr))), x.OptionalIntPtr),
+		OptionalMsg:     x.OptionalMsg.ToProto(),
+		RepeatedInt:     sliceMap(x.RepeatedInt, func(v int) int64 { return orZero(ptr(int64(v))) }),
+		RepeatedMsg:     sliceMap(x.RepeatedMsg, func(v *Message) *destpb.Message { return v.ToProto() }),
+		Url:             orZero(ptr(protoMust(x.URL.MarshalBinary()))),
+		OptionalWrapper: setNil(ptr(string(orZero(optionalOrNil(x.OptionalWrapper)))), optionalOrNil(x.OptionalWrapper)),
+		ExternalRoot:    orZero(ptr(string(protoMust(x.ExternalRoot.MarshalText())))),
+		Key:             orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		OptionalTime:    setNil(timestamppb.New(orZero(optionalOrNil(x.OptionalTime))), optionalOrNil(x.OptionalTime)),
+		OptionalMessage: optionalOrNil(x.OptionalMessage).ToProto(),
 	}
 }
 
@@ -157,35 +259,53 @@ func RootFromProto(v *destpb.Root) (out *Root, err error) {
 	}
 
 	out = &Root{}
-	out.Int = int(v.Int)
-	out.String = string(v.String_)
-	if out.MessagePtr, err = MessageFromProto(v.MessagePtr); err != nil {
+	if out.Int, err = orZeroR(result.From(ptr(int(v.Int)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Int: %w", err)
+	}
+	if out.String, err = orZeroR(result.From(ptr(string(v.String_)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("String: %w", err)
+	}
+	if out.MessagePtr, err = result.From(MessageFromProto(v.MessagePtr)).Result(); err != nil {
 		return nil, fmt.Errorf("MessagePtr: %w", err)
 	}
-	if out.Enum, err = EnumFromProto(v.Enum); err != nil {
+	if out.Enum, err = orZeroR(ptrR(result.From(EnumFromProto(v.Enum)))).Result(); err != nil {
 		return nil, fmt.Errorf("Enum: %w", err)
 	}
-	if out.SumType, err = SumTypeFromProto(v.SumType); err != nil {
+	if out.SumType, err = orZeroR(ptrR(result.From(SumTypeFromProto(v.SumType)))).Result(); err != nil {
 		return nil, fmt.Errorf("SumType: %w", err)
 	}
-	out.OptionalInt = int(orZero(v.OptionalInt))
-	out.OptionalIntPtr = ptr(v.OptionalIntPtr, int(orZero(v.OptionalIntPtr)))
-	if out.OptionalMsg, err = MessageFromProto(v.OptionalMsg); err != nil {
+	if out.OptionalInt, err = orZeroR(result.From(setNil(ptr(int(orZero(v.OptionalInt))), v.OptionalInt), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("OptionalInt: %w", err)
+	}
+	if out.OptionalIntPtr, err = result.From(setNil(ptr(int(orZero(v.OptionalIntPtr))), v.OptionalIntPtr), nil).Result(); err != nil {
+		return nil, fmt.Errorf("OptionalIntPtr: %w", err)
+	}
+	if out.OptionalMsg, err = result.From(MessageFromProto(v.OptionalMsg)).Result(); err != nil {
 		return nil, fmt.Errorf("OptionalMsg: %w", err)
 	}
-	out.RepeatedInt = sliceMap(v.RepeatedInt, func(v int64) int { return int(v) })
-	if out.RepeatedMsg, err = sliceMapErr(v.RepeatedMsg, MessageFromProto); err != nil {
+	if out.RepeatedInt, err = sliceMapR(v.RepeatedInt, func(v int64) result.Result[int] { return orZeroR(result.From(ptr(int(v)), nil)) }).Result(); err != nil {
+		return nil, fmt.Errorf("RepeatedInt: %w", err)
+	}
+	if out.RepeatedMsg, err = sliceMapR(v.RepeatedMsg, func(v *destpb.Message) result.Result[*Message] { return result.From(MessageFromProto(v)) }).Result(); err != nil {
 		return nil, fmt.Errorf("RepeatedMsg: %w", err)
 	}
-	out.URL = new(url.URL)
-	if err = out.URL.UnmarshalBinary(v.Url); err != nil {
+	if out.URL, err = unmarshallBinary(v.Url, out.URL).Result(); err != nil {
 		return nil, fmt.Errorf("URL: %w", err)
 	}
-	if err = out.Key.UnmarshalText([]byte(v.Key)); err != nil {
+	if out.OptionalWrapper, err = optionalR(result.From(setNil(ptr(string(orZero(v.OptionalWrapper))), v.OptionalWrapper), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("OptionalWrapper: %w", err)
+	}
+	if out.ExternalRoot, err = orZeroR(unmarshallText([]byte(v.ExternalRoot), &out.ExternalRoot)).Result(); err != nil {
+		return nil, fmt.Errorf("ExternalRoot: %w", err)
+	}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
 		return nil, fmt.Errorf("Key: %w", err)
 	}
-	if err = out.ExternalRoot.UnmarshalText([]byte(v.ExternalRoot)); err != nil {
-		return nil, fmt.Errorf("ExternalRoot: %w", err)
+	if out.OptionalTime, err = optionalR(result.From(setNil(ptr(v.OptionalTime.AsTime()), v.OptionalTime), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("OptionalTime: %w", err)
+	}
+	if out.OptionalMessage, err = optionalR(result.From(MessageFromProto(v.OptionalMessage))).Result(); err != nil {
+		return nil, fmt.Errorf("OptionalMessage: %w", err)
 	}
 	return out, nil
 }
@@ -227,7 +347,7 @@ func (x *SubSumTypeA) ToProto() *destpb.SubSumTypeA {
 		return nil
 	}
 	return &destpb.SubSumTypeA{
-		A: string(x.A),
+		A: orZero(ptr(string(x.A))),
 	}
 }
 
@@ -237,7 +357,9 @@ func SubSumTypeAFromProto(v *destpb.SubSumTypeA) (out *SubSumTypeA, err error) {
 	}
 
 	out = &SubSumTypeA{}
-	out.A = string(v.A)
+	if out.A, err = orZeroR(result.From(ptr(string(v.A)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("A: %w", err)
+	}
 	return out, nil
 }
 
@@ -246,7 +368,7 @@ func (x *SubSumTypeB) ToProto() *destpb.SubSumTypeB {
 		return nil
 	}
 	return &destpb.SubSumTypeB{
-		A: string(x.A),
+		A: orZero(ptr(string(x.A))),
 	}
 }
 
@@ -256,7 +378,9 @@ func SubSumTypeBFromProto(v *destpb.SubSumTypeB) (out *SubSumTypeB, err error) {
 	}
 
 	out = &SubSumTypeB{}
-	out.A = string(v.A)
+	if out.A, err = orZeroR(result.From(ptr(string(v.A)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("A: %w", err)
+	}
 	return out, nil
 }
 
@@ -315,7 +439,7 @@ func (x *SumTypeA) ToProto() *destpb.SumTypeA {
 		return nil
 	}
 	return &destpb.SumTypeA{
-		A: string(x.A),
+		A: orZero(ptr(string(x.A))),
 	}
 }
 
@@ -325,7 +449,9 @@ func SumTypeAFromProto(v *destpb.SumTypeA) (out *SumTypeA, err error) {
 	}
 
 	out = &SumTypeA{}
-	out.A = string(v.A)
+	if out.A, err = orZeroR(result.From(ptr(string(v.A)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("A: %w", err)
+	}
 	return out, nil
 }
 
@@ -334,7 +460,7 @@ func (x *SumTypeB) ToProto() *destpb.SumTypeB {
 		return nil
 	}
 	return &destpb.SumTypeB{
-		B: int64(x.B),
+		B: orZero(ptr(int64(x.B))),
 	}
 }
 
@@ -344,7 +470,9 @@ func SumTypeBFromProto(v *destpb.SumTypeB) (out *SumTypeB, err error) {
 	}
 
 	out = &SumTypeB{}
-	out.B = int(v.B)
+	if out.B, err = orZeroR(result.From(ptr(int(v.B)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("B: %w", err)
+	}
 	return out, nil
 }
 
@@ -353,7 +481,7 @@ func (x *SumTypeC) ToProto() *destpb.SumTypeC {
 		return nil
 	}
 	return &destpb.SumTypeC{
-		C: float64(x.C),
+		C: orZero(ptr(float64(x.C))),
 	}
 }
 
@@ -363,6 +491,8 @@ func SumTypeCFromProto(v *destpb.SumTypeC) (out *SumTypeC, err error) {
 	}
 
 	out = &SumTypeC{}
-	out.C = float64(v.C)
+	if out.C, err = orZeroR(result.From(ptr(float64(v.C)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("C: %w", err)
+	}
 	return out, nil
 }

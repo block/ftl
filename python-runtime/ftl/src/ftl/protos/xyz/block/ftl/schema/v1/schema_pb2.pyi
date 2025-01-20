@@ -274,19 +274,19 @@ class Map(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., key: _Optional[_Union[Type, _Mapping]] = ..., value: _Optional[_Union[Type, _Mapping]] = ...) -> None: ...
 
 class Metadata(_message.Message):
-    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "db_column", "databases", "encoding", "ingress", "partitions", "publisher", "retry", "sql_migration", "sql_query", "secrets", "subscriber", "type_map")
+    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "databases", "encoding", "ingress", "partitions", "publisher", "retry", "sql_column", "sql_migration", "sql_query", "secrets", "subscriber", "type_map")
     ALIAS_FIELD_NUMBER: _ClassVar[int]
     ARTEFACT_FIELD_NUMBER: _ClassVar[int]
     CALLS_FIELD_NUMBER: _ClassVar[int]
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     CRON_JOB_FIELD_NUMBER: _ClassVar[int]
-    DB_COLUMN_FIELD_NUMBER: _ClassVar[int]
     DATABASES_FIELD_NUMBER: _ClassVar[int]
     ENCODING_FIELD_NUMBER: _ClassVar[int]
     INGRESS_FIELD_NUMBER: _ClassVar[int]
     PARTITIONS_FIELD_NUMBER: _ClassVar[int]
     PUBLISHER_FIELD_NUMBER: _ClassVar[int]
     RETRY_FIELD_NUMBER: _ClassVar[int]
+    SQL_COLUMN_FIELD_NUMBER: _ClassVar[int]
     SQL_MIGRATION_FIELD_NUMBER: _ClassVar[int]
     SQL_QUERY_FIELD_NUMBER: _ClassVar[int]
     SECRETS_FIELD_NUMBER: _ClassVar[int]
@@ -297,19 +297,19 @@ class Metadata(_message.Message):
     calls: MetadataCalls
     config: MetadataConfig
     cron_job: MetadataCronJob
-    db_column: MetadataDBColumn
     databases: MetadataDatabases
     encoding: MetadataEncoding
     ingress: MetadataIngress
     partitions: MetadataPartitions
     publisher: MetadataPublisher
     retry: MetadataRetry
+    sql_column: MetadataSQLColumn
     sql_migration: MetadataSQLMigration
     sql_query: MetadataSQLQuery
     secrets: MetadataSecrets
     subscriber: MetadataSubscriber
     type_map: MetadataTypeMap
-    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., db_column: _Optional[_Union[MetadataDBColumn, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., partitions: _Optional[_Union[MetadataPartitions, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., sql_query: _Optional[_Union[MetadataSQLQuery, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
+    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., partitions: _Optional[_Union[MetadataPartitions, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_column: _Optional[_Union[MetadataSQLColumn, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., sql_query: _Optional[_Union[MetadataSQLQuery, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
 
 class MetadataAlias(_message.Message):
     __slots__ = ("pos", "kind", "alias")
@@ -356,16 +356,6 @@ class MetadataCronJob(_message.Message):
     pos: Position
     cron: str
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., cron: _Optional[str] = ...) -> None: ...
-
-class MetadataDBColumn(_message.Message):
-    __slots__ = ("pos", "table", "name")
-    POS_FIELD_NUMBER: _ClassVar[int]
-    TABLE_FIELD_NUMBER: _ClassVar[int]
-    NAME_FIELD_NUMBER: _ClassVar[int]
-    pos: Position
-    table: str
-    name: str
-    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., table: _Optional[str] = ..., name: _Optional[str] = ...) -> None: ...
 
 class MetadataDatabases(_message.Message):
     __slots__ = ("pos", "calls")
@@ -426,6 +416,16 @@ class MetadataRetry(_message.Message):
     max_backoff: str
     catch: Ref
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., count: _Optional[int] = ..., min_backoff: _Optional[str] = ..., max_backoff: _Optional[str] = ..., catch: _Optional[_Union[Ref, _Mapping]] = ...) -> None: ...
+
+class MetadataSQLColumn(_message.Message):
+    __slots__ = ("pos", "table", "name")
+    POS_FIELD_NUMBER: _ClassVar[int]
+    TABLE_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    pos: Position
+    table: str
+    name: str
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., table: _Optional[str] = ..., name: _Optional[str] = ...) -> None: ...
 
 class MetadataSQLMigration(_message.Message):
     __slots__ = ("pos", "digest")
