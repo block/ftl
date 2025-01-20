@@ -7,7 +7,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
-	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 )
