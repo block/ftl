@@ -21,8 +21,8 @@ type ConfigContext struct {
 	Dir         string
 	Module      string
 	Engine      string
-	SchemaPaths string
-	QueryPaths  string
+	SchemaPaths []string
+	QueryPaths  []string
 	OutDir      string
 	Plugin      WASMPlugin
 }
@@ -62,7 +62,7 @@ func AddQueriesToSchema(ctx context.Context, projectRoot string, mc moduleconfig
 		return false, fmt.Errorf("failed to create SQLC config: %w", err)
 	}
 	// directories exist but contain no SQL files
-	if cfg.QueryPaths == "" || cfg.SchemaPaths == "" {
+	if len(cfg.QueryPaths) == 0 || len(cfg.SchemaPaths) == 0 {
 		return false, nil
 	}
 
@@ -166,10 +166,10 @@ func computeSHA256(path string) (string, error) {
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
-func findSQLFiles(dir string, relativeToDir string) (string, error) {
+func findSQLFiles(dir string, relativeToDir string) ([]string, error) {
 	relDir, err := filepath.Rel(relativeToDir, dir)
 	if err != nil {
-		return "", fmt.Errorf("failed to get SQL directory relative to %s: %w", relativeToDir, err)
+		return nil, fmt.Errorf("failed to get SQL directory relative to %s: %w", relativeToDir, err)
 	}
 	var sqlFiles []string
 	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
@@ -182,9 +182,9 @@ func findSQLFiles(dir string, relativeToDir string) (string, error) {
 		return nil
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to walk SQL files: %w", err)
+		return nil, fmt.Errorf("failed to walk SQL files: %w", err)
 	}
-	return strings.Join(sqlFiles, ","), nil
+	return sqlFiles, nil
 }
 
 func validateSQLConfigs(config moduleconfig.AbsModuleConfig) error {

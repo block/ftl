@@ -33,11 +33,13 @@ import (
 	ftldeploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/runner/observability"
 	"github.com/block/ftl/backend/runner/proxy"
 	"github.com/block/ftl/backend/runner/pubsub"
+	"github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -60,6 +62,7 @@ type Config struct {
 	Key                   key.Runner               `help:"Runner key (auto)."`
 	ControllerEndpoint    *url.URL                 `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	LeaseEndpoint         *url.URL                 `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
+	QueryEndpoint         *url.URL                 `name:"ftl-query-endpoint" help:"Query endpoint." env:"FTL_QUERY_ENDPOINT" default:"http://127.0.0.1:8897"`
 	TimelineEndpoint      *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	TemplateDir           string                   `help:"Template directory to copy into each deployment, if any." type:"existingdir"`
 	DeploymentDir         string                   `help:"Directory to store deployments in." default:"${deploymentdir}"`
@@ -126,6 +129,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 		cancelFunc:         doneFunc,
 		devEndpoint:        config.DevEndpoint,
 		devRunnerInfoFile:  config.DevRunnerInfoFile,
+		queryServices:      query.NewMultiService(),
 	}
 
 	module, err := svc.getModule(ctx, config.Deployment)
@@ -142,6 +146,9 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	})
 	g.Go(func() error {
 		return svc.startMySQLProxy(ctx, module, startedLatch, dbAddresses)
+	})
+	g.Go(func() error {
+		return svc.startQueryServices(ctx, module)
 	})
 	g.Go(func() error {
 		startedLatch.Wait()
@@ -263,6 +270,7 @@ type Service struct {
 	devRunnerInfoFile   optional.Option[string]
 	proxy               *proxy.Service
 	pubSub              *pubsub.Service
+	queryServices       *query.MultiService
 	proxyBindAddress    *url.URL
 }
 
@@ -345,7 +353,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
-	s.proxy = proxy.New(deploymentServiceClient, leaseServiceClient, s.timelineClient)
+	s.proxy = proxy.New(deploymentServiceClient, leaseServiceClient, s.timelineClient, s.queryServices)
 
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {
@@ -464,6 +472,11 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 func (s *Service) Close() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+
+	if s.queryServices != nil {
+		s.queryServices.Close()
+	}
+
 	depl, ok := s.deployment.Load().Get()
 	if !ok {
 		return connect.NewError(connect.CodeNotFound, errors.New("no deployment"))
@@ -594,7 +607,6 @@ func (s *Service) streamLogsLoop(ctx context.Context) {
 			Error:         optional.Ptr(errorString),
 		})
 	}
-
 }
 
 func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey key.Deployment) *log.Logger {
@@ -670,6 +682,86 @@ func (s *Service) startPgProxy(ctx context.Context, module *schema.Module, start
 		return fmt.Errorf("failed to start pgproxy: %w", err)
 	}
 
+	return nil
+}
+
+// Run query services for each database
+func (s *Service) startQueryServices(ctx context.Context, module *schema.Module) error {
+	logger := log.FromContext(ctx)
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	for _, decl := range module.Decls {
+		db, ok := decl.(*schema.Database)
+		if !ok {
+			continue
+		}
+
+		logger.Debugf("Initializing query service for %s database: %s.%s", db.Type, module.Name, db.Name)
+
+		var dsn string
+		switch conn := db.Runtime.Connections.Write.(type) {
+		case *schema.DSNDatabaseConnector:
+			dsn = conn.DSN
+		default:
+			return fmt.Errorf("unsupported database connector type: %T", db.Runtime.Connections.Write)
+		}
+
+		baseURL, err := url.Parse("http://127.0.0.1:0")
+		if err != nil {
+			return fmt.Errorf("failed to parse base URL: %w", err)
+		}
+
+		querySvc, err := query.New(ctx, query.Config{
+			DSN:      dsn,
+			Engine:   db.Type,
+			Endpoint: baseURL,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create query service for database %s: %w", db.Name, err)
+		}
+
+		server, err := rpc.NewServer(ctx, baseURL,
+			rpc.GRPC(querypbconnect.NewQueryServiceHandler, querySvc),
+		)
+		if err != nil {
+			querySvc.Close()
+			return fmt.Errorf("failed to create server for database %s: %w", db.Name, err)
+		}
+
+		urls := server.Bind.Subscribe(nil)
+		dbName := db.Name
+		g.Go(func() error {
+			serverGroup, serverCtx := errgroup.WithContext(ctx)
+
+			serverGroup.Go(func() error {
+				if err := server.Serve(serverCtx); err != nil && !errors.Is(err, context.Canceled) {
+					return fmt.Errorf("query service server for database %s stopped unexpectedly: %w", dbName, err)
+				}
+				return nil
+			})
+
+			select {
+			case <-serverCtx.Done():
+				return serverCtx.Err()
+			case endpoint := <-urls:
+				client := rpc.Dial(querypbconnect.NewQueryServiceClient, endpoint.String(), log.Error)
+				if err := rpc.Wait(serverCtx, backoff.Backoff{}, time.Second*5, client); err != nil {
+					return fmt.Errorf("query service for database %s failed health check: %w", dbName, err)
+				}
+				querySvc.SetEndpoint(endpoint)
+				if err := s.queryServices.AddService(module.Name, dbName, querySvc); err != nil {
+					return fmt.Errorf("failed to add query service for database %s: %w", dbName, err)
+				}
+				return serverGroup.Wait()
+			}
+		})
+	}
+
+	err := g.Wait()
+	if err != nil {
+		return fmt.Errorf("failed to start query services: %w", err)
+	}
 	return nil
 }
 

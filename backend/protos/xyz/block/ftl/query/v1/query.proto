@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package xyz.block.ftl.query.v1;
+
+import "google/protobuf/timestamp.proto";
+import "xyz/block/ftl/v1/ftl.proto";
+
+option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1;querypb";
+
+message BeginTransactionRequest {}
+
+message BeginTransactionResponse {
+  string transaction_id = 1;
+  TransactionStatus status = 2;
+}
+
+message CommitTransactionRequest {
+  string transaction_id = 1;
+}
+
+message CommitTransactionResponse {
+  TransactionStatus status = 1;
+}
+
+message RollbackTransactionRequest {
+  string transaction_id = 1;
+}
+
+message RollbackTransactionResponse {
+  TransactionStatus status = 1;
+}
+
+// A value that can be used as a SQL parameter
+message SQLValue {
+  oneof value {
+    string string_value = 1;
+    int64 int_value = 2;
+    double float_value = 3;
+    bool bool_value = 4;
+    bytes bytes_value = 5;
+    google.protobuf.Timestamp timestamp_value = 6;
+    bool null_value = 7; // Set to true to represent NULL
+  }
+}
+
+message ExecuteQueryRequest {
+  string raw_sql = 1;
+  CommandType command_type = 2;
+  repeated SQLValue parameters = 3; // SQL parameter values in order
+  repeated string result_columns = 6; // Column names to scan for the result type
+  optional string transaction_id = 4;
+  optional int32 batch_size = 5; // Default 100 if not set
+}
+
+message ExecuteQueryResponse {
+  oneof result {
+    // For EXEC commands
+    ExecResult exec_result = 1;
+    // For ONE/MANY commands
+    RowResults row_results = 2;
+  }
+}
+
+message ExecResult {
+  int64 rows_affected = 1;
+  optional int64 last_insert_id = 2; // Only for some databases like MySQL
+}
+
+message RowResults {
+  map<string, SQLValue> rows = 1; // Each row is a map of column name to value
+  bool has_more = 2; // Indicates if there are more rows to fetch
+}
+
+enum TransactionStatus {
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  TRANSACTION_STATUS_SUCCESS = 1;
+  TRANSACTION_STATUS_FAILED = 2;
+}
+
+enum CommandType {
+  COMMAND_TYPE_UNSPECIFIED = 0;
+  COMMAND_TYPE_EXEC = 1;
+  COMMAND_TYPE_ONE = 2;
+  COMMAND_TYPE_MANY = 3;
+}
+
+service QueryService {
+  // Ping service for readiness
+  rpc Ping(ftl.v1.PingRequest) returns (ftl.v1.PingResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Begins a new transaction and returns a transaction ID.
+  rpc BeginTransaction(BeginTransactionRequest) returns (BeginTransactionResponse);
+
+  // Commits a transaction.
+  rpc CommitTransaction(CommitTransactionRequest) returns (CommitTransactionResponse);
+
+  // Rolls back a transaction.
+  rpc RollbackTransaction(RollbackTransactionRequest) returns (RollbackTransactionResponse);
+
+  // Executes a raw SQL query, optionally within a transaction.
+  rpc ExecuteQuery(ExecuteQueryRequest) returns (stream ExecuteQueryResponse);
+}

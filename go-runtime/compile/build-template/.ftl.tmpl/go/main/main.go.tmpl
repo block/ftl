@@ -33,6 +33,7 @@ func init() {
 		{{- end }}
 {{- end}}
 {{- range $verbs}}
+	{{- if not .IsQuery }}
 		reflection.ProvideResourcesForVerb(
             {{.TypeName}},
             {{- range .Resources}}
@@ -61,6 +62,7 @@ func init() {
 				{{- end }}
 			{{- end}}
 		),
+	{{- end }}
 {{- end}}
 	)
 }
@@ -70,13 +72,13 @@ func main() {
 	verbConstructor := server.NewUserVerbServer("{{.ProjectName}}", "{{$name}}",
 {{- range $verbs }}
 	{{- if and (eq .Request.TypeName "ftl.Unit") (eq .Response.TypeName "ftl.Unit") }}
-		server.HandleEmpty({{.TypeName}}),
+		server.HandleEmpty("{{$name}}", "{{.Name}}"),
 	{{- else if eq .Request.TypeName "ftl.Unit" }}
-		server.HandleSource[{{.Response.TypeName}}]({{.TypeName}}),
+		server.HandleSource[{{.Response.TypeName}}]("{{$name}}", "{{.Name}}"),
 	{{- else if eq .Response.TypeName "ftl.Unit" }}
-		server.HandleSink[{{.Request.TypeName}}]({{.TypeName}}),
+		server.HandleSink[{{.Request.TypeName}}]("{{$name}}", "{{.Name}}"),
 	{{- else }}
-		server.HandleCall[{{.Request.TypeName}}, {{.Response.TypeName}}]({{.TypeName}}),
+		server.HandleCall[{{.Request.TypeName}}, {{.Response.TypeName}}]("{{$name}}", "{{.Name}}"),
 	{{- end -}}
 {{- end}}
 	)

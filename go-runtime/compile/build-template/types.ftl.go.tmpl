@@ -16,6 +16,7 @@ import (
 {{ end }}
 
 {{- range $verbs -}}
+	{{ if not .IsQuery }}
 	{{ $req := .Request.LocalTypeName -}}
 	{{ $resp := .Response.LocalTypeName -}}
 
@@ -28,6 +29,7 @@ type {{.Name|title}}Client func(context.Context, {{$req}}) error
 	{{- else }}
 type {{.Name|title}}Client func(context.Context, {{$req}}) ({{$resp}}, error)
 	{{- end }}
+	{{ end }}
 {{ end -}}
 
 {{- if or .SumTypes .ExternalTypes $verbs }}
@@ -51,6 +53,7 @@ func init() {
 		{{- end }}
 {{- end}}
 {{- range $verbs}}
+	{{ if not .IsQuery }}
 		reflection.ProvideResourcesForVerb(
             {{ trimModuleQualifier $moduleName .TypeName }},
             {{- range .Resources}}
@@ -81,6 +84,7 @@ func init() {
 				{{- end }}
 			{{- end}}
 		),
+	{{- end }}
 {{- end}}
 	)
 }

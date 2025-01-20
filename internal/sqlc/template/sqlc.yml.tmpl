@@ -5,8 +5,14 @@ plugins:
     url: {{ .Plugin.URL }}
     sha256: {{ .Plugin.SHA256 }}
 sql:
-- schema: {{ .SchemaPaths }}
-  queries: {{ .QueryPaths }}
+- schema:
+  {{- range .SchemaPaths }}
+  - {{ . }}
+  {{- end }}
+  queries:
+  {{- range .QueryPaths }}
+  - {{ . }}
+  {{- end }}
   engine: {{ .Engine }}
   codegen:
   - out: .
