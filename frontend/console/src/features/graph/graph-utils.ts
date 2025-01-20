@@ -1,19 +1,9 @@
 import type { EdgeDefinition, ElementDefinition } from 'cytoscape'
-import React from 'react'
-import ReactDOMServer from 'react-dom/server'
 import type { StreamModulesResult } from '../../api/modules/use-stream-modules'
-import { Config, Data, Database, Enum, type Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
-import { declIcon } from '../modules/module.utils'
-import type { DeclSumType } from '../modules/module.utils'
+import type { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import { getNodeBackgroundColor } from './graph-styles'
 
 export type FTLNode = Module | Verb | Secret | Config | Data | Database | Topic | Enum
-
-const iconToDataUrl = (Icon: React.ComponentType<{ className?: string }>) => {
-  const element = React.createElement(Icon, { className: 'w-full h-full text-white' })
-  const svgString = ReactDOMServer.renderToString(element)
-  return `data:image/svg+xml;base64,${btoa(svgString)}`
-}
 
 const createParentNode = (module: Module, nodePositions: Record<string, { x: number; y: number }>) => ({
   group: 'nodes' as const,
@@ -36,46 +26,27 @@ const createChildNode = (
   nodePositions: Record<string, { x: number; y: number }>,
   item: FTLNode,
   isDarkMode: boolean,
-) => {
-  const getDecl = (item: FTLNode): DeclSumType => {
-    if (item instanceof Config && item.config) return item.config
-    if (item instanceof Data && item.data) return item.data
-    if (item instanceof Database && item.database) return item.database
-    if (item instanceof Enum && item.enum) return item.enum
-    if (item instanceof Secret && item.secret) return item.secret
-    if (item instanceof Topic && item.topic) return item.topic
-    if (item instanceof Verb && item.verb) return item.verb
-    throw new Error('Unknown item type or missing data')
-  }
-
-  const Icon = declIcon(childType, getDecl(item))
-  return {
-    group: 'nodes' as const,
-    data: {
-      id: childId,
-      label: childLabel,
-      type: 'node',
-      nodeType: childType,
-      parent: parentName,
-      item,
-      backgroundColor: getNodeBackgroundColor(isDarkMode, childType),
-      image: iconToDataUrl(Icon),
-    },
-    ...(nodePositions[childId] && {
-      position: nodePositions[childId],
-    }),
-  }
-}
+) => ({
+  group: 'nodes' as const,
+  data: {
+    id: childId,
+    label: childLabel,
+    type: 'node',
+    nodeType: childType,
+    parent: parentName,
+    item,
+    backgroundColor: getNodeBackgroundColor(isDarkMode, childType),
+  },
+  ...(nodePositions[childId] && {
+    position: nodePositions[childId],
+  }),
+})
 
 const createModuleChildren = (module: Module, nodePositions: Record<string, { x: number; y: number }>, isDarkMode: boolean) => {
   const children = [
     // Create nodes for configs
     ...(module.configs || []).map((config: Config) =>
       createChildNode(module.name, nodeId(module.name, config.config?.name), config.config?.name || '', 'config', nodePositions, config, isDarkMode),
-    ),
-    // Create nodes for data
-    ...(module.data || []).map((data: Data) =>
-      createChildNode(module.name, nodeId(module.name, data.data?.name), data.data?.name || '', 'data', nodePositions, data, isDarkMode),
     ),
     // Create nodes for databases
     ...(module.databases || []).map((database: Database) =>
@@ -212,10 +183,12 @@ export const getGraphData = (
 ): ElementDefinition[] => {
   if (!modules) return []
 
+  const filteredModules = modules.modules.filter((module) => module.name !== 'builtin')
+
   return [
-    ...modules.modules.map((module) => createParentNode(module, nodePositions)),
-    ...modules.modules.flatMap((module) => createModuleChildren(module, nodePositions, isDarkMode)),
-    ...createEdges(modules.modules),
+    ...filteredModules.map((module) => createParentNode(module, nodePositions)),
+    ...filteredModules.flatMap((module) => createModuleChildren(module, nodePositions, isDarkMode)),
+    ...createEdges(filteredModules),
   ]
 }
 

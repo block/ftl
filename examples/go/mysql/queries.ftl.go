@@ -10,7 +10,7 @@ type CreateRequestQuery struct {
   	Data string
 }
 
-type CreateRequestClient func(context.Context, CreateRequestQuery)
+type CreateRequestClient func(context.Context, CreateRequestQuery) error
 
 type GetRequestDataResult struct {
   	Data string
