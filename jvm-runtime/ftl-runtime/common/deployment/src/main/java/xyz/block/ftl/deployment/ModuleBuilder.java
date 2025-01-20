@@ -61,6 +61,7 @@ import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataAlias;
 import xyz.block.ftl.schema.v1.MetadataCalls;
 import xyz.block.ftl.schema.v1.MetadataConfig;
+import xyz.block.ftl.schema.v1.MetadataPublisher;
 import xyz.block.ftl.schema.v1.MetadataSecrets;
 import xyz.block.ftl.schema.v1.MetadataTypeMap;
 import xyz.block.ftl.schema.v1.Module;
@@ -196,6 +197,7 @@ public class ModuleBuilder {
             MetadataCalls.Builder callsMetadata = MetadataCalls.newBuilder();
             MetadataConfig.Builder configMetadata = MetadataConfig.newBuilder();
             MetadataSecrets.Builder secretMetadata = MetadataSecrets.newBuilder();
+            MetadataPublisher.Builder publisherMetadata = MetadataPublisher.newBuilder();
             var pos = -1;
             for (var param : method.parameters()) {
                 pos++;
@@ -232,6 +234,7 @@ public class ModuleBuilder {
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
                     parameterTypes.add(paramType);
                     paramMappers.add(recorder.topicSupplier(topic.generatedProducer(), verbName));
+                    publisherMetadata.addTopics(Ref.newBuilder().setName(topic.topicName()).setModule(moduleName).build());
                 } else if (verbClients.containsKey(param.type().name())) {
                     var client = verbClients.get(param.type().name());
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
@@ -267,6 +270,9 @@ public class ModuleBuilder {
             }
             if (configMetadata.getConfigCount() > 0) {
                 verbBuilder.addMetadata(Metadata.newBuilder().setConfig(configMetadata));
+            }
+            if (publisherMetadata.getTopicsCount() > 0) {
+                verbBuilder.addMetadata(Metadata.newBuilder().setPublisher(publisherMetadata));
             }
 
             recorder.registerVerb(moduleName, verbName, method.name(), parameterTypes,
