@@ -1,5 +1,5 @@
 import { CellsIcon, PackageIcon } from 'hugeicons-react'
-import { Config, Data, Database, Enum, Module, Secret, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
+import { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import { RightPanelHeader } from '../modules/decls/RightPanelHeader'
 import { declIcon } from '../modules/module.utils'
 import type { FTLNode } from './graph-utils'
@@ -37,6 +37,10 @@ export const headerForNode = (node: FTLNode | null, _moduleName?: string | null)
   if (node instanceof Enum) {
     if (!node.enum) return
     return <RightPanelHeader Icon={declIcon('enum', node.enum)} title={node.enum.name} />
+  }
+  if (node instanceof Topic) {
+    if (!node.topic) return
+    return <RightPanelHeader Icon={declIcon('topic', node.topic)} title={node.topic.name} />
   }
 }
 

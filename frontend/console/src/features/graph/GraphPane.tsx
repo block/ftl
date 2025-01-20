@@ -113,7 +113,7 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
           'text-halign': 'center',
           'font-size': '14px',
           'text-max-width': '160px',
-          'text-margin-y': '20px',
+          'text-margin-y': '-10px',
           width: '180px',
         })
       }
@@ -135,7 +135,11 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
     const cy = cyInstance.current
 
     // Update existing elements and add new ones
-    for (const element of elements) {
+    const nodes = elements.filter((element) => element.group === 'nodes')
+    const edges = elements.filter((element) => element.group === 'edges')
+
+    // First handle nodes
+    for (const element of nodes) {
       const id = element.data?.id
       if (!id) continue // Skip elements without an id
 
@@ -146,11 +150,25 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
         existingElement.data(element.data)
 
         // If it's a node and doesn't have saved position, update position
-        if (element.group === 'nodes' && !nodePositions[id]) {
+        if (!nodePositions[id]) {
           existingElement.position(element.position || { x: 0, y: 0 })
         }
       } else {
         // Add new element
+        cy.add(element)
+      }
+    }
+
+    // Then handle edges after all nodes exist
+    for (const element of edges) {
+      const id = element.data?.id
+      if (!id) continue
+
+      const existingElement = cy.getElementById(id)
+
+      if (existingElement.length) {
+        existingElement.data(element.data)
+      } else {
         cy.add(element)
       }
     }
@@ -184,11 +202,10 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
         tilingPaddingVertical: 100,
         tilingPaddingHorizontal: 100,
         fit: true,
-        componentSpacing: 500,
+        componentSpacing: 100,
         edgeElasticity: 0.45,
-        gravity: 0.25,
-        numIter: 5000,
-        initialEnergyOnIncremental: 0.75,
+        gravity: 0.75,
+        initialEnergyOnIncremental: 0.5,
       } as FcoseLayoutOptions
 
       const layout = cy.layout(layoutOptions)
