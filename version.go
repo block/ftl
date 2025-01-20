@@ -44,8 +44,8 @@ var Version = "dev"
 // FormattedVersion includes the version and timestamp.
 var FormattedVersion = fmt.Sprintf("%s (%s)", Version, Timestamp.Format("2006-01-02"))
 
-// Timestamp of FTL binary (set by linker).
+// Timestamp of FTL binary in seconds since epoch (set by linker).
 var timestamp = "0"
 
-// Timestamp parsed from timestamp (set by linker).
-var Timestamp = time.Unix(0, must.Get(strconv.ParseInt(timestamp, 0, 64)))
+// Timestamp parsed from "timestamp".
+var Timestamp = time.Unix(must.Get(strconv.ParseInt(timestamp, 0, 64)), 0)
