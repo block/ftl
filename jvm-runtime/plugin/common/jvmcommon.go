@@ -338,7 +338,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	}
 	errorFile := filepath.Join(buildCtx.Config.DeployDir, ErrorFile)
 	schemaFile := filepath.Join(buildCtx.Config.DeployDir, SchemaFile)
-	runnerInfoFile := filepath.Join(buildCtx.Config.DeployDir, ".runner-info")
+	runnerInfoFile := filepath.Join(buildCtx.Config.Dir, ".ftl-runner-info")
 	os.Remove(errorFile)
 	os.Remove(schemaFile)
 	os.Remove(runnerInfoFile)
