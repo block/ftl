@@ -38,7 +38,6 @@ require (
 	github.com/google/go-containerregistry v0.20.2
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/cronexpr v1.1.2
-	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/jotaen/kong-completion v0.0.6

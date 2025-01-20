@@ -14,7 +14,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
-	_ "github.com/jackc/pgx/v5/stdlib" // pgx driver
 	"github.com/jpillora/backoff"
 	"golang.org/x/sync/errgroup"
 

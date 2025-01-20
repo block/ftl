@@ -19,7 +19,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
-	"github.com/jackc/pgx/v5"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
@@ -957,11 +956,7 @@ func (s *Service) getDeployment(ctx context.Context, dkey key.Deployment) (*sche
 		return nil, fmt.Errorf("failed to get schema state: %w", err)
 	}
 	deployment, err := view.GetDeployment(dkey)
-	if errors.Is(err, pgx.ErrNoRows) {
-		logger := s.getDeploymentLogger(ctx, dkey)
-		logger.Errorf(err, "Deployment not found")
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("deployment not found"))
-	} else if err != nil {
+	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not retrieve deployment: %w", err))
 	}
 	return deployment, nil

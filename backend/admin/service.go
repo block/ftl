@@ -9,7 +9,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/IBM/sarama"
-	_ "github.com/jackc/pgx/v5/stdlib"
 
 	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
