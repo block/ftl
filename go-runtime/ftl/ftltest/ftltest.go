@@ -10,8 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
-
 	"github.com/block/ftl/backend/provisioner"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/common/schema"

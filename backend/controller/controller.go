@@ -19,7 +19,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
-	"github.com/jackc/pgx/v5"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
@@ -44,7 +43,6 @@ import (
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	ftlmaps "github.com/block/ftl/internal/maps"
 	internalobservability "github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
@@ -937,10 +935,10 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	}
 
 	dkey := key.NewDeploymentKey(module.Name)
+	module.ModRuntime().ModDeployment().CreatedAt = time.Now()
 	err = s.schemaState.Publish(ctx, &state.DeploymentCreatedEvent{
-		Key:       dkey,
-		CreatedAt: time.Now(),
-		Schema:    module,
+		Key:    dkey,
+		Schema: module,
 	})
 	if err != nil {
 		logger.Errorf(err, "Could not create deployment event")
@@ -952,35 +950,13 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	return connect.NewResponse(&ftlv1.CreateDeploymentResponse{DeploymentKey: dkey.String()}), nil
 }
 
-// Load schemas for existing modules, combine with our new one, and validate the new module in the context
-// of the whole schema.
-func (s *Service) validateModuleSchema(ctx context.Context, module *schema.Module) (*schema.Module, error) {
-	view, err := s.schemaState.View(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get schema state: %w", err)
-	}
-	existingModules := view.GetActiveDeployments()
-	schemaMap := ftlmaps.FromSlice(maps.Values(existingModules), func(el *schema.Module) (string, *schema.Module) { return el.Name, el })
-	schemaMap[module.Name] = module
-	fullSchema := &schema.Schema{Modules: maps.Values(schemaMap)}
-	schema, err := schema.ValidateModuleInSchema(fullSchema, optional.Some[*schema.Module](module))
-	if err != nil {
-		return nil, fmt.Errorf("invalid schema: %w", err)
-	}
-	return schema.Module(module.Name).MustGet(), nil
-}
-
 func (s *Service) getDeployment(ctx context.Context, dkey key.Deployment) (*schema.Module, error) {
 	view, err := s.schemaState.View(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get schema state: %w", err)
 	}
 	deployment, err := view.GetDeployment(dkey)
-	if errors.Is(err, pgx.ErrNoRows) {
-		logger := s.getDeploymentLogger(ctx, dkey)
-		logger.Errorf(err, "Deployment not found")
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("deployment not found"))
-	} else if err != nil {
+	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not retrieve deployment: %w", err))
 	}
 	return deployment, nil

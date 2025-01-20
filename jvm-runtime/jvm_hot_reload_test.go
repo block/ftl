@@ -24,6 +24,18 @@ func TestLifecycleJVM(t *testing.T) {
 		in.Exec("ftl", "init", "test", "."),
 		in.IfLanguage("java", in.Exec("ftl", "new", "java", "echo")),
 		in.IfLanguage("kotlin", in.Exec("ftl", "new", "kotlin", "echo")),
+		// Add the DB dependency early in the test
+		// Hot reload is not as smooth with dependency changes
+		in.EditFile("echo", func(content []byte) []byte {
+			return []byte(strings.Replace(string(content), "</parent>", `
+</parent>
+<dependencies>
+	<dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-jdbc-postgresql</artifactId>
+    </dependency>
+</dependencies>`, 1))
+		}, "pom.xml"),
 		in.WaitWithTimeout("echo", time.Minute),
 		in.VerifyControllerStatus(func(ctx context.Context, t testing.TB, status *ftlv1.StatusResponse) {
 			assert.Equal(t, 1, len(status.Deployments))

@@ -1481,6 +1481,9 @@ func ModuleFromProto(v *destpb.Module) (out *Module, err error) {
 	if out.Runtime, err = ModuleRuntimeFromProto(v.Runtime); err != nil {
 		return nil, fmt.Errorf("Runtime: %w", err)
 	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 

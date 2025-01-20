@@ -10,7 +10,6 @@ components:
   internal: { in: internal/** }
   ftl-version: { in: . }
 
-  libdal: { in: backend/libdal/** }
   lease-service: { in: backend/lease/** }
   cron-service: { in: backend/cron/** }
   ingress-service: { in: backend/ingress/** }

@@ -164,6 +164,8 @@ func NewStatusManager(ctx context.Context) StatusManager {
 					sm.writeLine(current, true)
 				}
 				if !closed {
+					sm.statusLock.Lock()
+					defer sm.statusLock.Unlock()
 					sm.clearStatusMessages()
 					sm.exitWait.Done()
 				}
@@ -183,6 +185,8 @@ func NewStatusManager(ctx context.Context) StatusManager {
 					// that we handle on a best effort basis
 					sm.writeLine(current, true)
 					if !closed {
+						sm.statusLock.Lock()
+						defer sm.statusLock.Unlock()
 						sm.clearStatusMessages()
 						sm.exitWait.Done()
 						closed = true
@@ -271,6 +275,9 @@ func IsANSITerminal(ctx context.Context) bool {
 }
 
 func (r *terminalStatusManager) clearStatusMessages() {
+	if r.statusLock.TryLock() {
+		panic("clearStatusMessages called without holding the lock")
+	}
 	if r.totalStatusLines == 0 {
 		return
 	}
