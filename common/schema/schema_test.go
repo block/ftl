@@ -35,7 +35,7 @@ module todo {
   }
 
   export data CreateResponse {
-    name [String] +alias json "rsn" +data column "requests"."name"
+    name [String] +alias json "rsn" +sql column "requests"."name"
   }
 
   data DestroyRequest {
@@ -173,7 +173,7 @@ Module
       Array
         String
       MetadataAlias
-      MetadataDBColumn
+      MetadataSQLColumn
   Data
     Field
       String
@@ -776,7 +776,7 @@ module todo {
     name {String: String}? +alias json "rqn"
   }
   export data CreateResponse {
-    name [String] +alias json "rsn" +data column "requests"."name"
+    name [String] +alias json "rsn" +sql column "requests"."name"
   }
   data DestroyRequest {
     // A comment
@@ -874,7 +874,7 @@ var testSchema = MustValidate(&Schema{
 					Name:   "CreateResponse",
 					Export: true,
 					Fields: []*Field{
-						{Name: "name", Type: &Array{Element: &String{}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rsn"}, &MetadataDBColumn{Table: "requests", Name: "name"}}},
+						{Name: "name", Type: &Array{Element: &String{}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rsn"}, &MetadataSQLColumn{Table: "requests", Name: "name"}}},
 					},
 				},
 				&Data{
