@@ -53,6 +53,9 @@ importers:
       '@types/cytoscape':
         specifier: ^3.21.8
         version: 3.21.8
+      '@types/cytoscape-dagre':
+        specifier: ^2.3.3
+        version: 2.3.3
       '@uiw/codemirror-theme-atomone':
         specifier: ^4.22.0
         version: 4.23.7(@codemirror/language@6.10.8)(@codemirror/state@6.5.1)(@codemirror/view@6.36.2)
@@ -2104,6 +2107,9 @@ packages:
 
   '@types/cookie@0.6.0':
     resolution: {integrity: sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==}
+
+  '@types/cytoscape-dagre@2.3.3':
+    resolution: {integrity: sha512-FJBsNMbBZpqNwT6rp5leVYMevWUjnyD1QS8erNMAMWoBifvaVUklXIjE+bllLDSowjM3abXuRvljliSXUU+d1A==}
 
   '@types/cytoscape@3.21.8':
     resolution: {integrity: sha512-6Bo9ZDrv0vfwe8Sg/ERc5VL0yU0gYvP4dgZi0fAXYkKHfyHaNqWRMcwYm3mu4sLsXbB8ZuXE75sR7qnaOL5JgQ==}
@@ -7624,6 +7630,10 @@ snapshots:
       '@types/node': 22.10.7
 
   '@types/cookie@0.6.0': {}
+
+  '@types/cytoscape-dagre@2.3.3':
+    dependencies:
+      '@types/cytoscape': 3.21.8
 
   '@types/cytoscape@3.21.8': {}
 

@@ -24,9 +24,13 @@
     "build-storybook": "storybook build"
   },
   "lint-staged": {
-    "*.(js|cjs|tsx|ts)": ["pnpm run lint:fix"]
+    "*.(js|cjs|tsx|ts)": [
+      "pnpm run lint:fix"
+    ]
   },
-  "browserslist": ["> 2%"],
+  "browserslist": [
+    "> 2%"
+  ],
   "source": "index.html",
   "dependencies": {
     "@bufbuild/protobuf": "^1.10.0",
@@ -44,6 +48,7 @@
     "@tanstack/react-query": "^5.51.23",
     "@tanstack/react-query-devtools": "^5.51.23",
     "@types/cytoscape": "^3.21.8",
+    "@types/cytoscape-dagre": "^2.3.3",
     "@uiw/codemirror-theme-atomone": "^4.22.0",
     "@uiw/codemirror-theme-github": "^4.22.0",
     "@vitejs/plugin-react": "^4.0.4",
