@@ -74,6 +74,7 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to extract migrations %w", err)
 	}
+	wireUpQueryDatasources(result.Schema)
 	result.Deploy = append(result.Deploy, migrationFiles...)
 	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLMigrationDirectory)
 
@@ -99,4 +100,30 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 		}
 	}
 	return result.Schema, result.Deploy, nil
+}
+
+// wireUpQueryDatasources sets up the query datasources for any SQL verbs in the schema
+// it is currently a hack
+func wireUpQueryDatasources(module *schema.Module) {
+	dsName := ""
+	for _, i := range module.Decls {
+		if ds, ok := i.(*schema.Database); ok {
+			dsName = ds.Name
+			break
+		}
+	}
+	if dsName == "" {
+		return
+	}
+	for _, i := range module.Decls {
+		if v, ok := i.(*schema.Verb); ok {
+			for _, ms := range v.Metadata {
+				if _, ok := ms.(*schema.MetadataSQLQuery); ok {
+					v.Metadata = append(v.Metadata, &schema.MetadataDatabases{Calls: []*schema.Ref{&schema.Ref{Module: module.Name, Name: dsName}}})
+					break
+				}
+
+			}
+		}
+	}
 }
