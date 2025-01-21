@@ -1,6 +1,7 @@
 import cytoscape from 'cytoscape'
-import type { FcoseLayoutOptions } from 'cytoscape-fcose'
+import type { LayoutOptions } from 'cytoscape'
 import fcose from 'cytoscape-fcose'
+import type { FcoseLayoutOptions } from 'cytoscape-fcose'
 
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
@@ -9,7 +10,11 @@ import { useUserPreferences } from '../../providers/user-preferences-provider'
 import { createGraphStyles } from './graph-styles'
 import { type FTLNode, getGraphData } from './graph-utils'
 
+// @ts-ignore - Known type incompatibility with cytoscape plugins
 cytoscape.use(fcose)
+
+// Add this type intersection
+type CytoscapeFcoseLayout = LayoutOptions & FcoseLayoutOptions
 
 interface GraphPaneProps {
   onTapped?: (item: FTLNode | null, moduleName: string | null) => void
@@ -189,24 +194,23 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
     })
 
     if (hasNewNodesWithoutPositions) {
-      const layoutOptions = {
+      const layoutOptions: CytoscapeFcoseLayout = {
         name: 'fcose',
-        animate: false,
         quality: 'proof',
+        randomize: false,
+        animate: false,
         nodeSeparation: 150,
         idealEdgeLength: 200,
         nodeRepulsion: 20000,
         padding: 50,
-        randomize: false,
         tile: true,
         tilingPaddingVertical: 100,
         tilingPaddingHorizontal: 100,
         fit: true,
-        componentSpacing: 100,
         edgeElasticity: 0.45,
         gravity: 0.75,
         initialEnergyOnIncremental: 0.5,
-      } as FcoseLayoutOptions
+      }
 
       const layout = cy.layout(layoutOptions)
       layout.run()
