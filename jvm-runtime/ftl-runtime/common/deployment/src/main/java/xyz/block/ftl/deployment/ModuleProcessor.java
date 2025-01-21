@@ -189,7 +189,7 @@ public class ModuleProcessor {
         Files.write(errorOutput, errBytes);
 
         if (launchModeBuildItem.getLaunchMode() == LaunchMode.DEVELOPMENT) {
-            HotReloadHandler.module =schRef.get();
+            HotReloadHandler.module = schRef.get();
             HotReloadHandler.errors = errRef.get();
             // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
             // get updated runner information, although we don't actually get this until the runner has started.

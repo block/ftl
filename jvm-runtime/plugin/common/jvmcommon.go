@@ -409,6 +409,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Debugf("Context done")
 			// the context is done before we notified the build engine
 			// we need to send a build failure event
 			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
@@ -422,6 +423,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			}
 			return nil
 		case bc := <-events:
+			logger.Debugf("Build context updated")
 			buildCtx = bc.buildCtx
 			forceUpdate = true
 			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
@@ -437,10 +439,8 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			}
 		case <-schemaChangeTicker.C:
 			if !firstAttempt {
-				logger.Infof("Checking for schema changes")
 				_, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: false}))
 				if err != nil {
-					logger.Errorf(err, "Failed to invoke hot reload for build context update")
 					return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 				}
 			}
@@ -472,10 +472,9 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				}
 			}
 			if changed || forceUpdate {
-				logger.Infof("updating")
 				auto := !firstAttempt && !forceUpdate
 				if auto {
-					logger.Infof("sending auto")
+					logger.Debugf("sending auto")
 					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
 					if err != nil {
 						return fmt.Errorf("could not send build event: %w", err)
@@ -488,7 +487,6 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					continue
 				}
 				if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(buildErrs)) {
-					logger.Infof("terminal errors")
 					// skip reading schema
 					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 						BuildFailure: &langpb.BuildFailure{
@@ -510,7 +508,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					continue
 				}
 
-				logger.Infof("Live reload schema changed, sending build success event")
+				logger.Debugf("Live reload schema changed, sending build success event")
 				err = stream.Send(&langpb.BuildResponse{
 					Event: &langpb.BuildResponse_BuildSuccess{
 						BuildSuccess: &langpb.BuildSuccess{

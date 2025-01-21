@@ -69,16 +69,19 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                     .setReloadFailed(ReloadFailed.newBuilder()
                             .setErrors(builder).build())
                     .build());
+            responseObserver.onCompleted();
         } else if (errors != null && errors.getErrorsCount() > 0) {
             responseObserver.onNext(ReloadResponse.newBuilder()
                     .setReloadFailed(ReloadFailed.newBuilder()
                             .setErrors(errors).build())
                     .build());
+            responseObserver.onCompleted();
         } else if (module != null) {
             responseObserver.onNext(ReloadResponse.newBuilder()
                     .setReloadSuccess(ReloadSuccess.newBuilder()
                             .setModule(module).build())
                     .build());
+            responseObserver.onCompleted();
         } else {
             responseObserver.onError(new RuntimeException("schema not generated"));
         }
