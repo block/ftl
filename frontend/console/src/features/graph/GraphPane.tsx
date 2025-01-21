@@ -1,8 +1,8 @@
-import cytoscape, {LayoutOptions, NodeSingular} from 'cytoscape'
+import cytoscape, { LayoutOptions, NodeSingular } from 'cytoscape'
 import cola from 'cytoscape-cola'
 import dagre from 'cytoscape-dagre'
 import fcose from 'cytoscape-fcose'
-import {FcoseLayoutOptions} from "cytoscape-fcose"
+import { FcoseLayoutOptions } from 'cytoscape-fcose'
 
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
@@ -193,11 +193,10 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
     })
 
     if (hasNewNodesWithoutPositions) {
-
       /**
        * TODO The multiple layout options here are for demo purposes. A single layout should be selected and the unused ones removed.
        */
-        // @ts-ignore
+      // @ts-ignore
       var colaLayoutOptions = {
         name: 'cola',
         animate: true, // whether to show the layout as it's running
@@ -210,15 +209,17 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
         nodeDimensionsIncludeLabels: false, // whether labels should be included in determining the space used by a node
 
         // layout event callbacks
-        ready: function(){}, // on layoutready
-        stop: function(){}, // on layoutstop
+        ready: function () {}, // on layoutready
+        stop: function () {}, // on layoutstop
 
         // positioning options
         randomize: false, // use random node positions at beginning of layout
         avoidOverlap: true, // if true, prevents overlap of node bounding boxes
         handleDisconnected: true, // if true, avoids disconnected components from overlapping
         convergenceThreshold: 0.01, // when the alpha value (system energy) falls below this value, the layout stops
-        nodeSpacing: function(  ){ return 10; }, // extra spacing around nodes
+        nodeSpacing: function () {
+          return 10
+        }, // extra spacing around nodes
         flow: undefined, // use DAG/tree flow layout if specified, e.g. { axis: 'y', minSeparation: 30 }
         alignment: undefined, // relative alignment constraints on nodes, e.g. {vertical: [[{node: node1, offset: 0}, {node: node2, offset: 5}]], horizontal: [[{node: node3}, {node: node4}], [{node: node5}, {node: node6}]]}
         gapInequalities: undefined, // list of inequality constraints for the gap between the nodes, e.g. [{"axis":"y", "left":node1, "right":node2, "gap":25}]
@@ -244,12 +245,16 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
         edgeSep: undefined, // the separation between adjacent edges in the same rank
         rankSep: undefined, // the separation between each rank in the layout
         rankDir: undefined, // 'TB' for top to bottom flow, 'LR' for left to right,
-        align: undefined,  // alignment for rank nodes. Can be 'UL', 'UR', 'DL', or 'DR', where U = up, D = down, L = left, and R = right
+        align: undefined, // alignment for rank nodes. Can be 'UL', 'UR', 'DL', or 'DR', where U = up, D = down, L = left, and R = right
         acyclicer: undefined, // If set to 'greedy', uses a greedy heuristic for finding a feedback arc set for a graph.
-                              // A feedback arc set is a set of edges that can be removed to make a graph acyclic.
+        // A feedback arc set is a set of edges that can be removed to make a graph acyclic.
         ranker: undefined, // Type of algorithm to assign a rank to each node in the input graph. Possible values: 'network-simplex', 'tight-tree' or 'longest-path'
-        minLen: function(){ return 1; }, // number of ranks to keep between the source and target of the edge
-        edgeWeight: function(){ return 1; }, // higher weight edges are generally made shorter and straighter than lower weight edges
+        minLen: function () {
+          return 1
+        }, // number of ranks to keep between the source and target of the edge
+        edgeWeight: function () {
+          return 1
+        }, // higher weight edges are generally made shorter and straighter than lower weight edges
 
         // general layout options
         fit: true, // whether to fit to viewport
@@ -257,18 +262,22 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
         spacingFactor: 1.5, // Applies a multiplicative factor (>0) to expand or compress the overall area that the nodes take up
         nodeDimensionsIncludeLabels: false, // whether labels should be included in determining the space used by a node
         animate: true, // whether to transition the node positions
-        animateFilter: function(){ return true; }, // whether to animate specific nodes when animation is on; non-animated nodes immediately go to their final positions
+        animateFilter: function () {
+          return true
+        }, // whether to animate specific nodes when animation is on; non-animated nodes immediately go to their final positions
         animationDuration: 500, // duration of animation in ms if enabled
         animationEasing: undefined, // easing of animation if enabled
         boundingBox: undefined, // constrain layout bounds; { x1, y1, x2, y2 } or { x1, y1, w, h }
-        transform: function(_node: NodeSingular , pos: cytoscape.Position ){ return pos; }, // a function that applies a transform to the final node position
-        ready: function(){}, // on layoutready
+        transform: function (_node: NodeSingular, pos: cytoscape.Position) {
+          return pos
+        }, // a function that applies a transform to the final node position
+        ready: function () {}, // on layoutready
         sort: undefined, // a sorting function to order the nodes and edges; e.g. function(a, b){ return a.data('weight') - b.data('weight') }
-                         // because cytoscape dagre creates a directed graph, and directed graphs use the node order as a tie breaker when
-                         // defining the topology of a graph, this sort function can help ensure the correct order of the nodes/edges.
-                         // this feature is most useful when adding and removing the same nodes and edges multiple times in a graph.
-        stop: function(){} // on layoutstop
-      } as LayoutOptions;
+        // because cytoscape dagre creates a directed graph, and directed graphs use the node order as a tie breaker when
+        // defining the topology of a graph, this sort function can help ensure the correct order of the nodes/edges.
+        // this feature is most useful when adding and removing the same nodes and edges multiple times in a graph.
+        stop: function () {}, // on layoutstop
+      } as LayoutOptions
 
       // @ts-ignore
       const fcoseLayoutOptions = {
@@ -289,7 +298,6 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
         gravity: 0.75,
         initialEnergyOnIncremental: 0.5,
       } as FcoseLayoutOptions
-
 
       // const layout = cy.layout(dagreLayoutOptions)
       // const layout = cy.layout(fcoseLayoutOptions)
