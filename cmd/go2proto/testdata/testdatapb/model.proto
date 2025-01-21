@@ -37,7 +37,7 @@ message Root {
   repeated Message repeated_msg = 11;
   bytes url = 12;
   string key = 13;
-  Root external_root = 14;
+  string external_root = 14;
 }
 
 
