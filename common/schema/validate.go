@@ -327,7 +327,7 @@ func (m *Module) Validate() error {
 		case *Data:
 			for _, md := range n.Metadata {
 				switch md.(type) {
-				case *MetadataCalls, *MetadataSecrets, *MetadataConfig, *MetadataDBColumn, *MetadataSQLQuery:
+				case *MetadataCalls, *MetadataSecrets, *MetadataConfig, *MetadataSQLColumn, *MetadataSQLQuery:
 					merr = append(merr, errorf(md, "metadata %q is not valid on data structures", strings.TrimSpace(md.String())))
 				default:
 
@@ -338,7 +338,7 @@ func (m *Module) Validate() error {
 			for _, md := range n.Metadata {
 				switch md := md.(type) {
 				case *MetadataAlias:
-				case *MetadataDBColumn:
+				case *MetadataSQLColumn:
 					continue
 				default:
 					merr = append(merr, errorf(md, "metadata %q is not valid on fields", strings.TrimSpace(md.String())))
@@ -463,7 +463,7 @@ func sortMetadataType(md Metadata) {
 		return
 	case *MetadataArtefact:
 		return
-	case *MetadataDBColumn:
+	case *MetadataSQLColumn:
 		return
 	case *MetadataSQLQuery:
 		return
@@ -501,7 +501,7 @@ func getMetadataSortingPriority(metadata Metadata) int {
 		priority = 13
 	case *MetadataArtefact:
 		priority = 14
-	case *MetadataDBColumn:
+	case *MetadataSQLColumn:
 		priority = 15
 	case *MetadataSQLQuery:
 		priority = 16
@@ -702,7 +702,7 @@ func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error)
 		case *MetadataSubscriber:
 			subErrs := validateVerbSubscriptions(module, n, md, scopes)
 			merr = append(merr, subErrs...)
-		case *MetadataDBColumn:
+		case *MetadataSQLColumn:
 			merr = append(merr, errorf(md, "metadata %q is not valid on verbs", strings.TrimSpace(md.String())))
 
 		case *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap, *MetadataEncoding,

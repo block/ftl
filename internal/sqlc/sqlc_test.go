@@ -55,7 +55,7 @@ func TestAddQueriesToSchema(t *testing.T) {
 						Name: "data",
 						Type: &schema.String{},
 						Metadata: []schema.Metadata{
-							&schema.MetadataDBColumn{
+							&schema.MetadataSQLColumn{
 								Table: "requests",
 								Name:  "data",
 							},
@@ -70,7 +70,7 @@ func TestAddQueriesToSchema(t *testing.T) {
 						Name: "data",
 						Type: &schema.String{},
 						Metadata: []schema.Metadata{
-							&schema.MetadataDBColumn{
+							&schema.MetadataSQLColumn{
 								Table: "requests",
 								Name:  "data",
 							},

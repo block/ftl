@@ -873,7 +873,7 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_CronJob{value.ToProto()},
 		}
-	case *MetadataDBColumn:
+	case *MetadataSQLColumn:
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_DbColumn{value.ToProto()},
 		}
@@ -1107,7 +1107,7 @@ func MetadataCronJobFromProto(v *destpb.MetadataCronJob) (out *MetadataCronJob, 
 	return out, nil
 }
 
-func (x *MetadataDBColumn) ToProto() *destpb.MetadataDBColumn {
+func (x *MetadataSQLColumn) ToProto() *destpb.MetadataDBColumn {
 	if x == nil {
 		return nil
 	}
@@ -1118,12 +1118,12 @@ func (x *MetadataDBColumn) ToProto() *destpb.MetadataDBColumn {
 	}
 }
 
-func MetadataDBColumnFromProto(v *destpb.MetadataDBColumn) (out *MetadataDBColumn, err error) {
+func MetadataDBColumnFromProto(v *destpb.MetadataDBColumn) (out *MetadataSQLColumn, err error) {
 	if v == nil {
 		return nil, nil
 	}
 
-	out = &MetadataDBColumn{}
+	out = &MetadataSQLColumn{}
 	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
 		return nil, fmt.Errorf("Pos: %w", err)
 	} else {

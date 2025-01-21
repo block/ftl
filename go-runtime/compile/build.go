@@ -903,7 +903,7 @@ func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) queryVerb 
 	var params []string
 	if request != nil {
 		for _, field := range request.Fields {
-			if _, ok := islices.FindVariant[*schema.MetadataDBColumn](field.Metadata); ok {
+			if _, ok := islices.FindVariant[*schema.MetadataSQLColumn](field.Metadata); ok {
 				// casing field name with the same mechanism as the generated code
 				params = append(params, strings.Title(field.Name))
 			}
@@ -913,7 +913,7 @@ func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) queryVerb 
 	var pairs []string
 	if response != nil {
 		for _, field := range response.Fields {
-			if md, ok := islices.FindVariant[*schema.MetadataDBColumn](field.Metadata); ok {
+			if md, ok := islices.FindVariant[*schema.MetadataSQLColumn](field.Metadata); ok {
 				// casing field name with the same mechanism as the generated code
 				pairs = append(pairs, fmt.Sprintf("tuple.PairOf(%q, %q)", md.Name, strings.Title(field.Name)))
 			}
