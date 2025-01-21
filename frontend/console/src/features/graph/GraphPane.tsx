@@ -1,241 +1,263 @@
-import cytoscape from 'cytoscape'
-import type { LayoutOptions } from 'cytoscape'
-import dagre from 'cytoscape-dagre'
-import type { DagreLayoutOptions } from 'cytoscape-dagre'
-
-import { useEffect, useRef, useState } from 'react'
+import type { ElementDefinition } from 'cytoscape'
+import dagre from 'dagre'
+import { useCallback, useMemo, useState } from 'react'
 import type React from 'react'
+import ReactFlow, { Background, Controls, type Edge, type Node } from 'reactflow'
 import { useStreamModules } from '../../api/modules/use-stream-modules'
 import { useUserPreferences } from '../../providers/user-preferences-provider'
-import { createGraphStyles } from './graph-styles'
+import { DeclNode } from './DeclNode'
+import { GroupNode } from './GroupNode'
 import { type FTLNode, getGraphData } from './graph-utils'
-
-// @ts-ignore - Known type incompatibility with cytoscape plugins
-cytoscape.use(dagre)
-
-// Add this type intersection
-type CytoscapeDagreLayout = LayoutOptions & DagreLayoutOptions
+import 'reactflow/dist/style.css'
 
 interface GraphPaneProps {
   onTapped?: (item: FTLNode | null, moduleName: string | null) => void
 }
 
-const ZOOM_THRESHOLD = 0.6
+const nodeTypes = {
+  groupNode: GroupNode,
+  declNode: DeclNode,
+}
+
+const convertToReactFlow = (elements: ElementDefinition[], nodePositions: Record<string, { x: number; y: number }>, isDarkMode: boolean) => {
+  const nodes: Node[] = []
+  const edges: Edge[] = []
+  const moduleNodes = new Set<string>()
+
+  // First pass: collect all module names and create nodes
+  for (const el of elements) {
+    if (!el.data?.id) continue
+
+    if (el.group === 'nodes' && el.data.type !== 'groupNode') {
+      const moduleName = el.data.parent || 'default'
+      moduleNodes.add(moduleName)
+
+      const node: Node = {
+        id: el.data.id,
+        type: 'declNode',
+        position: nodePositions[el.data.id] || { x: 0, y: 0 },
+        data: {
+          ...el.data,
+          title: el.data.label || el.data.id,
+          selected: false,
+          nodeType: el.data.nodeType || 'verb', // This will help us style different node types
+        },
+        parentNode: moduleName,
+        style: {
+          backgroundColor: getNodeColor(el.data.nodeType || 'verb', isDarkMode),
+          zIndex: 1,
+        },
+      }
+      nodes.push(node)
+    }
+  }
+
+  // Second pass: create module group nodes
+  for (const moduleName of moduleNodes) {
+    nodes.push({
+      id: moduleName,
+      type: 'groupNode',
+      position: { x: 0, y: 0 },
+      data: {
+        title: moduleName,
+        selected: false,
+        type: 'groupNode',
+      },
+      style: {
+        padding: 20,
+        backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.5)' : 'rgba(241, 245, 249, 0.5)',
+        border: `1px solid ${isDarkMode ? '#475569' : '#CBD5E1'}`,
+        zIndex: -1,
+      },
+    })
+  }
+
+  // Add edges
+  for (const el of elements) {
+    if (el.group === 'edges' && el.data?.source && el.data?.target && el.data?.id) {
+      edges.push({
+        id: el.data.id,
+        source: el.data.source,
+        target: el.data.target,
+        type: el.data.type === 'moduleConnection' ? 'smoothstep' : 'default',
+        style: {
+          stroke: isDarkMode ? '#4B5563' : '#9CA3AF',
+          zIndex: 0, // Above groups (-1) but below nodes (1)
+        },
+      })
+    }
+  }
+
+  return { nodes, edges }
+}
+
+// Helper function to get node colors based on type
+const getNodeColor = (nodeType: string, isDarkMode: boolean): string => {
+  const colors = {
+    verb: isDarkMode ? 'rgb(99 102 241)' : 'rgb(79 70 229)', // indigo-600/500
+    topic: isDarkMode ? 'rgb(168 85 247)' : 'rgb(147 51 234)', // purple-600/500
+    database: isDarkMode ? 'rgb(59 130 246)' : 'rgb(37 99 235)', // blue-600/500
+    config: isDarkMode ? 'rgb(14 165 233)' : 'rgb(8 145 178)', // cyan-600/500
+    secret: isDarkMode ? 'rgb(234 179 8)' : 'rgb(202 138 4)', // yellow-600/500
+    data: isDarkMode ? 'rgb(16 185 129)' : 'rgb(5 150 105)', // emerald-600/500
+    enum: isDarkMode ? 'rgb(216 180 254)' : 'rgb(192 38 211)', // fuchsia-600/500
+    default: isDarkMode ? 'rgb(99 102 241)' : 'rgb(79 70 229)', // indigo-600/500 (default)
+  }
+  return colors[nodeType as keyof typeof colors] || colors.default
+}
+
+// Dagre layout function
+const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
+  const dagreGraph = new dagre.graphlib.Graph()
+  dagreGraph.setDefaultEdgeLabel(() => ({}))
+
+  const nodeWidth = 160
+  const nodeHeight = 20
+  const groupPadding = 40
+  const interGroupSpacing = 20 // Additional spacing between groups
+
+  dagreGraph.setGraph({
+    rankdir: direction,
+    // ranker: 'network-simplex',
+    nodesep: 40, // Increased from 50
+    ranksep: 100, // Increased from 100
+    edgesep: 20, // Increased from 20
+  })
+
+  // First pass: add all non-group nodes to dagre
+  const nonGroupNodes = nodes.filter((node) => node.type !== 'groupNode')
+  const groupNodes = nodes.filter((node) => node.type === 'groupNode')
+
+  // Add virtual nodes for groups to enforce spacing
+  const groupVirtualNodes = new Map<string, string[]>()
+
+  for (const groupNode of groupNodes) {
+    const childNodes = nonGroupNodes.filter((n) => n.parentNode === groupNode.id)
+    if (childNodes.length === 0) continue
+
+    // Add virtual nodes around the group's real nodes
+    const virtualPrefix = `${groupNode.id}_virtual_`
+    const leftNode = `${virtualPrefix}left`
+    const rightNode = `${virtualPrefix}right`
+
+    dagreGraph.setNode(leftNode, { width: 1, height: 1 })
+    dagreGraph.setNode(rightNode, { width: 1, height: 1 })
+    groupVirtualNodes.set(groupNode.id, [leftNode, rightNode])
+
+    // Connect virtual nodes to enforce minimum group width
+    dagreGraph.setEdge(leftNode, rightNode, { weight: 2 })
+  }
+
+  // Add all real nodes and connect them to their group's virtual nodes
+  for (const node of nonGroupNodes) {
+    dagreGraph.setNode(node.id, { width: nodeWidth + interGroupSpacing, height: nodeHeight })
+
+    if (node.parentNode) {
+      const virtualNodes = groupVirtualNodes.get(node.parentNode)
+      if (virtualNodes) {
+        const [leftNode, rightNode] = virtualNodes
+        dagreGraph.setEdge(leftNode, node.id, { weight: 1 })
+        dagreGraph.setEdge(node.id, rightNode, { weight: 1 })
+      }
+    }
+  }
+
+  // Add all edges to dagre
+  for (const edge of edges) {
+    dagreGraph.setEdge(edge.source, edge.target, { weight: 3 })
+  }
+
+  // Apply layout
+  dagre.layout(dagreGraph)
+
+  // Position all non-group nodes
+  for (const node of nonGroupNodes) {
+    const nodeWithPosition = dagreGraph.node(node.id)
+    node.position = {
+      x: nodeWithPosition.x - nodeWidth / 2,
+      y: nodeWithPosition.y - nodeHeight / 2,
+    }
+  }
+
+  // Position and size group nodes based on their children
+  for (const groupNode of groupNodes) {
+    const childNodes = nonGroupNodes.filter((n) => n.parentNode === groupNode.id)
+    if (childNodes.length === 0) continue
+
+    const bounds = {
+      minX: Math.min(...childNodes.map((n) => n.position.x)),
+      maxX: Math.max(...childNodes.map((n) => n.position.x + nodeWidth)),
+      minY: Math.min(...childNodes.map((n) => n.position.y)),
+      maxY: Math.max(...childNodes.map((n) => n.position.y + nodeHeight)),
+    }
+
+    groupNode.position = {
+      x: bounds.minX - groupPadding,
+      y: bounds.minY - groupPadding,
+    }
+
+    groupNode.style = {
+      width: bounds.maxX - bounds.minX + groupPadding * 2,
+      height: bounds.maxY - bounds.minY + groupPadding * 2,
+    }
+
+    // Adjust child positions to be relative to parent
+    for (const child of childNodes) {
+      child.position = {
+        x: child.position.x - groupNode.position.x,
+        y: child.position.y - groupNode.position.y,
+      }
+    }
+  }
+
+  return { nodes, edges }
+}
 
 export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
   const modules = useStreamModules()
   const { isDarkMode } = useUserPreferences()
+  const [nodePositions] = useState<Record<string, { x: number; y: number }>>({})
 
-  const cyRef = useRef<HTMLDivElement>(null)
-  const cyInstance = useRef<cytoscape.Core | null>(null)
-  const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({})
-  const resizeObserverRef = useRef<ResizeObserver | null>(null)
+  const elements = useMemo(() => {
+    const cytoscapeElements = getGraphData(modules.data, isDarkMode, nodePositions)
+    return convertToReactFlow(cytoscapeElements, nodePositions, isDarkMode)
+  }, [modules.data, isDarkMode, nodePositions])
 
-  // Initialize Cytoscape and ResizeObserver
-  useEffect(() => {
-    if (!cyRef.current) return
+  const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
+    if (!elements.nodes.length) return { nodes: [], edges: [] }
+    return getLayoutedElements(elements.nodes, elements.edges)
+  }, [elements])
 
-    cyInstance.current = cytoscape({
-      container: cyRef.current,
-      userZoomingEnabled: true,
-      userPanningEnabled: true,
-      boxSelectionEnabled: false,
-      autoungrabify: true,
-    })
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      onTapped?.(node.data.item, node.id)
+    },
+    [onTapped],
+  )
 
-    // Create ResizeObserver
-    resizeObserverRef.current = new ResizeObserver(() => {
-      if (!cyInstance.current) return
-
-      cyInstance.current?.resize()
-    })
-
-    // Start observing the container
-    resizeObserverRef.current.observe(cyRef.current)
-
-    // Add click handlers
-    cyInstance.current.on('tap', 'node', (evt) => {
-      const node = evt.target
-      const nodeType = node.data('type')
-      const item = node.data('item')
-      const zoom = evt.cy.zoom()
-      const moduleName = node.parent().length ? node.parent().data('id') : node.data('id')
-
-      if (zoom < ZOOM_THRESHOLD) {
-        if (nodeType === 'node') {
-          const parent = node.parent()
-          if (parent.length) {
-            onTapped?.(parent.data('item'), parent.data('id'))
-            return
-          }
-        }
-      }
-
-      if (nodeType === 'groupNode' || (nodeType === 'node' && zoom >= ZOOM_THRESHOLD)) {
-        onTapped?.(item, moduleName)
-      }
-    })
-
-    cyInstance.current.on('tap', (evt) => {
-      if (evt.target === cyInstance.current) {
-        onTapped?.(null, null)
-      }
-    })
-
-    // Update zoom level event handler
-    cyInstance.current.on('zoom', (evt) => {
-      const zoom = evt.target.zoom()
-      const elements = evt.target.elements()
-
-      if (zoom < ZOOM_THRESHOLD) {
-        // Hide child nodes
-        elements.nodes('node[type != "groupNode"]').style('opacity', 0)
-
-        // Show only module-level edges (type="moduleConnection")
-        elements.edges('[type = "moduleConnection"]').style('opacity', 1)
-        elements.edges('[type = "childConnection"]').style('opacity', 0)
-
-        // Updated text settings for zoomed out view
-        elements.nodes('node[type = "groupNode"]').style({
-          'text-valign': 'center',
-          'text-halign': 'center',
-          'font-size': '18px',
-          'text-max-width': '160px',
-          'text-margin-y': '0px',
-          width: '180px',
-        })
-      } else {
-        // Show all nodes
-        elements.nodes().style('opacity', 1)
-
-        // Show only verb-level edges (type="childConnection")
-        elements.edges('[type = "moduleConnection"]').style('opacity', 0)
-        elements.edges('[type = "childConnection"]').style('opacity', 1)
-
-        // Move text to top when zoomed in
-        elements.nodes('node[type = "groupNode"]').style({
-          'text-valign': 'top',
-          'text-halign': 'center',
-          'font-size': '14px',
-          'text-max-width': '160px',
-          'text-margin-y': '-10px',
-          width: '180px',
-        })
-      }
-    })
-
-    return () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect()
-      }
-      cyInstance.current?.destroy()
-    }
-  }, [])
-
-  // Modify the data loading effect
-  useEffect(() => {
-    if (!cyInstance.current) return
-
-    const elements = getGraphData(modules.data, isDarkMode, nodePositions)
-    const cy = cyInstance.current
-
-    // Update existing elements and add new ones
-    const nodes = elements.filter((element) => element.group === 'nodes')
-    const edges = elements.filter((element) => element.group === 'edges')
-
-    // First handle nodes
-    for (const element of nodes) {
-      const id = element.data?.id
-      if (!id) continue // Skip elements without an id
-
-      const existingElement = cy.getElementById(id)
-
-      if (existingElement.length) {
-        // Update existing element data
-        existingElement.data(element.data)
-
-        // If it's a node and doesn't have saved position, update position
-        if (!nodePositions[id]) {
-          existingElement.position(element.position || { x: 0, y: 0 })
-        }
-      } else {
-        // Add new element
-        cy.add(element)
-      }
-    }
-
-    // Then handle edges after all nodes exist
-    for (const element of edges) {
-      const id = element.data?.id
-      if (!id) continue
-
-      const existingElement = cy.getElementById(id)
-
-      if (existingElement.length) {
-        existingElement.data(element.data)
-      } else {
-        cy.add(element)
-      }
-    }
-
-    // Remove elements that no longer exist in the data
-    for (const element of cy.elements()) {
-      const elementId = element.data('id')
-      const stillExists = elements.some((e) => e.data?.id === elementId)
-      if (!stillExists) {
-        element.remove()
-      }
-    }
-
-    // Only run layout for new nodes without positions
-    const hasNewNodesWithoutPositions = cy.nodes().some((node) => {
-      const nodeId = node.data('id')
-      return node.data('type') === 'groupNode' && !nodePositions[nodeId]
-    })
-
-    if (hasNewNodesWithoutPositions) {
-      const layoutOptions: CytoscapeDagreLayout = {
-        name: 'dagre',
-        rankDir: 'LR', // Left to right layout
-        ranker: 'network-simplex',
-        nodeSep: 40, // Reduced from 100 to 40 - vertical spacing between nodes in the same rank
-        rankSep: 100, // Reduced from 150 to 60 - horizontal spacing between ranks
-        edgeSep: 20, // Reduced from 50 to 20 - spacing between parallel edges
-        padding: 30, // Reduced from 50 to 30 - padding around the entire graph
-        animate: false,
-        fit: true,
-      }
-
-      const layout = cy.layout(layoutOptions)
-      layout.run()
-
-      layout.on('layoutstop', () => {
-        const newPositions = { ...nodePositions }
-        for (const node of cy.nodes()) {
-          const nodeId = node.data('id')
-          newPositions[nodeId] = node.position()
-        }
-        setNodePositions(newPositions)
-      })
-    }
-  }, [nodePositions, modules.data, isDarkMode])
-
-  useEffect(() => {
-    // Update your cytoscape instance with new styles when dark mode changes
-    cyInstance.current?.style(createGraphStyles(isDarkMode))
-  }, [isDarkMode])
+  const onPaneClick = useCallback(() => {
+    onTapped?.(null, null)
+  }, [onTapped])
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', minWidth: 0 }}>
-      <div
-        ref={cyRef}
-        style={{
-          width: '100%',
-          height: '100%',
-          position: 'absolute',
-          zIndex: 0, // Ensure graph stays below other elements
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <ReactFlow
+        nodes={layoutedNodes}
+        edges={layoutedEdges}
+        nodeTypes={nodeTypes}
+        onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
+        fitView
+        minZoom={0.1}
+        maxZoom={2}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          // Remove default edge style since we're setting it per edge
         }}
-      />
+      >
+        <Background />
+        <Controls />
+      </ReactFlow>
     </div>
   )
 }
