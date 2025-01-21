@@ -119,7 +119,7 @@ func wireUpQueryDatasources(module *schema.Module) {
 		if v, ok := i.(*schema.Verb); ok {
 			for _, ms := range v.Metadata {
 				if _, ok := ms.(*schema.MetadataSQLQuery); ok {
-					v.Metadata = append(v.Metadata, &schema.MetadataDatabases{Calls: []*schema.Ref{&schema.Ref{Module: module.Name, Name: dsName}}})
+					v.Metadata = append(v.Metadata, &schema.MetadataDatabases{Calls: []*schema.Ref{{Module: module.Name, Name: dsName}}})
 					break
 				}
 
