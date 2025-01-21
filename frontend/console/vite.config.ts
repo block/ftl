@@ -14,7 +14,7 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-graph': ['cytoscape'],
-          'vendor-fcose': ['cytoscape-fcose'],
+          'vendor-dagre': ['cytoscape-dagre'],
           'vendor-ui': ['@headlessui/react', '@tanstack/react-query'],
           'vendor-json-schema-faker': ['json-schema-faker'],
           'vendor-json-schema-library': ['json-schema-library'],
