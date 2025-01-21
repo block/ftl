@@ -1,7 +1,7 @@
 import cytoscape from 'cytoscape'
 import type { LayoutOptions } from 'cytoscape'
-import fcose from 'cytoscape-fcose'
-import type { FcoseLayoutOptions } from 'cytoscape-fcose'
+import dagre from 'cytoscape-dagre'
+import type { DagreLayoutOptions } from 'cytoscape-dagre'
 
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
@@ -11,10 +11,10 @@ import { createGraphStyles } from './graph-styles'
 import { type FTLNode, getGraphData } from './graph-utils'
 
 // @ts-ignore - Known type incompatibility with cytoscape plugins
-cytoscape.use(fcose)
+cytoscape.use(dagre)
 
 // Add this type intersection
-type CytoscapeFcoseLayout = LayoutOptions & FcoseLayoutOptions
+type CytoscapeDagreLayout = LayoutOptions & DagreLayoutOptions
 
 interface GraphPaneProps {
   onTapped?: (item: FTLNode | null, moduleName: string | null) => void
@@ -194,22 +194,16 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
     })
 
     if (hasNewNodesWithoutPositions) {
-      const layoutOptions: CytoscapeFcoseLayout = {
-        name: 'fcose',
-        quality: 'proof',
-        randomize: false,
+      const layoutOptions: CytoscapeDagreLayout = {
+        name: 'dagre',
+        rankDir: 'LR', // Left to right layout
+        ranker: 'network-simplex',
+        nodeSep: 40, // Reduced from 100 to 40 - vertical spacing between nodes in the same rank
+        rankSep: 100, // Reduced from 150 to 60 - horizontal spacing between ranks
+        edgeSep: 20, // Reduced from 50 to 20 - spacing between parallel edges
+        padding: 30, // Reduced from 50 to 30 - padding around the entire graph
         animate: false,
-        nodeSeparation: 150,
-        idealEdgeLength: 200,
-        nodeRepulsion: 20000,
-        padding: 50,
-        tile: true,
-        tilingPaddingVertical: 100,
-        tilingPaddingHorizontal: 100,
         fit: true,
-        edgeElasticity: 0.45,
-        gravity: 0.75,
-        initialEnergyOnIncremental: 0.5,
       }
 
       const layout = cy.layout(layoutOptions)
