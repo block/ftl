@@ -127,6 +127,7 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 			}
 			continue
 		} else if errors.Is(err, io.EOF) {
+			defer os.Exit(0) // We want the earlier defer to run first
 			return nil
 		}
 		if tsm != nil {
