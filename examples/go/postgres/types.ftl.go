@@ -14,10 +14,12 @@ type QueryClient func(context.Context) ([]string, error)
 func init() {
 	reflection.Register(
 		reflection.Database[MyDbConfig]("testdb", server.InitPostgres),
+
 		reflection.ProvideResourcesForVerb(
 			Insert,
 			server.DatabaseHandle[MyDbConfig]("postgres"),
 		),
+
 		reflection.ProvideResourcesForVerb(
 			Query,
 			server.DatabaseHandle[MyDbConfig]("postgres"),

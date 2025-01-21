@@ -14,9 +14,11 @@ type PostClient func(context.Context, ftlbuiltin.HttpRequest[PostRequest, ftl.Un
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
 			Get,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			Post,
 		),

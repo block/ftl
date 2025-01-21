@@ -12,6 +12,7 @@ type EchoClient func(context.Context, EchoRequest) (EchoResponse, error)
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
 			Echo,
 			server.VerbClient[ftltime.TimeClient, ftltime.TimeRequest, ftltime.TimeResponse](),

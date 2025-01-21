@@ -3,17 +3,26 @@ package mysql
 
 import (
     "context"
+    "github.com/alecthomas/types/tuple"
+    "github.com/block/ftl/common/reflection"
+    "github.com/block/ftl/go-runtime/ftl"
+    "github.com/block/ftl/go-runtime/server"
 )
 
-
 type CreateRequestQuery struct {
-  	Data string
+  	Data ftl.Option[string]
 }
-
-type CreateRequestClient func(context.Context, CreateRequestQuery) error
-
 type GetRequestDataResult struct {
-  	Data string
+  	Data ftl.Option[string]
 }
-
+	
+type CreateRequestClient func(context.Context, CreateRequestQuery) error
+	
 type GetRequestDataClient func(context.Context) ([]GetRequestDataResult, error)
+
+func init() {
+	reflection.Register(
+		server.QuerySink[CreateRequestQuery]("mysql", "createRequest", reflection.CommandTypeExec, "testdb", "INSERT INTO requests (data) VALUES (?)", []string{"Data"}, []tuple.Pair[string,string]{}),
+		server.QuerySource[GetRequestDataResult]("mysql", "getRequestData", reflection.CommandTypeMany, "testdb", "SELECT data FROM requests", []string{}, []tuple.Pair[string,string]{tuple.PairOf("data", "Data")}),
+	)
+}
