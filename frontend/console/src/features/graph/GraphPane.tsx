@@ -36,7 +36,6 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
       userPanningEnabled: true,
       boxSelectionEnabled: false,
       autoungrabify: true,
-
     })
 
     // Create ResizeObserver
@@ -199,8 +198,13 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
         animate: false,
         quality: 'proof',
         nodeSeparation: 150,
-        idealEdgeLength: function (edge: any): number { console.log(edge.source().isParent()); return edge.source().isParent() ?  100: 70},
-        nodeRepulsion: function(node: any): number { return node.isParent()  ? 20000: 10000},
+        idealEdgeLength: function (edge: any): number {
+          console.log(edge.source().isParent())
+          return edge.source().isParent() ? 100 : 70
+        },
+        nodeRepulsion: function (node: any): number {
+          return node.isParent() ? 20000 : 10000
+        },
         padding: 50,
         randomize: true,
         tile: true,
