@@ -51,6 +51,8 @@
     "codemirror-json-schema": "0.7.0",
     "codemirror-json5": "^1.0.3",
     "cytoscape": "^3.30.3",
+    "cytoscape-cola": "^2.5.1",
+    "cytoscape-dagre": "^2.5.0",
     "cytoscape-fcose": "^2.2.0",
     "fnv1a": "^1.1.1",
     "fuse.js": "^7.0.0",
