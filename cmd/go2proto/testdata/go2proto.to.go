@@ -147,7 +147,7 @@ func (x *Root) ToProto() *destpb.Root {
 		RepeatedMsg:    protoSlice[*destpb.Message](x.RepeatedMsg),
 		Url:            protoMust(x.URL.MarshalBinary()),
 		Key:            string(protoMust(x.Key.MarshalText())),
-		ExternalRoot:   x.ExternalRoot.ToProto(),
+		ExternalRoot:   string(protoMust(x.ExternalRoot.MarshalText())),
 	}
 }
 
@@ -184,10 +184,8 @@ func RootFromProto(v *destpb.Root) (out *Root, err error) {
 	if err = out.Key.UnmarshalText([]byte(v.Key)); err != nil {
 		return nil, fmt.Errorf("Key: %w", err)
 	}
-	if fieldExternalRoot, err := RootFromProto(v.ExternalRoot); err != nil {
+	if err = out.ExternalRoot.UnmarshalText([]byte(v.ExternalRoot)); err != nil {
 		return nil, fmt.Errorf("ExternalRoot: %w", err)
-	} else {
-		out.ExternalRoot = fromPtr(fieldExternalRoot)
 	}
 	return out, nil
 }
