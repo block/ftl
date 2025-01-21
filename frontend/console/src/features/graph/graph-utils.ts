@@ -80,89 +80,196 @@ const createModuleChildren = (module: Module, nodePositions: Record<string, { x:
   return children
 }
 
-const createChildEdge = (sourceModule: string, sourceVerb: string, targetModule: string, targetVerb: string) => ({
-  group: 'edges' as const,
-  data: {
-    id: `edge-${nodeId(sourceModule, sourceVerb)}->${nodeId(targetModule, targetVerb)}`,
-    source: nodeId(sourceModule, sourceVerb),
-    target: nodeId(targetModule, targetVerb),
-    type: 'childConnection',
-  },
-})
+const createChildEdge = (sourceModule: string, sourceVerb: string, targetModule: string, targetVerb: string) => {
+  // Skip if any of the components are undefined or empty strings
+  if (
+    !sourceModule ||
+    !sourceVerb ||
+    !targetModule ||
+    !targetVerb ||
+    sourceModule === 'undefined' ||
+    sourceVerb === 'undefined' ||
+    targetModule === 'undefined' ||
+    targetVerb === 'undefined'
+  ) {
+    return null
+  }
 
-const createModuleEdge = (sourceModule: string, targetModule: string) => ({
-  group: 'edges' as const,
-  data: {
-    id: `module-${sourceModule}->${targetModule}`,
-    source: nodeId(sourceModule),
-    target: nodeId(targetModule),
-    type: 'moduleConnection',
-  },
-})
+  return {
+    group: 'edges' as const,
+    data: {
+      id: `edge-${nodeId(sourceModule, sourceVerb)}->${nodeId(targetModule, targetVerb)}`,
+      source: nodeId(sourceModule, sourceVerb),
+      target: nodeId(targetModule, targetVerb),
+      type: 'childConnection',
+    },
+  }
+}
+
+const createModuleEdge = (sourceModule: string, targetModule: string) => {
+  // Skip if any of the modules are undefined or empty strings
+  if (!sourceModule || !targetModule || sourceModule === 'undefined' || targetModule === 'undefined') {
+    return null
+  }
+
+  return {
+    group: 'edges' as const,
+    data: {
+      id: `module-${sourceModule}->${targetModule}`,
+      source: nodeId(sourceModule),
+      target: nodeId(targetModule),
+      type: 'moduleConnection',
+    },
+  }
+}
 
 const createEdges = (modules: Module[]) => {
   const edges: EdgeDefinition[] = []
   const moduleConnections = new Set<string>() // Track unique module connections
+  const existingNodes = new Set<string>() // Track all valid node IDs
+
+  // First collect all valid node IDs
+  for (const module of modules) {
+    existingNodes.add(module.name)
+
+    for (const verb of module.verbs || []) {
+      if (verb.verb?.name) {
+        existingNodes.add(nodeId(module.name, verb.verb.name))
+      }
+    }
+    for (const config of module.configs || []) {
+      if (config.config?.name) {
+        existingNodes.add(nodeId(module.name, config.config.name))
+      }
+    }
+    for (const secret of module.secrets || []) {
+      if (secret.secret?.name) {
+        existingNodes.add(nodeId(module.name, secret.secret.name))
+      }
+    }
+    for (const database of module.databases || []) {
+      if (database.database?.name) {
+        existingNodes.add(nodeId(module.name, database.database.name))
+      }
+    }
+    for (const topic of module.topics || []) {
+      if (topic.topic?.name) {
+        existingNodes.add(nodeId(module.name, topic.topic.name))
+      }
+    }
+  }
 
   for (const module of modules) {
     // For each verb in the module
     for (const verb of module.verbs || []) {
       // For each reference in the verb
       for (const ref of verb.references || []) {
+        // Skip self-referential edges
+        if (ref.module === module.name && ref.name === verb.verb?.name) continue
+
+        // Skip if source or target nodes don't exist
+        const sourceId = nodeId(ref.module, ref.name)
+        const targetId = nodeId(module.name, verb.verb?.name)
+        if (!existingNodes.has(sourceId) || !existingNodes.has(targetId)) continue
+
         // Only create verb-to-verb child edges
-        edges.push(createChildEdge(ref.module, ref.name, module.name, verb.verb?.name || ''))
+        const edge = createChildEdge(ref.module, ref.name, module.name, verb.verb?.name || '')
+        if (edge) edges.push(edge)
 
         // Track module-to-module connection for all reference types
-        const [sourceModule, targetModule] = [module.name, ref.module].sort()
-        moduleConnections.add(`${sourceModule}-${targetModule}`)
+        // Skip self-referential module connections
+        if (ref.module !== module.name) {
+          const [sourceModule, targetModule] = [module.name, ref.module].sort()
+          moduleConnections.add(`${sourceModule}-${targetModule}`)
+        }
       }
     }
 
     for (const config of module.configs || []) {
-      // For each reference in the verb
+      // For each reference in the config
       for (const ref of config.references || []) {
-        // Only create verb-to-verb child edges
-        edges.push(createChildEdge(ref.module, ref.name, module.name, config.config?.name || ''))
+        // Skip self-referential edges
+        if (ref.module === module.name && ref.name === config.config?.name) continue
 
-        // Track module-to-module connection for all reference types
-        const [sourceModule, targetModule] = [module.name, ref.module].sort()
-        moduleConnections.add(`${sourceModule}-${targetModule}`)
+        // Skip if source or target nodes don't exist
+        const sourceId = nodeId(ref.module, ref.name)
+        const targetId = nodeId(module.name, config.config?.name)
+        if (!existingNodes.has(sourceId) || !existingNodes.has(targetId)) continue
+
+        const edge = createChildEdge(ref.module, ref.name, module.name, config.config?.name || '')
+        if (edge) edges.push(edge)
+
+        // Skip self-referential module connections
+        if (ref.module !== module.name) {
+          const [sourceModule, targetModule] = [module.name, ref.module].sort()
+          moduleConnections.add(`${sourceModule}-${targetModule}`)
+        }
       }
     }
 
     for (const secret of module.secrets || []) {
-      // For each reference in the verb
+      // For each reference in the secret
       for (const ref of secret.references || []) {
-        // Only create verb-to-verb child edges
-        edges.push(createChildEdge(ref.module, ref.name, module.name, secret.secret?.name || ''))
+        // Skip self-referential edges
+        if (ref.module === module.name && ref.name === secret.secret?.name) continue
 
-        // Track module-to-module connection for all reference types
-        const [sourceModule, targetModule] = [module.name, ref.module].sort()
-        moduleConnections.add(`${sourceModule}-${targetModule}`)
+        // Skip if source or target nodes don't exist
+        const sourceId = nodeId(ref.module, ref.name)
+        const targetId = nodeId(module.name, secret.secret?.name)
+        if (!existingNodes.has(sourceId) || !existingNodes.has(targetId)) continue
+
+        const edge = createChildEdge(ref.module, ref.name, module.name, secret.secret?.name || '')
+        if (edge) edges.push(edge)
+
+        // Skip self-referential module connections
+        if (ref.module !== module.name) {
+          const [sourceModule, targetModule] = [module.name, ref.module].sort()
+          moduleConnections.add(`${sourceModule}-${targetModule}`)
+        }
       }
     }
 
     for (const database of module.databases || []) {
-      // For each reference in the verb
+      // For each reference in the database
       for (const ref of database.references || []) {
-        // Only create verb-to-verb child edges
-        edges.push(createChildEdge(ref.module, ref.name, module.name, database.database?.name || ''))
+        // Skip self-referential edges
+        if (ref.module === module.name && ref.name === database.database?.name) continue
 
-        // Track module-to-module connection for all reference types
-        const [sourceModule, targetModule] = [module.name, ref.module].sort()
-        moduleConnections.add(`${sourceModule}-${targetModule}`)
+        // Skip if source or target nodes don't exist
+        const sourceId = nodeId(ref.module, ref.name)
+        const targetId = nodeId(module.name, database.database?.name)
+        if (!existingNodes.has(sourceId) || !existingNodes.has(targetId)) continue
+
+        const edge = createChildEdge(ref.module, ref.name, module.name, database.database?.name || '')
+        if (edge) edges.push(edge)
+
+        // Skip self-referential module connections
+        if (ref.module !== module.name) {
+          const [sourceModule, targetModule] = [module.name, ref.module].sort()
+          moduleConnections.add(`${sourceModule}-${targetModule}`)
+        }
       }
     }
 
     for (const topic of module.topics || []) {
-      // For each reference in the verb
+      // For each reference in the topic
       for (const ref of topic.references || []) {
-        // Only create verb-to-verb child edges
-        edges.push(createChildEdge(ref.module, ref.name, module.name, topic.topic?.name || ''))
+        // Skip self-referential edges
+        if (ref.module === module.name && ref.name === topic.topic?.name) continue
 
-        // Track module-to-module connection for all reference types
-        const [sourceModule, targetModule] = [module.name, ref.module].sort()
-        moduleConnections.add(`${sourceModule}-${targetModule}`)
+        // Skip if source or target nodes don't exist
+        const sourceId = nodeId(ref.module, ref.name)
+        const targetId = nodeId(module.name, topic.topic?.name)
+        if (!existingNodes.has(sourceId) || !existingNodes.has(targetId)) continue
+
+        const edge = createChildEdge(ref.module, ref.name, module.name, topic.topic?.name || '')
+        if (edge) edges.push(edge)
+
+        // Skip self-referential module connections
+        if (ref.module !== module.name) {
+          const [sourceModule, targetModule] = [module.name, ref.module].sort()
+          moduleConnections.add(`${sourceModule}-${targetModule}`)
+        }
       }
     }
   }
@@ -170,7 +277,10 @@ const createEdges = (modules: Module[]) => {
   // Create module-level edges for each unique module connection
   for (const connection of moduleConnections) {
     const [sourceModule, targetModule] = connection.split('-')
-    edges.push(createModuleEdge(sourceModule, targetModule))
+    // Skip if either module doesn't exist
+    if (!existingNodes.has(sourceModule) || !existingNodes.has(targetModule)) continue
+    const edge = createModuleEdge(sourceModule, targetModule)
+    if (edge) edges.push(edge)
   }
 
   return edges

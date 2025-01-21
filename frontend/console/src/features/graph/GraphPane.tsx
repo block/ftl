@@ -10,16 +10,21 @@ import { GroupNode } from './GroupNode'
 import { type FTLNode, getGraphData } from './graph-utils'
 import 'reactflow/dist/style.css'
 
-interface GraphPaneProps {
-  onTapped?: (item: FTLNode | null, moduleName: string | null) => void
-}
-
-const nodeTypes = {
+const NODE_TYPES = {
   groupNode: GroupNode,
   declNode: DeclNode,
 }
 
-const convertToReactFlow = (elements: ElementDefinition[], nodePositions: Record<string, { x: number; y: number }>, isDarkMode: boolean) => {
+interface GraphPaneProps {
+  onTapped?: (item: FTLNode | null, moduleName: string | null) => void
+}
+
+const convertToReactFlow = (
+  elements: ElementDefinition[],
+  nodePositions: Record<string, { x: number; y: number }>,
+  isDarkMode: boolean,
+  selectedNodeId: string | null,
+) => {
   const nodes: Node[] = []
   const edges: Edge[] = []
   const moduleNodes = new Set<string>()
@@ -39,14 +44,14 @@ const convertToReactFlow = (elements: ElementDefinition[], nodePositions: Record
         data: {
           ...el.data,
           title: el.data.label || el.data.id,
-          selected: false,
-          nodeType: el.data.nodeType || 'verb', // This will help us style different node types
+          selected: el.data.id === selectedNodeId,
+          nodeType: el.data.nodeType || 'verb',
+          zIndex: 2,
+          style: {
+            backgroundColor: getNodeColor(el.data.nodeType || 'verb', isDarkMode),
+          },
         },
         parentNode: moduleName,
-        style: {
-          backgroundColor: getNodeColor(el.data.nodeType || 'verb', isDarkMode),
-          zIndex: 1,
-        },
       }
       nodes.push(node)
     }
@@ -58,16 +63,12 @@ const convertToReactFlow = (elements: ElementDefinition[], nodePositions: Record
       id: moduleName,
       type: 'groupNode',
       position: { x: 0, y: 0 },
+      zIndex: -1,
       data: {
         title: moduleName,
-        selected: false,
+        selected: moduleName === selectedNodeId,
         type: 'groupNode',
-      },
-      style: {
-        padding: 20,
-        backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.5)' : 'rgba(241, 245, 249, 0.5)',
-        border: `1px solid ${isDarkMode ? '#475569' : '#CBD5E1'}`,
-        zIndex: -1,
+        item: elements.find((el) => el.data?.id === moduleName)?.data?.item,
       },
     })
   }
@@ -75,14 +76,17 @@ const convertToReactFlow = (elements: ElementDefinition[], nodePositions: Record
   // Add edges
   for (const el of elements) {
     if (el.group === 'edges' && el.data?.source && el.data?.target && el.data?.id) {
+      const isConnectedToSelectedNode = Boolean(selectedNodeId && (el.data.source === selectedNodeId || el.data.target === selectedNodeId))
       edges.push({
         id: el.data.id,
         source: el.data.source,
         target: el.data.target,
+        zIndex: 1, // Edges above groups but below nodes
         type: el.data.type === 'moduleConnection' ? 'smoothstep' : 'default',
+        animated: isConnectedToSelectedNode,
         style: {
-          stroke: isDarkMode ? '#4B5563' : '#9CA3AF',
-          zIndex: 0, // Above groups (-1) but below nodes (1)
+          stroke: isConnectedToSelectedNode ? (isDarkMode ? '#EC4899' : '#F472B6') : isDarkMode ? '#4B5563' : '#9CA3AF',
+          strokeWidth: isConnectedToSelectedNode ? 2 : 1,
         },
       })
     }
@@ -94,14 +98,14 @@ const convertToReactFlow = (elements: ElementDefinition[], nodePositions: Record
 // Helper function to get node colors based on type
 const getNodeColor = (nodeType: string, isDarkMode: boolean): string => {
   const colors = {
-    verb: isDarkMode ? 'rgb(99 102 241)' : 'rgb(79 70 229)', // indigo-600/500
-    topic: isDarkMode ? 'rgb(168 85 247)' : 'rgb(147 51 234)', // purple-600/500
-    database: isDarkMode ? 'rgb(59 130 246)' : 'rgb(37 99 235)', // blue-600/500
-    config: isDarkMode ? 'rgb(14 165 233)' : 'rgb(8 145 178)', // cyan-600/500
-    secret: isDarkMode ? 'rgb(234 179 8)' : 'rgb(202 138 4)', // yellow-600/500
-    data: isDarkMode ? 'rgb(16 185 129)' : 'rgb(5 150 105)', // emerald-600/500
-    enum: isDarkMode ? 'rgb(216 180 254)' : 'rgb(192 38 211)', // fuchsia-600/500
-    default: isDarkMode ? 'rgb(99 102 241)' : 'rgb(79 70 229)', // indigo-600/500 (default)
+    verb: isDarkMode ? 'bg-indigo-600' : 'bg-indigo-500',
+    topic: isDarkMode ? 'bg-purple-600' : 'bg-purple-500',
+    database: isDarkMode ? 'bg-blue-600' : 'bg-blue-500',
+    config: isDarkMode ? 'bg-cyan-600' : 'bg-cyan-500',
+    secret: isDarkMode ? 'bg-yellow-600' : 'bg-yellow-500',
+    data: isDarkMode ? 'bg-emerald-600' : 'bg-emerald-500',
+    enum: isDarkMode ? 'bg-fuchsia-600' : 'bg-fuchsia-500',
+    default: isDarkMode ? 'bg-indigo-600' : 'bg-indigo-500',
   }
   return colors[nodeType as keyof typeof colors] || colors.default
 }
@@ -113,58 +117,109 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 
   const nodeWidth = 160
   const nodeHeight = 20
-  const groupPadding = 40
-  const interGroupSpacing = 20 // Additional spacing between groups
+  const groupPadding = 30
+  const interGroupSpacing = 80
+  const groupSpacing = 10
+  const verticalSpacing = 100
+  const intraGroupSpacing = 25
+  const titleHeight = 20
 
   dagreGraph.setGraph({
     rankdir: direction,
-    // ranker: 'network-simplex',
-    nodesep: 40, // Increased from 50
-    ranksep: 100, // Increased from 100
-    edgesep: 20, // Increased from 20
+    nodesep: 10,
+    ranksep: 10,
+    edgesep: 10,
+    marginx: 30,
+    marginy: 50,
   })
 
   // First pass: add all non-group nodes to dagre
   const nonGroupNodes = nodes.filter((node) => node.type !== 'groupNode')
   const groupNodes = nodes.filter((node) => node.type === 'groupNode')
 
-  // Add virtual nodes for groups to enforce spacing
-  const groupVirtualNodes = new Map<string, string[]>()
-
-  for (const groupNode of groupNodes) {
-    const childNodes = nonGroupNodes.filter((n) => n.parentNode === groupNode.id)
-    if (childNodes.length === 0) continue
-
-    // Add virtual nodes around the group's real nodes
-    const virtualPrefix = `${groupNode.id}_virtual_`
-    const leftNode = `${virtualPrefix}left`
-    const rightNode = `${virtualPrefix}right`
-
-    dagreGraph.setNode(leftNode, { width: 1, height: 1 })
-    dagreGraph.setNode(rightNode, { width: 1, height: 1 })
-    groupVirtualNodes.set(groupNode.id, [leftNode, rightNode])
-
-    // Connect virtual nodes to enforce minimum group width
-    dagreGraph.setEdge(leftNode, rightNode, { weight: 2 })
+  // Group nodes by their parent module
+  const nodesByModule = new Map<string, Node[]>()
+  for (const node of nonGroupNodes) {
+    if (node.parentNode) {
+      const nodes = nodesByModule.get(node.parentNode) || []
+      nodes.push(node)
+      nodesByModule.set(node.parentNode, nodes)
+    }
   }
 
-  // Add all real nodes and connect them to their group's virtual nodes
-  for (const node of nonGroupNodes) {
-    dagreGraph.setNode(node.id, { width: nodeWidth + interGroupSpacing, height: nodeHeight })
+  // Create a map to track module ranks
+  const moduleRanks = new Map<string, number>()
+  let currentRank = 0
 
-    if (node.parentNode) {
-      const virtualNodes = groupVirtualNodes.get(node.parentNode)
-      if (virtualNodes) {
-        const [leftNode, rightNode] = virtualNodes
-        dagreGraph.setEdge(leftNode, node.id, { weight: 1 })
-        dagreGraph.setEdge(node.id, rightNode, { weight: 1 })
+  // First, assign ranks to modules based on their connections
+  for (const edge of edges) {
+    const sourceModule = nonGroupNodes.find((n) => n.id === edge.source)?.parentNode
+    const targetModule = nonGroupNodes.find((n) => n.id === edge.target)?.parentNode
+
+    if (sourceModule && targetModule && sourceModule !== targetModule) {
+      if (!moduleRanks.has(sourceModule)) {
+        moduleRanks.set(sourceModule, currentRank++)
+      }
+      if (!moduleRanks.has(targetModule)) {
+        const sourceRank = moduleRanks.get(sourceModule) ?? 0
+        moduleRanks.set(targetModule, Math.max(sourceRank + 1, currentRank++))
       }
     }
   }
 
-  // Add all edges to dagre
+  // Add virtual nodes for groups to enforce spacing
+  const groupVirtualNodes = new Map<string, string[]>()
+
+  // Add virtual nodes for each group to maintain spacing
+  for (const groupNode of groupNodes) {
+    const childNodes = nodesByModule.get(groupNode.id) || []
+    if (childNodes.length === 0) continue
+
+    const virtualPrefix = `${groupNode.id}_virtual_`
+    const leftNode = `${virtualPrefix}left`
+    const rightNode = `${virtualPrefix}right`
+    const topNode = `${virtualPrefix}top`
+
+    // Add virtual nodes with both horizontal and vertical spacing
+    dagreGraph.setNode(leftNode, { width: groupSpacing, height: nodeHeight })
+    dagreGraph.setNode(rightNode, { width: groupSpacing, height: nodeHeight })
+    dagreGraph.setNode(topNode, { width: nodeWidth, height: verticalSpacing / 2 })
+
+    groupVirtualNodes.set(groupNode.id, [leftNode, rightNode, topNode])
+
+    // Connect virtual nodes with weights
+    dagreGraph.setEdge(leftNode, rightNode, { weight: 4 })
+
+    // If module has a rank, use it to influence vertical positioning
+    const rank = moduleRanks.get(groupNode.id)
+    if (rank !== undefined) {
+      dagreGraph.setNode(topNode, { rank: rank * 2 })
+    }
+
+    // Add nodes with compact intra-group spacing
+    let nodeRank = 0
+    for (const node of childNodes) {
+      dagreGraph.setNode(node.id, {
+        width: nodeWidth + interGroupSpacing,
+        height: nodeHeight + intraGroupSpacing,
+        rank: (rank ?? 0) * 3 + Math.floor(nodeRank++ / 2),
+      })
+
+      // Connect to virtual nodes with adjusted weights for tighter packing
+      dagreGraph.setEdge(leftNode, node.id, { weight: 2 })
+      dagreGraph.setEdge(node.id, rightNode, { weight: 2 })
+      dagreGraph.setEdge(topNode, node.id, { weight: 1 })
+    }
+  }
+
+  // Add edges with increased weight for vertical separation
   for (const edge of edges) {
-    dagreGraph.setEdge(edge.source, edge.target, { weight: 3 })
+    const sourceModule = nonGroupNodes.find((n) => n.id === edge.source)?.parentNode
+    const targetModule = nonGroupNodes.find((n) => n.id === edge.target)?.parentNode
+
+    // If edge crosses module boundaries, give it more weight
+    const weight = sourceModule && targetModule && sourceModule !== targetModule ? 5 : 2
+    dagreGraph.setEdge(edge.source, edge.target, { weight })
   }
 
   // Apply layout
@@ -179,33 +234,99 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
     }
   }
 
-  // Position and size group nodes based on their children
+  // Second pass: Calculate group bounds and adjust for overlaps
+  interface GroupBounds {
+    id: string
+    x: number
+    y: number
+    width: number
+    height: number
+    childNodes: Node[]
+  }
+
+  const groupBounds: GroupBounds[] = []
+
+  // Calculate initial bounds for each group
   for (const groupNode of groupNodes) {
-    const childNodes = nonGroupNodes.filter((n) => n.parentNode === groupNode.id)
+    const childNodes = nodesByModule.get(groupNode.id) || []
     if (childNodes.length === 0) continue
 
     const bounds = {
-      minX: Math.min(...childNodes.map((n) => n.position.x)),
-      maxX: Math.max(...childNodes.map((n) => n.position.x + nodeWidth)),
-      minY: Math.min(...childNodes.map((n) => n.position.y)),
-      maxY: Math.max(...childNodes.map((n) => n.position.y + nodeHeight)),
+      minX: Math.min(...childNodes.map((n) => n.position.x)) - groupPadding,
+      maxX: Math.max(...childNodes.map((n) => n.position.x + nodeWidth)) + groupPadding,
+      minY: Math.min(...childNodes.map((n) => n.position.y)) - (groupPadding + titleHeight),
+      maxY: Math.max(...childNodes.map((n) => n.position.y + nodeHeight)) + groupPadding,
     }
 
-    groupNode.position = {
-      x: bounds.minX - groupPadding,
-      y: bounds.minY - groupPadding,
-    }
+    groupBounds.push({
+      id: groupNode.id,
+      x: bounds.minX,
+      y: bounds.minY,
+      width: bounds.maxX - bounds.minX,
+      height: bounds.maxY - bounds.minY,
+      childNodes,
+    })
+  }
 
-    groupNode.style = {
-      width: bounds.maxX - bounds.minX + groupPadding * 2,
-      height: bounds.maxY - bounds.minY + groupPadding * 2,
-    }
+  // Sort groups by vertical position for overlap resolution
+  groupBounds.sort((a, b) => a.y - b.y)
 
-    // Adjust child positions to be relative to parent
-    for (const child of childNodes) {
-      child.position = {
-        x: child.position.x - groupNode.position.x,
-        y: child.position.y - groupNode.position.y,
+  // Resolve overlaps by pushing groups down
+  for (let i = 1; i < groupBounds.length; i++) {
+    const currentGroup = groupBounds[i]
+
+    // Check for overlaps with all previous groups
+    for (let j = 0; j < i; j++) {
+      const previousGroup = groupBounds[j]
+
+      // Check if groups overlap horizontally
+      const horizontalOverlap = !(currentGroup.x + currentGroup.width < previousGroup.x || currentGroup.x > previousGroup.x + previousGroup.width)
+
+      // Check if groups overlap vertically
+      const verticalOverlap = !(currentGroup.y + currentGroup.height < previousGroup.y || currentGroup.y > previousGroup.y + previousGroup.height)
+
+      // If there's both horizontal and vertical overlap
+      if (horizontalOverlap && verticalOverlap) {
+        // Calculate the minimum shift needed to resolve overlap
+        const verticalShift = previousGroup.y + previousGroup.height - currentGroup.y + 20 // 20px extra padding
+
+        // Shift current group and all its children down
+        currentGroup.y += verticalShift
+        for (const node of currentGroup.childNodes) {
+          node.position.y += verticalShift
+        }
+
+        // Also shift all subsequent groups down
+        for (let k = i + 1; k < groupBounds.length; k++) {
+          const nextGroup = groupBounds[k]
+          nextGroup.y += verticalShift
+          for (const node of nextGroup.childNodes) {
+            node.position.y += verticalShift
+          }
+        }
+      }
+    }
+  }
+
+  // Update group node positions and dimensions
+  for (const group of groupBounds) {
+    const groupNode = groupNodes.find((n) => n.id === group.id)
+    if (groupNode) {
+      groupNode.position = {
+        x: group.x,
+        y: group.y,
+      }
+      groupNode.style = {
+        width: group.width,
+        height: group.height,
+      }
+
+      // Make child positions relative to the group
+      for (const child of group.childNodes) {
+        child.position = {
+          x: child.position.x - group.x,
+          y: child.position.y - group.y,
+        }
       }
     }
   }
@@ -217,25 +338,54 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
   const modules = useStreamModules()
   const { isDarkMode } = useUserPreferences()
   const [nodePositions] = useState<Record<string, { x: number; y: number }>>({})
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
   const elements = useMemo(() => {
     const cytoscapeElements = getGraphData(modules.data, isDarkMode, nodePositions)
-    return convertToReactFlow(cytoscapeElements, nodePositions, isDarkMode)
-  }, [modules.data, isDarkMode, nodePositions])
+    return convertToReactFlow(cytoscapeElements, nodePositions, isDarkMode, selectedNodeId)
+  }, [modules.data, isDarkMode, nodePositions, selectedNodeId])
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
     if (!elements.nodes.length) return { nodes: [], edges: [] }
-    return getLayoutedElements(elements.nodes, elements.edges)
-  }, [elements])
+    const nodesWithSelection = elements.nodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        selected: node.id === selectedNodeId,
+      },
+    }))
+    return getLayoutedElements(nodesWithSelection, elements.edges)
+  }, [elements, selectedNodeId])
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
+      setSelectedNodeId(node.id)
       onTapped?.(node.data.item, node.id)
     },
     [onTapped],
   )
 
+  const onEdgeClick = useCallback(
+    (_event: React.MouseEvent, edge: Edge) => {
+      // Find the source and target nodes of the clicked edge
+      const sourceNode = layoutedNodes.find((n) => n.id === edge.source)
+      const targetNode = layoutedNodes.find((n) => n.id === edge.target)
+
+      // If either node is already selected, clear selection
+      if (sourceNode?.id === selectedNodeId || targetNode?.id === selectedNodeId) {
+        setSelectedNodeId(null)
+        onTapped?.(null, null)
+      } else {
+        // Otherwise select the source node
+        setSelectedNodeId(sourceNode?.id || null)
+        onTapped?.(sourceNode?.data?.item || null, sourceNode?.id || null)
+      }
+    },
+    [onTapped, layoutedNodes, selectedNodeId],
+  )
+
   const onPaneClick = useCallback(() => {
+    setSelectedNodeId(null)
     onTapped?.(null, null)
   }, [onTapped])
 
@@ -244,16 +394,14 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
       <ReactFlow
         nodes={layoutedNodes}
         edges={layoutedEdges}
-        nodeTypes={nodeTypes}
+        nodeTypes={NODE_TYPES}
         onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
         fitView
         minZoom={0.1}
         maxZoom={2}
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          // Remove default edge style since we're setting it per edge
-        }}
+        proOptions={{ hideAttribution: true }}
       >
         <Background />
         <Controls />
