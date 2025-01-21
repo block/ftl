@@ -10,6 +10,7 @@ import (
 	"github.com/alecthomas/types/must"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/block/ftl/cmd/go2proto/testdata/external"
 	"github.com/block/ftl/cmd/go2proto/testdata/testdatapb"
 	"github.com/block/ftl/internal/key"
 )
@@ -31,6 +32,7 @@ func TestModel(t *testing.T) {
 		RepeatedMsg:    []*Message{&Message{Time: now}, &Message{Time: now}},
 		URL:            must.Get(url.Parse("http://127.0.0.1")),
 		Key:            key.NewDeploymentKey("echo"),
+		ExternalRoot:   external.Root{Prefix: "abc", Suffix: "xyz"},
 	}
 	pb := model.ToProto()
 	data, err := proto.Marshal(pb)
