@@ -12,9 +12,11 @@ type ThirtySecondsClient func(context.Context) error
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
 			Hourly,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			ThirtySeconds,
 		),

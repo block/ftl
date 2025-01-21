@@ -13,9 +13,11 @@ type TimeClient func(context.Context, TimeRequest) (TimeResponse, error)
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
 			Internal,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			Time,
 			server.VerbClient[InternalClient, TimeRequest, TimeResponse](),
