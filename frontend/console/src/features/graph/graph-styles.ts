@@ -1,7 +1,7 @@
-import type { Stylesheet } from 'cytoscape'
+import type { StylesheetCSS } from 'cytoscape'
 import colors from 'tailwindcss/colors'
 
-export const createGraphStyles = (isDarkMode: boolean): Stylesheet[] => {
+export const createGraphStyles = (isDarkMode: boolean): StylesheetCSS[] => {
   const theme = {
     primary: isDarkMode ? colors.indigo[400] : colors.indigo[200],
     background: isDarkMode ? colors.slate[700] : colors.slate[200],
@@ -17,7 +17,7 @@ export const createGraphStyles = (isDarkMode: boolean): Stylesheet[] => {
   return [
     {
       selector: 'node',
-      style: {
+      css: {
         'background-color': theme.primary,
         label: 'data(label)',
         'text-valign': 'center',
@@ -36,7 +36,7 @@ export const createGraphStyles = (isDarkMode: boolean): Stylesheet[] => {
     },
     {
       selector: 'edge',
-      style: {
+      css: {
         width: 2,
         'line-color': theme.arrow,
         'curve-style': 'bezier',
@@ -47,11 +47,8 @@ export const createGraphStyles = (isDarkMode: boolean): Stylesheet[] => {
     },
     {
       selector: '$node > node',
-      style: {
-        'padding-top': '10px',
-        'padding-left': '10px',
-        'padding-bottom': '10px',
-        'padding-right': '10px',
+      css: {
+        padding: '10px',
         'text-valign': 'top',
         'text-halign': 'center',
         'background-color': theme.background,
@@ -59,7 +56,7 @@ export const createGraphStyles = (isDarkMode: boolean): Stylesheet[] => {
     },
     {
       selector: 'node[type="groupNode"]',
-      style: {
+      css: {
         'background-color': theme.primary,
         shape: 'round-rectangle',
         width: '180px',
@@ -76,7 +73,7 @@ export const createGraphStyles = (isDarkMode: boolean): Stylesheet[] => {
     },
     {
       selector: ':parent',
-      style: {
+      css: {
         'text-valign': 'top',
         'text-halign': 'center',
         'background-opacity': 1,
@@ -84,7 +81,7 @@ export const createGraphStyles = (isDarkMode: boolean): Stylesheet[] => {
     },
     {
       selector: '.selected',
-      style: {
+      css: {
         'background-color': theme.selected.bg,
         'border-width': 2,
         'border-color': theme.selected.border,
@@ -92,7 +89,7 @@ export const createGraphStyles = (isDarkMode: boolean): Stylesheet[] => {
     },
     {
       selector: 'node[type="node"]',
-      style: {
+      css: {
         'background-color': 'data(backgroundColor)',
         color: theme.text,
         shape: 'round-rectangle',
