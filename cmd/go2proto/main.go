@@ -149,10 +149,14 @@ func (f File) OrderedDecls() []Decl {
 }
 
 // KindOf looks up the kind of a type in the declarations. Returns KindUnspecified if the type is not found.
-func (f File) KindOf(name string) Kind {
-	for _, decl := range f.Decls {
-		if decl.DeclName() == name {
-			return Kind(reflect.Indirect(reflect.ValueOf(decl)).Type().Name())
+func (f File) KindOf(t types.Type, name string) Kind {
+	pathComponents := strings.Split(t.String(), "/")
+	typeComponents := strings.Split(pathComponents[len(pathComponents)-1], ".")
+	if len(typeComponents) == 2 && typeComponents[0] == f.GoPackage {
+		for _, decl := range f.Decls {
+			if decl.DeclName() == name {
+				return Kind(reflect.Indirect(reflect.ValueOf(decl)).Type().Name())
+			}
 		}
 	}
 	if _, ok := builtinTypes[name]; ok {
@@ -592,7 +596,7 @@ func (s *State) populateFields(decl *Message, n *types.Named) error {
 			}
 		}
 		if field.Kind == KindUnspecified {
-			field.Kind = s.Dest.KindOf(field.OriginType)
+			field.Kind = s.Dest.KindOf(rf.Type(), field.OriginType)
 		}
 		decl.Fields = append(decl.Fields, field)
 	}
@@ -706,7 +710,7 @@ func (s *State) extractEnum(t *types.Named) error {
 }
 
 func (s *State) canMarshal(t types.Type, field *Field, name string) bool {
-	if _, ok := stdTypes[name]; !ok && s.Dest.KindOf(name) == KindUnspecified {
+	if _, ok := stdTypes[name]; !ok && s.Dest.KindOf(t, name) == KindUnspecified {
 		if implements(t, textMarshaler) {
 			field.ProtoType = "string"
 			field.ProtoGoType = "string"

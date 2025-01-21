@@ -114,12 +114,14 @@ func verbSchemaString(sch *schema.Schema, verb *schema.Verb) (string, error) {
 func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb.GetModulesRequest]) (*connect.Response[consolepb.GetModulesResponse], error) {
 	sch := s.schemaEventSource.View()
 
+	allowed := map[string]bool{}
 	nilMap := map[schema.RefKey]map[schema.RefKey]bool{}
 	var modules []*consolepb.Module
 	for _, mod := range sch.Modules {
 		if mod.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 			continue
 		}
+		allowed[mod.Name] = true
 		var verbs []*consolepb.Verb
 		var data []*consolepb.Data
 		var secrets []*consolepb.Secret
@@ -167,8 +169,14 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 		Levels: make([]*consolepb.TopologyGroup, len(sorted)),
 	}
 	for i, level := range sorted {
+		gLevels := []string{}
+		for _, i := range level {
+			if allowed[i] {
+				gLevels = append(gLevels, i)
+			}
+		}
 		group := &consolepb.TopologyGroup{
-			Modules: level,
+			Modules: gLevels,
 		}
 		topology.Levels[i] = group
 	}
@@ -365,9 +373,11 @@ func (s *service) filterDeployments(unfilteredDeployments *schema.Schema) []*sch
 	latest := make(map[string]*schema.Module)
 
 	for _, deployment := range unfilteredDeployments.Modules {
+		if deployment.Runtime == nil || deployment.Runtime.Deployment == nil || deployment.Runtime.Deployment.GetDeploymentKey().IsZero() {
+			continue
+		}
 		if existing, found := latest[deployment.Name]; !found || deployment.Runtime.Base.CreateTime.After(existing.Runtime.Base.CreateTime) {
 			latest[deployment.Name] = deployment
-
 		}
 	}
 
