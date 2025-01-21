@@ -33,6 +33,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     static final Set<Path> existingMigrations = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     static volatile Module module;
+    static volatile ErrorList errors;
     private static final AtomicBoolean started = new AtomicBoolean();
     private static volatile Server server;
 
@@ -44,6 +45,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
+
         doScan(request.getForce());
         Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
         Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();
@@ -67,7 +69,11 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                     .setReloadFailed(ReloadFailed.newBuilder()
                             .setErrors(builder).build())
                     .build());
-            responseObserver.onCompleted();
+        } else if (errors != null && errors.getErrorsCount() > 0) {
+            responseObserver.onNext(ReloadResponse.newBuilder()
+                    .setReloadFailed(ReloadFailed.newBuilder()
+                            .setErrors(errors).build())
+                    .build());
         } else if (module != null) {
             responseObserver.onNext(ReloadResponse.newBuilder()
                     .setReloadSuccess(ReloadSuccess.newBuilder()

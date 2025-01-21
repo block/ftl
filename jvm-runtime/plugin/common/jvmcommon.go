@@ -383,7 +383,6 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
 		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind))
 		command.Env = append(command.Env, fmt.Sprintf("FTL_RUNNER_INFO=%s", runnerInfoFile))
-		command.Env = append(command.Env, fmt.Sprintf("QUARKUS_LOG_LEVEL=%s", "DEBUG"))
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr
 		err = command.Run()
@@ -400,8 +399,10 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, fmt.Sprintf("http://localhost:%d", protoPort.Port), log.Trace)
 	err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
 	if err != nil {
+		logger.Infof("Dev mode process failed to start")
 		return fmt.Errorf("timed out waiting for start %w", err)
 	}
+	logger.Infof("Dev mode process started")
 
 	schemaChangeTicker := time.NewTicker(500 * time.Millisecond)
 	defer schemaChangeTicker.Stop()
@@ -435,10 +436,13 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				return fmt.Errorf("failed to send response %w", err)
 			}
 		case <-schemaChangeTicker.C:
-
-			_, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: false}))
-			if err != nil {
-				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
+			if !firstAttempt {
+				logger.Infof("Checking for schema changes")
+				_, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: false}))
+				if err != nil {
+					logger.Errorf(err, "Failed to invoke hot reload for build context update")
+					return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
+				}
 			}
 			changed := false
 			file, err := os.ReadFile(errorFile)
@@ -468,8 +472,10 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				}
 			}
 			if changed || forceUpdate {
+				logger.Infof("updating")
 				auto := !firstAttempt && !forceUpdate
 				if auto {
+					logger.Infof("sending auto")
 					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
 					if err != nil {
 						return fmt.Errorf("could not send build event: %w", err)
@@ -482,6 +488,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					continue
 				}
 				if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(buildErrs)) {
+					logger.Infof("terminal errors")
 					// skip reading schema
 					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 						BuildFailure: &langpb.BuildFailure{

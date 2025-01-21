@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.jboss.jandex.DotName;
@@ -42,6 +44,7 @@ import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.util.HashUtil;
 import io.quarkus.vertx.http.deployment.RequireSocketHttpBuildItem;
 import io.quarkus.vertx.http.deployment.RequireVirtualHttpBuildItem;
+import xyz.block.ftl.language.v1.ErrorList;
 import xyz.block.ftl.runtime.FTLDatasourceCredentials;
 import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.runtime.JsonSerializationConfig;
@@ -168,7 +171,15 @@ public class ModuleProcessor {
         Path errorOutput = outputTargetBuildItem.getOutputDirectory().resolve(ERRORS_OUT);
         ByteArrayOutputStream sch = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        moduleBuilder.writeTo(sch, err);
+        AtomicReference<ErrorList> errRef = new AtomicReference<>();
+        AtomicReference<xyz.block.ftl.schema.v1.Module> schRef = new AtomicReference<>();
+        moduleBuilder.writeTo(sch, err, new BiConsumer<xyz.block.ftl.schema.v1.Module, ErrorList>() {
+            @Override
+            public void accept(xyz.block.ftl.schema.v1.Module module, ErrorList errorList) {
+                errRef.set(errorList);
+                schRef.set(module);
+            }
+        });
 
         var schBytes = sch.toByteArray();
         var errBytes = err.toByteArray();
@@ -178,6 +189,8 @@ public class ModuleProcessor {
         Files.write(errorOutput, errBytes);
 
         if (launchModeBuildItem.getLaunchMode() == LaunchMode.DEVELOPMENT) {
+            HotReloadHandler.module =schRef.get();
+            HotReloadHandler.errors = errRef.get();
             // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
             // get updated runner information, although we don't actually get this until the runner has started.
             var hash = HashUtil.sha256(schBytes);
