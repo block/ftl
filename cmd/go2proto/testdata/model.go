@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/block/ftl/cmd/go2proto/testdata/external"
 	"github.com/block/ftl/internal/key"
 )
 
@@ -24,6 +25,7 @@ type Root struct {
 	RepeatedMsg    []*Message     `protobuf:"11"`
 	URL            *url.URL       `protobuf:"12"`
 	Key            key.Deployment `protobuf:"13"`
+	ExternalRoot   external.Root  `protobuf:"14"`
 }
 
 type Message struct {
