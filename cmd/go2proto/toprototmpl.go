@@ -112,14 +112,6 @@ func orZeroR[T any](v result.Result[*T]) result.Result[T] {
 	return result.Ok[T](orZero(r))
 }
 
-func optionalOrNil[T any](v optional.Option[T]) *T {
-	if v.Ok() {
-		r := v.MustGet()
-		return &r
-	}
-	return nil
-}
-
 func ptr[T any](o T) *T {
 	return &o
 }

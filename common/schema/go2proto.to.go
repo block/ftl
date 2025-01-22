@@ -65,14 +65,6 @@ func orZeroR[T any](v result.Result[*T]) result.Result[T] {
 	return result.Ok[T](orZero(r))
 }
 
-func optionalOrNil[T any](v optional.Option[T]) *T {
-	if v.Ok() {
-		r := v.MustGet()
-		return &r
-	}
-	return nil
-}
-
 func ptr[T any](o T) *T {
 	return &o
 }
@@ -1682,7 +1674,7 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 		Endpoint:      orZero(ptr(string(x.Endpoint))),
 		DeploymentKey: orZero(ptr(string(protoMust(x.DeploymentKey.MarshalText())))),
 		CreatedAt:     timestamppb.New(x.CreatedAt),
-		ActivatedAt:   setNil(timestamppb.New(orZero(optionalOrNil(x.ActivatedAt))), optionalOrNil(x.ActivatedAt)),
+		ActivatedAt:   setNil(timestamppb.New(orZero(x.ActivatedAt.Ptr())), x.ActivatedAt.Ptr()),
 	}
 }
 

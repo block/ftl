@@ -65,14 +65,6 @@ func orZeroR[T any](v result.Result[*T]) result.Result[T] {
 	return result.Ok[T](orZero(r))
 }
 
-func optionalOrNil[T any](v optional.Option[T]) *T {
-	if v.Ok() {
-		r := v.MustGet()
-		return &r
-	}
-	return nil
-}
-
 func ptr[T any](o T) *T {
 	return &o
 }
@@ -245,11 +237,11 @@ func (x *Root) ToProto() *destpb.Root {
 		RepeatedInt:     sliceMap(x.RepeatedInt, func(v int) int64 { return orZero(ptr(int64(v))) }),
 		RepeatedMsg:     sliceMap(x.RepeatedMsg, func(v *Message) *destpb.Message { return v.ToProto() }),
 		Url:             orZero(ptr(protoMust(x.URL.MarshalBinary()))),
-		OptionalWrapper: setNil(ptr(string(orZero(optionalOrNil(x.OptionalWrapper)))), optionalOrNil(x.OptionalWrapper)),
+		OptionalWrapper: setNil(ptr(string(orZero(x.OptionalWrapper.Ptr()))), x.OptionalWrapper.Ptr()),
 		ExternalRoot:    orZero(ptr(string(protoMust(x.ExternalRoot.MarshalText())))),
 		Key:             orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		OptionalTime:    setNil(timestamppb.New(orZero(optionalOrNil(x.OptionalTime))), optionalOrNil(x.OptionalTime)),
-		OptionalMessage: optionalOrNil(x.OptionalMessage).ToProto(),
+		OptionalTime:    setNil(timestamppb.New(orZero(x.OptionalTime.Ptr())), x.OptionalTime.Ptr()),
+		OptionalMessage: x.OptionalMessage.Ptr().ToProto(),
 	}
 }
 

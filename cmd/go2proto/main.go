@@ -650,9 +650,9 @@ func (f *Field) ToProto() string {
 	if f.Optional {
 		if f.OptionalWrapper {
 			if f.Converter.ToProtoTakesPointer {
-				return f.Converter.ToProto("optionalOrNil(x." + f.Name + ")")
+				return f.Converter.ToProto("x." + f.Name + ".Ptr()")
 			}
-			return "setNil(" + f.Converter.ToProto("orZero(optionalOrNil(x."+f.Name+"))") + ", optionalOrNil(x." + f.Name + "))"
+			return "setNil(" + f.Converter.ToProto("orZero(x."+f.Name+".Ptr())") + ", x." + f.Name + ".Ptr())"
 		} else if f.Pointer && !f.Converter.ProtoPointer {
 			return "setNil(" + f.Converter.ToProto("orZero(x."+f.Name+")") + ", x." + f.Name + ")"
 		}
