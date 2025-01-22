@@ -317,7 +317,7 @@ docs:
 
 # Generate LSP hover help text
 lsp-generate:
-  @mk internal/lsp/hoveritems.go : internal/lsp docs/content -- "scripts/ftl-gen-lsp"
+  @mk internal/lsp/hoveritems.go : internal/lsp docs/content -- ftl-gen-lsp
 
 # Run `ftl dev` providing a Delve endpoint for attaching a debugger.
 debug *args:
