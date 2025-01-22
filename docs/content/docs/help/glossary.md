@@ -18,30 +18,30 @@ top = false
 
 A Verb is a remotely callable function that takes an input and returns an output.
 
-```go
-func(context.Context, In) (Out, error)
+```
+F(I) -> O
 ```
 
 ##### Sink
 
 A Sink is a function that takes an input and returns nothing.
 
-```go
-func(context.Context, In) error
+```
+F(I)
 ```
 
 ##### Source
 
 A Source is a function that takes no input and returns an output.
 
-```go
-func(context.Context) (Out, error)
+```
+F() -> O
 ```
 
 ##### Empty
 
 An Empty function is one that takes neither input or output.
 
-```go
-func(context.Context) error
+```
+F()
 ```

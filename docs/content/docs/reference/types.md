@@ -13,25 +13,114 @@ toc = true
 top = false
 +++
 
-FTL supports the following types: `Int` (64-bit), `Float` (64-bit), `String`, `Bytes` (a byte array), `Bool`, `Time`, `Any` (a dynamic type), `Unit` (similar to "void"), arrays, maps, data structures, and constant enumerations. Each FTL type is mapped to a corresponding language-specific type. For example in Go `Float` is represented as `float64`, `Time` is represented by `time.Time`, and so on. [^1]
+FTL supports the following types: `Int` (64-bit), `Float` (64-bit), `String`, `Bytes` (a byte array), `Bool`, `Time`,
+`Any` (a dynamic type), `Unit` (similar to "void"), arrays, maps, data structures, and constant enumerations. Each FTL
+type is mapped to a corresponding language-specific type. For example in Go `Float` is represented as `float64`, `Time`
+is represented by `time.Time`, and so on.
 
-Any Go type supported by FTL and referenced by an FTL declaration will be automatically exposed to an FTL type.
+User-defined types referenced by a verb will be automatically exported as FTL types.
 
-For example, the following verb declaration will result in `Request` and `Response` being automatically translated to FTL types.
+| FTL             | Go    | Kotlin | Java |
+| :-------------- | :---- | :----- | :--- |
+| `Int`             | `int`    | `Long`      | `Long`    |
+| `Float`           | `float64`    | `Double`      | `Double`    |
+| `String`          | `string`    | `String`      | `String`    |
+| `Bytes`           | `[]byte`    | `ByteArray`      | `ByteArray`    |
+| `Bool`            | `bool`    | `Boolean`      | `Boolean`    |
+| `Time`            | `time.Time`    | `ZonedDateTime`      | `ZonedDateTime️ `   |
+| `Any`             | [external](../externaltypes)    | [external](../externaltypes)      | [external](../externaltypes)    |
+| `Unit`            |     |       |     |
+| `Map<K,V>`        | `map[K]V`    | `Map<K,V>`      | `Map<K,V>`    |
+| `Array<T>`        | `[]T`    | `List<T>`      | `List<T>`    |
+
+## Data structures
+
+FTL supports user-defined data structures, declared using the idiomatic syntax of the target language.
+
+{% code_selector() %}
+
+<!-- go -->
 
 ```go
-type Request struct {}
-type Response struct {}
-
-//ftl:verb
-func Hello(ctx context.Context, in Request) (Response, error) {
-  // ...
+type Person struct {
+  Name string
+  Age  int
 }
 ```
 
-## Type enums (sum types)
+<!-- kotlin -->
 
-[Sum types](https://en.wikipedia.org/wiki/Tagged_union) are supported by FTL's type system, but aren't directly supported by Go. However they can be approximated with the use of [sealed interfaces](https://blog.chewxy.com/2018/03/18/golang-interfaces/). To declare a sum type in FTL use the comment directive `//ftl:enum`:
+```kotlin
+data class Person(
+  val name: String,
+  val age: Int
+)
+```
+
+<!-- java -->
+
+```java
+public class Person {
+  private final String name;
+  private final int age;
+
+  public Person(String name, int age) {
+    this.name = name;
+    this.age = age;
+  }
+}
+```
+
+{% end %}
+
+## Generics
+
+FTL has first-class support for generics, declared using the idiomatic syntax of the target language.
+
+{% code_selector() %}
+
+<!-- go -->
+
+```go
+type Pair[T, U] struct {
+  First  T
+  Second U
+}
+```
+
+<!-- kotlin -->
+
+```kotlin
+data class Pair<T, U>(
+  val first: T,
+  val second: U
+)
+```
+
+<!-- java -->
+
+```java
+public class Pair<T, U> {
+  private final T first;
+  private final U second;
+
+  public Pair(T first, U second) {
+    this.first = first;
+    this.second = second;
+  }
+}
+```
+
+{% end %}
+
+## Sum types
+
+[Sum types](https://en.wikipedia.org/wiki/Tagged_union) are supported by FTL's type system.
+
+{% code_selector() %}
+<!-- go -->
+
+Sum types aren't directly supported by Go, however they can be approximated with the use of [sealed interfaces](https://blog.chewxy.com/2018/03/18/golang-interfaces/):
 
 ```go
 //ftl:enum
@@ -44,9 +133,33 @@ type Dog struct {}
 func (Dog) animal() {}
 ```
 
-## Value enums
+<!-- kotlin -->
+
+Sum types aren't directly supported by Kotlin, however they can be approximated with the use of [sealed interfaces](https://kotlinlang.org/docs/sealed-classes.html):
+
+```kotlin
+@Enum
+sealed interface Animal
+
+@EnumHolder
+class Cat() : Animal
+
+@EnumHolder
+class Dog() : Animal
+```
+
+<!-- java -->
+
+> TODO
+
+{% end %}
+
+## Enumerations
 
 A value enum is an enumerated set of string or integer values.
+
+{% code_selector() %}
+<!-- go -->
 
 ```go
 //ftl:enum
@@ -59,9 +172,46 @@ const (
 )
 ```
 
+<!-- kotlin -->
+
+```kotlin
+@Enum
+public enum class Colour(
+  public final val `value`: String,
+) {
+  Red("red"),
+  Green("green"),
+  Blue("blue"),
+  ;
+}
+```
+
+<!-- java -->
+
+```java
+@Enum
+public enum Colour {
+  Red("red"),
+  Green("green"),
+  Blue("blue");
+
+  private final String value;
+
+  Colour(String value) {
+    this.value = value;
+  }
+}
+```
+
+{% end %}
+
 ## Type aliases
 
 A type alias is an alternate name for an existing type. It can be declared like so:
+
+{% code_selector() %}
+
+<!-- go -->
 
 ```go
 //ftl:typealias
@@ -83,15 +233,31 @@ type UserID string
 type UserToken = string
 ```
 
----
+<!-- kotlin -->
+
+> TODO
+
+<!-- java -->
+
+> TODO
+
+{% end %}
+
 
 ## Optional types
 
-FTL supports optional types, which are types that can be `None` or `Some` and can be declared via `ftl.Option[T]`. These types are provided by the `ftl` runtimes. For example, the following FTL type declaration in go, will provide an optional string type "Name":
+FTL supports optional types where the underlying value can be present or absent.
+
+{% code_selector() %}
+
+<!-- go -->
+
+In Go optional types can be declared via `ftl.Option[T]`. These types are provided by the `ftl` runtimes. For example,
+the following FTL type declaration in go, will provide an optional string type "Name":
 
 ```go
 type EchoResponse struct {
-	Name ftl.Option[string] `json:"name"`
+	Name ftl.Option[string]
 }
 ```
 
@@ -120,37 +286,80 @@ value := resp.Name.MustGet()
 
 // Default returns the value or a default value if the Option is None.
 value := resp.Name.Default("default")
-``` 
+```
+
+<!-- kotlin -->
+
+Kotlin has built-in support for optional types:
+
+```kotlin
+data class EchoResponse(
+  val name: String?
+)
+```
+
+<!-- java -->
+
+> TODO: Java optional types
+
+{% end %}
 
 ## Unit "void" type
 
-The `Unit` type is similar to the `void` type in other languages. It is used to indicate that a function does not return a value. For example:
+The [`Unit`](https://en.wikipedia.org/wiki/Unit_type) type is used to indicate that a value is not present. It is similar to C's `void` type.
+
+For verbs, omitting the return or request type is equivalent to specifying `Unit`.
+
+A function of the form `F(I) -> O` is known as a "verb", a function of the form `F(R)` is known as a "sink", a verb of
+the form `F() -> R` is known as a "source", and a verb of the form `F()` is known as an "empty" verb.
+
+{% code_selector() %}
+
+<!-- go -->
 
 ```go
-//ftl:ingress GET /unit
-func Unit(ctx context.Context, req builtin.HttpRequest[ftl.Unit, ftl.Unit, TimeRequest]) (builtin.HttpResponse[ftl.Unit, string], error) {
-	return builtin.HttpResponse[ftl.Unit, string]{Body: ftl.Some(ftl.Unit{})}, nil
+//ftl:verb
+func Hello(ctx context.Context, req ftl.Unit) (string, error) {
+  return "Hello, World!", nil
 }
 ```
 
-This request will return an empty body with a status code of 200:
+This is equivalent to:
 
-```sh
-curl http://localhost:8891/unit -i
+```go
+//ftl:verb
+func Hello(ctx context.Context) (string, error) {
+  return "Hello, World!", nil
+}
 ```
 
-```http
-HTTP/1.1 200 OK
-Date: Mon, 12 Aug 2024 17:58:22 GMT
-Content-Length: 0
+<!-- kotlin -->
+
+```kotlin
+@Verb
+fun hello(ctx: Context): String {
+  return "Hello, World!"
+}
 ```
+
+<!-- java -->
+
+```java
+public class Hello {
+  @Verb
+  public String hello(Context ctx) {
+    return "Hello, World!";
+  }
+}
+```
+
+{% end %}
 
 ## Builtin types
 
 FTL provides a set of builtin types that are automatically available in all FTL runtimes. These types are:
 
-- `builtin.HttpRequest[Body, PathParams, QueryParams]` - Represents an HTTP request with a body of type `Body`, path parameter type of `PathParams` and a query parameter type of `QueryParams`.
-- `builtin.HttpResponse[Body, Error]` - Represents an HTTP response with a body of type `Body` and an error of type `Error`.
+- `builtin.HttpRequest<Body, PathParams, QueryParams>` - Represents an HTTP request with a body of type `Body`, path parameter type of `PathParams` and a query parameter type of `QueryParams`.
+- `builtin.HttpResponse<Body, Error>` - Represents an HTTP response with a body of type `Body` and an error of type `Error`.
 - `builtin.Empty` - Represents an empty type. This equates to an empty structure `{}`.
 - `builtin.CatchRequest` - Represents a request structure for catch verbs.
-
