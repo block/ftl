@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { type TraceEvent, useRequestTraceEvents } from '../../api/timeline/use-request-trace-events'
+import { HoverPopup } from '../../components/HoverPopup'
 import { AsyncExecuteEvent, CallEvent, type Event, IngressEvent, PubSubConsumeEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { classNames, durationToMillis } from '../../utils'
 import { eventBackgroundColor } from '../timeline/timeline.utils'
@@ -16,8 +16,6 @@ const EventBlock = ({
   requestStartTime: number
   requestDuration: number
 }) => {
-  const [isHovering, setIsHovering] = useState(false)
-
   const traceEvent = event.entry.value as TraceEvent
   const durationInMillis = traceEvent.duration ? durationToMillis(traceEvent.duration) : 0
   let width = (durationInMillis / requestDuration) * 100
@@ -49,9 +47,16 @@ const EventBlock = ({
 
   const barColor = isSelected ? 'bg-green-500' : eventBackgroundColor(event)
 
+  const popupContent = (
+    <p>
+      {eventType} <span className='text-indigo-500 dark:text-indigo-400'>{eventTarget}</span>
+      {` (${durationInMillis} ms)`}
+    </p>
+  )
+
   return (
-    <div className='group relative my-0.5 h-2.5 flex' onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
-      <div className='flex-grow relative'>
+    <div className='group relative my-0.5 h-2.5 flex'>
+      <HoverPopup popupContent={popupContent} className='flex-grow relative'>
         <div
           className={classNames('absolute h-2.5 rounded-sm', barColor)}
           style={{
@@ -59,15 +64,7 @@ const EventBlock = ({
             left: `${leftOffsetPercentage}%`,
           }}
         />
-        {isHovering && (
-          <div className='absolute top-[-40px] right-0 bg-gray-100 dark:bg-gray-700  text-xs p-2 rounded shadow-lg z-10 w-max flex flex-col items-end'>
-            <p>
-              {eventType} <span className='text-indigo-500 dark:text-indigo-400'>{eventTarget}</span>
-              {` (${durationInMillis} ms)`}
-            </p>
-          </div>
-        )}
-      </div>
+      </HoverPopup>
     </div>
   )
 }
@@ -86,7 +83,7 @@ export const TraceGraph = ({ requestKey, selectedEventId }: { requestKey?: strin
   return (
     <div className='flex flex-col'>
       {events.map((c, index) => (
-        <div key={index} className='flex hover:bg-indigo-500/60 hover:dark:bg-indigo-500/10 rounded-sm'>
+        <div key={index} className='flex hover:bg-indigo-500/60 hover:dark:bg-slate-700 rounded-sm'>
           <div className='w-full relative'>
             <EventBlock event={c} isSelected={c.id === selectedEventId} requestStartTime={startTime} requestDuration={totalEventDuration} />
           </div>
