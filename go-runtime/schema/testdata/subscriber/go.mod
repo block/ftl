@@ -12,10 +12,10 @@ require (
 	github.com/hashicorp/cronexpr v1.1.2 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
-	github.com/swaggest/jsonschema-go v0.3.72 // indirect
+	github.com/swaggest/jsonschema-go v0.3.73 // indirect
 	github.com/swaggest/refl v1.3.0 // indirect
 	golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e // indirect
-	google.golang.org/protobuf v1.36.1 // indirect
+	google.golang.org/protobuf v1.36.3 // indirect
 )
 
 replace github.com/block/ftl => ../../../..
