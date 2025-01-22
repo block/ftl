@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/controller/state"
 	"github.com/block/ftl/common/schema"
@@ -93,7 +94,7 @@ func TestDeploymentState(t *testing.T) {
 	view, err = cs.View(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, view.GetDeployments()[deploymentKey].GetRuntime().GetScaling().GetMinReplicas())
-	assert.Equal(t, activate, view.GetDeployments()[deploymentKey].GetRuntime().GetDeployment().ActivatedAt)
+	assert.Equal(t, optional.Some(activate), view.GetDeployments()[deploymentKey].GetRuntime().GetDeployment().ActivatedAt)
 
 	err = cs.Publish(ctx, &state.DeploymentDeactivatedEvent{
 		Key: deploymentKey,

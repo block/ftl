@@ -2524,7 +2524,7 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
   createdAt?: Timestamp;
 
   /**
-   * @generated from field: google.protobuf.Timestamp activated_at = 4;
+   * @generated from field: optional google.protobuf.Timestamp activated_at = 4;
    */
   activatedAt?: Timestamp;
 
@@ -2539,7 +2539,7 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
     { no: 1, name: "endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "created_at", kind: "message", T: Timestamp },
-    { no: 4, name: "activated_at", kind: "message", T: Timestamp },
+    { no: 4, name: "activated_at", kind: "message", T: Timestamp, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeDeployment {

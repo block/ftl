@@ -1682,7 +1682,7 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 		Endpoint:      orZero(ptr(string(x.Endpoint))),
 		DeploymentKey: orZero(ptr(string(protoMust(x.DeploymentKey.MarshalText())))),
 		CreatedAt:     timestamppb.New(x.CreatedAt),
-		ActivatedAt:   timestamppb.New(x.ActivatedAt),
+		ActivatedAt:   setNil(timestamppb.New(orZero(optionalOrNil(x.ActivatedAt))), optionalOrNil(x.ActivatedAt)),
 	}
 }
 
@@ -1701,7 +1701,7 @@ func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) (out *M
 	if out.CreatedAt, err = orZeroR(result.From(setNil(ptr(v.CreatedAt.AsTime()), v.CreatedAt), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("CreatedAt: %w", err)
 	}
-	if out.ActivatedAt, err = orZeroR(result.From(setNil(ptr(v.ActivatedAt.AsTime()), v.ActivatedAt), nil)).Result(); err != nil {
+	if out.ActivatedAt, err = optionalR(result.From(setNil(ptr(v.ActivatedAt.AsTime()), v.ActivatedAt), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("ActivatedAt: %w", err)
 	}
 	return out, nil
