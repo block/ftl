@@ -94,6 +94,7 @@ func provisionerIDToProvisioner(ctx context.Context, id string, controller ftlv1
 			ctx,
 			log.FromContext(ctx).GetLevel(),
 			"ftl-provisioner-"+id,
+			"",
 			".",
 			"ftl-provisioner-"+id,
 			provisionerconnect.NewProvisionerPluginServiceClient,

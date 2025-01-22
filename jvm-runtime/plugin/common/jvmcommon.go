@@ -111,6 +111,7 @@ func (s *Service) GetCreateModuleFlags(ctx context.Context, req *connect.Request
 // CreateModule generates files for a new module with the requested name
 func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.CreateModuleRequest]) (*connect.Response[langpb.CreateModuleResponse], error) {
 	logger := log.FromContext(ctx)
+	logger = logger.Module(req.Msg.Name)
 	projConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
 	groupAny, ok := req.Msg.Flags.AsMap()["group"]
 	if !ok {
@@ -189,6 +190,9 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 // rebuild must include the latest build context id provided by the request or subsequent BuildContextUpdated
 // calls.
 func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse]) error {
+	logger := log.FromContext(ctx)
+	logger = logger.Module(req.Msg.BuildContext.ModuleConfig.Name)
+	ctx = log.ContextWithLogger(ctx, logger)
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
 		return err

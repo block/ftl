@@ -433,6 +433,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			unstoppable.Context(verbCtx),
 			log.FromContext(ctx).GetLevel(),
 			module.Name,
+			module.Name,
 			deploymentDir,
 			"./launch",
 			ftlv1connect.NewVerbServiceClient,

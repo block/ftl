@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 	"time"
 )
 
@@ -69,7 +70,7 @@ func JSONStreamer(r io.Reader, log *Logger, defaultLevel Level) error {
 		}
 	}
 	err := scan.Err()
-	if errors.Is(err, io.EOF) {
+	if errors.Is(err, io.EOF) || (err != nil && strings.Contains(err.Error(), "already closed")) {
 		return nil
 	}
 	return err
