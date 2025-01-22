@@ -3,7 +3,9 @@ package xyz.block.ftl.deployment;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -21,6 +23,8 @@ import xyz.block.ftl.hotreload.v1.ReloadNotRequired;
 import xyz.block.ftl.hotreload.v1.ReloadRequest;
 import xyz.block.ftl.hotreload.v1.ReloadResponse;
 import xyz.block.ftl.hotreload.v1.ReloadSuccess;
+import xyz.block.ftl.hotreload.v1.WatchRequest;
+import xyz.block.ftl.hotreload.v1.WatchResponse;
 import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
 import xyz.block.ftl.schema.v1.Module;
@@ -33,17 +37,44 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     static final Set<Path> existingMigrations = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    private static volatile Module module;
-    private static volatile ErrorList errors;
-    private static final AtomicBoolean started = new AtomicBoolean();
-    private static volatile Server server;
-    private static volatile boolean restarting = false;
+    private static volatile HotReloadHandler INSTANCE;
 
-    synchronized static void setResults(Module module, ErrorList errors) {
-        HotReloadHandler.module = module;
-        HotReloadHandler.errors = errors;
-        restarting = false;
-        HotReloadHandler.class.notifyAll();
+    private volatile Module module;
+    private volatile ErrorList errors;
+    private volatile Server server;
+    private volatile boolean explicitlyReloading = false;
+    private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
+
+    public static HotReloadHandler getInstance() {
+        start();
+        return INSTANCE;
+    }
+
+    synchronized void setResults(Module module, ErrorList errors) {
+        this.module = module;
+        this.errors = errors;
+        if (!explicitlyReloading) {
+            List<StreamObserver<WatchResponse>> watches;
+            synchronized (this.watches) {
+                watches = new ArrayList<>(this.watches);
+            }
+            for (var watch : watches) {
+                try {
+                    if (errors == null || errors.getErrorsCount() == 0) {
+                        watch.onNext(WatchResponse.newBuilder()
+                                .setReloadSuccess(ReloadSuccess.newBuilder().setModule(module).build()).build());
+                    } else {
+                        watch.onNext(WatchResponse.newBuilder()
+                                .setReloadFailed(ReloadFailed.newBuilder().setErrors(errors).build()).build());
+                    }
+                } catch (Exception e) {
+                    LOG.debugf("Failed to send watch response %s", e.toString());
+                    this.watches.remove(watch);
+                }
+            }
+        }
+        explicitlyReloading = false;
+        notifyAll();
     }
 
     @Override
@@ -54,7 +85,6 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
-
         // This is complex, as the restart can't happen until the runner is up
         // We want to report on the results of the schema generations, so we can bring up a runner
         // Run the restart in a new thread, so we can report on the schema once it is ready
@@ -64,15 +94,15 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                 doScan(request.getForce());
             } finally {
                 synchronized (HotReloadHandler.class) {
-                    restarting = false;
+                    explicitlyReloading = false;
                     HotReloadHandler.class.notifyAll();
                 }
             }
         }, "FTL Restart Thread");
         synchronized (HotReloadHandler.class) {
-            restarting = true;
+            explicitlyReloading = true;
             t.start();
-            while (restarting) {
+            while (explicitlyReloading) {
                 try {
                     HotReloadHandler.class.wait();
                 } catch (InterruptedException e) {
@@ -126,23 +156,35 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         }
     }
 
-    public static void start() {
-
-        if (!started.compareAndSet(false, true)) {
-            return;
-        }
-
-        for (var dir : RuntimeUpdatesProcessor.INSTANCE.getSourcesDir()) {
-            Path migrations = dir.resolve("db");
-            if (Files.isDirectory(migrations)) {
-                try (var stream = Files.walk(migrations)) {
-                    stream.forEach(existingMigrations::add);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+    @Override
+    public void watch(WatchRequest request, StreamObserver<WatchResponse> responseObserver) {
+        if (module != null || errors != null) {
+            if (errors == null || errors.getErrorsCount() == 0) {
+                responseObserver.onNext(WatchResponse.newBuilder()
+                        .setReloadSuccess(ReloadSuccess.newBuilder().setModule(module).build()).build());
+            } else {
+                responseObserver.onNext(WatchResponse.newBuilder()
+                        .setReloadFailed(ReloadFailed.newBuilder().setErrors(errors).build()).build());
             }
         }
+        watches.add(responseObserver);
+    }
 
+    public static void start() {
+        if (INSTANCE != null) {
+            return;
+        }
+        synchronized (HotReloadHandler.class) {
+            if (INSTANCE == null) {
+                var hr = new HotReloadHandler();
+                hr.init();
+                INSTANCE = hr;
+            }
+        }
+    }
+
+    private void init() {
+        gatherMigrations();
         int port = Integer.getInteger("ftl.language.port");
         server = ServerBuilder.forPort(port)
                 .addService(new HotReloadHandler())
@@ -160,10 +202,22 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                 server.shutdownNow();
             }
         });
-
     }
 
-    static void doScan(boolean force) {
+    private static void gatherMigrations() {
+        for (var dir : RuntimeUpdatesProcessor.INSTANCE.getSourcesDir()) {
+            Path migrations = dir.resolve("db");
+            if (Files.isDirectory(migrations)) {
+                try (var stream = Files.walk(migrations)) {
+                    stream.forEach(existingMigrations::add);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
+    void doScan(boolean force) {
         if (RuntimeUpdatesProcessor.INSTANCE != null) {
             try {
                 AtomicBoolean newForce = new AtomicBoolean();

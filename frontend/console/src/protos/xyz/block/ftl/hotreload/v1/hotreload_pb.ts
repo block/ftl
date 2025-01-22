@@ -103,6 +103,87 @@ export class ReloadResponse extends Message<ReloadResponse> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.hotreload.v1.WatchRequest
+ */
+export class WatchRequest extends Message<WatchRequest> {
+  constructor(data?: PartialMessage<WatchRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.hotreload.v1.WatchRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WatchRequest {
+    return new WatchRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WatchRequest {
+    return new WatchRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WatchRequest {
+    return new WatchRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: WatchRequest | PlainMessage<WatchRequest> | undefined, b: WatchRequest | PlainMessage<WatchRequest> | undefined): boolean {
+    return proto3.util.equals(WatchRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.hotreload.v1.WatchResponse
+ */
+export class WatchResponse extends Message<WatchResponse> {
+  /**
+   * @generated from oneof xyz.block.ftl.hotreload.v1.WatchResponse.event
+   */
+  event: {
+    /**
+     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadSuccess reload_success = 1;
+     */
+    value: ReloadSuccess;
+    case: "reloadSuccess";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadFailed reload_failed = 2;
+     */
+    value: ReloadFailed;
+    case: "reloadFailed";
+  } | { case: undefined; value?: undefined } = { case: undefined };
+
+  constructor(data?: PartialMessage<WatchResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.hotreload.v1.WatchResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "reload_success", kind: "message", T: ReloadSuccess, oneof: "event" },
+    { no: 2, name: "reload_failed", kind: "message", T: ReloadFailed, oneof: "event" },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WatchResponse {
+    return new WatchResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WatchResponse {
+    return new WatchResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WatchResponse {
+    return new WatchResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: WatchResponse | PlainMessage<WatchResponse> | undefined, b: WatchResponse | PlainMessage<WatchResponse> | undefined): boolean {
+    return proto3.util.equals(WatchResponse, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.hotreload.v1.ReloadNotRequired
  */
 export class ReloadNotRequired extends Message<ReloadNotRequired> {

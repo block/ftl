@@ -23,6 +23,18 @@ class ReloadResponse(_message.Message):
     reload_failed: ReloadFailed
     def __init__(self, reload_not_required: _Optional[_Union[ReloadNotRequired, _Mapping]] = ..., reload_success: _Optional[_Union[ReloadSuccess, _Mapping]] = ..., reload_failed: _Optional[_Union[ReloadFailed, _Mapping]] = ...) -> None: ...
 
+class WatchRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class WatchResponse(_message.Message):
+    __slots__ = ("reload_success", "reload_failed")
+    RELOAD_SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    RELOAD_FAILED_FIELD_NUMBER: _ClassVar[int]
+    reload_success: ReloadSuccess
+    reload_failed: ReloadFailed
+    def __init__(self, reload_success: _Optional[_Union[ReloadSuccess, _Mapping]] = ..., reload_failed: _Optional[_Union[ReloadFailed, _Mapping]] = ...) -> None: ...
+
 class ReloadNotRequired(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...

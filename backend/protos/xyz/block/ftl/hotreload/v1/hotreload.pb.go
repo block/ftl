@@ -165,6 +165,124 @@ func (*ReloadResponse_ReloadSuccess) isReloadResponse_Event() {}
 
 func (*ReloadResponse_ReloadFailed) isReloadResponse_Event() {}
 
+type WatchRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchRequest) Reset() {
+	*x = WatchRequest{}
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchRequest) ProtoMessage() {}
+
+func (x *WatchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchRequest.ProtoReflect.Descriptor instead.
+func (*WatchRequest) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescGZIP(), []int{2}
+}
+
+type WatchResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Event:
+	//
+	//	*WatchResponse_ReloadSuccess
+	//	*WatchResponse_ReloadFailed
+	Event         isWatchResponse_Event `protobuf_oneof:"event"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchResponse) Reset() {
+	*x = WatchResponse{}
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchResponse) ProtoMessage() {}
+
+func (x *WatchResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchResponse.ProtoReflect.Descriptor instead.
+func (*WatchResponse) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *WatchResponse) GetEvent() isWatchResponse_Event {
+	if x != nil {
+		return x.Event
+	}
+	return nil
+}
+
+func (x *WatchResponse) GetReloadSuccess() *ReloadSuccess {
+	if x != nil {
+		if x, ok := x.Event.(*WatchResponse_ReloadSuccess); ok {
+			return x.ReloadSuccess
+		}
+	}
+	return nil
+}
+
+func (x *WatchResponse) GetReloadFailed() *ReloadFailed {
+	if x != nil {
+		if x, ok := x.Event.(*WatchResponse_ReloadFailed); ok {
+			return x.ReloadFailed
+		}
+	}
+	return nil
+}
+
+type isWatchResponse_Event interface {
+	isWatchResponse_Event()
+}
+
+type WatchResponse_ReloadSuccess struct {
+	ReloadSuccess *ReloadSuccess `protobuf:"bytes,1,opt,name=reload_success,json=reloadSuccess,proto3,oneof"`
+}
+
+type WatchResponse_ReloadFailed struct {
+	ReloadFailed *ReloadFailed `protobuf:"bytes,2,opt,name=reload_failed,json=reloadFailed,proto3,oneof"`
+}
+
+func (*WatchResponse_ReloadSuccess) isWatchResponse_Event() {}
+
+func (*WatchResponse_ReloadFailed) isWatchResponse_Event() {}
+
 type ReloadNotRequired struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -173,7 +291,7 @@ type ReloadNotRequired struct {
 
 func (x *ReloadNotRequired) Reset() {
 	*x = ReloadNotRequired{}
-	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[2]
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -185,7 +303,7 @@ func (x *ReloadNotRequired) String() string {
 func (*ReloadNotRequired) ProtoMessage() {}
 
 func (x *ReloadNotRequired) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[2]
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -198,7 +316,7 @@ func (x *ReloadNotRequired) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReloadNotRequired.ProtoReflect.Descriptor instead.
 func (*ReloadNotRequired) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescGZIP(), []int{2}
+	return file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescGZIP(), []int{4}
 }
 
 type ReloadSuccess struct {
@@ -213,7 +331,7 @@ type ReloadSuccess struct {
 
 func (x *ReloadSuccess) Reset() {
 	*x = ReloadSuccess{}
-	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[3]
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -225,7 +343,7 @@ func (x *ReloadSuccess) String() string {
 func (*ReloadSuccess) ProtoMessage() {}
 
 func (x *ReloadSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[3]
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -238,7 +356,7 @@ func (x *ReloadSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReloadSuccess.ProtoReflect.Descriptor instead.
 func (*ReloadSuccess) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescGZIP(), []int{3}
+	return file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ReloadSuccess) GetModule() *v1.Module {
@@ -265,7 +383,7 @@ type ReloadFailed struct {
 
 func (x *ReloadFailed) Reset() {
 	*x = ReloadFailed{}
-	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[4]
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -277,7 +395,7 @@ func (x *ReloadFailed) String() string {
 func (*ReloadFailed) ProtoMessage() {}
 
 func (x *ReloadFailed) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[4]
+	mi := &file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -290,7 +408,7 @@ func (x *ReloadFailed) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReloadFailed.ProtoReflect.Descriptor instead.
 func (*ReloadFailed) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescGZIP(), []int{4}
+	return file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ReloadFailed) GetErrors() *v11.ErrorList {
@@ -334,6 +452,19 @@ var file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDesc = []byte{
 	0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x68, 0x6f, 0x74, 0x72, 0x65,
 	0x6c, 0x6f, 0x61, 0x64, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x46, 0x61,
 	0x69, 0x6c, 0x65, 0x64, 0x48, 0x00, 0x52, 0x0c, 0x72, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x46, 0x61,
+	0x69, 0x6c, 0x65, 0x64, 0x42, 0x07, 0x0a, 0x05, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x22, 0x0e, 0x0a,
+	0x0c, 0x57, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0xbd, 0x01,
+	0x0a, 0x0d, 0x57, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x52, 0x0a, 0x0e, 0x72, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x5f, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73,
+	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x29, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c,
+	0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x68, 0x6f, 0x74, 0x72, 0x65, 0x6c, 0x6f, 0x61,
+	0x64, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x53, 0x75, 0x63, 0x63, 0x65,
+	0x73, 0x73, 0x48, 0x00, 0x52, 0x0d, 0x72, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x53, 0x75, 0x63, 0x63,
+	0x65, 0x73, 0x73, 0x12, 0x4f, 0x0a, 0x0d, 0x72, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x5f, 0x66, 0x61,
+	0x69, 0x6c, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x78, 0x79, 0x7a,
+	0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x68, 0x6f, 0x74, 0x72, 0x65,
+	0x6c, 0x6f, 0x61, 0x64, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x46, 0x61,
+	0x69, 0x6c, 0x65, 0x64, 0x48, 0x00, 0x52, 0x0c, 0x72, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x46, 0x61,
 	0x69, 0x6c, 0x65, 0x64, 0x42, 0x07, 0x0a, 0x05, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x22, 0x13, 0x0a,
 	0x11, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x4e, 0x6f, 0x74, 0x52, 0x65, 0x71, 0x75, 0x69, 0x72,
 	0x65, 0x64, 0x22, 0x86, 0x01, 0x0a, 0x0d, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x53, 0x75, 0x63,
@@ -349,7 +480,7 @@ var file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDesc = []byte{
 	0x72, 0x72, 0x6f, 0x72, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x24, 0x2e, 0x78, 0x79,
 	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x6c, 0x61, 0x6e, 0x67,
 	0x75, 0x61, 0x67, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x4c, 0x69, 0x73,
-	0x74, 0x52, 0x06, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x73, 0x32, 0xbf, 0x01, 0x0a, 0x10, 0x48, 0x6f,
+	0x74, 0x52, 0x06, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x73, 0x32, 0x9f, 0x02, 0x0a, 0x10, 0x48, 0x6f,
 	0x74, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x4a,
 	0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x1d, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f,
 	0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65,
@@ -361,7 +492,13 @@ var file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDesc = []byte{
 	0x31, 0x2e, 0x52, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
 	0x2a, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e,
 	0x68, 0x6f, 0x74, 0x72, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x6c,
-	0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x4e, 0x50, 0x01, 0x5a,
+	0x6f, 0x61, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x5e, 0x0a, 0x05, 0x57,
+	0x61, 0x74, 0x63, 0x68, 0x12, 0x28, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b,
+	0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x68, 0x6f, 0x74, 0x72, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x2e, 0x76,
+	0x31, 0x2e, 0x57, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x29,
+	0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x68,
+	0x6f, 0x74, 0x72, 0x65, 0x6c, 0x6f, 0x61, 0x64, 0x2e, 0x76, 0x31, 0x2e, 0x57, 0x61, 0x74, 0x63,
+	0x68, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x30, 0x01, 0x42, 0x4e, 0x50, 0x01, 0x5a,
 	0x4a, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x62, 0x6c, 0x6f, 0x63,
 	0x6b, 0x2f, 0x66, 0x74, 0x6c, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x70, 0x72,
 	0x6f, 0x74, 0x6f, 0x73, 0x2f, 0x78, 0x79, 0x7a, 0x2f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2f, 0x66,
@@ -382,34 +519,40 @@ func file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescGZIP() []byte {
 	return file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDescData
 }
 
-var file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_xyz_block_ftl_hotreload_v1_hotreload_proto_goTypes = []any{
 	(*ReloadRequest)(nil),     // 0: xyz.block.ftl.hotreload.v1.ReloadRequest
 	(*ReloadResponse)(nil),    // 1: xyz.block.ftl.hotreload.v1.ReloadResponse
-	(*ReloadNotRequired)(nil), // 2: xyz.block.ftl.hotreload.v1.ReloadNotRequired
-	(*ReloadSuccess)(nil),     // 3: xyz.block.ftl.hotreload.v1.ReloadSuccess
-	(*ReloadFailed)(nil),      // 4: xyz.block.ftl.hotreload.v1.ReloadFailed
-	(*v1.Module)(nil),         // 5: xyz.block.ftl.schema.v1.Module
-	(*v11.ErrorList)(nil),     // 6: xyz.block.ftl.language.v1.ErrorList
-	(*v12.PingRequest)(nil),   // 7: xyz.block.ftl.v1.PingRequest
-	(*v12.PingResponse)(nil),  // 8: xyz.block.ftl.v1.PingResponse
+	(*WatchRequest)(nil),      // 2: xyz.block.ftl.hotreload.v1.WatchRequest
+	(*WatchResponse)(nil),     // 3: xyz.block.ftl.hotreload.v1.WatchResponse
+	(*ReloadNotRequired)(nil), // 4: xyz.block.ftl.hotreload.v1.ReloadNotRequired
+	(*ReloadSuccess)(nil),     // 5: xyz.block.ftl.hotreload.v1.ReloadSuccess
+	(*ReloadFailed)(nil),      // 6: xyz.block.ftl.hotreload.v1.ReloadFailed
+	(*v1.Module)(nil),         // 7: xyz.block.ftl.schema.v1.Module
+	(*v11.ErrorList)(nil),     // 8: xyz.block.ftl.language.v1.ErrorList
+	(*v12.PingRequest)(nil),   // 9: xyz.block.ftl.v1.PingRequest
+	(*v12.PingResponse)(nil),  // 10: xyz.block.ftl.v1.PingResponse
 }
 var file_xyz_block_ftl_hotreload_v1_hotreload_proto_depIdxs = []int32{
-	2, // 0: xyz.block.ftl.hotreload.v1.ReloadResponse.reload_not_required:type_name -> xyz.block.ftl.hotreload.v1.ReloadNotRequired
-	3, // 1: xyz.block.ftl.hotreload.v1.ReloadResponse.reload_success:type_name -> xyz.block.ftl.hotreload.v1.ReloadSuccess
-	4, // 2: xyz.block.ftl.hotreload.v1.ReloadResponse.reload_failed:type_name -> xyz.block.ftl.hotreload.v1.ReloadFailed
-	5, // 3: xyz.block.ftl.hotreload.v1.ReloadSuccess.module:type_name -> xyz.block.ftl.schema.v1.Module
-	6, // 4: xyz.block.ftl.hotreload.v1.ReloadSuccess.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
-	6, // 5: xyz.block.ftl.hotreload.v1.ReloadFailed.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
-	7, // 6: xyz.block.ftl.hotreload.v1.HotReloadService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
-	0, // 7: xyz.block.ftl.hotreload.v1.HotReloadService.Reload:input_type -> xyz.block.ftl.hotreload.v1.ReloadRequest
-	8, // 8: xyz.block.ftl.hotreload.v1.HotReloadService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	1, // 9: xyz.block.ftl.hotreload.v1.HotReloadService.Reload:output_type -> xyz.block.ftl.hotreload.v1.ReloadResponse
-	8, // [8:10] is the sub-list for method output_type
-	6, // [6:8] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	4,  // 0: xyz.block.ftl.hotreload.v1.ReloadResponse.reload_not_required:type_name -> xyz.block.ftl.hotreload.v1.ReloadNotRequired
+	5,  // 1: xyz.block.ftl.hotreload.v1.ReloadResponse.reload_success:type_name -> xyz.block.ftl.hotreload.v1.ReloadSuccess
+	6,  // 2: xyz.block.ftl.hotreload.v1.ReloadResponse.reload_failed:type_name -> xyz.block.ftl.hotreload.v1.ReloadFailed
+	5,  // 3: xyz.block.ftl.hotreload.v1.WatchResponse.reload_success:type_name -> xyz.block.ftl.hotreload.v1.ReloadSuccess
+	6,  // 4: xyz.block.ftl.hotreload.v1.WatchResponse.reload_failed:type_name -> xyz.block.ftl.hotreload.v1.ReloadFailed
+	7,  // 5: xyz.block.ftl.hotreload.v1.ReloadSuccess.module:type_name -> xyz.block.ftl.schema.v1.Module
+	8,  // 6: xyz.block.ftl.hotreload.v1.ReloadSuccess.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
+	8,  // 7: xyz.block.ftl.hotreload.v1.ReloadFailed.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
+	9,  // 8: xyz.block.ftl.hotreload.v1.HotReloadService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	0,  // 9: xyz.block.ftl.hotreload.v1.HotReloadService.Reload:input_type -> xyz.block.ftl.hotreload.v1.ReloadRequest
+	2,  // 10: xyz.block.ftl.hotreload.v1.HotReloadService.Watch:input_type -> xyz.block.ftl.hotreload.v1.WatchRequest
+	10, // 11: xyz.block.ftl.hotreload.v1.HotReloadService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	1,  // 12: xyz.block.ftl.hotreload.v1.HotReloadService.Reload:output_type -> xyz.block.ftl.hotreload.v1.ReloadResponse
+	3,  // 13: xyz.block.ftl.hotreload.v1.HotReloadService.Watch:output_type -> xyz.block.ftl.hotreload.v1.WatchResponse
+	11, // [11:14] is the sub-list for method output_type
+	8,  // [8:11] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_hotreload_v1_hotreload_proto_init() }
@@ -422,13 +565,17 @@ func file_xyz_block_ftl_hotreload_v1_hotreload_proto_init() {
 		(*ReloadResponse_ReloadSuccess)(nil),
 		(*ReloadResponse_ReloadFailed)(nil),
 	}
+	file_xyz_block_ftl_hotreload_v1_hotreload_proto_msgTypes[3].OneofWrappers = []any{
+		(*WatchResponse_ReloadSuccess)(nil),
+		(*WatchResponse_ReloadFailed)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

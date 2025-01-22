@@ -21,6 +21,18 @@ message ReloadResponse {
   }
 }
 
+
+message WatchRequest {
+}
+
+message WatchResponse {
+  oneof event {
+    ReloadSuccess reload_success = 1;
+    ReloadFailed reload_failed = 2;
+  }
+}
+
+
 message ReloadNotRequired {}
 
 message ReloadSuccess {
@@ -46,4 +58,7 @@ service HotReloadService {
   // such as when the Reload context changes.
   //
   rpc Reload(ReloadRequest) returns (ReloadResponse);
+
+  // Watch for hot reloads not initiated by an explicit Reload call.
+  rpc Watch(WatchRequest) returns (stream WatchResponse);
 }

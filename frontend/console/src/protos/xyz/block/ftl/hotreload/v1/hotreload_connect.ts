@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ReloadRequest, ReloadResponse } from "./hotreload_pb.js";
+import { ReloadRequest, ReloadResponse, WatchRequest, WatchResponse } from "./hotreload_pb.js";
 
 /**
  * HotReloadService is for communication between a language plugin a language runtime that can perform a hot reload
@@ -39,6 +39,17 @@ export const HotReloadService = {
       I: ReloadRequest,
       O: ReloadResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * Watch for hot reloads not initiated by an explicit Reload call.
+     *
+     * @generated from rpc xyz.block.ftl.hotreload.v1.HotReloadService.Watch
+     */
+    watch: {
+      name: "Watch",
+      I: WatchRequest,
+      O: WatchResponse,
+      kind: MethodKind.ServerStreaming,
     },
   }
 } as const;

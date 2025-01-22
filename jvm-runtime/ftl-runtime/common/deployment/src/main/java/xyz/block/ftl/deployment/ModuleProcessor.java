@@ -189,7 +189,7 @@ public class ModuleProcessor {
         Files.write(errorOutput, errBytes);
 
         if (launchModeBuildItem.getLaunchMode() == LaunchMode.DEVELOPMENT) {
-            HotReloadHandler.setResults(schRef.get(), errRef.get());
+            HotReloadHandler.getInstance().setResults(schRef.get(), errRef.get());
             // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
             // get updated runner information, although we don't actually get this until the runner has started.
             var hash = HashUtil.sha256(schBytes);
@@ -206,8 +206,6 @@ public class ModuleProcessor {
                     recorder.handleDevModeRunnerStart(shutdownContextBuildItem);
                 }
             }
-            // TODO: replace runner info file as well
-            HotReloadHandler.start();
         } else {
             output = outputTargetBuildItem.getOutputDirectory().resolve("launch");
             try (var out = Files.newOutputStream(output)) {
