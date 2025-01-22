@@ -1,9 +1,58 @@
-
 @import "../themes/adidoks/sass/main.scss";
 
 main {
   img {
     max-width: 100%;
     height: auto;
+  }
+
+  pre {
+    position: relative;
+    
+    .copy-button {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      z-index: 10;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+      color: var(--body-color);
+      background-color: var(--body-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.25rem;
+      opacity: 0;
+      transition: all 0.15s ease-in-out;
+      backdrop-filter: blur(3px);
+
+      &::before {
+        content: "";
+        width: 1em;
+        height: 1em;
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z'/%3E%3Cpath d='M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z'/%3E%3C/svg%3E");
+        mask-repeat: no-repeat;
+        mask-position: center;
+        mask-size: contain;
+        background-color: currentColor;
+      }
+    }
+
+    &:hover .copy-button {
+      opacity: 1;
+      background-color: var(--body-bg);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .copy-button:hover {
+      color: var(--link-color);
+      border-color: var(--link-color);
+      background-color: var(--body-bg);
+
+      &::before {
+        filter: opacity(0.75);
+      }
+    }
   }
 }
