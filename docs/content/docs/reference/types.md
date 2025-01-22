@@ -113,7 +113,7 @@ public class Pair<T, U> {
 
 {% end %}
 
-## Sum types
+## Type enums (sum types)
 
 [Sum types](https://en.wikipedia.org/wiki/Tagged_union) are supported by FTL's type system.
 
@@ -154,7 +154,7 @@ class Dog() : Animal
 
 {% end %}
 
-## Enumerations
+## Value enums
 
 A value enum is an enumerated set of string or integer values.
 

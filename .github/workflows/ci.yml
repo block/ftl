@@ -184,6 +184,13 @@ jobs:
           submodules: true
       - uses: cashapp/activate-hermit@v1.1.3
       - run: cd docs && zola build
+  gen-lsp:
+    name: Generate LSP Help
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cashapp/activate-hermit@v1.1.3
+      - run: just lsp-generate
   arch-lint:
     name: Lint Architecture
     runs-on: ubuntu-latest
