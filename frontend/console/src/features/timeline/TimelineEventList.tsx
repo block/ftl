@@ -1,3 +1,4 @@
+import { HoverPopup } from '../../components/HoverPopup'
 import type { Event } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { formatTimestampShort } from '../../utils'
 import { deploymentTextColor } from '../deployments/deployment.utils'
@@ -36,6 +37,20 @@ const deploymentKey = (event: Event) => {
   }
 }
 
+const moduleName = (event: Event) => {
+  const key = deploymentKey(event)
+  const parts = key.split('-')
+  return parts.length >= 2 ? parts[1] : ''
+}
+
+const DeploymentCell = ({ entry }: { entry: Event }) => {
+  return (
+    <td className={`p-1 pr-2 w-24 items-center flex-none truncate ${deploymentTextColor(deploymentKey(entry))}`}>
+      <HoverPopup popupContent={deploymentKey(entry)}>{moduleName(entry)}</HoverPopup>
+    </td>
+  )
+}
+
 export const TimelineEventList = ({ events, selectedEventId, handleEntryClicked }: EventTimelineProps) => {
   return (
     <div className='overflow-x-hidden'>
@@ -44,7 +59,7 @@ export const TimelineEventList = ({ events, selectedEventId, handleEntryClicked 
           <tr className='flex text-xs'>
             <th className='p-1 text-left border-b w-8 border-gray-100 dark:border-slate-700 flex-none' />
             <th className='p-1 text-left border-b w-40 border-gray-100 dark:border-slate-700 flex-none'>Date</th>
-            <th className='p-1 text-left border-b w-40 border-gray-100 dark:border-slate-700 flex-none'>Deployment</th>
+            <th className='p-1 text-left border-b w-24 border-gray-100 dark:border-slate-700 flex-none'>Module</th>
             <th className='p-1 text-left border-b border-gray-100 dark:border-slate-700 flex-grow flex-shrink'>Content</th>
           </tr>
         </thead>
@@ -61,9 +76,7 @@ export const TimelineEventList = ({ events, selectedEventId, handleEntryClicked 
                 <TimelineIcon event={entry} />
               </td>
               <td className='p-1 w-40 items-center flex-none text-gray-400 dark:text-gray-400'>{formatTimestampShort(entry.timestamp)}</td>
-              <td title={deploymentKey(entry)} className={`p-1 pr-2 w-40 items-center flex-none truncate ${deploymentTextColor(deploymentKey(entry))}`}>
-                {deploymentKey(entry)}
-              </td>
+              <DeploymentCell entry={entry} />
               <td className='p-1 flex-grow truncate'>
                 {(() => {
                   switch (entry.entry.case) {
