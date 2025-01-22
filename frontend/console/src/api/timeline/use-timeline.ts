@@ -83,7 +83,7 @@ export const useTimeline = (isStreaming: boolean, filters: GetTimelineRequest_Fi
 
   return useInfiniteQuery({
     queryKey: queryKey,
-    queryFn: async ({ signal }) => (isStreaming ? streamTimeline({ signal }) : { pages: [await fetchTimeline({ signal })], pageParams: [] }),
+    queryFn: async ({ signal }) => (isStreaming ? streamTimeline({ signal }) : await fetchTimeline({ signal })),
     enabled: enabled && isVisible,
     getNextPageParam: () => null, // Disable pagination for streaming
     initialPageParam: null, // Disable pagination for streaming
