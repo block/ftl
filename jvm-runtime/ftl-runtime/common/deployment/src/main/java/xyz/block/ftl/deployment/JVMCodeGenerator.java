@@ -42,6 +42,11 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
     }
 
     @Override
+    public String[] inputExtensions() {
+        return new String[] { "pb" };
+    }
+
+    @Override
     public boolean trigger(CodeGenContext context) throws CodeGenException {
         log.info("Generating JVM clients, data, enums from schema");
         if (!Files.isDirectory(context.inputDir())) {
