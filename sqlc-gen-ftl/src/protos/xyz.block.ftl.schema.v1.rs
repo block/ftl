@@ -261,7 +261,7 @@ pub struct Map {
 /// Metadata represents a metadata Node in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Metadata {
-    #[prost(oneof="metadata::Value", tags="5, 14, 1, 10, 3, 17, 4, 9, 2, 15, 12, 6, 13, 16, 11, 7, 8")]
+    #[prost(oneof="metadata::Value", tags="5, 14, 1, 10, 3, 4, 9, 2, 15, 12, 6, 17, 13, 16, 11, 7, 8")]
     pub value: ::core::option::Option<metadata::Value>,
 }
 /// Nested message and enum types in `Metadata`.
@@ -278,8 +278,6 @@ pub mod metadata {
         Config(super::MetadataConfig),
         #[prost(message, tag="3")]
         CronJob(super::MetadataCronJob),
-        #[prost(message, tag="17")]
-        DbColumn(super::MetadataDbColumn),
         #[prost(message, tag="4")]
         Databases(super::MetadataDatabases),
         #[prost(message, tag="9")]
@@ -292,6 +290,8 @@ pub mod metadata {
         Publisher(super::MetadataPublisher),
         #[prost(message, tag="6")]
         Retry(super::MetadataRetry),
+        #[prost(message, tag="17")]
+        SqlColumn(super::MetadataSqlColumn),
         #[prost(message, tag="13")]
         SqlMigration(super::MetadataSqlMigration),
         #[prost(message, tag="16")]
@@ -347,16 +347,6 @@ pub struct MetadataCronJob {
     #[prost(string, tag="2")]
     pub cron: ::prost::alloc::string::String,
 }
-/// MetadataDBColumn designates a database column.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MetadataDbColumn {
-    #[prost(message, optional, tag="1")]
-    pub pos: ::core::option::Option<Position>,
-    #[prost(string, tag="2")]
-    pub table: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
-    pub name: ::prost::alloc::string::String,
-}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataDatabases {
     #[prost(message, optional, tag="1")]
@@ -410,6 +400,16 @@ pub struct MetadataRetry {
     pub max_backoff: ::prost::alloc::string::String,
     #[prost(message, optional, tag="5")]
     pub catch: ::core::option::Option<Ref>,
+}
+/// MetadataSQLColumn designates a database column.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetadataSqlColumn {
+    #[prost(message, optional, tag="1")]
+    pub pos: ::core::option::Option<Position>,
+    #[prost(string, tag="2")]
+    pub table: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub name: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataSqlMigration {
