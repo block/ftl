@@ -15,10 +15,13 @@ message ReloadRequest {
 
 message ReloadResponse {
   oneof event {
-    ReloadSuccess reload_success = 1;
-    ReloadFailed reload_failed = 2;
+    ReloadNotRequired reload_not_required = 1;
+    ReloadSuccess reload_success = 2;
+    ReloadFailed reload_failed = 3;
   }
 }
+
+message ReloadNotRequired {}
 
 message ReloadSuccess {
   // Module schema for the built module

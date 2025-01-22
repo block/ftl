@@ -438,13 +438,13 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				return fmt.Errorf("failed to send response %w", err)
 			}
 		case <-schemaChangeTicker.C:
+			changed := false
 			if !firstAttempt {
 				_, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: false}))
 				if err != nil {
 					return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 				}
 			}
-			changed := false
 			file, err := os.ReadFile(errorFile)
 			if err == nil {
 				sum := sha256.Sum(file)
@@ -474,7 +474,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			if changed || forceUpdate {
 				auto := !firstAttempt && !forceUpdate
 				if auto {
-					logger.Debugf("sending auto")
+					logger.Infof("sending auto")
 					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
 					if err != nil {
 						return fmt.Errorf("could not send build event: %w", err)
@@ -508,7 +508,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					continue
 				}
 
-				logger.Debugf("Live reload schema changed, sending build success event")
+				logger.Infof("Live reload schema changed, sending build success event")
 				err = stream.Send(&langpb.BuildResponse{
 					Event: &langpb.BuildResponse_BuildSuccess{
 						BuildSuccess: &langpb.BuildSuccess{

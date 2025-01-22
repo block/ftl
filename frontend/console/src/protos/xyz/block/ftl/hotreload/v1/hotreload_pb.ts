@@ -54,13 +54,19 @@ export class ReloadResponse extends Message<ReloadResponse> {
    */
   event: {
     /**
-     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadSuccess reload_success = 1;
+     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadNotRequired reload_not_required = 1;
+     */
+    value: ReloadNotRequired;
+    case: "reloadNotRequired";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadSuccess reload_success = 2;
      */
     value: ReloadSuccess;
     case: "reloadSuccess";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadFailed reload_failed = 2;
+     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadFailed reload_failed = 3;
      */
     value: ReloadFailed;
     case: "reloadFailed";
@@ -74,8 +80,9 @@ export class ReloadResponse extends Message<ReloadResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.hotreload.v1.ReloadResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "reload_success", kind: "message", T: ReloadSuccess, oneof: "event" },
-    { no: 2, name: "reload_failed", kind: "message", T: ReloadFailed, oneof: "event" },
+    { no: 1, name: "reload_not_required", kind: "message", T: ReloadNotRequired, oneof: "event" },
+    { no: 2, name: "reload_success", kind: "message", T: ReloadSuccess, oneof: "event" },
+    { no: 3, name: "reload_failed", kind: "message", T: ReloadFailed, oneof: "event" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReloadResponse {
@@ -92,6 +99,37 @@ export class ReloadResponse extends Message<ReloadResponse> {
 
   static equals(a: ReloadResponse | PlainMessage<ReloadResponse> | undefined, b: ReloadResponse | PlainMessage<ReloadResponse> | undefined): boolean {
     return proto3.util.equals(ReloadResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.hotreload.v1.ReloadNotRequired
+ */
+export class ReloadNotRequired extends Message<ReloadNotRequired> {
+  constructor(data?: PartialMessage<ReloadNotRequired>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.hotreload.v1.ReloadNotRequired";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReloadNotRequired {
+    return new ReloadNotRequired().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ReloadNotRequired {
+    return new ReloadNotRequired().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ReloadNotRequired {
+    return new ReloadNotRequired().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ReloadNotRequired | PlainMessage<ReloadNotRequired> | undefined, b: ReloadNotRequired | PlainMessage<ReloadNotRequired> | undefined): boolean {
+    return proto3.util.equals(ReloadNotRequired, a, b);
   }
 }
 

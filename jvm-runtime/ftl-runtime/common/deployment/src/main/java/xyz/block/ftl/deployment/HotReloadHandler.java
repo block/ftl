@@ -17,6 +17,7 @@ import io.quarkus.bootstrap.classloading.QuarkusClassLoader;
 import io.quarkus.deployment.dev.RuntimeUpdatesProcessor;
 import xyz.block.ftl.hotreload.v1.HotReloadServiceGrpc;
 import xyz.block.ftl.hotreload.v1.ReloadFailed;
+import xyz.block.ftl.hotreload.v1.ReloadNotRequired;
 import xyz.block.ftl.hotreload.v1.ReloadRequest;
 import xyz.block.ftl.hotreload.v1.ReloadResponse;
 import xyz.block.ftl.hotreload.v1.ReloadSuccess;
@@ -32,10 +33,18 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     static final Set<Path> existingMigrations = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    static volatile Module module;
-    static volatile ErrorList errors;
+    private static volatile Module module;
+    private static volatile ErrorList errors;
     private static final AtomicBoolean started = new AtomicBoolean();
     private static volatile Server server;
+    private static volatile boolean restarting = false;
+
+    synchronized static void setResults(Module module, ErrorList errors) {
+        HotReloadHandler.module = module;
+        HotReloadHandler.errors = errors;
+        restarting = false;
+        HotReloadHandler.class.notifyAll();
+    }
 
     @Override
     public void ping(PingRequest request, StreamObserver<PingResponse> responseObserver) {
@@ -46,7 +55,31 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
 
-        doScan(request.getForce());
+        // This is complex, as the restart can't happen until the runner is up
+        // We want to report on the results of the schema generations, so we can bring up a runner
+        // Run the restart in a new thread, so we can report on the schema once it is ready
+        var currentModule = module;
+        Thread t = new Thread(() -> {
+            try {
+                doScan(request.getForce());
+            } finally {
+                synchronized (HotReloadHandler.class) {
+                    restarting = false;
+                    HotReloadHandler.class.notifyAll();
+                }
+            }
+        }, "FTL Restart Thread");
+        synchronized (HotReloadHandler.class) {
+            restarting = true;
+            t.start();
+            while (restarting) {
+                try {
+                    HotReloadHandler.class.wait();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
         Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
         Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();
         if (compileProblem != null || deploymentProblems != null) {
@@ -77,10 +110,16 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                     .build());
             responseObserver.onCompleted();
         } else if (module != null) {
-            responseObserver.onNext(ReloadResponse.newBuilder()
-                    .setReloadSuccess(ReloadSuccess.newBuilder()
-                            .setModule(module).build())
-                    .build());
+            if (module == currentModule) {
+                responseObserver.onNext(ReloadResponse.newBuilder()
+                        .setReloadNotRequired(ReloadNotRequired.newBuilder().build())
+                        .build());
+            } else {
+                responseObserver.onNext(ReloadResponse.newBuilder()
+                        .setReloadSuccess(ReloadSuccess.newBuilder()
+                                .setModule(module).build())
+                        .build());
+            }
             responseObserver.onCompleted();
         } else {
             responseObserver.onError(new RuntimeException("schema not generated"));

@@ -1198,13 +1198,9 @@ func MetadataCronJobFromProto(v *destpb.MetadataCronJob) (out *MetadataCronJob, 
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
 		return nil, fmt.Errorf("Pos: %w", err)
 	}
-<<<<<<< HEAD
 	if out.Cron, err = orZeroR(result.From(ptr(string(v.Cron)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Cron: %w", err)
 	}
-=======
-	out.Cron = string(v.Cron)
->>>>>>> 505dfe2d4 (fix hot reload)
 	return out, nil
 }
 
@@ -1390,13 +1386,8 @@ func (x *MetadataSQLColumn) ToProto() *destpb.MetadataSQLColumn {
 	}
 	return &destpb.MetadataSQLColumn{
 		Pos:   x.Pos.ToProto(),
-<<<<<<< HEAD
 		Table: orZero(ptr(string(x.Table))),
 		Name:  orZero(ptr(string(x.Name))),
-=======
-		Table: string(x.Table),
-		Name:  string(x.Name),
->>>>>>> 505dfe2d4 (fix hot reload)
 	}
 }
 
@@ -1406,7 +1397,6 @@ func MetadataSQLColumnFromProto(v *destpb.MetadataSQLColumn) (out *MetadataSQLCo
 	}
 
 	out = &MetadataSQLColumn{}
-<<<<<<< HEAD
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
 		return nil, fmt.Errorf("Pos: %w", err)
 	}
@@ -1416,15 +1406,6 @@ func MetadataSQLColumnFromProto(v *destpb.MetadataSQLColumn) (out *MetadataSQLCo
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Name: %w", err)
 	}
-=======
-	if fieldPos, err := PositionFromProto(v.Pos); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
-	} else {
-		out.Pos = fromPtr(fieldPos)
-	}
-	out.Table = string(v.Table)
-	out.Name = string(v.Name)
->>>>>>> 505dfe2d4 (fix hot reload)
 	return out, nil
 }
 

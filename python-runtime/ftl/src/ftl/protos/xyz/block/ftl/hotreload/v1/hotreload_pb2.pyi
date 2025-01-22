@@ -14,12 +14,18 @@ class ReloadRequest(_message.Message):
     def __init__(self, force: bool = ...) -> None: ...
 
 class ReloadResponse(_message.Message):
-    __slots__ = ("reload_success", "reload_failed")
+    __slots__ = ("reload_not_required", "reload_success", "reload_failed")
+    RELOAD_NOT_REQUIRED_FIELD_NUMBER: _ClassVar[int]
     RELOAD_SUCCESS_FIELD_NUMBER: _ClassVar[int]
     RELOAD_FAILED_FIELD_NUMBER: _ClassVar[int]
+    reload_not_required: ReloadNotRequired
     reload_success: ReloadSuccess
     reload_failed: ReloadFailed
-    def __init__(self, reload_success: _Optional[_Union[ReloadSuccess, _Mapping]] = ..., reload_failed: _Optional[_Union[ReloadFailed, _Mapping]] = ...) -> None: ...
+    def __init__(self, reload_not_required: _Optional[_Union[ReloadNotRequired, _Mapping]] = ..., reload_success: _Optional[_Union[ReloadSuccess, _Mapping]] = ..., reload_failed: _Optional[_Union[ReloadFailed, _Mapping]] = ...) -> None: ...
+
+class ReloadNotRequired(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
 
 class ReloadSuccess(_message.Message):
     __slots__ = ("module", "errors")
