@@ -32,6 +32,7 @@ func Hourly(ctx context.Context) error {
 <!-- kotlin -->
 ```kotlin
 import xyz.block.ftl.Cron
+
 @Cron("0 * * * *")
 fun hourly() {
     
@@ -63,6 +64,7 @@ func TwiceADay(ctx context.Context) error {
 <!-- kotlin -->
 ```kotlin
 import xyz.block.ftl.Cron
+
 @Cron("12h")
 fun twiceADay() {
     
@@ -94,6 +96,7 @@ func Mondays(ctx context.Context) error {
 <!-- kotlin -->
 ```kotlin
 import xyz.block.ftl.Cron
+
 @Cron("Mon")
 fun mondays() {
     
@@ -104,6 +107,7 @@ fun mondays() {
 import xyz.block.ftl.Cron;
 
 class MyCron {
+    
     @Cron("Mon")
     void mondays() {
         
