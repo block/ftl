@@ -49,13 +49,12 @@ var go2protoTmpl = template.Must(template.New("go2proto.to.go.tmpl").
 package {{ .GoPackage }}
 
 import "fmt"
+import "encoding"
 import destpb "{{ . | goProtoImport }}"
-import "google.golang.org/protobuf/proto"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
-{{range $gimport := .GoImports }}
-import "{{ $gimport }}"
-{{- end}}
+import "github.com/alecthomas/types/optional"
+import "github.com/alecthomas/types/result"
 
 
 var _ fmt.Stringer
@@ -86,15 +85,16 @@ func sliceMap[T any, U any](values []T, f func(T) U) []U {
 	return out
 }
 
-func sliceMapErr[T any, U any](values []T, f func(T) (U, error)) ([]U, error) {
-	var err error
+func sliceMapR[T any, U any](values []T, f func(T) result.Result[U]) result.Result[[]U] {
 	out := make([]U, len(values))
 	for i, v := range values {
-		if out[i], err = f(v);  err != nil {
-			return nil, err
+		r := f(v)
+		if r.Err() != nil {
+			return result.Err[[]U](r.Err())
 		}
+		out[i], _ = r.Get()
 	}
-	return out, nil
+	return result.Ok[[]U](out)
 }
 
 func orZero[T any](v *T) T {
@@ -104,11 +104,24 @@ func orZero[T any](v *T) T {
 	return *v
 }
 
-func ptr[T any, O any](v *O, o T) *T {
-	if v == nil {
-		return nil
+func orZeroR[T any](v result.Result[*T]) result.Result[T] {
+		if v.Err() != nil {
+		return result.Err[T](v.Err())
 	}
+	r, _ := v.Get()
+	return result.Ok[T](orZero(r))
+}
+
+func ptr[T any](o T) *T {
 	return &o
+}
+
+func ptrR[T any](o result.Result[T]) result.Result[*T] {
+	if o.Err() != nil {
+		return result.Err[*T](o.Err())
+	}
+	r, _ := o.Get()
+	return result.Ok[*T](ptr(r))
 }
 
 func fromPtr[T any](v *T) T {
@@ -116,6 +129,69 @@ func fromPtr[T any](v *T) T {
 		return *new(T)
 	}
 	return *v
+}
+
+func fromPtrR[T any](v result.Result[*T]) result.Result[T] {
+	if v.Err() != nil {
+		return result.Err[T](v.Err())
+	}
+	r, _ := v.Get()
+	return result.Ok[T](fromPtr(r))
+}
+
+func optionalR[T any](r result.Result[*T]) result.Result[optional.Option[T]] {
+	if r.Err() != nil {
+		return result.Err[optional.Option[T]](r.Err())
+	}
+	v, _ := r.Get()
+	return result.Ok[optional.Option[T]](optional.Ptr(v))
+}
+
+func setNil[T, O any](v *T, o *O) *T {
+	if o == nil {
+		return nil
+	}
+	return v
+}
+
+func setNilR[T, O any](v result.Result[*T], o *O) result.Result[*T] {
+	if v.Err() != nil {
+		return v
+	}
+	r, _ := v.Get()
+	return result.Ok[*T](setNil(r, o))
+}
+
+type binaryUnmarshallable[T any] interface {
+	*T
+	encoding.BinaryUnmarshaler
+}
+
+type textUnmarshallable[T any] interface {
+	*T
+	encoding.TextUnmarshaler
+}
+
+func unmarshallBinary[T any, TPtr binaryUnmarshallable[T]](v []byte, f TPtr) result.Result[*T] {
+	var to T
+	toptr := (TPtr)(&to)
+
+	err := toptr.UnmarshalBinary(v)
+	if err != nil {
+		return result.Err[*T](err)
+	}
+	return result.Ok[*T](&to)
+}
+
+func unmarshallText[T any, TPtr textUnmarshallable[T]](v []byte, f TPtr) result.Result[*T] {
+	var to T
+	toptr := (TPtr)(&to)
+
+	err := toptr.UnmarshalText(v)
+	if err != nil {
+		return result.Err[*T](err)
+	}
+	return result.Ok[*T](&to)
 }
 
 {{range $decl := .OrderedDecls }}
@@ -126,43 +202,7 @@ func (x *{{ .Name }}) ToProto() *destpb.{{ .Name }} {
 	}
 	return &destpb.{{ .Name }}{
 {{- range $field := .Fields }}
-{{- if . | isBuiltin }}
-{{- if $field.Optional}}
-		{{ $field.EscapedName }}: proto.{{ $field.ProtoGoType | toUpperCamel }}({{ $field.ProtoGoType }}({{if $field.Pointer}}*{{end}}x.{{ $field.Name }})),
-{{- else if .Repeated}}
-		{{ $field.EscapedName }}: sliceMap(x.{{ $field.Name }}, func(v {{ $field.OriginType }}) {{ $field.ProtoGoType }} { return {{ $field.ProtoGoType }}(v) }),
-{{- else }}
-		{{ $field.EscapedName }}: {{ $field.ProtoGoType }}(x.{{ $field.Name }}),
-{{- end}}
-{{- else if eq $field.ProtoType "google.protobuf.Timestamp" }}
-		{{ $field.EscapedName }}: timestamppb.New(x.{{ $field.Name }}),
-{{- else if eq $field.ProtoType "google.protobuf.Duration" }}
-		{{ $field.EscapedName }}: durationpb.New(x.{{ $field.Name }}),
-{{- else if eq .Kind "Message" }}
-{{- if .Repeated }}
-		{{ $field.EscapedName }}: protoSlice[*destpb.{{ .ProtoGoType }}](x.{{ $field.Name }}),
-{{- else}}
-		{{ $field.EscapedName }}: x.{{ $field.Name }}.ToProto(),
-{{- end}}
-{{- else if eq .Kind "Enum" }}
-{{- if .Repeated }}
-		{{ $field.EscapedName }}: protoSlice[destpb.{{ .Type }}](x.{{ $field.Name }}),
-{{- else}}
-		{{ $field.EscapedName }}: x.{{ $field.Name }}.ToProto(),
-{{- end}}
-{{- else if eq .Kind "SumType" }}
-{{- if .Repeated }}
-		{{ $field.EscapedName }}: sliceMap(x.{{ $field.Name }}, {{$field.OriginType}}ToProto),
-{{- else}}
-		{{ $field.EscapedName }}: {{ $field.OriginType }}ToProto(x.{{ $field.Name }}),
-{{- end}}
-{{- else if eq $field.Kind "BinaryMarshaler" }}
-		{{ $field.EscapedName }}: protoMust(x.{{ $field.Name }}.MarshalBinary()),
-{{- else if eq $field.Kind "TextMarshaler" }}
-		{{ $field.EscapedName }}: string(protoMust(x.{{ $field.Name }}.MarshalText())),
-{{- else }}
-		{{ $field.EscapedName }}: ??, // x.{{ $field.Name }}.ToProto() // Unknown type {{ $field.OriginType }} of kind {{ $field.Kind }}
-{{- end}}
+		{{ $field.EscapedName }}: {{ $field.ToProto }},
 {{- end}}
 	}
 }
@@ -175,77 +215,9 @@ func {{ .Name }}FromProto(v *destpb.{{ .Name }}) (out *{{ .Name }}, err error) {
 	out = &{{ .Name }}{}
 
 {{- range $field := .Fields }}
-{{- if . | isBuiltin }}
-{{- if $field.Optional}}
-{{- if $field.Pointer}}
-	out.{{ $field.Name }} = ptr(v.{{ $field.EscapedName }}, {{ $field.OriginType }}(orZero(v.{{ $field.EscapedName }})))
-{{- else}}
-	out.{{ $field.Name }} = {{ $field.OriginType }}(orZero(v.{{ $field.EscapedName }}))
-{{- end}}
-{{- else if .Repeated}}
-	out.{{ $field.Name }} = sliceMap(v.{{ $field.EscapedName }}, func(v {{ $field.ProtoGoType }}) {{ $field.OriginType }} { return {{ $field.OriginType }}(v) })
-{{- else }}
-	out.{{ $field.Name }} = {{ $field.OriginType }}(v.{{ $field.EscapedName }})
-{{- end}}
-{{- else if eq $field.ProtoType "google.protobuf.Timestamp" }}
-	out.{{ $field.Name }} = v.{{ $field.EscapedName }}.AsTime()
-{{- else if eq $field.ProtoType "google.protobuf.Duration" }}
-	out.{{ $field.Name }} = v.{{ $field.EscapedName }}.AsDuration()
-{{- else if eq .Kind "Message" }}
-{{- if .Repeated }}
-	if out.{{ $field.Name }}, err = sliceMapErr(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto); err != nil {
+	if out.{{ $field.Name }}, err = {{ $field.FromProto }}.Result(); err != nil {
 		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
 	}
-{{- else}}
-{{- if $field.Pointer}}
-	if out.{{ $field.Name }}, err = {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}); err != nil {
-		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
-	}
-{{- else}}
-	if field{{ $field.Name }}, err := {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}); err != nil {
-		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
-	} else {
-		out.{{ $field.Name }} = fromPtr(field{{ $field.Name }})
-	}
-{{- end}}
-{{- end}}
-{{- else if eq .Kind "Enum" }}
-{{- if .Repeated }}
-	if out.{{ $field.Name }}, err = sliceMapErr(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto); err != nil {
-		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
-	}
-{{- else}}
-	if out.{{ $field.Name }}, err = {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}); err != nil {
-		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
-	}
-{{- end}}
-{{- else if eq .Kind "SumType" }}
-{{- if .Repeated }}
-	if out.{{ $field.Name }}, err = sliceMapErr(v.{{ $field.EscapedName }}, {{$field.OriginType}}FromProto); err != nil {
-		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
-	}
-{{- else}}
-	if out.{{ $field.Name }}, err = {{ $field.OriginType }}FromProto(v.{{ $field.EscapedName }}); err != nil {
-		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
-	}
-{{- end}}
-{{- else if eq $field.Kind "BinaryMarshaler" }}
-{{- if $field.Pointer}}
-	out.{{ $field.Name }} = new({{ $field.OriginType }})
-{{- end}}
-	if err = out.{{ $field.Name }}.UnmarshalBinary(v.{{ $field.EscapedName }}); err != nil {
-		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
-	}
-{{- else if eq $field.Kind "TextMarshaler" }}
-{{- if $field.Pointer}}
-	out.{{ $field.Name }} = new({{ $field.OriginType }})
-{{- end}}
-	if err = out.{{ $field.Name }}.UnmarshalText([]byte(v.{{ $field.EscapedName }})); err != nil {
-		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
-	}
-{{- else }}
-	out.{{ $field.Name }} = ??, // v.{{ $field.EscapedName }}.ToProto() // Unknown type {{ $field.OriginType }} of kind {{ $field.Kind }}
-{{- end}}
 {{- end}}
 {{- if .Validator }}
 	if err := out.Validate(); err != nil {

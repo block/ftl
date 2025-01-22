@@ -210,12 +210,32 @@ type Field struct {
 	OriginType  string // The original type of the field, eg. int, string, float32, etc.
 	ProtoType   string // The type of the field in the generated .proto file.
 	ProtoGoType string // The type of the field in the generated Go protobuf code. eg. int -> int64.
-	Optional    bool
-	Repeated    bool
-	Pointer     bool
-	Import      string // required import to create this type
 
-	Kind Kind
+	Optional        bool
+	OptionalWrapper bool // optional as alecthomas/types/optional.Option
+	Repeated        bool
+	Pointer         bool
+
+	Import    string // required import to create this type
+	Converter *TypeConverter
+	Kind      Kind
+}
+
+func (f Field) OriginTypeSignature() string {
+	if f.Pointer {
+		return "*" + f.OriginType
+	}
+	return f.OriginType
+}
+
+type TypeConverter struct {
+	FromProto func(variable string) string
+	ToProto   func(variable string) string
+
+	// ProtoPointer is true if the proto type is a pointer.
+	ProtoPointer bool
+	// ToProtoTakesPointer is true if the ToProto function takes a pointer as an argument.
+	ToProtoTakesPointer bool
 }
 
 var reservedWords = map[string]string{
@@ -499,7 +519,21 @@ func extract(config Config, pkg *PkgRefs) (File, []string, error) {
 	return state.Dest, state.GoImports, nil
 }
 
+func isOptional(named *types.Named) bool {
+	path := named.Origin().Obj().Pkg().Path()
+	name := named.Origin().Obj().Name()
+	return path == "github.com/alecthomas/types/optional" && name == "Option"
+}
+
 func (s *State) extractDecl(obj types.Object, named *types.Named) error {
+	if isOptional(named) {
+		u := named.TypeArgs().At(0)
+		if nt, ok := u.(*types.Named); ok {
+			return s.extractDecl(nt.Obj(), nt)
+		}
+		return nil
+	}
+
 	if named.TypeParams() != nil {
 		return genErrorf(obj.Pos(), "generic types are not supported")
 	}
@@ -582,15 +616,21 @@ func (s *State) populateFields(decl *Message, n *types.Named) error {
 		field := &Field{
 			Name: rf.Name(),
 		}
-		if err := s.applyFieldType(rf.Type(), field); err != nil {
+		t := rf.Type()
+		if nt, ok := t.(*types.Named); ok && isOptional(nt) {
+			field.Optional = true
+			field.OptionalWrapper = true
+			t = nt.TypeArgs().At(0)
+		}
+		if err := s.applyFieldType(t, field); err != nil {
 			return fmt.Errorf("%s: %w", rf.Name(), err)
 		}
 		field.ID = tag.ID
-		field.Optional = tag.Optional
+		field.Optional = tag.Optional || field.Optional
 		if field.Optional && field.Repeated {
 			return genErrorf(n.Obj().Pos(), "%s: repeated optional fields are not supported", rf.Name())
 		}
-		if nt, ok := rf.Type().(*types.Named); ok {
+		if nt, ok := t.(*types.Named); ok {
 			if err := s.extractDecl(rf, nt); err != nil {
 				return fmt.Errorf("%s: %w", rf.Name(), err)
 			}
@@ -598,9 +638,128 @@ func (s *State) populateFields(decl *Message, n *types.Named) error {
 		if field.Kind == KindUnspecified {
 			field.Kind = s.Dest.KindOf(rf.Type(), field.OriginType)
 		}
+
+		s.populateConverters(field)
+
 		decl.Fields = append(decl.Fields, field)
 	}
 	return errf()
+}
+
+func (f *Field) ToProto() string {
+	if f.Optional {
+		if f.OptionalWrapper {
+			if f.Converter.ToProtoTakesPointer {
+				return f.Converter.ToProto("x." + f.Name + ".Ptr()")
+			}
+			return "setNil(" + f.Converter.ToProto("orZero(x."+f.Name+".Ptr())") + ", x." + f.Name + ".Ptr())"
+		} else if f.Pointer && !f.Converter.ProtoPointer {
+			return "setNil(" + f.Converter.ToProto("orZero(x."+f.Name+")") + ", x." + f.Name + ")"
+		}
+		return f.Converter.ToProto("x." + f.Name)
+	} else if f.Repeated {
+		if f.Converter.ProtoPointer {
+			return "sliceMap(x." + f.Name + ", func(v " + f.OriginTypeSignature() + ") " + f.ProtoGoType + " { return " + f.Converter.ToProto("v") + " })"
+		}
+		return "sliceMap(x." + f.Name + ", func(v " + f.OriginType + ") " + f.ProtoGoType + " { return orZero(" + f.Converter.ToProto("v") + ") })"
+	}
+
+	if f.Converter.ProtoPointer {
+		return f.Converter.ToProto("x." + f.Name)
+	}
+
+	return "orZero(" + f.Converter.ToProto("x."+f.Name) + ")"
+}
+
+func (f *Field) FromProto() string {
+	// inputs are result.Result[*T]
+	input := f.Converter.FromProto("v." + f.EscapedName())
+	if f.Optional {
+		if f.OptionalWrapper {
+			return "optionalR(" + input + ")"
+		}
+		if !f.Pointer {
+			return "orZeroR(" + input + ")"
+		}
+		return input
+	} else if f.Repeated {
+		if !f.Pointer {
+			return "sliceMapR(v." + f.EscapedName() + ", func(v " + f.ProtoGoType + ") result.Result[" + f.OriginType + "] { return orZeroR(" + f.Converter.FromProto("v") + ") })"
+		}
+		return "sliceMapR(v." + f.EscapedName() + ", func(v " + f.ProtoGoType + ") result.Result[*" + f.OriginType + "] { return " + f.Converter.FromProto("v") + " })"
+	} else if !f.Pointer {
+		return "orZeroR(" + input + ")"
+	}
+	return input
+}
+
+func (s *State) populateConverters(field *Field) {
+	if field.ProtoType == "google.protobuf.Timestamp" {
+		field.Converter = &TypeConverter{
+			FromProto:    func(v string) string { return fmt.Sprintf("result.From(setNil(ptr(%s.AsTime()), %s), nil)", v, v) },
+			ToProto:      func(v string) string { return fmt.Sprintf("timestamppb.New(%s)", v) },
+			ProtoPointer: true,
+		}
+	} else if field.ProtoType == "google.protobuf.Duration" {
+		field.Converter = &TypeConverter{
+			FromProto:    func(v string) string { return fmt.Sprintf("result.From(setNil(ptr(%s.AsDuration()), %s), nil)", v, v) },
+			ToProto:      func(v string) string { return fmt.Sprintf("durationpb.New(%s)", v) },
+			ProtoPointer: true,
+		}
+	} else if field.Kind == KindMessage {
+		field.Converter = &TypeConverter{
+			FromProto:           func(v string) string { return fmt.Sprintf("result.From(%sFromProto(%s))", field.OriginType, v) },
+			ToProto:             func(v string) string { return fmt.Sprintf("%s.ToProto()", v) },
+			ProtoPointer:        true,
+			ToProtoTakesPointer: true,
+		}
+	} else if field.Kind == KindEnum {
+		field.Converter = &TypeConverter{
+			FromProto: func(v string) string { return fmt.Sprintf("ptrR(result.From(%sFromProto(%s)))", field.OriginType, v) },
+			ToProto:   func(v string) string { return fmt.Sprintf("ptr(%s.ToProto())", v) },
+		}
+	} else if field.Kind == KindTextMarshaler {
+		field.Converter = &TypeConverter{
+			FromProto: func(v string) string {
+				if field.Pointer {
+					return fmt.Sprintf("unmarshallText([]byte(%s), out.%s)", v, field.Name)
+				}
+				return fmt.Sprintf("unmarshallText([]byte(%s), &out.%s)", v, field.Name)
+			},
+			ToProto: func(v string) string { return fmt.Sprintf("ptr(string(protoMust(%s.MarshalText())))", v) },
+		}
+	} else if field.Kind == KindBinaryMarshaler {
+		field.Converter = &TypeConverter{
+			FromProto: func(v string) string {
+				if field.Pointer {
+					return fmt.Sprintf("unmarshallBinary(%s, out.%s)", v, field.Name)
+				}
+				return fmt.Sprintf("unmarshallBinary(%s, &out.%s)", v, field.Name)
+			},
+			ToProto: func(v string) string { return fmt.Sprintf("ptr(protoMust(%s.MarshalBinary()))", v) },
+		}
+	} else if field.Kind == KindSumType {
+		field.Converter = &TypeConverter{
+			FromProto:           func(v string) string { return fmt.Sprintf("ptrR(result.From(%sFromProto(%s)))", field.OriginType, v) },
+			ToProto:             func(v string) string { return fmt.Sprintf("%sToProto(%s)", field.OriginType, v) },
+			ProtoPointer:        true,
+			ToProtoTakesPointer: true,
+		}
+	} else {
+		if field.Pointer || field.Optional {
+			field.Converter = &TypeConverter{
+				FromProto: func(v string) string {
+					return fmt.Sprintf("result.From(setNil(ptr(%s(orZero(%s))), %s), nil)", field.OriginType, v, v)
+				},
+				ToProto: func(v string) string { return fmt.Sprintf("ptr(%s(%s))", field.ProtoGoType, v) },
+			}
+		} else {
+			field.Converter = &TypeConverter{
+				FromProto: func(v string) string { return fmt.Sprintf("result.From(ptr(%s(%s)), nil)", field.OriginType, v) },
+				ToProto:   func(v string) string { return fmt.Sprintf("ptr(%s(%s))", field.ProtoGoType, v) },
+			}
+		}
+	}
 }
 
 func (s *State) extractSumType(obj types.Object, i *types.Interface) error {
@@ -774,7 +933,7 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 				return err
 			}
 			field.ProtoType = t.Obj().Name()
-			field.ProtoGoType = protoName(t.Obj().Name())
+			field.ProtoGoType = "*destpb." + protoName(t.Obj().Name())
 			field.OriginType = t.Obj().Name()
 		}
 
