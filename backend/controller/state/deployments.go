@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 
-	"github.com/alecthomas/types/optional"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 )
