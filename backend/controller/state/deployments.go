@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/schema"
@@ -95,7 +96,7 @@ func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
 		return t, fmt.Errorf("deployment %s not found", r.Key)
 
 	}
-	existing.ModRuntime().ModDeployment().ActivatedAt = r.ActivatedAt
+	existing.ModRuntime().ModDeployment().ActivatedAt = optional.Some(r.ActivatedAt)
 	existing.ModRuntime().ModScaling().MinReplicas = int32(r.MinReplicas)
 	t.activeDeployments[r.Key] = true
 	return t, nil

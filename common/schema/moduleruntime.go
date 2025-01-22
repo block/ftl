@@ -3,6 +3,8 @@ package schema
 import (
 	"time"
 
+	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/internal/key"
 )
 
@@ -63,10 +65,10 @@ func (m *ModuleRuntimeScaling) runtimeEvent() {}
 //protobuf:3 RuntimeEvent
 type ModuleRuntimeDeployment struct {
 	// Endpoint is the endpoint of the deployed module.
-	Endpoint      string         `protobuf:"1"`
-	DeploymentKey key.Deployment `protobuf:"2"`
-	CreatedAt     time.Time      `protobuf:"3"`
-	ActivatedAt   time.Time      `protobuf:"4"`
+	Endpoint      string                     `protobuf:"1"`
+	DeploymentKey key.Deployment             `protobuf:"2"`
+	CreatedAt     time.Time                  `protobuf:"3"`
+	ActivatedAt   optional.Option[time.Time] `protobuf:"4"`
 }
 
 func (m *ModuleRuntimeDeployment) moduleRuntime() {}

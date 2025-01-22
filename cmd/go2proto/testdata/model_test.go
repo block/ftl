@@ -8,6 +8,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/must"
+	"github.com/alecthomas/types/optional"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/block/ftl/cmd/go2proto/testdata/external"
@@ -20,19 +21,22 @@ func TestModel(t *testing.T) {
 	// UTC, as proto conversion does not preserve timezone
 	now := time.Now().UTC()
 	model := Root{
-		Int:            1,
-		String:         "foo",
-		MessagePtr:     &Message{Time: now},
-		Enum:           EnumA,
-		SumType:        &SumTypeA{A: "bar"},
-		OptionalInt:    2,
-		OptionalIntPtr: &intv,
-		OptionalMsg:    &Message{Time: now},
-		RepeatedInt:    []int{1, 2, 3},
-		RepeatedMsg:    []*Message{&Message{Time: now}, &Message{Time: now}},
-		URL:            must.Get(url.Parse("http://127.0.0.1")),
-		Key:            key.NewDeploymentKey("echo"),
-		ExternalRoot:   external.Root{Prefix: "abc", Suffix: "xyz"},
+		Int:             1,
+		String:          "foo",
+		MessagePtr:      &Message{Time: now},
+		Enum:            EnumA,
+		SumType:         &SumTypeA{A: "bar"},
+		OptionalInt:     2,
+		OptionalIntPtr:  &intv,
+		OptionalMsg:     &Message{Time: now},
+		OptionalWrapper: optional.Some("foo"),
+		RepeatedInt:     []int{1, 2, 3},
+		RepeatedMsg:     []*Message{&Message{Time: now}, &Message{Time: now}},
+		URL:             must.Get(url.Parse("http://127.0.0.1")),
+		Key:             key.NewDeploymentKey("echo"),
+		ExternalRoot:    external.Root{Prefix: "abc", Suffix: "xyz"},
+		OptionalTime:    optional.Some(now),
+		OptionalMessage: optional.None[Message](),
 	}
 	pb := model.ToProto()
 	data, err := proto.Marshal(pb)
@@ -46,6 +50,15 @@ func TestModel(t *testing.T) {
 	assert.Equal(t, pb.String(), out.String())
 
 	testModelRoundtrip(t, &model)
+
+	t.Run("test optional.None", func(t *testing.T) {
+		testModelRoundtrip(t, &Root{
+			// TODO: ToProto crashes if these 2 are missing
+			OptionalWrapper: optional.None[string](),
+			URL:             must.Get(url.Parse("http://127.0.0.1")),
+			OptionalIntPtr:  &intv,
+		})
+	})
 }
 
 func TestValidate(t *testing.T) {
