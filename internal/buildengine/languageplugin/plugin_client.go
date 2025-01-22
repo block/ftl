@@ -64,6 +64,7 @@ func (p *pluginClientImpl) start(ctx context.Context, dir, language, name string
 	plugin, cmdCtx, err := plugin.Spawn(ctx,
 		log.FromContext(ctx).GetLevel(),
 		name,
+		name,
 		dir,
 		cmdPath,
 		langconnect.NewLanguageServiceClient,

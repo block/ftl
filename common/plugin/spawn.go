@@ -86,11 +86,11 @@ type Plugin[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr 
 func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr rpc.PingResponse[Resp]](
 	ctx context.Context,
 	defaultLevel log.Level,
-	name, dir, exe string,
+	name, module, dir, exe string,
 	makeClient rpc.ClientFactory[Client, Req, Resp, RespPtr],
 	options ...Option,
 ) (plugin *Plugin[Client, Req, Resp, RespPtr], cmdCtx context.Context, err error) {
-	logger := log.FromContext(ctx).Scope(name)
+	logger := log.FromContext(ctx).Scope(name).Module(module)
 
 	opts := pluginOptions{
 		startTimeout: time.Second * 30,
@@ -124,11 +124,16 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	logger.Tracef("Spawning plugin on %s", pluginEndpoint)
 	cmd := exec.Command(ctx, defaultLevel, dir, exe)
 
-	// Send the plugin's stderr to the logger.
+	// Send the plugin's stderr and stdout to the logger.
 	cmd.Stderr = nil
-	pipe, err := cmd.StderrPipe()
+	epipe, err := cmd.StderrPipe()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to create stderr pipe: %w", err)
+	}
+	cmd.Stdout = nil
+	opipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create stdout pipe: %w", err)
 	}
 	cmd.Env = append(cmd.Env, "FTL_BIND="+pluginEndpoint.String())
 	cmd.Env = append(cmd.Env, "FTL_WORKING_DIR="+workingDir)
@@ -142,7 +147,13 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	go func() { cancelWithCause(cmd.Wait()) }()
 
 	go func() {
-		err := log.JSONStreamer(pipe, logger, log.Error)
+		err := log.JSONStreamer(epipe, logger, log.Error)
+		if err != nil {
+			logger.Errorf(err, "Error streaming plugin logs.")
+		}
+	}()
+	go func() {
+		err := log.JSONStreamer(opipe, logger, log.Info)
 		if err != nil {
 			logger.Errorf(err, "Error streaming plugin logs.")
 		}
