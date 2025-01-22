@@ -170,7 +170,7 @@ curl -i http://localhost:8891/users/123/posts/456?@json=%7B%22tag%22%3A%22ftl%22
 
 <!-- kotlin -->
 
-Kotlin Languages use the `JAX-RS` annotations to define HTTP endpoints. The following example shows how to define an HTTP endpoint in Kotlin. As the underling implementation is based on [Quarkus](https://quarkus.io)
+Kotlin uses the `JAX-RS` annotations to define HTTP endpoints. The following example shows how to define an HTTP endpoint in Kotlin. As the underling implementation is based on [Quarkus](https://quarkus.io)
 it is also possible to use the [Quarkus extensions to the JAX-RS annotations](https://quarkus.io/guides/rest#accessing-request-parameters):
 
 In general the difference between the Quarkus annotation and the standard JAX-RS ones is that the Quarkus parameters infer the parameter name from the method parameter name, while the JAX-RS ones require the parameter name to be explicitly defined.
