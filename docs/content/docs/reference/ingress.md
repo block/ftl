@@ -169,49 +169,37 @@ curl -i http://localhost:8891/users/123/posts/456?@json=%7B%22tag%22%3A%22ftl%22
 ```
 
 <!-- kotlin -->
-Kotlin uses the `@Ingress` annotation to define HTTP endpoints. These endpoints will be exposed on the default ingress port (local development defaults to `http://localhost:8891`).
+
+Kotlin Languages use the `JAX-RS` annotations to define HTTP endpoints. The following example shows how to define an HTTP endpoint in Kotlin. As the underling implementation is based on [Quarkus](https://quarkus.io)
+it is also possible to use the [Quarkus extensions to the JAX-RS annotations](https://quarkus.io/guides/rest#accessing-request-parameters):
+
+In general the difference between the Quarkus annotation and the standard JAX-RS ones is that the Quarkus parameters infer the parameter name from the method parameter name, while the JAX-RS ones require the parameter name to be explicitly defined.
 
 ```kotlin
-import xyz.block.ftl.Ingress
-import xyz.block.ftl.Option
 
-// Simple GET endpoint with path and query parameters
-@Ingress("GET /users/{userId}/posts")
-fun getPost(request: Request): Response {
-    val userId = request.pathParams["userId"]
-    val postId = request.queryParams["postId"]
-    return Response.ok(Post(userId, postId))
+import java.util.List
+
+import jakarta.ws.rs.DELETE
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
+import jakarta.ws.rs.Path
+
+import jakarta.ws.rs.QueryParam // JAX-RS annotation to get the query parameter
+import org.jboss.resteasy.reactive.RestPath // Quarkus annotation to get the path parameter
+
+@Path("/")
+public class TestHTTP {
+
+    @GET
+    @Path("/http/users/{userId}/posts")
+    fun get(@RestPath userId: String,@QueryParam("postId") post: String) : String {
+        //...
+    }
+
 }
-
-// POST endpoint with request body
-@Ingress("POST /users/{userId}/posts")
-fun createPost(request: Request): Response {
-    val userId = request.pathParams["userId"]
-    val body = request.body<PostBody>()
-    return Response.created(Post(userId, body.title))
-}
-
-// Request body data class
-data class PostBody(
-    val title: String,
-    val content: String,
-    val tag: Option<String>  // Optional field using Option type
-)
-
-// Response data class
-data class Post(
-    val userId: String,
-    val title: String
-)
 ```
-
-Key features:
-- The `@Ingress` annotation takes a string parameter combining the HTTP method and path
-- Path parameters are accessed via `request.pathParams`
-- Query parameters are accessed via `request.queryParams`
-- Request bodies can be automatically deserialized using `request.body<T>()`
-- Optional fields are represented using the `Option<T>` type
-- Response helpers like `Response.ok()` and `Response.created()` for common status codes
+Under the hood these HTTP invocations are being mapped to verbs that take a `builtin.HttpRequest` and return a `builtin.HttpResponse`. This is not exposed directly to the user, but is instead mapped directly to `JAX-RS` annotations.
 
 <!-- java -->
 

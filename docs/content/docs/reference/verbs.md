@@ -69,13 +69,17 @@ public Output f(Input input) { }
 eg.
 
 ```java
-public class EchoRequest {}
+import xyz.block.ftl.Verb;
 
-public class EchoResponse {}
+class EchoRequest {}
 
-@Verb
-public EchoResponse echo(EchoRequest request) {
-  // ...
+class EchoResponse {}
+
+public class EchoClass {
+    @Verb
+    public EchoResponse echo(EchoRequest request) {
+        // ...
+    }
 }
 ```
 
@@ -106,6 +110,7 @@ To call a verb, import the module's verb client, add it to your verb's signature
 
 ```kotlin
 import ftl.time.TimeClient
+import xyz.block.ftl.Verb
 
 @Verb
 fun echo(req: EchoRequest, time: TimeClient): EchoResponse {
@@ -130,11 +135,14 @@ To call a verb, import the module's verb client, add it to your verb's signature
 
 ```java
 import ftl.time.TimeClient;
+import xyz.block.ftl.Verb;
 
-@Verb
-public EchoResponse echo(EchoRequest request, TimeClient time) {
-    TimeResponse response = time.call();
-    // ...
+public class EchoClass {
+    @Verb
+    public EchoResponse echo(EchoRequest request, TimeClient time) {
+        TimeResponse response = time.call();
+        // ...
+    }
 }
 ```
 
