@@ -1,6 +1,7 @@
 {% extends "adidoks/templates/base.html" %}
+
 {% block footer %}
 {{ super() }}
-<script src="{{ get_url(path="js/code-selector.js") }}" defer>
-</script>
+<script src="{{ get_url(path="js/code-selector.js") }}" defer></script>
+<script src="{{ get_url(path="js/copy-code.js") }}" defer></script>
 {% endblock %}
