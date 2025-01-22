@@ -16,6 +16,12 @@
             <groupId>xyz.block</groupId>
             <artifactId>web5-dids</artifactId>
             <version>2.0.1-debug1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
