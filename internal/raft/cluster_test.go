@@ -71,9 +71,6 @@ func TestClusterWith2Shards(t *testing.T) {
 }
 
 func TestJoiningExistingCluster(t *testing.T) {
-	// TODO: This is flaky, fix and re-enable when Raft is used
-	t.Skip()
-
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -224,7 +221,12 @@ func startClusters[T any](ctx context.Context, t *testing.T, count int, builderF
 
 	t.Cleanup(func() {
 		for _, cluster := range clusters {
+			// timeout stop in 1 second, as closing the full cluster can lead
+			// to a state where the last members can not update the membership shard
+			// anymore
+			ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 			cluster.Stop(ctx)
+			cancel()
 		}
 	})
 

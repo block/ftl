@@ -417,6 +417,9 @@ func (c *Cluster) startControlServer(ctx context.Context) error {
 // After this call, all the shard handlers created with this cluster are invalid.
 func (c *Cluster) Stop(ctx context.Context) {
 	if c.nh != nil {
+		logger := log.FromContext(ctx).Scope("raft")
+		logger.Infof("stopping replica %d", c.config.ReplicaID)
+
 		for shardID := range c.shards {
 			c.removeShardMember(ctx, shardID, c.config.ReplicaID)
 		}
