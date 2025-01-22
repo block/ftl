@@ -1,4 +1,3 @@
-import type { ElementDefinition } from 'cytoscape'
 import dagre from 'dagre'
 import { useCallback, useMemo, useState } from 'react'
 import type React from 'react'
@@ -19,97 +18,6 @@ interface GraphPaneProps {
   onTapped?: (item: FTLNode | null, moduleName: string | null) => void
 }
 
-const convertToReactFlow = (
-  elements: ElementDefinition[],
-  nodePositions: Record<string, { x: number; y: number }>,
-  isDarkMode: boolean,
-  selectedNodeId: string | null,
-) => {
-  const nodes: Node[] = []
-  const edges: Edge[] = []
-  const moduleNodes = new Set<string>()
-
-  // First pass: collect all module names and create nodes
-  for (const el of elements) {
-    if (!el.data?.id) continue
-
-    if (el.group === 'nodes' && el.data.type !== 'groupNode') {
-      const moduleName = el.data.parent || 'default'
-      moduleNodes.add(moduleName)
-
-      const node: Node = {
-        id: el.data.id,
-        type: 'declNode',
-        position: nodePositions[el.data.id] || { x: 0, y: 0 },
-        data: {
-          ...el.data,
-          title: el.data.label || el.data.id,
-          selected: el.data.id === selectedNodeId,
-          nodeType: el.data.nodeType || 'verb',
-          zIndex: 2,
-          style: {
-            backgroundColor: getNodeColor(el.data.nodeType || 'verb', isDarkMode),
-          },
-        },
-        parentNode: moduleName,
-      }
-      nodes.push(node)
-    }
-  }
-
-  // Second pass: create module group nodes
-  for (const moduleName of moduleNodes) {
-    nodes.push({
-      id: moduleName,
-      type: 'groupNode',
-      position: { x: 0, y: 0 },
-      zIndex: -1,
-      data: {
-        title: moduleName,
-        selected: moduleName === selectedNodeId,
-        type: 'groupNode',
-        item: elements.find((el) => el.data?.id === moduleName)?.data?.item,
-      },
-    })
-  }
-
-  // Add edges
-  for (const el of elements) {
-    if (el.group === 'edges' && el.data?.source && el.data?.target && el.data?.id) {
-      const isConnectedToSelectedNode = Boolean(selectedNodeId && (el.data.source === selectedNodeId || el.data.target === selectedNodeId))
-      edges.push({
-        id: el.data.id,
-        source: el.data.source,
-        target: el.data.target,
-        zIndex: 1, // Edges above groups but below nodes
-        type: el.data.type === 'moduleConnection' ? 'smoothstep' : 'default',
-        animated: isConnectedToSelectedNode,
-        style: {
-          stroke: isConnectedToSelectedNode ? (isDarkMode ? '#EC4899' : '#F472B6') : isDarkMode ? '#4B5563' : '#9CA3AF',
-          strokeWidth: isConnectedToSelectedNode ? 2 : 1,
-        },
-      })
-    }
-  }
-
-  return { nodes, edges }
-}
-
-// Helper function to get node colors based on type
-const getNodeColor = (nodeType: string, isDarkMode: boolean): string => {
-  const colors = {
-    verb: isDarkMode ? 'bg-indigo-600' : 'bg-indigo-500',
-    topic: isDarkMode ? 'bg-purple-600' : 'bg-purple-500',
-    database: isDarkMode ? 'bg-blue-600' : 'bg-blue-500',
-    config: isDarkMode ? 'bg-cyan-600' : 'bg-cyan-500',
-    secret: isDarkMode ? 'bg-yellow-600' : 'bg-yellow-500',
-    data: isDarkMode ? 'bg-emerald-600' : 'bg-emerald-500',
-    enum: isDarkMode ? 'bg-fuchsia-600' : 'bg-fuchsia-500',
-    default: isDarkMode ? 'bg-indigo-600' : 'bg-indigo-500',
-  }
-  return colors[nodeType as keyof typeof colors] || colors.default
-}
-
 // Dagre layout function
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
   const dagreGraph = new dagre.graphlib.Graph()
@@ -122,7 +30,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   const groupSpacing = 10
   const verticalSpacing = 100
   const intraGroupSpacing = 25
-  const titleHeight = 20
+  const titleHeight = 30
 
   dagreGraph.setGraph({
     rankdir: direction,
@@ -340,22 +248,14 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
   const [nodePositions] = useState<Record<string, { x: number; y: number }>>({})
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
-  const elements = useMemo(() => {
-    const cytoscapeElements = getGraphData(modules.data, isDarkMode, nodePositions)
-    return convertToReactFlow(cytoscapeElements, nodePositions, isDarkMode, selectedNodeId)
+  const { nodes, edges } = useMemo(() => {
+    return getGraphData(modules.data, isDarkMode, nodePositions, selectedNodeId)
   }, [modules.data, isDarkMode, nodePositions, selectedNodeId])
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
-    if (!elements.nodes.length) return { nodes: [], edges: [] }
-    const nodesWithSelection = elements.nodes.map((node) => ({
-      ...node,
-      data: {
-        ...node.data,
-        selected: node.id === selectedNodeId,
-      },
-    }))
-    return getLayoutedElements(nodesWithSelection, elements.edges)
-  }, [elements, selectedNodeId])
+    if (!nodes.length) return { nodes: [], edges: [] }
+    return getLayoutedElements(nodes, edges)
+  }, [nodes, edges])
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {

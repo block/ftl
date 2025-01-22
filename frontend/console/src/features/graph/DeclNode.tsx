@@ -39,15 +39,14 @@ const getNodeIcon = (nodeType = 'verb') => {
 }
 
 export const DeclNode = ({ data }: Props) => {
-  const handleColor = data.selected ? 'rgb(251 113 133)' : 'rgb(79 70 229)'
+  const handleColor = data.selected ? 'rgb(251 113 133)' : data.style?.backgroundColor || 'rgb(79 70 229)'
   const Icon = getNodeIcon(data.nodeType)
 
-  console.log(data.style)
   return (
     <div className={`rounded-md overflow-hidden ${data.selected ? 'ring-2 ring-pink-400 dark:ring-pink-600' : ''}`}>
       <Handle id={`${data.id}-target`} type='target' position={Position.Left} style={{ border: 0, backgroundColor: handleColor }} isConnectable={true} />
 
-      <div className={`flex ${data.style?.backgroundColor}`}>
+      <div className='flex' style={{ backgroundColor: data.style?.backgroundColor }}>
         <div className='flex items-center text-gray-100 px-3 py-2 gap-2 w-full'>
           <Icon className='size-4 flex-shrink-0' />
           <div className='text-xs truncate min-w-0 flex-1'>{data.title}</div>
