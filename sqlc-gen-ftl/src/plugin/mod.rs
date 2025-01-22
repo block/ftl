@@ -144,7 +144,7 @@ fn to_schema_field(name: String, col: Option<&pluginpb::Column>, sql_type: Optio
     if let Some(col) = col {
         if let Some(table) = &col.table {
             let db_column = schemapb::Metadata {
-                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                value: Some(schemapb::metadata::Value::SqlColumn(schemapb::MetadataSqlColumn {
                     pos: None,
                     table: table.name.clone(),
                     name: col.name.clone(),

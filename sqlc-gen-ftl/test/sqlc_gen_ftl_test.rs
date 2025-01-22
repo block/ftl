@@ -105,7 +105,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
             pos: None,
             comments: vec![],
             metadata: vec![schemapb::Metadata {
-                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                value: Some(schemapb::metadata::Value::SqlColumn(schemapb::MetadataSqlColumn {
                     pos: None,
                     table: "all_types".to_string(),
                     name: db_name.to_string(),
@@ -155,7 +155,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                                 value: Some(schemapb::r#type::Value::Int(schemapb::Int { pos: None })),
                             }),
                             metadata: vec![schemapb::Metadata {
-                                value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                value: Some(schemapb::metadata::Value::SqlColumn(schemapb::MetadataSqlColumn {
                                     pos: None,
                                     table: "all_types".to_string(),
                                     name: "id".to_string(),
@@ -184,7 +184,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                                 pos: None,
                                 comments: vec![],
                                 metadata: vec![schemapb::Metadata {
-                                    value: Some(schemapb::metadata::Value::DbColumn(schemapb::MetadataDbColumn {
+                                    value: Some(schemapb::metadata::Value::SqlColumn(schemapb::MetadataSqlColumn {
                                         pos: None,
                                         table: "all_types".to_string(),
                                         name: "id".to_string(),
