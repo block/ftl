@@ -20,18 +20,23 @@ is represented by `time.Time`, and so on.
 
 User-defined types referenced by a verb will be automatically exported as FTL types.
 
-| FTL             | Go    | Kotlin | Java |
-| :-------------- | :---- | :----- | :--- |
-| `Int`             | `int`    | `Long`      | `Long`    |
-| `Float`           | `float64`    | `Double`      | `Double`    |
-| `String`          | `string`    | `String`      | `String`    |
-| `Bytes`           | `[]byte`    | `ByteArray`      | `ByteArray`    |
-| `Bool`            | `bool`    | `Boolean`      | `Boolean`    |
-| `Time`            | `time.Time`    | `ZonedDateTime`      | `ZonedDateTime️ `   |
-| `Any`             | [external](../externaltypes)    | [external](../externaltypes)      | [external](../externaltypes)    |
-| `Unit`            |     |       |     |
-| `Map<K,V>`        | `map[K]V`    | `Map<K,V>`      | `Map<K,V>`    |
-| `Array<T>`        | `[]T`    | `List<T>`      | `List<T>`    |
+| FTL        | Go                           | Kotlin                       | Java (Optional)              |
+|:-----------|:-----------------------------|:-----------------------------|:-----------------------------|
+| `Int`      | `int`                        | `Long`                       | `long (Long)`                |
+| `Float`    | `float64`                    | `Double`                     | `double (Double)`            |
+| `String`   | `string`                     | `String`                     | `String`                     |
+| `Bytes`    | `[]byte`                     | `ByteArray`                  | `byte[]`                     |
+| `Bool`     | `bool`                       | `Boolean`                    | `boolean (Boolean)`          |
+| `Time`     | `time.Time`                  | `ZonedDateTime`              | `ZonedDateTime️`             |
+| `Any`      | [external](../externaltypes) | [external](../externaltypes) | [external](../externaltypes) |
+| `Unit`     |                              |                              |                              |
+| `Map<K,V>` | `map[K]V`                    | `Map<K,V>`                   | `Map<K,V>`                   |
+| `Array<T>` | `[]T`                        | `List<T>`                    | `List<T>`                    |
+
+Go types can be declared as optional using the `ftl.Option[T]` type. Kotlin uses the built in nullable `?` suffix to
+denote optional.
+For Java if an explicit optional types is not called out in the table about the `@Nullable` annotation can be used to
+denote optional types.
 
 ## Data structures
 
