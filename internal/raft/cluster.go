@@ -499,9 +499,10 @@ func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f fu
 			for _, retryError := range retryErrors {
 				if errors.Is(err, retryError) {
 					logger.Debugf("got error %s, retrying in %s", err, duration)
-					time.Sleep(duration)
-					if _, ok := <-ctx.Done(); ok {
-						return fmt.Errorf("context cancelled")
+					select {
+										case <-time.After(duration):
+										case <-ctx.Done():
+															return fmt.Errorf("cancelled: %w", err)
 					}
 					cancel()
 					retried = true
