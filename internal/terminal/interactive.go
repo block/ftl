@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"sync"
 	"syscall"
@@ -103,15 +102,10 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 	})
 	l.CaptureExitSignal()
 	// Overload the exit function to avoid exiting the process
-	existing := k.Exit
 	k.Exit = func(i int) {
 		if i != 0 {
 			_ = l.Close()
-			if existing == nil {
-				// Should not happen, but no harm being cautious
-				os.Exit(i)
-			}
-			existing(i)
+			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck
 		}
 		// For a normal exit from an interactive command we need a special panic
 		// we recover from this and continue the loop
@@ -127,7 +121,9 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 			}
 			continue
 		} else if errors.Is(err, io.EOF) {
-			defer os.Exit(0) // We want the earlier defer to run first
+			defer func() { // We want the earlier defer to run first
+				_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck
+			}()
 			return nil
 		}
 		if tsm != nil {
