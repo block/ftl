@@ -44,30 +44,32 @@ public class SubscriptionProcessor {
 
     private SchemaContributorBuildItem generateSubscription(MethodInfo method, String className, SubscriptionAnnotation info) {
         return new SchemaContributorBuildItem(moduleBuilder -> {
-            moduleBuilder.registerVerbMethod(method, className, false, ModuleBuilder.BodyType.REQUIRED, (builder -> {
+            moduleBuilder.registerVerbMethod(method, className, false, ModuleBuilder.BodyType.REQUIRED,
+                    new ModuleBuilder.VerbCustomization().setMetadataCallback(builder -> {
 
-                builder.addMetadata(Metadata.newBuilder().setSubscriber(MetadataSubscriber.newBuilder()
-                        .setTopic(Ref.newBuilder().setName(info.topic()).setModule(info.module()).build())
-                        .setFromOffset(
-                                info.from() == FromOffset.BEGINNING
-                                        ? xyz.block.ftl.schema.v1.FromOffset.FROM_OFFSET_BEGINNING
-                                        : xyz.block.ftl.schema.v1.FromOffset.FROM_OFFSET_LATEST)
-                        .setDeadLetter(info.deadLetter())));
+                        builder.addMetadata(Metadata.newBuilder().setSubscriber(MetadataSubscriber.newBuilder()
+                                .setTopic(Ref.newBuilder().setName(info.topic()).setModule(info.module()).build())
+                                .setFromOffset(
+                                        info.from() == FromOffset.BEGINNING
+                                                ? xyz.block.ftl.schema.v1.FromOffset.FROM_OFFSET_BEGINNING
+                                                : xyz.block.ftl.schema.v1.FromOffset.FROM_OFFSET_LATEST)
+                                .setDeadLetter(info.deadLetter())));
 
-                if (method.hasAnnotation(Retry.class)) {
-                    RetryRecord retry = RetryRecord.fromJandex(method.annotation(Retry.class), moduleBuilder.getModuleName());
+                        if (method.hasAnnotation(Retry.class)) {
+                            RetryRecord retry = RetryRecord.fromJandex(method.annotation(Retry.class),
+                                    moduleBuilder.getModuleName());
 
-                    MetadataRetry.Builder retryBuilder = MetadataRetry.newBuilder();
-                    if (!retry.catchVerb().isEmpty()) {
-                        retryBuilder.setCatch(Ref.newBuilder().setModule(retry.catchModule())
-                                .setName(retry.catchVerb()).build());
-                    }
-                    retryBuilder.setCount(retry.count())
-                            .setMaxBackoff(retry.maxBackoff())
-                            .setMinBackoff(retry.minBackoff());
-                    builder.addMetadata(Metadata.newBuilder().setRetry(retryBuilder).build());
-                }
-            }));
+                            MetadataRetry.Builder retryBuilder = MetadataRetry.newBuilder();
+                            if (!retry.catchVerb().isEmpty()) {
+                                retryBuilder.setCatch(Ref.newBuilder().setModule(retry.catchModule())
+                                        .setName(retry.catchVerb()).build());
+                            }
+                            retryBuilder.setCount(retry.count())
+                                    .setMaxBackoff(retry.maxBackoff())
+                                    .setMinBackoff(retry.minBackoff());
+                            builder.addMetadata(Metadata.newBuilder().setRetry(retryBuilder).build());
+                        }
+                    }));
         });
     }
 

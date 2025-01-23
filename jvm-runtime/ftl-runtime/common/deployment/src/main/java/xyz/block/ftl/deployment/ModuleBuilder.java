@@ -15,10 +15,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import org.jboss.jandex.AnnotationTarget;
@@ -179,6 +179,8 @@ public class ModuleBuilder {
                     default:
                         throw new RuntimeException("Unknown primitive type " + param.asPrimitiveType().primitive());
                 }
+            } else {
+                return loadClass(array.componentType()).arrayType();
             }
         }
         throw new RuntimeException("Unknown type " + param.kind());
@@ -186,7 +188,12 @@ public class ModuleBuilder {
     }
 
     public void registerVerbMethod(MethodInfo method, String className,
-            boolean exported, BodyType bodyType, Consumer<Verb.Builder> metadataCallback) {
+            boolean exported, BodyType bodyType) {
+        registerVerbMethod(method, className, exported, bodyType, new VerbCustomization());
+    }
+
+    public void registerVerbMethod(MethodInfo method, String className,
+            boolean exported, BodyType bodyType, VerbCustomization customization) {
         try {
             List<Class<?>> parameterTypes = new ArrayList<>();
             List<VerbRegistry.ParameterSupplier> paramMappers = new ArrayList<>();
@@ -202,6 +209,9 @@ public class ModuleBuilder {
             var pos = -1;
             for (var param : method.parameters()) {
                 pos++;
+                if (customization.ignoreParameter.apply(pos)) {
+                    continue;
+                }
                 if (param.hasAnnotation(Secret.class)) {
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
                     parameterTypes.add(paramType);
@@ -276,18 +286,19 @@ public class ModuleBuilder {
                 verbBuilder.addMetadata(Metadata.newBuilder().setPublisher(publisherMetadata));
             }
 
-            recorder.registerVerb(moduleName, verbName, method.name(), parameterTypes,
-                    Class.forName(className, false, Thread.currentThread().getContextClassLoader()), paramMappers,
-                    method.returnType() == VoidType.VOID);
-
+            if (!customization.customHandling) {
+                recorder.registerVerb(moduleName, verbName, method.name(), parameterTypes,
+                        Class.forName(className, false, Thread.currentThread().getContextClassLoader()), paramMappers,
+                        method.returnType() == VoidType.VOID);
+            }
             verbBuilder.setName(verbName)
                     .setExport(exported)
                     .setPos(PositionUtils.forMethod(method))
-                    .setRequest(buildType(bodyParamType, exported, bodyParamNullability))
-                    .setResponse(buildType(method.returnType(), exported, method))
+                    .setRequest(customization.requestType.apply(buildType(bodyParamType, exported, bodyParamNullability)))
+                    .setResponse(customization.responseType.apply(buildType(method.returnType(), exported, method)))
                     .addAllComments(comments.getComments(verbName));
-            if (metadataCallback != null) {
-                metadataCallback.accept(verbBuilder);
+            if (customization.metadataCallback != null) {
+                customization.metadataCallback.accept(verbBuilder);
             }
             addDecls(Decl.newBuilder().setVerb(verbBuilder)
                     .build());
@@ -680,5 +691,59 @@ public class ModuleBuilder {
                     .add(new ValidationFailure(className, String.format("Invalid name %s, must match " + NAME_PATTERN, name)));
         }
         return name;
+    }
+
+    public static class VerbCustomization {
+        private Consumer<Verb.Builder> metadataCallback = b -> {
+        };
+        private Function<Integer, Boolean> ignoreParameter = i -> false;
+        private Function<Type, Type> requestType = Function.identity();
+        private Function<Type, Type> responseType = Function.identity();
+        private boolean customHandling;
+
+        public Consumer<Verb.Builder> getMetadataCallback() {
+            return metadataCallback;
+        }
+
+        public VerbCustomization setMetadataCallback(Consumer<Verb.Builder> metadataCallback) {
+            this.metadataCallback = metadataCallback;
+            return this;
+        }
+
+        public Function<Integer, Boolean> getIgnoreParameter() {
+            return ignoreParameter;
+        }
+
+        public VerbCustomization setIgnoreParameter(Function<Integer, Boolean> ignoreParameter) {
+            this.ignoreParameter = ignoreParameter;
+            return this;
+        }
+
+        public Function<Type, Type> getRequestType() {
+            return requestType;
+        }
+
+        public VerbCustomization setRequestType(Function<Type, Type> requestType) {
+            this.requestType = requestType;
+            return this;
+        }
+
+        public Function<Type, Type> getResponseType() {
+            return responseType;
+        }
+
+        public VerbCustomization setResponseType(Function<Type, Type> responseType) {
+            this.responseType = responseType;
+            return this;
+        }
+
+        public boolean isCustomHandling() {
+            return customHandling;
+        }
+
+        public VerbCustomization setCustomHandling(boolean customHandling) {
+            this.customHandling = customHandling;
+            return this;
+        }
     }
 }
