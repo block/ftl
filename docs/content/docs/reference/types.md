@@ -20,18 +20,58 @@ is represented by `time.Time`, and so on.
 
 User-defined types referenced by a verb will be automatically exported as FTL types.
 
-| FTL             | Go    | Kotlin | Java |
-| :-------------- | :---- | :----- | :--- |
-| `Int`             | `int`    | `Long`      | `Long`    |
-| `Float`           | `float64`    | `Double`      | `Double`    |
-| `String`          | `string`    | `String`      | `String`    |
-| `Bytes`           | `[]byte`    | `ByteArray`      | `ByteArray`    |
-| `Bool`            | `bool`    | `Boolean`      | `Boolean`    |
-| `Time`            | `time.Time`    | `ZonedDateTime`      | `ZonedDateTime️ `   |
-| `Any`             | [external](../externaltypes)    | [external](../externaltypes)      | [external](../externaltypes)    |
-| `Unit`            |     |       |     |
-| `Map<K,V>`        | `map[K]V`    | `Map<K,V>`      | `Map<K,V>`    |
-| `Array<T>`        | `[]T`    | `List<T>`      | `List<T>`    |
+## Basic types
+
+The following table includes the basic FTL types and their corresponding language-specific types:
+
+{% code_selector() %}
+
+<!-- go -->
+
+| FTL             | Go    |
+| :-------------- | :---- |
+| `Int`             | `int`    |
+| `Float`           | `float64`    |
+| `String`          | `string`    |
+| `Bytes`           | `[]byte`    |
+| `Bool`            | `bool`    |
+| `Time`            | `time.Time`    |
+| `Any`             | [External](../externaltypes)    |
+| `Unit`            | N/A   |
+| `Map<K,V>`        | `map[K]V`    |
+| `Array<T>`        | `[]T`    |
+
+<!-- kotlin -->
+
+| FTL             | Kotlin |
+| :-------------- | :----- |
+| `Int`             | `Long`      |
+| `Float`           | `Double`      |
+| `String`          | `String`      |
+| `Bytes`           | `ByteArray`      |
+| `Bool`            | `Boolean`      |
+| `Time`            | `ZonedDateTime`      |
+| `Any`             | [External](../externaltypes)      |
+| `Unit`            | N/A     |
+| `Map<K,V>`        | `Map<K,V>`      |
+| `Array<T>`        | `List<T>`      |
+
+<!-- java -->
+
+| FTL             | Java | Java (optional) |
+| :-------------- | :--- | :------------ |
+| `Int`             | `long`    | `Long`    |
+| `Float`           | `double`    | `Double`    |
+| `String`          | `String`    | `@Nullable String`    |
+| `Bytes`           | `[]byte`    | `@Nullable byte[]`    |
+| `Bool`            | `boolean`    | `Boolean`    |
+| `Time`            | `ZonedDateTime️ `   | `@Nullable ZonedDateTime`    |
+| `Any`             | [External](../externaltypes)    | [External](../externaltypes)    |
+| `Unit`            | `void`    | N/A  |
+| `Map<K,V>`        | `Map<K,V>`    | `@Nullable Map<K,V>`    |
+| `Array<T>`        | `List<T>`    | `@Nullable List<T>`    |
+
+{% end %}
 
 ## Data structures
 
