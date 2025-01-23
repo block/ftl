@@ -15,6 +15,7 @@ import org.jboss.resteasy.reactive.common.model.ParameterType;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
 import org.jboss.resteasy.reactive.server.mapping.URITemplate;
 import org.jboss.resteasy.reactive.server.processor.scanning.MethodScanner;
+import org.jetbrains.annotations.NotNull;
 
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
@@ -26,7 +27,6 @@ import xyz.block.ftl.runtime.VerbRegistry;
 import xyz.block.ftl.runtime.builtin.HttpRequest;
 import xyz.block.ftl.runtime.builtin.HttpResponse;
 import xyz.block.ftl.schema.v1.Array;
-import xyz.block.ftl.schema.v1.Decl;
 import xyz.block.ftl.schema.v1.IngressPathComponent;
 import xyz.block.ftl.schema.v1.IngressPathLiteral;
 import xyz.block.ftl.schema.v1.IngressPathParameter;
@@ -81,23 +81,25 @@ public class HTTPProcessor {
         return new SchemaContributorBuildItem(new Consumer<ModuleBuilder>() {
             @Override
             public void accept(ModuleBuilder moduleBuilder) {
-                //TODO: make this composable so it is not just one big method, build items should contribute to the schema
+                Type stringType = Type.newBuilder().setString(xyz.block.ftl.schema.v1.String.newBuilder().build()).build();
+                Type pathParamType = Type.newBuilder()
+                        .setMap(xyz.block.ftl.schema.v1.Map.newBuilder().setKey(stringType)
+                                .setValue(stringType))
+                        .build();
                 for (var endpoint : restEndpoints.getEntries()) {
-                    //TODO: naming
                     var verbName = ModuleBuilder.methodToName(endpoint.getMethodInfo());
-                    boolean base64 = false;
 
-                    //TODO: handle type parameters properly
                     org.jboss.jandex.Type bodyParamType = VoidType.VOID;
                     MethodParameter[] parameters = endpoint.getResourceMethod().getParameters();
+
                     for (int i = 0, parametersLength = parameters.length; i < parametersLength; i++) {
-                        var param = parameters[i];
-                        if (param.parameterType.equals(ParameterType.BODY)) {
+                        var httpParam = parameters[i];
+                        if (httpParam.parameterType.equals(ParameterType.BODY)) {
                             bodyParamType = endpoint.getMethodInfo().parameterType(i);
-                            break;
                         }
                     }
 
+                    boolean base64 = false;
                     if (bodyParamType instanceof ArrayType) {
                         org.jboss.jandex.Type component = ((ArrayType) bodyParamType).component();
                         if (component instanceof PrimitiveType) {
@@ -107,21 +109,7 @@ public class HTTPProcessor {
 
                     recorder.registerHttpIngress(moduleBuilder.getModuleName(), verbName, base64);
 
-                    StringBuilder pathBuilder = new StringBuilder();
-                    if (endpoint.getBasicResourceClassInfo().getPath() != null) {
-                        pathBuilder.append(endpoint.getBasicResourceClassInfo().getPath());
-                    }
-                    if (endpoint.getResourceMethod().getPath() != null && !endpoint.getResourceMethod().getPath().isEmpty()) {
-                        boolean builderEndsSlash = pathBuilder.charAt(pathBuilder.length() - 1) == '/';
-                        boolean pathStartsSlash = endpoint.getResourceMethod().getPath().startsWith("/");
-                        if (builderEndsSlash && pathStartsSlash) {
-                            pathBuilder.setLength(pathBuilder.length() - 1);
-                        } else if (!builderEndsSlash && !pathStartsSlash) {
-                            pathBuilder.append('/');
-                        }
-                        pathBuilder.append(endpoint.getResourceMethod().getPath());
-                    }
-                    String path = pathBuilder.toString();
+                    String path = extractPath(endpoint);
                     URITemplate template = new URITemplate(path, false);
                     List<IngressPathComponent> pathComponents = new ArrayList<>();
                     for (var i : template.components) {
@@ -145,54 +133,71 @@ public class HTTPProcessor {
                                     .build());
                         }
                     }
+                    ModuleBuilder.VerbCustomization verbCustomization = new ModuleBuilder.VerbCustomization();
+                    verbCustomization.setCustomHandling(true)
+                            .setMetadataCallback((builder) -> {
+                                MetadataIngress.Builder ingressBuilder = MetadataIngress.newBuilder()
+                                        .setType("http")
+                                        .setMethod(endpoint.getResourceMethod().getHttpMethod());
+                                for (var i : pathComponents) {
+                                    ingressBuilder.addPath(i);
+                                }
+                                Metadata ingressMetadata = Metadata.newBuilder()
+                                        .setIngress(ingressBuilder
+                                                .build())
+                                        .build();
+                                builder.addMetadata(ingressMetadata);
+                            })
+                            .setIgnoreParameter((i) -> {
+                                return !parameters[i].parameterType.equals(ParameterType.BODY)
+                                        && !parameters[i].parameterType.equals(ParameterType.CUSTOM);
+                            })
+                            .setRequestType((requestTypeParam) -> {
+                                return Type.newBuilder()
+                                        .setRef(Ref.newBuilder().setModule(ModuleBuilder.BUILTIN)
+                                                .setName(HttpRequest.class.getSimpleName())
+                                                .addTypeParameters(requestTypeParam)
+                                                .addTypeParameters(pathParamType)
+                                                .addTypeParameters(Type.newBuilder()
+                                                        .setMap(xyz.block.ftl.schema.v1.Map.newBuilder().setKey(stringType)
+                                                                .setValue(Type.newBuilder()
+                                                                        .setArray(
+                                                                                Array.newBuilder().setElement(stringType)))
+                                                                .build())))
+                                        .build();
+                            })
+                            .setResponseType((responseTypeParam) -> {
+                                return Type.newBuilder()
+                                        .setRef(Ref.newBuilder().setModule(ModuleBuilder.BUILTIN)
+                                                .setName(HttpResponse.class.getSimpleName())
+                                                .addTypeParameters(responseTypeParam)
+                                                .addTypeParameters(Type.newBuilder().setUnit(Unit.newBuilder())))
+                                        .build();
+                            });
 
-                    //TODO: process path properly
-                    MetadataIngress.Builder ingressBuilder = MetadataIngress.newBuilder()
-                            .setType("http")
-                            .setMethod(endpoint.getResourceMethod().getHttpMethod());
-                    for (var i : pathComponents) {
-                        ingressBuilder.addPath(i);
-                    }
-                    Metadata ingressMetadata = Metadata.newBuilder()
-                            .setIngress(ingressBuilder
-                                    .build())
-                            .build();
-                    Type requestTypeParam = moduleBuilder.buildType(bodyParamType, true, Nullability.NOT_NULL);
-                    Type responseTypeParam = moduleBuilder.buildType(endpoint.getMethodInfo().returnType(), true,
-                            Nullability.NOT_NULL);
-                    Type stringType = Type.newBuilder().setString(xyz.block.ftl.schema.v1.String.newBuilder().build()).build();
-                    Type pathParamType = Type.newBuilder()
-                            .setMap(xyz.block.ftl.schema.v1.Map.newBuilder().setKey(stringType)
-                                    .setValue(stringType))
-                            .build();
-                    moduleBuilder
-                            .addDecls(Decl.newBuilder().setVerb(xyz.block.ftl.schema.v1.Verb.newBuilder()
-                                    .addMetadata(ingressMetadata)
-                                    .setName(verbName)
-                                    .setPos(PositionUtils.forMethod(endpoint.getMethodInfo()))
-                                    .setExport(true)
-                                    .setRequest(Type.newBuilder()
-                                            .setRef(Ref.newBuilder().setModule(ModuleBuilder.BUILTIN)
-                                                    .setName(HttpRequest.class.getSimpleName())
-                                                    .addTypeParameters(requestTypeParam)
-                                                    .addTypeParameters(pathParamType)
-                                                    .addTypeParameters(Type.newBuilder()
-                                                            .setMap(xyz.block.ftl.schema.v1.Map.newBuilder().setKey(stringType)
-                                                                    .setValue(Type.newBuilder()
-                                                                            .setArray(
-                                                                                    Array.newBuilder().setElement(stringType)))
-                                                                    .build())))
-                                            .build())
-                                    .setResponse(Type.newBuilder()
-                                            .setRef(Ref.newBuilder().setModule(ModuleBuilder.BUILTIN)
-                                                    .setName(HttpResponse.class.getSimpleName())
-                                                    .addTypeParameters(responseTypeParam)
-                                                    .addTypeParameters(Type.newBuilder().setUnit(Unit.newBuilder())))
-                                            .build()))
-                                    .build());
+                    moduleBuilder.registerVerbMethod(endpoint.getMethodInfo(), endpoint.getActualClassInfo().name().toString(),
+                            false, ModuleBuilder.BodyType.ALLOWED, verbCustomization);
                 }
             }
         });
 
+    }
+
+    private static @NotNull String extractPath(ResteasyReactiveResourceMethodEntriesBuildItem.Entry endpoint) {
+        StringBuilder pathBuilder = new StringBuilder();
+        if (endpoint.getBasicResourceClassInfo().getPath() != null) {
+            pathBuilder.append(endpoint.getBasicResourceClassInfo().getPath());
+        }
+        if (endpoint.getResourceMethod().getPath() != null && !endpoint.getResourceMethod().getPath().isEmpty()) {
+            boolean builderEndsSlash = pathBuilder.charAt(pathBuilder.length() - 1) == '/';
+            boolean pathStartsSlash = endpoint.getResourceMethod().getPath().startsWith("/");
+            if (builderEndsSlash && pathStartsSlash) {
+                pathBuilder.setLength(pathBuilder.length() - 1);
+            } else if (!builderEndsSlash && !pathStartsSlash) {
+                pathBuilder.append('/');
+            }
+            pathBuilder.append(endpoint.getResourceMethod().getPath());
+        }
+        return pathBuilder.toString();
     }
 }

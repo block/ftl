@@ -162,7 +162,7 @@ public class VerbProcessor {
             String className = method.declaringClass().name().toString();
             beans.addBeanClass(className);
             schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                    .registerVerbMethod(method, className, exported, ModuleBuilder.BodyType.ALLOWED, null)));
+                    .registerVerbMethod(method, className, exported, ModuleBuilder.BodyType.ALLOWED)));
         }
 
         Collection<AnnotationInstance> cronAnnotations = index.getIndex().getAnnotations(FTLDotNames.CRON);
@@ -174,9 +174,11 @@ public class VerbProcessor {
 
             schemaContributorBuildItemBuildProducer.produce(
                     new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
-                            false, ModuleBuilder.BodyType.DISALLOWED, (builder -> builder.addMetadata(Metadata.newBuilder()
-                                    .setCronJob(MetadataCronJob.newBuilder().setCron(cron.value().asString()))
-                                    .build())))));
+                            false, ModuleBuilder.BodyType.DISALLOWED,
+                            new ModuleBuilder.VerbCustomization()
+                                    .setMetadataCallback(builder -> builder.addMetadata(Metadata.newBuilder()
+                                            .setCronJob(MetadataCronJob.newBuilder().setCron(cron.value().asString()))
+                                            .build())))));
         }
         additionalBeanBuildItem.produce(beans.build());
     }

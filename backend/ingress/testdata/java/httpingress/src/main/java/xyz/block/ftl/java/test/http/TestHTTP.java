@@ -8,8 +8,8 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
-
 import jakarta.ws.rs.core.MediaType;
+
 import org.jboss.resteasy.reactive.ResponseHeader;
 import org.jboss.resteasy.reactive.ResponseStatus;
 import org.jboss.resteasy.reactive.RestPath;
@@ -26,7 +26,6 @@ public class TestHTTP {
                 .setMsg(String.format("UserID: %s, PostID: %s", userId, postId))
                 .setNested(new Nested().setGoodStuff("This is good stuff"));
     }
-
 
     @GET
     @Path("/getquery")
