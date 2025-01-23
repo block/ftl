@@ -4,6 +4,7 @@ package xyz.block.ftl.buildengine.v1;
 
 import "xyz/block/ftl/language/v1/language.proto";
 import "xyz/block/ftl/v1/ftl.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1;buildenginepb";
 
@@ -68,22 +69,27 @@ message ModuleDeploySuccess {
 
 // EngineEvent is an event published by the engine as modules get built and deployed.
 message EngineEvent {
+  google.protobuf.Timestamp timestamp = 1;
   oneof event {
-    EngineStarted engine_started = 1;
-    EngineEnded engine_ended = 2;
-    ModuleAdded module_added = 3;
-    ModuleRemoved module_removed = 4;
-    ModuleBuildWaiting module_build_waiting = 5;
-    ModuleBuildStarted module_build_started = 6;
-    ModuleBuildFailed module_build_failed = 7;
-    ModuleBuildSuccess module_build_success = 8;
-    ModuleDeployStarted module_deploy_started = 9;
-    ModuleDeployFailed module_deploy_failed = 10;
-    ModuleDeploySuccess module_deploy_success = 11;
+    EngineStarted engine_started = 2;
+    EngineEnded engine_ended = 3;
+    ModuleAdded module_added = 4;
+    ModuleRemoved module_removed = 5;
+    ModuleBuildWaiting module_build_waiting = 6;
+    ModuleBuildStarted module_build_started = 7;
+    ModuleBuildFailed module_build_failed = 8;
+    ModuleBuildSuccess module_build_success = 9;
+    ModuleDeployStarted module_deploy_started = 10;
+    ModuleDeployFailed module_deploy_failed = 11;
+    ModuleDeploySuccess module_deploy_success = 12;
   }
 }
 
-message StreamEngineEventsRequest {}
+message StreamEngineEventsRequest {
+  // If true, cached events will be replayed before streaming new events.
+  // If false, only new events will be streamed.
+  bool replay_history = 1;
+}
 
 message StreamEngineEventsResponse {
   EngineEvent event = 1;

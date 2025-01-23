@@ -7,6 +7,7 @@
 package consolepb
 
 import (
+	v13 "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	v12 "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	v11 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	v1 "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -1266,7 +1267,10 @@ var file_xyz_block_ftl_console_v1_console_proto_rawDesc = []byte{
 	0x63, 0x6f, 0x6e, 0x73, 0x6f, 0x6c, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x63, 0x6f, 0x6e, 0x73, 0x6f,
 	0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x18, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c,
 	0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x6f, 0x6c, 0x65, 0x2e,
-	0x76, 0x31, 0x1a, 0x24, 0x78, 0x79, 0x7a, 0x2f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2f, 0x66, 0x74,
+	0x76, 0x31, 0x1a, 0x2e, 0x78, 0x79, 0x7a, 0x2f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2f, 0x66, 0x74,
+	0x6c, 0x2f, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x6e, 0x67, 0x69, 0x6e, 0x65, 0x2f, 0x76, 0x31,
+	0x2f, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x6e, 0x67, 0x69, 0x6e, 0x65, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x1a, 0x24, 0x78, 0x79, 0x7a, 0x2f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2f, 0x66, 0x74,
 	0x6c, 0x2f, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x63, 0x68, 0x65,
 	0x6d, 0x61, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x28, 0x78, 0x79, 0x7a, 0x2f, 0x62, 0x6c,
 	0x6f, 0x63, 0x6b, 0x2f, 0x66, 0x74, 0x6c, 0x2f, 0x74, 0x69, 0x6d, 0x65, 0x6c, 0x69, 0x6e, 0x65,
@@ -1446,7 +1450,7 @@ var file_xyz_block_ftl_console_v1_console_proto_rawDesc = []byte{
 	0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x09, 0x0a, 0x07, 0x5f, 0x6d, 0x6f, 0x64, 0x75, 0x6c,
 	0x65, 0x22, 0x29, 0x0a, 0x11, 0x53, 0x65, 0x74, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x52, 0x65,
 	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x32, 0xcc, 0x08, 0x0a,
+	0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x32, 0xd8, 0x09, 0x0a,
 	0x0e, 0x43, 0x6f, 0x6e, 0x73, 0x6f, 0x6c, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12,
 	0x4a, 0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x1d, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c,
 	0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52,
@@ -1515,12 +1519,21 @@ var file_xyz_block_ftl_console_v1_console_proto_rawDesc = []byte{
 	0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e,
 	0x43, 0x61, 0x6c, 0x6c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1e, 0x2e, 0x78, 0x79,
 	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x43,
-	0x61, 0x6c, 0x6c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x4a, 0x50, 0x01, 0x5a,
-	0x46, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x62, 0x6c, 0x6f, 0x63,
-	0x6b, 0x2f, 0x66, 0x74, 0x6c, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x73, 0x2f, 0x78, 0x79, 0x7a, 0x2f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2f, 0x66,
-	0x74, 0x6c, 0x2f, 0x63, 0x6f, 0x6e, 0x73, 0x6f, 0x6c, 0x65, 0x2f, 0x76, 0x31, 0x3b, 0x63, 0x6f,
-	0x6e, 0x73, 0x6f, 0x6c, 0x65, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x61, 0x6c, 0x6c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x89, 0x01, 0x0a, 0x12,
+	0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x45, 0x6e, 0x67, 0x69, 0x6e, 0x65, 0x45, 0x76, 0x65, 0x6e,
+	0x74, 0x73, 0x12, 0x37, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66,
+	0x74, 0x6c, 0x2e, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x6e, 0x67, 0x69, 0x6e, 0x65, 0x2e, 0x76,
+	0x31, 0x2e, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x45, 0x6e, 0x67, 0x69, 0x6e, 0x65, 0x45, 0x76,
+	0x65, 0x6e, 0x74, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x38, 0x2e, 0x78, 0x79,
+	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x62, 0x75, 0x69, 0x6c,
+	0x64, 0x65, 0x6e, 0x67, 0x69, 0x6e, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x74, 0x72, 0x65, 0x61,
+	0x6d, 0x45, 0x6e, 0x67, 0x69, 0x6e, 0x65, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x30, 0x01, 0x42, 0x4a, 0x50, 0x01, 0x5a, 0x46, 0x67, 0x69, 0x74,
+	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2f, 0x66, 0x74,
+	0x6c, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73,
+	0x2f, 0x78, 0x79, 0x7a, 0x2f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2f, 0x66, 0x74, 0x6c, 0x2f, 0x63,
+	0x6f, 0x6e, 0x73, 0x6f, 0x6c, 0x65, 0x2f, 0x76, 0x31, 0x3b, 0x63, 0x6f, 0x6e, 0x73, 0x6f, 0x6c,
+	0x65, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1537,48 +1550,50 @@ func file_xyz_block_ftl_console_v1_console_proto_rawDescGZIP() []byte {
 
 var file_xyz_block_ftl_console_v1_console_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_xyz_block_ftl_console_v1_console_proto_goTypes = []any{
-	(*Config)(nil),                     // 0: xyz.block.ftl.console.v1.Config
-	(*Data)(nil),                       // 1: xyz.block.ftl.console.v1.Data
-	(*Database)(nil),                   // 2: xyz.block.ftl.console.v1.Database
-	(*Enum)(nil),                       // 3: xyz.block.ftl.console.v1.Enum
-	(*Topic)(nil),                      // 4: xyz.block.ftl.console.v1.Topic
-	(*TypeAlias)(nil),                  // 5: xyz.block.ftl.console.v1.TypeAlias
-	(*Secret)(nil),                     // 6: xyz.block.ftl.console.v1.Secret
-	(*Verb)(nil),                       // 7: xyz.block.ftl.console.v1.Verb
-	(*Module)(nil),                     // 8: xyz.block.ftl.console.v1.Module
-	(*TopologyGroup)(nil),              // 9: xyz.block.ftl.console.v1.TopologyGroup
-	(*Topology)(nil),                   // 10: xyz.block.ftl.console.v1.Topology
-	(*GetModulesRequest)(nil),          // 11: xyz.block.ftl.console.v1.GetModulesRequest
-	(*GetModulesResponse)(nil),         // 12: xyz.block.ftl.console.v1.GetModulesResponse
-	(*StreamModulesRequest)(nil),       // 13: xyz.block.ftl.console.v1.StreamModulesRequest
-	(*StreamModulesResponse)(nil),      // 14: xyz.block.ftl.console.v1.StreamModulesResponse
-	(*GetConfigRequest)(nil),           // 15: xyz.block.ftl.console.v1.GetConfigRequest
-	(*GetConfigResponse)(nil),          // 16: xyz.block.ftl.console.v1.GetConfigResponse
-	(*SetConfigRequest)(nil),           // 17: xyz.block.ftl.console.v1.SetConfigRequest
-	(*SetConfigResponse)(nil),          // 18: xyz.block.ftl.console.v1.SetConfigResponse
-	(*GetSecretRequest)(nil),           // 19: xyz.block.ftl.console.v1.GetSecretRequest
-	(*GetSecretResponse)(nil),          // 20: xyz.block.ftl.console.v1.GetSecretResponse
-	(*SetSecretRequest)(nil),           // 21: xyz.block.ftl.console.v1.SetSecretRequest
-	(*SetSecretResponse)(nil),          // 22: xyz.block.ftl.console.v1.SetSecretResponse
-	(*v1.Config)(nil),                  // 23: xyz.block.ftl.schema.v1.Config
-	(*v1.Ref)(nil),                     // 24: xyz.block.ftl.schema.v1.Ref
-	(*v1.Data)(nil),                    // 25: xyz.block.ftl.schema.v1.Data
-	(*v1.Database)(nil),                // 26: xyz.block.ftl.schema.v1.Database
-	(*v1.Enum)(nil),                    // 27: xyz.block.ftl.schema.v1.Enum
-	(*v1.Topic)(nil),                   // 28: xyz.block.ftl.schema.v1.Topic
-	(*v1.TypeAlias)(nil),               // 29: xyz.block.ftl.schema.v1.TypeAlias
-	(*v1.Secret)(nil),                  // 30: xyz.block.ftl.schema.v1.Secret
-	(*v1.Verb)(nil),                    // 31: xyz.block.ftl.schema.v1.Verb
-	(*v11.PingRequest)(nil),            // 32: xyz.block.ftl.v1.PingRequest
-	(*v12.GetTimelineRequest)(nil),     // 33: xyz.block.ftl.timeline.v1.GetTimelineRequest
-	(*v12.StreamTimelineRequest)(nil),  // 34: xyz.block.ftl.timeline.v1.StreamTimelineRequest
-	(*v11.StatusRequest)(nil),          // 35: xyz.block.ftl.v1.StatusRequest
-	(*v11.CallRequest)(nil),            // 36: xyz.block.ftl.v1.CallRequest
-	(*v11.PingResponse)(nil),           // 37: xyz.block.ftl.v1.PingResponse
-	(*v12.GetTimelineResponse)(nil),    // 38: xyz.block.ftl.timeline.v1.GetTimelineResponse
-	(*v12.StreamTimelineResponse)(nil), // 39: xyz.block.ftl.timeline.v1.StreamTimelineResponse
-	(*v11.StatusResponse)(nil),         // 40: xyz.block.ftl.v1.StatusResponse
-	(*v11.CallResponse)(nil),           // 41: xyz.block.ftl.v1.CallResponse
+	(*Config)(nil),                         // 0: xyz.block.ftl.console.v1.Config
+	(*Data)(nil),                           // 1: xyz.block.ftl.console.v1.Data
+	(*Database)(nil),                       // 2: xyz.block.ftl.console.v1.Database
+	(*Enum)(nil),                           // 3: xyz.block.ftl.console.v1.Enum
+	(*Topic)(nil),                          // 4: xyz.block.ftl.console.v1.Topic
+	(*TypeAlias)(nil),                      // 5: xyz.block.ftl.console.v1.TypeAlias
+	(*Secret)(nil),                         // 6: xyz.block.ftl.console.v1.Secret
+	(*Verb)(nil),                           // 7: xyz.block.ftl.console.v1.Verb
+	(*Module)(nil),                         // 8: xyz.block.ftl.console.v1.Module
+	(*TopologyGroup)(nil),                  // 9: xyz.block.ftl.console.v1.TopologyGroup
+	(*Topology)(nil),                       // 10: xyz.block.ftl.console.v1.Topology
+	(*GetModulesRequest)(nil),              // 11: xyz.block.ftl.console.v1.GetModulesRequest
+	(*GetModulesResponse)(nil),             // 12: xyz.block.ftl.console.v1.GetModulesResponse
+	(*StreamModulesRequest)(nil),           // 13: xyz.block.ftl.console.v1.StreamModulesRequest
+	(*StreamModulesResponse)(nil),          // 14: xyz.block.ftl.console.v1.StreamModulesResponse
+	(*GetConfigRequest)(nil),               // 15: xyz.block.ftl.console.v1.GetConfigRequest
+	(*GetConfigResponse)(nil),              // 16: xyz.block.ftl.console.v1.GetConfigResponse
+	(*SetConfigRequest)(nil),               // 17: xyz.block.ftl.console.v1.SetConfigRequest
+	(*SetConfigResponse)(nil),              // 18: xyz.block.ftl.console.v1.SetConfigResponse
+	(*GetSecretRequest)(nil),               // 19: xyz.block.ftl.console.v1.GetSecretRequest
+	(*GetSecretResponse)(nil),              // 20: xyz.block.ftl.console.v1.GetSecretResponse
+	(*SetSecretRequest)(nil),               // 21: xyz.block.ftl.console.v1.SetSecretRequest
+	(*SetSecretResponse)(nil),              // 22: xyz.block.ftl.console.v1.SetSecretResponse
+	(*v1.Config)(nil),                      // 23: xyz.block.ftl.schema.v1.Config
+	(*v1.Ref)(nil),                         // 24: xyz.block.ftl.schema.v1.Ref
+	(*v1.Data)(nil),                        // 25: xyz.block.ftl.schema.v1.Data
+	(*v1.Database)(nil),                    // 26: xyz.block.ftl.schema.v1.Database
+	(*v1.Enum)(nil),                        // 27: xyz.block.ftl.schema.v1.Enum
+	(*v1.Topic)(nil),                       // 28: xyz.block.ftl.schema.v1.Topic
+	(*v1.TypeAlias)(nil),                   // 29: xyz.block.ftl.schema.v1.TypeAlias
+	(*v1.Secret)(nil),                      // 30: xyz.block.ftl.schema.v1.Secret
+	(*v1.Verb)(nil),                        // 31: xyz.block.ftl.schema.v1.Verb
+	(*v11.PingRequest)(nil),                // 32: xyz.block.ftl.v1.PingRequest
+	(*v12.GetTimelineRequest)(nil),         // 33: xyz.block.ftl.timeline.v1.GetTimelineRequest
+	(*v12.StreamTimelineRequest)(nil),      // 34: xyz.block.ftl.timeline.v1.StreamTimelineRequest
+	(*v11.StatusRequest)(nil),              // 35: xyz.block.ftl.v1.StatusRequest
+	(*v11.CallRequest)(nil),                // 36: xyz.block.ftl.v1.CallRequest
+	(*v13.StreamEngineEventsRequest)(nil),  // 37: xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
+	(*v11.PingResponse)(nil),               // 38: xyz.block.ftl.v1.PingResponse
+	(*v12.GetTimelineResponse)(nil),        // 39: xyz.block.ftl.timeline.v1.GetTimelineResponse
+	(*v12.StreamTimelineResponse)(nil),     // 40: xyz.block.ftl.timeline.v1.StreamTimelineResponse
+	(*v11.StatusResponse)(nil),             // 41: xyz.block.ftl.v1.StatusResponse
+	(*v11.CallResponse)(nil),               // 42: xyz.block.ftl.v1.CallResponse
+	(*v13.StreamEngineEventsResponse)(nil), // 43: xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
 }
 var file_xyz_block_ftl_console_v1_console_proto_depIdxs = []int32{
 	23, // 0: xyz.block.ftl.console.v1.Config.config:type_name -> xyz.block.ftl.schema.v1.Config
@@ -1621,19 +1636,21 @@ var file_xyz_block_ftl_console_v1_console_proto_depIdxs = []int32{
 	21, // 37: xyz.block.ftl.console.v1.ConsoleService.SetSecret:input_type -> xyz.block.ftl.console.v1.SetSecretRequest
 	35, // 38: xyz.block.ftl.console.v1.ConsoleService.Status:input_type -> xyz.block.ftl.v1.StatusRequest
 	36, // 39: xyz.block.ftl.console.v1.ConsoleService.Call:input_type -> xyz.block.ftl.v1.CallRequest
-	37, // 40: xyz.block.ftl.console.v1.ConsoleService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	12, // 41: xyz.block.ftl.console.v1.ConsoleService.GetModules:output_type -> xyz.block.ftl.console.v1.GetModulesResponse
-	14, // 42: xyz.block.ftl.console.v1.ConsoleService.StreamModules:output_type -> xyz.block.ftl.console.v1.StreamModulesResponse
-	38, // 43: xyz.block.ftl.console.v1.ConsoleService.GetTimeline:output_type -> xyz.block.ftl.timeline.v1.GetTimelineResponse
-	39, // 44: xyz.block.ftl.console.v1.ConsoleService.StreamTimeline:output_type -> xyz.block.ftl.timeline.v1.StreamTimelineResponse
-	16, // 45: xyz.block.ftl.console.v1.ConsoleService.GetConfig:output_type -> xyz.block.ftl.console.v1.GetConfigResponse
-	18, // 46: xyz.block.ftl.console.v1.ConsoleService.SetConfig:output_type -> xyz.block.ftl.console.v1.SetConfigResponse
-	20, // 47: xyz.block.ftl.console.v1.ConsoleService.GetSecret:output_type -> xyz.block.ftl.console.v1.GetSecretResponse
-	22, // 48: xyz.block.ftl.console.v1.ConsoleService.SetSecret:output_type -> xyz.block.ftl.console.v1.SetSecretResponse
-	40, // 49: xyz.block.ftl.console.v1.ConsoleService.Status:output_type -> xyz.block.ftl.v1.StatusResponse
-	41, // 50: xyz.block.ftl.console.v1.ConsoleService.Call:output_type -> xyz.block.ftl.v1.CallResponse
-	40, // [40:51] is the sub-list for method output_type
-	29, // [29:40] is the sub-list for method input_type
+	37, // 40: xyz.block.ftl.console.v1.ConsoleService.StreamEngineEvents:input_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
+	38, // 41: xyz.block.ftl.console.v1.ConsoleService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	12, // 42: xyz.block.ftl.console.v1.ConsoleService.GetModules:output_type -> xyz.block.ftl.console.v1.GetModulesResponse
+	14, // 43: xyz.block.ftl.console.v1.ConsoleService.StreamModules:output_type -> xyz.block.ftl.console.v1.StreamModulesResponse
+	39, // 44: xyz.block.ftl.console.v1.ConsoleService.GetTimeline:output_type -> xyz.block.ftl.timeline.v1.GetTimelineResponse
+	40, // 45: xyz.block.ftl.console.v1.ConsoleService.StreamTimeline:output_type -> xyz.block.ftl.timeline.v1.StreamTimelineResponse
+	16, // 46: xyz.block.ftl.console.v1.ConsoleService.GetConfig:output_type -> xyz.block.ftl.console.v1.GetConfigResponse
+	18, // 47: xyz.block.ftl.console.v1.ConsoleService.SetConfig:output_type -> xyz.block.ftl.console.v1.SetConfigResponse
+	20, // 48: xyz.block.ftl.console.v1.ConsoleService.GetSecret:output_type -> xyz.block.ftl.console.v1.GetSecretResponse
+	22, // 49: xyz.block.ftl.console.v1.ConsoleService.SetSecret:output_type -> xyz.block.ftl.console.v1.SetSecretResponse
+	41, // 50: xyz.block.ftl.console.v1.ConsoleService.Status:output_type -> xyz.block.ftl.v1.StatusResponse
+	42, // 51: xyz.block.ftl.console.v1.ConsoleService.Call:output_type -> xyz.block.ftl.v1.CallResponse
+	43, // 52: xyz.block.ftl.console.v1.ConsoleService.StreamEngineEvents:output_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
+	41, // [41:53] is the sub-list for method output_type
+	29, // [29:41] is the sub-list for method input_type
 	29, // [29:29] is the sub-list for extension type_name
 	29, // [29:29] is the sub-list for extension extendee
 	0,  // [0:29] is the sub-list for field type_name

@@ -25,6 +25,7 @@ import (
 	"github.com/block/ftl/backend/cron"
 	"github.com/block/ftl/backend/ingress"
 	"github.com/block/ftl/backend/lease"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -92,12 +93,13 @@ func (s *serveCmd) Run(
 	schemaClient ftlv1connect.SchemaServiceClient,
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
 	verbClient ftlv1connect.VerbServiceClient,
+	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	bindAllocator, err := bind.NewBindAllocator(s.Bind, 2)
 	if err != nil {
 		return fmt.Errorf("could not create bind allocator: %w", err)
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaEventSourceFactory, verbClient, s.Recreate, nil)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaEventSourceFactory, verbClient, buildEngineClient, s.Recreate, nil)
 }
 
 //nolint:maintidx
@@ -115,6 +117,7 @@ func (s *serveCommonConfig) run(
 	adminClient admin.Client,
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
 	verbClient ftlv1connect.VerbServiceClient,
+	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	recreate bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,
 ) error {
@@ -331,7 +334,7 @@ func (s *serveCommonConfig) run(
 	if !s.NoConsole {
 		// Start Console
 		wg.Go(func() error {
-			err := console.Start(ctx, s.Console, schemaEventSourceFactory(), controllerClient, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient))
+			err := console.Start(ctx, s.Console, schemaEventSourceFactory(), controllerClient, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), buildEngineClient)
 			if err != nil {
 				return fmt.Errorf("console failed: %w", err)
 			}

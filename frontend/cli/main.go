@@ -20,6 +20,7 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -266,6 +267,10 @@ func makeBindContext(logger *log.Logger, cancel context.CancelFunc) terminal.Kon
 		adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 		ctx = rpc.ContextWithClient(ctx, adminClient)
 		kctx.BindTo(adminClient, (*ftlv1connect.AdminServiceClient)(nil))
+
+		buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.Build.UpdatesEndpoint.String(), log.Error)
+		ctx = rpc.ContextWithClient(ctx, buildEngineClient)
+		kctx.BindTo(buildEngineClient, (*buildenginepbconnect.BuildEngineServiceClient)(nil))
 
 		err = kctx.BindToProvider(func() (*providers.Registry[configuration.Configuration], error) {
 			return providers.NewDefaultConfigRegistry(), nil

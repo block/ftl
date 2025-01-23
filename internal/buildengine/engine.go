@@ -31,6 +31,7 @@ import (
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/watch"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // moduleMeta is a wrapper around a module that includes the last build's start time.
@@ -213,6 +214,7 @@ func New(
 			e.moduleMetas.Store(config.Module, meta)
 			e.modulesToBuild.Store(config.Module, true)
 			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+				Timestamp: timestamppb.Now(),
 				Event: &buildenginepb.EngineEvent_ModuleAdded{
 					ModuleAdded: &buildenginepb.ModuleAdded{
 						Module: config.Module,
@@ -374,6 +376,7 @@ func (e *Engine) Deploy(ctx context.Context, replicas int32, waitForDeployOnline
 					return fmt.Errorf("no files found to deploy for %q", moduleName)
 				}
 				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+					Timestamp: timestamppb.Now(),
 					Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
 						ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
 							Module: moduleName,
@@ -383,6 +386,7 @@ func (e *Engine) Deploy(ctx context.Context, replicas int32, waitForDeployOnline
 				err := Deploy(ctx, e.projectConfig, meta.module, meta.module.Deploy, replicas, waitForDeployOnline, e.client)
 				if err != nil {
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
 							ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
 								Module: moduleName,
@@ -395,6 +399,7 @@ func (e *Engine) Deploy(ctx context.Context, replicas int32, waitForDeployOnline
 					return err
 				}
 				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+					Timestamp: timestamppb.Now(),
 					Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
 						ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
 							Module: moduleName,
@@ -483,6 +488,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					}
 					e.moduleMetas.Store(config.Module, meta)
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_ModuleAdded{
 							ModuleAdded: &buildenginepb.ModuleAdded{
 								Module: config.Module,
@@ -505,6 +511,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				}
 				e.moduleMetas.Delete(event.Config.Module)
 				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+					Timestamp: timestamppb.Now(),
 					Event: &buildenginepb.EngineEvent_ModuleRemoved{
 						ModuleRemoved: &buildenginepb.ModuleRemoved{
 							Module: event.Config.Module,
@@ -634,6 +641,12 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 
 	isFirstRound := true
 
+	addTimestamp := func(evt *buildenginepb.EngineEvent) {
+		if evt.Timestamp == nil {
+			evt.Timestamp = timestamppb.Now()
+		}
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -669,13 +682,16 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 			publicBuildErrors := map[string]*langpb.ErrorList{}
 			maps.Copy(moduleErrors, publicBuildErrors)
 
-			e.EngineUpdates.Publish(&buildenginepb.EngineEvent{
+			evt := &buildenginepb.EngineEvent{
+				Timestamp: timestamppb.Now(),
 				Event: &buildenginepb.EngineEvent_EngineEnded{
 					EngineEnded: &buildenginepb.EngineEnded{
 						ModuleErrors: publicBuildErrors,
 					},
 				},
-			})
+			}
+			addTimestamp(evt)
+			e.EngineUpdates.Publish(evt)
 
 		case evt := <-e.rawEngineUpdates:
 			switch rawEvent := evt.Event.(type) {
@@ -690,11 +706,14 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 			case *buildenginepb.EngineEvent_ModuleBuildStarted:
 				if isIdle {
 					isIdle = false
-					e.EngineUpdates.Publish(&buildenginepb.EngineEvent{
+					started := &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_EngineStarted{
 							EngineStarted: &buildenginepb.EngineStarted{},
 						},
-					})
+					}
+					addTimestamp(started)
+					e.EngineUpdates.Publish(started)
 				}
 				if rawEvent.ModuleBuildStarted.IsAutoRebuild {
 					autoRebuilding[rawEvent.ModuleBuildStarted.Config.Name] = true
@@ -722,11 +741,14 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 			case *buildenginepb.EngineEvent_ModuleDeployStarted:
 				if isIdle {
 					isIdle = false
-					e.EngineUpdates.Publish(&buildenginepb.EngineEvent{
+					started := &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_EngineStarted{
 							EngineStarted: &buildenginepb.EngineStarted{},
 						},
-					})
+					}
+					addTimestamp(started)
+					e.EngineUpdates.Publish(started)
 				}
 				deploying[rawEvent.ModuleDeployStarted.Module] = true
 				delete(moduleErrors, rawEvent.ModuleDeployStarted.Module)
@@ -738,6 +760,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 				delete(moduleErrors, rawEvent.ModuleDeploySuccess.Module)
 			}
 
+			addTimestamp(evt)
 			e.EngineUpdates.Publish(evt)
 		}
 		if !isIdle && len(explicitlyBuilding) == 0 && len(autoRebuilding) == 0 && len(deploying) == 0 {
@@ -783,6 +806,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 		return e.buildWithCallback(ctx, func(buildCtx context.Context, module Module) error {
 			e.modulesToBuild.Store(module.Config.Module, false)
 			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+				Timestamp: timestamppb.Now(),
 				Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
 					ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
 						Module: module.Config.Module,
@@ -792,6 +816,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 			err := Deploy(buildCtx, e.projectConfig, module, module.Deploy, replicas, true, e.client)
 			if err != nil {
 				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+					Timestamp: timestamppb.Now(),
 					Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
 						ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
 							Module: module.Config.Module,
@@ -804,6 +829,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 				return err
 			}
 			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+				Timestamp: timestamppb.Now(),
 				Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
 					ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
 						Module: module.Config.Module,
@@ -876,6 +902,7 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 			continue
 		}
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
 			Event: &buildenginepb.EngineEvent_ModuleBuildWaiting{
 				ModuleBuildWaiting: &buildenginepb.ModuleBuildWaiting{
 					Config: proto,
@@ -995,6 +1022,7 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 		return fmt.Errorf("failed to marshal module config: %w", err)
 	}
 	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+		Timestamp: timestamppb.Now(),
 		Event: &buildenginepb.EngineEvent_ModuleBuildStarted{
 			ModuleBuildStarted: &buildenginepb.ModuleBuildStarted{
 				Config:        configProto,
@@ -1006,6 +1034,7 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 	err = e.build(ctx, moduleName, builtModules, schemas)
 	if err != nil {
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
 			Event: &buildenginepb.EngineEvent_ModuleBuildFailed{
 				ModuleBuildFailed: &buildenginepb.ModuleBuildFailed{
 					Config:        configProto,
@@ -1018,6 +1047,7 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 		}
 	} else {
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
 			Event: &buildenginepb.EngineEvent_ModuleBuildSuccess{
 				ModuleBuildSuccess: &buildenginepb.ModuleBuildSuccess{
 					Config:        configProto,
@@ -1188,6 +1218,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 				switch event := buildEvent.(type) {
 				case languageplugin.AutoRebuildStartedEvent:
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_ModuleBuildStarted{
 							ModuleBuildStarted: &buildenginepb.ModuleBuildStarted{
 								Config:        configProto,
@@ -1200,6 +1231,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 					moduleSch, deploy, err := handleBuildResult(ctx, e.projectConfig, meta.module.Config, event.Result, e.devModeEndpointUpdates)
 					if err != nil {
 						e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+							Timestamp: timestamppb.Now(),
 							Event: &buildenginepb.EngineEvent_ModuleBuildFailed{
 								ModuleBuildFailed: &buildenginepb.ModuleBuildFailed{
 									Config:        configProto,
@@ -1218,6 +1250,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 						continue
 					}
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_ModuleBuildSuccess{
 							ModuleBuildSuccess: &buildenginepb.ModuleBuildSuccess{
 								Config:        configProto,
@@ -1228,6 +1261,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 					e.rebuildEvents <- autoRebuildCompletedEvent{module: event.ModuleName(), schema: moduleSch}
 
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
 							ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
 								Module: event.Module,
@@ -1237,6 +1271,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 
 					if err := Deploy(ctx, e.projectConfig, meta.module, deploy, 1, true, e.client); err != nil {
 						e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+							Timestamp: timestamppb.Now(),
 							Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
 								ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
 									Module: event.Module,
@@ -1250,6 +1285,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 					}
 
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
 							ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
 								Module: event.Module,

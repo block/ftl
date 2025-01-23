@@ -9,6 +9,7 @@ import { GetConfigRequest, GetConfigResponse, GetModulesRequest, GetModulesRespo
 import { GetTimelineRequest, GetTimelineResponse, StreamTimelineRequest, StreamTimelineResponse } from "../../timeline/v1/timeline_pb.js";
 import { StatusRequest, StatusResponse } from "../../v1/controller_pb.js";
 import { CallRequest, CallResponse } from "../../v1/verb_pb.js";
+import { StreamEngineEventsRequest, StreamEngineEventsResponse } from "../../buildengine/v1/buildengine_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.console.v1.ConsoleService
@@ -117,6 +118,15 @@ export const ConsoleService = {
       I: CallRequest,
       O: CallResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc xyz.block.ftl.console.v1.ConsoleService.StreamEngineEvents
+     */
+    streamEngineEvents: {
+      name: "StreamEngineEvents",
+      I: StreamEngineEventsRequest,
+      O: StreamEngineEventsResponse,
+      kind: MethodKind.ServerStreaming,
     },
   }
 } as const;

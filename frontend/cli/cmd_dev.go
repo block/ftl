@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/backend/admin"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal/bind"
@@ -47,6 +48,7 @@ func (d *devCmd) Run(
 	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	verbClient ftlv1connect.VerbServiceClient,
+	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	startTime := time.Now()
 	ctx, cancel := context.WithCancel(ctx)
@@ -89,7 +91,7 @@ func (d *devCmd) Run(
 	controllerReady := make(chan bool, 1)
 	if !d.NoServe {
 		if d.ServeCmd.Stop {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaEventSourceFactory, verbClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaEventSourceFactory, verbClient, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
 				return fmt.Errorf("failed to stop server: %w", err)
 			}
@@ -97,7 +99,7 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaEventSourceFactory, verbClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaEventSourceFactory, verbClient, buildEngineClient, true, devModeEndpointUpdates)
 			cancel()
 			return err
 		})
