@@ -184,6 +184,129 @@ export class WatchResponse extends Message<WatchResponse> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.hotreload.v1.RunnerInfoRequest
+ */
+export class RunnerInfoRequest extends Message<RunnerInfoRequest> {
+  /**
+   * @generated from field: string address = 1;
+   */
+  address = "";
+
+  /**
+   * @generated from field: string deployment = 2;
+   */
+  deployment = "";
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.hotreload.v1.Database databases = 3;
+   */
+  databases: Database[] = [];
+
+  constructor(data?: PartialMessage<RunnerInfoRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.hotreload.v1.RunnerInfoRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "deployment", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "databases", kind: "message", T: Database, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RunnerInfoRequest {
+    return new RunnerInfoRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RunnerInfoRequest {
+    return new RunnerInfoRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RunnerInfoRequest {
+    return new RunnerInfoRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RunnerInfoRequest | PlainMessage<RunnerInfoRequest> | undefined, b: RunnerInfoRequest | PlainMessage<RunnerInfoRequest> | undefined): boolean {
+    return proto3.util.equals(RunnerInfoRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.hotreload.v1.Database
+ */
+export class Database extends Message<Database> {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string address = 2;
+   */
+  address = "";
+
+  constructor(data?: PartialMessage<Database>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.hotreload.v1.Database";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Database {
+    return new Database().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Database {
+    return new Database().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Database {
+    return new Database().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Database | PlainMessage<Database> | undefined, b: Database | PlainMessage<Database> | undefined): boolean {
+    return proto3.util.equals(Database, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.hotreload.v1.RunnerInfoResponse
+ */
+export class RunnerInfoResponse extends Message<RunnerInfoResponse> {
+  constructor(data?: PartialMessage<RunnerInfoResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.hotreload.v1.RunnerInfoResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RunnerInfoResponse {
+    return new RunnerInfoResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RunnerInfoResponse {
+    return new RunnerInfoResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RunnerInfoResponse {
+    return new RunnerInfoResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RunnerInfoResponse | PlainMessage<RunnerInfoResponse> | undefined, b: RunnerInfoResponse | PlainMessage<RunnerInfoResponse> | undefined): boolean {
+    return proto3.util.equals(RunnerInfoResponse, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.hotreload.v1.ReloadNotRequired
  */
 export class ReloadNotRequired extends Message<ReloadNotRequired> {

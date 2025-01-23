@@ -100,11 +100,11 @@ func (l *localScaling) TerminatePreviousDeployments(ctx context.Context, module 
 }
 
 type devModeRunner struct {
-	uri url.URL
+	uri          string
+	hotReloadURI string
 	// The deployment key of the deployment that is currently running
-	deploymentKey  optional.Option[key.Deployment]
-	debugPort      int
-	runnerInfoFile optional.Option[string]
+	deploymentKey optional.Option[key.Deployment]
+	debugPort     int
 }
 
 func (l *localScaling) Start(ctx context.Context) error {
@@ -122,9 +122,9 @@ func (l *localScaling) Start(ctx context.Context) error {
 // Must be called under lock
 func (l *localScaling) updateDevModeEndpoint(ctx context.Context, devEndpoints dev.LocalEndpoint) {
 	l.devModeEndpoints[devEndpoints.Module] = &devModeRunner{
-		uri:            devEndpoints.Endpoint,
-		debugPort:      devEndpoints.DebugPort,
-		runnerInfoFile: devEndpoints.RunnerInfoFile,
+		uri:          devEndpoints.Endpoint,
+		debugPort:    devEndpoints.DebugPort,
+		hotReloadURI: devEndpoints.HotReloadEndpoint,
 	}
 	if ide, ok := l.ideSupport.Get(); ok {
 		if devEndpoints.DebugPort != 0 {
@@ -255,12 +255,12 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	}
 
 	devEndpoint := l.devModeEndpoints[info.module]
-	devURI := optional.None[url.URL]()
-	devRunnerInfoFile := optional.None[string]()
+	devURI := optional.None[string]()
+	devHotReloadURI := optional.None[string]()
 	debugPort := 0
 	if devEndpoint != nil {
 		devURI = optional.Some(devEndpoint.uri)
-		devRunnerInfoFile = devEndpoint.runnerInfoFile
+		devHotReloadURI = optional.Some(devEndpoint.hotReloadURI)
 		if devKey, ok := devEndpoint.deploymentKey.Get(); ok && devKey.Equal(deploymentKey) {
 			// Already running, don't start another
 			return nil
@@ -297,14 +297,14 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		return fmt.Errorf("failed to start runner: %w", err)
 	}
 	config := runner.Config{
-		Bind:               bindURL,
-		ControllerEndpoint: controllerEndpoint,
-		LeaseEndpoint:      l.leaseAddress,
-		Key:                key.NewLocalRunnerKey(keySuffix),
-		Deployment:         deploymentKey,
-		DebugPort:          debugPort,
-		DevEndpoint:        devURI,
-		DevRunnerInfoFile:  devRunnerInfoFile,
+		Bind:                 bindURL,
+		ControllerEndpoint:   controllerEndpoint,
+		LeaseEndpoint:        l.leaseAddress,
+		Key:                  key.NewLocalRunnerKey(keySuffix),
+		Deployment:           deploymentKey,
+		DebugPort:            debugPort,
+		DevEndpoint:          devURI,
+		DevHotReloadEndpoint: devHotReloadURI,
 	}
 
 	simpleName := fmt.Sprintf("runner%d", keySuffix)

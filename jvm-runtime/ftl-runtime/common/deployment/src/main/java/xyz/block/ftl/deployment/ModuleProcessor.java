@@ -44,6 +44,7 @@ import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.util.HashUtil;
 import io.quarkus.vertx.http.deployment.RequireSocketHttpBuildItem;
 import io.quarkus.vertx.http.deployment.RequireVirtualHttpBuildItem;
+import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.language.v1.ErrorList;
 import xyz.block.ftl.runtime.FTLDatasourceCredentials;
 import xyz.block.ftl.runtime.FTLRecorder;
@@ -63,8 +64,6 @@ public class ModuleProcessor {
 
     private static final String SCHEMA_OUT = "schema.pb";
     private static final String ERRORS_OUT = "errors.pb";
-    public static final String DEV_MODE_RUNNER_INFO_FILE = "FTL_RUNNER_INFO";
-
     /**
      * Persistent schema hash, used to detect runner restarts in dev mode.
      */
@@ -195,16 +194,7 @@ public class ModuleProcessor {
             var hash = HashUtil.sha256(schBytes);
             if (!Objects.equals(hash, schemaHash)) {
                 schemaHash = hash;
-                String runnerInfo = System.getenv(DEV_MODE_RUNNER_INFO_FILE);
-                if (runnerInfo != null) {
-                    Path path = Path.of(runnerInfo);
-                    // Delete the runner info file if it already exists
-                    Files.deleteIfExists(path);
-                    // This method tells the runtime not to actually start until we have updated runner details
-                    systemPropertyBuildItemBuildProducer
-                            .produce(new SystemPropertyBuildItem(FTLRecorder.DEV_MODE_RUNNER_INFO_PATH, path.toString()));
-                    recorder.handleDevModeRunnerStart(shutdownContextBuildItem);
-                }
+                RunnerNotification.setRequiresNewRunnerDetails();
             }
         } else {
             output = outputTargetBuildItem.getOutputDirectory().resolve("launch");

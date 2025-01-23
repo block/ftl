@@ -27,7 +27,7 @@ from xyz.block.ftl.schema.v1 import schema_pb2 as xyz_dot_block_dot_ftl_dot_sche
 from xyz.block.ftl.v1 import ftl_pb2 as xyz_dot_block_dot_ftl_dot_v1_dot_ftl__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*xyz/block/ftl/hotreload/v1/hotreload.proto\x12\x1axyz.block.ftl.hotreload.v1\x1a(xyz/block/ftl/language/v1/language.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"%\n\rReloadRequest\x12\x14\n\x05\x66orce\x18\x01 \x01(\x08R\x05\x66orce\"\x9f\x02\n\x0eReloadResponse\x12_\n\x13reload_not_required\x18\x01 \x01(\x0b\x32-.xyz.block.ftl.hotreload.v1.ReloadNotRequiredH\x00R\x11reloadNotRequired\x12R\n\x0ereload_success\x18\x02 \x01(\x0b\x32).xyz.block.ftl.hotreload.v1.ReloadSuccessH\x00R\rreloadSuccess\x12O\n\rreload_failed\x18\x03 \x01(\x0b\x32(.xyz.block.ftl.hotreload.v1.ReloadFailedH\x00R\x0creloadFailedB\x07\n\x05\x65vent\"\x0e\n\x0cWatchRequest\"\xbd\x01\n\rWatchResponse\x12R\n\x0ereload_success\x18\x01 \x01(\x0b\x32).xyz.block.ftl.hotreload.v1.ReloadSuccessH\x00R\rreloadSuccess\x12O\n\rreload_failed\x18\x02 \x01(\x0b\x32(.xyz.block.ftl.hotreload.v1.ReloadFailedH\x00R\x0creloadFailedB\x07\n\x05\x65vent\"\x13\n\x11ReloadNotRequired\"\x86\x01\n\rReloadSuccess\x12\x37\n\x06module\x18\x01 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleR\x06module\x12<\n\x06\x65rrors\x18\x02 \x01(\x0b\x32$.xyz.block.ftl.language.v1.ErrorListR\x06\x65rrors\"L\n\x0cReloadFailed\x12<\n\x06\x65rrors\x18\x01 \x01(\x0b\x32$.xyz.block.ftl.language.v1.ErrorListR\x06\x65rrors2\x9f\x02\n\x10HotReloadService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12_\n\x06Reload\x12).xyz.block.ftl.hotreload.v1.ReloadRequest\x1a*.xyz.block.ftl.hotreload.v1.ReloadResponse\x12^\n\x05Watch\x12(.xyz.block.ftl.hotreload.v1.WatchRequest\x1a).xyz.block.ftl.hotreload.v1.WatchResponse0\x01\x42NP\x01ZJgithub.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1;hotreloadpbb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*xyz/block/ftl/hotreload/v1/hotreload.proto\x12\x1axyz.block.ftl.hotreload.v1\x1a(xyz/block/ftl/language/v1/language.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"%\n\rReloadRequest\x12\x14\n\x05\x66orce\x18\x01 \x01(\x08R\x05\x66orce\"\x9f\x02\n\x0eReloadResponse\x12_\n\x13reload_not_required\x18\x01 \x01(\x0b\x32-.xyz.block.ftl.hotreload.v1.ReloadNotRequiredH\x00R\x11reloadNotRequired\x12R\n\x0ereload_success\x18\x02 \x01(\x0b\x32).xyz.block.ftl.hotreload.v1.ReloadSuccessH\x00R\rreloadSuccess\x12O\n\rreload_failed\x18\x03 \x01(\x0b\x32(.xyz.block.ftl.hotreload.v1.ReloadFailedH\x00R\x0creloadFailedB\x07\n\x05\x65vent\"\x0e\n\x0cWatchRequest\"\xbd\x01\n\rWatchResponse\x12R\n\x0ereload_success\x18\x01 \x01(\x0b\x32).xyz.block.ftl.hotreload.v1.ReloadSuccessH\x00R\rreloadSuccess\x12O\n\rreload_failed\x18\x02 \x01(\x0b\x32(.xyz.block.ftl.hotreload.v1.ReloadFailedH\x00R\x0creloadFailedB\x07\n\x05\x65vent\"\x91\x01\n\x11RunnerInfoRequest\x12\x18\n\x07\x61\x64\x64ress\x18\x01 \x01(\tR\x07\x61\x64\x64ress\x12\x1e\n\ndeployment\x18\x02 \x01(\tR\ndeployment\x12\x42\n\tdatabases\x18\x03 \x03(\x0b\x32$.xyz.block.ftl.hotreload.v1.DatabaseR\tdatabases\"8\n\x08\x44\x61tabase\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n\x07\x61\x64\x64ress\x18\x02 \x01(\tR\x07\x61\x64\x64ress\"\x14\n\x12RunnerInfoResponse\"\x13\n\x11ReloadNotRequired\"\x86\x01\n\rReloadSuccess\x12\x37\n\x06module\x18\x01 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleR\x06module\x12<\n\x06\x65rrors\x18\x02 \x01(\x0b\x32$.xyz.block.ftl.language.v1.ErrorListR\x06\x65rrors\"L\n\x0cReloadFailed\x12<\n\x06\x65rrors\x18\x01 \x01(\x0b\x32$.xyz.block.ftl.language.v1.ErrorListR\x06\x65rrors2\x8c\x03\n\x10HotReloadService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12_\n\x06Reload\x12).xyz.block.ftl.hotreload.v1.ReloadRequest\x1a*.xyz.block.ftl.hotreload.v1.ReloadResponse\x12^\n\x05Watch\x12(.xyz.block.ftl.hotreload.v1.WatchRequest\x1a).xyz.block.ftl.hotreload.v1.WatchResponse0\x01\x12k\n\nRunnerInfo\x12-.xyz.block.ftl.hotreload.v1.RunnerInfoRequest\x1a..xyz.block.ftl.hotreload.v1.RunnerInfoResponseBNP\x01ZJgithub.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1;hotreloadpbb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -45,12 +45,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_WATCHREQUEST']._serialized_end=525
   _globals['_WATCHRESPONSE']._serialized_start=528
   _globals['_WATCHRESPONSE']._serialized_end=717
-  _globals['_RELOADNOTREQUIRED']._serialized_start=719
-  _globals['_RELOADNOTREQUIRED']._serialized_end=738
-  _globals['_RELOADSUCCESS']._serialized_start=741
-  _globals['_RELOADSUCCESS']._serialized_end=875
-  _globals['_RELOADFAILED']._serialized_start=877
-  _globals['_RELOADFAILED']._serialized_end=953
-  _globals['_HOTRELOADSERVICE']._serialized_start=956
-  _globals['_HOTRELOADSERVICE']._serialized_end=1243
+  _globals['_RUNNERINFOREQUEST']._serialized_start=720
+  _globals['_RUNNERINFOREQUEST']._serialized_end=865
+  _globals['_DATABASE']._serialized_start=867
+  _globals['_DATABASE']._serialized_end=923
+  _globals['_RUNNERINFORESPONSE']._serialized_start=925
+  _globals['_RUNNERINFORESPONSE']._serialized_end=945
+  _globals['_RELOADNOTREQUIRED']._serialized_start=947
+  _globals['_RELOADNOTREQUIRED']._serialized_end=966
+  _globals['_RELOADSUCCESS']._serialized_start=969
+  _globals['_RELOADSUCCESS']._serialized_end=1103
+  _globals['_RELOADFAILED']._serialized_start=1105
+  _globals['_RELOADFAILED']._serialized_end=1181
+  _globals['_HOTRELOADSERVICE']._serialized_start=1184
+  _globals['_HOTRELOADSERVICE']._serialized_end=1580
 # @@protoc_insertion_point(module_scope)

@@ -5,7 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,12 +19,16 @@ import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.quarkus.bootstrap.classloading.QuarkusClassLoader;
 import io.quarkus.deployment.dev.RuntimeUpdatesProcessor;
+import xyz.block.ftl.hotreload.RunnerInfo;
+import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.hotreload.v1.HotReloadServiceGrpc;
 import xyz.block.ftl.hotreload.v1.ReloadFailed;
 import xyz.block.ftl.hotreload.v1.ReloadNotRequired;
 import xyz.block.ftl.hotreload.v1.ReloadRequest;
 import xyz.block.ftl.hotreload.v1.ReloadResponse;
 import xyz.block.ftl.hotreload.v1.ReloadSuccess;
+import xyz.block.ftl.hotreload.v1.RunnerInfoRequest;
+import xyz.block.ftl.hotreload.v1.RunnerInfoResponse;
 import xyz.block.ftl.hotreload.v1.WatchRequest;
 import xyz.block.ftl.hotreload.v1.WatchResponse;
 import xyz.block.ftl.language.v1.Error;
@@ -42,7 +48,8 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     private volatile Module module;
     private volatile ErrorList errors;
     private volatile Server server;
-    private volatile boolean explicitlyReloading = false;
+    private boolean explicitlyReloading = false;
+    private boolean sentResults = false;
     private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
 
     public static HotReloadHandler getInstance() {
@@ -73,6 +80,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                 }
             }
         }
+        sentResults = false;
         explicitlyReloading = false;
         notifyAll();
     }
@@ -85,74 +93,85 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
+
         // This is complex, as the restart can't happen until the runner is up
         // We want to report on the results of the schema generations, so we can bring up a runner
         // Run the restart in a new thread, so we can report on the schema once it is ready
         var currentModule = module;
-        Thread t = new Thread(() -> {
-            try {
-                doScan(request.getForce());
-            } finally {
-                synchronized (HotReloadHandler.class) {
-                    explicitlyReloading = false;
-                    HotReloadHandler.class.notifyAll();
-                }
-            }
-        }, "FTL Restart Thread");
-        synchronized (HotReloadHandler.class) {
-            explicitlyReloading = true;
-            t.start();
-            while (explicitlyReloading) {
-                try {
-                    HotReloadHandler.class.wait();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }
-        Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
-        Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();
-        if (compileProblem != null || deploymentProblems != null) {
-            ErrorList.Builder builder = ErrorList.newBuilder();
-            if (compileProblem != null) {
-                builder.addErrors(xyz.block.ftl.language.v1.Error.newBuilder()
-                        .setLevel(xyz.block.ftl.language.v1.Error.ErrorLevel.ERROR_LEVEL_ERROR)
-                        .setType(xyz.block.ftl.language.v1.Error.ErrorType.ERROR_TYPE_COMPILER)
-                        .setMsg(compileProblem.getMessage())
-                        .build());
-            }
-            if (deploymentProblems != null) {
-                builder.addErrors(xyz.block.ftl.language.v1.Error.newBuilder()
-                        .setLevel(xyz.block.ftl.language.v1.Error.ErrorLevel.ERROR_LEVEL_ERROR)
-                        .setType(Error.ErrorType.ERROR_TYPE_FTL)
-                        .setMsg(deploymentProblems.getMessage())
-                        .build());
-            }
-            responseObserver.onNext(ReloadResponse.newBuilder()
-                    .setReloadFailed(ReloadFailed.newBuilder()
-                            .setErrors(builder).build())
-                    .build());
-            responseObserver.onCompleted();
-        } else if (errors != null && errors.getErrorsCount() > 0) {
-            responseObserver.onNext(ReloadResponse.newBuilder()
-                    .setReloadFailed(ReloadFailed.newBuilder()
-                            .setErrors(errors).build())
-                    .build());
-            responseObserver.onCompleted();
-        } else if (module != null) {
-            if (module == currentModule) {
+        synchronized (HotReloadHandler.this) {
+            if (explicitlyReloading) {
                 responseObserver.onNext(ReloadResponse.newBuilder()
                         .setReloadNotRequired(ReloadNotRequired.newBuilder().build())
                         .build());
-            } else {
-                responseObserver.onNext(ReloadResponse.newBuilder()
-                        .setReloadSuccess(ReloadSuccess.newBuilder()
-                                .setModule(module).build())
-                        .build());
+                return;
             }
-            responseObserver.onCompleted();
-        } else {
-            responseObserver.onError(new RuntimeException("schema not generated"));
+            // If we have new results we don't want to re-scan, we want to send them back
+            if (!sentResults) {
+                explicitlyReloading = true;
+                Thread t = new Thread(() -> {
+                    try {
+                        doScan(request.getForce());
+                    } finally {
+                        synchronized (HotReloadHandler.this) {
+                            explicitlyReloading = false;
+                            HotReloadHandler.this.notifyAll();
+                        }
+                    }
+                }, "FTL Restart Thread");
+                t.start();
+                while (explicitlyReloading) {
+                    try {
+                        HotReloadHandler.this.wait();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+            sentResults = true;
+            Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
+            Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();
+            if (compileProblem != null || deploymentProblems != null) {
+                ErrorList.Builder builder = ErrorList.newBuilder();
+                if (compileProblem != null) {
+                    builder.addErrors(xyz.block.ftl.language.v1.Error.newBuilder()
+                            .setLevel(xyz.block.ftl.language.v1.Error.ErrorLevel.ERROR_LEVEL_ERROR)
+                            .setType(xyz.block.ftl.language.v1.Error.ErrorType.ERROR_TYPE_COMPILER)
+                            .setMsg(compileProblem.getMessage())
+                            .build());
+                }
+                if (deploymentProblems != null) {
+                    builder.addErrors(xyz.block.ftl.language.v1.Error.newBuilder()
+                            .setLevel(xyz.block.ftl.language.v1.Error.ErrorLevel.ERROR_LEVEL_ERROR)
+                            .setType(Error.ErrorType.ERROR_TYPE_FTL)
+                            .setMsg(deploymentProblems.getMessage())
+                            .build());
+                }
+                responseObserver.onNext(ReloadResponse.newBuilder()
+                        .setReloadFailed(ReloadFailed.newBuilder()
+                                .setErrors(builder).build())
+                        .build());
+                responseObserver.onCompleted();
+            } else if (errors != null && errors.getErrorsCount() > 0) {
+                responseObserver.onNext(ReloadResponse.newBuilder()
+                        .setReloadFailed(ReloadFailed.newBuilder()
+                                .setErrors(errors).build())
+                        .build());
+                responseObserver.onCompleted();
+            } else if (module != null) {
+                if (module == currentModule) {
+                    responseObserver.onNext(ReloadResponse.newBuilder()
+                            .setReloadNotRequired(ReloadNotRequired.newBuilder().build())
+                            .build());
+                } else {
+                    responseObserver.onNext(ReloadResponse.newBuilder()
+                            .setReloadSuccess(ReloadSuccess.newBuilder()
+                                    .setModule(module).build())
+                            .build());
+                }
+                responseObserver.onCompleted();
+            } else {
+                responseObserver.onError(new RuntimeException("schema not generated"));
+            }
         }
     }
 
@@ -168,6 +187,18 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             }
         }
         watches.add(responseObserver);
+    }
+
+    @Override
+    public void runnerInfo(RunnerInfoRequest request, StreamObserver<RunnerInfoResponse> responseObserver) {
+        Map<String, String> databases = new HashMap<>();
+        for (var db : request.getDatabasesList()) {
+            databases.put(db.getName(), db.getAddress());
+        }
+        RunnerNotification
+                .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases));
+        responseObserver.onNext(RunnerInfoResponse.newBuilder().build());
+        responseObserver.onCompleted();
     }
 
     public static void start() {
@@ -187,7 +218,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         gatherMigrations();
         int port = Integer.getInteger("ftl.language.port");
         server = ServerBuilder.forPort(port)
-                .addService(new HotReloadHandler())
+                .addService(this)
                 .build();
         try {
             LOG.info("Starting Hot Reload gRPC server on port " + port);

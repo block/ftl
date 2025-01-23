@@ -75,6 +75,11 @@
             </dependency>
             <dependency>
                 <groupId>xyz.block.ftl</groupId>
+                <artifactId>ftl-jvm-hot-reload</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>xyz.block.ftl</groupId>
                 <artifactId>ftl-jvm-runtime</artifactId>
                 <version>${project.version}</version>
             </dependency>

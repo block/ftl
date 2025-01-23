@@ -1,6 +1,5 @@
 package xyz.block.ftl.runtime;
 
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +12,7 @@ import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
 import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
+import xyz.block.ftl.hotreload.RunnerNotification;
 
 public class FTLController implements LeaseClient {
     private static final Logger log = Logger.getLogger(FTLController.class);
@@ -44,6 +44,7 @@ public class FTLController implements LeaseClient {
         this.moduleName = System.getProperty("ftl.module.name");
         if (LaunchMode.current() != LaunchMode.DEVELOPMENT) {
             haveRunnerInfo = true;
+            RunnerNotification.onRunnerDetails(this::devModeShutdown);
         }
     }
 
@@ -94,7 +95,7 @@ public class FTLController implements LeaseClient {
                 runnerConnection = null;
             }
             runnerDetails.close();
-            runnerDetails = new DevModeRunnerDetails(Path.of(System.getProperty(FTLRecorder.DEV_MODE_RUNNER_INFO_PATH)));
+            runnerDetails = new DevModeRunnerDetails();
             haveRunnerInfo = true;
             this.notifyAll();
         }

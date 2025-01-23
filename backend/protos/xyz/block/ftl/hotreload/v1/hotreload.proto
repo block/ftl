@@ -21,9 +21,7 @@ message ReloadResponse {
   }
 }
 
-
-message WatchRequest {
-}
+message WatchRequest {}
 
 message WatchResponse {
   oneof event {
@@ -32,6 +30,18 @@ message WatchResponse {
   }
 }
 
+message RunnerInfoRequest {
+  string address = 1;
+  string deployment = 2;
+  repeated Database databases = 3;
+}
+
+message Database {
+  string name = 1;
+  string address = 2;
+}
+
+message RunnerInfoResponse {}
 
 message ReloadNotRequired {}
 
@@ -61,4 +71,7 @@ service HotReloadService {
 
   // Watch for hot reloads not initiated by an explicit Reload call.
   rpc Watch(WatchRequest) returns (stream WatchResponse);
+
+  // Invoked by the runner to provide runner information to the plugin.
+  rpc RunnerInfo(RunnerInfoRequest) returns (RunnerInfoResponse);
 }

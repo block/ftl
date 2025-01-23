@@ -3,7 +3,6 @@ package buildengine
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -93,10 +92,7 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	}
 	if endpoint, ok := result.DevEndpoint.Get(); ok {
 		if devModeEndpoints != nil {
-			parsed, err := url.Parse(endpoint)
-			if err == nil {
-				devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: *parsed, DebugPort: result.DebugPort, Language: config.Language, RunnerInfoFile: result.DevRunnerInfoFile}
-			}
+			devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: endpoint, DebugPort: result.DebugPort, Language: config.Language, HotReloadEndpoint: result.HotReloadEndpoint.Default("")}
 		}
 	}
 	return result.Schema, result.Deploy, nil

@@ -40,6 +40,9 @@ const (
 	HotReloadServiceReloadProcedure = "/xyz.block.ftl.hotreload.v1.HotReloadService/Reload"
 	// HotReloadServiceWatchProcedure is the fully-qualified name of the HotReloadService's Watch RPC.
 	HotReloadServiceWatchProcedure = "/xyz.block.ftl.hotreload.v1.HotReloadService/Watch"
+	// HotReloadServiceRunnerInfoProcedure is the fully-qualified name of the HotReloadService's
+	// RunnerInfo RPC.
+	HotReloadServiceRunnerInfoProcedure = "/xyz.block.ftl.hotreload.v1.HotReloadService/RunnerInfo"
 )
 
 // HotReloadServiceClient is a client for the xyz.block.ftl.hotreload.v1.HotReloadService service.
@@ -51,6 +54,8 @@ type HotReloadServiceClient interface {
 	Reload(context.Context, *connect.Request[v11.ReloadRequest]) (*connect.Response[v11.ReloadResponse], error)
 	// Watch for hot reloads not initiated by an explicit Reload call.
 	Watch(context.Context, *connect.Request[v11.WatchRequest]) (*connect.ServerStreamForClient[v11.WatchResponse], error)
+	// Invoked by the runner to provide runner information to the plugin.
+	RunnerInfo(context.Context, *connect.Request[v11.RunnerInfoRequest]) (*connect.Response[v11.RunnerInfoResponse], error)
 }
 
 // NewHotReloadServiceClient constructs a client for the xyz.block.ftl.hotreload.v1.HotReloadService
@@ -79,14 +84,20 @@ func NewHotReloadServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			baseURL+HotReloadServiceWatchProcedure,
 			opts...,
 		),
+		runnerInfo: connect.NewClient[v11.RunnerInfoRequest, v11.RunnerInfoResponse](
+			httpClient,
+			baseURL+HotReloadServiceRunnerInfoProcedure,
+			opts...,
+		),
 	}
 }
 
 // hotReloadServiceClient implements HotReloadServiceClient.
 type hotReloadServiceClient struct {
-	ping   *connect.Client[v1.PingRequest, v1.PingResponse]
-	reload *connect.Client[v11.ReloadRequest, v11.ReloadResponse]
-	watch  *connect.Client[v11.WatchRequest, v11.WatchResponse]
+	ping       *connect.Client[v1.PingRequest, v1.PingResponse]
+	reload     *connect.Client[v11.ReloadRequest, v11.ReloadResponse]
+	watch      *connect.Client[v11.WatchRequest, v11.WatchResponse]
+	runnerInfo *connect.Client[v11.RunnerInfoRequest, v11.RunnerInfoResponse]
 }
 
 // Ping calls xyz.block.ftl.hotreload.v1.HotReloadService.Ping.
@@ -104,6 +115,11 @@ func (c *hotReloadServiceClient) Watch(ctx context.Context, req *connect.Request
 	return c.watch.CallServerStream(ctx, req)
 }
 
+// RunnerInfo calls xyz.block.ftl.hotreload.v1.HotReloadService.RunnerInfo.
+func (c *hotReloadServiceClient) RunnerInfo(ctx context.Context, req *connect.Request[v11.RunnerInfoRequest]) (*connect.Response[v11.RunnerInfoResponse], error) {
+	return c.runnerInfo.CallUnary(ctx, req)
+}
+
 // HotReloadServiceHandler is an implementation of the xyz.block.ftl.hotreload.v1.HotReloadService
 // service.
 type HotReloadServiceHandler interface {
@@ -114,6 +130,8 @@ type HotReloadServiceHandler interface {
 	Reload(context.Context, *connect.Request[v11.ReloadRequest]) (*connect.Response[v11.ReloadResponse], error)
 	// Watch for hot reloads not initiated by an explicit Reload call.
 	Watch(context.Context, *connect.Request[v11.WatchRequest], *connect.ServerStream[v11.WatchResponse]) error
+	// Invoked by the runner to provide runner information to the plugin.
+	RunnerInfo(context.Context, *connect.Request[v11.RunnerInfoRequest]) (*connect.Response[v11.RunnerInfoResponse], error)
 }
 
 // NewHotReloadServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -138,6 +156,11 @@ func NewHotReloadServiceHandler(svc HotReloadServiceHandler, opts ...connect.Han
 		svc.Watch,
 		opts...,
 	)
+	hotReloadServiceRunnerInfoHandler := connect.NewUnaryHandler(
+		HotReloadServiceRunnerInfoProcedure,
+		svc.RunnerInfo,
+		opts...,
+	)
 	return "/xyz.block.ftl.hotreload.v1.HotReloadService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case HotReloadServicePingProcedure:
@@ -146,6 +169,8 @@ func NewHotReloadServiceHandler(svc HotReloadServiceHandler, opts ...connect.Han
 			hotReloadServiceReloadHandler.ServeHTTP(w, r)
 		case HotReloadServiceWatchProcedure:
 			hotReloadServiceWatchHandler.ServeHTTP(w, r)
+		case HotReloadServiceRunnerInfoProcedure:
+			hotReloadServiceRunnerInfoHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -165,4 +190,8 @@ func (UnimplementedHotReloadServiceHandler) Reload(context.Context, *connect.Req
 
 func (UnimplementedHotReloadServiceHandler) Watch(context.Context, *connect.Request[v11.WatchRequest], *connect.ServerStream[v11.WatchResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.hotreload.v1.HotReloadService.Watch is not implemented"))
+}
+
+func (UnimplementedHotReloadServiceHandler) RunnerInfo(context.Context, *connect.Request[v11.RunnerInfoRequest]) (*connect.Response[v11.RunnerInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.hotreload.v1.HotReloadService.RunnerInfo is not implemented"))
 }

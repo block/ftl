@@ -10,7 +10,6 @@ import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.arc.Arc;
-import io.quarkus.runtime.ShutdownContext;
 import io.quarkus.runtime.annotations.Recorder;
 import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.runtime.http.FTLHttpHandler;
@@ -21,7 +20,6 @@ import xyz.block.ftl.v1.CallRequest;
 public class FTLRecorder {
 
     public static final String X_FTL_VERB = "X-ftl-verb";
-    public static final String DEV_MODE_RUNNER_INFO_PATH = "ftl.dev.runner.info";
 
     public void registerVerb(String module, String verbName, String methodName, List<Class<?>> parameterTypes,
             Class<?> verbHandlerClass, List<VerbRegistry.ParameterSupplier> paramMappers,
@@ -159,14 +157,9 @@ public class FTLRecorder {
         FTLController.instance().registerDatabase(dbKind, name);
     }
 
-    public void handleDevModeRunnerStart(ShutdownContext shutdownContext) {
+    public void requireNewRunnerDetails() {
+        FTLController.instance().devModeShutdown();
         FTLController.instance().readDevModeRunnerInfo();
-        shutdownContext.addShutdownTask(new Runnable() {
-            @Override
-            public void run() {
-                FTLController.instance().devModeShutdown();
-            }
-        });
     }
 
     public void loadModuleContextOnStartup() {

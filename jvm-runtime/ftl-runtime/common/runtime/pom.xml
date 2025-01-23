@@ -13,6 +13,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>xyz.block.ftl</groupId>
+            <artifactId>ftl-jvm-hot-reload</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-arc</artifactId>
         </dependency>
@@ -100,8 +104,8 @@
                             <goal>extension-descriptor</goal>
                         </goals>
                         <configuration>
-                            <deployment>${project.groupId}:${project.artifactId}-deployment:${project.version}
-                            </deployment>
+                            <deployment>${project.groupId}:${project.artifactId}-deployment:${project.version}</deployment>
+                            <parentFirstArtifacts>xyz.block.ftl:ftl-jvm-hot-reload</parentFirstArtifacts>
                         </configuration>
                     </execution>
                 </executions>

@@ -29,8 +29,11 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
+
 	"github.com/block/ftl/backend/controller/artefacts"
 	ftldeploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
+	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect"
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
@@ -57,22 +60,22 @@ import (
 )
 
 type Config struct {
-	Config                []string                 `name:"config" short:"C" help:"Paths to FTL project configuration files." env:"FTL_CONFIG" placeholder:"FILE[,FILE,...]" type:"existingfile"`
-	Bind                  *url.URL                 `help:"Endpoint the Runner should bind to and advertise." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
-	Key                   key.Runner               `help:"Runner key (auto)."`
-	ControllerEndpoint    *url.URL                 `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
-	LeaseEndpoint         *url.URL                 `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
-	QueryEndpoint         *url.URL                 `name:"ftl-query-endpoint" help:"Query endpoint." env:"FTL_QUERY_ENDPOINT" default:"http://127.0.0.1:8897"`
-	TimelineEndpoint      *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
-	TemplateDir           string                   `help:"Template directory to copy into each deployment, if any." type:"existingdir"`
-	DeploymentDir         string                   `help:"Directory to store deployments in." default:"${deploymentdir}"`
-	DeploymentKeepHistory int                      `help:"Number of deployments to keep history for." default:"3"`
-	HeartbeatPeriod       time.Duration            `help:"Minimum period between heartbeats." default:"3s"`
-	HeartbeatJitter       time.Duration            `help:"Jitter to add to heartbeat period." default:"2s"`
-	Deployment            key.Deployment           `help:"The deployment this runner is for." env:"FTL_DEPLOYMENT"`
-	DebugPort             int                      `help:"The port to use for debugging." env:"FTL_DEBUG_PORT"`
-	DevEndpoint           optional.Option[url.URL] `help:"An existing endpoint to connect to in development mode" hidden:""`
-	DevRunnerInfoFile     optional.Option[string]  `help:"The path to a file that we write dev endpoint information to." hidden:""`
+	Config                []string                `name:"config" short:"C" help:"Paths to FTL project configuration files." env:"FTL_CONFIG" placeholder:"FILE[,FILE,...]" type:"existingfile"`
+	Bind                  *url.URL                `help:"Endpoint the Runner should bind to and advertise." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
+	Key                   key.Runner              `help:"Runner key (auto)."`
+	ControllerEndpoint    *url.URL                `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
+	LeaseEndpoint         *url.URL                `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
+	QueryEndpoint         *url.URL                `name:"ftl-query-endpoint" help:"Query endpoint." env:"FTL_QUERY_ENDPOINT" default:"http://127.0.0.1:8897"`
+	TimelineEndpoint      *url.URL                `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
+	TemplateDir           string                  `help:"Template directory to copy into each deployment, if any." type:"existingdir"`
+	DeploymentDir         string                  `help:"Directory to store deployments in." default:"${deploymentdir}"`
+	DeploymentKeepHistory int                     `help:"Number of deployments to keep history for." default:"3"`
+	HeartbeatPeriod       time.Duration           `help:"Minimum period between heartbeats." default:"3s"`
+	HeartbeatJitter       time.Duration           `help:"Jitter to add to heartbeat period." default:"2s"`
+	Deployment            key.Deployment          `help:"The deployment this runner is for." env:"FTL_DEPLOYMENT"`
+	DebugPort             int                     `help:"The port to use for debugging." env:"FTL_DEBUG_PORT"`
+	DevEndpoint           optional.Option[string] `help:"An existing endpoint to connect to in development mode" hidden:""`
+	DevHotReloadEndpoint  optional.Option[string] `help:"The gRPC enpoint to send runner into to for hot reload." hidden:""`
 }
 
 func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService) error {
@@ -119,17 +122,17 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
 
 	svc := &Service{
-		key:                runnerKey,
-		config:             config,
-		storage:            storage,
-		controllerClient:   controllerClient,
-		timelineClient:     timelineClient,
-		labels:             labels,
-		deploymentLogQueue: make(chan log.Entry, 10000),
-		cancelFunc:         doneFunc,
-		devEndpoint:        config.DevEndpoint,
-		devRunnerInfoFile:  config.DevRunnerInfoFile,
-		queryServices:      query.NewMultiService(),
+		key:                  runnerKey,
+		config:               config,
+		storage:              storage,
+		controllerClient:     controllerClient,
+		timelineClient:       timelineClient,
+		labels:               labels,
+		deploymentLogQueue:   make(chan log.Entry, 10000),
+		cancelFunc:           doneFunc,
+		devEndpoint:          config.DevEndpoint,
+		devHotReloadEndpoint: config.DevHotReloadEndpoint,
+		queryServices:        query.NewMultiService(),
 	}
 
 	module, err := svc.getModule(ctx, config.Deployment)
@@ -245,10 +248,11 @@ var _ ftlv1connect.VerbServiceHandler = (*Service)(nil)
 type deployment struct {
 	key key.Deployment
 	// Cancelled when plugin terminates
-	ctx      context.Context
-	cmd      optional.Option[exec.Cmd]
-	endpoint *url.URL // The endpoint the plugin is listening on.
-	client   ftlv1connect.VerbServiceClient
+	ctx          context.Context
+	cmd          optional.Option[exec.Cmd]
+	endpoint     string // The endpoint the plugin is listening on.
+	client       ftlv1connect.VerbServiceClient
+	reverseProxy *httputil.ReverseProxy
 }
 
 type Service struct {
@@ -262,16 +266,16 @@ type Service struct {
 	controllerClient ftlv1connect.ControllerServiceClient
 	timelineClient   *timeline.Client
 	// Failed to register with the Controller
-	registrationFailure atomic.Value[optional.Option[error]]
-	labels              *structpb.Struct
-	deploymentLogQueue  chan log.Entry
-	cancelFunc          func()
-	devEndpoint         optional.Option[url.URL]
-	devRunnerInfoFile   optional.Option[string]
-	proxy               *proxy.Service
-	pubSub              *pubsub.Service
-	queryServices       *query.MultiService
-	proxyBindAddress    *url.URL
+	registrationFailure  atomic.Value[optional.Option[error]]
+	labels               *structpb.Struct
+	deploymentLogQueue   chan log.Entry
+	cancelFunc           func()
+	devEndpoint          optional.Option[string]
+	devHotReloadEndpoint optional.Option[string]
+	proxy                *proxy.Service
+	pubSub               *pubsub.Service
+	queryServices        *query.MultiService
+	proxyBindAddress     *url.URL
 }
 
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
@@ -387,27 +391,38 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	var dep *deployment
 	if ep, ok := s.devEndpoint.Get(); ok {
-		client := rpc.Dial(ftlv1connect.NewVerbServiceClient, ep.String(), log.Error)
+		if hotRelaodEp, ok := s.devHotReloadEndpoint.Get(); ok {
+			hotReloadClient := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotRelaodEp, log.Error)
+			err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, hotReloadClient)
+			if err != nil {
+				return fmt.Errorf("failed to ping hot reload endpoint: %w", err)
+			}
+			var databases []*hotreloadpb.Database
+			dbAddresses.Range(func(key string, value string) bool {
+				databases = append(databases, &hotreloadpb.Database{
+					Name:    key,
+					Address: value,
+				})
+				return true
+			})
+			_, err := hotReloadClient.RunnerInfo(ctx, connect.NewRequest(&hotreloadpb.RunnerInfoRequest{
+				Deployment: s.config.Deployment.String(),
+				Address:    s.proxyBindAddress.String(),
+				Databases:  databases,
+			}))
+			if err != nil {
+				return fmt.Errorf("failed to send runner info: %w", err)
+			}
+		}
+		client := rpc.Dial(ftlv1connect.NewVerbServiceClient, ep, log.Error)
+		err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
 		dep = &deployment{
 			ctx:      ctx,
 			key:      key,
 			cmd:      optional.None[exec.Cmd](),
-			endpoint: &ep,
+			endpoint: ep,
 			client:   client,
 		}
-		if file, ok := s.devRunnerInfoFile.Get(); ok {
-			fileContents := "proxy.bind.address=" + s.proxyBindAddress.String()
-			fileContents += fmt.Sprintf("\ndeployment=%s", s.config.Deployment.String())
-			dbAddresses.Range(func(key string, value string) bool {
-				fileContents += fmt.Sprintf("\ndatabase.%s.url=%s", key, value)
-				return true
-			})
-			err = os.WriteFile(file, []byte(fileContents), 0660) // #nosec
-			if err != nil {
-				logger.Errorf(err, "could not create FTL dev Config")
-			}
-		}
-		err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
 			return fmt.Errorf("failed to ping dev endpoint: %w", err)
@@ -510,18 +525,19 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no deployment", http.StatusNotFound)
 		return
 	}
-	proxy := httputil.NewSingleHostReverseProxy(deployment.endpoint)
-	proxy.ServeHTTP(w, r)
+	deployment.reverseProxy.ServeHTTP(w, r)
 
 }
 
 func (s *Service) makeDeployment(ctx context.Context, key key.Deployment, plugin *plugin.Plugin[ftlv1connect.VerbServiceClient, ftlv1.PingRequest, ftlv1.PingResponse, *ftlv1.PingResponse]) *deployment {
+	proxy := httputil.NewSingleHostReverseProxy(plugin.Endpoint)
 	return &deployment{
-		ctx:      ctx,
-		key:      key,
-		cmd:      optional.Ptr(plugin.Cmd),
-		endpoint: plugin.Endpoint,
-		client:   plugin.Client,
+		ctx:          ctx,
+		key:          key,
+		cmd:          optional.Ptr(plugin.Cmd),
+		endpoint:     plugin.Endpoint.String(),
+		client:       plugin.Client,
+		reverseProxy: proxy,
 	}
 }
 

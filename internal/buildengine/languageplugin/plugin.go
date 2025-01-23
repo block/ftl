@@ -41,7 +41,7 @@ type BuildResult struct {
 	DevEndpoint optional.Option[string]
 
 	// File that the runner can use to pass info into the hot reload endpoint
-	DevRunnerInfoFile optional.Option[string]
+	HotReloadEndpoint optional.Option[string]
 
 	DebugPort int
 }
@@ -581,7 +581,7 @@ func buildResultFromProto(result either.Either[*langpb.BuildResponse_BuildSucces
 			Deploy:            buildSuccess.Deploy,
 			StartTime:         startTime,
 			DevEndpoint:       optional.Ptr(buildSuccess.DevEndpoint),
-			DevRunnerInfoFile: optional.Ptr(buildSuccess.DevRunnerInfoFile),
+			HotReloadEndpoint: optional.Ptr(buildSuccess.DevHotReloadEndpoint),
 			DebugPort:         port,
 		}, nil
 	case either.Right[*langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure]:

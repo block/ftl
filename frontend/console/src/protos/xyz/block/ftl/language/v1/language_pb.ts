@@ -1170,11 +1170,11 @@ export class BuildSuccess extends Message<BuildSuccess> {
   debugPort?: number;
 
   /**
-   * Dev mode runner info file, this file is used to allow the runner to communicate provisioner info back to the plugin
+   * Dev mode hot reload endpoint, this is used to allow the runner to communicate info back to the running process
    *
-   * @generated from field: optional string dev_runner_info_file = 9;
+   * @generated from field: optional string dev_hot_reload_endpoint = 9;
    */
-  devRunnerInfoFile?: string;
+  devHotReloadEndpoint?: string;
 
   constructor(data?: PartialMessage<BuildSuccess>) {
     super();
@@ -1192,7 +1192,7 @@ export class BuildSuccess extends Message<BuildSuccess> {
     { no: 6, name: "errors", kind: "message", T: ErrorList },
     { no: 7, name: "dev_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 8, name: "debug_port", kind: "scalar", T: 5 /* ScalarType.INT32 */, opt: true },
-    { no: 9, name: "dev_runner_info_file", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 9, name: "dev_hot_reload_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildSuccess {
