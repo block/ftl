@@ -183,7 +183,7 @@ func New(
 		config:         config,
 		routeTable:     routingTable,
 		storage:        storage,
-		schemaState:    &schemaservice.Service{State: state.NewInMemorySchemaState(ctx)},
+		schemaState:    &schemaservice.Service{State: schemaservice.NewInMemorySchemaState(ctx)},
 		runnerState:    state.NewInMemoryRunnerState(ctx),
 		adminClient:    adminClient,
 	}
@@ -358,17 +358,17 @@ func (s *Service) setDeploymentReplicas(ctx context.Context, key key.Deployment,
 		return fmt.Errorf("could not get deployment: %w", err)
 	}
 
-	err = s.schemaState.State.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: key, Replicas: minReplicas})
+	err = s.schemaState.State.Publish(ctx, &schemaservice.DeploymentReplicasUpdatedEvent{Key: key, Replicas: minReplicas})
 	if err != nil {
 		return fmt.Errorf("could not update deployment replicas: %w", err)
 	}
 	if minReplicas == 0 {
-		err = s.schemaState.State.Publish(ctx, &state.DeploymentDeactivatedEvent{Key: key, ModuleRemoved: true})
+		err = s.schemaState.State.Publish(ctx, &schemaservice.DeploymentDeactivatedEvent{Key: key, ModuleRemoved: true})
 		if err != nil {
 			return fmt.Errorf("could not deactivate deployment: %w", err)
 		}
 	} else if deployment.GetRuntime().GetScaling().GetMinReplicas() == 0 {
-		err = s.schemaState.State.Publish(ctx, &state.DeploymentActivatedEvent{Key: key, ActivatedAt: time.Now(), MinReplicas: minReplicas})
+		err = s.schemaState.State.Publish(ctx, &schemaservice.DeploymentActivatedEvent{Key: key, ActivatedAt: time.Now(), MinReplicas: minReplicas})
 		if err != nil {
 			return fmt.Errorf("could not activate deployment: %w", err)
 		}
@@ -400,7 +400,7 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("deployment not found"))
 	}
 	minReplicas := int(c.Msg.MinReplicas)
-	err = s.schemaState.State.Publish(ctx, &state.DeploymentActivatedEvent{Key: newDeploymentKey, ActivatedAt: time.Now(), MinReplicas: minReplicas})
+	err = s.schemaState.State.Publish(ctx, &schemaservice.DeploymentActivatedEvent{Key: newDeploymentKey, ActivatedAt: time.Now(), MinReplicas: minReplicas})
 	if err != nil {
 		return nil, fmt.Errorf("replace deployment failed to activate: %w", err)
 	}
@@ -421,18 +421,18 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 		if oldKey.String() == newDeploymentKey.String() {
 			return nil, fmt.Errorf("replace deployment failed: deployment already exists from %v to %v", oldKey, newDeploymentKey)
 		}
-		err = s.schemaState.State.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
+		err = s.schemaState.State.Publish(ctx, &schemaservice.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
 		if err != nil {
 			return nil, fmt.Errorf("replace deployment failed to set new deployment replicas from %v to %v: %w", oldKey, newDeploymentKey, err)
 		}
-		err = s.schemaState.State.Publish(ctx, &state.DeploymentDeactivatedEvent{Key: oldKey})
+		err = s.schemaState.State.Publish(ctx, &schemaservice.DeploymentDeactivatedEvent{Key: oldKey})
 		if err != nil {
 			return nil, fmt.Errorf("replace deployment failed to deactivate old deployment %v: %w", oldKey, err)
 		}
 		replacedDeploymentKey = optional.Some(oldKey)
 	} else {
 		// Set the desired replicas for the new deployment
-		err = s.schemaState.State.Publish(ctx, &state.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
+		err = s.schemaState.State.Publish(ctx, &schemaservice.DeploymentReplicasUpdatedEvent{Key: newDeploymentKey, Replicas: minReplicas})
 		if err != nil {
 			return nil, fmt.Errorf("replace deployment failed to set replicas for %v: %w", newDeploymentKey, err)
 		}
@@ -935,7 +935,7 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 
 	dkey := key.NewDeploymentKey(module.Name)
 	module.ModRuntime().ModDeployment().CreatedAt = time.Now()
-	err = s.schemaState.State.Publish(ctx, &state.DeploymentCreatedEvent{
+	err = s.schemaState.State.Publish(ctx, &schemaservice.DeploymentCreatedEvent{
 		Key:    dkey,
 		Schema: module,
 	})
