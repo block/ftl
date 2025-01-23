@@ -30,6 +30,7 @@ import javax.tools.StandardLocation;
 import xyz.block.ftl.Config;
 import xyz.block.ftl.Enum;
 import xyz.block.ftl.Export;
+import xyz.block.ftl.SQLDatasource;
 import xyz.block.ftl.Secret;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.Verb;
@@ -42,10 +43,12 @@ public class AnnotationProcessor implements Processor {
     private static final Pattern REMOVE_JAVADOC_TAGS = Pattern.compile(
             "^\\s*@(param|return|throws|exception|see|author)\\b[^\\n]*$\\n*",
             Pattern.MULTILINE);
+    public static final String META_INF_FTL_SQL_DATABASES_TXT = "META-INF/ftl-sql-databases.txt";
 
     private ProcessingEnvironment processingEnv;
 
     final Map<String, String> saved = new HashMap<>();
+    final Map<String, String> databases = new HashMap<>();
 
     @Override
     public Set<String> getSupportedOptions() {
@@ -69,6 +72,11 @@ public class AnnotationProcessor implements Processor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        roundEnv.getElementsAnnotatedWithAny(Set.of(SQLDatasource.class))
+                .forEach(element -> {
+                    SQLDatasource ds = element.getAnnotation(SQLDatasource.class);
+                    databases.put(ds.name(), ds.type().name());
+                });
         //TODO: @VerbName, HTTP, CRON etc
         roundEnv.getElementsAnnotatedWithAny(Set.of(Verb.class, Enum.class, Export.class, TypeAlias.class))
                 .forEach(element -> {
@@ -99,6 +107,10 @@ public class AnnotationProcessor implements Processor {
         if (roundEnv.processingOver()) {
             write("META-INF/ftl-verbs.txt", saved.entrySet().stream().map(
                     e -> e.getKey() + "=" + Base64.getEncoder().encodeToString(e.getValue().getBytes(StandardCharsets.UTF_8)))
+                    .collect(Collectors.toSet()));
+
+            write(META_INF_FTL_SQL_DATABASES_TXT, databases.entrySet().stream().map(
+                    e -> e.getKey() + "=" + e.getValue().toLowerCase())
                     .collect(Collectors.toSet()));
         }
         return false;
