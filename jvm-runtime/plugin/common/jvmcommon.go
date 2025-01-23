@@ -401,8 +401,9 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	}
 
 	type buildResult struct {
-		state       *hotreloadpb.SchemaState
-		forceReload bool
+		state               *hotreloadpb.SchemaState
+		forceReload         bool
+		buildContextUpdated bool
 	}
 
 	reloadEvents := make(chan *buildResult, 32)
@@ -439,7 +440,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			logger.Tracef("Checking for schema changes %v %v %v", changed, schemaHash, errorHash)
 
 			if changed || event.forceReload {
-				auto := !firstAttempt
+				auto := !firstAttempt && !event.buildContextUpdated
 				if auto {
 					logger.Debugf("sending auto build event")
 					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
@@ -533,7 +534,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true}
+			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true}
 		case <-schemaChangeTicker.C:
 			changed := false
 			logger.Debugf("Calling reload")
