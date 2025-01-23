@@ -309,8 +309,9 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	for key, deployment := range status {
 		deployments = append(deployments, &ftlv1.StatusResponse_Deployment{
 			Key:         key.String(),
+			Language:    deployment.Runtime.Base.Language,
 			Name:        deployment.Name,
-			MinReplicas: deployment.GetRuntime().GetScaling().GetMinReplicas(),
+			MinReplicas: deployment.Runtime.Scaling.MinReplicas,
 			Replicas:    replicas[key.String()],
 			Schema:      deployment.ToProto(),
 		})
