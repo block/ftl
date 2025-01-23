@@ -192,7 +192,7 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 		ElectionRTT:        5,
 		SnapshotEntries:    10,
 		CompactionOverhead: 10,
-		RTT:                10 * time.Millisecond,
+		RTT:                50 * time.Millisecond,
 		ShardReadyTimeout:  5 * time.Second,
 		ChangesInterval:    5 * time.Millisecond,
 		ChangesTimeout:     1 * time.Second,
