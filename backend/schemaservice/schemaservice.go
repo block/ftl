@@ -7,7 +7,6 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/block/ftl/backend/controller/state"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -20,7 +19,7 @@ import (
 )
 
 type Service struct {
-	State *statemachine.SingleQueryHandle[struct{}, state.SchemaState, state.SchemaEvent]
+	State *statemachine.SingleQueryHandle[struct{}, SchemaState, SchemaEvent]
 }
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
@@ -65,7 +64,7 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
 	module.Runtime.ApplyEvent(event)
-	err = s.State.Publish(ctx, &state.DeploymentSchemaUpdatedEvent{
+	err = s.State.Publish(ctx, &DeploymentSchemaUpdatedEvent{
 		Key:    deployment,
 		Schema: module,
 	})
@@ -123,9 +122,9 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 	}
 	logger.Tracef("Seeded %d deployments", initialCount)
 
-	for notification := range iterops.Changes(stateIter, state.EventExtractor) {
+	for notification := range iterops.Changes(stateIter, EventExtractor) {
 		switch event := notification.(type) {
-		case *state.DeploymentCreatedEvent:
+		case *DeploymentCreatedEvent:
 			err := sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
 				ModuleName:    event.Schema.Name,
 				DeploymentKey: proto.String(event.Key.String()),
@@ -135,7 +134,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return err
 			}
-		case *state.DeploymentDeactivatedEvent:
+		case *DeploymentDeactivatedEvent:
 			view, err := s.State.View(ctx)
 			if err != nil {
 				return fmt.Errorf("failed to get schema state: %w", err)
@@ -155,7 +154,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return err
 			}
-		case *state.DeploymentSchemaUpdatedEvent:
+		case *DeploymentSchemaUpdatedEvent:
 			view, err := s.State.View(ctx)
 			if err != nil {
 				return fmt.Errorf("failed to get schema state: %w", err)

@@ -1,40 +1,16 @@
-package state
+package schemaservice
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/alecthomas/types/optional"
-	"golang.org/x/exp/maps"
-
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 )
 
-func (r *SchemaState) GetDeployment(deployment key.Deployment) (*schema.Module, error) {
-	d, ok := r.deployments[deployment]
-	if !ok {
-		return nil, fmt.Errorf("deployment %s not found", deployment)
-	}
-	return d, nil
-}
-
-func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
-	return r.deployments
-}
-
-func (r *SchemaState) GetActiveDeployments() map[key.Deployment]*schema.Module {
-	deployments := map[key.Deployment]*schema.Module{}
-	for key, active := range r.activeDeployments {
-		if active {
-			deployments[key] = r.deployments[key]
-		}
-	}
-	return deployments
-}
-
-func (r *SchemaState) GetActiveDeploymentSchemas() []*schema.Module {
-	return maps.Values(r.GetActiveDeployments())
+type SchemaEvent interface {
+	Handle(view SchemaState) (SchemaState, error)
 }
 
 var _ SchemaEvent = (*DeploymentCreatedEvent)(nil)
