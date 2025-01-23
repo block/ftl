@@ -3,8 +3,6 @@ package xyz.block.ftl.runtime;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
@@ -12,7 +10,6 @@ import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.arc.Arc;
-import io.quarkus.runtime.ShutdownContext;
 import io.quarkus.runtime.annotations.Recorder;
 import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.runtime.http.FTLHttpHandler;
@@ -23,7 +20,6 @@ import xyz.block.ftl.v1.CallRequest;
 public class FTLRecorder {
 
     public static final String X_FTL_VERB = "X-ftl-verb";
-    public static final String DEV_MODE_RUNNER_INFO_PATH = "ftl.dev.runner.info";
 
     public void registerVerb(String module, String verbName, String methodName, List<Class<?>> parameterTypes,
             Class<?> verbHandlerClass, List<VerbRegistry.ParameterSupplier> paramMappers,
@@ -157,34 +153,13 @@ public class FTLRecorder {
         }
     }
 
-    public void startReloadTimer(ShutdownContext shutdownContext) {
-        Timer t = new Timer("FTL Hot Reload Timer", true);
-        t.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                HotReloadSetup.doScan(false);
-            }
-        }, 1000, 1000);
-        shutdownContext.addShutdownTask(new Runnable() {
-            @Override
-            public void run() {
-                t.cancel();
-            }
-        });
-    }
-
     public void registerDatabase(String dbKind, GetDeploymentContextResponse.DbType name) {
         FTLController.instance().registerDatabase(dbKind, name);
     }
 
-    public void handleDevModeRunnerStart(ShutdownContext shutdownContext) {
+    public void requireNewRunnerDetails() {
+        FTLController.instance().devModeShutdown();
         FTLController.instance().readDevModeRunnerInfo();
-        shutdownContext.addShutdownTask(new Runnable() {
-            @Override
-            public void run() {
-                FTLController.instance().devModeShutdown();
-            }
-        });
     }
 
     public void loadModuleContextOnStartup() {

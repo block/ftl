@@ -2,7 +2,6 @@ package xyz.block.ftl.deployment;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,8 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.jboss.jandex.DotName;
@@ -25,8 +24,6 @@ import org.tomlj.Toml;
 import org.tomlj.TomlParseResult;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
-import io.quarkus.bootstrap.classloading.QuarkusClassLoader;
-import io.quarkus.deployment.IsDevelopment;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
@@ -41,14 +38,13 @@ import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.ServiceStartBuildItem;
 import io.quarkus.deployment.builditem.ShutdownContextBuildItem;
 import io.quarkus.deployment.builditem.SystemPropertyBuildItem;
-import io.quarkus.deployment.dev.RuntimeUpdatesProcessor;
 import io.quarkus.deployment.pkg.builditem.OutputTargetBuildItem;
 import io.quarkus.grpc.deployment.BindableServiceBuildItem;
 import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.util.HashUtil;
 import io.quarkus.vertx.http.deployment.RequireSocketHttpBuildItem;
 import io.quarkus.vertx.http.deployment.RequireVirtualHttpBuildItem;
-import xyz.block.ftl.language.v1.Error;
+import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.language.v1.ErrorList;
 import xyz.block.ftl.runtime.FTLDatasourceCredentials;
 import xyz.block.ftl.runtime.FTLRecorder;
@@ -68,8 +64,6 @@ public class ModuleProcessor {
 
     private static final String SCHEMA_OUT = "schema.pb";
     private static final String ERRORS_OUT = "errors.pb";
-    public static final String DEV_MODE_RUNNER_INFO_FILE = "FTL_RUNNER_INFO";
-
     /**
      * Persistent schema hash, used to detect runner restarts in dev mode.
      */
@@ -89,76 +83,6 @@ public class ModuleProcessor {
     @BuildStep
     public SystemPropertyBuildItem moduleNameConfig(ApplicationInfoBuildItem applicationInfoBuildItem) {
         return new SystemPropertyBuildItem("ftl.module.name", applicationInfoBuildItem.getName());
-    }
-
-    private static volatile Timer devModeProblemTimer;
-
-    @BuildStep(onlyIf = IsDevelopment.class)
-    @Record(ExecutionTime.STATIC_INIT)
-    public void reportDevModeProblems(FTLRecorder recorder, OutputTargetBuildItem outputTargetBuildItem) {
-        if (devModeProblemTimer != null) {
-            return;
-        }
-        Path errorOutput = outputTargetBuildItem.getOutputDirectory().resolve(ERRORS_OUT);
-        devModeProblemTimer = new Timer("FTL Dev Mode Error Report", true);
-        devModeProblemTimer.schedule(new TimerTask() {
-
-            String errorHash;
-
-            @Override
-            public void run() {
-                Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
-                Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();
-                if (compileProblem != null || deploymentProblems != null) {
-                    ErrorList.Builder builder = ErrorList.newBuilder();
-                    if (compileProblem != null) {
-                        builder.addErrors(Error.newBuilder()
-                                .setLevel(Error.ErrorLevel.ERROR_LEVEL_ERROR)
-                                .setType(Error.ErrorType.ERROR_TYPE_COMPILER)
-                                .setMsg(compileProblem.getMessage())
-                                .build());
-                    }
-                    if (deploymentProblems != null) {
-                        builder.addErrors(Error.newBuilder()
-                                .setLevel(Error.ErrorLevel.ERROR_LEVEL_ERROR)
-                                .setType(Error.ErrorType.ERROR_TYPE_FTL)
-                                .setMsg(deploymentProblems.getMessage())
-                                .build());
-                    }
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    try (var out = Files.newOutputStream(errorOutput)) {
-                        builder.build().writeTo(baos);
-                        errorHash = HashUtil.sha256(baos.toByteArray());
-                        builder.build().writeTo(out);
-                    } catch (IOException e) {
-                        log.error("Failed to write error list", e);
-                    }
-                } else if (errorHash != null) {
-                    if (!Files.exists(errorOutput)) {
-                        // File already cleared
-                        errorHash = null;
-                    } else {
-                        try {
-                            var currentHash = HashUtil.sha256(Files.readAllBytes(errorOutput));
-                            if (currentHash.equals(errorHash)) {
-                                try (OutputStream output = Files.newOutputStream(errorOutput)) {
-                                    ErrorList.newBuilder().build().writeTo(output);
-                                }
-                            }
-                        } catch (IOException e) {
-                            log.errorf("Failed to read error list", e);
-                        }
-                    }
-                }
-            }
-        }, 1000, 1000);
-        ((QuarkusClassLoader) ModuleProcessor.class.getClassLoader()).addCloseTask(new Runnable() {
-            @Override
-            public void run() {
-                devModeProblemTimer.cancel();
-                devModeProblemTimer = null;
-            }
-        });
     }
 
     @BuildStep
@@ -246,51 +170,50 @@ public class ModuleProcessor {
         Path errorOutput = outputTargetBuildItem.getOutputDirectory().resolve(ERRORS_OUT);
         ByteArrayOutputStream sch = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        moduleBuilder.writeTo(sch, err);
+        AtomicReference<ErrorList> errRef = new AtomicReference<>();
+        AtomicReference<xyz.block.ftl.schema.v1.Module> schRef = new AtomicReference<>();
+        moduleBuilder.writeTo(sch, err, new BiConsumer<xyz.block.ftl.schema.v1.Module, ErrorList>() {
+            @Override
+            public void accept(xyz.block.ftl.schema.v1.Module module, ErrorList errorList) {
+                errRef.set(errorList);
+                schRef.set(module);
+            }
+        });
 
         var schBytes = sch.toByteArray();
         var errBytes = err.toByteArray();
-
-        if (launchModeBuildItem.getLaunchMode() == LaunchMode.DEVELOPMENT) {
-            // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
-            // get updated runner information, although we don't actually get this until the runner has started.
-            var hash = HashUtil.sha256(schBytes);
-            if (Objects.equals(hash, schemaHash)) {
-                return;
-            }
-            schemaHash = hash;
-            String runnerInfo = System.getenv(DEV_MODE_RUNNER_INFO_FILE);
-            if (runnerInfo != null) {
-                Path path = Path.of(runnerInfo);
-                // Delete the runner info file if it already exists
-                Files.deleteIfExists(path);
-                // This method tells the runtime not to actually start until we have updated runner details
-                systemPropertyBuildItemBuildProducer
-                        .produce(new SystemPropertyBuildItem(FTLRecorder.DEV_MODE_RUNNER_INFO_PATH, path.toString()));
-                recorder.handleDevModeRunnerStart(shutdownContextBuildItem);
-            }
-        }
         recorder.loadModuleContextOnStartup();
 
         Files.write(output, schBytes);
         Files.write(errorOutput, errBytes);
 
-        output = outputTargetBuildItem.getOutputDirectory().resolve("launch");
-        try (var out = Files.newOutputStream(output)) {
-            out.write(
-                    """
-                            #!/bin/bash
-                            if [ -n "$FTL_DEBUG_PORT" ]; then
-                                FTL_JVM_OPTS="$FTL_JVM_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:$FTL_DEBUG_PORT"
-                            fi
-                            exec java $FTL_JVM_OPTS -jar quarkus-app/quarkus-run.jar"""
-                            .getBytes(StandardCharsets.UTF_8));
+        if (launchModeBuildItem.getLaunchMode() == LaunchMode.DEVELOPMENT) {
+            HotReloadHandler.getInstance().setResults(schRef.get(), errRef.get());
+            // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
+            // get updated runner information, although we don't actually get this until the runner has started.
+            var hash = HashUtil.sha256(schBytes);
+            if (!Objects.equals(hash, schemaHash)) {
+                schemaHash = hash;
+                RunnerNotification.setRequiresNewRunnerDetails();
+            }
+        } else {
+            output = outputTargetBuildItem.getOutputDirectory().resolve("launch");
+            try (var out = Files.newOutputStream(output)) {
+                out.write(
+                        """
+                                #!/bin/bash
+                                if [ -n "$FTL_DEBUG_PORT" ]; then
+                                    FTL_JVM_OPTS="$FTL_JVM_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:$FTL_DEBUG_PORT"
+                                fi
+                                exec java $FTL_JVM_OPTS -jar quarkus-app/quarkus-run.jar"""
+                                .getBytes(StandardCharsets.UTF_8));
+            }
+            var perms = Files.getPosixFilePermissions(output);
+            EnumSet<PosixFilePermission> newPerms = EnumSet.copyOf(perms);
+            newPerms.add(PosixFilePermission.GROUP_EXECUTE);
+            newPerms.add(PosixFilePermission.OWNER_EXECUTE);
+            Files.setPosixFilePermissions(output, newPerms);
         }
-        var perms = Files.getPosixFilePermissions(output);
-        EnumSet<PosixFilePermission> newPerms = EnumSet.copyOf(perms);
-        newPerms.add(PosixFilePermission.GROUP_EXECUTE);
-        newPerms.add(PosixFilePermission.OWNER_EXECUTE);
-        Files.setPosixFilePermissions(output, newPerms);
     }
 
     @BuildStep
@@ -318,11 +241,5 @@ public class ModuleProcessor {
             BuildProducer<RequireSocketHttpBuildItem> socket) throws IOException {
         socket.produce(RequireSocketHttpBuildItem.MARKER);
         virtual.produce(RequireVirtualHttpBuildItem.MARKER);
-    }
-
-    @Record(ExecutionTime.RUNTIME_INIT)
-    @BuildStep(onlyIf = IsDevelopment.class)
-    void hotReload(ShutdownContextBuildItem shutdownContextBuildItem, FTLRecorder recorder) {
-        recorder.startReloadTimer(shutdownContextBuildItem);
     }
 }

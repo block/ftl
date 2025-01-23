@@ -1,69 +1,32 @@
 package xyz.block.ftl.runtime;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
+import xyz.block.ftl.hotreload.RunnerInfo;
+import xyz.block.ftl.hotreload.RunnerNotification;
 
 public class DevModeRunnerDetails implements RunnerDetails {
 
-    private final Path path;
     private volatile Map<String, String> databases;
     private volatile String proxyAddress;
     private volatile String deployment;
     private volatile boolean closed;
-    private static final Pattern dbNames = Pattern.compile("database\\.([a-zA-Z0-9]+).url");
     private volatile boolean loaded = false;
 
-    public DevModeRunnerDetails(Path path) {
-        this.path = path;
-        startWatchThread();
+    public DevModeRunnerDetails() {
+        RunnerNotification.setCallback(this::setRunnerInfo);
     }
 
-    void startWatchThread() {
-        Thread watchThread = new Thread(() -> {
-            while (!closed) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                if (Files.exists(path)) {
-                    Properties p = new Properties();
-                    try (InputStream stream = Files.newInputStream(path)) {
-                        p.load(stream);
-                        synchronized (this) {
-                            proxyAddress = p.getProperty("proxy.bind.address");
-                            deployment = p.getProperty("deployment");
-                            var dbs = new HashMap<String, String>();
-                            for (var addr : p.stringPropertyNames()) {
-                                Matcher m = dbNames.matcher(addr);
-                                if (m.matches()) {
-                                    dbs.put(m.group(1), p.getProperty(addr));
-                                }
-                            }
-                            databases = dbs;
-                            loaded = true;
-                            notifyAll();
-                            return;
-                        }
-
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        });
-        watchThread.setDaemon(true);
-        watchThread.start();
+    private void setRunnerInfo(RunnerInfo runnerInfo) {
+        synchronized (this) {
+            proxyAddress = runnerInfo.address();
+            deployment = runnerInfo.deployment();
+            databases = runnerInfo.databases();
+            loaded = true;
+            notifyAll();
+        }
     }
 
     @Override

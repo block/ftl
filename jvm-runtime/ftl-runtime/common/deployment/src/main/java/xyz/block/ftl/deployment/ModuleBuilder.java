@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -537,7 +538,7 @@ public class ModuleBuilder {
         return decls.size();
     }
 
-    public void writeTo(OutputStream out, OutputStream errorOut) throws IOException {
+    public void writeTo(OutputStream out, OutputStream errorOut, BiConsumer<Module, ErrorList> consumer) throws IOException {
         decls.values().stream().forEachOrdered(protoModuleBuilder::addDecls);
         ErrorList.Builder builder = ErrorList.newBuilder();
         if (!validationFailures.isEmpty()) {
@@ -552,8 +553,13 @@ public class ModuleBuilder {
                     .build()));
             errors.forEach(log::error);
         }
-        builder.build().writeTo(errorOut);
-        protoModuleBuilder.build().writeTo(out);
+        ErrorList errorList = builder.build();
+        errorList.writeTo(errorOut);
+        Module module = protoModuleBuilder.build();
+        module.writeTo(out);
+        if (consumer != null) {
+            consumer.accept(module, errorList);
+        }
     }
 
     public void registerTypeAlias(String name, org.jboss.jandex.Type finalT, org.jboss.jandex.Type finalS, boolean exported,

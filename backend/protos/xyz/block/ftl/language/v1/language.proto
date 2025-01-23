@@ -237,8 +237,8 @@ message BuildSuccess {
   // Dev mode debug port
   optional int32 debug_port = 8;
 
-  // Dev mode runner info file, this file is used to allow the runner to communicate provisioner info back to the plugin
-  optional string dev_runner_info_file = 9;
+  // Dev mode hot reload endpoint, this is used to allow the runner to communicate info back to the running process
+  optional string dev_hot_reload_endpoint = 9;
 }
 
 // BuildFailure should be sent when a build fails.
