@@ -479,22 +479,25 @@ func (c *Cluster) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 
 // withTimeout runs an async dragonboat call and blocks until it succeeds or the context is cancelled.
 // the call is retried if the request is dropped, which can happen if the leader is not available.
-func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f func(ctx context.Context) error, retryErrors ...error) error {
+func (c *Cluster) withRetry(octx context.Context, shardID, replicaID uint64, f func(ctx context.Context) error, retryErrors ...error) error {
 	retry := c.config.Retry.Backoff()
-	logger := log.FromContext(ctx).Scope("raft")
+	logger := log.FromContext(octx).Scope("raft")
 
 	for {
 		// Timeout for the proposal to reach the leader and reach a quorum.
 		// If the leader is not available, the proposal will time out, in which case
 		// we retry the operation.
 		timeout := time.Duration(c.config.ElectionRTT) * c.config.RTT
-		ctx, cancel := context.WithTimeout(ctx, timeout)
+		ctx, cancel := context.WithTimeout(octx, timeout)
 		defer cancel()
 
 		err := f(ctx)
 		duration := retry.Duration()
 
 		if err != nil {
+			if octx.Err() != nil {
+				return fmt.Errorf("context cancelled: %w", octx.Err())
+			}
 			retried := false
 			for _, retryError := range retryErrors {
 				if errors.Is(err, retryError) {
@@ -502,7 +505,6 @@ func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f fu
 					select {
 					case <-time.After(duration):
 					case <-ctx.Done():
-						return fmt.Errorf("cancelled: %w", err)
 					}
 					cancel()
 					retried = true
