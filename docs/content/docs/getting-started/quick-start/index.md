@@ -96,11 +96,11 @@ import (
 )
 
 type EchoRequest struct {
-	Name ftl.Option[string] `json:"name"`
+	Name ftl.Option[string]
 }
 
 type EchoResponse struct {
-	Message string `json:"message"`
+	Message string
 }
 
 //ftl:verb
