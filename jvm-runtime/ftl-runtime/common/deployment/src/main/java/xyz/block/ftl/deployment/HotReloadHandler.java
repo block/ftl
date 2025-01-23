@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.logging.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -22,13 +23,11 @@ import io.quarkus.deployment.dev.RuntimeUpdatesProcessor;
 import xyz.block.ftl.hotreload.RunnerInfo;
 import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.hotreload.v1.HotReloadServiceGrpc;
-import xyz.block.ftl.hotreload.v1.ReloadFailed;
-import xyz.block.ftl.hotreload.v1.ReloadNotRequired;
 import xyz.block.ftl.hotreload.v1.ReloadRequest;
 import xyz.block.ftl.hotreload.v1.ReloadResponse;
-import xyz.block.ftl.hotreload.v1.ReloadSuccess;
 import xyz.block.ftl.hotreload.v1.RunnerInfoRequest;
 import xyz.block.ftl.hotreload.v1.RunnerInfoResponse;
+import xyz.block.ftl.hotreload.v1.SchemaState;
 import xyz.block.ftl.hotreload.v1.WatchRequest;
 import xyz.block.ftl.hotreload.v1.WatchResponse;
 import xyz.block.ftl.language.v1.Error;
@@ -67,13 +66,9 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             }
             for (var watch : watches) {
                 try {
-                    if (errors == null || errors.getErrorsCount() == 0) {
-                        watch.onNext(WatchResponse.newBuilder()
-                                .setReloadSuccess(ReloadSuccess.newBuilder().setModule(module).build()).build());
-                    } else {
-                        watch.onNext(WatchResponse.newBuilder()
-                                .setReloadFailed(ReloadFailed.newBuilder().setErrors(errors).build()).build());
-                    }
+                    watch.onNext(WatchResponse.newBuilder()
+                            .setState(buildState(module, errors)).build());
+
                 } catch (Exception e) {
                     LOG.debugf("Failed to send watch response %s", e.toString());
                     this.watches.remove(watch);
@@ -83,6 +78,10 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         sentResults = false;
         explicitlyReloading = false;
         notifyAll();
+    }
+
+    private static @NotNull SchemaState buildState(Module module, ErrorList errors) {
+        return SchemaState.newBuilder().setErrors(errors).setModule(module).build();
     }
 
     @Override
@@ -101,12 +100,12 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         synchronized (HotReloadHandler.this) {
             if (explicitlyReloading) {
                 responseObserver.onNext(ReloadResponse.newBuilder()
-                        .setReloadNotRequired(ReloadNotRequired.newBuilder().build())
+                        .setState(buildState(module, errors))
                         .build());
                 return;
             }
             // If we have new results we don't want to re-scan, we want to send them back
-            if (!sentResults) {
+            if (sentResults) {
                 explicitlyReloading = true;
                 Thread t = new Thread(() -> {
                     try {
@@ -146,28 +145,13 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                             .setMsg(deploymentProblems.getMessage())
                             .build());
                 }
+                errors = builder.build();
                 responseObserver.onNext(ReloadResponse.newBuilder()
-                        .setReloadFailed(ReloadFailed.newBuilder()
-                                .setErrors(builder).build())
-                        .build());
+                        .setState(buildState(module, errors))
+                        .setFailed(true).build());
                 responseObserver.onCompleted();
-            } else if (errors != null && errors.getErrorsCount() > 0) {
-                responseObserver.onNext(ReloadResponse.newBuilder()
-                        .setReloadFailed(ReloadFailed.newBuilder()
-                                .setErrors(errors).build())
-                        .build());
-                responseObserver.onCompleted();
-            } else if (module != null) {
-                if (module == currentModule) {
-                    responseObserver.onNext(ReloadResponse.newBuilder()
-                            .setReloadNotRequired(ReloadNotRequired.newBuilder().build())
-                            .build());
-                } else {
-                    responseObserver.onNext(ReloadResponse.newBuilder()
-                            .setReloadSuccess(ReloadSuccess.newBuilder()
-                                    .setModule(module).build())
-                            .build());
-                }
+            } else if (errors != null && errors.getErrorsCount() > 0 || module != null) {
+                responseObserver.onNext(ReloadResponse.newBuilder().setState(buildState(module, errors)).build());
                 responseObserver.onCompleted();
             } else {
                 responseObserver.onError(new RuntimeException("schema not generated"));
@@ -178,13 +162,8 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     @Override
     public void watch(WatchRequest request, StreamObserver<WatchResponse> responseObserver) {
         if (module != null || errors != null) {
-            if (errors == null || errors.getErrorsCount() == 0) {
-                responseObserver.onNext(WatchResponse.newBuilder()
-                        .setReloadSuccess(ReloadSuccess.newBuilder().setModule(module).build()).build());
-            } else {
-                responseObserver.onNext(WatchResponse.newBuilder()
-                        .setReloadFailed(ReloadFailed.newBuilder().setErrors(errors).build()).build());
-            }
+            responseObserver.onNext(WatchResponse.newBuilder()
+                    .setState(buildState(module, errors)).build());
         }
         watches.add(responseObserver);
     }

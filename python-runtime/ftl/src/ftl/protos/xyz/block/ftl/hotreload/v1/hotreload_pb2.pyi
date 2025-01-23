@@ -15,26 +15,22 @@ class ReloadRequest(_message.Message):
     def __init__(self, force: bool = ...) -> None: ...
 
 class ReloadResponse(_message.Message):
-    __slots__ = ("reload_not_required", "reload_success", "reload_failed")
-    RELOAD_NOT_REQUIRED_FIELD_NUMBER: _ClassVar[int]
-    RELOAD_SUCCESS_FIELD_NUMBER: _ClassVar[int]
-    RELOAD_FAILED_FIELD_NUMBER: _ClassVar[int]
-    reload_not_required: ReloadNotRequired
-    reload_success: ReloadSuccess
-    reload_failed: ReloadFailed
-    def __init__(self, reload_not_required: _Optional[_Union[ReloadNotRequired, _Mapping]] = ..., reload_success: _Optional[_Union[ReloadSuccess, _Mapping]] = ..., reload_failed: _Optional[_Union[ReloadFailed, _Mapping]] = ...) -> None: ...
+    __slots__ = ("state", "failed")
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    FAILED_FIELD_NUMBER: _ClassVar[int]
+    state: SchemaState
+    failed: bool
+    def __init__(self, state: _Optional[_Union[SchemaState, _Mapping]] = ..., failed: bool = ...) -> None: ...
 
 class WatchRequest(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
 class WatchResponse(_message.Message):
-    __slots__ = ("reload_success", "reload_failed")
-    RELOAD_SUCCESS_FIELD_NUMBER: _ClassVar[int]
-    RELOAD_FAILED_FIELD_NUMBER: _ClassVar[int]
-    reload_success: ReloadSuccess
-    reload_failed: ReloadFailed
-    def __init__(self, reload_success: _Optional[_Union[ReloadSuccess, _Mapping]] = ..., reload_failed: _Optional[_Union[ReloadFailed, _Mapping]] = ...) -> None: ...
+    __slots__ = ("state",)
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    state: SchemaState
+    def __init__(self, state: _Optional[_Union[SchemaState, _Mapping]] = ...) -> None: ...
 
 class RunnerInfoRequest(_message.Message):
     __slots__ = ("address", "deployment", "databases")
@@ -63,15 +59,21 @@ class ReloadNotRequired(_message.Message):
     def __init__(self) -> None: ...
 
 class ReloadSuccess(_message.Message):
+    __slots__ = ("state",)
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    state: SchemaState
+    def __init__(self, state: _Optional[_Union[SchemaState, _Mapping]] = ...) -> None: ...
+
+class ReloadFailed(_message.Message):
+    __slots__ = ("state",)
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    state: SchemaState
+    def __init__(self, state: _Optional[_Union[SchemaState, _Mapping]] = ...) -> None: ...
+
+class SchemaState(_message.Message):
     __slots__ = ("module", "errors")
     MODULE_FIELD_NUMBER: _ClassVar[int]
     ERRORS_FIELD_NUMBER: _ClassVar[int]
     module: _schema_pb2.Module
     errors: _language_pb2.ErrorList
     def __init__(self, module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., errors: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ...) -> None: ...
-
-class ReloadFailed(_message.Message):
-    __slots__ = ("errors",)
-    ERRORS_FIELD_NUMBER: _ClassVar[int]
-    errors: _language_pb2.ErrorList
-    def __init__(self, errors: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ...) -> None: ...
