@@ -74,67 +74,80 @@ func Query(ctx context.Context, db ftl.DatabaseHandle[TestDatasourceConfig]) ([]
 
 ```
 <!-- kotlin -->
-To declare a datasource in Kotlin you must create an `application.properties` file in the `src/main/resources`
-directory. Datasources currently leverage the Quarkus Database extension, and so databases are configured
-using Quarkus config. To define a MySQL database using the Quarkus Hibernate extension you would do the following:
+To declare a datasource in Kotlin you must use the `@SQLDatasource` annotation. This annotations is used to define
+the database name and type.
 
-```properties
-quarkus.datasource.testdb.db-kind=mysql
-quarkus.hibernate-orm.datasource=testdb
+```kotlin
+@SQLDatasource(name = "testdb", type = SQLDatabaseType.POSTGRESQL)
 ```
 
-To use this in your FTL code you can then just use [Hibernate directly](https://quarkus.io/guides/hibernate-orm) or using [Panache](https://quarkus.io/guides/hibernate-orm-panache).
+You must also include the appropriate depdencies in your `pom.xml` for the database you are using:
+
+```xml
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-jdbc-postgresql</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-jdbc-mysql</artifactId>
+</dependency>
+```
+
+You can also use [Hibernate directly](https://quarkus.io/guides/hibernate-orm) or using [Panache](https://quarkus.io/guides/hibernate-orm-panache).
+
+This will require adding one of the following dependencies:
+
+```xml
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-hibernate-orm</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-hibernate-orm-panache</artifactId>
+</dependency>
+```
 
 Note that this will likely change significantly in future once FTL has SQL Verbs.
 
 <!-- java -->
-
-To declare a datasource in Java you must create an `application.properties` file in the `src/main/resources`
-directory. Datasources currently leverage the Quarkus Database extension, and so databases are configured
-using Quarkus config. To define a MySQL database using the Quarkus Hibernate extension you would do the following:
-
-```properties
-quarkus.datasource.testdb.db-kind=mysql
-quarkus.hibernate-orm.datasource=testdb
-```
-
-To use this in your FTL code you can then just use [Hibernate directly](https://quarkus.io/guides/hibernate-orm) or using [Panache](https://quarkus.io/guides/hibernate-orm-panache).
-
-Note that this will likely change significantly in future once FTL has SQL Verbs.
-
-An example showing DB usage with Panache is shown below:
+To declare a datasource in Java you must use the `@SQLDatasource` annotation. This annotations is used to define
+the database name and type.
 
 ```java
-package xyz.block.ftl.java.test.database;
+@SQLDatasource(name = "testdb", type = SQLDatabaseType.POSTGRESQL)
+```
 
-import java.util.List;
-import java.util.Map;
+You must also include the appropriate depdencies in your `pom.xml` for the database you are using:
 
-import jakarta.transaction.Transactional;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+```xml
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-jdbc-postgresql</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-jdbc-mysql</artifactId>
+</dependency>
+```
 
-import xyz.block.ftl.Verb;
+You can also use [Hibernate directly](https://quarkus.io/guides/hibernate-orm) or using [Panache](https://quarkus.io/guides/hibernate-orm-panache).
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+This will require adding one of the following dependencies:
 
-public class Database {
-    
-    @Verb
-    @Transactional
-    public List<Request> query() {
-        List<Request> requests = Request.listAll();
-        return requests;
-    }
-}
+```xml
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-hibernate-orm</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-hibernate-orm-panache</artifactId>
+</dependency>
+```
 
-
-@Entity
-@Table(name = "requests")
-public class Request extends PanacheEntity {
-    public String data;
-    
-}
+Note that this will likely change significantly in future once FTL has SQL Verbs.
 
 ```
 {% end %}

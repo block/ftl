@@ -5,8 +5,11 @@ import java.util.Map;
 
 import jakarta.transaction.Transactional;
 
+import xyz.block.ftl.SQLDatabaseType;
+import xyz.block.ftl.SQLDatasource;
 import xyz.block.ftl.Verb;
 
+@SQLDatasource(name = "testdb", type = SQLDatabaseType.MYSQL)
 public class Database {
 
     @Verb
