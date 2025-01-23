@@ -157,8 +157,12 @@ func (s *ShardHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 		if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.config.ReplicaID, func(ctx context.Context) error {
 			logger.Debugf("getting session for shard %d on replica %d", s.shardID, s.cluster.config.ReplicaID)
 			s.session, err = s.cluster.nh.SyncGetSession(ctx, s.shardID)
-			return err //nolint:wrapcheck
-		}); err != nil {
+			if err != nil {
+				return err //nolint:wrapcheck
+			}
+			logger.Debugf("got clientID %d for shard %d on replica %d", s.session.ClientID, s.shardID, s.cluster.config.ReplicaID)
+			return nil
+		}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout, dragonboat.ErrRejected); err != nil {
 			return fmt.Errorf("failed to get session: %w", err)
 		}
 	}
@@ -171,7 +175,7 @@ func (s *ShardHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 		}
 		s.session.ProposalCompleted()
 		return nil
-	}); err != nil {
+	}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
 		return fmt.Errorf("failed to propose event: %w", err)
 	}
 
@@ -212,19 +216,19 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 	result := make(chan R, 64)
 	logger := log.FromContext(ctx).Scope("raft")
 
-	previous, err := s.Query(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-
-	result <- previous
-
 	// get the last known index as the starting point
 	last, err := s.getLastIndex()
 	if err != nil {
 		logger.Errorf(err, "failed to get last index")
 	}
 	s.lastKnownIndex.Store(last)
+
+	previous, err := s.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	result <- previous
 
 	go func() {
 		// poll, as dragoboat does not have a way to listen to changes directly
@@ -243,7 +247,7 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 				if err != nil {
 					logger.Warnf("failed to get last index: %s", err)
 				} else if last > s.lastKnownIndex.Load() {
-					logger.Debugf("changes detected, last known index: %d, new index: %d", s.lastKnownIndex.Load(), last)
+					logger.Debugf("changes detected, index: %d -> %d on (%d, %d)", s.lastKnownIndex.Load(), last, s.shardID, s.cluster.config.ReplicaID)
 
 					s.lastKnownIndex.Store(last)
 
@@ -254,6 +258,7 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 					if err != nil {
 						logger.Errorf(err, "failed to query shard")
 					} else {
+						logger.Debugf("publishing to state iterator on (%d, %d)", s.shardID, s.cluster.config.ReplicaID)
 						result <- res
 					}
 				}
@@ -445,7 +450,7 @@ func (c *Cluster) AddMember(ctx context.Context, req *connect.Request[raftpb.Add
 		if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
 			logger.Debugf("requesting add replica to shard %d on replica %d", shardID, replicaID)
 			return c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0)
-		}); err != nil {
+		}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
 			return nil, fmt.Errorf("failed to add member: %w", err)
 		}
 	}
@@ -461,7 +466,7 @@ func (c *Cluster) removeShardMember(ctx context.Context, shardID uint64, replica
 	if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
 		logger.Debugf("requesting delete replica from shard %d on replica %d", shardID, replicaID)
 		return c.nh.SyncRequestDeleteReplica(ctx, shardID, replicaID, 0)
-	}); err != nil {
+	}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
 		// This can happen if the cluster is shutting down and no longer has quorum.
 		logger.Warnf("removing replica %d from shard %d failed: %s", replicaID, shardID, err)
 	}
@@ -474,7 +479,7 @@ func (c *Cluster) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 
 // withTimeout runs an async dragonboat call and blocks until it succeeds or the context is cancelled.
 // the call is retried if the request is dropped, which can happen if the leader is not available.
-func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f func(ctx context.Context) error) error {
+func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f func(ctx context.Context) error, retryErrors ...error) error {
 	retry := c.config.Retry.Backoff()
 	logger := log.FromContext(ctx).Scope("raft")
 
@@ -488,23 +493,24 @@ func (c *Cluster) withRetry(ctx context.Context, shardID, replicaID uint64, f fu
 
 		err := f(ctx)
 		duration := retry.Duration()
-		if errors.Is(err, dragonboat.ErrShardNotReady) {
-			logger.Debugf("shard not ready, retrying in %s", duration)
-			time.Sleep(duration)
-			if _, ok := <-ctx.Done(); ok {
-				return fmt.Errorf("context cancelled")
+
+		if err != nil {
+			retried := false
+			for _, retryError := range retryErrors {
+				if errors.Is(err, retryError) {
+					logger.Debugf("got error %s, retrying in %s", err, duration)
+					time.Sleep(duration)
+					if _, ok := <-ctx.Done(); ok {
+						return fmt.Errorf("context cancelled")
+					}
+					cancel()
+					retried = true
+					break
+				}
 			}
-			cancel()
-			continue
-		} else if errors.Is(err, dragonboat.ErrTimeout) {
-			logger.Debugf("timeout, retrying in %s", duration)
-			time.Sleep(duration)
-			if _, ok := <-ctx.Done(); ok {
-				return fmt.Errorf("context cancelled")
+			if retried {
+				continue
 			}
-			cancel()
-			continue
-		} else if err != nil {
 			return fmt.Errorf("failed to submit request to shard %d on replica %d: %w", shardID, replicaID, err)
 		}
 		return nil
