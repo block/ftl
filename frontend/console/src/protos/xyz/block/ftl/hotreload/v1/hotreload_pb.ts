@@ -50,27 +50,14 @@ export class ReloadRequest extends Message<ReloadRequest> {
  */
 export class ReloadResponse extends Message<ReloadResponse> {
   /**
-   * @generated from oneof xyz.block.ftl.hotreload.v1.ReloadResponse.event
+   * @generated from field: xyz.block.ftl.hotreload.v1.SchemaState state = 1;
    */
-  event: {
-    /**
-     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadNotRequired reload_not_required = 1;
-     */
-    value: ReloadNotRequired;
-    case: "reloadNotRequired";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadSuccess reload_success = 2;
-     */
-    value: ReloadSuccess;
-    case: "reloadSuccess";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadFailed reload_failed = 3;
-     */
-    value: ReloadFailed;
-    case: "reloadFailed";
-  } | { case: undefined; value?: undefined } = { case: undefined };
+  state?: SchemaState;
+
+  /**
+   * @generated from field: bool failed = 2;
+   */
+  failed = false;
 
   constructor(data?: PartialMessage<ReloadResponse>) {
     super();
@@ -80,9 +67,8 @@ export class ReloadResponse extends Message<ReloadResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.hotreload.v1.ReloadResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "reload_not_required", kind: "message", T: ReloadNotRequired, oneof: "event" },
-    { no: 2, name: "reload_success", kind: "message", T: ReloadSuccess, oneof: "event" },
-    { no: 3, name: "reload_failed", kind: "message", T: ReloadFailed, oneof: "event" },
+    { no: 1, name: "state", kind: "message", T: SchemaState },
+    { no: 2, name: "failed", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReloadResponse {
@@ -138,21 +124,9 @@ export class WatchRequest extends Message<WatchRequest> {
  */
 export class WatchResponse extends Message<WatchResponse> {
   /**
-   * @generated from oneof xyz.block.ftl.hotreload.v1.WatchResponse.event
+   * @generated from field: xyz.block.ftl.hotreload.v1.SchemaState state = 1;
    */
-  event: {
-    /**
-     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadSuccess reload_success = 1;
-     */
-    value: ReloadSuccess;
-    case: "reloadSuccess";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.hotreload.v1.ReloadFailed reload_failed = 2;
-     */
-    value: ReloadFailed;
-    case: "reloadFailed";
-  } | { case: undefined; value?: undefined } = { case: undefined };
+  state?: SchemaState;
 
   constructor(data?: PartialMessage<WatchResponse>) {
     super();
@@ -162,8 +136,7 @@ export class WatchResponse extends Message<WatchResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.hotreload.v1.WatchResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "reload_success", kind: "message", T: ReloadSuccess, oneof: "event" },
-    { no: 2, name: "reload_failed", kind: "message", T: ReloadFailed, oneof: "event" },
+    { no: 1, name: "state", kind: "message", T: SchemaState },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WatchResponse {
@@ -342,18 +315,9 @@ export class ReloadNotRequired extends Message<ReloadNotRequired> {
  */
 export class ReloadSuccess extends Message<ReloadSuccess> {
   /**
-   * Module schema for the built module
-   *
-   * @generated from field: xyz.block.ftl.schema.v1.Module module = 1;
+   * @generated from field: xyz.block.ftl.hotreload.v1.SchemaState state = 1;
    */
-  module?: Module;
-
-  /**
-   * Module schema for the built module
-   *
-   * @generated from field: xyz.block.ftl.language.v1.ErrorList errors = 2;
-   */
-  errors?: ErrorList;
+  state?: SchemaState;
 
   constructor(data?: PartialMessage<ReloadSuccess>) {
     super();
@@ -363,8 +327,7 @@ export class ReloadSuccess extends Message<ReloadSuccess> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.hotreload.v1.ReloadSuccess";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "module", kind: "message", T: Module },
-    { no: 2, name: "errors", kind: "message", T: ErrorList },
+    { no: 1, name: "state", kind: "message", T: SchemaState },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReloadSuccess {
@@ -391,9 +354,9 @@ export class ReloadFailed extends Message<ReloadFailed> {
   /**
    * Module schema for the built module
    *
-   * @generated from field: xyz.block.ftl.language.v1.ErrorList errors = 1;
+   * @generated from field: xyz.block.ftl.hotreload.v1.SchemaState state = 1;
    */
-  errors?: ErrorList;
+  state?: SchemaState;
 
   constructor(data?: PartialMessage<ReloadFailed>) {
     super();
@@ -403,7 +366,7 @@ export class ReloadFailed extends Message<ReloadFailed> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.hotreload.v1.ReloadFailed";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "errors", kind: "message", T: ErrorList },
+    { no: 1, name: "state", kind: "message", T: SchemaState },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReloadFailed {
@@ -420,6 +383,56 @@ export class ReloadFailed extends Message<ReloadFailed> {
 
   static equals(a: ReloadFailed | PlainMessage<ReloadFailed> | undefined, b: ReloadFailed | PlainMessage<ReloadFailed> | undefined): boolean {
     return proto3.util.equals(ReloadFailed, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.hotreload.v1.SchemaState
+ */
+export class SchemaState extends Message<SchemaState> {
+  /**
+   * @generated from oneof xyz.block.ftl.hotreload.v1.SchemaState.state
+   */
+  state: {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.Module module = 1;
+     */
+    value: Module;
+    case: "module";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.language.v1.ErrorList errors = 2;
+     */
+    value: ErrorList;
+    case: "errors";
+  } | { case: undefined; value?: undefined } = { case: undefined };
+
+  constructor(data?: PartialMessage<SchemaState>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.hotreload.v1.SchemaState";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "module", kind: "message", T: Module, oneof: "state" },
+    { no: 2, name: "errors", kind: "message", T: ErrorList, oneof: "state" },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SchemaState {
+    return new SchemaState().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SchemaState {
+    return new SchemaState().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SchemaState {
+    return new SchemaState().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SchemaState | PlainMessage<SchemaState> | undefined, b: SchemaState | PlainMessage<SchemaState> | undefined): boolean {
+    return proto3.util.equals(SchemaState, a, b);
   }
 }
 

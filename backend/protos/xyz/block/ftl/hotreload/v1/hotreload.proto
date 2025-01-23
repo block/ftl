@@ -14,20 +14,14 @@ message ReloadRequest {
 }
 
 message ReloadResponse {
-  oneof event {
-    ReloadNotRequired reload_not_required = 1;
-    ReloadSuccess reload_success = 2;
-    ReloadFailed reload_failed = 3;
-  }
+  SchemaState state = 1;
+  bool failed = 2;
 }
 
 message WatchRequest {}
 
 message WatchResponse {
-  oneof event {
-    ReloadSuccess reload_success = 1;
-    ReloadFailed reload_failed = 2;
-  }
+  SchemaState state = 1;
 }
 
 message RunnerInfoRequest {
@@ -46,15 +40,19 @@ message RunnerInfoResponse {}
 message ReloadNotRequired {}
 
 message ReloadSuccess {
-  // Module schema for the built module
-  ftl.schema.v1.Module module = 1;
-  // Module schema for the built module
-  ftl.language.v1.ErrorList errors = 2;
+  SchemaState state = 1;
 }
 
 message ReloadFailed {
   // Module schema for the built module
-  ftl.language.v1.ErrorList errors = 1;
+  SchemaState state = 1;
+}
+
+message SchemaState {
+  oneof state {
+    ftl.schema.v1.Module module = 1;
+    ftl.language.v1.ErrorList errors = 2;
+  }
 }
 
 // HotReloadService is for communication between a language plugin a language runtime that can perform a hot reload
