@@ -44,7 +44,7 @@ export const DeclNode = ({ data }: Props) => {
 
   return (
     <div className={`rounded-md overflow-hidden ${data.selected ? 'ring-2 ring-pink-400 dark:ring-pink-600' : ''}`}>
-      <Handle id={`${data.id}-target`} type='target' position={Position.Left} style={{ border: 0, backgroundColor: handleColor }} isConnectable={true} />
+      <Handle id={`${data.id}-target`} type='target' position={Position.Left} style={{ border: 0, backgroundColor: handleColor }} isConnectable={false} />
 
       <div className='flex' style={{ backgroundColor: data.style?.backgroundColor }}>
         <div className='flex items-center text-gray-100 px-3 py-2 gap-2 w-full'>
@@ -53,7 +53,7 @@ export const DeclNode = ({ data }: Props) => {
         </div>
       </div>
 
-      <Handle id={`${data.id}-source`} type='source' position={Position.Right} style={{ border: 0, backgroundColor: handleColor }} isConnectable={true} />
+      <Handle id={`${data.id}-source`} type='source' position={Position.Right} style={{ border: 0, backgroundColor: handleColor }} isConnectable={false} />
     </div>
   )
 }
