@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package xyz.block.ftl.buildengine.v1;
 
+import "google/protobuf/timestamp.proto";
 import "xyz/block/ftl/language/v1/language.proto";
 import "xyz/block/ftl/v1/ftl.proto";
-import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1;buildenginepb";
 

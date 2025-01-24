@@ -17,6 +17,7 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
@@ -31,7 +32,6 @@ import (
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/watch"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // moduleMeta is a wrapper around a module that includes the last build's start time.
