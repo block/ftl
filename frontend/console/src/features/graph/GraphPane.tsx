@@ -302,6 +302,8 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
         minZoom={0.1}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
+        nodesDraggable={false}
+        nodesConnectable={false}
       >
         <Background />
         <Controls />
