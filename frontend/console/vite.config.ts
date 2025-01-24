@@ -17,7 +17,6 @@ export default defineConfig({
           'vendor-json-schema-faker': ['json-schema-faker'],
           'vendor-json-schema-library': ['json-schema-library'],
           'vendor-yaml': ['yaml'],
-          'vendor-highlightjs': ['highlight.js'],
           'vendor-fuse': ['fuse.js'],
           'vendor-codemirror': [
             '@codemirror/autocomplete',

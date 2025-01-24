@@ -1,5 +1,5 @@
 import { AttributeBadge } from '../../../components/AttributeBadge'
-import { CodeBlock } from '../../../components/CodeBlock'
+import { CodeBlockWithTitle } from '../../../components/CodeBlockWithTitle'
 import type { Event, IngressEvent } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { formatDuration } from '../../../utils/date.utils'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
@@ -16,36 +16,15 @@ export const TimelineIngressDetails = ({ event }: { event: Event }) => {
         <TraceGraphHeader requestKey={ingress.requestKey} eventId={event.id} />
         <TraceGraph requestKey={ingress.requestKey} selectedEventId={event.id} />
 
-        <div className='text-sm pt-2'>Request</div>
-        <CodeBlock code={JSON.stringify(JSON.parse(ingress.request), null, 2)} language='json' />
+        {ingress.request && <CodeBlockWithTitle title='Request' code={JSON.stringify(JSON.parse(ingress.request), null, 2)} />}
 
-        {ingress.response !== 'null' && (
-          <>
-            <div className='text-sm pt-2'>Response</div>
-            <CodeBlock code={JSON.stringify(JSON.parse(ingress.response), null, 2)} language='json' />
-          </>
-        )}
+        {ingress.response && <CodeBlockWithTitle title='Response' code={JSON.stringify(JSON.parse(ingress.response), null, 2)} />}
 
-        {ingress.requestHeader !== 'null' && (
-          <>
-            <div className='text-sm pt-2'>Request Header</div>
-            <CodeBlock code={JSON.stringify(JSON.parse(ingress.requestHeader), null, 2)} language='json' />
-          </>
-        )}
+        {ingress.requestHeader && <CodeBlockWithTitle title='Request Header' code={JSON.stringify(JSON.parse(ingress.requestHeader), null, 2)} />}
 
-        {ingress.responseHeader !== 'null' && (
-          <>
-            <div className='text-sm pt-2'>Response Header</div>
-            <CodeBlock code={JSON.stringify(JSON.parse(ingress.responseHeader), null, 2)} language='json' />
-          </>
-        )}
+        {ingress.responseHeader && <CodeBlockWithTitle title='Response Header' code={JSON.stringify(JSON.parse(ingress.responseHeader), null, 2)} />}
 
-        {ingress.error && (
-          <>
-            <h3 className='pt-4'>Error</h3>
-            <CodeBlock code={ingress.error} language='text' />
-          </>
-        )}
+        {ingress.error && <CodeBlockWithTitle title='Error' code={ingress.error} />}
 
         <DeploymentCard className='mt-4' deploymentKey={ingress.deploymentKey} />
 

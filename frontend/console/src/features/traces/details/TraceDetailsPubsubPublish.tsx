@@ -1,5 +1,5 @@
 import { AttributeBadge } from '../../../components/AttributeBadge'
-import { CodeBlock } from '../../../components/CodeBlock'
+import { CodeBlockWithTitle } from '../../../components/CodeBlockWithTitle'
 import type { Event, PubSubPublishEvent } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { formatDuration } from '../../../utils/date.utils'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
@@ -9,20 +9,10 @@ export const TraceDetailsPubsubPublish = ({ event }: { event: Event }) => {
   const pubsubPublish = event.entry.value as PubSubPublishEvent
   return (
     <>
-      <span className='text-xl font-semibold'>PubSub Publish Details</span>
+      <span className='text-xl font-semibold'>Publish Details</span>
 
-      {pubsubPublish.request && (
-        <>
-          <h3 className='pt-4'>Request</h3>
-          <CodeBlock code={pubsubPublish.request} language='json' />
-        </>
-      )}
-      {pubsubPublish.error && (
-        <>
-          <h3 className='pt-4'>Error</h3>
-          <CodeBlock code={pubsubPublish.error} language='text' />
-        </>
-      )}
+      {pubsubPublish.request && <CodeBlockWithTitle title='Request' code={pubsubPublish.request} />}
+      {pubsubPublish.error && <CodeBlockWithTitle title='Error' code={pubsubPublish.error} />}
 
       <DeploymentCard className='mt-4' deploymentKey={pubsubPublish.deploymentKey} />
 

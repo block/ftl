@@ -1,5 +1,5 @@
 import { AttributeBadge } from '../../../components/AttributeBadge'
-import { CodeBlock } from '../../../components/CodeBlock'
+import { CodeBlockWithTitle } from '../../../components/CodeBlockWithTitle'
 import type { CronScheduledEvent, Event } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { formatDuration, formatTimestampShort } from '../../../utils/date.utils'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
@@ -11,13 +11,7 @@ export const TimelineCronScheduledDetails = ({ event }: { event: Event }) => {
   return (
     <>
       <div className='p-4'>
-        {cron.error && (
-          <>
-            <h3>Error</h3>
-            <CodeBlock code={cron.error} language='text' />
-          </>
-        )}
-
+        {cron.error && <CodeBlockWithTitle title='Error' code={cron.error} />}
         <DeploymentCard deploymentKey={cron.deploymentKey} />
 
         <ul className='pt-4 space-y-2'>

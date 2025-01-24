@@ -1,5 +1,5 @@
 import { AttributeBadge } from '../../../components/AttributeBadge'
-import { CodeBlock } from '../../../components/CodeBlock'
+import { CodeBlockWithTitle } from '../../../components/CodeBlockWithTitle'
 import type { AsyncExecuteEvent, Event } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { formatDuration } from '../../../utils/date.utils'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
@@ -19,12 +19,7 @@ export const TimelineAsyncExecuteDetails = ({ event }: { event: Event }) => {
           <TraceGraph requestKey={asyncEvent.requestKey} selectedEventId={event.id} />
         </div>
 
-        {asyncEvent.error && (
-          <>
-            <h3>Error</h3>
-            <CodeBlock code={asyncEvent.error} language='text' />
-          </>
-        )}
+        {asyncEvent.error && <CodeBlockWithTitle title='Error' code={asyncEvent.error} />}
         <DeploymentCard deploymentKey={asyncEvent.deploymentKey} />
         <ul className='pt-4 space-y-2'>
           {asyncEvent.requestKey && (

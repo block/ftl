@@ -1,5 +1,5 @@
 import { AttributeBadge } from '../../../components/AttributeBadge'
-import { CodeBlock } from '../../../components/CodeBlock'
+import { CodeBlockWithTitle } from '../../../components/CodeBlockWithTitle'
 import type { Event, PubSubConsumeEvent } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { formatDuration } from '../../../utils/date.utils'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
@@ -10,12 +10,7 @@ export const TraceDetailsPubsubConsume = ({ event }: { event: Event }) => {
     <>
       <span className='text-xl font-semibold'>PubSub Publish Details</span>
 
-      {pubsubConsume.error && (
-        <>
-          <h3 className='pt-4'>Error</h3>
-          <CodeBlock code={pubsubConsume.error} language='text' />
-        </>
-      )}
+      {pubsubConsume.error && <CodeBlockWithTitle title='Error' code={pubsubConsume.error} />}
 
       <DeploymentCard className='mt-4' deploymentKey={pubsubConsume.deploymentKey} />
 
