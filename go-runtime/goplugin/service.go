@@ -254,7 +254,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	}
 
 	// Initial build
-	if err := buildAndSend(ctx, stream, req.Msg.ProjectRoot, req.Msg.StubsRoot, buildCtx, false, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState); err != nil {
+	if err := buildAndSend(ctx, stream, req.Msg.ProjectRoot, req.Msg.StubsRoot, buildCtx, false, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, req.Msg.RebuildAutomatically); err != nil {
 		return err
 	}
 	if !req.Msg.RebuildAutomatically {
@@ -289,7 +289,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 				continue
 			}
 		}
-		if err = buildAndSend(ctx, stream, req.Msg.ProjectRoot, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState); err != nil {
+		if err = buildAndSend(ctx, stream, req.Msg.ProjectRoot, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, true); err != nil {
 			return err
 		}
 	}
@@ -389,8 +389,8 @@ func buildContextFromPendingEvents(ctx context.Context, buildCtx buildContext, e
 // Build errors are sent over the stream as a BuildFailure event.
 // This function only returns an error if events could not be send over the stream.
 func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.BuildResponse], projectRoot, stubsRoot string, buildCtx buildContext,
-	isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction, ongoingState *compile.OngoingState) error {
-	buildEvent, err := build(ctx, projectRoot, stubsRoot, buildCtx, isAutomaticRebuild, transaction, ongoingState)
+	isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction, ongoingState *compile.OngoingState, devMode bool) error {
+	buildEvent, err := build(ctx, projectRoot, stubsRoot, buildCtx, isAutomaticRebuild, transaction, ongoingState, devMode)
 	if err != nil {
 		buildEvent = buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
 			Type:  builderrors.FTL,
@@ -405,14 +405,14 @@ func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.Build
 }
 
 func build(ctx context.Context, projectRoot, stubsRoot string, buildCtx buildContext, isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction,
-	ongoingState *compile.OngoingState) (*langpb.BuildResponse, error) {
+	ongoingState *compile.OngoingState, devMode bool) (*langpb.BuildResponse, error) {
 	release, err := flock.Acquire(ctx, buildCtx.Config.BuildLock, BuildLockTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("could not acquire build lock: %w", err)
 	}
 	defer release() //nolint:errcheck
 
-	m, buildErrs, err := compile.Build(ctx, projectRoot, stubsRoot, buildCtx.Config, buildCtx.Schema, buildCtx.Dependencies, buildCtx.BuildEnv, transaction, ongoingState, false)
+	m, buildErrs, err := compile.Build(ctx, projectRoot, stubsRoot, buildCtx.Config, buildCtx.Schema, buildCtx.Dependencies, buildCtx.BuildEnv, transaction, ongoingState, devMode)
 	if err != nil {
 		if errors.Is(err, compile.ErrInvalidateDependencies) {
 			return &langpb.BuildResponse{
