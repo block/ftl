@@ -25,6 +25,7 @@ import (
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
@@ -372,7 +373,6 @@ func parseHeaders(logger *log.Logger, headers []*sarama.RecordHeader) (published
 
 func (c *consumer) call(ctx context.Context, body []byte, partition, offset int, publisherRequestKey optional.Option[key.Request]) error {
 	start := time.Now()
-
 	requestKey := publisherRequestKey.Default(key.NewRequestKey(key.OriginPubsub, schema.RefKey{Module: c.moduleName, Name: c.verb.Name}.String()))
 	destRef := &schema.Ref{
 		Module: c.moduleName,
@@ -403,7 +403,9 @@ func (c *consumer) call(ctx context.Context, body []byte, partition, offset int,
 	}
 	defer c.timelineClient.Publish(ctx, callEvent)
 
-	resp, callErr := c.verbClient.Call(ctx, connect.NewRequest(req))
+	request := connect.NewRequest(req)
+	headers.SetRequestKey(request.Header(), requestKey)
+	resp, callErr := c.verbClient.Call(ctx, request)
 	if callErr == nil {
 		if errResp, ok := resp.Msg.Response.(*ftlv1.CallResponse_Error_); ok {
 			callErr = fmt.Errorf("verb call failed: %s", errResp.Error.Message)
