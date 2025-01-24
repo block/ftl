@@ -41,6 +41,7 @@ type service struct {
 	view           *atomic.Value[materialisedView]
 	client         routing.CallClient
 	timelineClient *timelineclient.Client
+	routeTable     *routing.RouteTable
 }
 
 // Start the HTTP ingress service. Blocks until the context is cancelled.
@@ -51,6 +52,7 @@ func Start(ctx context.Context, config Config, schemaEventSource schemaeventsour
 		view:           syncView(ctx, schemaEventSource),
 		client:         client,
 		timelineClient: timelineClient,
+		routeTable:     routing.New(ctx, schemaEventSource),
 	}
 
 	ingressHandler := otelhttp.NewHandler(http.Handler(svc), "ftl.ingress")
