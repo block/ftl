@@ -46,6 +46,7 @@ import io.quarkus.vertx.http.deployment.RequireSocketHttpBuildItem;
 import io.quarkus.vertx.http.deployment.RequireVirtualHttpBuildItem;
 import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.language.v1.ErrorList;
+import xyz.block.ftl.runtime.CurrentRequestServerInterceptor;
 import xyz.block.ftl.runtime.FTLDatasourceCredentials;
 import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.runtime.JsonSerializationConfig;
@@ -231,6 +232,7 @@ public class ModuleProcessor {
         return AdditionalBeanBuildItem.builder()
                 .addBeanClasses(VerbHandler.class,
                         VerbRegistry.class, FTLHttpHandler.class,
+                        CurrentRequestServerInterceptor.class,
                         TopicHelper.class, VerbClientHelper.class, JsonSerializationConfig.class,
                         FTLDatasourceCredentials.class)
                 .setUnremovable().build();

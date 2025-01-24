@@ -77,7 +77,7 @@ class FTLRunnerConnection implements Closeable {
         deploymentService = DeploymentServiceGrpc.newStub(channel);
         deploymentService.getDeploymentContext(GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
                 moduleObserver);
-        verbService = VerbServiceGrpc.newStub(channel);
+        verbService = VerbServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         publishService = PublishServiceGrpc.newStub(channel);
         leaseService = LeaseServiceGrpc.newStub(channel);
         this.endpoint = endpoint;
