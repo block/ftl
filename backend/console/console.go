@@ -10,6 +10,8 @@ import (
 	"connectrpc.com/connect"
 
 	"github.com/block/ftl/backend/admin"
+	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	consolepb "github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1/consolepbconnect"
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
@@ -39,11 +41,12 @@ type service struct {
 	timelineClient    *timelineclient.Client
 	adminClient       admin.Client
 	callClient        routing.CallClient
+	buildEngineClient buildenginepbconnect.BuildEngineServiceClient
 }
 
 var _ consolepbconnect.ConsoleServiceHandler = (*service)(nil)
 
-func Start(ctx context.Context, config Config, eventSource schemaeventsource.EventSource, controllerClient ftlv1connect.ControllerServiceClient, timelineClient *timelineclient.Client, adminClient admin.Client, client routing.CallClient) error {
+func Start(ctx context.Context, config Config, eventSource schemaeventsource.EventSource, controllerClient ftlv1connect.ControllerServiceClient, timelineClient *timelineclient.Client, adminClient admin.Client, client routing.CallClient, buildEngineClient buildenginepbconnect.BuildEngineServiceClient) error {
 	logger := log.FromContext(ctx).Scope("console")
 	ctx = log.ContextWithLogger(ctx, logger)
 
@@ -53,6 +56,7 @@ func Start(ctx context.Context, config Config, eventSource schemaeventsource.Eve
 		timelineClient:    timelineClient,
 		adminClient:       adminClient,
 		callClient:        client,
+		buildEngineClient: buildEngineClient,
 	}
 
 	consoleHandler, err := frontend.Server(ctx, config.ContentTime, config.Bind)
@@ -608,4 +612,27 @@ func (s *service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		return nil, fmt.Errorf("failed to call verb: %w", err)
 	}
 	return connect.NewResponse(resp.Msg), nil
+}
+
+// StreamEngineEvents implements consolepbconnect.ConsoleServiceHandler.
+func (s *service) StreamEngineEvents(ctx context.Context, req *connect.Request[buildenginepb.StreamEngineEventsRequest], stream *connect.ServerStream[buildenginepb.StreamEngineEventsResponse]) error {
+	engineEvents, err := s.buildEngineClient.StreamEngineEvents(ctx, connect.NewRequest(&buildenginepb.StreamEngineEventsRequest{
+		ReplayHistory: req.Msg.ReplayHistory,
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to start build events stream: %w", err)
+	}
+
+	for engineEvents.Receive() {
+		msg := engineEvents.Msg()
+		err = stream.Send(msg)
+		if err != nil {
+			return fmt.Errorf("failed to send message: %w", err)
+		}
+	}
+
+	if err := engineEvents.Err(); err != nil {
+		return fmt.Errorf("error streaming build events: %w", err)
+	}
+	return nil
 }

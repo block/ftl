@@ -1,6 +1,6 @@
 //go:build integration
 
-package projectconfig
+package projectconfig_test
 
 import (
 	"path/filepath"

@@ -9,6 +9,7 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/console"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/log"
@@ -29,6 +30,7 @@ var cli struct {
 	ControllerEndpoint    *url.URL             `help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	VerbServiceEndpoint   *url.URL             `help:"Verb service endpoint." env:"FTL_VERB_SERVICE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	AdminEndpoint         *url.URL             `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
+	BuildEngineEndpoint   *url.URL             `help:"Build engine endpoint." env:"FTL_BUILD_UPDATES_ENDPOINT" default:"http://127.0.0.1:8900"`
 }
 
 func main() {
@@ -46,10 +48,11 @@ func main() {
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaServiceEndpoint.String(), log.Error)
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.ControllerEndpoint.String(), log.Error)
 	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
+	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.BuildEngineEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, schemaClient)
 
 	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, schemaClient), timelineClient)
 
-	err = console.Start(ctx, cli.ConsoleConfig, eventSource, controllerClient, timelineClient, adminClient, routeManager)
+	err = console.Start(ctx, cli.ConsoleConfig, eventSource, controllerClient, timelineClient, adminClient, routeManager, buildEngineClient)
 	kctx.FatalIfErrorf(err, "failed to start console service")
 }

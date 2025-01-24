@@ -10,15 +10,15 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
-	enginepbconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/lsp"
-	"github.com/block/ftl/internal/rpc"
 )
 
 type lspCmd struct {
 	BuildUpdatesEndpoint *url.URL `help:"Build updates endpoint." default:"http://127.0.0.1:8900" env:"FTL_BUILD_UPDATES_ENDPOINT"`
 	languageServer       *lsp.Server
+	buildEngineClient    buildenginepbconnect.BuildEngineServiceClient
 }
 
 func (l *lspCmd) Run(ctx context.Context) error {
@@ -32,7 +32,6 @@ func (l *lspCmd) Run(ctx context.Context) error {
 		return l.languageServer.Run()
 	})
 
-	client := rpc.Dial(enginepbconnect.NewBuildEngineServiceClient, l.BuildUpdatesEndpoint.String(), log.Error)
 	g.Go(func() error {
 		for {
 			select {
@@ -40,7 +39,7 @@ func (l *lspCmd) Run(ctx context.Context) error {
 				return ctx.Err()
 			default:
 				logger.Debugf("Connecting to build updates service")
-				if err := l.streamBuildEvents(ctx, client); err != nil {
+				if err := l.streamBuildEvents(ctx, l.buildEngineClient); err != nil {
 					logger.Debugf("Failed to connect to build updates service: %v", err)
 
 					// Delay before reconnecting to avoid tight loop
@@ -57,7 +56,7 @@ func (l *lspCmd) Run(ctx context.Context) error {
 	return nil
 }
 
-func (l *lspCmd) streamBuildEvents(ctx context.Context, client enginepbconnect.BuildEngineServiceClient) error {
+func (l *lspCmd) streamBuildEvents(ctx context.Context, client buildenginepbconnect.BuildEngineServiceClient) error {
 	stream, err := client.StreamEngineEvents(ctx, connect.NewRequest(&buildenginepb.StreamEngineEventsRequest{}))
 	if err != nil {
 		return fmt.Errorf("failed to start build events stream: %w", err)

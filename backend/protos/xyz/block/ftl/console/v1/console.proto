@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package xyz.block.ftl.console.v1;
 
+import "xyz/block/ftl/buildengine/v1/buildengine.proto";
 import "xyz/block/ftl/schema/v1/schema.proto";
 import "xyz/block/ftl/timeline/v1/timeline.proto";
 import "xyz/block/ftl/v1/controller.proto";
@@ -148,4 +149,6 @@ service ConsoleService {
   rpc Status(ftl.v1.StatusRequest) returns (ftl.v1.StatusResponse);
 
   rpc Call(ftl.v1.CallRequest) returns (ftl.v1.CallResponse);
+
+  rpc StreamEngineEvents(ftl.buildengine.v1.StreamEngineEventsRequest) returns (stream ftl.buildengine.v1.StreamEngineEventsResponse);
 }

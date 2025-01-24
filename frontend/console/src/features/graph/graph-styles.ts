@@ -108,14 +108,14 @@ export const createGraphStyles = (isDarkMode: boolean): StylesheetCSS[] => {
 
 export const nodeColors = {
   light: {
-    verb: colors.indigo[300],
-    config: colors.sky[200],
-    data: colors.gray[200],
-    database: colors.blue[200],
-    secret: colors.blue[200],
-    subscription: colors.violet[200],
-    topic: colors.violet[200],
-    default: colors.gray[200],
+    verb: colors.indigo[500],
+    config: colors.sky[400],
+    data: colors.gray[400],
+    database: colors.blue[400],
+    secret: colors.blue[400],
+    subscription: colors.violet[400],
+    topic: colors.violet[400],
+    default: colors.gray[400],
   },
   dark: {
     verb: colors.indigo[600],

@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import { Message, proto3, Timestamp } from "@bufbuild/protobuf";
 import { ErrorList, ModuleConfig } from "../../language/v1/language_pb.js";
 
 /**
@@ -470,71 +470,76 @@ export class ModuleDeploySuccess extends Message<ModuleDeploySuccess> {
  */
 export class EngineEvent extends Message<EngineEvent> {
   /**
+   * @generated from field: google.protobuf.Timestamp timestamp = 1;
+   */
+  timestamp?: Timestamp;
+
+  /**
    * @generated from oneof xyz.block.ftl.buildengine.v1.EngineEvent.event
    */
   event: {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.EngineStarted engine_started = 1;
+     * @generated from field: xyz.block.ftl.buildengine.v1.EngineStarted engine_started = 2;
      */
     value: EngineStarted;
     case: "engineStarted";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.EngineEnded engine_ended = 2;
+     * @generated from field: xyz.block.ftl.buildengine.v1.EngineEnded engine_ended = 3;
      */
     value: EngineEnded;
     case: "engineEnded";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleAdded module_added = 3;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleAdded module_added = 4;
      */
     value: ModuleAdded;
     case: "moduleAdded";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleRemoved module_removed = 4;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleRemoved module_removed = 5;
      */
     value: ModuleRemoved;
     case: "moduleRemoved";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleBuildWaiting module_build_waiting = 5;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleBuildWaiting module_build_waiting = 6;
      */
     value: ModuleBuildWaiting;
     case: "moduleBuildWaiting";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleBuildStarted module_build_started = 6;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleBuildStarted module_build_started = 7;
      */
     value: ModuleBuildStarted;
     case: "moduleBuildStarted";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleBuildFailed module_build_failed = 7;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleBuildFailed module_build_failed = 8;
      */
     value: ModuleBuildFailed;
     case: "moduleBuildFailed";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleBuildSuccess module_build_success = 8;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleBuildSuccess module_build_success = 9;
      */
     value: ModuleBuildSuccess;
     case: "moduleBuildSuccess";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeployStarted module_deploy_started = 9;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeployStarted module_deploy_started = 10;
      */
     value: ModuleDeployStarted;
     case: "moduleDeployStarted";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeployFailed module_deploy_failed = 10;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeployFailed module_deploy_failed = 11;
      */
     value: ModuleDeployFailed;
     case: "moduleDeployFailed";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeploySuccess module_deploy_success = 11;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeploySuccess module_deploy_success = 12;
      */
     value: ModuleDeploySuccess;
     case: "moduleDeploySuccess";
@@ -548,17 +553,18 @@ export class EngineEvent extends Message<EngineEvent> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.buildengine.v1.EngineEvent";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "engine_started", kind: "message", T: EngineStarted, oneof: "event" },
-    { no: 2, name: "engine_ended", kind: "message", T: EngineEnded, oneof: "event" },
-    { no: 3, name: "module_added", kind: "message", T: ModuleAdded, oneof: "event" },
-    { no: 4, name: "module_removed", kind: "message", T: ModuleRemoved, oneof: "event" },
-    { no: 5, name: "module_build_waiting", kind: "message", T: ModuleBuildWaiting, oneof: "event" },
-    { no: 6, name: "module_build_started", kind: "message", T: ModuleBuildStarted, oneof: "event" },
-    { no: 7, name: "module_build_failed", kind: "message", T: ModuleBuildFailed, oneof: "event" },
-    { no: 8, name: "module_build_success", kind: "message", T: ModuleBuildSuccess, oneof: "event" },
-    { no: 9, name: "module_deploy_started", kind: "message", T: ModuleDeployStarted, oneof: "event" },
-    { no: 10, name: "module_deploy_failed", kind: "message", T: ModuleDeployFailed, oneof: "event" },
-    { no: 11, name: "module_deploy_success", kind: "message", T: ModuleDeploySuccess, oneof: "event" },
+    { no: 1, name: "timestamp", kind: "message", T: Timestamp },
+    { no: 2, name: "engine_started", kind: "message", T: EngineStarted, oneof: "event" },
+    { no: 3, name: "engine_ended", kind: "message", T: EngineEnded, oneof: "event" },
+    { no: 4, name: "module_added", kind: "message", T: ModuleAdded, oneof: "event" },
+    { no: 5, name: "module_removed", kind: "message", T: ModuleRemoved, oneof: "event" },
+    { no: 6, name: "module_build_waiting", kind: "message", T: ModuleBuildWaiting, oneof: "event" },
+    { no: 7, name: "module_build_started", kind: "message", T: ModuleBuildStarted, oneof: "event" },
+    { no: 8, name: "module_build_failed", kind: "message", T: ModuleBuildFailed, oneof: "event" },
+    { no: 9, name: "module_build_success", kind: "message", T: ModuleBuildSuccess, oneof: "event" },
+    { no: 10, name: "module_deploy_started", kind: "message", T: ModuleDeployStarted, oneof: "event" },
+    { no: 11, name: "module_deploy_failed", kind: "message", T: ModuleDeployFailed, oneof: "event" },
+    { no: 12, name: "module_deploy_success", kind: "message", T: ModuleDeploySuccess, oneof: "event" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EngineEvent {
@@ -582,6 +588,14 @@ export class EngineEvent extends Message<EngineEvent> {
  * @generated from message xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
  */
 export class StreamEngineEventsRequest extends Message<StreamEngineEventsRequest> {
+  /**
+   * If true, cached events will be replayed before streaming new events.
+   * If false, only new events will be streamed.
+   *
+   * @generated from field: bool replay_history = 1;
+   */
+  replayHistory = false;
+
   constructor(data?: PartialMessage<StreamEngineEventsRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -590,6 +604,7 @@ export class StreamEngineEventsRequest extends Message<StreamEngineEventsRequest
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "replay_history", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StreamEngineEventsRequest {
