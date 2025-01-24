@@ -18,6 +18,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"
 )
@@ -105,10 +106,26 @@ func TestIngress(t *testing.T) {
 			assert.NoError(t, err)
 			fv := &fakeVerbClient{response: response, t: t}
 
+			eventSource := schemaeventsource.NewUnattached()
+			testModule := &schema.Module{
+				Name: "test",
+				Runtime: &schema.ModuleRuntime{
+					Deployment: &schema.ModuleRuntimeDeployment{
+						DeploymentKey: key.NewDeploymentKey("test"),
+					},
+				},
+			}
+			// Publish the test module to the event source
+			eventSource.Publish(schemaeventsource.EventUpsert{
+				Module:     testModule,
+				Deployment: optional.Some(key.NewDeploymentKey("test")),
+			})
+
 			svc := &service{
-				view:           syncView(ctx, schemaeventsource.NewUnattached()),
+				view:           syncView(ctx, eventSource),
 				client:         fv,
 				timelineClient: timelineclient.NewClient(ctx, timelineEndpoint),
+				routeTable:     routing.New(ctx, eventSource),
 			}
 			svc.handleHTTP(time.Now(), sch, reqKey, routes, rec, req, fv)
 			result := rec.Result()

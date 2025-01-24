@@ -37,9 +37,17 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 
 	verbRef := &schemapb.Ref{Module: route.module, Name: route.verb}
 
+	deploymentKey, ok := s.routeTable.Current().GetDeployment(route.module).Get()
+	if !ok {
+		http.Error(w, "deployment not found", http.StatusInternalServerError)
+		metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("deployment not found"))
+		return
+	}
+
 	ingressEvent := timelineclient.Ingress{
 		RequestKey:      requestKey,
 		StartTime:       startTime,
+		DeploymentKey:   deploymentKey,
 		Verb:            &schema.Ref{Name: route.verb, Module: route.module},
 		RequestMethod:   r.Method,
 		RequestPath:     r.URL.Path,
