@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/types/optional"
 	_ "github.com/go-sql-driver/mysql"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -26,7 +27,7 @@ func NewRunnerScalingProvisioner(runners scaling.RunnerScaling) *InMemProvisione
 }
 
 func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, rc schema.Provisioned) (*RuntimeEvent, error) {
+	return func(ctx context.Context, moduleName string, rc schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 
 		module, ok := rc.(*schema.Module)
@@ -102,15 +103,24 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		}
 
 		logger.Debugf("updating module runtime for %s with endpoint %s", module, endpointURI)
-		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Deployment: deployment.String(), Event: &schemapb.ModuleRuntimeEvent{Value: &schemapb.ModuleRuntimeEvent_ModuleRuntimeDeployment{ModuleRuntimeDeployment: &schemapb.ModuleRuntimeDeployment{DeploymentKey: deployment.String(), Endpoint: endpointURI}}}}))
+		dk := deployment.String()
+		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{
+			Module:        moduleName,
+			DeploymentKey: &dk,
+			Deployment: &schemapb.ModuleRuntimeDeployment{
+				DeploymentKey: deployment.String(),
+				Endpoint:      endpointURI,
+			},
+		}}))
 		if err != nil {
 			return nil, fmt.Errorf("failed to update module runtime: %w", err)
 		}
-		return &RuntimeEvent{
-			Module: &schema.ModuleRuntimeDeployment{
+		return &schema.ModuleRuntimeEvent{
+			Module: moduleName,
+			Deployment: optional.Some(schema.ModuleRuntimeDeployment{
 				DeploymentKey: deployment,
 				Endpoint:      endpointURI,
-			},
+			}),
 		}, nil
 	}
 }

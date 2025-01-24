@@ -30,7 +30,7 @@ func NewDevProvisioner(postgresPort int, mysqlPort int, recreate bool) *InMemPro
 	})
 }
 func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, res schema.Provisioned) (*RuntimeEvent, error) {
+	return func(ctx context.Context, moduleName string, res schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 
 		dbName := strcase.ToLowerSnake(moduleName) + "_" + strcase.ToLowerSnake(res.ResourceID())
@@ -55,16 +55,17 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 					logger.Debugf("failed to establish mysql database: %s", err.Error())
 					continue
 				}
-				return &RuntimeEvent{Database: &schema.DatabaseRuntimeEvent{
-					ID:      res.ResourceID(),
-					Payload: event,
-				}}, nil
+				return &schema.DatabaseRuntimeEvent{
+					Module:      moduleName,
+					ID:          res.ResourceID(),
+					Connections: event,
+				}, nil
 			}
 		}
 	}
 }
 
-func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysqlPort int, recreate bool) (*schema.DatabaseRuntimeConnectionsEvent, error) {
+func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysqlPort int, recreate bool) (*schema.DatabaseRuntimeConnections, error) {
 	conn, err := otelsql.Open("mysql", mysqlDSN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to mysql: %w", err)
@@ -93,11 +94,9 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 
 	dsn := dsn.MySQLDSN(dbName, dsn.Port(mysqlPort))
 
-	return &schema.DatabaseRuntimeConnectionsEvent{
-		Connections: &schema.DatabaseRuntimeConnections{
-			Write: &schema.DSNDatabaseConnector{DSN: dsn},
-			Read:  &schema.DSNDatabaseConnector{DSN: dsn},
-		},
+	return &schema.DatabaseRuntimeConnections{
+		Write: &schema.DSNDatabaseConnector{DSN: dsn},
+		Read:  &schema.DSNDatabaseConnector{DSN: dsn},
 	}, nil
 }
 
@@ -108,7 +107,7 @@ func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string)
 		return "", err
 	}
 
-	return event.Database.Payload.(*schema.DatabaseRuntimeConnectionsEvent).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
+	return event.(*schema.DatabaseRuntimeEvent).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
 }
 
 func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (string, error) {
@@ -117,12 +116,12 @@ func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (s
 	if err != nil {
 		return "", err
 	}
-	return event.Database.Payload.(*schema.DatabaseRuntimeConnectionsEvent).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
+	return event.(*schema.DatabaseRuntimeEvent).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
 
 }
 
 func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, resource schema.Provisioned) (*RuntimeEvent, error) {
+	return func(ctx context.Context, moduleName string, resource schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 
 		dbName := strcase.ToLowerSnake(moduleName) + "_" + strcase.ToLowerSnake(resource.ResourceID())
@@ -171,15 +170,12 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 		}
 
 		dsn := dsn.PostgresDSN(dbName, dsn.Port(postgresPort))
-		return &RuntimeEvent{
-			Database: &schema.DatabaseRuntimeEvent{
-				ID: resource.ResourceID(),
-				Payload: &schema.DatabaseRuntimeConnectionsEvent{
-					Connections: &schema.DatabaseRuntimeConnections{
-						Write: &schema.DSNDatabaseConnector{DSN: dsn},
-						Read:  &schema.DSNDatabaseConnector{DSN: dsn},
-					},
-				},
+		return &schema.DatabaseRuntimeEvent{
+			ID:     resource.ResourceID(),
+			Module: moduleName,
+			Connections: &schema.DatabaseRuntimeConnections{
+				Write: &schema.DSNDatabaseConnector{DSN: dsn},
+				Read:  &schema.DSNDatabaseConnector{DSN: dsn},
 			},
 		}, nil
 	}
@@ -187,7 +183,7 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 }
 
 func provisionTopic() InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, res schema.Provisioned) (*RuntimeEvent, error) {
+	return func(ctx context.Context, moduleName string, res schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 		if err := dev.SetUpRedPanda(ctx); err != nil {
 			return nil, fmt.Errorf("could not set up redpanda: %w", err)
@@ -240,20 +236,19 @@ func provisionTopic() InMemResourceProvisionerFn {
 			logger.Warnf("Using existing topic %s with %d %s instead of %d", topicID, len(topicMetas[0].Partitions), plural, partitions)
 		}
 
-		return &RuntimeEvent{
-			Topic: &schema.TopicRuntimeEvent{
-				ID: res.ResourceID(),
-				Payload: &schema.TopicRuntime{
-					KafkaBrokers: redPandaBrokers,
-					TopicID:      topicID,
-				},
+		return &schema.TopicRuntimeEvent{
+			Module: moduleName,
+			ID:     res.ResourceID(),
+			Payload: &schema.TopicRuntime{
+				KafkaBrokers: redPandaBrokers,
+				TopicID:      topicID,
 			},
 		}, nil
 	}
 }
 
 func provisionSubscription() InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, res schema.Provisioned) (*RuntimeEvent, error) {
+	return func(ctx context.Context, moduleName string, res schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 		verb, ok := res.(*schema.Verb)
 		if !ok {
@@ -261,13 +256,12 @@ func provisionSubscription() InMemResourceProvisionerFn {
 		}
 		for range slices.FilterVariants[*schema.MetadataSubscriber](verb.Metadata) {
 			logger.Infof("Provisioning subscription for verb: %s", verb.Name)
-			return &RuntimeEvent{
-				Verb: &schema.VerbRuntimeEvent{
-					ID: verb.Name,
-					Payload: &schema.VerbRuntimeSubscription{
-						KafkaBrokers: redPandaBrokers,
-					},
-				},
+			return &schema.VerbRuntimeEvent{
+				Module: moduleName,
+				ID:     verb.Name,
+				Subscription: optional.Some(schema.VerbRuntimeSubscription{
+					KafkaBrokers: redPandaBrokers,
+				}),
 			}, nil
 		}
 		return nil, nil

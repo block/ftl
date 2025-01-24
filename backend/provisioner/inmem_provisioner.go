@@ -13,7 +13,6 @@ import (
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
@@ -23,7 +22,7 @@ import (
 type inMemProvisioningTask struct {
 	steps []*inMemProvisioningStep
 
-	events []*RuntimeEvent
+	events []schema.Event
 }
 
 func (t *inMemProvisioningTask) Done() (bool, error) {
@@ -53,7 +52,7 @@ type RuntimeEvent struct {
 	Verb     *schema.VerbRuntimeEvent
 }
 
-type InMemResourceProvisionerFn func(ctx context.Context, module string, resource schema.Provisioned) (*RuntimeEvent, error)
+type InMemResourceProvisionerFn func(ctx context.Context, module string, resource schema.Provisioned) (schema.Event, error)
 
 // InMemProvisioner for running an in memory provisioner, constructing all resources concurrently
 //
@@ -79,7 +78,7 @@ func (d *InMemProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingRequ
 
 type stepCompletedEvent struct {
 	step  *inMemProvisioningStep
-	event optional.Option[*RuntimeEvent]
+	event optional.Option[schema.Event]
 }
 
 func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[provisioner.ProvisionRequest]) (*connect.Response[provisioner.ProvisionResponse], error) {
@@ -187,40 +186,8 @@ func (d *InMemProvisioner) Status(ctx context.Context, req *connect.Request[prov
 	return connect.NewResponse(&provisioner.StatusResponse{
 		Status: &provisioner.StatusResponse_Success{
 			Success: &provisioner.StatusResponse_ProvisioningSuccess{
-				Events: eventsToProto(task.events),
+				Events: slices.Map(task.events, schema.EventToProto),
 			},
 		},
 	}), nil
-}
-
-func eventsToProto(events []*RuntimeEvent) []*provisioner.ProvisioningEvent {
-	return slices.Map(events, func(e *RuntimeEvent) *provisioner.ProvisioningEvent {
-		switch {
-		case e.Database != nil:
-			return &provisioner.ProvisioningEvent{Value: &provisioner.ProvisioningEvent_DatabaseRuntimeEvent{DatabaseRuntimeEvent: e.Database.ToProto()}}
-		case e.Module != nil:
-			switch event := e.Module.(type) {
-			case *schema.ModuleRuntimeDeployment:
-				return &provisioner.ProvisioningEvent{Value: &provisioner.ProvisioningEvent_ModuleRuntimeEvent{ModuleRuntimeEvent: &schemapb.ModuleRuntimeEvent{
-					Value: &schemapb.ModuleRuntimeEvent_ModuleRuntimeDeployment{ModuleRuntimeDeployment: event.ToProto()},
-				}}}
-			case *schema.ModuleRuntimeScaling:
-				return &provisioner.ProvisioningEvent{Value: &provisioner.ProvisioningEvent_ModuleRuntimeEvent{ModuleRuntimeEvent: &schemapb.ModuleRuntimeEvent{
-					Value: &schemapb.ModuleRuntimeEvent_ModuleRuntimeScaling{ModuleRuntimeScaling: event.ToProto()},
-				}}}
-			case *schema.ModuleRuntimeBase:
-				return &provisioner.ProvisioningEvent{Value: &provisioner.ProvisioningEvent_ModuleRuntimeEvent{ModuleRuntimeEvent: &schemapb.ModuleRuntimeEvent{
-					Value: &schemapb.ModuleRuntimeEvent_ModuleRuntimeBase{ModuleRuntimeBase: event.ToProto()},
-				}}}
-			default:
-				panic("unknown module event type")
-			}
-		case e.Topic != nil:
-			return &provisioner.ProvisioningEvent{Value: &provisioner.ProvisioningEvent_TopicRuntimeEvent{TopicRuntimeEvent: e.Topic.ToProto()}}
-		case e.Verb != nil:
-			return &provisioner.ProvisioningEvent{Value: &provisioner.ProvisioningEvent_VerbRuntimeEvent{VerbRuntimeEvent: e.Verb.ToProto()}}
-		default:
-			panic("unknown event type")
-		}
-	})
 }

@@ -19,7 +19,7 @@ import (
 )
 
 type Service struct {
-	State *statemachine.SingleQueryHandle[struct{}, SchemaState, SchemaEvent]
+	State *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event]
 }
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
@@ -44,7 +44,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 }
 
 func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Request[ftlv1.UpdateDeploymentRuntimeRequest]) (*connect.Response[ftlv1.UpdateDeploymentRuntimeResponse], error) {
-	deployment, err := key.ParseDeploymentKey(req.Msg.Deployment)
+	deployment, err := key.ParseDeploymentKey(*req.Msg.Event.DeploymentKey)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
@@ -63,8 +63,11 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
-	module.Runtime.ApplyEvent(event)
-	err = s.State.Publish(ctx, &DeploymentSchemaUpdatedEvent{
+	_, err = view.ApplyEvent(event)
+	if err != nil {
+		return nil, fmt.Errorf("could not apply event: %w", err)
+	}
+	err = s.State.Publish(ctx, &schema.DeploymentSchemaUpdatedEvent{
 		Key:    deployment,
 		Schema: module,
 	})
@@ -124,7 +127,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 
 	for notification := range iterops.Changes(stateIter, EventExtractor) {
 		switch event := notification.(type) {
-		case *DeploymentCreatedEvent:
+		case *schema.DeploymentCreatedEvent:
 			err := sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
 				ModuleName:    event.Schema.Name,
 				DeploymentKey: proto.String(event.Key.String()),
@@ -134,7 +137,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return err
 			}
-		case *DeploymentDeactivatedEvent:
+		case *schema.DeploymentDeactivatedEvent:
 			view, err := s.State.View(ctx)
 			if err != nil {
 				return fmt.Errorf("failed to get schema state: %w", err)
@@ -154,7 +157,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return err
 			}
-		case *DeploymentSchemaUpdatedEvent:
+		case *schema.DeploymentSchemaUpdatedEvent:
 			view, err := s.State.View(ctx)
 			if err != nil {
 				return fmt.Errorf("failed to get schema state: %w", err)

@@ -3,8 +3,6 @@ package schema
 import (
 	"fmt"
 	"strings"
-
-	"github.com/block/ftl/common/slices"
 )
 
 //protobuf:9
@@ -64,23 +62,4 @@ func (t *Topic) ResourceID() string {
 type TopicRuntime struct {
 	KafkaBrokers []string `parser:"" protobuf:"1"`
 	TopicID      string   `parser:"" protobuf:"2"`
-}
-
-//protobuf:6 RuntimeEvent
-//protobuf:export
-type TopicRuntimeEvent struct {
-	ID      string        `parser:"" protobuf:"1"`
-	Payload *TopicRuntime `parser:"" protobuf:"2"`
-}
-
-var _ RuntimeEvent = (*TopicRuntimeEvent)(nil)
-
-func (t *TopicRuntimeEvent) runtimeEvent() {}
-
-func (t *TopicRuntimeEvent) ApplyTo(m *Module) {
-	for topic := range slices.FilterVariants[*Topic](m.Decls) {
-		if topic.Name == t.ID {
-			topic.Runtime = t.Payload
-		}
-	}
 }

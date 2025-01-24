@@ -17,17 +17,24 @@ import (
 type SchemaState struct {
 	deployments       map[key.Deployment]*schema.Module
 	activeDeployments map[key.Deployment]bool
+	// modules being provisioned
+	provisioning map[string]*schema.Module
 }
 
-func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, SchemaEvent] {
+func NewSchemaState() SchemaState {
+	return SchemaState{
+		deployments:       map[key.Deployment]*schema.Module{},
+		activeDeployments: map[key.Deployment]bool{},
+		provisioning:      map[string]*schema.Module{},
+	}
+}
+
+func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event] {
 	notifier := channels.NewNotifier(ctx)
 	handle := statemachine.NewLocalHandle(&schemaStateMachine{
 		notifier:   notifier,
 		runningCtx: ctx,
-		state: SchemaState{
-			deployments:       map[key.Deployment]*schema.Module{},
-			activeDeployments: map[key.Deployment]bool{},
-		},
+		state:      NewSchemaState(),
 	})
 
 	return statemachine.NewSingleQueryHandle(handle, struct{}{})
@@ -59,6 +66,14 @@ func (r *SchemaState) GetActiveDeploymentSchemas() []*schema.Module {
 	return slices.Collect(maps.Values(r.GetActiveDeployments()))
 }
 
+func (r *SchemaState) GetProvisioning(moduleName string) (*schema.Module, error) {
+	d, ok := r.provisioning[moduleName]
+	if !ok {
+		return nil, fmt.Errorf("provisioning for module %s not found", moduleName)
+	}
+	return d, nil
+}
+
 type schemaStateMachine struct {
 	state SchemaState
 
@@ -68,7 +83,7 @@ type schemaStateMachine struct {
 	lock sync.Mutex
 }
 
-var _ statemachine.Listenable[struct{}, SchemaState, SchemaEvent] = &schemaStateMachine{}
+var _ statemachine.Listenable[struct{}, SchemaState, schema.Event] = &schemaStateMachine{}
 
 func (c *schemaStateMachine) Lookup(key struct{}) (SchemaState, error) {
 	c.lock.Lock()
@@ -76,11 +91,11 @@ func (c *schemaStateMachine) Lookup(key struct{}) (SchemaState, error) {
 	return reflect.DeepCopy(c.state), nil
 }
 
-func (c *schemaStateMachine) Publish(msg SchemaEvent) error {
+func (c *schemaStateMachine) Publish(msg schema.Event) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var err error
-	c.state, err = msg.Handle(c.state)
+	c.state, err = c.state.ApplyEvent(msg)
 	if err != nil {
 		return fmt.Errorf("update: %w", err)
 	}

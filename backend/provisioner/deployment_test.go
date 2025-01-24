@@ -12,6 +12,7 @@ import (
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/provisioner"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 )
@@ -63,7 +64,7 @@ func (m *MockProvisioner) Status(ctx context.Context, req *connect.Request[proto
 	return connect.NewResponse(&proto.StatusResponse{
 		Status: &proto.StatusResponse_Success{
 			Success: &proto.StatusResponse_ProvisioningSuccess{
-				Events: []*proto.ProvisioningEvent{},
+				Events: []*schemapb.Event{},
 			},
 		},
 	}), nil

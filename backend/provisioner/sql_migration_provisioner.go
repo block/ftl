@@ -35,7 +35,7 @@ func NewSQLMigrationProvisioner(storage *artefacts.OCIArtefactService) *InMemPro
 }
 
 func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, resource schema.Provisioned) (*RuntimeEvent, error) {
+	return func(ctx context.Context, moduleName string, resource schema.Provisioned) (schema.Event, error) {
 		db, ok := resource.(*schema.Database)
 		if !ok {
 			return nil, fmt.Errorf("expected database, got %T", resource)

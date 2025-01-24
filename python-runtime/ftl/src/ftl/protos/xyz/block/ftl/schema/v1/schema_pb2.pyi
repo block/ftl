@@ -137,25 +137,15 @@ class DatabaseRuntimeConnections(_message.Message):
     write: DatabaseConnector
     def __init__(self, read: _Optional[_Union[DatabaseConnector, _Mapping]] = ..., write: _Optional[_Union[DatabaseConnector, _Mapping]] = ...) -> None: ...
 
-class DatabaseRuntimeConnectionsEvent(_message.Message):
-    __slots__ = ("connections",)
-    CONNECTIONS_FIELD_NUMBER: _ClassVar[int]
-    connections: DatabaseRuntimeConnections
-    def __init__(self, connections: _Optional[_Union[DatabaseRuntimeConnections, _Mapping]] = ...) -> None: ...
-
 class DatabaseRuntimeEvent(_message.Message):
-    __slots__ = ("id", "payload")
+    __slots__ = ("module", "id", "connections")
+    MODULE_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
-    PAYLOAD_FIELD_NUMBER: _ClassVar[int]
+    CONNECTIONS_FIELD_NUMBER: _ClassVar[int]
+    module: str
     id: str
-    payload: DatabaseRuntimeEventPayload
-    def __init__(self, id: _Optional[str] = ..., payload: _Optional[_Union[DatabaseRuntimeEventPayload, _Mapping]] = ...) -> None: ...
-
-class DatabaseRuntimeEventPayload(_message.Message):
-    __slots__ = ("database_runtime_connections_event",)
-    DATABASE_RUNTIME_CONNECTIONS_EVENT_FIELD_NUMBER: _ClassVar[int]
-    database_runtime_connections_event: DatabaseRuntimeConnectionsEvent
-    def __init__(self, database_runtime_connections_event: _Optional[_Union[DatabaseRuntimeConnectionsEvent, _Mapping]] = ...) -> None: ...
+    connections: DatabaseRuntimeConnections
+    def __init__(self, module: _Optional[str] = ..., id: _Optional[str] = ..., connections: _Optional[_Union[DatabaseRuntimeConnections, _Mapping]] = ...) -> None: ...
 
 class Decl(_message.Message):
     __slots__ = ("config", "data", "database", "enum", "secret", "topic", "type_alias", "verb")
@@ -176,6 +166,48 @@ class Decl(_message.Message):
     type_alias: TypeAlias
     verb: Verb
     def __init__(self, config: _Optional[_Union[Config, _Mapping]] = ..., data: _Optional[_Union[Data, _Mapping]] = ..., database: _Optional[_Union[Database, _Mapping]] = ..., enum: _Optional[_Union[Enum, _Mapping]] = ..., secret: _Optional[_Union[Secret, _Mapping]] = ..., topic: _Optional[_Union[Topic, _Mapping]] = ..., type_alias: _Optional[_Union[TypeAlias, _Mapping]] = ..., verb: _Optional[_Union[Verb, _Mapping]] = ...) -> None: ...
+
+class DeploymentActivatedEvent(_message.Message):
+    __slots__ = ("key", "activated_at", "min_replicas")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    ACTIVATED_AT_FIELD_NUMBER: _ClassVar[int]
+    MIN_REPLICAS_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    activated_at: _timestamp_pb2.Timestamp
+    min_replicas: int
+    def __init__(self, key: _Optional[str] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., min_replicas: _Optional[int] = ...) -> None: ...
+
+class DeploymentCreatedEvent(_message.Message):
+    __slots__ = ("key", "schema")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    schema: Module
+    def __init__(self, key: _Optional[str] = ..., schema: _Optional[_Union[Module, _Mapping]] = ...) -> None: ...
+
+class DeploymentDeactivatedEvent(_message.Message):
+    __slots__ = ("key", "module_removed")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    MODULE_REMOVED_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    module_removed: bool
+    def __init__(self, key: _Optional[str] = ..., module_removed: bool = ...) -> None: ...
+
+class DeploymentReplicasUpdatedEvent(_message.Message):
+    __slots__ = ("key", "replicas")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    REPLICAS_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    replicas: int
+    def __init__(self, key: _Optional[str] = ..., replicas: _Optional[int] = ...) -> None: ...
+
+class DeploymentSchemaUpdatedEvent(_message.Message):
+    __slots__ = ("key", "schema")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    schema: Module
+    def __init__(self, key: _Optional[str] = ..., schema: _Optional[_Union[Module, _Mapping]] = ...) -> None: ...
 
 class Enum(_message.Message):
     __slots__ = ("pos", "comments", "export", "name", "type", "variants")
@@ -204,6 +236,30 @@ class EnumVariant(_message.Message):
     name: str
     value: Value
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., name: _Optional[str] = ..., value: _Optional[_Union[Value, _Mapping]] = ...) -> None: ...
+
+class Event(_message.Message):
+    __slots__ = ("database_runtime_event", "deployment_activated_event", "deployment_created_event", "deployment_deactivated_event", "deployment_replicas_updated_event", "deployment_schema_updated_event", "module_runtime_event", "provisioning_created_event", "topic_runtime_event", "verb_runtime_event")
+    DATABASE_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_ACTIVATED_EVENT_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_CREATED_EVENT_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_DEACTIVATED_EVENT_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_REPLICAS_UPDATED_EVENT_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_SCHEMA_UPDATED_EVENT_FIELD_NUMBER: _ClassVar[int]
+    MODULE_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
+    PROVISIONING_CREATED_EVENT_FIELD_NUMBER: _ClassVar[int]
+    TOPIC_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
+    VERB_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
+    database_runtime_event: DatabaseRuntimeEvent
+    deployment_activated_event: DeploymentActivatedEvent
+    deployment_created_event: DeploymentCreatedEvent
+    deployment_deactivated_event: DeploymentDeactivatedEvent
+    deployment_replicas_updated_event: DeploymentReplicasUpdatedEvent
+    deployment_schema_updated_event: DeploymentSchemaUpdatedEvent
+    module_runtime_event: ModuleRuntimeEvent
+    provisioning_created_event: ProvisioningCreatedEvent
+    topic_runtime_event: TopicRuntimeEvent
+    verb_runtime_event: VerbRuntimeEvent
+    def __init__(self, database_runtime_event: _Optional[_Union[DatabaseRuntimeEvent, _Mapping]] = ..., deployment_activated_event: _Optional[_Union[DeploymentActivatedEvent, _Mapping]] = ..., deployment_created_event: _Optional[_Union[DeploymentCreatedEvent, _Mapping]] = ..., deployment_deactivated_event: _Optional[_Union[DeploymentDeactivatedEvent, _Mapping]] = ..., deployment_replicas_updated_event: _Optional[_Union[DeploymentReplicasUpdatedEvent, _Mapping]] = ..., deployment_schema_updated_event: _Optional[_Union[DeploymentSchemaUpdatedEvent, _Mapping]] = ..., module_runtime_event: _Optional[_Union[ModuleRuntimeEvent, _Mapping]] = ..., provisioning_created_event: _Optional[_Union[ProvisioningCreatedEvent, _Mapping]] = ..., topic_runtime_event: _Optional[_Union[TopicRuntimeEvent, _Mapping]] = ..., verb_runtime_event: _Optional[_Union[VerbRuntimeEvent, _Mapping]] = ...) -> None: ...
 
 class Field(_message.Message):
     __slots__ = ("pos", "comments", "name", "type", "metadata")
@@ -530,14 +586,18 @@ class ModuleRuntimeDeployment(_message.Message):
     def __init__(self, endpoint: _Optional[str] = ..., deployment_key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class ModuleRuntimeEvent(_message.Message):
-    __slots__ = ("module_runtime_base", "module_runtime_deployment", "module_runtime_scaling")
-    MODULE_RUNTIME_BASE_FIELD_NUMBER: _ClassVar[int]
-    MODULE_RUNTIME_DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
-    MODULE_RUNTIME_SCALING_FIELD_NUMBER: _ClassVar[int]
-    module_runtime_base: ModuleRuntimeBase
-    module_runtime_deployment: ModuleRuntimeDeployment
-    module_runtime_scaling: ModuleRuntimeScaling
-    def __init__(self, module_runtime_base: _Optional[_Union[ModuleRuntimeBase, _Mapping]] = ..., module_runtime_deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ..., module_runtime_scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ...) -> None: ...
+    __slots__ = ("module", "deployment_key", "base", "scaling", "deployment")
+    MODULE_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
+    BASE_FIELD_NUMBER: _ClassVar[int]
+    SCALING_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
+    module: str
+    deployment_key: str
+    base: ModuleRuntimeBase
+    scaling: ModuleRuntimeScaling
+    deployment: ModuleRuntimeDeployment
+    def __init__(self, module: _Optional[str] = ..., deployment_key: _Optional[str] = ..., base: _Optional[_Union[ModuleRuntimeBase, _Mapping]] = ..., scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ...) -> None: ...
 
 class ModuleRuntimeScaling(_message.Message):
     __slots__ = ("min_replicas",)
@@ -563,6 +623,12 @@ class Position(_message.Message):
     column: int
     def __init__(self, filename: _Optional[str] = ..., line: _Optional[int] = ..., column: _Optional[int] = ...) -> None: ...
 
+class ProvisioningCreatedEvent(_message.Message):
+    __slots__ = ("desired_module",)
+    DESIRED_MODULE_FIELD_NUMBER: _ClassVar[int]
+    desired_module: Module
+    def __init__(self, desired_module: _Optional[_Union[Module, _Mapping]] = ...) -> None: ...
+
 class Ref(_message.Message):
     __slots__ = ("pos", "module", "name", "type_parameters")
     POS_FIELD_NUMBER: _ClassVar[int]
@@ -574,22 +640,6 @@ class Ref(_message.Message):
     name: str
     type_parameters: _containers.RepeatedCompositeFieldContainer[Type]
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., module: _Optional[str] = ..., name: _Optional[str] = ..., type_parameters: _Optional[_Iterable[_Union[Type, _Mapping]]] = ...) -> None: ...
-
-class RuntimeEvent(_message.Message):
-    __slots__ = ("database_runtime_event", "module_runtime_base", "module_runtime_deployment", "module_runtime_scaling", "topic_runtime_event", "verb_runtime_event")
-    DATABASE_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
-    MODULE_RUNTIME_BASE_FIELD_NUMBER: _ClassVar[int]
-    MODULE_RUNTIME_DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
-    MODULE_RUNTIME_SCALING_FIELD_NUMBER: _ClassVar[int]
-    TOPIC_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
-    VERB_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
-    database_runtime_event: DatabaseRuntimeEvent
-    module_runtime_base: ModuleRuntimeBase
-    module_runtime_deployment: ModuleRuntimeDeployment
-    module_runtime_scaling: ModuleRuntimeScaling
-    topic_runtime_event: TopicRuntimeEvent
-    verb_runtime_event: VerbRuntimeEvent
-    def __init__(self, database_runtime_event: _Optional[_Union[DatabaseRuntimeEvent, _Mapping]] = ..., module_runtime_base: _Optional[_Union[ModuleRuntimeBase, _Mapping]] = ..., module_runtime_deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ..., module_runtime_scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., topic_runtime_event: _Optional[_Union[TopicRuntimeEvent, _Mapping]] = ..., verb_runtime_event: _Optional[_Union[VerbRuntimeEvent, _Mapping]] = ...) -> None: ...
 
 class Schema(_message.Message):
     __slots__ = ("pos", "modules")
@@ -658,12 +708,14 @@ class TopicRuntime(_message.Message):
     def __init__(self, kafka_brokers: _Optional[_Iterable[str]] = ..., topic_id: _Optional[str] = ...) -> None: ...
 
 class TopicRuntimeEvent(_message.Message):
-    __slots__ = ("id", "payload")
+    __slots__ = ("module", "id", "payload")
+    MODULE_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     PAYLOAD_FIELD_NUMBER: _ClassVar[int]
+    module: str
     id: str
     payload: TopicRuntime
-    def __init__(self, id: _Optional[str] = ..., payload: _Optional[_Union[TopicRuntime, _Mapping]] = ...) -> None: ...
+    def __init__(self, module: _Optional[str] = ..., id: _Optional[str] = ..., payload: _Optional[_Union[TopicRuntime, _Mapping]] = ...) -> None: ...
 
 class Type(_message.Message):
     __slots__ = ("any", "array", "bool", "bytes", "float", "int", "map", "optional", "ref", "string", "time", "unit")
@@ -778,20 +830,16 @@ class VerbRuntimeBase(_message.Message):
     def __init__(self, create_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., start_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class VerbRuntimeEvent(_message.Message):
-    __slots__ = ("id", "payload")
+    __slots__ = ("module", "id", "base", "subscription")
+    MODULE_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
-    PAYLOAD_FIELD_NUMBER: _ClassVar[int]
+    BASE_FIELD_NUMBER: _ClassVar[int]
+    SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    module: str
     id: str
-    payload: VerbRuntimePayload
-    def __init__(self, id: _Optional[str] = ..., payload: _Optional[_Union[VerbRuntimePayload, _Mapping]] = ...) -> None: ...
-
-class VerbRuntimePayload(_message.Message):
-    __slots__ = ("verb_runtime_base", "verb_runtime_subscription")
-    VERB_RUNTIME_BASE_FIELD_NUMBER: _ClassVar[int]
-    VERB_RUNTIME_SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
-    verb_runtime_base: VerbRuntimeBase
-    verb_runtime_subscription: VerbRuntimeSubscription
-    def __init__(self, verb_runtime_base: _Optional[_Union[VerbRuntimeBase, _Mapping]] = ..., verb_runtime_subscription: _Optional[_Union[VerbRuntimeSubscription, _Mapping]] = ...) -> None: ...
+    base: VerbRuntimeBase
+    subscription: VerbRuntimeSubscription
+    def __init__(self, module: _Optional[str] = ..., id: _Optional[str] = ..., base: _Optional[_Union[VerbRuntimeBase, _Mapping]] = ..., subscription: _Optional[_Union[VerbRuntimeSubscription, _Mapping]] = ...) -> None: ...
 
 class VerbRuntimeSubscription(_message.Message):
     __slots__ = ("kafka_brokers",)

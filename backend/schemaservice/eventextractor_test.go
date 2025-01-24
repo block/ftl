@@ -18,7 +18,7 @@ func TestEventExtractor(t *testing.T) {
 		name     string
 		previous SchemaState
 		current  SchemaState
-		want     []SchemaEvent
+		want     []schema.Event
 	}{
 		{
 			name:     "new deployment creates deployment event",
@@ -36,8 +36,8 @@ func TestEventExtractor(t *testing.T) {
 					},
 				},
 			},
-			want: []SchemaEvent{
-				&DeploymentCreatedEvent{
+			want: []schema.Event{
+				&schema.DeploymentCreatedEvent{
 					Key: deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					Schema: &schema.Module{Name: "test", Runtime: &schema.ModuleRuntime{
 						Base: schema.ModuleRuntimeBase{Language: "go"},
@@ -65,8 +65,8 @@ func TestEventExtractor(t *testing.T) {
 					},
 				},
 			},
-			want: []SchemaEvent{
-				&DeploymentSchemaUpdatedEvent{
+			want: []schema.Event{
+				&schema.DeploymentSchemaUpdatedEvent{
 					Key:    deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					Schema: &schema.Module{Name: "test", Metadata: []schema.Metadata{&schema.MetadataArtefact{}}},
 				},
@@ -92,8 +92,8 @@ func TestEventExtractor(t *testing.T) {
 				},
 				activeDeployments: map[key.Deployment]bool{},
 			},
-			want: []SchemaEvent{
-				&DeploymentDeactivatedEvent{
+			want: []schema.Event{
+				&schema.DeploymentDeactivatedEvent{
 					Key:           deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 					ModuleRemoved: false,
 				},
@@ -113,8 +113,8 @@ func TestEventExtractor(t *testing.T) {
 			current: SchemaState{
 				deployments: map[key.Deployment]*schema.Module{},
 			},
-			want: []SchemaEvent{
-				&DeploymentDeactivatedEvent{
+			want: []schema.Event{
+				&schema.DeploymentDeactivatedEvent{
 					Key:           deploymentKey(t, "dpl-test-sjkfislfjslfaa"),
 					ModuleRemoved: true,
 				},

@@ -219,11 +219,6 @@ export class PullSchemaResponse extends Message<PullSchemaResponse> {
  */
 export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRuntimeRequest> {
   /**
-   * @generated from field: string deployment = 1;
-   */
-  deployment = "";
-
-  /**
    * @generated from field: xyz.block.ftl.schema.v1.ModuleRuntimeEvent event = 2;
    */
   event?: ModuleRuntimeEvent;
@@ -236,7 +231,6 @@ export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRunt
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "deployment", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "event", kind: "message", T: ModuleRuntimeEvent },
   ]);
 

@@ -11,7 +11,6 @@ import (
 	goformation "github.com/awslabs/goformation/v7/cloudformation"
 	"github.com/awslabs/goformation/v7/cloudformation/rds"
 
-	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	"github.com/block/ftl/common/schema"
 )
 
@@ -134,32 +133,27 @@ func createPostgresDatabase(ctx context.Context, endpoint, resourceID, username,
 	return nil
 }
 
-func updatePostgresOutputs(_ context.Context, resourceID string, outputs []types.Output) ([]*provisioner.ProvisioningEvent, error) {
+func updatePostgresOutputs(_ context.Context, module, resourceID string, outputs []types.Output) ([]schema.Event, error) {
 	byName, err := outputsByPropertyName(outputs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to group outputs by property name: %w", err)
 	}
 
 	event := schema.DatabaseRuntimeEvent{
-		ID: resourceID,
-		Payload: &schema.DatabaseRuntimeConnectionsEvent{
-			Connections: &schema.DatabaseRuntimeConnections{
-				Write: &schema.AWSIAMAuthDatabaseConnector{
-					Endpoint: fmt.Sprintf("%s:%d", *byName[PropertyPsqlWriteEndpoint].OutputValue, 5432),
-					Database: resourceID,
-					Username: "ftluser",
-				},
-				Read: &schema.AWSIAMAuthDatabaseConnector{
-					Endpoint: fmt.Sprintf("%s:%d", *byName[PropertyPsqlReadEndpoint].OutputValue, 5432),
-					Database: resourceID,
-					Username: "ftluser",
-				},
+		Module: module,
+		ID:     resourceID,
+		Connections: &schema.DatabaseRuntimeConnections{
+			Write: &schema.AWSIAMAuthDatabaseConnector{
+				Endpoint: fmt.Sprintf("%s:%d", *byName[PropertyPsqlWriteEndpoint].OutputValue, 5432),
+				Database: resourceID,
+				Username: "ftluser",
+			},
+			Read: &schema.AWSIAMAuthDatabaseConnector{
+				Endpoint: fmt.Sprintf("%s:%d", *byName[PropertyPsqlReadEndpoint].OutputValue, 5432),
+				Database: resourceID,
+				Username: "ftluser",
 			},
 		},
 	}
-	return []*provisioner.ProvisioningEvent{{
-		Value: &provisioner.ProvisioningEvent_DatabaseRuntimeEvent{
-			DatabaseRuntimeEvent: event.ToProto(),
-		},
-	}}, nil
+	return []schema.Event{&event}, nil
 }

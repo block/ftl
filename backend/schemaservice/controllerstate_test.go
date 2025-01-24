@@ -22,7 +22,7 @@ func TestDeploymentState(t *testing.T) {
 	assert.Equal(t, 0, len(view.GetDeployments()))
 
 	deploymentKey := key.NewDeploymentKey("test-deployment")
-	err = cs.Publish(ctx, &schemaservice.DeploymentCreatedEvent{
+	err = cs.Publish(ctx, &schema.DeploymentCreatedEvent{
 		Key:    deploymentKey,
 		Schema: &schema.Module{Name: "test"},
 	})
@@ -32,7 +32,7 @@ func TestDeploymentState(t *testing.T) {
 	assert.Equal(t, 1, len(view.GetDeployments()))
 
 	activate := time.Now()
-	err = cs.Publish(ctx, &schemaservice.DeploymentActivatedEvent{
+	err = cs.Publish(ctx, &schema.DeploymentActivatedEvent{
 		Key:         deploymentKey,
 		ActivatedAt: activate,
 		MinReplicas: 1,
@@ -43,7 +43,7 @@ func TestDeploymentState(t *testing.T) {
 	assert.Equal(t, 1, view.GetDeployments()[deploymentKey].GetRuntime().GetScaling().GetMinReplicas())
 	assert.Equal(t, optional.Some(activate), view.GetDeployments()[deploymentKey].GetRuntime().GetDeployment().ActivatedAt)
 
-	err = cs.Publish(ctx, &schemaservice.DeploymentDeactivatedEvent{
+	err = cs.Publish(ctx, &schema.DeploymentDeactivatedEvent{
 		Key: deploymentKey,
 	})
 	assert.NoError(t, err)

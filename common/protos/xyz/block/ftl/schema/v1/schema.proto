@@ -86,19 +86,10 @@ message DatabaseRuntimeConnections {
   DatabaseConnector write = 2;
 }
 
-message DatabaseRuntimeConnectionsEvent {
-  DatabaseRuntimeConnections connections = 1;
-}
-
 message DatabaseRuntimeEvent {
-  string id = 1;
-  DatabaseRuntimeEventPayload payload = 2;
-}
-
-message DatabaseRuntimeEventPayload {
-  oneof value {
-    DatabaseRuntimeConnectionsEvent database_runtime_connections_event = 1;
-  }
+  string module = 1;
+  string id = 2;
+  DatabaseRuntimeConnections connections = 3;
 }
 
 // Decl represents user-defined data types in the schema grammar.
@@ -115,6 +106,32 @@ message Decl {
   }
 }
 
+message DeploymentActivatedEvent {
+  string key = 1;
+  google.protobuf.Timestamp activated_at = 2;
+  int64 min_replicas = 3;
+}
+
+message DeploymentCreatedEvent {
+  string key = 1;
+  Module schema = 2;
+}
+
+message DeploymentDeactivatedEvent {
+  string key = 1;
+  bool module_removed = 2;
+}
+
+message DeploymentReplicasUpdatedEvent {
+  string key = 1;
+  int64 replicas = 2;
+}
+
+message DeploymentSchemaUpdatedEvent {
+  string key = 1;
+  Module schema = 2;
+}
+
 message Enum {
   optional Position pos = 1;
   repeated string comments = 2;
@@ -129,6 +146,21 @@ message EnumVariant {
   repeated string comments = 2;
   string name = 3;
   Value value = 4;
+}
+
+message Event {
+  oneof value {
+    DatabaseRuntimeEvent database_runtime_event = 8;
+    DeploymentActivatedEvent deployment_activated_event = 4;
+    DeploymentCreatedEvent deployment_created_event = 1;
+    DeploymentDeactivatedEvent deployment_deactivated_event = 5;
+    DeploymentReplicasUpdatedEvent deployment_replicas_updated_event = 3;
+    DeploymentSchemaUpdatedEvent deployment_schema_updated_event = 2;
+    ModuleRuntimeEvent module_runtime_event = 9;
+    ProvisioningCreatedEvent provisioning_created_event = 10;
+    TopicRuntimeEvent topic_runtime_event = 7;
+    VerbRuntimeEvent verb_runtime_event = 6;
+  }
 }
 
 message Field {
@@ -341,11 +373,11 @@ message ModuleRuntimeDeployment {
 }
 
 message ModuleRuntimeEvent {
-  oneof value {
-    ModuleRuntimeBase module_runtime_base = 1;
-    ModuleRuntimeDeployment module_runtime_deployment = 3;
-    ModuleRuntimeScaling module_runtime_scaling = 2;
-  }
+  string module = 1;
+  optional string deployment_key = 2;
+  optional ModuleRuntimeBase base = 3;
+  optional ModuleRuntimeScaling scaling = 4;
+  optional ModuleRuntimeDeployment deployment = 5;
 }
 
 message ModuleRuntimeScaling {
@@ -364,24 +396,16 @@ message Position {
   int64 column = 3;
 }
 
+message ProvisioningCreatedEvent {
+  Module desired_module = 1;
+}
+
 // Ref is an untyped reference to a symbol.
 message Ref {
   optional Position pos = 1;
   string module = 3;
   string name = 2;
   repeated Type type_parameters = 4;
-}
-
-// RuntimeEvent is an event modifying a runtime part of the schema.
-message RuntimeEvent {
-  oneof value {
-    DatabaseRuntimeEvent database_runtime_event = 5;
-    ModuleRuntimeBase module_runtime_base = 1;
-    ModuleRuntimeDeployment module_runtime_deployment = 3;
-    ModuleRuntimeScaling module_runtime_scaling = 2;
-    TopicRuntimeEvent topic_runtime_event = 6;
-    VerbRuntimeEvent verb_runtime_event = 4;
-  }
 }
 
 message Schema {
@@ -425,8 +449,9 @@ message TopicRuntime {
 }
 
 message TopicRuntimeEvent {
-  string id = 1;
-  TopicRuntime payload = 2;
+  string module = 1;
+  string id = 2;
+  TopicRuntime payload = 3;
 }
 
 // Type represents a Type Node in the schema grammar.
@@ -501,15 +526,10 @@ message VerbRuntimeBase {
 }
 
 message VerbRuntimeEvent {
-  string id = 1;
-  VerbRuntimePayload payload = 2;
-}
-
-message VerbRuntimePayload {
-  oneof value {
-    VerbRuntimeBase verb_runtime_base = 1;
-    VerbRuntimeSubscription verb_runtime_subscription = 2;
-  }
+  string module = 1;
+  string id = 2;
+  optional VerbRuntimeBase base = 3;
+  optional VerbRuntimeSubscription subscription = 4;
 }
 
 message VerbRuntimeSubscription {
