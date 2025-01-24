@@ -1,5 +1,5 @@
 import { AttributeBadge } from '../../../components/AttributeBadge'
-import { CodeBlock } from '../../../components/CodeBlock'
+import { CodeBlockWithTitle } from '../../../components/CodeBlockWithTitle'
 import type { AsyncExecuteEvent, Event } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { formatDuration } from '../../../utils/date.utils'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
@@ -13,12 +13,7 @@ export const TraceDetailsAsyncCall = ({ event }: { event: Event }) => {
     <>
       <span className='text-xl font-semibold'>Async Call Details</span>
 
-      {asyncCall.error && (
-        <>
-          <h3 className='pt-4'>Error</h3>
-          <CodeBlock code={asyncCall.error} language='text' />
-        </>
-      )}
+      {asyncCall.error && <CodeBlockWithTitle title='Error' code={asyncCall.error} />}
 
       <DeploymentCard className='mt-4' deploymentKey={asyncCall.deploymentKey} />
 

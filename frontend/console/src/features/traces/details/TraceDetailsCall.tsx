@@ -1,5 +1,5 @@
 import { AttributeBadge } from '../../../components/AttributeBadge'
-import { CodeBlock } from '../../../components/CodeBlock'
+import { CodeBlockWithTitle } from '../../../components/CodeBlockWithTitle'
 import type { CallEvent, Event } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { formatDuration } from '../../../utils/date.utils'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
@@ -10,26 +10,14 @@ export const TraceDetailsCall = ({ event }: { event: Event }) => {
   return (
     <>
       <span className='text-xl font-semibold'>Call Details</span>
-      <div className='text-sm pt-2'>Request</div>
-      <CodeBlock code={JSON.stringify(JSON.parse(call.request), null, 2)} language='json' />
+      <CodeBlockWithTitle title='Request' code={JSON.stringify(JSON.parse(call.request), null, 2)} />
 
-      {call.response !== 'null' && (
-        <>
-          <div className='text-sm pt-2'>Response</div>
-          <CodeBlock code={JSON.stringify(JSON.parse(call.response), null, 2)} language='json' />
-        </>
-      )}
+      {call.response && <CodeBlockWithTitle title='Response' code={JSON.stringify(JSON.parse(call.response), null, 2)} />}
 
       {call.error && (
         <>
-          <h3 className='pt-4'>Error</h3>
-          <CodeBlock code={call.error} language='text' />
-          {call.stack && (
-            <>
-              <h3 className='pt-4'>Stack</h3>
-              <CodeBlock code={call.stack} language='text' />
-            </>
-          )}
+          <CodeBlockWithTitle title='Error' code={call.error} />
+          {call.stack && <CodeBlockWithTitle title='Stack' code={call.stack} />}
         </>
       )}
 
