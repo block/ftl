@@ -39,7 +39,7 @@ export const TraceDetails: React.FC<TraceDetailsProps> = ({ events, selectedEven
           <TraceRulerItem duration={totalEventDuration} />
         </div>
 
-        {events.map((event, index) => {
+        {events.sort((a, b) => requestStartTime([a]) - requestStartTime([b])).map((event, index) => {
           const traceEvent = event.entry.value as TraceEvent
           const eventDurationMs = (traceEvent.duration?.nanos ?? 0) / 1000000
 

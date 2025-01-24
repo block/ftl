@@ -82,7 +82,7 @@ export const TraceGraph = ({ requestKey, selectedEventId }: { requestKey?: strin
 
   return (
     <div className='flex flex-col'>
-      {events.map((c, index) => (
+      {events.sort((a, b) => requestStartTime([a]) - requestStartTime([b])).map((c, index) => (
         <div key={index} className='flex hover:bg-indigo-500/60 hover:dark:bg-slate-700 rounded-sm'>
           <div className='w-full relative'>
             <EventBlock event={c} isSelected={c.id === selectedEventId} requestStartTime={startTime} requestDuration={totalEventDuration} />
