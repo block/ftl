@@ -38,6 +38,21 @@ message Bytes {
   optional Position pos = 1;
 }
 
+message Changeset {
+  string key = 1;
+  google.protobuf.Timestamp created_at = 2;
+  repeated Module modules = 3;
+  ChangesetState state = 4;
+  optional string error = 5;
+}
+
+enum ChangesetState {
+  CHANGESET_STATE_UNSPECIFIED = 0;
+  CHANGESET_STATE_PROVISIONING = 1;
+  CHANGESET_STATE_COMMITTED = 2;
+  CHANGESET_STATE_FAILED = 3;
+}
+
 message Config {
   optional Position pos = 1;
   repeated string comments = 2;

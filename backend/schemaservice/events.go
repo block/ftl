@@ -82,7 +82,6 @@ func handleDeploymentDeactivatedEvent(t SchemaState, e *schema.DeploymentDeactiv
 	existing, ok := t.deployments[e.Key]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", e.Key)
-
 	}
 	existing.ModRuntime().ModScaling().MinReplicas = 0
 	delete(t.activeDeployments, e.Key)

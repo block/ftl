@@ -26,7 +26,7 @@ from xyz.block.ftl.schema.v1 import schema_pb2 as xyz_dot_block_dot_ftl_dot_sche
 from xyz.block.ftl.v1 import ftl_pb2 as xyz_dot_block_dot_ftl_dot_v1_dot_ftl__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$xyz/block/ftl/v1/schemaservice.proto\x12\x10xyz.block.ftl.v1\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\x12\n\x10GetSchemaRequest\"L\n\x11GetSchemaResponse\x12\x37\n\x06schema\x18\x01 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.SchemaR\x06schema\"\x13\n\x11PullSchemaRequest\"\xc1\x02\n\x12PullSchemaResponse\x12*\n\x0e\x64\x65ployment_key\x18\x01 \x01(\tH\x00R\rdeploymentKey\x88\x01\x01\x12\x1f\n\x0bmodule_name\x18\x02 \x01(\tR\nmoduleName\x12<\n\x06schema\x18\x04 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleH\x01R\x06schema\x88\x01\x01\x12\x12\n\x04more\x18\x03 \x01(\x08R\x04more\x12G\n\x0b\x63hange_type\x18\x05 \x01(\x0e\x32&.xyz.block.ftl.v1.DeploymentChangeTypeR\nchangeType\x12%\n\x0emodule_removed\x18\x06 \x01(\x08R\rmoduleRemovedB\x11\n\x0f_deployment_keyB\t\n\x07_schema\"c\n\x1eUpdateDeploymentRuntimeRequest\x12\x41\n\x05\x65vent\x18\x02 \x01(\x0b\x32+.xyz.block.ftl.schema.v1.ModuleRuntimeEventR\x05\x65vent\"!\n\x1fUpdateDeploymentRuntimeResponse\"K\n\x13UpdateSchemaRequest\x12\x34\n\x05\x65vent\x18\x01 \x01(\x0b\x32\x1e.xyz.block.ftl.schema.v1.EventR\x05\x65vent\"\x16\n\x14UpdateSchemaResponse\"\x17\n\x15GetDeploymentsRequest\"R\n\x16GetDeploymentsResponse\x12\x38\n\x06schema\x18\x01 \x03(\x0b\x32 .xyz.block.ftl.v1.DeployedSchemaR\x06schema\"\x8d\x01\n\x0e\x44\x65ployedSchema\x12%\n\x0e\x64\x65ployment_key\x18\x01 \x01(\tR\rdeploymentKey\x12\x37\n\x06schema\x18\x02 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleR\x06schema\x12\x1b\n\tis_active\x18\x03 \x01(\x08R\x08isActive*\xa8\x01\n\x14\x44\x65ploymentChangeType\x12&\n\"DEPLOYMENT_CHANGE_TYPE_UNSPECIFIED\x10\x00\x12 \n\x1c\x44\x45PLOYMENT_CHANGE_TYPE_ADDED\x10\x01\x12\"\n\x1e\x44\x45PLOYMENT_CHANGE_TYPE_REMOVED\x10\x02\x12\"\n\x1e\x44\x45PLOYMENT_CHANGE_TYPE_CHANGED\x10\x03\x32\xda\x04\n\rSchemaService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12Y\n\tGetSchema\x12\".xyz.block.ftl.v1.GetSchemaRequest\x1a#.xyz.block.ftl.v1.GetSchemaResponse\"\x03\x90\x02\x01\x12^\n\nPullSchema\x12#.xyz.block.ftl.v1.PullSchemaRequest\x1a$.xyz.block.ftl.v1.PullSchemaResponse\"\x03\x90\x02\x01\x30\x01\x12~\n\x17UpdateDeploymentRuntime\x12\x30.xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest\x1a\x31.xyz.block.ftl.v1.UpdateDeploymentRuntimeResponse\x12]\n\x0cUpdateSchema\x12%.xyz.block.ftl.v1.UpdateSchemaRequest\x1a&.xyz.block.ftl.v1.UpdateSchemaResponse\x12\x63\n\x0eGetDeployments\x12\'.xyz.block.ftl.v1.GetDeploymentsRequest\x1a(.xyz.block.ftl.v1.GetDeploymentsResponseB>P\x01Z:github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$xyz/block/ftl/v1/schemaservice.proto\x12\x10xyz.block.ftl.v1\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\x12\n\x10GetSchemaRequest\"\x90\x01\n\x11GetSchemaResponse\x12\x37\n\x06schema\x18\x01 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.SchemaR\x06schema\x12\x42\n\nchangesets\x18\x02 \x03(\x0b\x32\".xyz.block.ftl.schema.v1.ChangesetR\nchangesets\"\x13\n\x11PullSchemaRequest\"\xc2\t\n\x12PullSchemaResponse\x12\x64\n\x11\x63hangeset_created\x18\x04 \x01(\x0b\x32\x35.xyz.block.ftl.v1.PullSchemaResponse.ChangesetCreatedH\x00R\x10\x63hangesetCreated\x12\x61\n\x10\x63hangeset_failed\x18\x05 \x01(\x0b\x32\x34.xyz.block.ftl.v1.PullSchemaResponse.ChangesetFailedH\x00R\x0f\x63hangesetFailed\x12g\n\x12\x63hangeset_commited\x18\x06 \x01(\x0b\x32\x36.xyz.block.ftl.v1.PullSchemaResponse.ChangesetCommitedH\x00R\x11\x63hangesetCommited\x12g\n\x12\x64\x65ployment_created\x18\x07 \x01(\x0b\x32\x36.xyz.block.ftl.v1.PullSchemaResponse.DeploymentCreatedH\x00R\x11\x64\x65ploymentCreated\x12g\n\x12\x64\x65ployment_updated\x18\x08 \x01(\x0b\x32\x36.xyz.block.ftl.v1.PullSchemaResponse.DeploymentUpdatedH\x00R\x11\x64\x65ploymentUpdated\x12g\n\x12\x64\x65ployment_removed\x18\t \x01(\x0b\x32\x36.xyz.block.ftl.v1.PullSchemaResponse.DeploymentRemovedH\x00R\x11\x64\x65ploymentRemoved\x12\x14\n\x04more\x18\x92\xf7\x01 \x01(\x08R\x04more\x1aT\n\x10\x43hangesetCreated\x12@\n\tchangeset\x18\x01 \x01(\x0b\x32\".xyz.block.ftl.schema.v1.ChangesetR\tchangeset\x1a\x39\n\x0f\x43hangesetFailed\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05\x65rror\x18\x02 \x01(\tR\x05\x65rror\x1a%\n\x11\x43hangesetCommited\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x1a\\\n\x11\x44\x65ploymentCreated\x12<\n\x06schema\x18\x01 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleH\x00R\x06schema\x88\x01\x01\x42\t\n\x07_schema\x1a\x8d\x01\n\x11\x44\x65ploymentUpdated\x12!\n\tchangeset\x18\x01 \x01(\tH\x00R\tchangeset\x88\x01\x01\x12<\n\x06schema\x18\x02 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleH\x01R\x06schema\x88\x01\x01\x42\x0c\n\n_changesetB\t\n\x07_schema\x1az\n\x11\x44\x65ploymentRemoved\x12\x15\n\x03key\x18\x01 \x01(\tH\x00R\x03key\x88\x01\x01\x12\x1f\n\x0bmodule_name\x18\x02 \x01(\tR\nmoduleName\x12%\n\x0emodule_removed\x18\x03 \x01(\x08R\rmoduleRemovedB\x06\n\x04_keyB\x07\n\x05\x65vent\"\xb4\x01\n\x1eUpdateDeploymentRuntimeRequest\x12\x1e\n\ndeployment\x18\x01 \x01(\tR\ndeployment\x12!\n\tchangeset\x18\x02 \x01(\tH\x00R\tchangeset\x88\x01\x01\x12\x41\n\x05\x65vent\x18\x03 \x01(\x0b\x32+.xyz.block.ftl.schema.v1.ModuleRuntimeEventR\x05\x65ventB\x0c\n\n_changeset\"!\n\x1fUpdateDeploymentRuntimeResponse\"S\n\x16\x43reateChangesetRequest\x12\x39\n\x07modules\x18\x01 \x03(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleR\x07modules\"7\n\x17\x43reateChangesetResponse\x12\x1c\n\tchangeset\x18\x01 \x01(\tR\tchangeset\"6\n\x16\x43ommitChangesetRequest\x12\x1c\n\tchangeset\x18\x01 \x01(\tR\tchangeset\"\x19\n\x17\x43ommitChangesetResponse\"J\n\x14\x46\x61ilChangesetRequest\x12\x1c\n\tchangeset\x18\x01 \x01(\tR\tchangeset\x12\x14\n\x05\x65rror\x18\x02 \x01(\tR\x05\x65rror\"\x17\n\x15\x46\x61ilChangesetResponse2\xc8\x05\n\rSchemaService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12Y\n\tGetSchema\x12\".xyz.block.ftl.v1.GetSchemaRequest\x1a#.xyz.block.ftl.v1.GetSchemaResponse\"\x03\x90\x02\x01\x12^\n\nPullSchema\x12#.xyz.block.ftl.v1.PullSchemaRequest\x1a$.xyz.block.ftl.v1.PullSchemaResponse\"\x03\x90\x02\x01\x30\x01\x12~\n\x17UpdateDeploymentRuntime\x12\x30.xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest\x1a\x31.xyz.block.ftl.v1.UpdateDeploymentRuntimeResponse\x12\x66\n\x0f\x43reateChangeset\x12(.xyz.block.ftl.v1.CreateChangesetRequest\x1a).xyz.block.ftl.v1.CreateChangesetResponse\x12\x66\n\x0f\x43ommitChangeset\x12(.xyz.block.ftl.v1.CommitChangesetRequest\x1a).xyz.block.ftl.v1.CommitChangesetResponse\x12`\n\rFailChangeset\x12&.xyz.block.ftl.v1.FailChangesetRequest\x1a\'.xyz.block.ftl.v1.FailChangesetResponseB>P\x01Z:github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,30 +40,42 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SCHEMASERVICE'].methods_by_name['GetSchema']._serialized_options = b'\220\002\001'
   _globals['_SCHEMASERVICE'].methods_by_name['PullSchema']._loaded_options = None
   _globals['_SCHEMASERVICE'].methods_by_name['PullSchema']._serialized_options = b'\220\002\001'
-  _globals['_DEPLOYMENTCHANGETYPE']._serialized_start=1058
-  _globals['_DEPLOYMENTCHANGETYPE']._serialized_end=1226
   _globals['_GETSCHEMAREQUEST']._serialized_start=124
   _globals['_GETSCHEMAREQUEST']._serialized_end=142
-  _globals['_GETSCHEMARESPONSE']._serialized_start=144
-  _globals['_GETSCHEMARESPONSE']._serialized_end=220
-  _globals['_PULLSCHEMAREQUEST']._serialized_start=222
-  _globals['_PULLSCHEMAREQUEST']._serialized_end=241
-  _globals['_PULLSCHEMARESPONSE']._serialized_start=244
-  _globals['_PULLSCHEMARESPONSE']._serialized_end=565
-  _globals['_UPDATEDEPLOYMENTRUNTIMEREQUEST']._serialized_start=567
-  _globals['_UPDATEDEPLOYMENTRUNTIMEREQUEST']._serialized_end=666
-  _globals['_UPDATEDEPLOYMENTRUNTIMERESPONSE']._serialized_start=668
-  _globals['_UPDATEDEPLOYMENTRUNTIMERESPONSE']._serialized_end=701
-  _globals['_UPDATESCHEMAREQUEST']._serialized_start=703
-  _globals['_UPDATESCHEMAREQUEST']._serialized_end=778
-  _globals['_UPDATESCHEMARESPONSE']._serialized_start=780
-  _globals['_UPDATESCHEMARESPONSE']._serialized_end=802
-  _globals['_GETDEPLOYMENTSREQUEST']._serialized_start=804
-  _globals['_GETDEPLOYMENTSREQUEST']._serialized_end=827
-  _globals['_GETDEPLOYMENTSRESPONSE']._serialized_start=829
-  _globals['_GETDEPLOYMENTSRESPONSE']._serialized_end=911
-  _globals['_DEPLOYEDSCHEMA']._serialized_start=914
-  _globals['_DEPLOYEDSCHEMA']._serialized_end=1055
-  _globals['_SCHEMASERVICE']._serialized_start=1229
-  _globals['_SCHEMASERVICE']._serialized_end=1831
+  _globals['_GETSCHEMARESPONSE']._serialized_start=145
+  _globals['_GETSCHEMARESPONSE']._serialized_end=289
+  _globals['_PULLSCHEMAREQUEST']._serialized_start=291
+  _globals['_PULLSCHEMAREQUEST']._serialized_end=310
+  _globals['_PULLSCHEMARESPONSE']._serialized_start=313
+  _globals['_PULLSCHEMARESPONSE']._serialized_end=1531
+  _globals['_PULLSCHEMARESPONSE_CHANGESETCREATED']._serialized_start=978
+  _globals['_PULLSCHEMARESPONSE_CHANGESETCREATED']._serialized_end=1062
+  _globals['_PULLSCHEMARESPONSE_CHANGESETFAILED']._serialized_start=1064
+  _globals['_PULLSCHEMARESPONSE_CHANGESETFAILED']._serialized_end=1121
+  _globals['_PULLSCHEMARESPONSE_CHANGESETCOMMITED']._serialized_start=1123
+  _globals['_PULLSCHEMARESPONSE_CHANGESETCOMMITED']._serialized_end=1160
+  _globals['_PULLSCHEMARESPONSE_DEPLOYMENTCREATED']._serialized_start=1162
+  _globals['_PULLSCHEMARESPONSE_DEPLOYMENTCREATED']._serialized_end=1254
+  _globals['_PULLSCHEMARESPONSE_DEPLOYMENTUPDATED']._serialized_start=1257
+  _globals['_PULLSCHEMARESPONSE_DEPLOYMENTUPDATED']._serialized_end=1398
+  _globals['_PULLSCHEMARESPONSE_DEPLOYMENTREMOVED']._serialized_start=1400
+  _globals['_PULLSCHEMARESPONSE_DEPLOYMENTREMOVED']._serialized_end=1522
+  _globals['_UPDATEDEPLOYMENTRUNTIMEREQUEST']._serialized_start=1534
+  _globals['_UPDATEDEPLOYMENTRUNTIMEREQUEST']._serialized_end=1714
+  _globals['_UPDATEDEPLOYMENTRUNTIMERESPONSE']._serialized_start=1716
+  _globals['_UPDATEDEPLOYMENTRUNTIMERESPONSE']._serialized_end=1749
+  _globals['_CREATECHANGESETREQUEST']._serialized_start=1751
+  _globals['_CREATECHANGESETREQUEST']._serialized_end=1834
+  _globals['_CREATECHANGESETRESPONSE']._serialized_start=1836
+  _globals['_CREATECHANGESETRESPONSE']._serialized_end=1891
+  _globals['_COMMITCHANGESETREQUEST']._serialized_start=1893
+  _globals['_COMMITCHANGESETREQUEST']._serialized_end=1947
+  _globals['_COMMITCHANGESETRESPONSE']._serialized_start=1949
+  _globals['_COMMITCHANGESETRESPONSE']._serialized_end=1974
+  _globals['_FAILCHANGESETREQUEST']._serialized_start=1976
+  _globals['_FAILCHANGESETREQUEST']._serialized_end=2050
+  _globals['_FAILCHANGESETRESPONSE']._serialized_start=2052
+  _globals['_FAILCHANGESETRESPONSE']._serialized_end=2075
+  _globals['_SCHEMASERVICE']._serialized_start=2078
+  _globals['_SCHEMASERVICE']._serialized_end=2790
 # @@protoc_insertion_point(module_scope)

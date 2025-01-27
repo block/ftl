@@ -11,53 +11,106 @@ option java_multiple_files = true;
 message GetSchemaRequest {}
 message GetSchemaResponse {
   ftl.schema.v1.Schema schema = 1;
-}
-
-enum DeploymentChangeType {
-  DEPLOYMENT_CHANGE_TYPE_UNSPECIFIED = 0;
-  DEPLOYMENT_CHANGE_TYPE_ADDED = 1;
-  DEPLOYMENT_CHANGE_TYPE_REMOVED = 2;
-  DEPLOYMENT_CHANGE_TYPE_CHANGED = 3;
+  repeated ftl.schema.v1.Changeset changesets = 2;
 }
 
 message PullSchemaRequest {}
 message PullSchemaResponse {
-  // Will not be set for builtin modules.
-  optional string deployment_key = 1;
-  string module_name = 2;
-  // For deletes this will not be present.
-  optional ftl.schema.v1.Module schema = 4;
+  // ChangesetCreated is sent when a new changeset is created.
+  // TODO: consider whether to:
+  // - include all modules in the message? and don't publish individual DeploymentCreated messages for them
+  // - Let deployments be created into a changeset after the changeset is created
+  //     - Add a way to indicate how many deployments are expected in the changeset? So listeners can determine if they have the full changeset?
+  message ChangesetCreated {
+    ftl.schema.v1.Changeset changeset = 1;
+  }
+
+  // ChangesetFailed is sent when a changeset fails.
+  message ChangesetFailed {
+    string key = 1;
+    string error = 2;
+  }
+
+  // ChangesetFailed is sent when a changeset becomes canonical.
+  message ChangesetCommited {
+    string key = 1;
+  }
+
+  // Deployment created is sent when a deployment is new to the listener but is not part of a changeset.
+  message DeploymentCreated {
+    // Will not be set for builtin modules.
+    // optional string key = 1;
+    // string module_name = 2;
+    // If present, the deployment is not yet canonical as it is currently part of a changeset.
+    // optional string changeset = 3;
+
+    optional ftl.schema.v1.Module schema = 1;
+  }
+
+  message DeploymentUpdated {
+    // Will not be set for builtin modules.
+    // optional string key = 1;
+    // string module_name = 2;
+    // If present, the deployment is not yet canonical as it is currently part of a changeset.
+    optional string changeset = 1;
+
+    optional ftl.schema.v1.Module schema = 2;
+  }
+
+  message DeploymentRemoved {
+    // Will not be set for builtin modules.
+    optional string key = 1;
+    string module_name = 2;
+
+    // If this is true then the module was removed as well as the deployment.
+    bool module_removed = 3;
+  }
+
+  oneof event {
+    ChangesetCreated changeset_created = 4;
+    ChangesetFailed changeset_failed = 5;
+    ChangesetCommited changeset_commited = 6;
+    DeploymentCreated deployment_created = 7;
+    DeploymentUpdated deployment_updated = 8;
+    DeploymentRemoved deployment_removed = 9;
+  }
+
   // If true there are more schema changes immediately following this one as part of the initial batch.
   // If false this is the last schema change in the initial batch, but others may follow later.
-  bool more = 3;
-  DeploymentChangeType change_type = 5;
-  // If this is true then the module was removed as well as the deployment. This is only set for DEPLOYMENT_REMOVED.
-  bool module_removed = 6;
+  bool more = 31634;
 }
 
 message UpdateDeploymentRuntimeRequest {
-  ftl.schema.v1.ModuleRuntimeEvent event = 2;
+  string deployment = 1;
+  optional string changeset = 2;
+  ftl.schema.v1.ModuleRuntimeEvent event = 3;
 }
 
 message UpdateDeploymentRuntimeResponse {}
 
-message UpdateSchemaRequest {
-  ftl.schema.v1.Event event = 1;
+message CreateChangesetRequest {
+  repeated ftl.schema.v1.Module modules = 1;
 }
 
-message UpdateSchemaResponse {}
-
-message GetDeploymentsRequest {}
-
-message GetDeploymentsResponse {
-  repeated DeployedSchema schema = 1;
+message CreateChangesetResponse {
+  // The changeset key of the newly created changeset.
+  string changeset = 1;
 }
 
-message DeployedSchema {
-  string deployment_key = 1;
-  ftl.schema.v1.Module schema = 2;
-  bool is_active = 3;
+message CommitChangesetRequest {
+  // The changeset key to commit.
+  string changeset = 1;
 }
+
+message CommitChangesetResponse {}
+
+message FailChangesetRequest {
+  // The changeset key to fail.
+  string changeset = 1;
+  string error = 2;
+}
+
+message FailChangesetResponse {}
 
 service SchemaService {
   // Ping service for readiness.
@@ -81,9 +134,12 @@ service SchemaService {
   // UpdateModuleRuntime is used to update the runtime configuration of a module.
   rpc UpdateDeploymentRuntime(UpdateDeploymentRuntimeRequest) returns (UpdateDeploymentRuntimeResponse);
 
-  // UpdateSchema is used to update the schema.
-  rpc UpdateSchema(UpdateSchemaRequest) returns (UpdateSchemaResponse);
+  // CreateChangeset creates a new changeset.
+  rpc CreateChangeset(CreateChangesetRequest) returns (CreateChangesetResponse);
 
-  // GetDeployments is used to get the schema for all deployments.
-  rpc GetDeployments(GetDeploymentsRequest) returns (GetDeploymentsResponse);
+  // CommitChangeset makes all deployments for the changeset part of the canonical schema.
+  rpc CommitChangeset(CommitChangesetRequest) returns (CommitChangesetResponse);
+
+  // FailChangeset fails an active changeset.
+  rpc FailChangeset(FailChangesetRequest) returns (FailChangesetResponse);
 }

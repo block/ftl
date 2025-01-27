@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
+import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, FailChangesetRequest, FailChangesetResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -64,25 +64,36 @@ export const SchemaService = {
       kind: MethodKind.Unary,
     },
     /**
-     * UpdateSchema is used to update the schema.
+     * CreateChangeset creates a new changeset.
      *
-     * @generated from rpc xyz.block.ftl.v1.SchemaService.UpdateSchema
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.CreateChangeset
      */
-    updateSchema: {
-      name: "UpdateSchema",
-      I: UpdateSchemaRequest,
-      O: UpdateSchemaResponse,
+    createChangeset: {
+      name: "CreateChangeset",
+      I: CreateChangesetRequest,
+      O: CreateChangesetResponse,
       kind: MethodKind.Unary,
     },
     /**
-     * GetDeployments is used to get the schema for all deployments.
+     * CommitChangeset makes all deployments for the changeset part of the canonical schema.
      *
-     * @generated from rpc xyz.block.ftl.v1.SchemaService.GetDeployments
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.CommitChangeset
      */
-    getDeployments: {
-      name: "GetDeployments",
-      I: GetDeploymentsRequest,
-      O: GetDeploymentsResponse,
+    commitChangeset: {
+      name: "CommitChangeset",
+      I: CommitChangesetRequest,
+      O: CommitChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * FailChangeset fails an active changeset.
+     *
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.FailChangeset
+     */
+    failChangeset: {
+      name: "FailChangeset",
+      I: FailChangesetRequest,
+      O: FailChangesetResponse,
       kind: MethodKind.Unary,
     },
   }

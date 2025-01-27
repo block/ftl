@@ -31,6 +31,38 @@ proto3.util.setEnumType(AliasKind, "xyz.block.ftl.schema.v1.AliasKind", [
 ]);
 
 /**
+ * @generated from enum xyz.block.ftl.schema.v1.ChangesetState
+ */
+export enum ChangesetState {
+  /**
+   * @generated from enum value: CHANGESET_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: CHANGESET_STATE_PROVISIONING = 1;
+   */
+  PROVISIONING = 1,
+
+  /**
+   * @generated from enum value: CHANGESET_STATE_COMMITTED = 2;
+   */
+  COMMITTED = 2,
+
+  /**
+   * @generated from enum value: CHANGESET_STATE_FAILED = 3;
+   */
+  FAILED = 3,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ChangesetState)
+proto3.util.setEnumType(ChangesetState, "xyz.block.ftl.schema.v1.ChangesetState", [
+  { no: 0, name: "CHANGESET_STATE_UNSPECIFIED" },
+  { no: 1, name: "CHANGESET_STATE_PROVISIONING" },
+  { no: 2, name: "CHANGESET_STATE_COMMITTED" },
+  { no: 3, name: "CHANGESET_STATE_FAILED" },
+]);
+
+/**
  * @generated from enum xyz.block.ftl.schema.v1.FromOffset
  */
 export enum FromOffset {
@@ -262,6 +294,67 @@ export class Bytes extends Message<Bytes> {
 
   static equals(a: Bytes | PlainMessage<Bytes> | undefined, b: Bytes | PlainMessage<Bytes> | undefined): boolean {
     return proto3.util.equals(Bytes, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.Changeset
+ */
+export class Changeset extends Message<Changeset> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 2;
+   */
+  createdAt?: Timestamp;
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 3;
+   */
+  modules: Module[] = [];
+
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.ChangesetState state = 4;
+   */
+  state = ChangesetState.UNSPECIFIED;
+
+  /**
+   * @generated from field: optional string error = 5;
+   */
+  error?: string;
+
+  constructor(data?: PartialMessage<Changeset>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.Changeset";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "created_at", kind: "message", T: Timestamp },
+    { no: 3, name: "modules", kind: "message", T: Module, repeated: true },
+    { no: 4, name: "state", kind: "enum", T: proto3.getEnumType(ChangesetState) },
+    { no: 5, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Changeset {
+    return new Changeset().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Changeset {
+    return new Changeset().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Changeset {
+    return new Changeset().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Changeset | PlainMessage<Changeset> | undefined, b: Changeset | PlainMessage<Changeset> | undefined): boolean {
+    return proto3.util.equals(Changeset, a, b);
   }
 }
 

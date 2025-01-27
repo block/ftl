@@ -29,7 +29,7 @@ type RouteTable struct {
 
 func New(ctx context.Context, changes schemaeventsource.EventSource) *RouteTable {
 	r := &RouteTable{
-		routes:             atomic.New(extractRoutes(ctx, changes.View())),
+		routes:             atomic.New(extractRoutes(ctx, changes.CanonicalView())),
 		changeNotification: pubsub.New[string](),
 	}
 	go r.run(ctx, changes)
@@ -39,7 +39,7 @@ func New(ctx context.Context, changes schemaeventsource.EventSource) *RouteTable
 func (r *RouteTable) run(ctx context.Context, changes schemaeventsource.EventSource) {
 	for range channels.IterContext(ctx, changes.Events()) {
 		old := r.routes.Load()
-		routes := extractRoutes(ctx, changes.View())
+		routes := extractRoutes(ctx, changes.CanonicalView())
 		for module, rd := range old.moduleToDeployment {
 			if old.byDeployment[rd.String()] != routes.byDeployment[rd.String()] {
 				r.changeNotification.Publish(module)

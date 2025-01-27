@@ -277,6 +277,52 @@ func BytesFromProto(v *destpb.Bytes) (out *Bytes, err error) {
 	return out, nil
 }
 
+func (x *Changeset) ToProto() *destpb.Changeset {
+	if x == nil {
+		return nil
+	}
+	return &destpb.Changeset{
+		Key:       orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		CreatedAt: timestamppb.New(x.CreatedAt),
+		Modules:   sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		State:     orZero(ptr(x.State.ToProto())),
+		Error:     ptr(string(x.Error)),
+	}
+}
+
+func ChangesetFromProto(v *destpb.Changeset) (out *Changeset, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &Changeset{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.CreatedAt, err = orZeroR(result.From(setNil(ptr(v.CreatedAt.AsTime()), v.CreatedAt), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("CreatedAt: %w", err)
+	}
+	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Modules: %w", err)
+	}
+	if out.State, err = orZeroR(ptrR(result.From(ChangesetStateFromProto(v.State)))).Result(); err != nil {
+		return nil, fmt.Errorf("State: %w", err)
+	}
+	if out.Error, err = orZeroR(result.From(setNil(ptr(string(orZero(v.Error))), v.Error), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
+	}
+	return out, nil
+}
+
+func (x ChangesetState) ToProto() destpb.ChangesetState {
+	return destpb.ChangesetState(x)
+}
+
+func ChangesetStateFromProto(v destpb.ChangesetState) (ChangesetState, error) {
+	// TODO: Check if the value is valid.
+	return ChangesetState(v), nil
+}
+
 func (x *Config) ToProto() *destpb.Config {
 	if x == nil {
 		return nil

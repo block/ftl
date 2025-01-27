@@ -44,6 +44,7 @@ func (d *devCmd) Run(
 	bindContext terminal.KongContextBinder,
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
 	controllerClient ftlv1connect.ControllerServiceClient,
+	schemaServiceClient ftlv1connect.SchemaServiceClient,
 	provisionerClient provisionerconnect.ProvisionerServiceClient,
 	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
@@ -62,9 +63,10 @@ func (d *devCmd) Run(
 	}
 
 	terminal.LaunchEmbeddedConsole(ctx, k, bindContext, schemaEventSourceFactory())
-	var client buildengine.DeployClient = controllerClient
+	var deployClient buildengine.DeployClient = controllerClient
 	if d.ServeCmd.Provisioners > 0 {
-		client = rpc.ClientFromContext[provisionerconnect.ProvisionerServiceClient](ctx)
+		// TODO: Shouldnt provisioners be receiving this from the controller?
+		deployClient = rpc.ClientFromContext[provisionerconnect.ProvisionerServiceClient](ctx)
 	}
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -119,7 +121,7 @@ func (d *devCmd) Run(
 		starting.Close()
 
 		opts := []buildengine.Option{buildengine.Parallelism(d.Build.Parallelism), buildengine.BuildEnv(d.Build.BuildEnv), buildengine.WithDevMode(devModeEndpointUpdates), buildengine.WithStartTime(startTime)}
-		engine, err := buildengine.New(ctx, client, schemaEventSourceFactory(), projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, opts...)
+		engine, err := buildengine.New(ctx, deployClient, schemaServiceClient, schemaEventSourceFactory(), projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, opts...)
 		if err != nil {
 			return err
 		}

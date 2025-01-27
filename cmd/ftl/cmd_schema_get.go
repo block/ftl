@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"strings"
 
 	"connectrpc.com/connect"
 	"golang.org/x/exp/maps"
@@ -15,7 +14,6 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
-	"github.com/block/ftl/common/schema"
 )
 
 type getSchemaCmd struct {
@@ -42,43 +40,51 @@ func (g *getSchemaCmd) Run(ctx context.Context, client ftlv1connect.SchemaServic
 	}
 	for resp.Receive() {
 		msg := resp.Msg()
-		switch msg.ChangeType {
-		case ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED, ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_CHANGED:
-			if msg.Schema == nil {
-				return fmt.Errorf("schema is nil for added/changed deployment %q", msg.GetDeploymentKey())
-			}
-			module, err := schema.ValidatedModuleFromProto(msg.Schema)
-			if err != nil {
-				return fmt.Errorf("invalid module: %w", err)
-			}
-			if len(g.Modules) == 0 || remainingNames[msg.Schema.Name] {
-				fmt.Println(module)
-				delete(remainingNames, msg.Schema.Name)
-			}
-			if !msg.More {
-				missingNames := maps.Keys(remainingNames)
-				slices.Sort(missingNames)
-				if len(missingNames) > 0 {
-					if g.Watch {
-						fmt.Printf("missing modules: %s\n", strings.Join(missingNames, ", "))
-					} else {
-						return fmt.Errorf("missing modules: %s", strings.Join(missingNames, ", "))
-					}
-				}
-				if !g.Watch {
-					return nil
-				}
-			}
-		case ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_REMOVED:
-			if msg.Schema == nil {
-				return fmt.Errorf("schema is nil for removed deployment %q", msg.GetDeploymentKey())
-			}
-			if msg.ModuleRemoved {
-				delete(remainingNames, msg.Schema.Name)
-			}
-			fmt.Printf("deployment %s removed\n", msg.GetDeploymentKey())
-		case ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_UNSPECIFIED:
-			return fmt.Errorf("unexpected unspecified deployment change type for deployment %q", msg.GetDeploymentKey())
+		switch msg.Event.(type) {
+		case *ftlv1.PullSchemaResponse_ChangesetCreated_:
+
+		case *ftlv1.PullSchemaResponse_ChangesetFailed_:
+
+		case *ftlv1.PullSchemaResponse_ChangesetCommited_:
+
+		case *ftlv1.PullSchemaResponse_DeploymentCreated_:
+			// TODO: originally this code handled DeploymentCreated and DeploymentUpdated. Clean up?
+			// if msg.Schema == nil {
+			// 	return fmt.Errorf("schema is nil for added/changed deployment %q", msg.GetDeploymentKey())
+			// }
+			// module, err := schema.ValidatedModuleFromProto(msg.Schema)
+			// if err != nil {
+			// 	return fmt.Errorf("invalid module: %w", err)
+			// }
+			// if len(g.Modules) == 0 || remainingNames[msg.Schema.Name] {
+			// 	fmt.Println(module)
+			// 	delete(remainingNames, msg.Schema.Name)
+			// }
+			// if !msg.More {
+			// 	missingNames := maps.Keys(remainingNames)
+			// 	slices.Sort(missingNames)
+			// 	if len(missingNames) > 0 {
+			// 		if g.Watch {
+			// 			fmt.Printf("missing modules: %s\n", strings.Join(missingNames, ", "))
+			// 		} else {
+			// 			return fmt.Errorf("missing modules: %s", strings.Join(missingNames, ", "))
+			// 		}
+			// 	}
+			// 	if !g.Watch {
+			// 		return nil
+			// 	}
+			// }
+
+		case *ftlv1.PullSchemaResponse_DeploymentUpdated_:
+			// TODO: implement or combine logic with DeploymentCreated
+		case *ftlv1.PullSchemaResponse_DeploymentRemoved_:
+			// if msg.Schema == nil {
+			// 	return fmt.Errorf("schema is nil for removed deployment %q", msg.GetDeploymentKey())
+			// }
+			// if msg.ModuleRemoved {
+			// 	delete(remainingNames, msg.Schema.Name)
+			// }
+			// fmt.Printf("deployment %s removed\n", msg.GetDeploymentKey())
 		}
 
 	}
@@ -96,10 +102,11 @@ func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.Pu
 	schema := &schemapb.Schema{}
 	for resp.Receive() {
 		msg := resp.Msg()
-		if len(g.Modules) == 0 || remainingNames[msg.Schema.Name] {
-			schema.Modules = append(schema.Modules, msg.Schema)
-			delete(remainingNames, msg.Schema.Name)
-		}
+		// TODO: reimplement
+		// if len(g.Modules) == 0 || remainingNames[msg.Schema.Name] {
+		// 	schema.Modules = append(schema.Modules, msg.Schema)
+		// 	delete(remainingNames, msg.Schema.Name)
+		// }
 		if !msg.More {
 			break
 		}
@@ -128,10 +135,11 @@ func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.P
 	schema := &schemapb.Schema{}
 	for resp.Receive() {
 		msg := resp.Msg()
-		if len(g.Modules) == 0 || remainingNames[msg.Schema.Name] {
-			schema.Modules = append(schema.Modules, msg.Schema)
-			delete(remainingNames, msg.Schema.Name)
-		}
+		// TODO: reimplement
+		// if len(g.Modules) == 0 || remainingNames[msg.Schema.Name] {
+		// 	schema.Modules = append(schema.Modules, msg.Schema)
+		// 	delete(remainingNames, msg.Schema.Name)
+		// }
 		if !msg.More {
 			break
 		}

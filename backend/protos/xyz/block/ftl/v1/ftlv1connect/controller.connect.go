@@ -47,9 +47,6 @@ const (
 	// ControllerServiceUploadArtefactProcedure is the fully-qualified name of the ControllerService's
 	// UploadArtefact RPC.
 	ControllerServiceUploadArtefactProcedure = "/xyz.block.ftl.v1.ControllerService/UploadArtefact"
-	// ControllerServiceCreateDeploymentProcedure is the fully-qualified name of the ControllerService's
-	// CreateDeployment RPC.
-	ControllerServiceCreateDeploymentProcedure = "/xyz.block.ftl.v1.ControllerService/CreateDeployment"
 	// ControllerServiceGetDeploymentProcedure is the fully-qualified name of the ControllerService's
 	// GetDeployment RPC.
 	ControllerServiceGetDeploymentProcedure = "/xyz.block.ftl.v1.ControllerService/GetDeployment"
@@ -62,9 +59,6 @@ const (
 	// ControllerServiceUpdateDeployProcedure is the fully-qualified name of the ControllerService's
 	// UpdateDeploy RPC.
 	ControllerServiceUpdateDeployProcedure = "/xyz.block.ftl.v1.ControllerService/UpdateDeploy"
-	// ControllerServiceReplaceDeployProcedure is the fully-qualified name of the ControllerService's
-	// ReplaceDeploy RPC.
-	ControllerServiceReplaceDeployProcedure = "/xyz.block.ftl.v1.ControllerService/ReplaceDeploy"
 )
 
 // ControllerServiceClient is a client for the xyz.block.ftl.v1.ControllerService service.
@@ -78,8 +72,6 @@ type ControllerServiceClient interface {
 	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
 	// Upload an artefact to the server.
 	UploadArtefact(context.Context, *connect.Request[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error)
-	// Create a deployment.
-	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get the schema and artefact metadata for a deployment.
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Stream deployment artefacts from the server.
@@ -94,11 +86,6 @@ type ControllerServiceClient interface {
 	RegisterRunner(context.Context) *connect.ClientStreamForClient[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
 	// Update an existing deployment.
 	UpdateDeploy(context.Context, *connect.Request[v1.UpdateDeployRequest]) (*connect.Response[v1.UpdateDeployResponse], error)
-	// Gradually replace an existing deployment with a new one.
-	//
-	// If a deployment already exists for the module of the new deployment,
-	// it will be scaled down and replaced by the new one.
-	ReplaceDeploy(context.Context, *connect.Request[v1.ReplaceDeployRequest]) (*connect.Response[v1.ReplaceDeployResponse], error)
 }
 
 // NewControllerServiceClient constructs a client for the xyz.block.ftl.v1.ControllerService
@@ -137,11 +124,6 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			baseURL+ControllerServiceUploadArtefactProcedure,
 			opts...,
 		),
-		createDeployment: connect.NewClient[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse](
-			httpClient,
-			baseURL+ControllerServiceCreateDeploymentProcedure,
-			opts...,
-		),
 		getDeployment: connect.NewClient[v1.GetDeploymentRequest, v1.GetDeploymentResponse](
 			httpClient,
 			baseURL+ControllerServiceGetDeploymentProcedure,
@@ -162,11 +144,6 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			baseURL+ControllerServiceUpdateDeployProcedure,
 			opts...,
 		),
-		replaceDeploy: connect.NewClient[v1.ReplaceDeployRequest, v1.ReplaceDeployResponse](
-			httpClient,
-			baseURL+ControllerServiceReplaceDeployProcedure,
-			opts...,
-		),
 	}
 }
 
@@ -177,12 +154,10 @@ type controllerServiceClient struct {
 	status                 *connect.Client[v1.StatusRequest, v1.StatusResponse]
 	getArtefactDiffs       *connect.Client[v1.GetArtefactDiffsRequest, v1.GetArtefactDiffsResponse]
 	uploadArtefact         *connect.Client[v1.UploadArtefactRequest, v1.UploadArtefactResponse]
-	createDeployment       *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
 	getDeployment          *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 	getDeploymentArtefacts *connect.Client[v1.GetDeploymentArtefactsRequest, v1.GetDeploymentArtefactsResponse]
 	registerRunner         *connect.Client[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
 	updateDeploy           *connect.Client[v1.UpdateDeployRequest, v1.UpdateDeployResponse]
-	replaceDeploy          *connect.Client[v1.ReplaceDeployRequest, v1.ReplaceDeployResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.ControllerService.Ping.
@@ -210,11 +185,6 @@ func (c *controllerServiceClient) UploadArtefact(ctx context.Context, req *conne
 	return c.uploadArtefact.CallUnary(ctx, req)
 }
 
-// CreateDeployment calls xyz.block.ftl.v1.ControllerService.CreateDeployment.
-func (c *controllerServiceClient) CreateDeployment(ctx context.Context, req *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
-	return c.createDeployment.CallUnary(ctx, req)
-}
-
 // GetDeployment calls xyz.block.ftl.v1.ControllerService.GetDeployment.
 func (c *controllerServiceClient) GetDeployment(ctx context.Context, req *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
 	return c.getDeployment.CallUnary(ctx, req)
@@ -235,11 +205,6 @@ func (c *controllerServiceClient) UpdateDeploy(ctx context.Context, req *connect
 	return c.updateDeploy.CallUnary(ctx, req)
 }
 
-// ReplaceDeploy calls xyz.block.ftl.v1.ControllerService.ReplaceDeploy.
-func (c *controllerServiceClient) ReplaceDeploy(ctx context.Context, req *connect.Request[v1.ReplaceDeployRequest]) (*connect.Response[v1.ReplaceDeployResponse], error) {
-	return c.replaceDeploy.CallUnary(ctx, req)
-}
-
 // ControllerServiceHandler is an implementation of the xyz.block.ftl.v1.ControllerService service.
 type ControllerServiceHandler interface {
 	// Ping service for readiness.
@@ -251,8 +216,6 @@ type ControllerServiceHandler interface {
 	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
 	// Upload an artefact to the server.
 	UploadArtefact(context.Context, *connect.Request[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error)
-	// Create a deployment.
-	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get the schema and artefact metadata for a deployment.
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Stream deployment artefacts from the server.
@@ -267,11 +230,6 @@ type ControllerServiceHandler interface {
 	RegisterRunner(context.Context, *connect.ClientStream[v1.RegisterRunnerRequest]) (*connect.Response[v1.RegisterRunnerResponse], error)
 	// Update an existing deployment.
 	UpdateDeploy(context.Context, *connect.Request[v1.UpdateDeployRequest]) (*connect.Response[v1.UpdateDeployResponse], error)
-	// Gradually replace an existing deployment with a new one.
-	//
-	// If a deployment already exists for the module of the new deployment,
-	// it will be scaled down and replaced by the new one.
-	ReplaceDeploy(context.Context, *connect.Request[v1.ReplaceDeployRequest]) (*connect.Response[v1.ReplaceDeployResponse], error)
 }
 
 // NewControllerServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -306,11 +264,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		svc.UploadArtefact,
 		opts...,
 	)
-	controllerServiceCreateDeploymentHandler := connect.NewUnaryHandler(
-		ControllerServiceCreateDeploymentProcedure,
-		svc.CreateDeployment,
-		opts...,
-	)
 	controllerServiceGetDeploymentHandler := connect.NewUnaryHandler(
 		ControllerServiceGetDeploymentProcedure,
 		svc.GetDeployment,
@@ -331,11 +284,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		svc.UpdateDeploy,
 		opts...,
 	)
-	controllerServiceReplaceDeployHandler := connect.NewUnaryHandler(
-		ControllerServiceReplaceDeployProcedure,
-		svc.ReplaceDeploy,
-		opts...,
-	)
 	return "/xyz.block.ftl.v1.ControllerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ControllerServicePingProcedure:
@@ -348,8 +296,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 			controllerServiceGetArtefactDiffsHandler.ServeHTTP(w, r)
 		case ControllerServiceUploadArtefactProcedure:
 			controllerServiceUploadArtefactHandler.ServeHTTP(w, r)
-		case ControllerServiceCreateDeploymentProcedure:
-			controllerServiceCreateDeploymentHandler.ServeHTTP(w, r)
 		case ControllerServiceGetDeploymentProcedure:
 			controllerServiceGetDeploymentHandler.ServeHTTP(w, r)
 		case ControllerServiceGetDeploymentArtefactsProcedure:
@@ -358,8 +304,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 			controllerServiceRegisterRunnerHandler.ServeHTTP(w, r)
 		case ControllerServiceUpdateDeployProcedure:
 			controllerServiceUpdateDeployHandler.ServeHTTP(w, r)
-		case ControllerServiceReplaceDeployProcedure:
-			controllerServiceReplaceDeployHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -389,10 +333,6 @@ func (UnimplementedControllerServiceHandler) UploadArtefact(context.Context, *co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.UploadArtefact is not implemented"))
 }
 
-func (UnimplementedControllerServiceHandler) CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.CreateDeployment is not implemented"))
-}
-
 func (UnimplementedControllerServiceHandler) GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.GetDeployment is not implemented"))
 }
@@ -407,8 +347,4 @@ func (UnimplementedControllerServiceHandler) RegisterRunner(context.Context, *co
 
 func (UnimplementedControllerServiceHandler) UpdateDeploy(context.Context, *connect.Request[v1.UpdateDeployRequest]) (*connect.Response[v1.UpdateDeployResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.UpdateDeploy is not implemented"))
-}
-
-func (UnimplementedControllerServiceHandler) ReplaceDeploy(context.Context, *connect.Request[v1.ReplaceDeployRequest]) (*connect.Response[v1.ReplaceDeployResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.ReplaceDeploy is not implemented"))
 }
