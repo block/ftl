@@ -21,7 +21,7 @@ import (
 func getDiskSchema(t testing.TB, ctx context.Context) (*schema.Schema, error) {
 	t.Helper()
 	dsr := &diskSchemaRetriever{}
-	return dsr.GetActiveSchema(ctx)
+	return dsr.GetLatestSchema(ctx)
 }
 
 func TestDiskSchemaRetrieverWithBuildArtefact(t *testing.T) {
@@ -68,7 +68,7 @@ func TestAdminNoValidationWithNoSchema(t *testing.T) {
 	assert.NoError(t, err)
 
 	dsr := &diskSchemaRetriever{deployRoot: optional.Some(string(t.TempDir()))}
-	_, err = dsr.GetActiveSchema(ctx)
+	_, err = dsr.GetLatestSchema(ctx)
 	assert.Error(t, err)
 
 	admin := NewAdminService(cm, sm, dsr)

@@ -277,6 +277,119 @@ func BytesFromProto(v *destpb.Bytes) (out *Bytes, err error) {
 	return out, nil
 }
 
+func (x *Changeset) ToProto() *destpb.Changeset {
+	if x == nil {
+		return nil
+	}
+	return &destpb.Changeset{
+		Key:       orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		CreatedAt: timestamppb.New(x.CreatedAt),
+		Modules:   sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		State:     orZero(ptr(x.State.ToProto())),
+		Error:     ptr(string(x.Error)),
+	}
+}
+
+func ChangesetFromProto(v *destpb.Changeset) (out *Changeset, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &Changeset{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.CreatedAt, err = orZeroR(result.From(setNil(ptr(v.CreatedAt.AsTime()), v.CreatedAt), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("CreatedAt: %w", err)
+	}
+	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Modules: %w", err)
+	}
+	if out.State, err = orZeroR(ptrR(result.From(ChangesetStateFromProto(v.State)))).Result(); err != nil {
+		return nil, fmt.Errorf("State: %w", err)
+	}
+	if out.Error, err = orZeroR(result.From(setNil(ptr(string(orZero(v.Error))), v.Error), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
+	}
+	return out, nil
+}
+
+func (x *ChangesetCommittedEvent) ToProto() *destpb.ChangesetCommittedEvent {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetCommittedEvent{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetCommittedEventFromProto(v *destpb.ChangesetCommittedEvent) (out *ChangesetCommittedEvent, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetCommittedEvent{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	return out, nil
+}
+
+func (x *ChangesetCreatedEvent) ToProto() *destpb.ChangesetCreatedEvent {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetCreatedEvent{
+		Changeset: x.Changeset.ToProto(),
+	}
+}
+
+func ChangesetCreatedEventFromProto(v *destpb.ChangesetCreatedEvent) (out *ChangesetCreatedEvent, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetCreatedEvent{}
+	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	return out, nil
+}
+
+func (x *ChangesetFailedEvent) ToProto() *destpb.ChangesetFailedEvent {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetFailedEvent{
+		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Error: orZero(ptr(string(x.Error))),
+	}
+}
+
+func ChangesetFailedEventFromProto(v *destpb.ChangesetFailedEvent) (out *ChangesetFailedEvent, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetFailedEvent{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
+	}
+	return out, nil
+}
+
+func (x ChangesetState) ToProto() destpb.ChangesetState {
+	return destpb.ChangesetState(x)
+}
+
+func ChangesetStateFromProto(v destpb.ChangesetState) (ChangesetState, error) {
+	// TODO: Check if the value is valid.
+	return ChangesetState(v), nil
+}
+
 func (x *Config) ToProto() *destpb.Config {
 	if x == nil {
 		return nil
@@ -610,6 +723,7 @@ func (x *DeploymentActivatedEvent) ToProto() *destpb.DeploymentActivatedEvent {
 		Key:         orZero(ptr(string(protoMust(x.Key.MarshalText())))),
 		ActivatedAt: timestamppb.New(x.ActivatedAt),
 		MinReplicas: orZero(ptr(int64(x.MinReplicas))),
+		Changeset:   orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
 
@@ -628,6 +742,9 @@ func DeploymentActivatedEventFromProto(v *destpb.DeploymentActivatedEvent) (out 
 	if out.MinReplicas, err = orZeroR(result.From(ptr(int(v.MinReplicas)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("MinReplicas: %w", err)
 	}
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
 	return out, nil
 }
 
@@ -636,8 +753,9 @@ func (x *DeploymentCreatedEvent) ToProto() *destpb.DeploymentCreatedEvent {
 		return nil
 	}
 	return &destpb.DeploymentCreatedEvent{
-		Key:    orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Schema: x.Schema.ToProto(),
+		Key:       orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Schema:    x.Schema.ToProto(),
+		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
 
@@ -653,6 +771,9 @@ func DeploymentCreatedEventFromProto(v *destpb.DeploymentCreatedEvent) (out *Dep
 	if out.Schema, err = result.From(ModuleFromProto(v.Schema)).Result(); err != nil {
 		return nil, fmt.Errorf("Schema: %w", err)
 	}
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
 	return out, nil
 }
 
@@ -663,6 +784,7 @@ func (x *DeploymentDeactivatedEvent) ToProto() *destpb.DeploymentDeactivatedEven
 	return &destpb.DeploymentDeactivatedEvent{
 		Key:           orZero(ptr(string(protoMust(x.Key.MarshalText())))),
 		ModuleRemoved: orZero(ptr(bool(x.ModuleRemoved))),
+		Changeset:     orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
 
@@ -678,6 +800,9 @@ func DeploymentDeactivatedEventFromProto(v *destpb.DeploymentDeactivatedEvent) (
 	if out.ModuleRemoved, err = orZeroR(result.From(ptr(bool(v.ModuleRemoved)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("ModuleRemoved: %w", err)
 	}
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
 	return out, nil
 }
 
@@ -686,8 +811,9 @@ func (x *DeploymentReplicasUpdatedEvent) ToProto() *destpb.DeploymentReplicasUpd
 		return nil
 	}
 	return &destpb.DeploymentReplicasUpdatedEvent{
-		Key:      orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Replicas: orZero(ptr(int64(x.Replicas))),
+		Key:       orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Replicas:  orZero(ptr(int64(x.Replicas))),
+		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
 
@@ -703,6 +829,9 @@ func DeploymentReplicasUpdatedEventFromProto(v *destpb.DeploymentReplicasUpdated
 	if out.Replicas, err = orZeroR(result.From(ptr(int(v.Replicas)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Replicas: %w", err)
 	}
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
 	return out, nil
 }
 
@@ -711,8 +840,9 @@ func (x *DeploymentSchemaUpdatedEvent) ToProto() *destpb.DeploymentSchemaUpdated
 		return nil
 	}
 	return &destpb.DeploymentSchemaUpdatedEvent{
-		Key:    orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Schema: x.Schema.ToProto(),
+		Key:       orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Schema:    x.Schema.ToProto(),
+		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
 
@@ -727,6 +857,9 @@ func DeploymentSchemaUpdatedEventFromProto(v *destpb.DeploymentSchemaUpdatedEven
 	}
 	if out.Schema, err = result.From(ModuleFromProto(v.Schema)).Result(); err != nil {
 		return nil, fmt.Errorf("Schema: %w", err)
+	}
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
 	}
 	return out, nil
 }
@@ -810,6 +943,18 @@ func EventToProto(value Event) *destpb.Event {
 	switch value := value.(type) {
 	case nil:
 		return nil
+	case *ChangesetCommittedEvent:
+		return &destpb.Event{
+			Value: &destpb.Event_ChangesetCommittedEvent{value.ToProto()},
+		}
+	case *ChangesetCreatedEvent:
+		return &destpb.Event{
+			Value: &destpb.Event_ChangesetCreatedEvent{value.ToProto()},
+		}
+	case *ChangesetFailedEvent:
+		return &destpb.Event{
+			Value: &destpb.Event_ChangesetFailedEvent{value.ToProto()},
+		}
 	case *DatabaseRuntimeEvent:
 		return &destpb.Event{
 			Value: &destpb.Event_DatabaseRuntimeEvent{value.ToProto()},
@@ -860,6 +1005,12 @@ func EventFromProto(v *destpb.Event) (Event, error) {
 		return nil, nil
 	}
 	switch v.Value.(type) {
+	case *destpb.Event_ChangesetCommittedEvent:
+		return ChangesetCommittedEventFromProto(v.GetChangesetCommittedEvent())
+	case *destpb.Event_ChangesetCreatedEvent:
+		return ChangesetCreatedEventFromProto(v.GetChangesetCreatedEvent())
+	case *destpb.Event_ChangesetFailedEvent:
+		return ChangesetFailedEventFromProto(v.GetChangesetFailedEvent())
 	case *destpb.Event_DatabaseRuntimeEvent:
 		return DatabaseRuntimeEventFromProto(v.GetDatabaseRuntimeEvent())
 	case *destpb.Event_DeploymentActivatedEvent:
@@ -1870,8 +2021,7 @@ func (x *ModuleRuntimeEvent) ToProto() *destpb.ModuleRuntimeEvent {
 		return nil
 	}
 	return &destpb.ModuleRuntimeEvent{
-		Module:        orZero(ptr(string(x.Module))),
-		DeploymentKey: setNil(ptr(string(orZero(x.DeploymentKey.Ptr()))), x.DeploymentKey.Ptr()),
+		DeploymentKey: orZero(ptr(string(protoMust(x.DeploymentKey.MarshalText())))),
 		Base:          x.Base.Ptr().ToProto(),
 		Scaling:       x.Scaling.Ptr().ToProto(),
 		Deployment:    x.Deployment.Ptr().ToProto(),
@@ -1884,10 +2034,7 @@ func ModuleRuntimeEventFromProto(v *destpb.ModuleRuntimeEvent) (out *ModuleRunti
 	}
 
 	out = &ModuleRuntimeEvent{}
-	if out.Module, err = orZeroR(result.From(ptr(string(v.Module)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Module: %w", err)
-	}
-	if out.DeploymentKey, err = optionalR(result.From(setNil(ptr(string(orZero(v.DeploymentKey))), v.DeploymentKey), nil)).Result(); err != nil {
+	if out.DeploymentKey, err = orZeroR(unmarshallText([]byte(v.DeploymentKey), &out.DeploymentKey)).Result(); err != nil {
 		return nil, fmt.Errorf("DeploymentKey: %w", err)
 	}
 	if out.Base, err = optionalR(result.From(ModuleRuntimeBaseFromProto(v.Base))).Result(); err != nil {
@@ -2061,8 +2208,10 @@ func (x *SchemaState) ToProto() *destpb.SchemaState {
 		return nil
 	}
 	return &destpb.SchemaState{
-		Modules:           sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
-		ActiveDeployments: sliceMap(x.ActiveDeployments, func(v string) string { return orZero(ptr(string(v))) }),
+		Modules:             sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		ActiveDeployments:   sliceMap(x.ActiveDeployments, func(v string) string { return orZero(ptr(string(v))) }),
+		SerializedChangeset: sliceMap(x.SerializedChangeset, func(v *SerializedChangeset) *destpb.SerializedChangeset { return v.ToProto() }),
+		Provisioning:        sliceMap(x.Provisioning, func(v string) string { return orZero(ptr(string(v))) }),
 	}
 }
 
@@ -2077,6 +2226,14 @@ func SchemaStateFromProto(v *destpb.SchemaState) (out *SchemaState, err error) {
 	}
 	if out.ActiveDeployments, err = sliceMapR(v.ActiveDeployments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
 		return nil, fmt.Errorf("ActiveDeployments: %w", err)
+	}
+	if out.SerializedChangeset, err = sliceMapR(v.SerializedChangeset, func(v *destpb.SerializedChangeset) result.Result[*SerializedChangeset] {
+		return result.From(SerializedChangesetFromProto(v))
+	}).Result(); err != nil {
+		return nil, fmt.Errorf("SerializedChangeset: %w", err)
+	}
+	if out.Provisioning, err = sliceMapR(v.Provisioning, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Provisioning: %w", err)
 	}
 	return out, nil
 }
@@ -2110,6 +2267,43 @@ func SecretFromProto(v *destpb.Secret) (out *Secret, err error) {
 	}
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
 		return nil, fmt.Errorf("Type: %w", err)
+	}
+	return out, nil
+}
+
+func (x *SerializedChangeset) ToProto() *destpb.SerializedChangeset {
+	if x == nil {
+		return nil
+	}
+	return &destpb.SerializedChangeset{
+		Key:         orZero(ptr(string(x.Key))),
+		CreatedAt:   timestamppb.New(x.CreatedAt),
+		Deployments: sliceMap(x.Deployments, func(v string) string { return orZero(ptr(string(v))) }),
+		State:       orZero(ptr(x.State.ToProto())),
+		Error:       orZero(ptr(string(x.Error))),
+	}
+}
+
+func SerializedChangesetFromProto(v *destpb.SerializedChangeset) (out *SerializedChangeset, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &SerializedChangeset{}
+	if out.Key, err = orZeroR(result.From(ptr(string(v.Key)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.CreatedAt, err = orZeroR(result.From(setNil(ptr(v.CreatedAt.AsTime()), v.CreatedAt), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("CreatedAt: %w", err)
+	}
+	if out.Deployments, err = sliceMapR(v.Deployments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Deployments: %w", err)
+	}
+	if out.State, err = orZeroR(ptrR(result.From(ChangesetStateFromProto(v.State)))).Result(); err != nil {
+		return nil, fmt.Errorf("State: %w", err)
+	}
+	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
 	}
 	return out, nil
 }

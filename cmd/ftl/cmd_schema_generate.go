@@ -87,26 +87,33 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 			regenerate := false
 			for stream.Receive() {
 				msg := stream.Msg()
-				switch msg.ChangeType {
-				case ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED, ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_CHANGED:
-					if msg.Schema == nil {
-						return fmt.Errorf("schema is nil for added/changed deployment %q", msg.GetDeploymentKey())
-					}
-					module, err := schema.ValidatedModuleFromProto(msg.Schema)
+				switch msg := msg.Event.(type) {
+				case *ftlv1.PullSchemaResponse_ChangesetCreated_:
+
+				case *ftlv1.PullSchemaResponse_ChangesetFailed_:
+
+				case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
+					// TODO: need to implement this so we can move deployments from changeset to canonical
+				case *ftlv1.PullSchemaResponse_DeploymentCreated_:
+					event := msg.DeploymentCreated
+					module, err := schema.ValidatedModuleFromProto(event.Schema)
 					if err != nil {
 						return fmt.Errorf("invalid module: %w", err)
 					}
 					modules[module.Name] = module
 
-				case ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_REMOVED:
-					if msg.Schema == nil {
-						return fmt.Errorf("schema is nil for removed deployment %q", msg.GetDeploymentKey())
+				case *ftlv1.PullSchemaResponse_DeploymentUpdated_:
+					event := msg.DeploymentUpdated
+					module, err := schema.ValidatedModuleFromProto(event.Schema)
+					if err != nil {
+						return fmt.Errorf("invalid module: %w", err)
 					}
-					if msg.ModuleRemoved {
-						delete(modules, msg.Schema.Name)
-					}
-				default:
+					modules[module.Name] = module
+				case *ftlv1.PullSchemaResponse_DeploymentRemoved_:
+					event := msg.DeploymentRemoved
+					delete(modules, event.ModuleName)
 				}
+
 				if !msg.More {
 					regenerate = true
 				}

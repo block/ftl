@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CreateDeploymentRequest, CreateDeploymentResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, ReplaceDeployRequest, ReplaceDeployResponse, StatusRequest, StatusResponse, UpdateDeployRequest, UpdateDeployResponse, UploadArtefactRequest, UploadArtefactResponse } from "../../v1/controller_pb.js";
+import { GetArtefactDiffsRequest, GetArtefactDiffsResponse, StatusRequest, StatusResponse, UpdateDeployRequest, UpdateDeployResponse, UploadArtefactRequest, UploadArtefactResponse } from "../../v1/controller_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.provisioner.v1beta1.ProvisionerService
@@ -51,30 +51,12 @@ export const ProvisionerService = {
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc xyz.block.ftl.provisioner.v1beta1.ProvisionerService.CreateDeployment
-     */
-    createDeployment: {
-      name: "CreateDeployment",
-      I: CreateDeploymentRequest,
-      O: CreateDeploymentResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * @generated from rpc xyz.block.ftl.provisioner.v1beta1.ProvisionerService.UpdateDeploy
      */
     updateDeploy: {
       name: "UpdateDeploy",
       I: UpdateDeployRequest,
       O: UpdateDeployResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * @generated from rpc xyz.block.ftl.provisioner.v1beta1.ProvisionerService.ReplaceDeploy
-     */
-    replaceDeploy: {
-      name: "ReplaceDeploy",
-      I: ReplaceDeployRequest,
-      O: ReplaceDeployResponse,
       kind: MethodKind.Unary,
     },
   }

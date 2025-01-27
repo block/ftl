@@ -154,8 +154,9 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]cronJob, change s
 	logger := log.FromContext(ctx).Scope("cron")
 	switch change := change.(type) {
 	case schemaeventsource.EventRemove:
-		logger.Debugf("Removing cron jobs for module %s", change.Module.Name)
-		delete(cronJobs, change.Module.Name)
+		// TODO: revisit this
+		// logger.Debugf("Removing cron jobs for module %s", change.Module.Name)
+		// delete(cronJobs, change.Module.Name)
 
 	case schemaeventsource.EventUpsert:
 		logger.Debugf("Updated cron jobs for module %s", change.Module.Name)
@@ -165,6 +166,7 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]cronJob, change s
 		}
 		logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), change.Module.Name)
 		cronJobs[change.Module.Name] = moduleJobs
+	default:
 	}
 	return nil
 }

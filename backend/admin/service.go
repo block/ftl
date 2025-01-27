@@ -38,8 +38,9 @@ type AdminService struct {
 var _ ftlv1connect.AdminServiceHandler = (*AdminService)(nil)
 
 type SchemaRetriever interface {
-	// BindAllocator is required if the schema is retrieved from disk using language plugins
-	GetActiveSchema(ctx context.Context) (*schema.Schema, error)
+	// TODO: docs
+	GetCanonicalSchema(ctx context.Context) (*schema.Schema, error)
+	GetLatestSchema(ctx context.Context) (*schema.Schema, error)
 }
 
 func NewSchemaRetreiver(source schemaeventsource.EventSource) SchemaRetriever {
@@ -52,8 +53,13 @@ type streamSchemaRetriever struct {
 	source schemaeventsource.EventSource
 }
 
-func (c streamSchemaRetriever) GetActiveSchema(ctx context.Context) (*schema.Schema, error) {
-	view := c.source.View()
+func (c streamSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.Schema, error) {
+	view := c.source.CanonicalView()
+	return &schema.Schema{Modules: view.Modules}, nil
+}
+
+func (c streamSchemaRetriever) GetLatestSchema(ctx context.Context) (*schema.Schema, error) {
+	view := c.source.LatestView()
 	return &schema.Schema{Modules: view.Modules}, nil
 }
 
@@ -286,7 +292,7 @@ func (s *AdminService) validateAgainstSchema(ctx context.Context, isSecret bool,
 	}
 
 	// If we can't retrieve an active schema, skip validation.
-	sch, err := s.schr.GetActiveSchema(ctx)
+	sch, err := s.schr.GetLatestSchema(ctx)
 	if err != nil {
 		logger.Debugf("skipping validation; could not get the active schema: %v", err)
 		return nil
@@ -330,7 +336,8 @@ func (s *AdminService) validateAgainstSchema(ctx context.Context, isSecret bool,
 
 func (s *AdminService) ResetSubscription(ctx context.Context, req *connect.Request[ftlv1.ResetSubscriptionRequest]) (*connect.Response[ftlv1.ResetSubscriptionResponse], error) {
 	// Find nodes in schema
-	sch, err := s.schr.GetActiveSchema(ctx)
+	// TODO: we really want all deployments for a module... not just latest... Use canonical and check ActiveChangeset?
+	sch, err := s.schr.GetCanonicalSchema(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not get the active schema: %w", err)
 	}

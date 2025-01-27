@@ -14,6 +14,7 @@ import (
 	"github.com/block/ftl/backend/provisioner"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -89,11 +90,16 @@ func TestDeployment_Progress(t *testing.T) {
 
 		dpl := registry.CreateDeployment(ctx, &schema.Module{
 			Name: "test-module",
+			Runtime: &schema.ModuleRuntime{
+				Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: key.NewDeploymentKey("test-module")},
+			},
 			Decls: []schema.Decl{
 				&schema.Database{Name: "a", Type: "mysql"},
 				&schema.Database{Name: "b", Type: "postgres"},
 			},
-		}, nil)
+		}, nil, func(event *schemapb.Event) error {
+			return nil
+		})
 
 		assert.Equal(t, 2, len(dpl.State().Pending))
 

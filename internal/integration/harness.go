@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1/consolepbconnect"
-	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -325,7 +324,6 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 
 			var controller ftlv1connect.ControllerServiceClient
 			var console consolepbconnect.ConsoleServiceClient
-			var provisioner provisionerconnect.ProvisionerServiceClient
 			var schema ftlv1connect.SchemaServiceClient
 			if opts.startController {
 				Infof("Starting ftl cluster")
@@ -354,9 +352,6 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				controller = rpc.Dial(ftlv1connect.NewControllerServiceClient, "http://localhost:8892", log.Debug)
 				console = rpc.Dial(consolepbconnect.NewConsoleServiceClient, "http://localhost:8899", log.Debug)
 				schema = rpc.Dial(ftlv1connect.NewSchemaServiceClient, "http://localhost:8897", log.Debug)
-			}
-			if opts.startProvisioner {
-				provisioner = rpc.Dial(provisionerconnect.NewProvisionerServiceClient, "http://localhost:8893", log.Debug)
 			}
 
 			testData := filepath.Join(cwd, "testdata", language)
@@ -389,16 +384,6 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 					_, err := ic.Controller.Status(ic, connect.NewRequest(&ftlv1.StatusRequest{}))
 					assert.NoError(t, err)
 				}, time.Minute*2)
-			}
-
-			if opts.startProvisioner {
-				ic.Provisioner = provisioner
-
-				Infof("Waiting for provisioner to be ready")
-				ic.AssertWithRetry(t, func(t testing.TB, ic TestContext) {
-					_, err := ic.Provisioner.Ping(ic, connect.NewRequest(&ftlv1.PingRequest{}))
-					assert.NoError(t, err)
-				})
 			}
 
 			if opts.startTimeline && !opts.kube {
@@ -524,12 +509,11 @@ type TestContext struct {
 	kubeNamespace string
 	devMode       bool
 
-	Controller  ftlv1connect.ControllerServiceClient
-	Provisioner provisionerconnect.ProvisionerServiceClient
-	Schema      ftlv1connect.SchemaServiceClient
-	Console     consolepbconnect.ConsoleServiceClient
-	Verbs       ftlv1connect.VerbServiceClient
-	Timeline    timelinepbconnect.TimelineServiceClient
+	Controller ftlv1connect.ControllerServiceClient
+	Schema     ftlv1connect.SchemaServiceClient
+	Console    consolepbconnect.ConsoleServiceClient
+	Verbs      ftlv1connect.VerbServiceClient
+	Timeline   timelinepbconnect.TimelineServiceClient
 
 	realT *testing.T
 }

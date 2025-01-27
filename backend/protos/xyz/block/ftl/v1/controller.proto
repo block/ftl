@@ -65,12 +65,6 @@ message RegisterRunnerRequest {
 
 message RegisterRunnerResponse {}
 
-message UpdateDeployRequest {
-  string deployment_key = 1;
-  optional int32 min_replicas = 2;
-}
-message UpdateDeployResponse {}
-
 message ReplaceDeployRequest {
   string deployment_key = 1;
   int32 min_replicas = 2;
@@ -146,9 +140,6 @@ service ControllerService {
   // Upload an artefact to the server.
   rpc UploadArtefact(UploadArtefactRequest) returns (UploadArtefactResponse);
 
-  // Create a deployment.
-  rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse);
-
   // Get the schema and artefact metadata for a deployment.
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
 
@@ -163,13 +154,4 @@ service ControllerService {
   // Each runner issue a RegisterRunnerRequest to the ControllerService
   // every 10 seconds to maintain its heartbeat.
   rpc RegisterRunner(stream RegisterRunnerRequest) returns (RegisterRunnerResponse);
-
-  // Update an existing deployment.
-  rpc UpdateDeploy(UpdateDeployRequest) returns (UpdateDeployResponse);
-
-  // Gradually replace an existing deployment with a new one.
-  //
-  // If a deployment already exists for the module of the new deployment,
-  // it will be scaled down and replaced by the new one.
-  rpc ReplaceDeploy(ReplaceDeployRequest) returns (ReplaceDeployResponse);
 }

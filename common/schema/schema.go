@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/alecthomas/types/optional"
 
@@ -279,6 +280,19 @@ func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
 //
 //protobuf:export
 type SchemaState struct {
-	Modules           []*Module `protobuf:"1"`
-	ActiveDeployments []string  `protobuf:"2"`
+	Modules             []*Module              `protobuf:"1"`
+	ActiveDeployments   []string               `protobuf:"2"`
+	SerializedChangeset []*SerializedChangeset `protobuf:"3"`
+	Provisioning        []string               `protobuf:"4"`
+}
+
+// TODO: remove this
+//
+//protobuf:export
+type SerializedChangeset struct {
+	Key         string         `protobuf:"1"`
+	CreatedAt   time.Time      `protobuf:"2"`
+	Deployments []string       `protobuf:"3"`
+	State       ChangesetState `protobuf:"4"`
+	Error       string         `protobuf:"5"`
 }

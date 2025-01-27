@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CreateDeploymentRequest, CreateDeploymentResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetDeploymentRequest, GetDeploymentResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, ReplaceDeployRequest, ReplaceDeployResponse, StatusRequest, StatusResponse, UpdateDeployRequest, UpdateDeployResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
+import { GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetDeploymentRequest, GetDeploymentResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.ControllerService
@@ -68,17 +68,6 @@ export const ControllerService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Create a deployment.
-     *
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.CreateDeployment
-     */
-    createDeployment: {
-      name: "CreateDeployment",
-      I: CreateDeploymentRequest,
-      O: CreateDeploymentResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Get the schema and artefact metadata for a deployment.
      *
      * @generated from rpc xyz.block.ftl.v1.ControllerService.GetDeployment
@@ -116,31 +105,6 @@ export const ControllerService = {
       I: RegisterRunnerRequest,
       O: RegisterRunnerResponse,
       kind: MethodKind.ClientStreaming,
-    },
-    /**
-     * Update an existing deployment.
-     *
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.UpdateDeploy
-     */
-    updateDeploy: {
-      name: "UpdateDeploy",
-      I: UpdateDeployRequest,
-      O: UpdateDeployResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Gradually replace an existing deployment with a new one.
-     *
-     * If a deployment already exists for the module of the new deployment,
-     * it will be scaled down and replaced by the new one.
-     *
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.ReplaceDeploy
-     */
-    replaceDeploy: {
-      name: "ReplaceDeploy",
-      I: ReplaceDeployRequest,
-      O: ReplaceDeployResponse,
-      kind: MethodKind.Unary,
     },
   }
 } as const;

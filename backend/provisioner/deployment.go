@@ -102,7 +102,11 @@ func (t *Task) Progress(ctx context.Context) error {
 				if err != nil {
 					return fmt.Errorf("failed to parse event: %w", err)
 				}
-				err = t.deployment.DeploymentState.ApplyEvent(event)
+				err = t.deployment.EventHandler(eventpb)
+				if err != nil {
+					return fmt.Errorf("schema server failed to handle provisioning event: %w", err)
+				}
+				err = t.deployment.DeploymentState.ApplyEvent(ctx, event)
 				if err != nil {
 					return fmt.Errorf("failed to apply event: %w", err)
 				}
@@ -121,6 +125,7 @@ type Deployment struct {
 
 	DeploymentState *schemaservice.SchemaState
 	Previous        *schema.Module
+	EventHandler    func(event *schemapb.Event) error
 }
 
 // next running or pending task. Nil if all tasks are done.

@@ -87,15 +87,13 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		}
 
 		schemaClient := rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx)
-		controllerClient := rpc.ClientFromContext[ftlv1connect.ControllerServiceClient](ctx)
 
 		deps, err := scaling.TerminatePreviousDeployments(ctx, module.Name, deployment.String())
 		if err != nil {
 			logger.Errorf(err, "failed to terminate previous deployments")
 		} else {
-			var zero int32
 			for _, dep := range deps {
-				_, err := controllerClient.UpdateDeploy(ctx, connect.NewRequest(&ftlv1.UpdateDeployRequest{DeploymentKey: dep, MinReplicas: &zero}))
+				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Deployment: deployment.String(), Event: &schemapb.ModuleRuntimeEvent{Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}))
 				if err != nil {
 					logger.Errorf(err, "failed to update deployment %s", dep)
 				}
@@ -105,8 +103,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		logger.Debugf("updating module runtime for %s with endpoint %s", module, endpointURI)
 		dk := deployment.String()
 		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{
-			Module:        moduleName,
-			DeploymentKey: &dk,
+			DeploymentKey: dk,
 			Deployment: &schemapb.ModuleRuntimeDeployment{
 				DeploymentKey: deployment.String(),
 				Endpoint:      endpointURI,
@@ -116,7 +113,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			return nil, fmt.Errorf("failed to update module runtime: %w", err)
 		}
 		return &schema.ModuleRuntimeEvent{
-			Module: moduleName,
+			DeploymentKey: deployment,
 			Deployment: optional.Some(schema.ModuleRuntimeDeployment{
 				DeploymentKey: deployment,
 				Endpoint:      endpointURI,

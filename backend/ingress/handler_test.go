@@ -117,8 +117,7 @@ func TestIngress(t *testing.T) {
 			}
 			// Publish the test module to the event source
 			eventSource.Publish(schemaeventsource.EventUpsert{
-				Module:     testModule,
-				Deployment: optional.Some(key.NewDeploymentKey("test")),
+				Module: testModule,
 			})
 
 			svc := &service{

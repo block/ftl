@@ -66,7 +66,7 @@ type Config struct {
 	RunnerTimeout                time.Duration  `help:"Runner heartbeat timeout." default:"10s"`
 	ControllerTimeout            time.Duration  `help:"Controller heartbeat timeout." default:"10s"`
 	DeploymentReservationTimeout time.Duration  `help:"Deployment reservation timeout." default:"120s"`
-	ModuleUpdateFrequency        time.Duration  `help:"Frequency to send module updates." default:"30s"`
+	ModuleUpdateFrequency        time.Duration  `help:"Frequency to send module updates." default:"1s"` //TODO: FIX this, this should be based on streaming events, 1s is a temp workaround for the lack of dependencies within changesets
 	ArtefactChunkSize            int            `help:"Size of each chunk streamed to the client." default:"1048576"`
 	CommonConfig
 }
@@ -159,6 +159,9 @@ func New(
 	config Config,
 	devel bool,
 ) (*Service, error) {
+	logger := log.FromContext(ctx)
+	logger = logger.Scope("controller")
+	ctx = log.ContextWithLogger(ctx, logger)
 	controllerKey := config.Key
 	if config.Key.IsZero() {
 		controllerKey = key.NewControllerKey(config.Bind.Hostname(), config.Bind.Port())
@@ -233,6 +236,7 @@ func New(
 	return svc, nil
 }
 
+// ProcessList lists "processes" running on the cluster.
 func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.ProcessListRequest]) (*connect.Response[ftlv1.ProcessListResponse], error) {
 	currentState, err := s.runnerState.View(ctx)
 	if err != nil {
@@ -323,11 +327,15 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	}
 	var deployments []*ftlv1.StatusResponse_Deployment
 	for key, deployment := range activeDeployments {
+		var minReplicas int32
+		if deployment.Runtime != nil && deployment.Runtime.Scaling != nil {
+			minReplicas = deployment.Runtime.Scaling.MinReplicas
+		}
 		deployments = append(deployments, &ftlv1.StatusResponse_Deployment{
 			Key:         key,
 			Language:    deployment.Runtime.Base.Language,
 			Name:        deployment.Name,
-			MinReplicas: deployment.Runtime.Scaling.MinReplicas,
+			MinReplicas: minReplicas,
 			Replicas:    replicas[key],
 			Schema:      deployment.ToProto(),
 		})
@@ -345,26 +353,9 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	return connect.NewResponse(resp), nil
 }
 
-func (s *Service) UpdateDeploy(ctx context.Context, req *connect.Request[ftlv1.UpdateDeployRequest]) (response *connect.Response[ftlv1.UpdateDeployResponse], err error) {
-	deploymentKey, err := key.ParseDeploymentKey(req.Msg.DeploymentKey)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
-	}
-
-	logger := s.getDeploymentLogger(ctx, deploymentKey)
-	logger.Debugf("Update deployment for: %s", deploymentKey)
-	if req.Msg.MinReplicas != nil {
-		err = s.setDeploymentReplicas(ctx, deploymentKey, int(*req.Msg.MinReplicas))
-		if err != nil {
-			logger.Errorf(err, "Could not set deployment replicas: %s", deploymentKey)
-			return nil, fmt.Errorf("could not set deployment replicas: %w", err)
-		}
-	}
-	return connect.NewResponse(&ftlv1.UpdateDeployResponse{}), nil
-}
-
 func (s *Service) setDeploymentReplicas(ctx context.Context, key key.Deployment, minReplicas int) (err error) {
 	deployments, err := s.schemaClient.GetDeployments(ctx, connect.NewRequest(&ftlv1.GetDeploymentsRequest{}))
+
 	if err != nil {
 		return fmt.Errorf("failed to get schema deployments: %w", err)
 	}
@@ -781,16 +772,16 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 		configs := configsResp.Msg.Values
 		routeTable := map[string]string{}
 		for _, module := range callableModuleNames {
+			if module == deployment.Name {
+				continue
+			}
 			deployment, ok := routeView.GetDeployment(module).Get()
 			if !ok {
 				continue
 			}
-			if route, ok := routeView.Get(deployment).Get(); ok {
+			if route, ok := routeView.Get(deployment).Get(); ok && route.String() != "" {
 				routeTable[deployment.String()] = route.String()
 			}
-		}
-		if !deployment.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
-			routeTable[key.String()] = deployment.Runtime.Deployment.Endpoint
 		}
 
 		secretsResp, err := s.adminClient.MapSecretsForModule(ctx, &connect.Request[ftlv1.MapSecretsForModuleRequest]{Msg: &ftlv1.MapSecretsForModuleRequest{Module: module}})
@@ -1024,6 +1015,7 @@ func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftl
 
 func (s *Service) UploadArtefact(ctx context.Context, req *connect.Request[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error) {
 	logger := log.FromContext(ctx)
+	logger.Debugf("Uploading artefact")
 	digest, err := s.storage.Upload(ctx, artefacts.Artefact{Content: req.Msg.Content})
 	if err != nil {
 		return nil, err

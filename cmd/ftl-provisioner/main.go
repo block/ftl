@@ -48,6 +48,6 @@ func main() {
 
 	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
 
-	err = provisioner.Start(ctx, cli.ProvisionerConfig, registry, controllerClient)
+	err = provisioner.Start(ctx, cli.ProvisionerConfig, registry, schemaClient)
 	kctx.FatalIfErrorf(err, "failed to start provisioner")
 }

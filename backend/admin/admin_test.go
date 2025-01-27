@@ -195,6 +195,14 @@ var testSchema = schema.MustValidate(&schema.Schema{
 type mockSchemaRetriever struct {
 }
 
+func (d *mockSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.Schema, error) {
+	return d.GetActiveSchema(ctx)
+}
+
+func (d *mockSchemaRetriever) GetLatestSchema(ctx context.Context) (*schema.Schema, error) {
+	return d.GetActiveSchema(ctx)
+}
+
 func (d *mockSchemaRetriever) GetActiveSchema(ctx context.Context) (*schema.Schema, error) {
 	return testSchema, nil
 }

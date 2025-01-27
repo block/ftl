@@ -14,7 +14,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
-	"github.com/jpillora/backoff"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl"
@@ -26,7 +25,6 @@ import (
 	"github.com/block/ftl/backend/ingress"
 	"github.com/block/ftl/backend/lease"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
-	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner"
@@ -46,7 +44,6 @@ import (
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/routing"
-	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"
 )
@@ -90,19 +87,17 @@ func (s *serveCmd) Run(
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
 	controllerClient ftlv1connect.ControllerServiceClient,
-	provisionerClient provisionerconnect.ProvisionerServiceClient,
 	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
-	verbClient ftlv1connect.VerbServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	bindAllocator, err := bind.NewBindAllocator(s.Bind, 2)
 	if err != nil {
 		return fmt.Errorf("could not create bind allocator: %w", err)
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, verbClient, buildEngineClient, s.Recreate, nil)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, buildEngineClient, s.Recreate, nil)
 }
 
 //nolint:maintidx
@@ -115,12 +110,10 @@ func (s *serveCommonConfig) run(
 	devMode bool,
 	bindAllocator *bind.BindAllocator,
 	controllerClient ftlv1connect.ControllerServiceClient,
-	provisionerClient provisionerconnect.ProvisionerServiceClient,
 	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
-	verbClient ftlv1connect.VerbServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	recreate bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,
@@ -144,11 +137,6 @@ func (s *serveCommonConfig) run(
 
 		if err := waitForControllerOnline(ctx, s.StartupTimeout, controllerClient); err != nil {
 			return err
-		}
-		if s.Provisioners > 0 {
-			if err := rpc.Wait(ctx, backoff.Backoff{Max: s.StartupTimeout}, s.StartupTimeout, provisionerClient); err != nil {
-				return fmt.Errorf("provisioner failed to start: %w", err)
-			}
 		}
 
 		os.Exit(0)
@@ -289,6 +277,7 @@ func (s *serveCommonConfig) run(
 		}
 		wg.Go(func() error {
 			// Deliberately start Console in the foreground.
+			ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
 			err := console.Start(ctx, s.Console, schemaEventSourceFactory(), controllerClient, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), buildEngineClient)
 			if err != nil {
 				return fmt.Errorf("failed to start console server: %w", err)
@@ -329,11 +318,6 @@ func (s *serveCommonConfig) run(
 					ID:          "migration",
 				},
 				{
-					Provisioner: provisioner.NewControllerProvisioner(controllerClient),
-					Types:       []schema.ResourceType{schema.ResourceTypeModule},
-					ID:          "controller",
-				},
-				{
 					Provisioner: provisioner.NewRunnerScalingProvisioner(runnerScaling),
 					Types:       []schema.ResourceType{schema.ResourceTypeRunner},
 					ID:          "runner",
@@ -351,7 +335,7 @@ func (s *serveCommonConfig) run(
 		}
 
 		wg.Go(func() error {
-			if err := provisioner.Start(provisionerCtx, config, provisionerRegistry, controllerClient); err != nil {
+			if err := provisioner.Start(provisionerCtx, config, provisionerRegistry, schemaClient); err != nil {
 				logger.Errorf(err, "provisioner%d failed: %v", i, err)
 				return fmt.Errorf("provisioner%d failed: %w", i, err)
 			}
@@ -369,6 +353,7 @@ func (s *serveCommonConfig) run(
 	})
 	// Start Cron
 	wg.Go(func() error {
+		ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("cron"))
 		err := cron.Start(ctx, schemaEventSourceFactory(), routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), timelineClient)
 		if err != nil {
 			return fmt.Errorf("cron failed: %w", err)
@@ -377,6 +362,7 @@ func (s *serveCommonConfig) run(
 	})
 	// Start Ingress
 	wg.Go(func() error {
+		ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("http-ingress"))
 		err := ingress.Start(ctx, s.Ingress, schemaEventSourceFactory(), routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), timelineClient)
 		if err != nil {
 			return fmt.Errorf("ingress failed: %w", err)
@@ -404,11 +390,6 @@ func (s *serveCommonConfig) run(
 		start := time.Now()
 		if err := waitForControllerOnline(ctx, s.StartupTimeout, controllerClient); err != nil {
 			return fmt.Errorf("controller failed to start: %w", err)
-		}
-		if s.Provisioners > 0 {
-			if err := rpc.Wait(ctx, backoff.Backoff{Max: s.StartupTimeout}, s.StartupTimeout, provisionerClient); err != nil {
-				return fmt.Errorf("provisioner failed to start: %w", err)
-			}
 		}
 		logger.Infof("Controller started in %.2fs", time.Since(start).Seconds())
 

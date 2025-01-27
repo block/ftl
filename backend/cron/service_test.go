@@ -12,7 +12,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/alecthomas/assert/v2"
-	"github.com/alecthomas/types/optional"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -64,8 +63,7 @@ func TestCron(t *testing.T) {
 		},
 	}
 	eventSource.Publish(schemaeventsource.EventUpsert{
-		Deployment: optional.Some(key.NewDeploymentKey("echo")),
-		Module:     module,
+		Module: module,
 	})
 
 	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, log.Config{Level: log.Trace}))
