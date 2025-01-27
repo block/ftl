@@ -4,6 +4,7 @@ import { StatusIndicator } from '../../components/StatusIndicator'
 import type { EngineEvent } from '../../protos/xyz/block/ftl/buildengine/v1/buildengine_pb'
 import type { Error as BuildError } from '../../protos/xyz/block/ftl/language/v1/language_pb'
 import { formatTimestampShort } from '../../utils'
+import { getEventText } from '../engine/engine.utils'
 
 interface BuildEngineEventsProps {
   events: EngineEvent[]
@@ -73,37 +74,6 @@ const EventContent = ({ event }: { event: EngineEvent }) => {
     }
   }
 
-  const renderEventContent = () => {
-    switch (event.event.case) {
-      case 'engineStarted':
-        return 'Engine started'
-      case 'engineEnded': {
-        const errorCount = Object.keys(event.event.value.moduleErrors).length
-        return errorCount > 0 ? 'Engine ended with errors' : 'Engine ended successfully'
-      }
-      case 'moduleAdded':
-        return 'Module added'
-      case 'moduleRemoved':
-        return 'Module removed'
-      case 'moduleBuildWaiting':
-        return 'Build waiting'
-      case 'moduleBuildStarted':
-        return `Build started${event.event.value.isAutoRebuild ? ' (auto rebuild)' : ''}`
-      case 'moduleBuildFailed':
-        return 'Build failed'
-      case 'moduleBuildSuccess':
-        return 'Build succeeded'
-      case 'moduleDeployStarted':
-        return 'Deploy started'
-      case 'moduleDeployFailed':
-        return 'Deploy failed'
-      case 'moduleDeploySuccess':
-        return 'Deploy succeeded'
-      case undefined:
-        return 'Unknown event'
-    }
-  }
-
   const getErrors = () => {
     switch (event.event.case) {
       case 'engineEnded':
@@ -123,7 +93,7 @@ const EventContent = ({ event }: { event: EngineEvent }) => {
             <span className='text-gray-400 text-xs'>{timestamp}</span>
           </div>
           <div className='mt-1'>
-            <StatusIndicator state={getEventStatus()} text={renderEventContent()} />
+            <StatusIndicator state={getEventStatus()} text={getEventText(event)} />
             <ErrorDisplay errors={getErrors()} />
           </div>
         </div>

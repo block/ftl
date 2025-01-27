@@ -46,6 +46,19 @@ func (e *Engine) startUpdatesService(ctx context.Context, endpoint *url.URL) err
 		events: make([]*buildenginepb.EngineEvent, 0),
 	}
 
+	// Subscribe to engine updates from the start
+	events := make(chan *buildenginepb.EngineEvent, 128)
+	svc.engine.EngineUpdates.Subscribe(events)
+
+	// Start goroutine to collect events
+	go func() {
+		for event := range channels.IterContext(ctx, events) {
+			svc.lock.Lock()
+			svc.events = append(svc.events, event)
+			svc.lock.Unlock()
+		}
+	}()
+
 	// Start cache cleanup goroutine
 	go svc.cleanupCache(ctx)
 

@@ -2,9 +2,13 @@ import { ArrowRight01Icon, ArrowShrink02Icon, ViewIcon, ViewOffSlashIcon } from 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
+import { HoverPopup } from '../../components/HoverPopup'
 import { Multiselect, sortMultiselectOpts } from '../../components/Multiselect'
 import type { MultiselectOpt } from '../../components/Multiselect'
+import { StatusIndicator } from '../../components/StatusIndicator'
 import { classNames } from '../../utils'
+import { getEventText, getModuleStatus } from '../engine/engine.utils'
+import { useEngineStatus } from '../engine/use-engine-status'
 import type { DeclInfo, ModuleTreeItem } from './module.utils'
 import {
   addModuleToLocalStorageIfMissing,
@@ -98,6 +102,10 @@ const ModuleSection = ({
     }
   }, [isSelected, declName, module.decls, expandedGroups])
 
+  const { modules } = useEngineStatus()
+  const moduleEvent = modules[module.name]
+  const status = getModuleStatus(moduleEvent)
+
   return (
     <li key={module.name} id={`module-tree-module-${module.name}`} className='mb-2'>
       <div
@@ -110,6 +118,9 @@ const ModuleSection = ({
         onClick={() => toggleExpansion(module.name)}
       >
         <ArrowRight01Icon aria-hidden='true' className={`h-4 w-4 shrink-0 ${isExpanded ? 'rotate-90 text-gray-500' : ''}`} />
+        <HoverPopup popupContent={getEventText(moduleEvent)}>
+          <StatusIndicator state={status} />
+        </HoverPopup>
         {module.name}
         <Link
           to={`/modules/${module.name}`}
