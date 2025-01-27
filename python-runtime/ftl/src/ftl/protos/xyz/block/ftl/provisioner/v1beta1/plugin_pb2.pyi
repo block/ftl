@@ -42,18 +42,6 @@ class StatusRequest(_message.Message):
     desired_module: _schema_pb2.Module
     def __init__(self, provisioning_token: _Optional[str] = ..., desired_module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
 
-class ProvisioningEvent(_message.Message):
-    __slots__ = ("module_runtime_event", "database_runtime_event", "topic_runtime_event", "verb_runtime_event")
-    MODULE_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
-    DATABASE_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
-    TOPIC_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
-    VERB_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
-    module_runtime_event: _schema_pb2.ModuleRuntimeEvent
-    database_runtime_event: _schema_pb2.DatabaseRuntimeEvent
-    topic_runtime_event: _schema_pb2.TopicRuntimeEvent
-    verb_runtime_event: _schema_pb2.VerbRuntimeEvent
-    def __init__(self, module_runtime_event: _Optional[_Union[_schema_pb2.ModuleRuntimeEvent, _Mapping]] = ..., database_runtime_event: _Optional[_Union[_schema_pb2.DatabaseRuntimeEvent, _Mapping]] = ..., topic_runtime_event: _Optional[_Union[_schema_pb2.TopicRuntimeEvent, _Mapping]] = ..., verb_runtime_event: _Optional[_Union[_schema_pb2.VerbRuntimeEvent, _Mapping]] = ...) -> None: ...
-
 class StatusResponse(_message.Message):
     __slots__ = ("running", "success")
     class ProvisioningRunning(_message.Message):
@@ -67,8 +55,8 @@ class StatusResponse(_message.Message):
     class ProvisioningSuccess(_message.Message):
         __slots__ = ("events",)
         EVENTS_FIELD_NUMBER: _ClassVar[int]
-        events: _containers.RepeatedCompositeFieldContainer[ProvisioningEvent]
-        def __init__(self, events: _Optional[_Iterable[_Union[ProvisioningEvent, _Mapping]]] = ...) -> None: ...
+        events: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Event]
+        def __init__(self, events: _Optional[_Iterable[_Union[_schema_pb2.Event, _Mapping]]] = ...) -> None: ...
     RUNNING_FIELD_NUMBER: _ClassVar[int]
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     running: StatusResponse.ProvisioningRunning

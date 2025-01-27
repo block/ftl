@@ -8,6 +8,7 @@ import (
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
+	"github.com/block/ftl/backend/schemaservice"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
@@ -122,10 +123,19 @@ func (reg *ProvisionerRegistry) Register(id string, handler provisionerconnect.P
 func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, desiredModule, existingModule *schema.Module) *Deployment {
 	logger := log.FromContext(ctx)
 	module := desiredModule.GetName()
+	state := schemaservice.NewSchemaState()
+
+	_, err := state.ApplyEvent(&schema.ProvisioningCreatedEvent{
+		DesiredModule: desiredModule,
+	})
+	if err != nil {
+		// should never happen
+		panic(fmt.Sprintf("error applying provisioning created event: %v", err))
+	}
 
 	deployment := &Deployment{
-		Module:   desiredModule,
-		Previous: existingModule,
+		DeploymentState: &state,
+		Previous:        existingModule,
 	}
 
 	allDesired := schema.GetProvisionedResources(desiredModule)

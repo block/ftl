@@ -5,12 +5,13 @@ import (
 
 	"github.com/alecthomas/types/tuple"
 
+	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/iterops"
 )
 
 // EventExtractor calculates controller events from changes to the state.
-func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEvent] {
-	var events []SchemaEvent
+func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.Event] {
+	var events []schema.Event
 
 	previous := diff.A
 	current := diff.B
@@ -19,12 +20,12 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEv
 	for key, deployment := range current.GetDeployments() {
 		pd, ok := previousAll[key]
 		if !ok {
-			events = append(events, &DeploymentCreatedEvent{
+			events = append(events, &schema.DeploymentCreatedEvent{
 				Key:    key,
 				Schema: deployment,
 			})
 		} else if !pd.Equals(deployment) {
-			events = append(events, &DeploymentSchemaUpdatedEvent{
+			events = append(events, &schema.DeploymentSchemaUpdatedEvent{
 				Key:    key,
 				Schema: deployment,
 			})
@@ -40,7 +41,7 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[SchemaEv
 	for key, deployment := range previous.GetActiveDeployments() {
 		if _, ok := currentActive[key]; !ok {
 			_, ok2 := currentModules[deployment.Name]
-			events = append(events, &DeploymentDeactivatedEvent{
+			events = append(events, &schema.DeploymentDeactivatedEvent{
 				Key:           key,
 				ModuleRemoved: !ok2,
 			})

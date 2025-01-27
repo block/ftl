@@ -94,7 +94,13 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	}
 	logger.Debugf("Finished deployment for module %s", moduleName)
 
-	deploymentKey := deployment.Module.Runtime.Deployment.DeploymentKey
+	module, err := deployment.DeploymentState.GetProvisioning(moduleName)
+	if err != nil {
+		return nil, fmt.Errorf("error getting module: %w", err)
+	}
+	logger.Warnf("STATUS: %+v", module.Runtime.Deployment)
+
+	deploymentKey := module.Runtime.Deployment.DeploymentKey
 	return connect.NewResponse(&ftlv1.CreateDeploymentResponse{
 		DeploymentKey: deploymentKey.String(),
 	}), nil

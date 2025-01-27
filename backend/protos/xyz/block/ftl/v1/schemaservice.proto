@@ -36,7 +36,6 @@ message PullSchemaResponse {
 }
 
 message UpdateDeploymentRuntimeRequest {
-  string deployment = 1;
   ftl.schema.v1.ModuleRuntimeEvent event = 2;
 }
 

@@ -19,15 +19,6 @@ func (d *DatabaseRuntime) schemaChildren() []Node {
 	return []Node{d.Connections}
 }
 
-func (d *DatabaseRuntime) ApplyEvent(e *DatabaseRuntimeEvent) {
-	switch e := e.Payload.(type) {
-	case *DatabaseRuntimeConnectionsEvent:
-		d.Connections = e.Connections
-	default:
-		panic(fmt.Sprintf("unknown database runtime event type: %T", e))
-	}
-}
-
 type DatabaseRuntimeConnections struct {
 	Read  DatabaseConnector `parser:"" protobuf:"1"`
 	Write DatabaseConnector `parser:"" protobuf:"2"`
@@ -83,39 +74,3 @@ func (d *AWSIAMAuthDatabaseConnector) String() string {
 }
 
 func (d *AWSIAMAuthDatabaseConnector) schemaChildren() []Node { return nil }
-
-//protobuf:5 RuntimeEvent
-//protobuf:export
-type DatabaseRuntimeEvent struct {
-	ID      string                      `parser:"" protobuf:"1"`
-	Payload DatabaseRuntimeEventPayload `parser:"" protobuf:"2"`
-}
-
-var _ RuntimeEvent = (*DatabaseRuntimeEvent)(nil)
-
-func (d *DatabaseRuntimeEvent) runtimeEvent() {}
-
-func (d *DatabaseRuntimeEvent) ApplyTo(s *Module) {
-	for _, decl := range s.Decls {
-		if db, ok := decl.(*Database); ok && db.Name == d.ID {
-			if db.Runtime == nil {
-				db.Runtime = &DatabaseRuntime{}
-			}
-			db.Runtime.ApplyEvent(d)
-		}
-	}
-}
-
-//sumtype:decl
-type DatabaseRuntimeEventPayload interface {
-	databaseRuntimeEventPayload()
-}
-
-//protobuf:1
-type DatabaseRuntimeConnectionsEvent struct {
-	Connections *DatabaseRuntimeConnections `parser:"" protobuf:"1"`
-}
-
-var _ DatabaseRuntimeEventPayload = (*DatabaseRuntimeConnectionsEvent)(nil)
-
-func (d *DatabaseRuntimeConnectionsEvent) databaseRuntimeEventPayload() {}

@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { DatabaseRuntimeEvent, Module, ModuleRuntimeEvent, TopicRuntimeEvent, VerbRuntimeEvent } from "../../schema/v1/schema_pb.js";
+import { Event, Module } from "../../schema/v1/schema_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.provisioner.v1beta1.ProvisionRequest
@@ -171,70 +171,6 @@ export class StatusRequest extends Message<StatusRequest> {
 }
 
 /**
- * @generated from message xyz.block.ftl.provisioner.v1beta1.ProvisioningEvent
- */
-export class ProvisioningEvent extends Message<ProvisioningEvent> {
-  /**
-   * @generated from oneof xyz.block.ftl.provisioner.v1beta1.ProvisioningEvent.value
-   */
-  value: {
-    /**
-     * @generated from field: xyz.block.ftl.schema.v1.ModuleRuntimeEvent module_runtime_event = 1;
-     */
-    value: ModuleRuntimeEvent;
-    case: "moduleRuntimeEvent";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.schema.v1.DatabaseRuntimeEvent database_runtime_event = 2;
-     */
-    value: DatabaseRuntimeEvent;
-    case: "databaseRuntimeEvent";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.schema.v1.TopicRuntimeEvent topic_runtime_event = 3;
-     */
-    value: TopicRuntimeEvent;
-    case: "topicRuntimeEvent";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.schema.v1.VerbRuntimeEvent verb_runtime_event = 4;
-     */
-    value: VerbRuntimeEvent;
-    case: "verbRuntimeEvent";
-  } | { case: undefined; value?: undefined } = { case: undefined };
-
-  constructor(data?: PartialMessage<ProvisioningEvent>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.provisioner.v1beta1.ProvisioningEvent";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "module_runtime_event", kind: "message", T: ModuleRuntimeEvent, oneof: "value" },
-    { no: 2, name: "database_runtime_event", kind: "message", T: DatabaseRuntimeEvent, oneof: "value" },
-    { no: 3, name: "topic_runtime_event", kind: "message", T: TopicRuntimeEvent, oneof: "value" },
-    { no: 4, name: "verb_runtime_event", kind: "message", T: VerbRuntimeEvent, oneof: "value" },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProvisioningEvent {
-    return new ProvisioningEvent().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ProvisioningEvent {
-    return new ProvisioningEvent().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ProvisioningEvent {
-    return new ProvisioningEvent().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: ProvisioningEvent | PlainMessage<ProvisioningEvent> | undefined, b: ProvisioningEvent | PlainMessage<ProvisioningEvent> | undefined): boolean {
-    return proto3.util.equals(ProvisioningEvent, a, b);
-  }
-}
-
-/**
  * @generated from message xyz.block.ftl.provisioner.v1beta1.StatusResponse
  */
 export class StatusResponse extends Message<StatusResponse> {
@@ -357,9 +293,9 @@ export class StatusResponse_ProvisioningFailed extends Message<StatusResponse_Pr
  */
 export class StatusResponse_ProvisioningSuccess extends Message<StatusResponse_ProvisioningSuccess> {
   /**
-   * @generated from field: repeated xyz.block.ftl.provisioner.v1beta1.ProvisioningEvent events = 1;
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Event events = 1;
    */
-  events: ProvisioningEvent[] = [];
+  events: Event[] = [];
 
   constructor(data?: PartialMessage<StatusResponse_ProvisioningSuccess>) {
     super();
@@ -369,7 +305,7 @@ export class StatusResponse_ProvisioningSuccess extends Message<StatusResponse_P
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.provisioner.v1beta1.StatusResponse.ProvisioningSuccess";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "events", kind: "message", T: ProvisioningEvent, repeated: true },
+    { no: 1, name: "events", kind: "message", T: Event, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StatusResponse_ProvisioningSuccess {
