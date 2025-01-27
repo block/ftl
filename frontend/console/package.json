@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build": "tsc && vite build",
+    "build:analyze": "ANALYZE=true vite build",
     "build:css-types": "tcm --c -p  'src/**/*.css' .",
     "copy:css": "node ./scripts/copy-css.cjs",
     "dev": "vite",
@@ -94,6 +95,7 @@
     "lint-staged": "15.4.1",
     "postcss": "8.5.1",
     "postcss-nesting": "13.0.1",
+    "rollup-plugin-visualizer": "^5.14.0",
     "storybook": "^8.2.7",
     "storybook-dark-mode": "^4.0.2",
     "typed-css-modules": "0.9.1",
