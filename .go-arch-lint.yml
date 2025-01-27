@@ -27,7 +27,7 @@ components:
 
   runner: { in: backend/runner/** }
 
-  ftl-cmd: { in: frontend/cli/** }
+  ftl-cmd: { in: cmd/ftl/** }
   frontend: { in: frontend/console/** }
 
   ftl-runner-cmd: { in: cmd/ftl-runner/** }

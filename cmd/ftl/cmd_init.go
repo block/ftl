@@ -137,10 +137,7 @@ func maybeGitAdd(ctx context.Context, dir string, paths ...string) error {
 }
 
 func installHermitFTL(ctx context.Context, dir string) error {
-	for _, install := range strings.Split(userHermitPackages, "\n") {
-		if install == "" {
-			continue
-		}
+	for _, install := range strings.Fields(userHermitPackages) {
 		args := []string{"install", install}
 		if err := exec.Command(ctx, log.Debug, dir, "./bin/hermit", args...).RunBuffered(ctx); err != nil {
 			return fmt.Errorf("unable to install hermit package %s %w", install, err)
