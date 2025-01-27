@@ -18,7 +18,5 @@ service ProvisionerService {
   rpc Status(xyz.block.ftl.v1.StatusRequest) returns (xyz.block.ftl.v1.StatusResponse);
   rpc GetArtefactDiffs(xyz.block.ftl.v1.GetArtefactDiffsRequest) returns (xyz.block.ftl.v1.GetArtefactDiffsResponse);
   rpc UploadArtefact(xyz.block.ftl.v1.UploadArtefactRequest) returns (xyz.block.ftl.v1.UploadArtefactResponse);
-  rpc CreateDeployment(xyz.block.ftl.v1.CreateDeploymentRequest) returns (xyz.block.ftl.v1.CreateDeploymentResponse);
   rpc UpdateDeploy(xyz.block.ftl.v1.UpdateDeployRequest) returns (xyz.block.ftl.v1.UpdateDeployResponse);
-  rpc ReplaceDeploy(xyz.block.ftl.v1.ReplaceDeployRequest) returns (xyz.block.ftl.v1.ReplaceDeployResponse);
 }

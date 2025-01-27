@@ -32,7 +32,12 @@ func NewLocalClient(cm *manager.Manager[cf.Configuration], sm *manager.Manager[c
 	return &localClient{NewAdminService(cm, sm, &diskSchemaRetriever{})}
 }
 
-func (s *diskSchemaRetriever) GetActiveSchema(ctx context.Context) (*schema.Schema, error) {
+func (s *diskSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.Schema, error) {
+	// disk schema can not tell canonical schema from latest schema
+	return s.GetLatestSchema(ctx)
+}
+
+func (s *diskSchemaRetriever) GetLatestSchema(ctx context.Context) (*schema.Schema, error) {
 	path, ok := projectconfig.DefaultConfigPath().Get()
 	if !ok {
 		return nil, fmt.Errorf("no project config path available")

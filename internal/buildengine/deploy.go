@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"golang.org/x/exp/maps"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -27,42 +28,136 @@ type deploymentArtefact struct {
 	localPath string
 }
 
+// TODO: rename
 type DeployClient interface {
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error)
 	UploadArtefact(ctx context.Context, req *connect.Request[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error)
-	CreateDeployment(ctx context.Context, req *connect.Request[ftlv1.CreateDeploymentRequest]) (*connect.Response[ftlv1.CreateDeploymentResponse], error)
-	ReplaceDeploy(ctx context.Context, req *connect.Request[ftlv1.ReplaceDeployRequest]) (*connect.Response[ftlv1.ReplaceDeployResponse], error)
+	// CreateDeployment(ctx context.Context, req *connect.Request[ftlv1.CreateDeploymentRequest]) (*connect.Response[ftlv1.CreateDeploymentResponse], error)
+	// ReplaceDeploy(ctx context.Context, req *connect.Request[ftlv1.ReplaceDeployRequest]) (*connect.Response[ftlv1.ReplaceDeployResponse], error)
 	Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error)
 	UpdateDeploy(ctx context.Context, req *connect.Request[ftlv1.UpdateDeployRequest]) (*connect.Response[ftlv1.UpdateDeployResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
 
+type SchemaServiceClient interface {
+	CreateChangeset(ctx context.Context, req *connect.Request[ftlv1.CreateChangesetRequest]) (*connect.Response[ftlv1.CreateChangesetResponse], error)
+	PullSchema(context.Context, *connect.Request[ftlv1.PullSchemaRequest]) (*connect.ServerStreamForClient[ftlv1.PullSchemaResponse], error)
+	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
+}
+
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func Deploy(ctx context.Context, projectConfig projectconfig.Config, module Module, deploy []string, replicas int32, waitForDeployOnline bool, client DeployClient) error {
+func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, deployClient DeployClient, schemaserviceClient SchemaServiceClient) error {
+	logger := log.FromContext(ctx)
+	uploadGroup := errgroup.Group{}
+	moduleSchemas := make(chan *schemapb.Module, len(modules))
+	for _, module := range modules {
+		uploadGroup.Go(func() error {
+			sch, err := uploadArtefacts(ctx, projectConfig, module, deployClient)
+			if err != nil {
+				return err
+			}
+			moduleSchemas <- sch
+			return nil
+		})
+	}
+	if err := uploadGroup.Wait(); err != nil {
+		return err
+	}
+	close(moduleSchemas)
+	collectedSchemas := []*schemapb.Module{}
+	for {
+		sch, ok := <-moduleSchemas
+		if !ok {
+			break
+		}
+		collectedSchemas = append(collectedSchemas, sch)
+	}
+	resp, err := schemaserviceClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
+		Modules: collectedSchemas,
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to create changeset: %w", err)
+	}
+	key := resp.Msg.Changeset
+
+	// TODO: warn if stream is not completing?
+	stream, err := schemaserviceClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
+	defer stream.Close()
+	for {
+		if !stream.Receive() {
+			return fmt.Errorf("failed to pull schema: %w", stream.Err())
+		}
+		msg := stream.Msg()
+		switch msg := msg.Event.(type) {
+		case *ftlv1.PullSchemaResponse_ChangesetCommited_:
+			if msg.ChangesetCommited.Key != key {
+				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommited.Key)
+				continue
+			}
+			return nil
+		case *ftlv1.PullSchemaResponse_ChangesetFailed_:
+			if msg.ChangesetFailed.Key != key {
+				logger.Warnf("Expecting changeset %s to complete but got failure for %s", key, msg.ChangesetFailed.Key)
+				continue
+			}
+			return fmt.Errorf("changeset %s failed: %s", key, msg.ChangesetFailed.Error)
+
+		case *ftlv1.PullSchemaResponse_ChangesetCreated_:
+			// TODO: handle this case where stream starts after changeset ends. Or reconnects when changeset has ended
+		case *ftlv1.PullSchemaResponse_DeploymentCreated_,
+			*ftlv1.PullSchemaResponse_DeploymentUpdated_,
+			*ftlv1.PullSchemaResponse_DeploymentRemoved_:
+		}
+	}
+	// resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ftlv1.CreateDeploymentRequest{
+	// 	Schema: moduleSchema,
+	// }))
+	// if err != nil {
+	// 	return err
+	// }
+
+	// _, err = client.ReplaceDeploy(ctx, connect.NewRequest(&ftlv1.ReplaceDeployRequest{DeploymentKey: resp.Msg.GetDeploymentKey(), MinReplicas: replicas}))
+	// if err != nil {
+	// 	return err
+	// }
+
+	// if waitForDeployOnline {
+	// 	logger.Debugf("Waiting for deployment %s to become ready", resp.Msg.DeploymentKey)
+	// 	err = checkReadiness(ctx, client, resp.Msg.DeploymentKey, replicas, moduleSchema)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	logger.Infof("Deployment %s became ready", resp.Msg.DeploymentKey)
+	// }
+
+	// return nil
+}
+
+func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, module Module, client DeployClient) (*schemapb.Module, error) {
 	logger := log.FromContext(ctx).Module(module.Config.Module).Scope("deploy")
 	ctx = log.ContextWithLogger(ctx, logger)
 	logger.Infof("Deploying module")
 
 	moduleConfig := module.Config.Abs()
-	files, err := FindFilesToDeploy(moduleConfig, deploy)
+	files, err := FindFilesToDeploy(moduleConfig, module.Deploy)
 	if err != nil {
 		logger.Errorf(err, "failed to find files in %s", moduleConfig)
-		return err
+		return nil, err
 	}
 
 	filesByHash, err := hashFiles(moduleConfig.DeployDir, files)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	gadResp, err := client.GetArtefactDiffs(ctx, connect.NewRequest(&ftlv1.GetArtefactDiffsRequest{ClientDigests: maps.Keys(filesByHash)}))
 	if err != nil {
-		return fmt.Errorf("failed to get artefact diffs: %w", err)
+		return nil, fmt.Errorf("failed to get artefact diffs: %w", err)
 	}
 
 	moduleSchema, err := loadProtoSchema(projectConfig, moduleConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	logger.Debugf("Uploading %d/%d files", len(gadResp.Msg.MissingDigests), len(files))
@@ -70,14 +165,14 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, module Modu
 		file := filesByHash[missing]
 		content, err := os.ReadFile(file.localPath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		logger.Tracef("Uploading %s", relToCWD(file.localPath))
 		resp, err := client.UploadArtefact(ctx, connect.NewRequest(&ftlv1.UploadArtefactRequest{
 			Content: content,
 		}))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		logger.Debugf("Uploaded %s as %s:%s", relToCWD(file.localPath), sha256.FromBytes(resp.Msg.Digest), file.Path)
 	}
@@ -93,29 +188,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, module Modu
 			},
 		})
 	}
-
-	resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ftlv1.CreateDeploymentRequest{
-		Schema: moduleSchema,
-	}))
-	if err != nil {
-		return err
-	}
-
-	_, err = client.ReplaceDeploy(ctx, connect.NewRequest(&ftlv1.ReplaceDeployRequest{DeploymentKey: resp.Msg.GetDeploymentKey(), MinReplicas: replicas}))
-	if err != nil {
-		return err
-	}
-
-	if waitForDeployOnline {
-		logger.Debugf("Waiting for deployment %s to become ready", resp.Msg.DeploymentKey)
-		err = checkReadiness(ctx, client, resp.Msg.DeploymentKey, replicas, moduleSchema)
-		if err != nil {
-			return err
-		}
-		logger.Infof("Deployment %s became ready", resp.Msg.DeploymentKey)
-	}
-
-	return nil
+	return moduleSchema, nil
 }
 
 func terminateModuleDeployment(ctx context.Context, client DeployClient, module string) error {

@@ -43,6 +43,15 @@ const (
 	// SchemaServiceUpdateDeploymentRuntimeProcedure is the fully-qualified name of the SchemaService's
 	// UpdateDeploymentRuntime RPC.
 	SchemaServiceUpdateDeploymentRuntimeProcedure = "/xyz.block.ftl.v1.SchemaService/UpdateDeploymentRuntime"
+	// SchemaServiceCreateChangesetProcedure is the fully-qualified name of the SchemaService's
+	// CreateChangeset RPC.
+	SchemaServiceCreateChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/CreateChangeset"
+	// SchemaServiceCommitChangesetProcedure is the fully-qualified name of the SchemaService's
+	// CommitChangeset RPC.
+	SchemaServiceCommitChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/CommitChangeset"
+	// SchemaServiceFailChangesetProcedure is the fully-qualified name of the SchemaService's
+	// FailChangeset RPC.
+	SchemaServiceFailChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/FailChangeset"
 )
 
 // SchemaServiceClient is a client for the xyz.block.ftl.v1.SchemaService service.
@@ -58,6 +67,12 @@ type SchemaServiceClient interface {
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest]) (*connect.ServerStreamForClient[v1.PullSchemaResponse], error)
 	// UpdateModuleRuntime is used to update the runtime configuration of a module.
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error)
+	// CreateChangeset creates a new changeset.
+	CreateChangeset(context.Context, *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error)
+	// CommitChangeset makes all deployments for the changeset part of the canonical schema.
+	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
+	// FailChangeset fails an active changeset.
+	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
 }
 
 // NewSchemaServiceClient constructs a client for the xyz.block.ftl.v1.SchemaService service. By
@@ -93,6 +108,21 @@ func NewSchemaServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			baseURL+SchemaServiceUpdateDeploymentRuntimeProcedure,
 			opts...,
 		),
+		createChangeset: connect.NewClient[v1.CreateChangesetRequest, v1.CreateChangesetResponse](
+			httpClient,
+			baseURL+SchemaServiceCreateChangesetProcedure,
+			opts...,
+		),
+		commitChangeset: connect.NewClient[v1.CommitChangesetRequest, v1.CommitChangesetResponse](
+			httpClient,
+			baseURL+SchemaServiceCommitChangesetProcedure,
+			opts...,
+		),
+		failChangeset: connect.NewClient[v1.FailChangesetRequest, v1.FailChangesetResponse](
+			httpClient,
+			baseURL+SchemaServiceFailChangesetProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -102,6 +132,9 @@ type schemaServiceClient struct {
 	getSchema               *connect.Client[v1.GetSchemaRequest, v1.GetSchemaResponse]
 	pullSchema              *connect.Client[v1.PullSchemaRequest, v1.PullSchemaResponse]
 	updateDeploymentRuntime *connect.Client[v1.UpdateDeploymentRuntimeRequest, v1.UpdateDeploymentRuntimeResponse]
+	createChangeset         *connect.Client[v1.CreateChangesetRequest, v1.CreateChangesetResponse]
+	commitChangeset         *connect.Client[v1.CommitChangesetRequest, v1.CommitChangesetResponse]
+	failChangeset           *connect.Client[v1.FailChangesetRequest, v1.FailChangesetResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.SchemaService.Ping.
@@ -124,6 +157,21 @@ func (c *schemaServiceClient) UpdateDeploymentRuntime(ctx context.Context, req *
 	return c.updateDeploymentRuntime.CallUnary(ctx, req)
 }
 
+// CreateChangeset calls xyz.block.ftl.v1.SchemaService.CreateChangeset.
+func (c *schemaServiceClient) CreateChangeset(ctx context.Context, req *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error) {
+	return c.createChangeset.CallUnary(ctx, req)
+}
+
+// CommitChangeset calls xyz.block.ftl.v1.SchemaService.CommitChangeset.
+func (c *schemaServiceClient) CommitChangeset(ctx context.Context, req *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error) {
+	return c.commitChangeset.CallUnary(ctx, req)
+}
+
+// FailChangeset calls xyz.block.ftl.v1.SchemaService.FailChangeset.
+func (c *schemaServiceClient) FailChangeset(ctx context.Context, req *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error) {
+	return c.failChangeset.CallUnary(ctx, req)
+}
+
 // SchemaServiceHandler is an implementation of the xyz.block.ftl.v1.SchemaService service.
 type SchemaServiceHandler interface {
 	// Ping service for readiness.
@@ -137,6 +185,12 @@ type SchemaServiceHandler interface {
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error
 	// UpdateModuleRuntime is used to update the runtime configuration of a module.
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error)
+	// CreateChangeset creates a new changeset.
+	CreateChangeset(context.Context, *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error)
+	// CommitChangeset makes all deployments for the changeset part of the canonical schema.
+	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
+	// FailChangeset fails an active changeset.
+	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
 }
 
 // NewSchemaServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -168,6 +222,21 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 		svc.UpdateDeploymentRuntime,
 		opts...,
 	)
+	schemaServiceCreateChangesetHandler := connect.NewUnaryHandler(
+		SchemaServiceCreateChangesetProcedure,
+		svc.CreateChangeset,
+		opts...,
+	)
+	schemaServiceCommitChangesetHandler := connect.NewUnaryHandler(
+		SchemaServiceCommitChangesetProcedure,
+		svc.CommitChangeset,
+		opts...,
+	)
+	schemaServiceFailChangesetHandler := connect.NewUnaryHandler(
+		SchemaServiceFailChangesetProcedure,
+		svc.FailChangeset,
+		opts...,
+	)
 	return "/xyz.block.ftl.v1.SchemaService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SchemaServicePingProcedure:
@@ -178,6 +247,12 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 			schemaServicePullSchemaHandler.ServeHTTP(w, r)
 		case SchemaServiceUpdateDeploymentRuntimeProcedure:
 			schemaServiceUpdateDeploymentRuntimeHandler.ServeHTTP(w, r)
+		case SchemaServiceCreateChangesetProcedure:
+			schemaServiceCreateChangesetHandler.ServeHTTP(w, r)
+		case SchemaServiceCommitChangesetProcedure:
+			schemaServiceCommitChangesetHandler.ServeHTTP(w, r)
+		case SchemaServiceFailChangesetProcedure:
+			schemaServiceFailChangesetHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -201,4 +276,16 @@ func (UnimplementedSchemaServiceHandler) PullSchema(context.Context, *connect.Re
 
 func (UnimplementedSchemaServiceHandler) UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) CreateChangeset(context.Context, *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.CreateChangeset is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.CommitChangeset is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.FailChangeset is not implemented"))
 }

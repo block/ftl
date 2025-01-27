@@ -3,10 +3,13 @@ package schemaservice
 import (
 	"context"
 	"fmt"
-	"maps"
-	"slices"
 	"sync"
 
+	"github.com/block/ftl/common/slices"
+
+	"golang.org/x/exp/maps"
+
+	"github.com/alecthomas/types/optional"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
@@ -15,8 +18,11 @@ import (
 )
 
 type SchemaState struct {
-	deployments       map[key.Deployment]*schema.Module
-	activeDeployments map[key.Deployment]bool
+	deployments map[key.Deployment]*schema.Module
+	// TODO: move this to point to optional.key.Changeset, but really it doesnt belong here
+	activeDeployments map[key.Deployment]optional.Option[key.Changeset]
+	changesets        map[key.Changeset]*schema.Changeset
+	// TODO: consider removing committed changesets. Return success if asked about a missing changeset? Or keep the shell of changesets
 }
 
 func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, SchemaEvent] {
@@ -26,14 +32,29 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 		runningCtx: ctx,
 		state: SchemaState{
 			deployments:       map[key.Deployment]*schema.Module{},
-			activeDeployments: map[key.Deployment]bool{},
+			activeDeployments: map[key.Deployment]optional.Option[key.Changeset]{},
+			changesets:        map[key.Changeset]*schema.Changeset{},
 		},
 	})
 
 	return statemachine.NewSingleQueryHandle(handle, struct{}{})
 }
 
-func (r *SchemaState) GetDeployment(deployment key.Deployment) (*schema.Module, error) {
+// GetDeployment returns a deployment based on the deployment key and changeset.
+func (r *SchemaState) GetDeployment(deployment key.Deployment, changeset optional.Option[key.Changeset]) (*schema.Module, error) {
+	if changesetKey, ok := changeset.Get(); ok {
+		c, ok := r.changesets[changesetKey]
+		if !ok {
+			return nil, fmt.Errorf("changeset %s not found", changesetKey)
+		}
+		dep, ok := slices.Find(c.Modules, func(m *schema.Module) bool {
+			return m.Runtime.Deployment.DeploymentKey == deployment
+		})
+		if !ok {
+			return nil, fmt.Errorf("deployment %s not found in changeset %s", deployment, changesetKey)
+		}
+		return dep, nil
+	}
 	d, ok := r.deployments[deployment]
 	if !ok {
 		return nil, fmt.Errorf("deployment %s not found", deployment)
@@ -41,22 +62,53 @@ func (r *SchemaState) GetDeployment(deployment key.Deployment) (*schema.Module, 
 	return d, nil
 }
 
+// FindDeployment returns a deployment and which changeset it is in based on the deployment key.
+func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *schema.Module, changeset optional.Option[key.Changeset], err error) {
+	// TODO: add unit tests:
+	// - deployment in ended changeset + canonical
+	// - deployment in ended changeset + main list but no longer canonical
+	// - deployment in failed changeset
+	d, ok := r.deployments[deploymentKey]
+	if ok {
+		return d, optional.None[key.Changeset](), nil
+	}
+	for _, c := range r.changesets {
+		for _, m := range c.Modules {
+			if m.Runtime.Deployment.DeploymentKey == deploymentKey {
+				return m, optional.Some(c.Key), nil
+			}
+		}
+	}
+	return nil, optional.None[key.Changeset](), fmt.Errorf("deployment %s not found", deploymentKey)
+}
+
 func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 	return r.deployments
 }
 
-func (r *SchemaState) GetActiveDeployments() map[key.Deployment]*schema.Module {
+// GetActiveDeployments returns all active deployments (excluding those in changesets).
+func (r *SchemaState) GetCanonicalDeployments() map[key.Deployment]*schema.Module {
 	deployments := map[key.Deployment]*schema.Module{}
-	for key, active := range r.activeDeployments {
-		if active {
-			deployments[key] = r.deployments[key]
+	for key, changeset := range r.activeDeployments {
+		if _, ok := changeset.Get(); ok {
+			continue
 		}
+		deployments[key] = r.deployments[key]
 	}
 	return deployments
 }
 
-func (r *SchemaState) GetActiveDeploymentSchemas() []*schema.Module {
-	return slices.Collect(maps.Values(r.GetActiveDeployments()))
+// GetAllActiveDeployments returns all active deployments, including those in changesets.
+func (r *SchemaState) GetAllActiveDeployments() map[key.Deployment]*schema.Module {
+	deployments := map[key.Deployment]*schema.Module{}
+	for key, _ := range r.activeDeployments {
+		deployments[key] = r.deployments[key]
+	}
+	return deployments
+}
+
+func (r *SchemaState) GetCanonicalDeploymentSchemas() []*schema.Module {
+	return maps.Values(r.GetCanonicalDeployments())
 }
 
 type schemaStateMachine struct {

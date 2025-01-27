@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/alecthomas/types/optional"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -29,7 +30,7 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 	if err != nil {
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
-	schemas := view.GetActiveDeploymentSchemas()
+	schemas := view.GetCanonicalDeploymentSchemas()
 	modules := []*schemapb.Module{
 		schema.Builtins().ToProto(),
 	}
@@ -48,11 +49,19 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
+	var changeset optional.Option[key.Changeset]
+	if req.Msg.GetChangeset() != "" {
+		c, err := key.ParseChangesetKey(req.Msg.GetChangeset())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
+		}
+		changeset = optional.Some(c)
+	}
 	view, err := s.State.View(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
-	module, err := view.GetDeployment(deployment)
+	module, err := view.GetDeployment(deployment, changeset)
 	if err != nil {
 		return nil, fmt.Errorf("could not get schema: %w", err)
 	}
@@ -75,6 +84,42 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(&ftlv1.UpdateDeploymentRuntimeResponse{}), nil
 }
 
+// CreateChangeset creates a new changeset.
+func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv1.CreateChangesetRequest]) (*connect.Response[ftlv1.CreateChangesetResponse], error) {
+	modules, err := slices.MapErr(req.Msg.Modules, func(m *schemapb.Module) (*schema.Module, error) {
+		out, err := schema.ModuleFromProto(m)
+		if err != nil {
+			return nil, fmt.Errorf("invalid module %s: %w", m.Name, err)
+		}
+		return out, nil
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	changeset := &schema.Changeset{
+		Key:     key.NewChangesetKey(),
+		State:   schema.ChangesetStateProvisioning,
+		Modules: modules,
+	}
+
+	// TODO: validate changeset schema with canonical schema
+
+	s.State.Publish(ctx, &ChangesetCreatedEvent{
+		Changeset: changeset,
+	})
+	return connect.NewResponse(&ftlv1.CreateChangesetResponse{}), nil
+}
+
+// CommitChangeset makes all deployments for the changeset part of the canonical schema.
+func (s *Service) CommitChangeset(context.Context, *connect.Request[ftlv1.CommitChangesetRequest]) (*connect.Response[ftlv1.CommitChangesetResponse], error) {
+	return connect.NewResponse(&ftlv1.CommitChangesetResponse{}), nil
+}
+
+// FailChangeset fails an active changeset.
+func (s *Service) FailChangeset(context.Context, *connect.Request[ftlv1.FailChangesetRequest]) (*connect.Response[ftlv1.FailChangesetResponse], error) {
+	return connect.NewResponse(&ftlv1.FailChangesetResponse{}), nil
+}
+
 func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
 	logger := log.FromContext(ctx)
 
@@ -90,31 +135,35 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 		return fmt.Errorf("failed to get schema state: %w", err)
 	}
 
+	// TODO: update this to send changesets as well
+
 	// Seed the notification channel with the current deployments.
-	seedDeployments := view.GetActiveDeployments()
+	seedDeployments := view.GetCanonicalDeployments()
 	initialCount := len(seedDeployments)
 
 	builtins := schema.Builtins().ToProto()
 	builtinsResponse := &ftlv1.PullSchemaResponse{
-		ModuleName: builtins.Name,
-		Schema:     builtins,
-		ChangeType: ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
-		More:       initialCount > 0,
+		Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
+			DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
+				Schema: builtins,
+			},
+		},
+		More: initialCount > 0,
 	}
-
 	err = sendChange(builtinsResponse)
 	if err != nil {
 		return err
 	}
-	for key, initial := range seedDeployments {
+	for _, initial := range seedDeployments {
 		initialCount--
 		module := initial.ToProto()
 		err := sendChange(&ftlv1.PullSchemaResponse{
-			ModuleName:    module.Name,
-			DeploymentKey: proto.String(key.String()),
-			Schema:        module,
-			ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
-			More:          initialCount > 0,
+			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
+				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
+					Schema: module,
+				},
+			},
+			More: initialCount > 0,
 		})
 		if err != nil {
 			return err
@@ -126,10 +175,11 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 		switch event := notification.(type) {
 		case *DeploymentCreatedEvent:
 			err := sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				ModuleName:    event.Schema.Name,
-				DeploymentKey: proto.String(event.Key.String()),
-				Schema:        event.Schema.ToProto(),
-				ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
+				Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
+					DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
+						Schema: event.Schema.ToProto(),
+					},
+				},
 			})
 			if err != nil {
 				return err
@@ -139,17 +189,20 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return fmt.Errorf("failed to get schema state: %w", err)
 			}
-			dep, err := view.GetDeployment(event.Key)
+			dep, err := view.GetDeployment(event.Key, event.Changeset)
 			if err != nil {
 				logger.Errorf(err, "Deployment not found: %s", event.Key)
 				continue
 			}
 			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				ModuleName:    dep.Name,
-				DeploymentKey: proto.String(event.Key.String()),
-				Schema:        dep.ToProto(),
-				ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_REMOVED,
-				ModuleRemoved: event.ModuleRemoved,
+				Event: &ftlv1.PullSchemaResponse_DeploymentRemoved_{
+					DeploymentRemoved: &ftlv1.PullSchemaResponse_DeploymentRemoved{
+						Key:        proto.String(event.Key.String()),
+						ModuleName: dep.Name,
+						// If this is true then the module was removed as well as the deployment.
+						ModuleRemoved: event.ModuleRemoved,
+					},
+				},
 			})
 			if err != nil {
 				return err
@@ -159,16 +212,19 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return fmt.Errorf("failed to get schema state: %w", err)
 			}
-			dep, err := view.GetDeployment(event.Key)
+			dep, err := view.GetDeployment(event.Key, event.Changeset)
 			if err != nil {
 				logger.Errorf(err, "Deployment not found: %s", event.Key)
 				continue
 			}
 			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				ModuleName:    dep.Name,
-				DeploymentKey: proto.String(event.Key.String()),
-				Schema:        dep.ToProto(),
-				ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_CHANGED,
+				Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
+					DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
+						// TODO: include changeset info
+						Changeset: nil,
+						Schema:    dep.ToProto(),
+					},
+				},
 			})
 			if err != nil {
 				return err

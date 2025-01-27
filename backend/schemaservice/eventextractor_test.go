@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/tuple"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
@@ -80,8 +81,8 @@ func TestEventExtractor(t *testing.T) {
 						Name: "test",
 					},
 				},
-				activeDeployments: map[key.Deployment]bool{
-					deploymentKey(t, "dpl-test-sjkfislfjslfas"): true,
+				activeDeployments: map[key.Deployment]optional.Option[key.Changeset]{
+					deploymentKey(t, "dpl-test-sjkfislfjslfas"): optional.None[key.Changeset](),
 				},
 			},
 			current: SchemaState{
@@ -90,7 +91,7 @@ func TestEventExtractor(t *testing.T) {
 						Name: "test",
 					},
 				},
-				activeDeployments: map[key.Deployment]bool{},
+				activeDeployments: map[key.Deployment]optional.Option[key.Changeset]{},
 			},
 			want: []SchemaEvent{
 				&DeploymentDeactivatedEvent{
@@ -106,8 +107,8 @@ func TestEventExtractor(t *testing.T) {
 						Name: "test",
 					},
 				},
-				activeDeployments: map[key.Deployment]bool{
-					deploymentKey(t, "dpl-test-sjkfislfjslfaa"): true,
+				activeDeployments: map[key.Deployment]optional.Option[key.Changeset]{
+					deploymentKey(t, "dpl-test-sjkfislfjslfaa"): optional.None[key.Changeset](),
 				},
 			},
 			current: SchemaState{

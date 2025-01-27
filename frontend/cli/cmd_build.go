@@ -22,6 +22,7 @@ type buildCmd struct {
 func (b *buildCmd) Run(
 	ctx context.Context,
 	controllerClient ftlv1connect.ControllerServiceClient,
+	schemaServiceClient ftlv1connect.SchemaServiceClient,
 	schemaSourceFactory func() schemaeventsource.EventSource,
 	projConfig projectconfig.Config,
 ) error {
@@ -38,6 +39,7 @@ func (b *buildCmd) Run(
 	engine, err := buildengine.New(
 		ctx,
 		controllerClient,
+		schemaServiceClient,
 		schemaSourceFactory(),
 		projConfig,
 		b.Dirs,

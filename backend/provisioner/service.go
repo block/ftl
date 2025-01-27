@@ -66,40 +66,6 @@ func (s *Service) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*c
 	return &connect.Response[ftlv1.PingResponse]{}, nil
 }
 
-func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftlv1.CreateDeploymentRequest]) (*connect.Response[ftlv1.CreateDeploymentResponse], error) {
-	logger := log.FromContext(ctx)
-	// TODO: Block deployments to make sure only one module is modified at a time
-	moduleName := req.Msg.Schema.Name
-
-	existingModule, _ := s.currentModules.Load(moduleName)
-	desiredModule, err := schema.ValidatedModuleFromProto(req.Msg.Schema)
-	if err != nil {
-		return nil, fmt.Errorf("invalid desired module: %w", err)
-	}
-
-	if existingModule != nil {
-		syncExistingRuntimes(existingModule, desiredModule)
-	}
-
-	deployment := s.registry.CreateDeployment(ctx, desiredModule, existingModule)
-	running := true
-	logger.Debugf("Running deployment for module %s", moduleName)
-	for running {
-		r, err := deployment.Progress(ctx)
-		if err != nil {
-			// TODO: Deal with failed deployments
-			return nil, fmt.Errorf("error running a provisioner: %w", err)
-		}
-		running = r
-	}
-	logger.Debugf("Finished deployment for module %s", moduleName)
-
-	deploymentKey := deployment.Module.Runtime.Deployment.DeploymentKey
-	return connect.NewResponse(&ftlv1.CreateDeploymentResponse{
-		DeploymentKey: deploymentKey.String(),
-	}), nil
-}
-
 // Start the Provisioner. Blocks until the context is cancelled.
 func Start(
 	ctx context.Context,
@@ -155,14 +121,6 @@ func RegistryFromConfigFile(ctx context.Context, file *os.File, controller ftlv1
 func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error) {
 	resp, err := s.controllerClient.GetArtefactDiffs(ctx, req)
 
-	if err != nil {
-		return nil, fmt.Errorf("call to ftl-controller failed: %w", err)
-	}
-	return connect.NewResponse(resp.Msg), nil
-}
-
-func (s *Service) ReplaceDeploy(ctx context.Context, req *connect.Request[ftlv1.ReplaceDeployRequest]) (*connect.Response[ftlv1.ReplaceDeployResponse], error) {
-	resp, err := s.controllerClient.ReplaceDeploy(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("call to ftl-controller failed: %w", err)
 	}

@@ -34,8 +34,9 @@ func (r *DeploymentCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 }
 
 type DeploymentSchemaUpdatedEvent struct {
-	Key    key.Deployment
-	Schema *schema.Module
+	Key       key.Deployment
+	Schema    *schema.Module
+	Changeset optional.Option[key.Changeset]
 }
 
 func (r *DeploymentSchemaUpdatedEvent) Handle(t SchemaState) (SchemaState, error) {
@@ -48,14 +49,15 @@ func (r *DeploymentSchemaUpdatedEvent) Handle(t SchemaState) (SchemaState, error
 }
 
 type DeploymentReplicasUpdatedEvent struct {
-	Key      key.Deployment
-	Replicas int
+	Key       key.Deployment
+	Changeset optional.Option[key.Changeset]
+	Replicas  int
 }
 
 func (r *DeploymentReplicasUpdatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	existing, ok := t.deployments[r.Key]
-	if !ok {
-		return t, fmt.Errorf("deployment %s not found", r.Key)
+	existing, err := t.GetDeployment(r.Key, r.Changeset)
+	if err != nil {
+		return SchemaState{}, err
 	}
 	existing.ModRuntime().ModScaling().MinReplicas = int32(r.Replicas)
 	return t, nil
@@ -63,32 +65,32 @@ func (r *DeploymentReplicasUpdatedEvent) Handle(t SchemaState) (SchemaState, err
 
 type DeploymentActivatedEvent struct {
 	Key         key.Deployment
+	Changeset   optional.Option[key.Changeset]
 	ActivatedAt time.Time
 	MinReplicas int
 }
 
 func (r *DeploymentActivatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	existing, ok := t.deployments[r.Key]
-	if !ok {
-		return t, fmt.Errorf("deployment %s not found", r.Key)
-
+	existing, err := t.GetDeployment(r.Key, r.Changeset)
+	if err != nil {
+		return SchemaState{}, err
 	}
 	existing.ModRuntime().ModDeployment().ActivatedAt = optional.Some(r.ActivatedAt)
 	existing.ModRuntime().ModScaling().MinReplicas = int32(r.MinReplicas)
-	t.activeDeployments[r.Key] = true
+	t.activeDeployments[r.Key] = r.Changeset
 	return t, nil
 }
 
 type DeploymentDeactivatedEvent struct {
 	Key           key.Deployment
+	Changeset     optional.Option[key.Changeset]
 	ModuleRemoved bool
 }
 
 func (r *DeploymentDeactivatedEvent) Handle(t SchemaState) (SchemaState, error) {
-	existing, ok := t.deployments[r.Key]
-	if !ok {
-		return t, fmt.Errorf("deployment %s not found", r.Key)
-
+	existing, err := t.GetDeployment(r.Key, r.Changeset)
+	if err != nil {
+		return SchemaState{}, err
 	}
 	existing.ModRuntime().ModScaling().MinReplicas = 0
 	delete(t.activeDeployments, r.Key)

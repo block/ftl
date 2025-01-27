@@ -12,6 +12,13 @@ class AliasKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     ALIAS_KIND_UNSPECIFIED: _ClassVar[AliasKind]
     ALIAS_KIND_JSON: _ClassVar[AliasKind]
 
+class ChangesetState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    CHANGESET_STATE_UNSPECIFIED: _ClassVar[ChangesetState]
+    CHANGESET_STATE_PROVISIONING: _ClassVar[ChangesetState]
+    CHANGESET_STATE_COMMITTED: _ClassVar[ChangesetState]
+    CHANGESET_STATE_FAILED: _ClassVar[ChangesetState]
+
 class FromOffset(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     FROM_OFFSET_UNSPECIFIED: _ClassVar[FromOffset]
@@ -19,6 +26,10 @@ class FromOffset(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FROM_OFFSET_LATEST: _ClassVar[FromOffset]
 ALIAS_KIND_UNSPECIFIED: AliasKind
 ALIAS_KIND_JSON: AliasKind
+CHANGESET_STATE_UNSPECIFIED: ChangesetState
+CHANGESET_STATE_PROVISIONING: ChangesetState
+CHANGESET_STATE_COMMITTED: ChangesetState
+CHANGESET_STATE_FAILED: ChangesetState
 FROM_OFFSET_UNSPECIFIED: FromOffset
 FROM_OFFSET_BEGINNING: FromOffset
 FROM_OFFSET_LATEST: FromOffset
@@ -60,6 +71,20 @@ class Bytes(_message.Message):
     POS_FIELD_NUMBER: _ClassVar[int]
     pos: Position
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ...) -> None: ...
+
+class Changeset(_message.Message):
+    __slots__ = ("key", "created_at", "modules", "state", "error")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    MODULES_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    created_at: _timestamp_pb2.Timestamp
+    modules: _containers.RepeatedCompositeFieldContainer[Module]
+    state: ChangesetState
+    error: str
+    def __init__(self, key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., state: _Optional[_Union[ChangesetState, str]] = ..., error: _Optional[str] = ...) -> None: ...
 
 class Config(_message.Message):
     __slots__ = ("pos", "comments", "name", "type")

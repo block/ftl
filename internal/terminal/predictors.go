@@ -18,7 +18,7 @@ type verbPredictor struct {
 }
 
 func (v *verbPredictor) Predict(args complete.Args) []string {
-	sch := v.view.Get()
+	sch := v.view.GetCanonical()
 	ret := []string{}
 	for _, module := range sch.Modules {
 		for _, dec := range module.Decls {
