@@ -106,9 +106,9 @@ dev *args:
 capture-hermit-versions:
     #!/bin/bash
     set -euo pipefail
-    rm frontend/cli/dependency-versions.txt
+    rm cmd/ftl/dependency-versions.txt
     for dep in {{USER_HERMIT_PACKAGES}}; do
-        ls bin/.* | grep $dep | sed 's/.....\(.*\)....$/\1/' >> frontend/cli/dependency-versions.txt
+        ls bin/.* | grep $dep | sed 's/.....\(.*\)....$/\1/' >> cmd/ftl/dependency-versions.txt
     done
 
 # Build everything
@@ -141,9 +141,7 @@ build-without-frontend +tools: build-protos build-zips capture-hermit-versions
   export CGO_ENABLED=0
 
   for tool in $@; do
-    path="cmd/$tool"
-    test "$tool" = "ftl" && path="frontend/cli"
-    just _build-go-binary-fast "./$path" "$tool"
+    just _build-go-binary-fast "./cmd/$tool" "$tool"
   done
 
 # Build all backend binaries

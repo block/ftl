@@ -17,8 +17,5 @@ fi
 name="$(basename "$0")"
 dest="${FTL_DIR}/build/devel"
 src="./cmd/${name}"
-if [ "${name}" = "ftl" ]; then
-  src="./frontend/cli"
-fi
 mkdir -p "$dest"
 (cd "${FTL_DIR}/${src}" && "${FTL_DIR}/bin/go" build -ldflags="-s -w -buildid=" -o "$dest/${name}" .) && exec "$dest/${name}" "$@"
