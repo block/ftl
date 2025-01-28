@@ -18,7 +18,7 @@ func Graph(s *Schema) map[RefKey]GraphNode {
 	result := map[RefKey]GraphNode{}
 
 	for _, module := range s.Modules {
-		Visit(module, func(s Node, next func() error) error {
+		Visit(module, func(s Node, next func() error) error { //nolint:errcheck
 			d, ok := s.(Decl)
 			if !ok {
 				return next()
@@ -67,7 +67,7 @@ func outboundEdges(n Node, ignoredRefs map[RefKey]bool) []RefKey {
 	if r, ok := n.(*Ref); ok {
 		out = append(out, r.ToRefKey())
 	}
-	Visit(n, func(n Node, next func() error) error {
+	Visit(n, func(n Node, next func() error) error { //nolint:errcheck
 		r, ok := n.(*Ref)
 		if !ok {
 			return next()

@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -74,96 +73,96 @@ module c {
 
 	expected := map[RefKey]GraphNode{}
 	// builtins
-	addExpectedNode(expected, "builtin.Empty",
+	addExpectedNode(t, expected, "builtin.Empty",
 		[]string{},
 		[]string{},
 	)
-	addExpectedNode(expected, "builtin.Ref",
+	addExpectedNode(t, expected, "builtin.Ref",
 		[]string{"builtin.CatchRequest"},
 		[]string{},
 	)
-	addExpectedNode(expected, "builtin.HttpRequest",
+	addExpectedNode(t, expected, "builtin.HttpRequest",
 		[]string{"a.inboundWithExternalTypes"},
 		[]string{},
 	)
-	addExpectedNode(expected, "builtin.HttpResponse",
+	addExpectedNode(t, expected, "builtin.HttpResponse",
 		[]string{"a.inboundWithExternalTypes"},
 		[]string{},
 	)
-	addExpectedNode(expected, "builtin.CatchRequest",
+	addExpectedNode(t, expected, "builtin.CatchRequest",
 		[]string{},
 		[]string{"builtin.Ref"},
 	)
-	addExpectedNode(expected, "builtin.FailedEvent",
+	addExpectedNode(t, expected, "builtin.FailedEvent",
 		[]string{},
 		[]string{},
 	)
 
 	// module a
-	addExpectedNode(expected, "a.employeeOfTheMonth",
+	addExpectedNode(t, expected, "a.employeeOfTheMonth",
 		[]string{}, []string{"a.User"})
-	addExpectedNode(expected, "a.myFavoriteChild",
+	addExpectedNode(t, expected, "a.myFavoriteChild",
 		[]string{}, []string{"a.User"})
-	addExpectedNode(expected, "a.db",
+	addExpectedNode(t, expected, "a.db",
 		[]string{"a.getUsers"},
 		[]string{})
-	addExpectedNode(expected, "a.User",
+	addExpectedNode(t, expected, "a.User",
 		[]string{"a.Event", "a.myFavoriteChild", "a.employeeOfTheMonth", "a.getUsers", "c.AliasedUser", "c.end"},
 		[]string{},
 	)
-	addExpectedNode(expected, "a.Event",
+	addExpectedNode(t, expected, "a.Event",
 		[]string{"a.postEvent"},
 		[]string{"a.User"})
-	addExpectedNode(expected, "a.empty",
+	addExpectedNode(t, expected, "a.empty",
 		[]string{},
 		[]string{})
-	addExpectedNode(expected, "a.postEvent",
+	addExpectedNode(t, expected, "a.postEvent",
 		[]string{}, []string{"a.Event"})
-	addExpectedNode(expected, "a.getUsers",
+	addExpectedNode(t, expected, "a.getUsers",
 		[]string{},
 		[]string{"a.User", "a.db"},
 	)
-	addExpectedNode(expected, "a.inboundWithExternalTypes",
+	addExpectedNode(t, expected, "a.inboundWithExternalTypes",
 		[]string{},
 		[]string{"b.Location", "b.Address", "builtin.HttpRequest", "builtin.HttpResponse"},
 	)
 
 	// module b
-	addExpectedNode(expected, "b.Location",
+	addExpectedNode(t, expected, "b.Location",
 		[]string{"a.inboundWithExternalTypes", "b.consume", "b.locations", "c.middle", "c.start"},
 		[]string{},
 	)
-	addExpectedNode(expected, "b.Address",
+	addExpectedNode(t, expected, "b.Address",
 		[]string{"a.inboundWithExternalTypes", "c.middle"},
 		[]string{},
 	)
-	addExpectedNode(expected, "b.locations",
+	addExpectedNode(t, expected, "b.locations",
 		[]string{"b.consume"},
 		[]string{"b.Location"},
 	)
-	addExpectedNode(expected, "b.consume",
+	addExpectedNode(t, expected, "b.consume",
 		[]string{},
 		[]string{"b.Location", "b.locations"},
 	)
 
 	// module c
-	addExpectedNode(expected, "c.start",
+	addExpectedNode(t, expected, "c.start",
 		[]string{"c.end"},
 		[]string{"c.AliasedUser", "b.Location", "c.middle"},
 	)
-	addExpectedNode(expected, "c.middle",
+	addExpectedNode(t, expected, "c.middle",
 		[]string{"c.start"},
 		[]string{"b.Address", "b.Location", "c.end"},
 	)
-	addExpectedNode(expected, "c.end",
+	addExpectedNode(t, expected, "c.end",
 		[]string{"c.middle"},
 		[]string{"a.User", "c.start"},
 	)
-	addExpectedNode(expected, "c.Color",
+	addExpectedNode(t, expected, "c.Color",
 		[]string{},
 		[]string{},
 	)
-	addExpectedNode(expected, "c.AliasedUser",
+	addExpectedNode(t, expected, "c.AliasedUser",
 		[]string{"c.start"},
 		[]string{"a.User"},
 	)
@@ -193,17 +192,15 @@ module c {
 }
 
 // allows easy building of expected graph nodes
-func addExpectedNode(m map[RefKey]GraphNode, refStr string, in, out []string) error {
+func addExpectedNode(t *testing.T, m map[RefKey]GraphNode, refStr string, in, out []string) {
+	t.Helper()
+
 	ref, err := ParseRef(refStr)
-	if err != nil {
-		return fmt.Errorf("could not parse ref %q: %w", refStr, err)
-	}
+	assert.NoError(t, err)
 	inRefs := []RefKey{}
 	for _, r := range in {
 		inRef, err := ParseRef(r)
-		if err != nil {
-			return fmt.Errorf("could not parse ref %q: %w", r, err)
-		}
+		assert.NoError(t, err)
 		inRefs = append(inRefs, inRef.ToRefKey())
 	}
 	slices.SortFunc(inRefs, func(i, j RefKey) int {
@@ -212,9 +209,7 @@ func addExpectedNode(m map[RefKey]GraphNode, refStr string, in, out []string) er
 	outRefs := []RefKey{}
 	for _, r := range out {
 		outRef, err := ParseRef(r)
-		if err != nil {
-			return fmt.Errorf("could not parse ref %q: %w", r, err)
-		}
+		assert.NoError(t, err)
 		outRefs = append(outRefs, outRef.ToRefKey())
 	}
 	slices.SortFunc(outRefs, func(i, j RefKey) int {
@@ -224,5 +219,4 @@ func addExpectedNode(m map[RefKey]GraphNode, refStr string, in, out []string) er
 		In:  inRefs,
 		Out: outRefs,
 	}
-	return nil
 }
