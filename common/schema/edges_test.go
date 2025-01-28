@@ -30,7 +30,10 @@ module a {
 	    +database calls a.db
 
     export verb inboundWithExternalTypes(builtin.HttpRequest<Unit, b.Location, Unit>) builtin.HttpResponse<b.Address, String>
-        +ingress http GET /todo/destroy/{name}
+        +ingress http GET /todo/external/{name}
+
+	export verb inboundWithDupes(builtin.HttpRequest<Unit, b.Location, Unit>) builtin.HttpResponse<b.Location, String>
+        +ingress http GET /todo/dupes/{name}
 }
 module b {
 	export data Location {
@@ -74,74 +77,80 @@ module c {
 	expected := map[RefKey]GraphNode{}
 	// builtins
 	addExpectedNode(t, expected, "builtin.Empty",
-		[]string{},
-		[]string{},
+		nil,
+		nil,
 	)
 	addExpectedNode(t, expected, "builtin.Ref",
 		[]string{"builtin.CatchRequest"},
-		[]string{},
+		nil,
 	)
 	addExpectedNode(t, expected, "builtin.HttpRequest",
-		[]string{"a.inboundWithExternalTypes"},
-		[]string{},
+		[]string{"a.inboundWithExternalTypes", "a.inboundWithDupes"},
+		nil,
 	)
 	addExpectedNode(t, expected, "builtin.HttpResponse",
-		[]string{"a.inboundWithExternalTypes"},
-		[]string{},
+		[]string{"a.inboundWithExternalTypes", "a.inboundWithDupes"},
+		nil,
 	)
 	addExpectedNode(t, expected, "builtin.CatchRequest",
-		[]string{},
+		nil,
 		[]string{"builtin.Ref"},
 	)
 	addExpectedNode(t, expected, "builtin.FailedEvent",
-		[]string{},
-		[]string{},
+		nil,
+		nil,
 	)
 
 	// module a
 	addExpectedNode(t, expected, "a.employeeOfTheMonth",
-		[]string{}, []string{"a.User"})
+		nil,
+		[]string{"a.User"})
 	addExpectedNode(t, expected, "a.myFavoriteChild",
-		[]string{}, []string{"a.User"})
+		nil,
+		[]string{"a.User"})
 	addExpectedNode(t, expected, "a.db",
 		[]string{"a.getUsers"},
-		[]string{})
+		nil)
 	addExpectedNode(t, expected, "a.User",
 		[]string{"a.Event", "a.myFavoriteChild", "a.employeeOfTheMonth", "a.getUsers", "c.AliasedUser", "c.end"},
-		[]string{},
+		nil,
 	)
 	addExpectedNode(t, expected, "a.Event",
 		[]string{"a.postEvent"},
 		[]string{"a.User"})
 	addExpectedNode(t, expected, "a.empty",
-		[]string{},
-		[]string{})
+		nil,
+		nil)
 	addExpectedNode(t, expected, "a.postEvent",
-		[]string{}, []string{"a.Event"})
+		nil, []string{"a.Event"})
 	addExpectedNode(t, expected, "a.getUsers",
-		[]string{},
+		nil,
 		[]string{"a.User", "a.db"},
 	)
 	addExpectedNode(t, expected, "a.inboundWithExternalTypes",
-		[]string{},
+		nil,
 		[]string{"b.Location", "b.Address", "builtin.HttpRequest", "builtin.HttpResponse"},
+	)
+	addExpectedNode(t, expected, "a.inboundWithDupes",
+		nil,
+		[]string{"b.Location", "builtin.HttpRequest", "builtin.HttpResponse"},
 	)
 
 	// module b
 	addExpectedNode(t, expected, "b.Location",
-		[]string{"a.inboundWithExternalTypes", "b.consume", "b.locations", "c.middle", "c.start"},
-		[]string{},
+		[]string{"a.inboundWithExternalTypes", "a.inboundWithDupes", "b.consume", "b.locations", "c.middle", "c.start"},
+		nil,
 	)
 	addExpectedNode(t, expected, "b.Address",
 		[]string{"a.inboundWithExternalTypes", "c.middle"},
-		[]string{},
+		nil,
 	)
 	addExpectedNode(t, expected, "b.locations",
 		[]string{"b.consume"},
 		[]string{"b.Location"},
 	)
 	addExpectedNode(t, expected, "b.consume",
-		[]string{},
+		nil,
 		[]string{"b.Location", "b.locations"},
 	)
 
@@ -159,8 +168,8 @@ module c {
 		[]string{"a.User", "c.start"},
 	)
 	addExpectedNode(t, expected, "c.Color",
-		[]string{},
-		[]string{},
+		nil,
+		nil,
 	)
 	addExpectedNode(t, expected, "c.AliasedUser",
 		[]string{"c.start"},
@@ -185,8 +194,8 @@ module c {
 			assert.True(t, ok, "did not expect node %s, but got:\nIn: %v\nOut: %v", ref, graph[ref].In, graph[ref].Out)
 			graphNode, ok := graph[ref]
 			assert.True(t, ok, "expected node %s but graph did not include it", ref)
-			assert.Equal(t, expectedNode.In, graphNode.In, "inbound edges for %s should match", ref)
-			assert.Equal(t, expectedNode.Out, graphNode.Out, "outbound edges for %s should match", ref)
+			assertEqualOrBothEmpty(t, expectedNode.In, graphNode.In, "inbound edges for %s should match", ref)
+			assertEqualOrBothEmpty(t, expectedNode.Out, graphNode.Out, "outbound edges for %s should match", ref)
 		})
 	}
 }
@@ -219,4 +228,12 @@ func addExpectedNode(t *testing.T, m map[RefKey]GraphNode, refStr string, in, ou
 		In:  inRefs,
 		Out: outRefs,
 	}
+}
+
+func assertEqualOrBothEmpty(t *testing.T, a, b []RefKey, msgAndArgs ...any) {
+	t.Helper()
+	if len(a) == 0 && len(b) == 0 {
+		return
+	}
+	assert.Equal(t, a, b, msgAndArgs...)
 }
