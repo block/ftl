@@ -23,6 +23,7 @@ rm: teardown
 # Deploy all components after building images and setting up Istio
 full-deploy: build-all-images setup-istio-cluster
   #!/bin/bash
+  kubectl rollout restart deployment ftl-schemaservice || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-controller || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-provisioner || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-cron || true # if this exists already restart it to get the latest image
@@ -35,6 +36,7 @@ full-deploy: build-all-images setup-istio-cluster
 # Wait for core Kubernetes components to be ready
 wait-for-kube:
   #!/bin/bash
+  kubectl wait --for=condition=available deployment/ftl-schemaservice --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-timeline --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-console --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-controller --timeout=5m
@@ -61,7 +63,7 @@ setup-cluster: setup-registry
   #!/bin/bash
   bash -c "cd ../ && just chart dep-update"
   if [ -z "$(k3d cluster list | grep ftl)" ]; then
-  k3d cluster create ftl --api-port 6550 -p "8892:80@loadbalancer" -p "8891:80@loadbalancer" -p "8893:80@loadbalancer" --agents 2 \
+  k3d cluster create ftl --api-port 6550 -p "8892:80@loadbalancer" -p "8891:80@loadbalancer" -p "8893:80@loadbalancer" -p "8897:80@loadbalancer" --agents 2 \
       --registry-use {{registry_full}} \
       --registry-config '{{mirrors}}'\
       --k3s-arg '--kubelet-arg=eviction-hard=imagefs.available<1%,nodefs.available<1%@agent:*' \

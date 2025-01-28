@@ -22,7 +22,7 @@ import (
 )
 
 type Config struct {
-	Bind *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_SCHEMASERVICE_BIND"`
+	Bind *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
 }
 
 type Service struct {
