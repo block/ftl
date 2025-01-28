@@ -92,6 +92,7 @@ func Start(
 
 	var lastKey key.Changeset
 	for event := range channels.IterContext(ctx, svc.eventSource.Events()) {
+		logger.Infof("Event: %v", event)
 		if cs, ok := event.ActiveChangeset().Get(); ok {
 			if cs.Key != lastKey {
 				logger.Infof("Changeset %s", cs.Key)

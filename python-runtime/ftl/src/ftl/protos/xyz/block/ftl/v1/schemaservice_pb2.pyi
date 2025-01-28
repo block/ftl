@@ -24,7 +24,7 @@ class PullSchemaRequest(_message.Message):
     def __init__(self) -> None: ...
 
 class PullSchemaResponse(_message.Message):
-    __slots__ = ("changeset_created", "changeset_failed", "changeset_commited", "deployment_created", "deployment_updated", "deployment_removed", "more")
+    __slots__ = ("changeset_created", "changeset_failed", "changeset_committed", "deployment_created", "deployment_updated", "deployment_removed", "more")
     class ChangesetCreated(_message.Message):
         __slots__ = ("changeset",)
         CHANGESET_FIELD_NUMBER: _ClassVar[int]
@@ -37,7 +37,7 @@ class PullSchemaResponse(_message.Message):
         key: str
         error: str
         def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
-    class ChangesetCommited(_message.Message):
+    class ChangesetCommitted(_message.Message):
         __slots__ = ("key",)
         KEY_FIELD_NUMBER: _ClassVar[int]
         key: str
@@ -65,19 +65,19 @@ class PullSchemaResponse(_message.Message):
         def __init__(self, key: _Optional[str] = ..., module_name: _Optional[str] = ..., module_removed: bool = ...) -> None: ...
     CHANGESET_CREATED_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_FAILED_FIELD_NUMBER: _ClassVar[int]
-    CHANGESET_COMMITED_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_COMMITTED_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_CREATED_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_UPDATED_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_REMOVED_FIELD_NUMBER: _ClassVar[int]
     MORE_FIELD_NUMBER: _ClassVar[int]
     changeset_created: PullSchemaResponse.ChangesetCreated
     changeset_failed: PullSchemaResponse.ChangesetFailed
-    changeset_commited: PullSchemaResponse.ChangesetCommited
+    changeset_committed: PullSchemaResponse.ChangesetCommitted
     deployment_created: PullSchemaResponse.DeploymentCreated
     deployment_updated: PullSchemaResponse.DeploymentUpdated
     deployment_removed: PullSchemaResponse.DeploymentRemoved
     more: bool
-    def __init__(self, changeset_created: _Optional[_Union[PullSchemaResponse.ChangesetCreated, _Mapping]] = ..., changeset_failed: _Optional[_Union[PullSchemaResponse.ChangesetFailed, _Mapping]] = ..., changeset_commited: _Optional[_Union[PullSchemaResponse.ChangesetCommited, _Mapping]] = ..., deployment_created: _Optional[_Union[PullSchemaResponse.DeploymentCreated, _Mapping]] = ..., deployment_updated: _Optional[_Union[PullSchemaResponse.DeploymentUpdated, _Mapping]] = ..., deployment_removed: _Optional[_Union[PullSchemaResponse.DeploymentRemoved, _Mapping]] = ..., more: bool = ...) -> None: ...
+    def __init__(self, changeset_created: _Optional[_Union[PullSchemaResponse.ChangesetCreated, _Mapping]] = ..., changeset_failed: _Optional[_Union[PullSchemaResponse.ChangesetFailed, _Mapping]] = ..., changeset_committed: _Optional[_Union[PullSchemaResponse.ChangesetCommitted, _Mapping]] = ..., deployment_created: _Optional[_Union[PullSchemaResponse.DeploymentCreated, _Mapping]] = ..., deployment_updated: _Optional[_Union[PullSchemaResponse.DeploymentUpdated, _Mapping]] = ..., deployment_removed: _Optional[_Union[PullSchemaResponse.DeploymentRemoved, _Mapping]] = ..., more: bool = ...) -> None: ...
 
 class UpdateDeploymentRuntimeRequest(_message.Message):
     __slots__ = ("deployment", "changeset", "event")

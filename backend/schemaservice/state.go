@@ -32,6 +32,7 @@ func NewSchemaState() SchemaState {
 		deployments:       map[key.Deployment]*schema.Module{},
 		activeDeployments: map[key.Deployment]optional.Option[key.Changeset]{},
 		changesets:        map[key.Changeset]*schema.Changeset{},
+		provisioning:      map[string]*schema.Module{},
 	}
 }
 

@@ -303,6 +303,43 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return err
 			}
+		case *schema.ChangesetCreatedEvent:
+			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
+				Event: &ftlv1.PullSchemaResponse_ChangesetCreated_{
+					ChangesetCreated: &ftlv1.PullSchemaResponse_ChangesetCreated{
+						// TODO: include changeset info
+						Changeset: event.Changeset.ToProto(),
+					},
+				},
+			})
+			if err != nil {
+				return err
+			}
+		case *schema.ChangesetFailedEvent:
+			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
+				Event: &ftlv1.PullSchemaResponse_ChangesetFailed_{
+					ChangesetFailed: &ftlv1.PullSchemaResponse_ChangesetFailed{
+						// TODO: include changeset info
+						Key:   event.Key.String(),
+						Error: event.Error,
+					},
+				},
+			})
+			if err != nil {
+				return err
+			}
+		case *schema.ChangesetCommittedEvent:
+			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
+				Event: &ftlv1.PullSchemaResponse_ChangesetCommitted_{
+					ChangesetCommitted: &ftlv1.PullSchemaResponse_ChangesetCommitted{
+						// TODO: include changeset info
+						Key: event.Key.String(),
+					},
+				},
+			})
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

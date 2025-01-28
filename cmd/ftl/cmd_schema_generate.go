@@ -92,7 +92,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 
 				case *ftlv1.PullSchemaResponse_ChangesetFailed_:
 
-				case *ftlv1.PullSchemaResponse_ChangesetCommited_:
+				case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
 					// TODO: need to implement this so we can move deployments from changeset to canonical
 				case *ftlv1.PullSchemaResponse_DeploymentCreated_:
 					event := msg.DeploymentCreated

@@ -133,10 +133,10 @@ export class PullSchemaResponse extends Message<PullSchemaResponse> {
     case: "changesetFailed";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.v1.PullSchemaResponse.ChangesetCommited changeset_commited = 6;
+     * @generated from field: xyz.block.ftl.v1.PullSchemaResponse.ChangesetCommitted changeset_committed = 6;
      */
-    value: PullSchemaResponse_ChangesetCommited;
-    case: "changesetCommited";
+    value: PullSchemaResponse_ChangesetCommitted;
+    case: "changesetCommitted";
   } | {
     /**
      * @generated from field: xyz.block.ftl.v1.PullSchemaResponse.DeploymentCreated deployment_created = 7;
@@ -175,7 +175,7 @@ export class PullSchemaResponse extends Message<PullSchemaResponse> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 4, name: "changeset_created", kind: "message", T: PullSchemaResponse_ChangesetCreated, oneof: "event" },
     { no: 5, name: "changeset_failed", kind: "message", T: PullSchemaResponse_ChangesetFailed, oneof: "event" },
-    { no: 6, name: "changeset_commited", kind: "message", T: PullSchemaResponse_ChangesetCommited, oneof: "event" },
+    { no: 6, name: "changeset_committed", kind: "message", T: PullSchemaResponse_ChangesetCommitted, oneof: "event" },
     { no: 7, name: "deployment_created", kind: "message", T: PullSchemaResponse_DeploymentCreated, oneof: "event" },
     { no: 8, name: "deployment_updated", kind: "message", T: PullSchemaResponse_DeploymentUpdated, oneof: "event" },
     { no: 9, name: "deployment_removed", kind: "message", T: PullSchemaResponse_DeploymentRemoved, oneof: "event" },
@@ -286,39 +286,39 @@ export class PullSchemaResponse_ChangesetFailed extends Message<PullSchemaRespon
 /**
  * ChangesetFailed is sent when a changeset becomes canonical.
  *
- * @generated from message xyz.block.ftl.v1.PullSchemaResponse.ChangesetCommited
+ * @generated from message xyz.block.ftl.v1.PullSchemaResponse.ChangesetCommitted
  */
-export class PullSchemaResponse_ChangesetCommited extends Message<PullSchemaResponse_ChangesetCommited> {
+export class PullSchemaResponse_ChangesetCommitted extends Message<PullSchemaResponse_ChangesetCommitted> {
   /**
    * @generated from field: string key = 1;
    */
   key = "";
 
-  constructor(data?: PartialMessage<PullSchemaResponse_ChangesetCommited>) {
+  constructor(data?: PartialMessage<PullSchemaResponse_ChangesetCommitted>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.v1.PullSchemaResponse.ChangesetCommited";
+  static readonly typeName = "xyz.block.ftl.v1.PullSchemaResponse.ChangesetCommitted";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PullSchemaResponse_ChangesetCommited {
-    return new PullSchemaResponse_ChangesetCommited().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PullSchemaResponse_ChangesetCommitted {
+    return new PullSchemaResponse_ChangesetCommitted().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PullSchemaResponse_ChangesetCommited {
-    return new PullSchemaResponse_ChangesetCommited().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PullSchemaResponse_ChangesetCommitted {
+    return new PullSchemaResponse_ChangesetCommitted().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PullSchemaResponse_ChangesetCommited {
-    return new PullSchemaResponse_ChangesetCommited().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PullSchemaResponse_ChangesetCommitted {
+    return new PullSchemaResponse_ChangesetCommitted().fromJsonString(jsonString, options);
   }
 
-  static equals(a: PullSchemaResponse_ChangesetCommited | PlainMessage<PullSchemaResponse_ChangesetCommited> | undefined, b: PullSchemaResponse_ChangesetCommited | PlainMessage<PullSchemaResponse_ChangesetCommited> | undefined): boolean {
-    return proto3.util.equals(PullSchemaResponse_ChangesetCommited, a, b);
+  static equals(a: PullSchemaResponse_ChangesetCommitted | PlainMessage<PullSchemaResponse_ChangesetCommitted> | undefined, b: PullSchemaResponse_ChangesetCommitted | PlainMessage<PullSchemaResponse_ChangesetCommitted> | undefined): boolean {
+    return proto3.util.equals(PullSchemaResponse_ChangesetCommitted, a, b);
   }
 }
 

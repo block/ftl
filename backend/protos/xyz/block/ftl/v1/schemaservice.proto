@@ -28,7 +28,7 @@ message PullSchemaResponse {
   }
 
   // ChangesetFailed is sent when a changeset becomes canonical.
-  message ChangesetCommited {
+  message ChangesetCommitted {
     string key = 1;
   }
 
@@ -65,7 +65,7 @@ message PullSchemaResponse {
   oneof event {
     ChangesetCreated changeset_created = 4;
     ChangesetFailed changeset_failed = 5;
-    ChangesetCommited changeset_commited = 6;
+    ChangesetCommitted changeset_committed = 6;
     DeploymentCreated deployment_created = 7;
     DeploymentUpdated deployment_updated = 8;
     DeploymentRemoved deployment_removed = 9;

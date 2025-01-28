@@ -72,6 +72,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 	resp, err := schemaserviceClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
 		Modules: collectedSchemas,
 	}))
+	logger.Debugf("Created changeset with %d modules", len(collectedSchemas))
 	if err != nil {
 		return fmt.Errorf("failed to create changeset: %w", err)
 	}
@@ -85,9 +86,9 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 		}
 		msg := stream.Msg()
 		switch msg := msg.Event.(type) {
-		case *ftlv1.PullSchemaResponse_ChangesetCommited_:
-			if msg.ChangesetCommited.Key != key {
-				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommited.Key)
+		case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
+			if msg.ChangesetCommitted.Key != key {
+				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommitted.Key)
 				continue
 			}
 			logger.Infof("Deployment %s became ready", key)

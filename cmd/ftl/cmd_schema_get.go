@@ -45,7 +45,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client ftlv1connect.SchemaServic
 
 		case *ftlv1.PullSchemaResponse_ChangesetFailed_:
 
-		case *ftlv1.PullSchemaResponse_ChangesetCommited_:
+		case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
 
 		case *ftlv1.PullSchemaResponse_DeploymentCreated_:
 			// TODO: originally this code handled DeploymentCreated and DeploymentUpdated. Clean up?
