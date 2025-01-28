@@ -68,11 +68,7 @@ func outboundEdges(n Node, ignoredRefs map[RefKey]bool) []RefKey {
 		out = append(out, r.ToRefKey())
 	}
 	Visit(n, func(n Node, next func() error) error { //nolint:errcheck
-		r, ok := n.(*Ref)
-		if !ok {
-			return next()
-		}
-		if !ignoredRefs[r.ToRefKey()] {
+		if r, ok := n.(*Ref); ok && !ignoredRefs[r.ToRefKey()] {
 			out = append(out, r.ToRefKey())
 		}
 		return next()
