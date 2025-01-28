@@ -22,7 +22,7 @@ import (
 //go:embed all:dist
 var build embed.FS
 
-func PrepareServer() error {
+func PrepareServer(ctx context.Context) error {
 	return nil
 }
 
