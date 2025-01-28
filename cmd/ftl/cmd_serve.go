@@ -33,6 +33,7 @@ import (
 	"github.com/block/ftl/backend/provisioner/scaling/localscaling"
 	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/schema"
+	consolefrontend "github.com/block/ftl/frontend/console"
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/configuration"
@@ -269,6 +270,20 @@ func (s *serveCommonConfig) run(
 		})
 	}
 
+	if !s.NoConsole {
+		if err := consolefrontend.PrepareServer(ctx); err != nil {
+			return fmt.Errorf("failed to prepare console server: %w", err)
+		}
+		wg.Go(func() error {
+			// Deliberately start Console in the foreground.
+			err := console.Start(ctx, s.Console, schemaEventSourceFactory(), controllerClient, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), buildEngineClient)
+			if err != nil {
+				return fmt.Errorf("failed to start console server: %w", err)
+			}
+			return nil
+		})
+	}
+
 	for i := range s.Provisioners {
 		config := provisioner.Config{
 			Bind:                    provisionerAddresses[i],
@@ -331,16 +346,6 @@ func (s *serveCommonConfig) run(
 		})
 	}
 
-	if !s.NoConsole {
-		// Start Console
-		wg.Go(func() error {
-			err := console.Start(ctx, s.Console, schemaEventSourceFactory(), controllerClient, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), buildEngineClient)
-			if err != nil {
-				return fmt.Errorf("console failed: %w", err)
-			}
-			return nil
-		})
-	}
 	// Start Timeline
 	wg.Go(func() error {
 		err := timeline.Start(ctx, s.Timeline)

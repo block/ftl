@@ -22,6 +22,10 @@ import (
 //go:embed all:dist
 var build embed.FS
 
+func PrepareServer(ctx context.Context) error {
+	return nil
+}
+
 func Server(ctx context.Context, timestamp time.Time, allowOrigin *url.URL) (http.Handler, error) {
 	dir, err := fs.Sub(build, "dist")
 	if err != nil {
