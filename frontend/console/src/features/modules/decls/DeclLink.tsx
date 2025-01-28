@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useStreamModules } from '../../../api/modules/use-stream-modules'
 import { classNames } from '../../../utils'
-import { getTreeWidthFromLS } from '../module.utils'
 import { Schema } from '../schema/Schema'
 import { type DeclSchema, declSchemaFromModules } from '../schema/schema.utils'
 
-const topbarHeight = 64
+const maxWidth = 400
 
 const SnippetContainer = ({
   decl,
@@ -15,38 +15,56 @@ const SnippetContainer = ({
   linkRect,
   containerRect,
 }: { decl: DeclSchema; moduleName: string; visible: boolean; linkRect?: DOMRect; containerRect?: DOMRect }) => {
-  const [containerX, setContainerX] = useState(containerRect?.x || getTreeWidthFromLS())
-  useEffect(() => {
-    if (containerRect !== undefined) {
-      setContainerX(containerRect.x)
-    }
-  }, [containerRect])
-
   const ref = useRef<HTMLDivElement>(null)
-  const snipRect = ref?.current?.getBoundingClientRect()
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>()
 
-  const hasRects = !!snipRect && !!linkRect
-  const fitsAbove = hasRects && linkRect.top - topbarHeight > snipRect.height
-  const fitsToRight = hasRects && window.innerWidth - linkRect.left >= snipRect.width
-  const fitsToLeft = hasRects && linkRect.left - containerX + linkRect.width >= snipRect.width
-  const horizontalAlignmentClassNames = fitsToRight ? '-ml-1' : fitsToLeft ? '-translate-x-full left-full ml-0' : ''
-  const style = {
-    transform: !fitsToRight && !fitsToLeft ? `translateX(-${(linkRect?.left || 0) - containerX}px)` : undefined,
-  }
-  return (
+  // After first render, get the popup dimensions
+  useEffect(() => {
+    if (ref.current) {
+      setDimensions({
+        width: ref.current.offsetWidth,
+        height: ref.current.offsetHeight,
+      })
+    }
+  }, [ref.current])
+
+  if (!linkRect) return null
+
+  // Calculate position to keep popup within window bounds
+  const left = Math.min(
+    linkRect.left,
+    window.innerWidth - (dimensions?.width || maxWidth) - 10, // 10px safety margin
+  )
+
+  // Check if popup would go off bottom of screen
+  const wouldGoOffBottom = linkRect.bottom + 4 + (dimensions?.height || 300) > window.innerHeight
+  const top = wouldGoOffBottom
+    ? Math.max(10, linkRect.top - (dimensions?.height || 300) - 4) // Show above, with 10px minimum from top
+    : linkRect.bottom + 4 // Show below
+
+  const content = (
     <div
       ref={ref}
-      style={style}
+      key={`${moduleName}.${decl.declType}`}
+      style={{
+        position: 'fixed',
+        top: `${top}px`,
+        left: `${left}px`,
+        maxWidth: `${maxWidth}px`,
+        maxHeight: '80vh',
+        overflow: 'auto',
+      }}
       className={classNames(
-        fitsAbove ? 'bottom-full' : '',
         visible ? '' : 'invisible',
-        horizontalAlignmentClassNames,
-        'absolute p-4 pl-0.5 rounded-md border-solid border border-gray-400 bg-gray-200 dark:border-gray-800 dark:bg-gray-700 text-gray-700 dark:text-white text-xs font-normal z-10 drop-shadow-xl cursor-default',
+        'rounded-md border-solid border border-gray-400 bg-gray-200 dark:border-gray-800 dark:bg-gray-700',
+        'text-gray-700 dark:text-white text-xs font-normal z-10 drop-shadow-xl cursor-default p-2',
       )}
     >
       <Schema schema={decl.schema} moduleName={moduleName} containerRect={containerRect} />
     </div>
   )
+
+  return createPortal(content, document.body)
 }
 
 // When `slim` is true, print only the decl name, not the module name, and show nothing on hover.

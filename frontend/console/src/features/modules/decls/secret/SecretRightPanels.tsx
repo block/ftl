@@ -3,7 +3,7 @@ import type { Secret } from '../../../../protos/xyz/block/ftl/console/v1/console
 import type { ExpandablePanelProps } from '../../../graph/ExpandablePanel'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
 
-export const secretPanels = (moduleName: string, secret: Secret, schema?: string) => {
+export const secretPanels = (moduleName: string, secret: Secret) => {
   return [
     {
       title: 'Details',
@@ -13,6 +13,6 @@ export const secretPanels = (moduleName: string, secret: Secret, schema?: string
         <RightPanelAttribute key='type' name='Type' value={secret.secret?.type?.value.case ?? ''} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, schema, secret.references),
+    ...DeclDefaultPanels(moduleName, secret.schema, secret.references),
   ] as ExpandablePanelProps[]
 }

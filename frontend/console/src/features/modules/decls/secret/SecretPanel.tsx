@@ -12,7 +12,7 @@ import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'
 import { secretPanels } from './SecretRightPanels'
 
-export const SecretPanel = ({ value, schema, moduleName, declName }: { value: Secret; schema: string; moduleName: string; declName: string }) => {
+export const SecretPanel = ({ secret, moduleName, declName }: { secret: Secret; moduleName: string; declName: string }) => {
   const client = useClient(ConsoleService)
   const [secretValue, setSecretValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -83,11 +83,11 @@ export const SecretPanel = ({ value, schema, moduleName, declName }: { value: Se
       })
   }
 
-  if (!value || !schema) {
+  if (!secret) {
     return null
   }
 
-  const decl = value.secret
+  const decl = secret.secret
   if (!decl) {
     return null
   }
@@ -115,7 +115,7 @@ export const SecretPanel = ({ value, schema, moduleName, declName }: { value: Se
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('secret', decl)} title={declName} />}
-        rightPanelPanels={secretPanels(moduleName, value, schema)}
+        rightPanelPanels={secretPanels(moduleName, secret)}
         storageKeyPrefix='secretPanel'
       />
     </div>

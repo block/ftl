@@ -12,12 +12,14 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class Config(_message.Message):
-    __slots__ = ("config", "references")
+    __slots__ = ("config", "references", "schema")
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     REFERENCES_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
     config: _schema_pb2.Config
     references: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Ref]
-    def __init__(self, config: _Optional[_Union[_schema_pb2.Config, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ...) -> None: ...
+    schema: str
+    def __init__(self, config: _Optional[_Union[_schema_pb2.Config, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ..., schema: _Optional[str] = ...) -> None: ...
 
 class Data(_message.Message):
     __slots__ = ("data", "schema", "references")
@@ -30,44 +32,54 @@ class Data(_message.Message):
     def __init__(self, data: _Optional[_Union[_schema_pb2.Data, _Mapping]] = ..., schema: _Optional[str] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ...) -> None: ...
 
 class Database(_message.Message):
-    __slots__ = ("database", "references")
+    __slots__ = ("database", "references", "schema")
     DATABASE_FIELD_NUMBER: _ClassVar[int]
     REFERENCES_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
     database: _schema_pb2.Database
     references: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Ref]
-    def __init__(self, database: _Optional[_Union[_schema_pb2.Database, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ...) -> None: ...
+    schema: str
+    def __init__(self, database: _Optional[_Union[_schema_pb2.Database, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ..., schema: _Optional[str] = ...) -> None: ...
 
 class Enum(_message.Message):
-    __slots__ = ("enum", "references")
+    __slots__ = ("enum", "references", "schema")
     ENUM_FIELD_NUMBER: _ClassVar[int]
     REFERENCES_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
     enum: _schema_pb2.Enum
     references: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Ref]
-    def __init__(self, enum: _Optional[_Union[_schema_pb2.Enum, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ...) -> None: ...
+    schema: str
+    def __init__(self, enum: _Optional[_Union[_schema_pb2.Enum, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ..., schema: _Optional[str] = ...) -> None: ...
 
 class Topic(_message.Message):
-    __slots__ = ("topic", "references")
+    __slots__ = ("topic", "references", "schema")
     TOPIC_FIELD_NUMBER: _ClassVar[int]
     REFERENCES_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
     topic: _schema_pb2.Topic
     references: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Ref]
-    def __init__(self, topic: _Optional[_Union[_schema_pb2.Topic, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ...) -> None: ...
+    schema: str
+    def __init__(self, topic: _Optional[_Union[_schema_pb2.Topic, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ..., schema: _Optional[str] = ...) -> None: ...
 
 class TypeAlias(_message.Message):
-    __slots__ = ("typealias", "references")
+    __slots__ = ("typealias", "references", "schema")
     TYPEALIAS_FIELD_NUMBER: _ClassVar[int]
     REFERENCES_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
     typealias: _schema_pb2.TypeAlias
     references: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Ref]
-    def __init__(self, typealias: _Optional[_Union[_schema_pb2.TypeAlias, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ...) -> None: ...
+    schema: str
+    def __init__(self, typealias: _Optional[_Union[_schema_pb2.TypeAlias, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ..., schema: _Optional[str] = ...) -> None: ...
 
 class Secret(_message.Message):
-    __slots__ = ("secret", "references")
+    __slots__ = ("secret", "references", "schema")
     SECRET_FIELD_NUMBER: _ClassVar[int]
     REFERENCES_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
     secret: _schema_pb2.Secret
     references: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Ref]
-    def __init__(self, secret: _Optional[_Union[_schema_pb2.Secret, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ...) -> None: ...
+    schema: str
+    def __init__(self, secret: _Optional[_Union[_schema_pb2.Secret, _Mapping]] = ..., references: _Optional[_Iterable[_Union[_schema_pb2.Ref, _Mapping]]] = ..., schema: _Optional[str] = ...) -> None: ...
 
 class Verb(_message.Message):
     __slots__ = ("verb", "schema", "json_request_schema", "references")

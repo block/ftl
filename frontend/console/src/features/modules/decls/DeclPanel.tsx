@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom'
 import { useStreamModules } from '../../../api/modules/use-stream-modules'
 import type { Config, Data, Database, Enum, Secret, Topic, TypeAlias } from '../../../protos/xyz/block/ftl/console/v1/console_pb'
 import { declFromModules } from '../module.utils'
-import { declSchemaFromModules } from '../schema/schema.utils'
 import { ConfigPanel } from './config/ConfigPanel'
 import { DataPanel } from './data/DataPanel'
 import { DatabasePanel } from './database/DatabasePanel'
@@ -21,33 +20,28 @@ export const DeclPanel = () => {
   }
 
   const modules = useStreamModules()
-  const declSchema = useMemo(
-    () => (moduleName && !!modules?.data ? declSchemaFromModules(moduleName, declName, modules?.data.modules) : undefined),
-    [moduleName, declName, modules?.data],
-  )
-
   const decl = useMemo(() => declFromModules(moduleName, declCase, declName, modules?.data?.modules), [modules?.data, moduleName, declCase, declName])
-  if (!declSchema || !decl) {
+  if (!decl) {
     return
   }
 
   const nameProps = { moduleName, declName }
-  const commonProps = { moduleName, declName, schema: declSchema.schema }
+  const commonProps = { moduleName, declName, schema: decl.schema }
   switch (declCase) {
     case 'config':
-      return <ConfigPanel {...commonProps} value={decl as Config} />
+      return <ConfigPanel {...commonProps} config={decl as Config} />
     case 'data':
-      return <DataPanel {...commonProps} value={decl as Data} />
+      return <DataPanel {...commonProps} data={decl as Data} />
     case 'database':
-      return <DatabasePanel {...commonProps} value={decl as Database} />
+      return <DatabasePanel {...commonProps} database={decl as Database} />
     case 'enum':
-      return <EnumPanel {...commonProps} value={decl as Enum} />
+      return <EnumPanel {...commonProps} enumValue={decl as Enum} />
     case 'secret':
-      return <SecretPanel {...commonProps} value={decl as Secret} />
+      return <SecretPanel {...commonProps} secret={decl as Secret} />
     case 'topic':
-      return <TopicPanel {...commonProps} value={decl as Topic} />
+      return <TopicPanel {...commonProps} topic={decl as Topic} />
     case 'typealias':
-      return <TypeAliasPanel {...commonProps} value={decl as TypeAlias} />
+      return <TypeAliasPanel {...commonProps} typealias={decl as TypeAlias} />
     case 'verb':
       return <VerbPage {...nameProps} />
   }
