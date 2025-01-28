@@ -1,4 +1,4 @@
-import { AppProvider } from './providers/app-providers.tsx'
+import { AppProvider } from './shared/providers/app-providers'
 
 export const App = () => {
   return <AppProvider />

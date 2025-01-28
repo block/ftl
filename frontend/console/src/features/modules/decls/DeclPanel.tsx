@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { useStreamModules } from '../../../api/modules/use-stream-modules'
 import type { Config, Data, Database, Enum, Secret, Topic, TypeAlias } from '../../../protos/xyz/block/ftl/console/v1/console_pb'
+import { useStreamModules } from '../hooks/use-stream-modules'
 import { declFromModules } from '../module.utils'
 import { ConfigPanel } from './config/ConfigPanel'
 import { DataPanel } from './data/DataPanel'

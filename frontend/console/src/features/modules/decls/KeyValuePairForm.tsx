@@ -1,6 +1,6 @@
 import { Delete03Icon } from 'hugeicons-react'
 import { useEffect, useRef } from 'react'
-import { Checkbox } from '../../../components/Checkbox'
+import { Checkbox } from '../../../shared/components/Checkbox'
 
 interface KeyValuePair {
   id: string

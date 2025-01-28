@@ -2,8 +2,8 @@ import { Timestamp } from '@bufbuild/protobuf'
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from '@headlessui/react'
 import { ArrowDown01Icon, Backward02Icon, Forward02Icon, PauseIcon, PlayIcon, Tick02Icon } from 'hugeicons-react'
 import { useEffect, useState } from 'react'
-import { Button } from '../../../components/Button'
-import { bgColor, borderColor, classNames, formatTimestampShort, formatTimestampTime, panelColor, textColor } from '../../../utils'
+import { Button } from '../../../shared/components/Button'
+import { bgColor, borderColor, classNames, formatTimestampShort, formatTimestampTime, panelColor, textColor } from '../../../shared/utils'
 
 interface TimeRange {
   label: string

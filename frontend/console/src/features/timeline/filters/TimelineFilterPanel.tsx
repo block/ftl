@@ -1,14 +1,14 @@
 import { Call02Icon, CustomerServiceIcon, PackageReceiveIcon, Rocket01Icon, Satellite03Icon, SatelliteIcon, TimeQuarterPassIcon } from 'hugeicons-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import { useModules } from '../../../api/modules/use-modules'
-import { eventTypesFilter, logLevelFilter, modulesFilter } from '../../../api/timeline'
-import { Checkbox } from '../../../components/Checkbox'
 import { EventType, LogLevel } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import type { GetTimelineRequest_Filter } from '../../../protos/xyz/block/ftl/timeline/v1/timeline_pb'
-import { textColor } from '../../../utils'
+import { Checkbox } from '../../../shared/components/Checkbox'
+import { textColor } from '../../../shared/utils'
 import { LogLevelBadgeSmall } from '../../logs/LogLevelBadgeSmall'
 import { logLevelBgColor, logLevelColor, logLevelRingColor } from '../../logs/log.utils'
+import { useModules } from '../../modules/hooks/use-modules'
+import { eventTypesFilter, logLevelFilter, modulesFilter } from '../hooks/timeline-filters'
 import { FilterPanelSection } from './FilterPanelSection'
 
 interface EventFilter {

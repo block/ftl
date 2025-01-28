@@ -70,7 +70,7 @@ const skipGapAfterTypes: { [key: string]: string[] } = {
 
 export const specialChars = ['{', '}', '=']
 
-export function shouldAddLeadingSpace(lines: string[], i: number): boolean {
+export const shouldAddLeadingSpace = (lines: string[], i: number): boolean => {
   if (!isFirstLineOfBlock(lines, i)) {
     return false
   }
@@ -92,18 +92,18 @@ export function shouldAddLeadingSpace(lines: string[], i: number): boolean {
   return true
 }
 
-function declTypeAndPriorLineMatch(lines: string[], i: number, declType: string, priorDeclType: string): boolean {
+const declTypeAndPriorLineMatch = (lines: string[], i: number, declType: string, priorDeclType: string): boolean => {
   if (i === 0 || lines.length === 1) {
     return false
   }
   return regexForDeclType(declType).exec(lines[i]) !== null && regexForDeclType(priorDeclType).exec(lines[i - 1]) !== null
 }
 
-function regexForDeclType(declType: string) {
+const regexForDeclType = (declType: string) => {
   return new RegExp(`^  (export )?${declType} \\w+`)
 }
 
-function isFirstLineOfBlock(lines: string[], i: number): boolean {
+const isFirstLineOfBlock = (lines: string[], i: number): boolean => {
   if (i === 0) {
     // Never add space for the first block
     return false
@@ -131,7 +131,7 @@ export interface DeclSchema {
   declType: string
 }
 
-export function declSchemaFromModules(moduleName: string, declName: string, modules: Module[]) {
+export const declSchemaFromModules = (moduleName: string, declName: string, modules: Module[]) => {
   const module = modules.find((module) => module.name === moduleName)
   if (!module?.schema) {
     return
@@ -139,7 +139,7 @@ export function declSchemaFromModules(moduleName: string, declName: string, modu
   return declFromModuleSchemaString(declName, module.schema)
 }
 
-export function declFromModuleSchemaString(declName: string, schema: string) {
+const declFromModuleSchemaString = (declName: string, schema: string) => {
   const lines = schema.split('\n')
   const foundIdx = findDeclLinkIdx(declName, lines)
 
@@ -174,7 +174,7 @@ export function declFromModuleSchemaString(declName: string, schema: string) {
   }
 }
 
-function findDeclLinkIdx(declName: string, lines: string[]) {
+const findDeclLinkIdx = (declName: string, lines: string[]) => {
   const regex = new RegExp(`^  (export )?\\w+ ${declName}[ (<:]`)
   const foundIdx = lines.findIndex((line) => line.match(regex))
   if (foundIdx !== -1) {

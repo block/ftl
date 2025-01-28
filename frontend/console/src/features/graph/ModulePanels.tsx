@@ -1,8 +1,8 @@
 import { ArrowLeftRightIcon, FunctionIcon, InboxDownloadIcon, InboxUploadIcon, LinkSquare02Icon, Settings02Icon, SquareLock02Icon } from 'hugeicons-react'
 import type { NavigateFunction } from 'react-router-dom'
-import { RightPanelAttribute } from '../../components/RightPanelAttribute'
 import type { Module } from '../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { ExpandablePanelProps } from '../graph/ExpandablePanel'
+import type { ExpandablePanelProps } from '../../shared/components/ExpandablePanel'
+import { RightPanelAttribute } from '../../shared/components/RightPanelAttribute'
 import { callsIn, callsOut } from '../modules/module.utils'
 import { Schema } from '../modules/schema/Schema'
 

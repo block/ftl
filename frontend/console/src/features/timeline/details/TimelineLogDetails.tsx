@@ -1,6 +1,6 @@
-import { AttributeBadge } from '../../../components/AttributeBadge'
-import { CodeBlockWithTitle } from '../../../components/CodeBlockWithTitle'
 import type { Event, LogEvent } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
+import { AttributeBadge } from '../../../shared/components/AttributeBadge'
+import { CodeBlockWithTitle } from '../../../shared/components/CodeBlockWithTitle'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
 
 export const TimelineLogDetails = ({ log }: { event: Event; log: LogEvent }) => {

@@ -78,16 +78,3 @@ export const getModuleStatus = (event: EngineEvent | undefined): ModuleStatus =>
       return 'idle'
   }
 }
-
-export const getEngineStatus = (event: EngineEvent | undefined): ModuleStatus => {
-  if (!event) return 'idle'
-
-  switch (event.event.case) {
-    case 'engineEnded':
-      return Object.keys(event.event.value.moduleErrors).length > 0 ? 'error' : 'success'
-    case 'engineStarted':
-      return 'busy'
-    default:
-      return 'idle'
-  }
-}

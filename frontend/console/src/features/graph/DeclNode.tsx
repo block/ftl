@@ -10,8 +10,6 @@ import {
 } from 'hugeicons-react'
 import { Handle, type NodeProps, Position } from 'reactflow'
 
-export const declHeight = 40
-
 interface Props extends NodeProps {
   data: {
     title: string

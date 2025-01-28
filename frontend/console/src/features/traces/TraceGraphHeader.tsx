@@ -1,8 +1,8 @@
 import { Activity03Icon } from 'hugeicons-react'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useRequestTraceEvents } from '../../api/timeline/use-request-trace-events'
-import { Button } from '../../components/Button'
+import { Button } from '../../shared/components/Button'
+import { useRequestTraceEvents } from '../timeline/hooks/use-request-trace-events'
 import { totalDurationForRequest } from './traces.utils'
 
 export const TraceGraphHeader = ({ requestKey, eventId }: { requestKey?: string; eventId: bigint }) => {

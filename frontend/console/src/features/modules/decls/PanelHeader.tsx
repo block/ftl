@@ -1,4 +1,4 @@
-import { Badge } from '../../../components/Badge'
+import { Badge } from '../../../shared/components/Badge'
 
 export const PanelHeader = ({ title, declRef, exported, comments }: { title?: string; declRef?: string; exported: boolean; comments?: string[] }) => {
   return (

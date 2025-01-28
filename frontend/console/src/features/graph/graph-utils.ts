@@ -1,6 +1,6 @@
 import type { Edge, Node } from 'reactflow'
-import type { StreamModulesResult } from '../../api/modules/use-stream-modules'
 import type { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
+import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
 import { getNodeBackgroundColor } from './graph-styles'
 
 export type FTLNode = Module | Verb | Secret | Config | Data | Database | Topic | Enum

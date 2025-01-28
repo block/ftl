@@ -1,16 +1,16 @@
 import { type Page, expect } from '@playwright/test'
 
-export async function navigateToModule(page: Page, moduleName: string) {
+export const navigateToModule = async (page: Page, moduleName: string) => {
   await page.goto(`/modules/${moduleName}`)
   await expect(page).toHaveURL(new RegExp(`/modules/${moduleName}`))
 }
 
-export async function navigateToDecl(page: Page, moduleName: string, declName: string) {
+export const navigateToDecl = async (page: Page, moduleName: string, declName: string) => {
   await page.goto(`/modules/${moduleName}/verb/${declName}`)
   await expect(page).toHaveURL(new RegExp(`/modules/${moduleName}/verb/${declName}`))
 }
 
-export async function pressShortcut(page: Page, key: string) {
+export const pressShortcut = async (page: Page, key: string) => {
   // Get the platform-specific modifier key
   const isMac = await page.evaluate(() => navigator.userAgent.includes('Mac'))
   const modifier = isMac ? 'Meta' : 'Control'
@@ -20,7 +20,7 @@ export async function pressShortcut(page: Page, key: string) {
   await page.keyboard.up(modifier)
 }
 
-export async function setVerbRequestBody(page: Page, content: string) {
+export const setVerbRequestBody = async (page: Page, content: string) => {
   const editor = page.locator('#body-editor .cm-content[contenteditable="true"]')
   await expect(editor).toBeVisible()
 

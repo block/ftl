@@ -1,7 +1,7 @@
-import type { TraceEvent } from '../../api/timeline/use-request-trace-events'
 import { AsyncExecuteEvent, CallEvent, type Event, IngressEvent, PubSubConsumeEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import { classNames } from '../../utils'
+import { classNames } from '../../shared/utils'
 import { TimelineIcon } from '../timeline/TimelineIcon'
+import type { TraceEvent } from '../timeline/hooks/use-request-trace-events'
 import { eventBackgroundColor } from '../timeline/timeline.utils'
 import { eventBarLeftOffsetPercentage } from './traces.utils'
 

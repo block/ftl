@@ -1,7 +1,7 @@
-import { type TraceEvent, useRequestTraceEvents } from '../../api/timeline/use-request-trace-events'
-import { HoverPopup } from '../../components/HoverPopup'
 import { AsyncExecuteEvent, CallEvent, type Event, IngressEvent, PubSubConsumeEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import { classNames, durationToMillis } from '../../utils'
+import { HoverPopup } from '../../shared/components/HoverPopup'
+import { classNames, durationToMillis } from '../../shared/utils'
+import { type TraceEvent, useRequestTraceEvents } from '../timeline/hooks/use-request-trace-events'
 import { eventBackgroundColor } from '../timeline/timeline.utils'
 import { eventBarLeftOffsetPercentage, requestStartTime, totalDurationForRequest } from './traces.utils'
 

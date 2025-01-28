@@ -1,11 +1,11 @@
 import { useContext, useMemo, useState } from 'react'
-import { useModuleTraceEvents } from '../../api/timeline/use-module-trace-events'
 import type { Event } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import { SidePanelContext } from '../../providers/side-panel-provider'
+import { SidePanelContext } from '../../shared/providers/side-panel-provider'
 import TimelineEventList from '../timeline/TimelineEventList'
 import { TimelineCallDetails } from '../timeline/details/TimelineCallDetails'
 import { TimelineDetailsHeader } from '../timeline/details/TimelineDetailsHeader'
 import { TimelineIngressDetails } from '../timeline/details/TimelineIngressDetails'
+import { useModuleTraceEvents } from '../timeline/hooks/use-module-trace-events'
 import { groupEventsByRequestKey } from './traces.utils'
 
 export const TraceRequestList = ({ module, verb }: { module: string; verb?: string }) => {

@@ -1,6 +1,6 @@
 import { Disclosure } from '@headlessui/react'
 import { ArrowUp01Icon } from 'hugeicons-react'
-import { textColor } from '../../../utils'
+import { textColor } from '../../../shared/utils'
 
 export const FilterPanelSection = ({
   title,

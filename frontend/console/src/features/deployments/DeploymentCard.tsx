@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useModules } from '../../api/modules/use-modules'
-import { Badge } from '../../components/Badge'
-import { Card } from '../../components/Card'
-import { Chip } from '../../components/Chip'
 import type { Module } from '../../protos/xyz/block/ftl/console/v1/console_pb'
+import { Badge } from '../../shared/components/Badge'
+import { Card } from '../../shared/components/Card'
+import { Chip } from '../../shared/components/Chip'
+import { useModules } from '../modules/hooks/use-modules'
 import { deploymentTextColor } from './deployment.utils'
 
 export const DeploymentCard = ({ deploymentKey, className }: { deploymentKey: string; className?: string }) => {

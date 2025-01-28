@@ -1,9 +1,9 @@
-import { useModules } from '../../api/modules/use-modules'
-import { AttributeBadge } from '../../components'
-import { List } from '../../components/List'
 import type { Module } from '../../protos/xyz/block/ftl/console/v1/console_pb'
-import { classNames } from '../../utils'
+import { AttributeBadge } from '../../shared/components/AttributeBadge'
+import { List } from '../../shared/components/List'
+import { classNames } from '../../shared/utils'
 import { deploymentTextColor } from '../deployments/deployment.utils'
+import { useModules } from './hooks/use-modules'
 
 export const ModulesPanel = () => {
   const modules = useModules()

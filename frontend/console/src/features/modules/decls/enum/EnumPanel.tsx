@@ -1,5 +1,5 @@
-import { ResizablePanels } from '../../../../components/ResizablePanels'
 import type { Enum } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
+import { ResizablePanels } from '../../../../shared/components/ResizablePanels'
 import { declIcon } from '../../module.utils'
 import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'

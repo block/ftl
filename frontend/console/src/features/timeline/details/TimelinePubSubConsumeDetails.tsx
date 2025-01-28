@@ -1,9 +1,9 @@
-import { AttributeBadge } from '../../../components/AttributeBadge'
 import { DeploymentCard } from '../../../features/deployments/DeploymentCard'
 import { TraceGraph } from '../../../features/traces/TraceGraph'
 import { TraceGraphHeader } from '../../../features/traces/TraceGraphHeader'
 import type { Event, PubSubConsumeEvent } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import { formatDuration } from '../../../utils/date.utils'
+import { AttributeBadge } from '../../../shared/components/AttributeBadge'
+import { formatDuration } from '../../../shared/utils/date.utils'
 
 export const TimelinePubSubConsumeDetails = ({ event }: { event: Event }) => {
   const pubSubConsume = event.entry.value as PubSubConsumeEvent

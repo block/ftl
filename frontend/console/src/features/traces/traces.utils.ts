@@ -1,8 +1,8 @@
-import type { TraceEvent } from '../../api/timeline/use-request-trace-events'
 import type { Event } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import { compareTimestamps, durationToMillis } from '../../utils'
+import { compareTimestamps, durationToMillis } from '../../shared/utils'
+import type { TraceEvent } from '../timeline/hooks/use-request-trace-events'
 
-export function eventBarLeftOffsetPercentage(event: Event, requestStartTime: number, requestDuration: number): number {
+export const eventBarLeftOffsetPercentage = (event: Event, requestStartTime: number, requestDuration: number): number => {
   const traceEvent = event.entry.value as TraceEvent
   // Convert bigint timestamp to number for calculation with higher precision
   const eventStartTime = (Number(traceEvent.timestamp?.seconds) * 1000000000 + (traceEvent.timestamp?.nanos ?? 0)) / 1000000 // Convert to milliseconds with nanosecond precision

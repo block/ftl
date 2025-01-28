@@ -1,5 +1,5 @@
 import type { CronScheduledEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import { formatTimestampShort } from '../../utils/date.utils.ts'
+import { formatTimestampShort } from '../../shared/utils/date.utils.ts'
 import { refString } from '../modules/decls/verb/verb.utils.ts'
 
 export const TimelineCronScheduled = ({ cron }: { cron: CronScheduledEvent }) => {

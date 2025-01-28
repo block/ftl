@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { List } from '../../components/List'
-import { StatusIndicator } from '../../components/StatusIndicator'
 import type { EngineEvent } from '../../protos/xyz/block/ftl/buildengine/v1/buildengine_pb'
 import type { Error as BuildError } from '../../protos/xyz/block/ftl/language/v1/language_pb'
-import { formatTimestampShort } from '../../utils'
+import { List } from '../../shared/components/List'
+import { StatusIndicator } from '../../shared/components/StatusIndicator'
+import { formatTimestampShort } from '../../shared/utils'
 import { getEventText } from '../engine/engine.utils'
 
 interface BuildEngineEventsProps {

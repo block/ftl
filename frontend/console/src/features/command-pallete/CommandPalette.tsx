@@ -3,7 +3,7 @@ import Fuse from 'fuse.js'
 import { ArrowRight01Icon, CellsIcon } from 'hugeicons-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useStreamModules } from '../../api/modules/use-stream-modules'
+import { useStreamModules } from '../modules/hooks/use-stream-modules'
 import { type PaletteItem, paletteItems } from './command-palette.utils'
 
 type CommandPaletteProps = {
