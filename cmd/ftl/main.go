@@ -100,7 +100,7 @@ func main() {
 	err := kong.ApplyDefaults(&cli.LogConfig)
 	app.FatalIfErrorf(err)
 
-	pluginCtx := log.ContextWithLogger(ctx, log.Configure(os.Stderr, cli.LogConfig))
+	pluginCtx := log.ContextWithLogger(ctx, log.Configure(os.Stdout, cli.LogConfig))
 	languagePlugin, err := languageplugin.PrepareNewCmd(pluginCtx, app, os.Args[1:])
 	app.FatalIfErrorf(err)
 	addToExit(app, func(code int) {
