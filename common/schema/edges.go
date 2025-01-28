@@ -3,6 +3,8 @@ package schema
 import (
 	"slices"
 	"strings"
+
+	"golang.org/x/exp/maps"
 )
 
 // GraphNode provides inbound and outbound edges for a node.
@@ -63,15 +65,15 @@ func Graph(s *Schema) map[RefKey]GraphNode {
 
 // outboundEdges returns all the outbound edges of a node.
 func outboundEdges(n Node, ignoredRefs map[RefKey]bool) []RefKey {
-	out := []RefKey{}
+	out := map[RefKey]bool{}
 	if r, ok := n.(*Ref); ok {
-		out = append(out, r.ToRefKey())
+		out[r.ToRefKey()] = true
 	}
 	Visit(n, func(n Node, next func() error) error { //nolint:errcheck
 		if r, ok := n.(*Ref); ok && !ignoredRefs[r.ToRefKey()] {
-			out = append(out, r.ToRefKey())
+			out[r.ToRefKey()] = true
 		}
 		return next()
 	})
-	return out
+	return maps.Keys(out)
 }
