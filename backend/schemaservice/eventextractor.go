@@ -5,7 +5,6 @@ import (
 	"iter"
 	"slices"
 
-	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/tuple"
 	"golang.org/x/exp/maps"
 
@@ -34,7 +33,7 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 	for _, changeset := range allChangesets {
 		pc, ok := previousAllChangesets[changeset.Key]
 		if !ok {
-			events = append(events, &ChangesetCreatedEvent{
+			events = append(events, &schema.ChangesetCreatedEvent{
 				Changeset: changeset,
 			})
 			continue
@@ -51,17 +50,17 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 				panic(fmt.Sprintf("can not create deployment %s in %s", module.Runtime.Deployment.DeploymentKey, changeset.Key))
 			}
 			if !prevModule.Equals(module) {
-				events = append(events, &DeploymentSchemaUpdatedEvent{
+				events = append(events, &schema.DeploymentSchemaUpdatedEvent{
 					Key:       module.Runtime.Deployment.DeploymentKey,
 					Schema:    module,
-					Changeset: optional.Some(changeset.Key),
+					Changeset: &changeset.Key,
 				})
 			}
 		}
 
 		// Commit final state of changeset
 		if changeset.State == schema.ChangesetStateCommitted && pc.State != schema.ChangesetStateCommitted {
-			events = append(events, &ChangesetCommittedEvent{
+			events = append(events, &schema.ChangesetCommittedEvent{
 				Key: changeset.Key,
 			})
 			// Maintain previous state to avoid unnecessary events
@@ -69,7 +68,7 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 				previousAllDeployments[module.Runtime.Deployment.DeploymentKey] = module
 			}
 		} else if changeset.State == schema.ChangesetStateFailed && pc.State != schema.ChangesetStateFailed {
-			events = append(events, &ChangesetFailedEvent{
+			events = append(events, &schema.ChangesetFailedEvent{
 				Key:   changeset.Key,
 				Error: changeset.Error,
 			})

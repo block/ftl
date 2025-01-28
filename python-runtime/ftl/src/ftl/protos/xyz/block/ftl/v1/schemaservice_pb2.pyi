@@ -93,6 +93,26 @@ class UpdateDeploymentRuntimeResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
+class UpdateSchemaRequest(_message.Message):
+    __slots__ = ("event",)
+    EVENT_FIELD_NUMBER: _ClassVar[int]
+    event: _schema_pb2.Event
+    def __init__(self, event: _Optional[_Union[_schema_pb2.Event, _Mapping]] = ...) -> None: ...
+
+class UpdateSchemaResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class GetDeploymentsRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class GetDeploymentsResponse(_message.Message):
+    __slots__ = ("schema",)
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    schema: _containers.RepeatedCompositeFieldContainer[DeployedSchema]
+    def __init__(self, schema: _Optional[_Iterable[_Union[DeployedSchema, _Mapping]]] = ...) -> None: ...
+
 class CreateChangesetRequest(_message.Message):
     __slots__ = ("modules",)
     MODULES_FIELD_NUMBER: _ClassVar[int]
@@ -104,6 +124,16 @@ class CreateChangesetResponse(_message.Message):
     CHANGESET_FIELD_NUMBER: _ClassVar[int]
     changeset: str
     def __init__(self, changeset: _Optional[str] = ...) -> None: ...
+
+class DeployedSchema(_message.Message):
+    __slots__ = ("deployment_key", "schema", "is_active")
+    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    IS_ACTIVE_FIELD_NUMBER: _ClassVar[int]
+    deployment_key: str
+    schema: _schema_pb2.Module
+    is_active: bool
+    def __init__(self, deployment_key: _Optional[str] = ..., schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., is_active: bool = ...) -> None: ...
 
 class CommitChangesetRequest(_message.Message):
     __slots__ = ("changeset",)

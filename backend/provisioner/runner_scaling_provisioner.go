@@ -93,7 +93,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			logger.Errorf(err, "failed to terminate previous deployments")
 		} else {
 			for _, dep := range deps {
-				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Deployment: deployment.String(), Event: &schemapb.ModuleRuntimeEvent{Value: &schemapb.ModuleRuntimeEvent_ModuleRuntimeScaling{ModuleRuntimeScaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}}))
+				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Deployment: deployment.String(), Event: &schemapb.ModuleRuntimeEvent{Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}))
 				if err != nil {
 					logger.Errorf(err, "failed to update deployment %s", dep)
 				}

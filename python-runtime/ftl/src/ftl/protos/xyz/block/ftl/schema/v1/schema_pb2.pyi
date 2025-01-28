@@ -86,6 +86,26 @@ class Changeset(_message.Message):
     error: str
     def __init__(self, key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., state: _Optional[_Union[ChangesetState, str]] = ..., error: _Optional[str] = ...) -> None: ...
 
+class ChangesetCommittedEvent(_message.Message):
+    __slots__ = ("key",)
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    def __init__(self, key: _Optional[str] = ...) -> None: ...
+
+class ChangesetCreatedEvent(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: Changeset
+    def __init__(self, changeset: _Optional[_Union[Changeset, _Mapping]] = ...) -> None: ...
+
+class ChangesetFailedEvent(_message.Message):
+    __slots__ = ("key", "error")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    error: str
+    def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
+
 class Config(_message.Message):
     __slots__ = ("pos", "comments", "name", "type")
     POS_FIELD_NUMBER: _ClassVar[int]
@@ -193,14 +213,16 @@ class Decl(_message.Message):
     def __init__(self, config: _Optional[_Union[Config, _Mapping]] = ..., data: _Optional[_Union[Data, _Mapping]] = ..., database: _Optional[_Union[Database, _Mapping]] = ..., enum: _Optional[_Union[Enum, _Mapping]] = ..., secret: _Optional[_Union[Secret, _Mapping]] = ..., topic: _Optional[_Union[Topic, _Mapping]] = ..., type_alias: _Optional[_Union[TypeAlias, _Mapping]] = ..., verb: _Optional[_Union[Verb, _Mapping]] = ...) -> None: ...
 
 class DeploymentActivatedEvent(_message.Message):
-    __slots__ = ("key", "activated_at", "min_replicas")
+    __slots__ = ("key", "activated_at", "min_replicas", "changeset")
     KEY_FIELD_NUMBER: _ClassVar[int]
     ACTIVATED_AT_FIELD_NUMBER: _ClassVar[int]
     MIN_REPLICAS_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
     key: str
     activated_at: _timestamp_pb2.Timestamp
     min_replicas: int
-    def __init__(self, key: _Optional[str] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., min_replicas: _Optional[int] = ...) -> None: ...
+    changeset: str
+    def __init__(self, key: _Optional[str] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., min_replicas: _Optional[int] = ..., changeset: _Optional[str] = ...) -> None: ...
 
 class DeploymentCreatedEvent(_message.Message):
     __slots__ = ("key", "schema")
@@ -211,28 +233,34 @@ class DeploymentCreatedEvent(_message.Message):
     def __init__(self, key: _Optional[str] = ..., schema: _Optional[_Union[Module, _Mapping]] = ...) -> None: ...
 
 class DeploymentDeactivatedEvent(_message.Message):
-    __slots__ = ("key", "module_removed")
+    __slots__ = ("key", "module_removed", "changeset")
     KEY_FIELD_NUMBER: _ClassVar[int]
     MODULE_REMOVED_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
     key: str
     module_removed: bool
-    def __init__(self, key: _Optional[str] = ..., module_removed: bool = ...) -> None: ...
+    changeset: str
+    def __init__(self, key: _Optional[str] = ..., module_removed: bool = ..., changeset: _Optional[str] = ...) -> None: ...
 
 class DeploymentReplicasUpdatedEvent(_message.Message):
-    __slots__ = ("key", "replicas")
+    __slots__ = ("key", "replicas", "changeset")
     KEY_FIELD_NUMBER: _ClassVar[int]
     REPLICAS_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
     key: str
     replicas: int
-    def __init__(self, key: _Optional[str] = ..., replicas: _Optional[int] = ...) -> None: ...
+    changeset: str
+    def __init__(self, key: _Optional[str] = ..., replicas: _Optional[int] = ..., changeset: _Optional[str] = ...) -> None: ...
 
 class DeploymentSchemaUpdatedEvent(_message.Message):
-    __slots__ = ("key", "schema")
+    __slots__ = ("key", "schema", "changeset")
     KEY_FIELD_NUMBER: _ClassVar[int]
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
     key: str
     schema: Module
-    def __init__(self, key: _Optional[str] = ..., schema: _Optional[_Union[Module, _Mapping]] = ...) -> None: ...
+    changeset: str
+    def __init__(self, key: _Optional[str] = ..., schema: _Optional[_Union[Module, _Mapping]] = ..., changeset: _Optional[str] = ...) -> None: ...
 
 class Enum(_message.Message):
     __slots__ = ("pos", "comments", "export", "name", "type", "variants")
@@ -263,7 +291,10 @@ class EnumVariant(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., name: _Optional[str] = ..., value: _Optional[_Union[Value, _Mapping]] = ...) -> None: ...
 
 class Event(_message.Message):
-    __slots__ = ("database_runtime_event", "deployment_activated_event", "deployment_created_event", "deployment_deactivated_event", "deployment_replicas_updated_event", "deployment_schema_updated_event", "module_runtime_event", "provisioning_created_event", "topic_runtime_event", "verb_runtime_event")
+    __slots__ = ("changeset_committed_event", "changeset_created_event", "changeset_failed_event", "database_runtime_event", "deployment_activated_event", "deployment_created_event", "deployment_deactivated_event", "deployment_replicas_updated_event", "deployment_schema_updated_event", "module_runtime_event", "provisioning_created_event", "topic_runtime_event", "verb_runtime_event")
+    CHANGESET_COMMITTED_EVENT_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_CREATED_EVENT_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FAILED_EVENT_FIELD_NUMBER: _ClassVar[int]
     DATABASE_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_ACTIVATED_EVENT_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_CREATED_EVENT_FIELD_NUMBER: _ClassVar[int]
@@ -274,6 +305,9 @@ class Event(_message.Message):
     PROVISIONING_CREATED_EVENT_FIELD_NUMBER: _ClassVar[int]
     TOPIC_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
     VERB_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
+    changeset_committed_event: ChangesetCommittedEvent
+    changeset_created_event: ChangesetCreatedEvent
+    changeset_failed_event: ChangesetFailedEvent
     database_runtime_event: DatabaseRuntimeEvent
     deployment_activated_event: DeploymentActivatedEvent
     deployment_created_event: DeploymentCreatedEvent
@@ -284,7 +318,7 @@ class Event(_message.Message):
     provisioning_created_event: ProvisioningCreatedEvent
     topic_runtime_event: TopicRuntimeEvent
     verb_runtime_event: VerbRuntimeEvent
-    def __init__(self, database_runtime_event: _Optional[_Union[DatabaseRuntimeEvent, _Mapping]] = ..., deployment_activated_event: _Optional[_Union[DeploymentActivatedEvent, _Mapping]] = ..., deployment_created_event: _Optional[_Union[DeploymentCreatedEvent, _Mapping]] = ..., deployment_deactivated_event: _Optional[_Union[DeploymentDeactivatedEvent, _Mapping]] = ..., deployment_replicas_updated_event: _Optional[_Union[DeploymentReplicasUpdatedEvent, _Mapping]] = ..., deployment_schema_updated_event: _Optional[_Union[DeploymentSchemaUpdatedEvent, _Mapping]] = ..., module_runtime_event: _Optional[_Union[ModuleRuntimeEvent, _Mapping]] = ..., provisioning_created_event: _Optional[_Union[ProvisioningCreatedEvent, _Mapping]] = ..., topic_runtime_event: _Optional[_Union[TopicRuntimeEvent, _Mapping]] = ..., verb_runtime_event: _Optional[_Union[VerbRuntimeEvent, _Mapping]] = ...) -> None: ...
+    def __init__(self, changeset_committed_event: _Optional[_Union[ChangesetCommittedEvent, _Mapping]] = ..., changeset_created_event: _Optional[_Union[ChangesetCreatedEvent, _Mapping]] = ..., changeset_failed_event: _Optional[_Union[ChangesetFailedEvent, _Mapping]] = ..., database_runtime_event: _Optional[_Union[DatabaseRuntimeEvent, _Mapping]] = ..., deployment_activated_event: _Optional[_Union[DeploymentActivatedEvent, _Mapping]] = ..., deployment_created_event: _Optional[_Union[DeploymentCreatedEvent, _Mapping]] = ..., deployment_deactivated_event: _Optional[_Union[DeploymentDeactivatedEvent, _Mapping]] = ..., deployment_replicas_updated_event: _Optional[_Union[DeploymentReplicasUpdatedEvent, _Mapping]] = ..., deployment_schema_updated_event: _Optional[_Union[DeploymentSchemaUpdatedEvent, _Mapping]] = ..., module_runtime_event: _Optional[_Union[ModuleRuntimeEvent, _Mapping]] = ..., provisioning_created_event: _Optional[_Union[ProvisioningCreatedEvent, _Mapping]] = ..., topic_runtime_event: _Optional[_Union[TopicRuntimeEvent, _Mapping]] = ..., verb_runtime_event: _Optional[_Union[VerbRuntimeEvent, _Mapping]] = ...) -> None: ...
 
 class Field(_message.Message):
     __slots__ = ("pos", "comments", "name", "type", "metadata")

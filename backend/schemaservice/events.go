@@ -35,6 +35,12 @@ func (r SchemaState) ApplyEvent(event schema.Event) (SchemaState, error) {
 		return handleModuleRuntimeEvent(r, e)
 	case *schema.ProvisioningCreatedEvent:
 		return handleProvisioningCreatedEvent(r, e)
+	case *schema.ChangesetCreatedEvent:
+		return handleChangesetCreatedEvent(r, e)
+	case *schema.ChangesetCommittedEvent:
+		return handleChangesetCommittedEvent(r, e)
+	case *schema.ChangesetFailedEvent:
+		return handleChangesetFailedEvent(r, e)
 	default:
 		return r, fmt.Errorf("unknown event type: %T", e)
 	}
@@ -74,7 +80,7 @@ func handleDeploymentActivatedEvent(t SchemaState, e *schema.DeploymentActivated
 	}
 	existing.ModRuntime().ModDeployment().ActivatedAt = optional.Some(e.ActivatedAt)
 	existing.ModRuntime().ModScaling().MinReplicas = int32(e.MinReplicas)
-	t.activeDeployments[e.Key] = true
+	t.activeDeployments[e.Key] = optional.Ptr(e.Changeset) //TODO
 	return t, nil
 }
 
@@ -169,5 +175,42 @@ func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) (Sche
 
 func handleProvisioningCreatedEvent(t SchemaState, e *schema.ProvisioningCreatedEvent) (SchemaState, error) {
 	t.provisioning[e.DesiredModule.Name] = e.DesiredModule
+	return t, nil
+}
+
+func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent) (SchemaState, error) {
+	if existing := t.changesets[e.Changeset.Key]; existing != nil {
+		return t, nil
+	}
+	if e.Changeset.State == schema.ChangesetStateProvisioning {
+		if active, ok := t.ActiveChangeset().Get(); ok {
+			// TODO: make unit test for this
+			// TODO: how does error handling work here? Does the changeset need to be added but immediately failed? Or is this error propagated to the caller?
+			return t, fmt.Errorf("can not create active changeset: %s already active", active.Key)
+		}
+	}
+	t.changesets[e.Changeset.Key] = e.Changeset
+	return t, nil
+}
+
+func handleChangesetCommittedEvent(t SchemaState, e *schema.ChangesetCommittedEvent) (SchemaState, error) {
+	changeset, ok := t.changesets[e.Key]
+	if !ok {
+		return SchemaState{}, fmt.Errorf("changeset %s not found", e.Key)
+	}
+	changeset.State = schema.ChangesetStateCommitted
+	for _, module := range changeset.Modules {
+		t.deployments[module.Runtime.Deployment.DeploymentKey] = module
+	}
+	return t, nil
+}
+
+func handleChangesetFailedEvent(t SchemaState, e *schema.ChangesetFailedEvent) (SchemaState, error) {
+	changeset, ok := t.changesets[e.Key]
+	if !ok {
+		return SchemaState{}, fmt.Errorf("changeset %s not found", e.Key)
+	}
+	changeset.State = schema.ChangesetStateFailed
+	changeset.Error = e.Error
 	return t, nil
 }

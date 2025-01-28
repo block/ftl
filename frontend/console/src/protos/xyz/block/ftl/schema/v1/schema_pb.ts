@@ -359,6 +359,123 @@ export class Changeset extends Message<Changeset> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetCommittedEvent
+ */
+export class ChangesetCommittedEvent extends Message<ChangesetCommittedEvent> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  constructor(data?: PartialMessage<ChangesetCommittedEvent>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetCommittedEvent";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetCommittedEvent {
+    return new ChangesetCommittedEvent().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetCommittedEvent {
+    return new ChangesetCommittedEvent().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetCommittedEvent {
+    return new ChangesetCommittedEvent().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetCommittedEvent | PlainMessage<ChangesetCommittedEvent> | undefined, b: ChangesetCommittedEvent | PlainMessage<ChangesetCommittedEvent> | undefined): boolean {
+    return proto3.util.equals(ChangesetCommittedEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetCreatedEvent
+ */
+export class ChangesetCreatedEvent extends Message<ChangesetCreatedEvent> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Changeset changeset = 1;
+   */
+  changeset?: Changeset;
+
+  constructor(data?: PartialMessage<ChangesetCreatedEvent>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetCreatedEvent";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "message", T: Changeset },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetCreatedEvent {
+    return new ChangesetCreatedEvent().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetCreatedEvent {
+    return new ChangesetCreatedEvent().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetCreatedEvent {
+    return new ChangesetCreatedEvent().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetCreatedEvent | PlainMessage<ChangesetCreatedEvent> | undefined, b: ChangesetCreatedEvent | PlainMessage<ChangesetCreatedEvent> | undefined): boolean {
+    return proto3.util.equals(ChangesetCreatedEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetFailedEvent
+ */
+export class ChangesetFailedEvent extends Message<ChangesetFailedEvent> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  /**
+   * @generated from field: string error = 2;
+   */
+  error = "";
+
+  constructor(data?: PartialMessage<ChangesetFailedEvent>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetFailedEvent";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetFailedEvent {
+    return new ChangesetFailedEvent().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetFailedEvent {
+    return new ChangesetFailedEvent().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetFailedEvent {
+    return new ChangesetFailedEvent().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetFailedEvent | PlainMessage<ChangesetFailedEvent> | undefined, b: ChangesetFailedEvent | PlainMessage<ChangesetFailedEvent> | undefined): boolean {
+    return proto3.util.equals(ChangesetFailedEvent, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.Config
  */
 export class Config extends Message<Config> {
@@ -890,6 +1007,11 @@ export class DeploymentActivatedEvent extends Message<DeploymentActivatedEvent> 
    */
   minReplicas = protoInt64.zero;
 
+  /**
+   * @generated from field: string changeset = 4;
+   */
+  changeset = "";
+
   constructor(data?: PartialMessage<DeploymentActivatedEvent>) {
     super();
     proto3.util.initPartial(data, this);
@@ -901,6 +1023,7 @@ export class DeploymentActivatedEvent extends Message<DeploymentActivatedEvent> 
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "activated_at", kind: "message", T: Timestamp },
     { no: 3, name: "min_replicas", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeploymentActivatedEvent {
@@ -977,6 +1100,11 @@ export class DeploymentDeactivatedEvent extends Message<DeploymentDeactivatedEve
    */
   moduleRemoved = false;
 
+  /**
+   * @generated from field: string changeset = 3;
+   */
+  changeset = "";
+
   constructor(data?: PartialMessage<DeploymentDeactivatedEvent>) {
     super();
     proto3.util.initPartial(data, this);
@@ -987,6 +1115,7 @@ export class DeploymentDeactivatedEvent extends Message<DeploymentDeactivatedEve
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "module_removed", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeploymentDeactivatedEvent {
@@ -1020,6 +1149,11 @@ export class DeploymentReplicasUpdatedEvent extends Message<DeploymentReplicasUp
    */
   replicas = protoInt64.zero;
 
+  /**
+   * @generated from field: string changeset = 3;
+   */
+  changeset = "";
+
   constructor(data?: PartialMessage<DeploymentReplicasUpdatedEvent>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1030,6 +1164,7 @@ export class DeploymentReplicasUpdatedEvent extends Message<DeploymentReplicasUp
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "replicas", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeploymentReplicasUpdatedEvent {
@@ -1063,6 +1198,11 @@ export class DeploymentSchemaUpdatedEvent extends Message<DeploymentSchemaUpdate
    */
   schema?: Module;
 
+  /**
+   * @generated from field: string changeset = 3;
+   */
+  changeset = "";
+
   constructor(data?: PartialMessage<DeploymentSchemaUpdatedEvent>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1073,6 +1213,7 @@ export class DeploymentSchemaUpdatedEvent extends Message<DeploymentSchemaUpdate
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "schema", kind: "message", T: Module },
+    { no: 3, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeploymentSchemaUpdatedEvent {
@@ -1223,6 +1364,24 @@ export class Event extends Message<Event> {
    */
   value: {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetCommittedEvent changeset_committed_event = 12;
+     */
+    value: ChangesetCommittedEvent;
+    case: "changesetCommittedEvent";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetCreatedEvent changeset_created_event = 11;
+     */
+    value: ChangesetCreatedEvent;
+    case: "changesetCreatedEvent";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedEvent changeset_failed_event = 13;
+     */
+    value: ChangesetFailedEvent;
+    case: "changesetFailedEvent";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.DatabaseRuntimeEvent database_runtime_event = 8;
      */
     value: DatabaseRuntimeEvent;
@@ -1291,6 +1450,9 @@ export class Event extends Message<Event> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.schema.v1.Event";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 12, name: "changeset_committed_event", kind: "message", T: ChangesetCommittedEvent, oneof: "value" },
+    { no: 11, name: "changeset_created_event", kind: "message", T: ChangesetCreatedEvent, oneof: "value" },
+    { no: 13, name: "changeset_failed_event", kind: "message", T: ChangesetFailedEvent, oneof: "value" },
     { no: 8, name: "database_runtime_event", kind: "message", T: DatabaseRuntimeEvent, oneof: "value" },
     { no: 4, name: "deployment_activated_event", kind: "message", T: DeploymentActivatedEvent, oneof: "value" },
     { no: 1, name: "deployment_created_event", kind: "message", T: DeploymentCreatedEvent, oneof: "value" },

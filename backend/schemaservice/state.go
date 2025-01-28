@@ -10,6 +10,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
@@ -36,7 +37,7 @@ func NewSchemaState() SchemaState {
 
 func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event] {
 	notifier := channels.NewNotifier(ctx)
-	handle := statemachine.NewLocalHandle(&schemaStateMachine{
+	handle := statemachine.NewLocalHandle[struct{}, SchemaState, schema.Event](&schemaStateMachine{
 		notifier:   notifier,
 		runningCtx: ctx,
 		state:      NewSchemaState(),

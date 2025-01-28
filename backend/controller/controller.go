@@ -257,9 +257,9 @@ func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.Pr
 			Endpoint: p.Endpoint,
 		}
 		minReplicas := int32(0)
-		deployment, _, err := s.schemaService.State.FindDeployment(p.Deployment)
-		if err == nil {
-			minReplicas = deployment.GetRuntime().GetScaling().GetMinReplicas()
+		deployment, ok := deploymentMap[p.Deployment.String()]
+		if ok {
+			minReplicas = deployment.Schema.GetRuntime().GetScaling().GetMinReplicas()
 		}
 		return &ftlv1.ProcessListResponse_Process{
 			Deployment:  p.Deployment.String(),
@@ -366,25 +366,17 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 //}
 
 func (s *Service) setDeploymentReplicas(ctx context.Context, key key.Deployment, minReplicas int) (err error) {
-<<<<<<< HEAD
 	deployments, err := s.schemaClient.GetDeployments(ctx, connect.NewRequest(&ftlv1.GetDeploymentsRequest{}))
-=======
-	view, err := s.schemaState.State.View(ctx)
->>>>>>> 5f816d7cd (initial bad rebase)
+
 	if err != nil {
 		return fmt.Errorf("failed to get schema deployments: %w", err)
 	}
-<<<<<<< HEAD
 	deploymentMap := map[string]*ftlv1.DeployedSchema{}
 	for _, deployment := range deployments.Msg.Schema {
 		deploymentMap[deployment.DeploymentKey] = deployment
 	}
 	deployment, ok := deploymentMap[key.String()]
 	if !ok {
-=======
-	deployment, _, err := view.FindDeployment(key)
-	if err != nil {
->>>>>>> 5f816d7cd (initial bad rebase)
 		return fmt.Errorf("could not get deployment: %w", err)
 	}
 
@@ -446,7 +438,6 @@ func (s *Service) setDeploymentReplicas(ctx context.Context, key key.Deployment,
 	return nil
 }
 
-<<<<<<< HEAD
 func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.ReplaceDeployRequest]) (*connect.Response[ftlv1.ReplaceDeployResponse], error) {
 	newDeploymentKey, err := key.ParseDeploymentKey(c.Msg.DeploymentKey)
 	if err != nil {
@@ -582,8 +573,6 @@ func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.Re
 	return connect.NewResponse(&ftlv1.ReplaceDeployResponse{}), nil
 }
 
-=======
->>>>>>> 5f816d7cd (initial bad rebase)
 func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStream[ftlv1.RegisterRunnerRequest]) (*connect.Response[ftlv1.RegisterRunnerResponse], error) {
 
 	deferredDeregistration := false
@@ -756,11 +745,8 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 	if err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
-	cs, err := s.schemaState.State.View(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get schema state: %w", err)
-	}
-	deployment, _, err := cs.FindDeployment(key)
+
+	deployment, err := s.getDeployment(ctx, key)
 	if err != nil {
 		return fmt.Errorf("could not get deployment: %w", err)
 	}
@@ -1050,7 +1036,6 @@ func (s *Service) UploadArtefact(ctx context.Context, req *connect.Request[ftlv1
 	return connect.NewResponse(&ftlv1.UploadArtefactResponse{Digest: digest[:]}), nil
 }
 
-<<<<<<< HEAD
 func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftlv1.CreateDeploymentRequest]) (*connect.Response[ftlv1.CreateDeploymentResponse], error) {
 	logger := log.FromContext(ctx)
 
@@ -1091,14 +1076,11 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	return connect.NewResponse(&ftlv1.CreateDeploymentResponse{DeploymentKey: dkey.String()}), nil
 }
 
-=======
->>>>>>> 5f816d7cd (initial bad rebase)
 func (s *Service) getDeployment(ctx context.Context, dkey key.Deployment) (*schema.Module, error) {
 	deployments, err := s.schemaClient.GetDeployments(ctx, &connect.Request[ftlv1.GetDeploymentsRequest]{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get deployments: %w", err)
 	}
-<<<<<<< HEAD
 	deploymentMap := map[string]*schema.Module{}
 	for _, deployment := range deployments.Msg.Schema {
 		module, err := schema.ModuleFromProto(deployment.Schema)
@@ -1111,12 +1093,6 @@ func (s *Service) getDeployment(ctx context.Context, dkey key.Deployment) (*sche
 	deployment, ok := deploymentMap[dkey.String()]
 	if !ok {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not retrieve deployment: %s", dkey))
-=======
-	// TODO: revisit if this is the right function to use
-	deployment, _, err := view.FindDeployment(dkey)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not retrieve deployment: %w", err))
->>>>>>> 5f816d7cd (initial bad rebase)
 	}
 	return deployment, nil
 }

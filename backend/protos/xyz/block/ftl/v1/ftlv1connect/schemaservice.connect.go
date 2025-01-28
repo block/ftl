@@ -43,6 +43,12 @@ const (
 	// SchemaServiceUpdateDeploymentRuntimeProcedure is the fully-qualified name of the SchemaService's
 	// UpdateDeploymentRuntime RPC.
 	SchemaServiceUpdateDeploymentRuntimeProcedure = "/xyz.block.ftl.v1.SchemaService/UpdateDeploymentRuntime"
+	// SchemaServiceUpdateSchemaProcedure is the fully-qualified name of the SchemaService's
+	// UpdateSchema RPC.
+	SchemaServiceUpdateSchemaProcedure = "/xyz.block.ftl.v1.SchemaService/UpdateSchema"
+	// SchemaServiceGetDeploymentsProcedure is the fully-qualified name of the SchemaService's
+	// GetDeployments RPC.
+	SchemaServiceGetDeploymentsProcedure = "/xyz.block.ftl.v1.SchemaService/GetDeployments"
 	// SchemaServiceCreateChangesetProcedure is the fully-qualified name of the SchemaService's
 	// CreateChangeset RPC.
 	SchemaServiceCreateChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/CreateChangeset"
@@ -67,6 +73,10 @@ type SchemaServiceClient interface {
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest]) (*connect.ServerStreamForClient[v1.PullSchemaResponse], error)
 	// UpdateModuleRuntime is used to update the runtime configuration of a module.
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error)
+	// UpdateSchema is used to update the schema.
+	UpdateSchema(context.Context, *connect.Request[v1.UpdateSchemaRequest]) (*connect.Response[v1.UpdateSchemaResponse], error)
+	// GetDeployments is used to get the schema for all deployments.
+	GetDeployments(context.Context, *connect.Request[v1.GetDeploymentsRequest]) (*connect.Response[v1.GetDeploymentsResponse], error)
 	// CreateChangeset creates a new changeset.
 	CreateChangeset(context.Context, *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error)
 	// CommitChangeset makes all deployments for the changeset part of the canonical schema.
@@ -108,6 +118,16 @@ func NewSchemaServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			baseURL+SchemaServiceUpdateDeploymentRuntimeProcedure,
 			opts...,
 		),
+		updateSchema: connect.NewClient[v1.UpdateSchemaRequest, v1.UpdateSchemaResponse](
+			httpClient,
+			baseURL+SchemaServiceUpdateSchemaProcedure,
+			opts...,
+		),
+		getDeployments: connect.NewClient[v1.GetDeploymentsRequest, v1.GetDeploymentsResponse](
+			httpClient,
+			baseURL+SchemaServiceGetDeploymentsProcedure,
+			opts...,
+		),
 		createChangeset: connect.NewClient[v1.CreateChangesetRequest, v1.CreateChangesetResponse](
 			httpClient,
 			baseURL+SchemaServiceCreateChangesetProcedure,
@@ -132,6 +152,8 @@ type schemaServiceClient struct {
 	getSchema               *connect.Client[v1.GetSchemaRequest, v1.GetSchemaResponse]
 	pullSchema              *connect.Client[v1.PullSchemaRequest, v1.PullSchemaResponse]
 	updateDeploymentRuntime *connect.Client[v1.UpdateDeploymentRuntimeRequest, v1.UpdateDeploymentRuntimeResponse]
+	updateSchema            *connect.Client[v1.UpdateSchemaRequest, v1.UpdateSchemaResponse]
+	getDeployments          *connect.Client[v1.GetDeploymentsRequest, v1.GetDeploymentsResponse]
 	createChangeset         *connect.Client[v1.CreateChangesetRequest, v1.CreateChangesetResponse]
 	commitChangeset         *connect.Client[v1.CommitChangesetRequest, v1.CommitChangesetResponse]
 	failChangeset           *connect.Client[v1.FailChangesetRequest, v1.FailChangesetResponse]
@@ -155,6 +177,16 @@ func (c *schemaServiceClient) PullSchema(ctx context.Context, req *connect.Reque
 // UpdateDeploymentRuntime calls xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime.
 func (c *schemaServiceClient) UpdateDeploymentRuntime(ctx context.Context, req *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error) {
 	return c.updateDeploymentRuntime.CallUnary(ctx, req)
+}
+
+// UpdateSchema calls xyz.block.ftl.v1.SchemaService.UpdateSchema.
+func (c *schemaServiceClient) UpdateSchema(ctx context.Context, req *connect.Request[v1.UpdateSchemaRequest]) (*connect.Response[v1.UpdateSchemaResponse], error) {
+	return c.updateSchema.CallUnary(ctx, req)
+}
+
+// GetDeployments calls xyz.block.ftl.v1.SchemaService.GetDeployments.
+func (c *schemaServiceClient) GetDeployments(ctx context.Context, req *connect.Request[v1.GetDeploymentsRequest]) (*connect.Response[v1.GetDeploymentsResponse], error) {
+	return c.getDeployments.CallUnary(ctx, req)
 }
 
 // CreateChangeset calls xyz.block.ftl.v1.SchemaService.CreateChangeset.
@@ -185,6 +217,10 @@ type SchemaServiceHandler interface {
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error
 	// UpdateModuleRuntime is used to update the runtime configuration of a module.
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error)
+	// UpdateSchema is used to update the schema.
+	UpdateSchema(context.Context, *connect.Request[v1.UpdateSchemaRequest]) (*connect.Response[v1.UpdateSchemaResponse], error)
+	// GetDeployments is used to get the schema for all deployments.
+	GetDeployments(context.Context, *connect.Request[v1.GetDeploymentsRequest]) (*connect.Response[v1.GetDeploymentsResponse], error)
 	// CreateChangeset creates a new changeset.
 	CreateChangeset(context.Context, *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error)
 	// CommitChangeset makes all deployments for the changeset part of the canonical schema.
@@ -222,6 +258,16 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 		svc.UpdateDeploymentRuntime,
 		opts...,
 	)
+	schemaServiceUpdateSchemaHandler := connect.NewUnaryHandler(
+		SchemaServiceUpdateSchemaProcedure,
+		svc.UpdateSchema,
+		opts...,
+	)
+	schemaServiceGetDeploymentsHandler := connect.NewUnaryHandler(
+		SchemaServiceGetDeploymentsProcedure,
+		svc.GetDeployments,
+		opts...,
+	)
 	schemaServiceCreateChangesetHandler := connect.NewUnaryHandler(
 		SchemaServiceCreateChangesetProcedure,
 		svc.CreateChangeset,
@@ -247,6 +293,10 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 			schemaServicePullSchemaHandler.ServeHTTP(w, r)
 		case SchemaServiceUpdateDeploymentRuntimeProcedure:
 			schemaServiceUpdateDeploymentRuntimeHandler.ServeHTTP(w, r)
+		case SchemaServiceUpdateSchemaProcedure:
+			schemaServiceUpdateSchemaHandler.ServeHTTP(w, r)
+		case SchemaServiceGetDeploymentsProcedure:
+			schemaServiceGetDeploymentsHandler.ServeHTTP(w, r)
 		case SchemaServiceCreateChangesetProcedure:
 			schemaServiceCreateChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceCommitChangesetProcedure:
@@ -276,6 +326,14 @@ func (UnimplementedSchemaServiceHandler) PullSchema(context.Context, *connect.Re
 
 func (UnimplementedSchemaServiceHandler) UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) UpdateSchema(context.Context, *connect.Request[v1.UpdateSchemaRequest]) (*connect.Response[v1.UpdateSchemaResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.UpdateSchema is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) GetDeployments(context.Context, *connect.Request[v1.GetDeploymentsRequest]) (*connect.Response[v1.GetDeploymentsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.GetDeployments is not implemented"))
 }
 
 func (UnimplementedSchemaServiceHandler) CreateChangeset(context.Context, *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error) {

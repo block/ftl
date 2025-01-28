@@ -84,6 +84,17 @@ message UpdateDeploymentRuntimeRequest {
 
 message UpdateDeploymentRuntimeResponse {}
 
+message UpdateSchemaRequest {
+  ftl.schema.v1.Event event = 1;
+}
+
+message UpdateSchemaResponse {}
+
+message GetDeploymentsRequest {}
+
+message GetDeploymentsResponse {
+  repeated DeployedSchema schema = 1;
+}
 message CreateChangesetRequest {
   repeated ftl.schema.v1.Module modules = 1;
 }
@@ -93,6 +104,11 @@ message CreateChangesetResponse {
   string changeset = 1;
 }
 
+message DeployedSchema {
+  string deployment_key = 1;
+  ftl.schema.v1.Module schema = 2;
+  bool is_active = 3;
+}
 message CommitChangesetRequest {
   // The changeset key to commit.
   string changeset = 1;
@@ -129,6 +145,12 @@ service SchemaService {
 
   // UpdateModuleRuntime is used to update the runtime configuration of a module.
   rpc UpdateDeploymentRuntime(UpdateDeploymentRuntimeRequest) returns (UpdateDeploymentRuntimeResponse);
+
+  // UpdateSchema is used to update the schema.
+  rpc UpdateSchema(UpdateSchemaRequest) returns (UpdateSchemaResponse);
+
+  // GetDeployments is used to get the schema for all deployments.
+  rpc GetDeployments(GetDeploymentsRequest) returns (GetDeploymentsResponse);
 
   // CreateChangeset creates a new changeset.
   rpc CreateChangeset(CreateChangesetRequest) returns (CreateChangesetResponse);

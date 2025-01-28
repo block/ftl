@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/alecthomas/types/optional"
+
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -36,6 +37,32 @@ func New(ctx context.Context) *Service {
 	return &Service{State: NewInMemorySchemaState(ctx)}
 }
 
+// Start the SchemaService. Blocks until the context is cancelled.
+func Start(
+	ctx context.Context,
+	config Config,
+) error {
+	logger := log.FromContext(ctx)
+	logger.Debugf("Starting FTL schema service")
+
+	svc := New(ctx)
+	logger.Debugf("Listening on %s", config.Bind)
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return rpc.Serve(ctx, config.Bind,
+			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
+			rpc.PProf(),
+		)
+	})
+
+	err := g.Wait()
+	if err != nil {
+		return fmt.Errorf("failed to start schema service: %w", err)
+	}
+	return nil
+}
 func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
 	view, err := s.State.View(ctx)
 	if err != nil {
@@ -98,6 +125,35 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(&ftlv1.UpdateDeploymentRuntimeResponse{}), nil
 }
 
+func (s *Service) UpdateSchema(ctx context.Context, req *connect.Request[ftlv1.UpdateSchemaRequest]) (*connect.Response[ftlv1.UpdateSchemaResponse], error) {
+	event, err := schema.EventFromProto(req.Msg.Event)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse event: %w", err)
+	}
+	if err = s.State.Publish(ctx, event); err != nil {
+		return nil, fmt.Errorf("could not apply event: %w", err)
+	}
+	return connect.NewResponse(&ftlv1.UpdateSchemaResponse{}), nil
+}
+func (s *Service) GetDeployments(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentsRequest]) (*connect.Response[ftlv1.GetDeploymentsResponse], error) {
+	view, err := s.State.View(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get schema state: %w", err)
+	}
+	deployments := view.GetDeployments()
+	activeDeployments := view.GetAllActiveDeployments()
+	var result []*ftlv1.DeployedSchema
+	for key, deployment := range deployments {
+		_, activeOk := activeDeployments[key]
+		result = append(result, &ftlv1.DeployedSchema{
+			DeploymentKey: key.String(),
+			Schema:        deployment.ToProto(),
+			IsActive:      activeOk,
+		})
+	}
+	return connect.NewResponse(&ftlv1.GetDeploymentsResponse{Schema: result}), nil
+}
+
 // CreateChangeset creates a new changeset.
 func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv1.CreateChangesetRequest]) (*connect.Response[ftlv1.CreateChangesetResponse], error) {
 	modules, err := slices.MapErr(req.Msg.Modules, func(m *schemapb.Module) (*schema.Module, error) {
@@ -118,9 +174,13 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 
 	// TODO: validate changeset schema with canonical schema
 
-	s.State.Publish(ctx, &ChangesetCreatedEvent{
+	err = s.State.Publish(ctx, &schema.ChangesetCreatedEvent{
 		Changeset: changeset,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("could not create changeset %w", err)
+	}
+
 	return connect.NewResponse(&ftlv1.CreateChangesetResponse{}), nil
 }
 
@@ -203,7 +263,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return fmt.Errorf("failed to get schema state: %w", err)
 			}
-			dep, err := view.GetDeployment(event.Key, event.Changeset)
+			dep, err := view.GetDeployment(event.Key, optional.Ptr(event.Changeset))
 			if err != nil {
 				logger.Errorf(err, "Deployment not found: %s", event.Key)
 				continue
@@ -226,7 +286,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return fmt.Errorf("failed to get schema state: %w", err)
 			}
-			dep, err := view.GetDeployment(event.Key, event.Changeset)
+			dep, err := view.GetDeployment(event.Key, optional.Ptr(event.Changeset))
 			if err != nil {
 				logger.Errorf(err, "Deployment not found: %s", event.Key)
 				continue

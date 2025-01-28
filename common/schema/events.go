@@ -39,16 +39,18 @@ func (r *DeploymentCreatedEvent) event() {}
 
 //protobuf:2
 type DeploymentSchemaUpdatedEvent struct {
-	Key    key.Deployment `protobuf:"1"`
-	Schema *Module        `protobuf:"2"`
+	Key       key.Deployment `protobuf:"1"`
+	Schema    *Module        `protobuf:"2"`
+	Changeset *key.Changeset `protobuf:"3"`
 }
 
 func (r *DeploymentSchemaUpdatedEvent) event() {}
 
 //protobuf:3
 type DeploymentReplicasUpdatedEvent struct {
-	Key      key.Deployment `protobuf:"1"`
-	Replicas int            `protobuf:"2"`
+	Key       key.Deployment `protobuf:"1"`
+	Replicas  int            `protobuf:"2"`
+	Changeset *key.Changeset `protobuf:"3"`
 }
 
 func (r *DeploymentReplicasUpdatedEvent) event() {}
@@ -58,6 +60,7 @@ type DeploymentActivatedEvent struct {
 	Key         key.Deployment `protobuf:"1"`
 	ActivatedAt time.Time      `protobuf:"2"`
 	MinReplicas int            `protobuf:"3"`
+	Changeset   *key.Changeset `protobuf:"4"`
 }
 
 func (r *DeploymentActivatedEvent) event() {}
@@ -66,6 +69,7 @@ func (r *DeploymentActivatedEvent) event() {}
 type DeploymentDeactivatedEvent struct {
 	Key           key.Deployment `protobuf:"1"`
 	ModuleRemoved bool           `protobuf:"2"`
+	Changeset     *key.Changeset `protobuf:"3"`
 }
 
 func (r *DeploymentDeactivatedEvent) event() {}
@@ -117,3 +121,25 @@ type ProvisioningCreatedEvent struct {
 }
 
 func (e *ProvisioningCreatedEvent) event() {}
+
+//protobuf:11
+type ChangesetCreatedEvent struct {
+	Changeset *Changeset `protobuf:"1"`
+}
+
+func (e *ChangesetCreatedEvent) event() {}
+
+//protobuf:12
+type ChangesetCommittedEvent struct {
+	Key key.Changeset `protobuf:"1"`
+}
+
+func (e *ChangesetCommittedEvent) event() {}
+
+//protobuf:13
+type ChangesetFailedEvent struct {
+	Key   key.Changeset `protobuf:"1"`
+	Error string        `protobuf:"2"`
+}
+
+func (e *ChangesetFailedEvent) event() {}

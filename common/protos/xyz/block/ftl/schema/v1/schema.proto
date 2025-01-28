@@ -46,6 +46,19 @@ message Changeset {
   optional string error = 5;
 }
 
+message ChangesetCommittedEvent {
+  string key = 1;
+}
+
+message ChangesetCreatedEvent {
+  Changeset changeset = 1;
+}
+
+message ChangesetFailedEvent {
+  string key = 1;
+  string error = 2;
+}
+
 enum ChangesetState {
   CHANGESET_STATE_UNSPECIFIED = 0;
   CHANGESET_STATE_PROVISIONING = 1;
@@ -125,6 +138,7 @@ message DeploymentActivatedEvent {
   string key = 1;
   google.protobuf.Timestamp activated_at = 2;
   int64 min_replicas = 3;
+  string changeset = 4;
 }
 
 message DeploymentCreatedEvent {
@@ -135,16 +149,19 @@ message DeploymentCreatedEvent {
 message DeploymentDeactivatedEvent {
   string key = 1;
   bool module_removed = 2;
+  string changeset = 3;
 }
 
 message DeploymentReplicasUpdatedEvent {
   string key = 1;
   int64 replicas = 2;
+  string changeset = 3;
 }
 
 message DeploymentSchemaUpdatedEvent {
   string key = 1;
   Module schema = 2;
+  string changeset = 3;
 }
 
 message Enum {
@@ -165,6 +182,9 @@ message EnumVariant {
 
 message Event {
   oneof value {
+    ChangesetCommittedEvent changeset_committed_event = 12;
+    ChangesetCreatedEvent changeset_created_event = 11;
+    ChangesetFailedEvent changeset_failed_event = 13;
     DatabaseRuntimeEvent database_runtime_event = 8;
     DeploymentActivatedEvent deployment_activated_event = 4;
     DeploymentCreatedEvent deployment_created_event = 1;
