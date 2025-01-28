@@ -26,7 +26,7 @@ var cli struct {
 	LogConfig             log.Config           `embed:"" prefix:"log-"`
 	ConsoleConfig         console.Config       `embed:"" prefix:"console-"`
 	TimelineEndpoint      *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
-	SchemaServiceEndpoint *url.URL             `help:"Schema service endpoint." env:"FTL_SCHEMA_SERVICE_ENDPOINT" default:"http://127.0.0.1:8893"`
+	SchemaServiceEndpoint *url.URL             `help:"Schema service endpoint." env:"FTL_SCHEMA_SERVICE_ENDPOINT" default:"http://127.0.0.1:8897"`
 	ControllerEndpoint    *url.URL             `help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	VerbServiceEndpoint   *url.URL             `help:"Verb service endpoint." env:"FTL_VERB_SERVICE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	AdminEndpoint         *url.URL             `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`

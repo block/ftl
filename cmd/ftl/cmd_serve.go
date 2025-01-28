@@ -31,6 +31,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner"
 	"github.com/block/ftl/backend/provisioner/scaling/localscaling"
+	"github.com/block/ftl/backend/schemaservice"
 	"github.com/block/ftl/backend/timeline"
 	"github.com/block/ftl/common/schema"
 	consolefrontend "github.com/block/ftl/frontend/console"
@@ -72,6 +73,7 @@ type serveCommonConfig struct {
 	NoConsole           bool                 `help:"Disable the console."`
 	Ingress             ingress.Config       `embed:"" prefix:"ingress-"`
 	Timeline            timeline.Config      `embed:"" prefix:"timeline-"`
+	SchemaService       schemaservice.Config `embed:"" prefix:"schemaservice-"`
 	Console             console.Config       `embed:"" prefix:"console-"`
 	Lease               lease.Config         `embed:"" prefix:"lease-"`
 	Admin               admin.Config         `embed:"" prefix:"admin-"`
@@ -100,7 +102,7 @@ func (s *serveCmd) Run(
 	if err != nil {
 		return fmt.Errorf("could not create bind allocator: %w", err)
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaEventSourceFactory, verbClient, buildEngineClient, s.Recreate, nil)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, verbClient, buildEngineClient, s.Recreate, nil)
 }
 
 //nolint:maintidx
@@ -116,6 +118,7 @@ func (s *serveCommonConfig) run(
 	provisionerClient provisionerconnect.ProvisionerServiceClient,
 	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
+	schemaClient ftlv1connect.SchemaServiceClient,
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
 	verbClient ftlv1connect.VerbServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
@@ -249,6 +252,16 @@ func (s *serveCommonConfig) run(
 	if err != nil {
 		return fmt.Errorf("runner scaling failed to start: %w", err)
 	}
+
+	schemaCtx := log.ContextWithLogger(ctx, logger.Scope("schemaservice"))
+	wg.Go(func() error {
+		if err := schemaservice.Start(schemaCtx, s.SchemaService); err != nil {
+			logger.Errorf(err, "schemaservice failed: %v", err)
+			return fmt.Errorf("schemaservice failed: %w", err)
+		}
+		return nil
+	})
+
 	for i := range s.Controllers {
 		config := controller.Config{
 			CommonConfig: s.CommonConfig,
@@ -262,7 +275,7 @@ func (s *serveCommonConfig) run(
 		controllerCtx := log.ContextWithLogger(ctx, logger.Scope(scope))
 
 		wg.Go(func() error {
-			if err := controller.Start(controllerCtx, config, storage, adminClient, timelineClient, true); err != nil {
+			if err := controller.Start(controllerCtx, config, storage, adminClient, timelineClient, schemaClient, true); err != nil {
 				logger.Errorf(err, "controller%d failed: %v", i, err)
 				return fmt.Errorf("controller%d failed: %w", i, err)
 			}
