@@ -183,7 +183,7 @@ func New(
 		config:         config,
 		routeTable:     routingTable,
 		storage:        storage,
-		schemaState:    &schemaservice.Service{State: schemaservice.NewInMemorySchemaState(ctx)},
+		schemaState:    schemaservice.New(ctx),
 		runnerState:    state.NewInMemoryRunnerState(ctx),
 		adminClient:    adminClient,
 	}
