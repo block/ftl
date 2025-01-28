@@ -18,10 +18,9 @@ import (
 type lspCmd struct {
 	BuildUpdatesEndpoint *url.URL `help:"Build updates endpoint." default:"http://127.0.0.1:8900" env:"FTL_BUILD_UPDATES_ENDPOINT"`
 	languageServer       *lsp.Server
-	buildEngineClient    buildenginepbconnect.BuildEngineServiceClient
 }
 
-func (l *lspCmd) Run(ctx context.Context) error {
+func (l *lspCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient) error {
 	logger := log.FromContext(ctx).Scope("lsp")
 	logger.Infof("Starting LSP server and listening for updates on %s", l.BuildUpdatesEndpoint)
 
@@ -39,7 +38,7 @@ func (l *lspCmd) Run(ctx context.Context) error {
 				return ctx.Err()
 			default:
 				logger.Debugf("Connecting to build updates service")
-				if err := l.streamBuildEvents(ctx, l.buildEngineClient); err != nil {
+				if err := l.streamBuildEvents(ctx, buildEngineClient); err != nil {
 					logger.Debugf("Failed to connect to build updates service: %v", err)
 
 					// Delay before reconnecting to avoid tight loop
