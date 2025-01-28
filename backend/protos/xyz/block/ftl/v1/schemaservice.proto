@@ -41,6 +41,12 @@ message UpdateDeploymentRuntimeRequest {
 
 message UpdateDeploymentRuntimeResponse {}
 
+message UpdateSchemaRequest {
+  ftl.schema.v1.Event event = 1;
+}
+
+message UpdateSchemaResponse {}
+
 service SchemaService {
   // Ping service for readiness.
   rpc Ping(PingRequest) returns (PingResponse) {
@@ -62,4 +68,7 @@ service SchemaService {
 
   // UpdateModuleRuntime is used to update the runtime configuration of a module.
   rpc UpdateDeploymentRuntime(UpdateDeploymentRuntimeRequest) returns (UpdateDeploymentRuntimeResponse);
+
+  // UpdateSchema is used to update the schema.
+  rpc UpdateSchema(UpdateSchemaRequest) returns (UpdateSchemaResponse);
 }

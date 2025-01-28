@@ -78,6 +78,17 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(&ftlv1.UpdateDeploymentRuntimeResponse{}), nil
 }
 
+func (s *Service) UpdateSchema(ctx context.Context, req *connect.Request[ftlv1.UpdateSchemaRequest]) (*connect.Response[ftlv1.UpdateSchemaResponse], error) {
+	event, err := schema.EventFromProto(req.Msg.Event)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse event: %w", err)
+	}
+	if err = s.State.Publish(ctx, event); err != nil {
+		return nil, fmt.Errorf("could not apply event: %w", err)
+	}
+	return connect.NewResponse(&ftlv1.UpdateSchemaResponse{}), nil
+}
+
 func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
 	logger := log.FromContext(ctx)
 
