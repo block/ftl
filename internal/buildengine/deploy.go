@@ -32,8 +32,6 @@ type deploymentArtefact struct {
 type DeployClient interface {
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error)
 	UploadArtefact(ctx context.Context, req *connect.Request[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error)
-	// CreateDeployment(ctx context.Context, req *connect.Request[ftlv1.CreateDeploymentRequest]) (*connect.Response[ftlv1.CreateDeploymentResponse], error)
-	// ReplaceDeploy(ctx context.Context, req *connect.Request[ftlv1.ReplaceDeployRequest]) (*connect.Response[ftlv1.ReplaceDeployResponse], error)
 	Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error)
 	UpdateDeploy(ctx context.Context, req *connect.Request[ftlv1.UpdateDeployRequest]) (*connect.Response[ftlv1.UpdateDeployResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
@@ -80,7 +78,6 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 	}
 	key := resp.Msg.Changeset
 
-	// TODO: warn if stream is not completing?
 	stream, err := schemaserviceClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
 	defer stream.Close()
 	for {
@@ -94,6 +91,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommited.Key)
 				continue
 			}
+			logger.Infof("Deployment %s became ready", key)
 			return nil
 		case *ftlv1.PullSchemaResponse_ChangesetFailed_:
 			if msg.ChangesetFailed.Key != key {
@@ -109,28 +107,6 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 			*ftlv1.PullSchemaResponse_DeploymentRemoved_:
 		}
 	}
-	// resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ftlv1.CreateDeploymentRequest{
-	// 	Schema: moduleSchema,
-	// }))
-	// if err != nil {
-	// 	return err
-	// }
-
-	// _, err = client.ReplaceDeploy(ctx, connect.NewRequest(&ftlv1.ReplaceDeployRequest{DeploymentKey: resp.Msg.GetDeploymentKey(), MinReplicas: replicas}))
-	// if err != nil {
-	// 	return err
-	// }
-
-	// if waitForDeployOnline {
-	// 	logger.Debugf("Waiting for deployment %s to become ready", resp.Msg.DeploymentKey)
-	// 	err = checkReadiness(ctx, client, resp.Msg.DeploymentKey, replicas, moduleSchema)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	logger.Infof("Deployment %s became ready", resp.Msg.DeploymentKey)
-	// }
-
-	// return nil
 }
 
 func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, module Module, client DeployClient) (*schemapb.Module, error) {

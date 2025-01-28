@@ -18,8 +18,7 @@ import (
 )
 
 type SchemaState struct {
-	deployments map[key.Deployment]*schema.Module
-	// TODO: move this to point to optional.key.Changeset, but really it doesnt belong here
+	deployments       map[key.Deployment]*schema.Module
 	activeDeployments map[key.Deployment]optional.Option[key.Changeset]
 	changesets        map[key.Changeset]*schema.Changeset
 	// TODO: consider removing committed changesets. Return success if asked about a missing changeset? Or keep the shell of changesets

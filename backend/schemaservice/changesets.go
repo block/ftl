@@ -44,6 +44,7 @@ func (e *ChangesetCreatedEvent) Handle(t SchemaState) (SchemaState, error) {
 	if e.Changeset.State == schema.ChangesetStateProvisioning {
 		if active, ok := t.ActiveChangeset().Get(); ok {
 			// TODO: make unit test for this
+			// TODO: how does error handling work here? Does the changeset need to be added but immediately failed? Or is this error propagated to the caller?
 			return t, fmt.Errorf("can not create active changeset: %s already active", active.Key)
 		}
 	}

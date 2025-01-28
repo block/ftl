@@ -17,10 +17,6 @@ message GetSchemaResponse {
 message PullSchemaRequest {}
 message PullSchemaResponse {
   // ChangesetCreated is sent when a new changeset is created.
-  // TODO: consider whether to:
-  // - include all modules in the message? and don't publish individual DeploymentCreated messages for them
-  // - Let deployments be created into a changeset after the changeset is created
-  //     - Add a way to indicate how many deployments are expected in the changeset? So listeners can determine if they have the full changeset?
   message ChangesetCreated {
     ftl.schema.v1.Changeset changeset = 1;
   }
