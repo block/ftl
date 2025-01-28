@@ -1,16 +1,15 @@
 import { ResizablePanels } from '../../../../components/ResizablePanels'
 import type { Enum } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
 import { declIcon } from '../../module.utils'
-import { Schema } from '../../schema/Schema'
 import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'
 import { enumPanels } from './EnumRightPanels'
 
-export const EnumPanel = ({ value, schema, moduleName, declName }: { value: Enum; schema: string; moduleName: string; declName: string }) => {
-  if (!value || !schema) {
+export const EnumPanel = ({ enumValue, moduleName, declName }: { enumValue: Enum; moduleName: string; declName: string }) => {
+  if (!enumValue) {
     return
   }
-  const decl = value.enum
+  const decl = enumValue.enum
   if (!decl) {
     return
   }
@@ -20,16 +19,11 @@ export const EnumPanel = ({ value, schema, moduleName, declName }: { value: Enum
       <ResizablePanels
         mainContent={
           <div className='p-4'>
-            <div className=''>
-              <PanelHeader title='Enum' declRef={`${moduleName}.${declName}`} exported={false} comments={decl.comments} />
-              <div className='-mx-3.5'>
-                <Schema schema={schema} moduleName={moduleName} />
-              </div>
-            </div>
+            <PanelHeader title='Enum' declRef={`${moduleName}.${declName}`} exported={false} comments={decl.comments} />
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('enum', decl)} title={declName} />}
-        rightPanelPanels={enumPanels(moduleName, value, schema)}
+        rightPanelPanels={enumPanels(moduleName, enumValue)}
         storageKeyPrefix='enumPanel'
       />
     </div>

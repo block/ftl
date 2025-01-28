@@ -12,7 +12,7 @@ import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'
 import { configPanels } from './ConfigRightPanels'
 
-export const ConfigPanel = ({ value, schema, moduleName, declName }: { value: Config; schema: string; moduleName: string; declName: string }) => {
+export const ConfigPanel = ({ config, moduleName, declName }: { config: Config; moduleName: string; declName: string }) => {
   const client = useClient(ConsoleService)
   const [configValue, setConfigValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -75,10 +75,10 @@ export const ConfigPanel = ({ value, schema, moduleName, declName }: { value: Co
       })
   }
 
-  if (!value || !schema) {
+  if (!config) {
     return null
   }
-  const decl = value.config
+  const decl = config.config
   if (!decl) {
     return null
   }
@@ -106,7 +106,7 @@ export const ConfigPanel = ({ value, schema, moduleName, declName }: { value: Co
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('config', decl)} title={declName} />}
-        rightPanelPanels={configPanels(moduleName, value, schema)}
+        rightPanelPanels={configPanels(moduleName, config)}
         storageKeyPrefix='configPanel'
       />
     </div>

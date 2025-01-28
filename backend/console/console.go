@@ -218,25 +218,37 @@ func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string, ref
 	for _, d := range decls {
 		switch decl := d.(type) {
 		case *schema.Config:
-			configs = append(configs, configFromDecl(decl, module, refMap))
+			config := configFromDecl(decl, module, refMap)
+			config.Schema = decl.String()
+			configs = append(configs, config)
 
 		case *schema.Data:
 			data = append(data, dataFromDecl(decl, module, refMap))
 
 		case *schema.Database:
-			databases = append(databases, databaseFromDecl(decl, module, refMap))
+			database := databaseFromDecl(decl, module, refMap)
+			database.Schema = decl.String()
+			databases = append(databases, database)
 
 		case *schema.Enum:
-			enums = append(enums, enumFromDecl(decl, module, refMap))
+			enum := enumFromDecl(decl, module, refMap)
+			enum.Schema = decl.String()
+			enums = append(enums, enum)
 
 		case *schema.Topic:
-			topics = append(topics, topicFromDecl(decl, module, refMap))
+			topic := topicFromDecl(decl, module, refMap)
+			topic.Schema = decl.String()
+			topics = append(topics, topic)
 
 		case *schema.Secret:
-			secrets = append(secrets, secretFromDecl(decl, module, refMap))
+			secret := secretFromDecl(decl, module, refMap)
+			secret.Schema = decl.String()
+			secrets = append(secrets, secret)
 
 		case *schema.TypeAlias:
-			typealiases = append(typealiases, typealiasFromDecl(decl, module, refMap))
+			typealias := typealiasFromDecl(decl, module, refMap)
+			typealias.Schema = decl.String()
+			typealiases = append(typealiases, typealias)
 
 		case *schema.Verb:
 			verb, err := verbFromDecl(decl, sch, module, refMap)

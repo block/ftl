@@ -3,7 +3,7 @@ import type { Config } from '../../../../protos/xyz/block/ftl/console/v1/console
 import type { ExpandablePanelProps } from '../../../graph/ExpandablePanel'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
 
-export const configPanels = (moduleName: string, config: Config, schema?: string) => {
+export const configPanels = (moduleName: string, config: Config) => {
   return [
     {
       title: 'Details',
@@ -13,6 +13,6 @@ export const configPanels = (moduleName: string, config: Config, schema?: string
         <RightPanelAttribute key='type' name='Type' value={config.config?.type?.value.case ?? ''} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, schema, config.references),
+    ...DeclDefaultPanels(moduleName, config.schema, config.references),
   ] as ExpandablePanelProps[]
 }

@@ -2,7 +2,8 @@ import { RightPanelAttribute } from '../../../../components/RightPanelAttribute'
 import type { Topic } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { ExpandablePanelProps } from '../../../graph/ExpandablePanel'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
-export const topicPanels = (moduleName: string, topic: Topic, schema?: string) => {
+
+export const topicPanels = (moduleName: string, topic: Topic) => {
   return [
     {
       title: 'Details',
@@ -12,6 +13,6 @@ export const topicPanels = (moduleName: string, topic: Topic, schema?: string) =
         <RightPanelAttribute key='export' name='Event' value={topic.topic?.event?.value.case} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, schema, topic.references),
+    ...DeclDefaultPanels(moduleName, topic.schema, topic.references),
   ] as ExpandablePanelProps[]
 }

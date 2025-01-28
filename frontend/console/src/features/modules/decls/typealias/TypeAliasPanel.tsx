@@ -1,17 +1,16 @@
 import { ResizablePanels } from '../../../../components/ResizablePanels'
 import type { TypeAlias } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
 import { declIcon } from '../../module.utils'
-import { Schema } from '../../schema/Schema'
 import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'
 import { typeAliasPanels } from './TypeAliasRightPanels'
 
-export const TypeAliasPanel = ({ value, schema, moduleName, declName }: { value: TypeAlias; schema: string; moduleName: string; declName: string }) => {
-  if (!value || !schema) {
+export const TypeAliasPanel = ({ typealias, moduleName, declName }: { typealias: TypeAlias; moduleName: string; declName: string }) => {
+  if (!typealias) {
     return
   }
 
-  const decl = value.typealias
+  const decl = typealias.typealias
   if (!decl) {
     return
   }
@@ -21,16 +20,11 @@ export const TypeAliasPanel = ({ value, schema, moduleName, declName }: { value:
       <ResizablePanels
         mainContent={
           <div className='p-4'>
-            <div className=''>
-              <PanelHeader title='TypeAlias' declRef={`${moduleName}.${declName}`} exported={decl.export} comments={decl.comments} />
-              <div className='-mx-3.5'>
-                <Schema schema={schema} moduleName={moduleName} />
-              </div>
-            </div>
+            <PanelHeader title='TypeAlias' declRef={`${moduleName}.${declName}`} exported={decl.export} comments={decl.comments} />
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('typealias', decl)} title={declName} />}
-        rightPanelPanels={typeAliasPanels(moduleName, value, schema)}
+        rightPanelPanels={typeAliasPanels(moduleName, typealias)}
         storageKeyPrefix='typeAliasPanel'
       />
     </div>

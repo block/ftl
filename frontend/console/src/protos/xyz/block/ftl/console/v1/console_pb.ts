@@ -21,6 +21,11 @@ export class Config extends Message<Config> {
    */
   references: Ref[] = [];
 
+  /**
+   * @generated from field: string schema = 3;
+   */
+  schema = "";
+
   constructor(data?: PartialMessage<Config>) {
     super();
     proto3.util.initPartial(data, this);
@@ -31,6 +36,7 @@ export class Config extends Message<Config> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "config", kind: "message", T: Config$1 },
     { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Config {
@@ -113,6 +119,11 @@ export class Database extends Message<Database> {
    */
   references: Ref[] = [];
 
+  /**
+   * @generated from field: string schema = 3;
+   */
+  schema = "";
+
   constructor(data?: PartialMessage<Database>) {
     super();
     proto3.util.initPartial(data, this);
@@ -123,6 +134,7 @@ export class Database extends Message<Database> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "database", kind: "message", T: Database$1 },
     { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Database {
@@ -156,6 +168,11 @@ export class Enum extends Message<Enum> {
    */
   references: Ref[] = [];
 
+  /**
+   * @generated from field: string schema = 3;
+   */
+  schema = "";
+
   constructor(data?: PartialMessage<Enum>) {
     super();
     proto3.util.initPartial(data, this);
@@ -166,6 +183,7 @@ export class Enum extends Message<Enum> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "enum", kind: "message", T: Enum$1 },
     { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Enum {
@@ -199,6 +217,11 @@ export class Topic extends Message<Topic> {
    */
   references: Ref[] = [];
 
+  /**
+   * @generated from field: string schema = 3;
+   */
+  schema = "";
+
   constructor(data?: PartialMessage<Topic>) {
     super();
     proto3.util.initPartial(data, this);
@@ -209,6 +232,7 @@ export class Topic extends Message<Topic> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "topic", kind: "message", T: Topic$1 },
     { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Topic {
@@ -242,6 +266,11 @@ export class TypeAlias extends Message<TypeAlias> {
    */
   references: Ref[] = [];
 
+  /**
+   * @generated from field: string schema = 3;
+   */
+  schema = "";
+
   constructor(data?: PartialMessage<TypeAlias>) {
     super();
     proto3.util.initPartial(data, this);
@@ -252,6 +281,7 @@ export class TypeAlias extends Message<TypeAlias> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "typealias", kind: "message", T: TypeAlias$1 },
     { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TypeAlias {
@@ -285,6 +315,11 @@ export class Secret extends Message<Secret> {
    */
   references: Ref[] = [];
 
+  /**
+   * @generated from field: string schema = 3;
+   */
+  schema = "";
+
   constructor(data?: PartialMessage<Secret>) {
     super();
     proto3.util.initPartial(data, this);
@@ -295,6 +330,7 @@ export class Secret extends Message<Secret> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "secret", kind: "message", T: Secret$1 },
     { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Secret {

@@ -15,6 +15,7 @@ option java_multiple_files = true;
 message Config {
   ftl.schema.v1.Config config = 1;
   repeated ftl.schema.v1.Ref references = 2;
+  string schema = 3;
 }
 
 message Data {
@@ -26,26 +27,31 @@ message Data {
 message Database {
   ftl.schema.v1.Database database = 1;
   repeated ftl.schema.v1.Ref references = 2;
+  string schema = 3;
 }
 
 message Enum {
   ftl.schema.v1.Enum enum = 1;
   repeated ftl.schema.v1.Ref references = 2;
+  string schema = 3;
 }
 
 message Topic {
   ftl.schema.v1.Topic topic = 1;
   repeated ftl.schema.v1.Ref references = 2;
+  string schema = 3;
 }
 
 message TypeAlias {
   ftl.schema.v1.TypeAlias typealias = 1;
   repeated ftl.schema.v1.Ref references = 2;
+  string schema = 3;
 }
 
 message Secret {
   ftl.schema.v1.Secret secret = 1;
   repeated ftl.schema.v1.Ref references = 2;
+  string schema = 3;
 }
 
 message Verb {
