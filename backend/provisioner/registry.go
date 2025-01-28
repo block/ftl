@@ -11,6 +11,7 @@ import (
 	"github.com/block/ftl/backend/schemaservice"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -120,7 +121,7 @@ func (reg *ProvisionerRegistry) Register(id string, handler provisionerconnect.P
 }
 
 // CreateDeployment to take the system to the desired state
-func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, desiredModule, existingModule *schema.Module) *Deployment {
+func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, desiredModule, existingModule *schema.Module, changeset key.Changeset) *Deployment {
 	logger := log.FromContext(ctx)
 	module := desiredModule.GetName()
 	state := schemaservice.NewSchemaState()

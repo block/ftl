@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetDeploymentRequest, GetDeploymentResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse, UpdateDeployRequest, UpdateDeployResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
+import { GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetDeploymentRequest, GetDeploymentResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.ControllerService
@@ -105,17 +105,6 @@ export const ControllerService = {
       I: RegisterRunnerRequest,
       O: RegisterRunnerResponse,
       kind: MethodKind.ClientStreaming,
-    },
-    /**
-     * Update an existing deployment.
-     *
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.UpdateDeploy
-     */
-    updateDeploy: {
-      name: "UpdateDeploy",
-      I: UpdateDeployRequest,
-      O: UpdateDeployResponse,
-      kind: MethodKind.Unary,
     },
   }
 } as const;

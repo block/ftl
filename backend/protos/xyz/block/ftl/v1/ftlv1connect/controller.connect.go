@@ -56,9 +56,6 @@ const (
 	// ControllerServiceRegisterRunnerProcedure is the fully-qualified name of the ControllerService's
 	// RegisterRunner RPC.
 	ControllerServiceRegisterRunnerProcedure = "/xyz.block.ftl.v1.ControllerService/RegisterRunner"
-	// ControllerServiceUpdateDeployProcedure is the fully-qualified name of the ControllerService's
-	// UpdateDeploy RPC.
-	ControllerServiceUpdateDeployProcedure = "/xyz.block.ftl.v1.ControllerService/UpdateDeploy"
 )
 
 // ControllerServiceClient is a client for the xyz.block.ftl.v1.ControllerService service.
@@ -84,8 +81,6 @@ type ControllerServiceClient interface {
 	// Each runner issue a RegisterRunnerRequest to the ControllerService
 	// every 10 seconds to maintain its heartbeat.
 	RegisterRunner(context.Context) *connect.ClientStreamForClient[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
-	// Update an existing deployment.
-	UpdateDeploy(context.Context, *connect.Request[v1.UpdateDeployRequest]) (*connect.Response[v1.UpdateDeployResponse], error)
 }
 
 // NewControllerServiceClient constructs a client for the xyz.block.ftl.v1.ControllerService
@@ -139,11 +134,6 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			baseURL+ControllerServiceRegisterRunnerProcedure,
 			opts...,
 		),
-		updateDeploy: connect.NewClient[v1.UpdateDeployRequest, v1.UpdateDeployResponse](
-			httpClient,
-			baseURL+ControllerServiceUpdateDeployProcedure,
-			opts...,
-		),
 	}
 }
 
@@ -157,7 +147,6 @@ type controllerServiceClient struct {
 	getDeployment          *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 	getDeploymentArtefacts *connect.Client[v1.GetDeploymentArtefactsRequest, v1.GetDeploymentArtefactsResponse]
 	registerRunner         *connect.Client[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
-	updateDeploy           *connect.Client[v1.UpdateDeployRequest, v1.UpdateDeployResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.ControllerService.Ping.
@@ -200,11 +189,6 @@ func (c *controllerServiceClient) RegisterRunner(ctx context.Context) *connect.C
 	return c.registerRunner.CallClientStream(ctx)
 }
 
-// UpdateDeploy calls xyz.block.ftl.v1.ControllerService.UpdateDeploy.
-func (c *controllerServiceClient) UpdateDeploy(ctx context.Context, req *connect.Request[v1.UpdateDeployRequest]) (*connect.Response[v1.UpdateDeployResponse], error) {
-	return c.updateDeploy.CallUnary(ctx, req)
-}
-
 // ControllerServiceHandler is an implementation of the xyz.block.ftl.v1.ControllerService service.
 type ControllerServiceHandler interface {
 	// Ping service for readiness.
@@ -228,8 +212,6 @@ type ControllerServiceHandler interface {
 	// Each runner issue a RegisterRunnerRequest to the ControllerService
 	// every 10 seconds to maintain its heartbeat.
 	RegisterRunner(context.Context, *connect.ClientStream[v1.RegisterRunnerRequest]) (*connect.Response[v1.RegisterRunnerResponse], error)
-	// Update an existing deployment.
-	UpdateDeploy(context.Context, *connect.Request[v1.UpdateDeployRequest]) (*connect.Response[v1.UpdateDeployResponse], error)
 }
 
 // NewControllerServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -279,11 +261,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		svc.RegisterRunner,
 		opts...,
 	)
-	controllerServiceUpdateDeployHandler := connect.NewUnaryHandler(
-		ControllerServiceUpdateDeployProcedure,
-		svc.UpdateDeploy,
-		opts...,
-	)
 	return "/xyz.block.ftl.v1.ControllerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ControllerServicePingProcedure:
@@ -302,8 +279,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 			controllerServiceGetDeploymentArtefactsHandler.ServeHTTP(w, r)
 		case ControllerServiceRegisterRunnerProcedure:
 			controllerServiceRegisterRunnerHandler.ServeHTTP(w, r)
-		case ControllerServiceUpdateDeployProcedure:
-			controllerServiceUpdateDeployHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -343,8 +318,4 @@ func (UnimplementedControllerServiceHandler) GetDeploymentArtefacts(context.Cont
 
 func (UnimplementedControllerServiceHandler) RegisterRunner(context.Context, *connect.ClientStream[v1.RegisterRunnerRequest]) (*connect.Response[v1.RegisterRunnerResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.RegisterRunner is not implemented"))
-}
-
-func (UnimplementedControllerServiceHandler) UpdateDeploy(context.Context, *connect.Request[v1.UpdateDeployRequest]) (*connect.Response[v1.UpdateDeployResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.UpdateDeploy is not implemented"))
 }

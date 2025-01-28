@@ -33,7 +33,6 @@ type DeployClient interface {
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error)
 	UploadArtefact(ctx context.Context, req *connect.Request[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error)
 	Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error)
-	UpdateDeploy(ctx context.Context, req *connect.Request[ftlv1.UpdateDeployRequest]) (*connect.Response[ftlv1.UpdateDeployResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
 
@@ -143,7 +142,7 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 		if err != nil {
 			return nil, err
 		}
-		logger.Tracef("Uploading %s", relToCWD(file.localPath))
+		logger.Debugf("Uploading %s", relToCWD(file.localPath))
 		resp, err := client.UploadArtefact(ctx, connect.NewRequest(&ftlv1.UploadArtefactRequest{
 			Content: content,
 		}))
@@ -188,8 +187,9 @@ func terminateModuleDeployment(ctx context.Context, client DeployClient, module 
 	}
 
 	logger.Infof("Terminating deployment %s", key)
-	_, err = client.UpdateDeploy(ctx, connect.NewRequest(&ftlv1.UpdateDeployRequest{DeploymentKey: key}))
-	return err
+	//_, err = client.UpdateDeploy(ctx, connect.NewRequest(&ftlv1.UpdateDeployRequest{DeploymentKey: key}))
+	//return err
+	return nil
 }
 
 func loadProtoSchema(projectConfig projectconfig.Config, config moduleconfig.AbsModuleConfig) (*schemapb.Module, error) {

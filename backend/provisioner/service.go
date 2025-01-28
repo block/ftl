@@ -12,16 +12,17 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/alecthomas/kong"
 	"github.com/puzpuzpuz/xsync/v3"
-	"golang.org/x/sync/errgroup"
 
-	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+
+	schemaconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 // CommonProvisionerConfig is shared config between the production controller and development server.
@@ -43,23 +44,24 @@ func (c *Config) SetDefaults() {
 }
 
 type Service struct {
-	currentModules   *xsync.MapOf[string, *schema.Module]
-	controllerClient ftlv1connect.ControllerServiceClient
-	registry         *ProvisionerRegistry
+	currentModules *xsync.MapOf[string, *schema.Module]
+	registry       *ProvisionerRegistry
+	eventSource    *schemaeventsource.EventSource
+	schemaClient   schemaconnect.SchemaServiceClient
 }
-
-var _ provisionerconnect.ProvisionerServiceHandler = (*Service)(nil)
 
 func New(
 	ctx context.Context,
 	config Config,
-	controllerClient ftlv1connect.ControllerServiceClient,
 	registry *ProvisionerRegistry,
+	eventSource *schemaeventsource.EventSource,
+	schemaClient schemaconnect.SchemaServiceClient,
 ) (*Service, error) {
 	return &Service{
-		controllerClient: controllerClient,
-		currentModules:   xsync.NewMapOf[string, *schema.Module](),
-		registry:         registry,
+		currentModules: xsync.NewMapOf[string, *schema.Module](),
+		registry:       registry,
+		eventSource:    eventSource,
+		schemaClient:   schemaClient,
 	}, nil
 }
 
@@ -72,34 +74,39 @@ func Start(
 	ctx context.Context,
 	config Config,
 	registry *ProvisionerRegistry,
-	controllerClient ftlv1connect.ControllerServiceClient,
+	eventSource *schemaeventsource.EventSource,
+	schemaClient schemaconnect.SchemaServiceClient,
 ) error {
 	config.SetDefaults()
 
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL provisioner")
 
-	svc, err := New(ctx, config, controllerClient, registry)
+	svc, err := New(ctx, config, registry, eventSource, schemaClient)
 	if err != nil {
 		return err
 	}
 	logger.Debugf("Provisioner available at: %s", config.Bind)
 	logger.Debugf("Using FTL endpoint: %s", config.ControllerEndpoint)
+	// Hack: as we only have one changeset at a time at the moment, we can just keep track of the last key
 
-	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		return rpc.Serve(ctx, config.Bind,
-			rpc.GRPC(provisionerconnect.NewProvisionerServiceHandler, svc),
-			rpc.PProf(),
-		)
-	})
-	if err := g.Wait(); err != nil {
-		return fmt.Errorf("error waiting for rpc.Serve: %w", err)
+	var lastKey key.Changeset
+	for event := range channels.IterContext(ctx, svc.eventSource.Events()) {
+		if cs, ok := event.ActiveChangeset().Get(); ok {
+			if cs.Key != lastKey {
+				logger.Infof("Changeset %s", cs.Key)
+				lastKey = cs.Key
+				err := svc.ProvisionChangeset(ctx, cs)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }
 
-func RegistryFromConfigFile(ctx context.Context, file *os.File, controller ftlv1connect.ControllerServiceClient, scaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
+func RegistryFromConfigFile(ctx context.Context, file *os.File, controller schemaconnect.ControllerServiceClient, scaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
 	config := provisionerPluginConfig{}
 	bytes, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil {
@@ -117,39 +124,39 @@ func RegistryFromConfigFile(ctx context.Context, file *os.File, controller ftlv1
 	return registry, nil
 }
 
-// Deployment client calls to ftl-controller
+func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset) error {
+	logger := log.FromContext(ctx)
+	// TODO: Block deployments to make sure only one module is modified at a time
+	for _, module := range req.Modules {
+		moduleName := module.Name
 
-func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error) {
-	resp, err := s.controllerClient.GetArtefactDiffs(ctx, req)
+		existingModule, _ := s.currentModules.Load(moduleName)
 
-	if err != nil {
-		return nil, fmt.Errorf("call to ftl-controller failed: %w", err)
+		if existingModule != nil {
+			syncExistingRuntimes(existingModule, module)
+		}
+
+		deployment := s.registry.CreateDeployment(ctx, module, existingModule, req.Key)
+		running := true
+		logger.Debugf("Running deployment for module %s", moduleName)
+		for running {
+			r, err := deployment.Progress(ctx)
+			if err != nil {
+				// TODO: Deal with failed deployments
+				return fmt.Errorf("error running a provisioner: %w", err)
+			}
+			running = r
+		}
+		logger.Debugf("Finished deployment for module %s", moduleName)
+
+		//deploymentKey := deployment.Module.Runtime.Deployment.DeploymentKey
+
 	}
-	return connect.NewResponse(resp.Msg), nil
-}
-
-func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error) {
-	resp, err := s.controllerClient.Status(ctx, req)
+	_, err := s.schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: req.Key.String()}))
 	if err != nil {
-		return nil, fmt.Errorf("call to ftl-controller failed: %w", err)
+		return fmt.Errorf("error committing changeset: %w", err)
 	}
-	return connect.NewResponse(resp.Msg), nil
-}
-
-func (s *Service) UpdateDeploy(ctx context.Context, req *connect.Request[ftlv1.UpdateDeployRequest]) (*connect.Response[ftlv1.UpdateDeployResponse], error) {
-	resp, err := s.controllerClient.UpdateDeploy(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("call to ftl-controller failed: %w", err)
-	}
-	return connect.NewResponse(resp.Msg), nil
-}
-
-func (s *Service) UploadArtefact(ctx context.Context, req *connect.Request[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error) {
-	resp, err := s.controllerClient.UploadArtefact(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("call to ftl-controller failed: %w", err)
-	}
-	return connect.NewResponse(resp.Msg), nil
+	return nil
 }
 
 func syncExistingRuntimes(existingModule, desiredModule *schema.Module) {

@@ -13,7 +13,6 @@ import (
 
 	"github.com/block/ftl/backend/admin"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
-	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/buildengine"
@@ -22,7 +21,6 @@ import (
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
-	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/terminal"
 	"github.com/block/ftl/internal/timelineclient"
@@ -45,7 +43,6 @@ func (d *devCmd) Run(
 	schemaEventSourceFactory func() schemaeventsource.EventSource,
 	controllerClient ftlv1connect.ControllerServiceClient,
 	schemaServiceClient ftlv1connect.SchemaServiceClient,
-	provisionerClient provisionerconnect.ProvisionerServiceClient,
 	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
@@ -64,10 +61,6 @@ func (d *devCmd) Run(
 
 	terminal.LaunchEmbeddedConsole(ctx, k, bindContext, schemaEventSourceFactory())
 	var deployClient buildengine.DeployClient = controllerClient
-	if d.ServeCmd.Provisioners > 0 {
-		// TODO: Shouldnt provisioners be receiving this from the controller?
-		deployClient = rpc.ClientFromContext[provisionerconnect.ProvisionerServiceClient](ctx)
-	}
 
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -94,7 +87,7 @@ func (d *devCmd) Run(
 	controllerReady := make(chan bool, 1)
 	if !d.NoServe {
 		if d.ServeCmd.Stop {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, verbClient, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
 				return fmt.Errorf("failed to stop server: %w", err)
 			}
@@ -102,7 +95,7 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, verbClient, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
 				cancel(fmt.Errorf("dev server failed: %w", err))
 			} else {

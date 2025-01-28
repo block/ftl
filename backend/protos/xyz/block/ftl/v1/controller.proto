@@ -65,12 +65,6 @@ message RegisterRunnerRequest {
 
 message RegisterRunnerResponse {}
 
-message UpdateDeployRequest {
-  string deployment_key = 1;
-  optional int32 min_replicas = 2;
-}
-message UpdateDeployResponse {}
-
 message ReplaceDeployRequest {
   string deployment_key = 1;
   int32 min_replicas = 2;
@@ -160,7 +154,4 @@ service ControllerService {
   // Each runner issue a RegisterRunnerRequest to the ControllerService
   // every 10 seconds to maintain its heartbeat.
   rpc RegisterRunner(stream RegisterRunnerRequest) returns (RegisterRunnerResponse);
-
-  // Update an existing deployment.
-  rpc UpdateDeploy(UpdateDeployRequest) returns (UpdateDeployResponse);
 }

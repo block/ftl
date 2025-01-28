@@ -3,9 +3,6 @@ package main
 import (
 	"context"
 
-	"connectrpc.com/connect"
-
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal/key"
 )
@@ -16,12 +13,13 @@ type updateCmd struct {
 }
 
 func (u *updateCmd) Run(ctx context.Context, client ftlv1connect.ControllerServiceClient) error {
-	_, err := client.UpdateDeploy(ctx, connect.NewRequest(&ftlv1.UpdateDeployRequest{
-		DeploymentKey: u.Deployment.String(),
-		MinReplicas:   &u.Replicas,
-	}))
-	if err != nil {
-		return err
-	}
+	//TODO: implement this as a changeset
+	//_, err := client.UpdateDeploy(ctx, connect.NewRequest(&ftlv1.UpdateDeployRequest{
+	//	DeploymentKey: u.Deployment.String(),
+	//	MinReplicas:   &u.Replicas,
+	//}))
+	//if err != nil {
+	//	return err
+	//}
 	return nil
 }

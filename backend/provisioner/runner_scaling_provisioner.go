@@ -87,15 +87,13 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		}
 
 		schemaClient := rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx)
-		controllerClient := rpc.ClientFromContext[ftlv1connect.ControllerServiceClient](ctx)
 
 		deps, err := scaling.TerminatePreviousDeployments(ctx, module.Name, deployment.String())
 		if err != nil {
 			logger.Errorf(err, "failed to terminate previous deployments")
 		} else {
-			var zero int32
 			for _, dep := range deps {
-				_, err := controllerClient.UpdateDeploy(ctx, connect.NewRequest(&ftlv1.UpdateDeployRequest{DeploymentKey: dep, MinReplicas: &zero}))
+				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Deployment: deployment.String(), Event: &schemapb.ModuleRuntimeEvent{Value: &schemapb.ModuleRuntimeEvent_ModuleRuntimeScaling{ModuleRuntimeScaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}}))
 				if err != nil {
 					logger.Errorf(err, "failed to update deployment %s", dep)
 				}
