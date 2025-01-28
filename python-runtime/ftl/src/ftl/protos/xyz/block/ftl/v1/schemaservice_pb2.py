@@ -26,7 +26,7 @@ from xyz.block.ftl.schema.v1 import schema_pb2 as xyz_dot_block_dot_ftl_dot_sche
 from xyz.block.ftl.v1 import ftl_pb2 as xyz_dot_block_dot_ftl_dot_v1_dot_ftl__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$xyz/block/ftl/v1/schemaservice.proto\x12\x10xyz.block.ftl.v1\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\x12\n\x10GetSchemaRequest\"L\n\x11GetSchemaResponse\x12\x37\n\x06schema\x18\x01 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.SchemaR\x06schema\"\x13\n\x11PullSchemaRequest\"\xc1\x02\n\x12PullSchemaResponse\x12*\n\x0e\x64\x65ployment_key\x18\x01 \x01(\tH\x00R\rdeploymentKey\x88\x01\x01\x12\x1f\n\x0bmodule_name\x18\x02 \x01(\tR\nmoduleName\x12<\n\x06schema\x18\x04 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleH\x01R\x06schema\x88\x01\x01\x12\x12\n\x04more\x18\x03 \x01(\x08R\x04more\x12G\n\x0b\x63hange_type\x18\x05 \x01(\x0e\x32&.xyz.block.ftl.v1.DeploymentChangeTypeR\nchangeType\x12%\n\x0emodule_removed\x18\x06 \x01(\x08R\rmoduleRemovedB\x11\n\x0f_deployment_keyB\t\n\x07_schema\"c\n\x1eUpdateDeploymentRuntimeRequest\x12\x41\n\x05\x65vent\x18\x02 \x01(\x0b\x32+.xyz.block.ftl.schema.v1.ModuleRuntimeEventR\x05\x65vent\"!\n\x1fUpdateDeploymentRuntimeResponse\"K\n\x13UpdateSchemaRequest\x12\x34\n\x05\x65vent\x18\x01 \x01(\x0b\x32\x1e.xyz.block.ftl.schema.v1.EventR\x05\x65vent\"\x16\n\x14UpdateSchemaResponse*\xa8\x01\n\x14\x44\x65ploymentChangeType\x12&\n\"DEPLOYMENT_CHANGE_TYPE_UNSPECIFIED\x10\x00\x12 \n\x1c\x44\x45PLOYMENT_CHANGE_TYPE_ADDED\x10\x01\x12\"\n\x1e\x44\x45PLOYMENT_CHANGE_TYPE_REMOVED\x10\x02\x12\"\n\x1e\x44\x45PLOYMENT_CHANGE_TYPE_CHANGED\x10\x03\x32\xf5\x03\n\rSchemaService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12Y\n\tGetSchema\x12\".xyz.block.ftl.v1.GetSchemaRequest\x1a#.xyz.block.ftl.v1.GetSchemaResponse\"\x03\x90\x02\x01\x12^\n\nPullSchema\x12#.xyz.block.ftl.v1.PullSchemaRequest\x1a$.xyz.block.ftl.v1.PullSchemaResponse\"\x03\x90\x02\x01\x30\x01\x12~\n\x17UpdateDeploymentRuntime\x12\x30.xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest\x1a\x31.xyz.block.ftl.v1.UpdateDeploymentRuntimeResponse\x12]\n\x0cUpdateSchema\x12%.xyz.block.ftl.v1.UpdateSchemaRequest\x1a&.xyz.block.ftl.v1.UpdateSchemaResponseB>P\x01Z:github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$xyz/block/ftl/v1/schemaservice.proto\x12\x10xyz.block.ftl.v1\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\x12\n\x10GetSchemaRequest\"L\n\x11GetSchemaResponse\x12\x37\n\x06schema\x18\x01 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.SchemaR\x06schema\"\x13\n\x11PullSchemaRequest\"\xc1\x02\n\x12PullSchemaResponse\x12*\n\x0e\x64\x65ployment_key\x18\x01 \x01(\tH\x00R\rdeploymentKey\x88\x01\x01\x12\x1f\n\x0bmodule_name\x18\x02 \x01(\tR\nmoduleName\x12<\n\x06schema\x18\x04 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleH\x01R\x06schema\x88\x01\x01\x12\x12\n\x04more\x18\x03 \x01(\x08R\x04more\x12G\n\x0b\x63hange_type\x18\x05 \x01(\x0e\x32&.xyz.block.ftl.v1.DeploymentChangeTypeR\nchangeType\x12%\n\x0emodule_removed\x18\x06 \x01(\x08R\rmoduleRemovedB\x11\n\x0f_deployment_keyB\t\n\x07_schema\"c\n\x1eUpdateDeploymentRuntimeRequest\x12\x41\n\x05\x65vent\x18\x02 \x01(\x0b\x32+.xyz.block.ftl.schema.v1.ModuleRuntimeEventR\x05\x65vent\"!\n\x1fUpdateDeploymentRuntimeResponse\"K\n\x13UpdateSchemaRequest\x12\x34\n\x05\x65vent\x18\x01 \x01(\x0b\x32\x1e.xyz.block.ftl.schema.v1.EventR\x05\x65vent\"\x16\n\x14UpdateSchemaResponse\"\x17\n\x15GetDeploymentsRequest\"R\n\x16GetDeploymentsResponse\x12\x38\n\x06schema\x18\x01 \x03(\x0b\x32 .xyz.block.ftl.v1.DeployedSchemaR\x06schema\"\x8d\x01\n\x0e\x44\x65ployedSchema\x12%\n\x0e\x64\x65ployment_key\x18\x01 \x01(\tR\rdeploymentKey\x12\x37\n\x06schema\x18\x02 \x01(\x0b\x32\x1f.xyz.block.ftl.schema.v1.ModuleR\x06schema\x12\x1b\n\tis_active\x18\x03 \x01(\x08R\x08isActive*\xa8\x01\n\x14\x44\x65ploymentChangeType\x12&\n\"DEPLOYMENT_CHANGE_TYPE_UNSPECIFIED\x10\x00\x12 \n\x1c\x44\x45PLOYMENT_CHANGE_TYPE_ADDED\x10\x01\x12\"\n\x1e\x44\x45PLOYMENT_CHANGE_TYPE_REMOVED\x10\x02\x12\"\n\x1e\x44\x45PLOYMENT_CHANGE_TYPE_CHANGED\x10\x03\x32\xda\x04\n\rSchemaService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12Y\n\tGetSchema\x12\".xyz.block.ftl.v1.GetSchemaRequest\x1a#.xyz.block.ftl.v1.GetSchemaResponse\"\x03\x90\x02\x01\x12^\n\nPullSchema\x12#.xyz.block.ftl.v1.PullSchemaRequest\x1a$.xyz.block.ftl.v1.PullSchemaResponse\"\x03\x90\x02\x01\x30\x01\x12~\n\x17UpdateDeploymentRuntime\x12\x30.xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest\x1a\x31.xyz.block.ftl.v1.UpdateDeploymentRuntimeResponse\x12]\n\x0cUpdateSchema\x12%.xyz.block.ftl.v1.UpdateSchemaRequest\x1a&.xyz.block.ftl.v1.UpdateSchemaResponse\x12\x63\n\x0eGetDeployments\x12\'.xyz.block.ftl.v1.GetDeploymentsRequest\x1a(.xyz.block.ftl.v1.GetDeploymentsResponseB>P\x01Z:github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,8 +40,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SCHEMASERVICE'].methods_by_name['GetSchema']._serialized_options = b'\220\002\001'
   _globals['_SCHEMASERVICE'].methods_by_name['PullSchema']._loaded_options = None
   _globals['_SCHEMASERVICE'].methods_by_name['PullSchema']._serialized_options = b'\220\002\001'
-  _globals['_DEPLOYMENTCHANGETYPE']._serialized_start=805
-  _globals['_DEPLOYMENTCHANGETYPE']._serialized_end=973
+  _globals['_DEPLOYMENTCHANGETYPE']._serialized_start=1058
+  _globals['_DEPLOYMENTCHANGETYPE']._serialized_end=1226
   _globals['_GETSCHEMAREQUEST']._serialized_start=124
   _globals['_GETSCHEMAREQUEST']._serialized_end=142
   _globals['_GETSCHEMARESPONSE']._serialized_start=144
@@ -58,6 +58,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATESCHEMAREQUEST']._serialized_end=778
   _globals['_UPDATESCHEMARESPONSE']._serialized_start=780
   _globals['_UPDATESCHEMARESPONSE']._serialized_end=802
-  _globals['_SCHEMASERVICE']._serialized_start=976
-  _globals['_SCHEMASERVICE']._serialized_end=1477
+  _globals['_GETDEPLOYMENTSREQUEST']._serialized_start=804
+  _globals['_GETDEPLOYMENTSREQUEST']._serialized_end=827
+  _globals['_GETDEPLOYMENTSRESPONSE']._serialized_start=829
+  _globals['_GETDEPLOYMENTSRESPONSE']._serialized_end=911
+  _globals['_DEPLOYEDSCHEMA']._serialized_start=914
+  _globals['_DEPLOYEDSCHEMA']._serialized_end=1055
+  _globals['_SCHEMASERVICE']._serialized_start=1229
+  _globals['_SCHEMASERVICE']._serialized_end=1831
 # @@protoc_insertion_point(module_scope)

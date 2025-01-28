@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
+import { GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -72,6 +72,17 @@ export const SchemaService = {
       name: "UpdateSchema",
       I: UpdateSchemaRequest,
       O: UpdateSchemaResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetDeployments is used to get the schema for all deployments.
+     *
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.GetDeployments
+     */
+    getDeployments: {
+      name: "GetDeployments",
+      I: GetDeploymentsRequest,
+      O: GetDeploymentsResponse,
       kind: MethodKind.Unary,
     },
   }
