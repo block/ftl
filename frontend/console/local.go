@@ -24,6 +24,10 @@ import (
 var proxyURL, _ = url.Parse("http://localhost:5173") //nolint:errcheck
 var proxy = httputil.NewSingleHostReverseProxy(proxyURL)
 
+func PrepareServer() error {
+	return nil
+}
+
 func Server(ctx context.Context, timestamp time.Time, allowOrigin *url.URL) (http.Handler, error) {
 	gitRoot, ok := internal.GitRoot(os.Getenv("FTL_DIR")).Get()
 	if !ok {
