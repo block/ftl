@@ -3,8 +3,10 @@ package schemaservice
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"connectrpc.com/connect"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -15,14 +17,23 @@ import (
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/statemachine"
 )
+
+type Config struct {
+	Bind *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_SCHEMASERVICE_BIND"`
+}
 
 type Service struct {
 	State *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event]
 }
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
+
+func New(ctx context.Context) *Service {
+	return &Service{State: NewInMemorySchemaState(ctx)}
+}
 
 func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
 	view, err := s.State.View(ctx)
@@ -87,6 +98,33 @@ func (s *Service) UpdateSchema(ctx context.Context, req *connect.Request[ftlv1.U
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
 	return connect.NewResponse(&ftlv1.UpdateSchemaResponse{}), nil
+}
+
+// Start the SchemaService. Blocks until the context is cancelled.
+func Start(
+	ctx context.Context,
+	config Config,
+) error {
+	logger := log.FromContext(ctx)
+	logger.Debugf("Starting FTL schema service")
+
+	svc := New(ctx)
+	logger.Debugf("Listening on %s", config.Bind)
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return rpc.Serve(ctx, config.Bind,
+			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
+			rpc.PProf(),
+		)
+	})
+
+	err := g.Wait()
+	if err != nil {
+		return fmt.Errorf("failed to start schema service: %w", err)
+	}
+	return nil
 }
 
 func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
