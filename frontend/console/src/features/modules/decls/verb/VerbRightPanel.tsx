@@ -1,8 +1,8 @@
 import { InboxUploadIcon } from 'hugeicons-react'
 import { Link } from 'react-router-dom'
-import { RightPanelAttribute } from '../../../../components/RightPanelAttribute'
 import type { Verb } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { ExpandablePanelProps } from '../../../graph/ExpandablePanel'
+import type { ExpandablePanelProps } from '../../../../shared/components/ExpandablePanel'
+import { RightPanelAttribute } from '../../../../shared/components/RightPanelAttribute'
 import { Schema } from '../../schema/Schema'
 import { type VerbRef, httpRequestPath, ingress, isHttpIngress, verbCalls } from './verb.utils'
 

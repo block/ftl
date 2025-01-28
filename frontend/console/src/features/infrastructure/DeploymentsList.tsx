@@ -1,8 +1,8 @@
-import { AttributeBadge } from '../../components'
-import { Badge } from '../../components/Badge'
-import { List } from '../../components/List'
 import type { StatusResponse_Deployment } from '../../protos/xyz/block/ftl/v1/controller_pb'
-import { classNames } from '../../utils'
+import { AttributeBadge } from '../../shared/components/AttributeBadge'
+import { Badge } from '../../shared/components/Badge'
+import { List } from '../../shared/components/List'
+import { classNames } from '../../shared/utils'
 import { deploymentTextColor } from '../deployments/deployment.utils'
 import { renderValue } from './infrastructure.utils'
 

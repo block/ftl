@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { Button } from '../components/Button'
+import { Button } from '../shared/components/Button'
 
 // Meta information for the Button component
 const meta = {

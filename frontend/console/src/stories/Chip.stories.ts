@@ -1,5 +1,5 @@
 import type { StoryObj } from '@storybook/react/*'
-import { Chip } from '../components/Chip'
+import { Chip } from '../shared/components/Chip'
 
 const meta = {
   title: 'Components/Chip',

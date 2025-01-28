@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { GetTimelineRequest_Filter } from '../../protos/xyz/block/ftl/timeline/v1/timeline_pb'
-import { SidePanelProvider } from '../../providers/side-panel-provider'
+import { SidePanelProvider } from '../../shared/providers/side-panel-provider.tsx'
 import { Timeline } from './Timeline'
 import { TimelineFilterPanel } from './filters/TimelineFilterPanel'
 import { TIME_RANGES, type TimeSettings, TimelineTimeControls } from './filters/TimelineTimeControls'

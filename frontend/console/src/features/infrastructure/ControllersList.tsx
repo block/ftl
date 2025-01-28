@@ -1,6 +1,6 @@
-import { Badge } from '../../components/Badge'
-import { List } from '../../components/List'
 import type { StatusResponse_Controller } from '../../protos/xyz/block/ftl/v1/controller_pb'
+import { Badge } from '../../shared/components/Badge'
+import { List } from '../../shared/components/List'
 
 export const ControllersList = ({ controllers }: { controllers: StatusResponse_Controller[] }) => {
   return (

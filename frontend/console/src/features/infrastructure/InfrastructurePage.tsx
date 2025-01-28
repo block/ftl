@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useStatus } from '../../api/status/use-status'
-import { Tabs } from '../../components/Tabs'
-import { useStreamEngineEvents } from '../engine/use-stream-engine-events'
+import { Tabs } from '../../shared/components/Tabs'
+import { useStreamEngineEvents } from '../engine/hooks/use-stream-engine-events'
 import { BuildEngineEvents } from './BuildEngineEvents'
 import { ControllersList } from './ControllersList'
 import { DeploymentsList } from './DeploymentsList'
 import { RoutesList } from './RoutesList'
 import { RunnersList } from './RunnersList'
+import { useStatus } from './hooks/use-status'
 
 interface Tab {
   name: string

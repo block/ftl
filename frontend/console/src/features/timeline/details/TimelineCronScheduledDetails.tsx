@@ -1,7 +1,7 @@
-import { AttributeBadge } from '../../../components/AttributeBadge'
-import { CodeBlockWithTitle } from '../../../components/CodeBlockWithTitle'
 import type { CronScheduledEvent, Event } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import { formatDuration, formatTimestampShort } from '../../../utils/date.utils'
+import { AttributeBadge } from '../../../shared/components/AttributeBadge'
+import { CodeBlockWithTitle } from '../../../shared/components/CodeBlockWithTitle'
+import { formatDuration, formatTimestampShort } from '../../../shared/utils/date.utils'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
 import { refString } from '../../modules/decls/verb/verb.utils'
 

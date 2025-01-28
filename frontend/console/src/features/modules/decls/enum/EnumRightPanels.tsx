@@ -1,6 +1,6 @@
-import { RightPanelAttribute } from '../../../../components/RightPanelAttribute'
 import type { Enum } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { ExpandablePanelProps } from '../../../graph/ExpandablePanel'
+import type { ExpandablePanelProps } from '../../../../shared/components/ExpandablePanel'
+import { RightPanelAttribute } from '../../../../shared/components/RightPanelAttribute'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
 
 export const enumPanels = (moduleName: string, enumDecl: Enum) => {

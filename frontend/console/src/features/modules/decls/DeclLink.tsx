@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { useStreamModules } from '../../../api/modules/use-stream-modules'
-import { classNames } from '../../../utils'
+import { classNames } from '../../../shared/utils'
+import { useStreamModules } from '../hooks/use-stream-modules'
 import { Schema } from '../schema/Schema'
 import { type DeclSchema, declSchemaFromModules } from '../schema/schema.utils'
 

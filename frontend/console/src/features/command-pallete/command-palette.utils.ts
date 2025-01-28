@@ -1,5 +1,5 @@
 import { type HugeiconsProps, PackageIcon } from 'hugeicons-react'
-import type { StreamModulesResult } from '../../api/modules/use-stream-modules'
+import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
 import { declIcon, declTypeName, moduleTreeFromStream } from '../modules/module.utils'
 
 export interface PaletteItem {

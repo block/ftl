@@ -1,6 +1,6 @@
-import { HoverPopup } from '../../components/HoverPopup'
 import type { Event } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import { formatTimestampShort } from '../../utils'
+import { HoverPopup } from '../../shared/components/HoverPopup'
+import { formatTimestampShort } from '../../shared/utils'
 import { deploymentTextColor } from '../deployments/deployment.utils'
 import { TimelineAsyncExecute } from './TimelineAsyncExecute'
 import { TimelineCall } from './TimelineCall'

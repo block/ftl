@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { useStreamModules } from '../../api/modules/use-stream-modules'
+import { useStreamModules } from './hooks/use-stream-modules'
 import { Schema } from './schema/Schema'
 
 export const ModulePanel = () => {

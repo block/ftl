@@ -1,12 +1,12 @@
 import { useMemo, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { classNames } from '../../../utils'
+import { classNames } from '../../../shared/utils'
 import { DeclLink } from '../decls/DeclLink'
 import { LinkToken, LinkVerbNameToken } from './LinkTokens'
 import { UnderlyingType } from './UnderlyingType'
 import { commentPrefix, declTypes, shouldAddLeadingSpace, specialChars, staticKeywords } from './schema.utils'
 
-function maybeRenderDeclName(token: string, declType: string, tokens: string[], i: number, moduleName: string, containerRect?: DOMRect) {
+const maybeRenderDeclName = (token: string, declType: string, tokens: string[], i: number, moduleName: string, containerRect?: DOMRect) => {
   const offset = declType === 'database' ? 4 : 2
   if (i - offset < 0 || declType !== tokens[i - offset]) {
     return
@@ -20,7 +20,7 @@ function maybeRenderDeclName(token: string, declType: string, tokens: string[], 
   return <LinkToken moduleName={moduleName} token={token} containerRect={containerRect} />
 }
 
-function maybeRenderUnderlyingType(token: string, declType: string, tokens: string[], i: number, moduleName: string, containerRect?: DOMRect) {
+const maybeRenderUnderlyingType = (token: string, declType: string, tokens: string[], i: number, moduleName: string, containerRect?: DOMRect) => {
   if (declType === 'database') {
     return
   }

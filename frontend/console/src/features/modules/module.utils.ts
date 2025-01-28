@@ -16,30 +16,11 @@ import {
 } from 'hugeicons-react'
 import type { Module } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { Config, Data, Database, Decl, Enum, Secret, Topic, TypeAlias, Verb } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
-import type { MetadataCalls, Ref } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import { verbCalls } from './decls/verb/verb.utils'
 
 interface InCall {
   module: string
   verb?: string
-}
-
-export const getCalls = (module: Module) => {
-  const verbCalls: Ref[] = []
-
-  const metadata = module.verbs.map((v) => v.verb).flatMap((v) => v?.metadata)
-
-  const metadataCalls = metadata.filter((metadata) => metadata?.value.case === 'calls').map((metadata) => metadata?.value.value as MetadataCalls)
-
-  const calls = metadataCalls.flatMap((metadata) => metadata?.calls)
-
-  for (const call of calls) {
-    if (!verbCalls.find((v) => v.name === call.name && v.module === call.module)) {
-      verbCalls.push({ name: call.name, module: call.module } as Ref)
-    }
-  }
-
-  return calls
 }
 
 export const callsIn = (modules: Module[], module: Module) => {
@@ -64,14 +45,6 @@ export const callsIn = (modules: Module[], module: Module) => {
 }
 
 export const callsOut = (module: Module) => module.verbs?.flatMap((v) => verbCalls(v))
-
-export const deploymentKeyModuleName = (deploymentKey: string) => {
-  const lastIndex = deploymentKey.lastIndexOf('-')
-  if (lastIndex !== -1) {
-    return deploymentKey.substring(0, lastIndex).replaceAll('dpl-', '')
-  }
-  return null
-}
 
 export type DeclSumType = Config | Data | Database | Enum | Topic | TypeAlias | Secret | Verb
 
@@ -249,13 +222,6 @@ export const verbTypeFromMetadata = (verb: Verb) => {
   return found?.value.case?.toLowerCase()
 }
 
-export const declUrl = (moduleName: string, decl: Decl) => {
-  if (!decl?.value?.case) {
-    return ''
-  }
-  return `/modules/${moduleName}/${decl.value.case.toLowerCase()}/${decl.value.value?.name}`
-}
-
 export const declUrlFromInfo = (moduleName: string, decl: DeclInfo) => `/modules/${moduleName}/${decl.declType}/${decl.value.name}`
 
 const treeWidthStorageKey = 'tree_w'
@@ -266,11 +232,11 @@ export const setTreeWidthInLS = (newWidth: number) => localStorage.setItem(treeW
 
 const EXPANDED_DECL_TYPES_KEY = 'expanded-decl-types'
 
-export function getExpandedDeclTypesFromLocalStorage(): string[] {
+export const getExpandedDeclTypesFromLocalStorage = (): string[] => {
   const stored = localStorage.getItem(EXPANDED_DECL_TYPES_KEY)
   return stored ? JSON.parse(stored) : []
 }
 
-export function setExpandedDeclTypesInLocalStorage(types: string[]) {
+export const setExpandedDeclTypesInLocalStorage = (types: string[]) => {
   localStorage.setItem(EXPANDED_DECL_TYPES_KEY, JSON.stringify(types))
 }

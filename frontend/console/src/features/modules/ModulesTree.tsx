@@ -1,14 +1,14 @@
 import { ArrowRight01Icon, ArrowShrink02Icon, ViewIcon, ViewOffSlashIcon } from 'hugeicons-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { Button } from '../../components/Button'
-import { HoverPopup } from '../../components/HoverPopup'
-import { Multiselect, sortMultiselectOpts } from '../../components/Multiselect'
-import type { MultiselectOpt } from '../../components/Multiselect'
-import { StatusIndicator } from '../../components/StatusIndicator'
-import { classNames } from '../../utils'
+import { Button } from '../../shared/components/Button'
+import { HoverPopup } from '../../shared/components/HoverPopup'
+import { Multiselect, sortMultiselectOpts } from '../../shared/components/Multiselect'
+import type { MultiselectOpt } from '../../shared/components/Multiselect'
+import { StatusIndicator } from '../../shared/components/StatusIndicator'
+import { classNames } from '../../shared/utils'
 import { getEventText, getModuleStatus } from '../engine/engine.utils'
-import { useEngineStatus } from '../engine/use-engine-status'
+import { useEngineStatus } from '../engine/hooks/use-engine-status'
 import type { DeclInfo, ModuleTreeItem } from './module.utils'
 import {
   addModuleToLocalStorageIfMissing,
@@ -117,7 +117,7 @@ const ModuleSection = ({
         )}
         onClick={() => toggleExpansion(module.name)}
       >
-        <ArrowRight01Icon aria-hidden='true' className={`h-4 w-4 shrink-0 ${isExpanded ? 'rotate-90 text-gray-500' : ''}`} />
+        <ArrowRight01Icon aria-hidden='true' className={`size-4 shrink-0 ${isExpanded ? 'rotate-90 text-gray-500' : ''}`} />
         <HoverPopup popupContent={getEventText(moduleEvent)}>
           <StatusIndicator state={status} />
         </HoverPopup>
@@ -212,7 +212,7 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
 
   const [hideUnexported, setHideUnexported] = useState(hasHideUnexportedInLocalStorage() ? getHideUnexportedFromLocalStorage() : true)
 
-  function msOnChange(opts: MultiselectOpt[]) {
+  const msOnChange = (opts: MultiselectOpt[]) => {
     const params = new URLSearchParams()
     if (opts.length !== declTypeMultiselectOpts.length) {
       for (const o of sortMultiselectOpts(opts)) {
@@ -223,12 +223,12 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
     setSelectedDeclTypes(opts)
   }
 
-  function toggle(toggledModule: string) {
+  const toggle = (toggledModule: string) => {
     toggleModuleExpansionInLocalStorage(toggledModule)
     setExpandedModules(listExpandedModulesFromLocalStorage())
   }
 
-  function collapseAll() {
+  const collapseAll = () => {
     // Collapse all modules
     collapseAllModulesInLocalStorage()
     if (moduleName && declName) {
@@ -241,7 +241,7 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
     setExpandedDeclTypesInLocalStorage([])
   }
 
-  function setHideUnexportedState(val: boolean) {
+  const setHideUnexportedState = (val: boolean) => {
     setHideUnexportedFromLocalStorage(val)
     setHideUnexported(val)
   }
@@ -250,7 +250,7 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
     return getExpandedDeclTypesFromLocalStorage()
   })
 
-  function toggleDeclType(moduleName: string, declType: string) {
+  const toggleDeclType = (moduleName: string, declType: string) => {
     const key = `${moduleName}:${declType}`
     const newExpanded = expandedDeclTypes.includes(key) ? expandedDeclTypes.filter((t) => t !== key) : [...expandedDeclTypes, key]
     setExpandedDeclTypes(newExpanded)

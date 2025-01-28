@@ -1,5 +1,5 @@
-import { AttributeBadge } from '../../../components/AttributeBadge'
 import type { DeploymentCreatedEvent, Event } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
+import { AttributeBadge } from '../../../shared/components/AttributeBadge'
 import { DeploymentCard } from '../../deployments/DeploymentCard'
 
 export const TimelineDeploymentCreatedDetails = ({
