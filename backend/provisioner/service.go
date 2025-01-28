@@ -98,7 +98,6 @@ func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftl
 	if err != nil {
 		return nil, fmt.Errorf("error getting module: %w", err)
 	}
-	logger.Warnf("STATUS: %+v", module.Runtime.Deployment)
 
 	deploymentKey := module.Runtime.Deployment.DeploymentKey
 	return connect.NewResponse(&ftlv1.CreateDeploymentResponse{
