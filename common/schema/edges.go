@@ -7,9 +7,9 @@ import (
 
 // GraphNode provides inbound and outbound edges for a node.
 type GraphNode struct {
-	Decl
-	In  []RefKey
-	Out []RefKey
+	Decl Decl
+	In   []RefKey
+	Out  []RefKey
 }
 
 // Graph returns a biderectional graph representation of the schema.
