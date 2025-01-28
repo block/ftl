@@ -127,6 +127,25 @@ func Start(
 	return nil
 }
 
+func (s *Service) GetDeployments(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentsRequest]) (*connect.Response[ftlv1.GetDeploymentsResponse], error) {
+	view, err := s.State.View(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get schema state: %w", err)
+	}
+	deployments := view.GetDeployments()
+	activeDeployments := view.GetActiveDeployments()
+	var result []*ftlv1.DeployedSchema
+	for key, deployment := range deployments {
+		_, activeOk := activeDeployments[key]
+		result = append(result, &ftlv1.DeployedSchema{
+			DeploymentKey: key.String(),
+			Schema:        deployment.ToProto(),
+			IsActive:      activeOk,
+		})
+	}
+	return connect.NewResponse(&ftlv1.GetDeploymentsResponse{Schema: result}), nil
+}
+
 func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
 	logger := log.FromContext(ctx)
 

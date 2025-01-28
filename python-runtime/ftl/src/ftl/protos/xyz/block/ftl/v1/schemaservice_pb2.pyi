@@ -1,9 +1,10 @@
 from xyz.block.ftl.schema.v1 import schema_pb2 as _schema_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
+from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -67,3 +68,23 @@ class UpdateSchemaRequest(_message.Message):
 class UpdateSchemaResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class GetDeploymentsRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class GetDeploymentsResponse(_message.Message):
+    __slots__ = ("schema",)
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    schema: _containers.RepeatedCompositeFieldContainer[DeployedSchema]
+    def __init__(self, schema: _Optional[_Iterable[_Union[DeployedSchema, _Mapping]]] = ...) -> None: ...
+
+class DeployedSchema(_message.Message):
+    __slots__ = ("deployment_key", "schema", "is_active")
+    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    IS_ACTIVE_FIELD_NUMBER: _ClassVar[int]
+    deployment_key: str
+    schema: _schema_pb2.Module
+    is_active: bool
+    def __init__(self, deployment_key: _Optional[str] = ..., schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., is_active: bool = ...) -> None: ...

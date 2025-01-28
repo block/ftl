@@ -350,3 +350,120 @@ export class UpdateSchemaResponse extends Message<UpdateSchemaResponse> {
   }
 }
 
+/**
+ * @generated from message xyz.block.ftl.v1.GetDeploymentsRequest
+ */
+export class GetDeploymentsRequest extends Message<GetDeploymentsRequest> {
+  constructor(data?: PartialMessage<GetDeploymentsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.GetDeploymentsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDeploymentsRequest {
+    return new GetDeploymentsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetDeploymentsRequest {
+    return new GetDeploymentsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetDeploymentsRequest {
+    return new GetDeploymentsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetDeploymentsRequest | PlainMessage<GetDeploymentsRequest> | undefined, b: GetDeploymentsRequest | PlainMessage<GetDeploymentsRequest> | undefined): boolean {
+    return proto3.util.equals(GetDeploymentsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.GetDeploymentsResponse
+ */
+export class GetDeploymentsResponse extends Message<GetDeploymentsResponse> {
+  /**
+   * @generated from field: repeated xyz.block.ftl.v1.DeployedSchema schema = 1;
+   */
+  schema: DeployedSchema[] = [];
+
+  constructor(data?: PartialMessage<GetDeploymentsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.GetDeploymentsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "schema", kind: "message", T: DeployedSchema, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDeploymentsResponse {
+    return new GetDeploymentsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetDeploymentsResponse {
+    return new GetDeploymentsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetDeploymentsResponse {
+    return new GetDeploymentsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetDeploymentsResponse | PlainMessage<GetDeploymentsResponse> | undefined, b: GetDeploymentsResponse | PlainMessage<GetDeploymentsResponse> | undefined): boolean {
+    return proto3.util.equals(GetDeploymentsResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.DeployedSchema
+ */
+export class DeployedSchema extends Message<DeployedSchema> {
+  /**
+   * @generated from field: string deployment_key = 1;
+   */
+  deploymentKey = "";
+
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Module schema = 2;
+   */
+  schema?: Module;
+
+  /**
+   * @generated from field: bool is_active = 3;
+   */
+  isActive = false;
+
+  constructor(data?: PartialMessage<DeployedSchema>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.DeployedSchema";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "schema", kind: "message", T: Module },
+    { no: 3, name: "is_active", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeployedSchema {
+    return new DeployedSchema().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeployedSchema {
+    return new DeployedSchema().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeployedSchema {
+    return new DeployedSchema().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeployedSchema | PlainMessage<DeployedSchema> | undefined, b: DeployedSchema | PlainMessage<DeployedSchema> | undefined): boolean {
+    return proto3.util.equals(DeployedSchema, a, b);
+  }
+}
+
