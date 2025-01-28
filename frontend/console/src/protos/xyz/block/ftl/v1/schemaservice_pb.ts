@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { Module, ModuleRuntimeEvent, Schema } from "../schema/v1/schema_pb.js";
+import { Event, Module, ModuleRuntimeEvent, Schema } from "../schema/v1/schema_pb.js";
 
 /**
  * @generated from enum xyz.block.ftl.v1.DeploymentChangeType
@@ -279,6 +279,74 @@ export class UpdateDeploymentRuntimeResponse extends Message<UpdateDeploymentRun
 
   static equals(a: UpdateDeploymentRuntimeResponse | PlainMessage<UpdateDeploymentRuntimeResponse> | undefined, b: UpdateDeploymentRuntimeResponse | PlainMessage<UpdateDeploymentRuntimeResponse> | undefined): boolean {
     return proto3.util.equals(UpdateDeploymentRuntimeResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.UpdateSchemaRequest
+ */
+export class UpdateSchemaRequest extends Message<UpdateSchemaRequest> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Event event = 1;
+   */
+  event?: Event;
+
+  constructor(data?: PartialMessage<UpdateSchemaRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.UpdateSchemaRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "event", kind: "message", T: Event },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateSchemaRequest {
+    return new UpdateSchemaRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateSchemaRequest {
+    return new UpdateSchemaRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateSchemaRequest {
+    return new UpdateSchemaRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateSchemaRequest | PlainMessage<UpdateSchemaRequest> | undefined, b: UpdateSchemaRequest | PlainMessage<UpdateSchemaRequest> | undefined): boolean {
+    return proto3.util.equals(UpdateSchemaRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.UpdateSchemaResponse
+ */
+export class UpdateSchemaResponse extends Message<UpdateSchemaResponse> {
+  constructor(data?: PartialMessage<UpdateSchemaResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.UpdateSchemaResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateSchemaResponse {
+    return new UpdateSchemaResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateSchemaResponse {
+    return new UpdateSchemaResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateSchemaResponse {
+    return new UpdateSchemaResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateSchemaResponse | PlainMessage<UpdateSchemaResponse> | undefined, b: UpdateSchemaResponse | PlainMessage<UpdateSchemaResponse> | undefined): boolean {
+    return proto3.util.equals(UpdateSchemaResponse, a, b);
   }
 }
 

@@ -43,6 +43,9 @@ const (
 	// SchemaServiceUpdateDeploymentRuntimeProcedure is the fully-qualified name of the SchemaService's
 	// UpdateDeploymentRuntime RPC.
 	SchemaServiceUpdateDeploymentRuntimeProcedure = "/xyz.block.ftl.v1.SchemaService/UpdateDeploymentRuntime"
+	// SchemaServiceUpdateSchemaProcedure is the fully-qualified name of the SchemaService's
+	// UpdateSchema RPC.
+	SchemaServiceUpdateSchemaProcedure = "/xyz.block.ftl.v1.SchemaService/UpdateSchema"
 )
 
 // SchemaServiceClient is a client for the xyz.block.ftl.v1.SchemaService service.
@@ -58,6 +61,8 @@ type SchemaServiceClient interface {
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest]) (*connect.ServerStreamForClient[v1.PullSchemaResponse], error)
 	// UpdateModuleRuntime is used to update the runtime configuration of a module.
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error)
+	// UpdateSchema is used to update the schema.
+	UpdateSchema(context.Context, *connect.Request[v1.UpdateSchemaRequest]) (*connect.Response[v1.UpdateSchemaResponse], error)
 }
 
 // NewSchemaServiceClient constructs a client for the xyz.block.ftl.v1.SchemaService service. By
@@ -93,6 +98,11 @@ func NewSchemaServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			baseURL+SchemaServiceUpdateDeploymentRuntimeProcedure,
 			opts...,
 		),
+		updateSchema: connect.NewClient[v1.UpdateSchemaRequest, v1.UpdateSchemaResponse](
+			httpClient,
+			baseURL+SchemaServiceUpdateSchemaProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -102,6 +112,7 @@ type schemaServiceClient struct {
 	getSchema               *connect.Client[v1.GetSchemaRequest, v1.GetSchemaResponse]
 	pullSchema              *connect.Client[v1.PullSchemaRequest, v1.PullSchemaResponse]
 	updateDeploymentRuntime *connect.Client[v1.UpdateDeploymentRuntimeRequest, v1.UpdateDeploymentRuntimeResponse]
+	updateSchema            *connect.Client[v1.UpdateSchemaRequest, v1.UpdateSchemaResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.SchemaService.Ping.
@@ -124,6 +135,11 @@ func (c *schemaServiceClient) UpdateDeploymentRuntime(ctx context.Context, req *
 	return c.updateDeploymentRuntime.CallUnary(ctx, req)
 }
 
+// UpdateSchema calls xyz.block.ftl.v1.SchemaService.UpdateSchema.
+func (c *schemaServiceClient) UpdateSchema(ctx context.Context, req *connect.Request[v1.UpdateSchemaRequest]) (*connect.Response[v1.UpdateSchemaResponse], error) {
+	return c.updateSchema.CallUnary(ctx, req)
+}
+
 // SchemaServiceHandler is an implementation of the xyz.block.ftl.v1.SchemaService service.
 type SchemaServiceHandler interface {
 	// Ping service for readiness.
@@ -137,6 +153,8 @@ type SchemaServiceHandler interface {
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error
 	// UpdateModuleRuntime is used to update the runtime configuration of a module.
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error)
+	// UpdateSchema is used to update the schema.
+	UpdateSchema(context.Context, *connect.Request[v1.UpdateSchemaRequest]) (*connect.Response[v1.UpdateSchemaResponse], error)
 }
 
 // NewSchemaServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -168,6 +186,11 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 		svc.UpdateDeploymentRuntime,
 		opts...,
 	)
+	schemaServiceUpdateSchemaHandler := connect.NewUnaryHandler(
+		SchemaServiceUpdateSchemaProcedure,
+		svc.UpdateSchema,
+		opts...,
+	)
 	return "/xyz.block.ftl.v1.SchemaService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SchemaServicePingProcedure:
@@ -178,6 +201,8 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 			schemaServicePullSchemaHandler.ServeHTTP(w, r)
 		case SchemaServiceUpdateDeploymentRuntimeProcedure:
 			schemaServiceUpdateDeploymentRuntimeHandler.ServeHTTP(w, r)
+		case SchemaServiceUpdateSchemaProcedure:
+			schemaServiceUpdateSchemaHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -201,4 +226,8 @@ func (UnimplementedSchemaServiceHandler) PullSchema(context.Context, *connect.Re
 
 func (UnimplementedSchemaServiceHandler) UpdateDeploymentRuntime(context.Context, *connect.Request[v1.UpdateDeploymentRuntimeRequest]) (*connect.Response[v1.UpdateDeploymentRuntimeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) UpdateSchema(context.Context, *connect.Request[v1.UpdateSchemaRequest]) (*connect.Response[v1.UpdateSchemaResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.UpdateSchema is not implemented"))
 }

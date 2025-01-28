@@ -57,3 +57,13 @@ class UpdateDeploymentRuntimeRequest(_message.Message):
 class UpdateDeploymentRuntimeResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class UpdateSchemaRequest(_message.Message):
+    __slots__ = ("event",)
+    EVENT_FIELD_NUMBER: _ClassVar[int]
+    event: _schema_pb2.Event
+    def __init__(self, event: _Optional[_Union[_schema_pb2.Event, _Mapping]] = ...) -> None: ...
+
+class UpdateSchemaResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
