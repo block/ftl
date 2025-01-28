@@ -502,14 +502,25 @@ func (s *Service) Close() error {
 		if err != nil {
 			return fmt.Errorf("failed to kill plugin: %w", err)
 		}
+		done := make(chan struct{})
+		go func() {
+			err := cmd.Wait()
+			if err == nil {
+				// Plugin exited cleanly.
+				// If wait fails we try the sigterm hard kill below.
+				close(done)
+			}
+		}()
 		// Hard kill after 10 seconds.
 		select {
+		case <-done:
 		case <-depl.ctx.Done():
 		case <-time.After(10 * time.Second):
-			err := cmd.Kill(syscall.SIGKILL)
-			if err != nil {
-				// Should we os.Exit(1) here?
-				return fmt.Errorf("failed to kill plugin: %w", err)
+			if !cmd.ProcessState.Exited() {
+				err := cmd.Kill(syscall.SIGKILL)
+				if err != nil {
+					return fmt.Errorf("failed to kill plugin: %w", err)
+				}
 			}
 		}
 	}
