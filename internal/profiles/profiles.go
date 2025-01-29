@@ -9,7 +9,6 @@ import (
 
 	"github.com/alecthomas/types/either"
 
-	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
@@ -18,25 +17,32 @@ import (
 	"github.com/block/ftl/internal/profiles/internal"
 )
 
-type ProjectConfig internal.Project
+// ProjectConfig is the static project-wide configuration shared by all profiles.
+//
+// It mirrors the internal.Project struct.
+type ProjectConfig struct {
+	Realm          string   `json:"realm"`
+	FTLMinVersion  string   `json:"ftl-min-version,omitempty"`
+	ModuleRoots    []string `json:"module-roots,omitempty"`
+	NoGit          bool     `json:"no-git,omitempty"`
+	DefaultProfile string   `json:"default-profile,omitempty"`
 
-type Config struct {
-	Name     string
-	Endpoint *url.URL
+	Root string `json:"-"`
 }
 
 type Profile struct {
-	shared ProjectConfig
-	config Config
-	sm     *manager.Manager[configuration.Secrets]
-	cm     *manager.Manager[configuration.Configuration]
+	shared   ProjectConfig
+	name     string
+	endpoint *url.URL
+	sm       *manager.Manager[configuration.Secrets]
+	cm       *manager.Manager[configuration.Configuration]
 }
 
 // ProjectConfig is the static project-wide configuration shared by all profiles.
 func (p *Profile) ProjectConfig() ProjectConfig { return p.shared }
 
-// Config is the static configuration for a Profile.
-func (p *Profile) Config() Config { return reflect.DeepCopy(p.config) }
+func (p *Profile) Name() string       { return p.name }
+func (p *Profile) Endpoint() *url.URL { return p.endpoint }
 
 // SecretsManager returns the secrets manager for this profile.
 func (p *Profile) SecretsManager() *manager.Manager[configuration.Secrets] { return p.sm }
@@ -266,12 +272,10 @@ func (p *Project) Load(ctx context.Context, profile string) (Profile, error) {
 		return Profile{}, fmt.Errorf("%s: unknown profile type: %q", profile, prof.Type)
 	}
 	return Profile{
-		shared: ProjectConfig(p.project),
-		config: Config{
-			Name:     prof.Name,
-			Endpoint: profileEndpoint,
-		},
-		sm: sm,
-		cm: cm,
+		shared:   ProjectConfig(p.project),
+		name:     prof.Name,
+		endpoint: profileEndpoint,
+		sm:       sm,
+		cm:       cm,
 	}, nil
 }

@@ -277,8 +277,8 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		})
 		kctx.FatalIfErrorf(err)
 
-		err = kctx.BindToProvider(func(cli *CLI, projectConfig projectconfig.Config) (*providers.Registry[configuration.Secrets], error) {
-			return providers.NewDefaultSecretsRegistry(projectConfig, cli.Vault), nil
+		err = kctx.BindToProvider(func() (*providers.Registry[configuration.Secrets], error) {
+			return providers.NewDefaultSecretsRegistry(), nil
 		})
 		kctx.FatalIfErrorf(err)
 

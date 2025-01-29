@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/projectconfig"
 )
 
 type Factory[R configuration.Role] func(ctx context.Context) (configuration.Provider[R], error)
@@ -21,11 +20,11 @@ func NewDefaultConfigRegistry() *Registry[configuration.Configuration] {
 }
 
 // NewDefaultSecretsRegistry creates a new registry with the default secrets providers.
-func NewDefaultSecretsRegistry(config projectconfig.Config, onePasswordVault string) *Registry[configuration.Secrets] {
+func NewDefaultSecretsRegistry() *Registry[configuration.Secrets] {
 	registry := NewRegistry[configuration.Secrets]()
 	registry.Register(NewEnvarFactory[configuration.Secrets]())
 	registry.Register(NewInlineFactory[configuration.Secrets]())
-	registry.Register(NewOnePasswordFactory(onePasswordVault, config.Name))
+	// registry.Register(NewOnePasswordFactory(onePasswordVault, config.Name))
 	registry.Register(NewKeychainFactory())
 	return registry
 }
