@@ -14,9 +14,9 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-
 	schemaconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
@@ -97,16 +97,10 @@ func Start(
 				lastKey = cs.Key
 				err := svc.ProvisionChangeset(ctx, cs)
 				if err != nil {
-					logger.Errorf(err, "Error provisioning changeset", err)
+					logger.Errorf(err, "Error provisioning changeset")
 					continue
 				}
 				logger.Debugf("Changeset %s provisioned", cs.Key)
-				//TODO: huge hack, this needs be be changed as it means all provisioning has to happen in a single gorouting
-				// I don't even know if this is the right place to commit the changeset
-				_, err = schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: cs.Key.String()}))
-				if err != nil {
-					logger.Errorf(err, "Error committing changeset")
-				}
 			}
 		}
 	}
@@ -143,7 +137,13 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 			syncExistingRuntimes(existingModule, module)
 		}
 
-		deployment := s.registry.CreateDeployment(ctx, module, existingModule, req.Key)
+		deployment := s.registry.CreateDeployment(ctx, module, existingModule, func(event *schemapb.Event) error {
+			_, err := s.schemaClient.UpdateSchema(ctx, connect.NewRequest(&ftlv1.UpdateSchemaRequest{Event: event}))
+			if err != nil {
+				return fmt.Errorf("error updating schema: %w", err)
+			}
+			return nil
+		})
 		running := true
 		logger.Debugf("Running deployment for module %s", moduleName)
 		for running {
@@ -154,11 +154,15 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 			}
 			running = r
 		}
+
 		logger.Debugf("Finished deployment for module %s", moduleName)
 
 		//deploymentKey := deployment.Module.Runtime.Deployment.DeploymentKey
 
 	}
+
+	//TODO: huge hack, this needs be be changed as it means all provisioning has to happen in a single goroutine
+	// I don't even know if this is the right place to commit the changeset
 	_, err := s.schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: req.Key.String()}))
 	if err != nil {
 		return fmt.Errorf("error committing changeset: %w", err)

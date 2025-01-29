@@ -124,9 +124,10 @@ func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) (Schema
 	for topic := range slices.FilterVariants[*schema.Topic](m.Decls) {
 		if topic.Name == e.ID {
 			topic.Runtime = e.Payload
+			return t, nil
 		}
 	}
-	return t, nil
+	return t, fmt.Errorf("topic %s not found", e.ID)
 }
 
 func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) (SchemaState, error) {
@@ -140,9 +141,10 @@ func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) (
 				db.Runtime = &schema.DatabaseRuntime{}
 			}
 			db.Runtime.Connections = e.Connections
+			return t, nil
 		}
 	}
-	return t, nil
+	return t, fmt.Errorf("database %s not found", e.ID)
 }
 
 func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) (SchemaState, error) {
@@ -192,6 +194,7 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 	t.changesets[e.Changeset.Key] = e.Changeset
 	for _, mod := range e.Changeset.Modules {
 		t.deployments[mod.Runtime.Deployment.DeploymentKey] = mod
+		t.provisioning[mod.Name] = mod
 	}
 	return t, nil
 }

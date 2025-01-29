@@ -10,8 +10,8 @@ import (
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/backend/schemaservice"
 	"github.com/block/ftl/common/plugin"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -119,7 +119,7 @@ func (reg *ProvisionerRegistry) Register(id string, handler provisionerconnect.P
 }
 
 // CreateDeployment to take the system to the desired state
-func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, desiredModule, existingModule *schema.Module, changeset key.Changeset) *Deployment {
+func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, desiredModule, existingModule *schema.Module, eventHandler func(event *schemapb.Event) error) *Deployment {
 	logger := log.FromContext(ctx)
 	module := desiredModule.GetName()
 	state := schemaservice.NewSchemaState()
@@ -135,6 +135,7 @@ func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, desiredMod
 	deployment := &Deployment{
 		DeploymentState: &state,
 		Previous:        existingModule,
+		EventHandler:    eventHandler,
 	}
 
 	allDesired := schema.GetProvisionedResources(desiredModule)

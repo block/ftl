@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/block/ftl/common/slices"
-
-	"golang.org/x/exp/maps"
-
 	"github.com/alecthomas/types/optional"
+	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/statemachine"
@@ -108,7 +106,7 @@ func (r *SchemaState) GetCanonicalDeployments() map[key.Deployment]*schema.Modul
 // GetAllActiveDeployments returns all active deployments, including those in changesets.
 func (r *SchemaState) GetAllActiveDeployments() map[key.Deployment]*schema.Module {
 	deployments := map[key.Deployment]*schema.Module{}
-	for key, _ := range r.activeDeployments {
+	for key := range r.activeDeployments {
 		deployments[key] = r.deployments[key]
 	}
 	return deployments
