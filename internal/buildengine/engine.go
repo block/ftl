@@ -628,14 +628,32 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	}
 }
 
+type moduleState int
+
+const (
+	moduleStateWaiting moduleState = iota
+	moduleStateExplicitlyBuilding
+	moduleStateAutoRebuilding
+	moduleStateBuilt
+	moduleStateDeploying
+	moduleStateDeployed
+	moduleStateFailed
+)
+
+func isIdle(moduleStates map[string]moduleState) bool {
+	countByState := map[moduleState]int{}
+	for _, state := range moduleStates {
+		countByState[state]++
+	}
+	return countByState[moduleStateFailed]+countByState[moduleStateDeployed] == len(moduleStates)
+}
+
 // watchForEventsToPublish listens for raw build events, collects state, and publishes public events to BuildUpdates topic.
 func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 	moduleErrors := map[string]*langpb.ErrorList{}
-	explicitlyBuilding := map[string]bool{}
-	autoRebuilding := map[string]bool{}
-	deploying := map[string]bool{}
+	moduleStates := map[string]moduleState{}
 
-	isIdle := true
+	idle := true
 	var endTime time.Time
 	var becomeIdleTimer <-chan time.Time
 
@@ -654,10 +672,10 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 
 		case <-becomeIdleTimer:
 			becomeIdleTimer = nil
-			if len(explicitlyBuilding) > 0 || len(autoRebuilding) > 0 || len(deploying) > 0 {
+			if !isIdle(moduleStates) {
 				continue
 			}
-			isIdle = true
+			idle = true
 
 			if e.devMode && isFirstRound {
 				logger := log.FromContext(ctx)
@@ -699,13 +717,13 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 
 			case *buildenginepb.EngineEvent_ModuleRemoved:
 				delete(moduleErrors, rawEvent.ModuleRemoved.Module)
-				delete(explicitlyBuilding, rawEvent.ModuleRemoved.Module)
-				delete(autoRebuilding, rawEvent.ModuleRemoved.Module)
+				delete(moduleStates, rawEvent.ModuleRemoved.Module)
+
 			case *buildenginepb.EngineEvent_ModuleBuildWaiting:
 
 			case *buildenginepb.EngineEvent_ModuleBuildStarted:
-				if isIdle {
-					isIdle = false
+				if idle {
+					idle = false
 					started := &buildenginepb.EngineEvent{
 						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_EngineStarted{
@@ -716,31 +734,23 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 					e.EngineUpdates.Publish(started)
 				}
 				if rawEvent.ModuleBuildStarted.IsAutoRebuild {
-					autoRebuilding[rawEvent.ModuleBuildStarted.Config.Name] = true
+					moduleStates[rawEvent.ModuleBuildStarted.Config.Name] = moduleStateAutoRebuilding
 				} else {
-					explicitlyBuilding[rawEvent.ModuleBuildStarted.Config.Name] = true
+					moduleStates[rawEvent.ModuleBuildStarted.Config.Name] = moduleStateExplicitlyBuilding
 				}
 				delete(moduleErrors, rawEvent.ModuleBuildStarted.Config.Name)
 				log.FromContext(ctx).Module(rawEvent.ModuleBuildStarted.Config.Name).Scope("build").Infof("Building module")
 			case *buildenginepb.EngineEvent_ModuleBuildFailed:
-				if rawEvent.ModuleBuildFailed.IsAutoRebuild {
-					delete(autoRebuilding, rawEvent.ModuleBuildFailed.Config.Name)
-				} else {
-					delete(explicitlyBuilding, rawEvent.ModuleBuildFailed.Config.Name)
-				}
+				moduleStates[rawEvent.ModuleBuildFailed.Config.Name] = moduleStateFailed
 				moduleErrors[rawEvent.ModuleBuildFailed.Config.Name] = rawEvent.ModuleBuildFailed.Errors
 				moduleErr := fmt.Errorf("%s: %s", rawEvent.ModuleBuildFailed.Config.Name, langpb.ErrorListString(rawEvent.ModuleBuildFailed.Errors))
 				log.FromContext(ctx).Module(rawEvent.ModuleBuildFailed.Config.Name).Scope("build").Errorf(moduleErr, "Build failed")
 			case *buildenginepb.EngineEvent_ModuleBuildSuccess:
-				if rawEvent.ModuleBuildSuccess.IsAutoRebuild {
-					delete(autoRebuilding, rawEvent.ModuleBuildSuccess.Config.Name)
-				} else {
-					delete(explicitlyBuilding, rawEvent.ModuleBuildSuccess.Config.Name)
-				}
+				moduleStates[rawEvent.ModuleBuildSuccess.Config.Name] = moduleStateBuilt
 				delete(moduleErrors, rawEvent.ModuleBuildSuccess.Config.Name)
 			case *buildenginepb.EngineEvent_ModuleDeployStarted:
-				if isIdle {
-					isIdle = false
+				if idle {
+					idle = false
 					started := &buildenginepb.EngineEvent{
 						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_EngineStarted{
@@ -750,20 +760,20 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 					addTimestamp(started)
 					e.EngineUpdates.Publish(started)
 				}
-				deploying[rawEvent.ModuleDeployStarted.Module] = true
+				moduleStates[rawEvent.ModuleDeployStarted.Module] = moduleStateDeploying
 				delete(moduleErrors, rawEvent.ModuleDeployStarted.Module)
 			case *buildenginepb.EngineEvent_ModuleDeployFailed:
-				delete(deploying, rawEvent.ModuleDeployFailed.Module)
+				moduleStates[rawEvent.ModuleDeployFailed.Module] = moduleStateFailed
 				moduleErrors[rawEvent.ModuleDeployFailed.Module] = rawEvent.ModuleDeployFailed.Errors
 			case *buildenginepb.EngineEvent_ModuleDeploySuccess:
-				delete(deploying, rawEvent.ModuleDeploySuccess.Module)
+				moduleStates[rawEvent.ModuleDeploySuccess.Module] = moduleStateDeployed
 				delete(moduleErrors, rawEvent.ModuleDeploySuccess.Module)
 			}
 
 			addTimestamp(evt)
 			e.EngineUpdates.Publish(evt)
 		}
-		if !isIdle && len(explicitlyBuilding) == 0 && len(autoRebuilding) == 0 && len(deploying) == 0 {
+		if !idle && isIdle(moduleStates) {
 			endTime = time.Now()
 			becomeIdleTimer = time.After(time.Second * 2)
 		}
