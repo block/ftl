@@ -223,8 +223,8 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 }
 
 func (s *Service) runDevMode(ctx context.Context, req *connect.Request[langpb.BuildRequest], buildCtx buildContext, stream *connect.ServerStream[langpb.BuildResponse]) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(fmt.Errorf("stopping JVM language plugin (dev)"))
 
 	s.acceptsContextUpdates.Store(true)
 	defer s.acceptsContextUpdates.Store(false)
@@ -325,8 +325,8 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 
 func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse], firstAttempt bool) error {
 	logger := log.FromContext(ctx)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(fmt.Errorf("stopping JVM language plugin (Quarkus dev mode)"))
 
 	events := make(chan buildContextUpdatedEvent, 32)
 	s.updatesTopic.Subscribe(events)
@@ -373,10 +373,11 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		err = command.Run()
 		if err != nil {
 			logger.Errorf(err, "Dev mode process exited with error")
+			cancel(fmt.Errorf("dev mode process exited with error: %w", err))
 		} else {
 			logger.Infof("Dev mode process exited")
+			cancel(fmt.Errorf("dev mode process exited"))
 		}
-		cancel()
 	}()
 
 	// Wait for the plugin to start.

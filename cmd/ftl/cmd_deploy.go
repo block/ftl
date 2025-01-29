@@ -25,14 +25,15 @@ func (d *deployCmd) Run(
 	schemaSourceFactory func() schemaeventsource.EventSource,
 ) error {
 	// Cancel build engine context to ensure all language plugins are killed.
-	var cancel context.CancelFunc
 	if d.Timeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, d.Timeout)
+		var cancel context.CancelFunc //nolint: forbidigo
+		ctx, cancel = context.WithTimeoutCause(ctx, d.Timeout, fmt.Errorf("terminating deploy due to timeout of %s", d.Timeout))
 		defer cancel()
 	} else {
-		ctx, cancel = context.WithCancel(ctx)
+		var cancel context.CancelCauseFunc
+		ctx, cancel = context.WithCancelCause(ctx)
+		defer cancel(fmt.Errorf("stopping deploy"))
 	}
-	defer cancel()
 	engine, err := buildengine.New(
 		ctx, provisionerClient, schemaSourceFactory(), projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint,
 		buildengine.BuildEnv(d.Build.BuildEnv),

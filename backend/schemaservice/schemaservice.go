@@ -149,8 +149,8 @@ func (s *Service) GetDeployments(ctx context.Context, req *connect.Request[ftlv1
 func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
 	logger := log.FromContext(ctx)
 
-	uctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	uctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(fmt.Errorf("schemaservice: stopped watching for module changes"))
 	stateIter, err := s.State.StateIter(uctx)
 	if err != nil {
 		return fmt.Errorf("failed to get schema state iterator: %w", err)

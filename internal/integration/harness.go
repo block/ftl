@@ -314,9 +314,11 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 	assert.Equal(t, *buildOnceOptions, opts, "Options changed between test runs")
 
 	for _, language := range opts.languages {
-		ctx, done := context.WithCancel(ctx)
 		t.Run(language, func(t *testing.T) {
 			t.Helper()
+
+			ctx, done := context.WithCancelCause(ctx)
+			defer done(fmt.Errorf("test complete"))
 			tmpDir := initWorkDir(t, cwd, opts)
 
 			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:8892", log.Debug)
@@ -443,7 +445,6 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				ic.AssertWithRetry(t, action)
 			}
 		})
-		done()
 	}
 }
 
@@ -617,7 +618,7 @@ func (l *logWriter) Write(p []byte) (n int, err error) {
 // startProcess runs a binary in the background and terminates it when the test completes.
 func startProcess(ctx context.Context, t testing.TB, tempDir string, devMode bool, args ...string) context.Context {
 	t.Helper()
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancelCause(ctx)
 	cmd := ftlexec.Command(ctx, log.Debug, "..", args[0], args[1:]...)
 	if devMode {
 		cmd.Dir = tempDir
@@ -630,7 +631,7 @@ func startProcess(ctx context.Context, t testing.TB, tempDir string, devMode boo
 		select {
 		case <-terminated:
 		default:
-			cancel()
+			cancel(fmt.Errorf("process terminated: %w", err))
 			assert.NoError(t, err)
 		}
 	}()
@@ -638,7 +639,7 @@ func startProcess(ctx context.Context, t testing.TB, tempDir string, devMode boo
 		close(terminated)
 		err := cmd.Kill(syscall.SIGTERM)
 		assert.NoError(t, err)
-		cancel()
+		cancel(fmt.Errorf("test complete"))
 	})
 	return ctx
 }

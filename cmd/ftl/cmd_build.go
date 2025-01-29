@@ -33,8 +33,8 @@ func (b *buildCmd) Run(
 	}
 
 	// Cancel build engine context to ensure all language plugins are killed.
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(fmt.Errorf("build stopped"))
 	engine, err := buildengine.New(
 		ctx,
 		controllerClient,

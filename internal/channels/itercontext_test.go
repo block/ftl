@@ -27,14 +27,14 @@ func TestIterContext(t *testing.T) {
 
 	t.Run("stops when context cancelled", func(t *testing.T) {
 		ch := make(chan int)
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancelCause(context.Background())
 
 		// Start goroutine to send values
 		go func() {
 			ch <- 1
 			ch <- 2
 			time.Sleep(10 * time.Millisecond) // Small delay to ensure cancel happens
-			cancel()                          // Cancel context before sending 3
+			cancel(nil)                       // Cancel context before sending 3
 			ch <- 3                           // This should not be received
 			close(ch)
 		}()

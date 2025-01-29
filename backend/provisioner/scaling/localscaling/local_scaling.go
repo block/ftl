@@ -171,7 +171,7 @@ type deploymentInfo struct {
 	exits    int
 }
 type runnerInfo struct {
-	cancelFunc context.CancelFunc
+	cancelFunc context.CancelCauseFunc
 	port       int
 	host       string
 }
@@ -238,7 +238,7 @@ func (l *localScaling) reconcileRunners(ctx context.Context, deploymentRunners *
 			time.Sleep(time.Second * 5)
 			l.lock.Lock()
 			defer l.lock.Unlock()
-			runner.cancelFunc()
+			runner.cancelFunc(fmt.Errorf("runner terminated"))
 		}()
 		deploymentRunners.runner = optional.None[runnerInfo]()
 	}
@@ -320,7 +320,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 
 	runnerCtx := log.ContextWithLogger(ctx, logger.Scope(simpleName).Module(info.module))
 
-	runnerCtx, cancel := context.WithCancel(runnerCtx)
+	runnerCtx, cancel := context.WithCancelCause(runnerCtx)
 	info.runner = optional.Some(runnerInfo{cancelFunc: cancel, port: bind.Port, host: "127.0.0.1"})
 
 	go func() {

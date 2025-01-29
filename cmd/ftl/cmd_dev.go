@@ -51,8 +51,8 @@ func (d *devCmd) Run(
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	startTime := time.Now()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(fmt.Errorf("stopping dev server"))
 	if len(d.Build.Dirs) == 0 {
 		d.Build.Dirs = projConfig.AbsModuleDirs()
 	}
@@ -100,7 +100,11 @@ func (d *devCmd) Run(
 
 		g.Go(func() error {
 			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaEventSourceFactory, verbClient, buildEngineClient, true, devModeEndpointUpdates)
-			cancel()
+			if err != nil {
+				cancel(fmt.Errorf("dev server failed: %w", err))
+			} else {
+				cancel(fmt.Errorf("dev server stopped"))
+			}
 			return err
 		})
 	}

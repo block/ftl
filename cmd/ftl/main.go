@@ -92,7 +92,7 @@ type CLI struct {
 var cli CLI
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancelCause(context.Background())
 	csm := &currentStatusManager{}
 
 	app := createKongApplication(&cli, csm)
@@ -164,7 +164,7 @@ func main() {
 	go func() {
 		sig := <-sigch
 		logger.Debugf("FTL terminating with signal %s", sig)
-		cancel()
+		cancel(fmt.Errorf("FTL terminating with signal %s", sig))
 		_ = syscall.Kill(-syscall.Getpid(), sig.(syscall.Signal)) //nolint:forcetypeassert,errcheck // best effort
 		os.Exit(0)
 	}()
@@ -226,7 +226,7 @@ func addToExit(k *kong.Kong, cleanup func(code int)) {
 	}
 }
 
-func makeBindContext(logger *log.Logger, cancel context.CancelFunc) terminal.KongContextBinder {
+func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) terminal.KongContextBinder {
 	var bindContext terminal.KongContextBinder
 	bindContext = func(ctx context.Context, kctx *kong.Context) context.Context {
 		err := kctx.BindToProvider(func(cli *CLI) (projectconfig.Config, error) {
@@ -305,7 +305,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelFunc) terminal.Kon
 		kctx.Bind(cli.Endpoint)
 		kctx.BindTo(ctx, (*context.Context)(nil))
 		kctx.Bind(bindContext)
-		kctx.BindTo(cancel, (*context.CancelFunc)(nil))
+		kctx.BindTo(cancel, (*context.CancelCauseFunc)(nil))
 		kctx.Bind(languageplugin.InitializedPlugins{})
 		return ctx
 	}

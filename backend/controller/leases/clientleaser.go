@@ -45,9 +45,9 @@ func (c clientLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Durati
 	}
 	// We have got the lease, we need a goroutine to keep renewing the lease.
 	ret := &clientLease{}
-	ctx, cancel := context.WithCancel(ctx)
-	done := func() {
-		cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	done := func(err error) {
+		cancel(err)
 		_ = lease.CloseResponse() //nolint:errcheck
 		_ = lease.CloseRequest()  //nolint:errcheck
 	}
@@ -55,19 +55,19 @@ func (c clientLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Durati
 		for {
 			select {
 			case <-ctx.Done():
-				done()
+				done(ctx.Err())
 				return
 			case <-time.After(ttl / 2):
 				err := lease.Send(&leasepb.AcquireLeaseRequest{
 					Key: key,
 				})
 				if err != nil {
-					done()
+					done(fmt.Errorf("failed to send acquire lease request: %w", err))
 					return
 				}
 				_, err = lease.Receive()
 				if err != nil {
-					done()
+					done(fmt.Errorf("failed to receive lease response: %w", err))
 					return
 				}
 			}

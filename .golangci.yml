@@ -31,7 +31,6 @@ linters:
     - gci
     - gofumpt
     - nlreturn
-    - forbidigo
     - cyclop
     - paralleltest
     - tagliatelle
@@ -80,6 +79,14 @@ linters-settings:
       - ifElseChain
   errcheck:
     check-blank: true
+  forbidigo:
+    exclude-godoc-examples: true
+    analyze-types: true
+    forbid:
+      - p: '^context.WithCancel$'
+        msg: 'use context.WithCancelCause instead of context.WithCancel'
+      - p: '^context.CancelFunc$'
+        msg: 'use context.WithCancelCause instead of context.WithCancel'
   depguard:
     rules:
       main:

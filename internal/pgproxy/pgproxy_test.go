@@ -2,6 +2,7 @@ package pgproxy_test
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"testing"
 
@@ -24,8 +25,8 @@ func TestPgProxy(t *testing.T) {
 
 	frontend := pgproto3.NewFrontend(client, client)
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(fmt.Errorf("test complete"))
 	go pgproxy.HandleConnection(ctx, proxy, func(ctx context.Context, parameters map[string]string) (string, error) {
 		return dsn, nil
 	})
