@@ -2,12 +2,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "ftl.fullname" . }}-schemaservice
+  name: {{ include "ftl.fullname" . }}-schema
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.schemaservice.replicas }}
-  revisionHistoryLimit: {{ .Values.schemaservice.revisionHistoryLimit }}
+  replicas: {{ .Values.schema.replicas }}
+  revisionHistoryLimit: {{ .Values.schema.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "ftl-schema.selectorLabels" . | nindent 6 }}
@@ -15,20 +15,20 @@ spec:
     metadata:
       labels:
         {{- include "ftl-schema.selectorLabels" . | nindent 8 }}
-      {{- if .Values.schemaservice.podAnnotations }}
+      {{- if .Values.schema.podAnnotations }}
       annotations:
-        {{- toYaml .Values.schemaservice.podAnnotations | nindent 8 }}
+        {{- toYaml .Values.schema.podAnnotations | nindent 8 }}
       {{- end }}
     spec:
-      serviceAccountName: {{ .Values.schemaservice.serviceAccountName }}
+      serviceAccountName: {{ .Values.schema.serviceAccountName }}
       containers:
         - name: app
-          image: "{{ .Values.schemaservice.image.repository }}:{{ .Values.schemaservice.image.tag | default $version }}"
-          imagePullPolicy: {{ .Values.schemaservice.image.pullPolicy }}
-          {{- if .Values.schemaservice.envFrom }}
+          image: "{{ .Values.schema.image.repository }}:{{ .Values.schema.image.tag | default $version }}"
+          imagePullPolicy: {{ .Values.schema.image.pullPolicy }}
+          {{- if .Values.schema.envFrom }}
           envFrom:
-            {{- if .Values.schemaservice.envFrom }}
-            {{- toYaml .Values.schemaservice.envFrom | nindent 12 }}
+            {{- if .Values.schema.envFrom }}
+            {{- toYaml .Values.schema.envFrom | nindent 12 }}
             {{- end }}
           {{- else if or .Values.secrets.logEncryptionKey .Values.secrets.asyncEncryptionKey }}
           envFrom:
@@ -36,43 +36,43 @@ spec:
                 name: {{ include "ftl.fullname" . }}-secrets
           {{- end }}
           env:
-            {{- if .Values.schemaservice.env }}
-            {{- toYaml .Values.schemaservice.env | nindent 12 }}
+            {{- if .Values.schema.env }}
+            {{- toYaml .Values.schema.env | nindent 12 }}
             {{- end }}
             - name: FTL_BIND
-              value: "http://0.0.0.0:{{ (index .Values.schemaservice.ports 0).containerPort }}"
+              value: "http://0.0.0.0:{{ (index .Values.schema.ports 0).containerPort }}"
           ports:
-            {{- range .Values.schemaservice.ports }}
+            {{- range .Values.schema.ports }}
             - name: {{ .name }}
               containerPort: {{ .containerPort }}
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
           readinessProbe:
-            {{- if .Values.schemaservice.readinessProbe }}
-            {{- toYaml .Values.schemaservice.readinessProbe | nindent 12 }}
+            {{- if .Values.schema.readinessProbe }}
+            {{- toYaml .Values.schema.readinessProbe | nindent 12 }}
             {{- else }}
             httpGet:
               path: /healthz
-              port: {{ (index .Values.schemaservice.ports 0).containerPort }}
+              port: {{ (index .Values.schema.ports 0).containerPort }}
             initialDelaySeconds: 1
             periodSeconds: 2
             timeoutSeconds: 2
             successThreshold: 1
             failureThreshold: 15
             {{- end }}
-      {{- if .Values.schemaservice.nodeSelector }}
+      {{- if .Values.schema.nodeSelector }}
       nodeSelector:
-        {{- toYaml .Values.schemaservice.nodeSelector | nindent 8 }}
+        {{- toYaml .Values.schema.nodeSelector | nindent 8 }}
       {{- end }}
-      {{- if .Values.schemaservice.affinity }}
+      {{- if .Values.schema.affinity }}
       affinity:
-        {{- toYaml .Values.schemaservice.affinity | nindent 8 }}
+        {{- toYaml .Values.schema.affinity | nindent 8 }}
       {{- end }}
-      {{- if .Values.schemaservice.topologySpreadConstraints }}
+      {{- if .Values.schema.topologySpreadConstraints }}
       topologySpreadConstraints:
-        {{- toYaml .Values.schemaservice.topologySpreadConstraints | nindent 8 }}
+        {{- toYaml .Values.schema.topologySpreadConstraints | nindent 8 }}
       {{- end }}
-      {{- if .Values.schemaservice.tolerations }}
+      {{- if .Values.schema.tolerations }}
       tolerations:
-        {{- toYaml .Values.schemaservice.tolerations | nindent 8 }}
+        {{- toYaml .Values.schema.tolerations | nindent 8 }}
       {{- end }}

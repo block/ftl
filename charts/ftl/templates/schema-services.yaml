@@ -3,14 +3,14 @@ kind: Service
 metadata:
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
-  name: {{ include "ftl.fullname" . }}-schemaservice
-  {{- if .Values.schemaservice.service.annotations }}
+  name: {{ include "ftl.fullname" . }}-schema
+  {{- if .Values.schema.service.annotations }}
   annotations:
-    {{- toYaml .Values.schemaservice.service.annotations | nindent 4 }}
+    {{- toYaml .Values.schema.service.annotations | nindent 4 }}
   {{- end }}
 spec:
   ports:
-    {{- range .Values.schemaservice.service.ports }}
+    {{- range .Values.schema.service.ports }}
     - name: {{ .name }}
       port: {{ .port }}
       protocol: {{ .protocol | default "TCP" }}
@@ -21,4 +21,4 @@ spec:
     {{- end }}
   selector:
     {{- include "ftl-schema.selectorLabels" . | nindent 4 }}
-  type: {{ .Values.schemaservice.service.type | default "ClusterIP" }}
+  type: {{ .Values.schema.service.type | default "ClusterIP" }}
