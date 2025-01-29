@@ -1,7 +1,7 @@
 import { JSONSchemaFaker } from 'json-schema-faker'
 import type { JsonValue } from 'type-fest/source/basic'
 import type { Module, Verb } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { MetadataCalls, MetadataCronJob, MetadataIngress, MetadataSubscriber, Ref } from '../../../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import type { MetadataCronJob, MetadataIngress, MetadataSubscriber, Ref } from '../../../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import { defaultForType } from '../../type.utils'
 
 const basePath = `${window.location.protocol}//${window.location.hostname}:8891/`
@@ -200,28 +200,6 @@ export const createVerbRequest = (path: string, verb?: Verb, editorText?: string
   const encoded = textEncoder.encode(JSON.stringify(requestJson))
   return encoded
 }
-
-export const verbCalls = (verb?: Verb) => {
-  return verb?.verb?.metadata.filter((meta) => meta.value.case === 'calls').map((meta) => meta.value.value as MetadataCalls) ?? null
-}
-
-export interface VerbRef {
-  module: string
-  name: string
-}
-
-export const findCallers = (verb: Verb, moduleName: string, modules: Module[]) =>
-  modules.flatMap((m: Module) => {
-    const callers = m.verbs.filter((v: Verb) => {
-      const calls = v.verb?.metadata.find((m) => m.value.case === 'calls')
-      if (!calls) return false
-      return !!(calls.value.value as MetadataCalls)?.calls.find((ref: Ref) => ref.module === moduleName && ref.name === verb.verb?.name)
-    })
-    return callers.map((c) => ({
-      module: m.name,
-      name: c.verb?.name || '',
-    }))
-  })
 
 export const generateCliCommand = (verb: Verb, path: string, header: string, body: string) => {
   const method = requestType(verb)

@@ -1,10 +1,18 @@
-import type { Ref } from '../../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import type { Edges } from '../../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { ExpandablePanelProps } from '../../../shared/components/ExpandablePanel'
 import { Schema } from '../schema/Schema'
 import { References } from './References'
 
-export const DeclDefaultPanels = (moduleName: string, schema?: string, references?: Ref[]) => {
+export const DeclDefaultPanels = (moduleName: string, schema?: string, edges?: Edges) => {
   const panels = [] as ExpandablePanelProps[]
+
+  if (edges?.in.length || edges?.out.length) {
+    panels.push({
+      title: 'References',
+      expanded: true,
+      children: <References edges={edges} />,
+    })
+  }
 
   if (schema?.trim()) {
     panels.push({
@@ -12,14 +20,6 @@ export const DeclDefaultPanels = (moduleName: string, schema?: string, reference
       expanded: true,
       padding: 'p-2',
       children: <Schema schema={schema} moduleName={moduleName} />,
-    })
-  }
-
-  if (references?.length) {
-    panels.push({
-      title: 'References',
-      expanded: true,
-      children: <References references={references} />,
     })
   }
 

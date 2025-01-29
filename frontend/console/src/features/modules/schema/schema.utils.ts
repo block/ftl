@@ -132,11 +132,27 @@ export interface DeclSchema {
 }
 
 export const declSchemaFromModules = (moduleName: string, declName: string, modules: Module[]) => {
+  // First try to find in the specified module
   const module = modules.find((module) => module.name === moduleName)
-  if (!module?.schema) {
-    return
+  if (module?.schema) {
+    const decl = declFromModuleSchemaString(declName, module.schema)
+    if (decl) {
+      return decl
+    }
   }
-  return declFromModuleSchemaString(declName, module.schema)
+
+  // If not found, search all other modules
+  for (const otherModule of modules) {
+    if (otherModule.name === moduleName) continue // Skip the module we already checked
+    if (!otherModule.schema) continue
+
+    const decl = declFromModuleSchemaString(declName, otherModule.schema)
+    if (decl) {
+      return decl
+    }
+  }
+
+  return undefined
 }
 
 const declFromModuleSchemaString = (declName: string, schema: string) => {

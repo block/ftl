@@ -10,6 +10,6 @@ export const dataPanels = (moduleName: string, data: Data) => {
       expanded: true,
       children: [<RightPanelAttribute key='name' name='Name' value={data.data?.name} />],
     },
-    ...DeclDefaultPanels(moduleName, data.schema, data.references),
+    ...DeclDefaultPanels(moduleName, data.schema, data.edges),
   ] as ExpandablePanelProps[]
 }

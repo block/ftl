@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { type NavigateFunction, useNavigate } from 'react-router-dom'
 import { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { ExpandablePanelProps } from '../../shared/components/ExpandablePanel'
 import { Loader } from '../../shared/components/Loader'
@@ -20,7 +19,6 @@ import type { FTLNode } from './graph-utils'
 
 export const GraphPage = () => {
   const modules = useModules()
-  const navigate = useNavigate()
   const [selectedNode, setSelectedNode] = useState<FTLNode | null>(null)
   const [selectedModuleName, setSelectedModuleName] = useState<string | null>(null)
 
@@ -42,16 +40,16 @@ export const GraphPage = () => {
       <ResizablePanels
         mainContent={<GraphPane onTapped={handleNodeTapped} />}
         rightPanelHeader={headerForNode(selectedNode, selectedModuleName)}
-        rightPanelPanels={panelsForNode(modules.data.modules, selectedNode, selectedModuleName, navigate)}
+        rightPanelPanels={panelsForNode(selectedNode, selectedModuleName)}
         bottomPanelContent={<Timeline timeSettings={{ isTailing: true, isPaused: false }} filters={[]} />}
       />
     </div>
   )
 }
 
-const panelsForNode = (modules: Module[], node: FTLNode | null, moduleName: string | null, navigate: NavigateFunction) => {
+const panelsForNode = (node: FTLNode | null, moduleName: string | null) => {
   if (node instanceof Module) {
-    return modulePanels(modules, node, navigate)
+    return modulePanels(node)
   }
 
   // If no module name is provided, we can't show the panels

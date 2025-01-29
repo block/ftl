@@ -13,6 +13,6 @@ export const configPanels = (moduleName: string, config: Config) => {
         <RightPanelAttribute key='type' name='Type' value={config.config?.type?.value.case ?? ''} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, config.schema, config.references),
+    ...DeclDefaultPanels(moduleName, config.schema, config.edges),
   ] as ExpandablePanelProps[]
 }

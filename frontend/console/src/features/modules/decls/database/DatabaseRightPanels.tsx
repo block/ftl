@@ -13,6 +13,6 @@ export const databasePanels = (moduleName: string, database: Database) => {
         <RightPanelAttribute key='type' name='Type' value={database.database?.type} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, database.schema, database.references),
+    ...DeclDefaultPanels(moduleName, database.schema, database.edges),
   ] as ExpandablePanelProps[]
 }
