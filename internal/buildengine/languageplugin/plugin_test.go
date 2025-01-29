@@ -20,6 +20,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 type testBuildContext struct {
@@ -433,7 +434,10 @@ func (p *mockPluginClient) publishBuildEvent(event *langpb.BuildResponse) {
 func beginBuild(ctx context.Context, plugin *LanguagePlugin, bctx BuildContext, autoRebuild bool) chan result.Result[BuildResult] {
 	resultChan := make(chan result.Result[BuildResult])
 	go func() {
-		resultChan <- result.From(plugin.Build(ctx, "", "", bctx, autoRebuild))
+		resultChan <- result.From(plugin.Build(ctx, projectconfig.Config{
+			Path: "",
+			Name: "test",
+		}, "", bctx, autoRebuild))
 	}()
 	// sleep to make sure impl has received the build context
 	time.Sleep(300 * time.Millisecond)

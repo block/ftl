@@ -188,8 +188,7 @@ message ErrorList {
 
 // Request to build a module.
 message BuildRequest {
-  // The root path for the FTL project
-  string project_root = 1;
+  ProjectConfig project_config = 1;
 
   // The path to the directory containing all module stubs. Each module stub is in a subdirectory.
   string stubs_root = 2;

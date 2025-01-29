@@ -201,16 +201,16 @@ class ErrorList(_message.Message):
     def __init__(self, errors: _Optional[_Iterable[_Union[Error, _Mapping]]] = ...) -> None: ...
 
 class BuildRequest(_message.Message):
-    __slots__ = ("project_root", "stubs_root", "rebuild_automatically", "build_context")
-    PROJECT_ROOT_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("project_config", "stubs_root", "rebuild_automatically", "build_context")
+    PROJECT_CONFIG_FIELD_NUMBER: _ClassVar[int]
     STUBS_ROOT_FIELD_NUMBER: _ClassVar[int]
     REBUILD_AUTOMATICALLY_FIELD_NUMBER: _ClassVar[int]
     BUILD_CONTEXT_FIELD_NUMBER: _ClassVar[int]
-    project_root: str
+    project_config: ProjectConfig
     stubs_root: str
     rebuild_automatically: bool
     build_context: BuildContext
-    def __init__(self, project_root: _Optional[str] = ..., stubs_root: _Optional[str] = ..., rebuild_automatically: bool = ..., build_context: _Optional[_Union[BuildContext, _Mapping]] = ...) -> None: ...
+    def __init__(self, project_config: _Optional[_Union[ProjectConfig, _Mapping]] = ..., stubs_root: _Optional[str] = ..., rebuild_automatically: bool = ..., build_context: _Optional[_Union[BuildContext, _Mapping]] = ...) -> None: ...
 
 class AutoRebuildStarted(_message.Message):
     __slots__ = ("context_id",)
