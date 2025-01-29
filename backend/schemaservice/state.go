@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/statemachine"
@@ -18,20 +18,30 @@ import (
 
 type SchemaState struct {
 	// TODO: updating this info is very tricky as both the module and the changeset need to be updated
-	deployments       map[key.Deployment]*schema.Module
-	activeDeployments map[key.Deployment]bool
-	changesets        map[key.Changeset]*schema.Changeset
+	deployments map[key.Deployment]*schema.Module
+	// currently active deployments for a given module name. This represents the canonical state of the schema.
+	activeDeployments map[string]key.Deployment
+	changesets        map[key.Changeset]*changesetDetails
 	// TODO: consider removing committed changesets. Return success if asked about a missing changeset? Or keep the shell of changesets
 
-	provisioning map[string]*schema.Module
+	provisioning map[string]key.Deployment
+}
+
+type changesetDetails struct {
+	Key         key.Changeset
+	CreatedAt   time.Time
+	Deployments []key.Deployment
+	State       schema.ChangesetState
+	// Error is present if state is failed.
+	Error string
 }
 
 func NewSchemaState() SchemaState {
 	return SchemaState{
 		deployments:       map[key.Deployment]*schema.Module{},
-		activeDeployments: map[key.Deployment]bool{},
-		changesets:        map[key.Changeset]*schema.Changeset{},
-		provisioning:      map[string]*schema.Module{},
+		activeDeployments: map[string]key.Deployment{},
+		changesets:        map[key.Changeset]*changesetDetails{},
+		provisioning:      map[string]key.Deployment{},
 	}
 }
 
@@ -48,19 +58,7 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 
 // GetDeployment returns a deployment based on the deployment key and changeset.
 func (r *SchemaState) GetDeployment(deployment key.Deployment, changeset optional.Option[key.Changeset]) (*schema.Module, error) {
-	if changesetKey, ok := changeset.Get(); ok {
-		c, ok := r.changesets[changesetKey]
-		if !ok {
-			return nil, fmt.Errorf("changeset %s not found", changesetKey)
-		}
-		dep, ok := slices.Find(c.Modules, func(m *schema.Module) bool {
-			return m.Runtime.Deployment.DeploymentKey == deployment
-		})
-		if !ok {
-			return nil, fmt.Errorf("deployment %s not found in changeset %s", deployment, changesetKey)
-		}
-		return dep, nil
-	}
+	//TODO: remove this
 	d, ok := r.deployments[deployment]
 	if !ok {
 		return nil, fmt.Errorf("deployment %s not found", deployment)
@@ -78,13 +76,6 @@ func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *
 	if ok {
 		return d, optional.None[key.Changeset](), nil
 	}
-	for _, c := range r.changesets {
-		for _, m := range c.Modules {
-			if m.Runtime.Deployment.DeploymentKey == deploymentKey {
-				return m, optional.Some(c.Key), nil
-			}
-		}
-	}
 	return nil, optional.None[key.Changeset](), fmt.Errorf("deployment %s not found", deploymentKey)
 }
 
@@ -95,17 +86,19 @@ func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 // GetActiveDeployments returns all active deployments (excluding those in changesets).
 func (r *SchemaState) GetCanonicalDeployments() map[key.Deployment]*schema.Module {
 	deployments := map[key.Deployment]*schema.Module{}
-	for key, _ := range r.activeDeployments {
-		deployments[key] = r.deployments[key]
+	for _, dep := range r.activeDeployments {
+		deployments[dep] = r.deployments[dep]
 	}
 	return deployments
 }
 
 // GetAllActiveDeployments returns all active deployments, including those in changesets.
 func (r *SchemaState) GetAllActiveDeployments() map[key.Deployment]*schema.Module {
-	deployments := map[key.Deployment]*schema.Module{}
-	for key := range r.activeDeployments {
-		deployments[key] = r.deployments[key]
+	deployments := r.GetCanonicalDeployments()
+	for _, cs := range r.changesets {
+		for _, dep := range cs.Deployments {
+			deployments[dep] = r.deployments[dep]
+		}
 	}
 	return deployments
 }
@@ -119,7 +112,7 @@ func (r *SchemaState) GetProvisioning(moduleName string) (*schema.Module, error)
 	if !ok {
 		return nil, fmt.Errorf("provisioning for module %s not found", moduleName)
 	}
-	return d, nil
+	return r.deployments[d], nil
 }
 
 type schemaStateMachine struct {
@@ -156,6 +149,16 @@ func (c *schemaStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, er
 	return c.notifier.Subscribe(), nil
 }
 
-type moduleRef struct {
-	module *schema.Module
+func hydrateChangeset(current *SchemaState, changeset *changesetDetails) *schema.Changeset {
+	changesetModules := make([]*schema.Module, len(changeset.Deployments))
+	for i, deployment := range changeset.Deployments {
+		changesetModules[i] = current.deployments[deployment]
+	}
+	return &schema.Changeset{
+		Key:       changeset.Key,
+		CreatedAt: changeset.CreatedAt,
+		State:     changeset.State,
+		Modules:   changesetModules,
+		Error:     changeset.Error,
+	}
 }

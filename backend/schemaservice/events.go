@@ -80,24 +80,25 @@ func handleDeploymentActivatedEvent(t SchemaState, e *schema.DeploymentActivated
 	}
 	existing.ModRuntime().ModDeployment().ActivatedAt = optional.Some(e.ActivatedAt)
 	existing.ModRuntime().ModScaling().MinReplicas = int32(e.MinReplicas)
-	t.activeDeployments[e.Key] = optional.Ptr(e.Changeset) //TODO
+	t.activeDeployments[existing.Name] = e.Key
 	return t, nil
 }
 
 func handleDeploymentDeactivatedEvent(t SchemaState, e *schema.DeploymentDeactivatedEvent) (SchemaState, error) {
+	//TODO: fix deactivation
 	existing, ok := t.deployments[e.Key]
 	if !ok {
 		return t, fmt.Errorf("deployment %s not found", e.Key)
 	}
 	existing.ModRuntime().ModScaling().MinReplicas = 0
-	delete(t.activeDeployments, e.Key)
+	delete(t.activeDeployments, existing.Name)
 	return t, nil
 }
 
 func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) (SchemaState, error) {
-	m, ok := t.provisioning[e.Module]
-	if !ok {
-		return t, fmt.Errorf("module %s not found", e.Module)
+	m, err := provisioningModule(&t, e.Module)
+	if err != nil {
+		return SchemaState{}, err
 	}
 	for verb := range slices.FilterVariants[*schema.Verb](m.Decls) {
 		if verb.Name == e.ID {
@@ -116,10 +117,22 @@ func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) (SchemaSt
 	return t, nil
 }
 
-func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) (SchemaState, error) {
-	m, ok := t.provisioning[e.Module]
+func provisioningModule(t *SchemaState, module string) (*schema.Module, error) {
+	d, ok := t.provisioning[module]
 	if !ok {
-		return t, fmt.Errorf("module %s not found", e.Module)
+		return nil, fmt.Errorf("module %s not found", module)
+	}
+	m, ok := t.deployments[d]
+	if !ok {
+		return nil, fmt.Errorf("deployment %s not found", d)
+	}
+	return m, nil
+}
+
+func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) (SchemaState, error) {
+	m, err := provisioningModule(&t, e.Module)
+	if err != nil {
+		return SchemaState{}, err
 	}
 	for topic := range slices.FilterVariants[*schema.Topic](m.Decls) {
 		if topic.Name == e.ID {
@@ -131,9 +144,9 @@ func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) (Schema
 }
 
 func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) (SchemaState, error) {
-	m, ok := t.provisioning[e.Module]
-	if !ok {
-		return t, fmt.Errorf("module %s not found", e.Module)
+	m, err := provisioningModule(&t, e.Module)
+	if err != nil {
+		return SchemaState{}, err
 	}
 	for _, decl := range m.Decls {
 		if db, ok := decl.(*schema.Database); ok && db.Name == e.ID {
@@ -148,20 +161,9 @@ func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) (
 }
 
 func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) (SchemaState, error) {
-	var module *schema.Module
-	if dk, ok := e.DeploymentKey.Get(); ok {
-		deployment, err := key.ParseDeploymentKey(dk)
-		if err != nil {
-			return t, fmt.Errorf("invalid deployment key: %w", err)
-		}
-		module = t.deployments[deployment]
-	} else {
-		// updating a provisioning module
-		m, ok := t.provisioning[e.Module]
-		if !ok {
-			return t, fmt.Errorf("module %s not found", e.Module)
-		}
-		module = m
+	module := t.deployments[e.DeploymentKey]
+	if module == nil {
+		return t, fmt.Errorf("deployment %s not found", e.Deployment)
 	}
 	if base, ok := e.Base.Get(); ok {
 		module.ModRuntime().Base = base
@@ -176,7 +178,8 @@ func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) (Sche
 }
 
 func handleProvisioningCreatedEvent(t SchemaState, e *schema.ProvisioningCreatedEvent) (SchemaState, error) {
-	t.provisioning[e.DesiredModule.Name] = e.DesiredModule
+	t.deployments[e.DesiredModule.Runtime.Deployment.DeploymentKey] = e.DesiredModule
+	t.provisioning[e.DesiredModule.Name] = e.DesiredModule.Runtime.Deployment.DeploymentKey
 	return t, nil
 }
 
@@ -191,10 +194,28 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 			return t, fmt.Errorf("can not create active changeset: %s already active", active.Key)
 		}
 	}
-	t.changesets[e.Changeset.Key] = e.Changeset
+	deployments := []key.Deployment{}
 	for _, mod := range e.Changeset.Modules {
-		t.deployments[mod.Runtime.Deployment.DeploymentKey] = mod
-		t.provisioning[mod.Name] = mod
+		if mod.Runtime == nil {
+			return t, fmt.Errorf("module %s has no runtime", mod.Name)
+		}
+		if mod.Runtime.Deployment == nil {
+			return t, fmt.Errorf("module %s has no deployment", mod.Name)
+		}
+		if mod.Runtime.Deployment.DeploymentKey.IsZero() {
+			return t, fmt.Errorf("module %s has no deployment key", mod.Name)
+		}
+		deploymentKey := mod.Runtime.Deployment.DeploymentKey
+		deployments = append(deployments, deploymentKey)
+		t.deployments[deploymentKey] = mod
+		t.provisioning[mod.Name] = deploymentKey
+	}
+	t.changesets[e.Changeset.Key] = &changesetDetails{
+		Key:         e.Changeset.Key,
+		CreatedAt:   e.Changeset.CreatedAt,
+		Deployments: deployments,
+		State:       e.Changeset.State,
+		Error:       e.Changeset.Error,
 	}
 	return t, nil
 }
@@ -205,9 +226,9 @@ func handleChangesetCommittedEvent(t SchemaState, e *schema.ChangesetCommittedEv
 		return SchemaState{}, fmt.Errorf("changeset %s not found", e.Key)
 	}
 	changeset.State = schema.ChangesetStateCommitted
-	for _, module := range changeset.Modules {
-		t.deployments[module.Runtime.Deployment.DeploymentKey] = module
-		t.activeDeployments[module.Runtime.Deployment.DeploymentKey] = true
+	for _, depName := range changeset.Deployments {
+		dep := t.deployments[depName]
+		t.activeDeployments[dep.Name] = depName
 	}
 	return t, nil
 }

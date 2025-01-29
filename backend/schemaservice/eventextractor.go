@@ -1,7 +1,6 @@
 package schemaservice
 
 import (
-	"fmt"
 	"iter"
 	"slices"
 
@@ -9,7 +8,6 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/schema"
-	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
 )
@@ -27,62 +25,59 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 
 	previousAllChangesets := previous.GetChangesets()
 	allChangesets := maps.Values(current.GetChangesets())
-	slices.SortFunc(allChangesets, func(a, b *schema.Changeset) int {
+	newDeployments := map[key.Deployment]bool{}
+	slices.SortFunc(allChangesets, func(a, b *changesetDetails) int {
 		return a.CreatedAt.Compare(b.CreatedAt)
 	})
 	for _, changeset := range allChangesets {
 		pc, ok := previousAllChangesets[changeset.Key]
-		if !ok {
-			events = append(events, &schema.ChangesetCreatedEvent{
-				Changeset: changeset,
-			})
-			continue
-		}
-
-		// Find changes in modules
-		prevModules := islices.Reduce(pc.Modules, map[key.Deployment]*schema.Module{}, func(acc map[key.Deployment]*schema.Module, m *schema.Module) map[key.Deployment]*schema.Module {
-			acc[m.Runtime.Deployment.DeploymentKey] = m
-			return acc
-		})
-		for _, module := range changeset.Modules {
-			prevModule, ok := prevModules[module.Runtime.Deployment.DeploymentKey]
-			if !ok {
-				panic(fmt.Sprintf("can not create deployment %s in %s", module.Runtime.Deployment.DeploymentKey, changeset.Key))
-			}
-			if !prevModule.Equals(module) {
-				events = append(events, &schema.DeploymentSchemaUpdatedEvent{
-					Key:       module.Runtime.Deployment.DeploymentKey,
-					Schema:    module,
-					Changeset: &changeset.Key,
+		if ok {
+			// Commit final state of changeset
+			if changeset.State == schema.ChangesetStateCommitted && pc.State != schema.ChangesetStateCommitted {
+				events = append(events, &schema.ChangesetCommittedEvent{
+					Key: changeset.Key,
+				})
+			} else if changeset.State == schema.ChangesetStateFailed && pc.State != schema.ChangesetStateFailed {
+				events = append(events, &schema.ChangesetFailedEvent{
+					Key:   changeset.Key,
+					Error: changeset.Error,
 				})
 			}
+			continue
 		}
+		// New changeset and associated modules
+		events = append(events, &schema.ChangesetCreatedEvent{
+			Changeset: hydrateChangeset(&current, changeset),
+		})
+		// Find new deployments from the changeset
+		for _, deployment := range changeset.Deployments {
+			// changeset is always a new deployment
+			events = append(events, &schema.DeploymentCreatedEvent{
+				Key:       deployment,
+				Schema:    current.deployments[deployment],
+				Changeset: &changeset.Key,
+			})
+			newDeployments[deployment] = true
+		}
+		continue
 
-		// Commit final state of changeset
-		if changeset.State == schema.ChangesetStateCommitted && pc.State != schema.ChangesetStateCommitted {
-			events = append(events, &schema.ChangesetCommittedEvent{
-				Key: changeset.Key,
-			})
-			// Maintain previous state to avoid unnecessary events
-			for _, module := range changeset.Modules {
-				previousAllDeployments[module.Runtime.Deployment.DeploymentKey] = module
-			}
-		} else if changeset.State == schema.ChangesetStateFailed && pc.State != schema.ChangesetStateFailed {
-			events = append(events, &schema.ChangesetFailedEvent{
-				Key:   changeset.Key,
-				Error: changeset.Error,
-			})
-		}
 	}
 
-	for key, deployment := range current.GetDeployments() {
+	for key, deployment := range current.GetAllActiveDeployments() {
+		if newDeployments[key] {
+			// Already handled in the changeset
+			continue
+		}
 		pd, ok := previousAllDeployments[key]
 		if !ok {
+			// We have lost the changeset that created this, this should only happen
+			// if the changeset was deleted as part of raft cleanup.
 			events = append(events, &schema.DeploymentCreatedEvent{
 				Key:    key,
 				Schema: deployment,
 			})
 		} else if !pd.Equals(deployment) {
+			// TODO: this seems super inefficient, we should not need to do equality checks on every deployment
 			events = append(events, &schema.DeploymentSchemaUpdatedEvent{
 				Key:    key,
 				Schema: deployment,

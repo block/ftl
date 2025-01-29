@@ -144,6 +144,7 @@ message DeploymentActivatedEvent {
 message DeploymentCreatedEvent {
   string key = 1;
   Module schema = 2;
+  string changeset = 3;
 }
 
 message DeploymentDeactivatedEvent {
@@ -408,11 +409,10 @@ message ModuleRuntimeDeployment {
 }
 
 message ModuleRuntimeEvent {
-  string module = 1;
-  optional string deployment_key = 2;
-  optional ModuleRuntimeBase base = 3;
-  optional ModuleRuntimeScaling scaling = 4;
-  optional ModuleRuntimeDeployment deployment = 5;
+  string deployment_key = 1;
+  optional ModuleRuntimeBase base = 2;
+  optional ModuleRuntimeScaling scaling = 3;
+  optional ModuleRuntimeDeployment deployment = 4;
 }
 
 message ModuleRuntimeScaling {

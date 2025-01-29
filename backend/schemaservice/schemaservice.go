@@ -82,7 +82,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 }
 
 func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Request[ftlv1.UpdateDeploymentRuntimeRequest]) (*connect.Response[ftlv1.UpdateDeploymentRuntimeResponse], error) {
-	deployment, err := key.ParseDeploymentKey(*req.Msg.Event.DeploymentKey)
+	deployment, err := key.ParseDeploymentKey(req.Msg.Event.DeploymentKey)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
 	}
@@ -177,7 +177,6 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 	}
 
 	// TODO: validate changeset schema with canonical schema
-
 	err = s.State.Publish(ctx, &schema.ChangesetCreatedEvent{
 		Changeset: changeset,
 	})

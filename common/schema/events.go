@@ -31,8 +31,9 @@ var _ Event = (*ModuleRuntimeEvent)(nil)
 
 //protobuf:1
 type DeploymentCreatedEvent struct {
-	Key    key.Deployment `protobuf:"1"`
-	Schema *Module        `protobuf:"2"`
+	Key       key.Deployment `protobuf:"1"`
+	Schema    *Module        `protobuf:"2"`
+	Changeset *key.Changeset `protobuf:"3"`
 }
 
 func (r *DeploymentCreatedEvent) event() {}
@@ -104,13 +105,10 @@ func (e *DatabaseRuntimeEvent) event() {}
 
 //protobuf:9
 type ModuleRuntimeEvent struct {
-	Module string `protobuf:"1"`
-	// None if updating at provisioning
-	DeploymentKey optional.Option[string] `protobuf:"2"`
-
-	Base       optional.Option[ModuleRuntimeBase]       `protobuf:"3"`
-	Scaling    optional.Option[ModuleRuntimeScaling]    `protobuf:"4"`
-	Deployment optional.Option[ModuleRuntimeDeployment] `protobuf:"5"`
+	DeploymentKey key.Deployment                           `protobuf:"1"`
+	Base          optional.Option[ModuleRuntimeBase]       `protobuf:"2"`
+	Scaling       optional.Option[ModuleRuntimeScaling]    `protobuf:"3"`
+	Deployment    optional.Option[ModuleRuntimeDeployment] `protobuf:"4"`
 }
 
 func (e *ModuleRuntimeEvent) event() {}

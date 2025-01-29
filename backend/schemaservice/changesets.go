@@ -9,16 +9,16 @@ import (
 	"github.com/block/ftl/internal/key"
 )
 
-func (r *SchemaState) ActiveChangeset() optional.Option[*schema.Changeset] {
+func (r *SchemaState) ActiveChangeset() optional.Option[*changesetDetails] {
 	for _, changeset := range r.changesets {
 		if changeset.State == schema.ChangesetStateProvisioning {
 			return optional.Some(changeset)
 		}
 	}
-	return optional.None[*schema.Changeset]()
+	return optional.None[*changesetDetails]()
 }
 
-func (r *SchemaState) GetChangeset(changeset key.Changeset) (*schema.Changeset, error) {
+func (r *SchemaState) GetChangeset(changeset key.Changeset) (*changesetDetails, error) {
 	c, ok := r.changesets[changeset]
 	if !ok {
 		return nil, fmt.Errorf("changeset %s not found", changeset)
@@ -26,6 +26,6 @@ func (r *SchemaState) GetChangeset(changeset key.Changeset) (*schema.Changeset, 
 	return c, nil
 }
 
-func (r *SchemaState) GetChangesets() map[key.Changeset]*schema.Changeset {
+func (r *SchemaState) GetChangesets() map[key.Changeset]*changesetDetails {
 	return r.changesets
 }

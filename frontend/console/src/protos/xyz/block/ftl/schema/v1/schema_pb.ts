@@ -1057,6 +1057,11 @@ export class DeploymentCreatedEvent extends Message<DeploymentCreatedEvent> {
    */
   schema?: Module;
 
+  /**
+   * @generated from field: string changeset = 3;
+   */
+  changeset = "";
+
   constructor(data?: PartialMessage<DeploymentCreatedEvent>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1067,6 +1072,7 @@ export class DeploymentCreatedEvent extends Message<DeploymentCreatedEvent> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "schema", kind: "message", T: Module },
+    { no: 3, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeploymentCreatedEvent {
@@ -3072,27 +3078,22 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
  */
 export class ModuleRuntimeEvent extends Message<ModuleRuntimeEvent> {
   /**
-   * @generated from field: string module = 1;
+   * @generated from field: string deployment_key = 1;
    */
-  module = "";
+  deploymentKey = "";
 
   /**
-   * @generated from field: optional string deployment_key = 2;
-   */
-  deploymentKey?: string;
-
-  /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeBase base = 3;
+   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeBase base = 2;
    */
   base?: ModuleRuntimeBase;
 
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeScaling scaling = 4;
+   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeScaling scaling = 3;
    */
   scaling?: ModuleRuntimeScaling;
 
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeDeployment deployment = 5;
+   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeDeployment deployment = 4;
    */
   deployment?: ModuleRuntimeDeployment;
 
@@ -3104,11 +3105,10 @@ export class ModuleRuntimeEvent extends Message<ModuleRuntimeEvent> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.schema.v1.ModuleRuntimeEvent";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 3, name: "base", kind: "message", T: ModuleRuntimeBase, opt: true },
-    { no: 4, name: "scaling", kind: "message", T: ModuleRuntimeScaling, opt: true },
-    { no: 5, name: "deployment", kind: "message", T: ModuleRuntimeDeployment, opt: true },
+    { no: 1, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "base", kind: "message", T: ModuleRuntimeBase, opt: true },
+    { no: 3, name: "scaling", kind: "message", T: ModuleRuntimeScaling, opt: true },
+    { no: 4, name: "deployment", kind: "message", T: ModuleRuntimeDeployment, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeEvent {

@@ -753,8 +753,9 @@ func (x *DeploymentCreatedEvent) ToProto() *destpb.DeploymentCreatedEvent {
 		return nil
 	}
 	return &destpb.DeploymentCreatedEvent{
-		Key:    orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Schema: x.Schema.ToProto(),
+		Key:       orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Schema:    x.Schema.ToProto(),
+		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
 
@@ -769,6 +770,9 @@ func DeploymentCreatedEventFromProto(v *destpb.DeploymentCreatedEvent) (out *Dep
 	}
 	if out.Schema, err = result.From(ModuleFromProto(v.Schema)).Result(); err != nil {
 		return nil, fmt.Errorf("Schema: %w", err)
+	}
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
 	}
 	return out, nil
 }
@@ -2017,8 +2021,7 @@ func (x *ModuleRuntimeEvent) ToProto() *destpb.ModuleRuntimeEvent {
 		return nil
 	}
 	return &destpb.ModuleRuntimeEvent{
-		Module:        orZero(ptr(string(x.Module))),
-		DeploymentKey: setNil(ptr(string(orZero(x.DeploymentKey.Ptr()))), x.DeploymentKey.Ptr()),
+		DeploymentKey: orZero(ptr(string(protoMust(x.DeploymentKey.MarshalText())))),
 		Base:          x.Base.Ptr().ToProto(),
 		Scaling:       x.Scaling.Ptr().ToProto(),
 		Deployment:    x.Deployment.Ptr().ToProto(),
@@ -2031,10 +2034,7 @@ func ModuleRuntimeEventFromProto(v *destpb.ModuleRuntimeEvent) (out *ModuleRunti
 	}
 
 	out = &ModuleRuntimeEvent{}
-	if out.Module, err = orZeroR(result.From(ptr(string(v.Module)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Module: %w", err)
-	}
-	if out.DeploymentKey, err = optionalR(result.From(setNil(ptr(string(orZero(v.DeploymentKey))), v.DeploymentKey), nil)).Result(); err != nil {
+	if out.DeploymentKey, err = orZeroR(unmarshallText([]byte(v.DeploymentKey), &out.DeploymentKey)).Result(); err != nil {
 		return nil, fmt.Errorf("DeploymentKey: %w", err)
 	}
 	if out.Base, err = optionalR(result.From(ModuleRuntimeBaseFromProto(v.Base))).Result(); err != nil {

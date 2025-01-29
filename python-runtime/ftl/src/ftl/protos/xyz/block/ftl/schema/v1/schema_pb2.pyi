@@ -225,12 +225,14 @@ class DeploymentActivatedEvent(_message.Message):
     def __init__(self, key: _Optional[str] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., min_replicas: _Optional[int] = ..., changeset: _Optional[str] = ...) -> None: ...
 
 class DeploymentCreatedEvent(_message.Message):
-    __slots__ = ("key", "schema")
+    __slots__ = ("key", "schema", "changeset")
     KEY_FIELD_NUMBER: _ClassVar[int]
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
     key: str
     schema: Module
-    def __init__(self, key: _Optional[str] = ..., schema: _Optional[_Union[Module, _Mapping]] = ...) -> None: ...
+    changeset: str
+    def __init__(self, key: _Optional[str] = ..., schema: _Optional[_Union[Module, _Mapping]] = ..., changeset: _Optional[str] = ...) -> None: ...
 
 class DeploymentDeactivatedEvent(_message.Message):
     __slots__ = ("key", "module_removed", "changeset")
@@ -645,18 +647,16 @@ class ModuleRuntimeDeployment(_message.Message):
     def __init__(self, endpoint: _Optional[str] = ..., deployment_key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class ModuleRuntimeEvent(_message.Message):
-    __slots__ = ("module", "deployment_key", "base", "scaling", "deployment")
-    MODULE_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("deployment_key", "base", "scaling", "deployment")
     DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
     BASE_FIELD_NUMBER: _ClassVar[int]
     SCALING_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
-    module: str
     deployment_key: str
     base: ModuleRuntimeBase
     scaling: ModuleRuntimeScaling
     deployment: ModuleRuntimeDeployment
-    def __init__(self, module: _Optional[str] = ..., deployment_key: _Optional[str] = ..., base: _Optional[_Union[ModuleRuntimeBase, _Mapping]] = ..., scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ...) -> None: ...
+    def __init__(self, deployment_key: _Optional[str] = ..., base: _Optional[_Union[ModuleRuntimeBase, _Mapping]] = ..., scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ...) -> None: ...
 
 class ModuleRuntimeScaling(_message.Message):
     __slots__ = ("min_replicas",)
