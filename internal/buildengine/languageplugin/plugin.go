@@ -144,7 +144,7 @@ type LanguagePlugin struct {
 
 // Kill stops the plugin and cleans up any resources.
 func (p *LanguagePlugin) Kill() error {
-	p.cancel(fmt.Errorf("killing language plugin"))
+	p.cancel(fmt.Errorf("killing language plugin: %w", context.Canceled))
 	if err := p.client.kill(); err != nil {
 		return fmt.Errorf("failed to kill language plugin: %w", err)
 	}

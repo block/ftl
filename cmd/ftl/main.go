@@ -165,7 +165,7 @@ func main() {
 	go func() {
 		sig := <-sigch
 		logger.Debugf("FTL terminating with signal %s", sig)
-		cancel(fmt.Errorf("FTL terminating with signal %s", sig))
+		cancel(fmt.Errorf("FTL terminating with signal %s: %w", sig, context.Canceled))
 		_ = syscall.Kill(-syscall.Getpid(), sig.(syscall.Signal)) //nolint:forcetypeassert,errcheck // best effort
 		os.Exit(0)
 	}()

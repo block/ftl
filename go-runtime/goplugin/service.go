@@ -229,7 +229,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 
 	// cancel context when stream ends so that watcher can be stopped
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("build stream ended"))
+	defer cancel(fmt.Errorf("build stream ended: %w", context.Canceled))
 
 	projectConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
 

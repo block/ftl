@@ -238,7 +238,7 @@ func (l *localScaling) reconcileRunners(ctx context.Context, deploymentRunners *
 			time.Sleep(time.Second * 5)
 			l.lock.Lock()
 			defer l.lock.Unlock()
-			runner.cancelFunc(fmt.Errorf("runner terminated"))
+			runner.cancelFunc(fmt.Errorf("runner terminated: %w", context.Canceled))
 		}()
 		deploymentRunners.runner = optional.None[runnerInfo]()
 	}
