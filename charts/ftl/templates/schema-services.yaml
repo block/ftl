@@ -20,5 +20,5 @@ spec:
       targetPort: {{ .targetPort }}
     {{- end }}
   selector:
-    {{- include "ftl-schemaservice.selectorLabels" . | nindent 4 }}
+    {{- include "ftl-schema.selectorLabels" . | nindent 4 }}
   type: {{ .Values.schemaservice.service.type | default "ClusterIP" }}

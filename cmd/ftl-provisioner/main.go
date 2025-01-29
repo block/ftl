@@ -39,7 +39,7 @@ func main() {
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.ProvisionerConfig.ControllerEndpoint.String(), log.Error)
 	ctx = rpc.ContextWithClient(ctx, controllerClient)
 
-	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.ProvisionerConfig.SchemaServiceEndpoint.String(), log.Error)
+	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.ProvisionerConfig.SchemaEndpoint.String(), log.Error)
 	ctx = rpc.ContextWithClient(ctx, schemaClient)
 	scaling := k8sscaling.NewK8sScaling(false, cli.ProvisionerConfig.ControllerEndpoint.String())
 	err = scaling.Start(ctx)

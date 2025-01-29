@@ -27,7 +27,7 @@ controller:
     sidecar.istio.io/logLevel: "debug"
 schemaservice:
   image:
-    repository: "ftl:5000/ftl-schemaservice"
+    repository: "ftl:5000/ftl-schema"
     tag: "latest"
     pullPolicy: Always
   service:

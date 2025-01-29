@@ -21,16 +21,16 @@ import (
 )
 
 var cli struct {
-	Version               kong.VersionFlag     `help:"Show version."`
-	ObservabilityConfig   observability.Config `embed:"" prefix:"o11y-"`
-	LogConfig             log.Config           `embed:"" prefix:"log-"`
-	ConsoleConfig         console.Config       `embed:"" prefix:"console-"`
-	TimelineEndpoint      *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
-	SchemaServiceEndpoint *url.URL             `help:"Schema service endpoint." env:"FTL_SCHEMA_SERVICE_ENDPOINT" default:"http://127.0.0.1:8897"`
-	ControllerEndpoint    *url.URL             `help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
-	VerbServiceEndpoint   *url.URL             `help:"Verb service endpoint." env:"FTL_VERB_SERVICE_ENDPOINT" default:"http://127.0.0.1:8895"`
-	AdminEndpoint         *url.URL             `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
-	BuildEngineEndpoint   *url.URL             `help:"Build engine endpoint." env:"FTL_BUILD_UPDATES_ENDPOINT" default:"http://127.0.0.1:8900"`
+	Version             kong.VersionFlag     `help:"Show version."`
+	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
+	LogConfig           log.Config           `embed:"" prefix:"log-"`
+	ConsoleConfig       console.Config       `embed:"" prefix:"console-"`
+	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
+	SchemaEndpoint      *url.URL             `help:"Schema service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
+	ControllerEndpoint  *url.URL             `help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
+	VerbServiceEndpoint *url.URL             `help:"Verb service endpoint." env:"FTL_VERB_SERVICE_ENDPOINT" default:"http://127.0.0.1:8895"`
+	AdminEndpoint       *url.URL             `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
+	BuildEngineEndpoint *url.URL             `help:"Build engine endpoint." env:"FTL_BUILD_UPDATES_ENDPOINT" default:"http://127.0.0.1:8900"`
 }
 
 func main() {
@@ -45,7 +45,7 @@ func main() {
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
-	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaServiceEndpoint.String(), log.Error)
+	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.ControllerEndpoint.String(), log.Error)
 	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.BuildEngineEndpoint.String(), log.Error)

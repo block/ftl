@@ -35,7 +35,7 @@ spec:
           pathType: Prefix
           backend:
             service:
-              name: ftl-schemaservice
+              name: ftl-schema
               port:
                 number: 8892
         - path: /xyz.block.ftl.v1.VerbService/

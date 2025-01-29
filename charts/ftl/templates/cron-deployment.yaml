@@ -37,7 +37,7 @@ spec:
             {{- end }}
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ .Values.timeline.service.name }}:{{ .Values.timeline.service.port }}"
-            - name: FTL_SCHEMA_SERVICE_ENDPOINT
+            - name: FTL_SCHEMA_ENDPOINT
               value: "http://{{ .Values.schemaservice.service.name }}:{{ .Values.schemaservice.service.port }}"
       {{- if .Values.cron.nodeSelector }}
       nodeSelector:

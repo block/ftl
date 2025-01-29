@@ -10,11 +10,11 @@ spec:
   revisionHistoryLimit: {{ .Values.schemaservice.revisionHistoryLimit }}
   selector:
     matchLabels:
-      {{- include "ftl-schemaservice.selectorLabels" . | nindent 6 }}
+      {{- include "ftl-schema.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "ftl-schemaservice.selectorLabels" . | nindent 8 }}
+        {{- include "ftl-schema.selectorLabels" . | nindent 8 }}
       {{- if .Values.schemaservice.podAnnotations }}
       annotations:
         {{- toYaml .Values.schemaservice.podAnnotations | nindent 8 }}
