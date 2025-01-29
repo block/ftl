@@ -1,0 +1,10 @@
+.react-flow.dark {
+  --xy-background-color-default: #1f2937; /* Tailwind gray-800 */
+  --xy-background-pattern-dots-color-default: #4b5563; /* Tailwind gray-600 for better contrast */
+
+  /* Controls styling */
+  --xy-controls-button-background-color-default: #374151; /* Tailwind gray-700 */
+  --xy-controls-button-background-color-hover-default: #4b5563; /* Tailwind gray-600 */
+  --xy-controls-button-color-default: #f3f4f6; /* Tailwind gray-100 */
+  --xy-controls-button-border-color-default: #4b5563; /* Tailwind gray-600 */
+}

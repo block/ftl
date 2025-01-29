@@ -1,4 +1,4 @@
-import type { NodeProps } from 'reactflow'
+import type { NodeProps } from '@xyflow/react'
 
 interface Props extends NodeProps {
   data: {
