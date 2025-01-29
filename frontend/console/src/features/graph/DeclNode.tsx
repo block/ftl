@@ -1,3 +1,4 @@
+import { Handle, type NodeProps, Position } from '@xyflow/react'
 import {
   BubbleChatIcon,
   CodeCircleIcon,
@@ -8,7 +9,6 @@ import {
   Settings02Icon,
   SquareLock02Icon,
 } from 'hugeicons-react'
-import { Handle, type NodeProps, Position } from 'reactflow'
 
 interface Props extends NodeProps {
   data: {

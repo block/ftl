@@ -1,4 +1,4 @@
-import type { Edge, Node } from 'reactflow'
+import type { Edge, Node } from '@xyflow/react'
 import type { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
 import { getNodeBackgroundColor } from './graph-styles'
@@ -16,7 +16,7 @@ const createNode = (
   type: 'groupNode' | 'declNode',
   nodeType: string,
   position: { x: number; y: number } | undefined,
-  parentNode: string | undefined,
+  parentId: string | undefined,
   item: FTLNode,
   isDarkMode: boolean,
   isSelected: boolean,
@@ -24,7 +24,7 @@ const createNode = (
   id,
   type,
   position: position || { x: 0, y: 0 },
-  ...(parentNode && { parentNode }),
+  ...(parentId && { parentId }),
   data: {
     title: label,
     selected: isSelected,

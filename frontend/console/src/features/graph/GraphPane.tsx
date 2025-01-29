@@ -1,13 +1,14 @@
+import { Background, BackgroundVariant, Controls, type Edge, ReactFlow as Flow, type Node, ReactFlowProvider } from '@xyflow/react'
 import dagre from 'dagre'
 import { useCallback, useMemo, useState } from 'react'
 import type React from 'react'
-import ReactFlow, { Background, Controls, type Edge, type Node } from 'reactflow'
 import { useUserPreferences } from '../../shared/providers/user-preferences-provider'
 import { useStreamModules } from '../modules/hooks/use-stream-modules'
 import { DeclNode } from './DeclNode'
 import { GroupNode } from './GroupNode'
 import { type FTLNode, getGraphData } from './graph-utils'
-import 'reactflow/dist/style.css'
+import '@xyflow/react/dist/style.css'
+import './graph.css'
 
 const NODE_TYPES = {
   groupNode: GroupNode,
@@ -48,10 +49,10 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   // Group nodes by their parent module
   const nodesByModule = new Map<string, Node[]>()
   for (const node of nonGroupNodes) {
-    if (node.parentNode) {
-      const nodes = nodesByModule.get(node.parentNode) || []
+    if (node.parentId) {
+      const nodes = nodesByModule.get(node.parentId) || []
       nodes.push(node)
-      nodesByModule.set(node.parentNode, nodes)
+      nodesByModule.set(node.parentId, nodes)
     }
   }
 
@@ -61,8 +62,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 
   // First, assign ranks to modules based on their connections
   for (const edge of edges) {
-    const sourceModule = nonGroupNodes.find((n) => n.id === edge.source)?.parentNode
-    const targetModule = nonGroupNodes.find((n) => n.id === edge.target)?.parentNode
+    const sourceModule = nonGroupNodes.find((n) => n.id === edge.source)?.parentId
+    const targetModule = nonGroupNodes.find((n) => n.id === edge.target)?.parentId
 
     if (sourceModule && targetModule && sourceModule !== targetModule) {
       if (!moduleRanks.has(sourceModule)) {
@@ -122,8 +123,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 
   // Add edges with increased weight for vertical separation
   for (const edge of edges) {
-    const sourceModule = nonGroupNodes.find((n) => n.id === edge.source)?.parentNode
-    const targetModule = nonGroupNodes.find((n) => n.id === edge.target)?.parentNode
+    const sourceModule = nonGroupNodes.find((n) => n.id === edge.source)?.parentId
+    const targetModule = nonGroupNodes.find((n) => n.id === edge.target)?.parentId
 
     // If edge crosses module boundaries, give it more weight
     const weight = sourceModule && targetModule && sourceModule !== targetModule ? 5 : 2
@@ -260,7 +261,7 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       setSelectedNodeId(node.id)
-      onTapped?.(node.data.item, node.id)
+      onTapped?.(node.data?.item as FTLNode, node.id)
     },
     [onTapped],
   )
@@ -278,7 +279,7 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
       } else {
         // Otherwise select the source node
         setSelectedNodeId(sourceNode?.id || null)
-        onTapped?.(sourceNode?.data?.item || null, sourceNode?.id || null)
+        onTapped?.((sourceNode?.data?.item as FTLNode) || null, sourceNode?.id || null)
       }
     },
     [onTapped, layoutedNodes, selectedNodeId],
@@ -290,24 +291,27 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
   }, [onTapped])
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <ReactFlow
-        nodes={layoutedNodes}
-        edges={layoutedEdges}
-        nodeTypes={NODE_TYPES}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-        onPaneClick={onPaneClick}
-        fitView
-        minZoom={0.1}
-        maxZoom={2}
-        proOptions={{ hideAttribution: true }}
-        nodesDraggable={false}
-        nodesConnectable={false}
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
-    </div>
+    <ReactFlowProvider>
+      <div className={isDarkMode ? 'dark' : 'light'} style={{ width: '100%', height: '100%', position: 'relative' }}>
+        <Flow
+          nodes={layoutedNodes}
+          edges={layoutedEdges}
+          nodeTypes={NODE_TYPES}
+          onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          onPaneClick={onPaneClick}
+          fitView
+          minZoom={0.1}
+          maxZoom={2}
+          proOptions={{ hideAttribution: true }}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          colorMode={isDarkMode ? 'dark' : 'light'}
+        >
+          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+          <Controls />
+        </Flow>
+      </div>
+    </ReactFlowProvider>
   )
 }
