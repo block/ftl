@@ -16,6 +16,7 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
@@ -99,9 +100,12 @@ func TestSchemaEventSource(t *testing.T) {
 
 	t.Run("InitialSend", func(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
-			More:       true,
-			Schema:     (time1).ToProto(),
-			ChangeType: ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
+			More: true,
+			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
+				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
+					Schema: (time1).ToProto(),
+				},
+			},
 		})
 
 		waitCtx, cancel := context.WithTimeout(ctx, time.Second)
@@ -109,9 +113,12 @@ func TestSchemaEventSource(t *testing.T) {
 		assert.False(t, changes.WaitForInitialSync(waitCtx))
 
 		send(t, &ftlv1.PullSchemaResponse{
-			More:       false,
-			Schema:     (echo1).ToProto(),
-			ChangeType: ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
+			More: false,
+			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
+				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
+					Schema: (time1).ToProto(),
+				},
+			},
 		})
 
 		waitCtx, cancel = context.WithTimeout(ctx, time.Second)
@@ -124,8 +131,8 @@ func TestSchemaEventSource(t *testing.T) {
 		expected = EventUpsert{Module: echo1}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time1, echo1}}, changes.View())
-		assertEqual(t, changes.View(), actual.Schema())
+		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time1, echo1}}, changes.LatestView())
+		assertEqual(t, changes.LatestView(), actual.GetLatest())
 	})
 
 	t.Run("Mutation", func(t *testing.T) {

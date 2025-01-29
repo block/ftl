@@ -334,8 +334,7 @@ func (s *serveCommonConfig) run(
 		}
 
 		wg.Go(func() error {
-			source := schemaEventSourceFactory()
-			if err := provisioner.Start(provisionerCtx, config, provisionerRegistry, &source, schemaClient); err != nil {
+			if err := provisioner.Start(provisionerCtx, config, provisionerRegistry, schemaClient); err != nil {
 				logger.Errorf(err, "provisioner%d failed: %v", i, err)
 				return fmt.Errorf("provisioner%d failed: %w", i, err)
 			}

@@ -31,7 +31,7 @@ func TestGraph(t *testing.T) {
 
 	endpoint, err := url.Parse("http://localhost:8900")
 	assert.NoError(t, err)
-	engine, err := buildengine.New(ctx, nil, schemaeventsource.NewUnattached(), projConfig, []string{"testdata/alpha", "testdata/other", "testdata/another"}, endpoint)
+	engine, err := buildengine.New(ctx, nil, nil, schemaeventsource.NewUnattached(), projConfig, []string{"testdata/alpha", "testdata/other", "testdata/another"}, endpoint)
 	assert.NoError(t, err)
 
 	defer engine.Close()

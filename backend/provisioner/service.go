@@ -54,13 +54,14 @@ func New(
 	ctx context.Context,
 	config Config,
 	registry *ProvisionerRegistry,
-	eventSource *schemaeventsource.EventSource,
 	schemaClient schemaconnect.SchemaServiceClient,
 ) (*Service, error) {
+
+	eventSource := schemaeventsource.New(ctx, schemaClient)
 	return &Service{
 		currentModules: xsync.NewMapOf[string, *schema.Module](),
 		registry:       registry,
-		eventSource:    eventSource,
+		eventSource:    &eventSource,
 		schemaClient:   schemaClient,
 	}, nil
 }
@@ -74,7 +75,6 @@ func Start(
 	ctx context.Context,
 	config Config,
 	registry *ProvisionerRegistry,
-	eventSource *schemaeventsource.EventSource,
 	schemaClient schemaconnect.SchemaServiceClient,
 ) error {
 	config.SetDefaults()
@@ -82,7 +82,7 @@ func Start(
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL provisioner")
 
-	svc, err := New(ctx, config, registry, eventSource, schemaClient)
+	svc, err := New(ctx, config, registry, schemaClient)
 	if err != nil {
 		return err
 	}
