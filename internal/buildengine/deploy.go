@@ -78,8 +78,9 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 	}
 	key := resp.Msg.Changeset
 
+	ctx, closeStream := context.WithCancelCause(ctx)
 	stream, err := schemaserviceClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
-	defer stream.Close()
+	defer closeStream(fmt.Errorf("function is complete"))
 	for {
 		if !stream.Receive() {
 			return fmt.Errorf("failed to pull schema: %w", stream.Err())
@@ -91,7 +92,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommitted.Key)
 				continue
 			}
-			logger.Infof("Deployment %s became ready", key)
+			logger.Infof("Changeset %s deployed and ready", key)
 			return nil
 		case *ftlv1.PullSchemaResponse_ChangesetFailed_:
 			if msg.ChangesetFailed.Key != key {
