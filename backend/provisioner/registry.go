@@ -124,7 +124,7 @@ func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, desiredMod
 	module := desiredModule.GetName()
 	state := schemaservice.NewSchemaState()
 
-	_, err := state.ApplyEvent(&schema.ProvisioningCreatedEvent{
+	_, err := state.ApplyEvent(ctx, &schema.ProvisioningCreatedEvent{
 		DesiredModule: desiredModule,
 	})
 	if err != nil {

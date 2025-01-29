@@ -263,6 +263,11 @@ func (e EventSource) Publish(event Event) {
 		e.view.Store(clone)
 
 	case EventUpsert:
+		ep := ""
+		if event.Module.Runtime != nil && event.Module.Runtime.Deployment != nil {
+			ep = event.Module.Runtime.Deployment.Endpoint
+		}
+		println("EventUpsert: ", ep)
 		clone := reflect.DeepCopy(e.CanonicalView())
 		changeset := reflect.DeepCopy(e.ActiveChangeset())
 		var modules []*schema.Module
@@ -283,6 +288,7 @@ func (e EventSource) Publish(event Event) {
 		}
 		if _, ok := event.Changeset.Get(); ok {
 			changeset.MustGet().Modules = modules
+			println("EventUpsert CS: ", ep)
 		} else {
 			clone.Modules = modules
 		}

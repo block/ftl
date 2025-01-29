@@ -1,6 +1,7 @@
 package schemaservice
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/alecthomas/types/optional"
@@ -8,12 +9,15 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/internal/log"
 )
 
 // TODO: these should be event methods once we can move them to this package
 
 // ApplyEvent applies an event to the schema state
-func (r SchemaState) ApplyEvent(event schema.Event) (SchemaState, error) {
+func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) (SchemaState, error) {
+	logger := log.FromContext(ctx)
+	logger.Infof("applying event: %T%v", event, event)
 	switch e := event.(type) {
 	case *schema.DeploymentCreatedEvent:
 		return handleDeploymentCreatedEvent(r, e)
@@ -38,7 +42,7 @@ func (r SchemaState) ApplyEvent(event schema.Event) (SchemaState, error) {
 	case *schema.ChangesetCreatedEvent:
 		return handleChangesetCreatedEvent(r, e)
 	case *schema.ChangesetCommittedEvent:
-		return handleChangesetCommittedEvent(r, e)
+		return handleChangesetCommittedEvent(ctx, r, e)
 	case *schema.ChangesetFailedEvent:
 		return handleChangesetFailedEvent(r, e)
 	default:
@@ -220,13 +224,15 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 	return t, nil
 }
 
-func handleChangesetCommittedEvent(t SchemaState, e *schema.ChangesetCommittedEvent) (SchemaState, error) {
+func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema.ChangesetCommittedEvent) (SchemaState, error) {
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
 		return SchemaState{}, fmt.Errorf("changeset %s not found", e.Key)
 	}
+	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
 	for _, depName := range changeset.Deployments {
+		logger.Infof("activating deployment %s", t.deployments[depName].GetRuntime().GetDeployment().Endpoint)
 		dep := t.deployments[depName]
 		t.activeDeployments[dep.Name] = depName
 	}

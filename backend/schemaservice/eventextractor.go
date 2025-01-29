@@ -25,13 +25,26 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 
 	previousAllChangesets := previous.GetChangesets()
 	allChangesets := maps.Values(current.GetChangesets())
-	newDeployments := map[key.Deployment]bool{}
+	handledDeployments := map[key.Deployment]bool{}
 	slices.SortFunc(allChangesets, func(a, b *changesetDetails) int {
 		return a.CreatedAt.Compare(b.CreatedAt)
 	})
 	for _, changeset := range allChangesets {
 		pc, ok := previousAllChangesets[changeset.Key]
 		if ok {
+			for _, key := range changeset.Deployments {
+				pd, ok := previous.deployments[key]
+				deployment := current.deployments[key]
+				if ok && !pd.Equals(deployment) {
+					handledDeployments[key] = true
+					// TODO: this seems super inefficient, we should not need to do equality checks on every deployment
+					events = append(events, &schema.DeploymentSchemaUpdatedEvent{
+						Key:       key,
+						Schema:    deployment,
+						Changeset: &changeset.Key,
+					})
+				}
+			}
 			// Commit final state of changeset
 			if changeset.State == schema.ChangesetStateCommitted && pc.State != schema.ChangesetStateCommitted {
 				events = append(events, &schema.ChangesetCommittedEvent{
@@ -43,28 +56,26 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 					Error: changeset.Error,
 				})
 			}
-			continue
-		}
-		// New changeset and associated modules
-		events = append(events, &schema.ChangesetCreatedEvent{
-			Changeset: hydrateChangeset(&current, changeset),
-		})
-		// Find new deployments from the changeset
-		for _, deployment := range changeset.Deployments {
-			// changeset is always a new deployment
-			events = append(events, &schema.DeploymentCreatedEvent{
-				Key:       deployment,
-				Schema:    current.deployments[deployment],
-				Changeset: &changeset.Key,
+		} else {
+			// New changeset and associated modules
+			events = append(events, &schema.ChangesetCreatedEvent{
+				Changeset: hydrateChangeset(&current, changeset),
 			})
-			newDeployments[deployment] = true
+			// Find new deployments from the changeset
+			for _, deployment := range changeset.Deployments {
+				// changeset is always a new deployment
+				events = append(events, &schema.DeploymentCreatedEvent{
+					Key:       deployment,
+					Schema:    current.deployments[deployment],
+					Changeset: &changeset.Key,
+				})
+				handledDeployments[deployment] = true
+			}
 		}
-		continue
-
 	}
 
 	for key, deployment := range current.GetAllActiveDeployments() {
-		if newDeployments[key] {
+		if handledDeployments[key] {
 			// Already handled in the changeset
 			continue
 		}

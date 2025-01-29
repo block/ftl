@@ -109,7 +109,7 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
-	_, err = view.ApplyEvent(event)
+	_, err = view.ApplyEvent(ctx, event)
 	if err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
@@ -304,11 +304,15 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 				logger.Errorf(err, "Deployment not found: %s", event.Key)
 				continue
 			}
+			changeset := ""
+			if event.Changeset != nil {
+				changeset = event.Changeset.String()
+			}
 			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
 				Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
 					DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
 						// TODO: include changeset info
-						Changeset: nil,
+						Changeset: &changeset,
 						Schema:    dep.ToProto(),
 					},
 				},

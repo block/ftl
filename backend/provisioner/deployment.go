@@ -106,7 +106,7 @@ func (t *Task) Progress(ctx context.Context) error {
 				if err != nil {
 					return fmt.Errorf("schema server failed to handle provisioning event: %w", err)
 				}
-				_, err = t.deployment.DeploymentState.ApplyEvent(event)
+				_, err = t.deployment.DeploymentState.ApplyEvent(ctx, event)
 				if err != nil {
 					return fmt.Errorf("failed to apply event: %w", err)
 				}

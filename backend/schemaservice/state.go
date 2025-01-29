@@ -136,7 +136,7 @@ func (c *schemaStateMachine) Publish(msg schema.Event) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var err error
-	c.state, err = c.state.ApplyEvent(msg)
+	c.state, err = c.state.ApplyEvent(c.runningCtx, msg)
 	if err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
