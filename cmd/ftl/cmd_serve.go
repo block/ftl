@@ -317,11 +317,6 @@ func (s *serveCommonConfig) run(
 					ID:          "migration",
 				},
 				{
-					Provisioner: provisioner.NewControllerProvisioner(controllerClient),
-					Types:       []schema.ResourceType{schema.ResourceTypeModule},
-					ID:          "controller",
-				},
-				{
 					Provisioner: provisioner.NewRunnerScalingProvisioner(runnerScaling),
 					Types:       []schema.ResourceType{schema.ResourceTypeRunner},
 					ID:          "runner",

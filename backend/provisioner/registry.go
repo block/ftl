@@ -84,8 +84,6 @@ func registryFromConfig(ctx context.Context, cfg *provisionerPluginConfig, contr
 
 func provisionerIDToProvisioner(ctx context.Context, id string, controller ftlv1connect.ControllerServiceClient, scaling scaling.RunnerScaling) (provisionerconnect.ProvisionerPluginServiceClient, error) {
 	switch id {
-	case "controller":
-		return NewControllerProvisioner(controller), nil
 	case "kubernetes":
 		// TODO: move this into a plugin
 		return NewRunnerScalingProvisioner(scaling), nil

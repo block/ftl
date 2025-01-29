@@ -190,6 +190,9 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 		}
 	}
 	t.changesets[e.Changeset.Key] = e.Changeset
+	for _, mod := range e.Changeset.Modules {
+		t.deployments[mod.Runtime.Deployment.DeploymentKey] = mod
+	}
 	return t, nil
 }
 

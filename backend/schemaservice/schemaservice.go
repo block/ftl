@@ -161,6 +161,11 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 		if err != nil {
 			return nil, fmt.Errorf("invalid module %s: %w", m.Name, err)
 		}
+		// Allocate a deployment key for the module.
+		out.Runtime = &schema.ModuleRuntime{}
+		out.Runtime.Deployment = &schema.ModuleRuntimeDeployment{
+			DeploymentKey: key.NewDeploymentKey(m.Name),
+		}
 		return out, nil
 	})
 	if err != nil {
