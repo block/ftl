@@ -70,7 +70,7 @@ DOCKER_IMAGES := '''
   "timeline": {},
   "lease": {},
   "admin": {},
-  "schemaservice": {}
+  "schema": {}
 }
 '''
 USER_HERMIT_PACKAGES := "openjdk maven"

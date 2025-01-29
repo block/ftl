@@ -362,7 +362,7 @@ timeline:
   topologySpreadConstraints: null
   tolerations: null
 
-schemaservice:
+schema:
   enabled: true
   env:
     - name: MY_POD_IP

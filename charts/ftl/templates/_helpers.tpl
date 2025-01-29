@@ -77,8 +77,8 @@ app.kubernetes.io/name: {{ include "ftl.fullname" . }}
 app.kubernetes.io/component: admin
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
-{{- define "ftl-schemaservice.selectorLabels" -}}
+{{- define "ftl-schema.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "ftl.fullname" . }}
-app.kubernetes.io/component: schemaservice
+app.kubernetes.io/component: schema
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}

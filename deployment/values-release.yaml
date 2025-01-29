@@ -22,7 +22,7 @@ controller:
       - name: "http-8891"
         port: 8891
 
-schemaservice:
+schema:
    podAnnotations:
     proxy.istio.io/config: |
       holdApplicationUntilProxyStarts: true
