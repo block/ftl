@@ -92,14 +92,20 @@ func Start(
 
 	var lastKey key.Changeset
 	for event := range channels.IterContext(ctx, svc.eventSource.Events()) {
-		logger.Infof("Event: %v", event)
 		if cs, ok := event.ActiveChangeset().Get(); ok {
 			if cs.Key != lastKey {
-				logger.Infof("Changeset %s", cs.Key)
 				lastKey = cs.Key
 				err := svc.ProvisionChangeset(ctx, cs)
 				if err != nil {
-					return err
+					logger.Errorf(err, "Error provisioning changeset", err)
+					continue
+				}
+				logger.Debugf("Changeset %s provisioned", cs.Key)
+				//TODO: huge hack, this needs be be changed as it means all provisioning has to happen in a single gorouting
+				// I don't even know if this is the right place to commit the changeset
+				_, err = schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: cs.Key.String()}))
+				if err != nil {
+					logger.Errorf(err, "Error committing changeset")
 				}
 			}
 		}

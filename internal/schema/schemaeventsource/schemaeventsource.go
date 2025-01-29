@@ -302,7 +302,7 @@ func (e EventSource) Publish(event Event) {
 			e.activeChangeset.Store(optional.None[*schema.Changeset]())
 			break
 		}
-		allDeps := islices.Map(e.view.Load().Modules, func(m *schema.Module) key.Deployment { return m.Runtime.Deployment.DeploymentKey })
+		allDeps := islices.Map(islices.Filter(e.view.Load().Modules, func(module *schema.Module) bool { return !module.Builtin }), func(m *schema.Module) key.Deployment { return m.Runtime.Deployment.DeploymentKey })
 		final := latestSchema(e.CanonicalView(), optional.Some(activeChangeset))
 		removedDeps := islices.Filter(allDeps, func(d key.Deployment) bool { return slices.Index(event.ReplacedDeloyments, d) == -1 })
 		event.ReplacedDeloyments = removedDeps
