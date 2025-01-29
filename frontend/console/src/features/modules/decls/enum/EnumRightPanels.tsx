@@ -2,9 +2,10 @@ import type { Enum } from '../../../../protos/xyz/block/ftl/console/v1/console_p
 import type { ExpandablePanelProps } from '../../../../shared/components/ExpandablePanel'
 import { RightPanelAttribute } from '../../../../shared/components/RightPanelAttribute'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
+import { DeclGraphPane } from '../DeclGraphPane'
 
-export const enumPanels = (moduleName: string, enumDecl: Enum) => {
-  return [
+export const enumPanels = (moduleName: string, enumDecl: Enum, showGraph = true) => {
+  const panels: ExpandablePanelProps[] = [
     {
       title: 'Details',
       expanded: true,
@@ -14,5 +15,15 @@ export const enumPanels = (moduleName: string, enumDecl: Enum) => {
       ],
     },
     ...DeclDefaultPanels(moduleName, enumDecl.schema, enumDecl.edges),
-  ] as ExpandablePanelProps[]
+  ]
+
+  if (showGraph) {
+    panels.push({
+      title: 'Graph',
+      expanded: true,
+      children: <DeclGraphPane declName={enumDecl.enum?.name || ''} declType='enum' moduleName={moduleName} edges={enumDecl.edges} />,
+    })
+  }
+
+  return panels
 }

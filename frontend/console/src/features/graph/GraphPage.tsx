@@ -58,25 +58,25 @@ const panelsForNode = (node: FTLNode | null, moduleName: string | null) => {
   }
 
   if (node instanceof Config) {
-    return configPanels(moduleName, node)
+    return configPanels(moduleName, node, false)
   }
   if (node instanceof Secret) {
-    return secretPanels(moduleName, node)
+    return secretPanels(moduleName, node, false)
   }
   if (node instanceof Database) {
-    return databasePanels(moduleName, node)
+    return databasePanels(moduleName, node, false)
   }
   if (node instanceof Enum) {
-    return enumPanels(moduleName, node)
+    return enumPanels(moduleName, node, false)
   }
   if (node instanceof Data) {
-    return dataPanels(moduleName, node)
+    return dataPanels(moduleName, node, false)
   }
   if (node instanceof Topic) {
-    return topicPanels(moduleName, node)
+    return topicPanels(moduleName, node, false)
   }
   if (node instanceof Verb) {
-    return verbPanels(moduleName, node)
+    return verbPanels(moduleName, node, false)
   }
   return [] as ExpandablePanelProps[]
 }
