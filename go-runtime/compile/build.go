@@ -529,12 +529,8 @@ func Build(ctx context.Context, projectRootDir, stubsRoot string, config modulec
 	if err != nil {
 		return moduleSch, nil, fmt.Errorf("could not extract schema: %w", err)
 	}
-	if builderrors.ContainsTerminalError(extractResult.Errors) {
-		// Only bail if schema errors contain elements at level ERROR.
-		// If errors are only at levels below ERROR (e.g. INFO, WARN), the schema can still be used.
-		return moduleSch, extractResult.Errors, nil
-	}
-
+	// We do not fail yet if result has terminal errors. These errors may be due to missing templated files (queries.ftl.go).
+	// Instead we scaffold if needed and then re-extract the schema to see if the errors are resolved.
 	logger.Debugf("Generating main package")
 	projectName := ""
 	if pcpath, ok := projectconfig.DefaultConfigPath().Get(); ok {
@@ -551,6 +547,20 @@ func Build(ctx context.Context, projectRootDir, stubsRoot string, config modulec
 	mainModuleCtxChanged := ongoingState.checkIfMainDeploymentContextChanged(mctx)
 	if err := scaffoldBuildTemplateAndTidy(ctx, config, mainDir, importsChanged, mainModuleCtxChanged, mctx, funcs, filesTransaction); err != nil {
 		return moduleSch, nil, err // nolint:wrapcheck
+	}
+
+	if mainModuleCtxChanged && builderrors.ContainsTerminalError(extractResult.Errors) {
+		// We may have terminal errors that are resolved by scaffolding queries.
+		logger.Debugf("Re-extracting schema after scaffolding")
+		extractResult, err = extract.Extract(config.Dir, sch)
+		if err != nil {
+			return moduleSch, nil, fmt.Errorf("could not extract schema: %w", err)
+		}
+	}
+	if builderrors.ContainsTerminalError(extractResult.Errors) {
+		// Only bail if schema errors contain elements at level ERROR.
+		// If errors are only at levels below ERROR (e.g. INFO, WARN), the schema can still be used.
+		return moduleSch, extractResult.Errors, nil
 	}
 
 	logger.Debugf("Writing launch script")
