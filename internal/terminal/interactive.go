@@ -176,7 +176,7 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 var _ readline.Listener = &ExitListener{}
 
 type ExitListener struct {
-	cancel context.CancelFunc
+	cancel func()
 }
 
 func (e ExitListener) OnChange(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {

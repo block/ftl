@@ -227,8 +227,8 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	defer s.updatesTopic.Unsubscribe(events)
 
 	// cancel context when stream ends so that watcher can be stopped
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(fmt.Errorf("build stream ended"))
 
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {

@@ -2,6 +2,7 @@ package leases
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/puzpuzpuz/xsync/v3"
@@ -21,7 +22,7 @@ type FakeLeaser struct {
 }
 
 func (f *FakeLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Duration) (Lease, context.Context, error) {
-	leaseCtx, cancelCtx := context.WithCancel(ctx)
+	leaseCtx, cancelCtx := context.WithCancelCause(ctx)
 	newLease := &FakeLease{
 		leaser:    f,
 		key:       key,
@@ -29,7 +30,7 @@ func (f *FakeLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Duratio
 		ttl:       ttl,
 	}
 	if _, loaded := f.leases.LoadOrStore(key.String(), newLease); loaded {
-		cancelCtx()
+		cancelCtx(fmt.Errorf("lease with key %q already exists: %w", key, ErrConflict))
 		return nil, nil, ErrConflict
 	}
 	return newLease, leaseCtx, nil
@@ -38,13 +39,13 @@ func (f *FakeLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Duratio
 type FakeLease struct {
 	leaser    *FakeLeaser
 	key       Key
-	cancelCtx context.CancelFunc
+	cancelCtx context.CancelCauseFunc
 	ttl       time.Duration
 }
 
 func (f *FakeLease) Release() error {
 	f.leaser.leases.Delete(f.key.String())
-	f.cancelCtx()
+	f.cancelCtx(fmt.Errorf("lease with key %q released", f.key))
 	return nil
 }
 

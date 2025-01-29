@@ -78,8 +78,8 @@ type Config struct {
 }
 
 func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService) error {
-	ctx, doneFunc := context.WithCancel(ctx)
-	defer doneFunc()
+	ctx, doneFunc := context.WithCancelCause(ctx)
+	defer doneFunc(fmt.Errorf("runner terminated"))
 	hostname, err := os.Hostname()
 	if err != nil {
 		observability.Runner.StartupFailed(ctx)
@@ -268,7 +268,7 @@ type Service struct {
 	registrationFailure  atomic.Value[optional.Option[error]]
 	labels               *structpb.Struct
 	deploymentLogQueue   chan log.Entry
-	cancelFunc           func()
+	cancelFunc           context.CancelCauseFunc
 	devEndpoint          optional.Option[string]
 	devHotReloadEndpoint optional.Option[string]
 	proxy                *proxy.Service
@@ -565,7 +565,7 @@ func (s *Service) registrationLoop(ctx context.Context, send func(request *ftlv1
 			err := context.Cause(depl.ctx)
 			s.getDeploymentLogger(ctx, depl.key).Errorf(err, "Deployment terminated")
 			s.deployment.Store(optional.None[*deployment]())
-			s.cancelFunc()
+			s.cancelFunc(fmt.Errorf("deployment %s terminated: %w", depl.key, err))
 			return nil
 		default:
 		}

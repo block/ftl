@@ -113,7 +113,7 @@ func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlug
 	}
 
 	var runCtx context.Context
-	runCtx, plugin.cancel = context.WithCancel(ctx)
+	runCtx, plugin.cancel = context.WithCancelCause(ctx)
 	go plugin.run(runCtx)
 	go plugin.watchForCmdError(runCtx)
 
@@ -134,7 +134,7 @@ type LanguagePlugin struct {
 	client pluginClient
 
 	// cancels the run() context
-	cancel context.CancelFunc
+	cancel context.CancelCauseFunc
 
 	// commands to execute
 	commands chan buildCommand
@@ -144,7 +144,7 @@ type LanguagePlugin struct {
 
 // Kill stops the plugin and cleans up any resources.
 func (p *LanguagePlugin) Kill() error {
-	p.cancel()
+	p.cancel(fmt.Errorf("killing language plugin"))
 	if err := p.client.kill(); err != nil {
 		return fmt.Errorf("failed to kill language plugin: %w", err)
 	}

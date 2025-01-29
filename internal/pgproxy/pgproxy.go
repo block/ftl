@@ -77,8 +77,8 @@ func (p *PgProxy) Start(ctx context.Context, started chan<- Started) error {
 // It will block until the connection is closed.
 func HandleConnection(ctx context.Context, conn net.Conn, connectionFn DSNConstructor) {
 	defer conn.Close()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(fmt.Errorf("pgproxy: connection closed"))
 
 	logger := log.FromContext(ctx)
 	logger.Debugf("new connection established: %s", conn.RemoteAddr())

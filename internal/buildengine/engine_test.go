@@ -2,6 +2,7 @@ package buildengine_test
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"path/filepath"
 	"testing"
@@ -19,8 +20,10 @@ func TestGraph(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	ctx, cancel := context.WithCancel(log.ContextWithNewDefaultLogger(context.Background()))
-	t.Cleanup(cancel)
+	ctx, cancel := context.WithCancelCause(log.ContextWithNewDefaultLogger(context.Background()))
+	t.Cleanup(func() {
+		cancel(fmt.Errorf("test complete"))
+	})
 	projConfig := projectconfig.Config{
 		Path: filepath.Join(t.TempDir(), "ftl-project.toml"),
 		Name: "test",

@@ -110,8 +110,8 @@ func Start[Impl any, Iface any, Config any](
 		mux.Handle(handler.path, handler.handler)
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(fmt.Errorf("plugin %s stopped", name))
 
 	// Configure logging to JSON on stderr. This will be read by the parent process.
 	logConfig := cli.LogConfig
@@ -129,7 +129,7 @@ func Start[Impl any, Iface any, Config any](
 	go func() {
 		sig := <-sigch
 		logger.Debugf("Terminated by signal %s", sig)
-		cancel()
+		cancel(fmt.Errorf("stopping plugin %s due to signal %s", name, sig))
 		// We always kill our children with SIGINT rather than SIGTERM
 		// Maven subprocesses will not kill their children correctly if terminated with TERM
 		_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort

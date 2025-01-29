@@ -89,7 +89,7 @@ type Engine struct {
 	watcher          *watch.Watcher // only watches for module toml changes
 	controllerSchema *xsync.MapOf[string, *schema.Module]
 	schemaChanges    *pubsub.Topic[schemaeventsource.Event]
-	cancel           func()
+	cancel           context.CancelCauseFunc
 	parallelism      int
 	modulesToBuild   *xsync.MapOf[string, bool]
 	buildEnv         []string
@@ -177,7 +177,7 @@ func New(
 		option(e)
 	}
 	e.controllerSchema.Store("builtin", schema.Builtins())
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancelCause(ctx)
 	e.cancel = cancel
 
 	err := CleanStubs(ctx, projectConfig.Root())
@@ -270,7 +270,7 @@ func (e *Engine) processEvent(event schemaeventsource.Event) {
 
 // Close stops the Engine's schema sync.
 func (e *Engine) Close() error {
-	e.cancel()
+	e.cancel(fmt.Errorf("build engine stopped"))
 	return nil
 }
 
@@ -442,16 +442,16 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	}()
 
 	watchEvents := make(chan watch.WatchEvent, 128)
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancelCause(ctx)
 	topic, err := e.watcher.Watch(ctx, period, e.moduleDirs)
 	if err != nil {
-		cancel()
+		cancel(fmt.Errorf("watch failed: %w", err))
 		return err
 	}
 	topic.Subscribe(watchEvents)
 	defer func() {
 		// Cancel will close the topic and channel
-		cancel()
+		cancel(fmt.Errorf("watch stopped"))
 	}()
 
 	// Build and deploy all modules first.

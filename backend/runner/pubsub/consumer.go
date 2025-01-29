@@ -290,7 +290,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			backoff := c.retryParams.MinBackoff
 			for {
 				startTime := time.Now()
-				callCtx, callCancel := context.WithCancel(ctx)
+				callCtx, callCancel := context.WithCancelCause(ctx)
 				callChan := make(chan error)
 				go func() {
 					callChan <- c.call(callCtx, msg.Value, int(msg.Partition), int(msg.Offset), publisherRequestKey)
@@ -302,7 +302,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 					observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, publishedAt.Default(startTime), errors.New("cancelled due to offset reset"))
 
 					// Don't wait for call to end before resetting offsets as it may take a while.
-					callCancel()
+					callCancel(fmt.Errorf("cancelled due to offset reset"))
 					if err := c.resetPartitionOffset(session, int(claim.Partition()), cmd.latest); err != nil {
 						cmd.err <- err
 					}
@@ -313,7 +313,11 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 
 				case err = <-callChan:
 					// close call context now that the call is finished
-					callCancel()
+					if err == nil {
+						callCancel(fmt.Errorf("call finished: %w", err))
+					} else {
+						callCancel(fmt.Errorf("call finished"))
+					}
 				}
 				observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, publishedAt.Default(startTime), err)
 				if err == nil {

@@ -97,7 +97,7 @@ type Cluster struct {
 
 	// runningCtx is cancelled when the cluster is stopped.
 	runningCtx       context.Context
-	runningCtxCancel context.CancelFunc
+	runningCtxCancel context.CancelCauseFunc
 }
 
 var _ raftpbconnect.RaftServiceHandler = (*Cluster)(nil)
@@ -361,7 +361,7 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	ctx, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
 	c.runningCtxCancel = cancel
 	c.runningCtx = ctx
 
@@ -428,7 +428,7 @@ func (c *Cluster) Stop(ctx context.Context) {
 		for shardID := range c.shards {
 			c.removeShardMember(ctx, shardID, c.config.ReplicaID)
 		}
-		c.runningCtxCancel()
+		c.runningCtxCancel(fmt.Errorf("stopping raft cluster"))
 		c.nh.Close()
 		c.nh = nil
 		c.shards = nil
