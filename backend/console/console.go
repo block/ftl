@@ -119,7 +119,6 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 	sch := s.schemaEventSource.View()
 
 	allowed := map[string]bool{}
-	nilMap := map[schema.RefKey]map[schema.RefKey]bool{}
 	var modules []*consolepb.Module
 	for _, mod := range sch.Modules {
 		if mod.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
@@ -134,20 +133,20 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 		for _, decl := range mod.Decls {
 			switch decl := decl.(type) {
 			case *schema.Verb:
-				verb, err := verbFromDecl(decl, sch, mod.Name, nilMap)
+				verb, err := verbFromDecl(decl, sch, mod.Name)
 				if err != nil {
 					return nil, err
 				}
 				verbs = append(verbs, verb)
 
 			case *schema.Data:
-				data = append(data, dataFromDecl(decl, mod.Name, nilMap))
+				data = append(data, dataFromDecl(decl, sch, mod.Name))
 
 			case *schema.Secret:
-				secrets = append(secrets, secretFromDecl(decl, mod.Name, nilMap))
+				secrets = append(secrets, secretFromDecl(decl, sch, mod.Name))
 
 			case *schema.Config:
-				configs = append(configs, configFromDecl(decl, mod.Name, nilMap))
+				configs = append(configs, configFromDecl(decl, sch, mod.Name))
 
 			case *schema.Database, *schema.Enum, *schema.TypeAlias, *schema.Topic:
 			}
@@ -191,139 +190,87 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 	}), nil
 }
 
-func moduleFromDeployment(deployment *schema.Module, sch *schema.Schema, refMap map[schema.RefKey]map[schema.RefKey]bool) (*consolepb.Module, error) {
-	module, err := moduleFromDecls(deployment.Decls, sch, deployment.Name, refMap)
-	if err != nil {
-		return nil, err
+func toEdges(sch *schema.Schema, module string, name string) *consolepb.Edges {
+	graph := schema.Graph(sch)
+	key := schema.RefKey{
+		Module: module,
+		Name:   name,
 	}
 
-	module.Name = deployment.Name
-	module.DeploymentKey = deployment.Runtime.Deployment.DeploymentKey.String()
-	module.Language = deployment.Runtime.Base.Language
-	module.Schema = deployment.String()
-
-	return module, nil
-}
-
-func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) (*consolepb.Module, error) {
-	var configs []*consolepb.Config
-	var data []*consolepb.Data
-	var databases []*consolepb.Database
-	var enums []*consolepb.Enum
-	var topics []*consolepb.Topic
-	var typealiases []*consolepb.TypeAlias
-	var secrets []*consolepb.Secret
-	var verbs []*consolepb.Verb
-
-	for _, d := range decls {
-		switch decl := d.(type) {
-		case *schema.Config:
-			config := configFromDecl(decl, module, refMap)
-			config.Schema = decl.String()
-			configs = append(configs, config)
-
-		case *schema.Data:
-			data = append(data, dataFromDecl(decl, module, refMap))
-
-		case *schema.Database:
-			database := databaseFromDecl(decl, module, refMap)
-			database.Schema = decl.String()
-			databases = append(databases, database)
-
-		case *schema.Enum:
-			enum := enumFromDecl(decl, module, refMap)
-			enum.Schema = decl.String()
-			enums = append(enums, enum)
-
-		case *schema.Topic:
-			topic := topicFromDecl(decl, module, refMap)
-			topic.Schema = decl.String()
-			topics = append(topics, topic)
-
-		case *schema.Secret:
-			secret := secretFromDecl(decl, module, refMap)
-			secret.Schema = decl.String()
-			secrets = append(secrets, secret)
-
-		case *schema.TypeAlias:
-			typealias := typealiasFromDecl(decl, module, refMap)
-			typealias.Schema = decl.String()
-			typealiases = append(typealiases, typealias)
-
-		case *schema.Verb:
-			verb, err := verbFromDecl(decl, sch, module, refMap)
-			if err != nil {
-				return nil, err
-			}
-			verbs = append(verbs, verb)
+	if node, ok := graph[key]; ok {
+		return &consolepb.Edges{
+			In:  refsToProto(node.In),
+			Out: refsToProto(node.Out),
 		}
 	}
-
-	return &consolepb.Module{
-		Configs:     configs,
-		Data:        data,
-		Databases:   databases,
-		Enums:       enums,
-		Topics:      topics,
-		Typealiases: typealiases,
-		Secrets:     secrets,
-		Verbs:       verbs,
-	}, nil
+	return &consolepb.Edges{}
 }
 
-func configFromDecl(decl *schema.Config, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) *consolepb.Config {
+func refsToProto(refs []schema.RefKey) []*schemapb.Ref {
+	out := make([]*schemapb.Ref, len(refs))
+	for i, ref := range refs {
+		out[i] = ref.ToProto()
+	}
+	return out
+}
+
+func configFromDecl(decl *schema.Config, sch *schema.Schema, module string) *consolepb.Config {
 	return &consolepb.Config{
-		//nolint:forcetypeassert
-		Config:     decl.ToProto(),
-		References: getReferencesFromMap(refMap, module, decl.Name),
+		Config: decl.ToProto(),
+		Edges:  toEdges(sch, module, decl.Name),
+		Schema: decl.String(),
 	}
 }
 
-func dataFromDecl(decl *schema.Data, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) *consolepb.Data {
-	d := decl.ToProto()
+func dataFromDecl(decl *schema.Data, sch *schema.Schema, module string) *consolepb.Data {
 	return &consolepb.Data{
-		Data:       d,
-		Schema:     decl.String(),
-		References: getReferencesFromMap(refMap, module, decl.Name),
+		Data:   decl.ToProto(),
+		Schema: decl.String(),
+		Edges:  toEdges(sch, module, decl.Name),
 	}
 }
 
-func databaseFromDecl(decl *schema.Database, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) *consolepb.Database {
+func databaseFromDecl(decl *schema.Database, sch *schema.Schema, module string) *consolepb.Database {
 	return &consolepb.Database{
-		Database:   decl.ToProto(),
-		References: getReferencesFromMap(refMap, module, decl.Name),
+		Database: decl.ToProto(),
+		Edges:    toEdges(sch, module, decl.Name),
+		Schema:   decl.String(),
 	}
 }
 
-func enumFromDecl(decl *schema.Enum, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) *consolepb.Enum {
+func enumFromDecl(decl *schema.Enum, sch *schema.Schema, module string) *consolepb.Enum {
 	return &consolepb.Enum{
-		Enum:       decl.ToProto(),
-		References: getReferencesFromMap(refMap, module, decl.Name),
+		Enum:   decl.ToProto(),
+		Edges:  toEdges(sch, module, decl.Name),
+		Schema: decl.String(),
 	}
 }
 
-func topicFromDecl(decl *schema.Topic, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) *consolepb.Topic {
+func topicFromDecl(decl *schema.Topic, sch *schema.Schema, module string) *consolepb.Topic {
 	return &consolepb.Topic{
-		Topic:      decl.ToProto(),
-		References: getReferencesFromMap(refMap, module, decl.Name),
+		Topic:  decl.ToProto(),
+		Edges:  toEdges(sch, module, decl.Name),
+		Schema: decl.String(),
 	}
 }
 
-func typealiasFromDecl(decl *schema.TypeAlias, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) *consolepb.TypeAlias {
+func typealiasFromDecl(decl *schema.TypeAlias, sch *schema.Schema, module string) *consolepb.TypeAlias {
 	return &consolepb.TypeAlias{
-		Typealias:  decl.ToProto(),
-		References: getReferencesFromMap(refMap, module, decl.Name),
+		Typealias: decl.ToProto(),
+		Edges:     toEdges(sch, module, decl.Name),
+		Schema:    decl.String(),
 	}
 }
 
-func secretFromDecl(decl *schema.Secret, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) *consolepb.Secret {
+func secretFromDecl(decl *schema.Secret, sch *schema.Schema, module string) *consolepb.Secret {
 	return &consolepb.Secret{
-		Secret:     decl.ToProto(),
-		References: getReferencesFromMap(refMap, module, decl.Name),
+		Secret: decl.ToProto(),
+		Edges:  toEdges(sch, module, decl.Name),
+		Schema: decl.String(),
 	}
 }
 
-func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string, refMap map[schema.RefKey]map[schema.RefKey]bool) (*consolepb.Verb, error) {
+func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string) (*consolepb.Verb, error) {
 	v := decl.ToProto()
 	var jsonRequestSchema string
 	if decl.Request != nil {
@@ -348,24 +295,82 @@ func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string, refMap m
 		Verb:              v,
 		Schema:            schemaString,
 		JsonRequestSchema: jsonRequestSchema,
-		References:        getReferencesFromMap(refMap, module, decl.Name),
+		Edges:             toEdges(sch, module, decl.Name),
 	}, nil
 }
 
-func getReferencesFromMap(refMap map[schema.RefKey]map[schema.RefKey]bool, module string, name string) []*schemapb.Ref {
-	key := schema.RefKey{
-		Module: module,
-		Name:   name,
+func moduleFromDeployment(deployment *schema.Module, sch *schema.Schema) (*consolepb.Module, error) {
+	module, err := moduleFromDecls(deployment.Decls, sch, deployment.Name)
+	if err != nil {
+		return nil, err
 	}
-	out := []*schemapb.Ref{}
-	if refs, ok := refMap[key]; ok {
-		for refKey, ok := range refs {
-			if ok {
-				out = append(out, refKey.ToProto())
+
+	module.Name = deployment.Name
+	module.DeploymentKey = deployment.Runtime.Deployment.DeploymentKey.String()
+	module.Language = deployment.Runtime.Base.Language
+	module.Schema = deployment.String()
+
+	return module, nil
+}
+
+func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string) (*consolepb.Module, error) {
+	var configs []*consolepb.Config
+	var data []*consolepb.Data
+	var databases []*consolepb.Database
+	var enums []*consolepb.Enum
+	var topics []*consolepb.Topic
+	var typealiases []*consolepb.TypeAlias
+	var secrets []*consolepb.Secret
+	var verbs []*consolepb.Verb
+
+	for _, d := range decls {
+		switch decl := d.(type) {
+		case *schema.Config:
+			config := configFromDecl(decl, sch, module)
+			configs = append(configs, config)
+
+		case *schema.Data:
+			data = append(data, dataFromDecl(decl, sch, module))
+
+		case *schema.Database:
+			database := databaseFromDecl(decl, sch, module)
+			databases = append(databases, database)
+
+		case *schema.Enum:
+			enum := enumFromDecl(decl, sch, module)
+			enums = append(enums, enum)
+
+		case *schema.Topic:
+			topic := topicFromDecl(decl, sch, module)
+			topics = append(topics, topic)
+
+		case *schema.Secret:
+			secret := secretFromDecl(decl, sch, module)
+			secrets = append(secrets, secret)
+
+		case *schema.TypeAlias:
+			typealias := typealiasFromDecl(decl, sch, module)
+			typealiases = append(typealiases, typealias)
+
+		case *schema.Verb:
+			verb, err := verbFromDecl(decl, sch, module)
+			if err != nil {
+				return nil, err
 			}
+			verbs = append(verbs, verb)
 		}
 	}
-	return out
+
+	return &consolepb.Module{
+		Configs:     configs,
+		Data:        data,
+		Databases:   databases,
+		Enums:       enums,
+		Topics:      topics,
+		Typealiases: typealiases,
+		Secrets:     secrets,
+		Verbs:       verbs,
+	}, nil
 }
 
 func (s *service) StreamModules(ctx context.Context, req *connect.Request[consolepb.StreamModulesRequest], stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
@@ -430,24 +435,19 @@ func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.Ser
 		topology.Levels[i] = group
 	}
 
-	refMap, err := getSchemaRefs(sch)
-	if err != nil {
-		return fmt.Errorf("failed to find references: %w", err)
-	}
-
 	var modules []*consolepb.Module
 	for _, deployment := range deployments {
 		if deployment.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 			continue
 		}
-		module, err := moduleFromDeployment(deployment, sch, refMap)
+		module, err := moduleFromDeployment(deployment, sch)
 		if err != nil {
 			return err
 		}
 		modules = append(modules, module)
 	}
 
-	builtinModule, err := moduleFromDecls(builtin.Decls, sch, builtin.Name, refMap)
+	builtinModule, err := moduleFromDecls(builtin.Decls, sch, builtin.Name)
 	if err != nil {
 		return err
 	}
@@ -467,36 +467,29 @@ func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.Ser
 	return nil
 }
 
-func getSchemaRefs(sch *schema.Schema) (map[schema.RefKey]map[schema.RefKey]bool, error) {
-	refsToReferers := map[schema.RefKey]map[schema.RefKey]bool{}
+func graph(sch *schema.Schema) map[string][]string {
+	out := make(map[string][]string)
 	for _, module := range sch.Modules {
-		for _, parentDecl := range module.Decls {
-			parentDeclRef := schema.Ref{
-				Module: module.Name,
-				Name:   parentDecl.GetName(),
-			}
-			err := schema.Visit(parentDecl, func(n schema.Node, next func() error) error {
-				if ref, ok := n.(*schema.Ref); ok {
-					addRefToSetMap(refsToReferers, ref.ToRefKey(), parentDeclRef)
-				}
-				return next()
-			})
-			if err != nil {
-				return nil, fmt.Errorf("visit failed: %w", err)
-			}
-		}
+		buildGraph(sch, module, out)
 	}
-	return refsToReferers, nil
+	return out
 }
 
-// addRefToSetMap approximates adding to a map[ref]->set[ref], where the "set" is implemented
-// as a map to bools. A value is in the set if its value is `true`.
-func addRefToSetMap(m map[schema.RefKey]map[schema.RefKey]bool, key schema.RefKey, value schema.Ref) {
-	_, ok := m[key]
-	if !ok {
-		m[key] = map[schema.RefKey]bool{}
+// buildGraph recursively builds the dependency graph
+func buildGraph(sch *schema.Schema, module *schema.Module, out map[string][]string) {
+	out[module.Name] = module.Imports()
+	for _, dep := range module.Imports() {
+		var depModule *schema.Module
+		for _, m := range sch.Modules {
+			if m.String() == dep {
+				depModule = m
+				break
+			}
+		}
+		if depModule != nil {
+			buildGraph(sch, module, out)
+		}
 	}
-	m[key][value.ToRefKey()] = true
 }
 
 func (s *service) GetConfig(ctx context.Context, req *connect.Request[consolepb.GetConfigRequest]) (*connect.Response[consolepb.GetConfigResponse], error) {
@@ -556,31 +549,6 @@ func (s *service) SetSecret(ctx context.Context, req *connect.Request[consolepb.
 	}
 
 	return connect.NewResponse(&consolepb.SetSecretResponse{}), nil
-}
-
-func graph(sch *schema.Schema) map[string][]string {
-	out := make(map[string][]string)
-	for _, module := range sch.Modules {
-		buildGraph(sch, module, out)
-	}
-	return out
-}
-
-// buildGraph recursively builds the dependency graph
-func buildGraph(sch *schema.Schema, module *schema.Module, out map[string][]string) {
-	out[module.Name] = module.Imports()
-	for _, dep := range module.Imports() {
-		var depModule *schema.Module
-		for _, m := range sch.Modules {
-			if m.String() == dep {
-				depModule = m
-				break
-			}
-		}
-		if depModule != nil {
-			buildGraph(sch, module, out)
-		}
-	}
 }
 
 func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timelinepb.GetTimelineRequest]) (*connect.Response[timelinepb.GetTimelineResponse], error) {

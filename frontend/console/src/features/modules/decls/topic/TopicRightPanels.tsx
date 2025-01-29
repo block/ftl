@@ -13,6 +13,6 @@ export const topicPanels = (moduleName: string, topic: Topic) => {
         <RightPanelAttribute key='export' name='Event' value={topic.topic?.event?.value.case} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, topic.schema, topic.references),
+    ...DeclDefaultPanels(moduleName, topic.schema, topic.edges),
   ] as ExpandablePanelProps[]
 }

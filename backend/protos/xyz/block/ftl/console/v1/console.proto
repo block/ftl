@@ -12,45 +12,50 @@ import "xyz/block/ftl/v1/verb.proto";
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1;consolepb";
 option java_multiple_files = true;
 
+message Edges {
+  repeated ftl.schema.v1.Ref in = 1;
+  repeated ftl.schema.v1.Ref out = 2;
+}
+
 message Config {
   ftl.schema.v1.Config config = 1;
-  repeated ftl.schema.v1.Ref references = 2;
+  Edges edges = 2;
   string schema = 3;
 }
 
 message Data {
   ftl.schema.v1.Data data = 1;
   string schema = 2;
-  repeated ftl.schema.v1.Ref references = 3;
+  Edges edges = 3;
 }
 
 message Database {
   ftl.schema.v1.Database database = 1;
-  repeated ftl.schema.v1.Ref references = 2;
+  Edges edges = 2;
   string schema = 3;
 }
 
 message Enum {
   ftl.schema.v1.Enum enum = 1;
-  repeated ftl.schema.v1.Ref references = 2;
+  Edges edges = 2;
   string schema = 3;
 }
 
 message Topic {
   ftl.schema.v1.Topic topic = 1;
-  repeated ftl.schema.v1.Ref references = 2;
+  Edges edges = 2;
   string schema = 3;
 }
 
 message TypeAlias {
   ftl.schema.v1.TypeAlias typealias = 1;
-  repeated ftl.schema.v1.Ref references = 2;
+  Edges edges = 2;
   string schema = 3;
 }
 
 message Secret {
   ftl.schema.v1.Secret secret = 1;
-  repeated ftl.schema.v1.Ref references = 2;
+  Edges edges = 2;
   string schema = 3;
 }
 
@@ -58,7 +63,7 @@ message Verb {
   ftl.schema.v1.Verb verb = 1;
   string schema = 2;
   string json_request_schema = 3;
-  repeated ftl.schema.v1.Ref references = 4;
+  Edges edges = 4;
 }
 
 message Module {

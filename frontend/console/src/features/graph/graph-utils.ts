@@ -119,7 +119,7 @@ export const getGraphData = (
   }
 
   // Second pass: Create edges
-  const processReferences = <T extends FTLNode & { references?: Array<{ module: string; name: string }> }>(
+  const processReferences = <T extends FTLNode & { edges?: { in: Array<{ module: string; name: string }>; out: Array<{ module: string; name: string }> } }>(
     module: Module,
     items: T[],
     getName: (item: T) => string,
@@ -128,9 +128,10 @@ export const getGraphData = (
       const itemName = getName(item)
       // Skip if the item name is empty
       if (!itemName || itemName === '') continue
-      if (!item.references) continue
+      if (!item.edges) continue
 
-      for (const ref of item.references) {
+      // Process inbound edges
+      for (const ref of item.edges.in) {
         // Skip if reference name is empty
         if (!ref.name || ref.name === '') continue
         // Skip if reference module is empty
@@ -147,6 +148,25 @@ export const getGraphData = (
         const edge = createEdge(ref.module, ref.name, module.name, itemName, isDarkMode, selectedNodeId)
         if (edge) edges.push(edge)
       }
+
+      // Process outbound edges
+      for (const ref of item.edges.out) {
+        // Skip if reference name is empty
+        if (!ref.name || ref.name === '') continue
+        // Skip if reference module is empty
+        if (!ref.module || ref.module === '') continue
+
+        // Skip self-referential edges
+        if (ref.module === module.name && ref.name === itemName) continue
+
+        // Skip if source or target nodes don't exist
+        const sourceId = nodeId(module.name, itemName)
+        const targetId = nodeId(ref.module, ref.name)
+        if (!existingNodes.has(sourceId) || !existingNodes.has(targetId)) continue
+
+        const edge = createEdge(module.name, itemName, ref.module, ref.name, isDarkMode, selectedNodeId)
+        if (edge) edges.push(edge)
+      }
     }
   }
 
@@ -158,7 +178,14 @@ export const getGraphData = (
     processReferences(module, module.topics, (item: Topic) => item.topic?.name || '')
   }
 
-  return { nodes, edges }
+  // Deduplicate edges
+  const uniqueEdges = new Map<string, Edge>()
+  for (const edge of edges) {
+    const key = [edge.source, edge.target].sort().join('->')
+    uniqueEdges.set(key, edge)
+  }
+
+  return { nodes, edges: Array.from(uniqueEdges.values()) }
 }
 
 const nodeId = (moduleName: string, name?: string) => {

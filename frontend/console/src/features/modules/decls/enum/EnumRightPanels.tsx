@@ -13,6 +13,6 @@ export const enumPanels = (moduleName: string, enumDecl: Enum) => {
         <RightPanelAttribute key='type' name='Type' value={enumDecl.enum?.type?.value.case} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, enumDecl.schema, enumDecl.references),
+    ...DeclDefaultPanels(moduleName, enumDecl.schema, enumDecl.edges),
   ] as ExpandablePanelProps[]
 }

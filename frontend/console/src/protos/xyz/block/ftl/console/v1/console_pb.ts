@@ -8,6 +8,49 @@ import { Message, proto3 } from "@bufbuild/protobuf";
 import { Config as Config$1, Data as Data$1, Database as Database$1, Enum as Enum$1, Ref, Secret as Secret$1, Topic as Topic$1, TypeAlias as TypeAlias$1, Verb as Verb$1 } from "../../schema/v1/schema_pb.js";
 
 /**
+ * @generated from message xyz.block.ftl.console.v1.Edges
+ */
+export class Edges extends Message<Edges> {
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref in = 1;
+   */
+  in: Ref[] = [];
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref out = 2;
+   */
+  out: Ref[] = [];
+
+  constructor(data?: PartialMessage<Edges>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.console.v1.Edges";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "in", kind: "message", T: Ref, repeated: true },
+    { no: 2, name: "out", kind: "message", T: Ref, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Edges {
+    return new Edges().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Edges {
+    return new Edges().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Edges {
+    return new Edges().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Edges | PlainMessage<Edges> | undefined, b: Edges | PlainMessage<Edges> | undefined): boolean {
+    return proto3.util.equals(Edges, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.console.v1.Config
  */
 export class Config extends Message<Config> {
@@ -17,9 +60,9 @@ export class Config extends Message<Config> {
   config?: Config$1;
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref references = 2;
+   * @generated from field: xyz.block.ftl.console.v1.Edges edges = 2;
    */
-  references: Ref[] = [];
+  edges?: Edges;
 
   /**
    * @generated from field: string schema = 3;
@@ -35,7 +78,7 @@ export class Config extends Message<Config> {
   static readonly typeName = "xyz.block.ftl.console.v1.Config";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "config", kind: "message", T: Config$1 },
-    { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
@@ -71,9 +114,9 @@ export class Data extends Message<Data> {
   schema = "";
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref references = 3;
+   * @generated from field: xyz.block.ftl.console.v1.Edges edges = 3;
    */
-  references: Ref[] = [];
+  edges?: Edges;
 
   constructor(data?: PartialMessage<Data>) {
     super();
@@ -85,7 +128,7 @@ export class Data extends Message<Data> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "data", kind: "message", T: Data$1 },
     { no: 2, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 3, name: "edges", kind: "message", T: Edges },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Data {
@@ -115,9 +158,9 @@ export class Database extends Message<Database> {
   database?: Database$1;
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref references = 2;
+   * @generated from field: xyz.block.ftl.console.v1.Edges edges = 2;
    */
-  references: Ref[] = [];
+  edges?: Edges;
 
   /**
    * @generated from field: string schema = 3;
@@ -133,7 +176,7 @@ export class Database extends Message<Database> {
   static readonly typeName = "xyz.block.ftl.console.v1.Database";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "database", kind: "message", T: Database$1 },
-    { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
@@ -164,9 +207,9 @@ export class Enum extends Message<Enum> {
   enum?: Enum$1;
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref references = 2;
+   * @generated from field: xyz.block.ftl.console.v1.Edges edges = 2;
    */
-  references: Ref[] = [];
+  edges?: Edges;
 
   /**
    * @generated from field: string schema = 3;
@@ -182,7 +225,7 @@ export class Enum extends Message<Enum> {
   static readonly typeName = "xyz.block.ftl.console.v1.Enum";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "enum", kind: "message", T: Enum$1 },
-    { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
@@ -213,9 +256,9 @@ export class Topic extends Message<Topic> {
   topic?: Topic$1;
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref references = 2;
+   * @generated from field: xyz.block.ftl.console.v1.Edges edges = 2;
    */
-  references: Ref[] = [];
+  edges?: Edges;
 
   /**
    * @generated from field: string schema = 3;
@@ -231,7 +274,7 @@ export class Topic extends Message<Topic> {
   static readonly typeName = "xyz.block.ftl.console.v1.Topic";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "topic", kind: "message", T: Topic$1 },
-    { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
@@ -262,9 +305,9 @@ export class TypeAlias extends Message<TypeAlias> {
   typealias?: TypeAlias$1;
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref references = 2;
+   * @generated from field: xyz.block.ftl.console.v1.Edges edges = 2;
    */
-  references: Ref[] = [];
+  edges?: Edges;
 
   /**
    * @generated from field: string schema = 3;
@@ -280,7 +323,7 @@ export class TypeAlias extends Message<TypeAlias> {
   static readonly typeName = "xyz.block.ftl.console.v1.TypeAlias";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "typealias", kind: "message", T: TypeAlias$1 },
-    { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
@@ -311,9 +354,9 @@ export class Secret extends Message<Secret> {
   secret?: Secret$1;
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref references = 2;
+   * @generated from field: xyz.block.ftl.console.v1.Edges edges = 2;
    */
-  references: Ref[] = [];
+  edges?: Edges;
 
   /**
    * @generated from field: string schema = 3;
@@ -329,7 +372,7 @@ export class Secret extends Message<Secret> {
   static readonly typeName = "xyz.block.ftl.console.v1.Secret";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "secret", kind: "message", T: Secret$1 },
-    { no: 2, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
@@ -370,9 +413,9 @@ export class Verb extends Message<Verb> {
   jsonRequestSchema = "";
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Ref references = 4;
+   * @generated from field: xyz.block.ftl.console.v1.Edges edges = 4;
    */
-  references: Ref[] = [];
+  edges?: Edges;
 
   constructor(data?: PartialMessage<Verb>) {
     super();
@@ -385,7 +428,7 @@ export class Verb extends Message<Verb> {
     { no: 1, name: "verb", kind: "message", T: Verb$1 },
     { no: 2, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "json_request_schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "references", kind: "message", T: Ref, repeated: true },
+    { no: 4, name: "edges", kind: "message", T: Edges },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Verb {

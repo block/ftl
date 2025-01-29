@@ -16,35 +16,6 @@ import {
 } from 'hugeicons-react'
 import type { Module } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { Config, Data, Database, Decl, Enum, Secret, Topic, TypeAlias, Verb } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
-import { verbCalls } from './decls/verb/verb.utils'
-
-interface InCall {
-  module: string
-  verb?: string
-}
-
-export const callsIn = (modules: Module[], module: Module) => {
-  const allCalls: InCall[] = []
-  for (const m of modules) {
-    for (const v of m.verbs) {
-      const calls = verbCalls(v)
-      if (!calls) {
-        continue
-      }
-      for (const call of calls) {
-        for (const c of call.calls) {
-          if (c.module === module.name) {
-            allCalls.push({ module: m.name, verb: v.verb?.name })
-          }
-        }
-      }
-    }
-  }
-
-  return allCalls
-}
-
-export const callsOut = (module: Module) => module.verbs?.flatMap((v) => verbCalls(v))
 
 export type DeclSumType = Config | Data | Database | Enum | Topic | TypeAlias | Secret | Verb
 

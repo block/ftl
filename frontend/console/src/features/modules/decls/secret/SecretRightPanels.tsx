@@ -13,6 +13,6 @@ export const secretPanels = (moduleName: string, secret: Secret) => {
         <RightPanelAttribute key='type' name='Type' value={secret.secret?.type?.value.case ?? ''} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, secret.schema, secret.references),
+    ...DeclDefaultPanels(moduleName, secret.schema, secret.edges),
   ] as ExpandablePanelProps[]
 }

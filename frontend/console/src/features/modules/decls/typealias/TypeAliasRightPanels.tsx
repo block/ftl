@@ -13,6 +13,6 @@ export const typeAliasPanels = (moduleName: string, typeAlias: TypeAlias) => {
         <RightPanelAttribute key='export' name='Type' value={typeAlias.typealias?.type?.value.case} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, typeAlias.schema, typeAlias.references),
+    ...DeclDefaultPanels(moduleName, typeAlias.schema, typeAlias.edges),
   ] as ExpandablePanelProps[]
 }
