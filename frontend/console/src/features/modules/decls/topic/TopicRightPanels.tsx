@@ -2,9 +2,10 @@ import type { Topic } from '../../../../protos/xyz/block/ftl/console/v1/console_
 import type { ExpandablePanelProps } from '../../../../shared/components/ExpandablePanel'
 import { RightPanelAttribute } from '../../../../shared/components/RightPanelAttribute'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
+import { DeclGraphPane } from '../DeclGraphPane'
 
-export const topicPanels = (moduleName: string, topic: Topic) => {
-  return [
+export const topicPanels = (moduleName: string, topic: Topic, showGraph = true) => {
+  const panels: ExpandablePanelProps[] = [
     {
       title: 'Details',
       expanded: true,
@@ -14,5 +15,15 @@ export const topicPanels = (moduleName: string, topic: Topic) => {
       ],
     },
     ...DeclDefaultPanels(moduleName, topic.schema, topic.edges),
-  ] as ExpandablePanelProps[]
+  ]
+
+  if (showGraph) {
+    panels.push({
+      title: 'Graph',
+      expanded: true,
+      children: <DeclGraphPane declName={topic.topic?.name || ''} declType='topic' moduleName={moduleName} edges={topic.edges} />,
+    })
+  }
+
+  return panels
 }

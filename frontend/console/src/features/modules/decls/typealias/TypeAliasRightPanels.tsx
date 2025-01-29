@@ -2,9 +2,10 @@ import type { TypeAlias } from '../../../../protos/xyz/block/ftl/console/v1/cons
 import type { ExpandablePanelProps } from '../../../../shared/components/ExpandablePanel'
 import { RightPanelAttribute } from '../../../../shared/components/RightPanelAttribute'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
+import { DeclGraphPane } from '../DeclGraphPane'
 
-export const typeAliasPanels = (moduleName: string, typeAlias: TypeAlias) => {
-  return [
+export const typeAliasPanels = (moduleName: string, typeAlias: TypeAlias, showGraph = true) => {
+  const panels: ExpandablePanelProps[] = [
     {
       title: 'Details',
       expanded: true,
@@ -14,5 +15,15 @@ export const typeAliasPanels = (moduleName: string, typeAlias: TypeAlias) => {
       ],
     },
     ...DeclDefaultPanels(moduleName, typeAlias.schema, typeAlias.edges),
-  ] as ExpandablePanelProps[]
+  ]
+
+  if (showGraph) {
+    panels.push({
+      title: 'Graph',
+      expanded: true,
+      children: <DeclGraphPane declName={typeAlias.typealias?.name || ''} declType='typealias' moduleName={moduleName} edges={typeAlias.edges} />,
+    })
+  }
+
+  return panels
 }

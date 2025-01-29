@@ -2,10 +2,11 @@ import type { Verb } from '../../../../protos/xyz/block/ftl/console/v1/console_p
 import type { ExpandablePanelProps } from '../../../../shared/components/ExpandablePanel'
 import { RightPanelAttribute } from '../../../../shared/components/RightPanelAttribute'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
+import { DeclGraphPane } from '../DeclGraphPane'
 import { httpRequestPath, ingress, isHttpIngress } from './verb.utils'
 
-export const verbPanels = (moduleName: string, verb?: Verb) => {
-  const panels = [] as ExpandablePanelProps[]
+export const verbPanels = (moduleName: string, verb?: Verb, showGraph = true) => {
+  const panels: ExpandablePanelProps[] = []
 
   if (isHttpIngress(verb)) {
     const http = ingress(verb)
@@ -23,6 +24,14 @@ export const verbPanels = (moduleName: string, verb?: Verb) => {
   }
 
   panels.push(...DeclDefaultPanels(moduleName, verb?.schema, verb?.edges))
+
+  if (showGraph) {
+    panels.push({
+      title: 'Graph',
+      expanded: true,
+      children: <DeclGraphPane declName={verb?.verb?.name || ''} declType='verb' moduleName={moduleName} edges={verb?.edges} />,
+    })
+  }
 
   return panels
 }
