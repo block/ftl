@@ -25,7 +25,7 @@ controller:
     proxy.istio.io/config: |
       holdApplicationUntilProxyStarts: true
     sidecar.istio.io/logLevel: "debug"
-schemaservice:
+schema:
   image:
     repository: "ftl:5000/ftl-schema"
     tag: "latest"
