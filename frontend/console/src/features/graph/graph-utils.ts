@@ -1,6 +1,16 @@
 import type { Edge, Node } from '@xyflow/react'
-import type { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
+import * as dagre from 'dagre'
+import { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
+import type { ExpandablePanelProps } from '../../shared/components/ExpandablePanel'
+import { configPanels } from '../modules/decls/config/ConfigRightPanels'
+import { dataPanels } from '../modules/decls/data/DataRightPanels'
+import { databasePanels } from '../modules/decls/database/DatabaseRightPanels'
+import { enumPanels } from '../modules/decls/enum/EnumRightPanels'
+import { secretPanels } from '../modules/decls/secret/SecretRightPanels'
+import { topicPanels } from '../modules/decls/topic/TopicRightPanels'
+import { verbPanels } from '../modules/decls/verb/VerbRightPanel'
 import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
+import { modulePanels } from './ModulePanels'
 import { getNodeBackgroundColor } from './graph-styles'
 
 export type FTLNode = Module | Verb | Secret | Config | Data | Database | Topic | Enum
@@ -10,7 +20,7 @@ interface GraphData {
   edges: Edge[]
 }
 
-const createNode = (
+export const createNode = (
   id: string,
   label: string,
   type: 'groupNode' | 'declNode',
@@ -38,7 +48,7 @@ const createNode = (
   },
 })
 
-const createEdge = (
+export const createEdge = (
   sourceModule: string,
   sourceVerb: string | undefined,
   targetModule: string,
@@ -188,7 +198,82 @@ export const getGraphData = (
   return { nodes, edges: Array.from(uniqueEdges.values()) }
 }
 
-const nodeId = (moduleName: string, name?: string) => {
+export const nodeId = (moduleName: string, name?: string) => {
   if (!name) return moduleName
   return `${moduleName}.${name}`
+}
+
+// Layout function for module-specific graphs (no groups)
+export const getModuleLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
+  const dagreGraph = new dagre.graphlib.Graph()
+  dagreGraph.setDefaultEdgeLabel(() => ({}))
+
+  const nodeWidth = 160
+  const nodeHeight = 36
+
+  dagreGraph.setGraph({
+    rankdir: direction,
+    nodesep: 50,
+    ranksep: 80,
+    marginx: 30,
+    marginy: 30,
+  })
+
+  // Add nodes to dagre
+  for (const node of nodes) {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight })
+  }
+
+  // Add edges to dagre
+  for (const edge of edges) {
+    dagreGraph.setEdge(edge.source, edge.target)
+  }
+
+  // Apply layout
+  dagre.layout(dagreGraph)
+
+  // Get positions from dagre
+  for (const node of nodes) {
+    const nodeWithPosition = dagreGraph.node(node.id)
+    node.position = {
+      x: nodeWithPosition.x - nodeWidth / 2,
+      y: nodeWithPosition.y - nodeHeight / 2,
+    }
+  }
+
+  return { nodes, edges }
+}
+
+export const panelsForNode = (node: FTLNode | null, moduleName: string | null) => {
+  if (node instanceof Module) {
+    return modulePanels(node)
+  }
+
+  // If no module name is provided, we can't show the panels
+  if (!moduleName) {
+    return [] as ExpandablePanelProps[]
+  }
+
+  if (node instanceof Config) {
+    return configPanels(moduleName, node, false)
+  }
+  if (node instanceof Secret) {
+    return secretPanels(moduleName, node, false)
+  }
+  if (node instanceof Database) {
+    return databasePanels(moduleName, node, false)
+  }
+  if (node instanceof Enum) {
+    return enumPanels(moduleName, node, false)
+  }
+  if (node instanceof Data) {
+    return dataPanels(moduleName, node, false)
+  }
+  if (node instanceof Topic) {
+    return topicPanels(moduleName, node, false)
+  }
+  if (node instanceof Verb) {
+    return verbPanels(moduleName, node, false)
+  }
+  return [] as ExpandablePanelProps[]
 }
