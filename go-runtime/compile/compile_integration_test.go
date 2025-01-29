@@ -3,6 +3,8 @@
 package compile_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -59,5 +61,18 @@ func TestNonStructRequestResponse(t *testing.T) {
 		in.Call("one", "stringToTime", "1985-04-12T23:20:50.52Z", func(t testing.TB, response time.Time) {
 			assert.Equal(t, time.Date(1985, 04, 12, 23, 20, 50, 520_000_000, time.UTC), response)
 		}),
+	)
+}
+
+// TestBuildWithoutQueries ensures that the build command does not fail when queries.ftl.go is missing.
+func TestBuildWithoutQueries(t *testing.T) {
+	in.Run(t,
+		in.CopyModule("missingqueries"),
+		func(t testing.TB, ic in.TestContext) {
+			assert.NoError(t, os.Remove(filepath.Join(ic.WorkingDir(), "missingqueries/queries.ftl.go")))
+		},
+		in.Fail(in.FileExists("missingqueries/queries.ftl.go"), "queries.ftl.go should not exist yet"),
+		in.Deploy("missingqueries"),
+		in.FileExists("missingqueries/queries.ftl.go"),
 	)
 }
