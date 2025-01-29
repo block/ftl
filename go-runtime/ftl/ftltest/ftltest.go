@@ -146,7 +146,7 @@ func WithProjectFile(path string) Option {
 				}
 			}
 
-			sm, err := cf.NewDefaultSecretsManagerFromConfig(ctx, providers.NewDefaultSecretsRegistry(projectConfig, ""), projectConfig)
+			sm, err := cf.NewDefaultSecretsManagerFromConfig(ctx, providers.NewDefaultSecretsRegistry(), projectConfig)
 			if err != nil {
 				return fmt.Errorf("could not set up secrets: %w", err)
 			}

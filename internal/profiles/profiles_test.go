@@ -40,10 +40,8 @@ func TestProfile(t *testing.T) {
 	profile, err := project.Load(ctx, "local")
 	assert.NoError(t, err)
 
-	assert.Equal(t, profiles.Config{
-		Name:     "local",
-		Endpoint: must.Get(url.Parse("http://localhost:8892")),
-	}, profile.Config())
+	assert.Equal(t, "local", profile.Name())
+	assert.Equal(t, must.Get(url.Parse("http://localhost:8892")), profile.Endpoint())
 
 	assert.Equal(t, profiles.ProjectConfig{
 		Root:           root,
