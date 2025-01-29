@@ -37,7 +37,7 @@ func build(ctx context.Context, plugin *languageplugin.LanguagePlugin, projectCo
 		return nil, nil, fmt.Errorf("failed to add queries to schema: %w", err)
 	}
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
-	return handleBuildResult(ctx, projectConfig, bctx.Config, result.From(plugin.Build(ctx, projectConfig.Root(), stubsRoot, bctx, devMode)), devModeEndpoints)
+	return handleBuildResult(ctx, projectConfig, bctx.Config, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devModeEndpoints)
 }
 
 // handleBuildResult processes the result of a build

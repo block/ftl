@@ -436,7 +436,7 @@ func (s *OngoingState) reset() {
 }
 
 // Build the given module.
-func Build(ctx context.Context, projectRootDir, stubsRoot string, config moduleconfig.AbsModuleConfig,
+func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, config moduleconfig.AbsModuleConfig,
 	sch *schema.Schema, deps, buildEnv []string, filesTransaction watch.ModifyFilesTransaction, ongoingState *OngoingState,
 	devMode bool) (moduleSch optional.Option[*schema.Module], buildErrors []builderrors.Error, err error) {
 	if err := filesTransaction.Begin(); err != nil {
@@ -536,14 +536,7 @@ func Build(ctx context.Context, projectRootDir, stubsRoot string, config modulec
 	}
 
 	logger.Debugf("Generating main package")
-	projectName := ""
-	if pcpath, ok := projectconfig.DefaultConfigPath().Get(); ok {
-		pc, err := projectconfig.Load(ctx, pcpath)
-		if err != nil {
-			return moduleSch, nil, fmt.Errorf("failed to load project config: %w", err)
-		}
-		projectName = pc.Name
-	}
+	projectName := projectConfig.Name
 	mctx, err := buildMainDeploymentContext(sch, extractResult, goModVersion, projectName, sharedModulesPaths, replacements)
 	if err != nil {
 		return moduleSch, nil, err

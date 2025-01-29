@@ -122,7 +122,7 @@ func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlug
 
 type buildCommand struct {
 	BuildContext
-	projectRoot          string
+	projectConfig        projectconfig.Config
 	stubsRoot            string
 	rebuildAutomatically bool
 
@@ -320,10 +320,10 @@ func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleco
 // Build builds the module with the latest config and schema.
 // In dev mode, plugin is responsible for automatically rebuilding as relevant files within the module change,
 // and publishing these automatic builds updates to Updates().
-func (p *LanguagePlugin) Build(ctx context.Context, projectRoot, stubsRoot string, bctx BuildContext, rebuildAutomatically bool) (BuildResult, error) {
+func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, bctx BuildContext, rebuildAutomatically bool) (BuildResult, error) {
 	cmd := buildCommand{
 		BuildContext:         bctx,
-		projectRoot:          projectRoot,
+		projectConfig:        projectConfig,
 		stubsRoot:            stubsRoot,
 		rebuildAutomatically: rebuildAutomatically,
 		startTime:            time.Now(),
@@ -360,10 +360,11 @@ func (p *LanguagePlugin) watchForCmdError(ctx context.Context) {
 }
 
 func (p *LanguagePlugin) run(ctx context.Context) {
+
 	// State
 	var bctx BuildContext
-	var projectRoot string
 	var stubsRoot string
+	var projectConfig *langpb.ProjectConfig
 
 	// if a current build stream is active, this is non-nil
 	// this does not indicate if the stream is listening to automatic rebuilds
@@ -390,7 +391,7 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 			// update state
 			contextCounter++
 			bctx = c.BuildContext
-			projectRoot = c.projectRoot
+			projectConfig = langpb.ProjectConfigToProto(c.projectConfig)
 			stubsRoot = c.stubsRoot
 
 			// module name may have changed, update logger scope
@@ -428,7 +429,7 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 			}
 
 			newStreamChan, newCancelFunc, err := p.client.build(ctx, connect.NewRequest(&langpb.BuildRequest{
-				ProjectRoot:          projectRoot,
+				ProjectConfig:        projectConfig,
 				StubsRoot:            stubsRoot,
 				RebuildAutomatically: c.rebuildAutomatically,
 				BuildContext: &langpb.BuildContext{

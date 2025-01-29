@@ -100,12 +100,14 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	logger := log.FromContext(ctx)
 	logger.Infof("Do python build")
 
+	projectConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
+
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = compile.Build(ctx, req.Msg.ProjectRoot, req.Msg.StubsRoot, buildCtx.Config, nil, nil, false)
+	_, _, err = compile.Build(ctx, projectConfig.Root(), req.Msg.StubsRoot, buildCtx.Config, nil, nil, false)
 	logger.Errorf(err, "build failed")
 
 	// TODO: Actually build the module instead of just returning an error.

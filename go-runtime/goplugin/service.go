@@ -28,6 +28,7 @@ import (
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/sqlc"
 	"github.com/block/ftl/internal/watch"
 )
@@ -230,6 +231,8 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(fmt.Errorf("build stream ended"))
 
+	projectConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
+
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
 		return err
@@ -254,7 +257,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	}
 
 	// Initial build
-	if err := buildAndSend(ctx, stream, req.Msg.ProjectRoot, req.Msg.StubsRoot, buildCtx, false, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, req.Msg.RebuildAutomatically); err != nil {
+	if err := buildAndSend(ctx, stream, projectConfig, req.Msg.StubsRoot, buildCtx, false, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, req.Msg.RebuildAutomatically); err != nil {
 		return err
 	}
 	if !req.Msg.RebuildAutomatically {
@@ -276,7 +279,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 			if err != nil {
 				return fmt.Errorf("could not send auto rebuild started event: %w", err)
 			}
-			_, err := sqlc.AddQueriesToSchema(ctx, req.Msg.ProjectRoot, buildCtx.Config, buildCtx.Schema)
+			_, err := sqlc.AddQueriesToSchema(ctx, projectConfig.Root(), buildCtx.Config, buildCtx.Schema)
 			if err != nil {
 				buildEvent := buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
 					Type:  builderrors.FTL,
@@ -289,7 +292,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 				continue
 			}
 		}
-		if err = buildAndSend(ctx, stream, req.Msg.ProjectRoot, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, true); err != nil {
+		if err = buildAndSend(ctx, stream, projectConfig, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, true); err != nil {
 			return err
 		}
 	}
@@ -388,9 +391,9 @@ func buildContextFromPendingEvents(ctx context.Context, buildCtx buildContext, e
 //
 // Build errors are sent over the stream as a BuildFailure event.
 // This function only returns an error if events could not be send over the stream.
-func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.BuildResponse], projectRoot, stubsRoot string, buildCtx buildContext,
+func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.BuildResponse], projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext,
 	isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction, ongoingState *compile.OngoingState, devMode bool) error {
-	buildEvent, err := build(ctx, projectRoot, stubsRoot, buildCtx, isAutomaticRebuild, transaction, ongoingState, devMode)
+	buildEvent, err := build(ctx, projectConfig, stubsRoot, buildCtx, isAutomaticRebuild, transaction, ongoingState, devMode)
 	if err != nil {
 		buildEvent = buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
 			Type:  builderrors.FTL,
@@ -404,7 +407,7 @@ func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.Build
 	return nil
 }
 
-func build(ctx context.Context, projectRoot, stubsRoot string, buildCtx buildContext, isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction,
+func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext, isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction,
 	ongoingState *compile.OngoingState, devMode bool) (*langpb.BuildResponse, error) {
 	release, err := flock.Acquire(ctx, buildCtx.Config.BuildLock, BuildLockTimeout)
 	if err != nil {
@@ -412,7 +415,7 @@ func build(ctx context.Context, projectRoot, stubsRoot string, buildCtx buildCon
 	}
 	defer release() //nolint:errcheck
 
-	m, buildErrs, err := compile.Build(ctx, projectRoot, stubsRoot, buildCtx.Config, buildCtx.Schema, buildCtx.Dependencies, buildCtx.BuildEnv, transaction, ongoingState, devMode)
+	m, buildErrs, err := compile.Build(ctx, projectConfig, stubsRoot, buildCtx.Config, buildCtx.Schema, buildCtx.Dependencies, buildCtx.BuildEnv, transaction, ongoingState, devMode)
 	if err != nil {
 		if errors.Is(err, compile.ErrInvalidateDependencies) {
 			return &langpb.BuildResponse{

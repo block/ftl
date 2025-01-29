@@ -370,8 +370,11 @@ func build(rebuildAutomatically bool, dependencies []string, sch *schema.Schema,
 
 		schemaProto := sch.ToProto()
 		buildChan, buildChanCancel, err = client.build(ic.Context, connect.NewRequest(&langpb.BuildRequest{
-			ProjectRoot: ic.WorkingDir(),
-			StubsRoot:   filepath.Join(ic.WorkingDir(), ".ftl", config.Language, "modules"),
+			ProjectConfig: &langpb.ProjectConfig{
+				Dir:  ic.WorkingDir(),
+				Name: "test",
+			},
+			StubsRoot: filepath.Join(ic.WorkingDir(), ".ftl", config.Language, "modules"),
 			BuildContext: &langpb.BuildContext{
 				Id:           contextId,
 				ModuleConfig: configProto,
