@@ -69,7 +69,8 @@ DOCKER_IMAGES := '''
   "runner-jvm": {},
   "timeline": {},
   "lease": {},
-  "admin": {}
+  "admin": {},
+  "schemaservice": {}
 }
 '''
 USER_HERMIT_PACKAGES := "openjdk maven"

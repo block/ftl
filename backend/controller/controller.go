@@ -36,7 +36,6 @@ import (
 	deploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/schemaservice"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
@@ -95,6 +94,7 @@ func Start(
 	storage *artefacts.OCIArtefactService,
 	adminClient ftlv1connect.AdminServiceClient,
 	timelineClient *timelineclient.Client,
+	schemaClient ftlv1connect.SchemaServiceClient,
 	devel bool,
 ) error {
 	config.SetDefaults()
@@ -102,7 +102,7 @@ func Start(
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL controller")
 
-	svc, err := New(ctx, adminClient, timelineClient, storage, config, devel)
+	svc, err := New(ctx, adminClient, timelineClient, schemaClient, storage, config, devel)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,6 @@ func Start(
 			rpc.GRPC(ftlv1connect.NewVerbServiceHandler, svc),
 			rpc.GRPC(deploymentconnect.NewDeploymentServiceHandler, svc),
 			rpc.GRPC(ftlv1connect.NewControllerServiceHandler, svc),
-			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc.schemaService),
 			rpc.PProf(),
 		)
 	})
@@ -146,16 +145,16 @@ type Service struct {
 
 	config Config
 
-	routeTable    *routing.RouteTable
-	schemaService *schemaservice.Service
-	schemaClient  ftlv1connect.SchemaServiceClient
-	runnerState   eventstream.EventStream[state.RunnerState, state.RunnerEvent]
+	routeTable   *routing.RouteTable
+	schemaClient ftlv1connect.SchemaServiceClient
+	runnerState  eventstream.EventStream[state.RunnerState, state.RunnerEvent]
 }
 
 func New(
 	ctx context.Context,
 	adminClient ftlv1connect.AdminServiceClient,
 	timelineClient *timelineclient.Client,
+	schemaClient ftlv1connect.SchemaServiceClient,
 	storage *artefacts.OCIArtefactService,
 	config Config,
 	devel bool,
@@ -177,8 +176,6 @@ func New(
 
 	routingTable := routing.New(ctx, schemaeventsource.New(ctx, rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx)))
 
-	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, config.Bind.String(), log.Error)
-
 	svc := &Service{
 		tasks:          scheduler,
 		timelineClient: timelineClient,
@@ -188,7 +185,6 @@ func New(
 		config:         config,
 		routeTable:     routingTable,
 		storage:        storage,
-		schemaService:  schemaservice.New(ctx),
 		schemaClient:   schemaClient,
 		runnerState:    state.NewInMemoryRunnerState(ctx),
 		adminClient:    adminClient,

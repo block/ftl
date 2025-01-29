@@ -46,6 +46,7 @@ type InteractiveCLI struct {
 	TimelineEndpoint    *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	LeaseEndpoint       *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	AdminEndpoint       *url.URL         `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
+	SchemaEndpoint      *url.URL         `help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
 	Trace               string           `help:"File to write golang runtime/trace output to." hidden:""`
 
 	Ping            pingCmd            `cmd:"" help:"Ping the FTL cluster."`
@@ -239,7 +240,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		kctx.FatalIfErrorf(err)
 		kctx.Bind(logger)
 
-		schemaServiceClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.Endpoint.String(), log.Error)
+		schemaServiceClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
 		ctx = rpc.ContextWithClient(ctx, schemaServiceClient)
 		kctx.BindTo(schemaServiceClient, (*ftlv1connect.SchemaServiceClient)(nil))
 
