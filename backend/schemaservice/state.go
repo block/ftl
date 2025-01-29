@@ -17,8 +17,9 @@ import (
 )
 
 type SchemaState struct {
+	// TODO: updating this info is very tricky as both the module and the changeset need to be updated
 	deployments       map[key.Deployment]*schema.Module
-	activeDeployments map[key.Deployment]optional.Option[key.Changeset]
+	activeDeployments map[key.Deployment]bool
 	changesets        map[key.Changeset]*schema.Changeset
 	// TODO: consider removing committed changesets. Return success if asked about a missing changeset? Or keep the shell of changesets
 
@@ -28,7 +29,7 @@ type SchemaState struct {
 func NewSchemaState() SchemaState {
 	return SchemaState{
 		deployments:       map[key.Deployment]*schema.Module{},
-		activeDeployments: map[key.Deployment]optional.Option[key.Changeset]{},
+		activeDeployments: map[key.Deployment]bool{},
 		changesets:        map[key.Changeset]*schema.Changeset{},
 		provisioning:      map[string]*schema.Module{},
 	}
@@ -94,10 +95,7 @@ func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 // GetActiveDeployments returns all active deployments (excluding those in changesets).
 func (r *SchemaState) GetCanonicalDeployments() map[key.Deployment]*schema.Module {
 	deployments := map[key.Deployment]*schema.Module{}
-	for key, changeset := range r.activeDeployments {
-		if _, ok := changeset.Get(); ok {
-			continue
-		}
+	for key, _ := range r.activeDeployments {
 		deployments[key] = r.deployments[key]
 	}
 	return deployments
@@ -156,4 +154,8 @@ func (c *schemaStateMachine) Publish(msg schema.Event) error {
 
 func (c *schemaStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, error) {
 	return c.notifier.Subscribe(), nil
+}
+
+type moduleRef struct {
+	module *schema.Module
 }

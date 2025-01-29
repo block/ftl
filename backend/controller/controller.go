@@ -159,6 +159,9 @@ func New(
 	config Config,
 	devel bool,
 ) (*Service, error) {
+	logger := log.FromContext(ctx)
+	logger = logger.Scope("controller")
+	ctx = log.ContextWithLogger(ctx, logger)
 	controllerKey := config.Key
 	if config.Key.IsZero() {
 		controllerKey = key.NewControllerKey(config.Bind.Hostname(), config.Bind.Port())

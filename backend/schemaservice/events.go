@@ -207,7 +207,7 @@ func handleChangesetCommittedEvent(t SchemaState, e *schema.ChangesetCommittedEv
 	changeset.State = schema.ChangesetStateCommitted
 	for _, module := range changeset.Modules {
 		t.deployments[module.Runtime.Deployment.DeploymentKey] = module
-		t.activeDeployments[module.Runtime.Deployment.DeploymentKey] = optional.Some(changeset.Key)
+		t.activeDeployments[module.Runtime.Deployment.DeploymentKey] = true
 	}
 	return t, nil
 }
