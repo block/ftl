@@ -79,7 +79,7 @@ type Config struct {
 
 func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService) error {
 	ctx, doneFunc := context.WithCancelCause(ctx)
-	defer doneFunc(context.Canceled)
+	defer doneFunc(fmt.Errorf("runner terminated: %w", context.Canceled))
 	hostname, err := os.Hostname()
 	if err != nil {
 		observability.Runner.StartupFailed(ctx)
