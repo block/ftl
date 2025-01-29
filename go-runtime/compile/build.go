@@ -629,6 +629,9 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 				scaffolder.Functions(funcs)); err != nil {
 				return fmt.Errorf("failed to scaffold queries template: %w", err)
 			}
+			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
+				return fmt.Errorf("failed to mark %s as modified: %w", ftlQueriesFilename, err)
+			}
 		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlTypesFilename)); err != nil {
 			return fmt.Errorf("failed to mark %s as modified: %w", ftlTypesFilename, err)
