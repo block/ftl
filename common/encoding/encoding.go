@@ -90,7 +90,7 @@ func encodeValue(v reflect.Value, w *bytes.Buffer) error {
 	case reflect.String:
 		return encodeString(v, w)
 
-	case reflect.Int:
+	case reflect.Int, reflect.Int64:
 		return encodeInt(v, w)
 
 	case reflect.Float64:
@@ -273,6 +273,25 @@ func decodeValue(d *json.Decoder, v reflect.Value) error {
 	}
 
 	switch v.Kind() {
+	case reflect.Bool:
+		token, err := d.Token()
+		if err != nil {
+			return fmt.Errorf("failed to read bool token: %w", err)
+		}
+		switch n := token.(type) {
+		case float64:
+			v.SetBool(n != 0)
+		case int64:
+			v.SetBool(n != 0)
+		case bool:
+			v.SetBool(n)
+		case string:
+			v.SetBool(n == "true")
+		default:
+			return fmt.Errorf("cannot convert %T to bool", token)
+		}
+		return nil
+
 	case reflect.Struct:
 		return decodeStruct(d, v)
 

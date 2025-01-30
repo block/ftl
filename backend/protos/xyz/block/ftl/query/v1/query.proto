@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package xyz.block.ftl.query.v1;
 
-import "google/protobuf/timestamp.proto";
 import "xyz/block/ftl/v1/ftl.proto";
 
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1;querypb";
@@ -30,24 +29,16 @@ message RollbackTransactionResponse {
   TransactionStatus status = 1;
 }
 
-// A value that can be used as a SQL parameter
-message SQLValue {
-  oneof value {
-    string string_value = 1;
-    int64 int_value = 2;
-    double float_value = 3;
-    bool bool_value = 4;
-    bytes bytes_value = 5;
-    google.protobuf.Timestamp timestamp_value = 6;
-    bool null_value = 7; // Set to true to represent NULL
-  }
+message ResultColumn {
+  string type_name = 1; // The name in the FTL-generated type
+  string sql_name = 2; // The database column name
 }
 
 message ExecuteQueryRequest {
   string raw_sql = 1;
   CommandType command_type = 2;
-  repeated SQLValue parameters = 3; // SQL parameter values in order
-  repeated string result_columns = 6; // Column names to scan for the result type
+  string parameters_json = 3; // JSON array of parameter values in order
+  repeated ResultColumn result_columns = 6; // Column names to scan for the result type
   optional string transaction_id = 4;
   optional int32 batch_size = 5; // Default 100 if not set
 }
@@ -67,7 +58,7 @@ message ExecResult {
 }
 
 message RowResults {
-  map<string, SQLValue> rows = 1; // Each row is a map of column name to value
+  string json_rows = 1; // JSON object mapping column names to values
   bool has_more = 2; // Indicates if there are more rows to fetch
 }
 
