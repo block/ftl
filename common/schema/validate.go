@@ -246,7 +246,7 @@ func ValidateName(name string) bool {
 	return validNameRe.MatchString(name)
 }
 
-// ValidateName validates an FTL name.
+// ValidateModuleName validates an FTL module name.
 func ValidateModuleName(name string) bool {
 	if token.Lookup(name).IsKeyword() {
 		return false
