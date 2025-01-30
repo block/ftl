@@ -3,6 +3,7 @@ package schema
 
 import (
 	"fmt"
+	"go/token"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -245,6 +246,14 @@ func ValidateName(name string) bool {
 	return validNameRe.MatchString(name)
 }
 
+// ValidateModuleName validates an FTL module name.
+func ValidateModuleName(name string) bool {
+	if token.Lookup(name).IsKeyword() {
+		return false
+	}
+	return ValidateName(name)
+}
+
 // Validate performs the subset of semantic validation possible on a single module.
 //
 // It ignores references to other modules.
@@ -253,7 +262,7 @@ func (m *Module) Validate() error {
 
 	scopes := NewScopes()
 
-	if !ValidateName(m.Name) {
+	if !ValidateModuleName(m.Name) {
 		merr = append(merr, errorf(m, "module name %q is invalid", m.Name))
 	}
 	if m.Builtin && m.Name != "builtin" {

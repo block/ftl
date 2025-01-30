@@ -477,6 +477,16 @@ func TestValidate(t *testing.T) {
 				`9:6: verb can not subscribe to multiple topics`,
 			},
 		},
+		{
+			name: "ModuleNameCantBeGoKeyword",
+			schema: `
+			module map {
+			}
+		`,
+			errs: []string{
+				`2:4: module name "map" is invalid`,
+			},
+		},
 	}
 
 	for _, test := range tests {

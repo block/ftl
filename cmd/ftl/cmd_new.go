@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"go/token"
 	"os"
 	"path/filepath"
-	"regexp"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -30,11 +28,6 @@ func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconf
 	name, path, err := validateModule(i.Dir, i.Name)
 	if err != nil {
 		return err
-	}
-
-	// Validate the module name with custom validation
-	if !isValidModuleName(name) {
-		return fmt.Errorf("module name %q must be a valid Go module name and not a reserved keyword", name)
 	}
 
 	logger := log.FromContext(ctx)
@@ -64,6 +57,7 @@ func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconf
 	if err != nil {
 		return fmt.Errorf("could not acquire file lock: %w", err)
 	}
+	logger.Infof("acquired file lock for %s", config.WatchModulesLockPath())
 	defer release() //nolint:errcheck
 
 	err = plugin.CreateModule(ctx, config, moduleConfig, flags)
@@ -96,7 +90,7 @@ func validateModule(dir string, name string) (string, string, error) {
 	if name == "" {
 		name = filepath.Base(dir)
 	}
-	if !schema.ValidateName(name) {
+	if !schema.ValidateModuleName(name) {
 		return "", "", fmt.Errorf("module name %q is invalid", name)
 	}
 	path := filepath.Join(dir, name)
@@ -108,15 +102,4 @@ func validateModule(dir string, name string) (string, string, error) {
 		return "", "", fmt.Errorf("module directory %s already exists", path)
 	}
 	return name, absPath, nil
-}
-
-func isValidModuleName(name string) bool {
-	validNamePattern := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*$`)
-	if !validNamePattern.MatchString(name) {
-		return false
-	}
-	if token.Lookup(name).IsKeyword() {
-		return false
-	}
-	return true
 }
