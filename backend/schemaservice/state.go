@@ -8,13 +8,14 @@ import (
 	"slices"
 	"sync"
 
+	"google.golang.org/protobuf/proto"
+
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/statemachine"
-	"google.golang.org/protobuf/proto"
 )
 
 type SchemaState struct {
