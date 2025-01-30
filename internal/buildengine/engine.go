@@ -190,7 +190,7 @@ func New(
 	go e.watchForPluginEvents(ctx)
 	go e.watchForEventsToPublish(ctx)
 	go func() {
-		if err := e.startUpdatesService(ctx, updatesEndpoint); err != nil {
+		if err := e.startUpdatesService(ctx, updatesEndpoint); err != nil && !errors.Is(err, context.Canceled) {
 			log.FromContext(ctx).Errorf(err, "updates service failed")
 		}
 	}()
