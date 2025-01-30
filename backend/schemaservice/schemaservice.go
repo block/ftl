@@ -74,7 +74,7 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
-	_, err = view.ApplyEvent(event)
+	err = view.ApplyEvent(event)
 	if err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}

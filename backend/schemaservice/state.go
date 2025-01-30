@@ -45,8 +45,13 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 }
 
 func (r *SchemaState) Marshal() ([]byte, error) {
+	var activeDeployments []string
+	for deployment := range r.activeDeployments {
+		activeDeployments = append(activeDeployments, deployment.String())
+	}
 	state := &schema.SchemaState{
-		Modules: append(slices.Collect(maps.Values(r.deployments)), slices.Collect(maps.Values(r.provisioning))...),
+		Modules:           append(slices.Collect(maps.Values(r.deployments)), slices.Collect(maps.Values(r.provisioning))...),
+		ActiveDeployments: activeDeployments,
 	}
 	stateProto := state.ToProto()
 	bytes, err := proto.Marshal(stateProto)
@@ -73,7 +78,7 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 			r.provisioning[module.Name] = module
 		} else {
 			r.deployments[dkey] = module
-			if module.GetRuntime().GetDeployment().ActivatedAt.Ok() {
+			if slices.Contains(state.ActiveDeployments, dkey.String()) {
 				r.activeDeployments[dkey] = true
 			}
 		}
@@ -137,8 +142,7 @@ func (c *schemaStateMachine) Lookup(key struct{}) (SchemaState, error) {
 func (c *schemaStateMachine) Publish(msg schema.Event) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var err error
-	c.state, err = c.state.ApplyEvent(msg)
+	err := c.state.ApplyEvent(msg)
 	if err != nil {
 		return fmt.Errorf("update: %w", err)
 	}

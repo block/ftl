@@ -2061,7 +2061,8 @@ func (x *SchemaState) ToProto() *destpb.SchemaState {
 		return nil
 	}
 	return &destpb.SchemaState{
-		Modules: sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		Modules:           sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		ActiveDeployments: sliceMap(x.ActiveDeployments, func(v string) string { return orZero(ptr(string(v))) }),
 	}
 }
 
@@ -2073,6 +2074,9 @@ func SchemaStateFromProto(v *destpb.SchemaState) (out *SchemaState, err error) {
 	out = &SchemaState{}
 	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
 		return nil, fmt.Errorf("Modules: %w", err)
+	}
+	if out.ActiveDeployments, err = sliceMapR(v.ActiveDeployments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
+		return nil, fmt.Errorf("ActiveDeployments: %w", err)
 	}
 	return out, nil
 }

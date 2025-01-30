@@ -13,7 +13,7 @@ import (
 // TODO: these should be event methods once we can move them to this package
 
 // ApplyEvent applies an event to the schema state
-func (r SchemaState) ApplyEvent(event schema.Event) (SchemaState, error) {
+func (r SchemaState) ApplyEvent(event schema.Event) error {
 	switch e := event.(type) {
 	case *schema.DeploymentCreatedEvent:
 		return handleDeploymentCreatedEvent(r, e)
@@ -36,63 +36,63 @@ func (r SchemaState) ApplyEvent(event schema.Event) (SchemaState, error) {
 	case *schema.ProvisioningCreatedEvent:
 		return handleProvisioningCreatedEvent(r, e)
 	default:
-		return r, fmt.Errorf("unknown event type: %T", e)
+		return fmt.Errorf("unknown event type: %T", e)
 	}
 }
 
-func handleDeploymentCreatedEvent(t SchemaState, e *schema.DeploymentCreatedEvent) (SchemaState, error) {
+func handleDeploymentCreatedEvent(t SchemaState, e *schema.DeploymentCreatedEvent) error {
 	if existing := t.deployments[e.Key]; existing != nil {
-		return t, nil
+		return nil
 	}
 	t.deployments[e.Key] = e.Schema
-	return t, nil
+	return nil
 }
 
-func handleDeploymentSchemaUpdatedEvent(t SchemaState, e *schema.DeploymentSchemaUpdatedEvent) (SchemaState, error) {
+func handleDeploymentSchemaUpdatedEvent(t SchemaState, e *schema.DeploymentSchemaUpdatedEvent) error {
 	_, ok := t.deployments[e.Key]
 	if !ok {
-		return t, fmt.Errorf("deployment %s not found", e.Key)
+		return fmt.Errorf("deployment %s not found", e.Key)
 	}
 	t.deployments[e.Key] = e.Schema
-	return t, nil
+	return nil
 }
 
-func handleDeploymentReplicasUpdatedEvent(t SchemaState, e *schema.DeploymentReplicasUpdatedEvent) (SchemaState, error) {
+func handleDeploymentReplicasUpdatedEvent(t SchemaState, e *schema.DeploymentReplicasUpdatedEvent) error {
 	existing, ok := t.deployments[e.Key]
 	if !ok {
-		return t, fmt.Errorf("deployment %s not found", e.Key)
+		return fmt.Errorf("deployment %s not found", e.Key)
 	}
 	existing.ModRuntime().ModScaling().MinReplicas = int32(e.Replicas)
-	return t, nil
+	return nil
 }
 
-func handleDeploymentActivatedEvent(t SchemaState, e *schema.DeploymentActivatedEvent) (SchemaState, error) {
+func handleDeploymentActivatedEvent(t SchemaState, e *schema.DeploymentActivatedEvent) error {
 	existing, ok := t.deployments[e.Key]
 	if !ok {
-		return t, fmt.Errorf("deployment %s not found", e.Key)
+		return fmt.Errorf("deployment %s not found", e.Key)
 
 	}
 	existing.ModRuntime().ModDeployment().ActivatedAt = optional.Some(e.ActivatedAt)
 	existing.ModRuntime().ModScaling().MinReplicas = int32(e.MinReplicas)
 	t.activeDeployments[e.Key] = true
-	return t, nil
+	return nil
 }
 
-func handleDeploymentDeactivatedEvent(t SchemaState, e *schema.DeploymentDeactivatedEvent) (SchemaState, error) {
+func handleDeploymentDeactivatedEvent(t SchemaState, e *schema.DeploymentDeactivatedEvent) error {
 	existing, ok := t.deployments[e.Key]
 	if !ok {
-		return t, fmt.Errorf("deployment %s not found", e.Key)
+		return fmt.Errorf("deployment %s not found", e.Key)
 
 	}
 	existing.ModRuntime().ModScaling().MinReplicas = 0
 	delete(t.activeDeployments, e.Key)
-	return t, nil
+	return nil
 }
 
-func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) (SchemaState, error) {
+func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
 	m, ok := t.provisioning[e.Module]
 	if !ok {
-		return t, fmt.Errorf("module %s not found", e.Module)
+		return fmt.Errorf("module %s not found", e.Module)
 	}
 	for verb := range slices.FilterVariants[*schema.Verb](m.Decls) {
 		if verb.Name == e.ID {
@@ -108,26 +108,26 @@ func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) (SchemaSt
 			}
 		}
 	}
-	return t, nil
+	return nil
 }
 
-func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) (SchemaState, error) {
+func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) error {
 	m, ok := t.provisioning[e.Module]
 	if !ok {
-		return t, fmt.Errorf("module %s not found", e.Module)
+		return fmt.Errorf("module %s not found", e.Module)
 	}
 	for topic := range slices.FilterVariants[*schema.Topic](m.Decls) {
 		if topic.Name == e.ID {
 			topic.Runtime = e.Payload
 		}
 	}
-	return t, nil
+	return nil
 }
 
-func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) (SchemaState, error) {
+func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) error {
 	m, ok := t.provisioning[e.Module]
 	if !ok {
-		return t, fmt.Errorf("module %s not found", e.Module)
+		return fmt.Errorf("module %s not found", e.Module)
 	}
 	for _, decl := range m.Decls {
 		if db, ok := decl.(*schema.Database); ok && db.Name == e.ID {
@@ -137,22 +137,22 @@ func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) (
 			db.Runtime.Connections = e.Connections
 		}
 	}
-	return t, nil
+	return nil
 }
 
-func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) (SchemaState, error) {
+func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) error {
 	var module *schema.Module
 	if dk, ok := e.DeploymentKey.Get(); ok {
 		deployment, err := key.ParseDeploymentKey(dk)
 		if err != nil {
-			return t, fmt.Errorf("invalid deployment key: %w", err)
+			return fmt.Errorf("invalid deployment key: %w", err)
 		}
 		module = t.deployments[deployment]
 	} else {
 		// updating a provisioning module
 		m, ok := t.provisioning[e.Module]
 		if !ok {
-			return t, fmt.Errorf("module %s not found", e.Module)
+			return fmt.Errorf("module %s not found", e.Module)
 		}
 		module = m
 	}
@@ -165,10 +165,10 @@ func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) (Sche
 	if deployment, ok := e.Deployment.Get(); ok {
 		module.ModRuntime().Deployment = &deployment
 	}
-	return t, nil
+	return nil
 }
 
-func handleProvisioningCreatedEvent(t SchemaState, e *schema.ProvisioningCreatedEvent) (SchemaState, error) {
+func handleProvisioningCreatedEvent(t SchemaState, e *schema.ProvisioningCreatedEvent) error {
 	t.provisioning[e.DesiredModule.Name] = e.DesiredModule
-	return t, nil
+	return nil
 }

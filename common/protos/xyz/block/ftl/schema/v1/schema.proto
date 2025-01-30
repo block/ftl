@@ -416,6 +416,7 @@ message Schema {
 // SchemaState is the schema service state as persisted in Raft
 message SchemaState {
   repeated Module modules = 1;
+  repeated string active_deployments = 2;
 }
 
 message Secret {

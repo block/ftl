@@ -102,7 +102,7 @@ func (t *Task) Progress(ctx context.Context) error {
 				if err != nil {
 					return fmt.Errorf("failed to parse event: %w", err)
 				}
-				_, err = t.deployment.DeploymentState.ApplyEvent(event)
+				err = t.deployment.DeploymentState.ApplyEvent(event)
 				if err != nil {
 					return fmt.Errorf("failed to apply event: %w", err)
 				}
