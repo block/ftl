@@ -14,6 +14,9 @@ import (
 
 // ApplyEvent applies an event to the schema state
 func (r SchemaState) ApplyEvent(event schema.Event) error {
+	if err := event.Validate(); err != nil {
+		return fmt.Errorf("invalid event: %w", err)
+	}
 	switch e := event.(type) {
 	case *schema.DeploymentCreatedEvent:
 		return handleDeploymentCreatedEvent(r, e)
