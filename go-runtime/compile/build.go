@@ -635,6 +635,13 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
 				return fmt.Errorf("failed to mark %s as modified: %w", ftlQueriesFilename, err)
 			}
+		} else if _, err := os.Stat(filepath.Join(config.Dir, ftlQueriesFilename)); err == nil && len(mctx.QueriesCtx.Verbs) == 0 && len(mctx.QueriesCtx.Data) == 0 {
+			if err := os.Remove(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
+				return fmt.Errorf("failed to delete %s: %w", ftlQueriesFilename, err)
+			}
+			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
+				return fmt.Errorf("failed to mark %s as modified: %w", ftlQueriesFilename, err)
+			}
 		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlTypesFilename)); err != nil {
 			return fmt.Errorf("failed to mark %s as modified: %w", ftlTypesFilename, err)
