@@ -274,3 +274,10 @@ func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
 	}
 	return module, nil
 }
+
+// SchemaState is the schema service state as persisted in Raft
+//
+//protobuf:export
+type SchemaState struct {
+	Modules []*Module `protobuf:"1"`
+}

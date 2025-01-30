@@ -413,6 +413,11 @@ message Schema {
   repeated Module modules = 2;
 }
 
+// SchemaState is the schema service state as persisted in Raft
+message SchemaState {
+  repeated Module modules = 1;
+}
+
 message Secret {
   optional Position pos = 1;
   repeated string comments = 2;

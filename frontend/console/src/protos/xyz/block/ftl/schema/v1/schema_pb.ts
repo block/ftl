@@ -3142,6 +3142,45 @@ export class Schema extends Message<Schema> {
 }
 
 /**
+ * SchemaState is the schema service state as persisted in Raft
+ *
+ * @generated from message xyz.block.ftl.schema.v1.SchemaState
+ */
+export class SchemaState extends Message<SchemaState> {
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 1;
+   */
+  modules: Module[] = [];
+
+  constructor(data?: PartialMessage<SchemaState>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.SchemaState";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SchemaState {
+    return new SchemaState().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SchemaState {
+    return new SchemaState().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SchemaState {
+    return new SchemaState().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SchemaState | PlainMessage<SchemaState> | undefined, b: SchemaState | PlainMessage<SchemaState> | undefined): boolean {
+    return proto3.util.equals(SchemaState, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.Secret
  */
 export class Secret extends Message<Secret> {
