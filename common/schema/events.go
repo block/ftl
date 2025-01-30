@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/alecthomas/types/optional"
@@ -40,6 +41,9 @@ type DeploymentCreatedEvent struct {
 func (r *DeploymentCreatedEvent) event() {}
 
 func (r *DeploymentCreatedEvent) Validate() error {
+	if r.Schema.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
+		return fmt.Errorf("deployment key is required")
+	}
 	return nil
 }
 
