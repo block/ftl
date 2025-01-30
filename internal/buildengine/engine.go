@@ -158,6 +158,7 @@ func New(
 	updatesEndpoint *url.URL,
 	options ...Option,
 ) (*Engine, error) {
+	ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("build-engine"))
 	ctx = rpc.ContextWithClient(rpc.ContextWithClient(ctx, deployClient), schemaServiceClient)
 	e := &Engine{
 		deployClient:        deployClient,
