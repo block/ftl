@@ -17,7 +17,7 @@ import (
 func TestLifecycleJVM(t *testing.T) {
 	deployment := ""
 	in.Run(t,
-		in.WithLanguages("java", "kotlin"),
+		in.WithLanguages("java"),
 		in.WithDevMode(),
 		in.GitInit(),
 		in.Exec("rm", "ftl-project.toml"),

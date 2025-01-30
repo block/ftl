@@ -555,7 +555,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				var modulesToDeploy = []Module{}
 				for _, module := range builtModules {
 					moduleToDeploy, ok := e.moduleMetas.Load(module.Name)
-					if !ok {
+					if ok {
 						modulesToDeploy = append(modulesToDeploy, moduleToDeploy.module)
 					}
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{

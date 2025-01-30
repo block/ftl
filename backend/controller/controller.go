@@ -66,7 +66,7 @@ type Config struct {
 	RunnerTimeout                time.Duration  `help:"Runner heartbeat timeout." default:"10s"`
 	ControllerTimeout            time.Duration  `help:"Controller heartbeat timeout." default:"10s"`
 	DeploymentReservationTimeout time.Duration  `help:"Deployment reservation timeout." default:"120s"`
-	ModuleUpdateFrequency        time.Duration  `help:"Frequency to send module updates." default:"30s"`
+	ModuleUpdateFrequency        time.Duration  `help:"Frequency to send module updates." default:"1s"` //TODO: FIX this, this should be based on streaming events, 1s is a temp workaround for the lack of dependencies within changesets
 	ArtefactChunkSize            int            `help:"Size of each chunk streamed to the client." default:"1048576"`
 	CommonConfig
 }
