@@ -268,7 +268,7 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
           </div>
           <div className='flex gap-1'>
             <Button id='hide-exported' variant='secondary' size='xs' onClick={() => setHideUnexportedState(!hideUnexported)} title='Show/hide unexported'>
-              {hideUnexported ? <ViewOffSlashIcon className='size-4' /> : <ViewIcon className='size-4' />}
+              {hideUnexported ? <ViewOffSlashIcon className='size-4 text-red-400' /> : <ViewIcon className='size-4' />}
             </Button>
             <Button variant='secondary' size='xs' onClick={collapseAll} title='Collapse all modules'>
               <ArrowShrink02Icon className='size-4' />
