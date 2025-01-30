@@ -167,7 +167,7 @@ func TestSchemaEventSource(t *testing.T) {
 			},
 		})
 
-		var expected Event = EventUpsert{Module: time2, more: true}
+		var expected Event = EventUpsert{Module: time2}
 		assertEqual(t, expected, recv(t))
 		expected = EventUpsert{Module: echo1, more: false}
 		actual := recv(t)
