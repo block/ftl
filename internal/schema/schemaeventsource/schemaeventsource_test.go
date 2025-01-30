@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/must"
@@ -16,7 +15,6 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
@@ -40,8 +38,8 @@ func TestSchemaEventSource(t *testing.T) {
 	changes := New(ctx, rpc.Dial(ftlv1connect.NewSchemaServiceClient, bind.String(), log.Debug))
 
 	send := func(t testing.TB, resp *ftlv1.PullSchemaResponse) {
-		resp.ModuleName = resp.Schema.Name
-		resp.DeploymentKey = proto.String(key.NewDeploymentKey(resp.ModuleName).String())
+		//resp.ModuleName = resp.Schema.Name
+		//resp.DeploymentKey = proto.String(key.NewDeploymentKey(resp.ModuleName).String())
 		select {
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
@@ -137,29 +135,38 @@ func TestSchemaEventSource(t *testing.T) {
 
 	t.Run("Mutation", func(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
-			More:       false,
-			Schema:     (time2).ToProto(),
-			ChangeType: ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
+			More: false,
+			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
+				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
+					Schema: (time2).ToProto(),
+				},
+			},
 		})
 
 		var expected Event = EventUpsert{Module: time2}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2, echo1}}, changes.View())
-		assertEqual(t, changes.View(), actual.Schema())
+		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2, echo1}}, changes.LatestView())
+		assertEqual(t, changes.LatestView(), actual.GetLatest())
 	})
 
 	// Verify that schemasync doesn't propagate "initial" again.
 	t.Run("SimulatedReconnect", func(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
-			More:       true,
-			Schema:     (time2).ToProto(),
-			ChangeType: ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
+			More: true,
+			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
+				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
+					Schema: (time2).ToProto(),
+				},
+			},
 		})
 		send(t, &ftlv1.PullSchemaResponse{
-			More:       false,
-			Schema:     (echo1).ToProto(),
-			ChangeType: ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_ADDED,
+			More: false,
+			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
+				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
+					Schema: (time2).ToProto(),
+				},
+			},
 		})
 
 		var expected Event = EventUpsert{Module: time2}
@@ -167,21 +174,24 @@ func TestSchemaEventSource(t *testing.T) {
 		expected = EventUpsert{Module: echo1, more: false}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2, echo1}}, changes.View())
-		assertEqual(t, changes.View(), actual.Schema())
+		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2, echo1}}, changes.LatestView())
+		assertEqual(t, changes.LatestView(), actual.GetLatest())
 	})
 
 	t.Run("Delete", func(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
-			Schema:        (echo1).ToProto(),
-			ChangeType:    ftlv1.DeploymentChangeType_DEPLOYMENT_CHANGE_TYPE_REMOVED,
-			ModuleRemoved: true,
+			Event: &ftlv1.PullSchemaResponse_DeploymentRemoved_{
+				DeploymentRemoved: &ftlv1.PullSchemaResponse_DeploymentRemoved{
+					ModuleName:    echo1.GetName(),
+					ModuleRemoved: true,
+				},
+			},
 		})
-		var expected Event = EventRemove{Module: echo1}
+		var expected Event = EventRemove{Module: echo1.Name}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2}}, changes.View())
-		assertEqual(t, changes.View(), actual.Schema())
+		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2}}, changes.LatestView())
+		assertEqual(t, changes.LatestView(), actual.GetLatest())
 	})
 }
 
