@@ -3,6 +3,7 @@ package schema
 
 import (
 	"fmt"
+	"go/token"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -242,6 +243,9 @@ var validNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 // ValidateName validates an FTL name.
 func ValidateName(name string) bool {
+	if token.Lookup(name).IsKeyword() {
+		return false
+	}
 	return validNameRe.MatchString(name)
 }
 

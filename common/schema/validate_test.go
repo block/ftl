@@ -389,6 +389,13 @@ func TestValidate(t *testing.T) {
 				data subWithClashingDeadLetterFailed {}
 				verb subWithClashingDeadLetter(test.eventA) Unit
 					+subscribe topicA from=beginning deadletter
+
+				//some reserved names
+				verb func(Unit) Unit
+				verb switch(Unit) Unit
+				verb select(Unit) Unit
+				verb map(Unit) Unit
+				verb package(Unit) Unit
 			}
 			`,
 			errs: []string{
@@ -398,6 +405,11 @@ func TestValidate(t *testing.T) {
 				"22:6: verb emptyCantSubscribe: request type Unit differs from subscription's event type test.eventB",
 				"29:6: dead letter topic test.subWithExistingDeadLetterFailed must have the same event type (builtin.FailedEvent<test.eventB>) as the subscription request type (builtin.FailedEvent<test.eventA>)",
 				"33:6: expected test.subWithClashingDeadLetterFailed to be a dead letter topic but was already declared at 31:5",
+				`35:5: verb name "func" is invalid`,
+				`37:5: verb name "switch" is invalid`,
+				`38:5: verb name "select" is invalid`,
+				`39:5: verb name "map" is invalid`,
+				`40:5: verb name "package" is invalid`,
 				`7:5: invalid name: must consist of only letters, numbers and underscores, and start with a lowercase letter.`,
 			},
 		},
