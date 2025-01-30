@@ -78,7 +78,7 @@ func (p *PgProxy) Start(ctx context.Context, started chan<- Started) error {
 func HandleConnection(ctx context.Context, conn net.Conn, connectionFn DSNConstructor) {
 	defer conn.Close()
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("pgproxy: connection closed"))
+	defer cancel(fmt.Errorf("pgproxy: connection closed: %w", context.Canceled))
 
 	logger := log.FromContext(ctx)
 	logger.Debugf("new connection established: %s", conn.RemoteAddr())

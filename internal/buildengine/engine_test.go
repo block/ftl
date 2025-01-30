@@ -22,7 +22,7 @@ func TestGraph(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancelCause(log.ContextWithNewDefaultLogger(context.Background()))
 	t.Cleanup(func() {
-		cancel(fmt.Errorf("test complete"))
+		cancel(fmt.Errorf("test complete: %w", context.Canceled))
 	})
 	projConfig := projectconfig.Config{
 		Path: filepath.Join(t.TempDir(), "ftl-project.toml"),

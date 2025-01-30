@@ -26,7 +26,7 @@ func TestPgProxy(t *testing.T) {
 	frontend := pgproto3.NewFrontend(client, client)
 
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("test complete"))
+	defer cancel(fmt.Errorf("test complete: %w", context.Canceled))
 	go pgproxy.HandleConnection(ctx, proxy, func(ctx context.Context, parameters map[string]string) (string, error) {
 		return dsn, nil
 	})

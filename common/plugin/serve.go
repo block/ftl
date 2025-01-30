@@ -129,7 +129,7 @@ func Start[Impl any, Iface any, Config any](
 	go func() {
 		sig := <-sigch
 		logger.Debugf("Terminated by signal %s", sig)
-		cancel(fmt.Errorf("stopping plugin %s due to signal %s", name, sig))
+		cancel(fmt.Errorf("stopping plugin %s due to signal %s: %w", name, sig, context.Canceled))
 		// We always kill our children with SIGINT rather than SIGTERM
 		// Maven subprocesses will not kill their children correctly if terminated with TERM
 		_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort

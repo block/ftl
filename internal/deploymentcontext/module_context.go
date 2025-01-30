@@ -275,7 +275,7 @@ func NewDynamicContext(ctx context.Context, supplier DeploymentContextSupplier, 
 			var connectErr *connect.Error
 
 			if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeInternal {
-				cancel(err)
+				cancel(fmt.Errorf("%w: %w", context.Canceled, err))
 				releaseOnce.Do(func() {
 					await.Done()
 				})

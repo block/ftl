@@ -428,7 +428,7 @@ func (c *Cluster) Stop(ctx context.Context) {
 		for shardID := range c.shards {
 			c.removeShardMember(ctx, shardID, c.config.ReplicaID)
 		}
-		c.runningCtxCancel(fmt.Errorf("stopping raft cluster"))
+		c.runningCtxCancel(fmt.Errorf("stopping raft cluster: %w", context.Canceled))
 		c.nh.Close()
 		c.nh = nil
 		c.shards = nil
@@ -540,7 +540,7 @@ func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
 			logger.Debugf("Waiting for shard %d to be ready on replica %d: %s", shardID, c.config.ReplicaID, wait)
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("context cancelled")
+				return fmt.Errorf("context cancelled: %w", ctx.Err())
 			case <-time.After(wait):
 			}
 			continue

@@ -62,12 +62,12 @@ func (c clientLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Durati
 					Key: key,
 				})
 				if err != nil {
-					done(fmt.Errorf("failed to send acquire lease request: %w", err))
+					done(fmt.Errorf("failed to send acquire lease request: %w: %w", context.Canceled, err))
 					return
 				}
 				_, err = lease.Receive()
 				if err != nil {
-					done(fmt.Errorf("failed to receive lease response: %w", err))
+					done(fmt.Errorf("failed to receive lease response: %w: %w", context.Canceled, err))
 					return
 				}
 			}

@@ -32,7 +32,7 @@ func (d *deployCmd) Run(
 	} else {
 		var cancel context.CancelCauseFunc
 		ctx, cancel = context.WithCancelCause(ctx)
-		defer cancel(fmt.Errorf("stopping deploy"))
+		defer cancel(fmt.Errorf("stopping deploy: %w", context.Canceled))
 	}
 	engine, err := buildengine.New(
 		ctx, provisionerClient, schemaSourceFactory(), projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint,

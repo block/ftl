@@ -53,7 +53,7 @@ func (d *devCmd) Run(
 ) error {
 	startTime := time.Now()
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("stopping dev server"))
+	defer cancel(fmt.Errorf("stopping dev server: %w", context.Canceled))
 	if len(d.Build.Dirs) == 0 {
 		d.Build.Dirs = projConfig.AbsModuleDirs()
 	}
@@ -102,9 +102,9 @@ func (d *devCmd) Run(
 		g.Go(func() error {
 			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, provisionerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, verbClient, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
-				cancel(fmt.Errorf("dev server failed: %w", err))
+				cancel(fmt.Errorf("dev server failed: %w: %w", context.Canceled, err))
 			} else {
-				cancel(fmt.Errorf("dev server stopped"))
+				cancel(fmt.Errorf("dev server stopped: %w", context.Canceled))
 			}
 			return err
 		})

@@ -20,7 +20,7 @@ func TestScheduledTask(t *testing.T) {
 	t.Parallel()
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 	ctx, cancel := context.WithCancelCause(ctx)
-	t.Cleanup(func() { cancel(fmt.Errorf("test ended")) })
+	t.Cleanup(func() { cancel(fmt.Errorf("test ended: %w", context.Canceled)) })
 
 	var singletonCount atomic.Int64
 	var multiCount atomic.Int64

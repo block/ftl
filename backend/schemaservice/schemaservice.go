@@ -150,7 +150,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 	logger := log.FromContext(ctx)
 
 	uctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("schemaservice: stopped watching for module changes"))
+	defer cancel(fmt.Errorf("schemaservice: stopped watching for module changes: %w", context.Canceled))
 	stateIter, err := s.State.StateIter(uctx)
 	if err != nil {
 		return fmt.Errorf("failed to get schema state iterator: %w", err)

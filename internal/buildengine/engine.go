@@ -270,7 +270,7 @@ func (e *Engine) processEvent(event schemaeventsource.Event) {
 
 // Close stops the Engine's schema sync.
 func (e *Engine) Close() error {
-	e.cancel(fmt.Errorf("build engine stopped"))
+	e.cancel(fmt.Errorf("build engine stopped: %w", context.Canceled))
 	return nil
 }
 
@@ -445,13 +445,13 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	ctx, cancel := context.WithCancelCause(ctx)
 	topic, err := e.watcher.Watch(ctx, period, e.moduleDirs)
 	if err != nil {
-		cancel(fmt.Errorf("watch failed: %w", err))
+		cancel(fmt.Errorf("watch failed: %w: %w", context.Canceled, err))
 		return err
 	}
 	topic.Subscribe(watchEvents)
 	defer func() {
 		// Cancel will close the topic and channel
-		cancel(fmt.Errorf("watch stopped"))
+		cancel(fmt.Errorf("watch stopped: %w", context.Canceled))
 	}()
 
 	// Build and deploy all modules first.
