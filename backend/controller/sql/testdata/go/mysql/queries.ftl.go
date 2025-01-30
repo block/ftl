@@ -20,7 +20,6 @@ type GetAllTestTypesResult struct {
   	TextVal string
   	BoolVal bool
   	TimeVal stdtime.Time
-  	BlobVal []byte
   	OptionalVal ftl.Option[string]
 }
 type GetRequestDataResult struct {
@@ -36,7 +35,6 @@ type GetTestTypeResult struct {
   	TextVal string
   	BoolVal bool
   	TimeVal stdtime.Time
-  	BlobVal []byte
   	OptionalVal ftl.Option[string]
 }
 type InsertTestTypesQuery struct {
@@ -45,7 +43,6 @@ type InsertTestTypesQuery struct {
   	TextVal string
   	BoolVal bool
   	TimeVal stdtime.Time
-  	BlobVal []byte
   	OptionalVal ftl.Option[string]
 }
 	
@@ -62,9 +59,9 @@ type InsertTestTypesClient func(context.Context, InsertTestTypesQuery) error
 func init() {
 	reflection.Register(
 		server.QuerySink[CreateRequestQuery]("mysql", "createRequest", reflection.CommandTypeExec, "testdb", "INSERT INTO requests (data) VALUES (?)", []string{"Data"}, []tuple.Pair[string,string]{}),
-		server.QuerySource[GetAllTestTypesResult]("mysql", "getAllTestTypes", reflection.CommandTypeMany, "testdb", "SELECT id, int_val, float_val, text_val, bool_val, time_val, blob_val, optional_val  FROM test_types", []string{}, []tuple.Pair[string,string]{tuple.PairOf("id", "Id"),tuple.PairOf("int_val", "IntVal"),tuple.PairOf("float_val", "FloatVal"),tuple.PairOf("text_val", "TextVal"),tuple.PairOf("bool_val", "BoolVal"),tuple.PairOf("time_val", "TimeVal"),tuple.PairOf("blob_val", "BlobVal"),tuple.PairOf("optional_val", "OptionalVal")}),
+		server.QuerySource[GetAllTestTypesResult]("mysql", "getAllTestTypes", reflection.CommandTypeMany, "testdb", "SELECT id, int_val, float_val, text_val, bool_val, time_val, optional_val  FROM test_types", []string{}, []tuple.Pair[string,string]{tuple.PairOf("id", "Id"),tuple.PairOf("int_val", "IntVal"),tuple.PairOf("float_val", "FloatVal"),tuple.PairOf("text_val", "TextVal"),tuple.PairOf("bool_val", "BoolVal"),tuple.PairOf("time_val", "TimeVal"),tuple.PairOf("optional_val", "OptionalVal")}),
 		server.QuerySource[GetRequestDataResult]("mysql", "getRequestData", reflection.CommandTypeMany, "testdb", "SELECT data FROM requests", []string{}, []tuple.Pair[string,string]{tuple.PairOf("data", "Data")}),
-		server.Query[GetTestTypeQuery, GetTestTypeResult]("mysql", "getTestType", reflection.CommandTypeOne, "testdb", "SELECT id, int_val, float_val, text_val, bool_val, time_val, blob_val, optional_val  FROM test_types  WHERE id = ?", []string{"Id"}, []tuple.Pair[string,string]{tuple.PairOf("id", "Id"),tuple.PairOf("int_val", "IntVal"),tuple.PairOf("float_val", "FloatVal"),tuple.PairOf("text_val", "TextVal"),tuple.PairOf("bool_val", "BoolVal"),tuple.PairOf("time_val", "TimeVal"),tuple.PairOf("blob_val", "BlobVal"),tuple.PairOf("optional_val", "OptionalVal")}),
-		server.QuerySink[InsertTestTypesQuery]("mysql", "insertTestTypes", reflection.CommandTypeExec, "testdb", "INSERT INTO test_types (int_val, float_val, text_val, bool_val, time_val, blob_val, optional_val)  VALUES (?, ?, ?, ?, ?, ?, ?)", []string{"IntVal","FloatVal","TextVal","BoolVal","TimeVal","BlobVal","OptionalVal"}, []tuple.Pair[string,string]{}),
+		server.Query[GetTestTypeQuery, GetTestTypeResult]("mysql", "getTestType", reflection.CommandTypeOne, "testdb", "SELECT id, int_val, float_val, text_val, bool_val, time_val, optional_val  FROM test_types  WHERE id = ?", []string{"Id"}, []tuple.Pair[string,string]{tuple.PairOf("id", "Id"),tuple.PairOf("int_val", "IntVal"),tuple.PairOf("float_val", "FloatVal"),tuple.PairOf("text_val", "TextVal"),tuple.PairOf("bool_val", "BoolVal"),tuple.PairOf("time_val", "TimeVal"),tuple.PairOf("optional_val", "OptionalVal")}),
+		server.QuerySink[InsertTestTypesQuery]("mysql", "insertTestTypes", reflection.CommandTypeExec, "testdb", "INSERT INTO test_types (int_val, float_val, text_val, bool_val, time_val, optional_val)  VALUES (?, ?, ?, ?, ?, ?)", []string{"IntVal","FloatVal","TextVal","BoolVal","TimeVal","OptionalVal"}, []tuple.Pair[string,string]{}),
 	)
 }

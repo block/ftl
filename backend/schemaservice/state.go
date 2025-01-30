@@ -21,13 +21,13 @@ type SchemaState struct {
 	deployments map[key.Deployment]*schema.Module
 	// currently active deployments for a given module name. This represents the canonical state of the schema.
 	activeDeployments map[string]key.Deployment
-	changesets        map[key.Changeset]*changesetDetails
+	changesets        map[key.Changeset]*ChangesetDetails
 	// TODO: consider removing committed changesets. Return success if asked about a missing changeset? Or keep the shell of changesets
 
 	provisioning map[string]key.Deployment
 }
 
-type changesetDetails struct {
+type ChangesetDetails struct {
 	Key         key.Changeset
 	CreatedAt   time.Time
 	Deployments []key.Deployment
@@ -40,7 +40,7 @@ func NewSchemaState() SchemaState {
 	return SchemaState{
 		deployments:       map[key.Deployment]*schema.Module{},
 		activeDeployments: map[string]key.Deployment{},
-		changesets:        map[key.Changeset]*changesetDetails{},
+		changesets:        map[key.Changeset]*ChangesetDetails{},
 		provisioning:      map[string]key.Deployment{},
 	}
 }
@@ -83,7 +83,7 @@ func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 	return r.deployments
 }
 
-// GetActiveDeployments returns all active deployments (excluding those in changesets).
+// GetCanonicalDeployments returns all active deployments (excluding those in changesets).
 func (r *SchemaState) GetCanonicalDeployments() map[key.Deployment]*schema.Module {
 	deployments := map[key.Deployment]*schema.Module{}
 	for _, dep := range r.activeDeployments {
@@ -149,7 +149,7 @@ func (c *schemaStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, er
 	return c.notifier.Subscribe(), nil
 }
 
-func hydrateChangeset(current *SchemaState, changeset *changesetDetails) *schema.Changeset {
+func hydrateChangeset(current *SchemaState, changeset *ChangesetDetails) *schema.Changeset {
 	changesetModules := make([]*schema.Module, len(changeset.Deployments))
 	for i, deployment := range changeset.Deployments {
 		changesetModules[i] = current.deployments[deployment]

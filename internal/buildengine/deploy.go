@@ -28,7 +28,6 @@ type deploymentArtefact struct {
 	localPath string
 }
 
-// TODO: rename
 type DeployClient interface {
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error)
 	UploadArtefact(ctx context.Context, req *connect.Request[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error)
@@ -38,8 +37,9 @@ type DeployClient interface {
 
 type SchemaServiceClient interface {
 	CreateChangeset(ctx context.Context, req *connect.Request[ftlv1.CreateChangesetRequest]) (*connect.Response[ftlv1.CreateChangesetResponse], error)
-	PullSchema(context.Context, *connect.Request[ftlv1.PullSchemaRequest]) (*connect.ServerStreamForClient[ftlv1.PullSchemaResponse], error)
+	PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest]) (*connect.ServerStreamForClient[ftlv1.PullSchemaResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
+	UpdateDeploymentRuntime(ctx context.Context, req *connect.Request[ftlv1.UpdateDeploymentRuntimeRequest]) (*connect.Response[ftlv1.UpdateDeploymentRuntimeResponse], error)
 }
 
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
@@ -58,7 +58,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 		})
 	}
 	if err := uploadGroup.Wait(); err != nil {
-		return err
+		return fmt.Errorf("failed to upload artefacts: %w", err)
 	}
 	close(moduleSchemas)
 	collectedSchemas := []*schemapb.Module{}
@@ -80,6 +80,9 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 
 	ctx, closeStream := context.WithCancelCause(ctx)
 	stream, err := schemaserviceClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
+	if err != nil {
+		return fmt.Errorf("failed to pull schema: %w", err)
+	}
 	defer closeStream(fmt.Errorf("function is complete"))
 	for {
 		if !stream.Receive() {
@@ -142,14 +145,14 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 		file := filesByHash[missing]
 		content, err := os.ReadFile(file.localPath)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read file %w", err)
 		}
 		logger.Debugf("Uploading %s", relToCWD(file.localPath))
 		resp, err := client.UploadArtefact(ctx, connect.NewRequest(&ftlv1.UploadArtefactRequest{
 			Content: content,
 		}))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to upload artefact: %w", err)
 		}
 		logger.Debugf("Uploaded %s as %s:%s", relToCWD(file.localPath), sha256.FromBytes(resp.Msg.Digest), file.Path)
 	}
@@ -168,7 +171,7 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 	return moduleSchema, nil
 }
 
-func terminateModuleDeployment(ctx context.Context, client DeployClient, module string) error {
+func terminateModuleDeployment(ctx context.Context, client DeployClient, schemaClient SchemaServiceClient, module string) error {
 	logger := log.FromContext(ctx).Module(module).Scope("terminate")
 
 	status, err := client.Status(ctx, connect.NewRequest(&ftlv1.StatusRequest{}))
@@ -189,8 +192,16 @@ func terminateModuleDeployment(ctx context.Context, client DeployClient, module 
 	}
 
 	logger.Infof("Terminating deployment %s", key)
-	//_, err = client.UpdateDeploy(ctx, connect.NewRequest(&ftlv1.UpdateDeployRequest{DeploymentKey: key}))
-	//return err
+	_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
+		Deployment: key,
+		Event: &schemapb.ModuleRuntimeEvent{
+			DeploymentKey: key,
+			Scaling:       &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
+		},
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to kill deployment: %w", err)
+	}
 	return nil
 }
 

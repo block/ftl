@@ -16,8 +16,6 @@ import (
 
 // ApplyEvent applies an event to the schema state
 func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) (SchemaState, error) {
-	logger := log.FromContext(ctx)
-	logger.Infof("applying event: %T%v", event, event)
 	switch e := event.(type) {
 	case *schema.DeploymentCreatedEvent:
 		return handleDeploymentCreatedEvent(r, e)
@@ -214,7 +212,7 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 		t.deployments[deploymentKey] = mod
 		t.provisioning[mod.Name] = deploymentKey
 	}
-	t.changesets[e.Changeset.Key] = &changesetDetails{
+	t.changesets[e.Changeset.Key] = &ChangesetDetails{
 		Key:         e.Changeset.Key,
 		CreatedAt:   e.Changeset.CreatedAt,
 		Deployments: deployments,

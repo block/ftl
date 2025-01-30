@@ -157,8 +157,6 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 
 		logger.Debugf("Finished deployment for module %s", moduleName)
 
-		//deploymentKey := deployment.Module.Runtime.Deployment.DeploymentKey
-
 	}
 
 	//TODO: huge hack, this needs be be changed as it means all provisioning has to happen in a single goroutine

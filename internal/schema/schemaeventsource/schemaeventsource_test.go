@@ -38,8 +38,6 @@ func TestSchemaEventSource(t *testing.T) {
 	changes := New(ctx, rpc.Dial(ftlv1connect.NewSchemaServiceClient, bind.String(), log.Debug))
 
 	send := func(t testing.TB, resp *ftlv1.PullSchemaResponse) {
-		//resp.ModuleName = resp.Schema.Name
-		//resp.DeploymentKey = proto.String(key.NewDeploymentKey(resp.ModuleName).String())
 		select {
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
@@ -114,7 +112,7 @@ func TestSchemaEventSource(t *testing.T) {
 			More: false,
 			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
 				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-					Schema: (time1).ToProto(),
+					Schema: (echo1).ToProto(),
 				},
 			},
 		})
@@ -164,12 +162,12 @@ func TestSchemaEventSource(t *testing.T) {
 			More: false,
 			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
 				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-					Schema: (time2).ToProto(),
+					Schema: (echo1).ToProto(),
 				},
 			},
 		})
 
-		var expected Event = EventUpsert{Module: time2}
+		var expected Event = EventUpsert{Module: time2, more: true}
 		assertEqual(t, expected, recv(t))
 		expected = EventUpsert{Module: echo1, more: false}
 		actual := recv(t)

@@ -166,6 +166,7 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]cronJob, change s
 		}
 		logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), change.Module.Name)
 		cronJobs[change.Module.Name] = moduleJobs
+	default:
 	}
 	return nil
 }

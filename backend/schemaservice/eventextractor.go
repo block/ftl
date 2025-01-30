@@ -26,7 +26,7 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 	previousAllChangesets := previous.GetChangesets()
 	allChangesets := maps.Values(current.GetChangesets())
 	handledDeployments := map[key.Deployment]bool{}
-	slices.SortFunc(allChangesets, func(a, b *changesetDetails) int {
+	slices.SortFunc(allChangesets, func(a, b *ChangesetDetails) int {
 		return a.CreatedAt.Compare(b.CreatedAt)
 	})
 	for _, changeset := range allChangesets {

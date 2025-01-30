@@ -37,9 +37,8 @@ func New(ctx context.Context, changes schemaeventsource.EventSource) *RouteTable
 }
 
 func (r *RouteTable) run(ctx context.Context, changes schemaeventsource.EventSource) {
-	for event := range channels.IterContext(ctx, changes.Events()) {
+	for range channels.IterContext(ctx, changes.Events()) {
 		old := r.routes.Load()
-		log.FromContext(ctx).Infof("Updating routes %T%v", event, event)
 		routes := extractRoutes(ctx, changes.CanonicalView())
 		for module, rd := range old.moduleToDeployment {
 			if old.byDeployment[rd.String()] != routes.byDeployment[rd.String()] {

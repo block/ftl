@@ -12,6 +12,7 @@ type InsertClient func(context.Context, InsertRequest) (InsertResponse, error)
 func init() {
 	reflection.Register(
 		reflection.Database[MyDbConfig]("testdb", server.InitPostgres),
+
 		reflection.ProvideResourcesForVerb(
 			Insert,
 			server.DatabaseHandle[MyDbConfig]("postgres"),

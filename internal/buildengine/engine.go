@@ -435,7 +435,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					_ = e.BuildAndDeploy(ctx, 1, true, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
-				err := terminateModuleDeployment(ctx, e.deployClient, event.Config.Module)
+				err := terminateModuleDeployment(ctx, e.deployClient, e.schemaServiceClient, event.Config.Module)
 				if err != nil {
 					logger.Errorf(err, "terminate %s failed", event.Config.Module)
 				}
@@ -506,6 +506,8 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					logger.Infof("%s's schema changed; processing %s", event.Module.Name, strings.Join(dependentModuleNames, ", "))
 					_ = e.BuildAndDeploy(ctx, 1, true, dependentModuleNames...) //nolint:errcheck
 				}
+			default:
+
 			}
 
 		case event := <-e.rebuildEvents:
@@ -827,7 +829,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 	// Wait for all build attempts to complete
 	buildErr := buildGroup.Wait()
 	if buildErr != nil {
-		return buildErr
+		return fmt.Errorf("build failed: %w", buildErr)
 	}
 
 	err = Deploy(ctx, e.projectConfig, modulesToDeploy, replicas, waitForDeployOnline, e.deployClient, e.schemaServiceClient)

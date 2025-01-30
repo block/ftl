@@ -353,25 +353,6 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	return connect.NewResponse(resp), nil
 }
 
-//
-//func (s *Service) UpdateDeploy(ctx context.Context, req *connect.Request[ftlv1.UpdateDeployRequest]) (response *connect.Response[ftlv1.UpdateDeployResponse], err error) {
-//	deploymentKey, err := key.ParseDeploymentKey(req.Msg.DeploymentKey)
-//	if err != nil {
-//		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
-//	}
-//
-//	logger := s.getDeploymentLogger(ctx, deploymentKey)
-//	logger.Debugf("Update deployment for: %s", deploymentKey)
-//	if req.Msg.MinReplicas != nil {
-//		err = s.setDeploymentReplicas(ctx, deploymentKey, int(*req.Msg.MinReplicas))
-//		if err != nil {
-//			logger.Errorf(err, "Could not set deployment replicas: %s", deploymentKey)
-//			return nil, fmt.Errorf("could not set deployment replicas: %w", err)
-//		}
-//	}
-//	return connect.NewResponse(&ftlv1.UpdateDeployResponse{}), nil
-//}
-
 func (s *Service) setDeploymentReplicas(ctx context.Context, key key.Deployment, minReplicas int) (err error) {
 	deployments, err := s.schemaClient.GetDeployments(ctx, connect.NewRequest(&ftlv1.GetDeploymentsRequest{}))
 

@@ -234,12 +234,11 @@ func (e EventSource) WaitForInitialSync(ctx context.Context) bool {
 // CanonicalView is the materialised view of the schema from "Events".
 func (e EventSource) CanonicalView() *schema.Schema { return e.view.Load() }
 
-// CanonicalView is the materialised view of the schema from "Events" taking into account active deployments in changesets.
+// LatestView is the materialised view of the schema from "Events" taking into account active deployments in changesets.
 func (e EventSource) LatestView() *schema.Schema {
 	return latestSchema(e.view.Load(), e.activeChangeset.Load())
 }
 
-// TODO: docs
 func (e EventSource) ActiveChangeset() optional.Option[*schema.Changeset] {
 	return e.activeChangeset.Load()
 }
