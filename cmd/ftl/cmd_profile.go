@@ -5,8 +5,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/alecthomas/types/either"
-
 	"github.com/block/ftl"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/providers"
@@ -60,9 +58,9 @@ func (profileListCmd) Run(project *profiles.Project) error {
 	for _, profile := range p {
 		attrs := []string{}
 		switch profile.Config.(type) {
-		case either.Left[profiles.LocalProfileConfig, profiles.RemoteProfileConfig]:
+		case profiles.LocalProfileConfig:
 			attrs = append(attrs, "local")
-		case either.Right[profiles.LocalProfileConfig, profiles.RemoteProfileConfig]:
+		case profiles.RemoteProfileConfig:
 			attrs = append(attrs, "remote")
 		}
 		if project.DefaultProfile() == profile.Name {
@@ -132,18 +130,18 @@ Create a new remote profile:
 }
 
 func (p profileNewCmd) Run(project *profiles.Project) error {
-	var config either.Either[profiles.LocalProfileConfig, profiles.RemoteProfileConfig]
+	var config profiles.ProfileConfigKind
 	switch {
 	case p.Local:
-		config = either.LeftOf[profiles.RemoteProfileConfig](profiles.LocalProfileConfig{
+		config = profiles.LocalProfileConfig{
 			SecretsProvider: p.Secrets,
 			ConfigProvider:  p.Configuration,
-		})
+		}
 
 	case p.Remote != nil:
-		config = either.RightOf[profiles.LocalProfileConfig](profiles.RemoteProfileConfig{
+		config = profiles.RemoteProfileConfig{
 			Endpoint: p.Remote,
-		})
+		}
 	}
 	err := project.New(profiles.ProfileConfig{
 		Name:   p.Name,
