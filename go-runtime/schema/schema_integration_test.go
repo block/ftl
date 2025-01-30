@@ -518,6 +518,9 @@ func testParsedirectives(t *testing.T) {
 }
 
 func testErrorReporting(t *testing.T) {
+}
+
+func TestErrorReporting(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -585,8 +588,10 @@ func testErrorReporting(t *testing.T) {
 		`174:2-12: struct field unexported must be exported by starting with an uppercase letter`,
 		`178:6: unsupported type "ftl/failing/child.BadChildStruct" for field "child"`,
 		`183:6: duplicate data declaration for "failing.Redeclared"; already declared at "27:6"`,
-		`200:9: direct verb calls are not allowed; use the provided EmptyClient instead. See https://block.github.io/ftl/docs/reference/verbs/#calling-verbs`,
-		`204:6-76: single partition map can not have more than one partition`,
+		`197:2-43: Enum value must be exported by making the first letter capitalized`,
+		`198:2-41: Enum value must be exported by making the first letter capitalized`,
+		`208:9: direct verb calls are not allowed; use the provided EmptyClient instead. See https://block.github.io/ftl/docs/reference/verbs/#calling-verbs`,
+		`212:6-76: single partition map can not have more than one partition`,
 	}
 
 	// failing/child/child.go

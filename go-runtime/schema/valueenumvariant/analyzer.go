@@ -5,6 +5,8 @@ import (
 	"go/token"
 	"go/types"
 	"strconv"
+	"strings"
+	"unicode"
 
 	"github.com/alecthomas/types/optional"
 
@@ -74,9 +76,17 @@ func extractEnumVariant(pass *analysis.Pass, node *ast.ValueSpec) {
 	if !ok {
 		return
 	}
+	name := c.Id()
+	nameComponents := strings.Split(name, ".")
+	if !unicode.IsUpper(rune(nameComponents[len(nameComponents)-1][0])) {
+		// First letter must be a capital
+		common.Errorf(pass, node, "Enum value must be exported by making the first letter capitalized")
+		return
+	}
+	name = strcase.ToUpperCamel(name)
 	variant := &schema.EnumVariant{
 		Pos:   common.GoPosToSchemaPos(pass.Fset, c.Pos()),
-		Name:  strcase.ToUpperCamel(c.Id()),
+		Name:  name,
 		Value: value,
 	}
 	if md, ok := common.GetFactForObject[*common.ExtractedMetadata](pass, obj).Get(); ok {
