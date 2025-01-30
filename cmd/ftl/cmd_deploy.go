@@ -7,6 +7,7 @@ import (
 
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/internal/buildengine"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
@@ -24,6 +25,7 @@ func (d *deployCmd) Run(
 	provisionerClient provisionerconnect.ProvisionerServiceClient,
 	schemaSourceFactory func() schemaeventsource.EventSource,
 ) error {
+	logger := log.FromContext(ctx)
 	// Cancel build engine context to ensure all language plugins are killed.
 	if d.Timeout > 0 {
 		var cancel context.CancelFunc //nolint: forbidigo
@@ -42,7 +44,10 @@ func (d *deployCmd) Run(
 	if err != nil {
 		return err
 	}
-
+	if len(engine.Modules()) == 0 {
+		logger.Warnf("No modules were found to deploy")
+		return nil
+	}
 	err = engine.BuildAndDeploy(ctx, d.Replicas, !d.NoWait)
 	if err != nil {
 		return fmt.Errorf("failed to deploy: %w", err)

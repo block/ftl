@@ -8,6 +8,7 @@ import (
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal/buildengine"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
@@ -25,6 +26,7 @@ func (b *buildCmd) Run(
 	schemaSourceFactory func() schemaeventsource.EventSource,
 	projConfig projectconfig.Config,
 ) error {
+	logger := log.FromContext(ctx)
 	if len(b.Dirs) == 0 {
 		b.Dirs = projConfig.AbsModuleDirs()
 	}
@@ -47,6 +49,10 @@ func (b *buildCmd) Run(
 	)
 	if err != nil {
 		return err
+	}
+	if len(engine.Modules()) == 0 {
+		logger.Warnf("No modules were found to build")
+		return nil
 	}
 	if err := engine.Build(ctx); err != nil {
 		return fmt.Errorf("build failed: %w", err)
