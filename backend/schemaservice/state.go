@@ -3,10 +3,14 @@ package schemaservice
 import (
 	"context"
 	"fmt"
+	"io"
 	"maps"
 	"slices"
 	"sync"
 
+	"google.golang.org/protobuf/proto"
+
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
@@ -38,6 +42,44 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 	})
 
 	return statemachine.NewSingleQueryHandle(handle, struct{}{})
+}
+
+func (r *SchemaState) Marshal() ([]byte, error) {
+	state := &schema.SchemaState{
+		Modules: append(slices.Collect(maps.Values(r.deployments)), slices.Collect(maps.Values(r.provisioning))...),
+	}
+	stateProto := state.ToProto()
+	bytes, err := proto.Marshal(stateProto)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal schema state: %w", err)
+	}
+	return bytes, nil
+}
+
+func (r *SchemaState) Unmarshal(data []byte) error {
+	stateProto := &schemapb.SchemaState{}
+	if err := proto.Unmarshal(data, stateProto); err != nil {
+		return fmt.Errorf("failed to unmarshal schema state: %w", err)
+	}
+
+	state, err := schema.SchemaStateFromProto(stateProto)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal schema state: %w", err)
+	}
+
+	for _, module := range state.Modules {
+		dkey := module.GetRuntime().GetDeployment().GetDeploymentKey()
+		if dkey.IsZero() {
+			r.provisioning[module.Name] = module
+		} else {
+			r.deployments[dkey] = module
+			if module.GetRuntime().GetDeployment().ActivatedAt.Ok() {
+				r.activeDeployments[dkey] = true
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *SchemaState) GetDeployment(deployment key.Deployment) (*schema.Module, error) {
@@ -83,6 +125,7 @@ type schemaStateMachine struct {
 	lock sync.Mutex
 }
 
+var _ statemachine.Snapshotting[struct{}, SchemaState, schema.Event] = &schemaStateMachine{}
 var _ statemachine.Listenable[struct{}, SchemaState, schema.Event] = &schemaStateMachine{}
 
 func (c *schemaStateMachine) Lookup(key struct{}) (SchemaState, error) {
@@ -106,4 +149,31 @@ func (c *schemaStateMachine) Publish(msg schema.Event) error {
 
 func (c *schemaStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, error) {
 	return c.notifier.Subscribe(), nil
+}
+
+func (c *schemaStateMachine) Close() error {
+	return nil
+}
+
+func (c *schemaStateMachine) Recover(snapshot io.Reader) error {
+	snapshotBytes, err := io.ReadAll(snapshot)
+	if err != nil {
+		return fmt.Errorf("failed to read snapshot: %w", err)
+	}
+	if err := c.state.Unmarshal(snapshotBytes); err != nil {
+		return fmt.Errorf("failed to unmarshal snapshot: %w", err)
+	}
+	return nil
+}
+
+func (c *schemaStateMachine) Save(w io.Writer) error {
+	snapshotBytes, err := c.state.Marshal()
+	if err != nil {
+		return fmt.Errorf("failed to marshal snapshot: %w", err)
+	}
+	_, err = w.Write(snapshotBytes)
+	if err != nil {
+		return fmt.Errorf("failed to write snapshot: %w", err)
+	}
+	return nil
 }

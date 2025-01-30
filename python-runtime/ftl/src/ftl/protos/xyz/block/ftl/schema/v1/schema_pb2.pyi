@@ -649,6 +649,12 @@ class Schema(_message.Message):
     modules: _containers.RepeatedCompositeFieldContainer[Module]
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ...) -> None: ...
 
+class SchemaState(_message.Message):
+    __slots__ = ("modules",)
+    MODULES_FIELD_NUMBER: _ClassVar[int]
+    modules: _containers.RepeatedCompositeFieldContainer[Module]
+    def __init__(self, modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ...) -> None: ...
+
 class Secret(_message.Message):
     __slots__ = ("pos", "comments", "name", "type")
     POS_FIELD_NUMBER: _ClassVar[int]

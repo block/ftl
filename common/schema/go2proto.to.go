@@ -2056,6 +2056,27 @@ func SchemaFromProto(v *destpb.Schema) (out *Schema, err error) {
 	return out, nil
 }
 
+func (x *SchemaState) ToProto() *destpb.SchemaState {
+	if x == nil {
+		return nil
+	}
+	return &destpb.SchemaState{
+		Modules: sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+	}
+}
+
+func SchemaStateFromProto(v *destpb.SchemaState) (out *SchemaState, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &SchemaState{}
+	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Modules: %w", err)
+	}
+	return out, nil
+}
+
 func (x *Secret) ToProto() *destpb.Secret {
 	if x == nil {
 		return nil
