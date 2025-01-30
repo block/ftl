@@ -7,8 +7,6 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/alecthomas/types/either"
-
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
@@ -50,18 +48,25 @@ func (p *Profile) SecretsManager() *manager.Manager[configuration.Secrets] { ret
 // ConfigurationManager returns the configuration manager for this profile.
 func (p *Profile) ConfigurationManager() *manager.Manager[configuration.Configuration] { return p.cm }
 
+//sumtype:decl
+type ProfileConfigKind interface{ profileKind() }
+
 type LocalProfileConfig struct {
 	SecretsProvider configuration.ProviderKey
 	ConfigProvider  configuration.ProviderKey
 }
 
+func (LocalProfileConfig) profileKind() {}
+
 type RemoteProfileConfig struct {
 	Endpoint *url.URL
 }
 
+func (RemoteProfileConfig) profileKind() {}
+
 type ProfileConfig struct {
 	Name   string
-	Config either.Either[LocalProfileConfig, RemoteProfileConfig]
+	Config ProfileConfigKind
 }
 
 func (p ProfileConfig) String() string { return p.Name }
@@ -164,21 +169,21 @@ func (p *Project) List() ([]ProfileConfig, error) {
 		return nil, fmt.Errorf("load profiles: %w", err)
 	}
 	configs, err := slices.MapErr(profiles, func(profile internal.Profile) (ProfileConfig, error) {
-		var config either.Either[LocalProfileConfig, RemoteProfileConfig]
+		var config ProfileConfigKind
 		switch profile.Type {
 		case internal.ProfileTypeLocal:
-			config = either.LeftOf[RemoteProfileConfig](LocalProfileConfig{
+			config = LocalProfileConfig{
 				SecretsProvider: profile.SecretsProvider,
 				ConfigProvider:  profile.ConfigProvider,
-			})
+			}
 		case internal.ProfileTypeRemote:
 			endpoint, err := profile.EndpointURL()
 			if err != nil {
 				return ProfileConfig{}, fmt.Errorf("profile endpoint: %w", err)
 			}
-			config = either.RightOf[LocalProfileConfig](RemoteProfileConfig{
+			config = RemoteProfileConfig{
 				Endpoint: endpoint,
-			})
+			}
 		}
 		return ProfileConfig{
 			Name:   profile.Name,
@@ -202,9 +207,8 @@ func (p *Project) New(profileConfig ProfileConfig) error {
 		return fmt.Errorf("profile %s already exists", profileConfig.Name)
 	}
 	var profile internal.Profile
-	switch handle := profileConfig.Config.(type) {
-	case either.Left[LocalProfileConfig, RemoteProfileConfig]:
-		config := handle.Get()
+	switch config := profileConfig.Config.(type) {
+	case LocalProfileConfig:
 		profile = internal.Profile{
 			Name:            profileConfig.Name,
 			Type:            internal.ProfileTypeLocal,
@@ -212,8 +216,7 @@ func (p *Project) New(profileConfig ProfileConfig) error {
 			ConfigProvider:  config.ConfigProvider,
 		}
 
-	case either.Right[LocalProfileConfig, RemoteProfileConfig]:
-		config := handle.Get()
+	case RemoteProfileConfig:
 		profile = internal.Profile{
 			Name:     profileConfig.Name,
 			Endpoint: config.Endpoint.String(),
