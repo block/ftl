@@ -44,6 +44,7 @@ func TestAddQueriesToSchema(t *testing.T) {
 			break
 		}
 	}
+	schema.SortModuleDecls(actual)
 
 	expected := &schema.Module{
 		Name: "test",
