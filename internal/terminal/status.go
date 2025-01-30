@@ -165,9 +165,9 @@ func NewStatusManager(ctx context.Context) StatusManager {
 				}
 				if !closed {
 					sm.statusLock.Lock()
-					defer sm.statusLock.Unlock()
 					sm.clearStatusMessages()
 					sm.exitWait.Done()
+					sm.statusLock.Unlock()
 				}
 				return
 			}
@@ -186,10 +186,10 @@ func NewStatusManager(ctx context.Context) StatusManager {
 					sm.writeLine(current, true)
 					if !closed {
 						sm.statusLock.Lock()
-						defer sm.statusLock.Unlock()
 						sm.clearStatusMessages()
 						sm.exitWait.Done()
 						closed = true
+						sm.statusLock.Unlock()
 					}
 					continue
 				}
