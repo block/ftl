@@ -243,10 +243,15 @@ var validNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 // ValidateName validates an FTL name.
 func ValidateName(name string) bool {
+	return validNameRe.MatchString(name)
+}
+
+// ValidateName validates an FTL name.
+func ValidateModuleName(name string) bool {
 	if token.Lookup(name).IsKeyword() {
 		return false
 	}
-	return validNameRe.MatchString(name)
+	return ValidateName(name)
 }
 
 // Validate performs the subset of semantic validation possible on a single module.
@@ -257,7 +262,7 @@ func (m *Module) Validate() error {
 
 	scopes := NewScopes()
 
-	if !ValidateName(m.Name) {
+	if !ValidateModuleName(m.Name) {
 		merr = append(merr, errorf(m, "module name %q is invalid", m.Name))
 	}
 	if m.Builtin && m.Name != "builtin" {

@@ -90,7 +90,7 @@ func validateModule(dir string, name string) (string, string, error) {
 	if name == "" {
 		name = filepath.Base(dir)
 	}
-	if !schema.ValidateName(name) {
+	if !schema.ValidateModuleName(name) {
 		return "", "", fmt.Errorf("module name %q is invalid", name)
 	}
 	path := filepath.Join(dir, name)
