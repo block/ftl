@@ -190,6 +190,14 @@ const (
 	SameVariant EnumVariantConflictParent = iota
 )
 
+//ftl:enum
+type UncapitalizedEnumValues string
+
+const (
+	animal UncapitalizedEnumValues = "animal"
+	bird   UncapitalizedEnumValues = "bird"
+)
+
 //ftl:verb
 func Empty(ctx context.Context) error {
 	return nil
