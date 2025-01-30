@@ -3152,6 +3152,11 @@ export class SchemaState extends Message<SchemaState> {
    */
   modules: Module[] = [];
 
+  /**
+   * @generated from field: repeated string active_deployments = 2;
+   */
+  activeDeployments: string[] = [];
+
   constructor(data?: PartialMessage<SchemaState>) {
     super();
     proto3.util.initPartial(data, this);
@@ -3161,6 +3166,7 @@ export class SchemaState extends Message<SchemaState> {
   static readonly typeName = "xyz.block.ftl.schema.v1.SchemaState";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
+    { no: 2, name: "active_deployments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SchemaState {

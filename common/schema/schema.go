@@ -279,5 +279,6 @@ func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
 //
 //protobuf:export
 type SchemaState struct {
-	Modules []*Module `protobuf:"1"`
+	Modules           []*Module `protobuf:"1"`
+	ActiveDeployments []string  `protobuf:"2"`
 }
