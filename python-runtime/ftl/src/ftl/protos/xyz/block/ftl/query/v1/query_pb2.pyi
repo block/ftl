@@ -1,4 +1,3 @@
-from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -64,39 +63,29 @@ class RollbackTransactionResponse(_message.Message):
     status: TransactionStatus
     def __init__(self, status: _Optional[_Union[TransactionStatus, str]] = ...) -> None: ...
 
-class SQLValue(_message.Message):
-    __slots__ = ("string_value", "int_value", "float_value", "bool_value", "bytes_value", "timestamp_value", "null_value")
-    STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
-    INT_VALUE_FIELD_NUMBER: _ClassVar[int]
-    FLOAT_VALUE_FIELD_NUMBER: _ClassVar[int]
-    BOOL_VALUE_FIELD_NUMBER: _ClassVar[int]
-    BYTES_VALUE_FIELD_NUMBER: _ClassVar[int]
-    TIMESTAMP_VALUE_FIELD_NUMBER: _ClassVar[int]
-    NULL_VALUE_FIELD_NUMBER: _ClassVar[int]
-    string_value: str
-    int_value: int
-    float_value: float
-    bool_value: bool
-    bytes_value: bytes
-    timestamp_value: _timestamp_pb2.Timestamp
-    null_value: bool
-    def __init__(self, string_value: _Optional[str] = ..., int_value: _Optional[int] = ..., float_value: _Optional[float] = ..., bool_value: bool = ..., bytes_value: _Optional[bytes] = ..., timestamp_value: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., null_value: bool = ...) -> None: ...
+class ResultColumn(_message.Message):
+    __slots__ = ("type_name", "sql_name")
+    TYPE_NAME_FIELD_NUMBER: _ClassVar[int]
+    SQL_NAME_FIELD_NUMBER: _ClassVar[int]
+    type_name: str
+    sql_name: str
+    def __init__(self, type_name: _Optional[str] = ..., sql_name: _Optional[str] = ...) -> None: ...
 
 class ExecuteQueryRequest(_message.Message):
-    __slots__ = ("raw_sql", "command_type", "parameters", "result_columns", "transaction_id", "batch_size")
+    __slots__ = ("raw_sql", "command_type", "parameters_json", "result_columns", "transaction_id", "batch_size")
     RAW_SQL_FIELD_NUMBER: _ClassVar[int]
     COMMAND_TYPE_FIELD_NUMBER: _ClassVar[int]
-    PARAMETERS_FIELD_NUMBER: _ClassVar[int]
+    PARAMETERS_JSON_FIELD_NUMBER: _ClassVar[int]
     RESULT_COLUMNS_FIELD_NUMBER: _ClassVar[int]
     TRANSACTION_ID_FIELD_NUMBER: _ClassVar[int]
     BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
     raw_sql: str
     command_type: CommandType
-    parameters: _containers.RepeatedCompositeFieldContainer[SQLValue]
-    result_columns: _containers.RepeatedScalarFieldContainer[str]
+    parameters_json: str
+    result_columns: _containers.RepeatedCompositeFieldContainer[ResultColumn]
     transaction_id: str
     batch_size: int
-    def __init__(self, raw_sql: _Optional[str] = ..., command_type: _Optional[_Union[CommandType, str]] = ..., parameters: _Optional[_Iterable[_Union[SQLValue, _Mapping]]] = ..., result_columns: _Optional[_Iterable[str]] = ..., transaction_id: _Optional[str] = ..., batch_size: _Optional[int] = ...) -> None: ...
+    def __init__(self, raw_sql: _Optional[str] = ..., command_type: _Optional[_Union[CommandType, str]] = ..., parameters_json: _Optional[str] = ..., result_columns: _Optional[_Iterable[_Union[ResultColumn, _Mapping]]] = ..., transaction_id: _Optional[str] = ..., batch_size: _Optional[int] = ...) -> None: ...
 
 class ExecuteQueryResponse(_message.Message):
     __slots__ = ("exec_result", "row_results")
@@ -115,16 +104,9 @@ class ExecResult(_message.Message):
     def __init__(self, rows_affected: _Optional[int] = ..., last_insert_id: _Optional[int] = ...) -> None: ...
 
 class RowResults(_message.Message):
-    __slots__ = ("rows", "has_more")
-    class RowsEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: SQLValue
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[SQLValue, _Mapping]] = ...) -> None: ...
-    ROWS_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("json_rows", "has_more")
+    JSON_ROWS_FIELD_NUMBER: _ClassVar[int]
     HAS_MORE_FIELD_NUMBER: _ClassVar[int]
-    rows: _containers.MessageMap[str, SQLValue]
+    json_rows: str
     has_more: bool
-    def __init__(self, rows: _Optional[_Mapping[str, SQLValue]] = ..., has_more: bool = ...) -> None: ...
+    def __init__(self, json_rows: _Optional[str] = ..., has_more: bool = ...) -> None: ...

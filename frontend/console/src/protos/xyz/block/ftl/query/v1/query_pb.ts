@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
+import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 
 /**
  * @generated from enum xyz.block.ftl.query.v1.TransactionStatus
@@ -287,91 +287,49 @@ export class RollbackTransactionResponse extends Message<RollbackTransactionResp
 }
 
 /**
- * A value that can be used as a SQL parameter
- *
- * @generated from message xyz.block.ftl.query.v1.SQLValue
+ * @generated from message xyz.block.ftl.query.v1.ResultColumn
  */
-export class SQLValue extends Message<SQLValue> {
+export class ResultColumn extends Message<ResultColumn> {
   /**
-   * @generated from oneof xyz.block.ftl.query.v1.SQLValue.value
+   * The name in the FTL-generated type
+   *
+   * @generated from field: string type_name = 1;
    */
-  value: {
-    /**
-     * @generated from field: string string_value = 1;
-     */
-    value: string;
-    case: "stringValue";
-  } | {
-    /**
-     * @generated from field: int64 int_value = 2;
-     */
-    value: bigint;
-    case: "intValue";
-  } | {
-    /**
-     * @generated from field: double float_value = 3;
-     */
-    value: number;
-    case: "floatValue";
-  } | {
-    /**
-     * @generated from field: bool bool_value = 4;
-     */
-    value: boolean;
-    case: "boolValue";
-  } | {
-    /**
-     * @generated from field: bytes bytes_value = 5;
-     */
-    value: Uint8Array;
-    case: "bytesValue";
-  } | {
-    /**
-     * @generated from field: google.protobuf.Timestamp timestamp_value = 6;
-     */
-    value: Timestamp;
-    case: "timestampValue";
-  } | {
-    /**
-     * Set to true to represent NULL
-     *
-     * @generated from field: bool null_value = 7;
-     */
-    value: boolean;
-    case: "nullValue";
-  } | { case: undefined; value?: undefined } = { case: undefined };
+  typeName = "";
 
-  constructor(data?: PartialMessage<SQLValue>) {
+  /**
+   * The database column name
+   *
+   * @generated from field: string sql_name = 2;
+   */
+  sqlName = "";
+
+  constructor(data?: PartialMessage<ResultColumn>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.query.v1.SQLValue";
+  static readonly typeName = "xyz.block.ftl.query.v1.ResultColumn";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "string_value", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
-    { no: 2, name: "int_value", kind: "scalar", T: 3 /* ScalarType.INT64 */, oneof: "value" },
-    { no: 3, name: "float_value", kind: "scalar", T: 1 /* ScalarType.DOUBLE */, oneof: "value" },
-    { no: 4, name: "bool_value", kind: "scalar", T: 8 /* ScalarType.BOOL */, oneof: "value" },
-    { no: 5, name: "bytes_value", kind: "scalar", T: 12 /* ScalarType.BYTES */, oneof: "value" },
-    { no: 6, name: "timestamp_value", kind: "message", T: Timestamp, oneof: "value" },
-    { no: 7, name: "null_value", kind: "scalar", T: 8 /* ScalarType.BOOL */, oneof: "value" },
+    { no: 1, name: "type_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "sql_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SQLValue {
-    return new SQLValue().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ResultColumn {
+    return new ResultColumn().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SQLValue {
-    return new SQLValue().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ResultColumn {
+    return new ResultColumn().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SQLValue {
-    return new SQLValue().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ResultColumn {
+    return new ResultColumn().fromJsonString(jsonString, options);
   }
 
-  static equals(a: SQLValue | PlainMessage<SQLValue> | undefined, b: SQLValue | PlainMessage<SQLValue> | undefined): boolean {
-    return proto3.util.equals(SQLValue, a, b);
+  static equals(a: ResultColumn | PlainMessage<ResultColumn> | undefined, b: ResultColumn | PlainMessage<ResultColumn> | undefined): boolean {
+    return proto3.util.equals(ResultColumn, a, b);
   }
 }
 
@@ -390,18 +348,18 @@ export class ExecuteQueryRequest extends Message<ExecuteQueryRequest> {
   commandType = CommandType.UNSPECIFIED;
 
   /**
-   * SQL parameter values in order
+   * JSON array of parameter values in order
    *
-   * @generated from field: repeated xyz.block.ftl.query.v1.SQLValue parameters = 3;
+   * @generated from field: string parameters_json = 3;
    */
-  parameters: SQLValue[] = [];
+  parametersJson = "";
 
   /**
    * Column names to scan for the result type
    *
-   * @generated from field: repeated string result_columns = 6;
+   * @generated from field: repeated xyz.block.ftl.query.v1.ResultColumn result_columns = 6;
    */
-  resultColumns: string[] = [];
+  resultColumns: ResultColumn[] = [];
 
   /**
    * @generated from field: optional string transaction_id = 4;
@@ -425,8 +383,8 @@ export class ExecuteQueryRequest extends Message<ExecuteQueryRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "raw_sql", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "command_type", kind: "enum", T: proto3.getEnumType(CommandType) },
-    { no: 3, name: "parameters", kind: "message", T: SQLValue, repeated: true },
-    { no: 6, name: "result_columns", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 3, name: "parameters_json", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "result_columns", kind: "message", T: ResultColumn, repeated: true },
     { no: 4, name: "transaction_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 5, name: "batch_size", kind: "scalar", T: 5 /* ScalarType.INT32 */, opt: true },
   ]);
@@ -552,11 +510,11 @@ export class ExecResult extends Message<ExecResult> {
  */
 export class RowResults extends Message<RowResults> {
   /**
-   * Each row is a map of column name to value
+   * JSON object mapping column names to values
    *
-   * @generated from field: map<string, xyz.block.ftl.query.v1.SQLValue> rows = 1;
+   * @generated from field: string json_rows = 1;
    */
-  rows: { [key: string]: SQLValue } = {};
+  jsonRows = "";
 
   /**
    * Indicates if there are more rows to fetch
@@ -573,7 +531,7 @@ export class RowResults extends Message<RowResults> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.query.v1.RowResults";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "rows", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: SQLValue} },
+    { no: 1, name: "json_rows", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "has_more", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 

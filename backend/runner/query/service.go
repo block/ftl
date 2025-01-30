@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -16,11 +17,11 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/puzpuzpuz/xsync/v3"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	querypb "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1"
 	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 )
@@ -99,9 +100,9 @@ type Service struct {
 
 // DB represents a database that can execute queries
 type DB interface {
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
 func New(ctx context.Context, config Config) (*Service, error) {
@@ -221,9 +222,14 @@ func (s *Service) SetEndpoint(endpoint *url.URL) {
 }
 
 func (s *Service) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQueryRequest, stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
+	params, err := parseJSONParameters(req.GetParametersJson())
+	if err != nil {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to parse parameters: %w", err))
+	}
+
 	switch req.CommandType {
 	case querypb.CommandType_COMMAND_TYPE_EXEC:
-		result, err := db.ExecContext(ctx, req.RawSql, convertParameters(req.Parameters)...)
+		result, err := db.ExecContext(ctx, req.RawSql, params...)
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to execute query: %w", err))
 		}
@@ -235,21 +241,24 @@ func (s *Service) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQ
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get last insert id: %w", err))
 		}
-		err = stream.Send(&querypb.ExecuteQueryResponse{
+
+		protoResp := &querypb.ExecuteQueryResponse{
 			Result: &querypb.ExecuteQueryResponse_ExecResult{
 				ExecResult: &querypb.ExecResult{
 					RowsAffected: rowsAffected,
 					LastInsertId: &lastInsertID,
 				},
 			},
-		})
+		}
+
+		err = stream.Send(protoResp)
 		if err != nil {
 			return fmt.Errorf("failed to send exec result: %w", err)
 		}
 
 	case querypb.CommandType_COMMAND_TYPE_ONE:
-		row := db.QueryRowContext(ctx, req.RawSql, convertParameters(req.Parameters)...)
-		result, err := scanRowToMap(row, req.ResultColumns)
+		row := db.QueryRowContext(ctx, req.RawSql, params...)
+		jsonRows, err := scanRowToMap(row, req.ResultColumns)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return handleNoRows(stream)
@@ -257,19 +266,22 @@ func (s *Service) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQ
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		err = stream.Send(&querypb.ExecuteQueryResponse{
+		protoResp := &querypb.ExecuteQueryResponse{
 			Result: &querypb.ExecuteQueryResponse_RowResults{
 				RowResults: &querypb.RowResults{
-					Rows: result,
+					JsonRows: jsonRows,
+					HasMore:  false,
 				},
 			},
-		})
+		}
+
+		err = stream.Send(protoResp)
 		if err != nil {
 			return fmt.Errorf("failed to send row results: %w", err)
 		}
 
 	case querypb.CommandType_COMMAND_TYPE_MANY:
-		rows, err := db.QueryContext(ctx, req.RawSql, convertParameters(req.Parameters)...)
+		rows, err := db.QueryContext(ctx, req.RawSql, params...)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return handleNoRows(stream)
@@ -285,21 +297,24 @@ func (s *Service) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQ
 		}
 
 		for rows.Next() {
-			result, err := scanRowToMap(rows, req.ResultColumns)
+			jsonRows, err := scanRowToMap(rows, req.ResultColumns)
 			if err != nil {
 				return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to scan row: %w", err))
 			}
 
 			rowCount++
 			hasMore := rowCount < batchSize
-			if err := stream.Send(&querypb.ExecuteQueryResponse{
+
+			protoResp := &querypb.ExecuteQueryResponse{
 				Result: &querypb.ExecuteQueryResponse_RowResults{
 					RowResults: &querypb.RowResults{
-						Rows:    result,
-						HasMore: hasMore,
+						JsonRows: jsonRows,
+						HasMore:  hasMore,
 					},
 				},
-			}); err != nil {
+			}
+
+			if err := stream.Send(protoResp); err != nil {
 				return fmt.Errorf("failed to send row results: %w", err)
 			}
 
@@ -313,10 +328,57 @@ func (s *Service) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQ
 	return nil
 }
 
-// scanRowToMap scans a row into a map[string]*querypb.SQLValue where keys are column names and values are the row values
-func scanRowToMap(row any, resultColumns []string) (map[string]*querypb.SQLValue, error) {
+func parseJSONParameters(paramsJSON string) ([]any, error) {
+	if paramsJSON == "" {
+		return nil, nil
+	}
+
+	var params []any
+	if err := encoding.Unmarshal([]byte(paramsJSON), &params); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+	}
+
+	for i, param := range params {
+		if str, ok := param.(string); ok {
+			// Convert string to time.Time if it matches a known format
+			if t, err := parseTimeString(str); err == nil {
+				params[i] = t
+			}
+		}
+	}
+
+	return params, nil
+}
+
+// parseTimeString attempts to parse a time string in various formats
+func parseTimeString(s string) (time.Time, error) {
+	formats := []string{
+		time.RFC3339,     // 2024-01-01T12:00:00Z
+		time.RFC3339Nano, // 2024-01-01T12:00:00.000Z
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	}
+
+	for _, format := range formats {
+		if t, err := time.Parse(format, s); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("could not parse time string: %s", s)
+}
+
+// scanRowToMap scans a row and returns a JSON string representation
+func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error) {
 	if len(resultColumns) == 0 {
-		return nil, fmt.Errorf("result_columns required for scanning rows")
+		return "", fmt.Errorf("result_columns required for scanning rows")
+	}
+
+	typeNameBySQLName := make(map[string]string)
+	sqlColumns := make([]string, 0, len(resultColumns))
+	for _, col := range resultColumns {
+		sqlColumns = append(sqlColumns, col.SqlName)
+		typeNameBySQLName[col.SqlName] = col.TypeName
 	}
 
 	// Get column names from the row
@@ -326,20 +388,19 @@ func scanRowToMap(row any, resultColumns []string) (map[string]*querypb.SQLValue
 		var err error
 		dbColumns, err = r.Columns()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get column names: %w", err)
+			return "", fmt.Errorf("failed to get column names: %w", err)
 		}
 	case *sql.Row:
 		// For sql.Row we can't get column names, but we know they must match our query
-		dbColumns = resultColumns
+		dbColumns = sqlColumns
 	default:
-		return nil, fmt.Errorf("unsupported row type: %T", row)
+		return "", fmt.Errorf("unsupported row type: %T", row)
 	}
 
 	if len(dbColumns) != len(resultColumns) {
-		return nil, fmt.Errorf("column count mismatch: got %d columns from DB but expected %d columns", len(dbColumns), len(resultColumns))
+		return "", fmt.Errorf("column count mismatch: got %d columns from DB but expected %d columns", len(dbColumns), len(resultColumns))
 	}
 
-	// Create value slices for scanning
 	values := make([]any, len(dbColumns))
 	valuePointers := make([]any, len(dbColumns))
 	for i := range values {
@@ -354,83 +415,57 @@ func scanRowToMap(row any, resultColumns []string) (map[string]*querypb.SQLValue
 		err = r.Scan(valuePointers...)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to scan row: %w", err)
+		return "", fmt.Errorf("failed to scan row: %w", err)
 	}
 
-	result := make(map[string]*querypb.SQLValue)
+	// create a result struct which will be encoded to JSON
+	structFields := make([]reflect.StructField, len(resultColumns))
+	for i, col := range resultColumns {
+		structFields[i] = reflect.StructField{
+			Name: col.TypeName,
+			Type: reflect.TypeFor[any](),
+		}
+	}
+
+	structType := reflect.StructOf(structFields)
+	structValue := reflect.New(structType).Elem()
 	for i, val := range values {
-		col := dbColumns[i]
+		typeName := typeNameBySQLName[dbColumns[i]]
 		if val == nil {
-			result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_NullValue{NullValue: true}}
 			continue
 		}
 
+		var fieldValue any
 		switch v := val.(type) {
 		case []byte:
-			result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_BytesValue{BytesValue: v}}
-		case string:
-			result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_StringValue{StringValue: v}}
-		case int64:
-			result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_IntValue{IntValue: v}}
-		case uint64:
-			result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_IntValue{IntValue: int64(v)}}
-		case float64:
-			result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_FloatValue{FloatValue: v}}
-		case bool:
-			result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_BoolValue{BoolValue: v}}
-		case time.Time:
-			result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_TimestampValue{TimestampValue: timestamppb.New(v)}}
-		default:
-			// Try to convert numeric types
-			if iv, ok := val.(int); ok {
-				result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_IntValue{IntValue: int64(iv)}}
-			} else if iv32, ok := val.(int32); ok {
-				result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_IntValue{IntValue: int64(iv32)}}
-			} else if uv, ok := val.(uint); ok {
-				result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_IntValue{IntValue: int64(uv)}}
-			} else if uv32, ok := val.(uint32); ok {
-				result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_IntValue{IntValue: int64(uv32)}}
-			} else if fv32, ok := val.(float32); ok {
-				result[col] = &querypb.SQLValue{Value: &querypb.SQLValue_FloatValue{FloatValue: float64(fv32)}}
+			str := string(v)
+			if t, err := parseTimeString(str); err == nil {
+				fieldValue = t
 			} else {
-				return nil, fmt.Errorf("unsupported value type for column %s: %T with value %v", col, val, val)
+				fieldValue = str
 			}
-		}
-	}
-
-	return result, nil
-}
-
-func convertParameters(params []*querypb.SQLValue) []interface{} {
-	if params == nil {
-		return nil
-	}
-	result := make([]interface{}, len(params))
-	for i, p := range params {
-		if p == nil {
-			result[i] = nil
-			continue
-		}
-		switch v := p.Value.(type) {
-		case *querypb.SQLValue_StringValue:
-			result[i] = v.StringValue
-		case *querypb.SQLValue_IntValue:
-			result[i] = v.IntValue
-		case *querypb.SQLValue_FloatValue:
-			result[i] = v.FloatValue
-		case *querypb.SQLValue_BoolValue:
-			result[i] = v.BoolValue
-		case *querypb.SQLValue_BytesValue:
-			result[i] = v.BytesValue
-		case *querypb.SQLValue_TimestampValue:
-			result[i] = v.TimestampValue.AsTime()
-		case *querypb.SQLValue_NullValue:
-			result[i] = nil
+		case string:
+			if t, err := parseTimeString(v); err == nil {
+				fieldValue = t
+			} else {
+				fieldValue = v
+			}
 		default:
-			result[i] = nil
+			fieldValue = v
+		}
+
+		field := structValue.FieldByName(typeName)
+		if field.IsValid() {
+			field.Set(reflect.ValueOf(fieldValue))
 		}
 	}
-	return result
+
+	jsonBytes, err := encoding.Marshal(structValue.Interface())
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	return string(jsonBytes), nil
 }
 
 func getDriverName(engine string) string {
@@ -446,8 +481,8 @@ func handleNoRows(stream *connect.ServerStream[querypb.ExecuteQueryResponse]) er
 	err := stream.Send(&querypb.ExecuteQueryResponse{
 		Result: &querypb.ExecuteQueryResponse_RowResults{
 			RowResults: &querypb.RowResults{
-				Rows:    make(map[string]*querypb.SQLValue),
-				HasMore: false,
+				JsonRows: "",
+				HasMore:  false,
 			},
 		},
 	})
