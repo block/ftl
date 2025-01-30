@@ -772,16 +772,16 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 		configs := configsResp.Msg.Values
 		routeTable := map[string]string{}
 		for _, module := range callableModuleNames {
+			if module == deployment.Name {
+				continue
+			}
 			deployment, ok := routeView.GetDeployment(module).Get()
 			if !ok {
 				continue
 			}
-			if route, ok := routeView.Get(deployment).Get(); ok {
+			if route, ok := routeView.Get(deployment).Get(); ok && route.String() != "" {
 				routeTable[deployment.String()] = route.String()
 			}
-		}
-		if !deployment.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
-			routeTable[key.String()] = deployment.Runtime.Deployment.Endpoint
 		}
 
 		secretsResp, err := s.adminClient.MapSecretsForModule(ctx, &connect.Request[ftlv1.MapSecretsForModuleRequest]{Msg: &ftlv1.MapSecretsForModuleRequest{Module: module}})

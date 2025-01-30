@@ -356,7 +356,8 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
-	s.proxy = proxy.New(deploymentServiceClient, leaseServiceClient, s.timelineClient, s.queryServices)
+	s.proxy = proxy.New(deploymentServiceClient, leaseServiceClient, s.timelineClient, s.queryServices,
+		s.config.Bind.String(), s.config.Deployment)
 
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {
