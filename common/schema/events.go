@@ -14,6 +14,7 @@ import (
 //protobuf:export
 type Event interface {
 	event()
+	Validate() error
 }
 
 // deployment events
@@ -37,6 +38,10 @@ type DeploymentCreatedEvent struct {
 
 func (r *DeploymentCreatedEvent) event() {}
 
+func (r *DeploymentCreatedEvent) Validate() error {
+	return nil
+}
+
 //protobuf:2
 type DeploymentSchemaUpdatedEvent struct {
 	Key    key.Deployment `protobuf:"1"`
@@ -45,6 +50,10 @@ type DeploymentSchemaUpdatedEvent struct {
 
 func (r *DeploymentSchemaUpdatedEvent) event() {}
 
+func (r *DeploymentSchemaUpdatedEvent) Validate() error {
+	return nil
+}
+
 //protobuf:3
 type DeploymentReplicasUpdatedEvent struct {
 	Key      key.Deployment `protobuf:"1"`
@@ -52,6 +61,10 @@ type DeploymentReplicasUpdatedEvent struct {
 }
 
 func (r *DeploymentReplicasUpdatedEvent) event() {}
+
+func (r *DeploymentReplicasUpdatedEvent) Validate() error {
+	return nil
+}
 
 //protobuf:4
 type DeploymentActivatedEvent struct {
@@ -62,6 +75,10 @@ type DeploymentActivatedEvent struct {
 
 func (r *DeploymentActivatedEvent) event() {}
 
+func (r *DeploymentActivatedEvent) Validate() error {
+	return nil
+}
+
 //protobuf:5
 type DeploymentDeactivatedEvent struct {
 	Key           key.Deployment `protobuf:"1"`
@@ -69,6 +86,10 @@ type DeploymentDeactivatedEvent struct {
 }
 
 func (r *DeploymentDeactivatedEvent) event() {}
+
+func (r *DeploymentDeactivatedEvent) Validate() error {
+	return nil
+}
 
 //protobuf:6
 type VerbRuntimeEvent struct {
@@ -80,6 +101,10 @@ type VerbRuntimeEvent struct {
 
 func (e *VerbRuntimeEvent) event() {}
 
+func (e *VerbRuntimeEvent) Validate() error {
+	return nil
+}
+
 //protobuf:7
 type TopicRuntimeEvent struct {
 	Module  string        `protobuf:"1"`
@@ -89,6 +114,10 @@ type TopicRuntimeEvent struct {
 
 func (e *TopicRuntimeEvent) event() {}
 
+func (e *TopicRuntimeEvent) Validate() error {
+	return nil
+}
+
 //protobuf:8
 type DatabaseRuntimeEvent struct {
 	Module      string                      `protobuf:"1"`
@@ -97,6 +126,10 @@ type DatabaseRuntimeEvent struct {
 }
 
 func (e *DatabaseRuntimeEvent) event() {}
+
+func (e *DatabaseRuntimeEvent) Validate() error {
+	return nil
+}
 
 //protobuf:9
 type ModuleRuntimeEvent struct {
@@ -111,9 +144,17 @@ type ModuleRuntimeEvent struct {
 
 func (e *ModuleRuntimeEvent) event() {}
 
+func (e *ModuleRuntimeEvent) Validate() error {
+	return nil
+}
+
 //protobuf:10
 type ProvisioningCreatedEvent struct {
 	DesiredModule *Module `protobuf:"1"`
 }
 
 func (e *ProvisioningCreatedEvent) event() {}
+
+func (e *ProvisioningCreatedEvent) Validate() error {
+	return nil
+}
