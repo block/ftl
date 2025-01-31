@@ -11,7 +11,6 @@ import (
 
 	"github.com/alecthomas/types/optional"
 	expmaps "golang.org/x/exp/maps"
-
 	"google.golang.org/protobuf/proto"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"

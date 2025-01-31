@@ -286,7 +286,7 @@ type SchemaState struct {
 	Provisioning        []string               `protobuf:"4"`
 }
 
-// TODO: remove this
+// SerializedChangeset is a temp hack that needs to go away
 //
 //protobuf:export
 type SerializedChangeset struct {
