@@ -103,7 +103,7 @@ func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
 	moduleToDeployment := make(map[string]key.Deployment, len(sch.Modules))
 	byDeployment := make(map[string]*url.URL, len(sch.Modules))
 	for _, module := range sch.Modules {
-		if module.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
+		if module.GetRuntime() == nil || module.GetRuntime().GetDeployment() == nil || module.GetRuntime().GetDeployment().Endpoint == "" {
 			continue
 		}
 		rt := module.Runtime.Deployment

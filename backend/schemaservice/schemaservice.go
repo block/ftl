@@ -139,13 +139,15 @@ func (s *Service) GetDeployments(ctx context.Context, req *connect.Request[ftlv1
 	if err != nil {
 		return nil, fmt.Errorf("failed to get schema state: %w", err)
 	}
-	activeDeployments := view.GetCanonicalDeployments()
+	deployments := view.GetDeployments()
+	activeDeployments := view.GetAllActiveDeployments()
 	var result []*ftlv1.DeployedSchema
-	for key, deployment := range activeDeployments {
+	for key, deployment := range deployments {
+		_, activeOk := activeDeployments[key]
 		result = append(result, &ftlv1.DeployedSchema{
 			DeploymentKey: key.String(),
 			Schema:        deployment.ToProto(),
-			IsActive:      true,
+			IsActive:      activeOk,
 		})
 	}
 	return connect.NewResponse(&ftlv1.GetDeploymentsResponse{Schema: result}), nil
