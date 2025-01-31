@@ -417,9 +417,11 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 		case event := <-watchEvents:
 			switch event := event.(type) {
 			case watch.WatchEventModuleAdded:
+				logger.Debugf("Module %q added", event.Config.Module)
 				config := event.Config
 				if _, exists := e.moduleMetas.Load(config.Module); !exists {
 					meta, err := e.newModuleMeta(ctx, config)
+					logger.Debugf("generated meta for %q", event.Config.Module)
 					if err != nil {
 						logger.Errorf(err, "could not add module %s", config.Module)
 						continue
@@ -433,6 +435,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 							},
 						},
 					}
+					logger.Debugf("calling build and deploy %q", event.Config.Module)
 					_ = e.BuildAndDeploy(ctx, 1, true, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
@@ -788,6 +791,9 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 	logger := log.FromContext(ctx)
 	if len(moduleNames) == 0 {
 		moduleNames = e.Modules()
+	}
+	if len(moduleNames) == 0 {
+		return nil
 	}
 
 	defer func() {

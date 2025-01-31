@@ -105,6 +105,7 @@ func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []
 
 	logger := log.FromContext(ctx)
 	topic := pubsub.New[WatchEvent]()
+	logger.Debugf("Starting watch %v", moduleDirs)
 
 	go func() {
 		wait := topic.Wait()
