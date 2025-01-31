@@ -3509,7 +3509,7 @@ export class Secret extends Message<Secret> {
 }
 
 /**
- * TODO: remove this
+ * SerializedChangeset is a temp hack that needs to go away
  *
  * @generated from message xyz.block.ftl.schema.v1.SerializedChangeset
  */

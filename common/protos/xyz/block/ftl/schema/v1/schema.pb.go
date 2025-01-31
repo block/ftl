@@ -4681,7 +4681,7 @@ func (x *Secret) GetType() *Type {
 	return nil
 }
 
-// TODO: remove this
+// SerializedChangeset is a temp hack that needs to go away
 type SerializedChangeset struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`

@@ -332,6 +332,9 @@ func ChangesetCommittedEventFromProto(v *destpb.ChangesetCommittedEvent) (out *C
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
 		return nil, fmt.Errorf("Key: %w", err)
 	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -352,6 +355,9 @@ func ChangesetCreatedEventFromProto(v *destpb.ChangesetCreatedEvent) (out *Chang
 	out = &ChangesetCreatedEvent{}
 	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -377,6 +383,9 @@ func ChangesetFailedEventFromProto(v *destpb.ChangesetFailedEvent) (out *Changes
 	}
 	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Error: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -644,6 +653,9 @@ func DatabaseRuntimeEventFromProto(v *destpb.DatabaseRuntimeEvent) (out *Databas
 	if out.Connections, err = result.From(DatabaseRuntimeConnectionsFromProto(v.Connections)).Result(); err != nil {
 		return nil, fmt.Errorf("Connections: %w", err)
 	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -745,6 +757,9 @@ func DeploymentActivatedEventFromProto(v *destpb.DeploymentActivatedEvent) (out 
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
 	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -773,6 +788,9 @@ func DeploymentCreatedEventFromProto(v *destpb.DeploymentCreatedEvent) (out *Dep
 	}
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -803,6 +821,9 @@ func DeploymentDeactivatedEventFromProto(v *destpb.DeploymentDeactivatedEvent) (
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
 	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -832,6 +853,9 @@ func DeploymentReplicasUpdatedEventFromProto(v *destpb.DeploymentReplicasUpdated
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
 	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -860,6 +884,9 @@ func DeploymentSchemaUpdatedEventFromProto(v *destpb.DeploymentSchemaUpdatedEven
 	}
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -2046,6 +2073,9 @@ func ModuleRuntimeEventFromProto(v *destpb.ModuleRuntimeEvent) (out *ModuleRunti
 	if out.Deployment, err = optionalR(result.From(ModuleRuntimeDeploymentFromProto(v.Deployment))).Result(); err != nil {
 		return nil, fmt.Errorf("Deployment: %w", err)
 	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -2141,6 +2171,9 @@ func ProvisioningCreatedEventFromProto(v *destpb.ProvisioningCreatedEvent) (out 
 	out = &ProvisioningCreatedEvent{}
 	if out.DesiredModule, err = result.From(ModuleFromProto(v.DesiredModule)).Result(); err != nil {
 		return nil, fmt.Errorf("DesiredModule: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -2472,6 +2505,9 @@ func TopicRuntimeEventFromProto(v *destpb.TopicRuntimeEvent) (out *TopicRuntimeE
 	}
 	if out.Payload, err = result.From(TopicRuntimeFromProto(v.Payload)).Result(); err != nil {
 		return nil, fmt.Errorf("Payload: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -2850,6 +2886,9 @@ func VerbRuntimeEventFromProto(v *destpb.VerbRuntimeEvent) (out *VerbRuntimeEven
 	}
 	if out.Subscription, err = optionalR(result.From(VerbRuntimeSubscriptionFromProto(v.Subscription))).Result(); err != nil {
 		return nil, fmt.Errorf("Subscription: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
