@@ -235,12 +235,8 @@ func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema
 	for _, depName := range changeset.Deployments {
 		logger.Debugf("activating deployment %s", t.deployments[depName].GetRuntime().GetDeployment().Endpoint)
 		dep := t.deployments[depName]
-		old, ok := t.activeDeployments[dep.Name]
 		t.activeDeployments[dep.Name] = depName
-		if ok {
-			//TODO: huge hack, we need proper cleanup
-			delete(t.deployments, old)
-		}
+		// We need proper cleanup
 	}
 	return nil
 }
