@@ -1,14 +1,6 @@
 import { Handle, type NodeProps, Position } from '@xyflow/react'
-import {
-  BubbleChatIcon,
-  CodeCircleIcon,
-  DatabaseIcon,
-  FunctionIcon,
-  LeftToRightListNumberIcon,
-  MessageIncoming02Icon,
-  Settings02Icon,
-  SquareLock02Icon,
-} from 'hugeicons-react'
+import { Verb } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import { declIcon } from '../modules/module.utils'
 
 interface Props extends NodeProps {
   data: {
@@ -22,23 +14,10 @@ interface Props extends NodeProps {
   }
 }
 
-const getNodeIcon = (nodeType = 'verb') => {
-  const icons = {
-    verb: FunctionIcon,
-    topic: BubbleChatIcon,
-    database: DatabaseIcon,
-    config: Settings02Icon,
-    secret: SquareLock02Icon,
-    enum: LeftToRightListNumberIcon,
-    subscription: MessageIncoming02Icon,
-    default: CodeCircleIcon,
-  }
-  return icons[nodeType as keyof typeof icons] || icons.default
-}
-
 export const DeclNode = ({ data }: Props) => {
   const handleColor = data.selected ? 'rgb(251 113 133)' : data.style?.backgroundColor || 'rgb(79 70 229)'
-  const Icon = getNodeIcon(data.nodeType)
+  const defaultVerb = new Verb({ name: data.title })
+  const Icon = declIcon(data.nodeType || 'verb', defaultVerb)
 
   return (
     <div className={`rounded-md overflow-hidden ${data.selected ? 'ring-2 ring-pink-400 dark:ring-pink-600' : ''}`}>

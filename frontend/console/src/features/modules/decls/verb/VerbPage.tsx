@@ -1,4 +1,4 @@
-import { FunctionIcon } from 'hugeicons-react'
+import { Clock01Icon, Download04Icon, FunctionIcon, InternetIcon } from 'hugeicons-react'
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Module, Verb } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
@@ -8,6 +8,7 @@ import { NotificationType, NotificationsContext } from '../../../../shared/provi
 import { SidePanelProvider } from '../../../../shared/providers/side-panel-provider'
 import { TraceRequestList } from '../../../traces/TraceRequestList'
 import { useModules } from '../../hooks/use-modules'
+import { verbTypeFromMetadata } from '../../module.utils'
 import { VerbRequestForm } from './VerbRequestForm'
 import { verbPanels } from './VerbRightPanel'
 
@@ -45,10 +46,28 @@ export const VerbPage = ({ moduleName, declName }: { moduleName: string; declNam
     )
   }
 
+  type VerbType = 'cronjob' | 'ingress' | 'subscriber' | 'default'
+
+  const verbTypeConfig = {
+    cronjob: { Icon: Clock01Icon },
+    ingress: { Icon: InternetIcon },
+    subscriber: { Icon: Download04Icon },
+    default: { Icon: FunctionIcon },
+  } as const
+
   const header = (
     <div className='flex items-center gap-2 px-2 py-2'>
-      <FunctionIcon className='h-5 w-5 text-indigo-500' />
-      <div className='flex flex-col min-w-0'>Verb</div>
+      {(() => {
+        const verbType = verb.verb ? verbTypeFromMetadata(verb.verb) : undefined
+        const { Icon } = verbTypeConfig[(verbType ?? 'default') as VerbType]
+
+        return (
+          <>
+            <Icon className='size-5 text-indigo-500' />
+            <div className='flex flex-col min-w-0'>{verb.verb?.name}</div>
+          </>
+        )
+      })()}
     </div>
   )
 

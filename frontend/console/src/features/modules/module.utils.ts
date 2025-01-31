@@ -1,16 +1,15 @@
 import {
   AnonymousIcon,
-  BubbleChatIcon,
   Clock01Icon,
   CodeIcon,
   CodeSquareIcon,
   DatabaseIcon,
+  Download04Icon,
   FunctionIcon,
+  GasPipeIcon,
   type HugeiconsProps,
   InternetIcon,
   LeftToRightListNumberIcon,
-  MessageIncoming02Icon,
-  MessageProgrammingIcon,
   Settings02Icon,
   SquareLock02Icon,
 } from 'hugeicons-react'
@@ -142,10 +141,10 @@ const declIcons: Record<string, React.FC<Omit<HugeiconsProps, 'ref'> & React.Ref
   data: CodeSquareIcon,
   database: DatabaseIcon,
   enum: LeftToRightListNumberIcon,
-  topic: BubbleChatIcon,
+  topic: GasPipeIcon,
   typealias: AnonymousIcon,
   secret: SquareLock02Icon,
-  subscription: MessageIncoming02Icon,
+  subscription: Download04Icon,
   verb: FunctionIcon,
 }
 
@@ -169,7 +168,7 @@ export const declIcon = (declCase: string, decl: DeclSumType) => {
 const verbIcons: Record<string, React.FC<Omit<HugeiconsProps, 'ref'> & React.RefAttributes<SVGSVGElement>>> = {
   cronjob: Clock01Icon,
   ingress: InternetIcon,
-  subscriber: MessageProgrammingIcon,
+  subscriber: Download04Icon,
 }
 
 const verbIcon = (declCase: string, decl: DeclSumType) => {

@@ -2,12 +2,12 @@ import {
   Call02Icon,
   CallIncoming04Icon,
   CustomerServiceIcon,
+  Download04Icon,
   Menu01Icon,
   PackageReceiveIcon,
   Rocket01Icon,
-  Satellite03Icon,
-  SatelliteIcon,
   TimeQuarterPassIcon,
+  Upload04Icon,
 } from 'hugeicons-react'
 import type { Event } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { LogLevelBadgeSmall } from '../logs/LogLevelBadgeSmall'
@@ -35,9 +35,9 @@ export const TimelineIcon = ({ event }: { event: Event }) => {
       case 'asyncExecute':
         return <CustomerServiceIcon className={`${style} ${textColor}`} />
       case 'pubsubPublish':
-        return <SatelliteIcon className={`${style} ${textColor}`} />
+        return <Upload04Icon className={`${style} ${textColor}`} />
       case 'pubsubConsume':
-        return <Satellite03Icon className={`${style} ${textColor}`} />
+        return <Download04Icon className={`${style} ${textColor}`} />
       default:
         return <Menu01Icon className={`${style}`} />
     }
