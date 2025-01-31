@@ -78,7 +78,12 @@ func (u *updatesService) Ping(context.Context, *connect.Request[ftlv1.PingReques
 }
 
 func (u *updatesService) StreamEngineEvents(ctx context.Context, req *connect.Request[buildenginepb.StreamEngineEventsRequest], stream *connect.ServerStream[buildenginepb.StreamEngineEventsResponse]) error {
-	// Only send cached events if replay_history is true
+	// First subscribe to new events to avoid missing any
+	events := make(chan *buildenginepb.EngineEvent, 64)
+	u.engine.EngineUpdates.Subscribe(events)
+	defer u.engine.EngineUpdates.Unsubscribe(events)
+
+	// Then send cached events if replay_history is true
 	if req.Msg.ReplayHistory {
 		u.lock.RLock()
 		for _, event := range u.events {
@@ -93,11 +98,7 @@ func (u *updatesService) StreamEngineEvents(ctx context.Context, req *connect.Re
 		u.lock.RUnlock()
 	}
 
-	// Then subscribe to new events
-	events := make(chan *buildenginepb.EngineEvent, 64)
-	u.engine.EngineUpdates.Subscribe(events)
-	defer u.engine.EngineUpdates.Unsubscribe(events)
-
+	// Process new events
 	for event := range channels.IterContext(ctx, events) {
 		// Add timestamp to event
 		if event.Timestamp == nil {
