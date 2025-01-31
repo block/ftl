@@ -72,6 +72,7 @@ func TestLifecycleJVM(t *testing.T) {
 			assert.Equal(t, "Bye, Bob!", response)
 		}),
 		in.VerifyControllerStatus(func(ctx context.Context, t testing.TB, status *ftlv1.StatusResponse) {
+			t.Logf("status %v", status)
 			assert.Equal(t, 1, len(status.Deployments))
 			assert.NotEqual(t, deployment, status.Deployments[0].Key)
 		}),

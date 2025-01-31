@@ -15,8 +15,11 @@ class AliasKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 class ChangesetState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     CHANGESET_STATE_UNSPECIFIED: _ClassVar[ChangesetState]
-    CHANGESET_STATE_PROVISIONING: _ClassVar[ChangesetState]
+    CHANGESET_STATE_PREPARING: _ClassVar[ChangesetState]
+    CHANGESET_STATE_PREPARED: _ClassVar[ChangesetState]
+    CHANGESET_STATE_CLEANING_UP: _ClassVar[ChangesetState]
     CHANGESET_STATE_COMMITTED: _ClassVar[ChangesetState]
+    CHANGESET_STATE_ROLLING_BACK: _ClassVar[ChangesetState]
     CHANGESET_STATE_FAILED: _ClassVar[ChangesetState]
 
 class FromOffset(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -24,15 +27,39 @@ class FromOffset(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FROM_OFFSET_UNSPECIFIED: _ClassVar[FromOffset]
     FROM_OFFSET_BEGINNING: _ClassVar[FromOffset]
     FROM_OFFSET_LATEST: _ClassVar[FromOffset]
+
+class ModuleState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    MODULE_STATE_UNSPECIFIED: _ClassVar[ModuleState]
+    MODULE_STATE_PROVISIONING: _ClassVar[ModuleState]
+    MODULE_STATE_READY: _ClassVar[ModuleState]
+    MODULE_STATE_CANARY: _ClassVar[ModuleState]
+    MODULE_STATE_CANONICAL: _ClassVar[ModuleState]
+    MODULE_STATE_DRAINING: _ClassVar[ModuleState]
+    MODULE_STATE_DE_PROVISIONING: _ClassVar[ModuleState]
+    MODULE_STATE_DELETED: _ClassVar[ModuleState]
+    MODULE_STATE_FAILED: _ClassVar[ModuleState]
 ALIAS_KIND_UNSPECIFIED: AliasKind
 ALIAS_KIND_JSON: AliasKind
 CHANGESET_STATE_UNSPECIFIED: ChangesetState
-CHANGESET_STATE_PROVISIONING: ChangesetState
+CHANGESET_STATE_PREPARING: ChangesetState
+CHANGESET_STATE_PREPARED: ChangesetState
+CHANGESET_STATE_CLEANING_UP: ChangesetState
 CHANGESET_STATE_COMMITTED: ChangesetState
+CHANGESET_STATE_ROLLING_BACK: ChangesetState
 CHANGESET_STATE_FAILED: ChangesetState
 FROM_OFFSET_UNSPECIFIED: FromOffset
 FROM_OFFSET_BEGINNING: FromOffset
 FROM_OFFSET_LATEST: FromOffset
+MODULE_STATE_UNSPECIFIED: ModuleState
+MODULE_STATE_PROVISIONING: ModuleState
+MODULE_STATE_READY: ModuleState
+MODULE_STATE_CANARY: ModuleState
+MODULE_STATE_CANONICAL: ModuleState
+MODULE_STATE_DRAINING: ModuleState
+MODULE_STATE_DE_PROVISIONING: ModuleState
+MODULE_STATE_DELETED: ModuleState
+MODULE_STATE_FAILED: ModuleState
 
 class AWSIAMAuthDatabaseConnector(_message.Message):
     __slots__ = ("pos", "username", "endpoint", "database")
@@ -635,16 +662,18 @@ class ModuleRuntimeBase(_message.Message):
     def __init__(self, create_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., language: _Optional[str] = ..., os: _Optional[str] = ..., arch: _Optional[str] = ..., image: _Optional[str] = ...) -> None: ...
 
 class ModuleRuntimeDeployment(_message.Message):
-    __slots__ = ("endpoint", "deployment_key", "created_at", "activated_at")
+    __slots__ = ("endpoint", "deployment_key", "created_at", "activated_at", "state")
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     ACTIVATED_AT_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
     endpoint: str
     deployment_key: str
     created_at: _timestamp_pb2.Timestamp
     activated_at: _timestamp_pb2.Timestamp
-    def __init__(self, endpoint: _Optional[str] = ..., deployment_key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    state: ModuleState
+    def __init__(self, endpoint: _Optional[str] = ..., deployment_key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., state: _Optional[_Union[ModuleState, str]] = ...) -> None: ...
 
 class ModuleRuntimeEvent(_message.Message):
     __slots__ = ("deployment_key", "base", "scaling", "deployment")

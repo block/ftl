@@ -2019,6 +2019,7 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 		DeploymentKey: orZero(ptr(string(protoMust(x.DeploymentKey.MarshalText())))),
 		CreatedAt:     timestamppb.New(x.CreatedAt),
 		ActivatedAt:   setNil(timestamppb.New(orZero(x.ActivatedAt.Ptr())), x.ActivatedAt.Ptr()),
+		State:         orZero(ptr(x.State.ToProto())),
 	}
 }
 
@@ -2039,6 +2040,9 @@ func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) (out *M
 	}
 	if out.ActivatedAt, err = optionalR(result.From(setNil(ptr(v.ActivatedAt.AsTime()), v.ActivatedAt), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("ActivatedAt: %w", err)
+	}
+	if out.State, err = orZeroR(ptrR(result.From(ModuleStateFromProto(v.State)))).Result(); err != nil {
+		return nil, fmt.Errorf("State: %w", err)
 	}
 	return out, nil
 }
@@ -2098,6 +2102,15 @@ func ModuleRuntimeScalingFromProto(v *destpb.ModuleRuntimeScaling) (out *ModuleR
 		return nil, fmt.Errorf("MinReplicas: %w", err)
 	}
 	return out, nil
+}
+
+func (x ModuleState) ToProto() destpb.ModuleState {
+	return destpb.ModuleState(x)
+}
+
+func ModuleStateFromProto(v destpb.ModuleState) (ModuleState, error) {
+	// TODO: Check if the value is valid.
+	return ModuleState(v), nil
 }
 
 func (x *Optional) ToProto() *destpb.Optional {

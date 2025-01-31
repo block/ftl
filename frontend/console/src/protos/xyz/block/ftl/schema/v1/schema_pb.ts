@@ -40,26 +40,44 @@ export enum ChangesetState {
   UNSPECIFIED = 0,
 
   /**
-   * @generated from enum value: CHANGESET_STATE_PROVISIONING = 1;
+   * @generated from enum value: CHANGESET_STATE_PREPARING = 1;
    */
-  PROVISIONING = 1,
+  PREPARING = 1,
 
   /**
-   * @generated from enum value: CHANGESET_STATE_COMMITTED = 2;
+   * @generated from enum value: CHANGESET_STATE_PREPARED = 2;
    */
-  COMMITTED = 2,
+  PREPARED = 2,
 
   /**
-   * @generated from enum value: CHANGESET_STATE_FAILED = 3;
+   * @generated from enum value: CHANGESET_STATE_CLEANING_UP = 3;
    */
-  FAILED = 3,
+  CLEANING_UP = 3,
+
+  /**
+   * @generated from enum value: CHANGESET_STATE_COMMITTED = 4;
+   */
+  COMMITTED = 4,
+
+  /**
+   * @generated from enum value: CHANGESET_STATE_ROLLING_BACK = 5;
+   */
+  ROLLING_BACK = 5,
+
+  /**
+   * @generated from enum value: CHANGESET_STATE_FAILED = 6;
+   */
+  FAILED = 6,
 }
 // Retrieve enum metadata with: proto3.getEnumType(ChangesetState)
 proto3.util.setEnumType(ChangesetState, "xyz.block.ftl.schema.v1.ChangesetState", [
   { no: 0, name: "CHANGESET_STATE_UNSPECIFIED" },
-  { no: 1, name: "CHANGESET_STATE_PROVISIONING" },
-  { no: 2, name: "CHANGESET_STATE_COMMITTED" },
-  { no: 3, name: "CHANGESET_STATE_FAILED" },
+  { no: 1, name: "CHANGESET_STATE_PREPARING" },
+  { no: 2, name: "CHANGESET_STATE_PREPARED" },
+  { no: 3, name: "CHANGESET_STATE_CLEANING_UP" },
+  { no: 4, name: "CHANGESET_STATE_COMMITTED" },
+  { no: 5, name: "CHANGESET_STATE_ROLLING_BACK" },
+  { no: 6, name: "CHANGESET_STATE_FAILED" },
 ]);
 
 /**
@@ -86,6 +104,68 @@ proto3.util.setEnumType(FromOffset, "xyz.block.ftl.schema.v1.FromOffset", [
   { no: 0, name: "FROM_OFFSET_UNSPECIFIED" },
   { no: 1, name: "FROM_OFFSET_BEGINNING" },
   { no: 2, name: "FROM_OFFSET_LATEST" },
+]);
+
+/**
+ * @generated from enum xyz.block.ftl.schema.v1.ModuleState
+ */
+export enum ModuleState {
+  /**
+   * @generated from enum value: MODULE_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: MODULE_STATE_PROVISIONING = 1;
+   */
+  PROVISIONING = 1,
+
+  /**
+   * @generated from enum value: MODULE_STATE_READY = 2;
+   */
+  READY = 2,
+
+  /**
+   * @generated from enum value: MODULE_STATE_CANARY = 3;
+   */
+  CANARY = 3,
+
+  /**
+   * @generated from enum value: MODULE_STATE_CANONICAL = 4;
+   */
+  CANONICAL = 4,
+
+  /**
+   * @generated from enum value: MODULE_STATE_DRAINING = 5;
+   */
+  DRAINING = 5,
+
+  /**
+   * @generated from enum value: MODULE_STATE_DE_PROVISIONING = 6;
+   */
+  DE_PROVISIONING = 6,
+
+  /**
+   * @generated from enum value: MODULE_STATE_DELETED = 7;
+   */
+  DELETED = 7,
+
+  /**
+   * @generated from enum value: MODULE_STATE_FAILED = 8;
+   */
+  FAILED = 8,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ModuleState)
+proto3.util.setEnumType(ModuleState, "xyz.block.ftl.schema.v1.ModuleState", [
+  { no: 0, name: "MODULE_STATE_UNSPECIFIED" },
+  { no: 1, name: "MODULE_STATE_PROVISIONING" },
+  { no: 2, name: "MODULE_STATE_READY" },
+  { no: 3, name: "MODULE_STATE_CANARY" },
+  { no: 4, name: "MODULE_STATE_CANONICAL" },
+  { no: 5, name: "MODULE_STATE_DRAINING" },
+  { no: 6, name: "MODULE_STATE_DE_PROVISIONING" },
+  { no: 7, name: "MODULE_STATE_DELETED" },
+  { no: 8, name: "MODULE_STATE_FAILED" },
 ]);
 
 /**
@@ -3042,6 +3122,11 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
    */
   activatedAt?: Timestamp;
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.ModuleState state = 5;
+   */
+  state = ModuleState.UNSPECIFIED;
+
   constructor(data?: PartialMessage<ModuleRuntimeDeployment>) {
     super();
     proto3.util.initPartial(data, this);
@@ -3054,6 +3139,7 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
     { no: 2, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "created_at", kind: "message", T: Timestamp },
     { no: 4, name: "activated_at", kind: "message", T: Timestamp, opt: true },
+    { no: 5, name: "state", kind: "enum", T: proto3.getEnumType(ModuleState) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeDeployment {
