@@ -538,13 +538,11 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true}
 		case <-schemaChangeTicker.C:
 			changed := false
-			logger.Debugf("Calling reload")
 			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: false}))
-			logger.Debugf("Called reload")
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			logger.Debugf("Checking for schema changes")
+			logger.Tracef("Checking for schema changes")
 
 			if fileExists(buildCtx.Config.SQLMigrationDirectory) {
 				newMigrationHash, err := watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"**/*.sql"})
