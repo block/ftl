@@ -328,7 +328,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			if opts.startController {
 				Infof("Starting ftl cluster")
 
-				command := []string{"serve", "--recreate", "--log-level=DEBUG"}
+				command := []string{"serve", "--recreate"}
 				if opts.devMode {
 					command = []string{"dev"}
 				}
