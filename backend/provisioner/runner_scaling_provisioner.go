@@ -39,7 +39,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		if deployment.IsZero() {
 			return nil, fmt.Errorf("failed to find deployment for runner")
 		}
-		logger.Debugf("provisioning runner: %s.%s for deployment %s", module, rc.ResourceID(), deployment)
+		logger.Debugf("Provisioning runner: %s.%s for deployment %s", module.Name, rc.ResourceID(), deployment)
 		cron := false
 		http := false
 		for _, decl := range module.Decls {
@@ -100,7 +100,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			}
 		}
 
-		logger.Debugf("updating module runtime for %s with endpoint %s", module, endpointURI)
+		logger.Debugf("Updating module runtime for %s with endpoint %s", module.Name, endpointURI)
 		dk := deployment.String()
 		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{
 			DeploymentKey: dk,

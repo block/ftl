@@ -40,9 +40,8 @@ func main() {
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaServerEndpoint.String(), log.Error)
-	eventSource := schemaeventsource.New(ctx, schemaClient)
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, schemaClient), timelineClient)
-	err = ingress.Start(ctx, cli.HTTPIngressConfig, eventSource, routeManager, timelineClient)
+	err = ingress.Start(ctx, cli.HTTPIngressConfig, schemaClient, routeManager, timelineClient)
 	kctx.FatalIfErrorf(err, "failed to start HTTP ingress")
 }

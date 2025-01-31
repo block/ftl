@@ -12,6 +12,7 @@ import (
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/cors"
@@ -45,14 +46,14 @@ type service struct {
 }
 
 // Start the HTTP ingress service. Blocks until the context is cancelled.
-func Start(ctx context.Context, config Config, schemaEventSource schemaeventsource.EventSource, client routing.CallClient, timelineClient *timelineclient.Client) error {
+func Start(ctx context.Context, config Config, schemaClient ftlv1connect.SchemaServiceClient, client routing.CallClient, timelineClient *timelineclient.Client) error {
 	logger := log.FromContext(ctx).Scope("http-ingress")
 	ctx = log.ContextWithLogger(ctx, logger)
 	svc := &service{
-		view:           syncView(ctx, schemaEventSource),
+		view:           syncView(ctx, schemaeventsource.New(ctx, schemaClient)),
 		client:         client,
 		timelineClient: timelineClient,
-		routeTable:     routing.New(ctx, schemaEventSource),
+		routeTable:     routing.New(ctx, schemaeventsource.New(ctx, schemaClient)),
 	}
 
 	ingressHandler := otelhttp.NewHandler(http.Handler(svc), "ftl.ingress")

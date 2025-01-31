@@ -39,7 +39,7 @@ type VerbCallRouter struct {
 func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
 	start := time.Now()
 
-	client, deployment, ok := s.LookupClient(req.Msg.Verb.Module)
+	client, deployment, ok := s.LookupClient(ctx, req.Msg.Verb.Module)
 	if !ok {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to find deployment for module"))
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found"))
@@ -95,8 +95,10 @@ func NewVerbRouterFromTable(ctx context.Context, routeTable *RouteTable, timelin
 		timelineClient: timelineClient,
 	}
 	routeUpdates := svc.routingTable.Subscribe()
+	logger := log.FromContext(ctx)
 	go func() {
 		for module := range channels.IterContext(ctx, routeUpdates) {
+			logger.Debugf("Removing client for module %s", module)
 			svc.moduleClients.Delete(module)
 		}
 	}()
@@ -106,7 +108,8 @@ func NewVerbRouter(ctx context.Context, changes schemaeventsource.EventSource, t
 	return NewVerbRouterFromTable(ctx, New(ctx, changes), timelineClient)
 }
 
-func (s *VerbCallRouter) LookupClient(module string) (client ftlv1connect.VerbServiceClient, deployment key.Deployment, ok bool) {
+func (s *VerbCallRouter) LookupClient(ctx context.Context, module string) (client ftlv1connect.VerbServiceClient, deployment key.Deployment, ok bool) {
+	logger := log.FromContext(ctx)
 	current := s.routingTable.Current()
 	deployment, ok = current.GetDeployment(module).Get()
 	if !ok {
@@ -116,8 +119,10 @@ func (s *VerbCallRouter) LookupClient(module string) (client ftlv1connect.VerbSe
 	res, _ := s.moduleClients.LoadOrCompute(module, func() optional.Option[ftlv1connect.VerbServiceClient] {
 		route, ok := current.Get(deployment).Get()
 		if !ok {
+			logger.Debugf("Failed to find route for deployment %s", deployment)
 			return optional.None[ftlv1connect.VerbServiceClient]()
 		}
+		logger.Debugf("Found route for deployment %s: %s", deployment, route.String())
 		return optional.Some(rpc.Dial(ftlv1connect.NewVerbServiceClient, route.String(), log.Error))
 	})
 

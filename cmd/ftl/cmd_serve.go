@@ -363,7 +363,7 @@ func (s *serveCommonConfig) run(
 	// Start Ingress
 	wg.Go(func() error {
 		ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("http-ingress"))
-		err := ingress.Start(ctx, s.Ingress, schemaEventSourceFactory(), routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), timelineClient)
+		err := ingress.Start(ctx, s.Ingress, schemaClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), timelineClient)
 		if err != nil {
 			return fmt.Errorf("ingress failed: %w", err)
 		}
