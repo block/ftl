@@ -23,6 +23,7 @@ import {
   listExpandedModulesFromLocalStorage,
   setExpandedDeclTypesInLocalStorage,
   setHideUnexportedFromLocalStorage,
+  sortModules,
   toggleModuleExpansionInLocalStorage,
 } from './module.utils'
 import { declTypeMultiselectOpts } from './schema/schema.utils'
@@ -257,7 +258,9 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
     setExpandedDeclTypesInLocalStorage(newExpanded)
   }
 
-  modules.sort((m1, m2) => Number(m1.isBuiltin) - Number(m2.isBuiltin))
+  const sortedModules = useMemo(() => {
+    return sortModules(modules)
+  }, [modules])
 
   return (
     <div className='flex flex-col h-full border-r border-gray-300 dark:border-gray-700'>
@@ -278,7 +281,7 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
       </div>
       <nav className='overflow-y-auto flex-1'>
         <ul id='module-tree-content' className='p-2'>
-          {modules.map((m) => (
+          {sortedModules.map((m) => (
             <ModuleSection
               key={m.name}
               module={m}
