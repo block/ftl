@@ -210,3 +210,13 @@ export const getExpandedDeclTypesFromLocalStorage = (): string[] => {
 export const setExpandedDeclTypesInLocalStorage = (types: string[]) => {
   localStorage.setItem(EXPANDED_DECL_TYPES_KEY, JSON.stringify(types))
 }
+
+export const sortModules = <T extends { name: string }>(modules: T[]) => {
+  return [...modules].sort((m1, m2) => {
+    // First sort by builtin status (builtin goes to bottom)
+    const builtinDiff = Number(m1.name === 'builtin') - Number(m2.name === 'builtin')
+    if (builtinDiff !== 0) return builtinDiff
+    // Then sort alphabetically by name
+    return m1.name.localeCompare(m2.name)
+  })
+}

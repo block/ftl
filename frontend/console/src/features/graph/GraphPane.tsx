@@ -1,9 +1,10 @@
 import { Background, BackgroundVariant, Controls, type Edge, ReactFlow as Flow, type Node, ReactFlowProvider } from '@xyflow/react'
 import dagre from 'dagre'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import { useUserPreferences } from '../../shared/providers/user-preferences-provider'
-import { useStreamModules } from '../modules/hooks/use-stream-modules'
+import { hashString } from '../../shared/utils/string.utils'
+import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
 import { DeclNode } from './DeclNode'
 import { GroupNode } from './GroupNode'
 import { type FTLNode, getGraphData } from './graph-utils'
@@ -16,6 +17,7 @@ const NODE_TYPES = {
 }
 
 interface GraphPaneProps {
+  modules?: StreamModulesResult
   onTapped?: (item: FTLNode | null, moduleName: string | null) => void
 }
 
@@ -243,15 +245,28 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   return { nodes, edges }
 }
 
-export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
-  const modules = useStreamModules()
+export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped }) => {
   const { isDarkMode } = useUserPreferences()
   const [nodePositions] = useState<Record<string, { x: number; y: number }>>({})
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [moduleKey, setModuleKey] = useState<string>('empty')
+
+  useEffect(() => {
+    const updateKey = async () => {
+      if (!modules?.modules) {
+        setModuleKey('empty')
+        return
+      }
+      const fullKey = modules.modules.map((m) => `${m.name}:${m.schema}`).join('-')
+      const hash = await hashString(fullKey)
+      setModuleKey(hash)
+    }
+    updateKey()
+  }, [modules])
 
   const { nodes, edges } = useMemo(() => {
-    return getGraphData(modules.data, isDarkMode, nodePositions, selectedNodeId)
-  }, [modules.data, isDarkMode, nodePositions, selectedNodeId])
+    return getGraphData(modules, isDarkMode, nodePositions, selectedNodeId)
+  }, [modules, isDarkMode, nodePositions, selectedNodeId])
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
     if (!nodes.length) return { nodes: [], edges: [] }
@@ -268,16 +283,13 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
 
   const onEdgeClick = useCallback(
     (_event: React.MouseEvent, edge: Edge) => {
-      // Find the source and target nodes of the clicked edge
       const sourceNode = layoutedNodes.find((n) => n.id === edge.source)
       const targetNode = layoutedNodes.find((n) => n.id === edge.target)
 
-      // If either node is already selected, clear selection
       if (sourceNode?.id === selectedNodeId || targetNode?.id === selectedNodeId) {
         setSelectedNodeId(null)
         onTapped?.(null, null)
       } else {
-        // Otherwise select the source node
         setSelectedNodeId(sourceNode?.id || null)
         onTapped?.((sourceNode?.data?.item as FTLNode) || null, sourceNode?.id || null)
       }
@@ -294,6 +306,7 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ onTapped }) => {
     <ReactFlowProvider>
       <div className={isDarkMode ? 'dark' : 'light'} style={{ width: '100%', height: '100%', position: 'relative' }}>
         <Flow
+          key={moduleKey}
           nodes={layoutedNodes}
           edges={layoutedEdges}
           nodeTypes={NODE_TYPES}
