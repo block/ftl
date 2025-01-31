@@ -31,7 +31,7 @@ func TestSchemaStateMarshalling(t *testing.T) {
 func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 	state := NewSchemaState()
 	assert.NoError(t, state.ApplyEvent(context.Background(), &schema.ProvisioningCreatedEvent{
-		DesiredModule: &schema.Module{Name: "test1"},
+		DesiredModule: &schema.Module{Name: "test1", Runtime: &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: key.NewDeploymentKey("test1")}}},
 	}))
 	deploymentKey := key.NewDeploymentKey("test2")
 	assert.NoError(t, state.ApplyEvent(context.Background(), &schema.DeploymentCreatedEvent{

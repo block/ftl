@@ -67,11 +67,19 @@ func (r *SchemaState) Marshal() ([]byte, error) {
 	for _, v := range r.activeDeployments {
 		activeDeployments = append(activeDeployments, v.String())
 	}
+	cs := []*schema.SerializedChangeset{}
+	for _, v := range r.changesets {
+		deps := []string{}
+		for _, v := range v.Deployments {
+			deps = append(deps, v.String())
+		}
+		cs = append(cs, &schema.SerializedChangeset{Key: v.Key.String(), CreatedAt: v.CreatedAt, Deployments: deps, State: v.State, Error: v.Error})
+	}
 	state := &schema.SchemaState{
-		Modules:           slices.Collect(maps.Values(r.deployments)),
-		Provisioning:      provisioning,
-		ActiveDeployments: activeDeployments,
-		//TODO: changesets
+		Modules:             slices.Collect(maps.Values(r.deployments)),
+		Provisioning:        provisioning,
+		ActiveDeployments:   activeDeployments,
+		SerializedChangeset: cs,
 	}
 	stateProto := state.ToProto()
 	bytes, err := proto.Marshal(stateProto)
@@ -91,10 +99,23 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal schema state: %w", err)
 	}
-
 	for _, module := range state.Modules {
 		dkey := module.GetRuntime().GetDeployment().GetDeploymentKey()
 		r.deployments[dkey] = module
+	}
+	for _, a := range state.ActiveDeployments {
+		deploymentKey, err := key.ParseDeploymentKey(a)
+		if err != nil {
+			return fmt.Errorf("failed to parse deployment key: %w", err)
+		}
+		r.activeDeployments[deploymentKey.Payload.Module] = deploymentKey
+	}
+	for _, a := range state.Provisioning {
+		deploymentKey, err := key.ParseDeploymentKey(a)
+		if err != nil {
+			return fmt.Errorf("failed to parse deployment key: %w", err)
+		}
+		r.provisioning[deploymentKey.Payload.Module] = deploymentKey
 	}
 
 	return nil

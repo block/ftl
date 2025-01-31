@@ -81,7 +81,6 @@ func handleDeploymentActivatedEvent(t SchemaState, e *schema.DeploymentActivated
 	existing, ok := t.deployments[e.Key]
 	if !ok {
 		return fmt.Errorf("deployment %s not found", e.Key)
-
 	}
 	existing.ModRuntime().ModDeployment().ActivatedAt = optional.Some(e.ActivatedAt)
 	existing.ModRuntime().ModScaling().MinReplicas = int32(e.MinReplicas)
