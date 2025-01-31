@@ -172,7 +172,7 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 	}
 	changeset := &schema.Changeset{
 		Key:     key.NewChangesetKey(),
-		State:   schema.ChangesetStateProvisioning,
+		State:   schema.ChangesetStatePreparing,
 		Modules: modules,
 	}
 

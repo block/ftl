@@ -289,7 +289,7 @@ func (e EventSource) Publish(event Event) {
 		e.activeChangeset.Store(changeset)
 
 	case EventChangesetStarted:
-		if event.Changeset.State == schema.ChangesetStateProvisioning {
+		if event.Changeset.State == schema.ChangesetStatePreparing {
 			e.activeChangeset.Store(optional.Some(event.Changeset))
 		}
 	case EventChangesetEnded:

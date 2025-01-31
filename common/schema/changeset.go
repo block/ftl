@@ -10,8 +10,11 @@ type ChangesetState int
 
 const (
 	ChangesetStateUnspecified ChangesetState = iota
-	ChangesetStateProvisioning
+	ChangesetStatePreparing
+	ChangesetStatePrepared
+	ChangesetStateCleaningUp
 	ChangesetStateCommitted
+	ChangesetStateRollingBack
 	ChangesetStateFailed
 )
 

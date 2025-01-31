@@ -192,7 +192,7 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 	if existing := t.changesets[e.Changeset.Key]; existing != nil {
 		return nil
 	}
-	if e.Changeset.State == schema.ChangesetStateProvisioning {
+	if e.Changeset.State == schema.ChangesetStatePreparing {
 		if active, ok := t.ActiveChangeset().Get(); ok {
 			// TODO: make unit test for this
 			// TODO: how does error handling work here? Does the changeset need to be added but immediately failed? Or is this error propagated to the caller?

@@ -11,7 +11,7 @@ import (
 
 func (r *SchemaState) ActiveChangeset() optional.Option[*ChangesetDetails] {
 	for _, changeset := range r.changesets {
-		if changeset.State == schema.ChangesetStateProvisioning {
+		if changeset.State == schema.ChangesetStatePreparing {
 			return optional.Some(changeset)
 		}
 	}

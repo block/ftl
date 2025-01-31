@@ -21,6 +21,8 @@ const globalSetup = async (config: FullConfig) => {
   )
 
   console.log('Modules loaded!')
+  // 20s sleep to see if it helps with changesets
+  await new Promise((r) => setTimeout(r, 20000))
 
   await browser.close()
 }
