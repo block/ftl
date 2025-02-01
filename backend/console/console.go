@@ -116,12 +116,12 @@ func verbSchemaString(sch *schema.Schema, verb *schema.Verb) (string, error) {
 }
 
 func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb.GetModulesRequest]) (*connect.Response[consolepb.GetModulesResponse], error) {
-	sch := s.schemaEventSource.View()
+	sch := s.schemaEventSource.LatestView()
 
 	allowed := map[string]bool{}
 	var modules []*consolepb.Module
 	for _, mod := range sch.Modules {
-		if mod.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
+		if mod.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() || mod.GetRuntime().GetDeployment().Endpoint == "" {
 			continue
 		}
 		allowed[mod.Name] = true
@@ -411,7 +411,7 @@ func (s *service) filterDeployments(unfilteredDeployments *schema.Schema) []*sch
 }
 
 func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
-	unfilteredDeployments := s.schemaEventSource.View()
+	unfilteredDeployments := s.schemaEventSource.LatestView()
 
 	deployments := s.filterDeployments(unfilteredDeployments)
 	sch := &schema.Schema{

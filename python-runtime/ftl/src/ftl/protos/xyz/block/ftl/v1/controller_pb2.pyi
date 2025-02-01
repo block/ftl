@@ -102,18 +102,6 @@ class RegisterRunnerResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
-class UpdateDeployRequest(_message.Message):
-    __slots__ = ("deployment_key", "min_replicas")
-    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
-    MIN_REPLICAS_FIELD_NUMBER: _ClassVar[int]
-    deployment_key: str
-    min_replicas: int
-    def __init__(self, deployment_key: _Optional[str] = ..., min_replicas: _Optional[int] = ...) -> None: ...
-
-class UpdateDeployResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
 class ReplaceDeployRequest(_message.Message):
     __slots__ = ("deployment_key", "min_replicas")
     DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]

@@ -6,12 +6,14 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+
+	"github.com/block/ftl/internal/log"
 )
 
 func TestFlock(t *testing.T) {
 	dir := t.TempDir()
 	lockfile := filepath.Join(dir, "lock")
-	ctx := context.Background()
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
 	release, err := Acquire(ctx, lockfile, 0)
 	assert.NoError(t, err)
 

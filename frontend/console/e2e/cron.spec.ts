@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { navigateToDecl, pressShortcut } from './helpers'
+import { navigateToDecl, pressShortcut, setVerbRequestBody } from './helpers'
 
 test('shows cron verb form', async ({ page }) => {
   await navigateToDecl(page, 'cron', 'thirtySeconds')
@@ -14,6 +14,7 @@ test('shows cron verb form', async ({ page }) => {
 test('send cron request', async ({ page }) => {
   await navigateToDecl(page, 'cron', 'thirtySeconds')
 
+  await setVerbRequestBody(page, '{}')
   await page.getByRole('button', { name: 'Send' }).click()
 
   const responseEditor = page.locator('#response-editor .cm-content[role="textbox"]')
@@ -28,6 +29,7 @@ test('send cron request', async ({ page }) => {
 test('submit cron form using ⌘+⏎ shortcut', async ({ page }) => {
   await navigateToDecl(page, 'cron', 'thirtySeconds')
 
+  await setVerbRequestBody(page, '{}')
   await pressShortcut(page, 'Enter')
 
   const responseEditor = page.locator('#response-editor .cm-content[role="textbox"]')

@@ -32,6 +32,7 @@ var _ ftldeploymentconnect.DeploymentServiceHandler = &Service{}
 type moduleVerbService struct {
 	client     ftlv1connect.VerbServiceClient
 	deployment key.Deployment
+	uri        string
 }
 
 type Service struct {
@@ -40,15 +41,26 @@ type Service struct {
 	moduleVerbService           *xsync.MapOf[string, moduleVerbService]
 	timelineClient              *timelineclient.Client
 	queryService                *query.MultiService
+	localModuleName             string
+	bindAddress                 string
+	localDeployment             key.Deployment
 }
 
-func New(controllerModuleService ftldeploymentconnect.DeploymentServiceClient, leaseClient ftlleaseconnect.LeaseServiceClient, timelineClient *timelineclient.Client, queryService *query.MultiService) *Service {
+func New(controllerModuleService ftldeploymentconnect.DeploymentServiceClient,
+	leaseClient ftlleaseconnect.LeaseServiceClient,
+	timelineClient *timelineclient.Client,
+	queryService *query.MultiService,
+	bindAddress string,
+	localDeployment key.Deployment) *Service {
 	proxy := &Service{
 		controllerDeploymentService: controllerModuleService,
 		controllerLeaseService:      leaseClient,
 		moduleVerbService:           xsync.NewMapOf[string, moduleVerbService](),
 		timelineClient:              timelineClient,
 		queryService:                queryService,
+		localModuleName:             localDeployment.Payload.Module,
+		bindAddress:                 bindAddress,
+		localDeployment:             localDeployment,
 	}
 	return proxy
 }
@@ -65,7 +77,7 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 		if rcv {
 			logger.Debugf("Received DeploymentContext from module: %v", moduleContext.Msg())
 			for _, route := range moduleContext.Msg().Routes {
-				logger.Debugf("Adding route: %s -> %s", route.Deployment, route.Uri)
+				logger.Debugf("Adding proxy route: %s -> %s", route.Deployment, route.Uri)
 
 				deployment, err := key.ParseDeploymentKey(route.Deployment)
 				if err != nil {
@@ -76,9 +88,16 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 					r.moduleVerbService.Store(module, moduleVerbService{
 						client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, route.Uri, log.Error),
 						deployment: deployment,
+						uri:        route.Uri,
 					})
 				}
 			}
+			logger.Debugf("Adding localhost route: %s -> %s", r.localDeployment, r.bindAddress)
+			r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
+				client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, r.bindAddress, log.Error),
+				deployment: r.localDeployment,
+				uri:        r.bindAddress,
+			})
 			err := c2.Send(moduleContext.Msg())
 			if err != nil {
 				return fmt.Errorf("failed to send message: %w", err)
@@ -164,7 +183,7 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
 		r.timelineClient.Publish(ctx, callEvent)
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("verb call failed"))
-		return nil, fmt.Errorf("failed to proxy verb: %w", err)
+		return nil, fmt.Errorf("failed to proxy verb to %s: %w", verbService.uri, err)
 	}
 	resp := connect.NewResponse(originalResp.Msg)
 	callEvent.Response = result.Ok(resp.Msg)

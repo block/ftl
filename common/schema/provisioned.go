@@ -16,7 +16,6 @@ const (
 	ResourceTypeUnknown      ResourceType = "unknown"
 	ResourceTypePostgres     ResourceType = "postgres"
 	ResourceTypeMysql        ResourceType = "mysql"
-	ResourceTypeModule       ResourceType = "module"
 	ResourceTypeSQLMigration ResourceType = "sql-migration"
 	ResourceTypeTopic        ResourceType = "topic"
 	ResourceTypeSubscription ResourceType = "subscription"

@@ -32,8 +32,9 @@ var _ Event = (*ModuleRuntimeEvent)(nil)
 
 //protobuf:1
 type DeploymentCreatedEvent struct {
-	Key    key.Deployment `protobuf:"1"`
-	Schema *Module        `protobuf:"2"`
+	Key       key.Deployment `protobuf:"1"`
+	Schema    *Module        `protobuf:"2"`
+	Changeset *key.Changeset `protobuf:"3"`
 }
 
 func (r *DeploymentCreatedEvent) event() {}
@@ -44,8 +45,9 @@ func (r *DeploymentCreatedEvent) Validate() error {
 
 //protobuf:2
 type DeploymentSchemaUpdatedEvent struct {
-	Key    key.Deployment `protobuf:"1"`
-	Schema *Module        `protobuf:"2"`
+	Key       key.Deployment `protobuf:"1"`
+	Schema    *Module        `protobuf:"2"`
+	Changeset *key.Changeset `protobuf:"3"`
 }
 
 func (r *DeploymentSchemaUpdatedEvent) event() {}
@@ -56,8 +58,9 @@ func (r *DeploymentSchemaUpdatedEvent) Validate() error {
 
 //protobuf:3
 type DeploymentReplicasUpdatedEvent struct {
-	Key      key.Deployment `protobuf:"1"`
-	Replicas int            `protobuf:"2"`
+	Key       key.Deployment `protobuf:"1"`
+	Replicas  int            `protobuf:"2"`
+	Changeset *key.Changeset `protobuf:"3"`
 }
 
 func (r *DeploymentReplicasUpdatedEvent) event() {}
@@ -71,6 +74,7 @@ type DeploymentActivatedEvent struct {
 	Key         key.Deployment `protobuf:"1"`
 	ActivatedAt time.Time      `protobuf:"2"`
 	MinReplicas int            `protobuf:"3"`
+	Changeset   *key.Changeset `protobuf:"4"`
 }
 
 func (r *DeploymentActivatedEvent) event() {}
@@ -83,6 +87,7 @@ func (r *DeploymentActivatedEvent) Validate() error {
 type DeploymentDeactivatedEvent struct {
 	Key           key.Deployment `protobuf:"1"`
 	ModuleRemoved bool           `protobuf:"2"`
+	Changeset     *key.Changeset `protobuf:"3"`
 }
 
 func (r *DeploymentDeactivatedEvent) event() {}
@@ -133,13 +138,10 @@ func (e *DatabaseRuntimeEvent) Validate() error {
 
 //protobuf:9
 type ModuleRuntimeEvent struct {
-	Module string `protobuf:"1"`
-	// None if updating at provisioning
-	DeploymentKey optional.Option[string] `protobuf:"2"`
-
-	Base       optional.Option[ModuleRuntimeBase]       `protobuf:"3"`
-	Scaling    optional.Option[ModuleRuntimeScaling]    `protobuf:"4"`
-	Deployment optional.Option[ModuleRuntimeDeployment] `protobuf:"5"`
+	DeploymentKey key.Deployment                           `protobuf:"1"`
+	Base          optional.Option[ModuleRuntimeBase]       `protobuf:"2"`
+	Scaling       optional.Option[ModuleRuntimeScaling]    `protobuf:"3"`
+	Deployment    optional.Option[ModuleRuntimeDeployment] `protobuf:"4"`
 }
 
 func (e *ModuleRuntimeEvent) event() {}
@@ -156,5 +158,39 @@ type ProvisioningCreatedEvent struct {
 func (e *ProvisioningCreatedEvent) event() {}
 
 func (e *ProvisioningCreatedEvent) Validate() error {
+	return nil
+}
+
+//protobuf:11
+type ChangesetCreatedEvent struct {
+	Changeset *Changeset `protobuf:"1"`
+}
+
+func (e *ChangesetCreatedEvent) event() {}
+
+func (e *ChangesetCreatedEvent) Validate() error {
+	return nil
+}
+
+//protobuf:12
+type ChangesetCommittedEvent struct {
+	Key key.Changeset `protobuf:"1"`
+}
+
+func (e *ChangesetCommittedEvent) event() {}
+
+func (e *ChangesetCommittedEvent) Validate() error {
+	return nil
+}
+
+//protobuf:13
+type ChangesetFailedEvent struct {
+	Key   key.Changeset `protobuf:"1"`
+	Error string        `protobuf:"2"`
+}
+
+func (e *ChangesetFailedEvent) event() {}
+
+func (e *ChangesetFailedEvent) Validate() error {
 	return nil
 }

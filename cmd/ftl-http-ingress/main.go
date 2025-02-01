@@ -35,14 +35,13 @@ func main() {
 		kong.Vars{"version": ftl.FormattedVersion},
 	)
 
-	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig))
+	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig).Scope("http-ingress"))
 	err := observability.Init(ctx, false, "", "ftl-http-ingress", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaServerEndpoint.String(), log.Error)
-	eventSource := schemaeventsource.New(ctx, schemaClient)
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, schemaClient), timelineClient)
-	err = ingress.Start(ctx, cli.HTTPIngressConfig, eventSource, routeManager, timelineClient)
+	err = ingress.Start(ctx, cli.HTTPIngressConfig, schemaClient, routeManager, timelineClient)
 	kctx.FatalIfErrorf(err, "failed to start HTTP ingress")
 }

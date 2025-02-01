@@ -1,9 +1,11 @@
 package schemaservice
 
 import (
+	"context"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 )
@@ -28,11 +30,11 @@ func TestSchemaStateMarshalling(t *testing.T) {
 
 func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 	state := NewSchemaState()
-	assert.NoError(t, state.ApplyEvent(&schema.ProvisioningCreatedEvent{
-		DesiredModule: &schema.Module{Name: "test1"},
+	assert.NoError(t, state.ApplyEvent(context.Background(), &schema.ProvisioningCreatedEvent{
+		DesiredModule: &schema.Module{Name: "test1", Runtime: &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: key.NewDeploymentKey("test1")}}},
 	}))
 	deploymentKey := key.NewDeploymentKey("test2")
-	assert.NoError(t, state.ApplyEvent(&schema.DeploymentCreatedEvent{
+	assert.NoError(t, state.ApplyEvent(context.Background(), &schema.DeploymentCreatedEvent{
 		Key: deploymentKey,
 		Schema: &schema.Module{
 			Name: "test2",
@@ -41,7 +43,7 @@ func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 			},
 		},
 	}))
-	assert.NoError(t, state.ApplyEvent(&schema.DeploymentActivatedEvent{
+	assert.NoError(t, state.ApplyEvent(context.Background(), &schema.DeploymentActivatedEvent{
 		Key:         deploymentKey,
 		MinReplicas: 1,
 		// No ActivatedAt, as proto conversion does not retain timezone

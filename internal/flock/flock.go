@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
+
+	"github.com/block/ftl/internal/log"
 )
 
 var ErrLocked = errors.New("locked")
@@ -18,6 +20,8 @@ var ErrLocked = errors.New("locked")
 //
 // The lock is released when the returned function is called.
 func Acquire(ctx context.Context, path string, timeout time.Duration) (release func() error, err error) {
+	logger := log.FromContext(ctx)
+	logger.Tracef("Acquiring lock %s", path)
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -26,7 +30,11 @@ func Acquire(ctx context.Context, path string, timeout time.Duration) (release f
 	for {
 		release, err := acquire(absPath)
 		if err == nil {
-			return release, nil
+			logger.Tracef("Locked %s", path)
+			return func() error {
+				logger.Tracef("Releasing lock %s", path)
+				return release()
+			}, nil
 		}
 		if !errors.Is(err, ErrLocked) {
 			return nil, fmt.Errorf("failed to acquire lock %s: %w", absPath, err)

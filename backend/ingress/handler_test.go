@@ -112,13 +112,13 @@ func TestIngress(t *testing.T) {
 				Runtime: &schema.ModuleRuntime{
 					Deployment: &schema.ModuleRuntimeDeployment{
 						DeploymentKey: key.NewDeploymentKey("test"),
+						Endpoint:      "http://localhost:8080",
 					},
 				},
 			}
 			// Publish the test module to the event source
 			eventSource.Publish(schemaeventsource.EventUpsert{
-				Module:     testModule,
-				Deployment: optional.Some(key.NewDeploymentKey("test")),
+				Module: testModule,
 			})
 
 			svc := &service{

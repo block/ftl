@@ -29,7 +29,7 @@ type RouteTable struct {
 
 func New(ctx context.Context, changes schemaeventsource.EventSource) *RouteTable {
 	r := &RouteTable{
-		routes:             atomic.New(extractRoutes(ctx, changes.View())),
+		routes:             atomic.New(extractRoutes(ctx, changes.CanonicalView())),
 		changeNotification: pubsub.New[string](),
 	}
 	go r.run(ctx, changes)
@@ -39,7 +39,7 @@ func New(ctx context.Context, changes schemaeventsource.EventSource) *RouteTable
 func (r *RouteTable) run(ctx context.Context, changes schemaeventsource.EventSource) {
 	for range channels.IterContext(ctx, changes.Events()) {
 		old := r.routes.Load()
-		routes := extractRoutes(ctx, changes.View())
+		routes := extractRoutes(ctx, changes.CanonicalView())
 		for module, rd := range old.moduleToDeployment {
 			if old.byDeployment[rd.String()] != routes.byDeployment[rd.String()] {
 				r.changeNotification.Publish(module)
@@ -103,10 +103,14 @@ func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
 	moduleToDeployment := make(map[string]key.Deployment, len(sch.Modules))
 	byDeployment := make(map[string]*url.URL, len(sch.Modules))
 	for _, module := range sch.Modules {
-		if module.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
+		if module.GetRuntime() == nil {
 			continue
 		}
 		rt := module.Runtime.Deployment
+		if rt.Endpoint == "" {
+			logger.Debugf("Skipping route for %s/%s as it is not ready yet", module.Name, rt.DeploymentKey)
+			continue
+		}
 		u, err := url.Parse(rt.Endpoint)
 		if err != nil {
 			logger.Warnf("Failed to parse endpoint URL for module %q: %v", module.Name, err)

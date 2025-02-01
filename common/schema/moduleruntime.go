@@ -8,6 +8,20 @@ import (
 	"github.com/block/ftl/internal/key"
 )
 
+type ModuleState int
+
+const (
+	ModuleStateUnspecified ModuleState = iota
+	ModuleStateProvisioning
+	ModuleStateReady
+	ModuleStateCanary
+	ModuleStateCanonical
+	ModuleStateDraining
+	ModuleStateDeProvisioning
+	ModuleStateDeleted
+	ModuleStateFailed
+)
+
 // ModuleRuntime is runtime configuration for a module that can be dynamically updated.
 type ModuleRuntime struct {
 	Base       ModuleRuntimeBase        `protobuf:"1"` // Base is always present.
@@ -35,6 +49,7 @@ type ModuleRuntimeDeployment struct {
 	DeploymentKey key.Deployment             `protobuf:"2"`
 	CreatedAt     time.Time                  `protobuf:"3"`
 	ActivatedAt   optional.Option[time.Time] `protobuf:"4"`
+	State         ModuleState                `protobuf:"5"`
 }
 
 func (m *ModuleRuntime) GetScaling() *ModuleRuntimeScaling {

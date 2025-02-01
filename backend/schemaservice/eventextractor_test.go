@@ -7,6 +7,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/tuple"
+
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 )
@@ -14,6 +15,8 @@ import (
 func TestEventExtractor(t *testing.T) {
 	now := time.Now()
 
+	parsed, err := key.ParseDeploymentKey("dpl-test-sjkfislfjslfas")
+	assert.NoError(t, err)
 	tests := []struct {
 		name     string
 		previous SchemaState
@@ -24,6 +27,7 @@ func TestEventExtractor(t *testing.T) {
 			name:     "new deployment creates deployment event",
 			previous: SchemaState{},
 			current: SchemaState{
+				activeDeployments: map[string]key.Deployment{"test": parsed},
 				deployments: map[key.Deployment]*schema.Module{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Name: "test",
@@ -51,6 +55,7 @@ func TestEventExtractor(t *testing.T) {
 		{
 			name: "schema update creates schema updated event",
 			previous: SchemaState{
+				activeDeployments: map[string]key.Deployment{"test": parsed},
 				deployments: map[key.Deployment]*schema.Module{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Name: "test",
@@ -58,6 +63,7 @@ func TestEventExtractor(t *testing.T) {
 				},
 			},
 			current: SchemaState{
+				activeDeployments: map[string]key.Deployment{"test": parsed},
 				deployments: map[key.Deployment]*schema.Module{
 					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
 						Name:     "test",
@@ -80,8 +86,8 @@ func TestEventExtractor(t *testing.T) {
 						Name: "test",
 					},
 				},
-				activeDeployments: map[key.Deployment]bool{
-					deploymentKey(t, "dpl-test-sjkfislfjslfas"): true,
+				activeDeployments: map[string]key.Deployment{
+					"test": deploymentKey(t, "dpl-test-sjkfislfjslfas"),
 				},
 			},
 			current: SchemaState{
@@ -90,7 +96,7 @@ func TestEventExtractor(t *testing.T) {
 						Name: "test",
 					},
 				},
-				activeDeployments: map[key.Deployment]bool{},
+				activeDeployments: map[string]key.Deployment{},
 			},
 			want: []schema.Event{
 				&schema.DeploymentDeactivatedEvent{
@@ -106,8 +112,8 @@ func TestEventExtractor(t *testing.T) {
 						Name: "test",
 					},
 				},
-				activeDeployments: map[key.Deployment]bool{
-					deploymentKey(t, "dpl-test-sjkfislfjslfaa"): true,
+				activeDeployments: map[string]key.Deployment{
+					"test": deploymentKey(t, "dpl-test-sjkfislfjslfaa"),
 				},
 			},
 			current: SchemaState{

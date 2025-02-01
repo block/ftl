@@ -63,6 +63,7 @@ func (m *CallMetrics) BeginSpan(ctx context.Context, verb *schemapb.Ref) (contex
 	}
 	return observability.AddSpanToLogger(m.callTracer.Start(ctx, callMeterName, trace.WithAttributes(attrs...)))
 }
+
 func (m *CallMetrics) Request(ctx context.Context, verb *schemapb.Ref, startTime time.Time, maybeFailureMode optional.Option[string]) {
 	attrs := []attribute.KeyValue{
 		attribute.String(observability.ModuleNameAttribute, verb.Module),

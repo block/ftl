@@ -38,6 +38,37 @@ message Bytes {
   optional Position pos = 1;
 }
 
+message Changeset {
+  string key = 1;
+  google.protobuf.Timestamp created_at = 2;
+  repeated Module modules = 3;
+  ChangesetState state = 4;
+  optional string error = 5;
+}
+
+message ChangesetCommittedEvent {
+  string key = 1;
+}
+
+message ChangesetCreatedEvent {
+  Changeset changeset = 1;
+}
+
+message ChangesetFailedEvent {
+  string key = 1;
+  string error = 2;
+}
+
+enum ChangesetState {
+  CHANGESET_STATE_UNSPECIFIED = 0;
+  CHANGESET_STATE_PREPARING = 1;
+  CHANGESET_STATE_PREPARED = 2;
+  CHANGESET_STATE_CLEANING_UP = 3;
+  CHANGESET_STATE_COMMITTED = 4;
+  CHANGESET_STATE_ROLLING_BACK = 5;
+  CHANGESET_STATE_FAILED = 6;
+}
+
 message Config {
   optional Position pos = 1;
   repeated string comments = 2;
@@ -110,26 +141,31 @@ message DeploymentActivatedEvent {
   string key = 1;
   google.protobuf.Timestamp activated_at = 2;
   int64 min_replicas = 3;
+  string changeset = 4;
 }
 
 message DeploymentCreatedEvent {
   string key = 1;
   Module schema = 2;
+  string changeset = 3;
 }
 
 message DeploymentDeactivatedEvent {
   string key = 1;
   bool module_removed = 2;
+  string changeset = 3;
 }
 
 message DeploymentReplicasUpdatedEvent {
   string key = 1;
   int64 replicas = 2;
+  string changeset = 3;
 }
 
 message DeploymentSchemaUpdatedEvent {
   string key = 1;
   Module schema = 2;
+  string changeset = 3;
 }
 
 message Enum {
@@ -150,6 +186,9 @@ message EnumVariant {
 
 message Event {
   oneof value {
+    ChangesetCommittedEvent changeset_committed_event = 12;
+    ChangesetCreatedEvent changeset_created_event = 11;
+    ChangesetFailedEvent changeset_failed_event = 13;
     DatabaseRuntimeEvent database_runtime_event = 8;
     DeploymentActivatedEvent deployment_activated_event = 4;
     DeploymentCreatedEvent deployment_created_event = 1;
@@ -370,18 +409,30 @@ message ModuleRuntimeDeployment {
   string deployment_key = 2;
   google.protobuf.Timestamp created_at = 3;
   optional google.protobuf.Timestamp activated_at = 4;
+  ModuleState state = 5;
 }
 
 message ModuleRuntimeEvent {
-  string module = 1;
-  optional string deployment_key = 2;
-  optional ModuleRuntimeBase base = 3;
-  optional ModuleRuntimeScaling scaling = 4;
-  optional ModuleRuntimeDeployment deployment = 5;
+  string deployment_key = 1;
+  optional ModuleRuntimeBase base = 2;
+  optional ModuleRuntimeScaling scaling = 3;
+  optional ModuleRuntimeDeployment deployment = 4;
 }
 
 message ModuleRuntimeScaling {
   int32 min_replicas = 1;
+}
+
+enum ModuleState {
+  MODULE_STATE_UNSPECIFIED = 0;
+  MODULE_STATE_PROVISIONING = 1;
+  MODULE_STATE_READY = 2;
+  MODULE_STATE_CANARY = 3;
+  MODULE_STATE_CANONICAL = 4;
+  MODULE_STATE_DRAINING = 5;
+  MODULE_STATE_DE_PROVISIONING = 6;
+  MODULE_STATE_DELETED = 7;
+  MODULE_STATE_FAILED = 8;
 }
 
 // Optional represents a Type whose value may be optional.
@@ -417,6 +468,8 @@ message Schema {
 message SchemaState {
   repeated Module modules = 1;
   repeated string active_deployments = 2;
+  repeated SerializedChangeset serialized_changeset = 3;
+  repeated string provisioning = 4;
 }
 
 message Secret {
@@ -424,6 +477,15 @@ message Secret {
   repeated string comments = 2;
   string name = 3;
   Type type = 4;
+}
+
+// SerializedChangeset is a temp hack that needs to go away
+message SerializedChangeset {
+  string key = 1;
+  google.protobuf.Timestamp created_at = 2;
+  repeated string deployments = 3;
+  ChangesetState state = 4;
+  string error = 5;
 }
 
 message String {
