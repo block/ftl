@@ -23,8 +23,15 @@ func TestDeploymentState(t *testing.T) {
 
 	deploymentKey := key.NewDeploymentKey("test-deployment")
 	err = cs.Publish(ctx, &schema.DeploymentCreatedEvent{
-		Key:    deploymentKey,
-		Schema: &schema.Module{Name: "test"},
+		Key: deploymentKey,
+		Schema: &schema.Module{
+			Name: "test",
+			Runtime: &schema.ModuleRuntime{
+				Deployment: &schema.ModuleRuntimeDeployment{
+					DeploymentKey: deploymentKey,
+				},
+			},
+		},
 	})
 	assert.NoError(t, err)
 	view, err = cs.View(ctx)
