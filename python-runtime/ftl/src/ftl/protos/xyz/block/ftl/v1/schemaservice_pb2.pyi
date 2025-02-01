@@ -135,6 +135,16 @@ class DeployedSchema(_message.Message):
     is_active: bool
     def __init__(self, deployment_key: _Optional[str] = ..., schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., is_active: bool = ...) -> None: ...
 
+class PrepareChangesetRequest(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: str
+    def __init__(self, changeset: _Optional[str] = ...) -> None: ...
+
+class PrepareChangesetResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
 class CommitChangesetRequest(_message.Message):
     __slots__ = ("changeset",)
     CHANGESET_FIELD_NUMBER: _ClassVar[int]

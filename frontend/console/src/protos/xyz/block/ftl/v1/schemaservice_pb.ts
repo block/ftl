@@ -810,6 +810,76 @@ export class DeployedSchema extends Message<DeployedSchema> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.v1.PrepareChangesetRequest
+ */
+export class PrepareChangesetRequest extends Message<PrepareChangesetRequest> {
+  /**
+   * The changeset key to prepare.
+   *
+   * @generated from field: string changeset = 1;
+   */
+  changeset = "";
+
+  constructor(data?: PartialMessage<PrepareChangesetRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.PrepareChangesetRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PrepareChangesetRequest {
+    return new PrepareChangesetRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PrepareChangesetRequest {
+    return new PrepareChangesetRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PrepareChangesetRequest {
+    return new PrepareChangesetRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: PrepareChangesetRequest | PlainMessage<PrepareChangesetRequest> | undefined, b: PrepareChangesetRequest | PlainMessage<PrepareChangesetRequest> | undefined): boolean {
+    return proto3.util.equals(PrepareChangesetRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.PrepareChangesetResponse
+ */
+export class PrepareChangesetResponse extends Message<PrepareChangesetResponse> {
+  constructor(data?: PartialMessage<PrepareChangesetResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.PrepareChangesetResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PrepareChangesetResponse {
+    return new PrepareChangesetResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PrepareChangesetResponse {
+    return new PrepareChangesetResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PrepareChangesetResponse {
+    return new PrepareChangesetResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: PrepareChangesetResponse | PlainMessage<PrepareChangesetResponse> | undefined, b: PrepareChangesetResponse | PlainMessage<PrepareChangesetResponse> | undefined): boolean {
+    return proto3.util.equals(PrepareChangesetResponse, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.v1.CommitChangesetRequest
  */
 export class CommitChangesetRequest extends Message<CommitChangesetRequest> {

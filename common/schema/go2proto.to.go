@@ -390,6 +390,30 @@ func ChangesetFailedEventFromProto(v *destpb.ChangesetFailedEvent) (out *Changes
 	return out, nil
 }
 
+func (x *ChangesetPreparedEvent) ToProto() *destpb.ChangesetPreparedEvent {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetPreparedEvent{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetPreparedEventFromProto(v *destpb.ChangesetPreparedEvent) (out *ChangesetPreparedEvent, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetPreparedEvent{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (x ChangesetState) ToProto() destpb.ChangesetState {
 	return destpb.ChangesetState(x)
 }
@@ -891,6 +915,15 @@ func DeploymentSchemaUpdatedEventFromProto(v *destpb.DeploymentSchemaUpdatedEven
 	return out, nil
 }
 
+func (x DeploymentState) ToProto() destpb.DeploymentState {
+	return destpb.DeploymentState(x)
+}
+
+func DeploymentStateFromProto(v destpb.DeploymentState) (DeploymentState, error) {
+	// TODO: Check if the value is valid.
+	return DeploymentState(v), nil
+}
+
 func (x *Enum) ToProto() *destpb.Enum {
 	if x == nil {
 		return nil
@@ -982,6 +1015,10 @@ func EventToProto(value Event) *destpb.Event {
 		return &destpb.Event{
 			Value: &destpb.Event_ChangesetFailedEvent{value.ToProto()},
 		}
+	case *ChangesetPreparedEvent:
+		return &destpb.Event{
+			Value: &destpb.Event_ChangesetPreparedEvent{value.ToProto()},
+		}
 	case *DatabaseRuntimeEvent:
 		return &destpb.Event{
 			Value: &destpb.Event_DatabaseRuntimeEvent{value.ToProto()},
@@ -1038,6 +1075,8 @@ func EventFromProto(v *destpb.Event) (Event, error) {
 		return ChangesetCreatedEventFromProto(v.GetChangesetCreatedEvent())
 	case *destpb.Event_ChangesetFailedEvent:
 		return ChangesetFailedEventFromProto(v.GetChangesetFailedEvent())
+	case *destpb.Event_ChangesetPreparedEvent:
+		return ChangesetPreparedEventFromProto(v.GetChangesetPreparedEvent())
 	case *destpb.Event_DatabaseRuntimeEvent:
 		return DatabaseRuntimeEventFromProto(v.GetDatabaseRuntimeEvent())
 	case *destpb.Event_DeploymentActivatedEvent:
@@ -2041,7 +2080,7 @@ func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) (out *M
 	if out.ActivatedAt, err = optionalR(result.From(setNil(ptr(v.ActivatedAt.AsTime()), v.ActivatedAt), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("ActivatedAt: %w", err)
 	}
-	if out.State, err = orZeroR(ptrR(result.From(ModuleStateFromProto(v.State)))).Result(); err != nil {
+	if out.State, err = orZeroR(ptrR(result.From(DeploymentStateFromProto(v.State)))).Result(); err != nil {
 		return nil, fmt.Errorf("State: %w", err)
 	}
 	return out, nil
@@ -2102,15 +2141,6 @@ func ModuleRuntimeScalingFromProto(v *destpb.ModuleRuntimeScaling) (out *ModuleR
 		return nil, fmt.Errorf("MinReplicas: %w", err)
 	}
 	return out, nil
-}
-
-func (x ModuleState) ToProto() destpb.ModuleState {
-	return destpb.ModuleState(x)
-}
-
-func ModuleStateFromProto(v destpb.ModuleState) (ModuleState, error) {
-	// TODO: Check if the value is valid.
-	return ModuleState(v), nil
 }
 
 func (x *Optional) ToProto() *destpb.Optional {

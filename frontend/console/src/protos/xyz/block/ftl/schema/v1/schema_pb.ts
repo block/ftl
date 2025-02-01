@@ -81,6 +81,68 @@ proto3.util.setEnumType(ChangesetState, "xyz.block.ftl.schema.v1.ChangesetState"
 ]);
 
 /**
+ * @generated from enum xyz.block.ftl.schema.v1.DeploymentState
+ */
+export enum DeploymentState {
+  /**
+   * @generated from enum value: DEPLOYMENT_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATE_PROVISIONING = 1;
+   */
+  PROVISIONING = 1,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATE_READY = 2;
+   */
+  READY = 2,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATE_CANARY = 3;
+   */
+  CANARY = 3,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATE_CANONICAL = 4;
+   */
+  CANONICAL = 4,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATE_DRAINING = 5;
+   */
+  DRAINING = 5,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATE_DE_PROVISIONING = 6;
+   */
+  DE_PROVISIONING = 6,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATE_DELETED = 7;
+   */
+  DELETED = 7,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATE_FAILED = 8;
+   */
+  FAILED = 8,
+}
+// Retrieve enum metadata with: proto3.getEnumType(DeploymentState)
+proto3.util.setEnumType(DeploymentState, "xyz.block.ftl.schema.v1.DeploymentState", [
+  { no: 0, name: "DEPLOYMENT_STATE_UNSPECIFIED" },
+  { no: 1, name: "DEPLOYMENT_STATE_PROVISIONING" },
+  { no: 2, name: "DEPLOYMENT_STATE_READY" },
+  { no: 3, name: "DEPLOYMENT_STATE_CANARY" },
+  { no: 4, name: "DEPLOYMENT_STATE_CANONICAL" },
+  { no: 5, name: "DEPLOYMENT_STATE_DRAINING" },
+  { no: 6, name: "DEPLOYMENT_STATE_DE_PROVISIONING" },
+  { no: 7, name: "DEPLOYMENT_STATE_DELETED" },
+  { no: 8, name: "DEPLOYMENT_STATE_FAILED" },
+]);
+
+/**
  * @generated from enum xyz.block.ftl.schema.v1.FromOffset
  */
 export enum FromOffset {
@@ -104,68 +166,6 @@ proto3.util.setEnumType(FromOffset, "xyz.block.ftl.schema.v1.FromOffset", [
   { no: 0, name: "FROM_OFFSET_UNSPECIFIED" },
   { no: 1, name: "FROM_OFFSET_BEGINNING" },
   { no: 2, name: "FROM_OFFSET_LATEST" },
-]);
-
-/**
- * @generated from enum xyz.block.ftl.schema.v1.ModuleState
- */
-export enum ModuleState {
-  /**
-   * @generated from enum value: MODULE_STATE_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: MODULE_STATE_PROVISIONING = 1;
-   */
-  PROVISIONING = 1,
-
-  /**
-   * @generated from enum value: MODULE_STATE_READY = 2;
-   */
-  READY = 2,
-
-  /**
-   * @generated from enum value: MODULE_STATE_CANARY = 3;
-   */
-  CANARY = 3,
-
-  /**
-   * @generated from enum value: MODULE_STATE_CANONICAL = 4;
-   */
-  CANONICAL = 4,
-
-  /**
-   * @generated from enum value: MODULE_STATE_DRAINING = 5;
-   */
-  DRAINING = 5,
-
-  /**
-   * @generated from enum value: MODULE_STATE_DE_PROVISIONING = 6;
-   */
-  DE_PROVISIONING = 6,
-
-  /**
-   * @generated from enum value: MODULE_STATE_DELETED = 7;
-   */
-  DELETED = 7,
-
-  /**
-   * @generated from enum value: MODULE_STATE_FAILED = 8;
-   */
-  FAILED = 8,
-}
-// Retrieve enum metadata with: proto3.getEnumType(ModuleState)
-proto3.util.setEnumType(ModuleState, "xyz.block.ftl.schema.v1.ModuleState", [
-  { no: 0, name: "MODULE_STATE_UNSPECIFIED" },
-  { no: 1, name: "MODULE_STATE_PROVISIONING" },
-  { no: 2, name: "MODULE_STATE_READY" },
-  { no: 3, name: "MODULE_STATE_CANARY" },
-  { no: 4, name: "MODULE_STATE_CANONICAL" },
-  { no: 5, name: "MODULE_STATE_DRAINING" },
-  { no: 6, name: "MODULE_STATE_DE_PROVISIONING" },
-  { no: 7, name: "MODULE_STATE_DELETED" },
-  { no: 8, name: "MODULE_STATE_FAILED" },
 ]);
 
 /**
@@ -552,6 +552,43 @@ export class ChangesetFailedEvent extends Message<ChangesetFailedEvent> {
 
   static equals(a: ChangesetFailedEvent | PlainMessage<ChangesetFailedEvent> | undefined, b: ChangesetFailedEvent | PlainMessage<ChangesetFailedEvent> | undefined): boolean {
     return proto3.util.equals(ChangesetFailedEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetPreparedEvent
+ */
+export class ChangesetPreparedEvent extends Message<ChangesetPreparedEvent> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  constructor(data?: PartialMessage<ChangesetPreparedEvent>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetPreparedEvent";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetPreparedEvent {
+    return new ChangesetPreparedEvent().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetPreparedEvent {
+    return new ChangesetPreparedEvent().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetPreparedEvent {
+    return new ChangesetPreparedEvent().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetPreparedEvent | PlainMessage<ChangesetPreparedEvent> | undefined, b: ChangesetPreparedEvent | PlainMessage<ChangesetPreparedEvent> | undefined): boolean {
+    return proto3.util.equals(ChangesetPreparedEvent, a, b);
   }
 }
 
@@ -1462,10 +1499,16 @@ export class Event extends Message<Event> {
     case: "changesetCreatedEvent";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedEvent changeset_failed_event = 13;
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedEvent changeset_failed_event = 14;
      */
     value: ChangesetFailedEvent;
     case: "changesetFailedEvent";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetPreparedEvent changeset_prepared_event = 13;
+     */
+    value: ChangesetPreparedEvent;
+    case: "changesetPreparedEvent";
   } | {
     /**
      * @generated from field: xyz.block.ftl.schema.v1.DatabaseRuntimeEvent database_runtime_event = 8;
@@ -1538,7 +1581,8 @@ export class Event extends Message<Event> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 12, name: "changeset_committed_event", kind: "message", T: ChangesetCommittedEvent, oneof: "value" },
     { no: 11, name: "changeset_created_event", kind: "message", T: ChangesetCreatedEvent, oneof: "value" },
-    { no: 13, name: "changeset_failed_event", kind: "message", T: ChangesetFailedEvent, oneof: "value" },
+    { no: 14, name: "changeset_failed_event", kind: "message", T: ChangesetFailedEvent, oneof: "value" },
+    { no: 13, name: "changeset_prepared_event", kind: "message", T: ChangesetPreparedEvent, oneof: "value" },
     { no: 8, name: "database_runtime_event", kind: "message", T: DatabaseRuntimeEvent, oneof: "value" },
     { no: 4, name: "deployment_activated_event", kind: "message", T: DeploymentActivatedEvent, oneof: "value" },
     { no: 1, name: "deployment_created_event", kind: "message", T: DeploymentCreatedEvent, oneof: "value" },
@@ -3123,9 +3167,9 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
   activatedAt?: Timestamp;
 
   /**
-   * @generated from field: xyz.block.ftl.schema.v1.ModuleState state = 5;
+   * @generated from field: xyz.block.ftl.schema.v1.DeploymentState state = 5;
    */
-  state = ModuleState.UNSPECIFIED;
+  state = DeploymentState.UNSPECIFIED;
 
   constructor(data?: PartialMessage<ModuleRuntimeDeployment>) {
     super();
@@ -3139,7 +3183,7 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
     { no: 2, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "created_at", kind: "message", T: Timestamp },
     { no: 4, name: "activated_at", kind: "message", T: Timestamp, opt: true },
-    { no: 5, name: "state", kind: "enum", T: proto3.getEnumType(ModuleState) },
+    { no: 5, name: "state", kind: "enum", T: proto3.getEnumType(DeploymentState) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeDeployment {

@@ -59,6 +59,10 @@ message ChangesetFailedEvent {
   string error = 2;
 }
 
+message ChangesetPreparedEvent {
+  string key = 1;
+}
+
 enum ChangesetState {
   CHANGESET_STATE_UNSPECIFIED = 0;
   CHANGESET_STATE_PREPARING = 1;
@@ -168,6 +172,18 @@ message DeploymentSchemaUpdatedEvent {
   string changeset = 3;
 }
 
+enum DeploymentState {
+  DEPLOYMENT_STATE_UNSPECIFIED = 0;
+  DEPLOYMENT_STATE_PROVISIONING = 1;
+  DEPLOYMENT_STATE_READY = 2;
+  DEPLOYMENT_STATE_CANARY = 3;
+  DEPLOYMENT_STATE_CANONICAL = 4;
+  DEPLOYMENT_STATE_DRAINING = 5;
+  DEPLOYMENT_STATE_DE_PROVISIONING = 6;
+  DEPLOYMENT_STATE_DELETED = 7;
+  DEPLOYMENT_STATE_FAILED = 8;
+}
+
 message Enum {
   optional Position pos = 1;
   repeated string comments = 2;
@@ -188,7 +204,8 @@ message Event {
   oneof value {
     ChangesetCommittedEvent changeset_committed_event = 12;
     ChangesetCreatedEvent changeset_created_event = 11;
-    ChangesetFailedEvent changeset_failed_event = 13;
+    ChangesetFailedEvent changeset_failed_event = 14;
+    ChangesetPreparedEvent changeset_prepared_event = 13;
     DatabaseRuntimeEvent database_runtime_event = 8;
     DeploymentActivatedEvent deployment_activated_event = 4;
     DeploymentCreatedEvent deployment_created_event = 1;
@@ -409,7 +426,7 @@ message ModuleRuntimeDeployment {
   string deployment_key = 2;
   google.protobuf.Timestamp created_at = 3;
   optional google.protobuf.Timestamp activated_at = 4;
-  ModuleState state = 5;
+  DeploymentState state = 5;
 }
 
 message ModuleRuntimeEvent {
@@ -421,18 +438,6 @@ message ModuleRuntimeEvent {
 
 message ModuleRuntimeScaling {
   int32 min_replicas = 1;
-}
-
-enum ModuleState {
-  MODULE_STATE_UNSPECIFIED = 0;
-  MODULE_STATE_PROVISIONING = 1;
-  MODULE_STATE_READY = 2;
-  MODULE_STATE_CANARY = 3;
-  MODULE_STATE_CANONICAL = 4;
-  MODULE_STATE_DRAINING = 5;
-  MODULE_STATE_DE_PROVISIONING = 6;
-  MODULE_STATE_DELETED = 7;
-  MODULE_STATE_FAILED = 8;
 }
 
 // Optional represents a Type whose value may be optional.

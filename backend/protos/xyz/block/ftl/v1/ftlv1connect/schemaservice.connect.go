@@ -52,6 +52,9 @@ const (
 	// SchemaServiceCreateChangesetProcedure is the fully-qualified name of the SchemaService's
 	// CreateChangeset RPC.
 	SchemaServiceCreateChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/CreateChangeset"
+	// SchemaServicePrepareChangesetProcedure is the fully-qualified name of the SchemaService's
+	// PrepareChangeset RPC.
+	SchemaServicePrepareChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/PrepareChangeset"
 	// SchemaServiceCommitChangesetProcedure is the fully-qualified name of the SchemaService's
 	// CommitChangeset RPC.
 	SchemaServiceCommitChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/CommitChangeset"
@@ -79,6 +82,8 @@ type SchemaServiceClient interface {
 	GetDeployments(context.Context, *connect.Request[v1.GetDeploymentsRequest]) (*connect.Response[v1.GetDeploymentsResponse], error)
 	// CreateChangeset creates a new changeset.
 	CreateChangeset(context.Context, *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error)
+	// PrepareChangeset moves the changeset into the prepared state.
+	PrepareChangeset(context.Context, *connect.Request[v1.PrepareChangesetRequest]) (*connect.Response[v1.PrepareChangesetResponse], error)
 	// CommitChangeset makes all deployments for the changeset part of the canonical schema.
 	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
 	// FailChangeset fails an active changeset.
@@ -133,6 +138,11 @@ func NewSchemaServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			baseURL+SchemaServiceCreateChangesetProcedure,
 			opts...,
 		),
+		prepareChangeset: connect.NewClient[v1.PrepareChangesetRequest, v1.PrepareChangesetResponse](
+			httpClient,
+			baseURL+SchemaServicePrepareChangesetProcedure,
+			opts...,
+		),
 		commitChangeset: connect.NewClient[v1.CommitChangesetRequest, v1.CommitChangesetResponse](
 			httpClient,
 			baseURL+SchemaServiceCommitChangesetProcedure,
@@ -155,6 +165,7 @@ type schemaServiceClient struct {
 	updateSchema            *connect.Client[v1.UpdateSchemaRequest, v1.UpdateSchemaResponse]
 	getDeployments          *connect.Client[v1.GetDeploymentsRequest, v1.GetDeploymentsResponse]
 	createChangeset         *connect.Client[v1.CreateChangesetRequest, v1.CreateChangesetResponse]
+	prepareChangeset        *connect.Client[v1.PrepareChangesetRequest, v1.PrepareChangesetResponse]
 	commitChangeset         *connect.Client[v1.CommitChangesetRequest, v1.CommitChangesetResponse]
 	failChangeset           *connect.Client[v1.FailChangesetRequest, v1.FailChangesetResponse]
 }
@@ -194,6 +205,11 @@ func (c *schemaServiceClient) CreateChangeset(ctx context.Context, req *connect.
 	return c.createChangeset.CallUnary(ctx, req)
 }
 
+// PrepareChangeset calls xyz.block.ftl.v1.SchemaService.PrepareChangeset.
+func (c *schemaServiceClient) PrepareChangeset(ctx context.Context, req *connect.Request[v1.PrepareChangesetRequest]) (*connect.Response[v1.PrepareChangesetResponse], error) {
+	return c.prepareChangeset.CallUnary(ctx, req)
+}
+
 // CommitChangeset calls xyz.block.ftl.v1.SchemaService.CommitChangeset.
 func (c *schemaServiceClient) CommitChangeset(ctx context.Context, req *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error) {
 	return c.commitChangeset.CallUnary(ctx, req)
@@ -223,6 +239,8 @@ type SchemaServiceHandler interface {
 	GetDeployments(context.Context, *connect.Request[v1.GetDeploymentsRequest]) (*connect.Response[v1.GetDeploymentsResponse], error)
 	// CreateChangeset creates a new changeset.
 	CreateChangeset(context.Context, *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error)
+	// PrepareChangeset moves the changeset into the prepared state.
+	PrepareChangeset(context.Context, *connect.Request[v1.PrepareChangesetRequest]) (*connect.Response[v1.PrepareChangesetResponse], error)
 	// CommitChangeset makes all deployments for the changeset part of the canonical schema.
 	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
 	// FailChangeset fails an active changeset.
@@ -273,6 +291,11 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 		svc.CreateChangeset,
 		opts...,
 	)
+	schemaServicePrepareChangesetHandler := connect.NewUnaryHandler(
+		SchemaServicePrepareChangesetProcedure,
+		svc.PrepareChangeset,
+		opts...,
+	)
 	schemaServiceCommitChangesetHandler := connect.NewUnaryHandler(
 		SchemaServiceCommitChangesetProcedure,
 		svc.CommitChangeset,
@@ -299,6 +322,8 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 			schemaServiceGetDeploymentsHandler.ServeHTTP(w, r)
 		case SchemaServiceCreateChangesetProcedure:
 			schemaServiceCreateChangesetHandler.ServeHTTP(w, r)
+		case SchemaServicePrepareChangesetProcedure:
+			schemaServicePrepareChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceCommitChangesetProcedure:
 			schemaServiceCommitChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceFailChangesetProcedure:
@@ -338,6 +363,10 @@ func (UnimplementedSchemaServiceHandler) GetDeployments(context.Context, *connec
 
 func (UnimplementedSchemaServiceHandler) CreateChangeset(context.Context, *connect.Request[v1.CreateChangesetRequest]) (*connect.Response[v1.CreateChangesetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.CreateChangeset is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) PrepareChangeset(context.Context, *connect.Request[v1.PrepareChangesetRequest]) (*connect.Response[v1.PrepareChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.PrepareChangeset is not implemented"))
 }
 
 func (UnimplementedSchemaServiceHandler) CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error) {
