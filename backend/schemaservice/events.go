@@ -42,6 +42,8 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 		return handleProvisioningCreatedEvent(r, e)
 	case *schema.ChangesetCreatedEvent:
 		return handleChangesetCreatedEvent(r, e)
+	case *schema.ChangesetPreparedEvent:
+		return handleChangesetPreparedEvent(r, e)
 	case *schema.ChangesetCommittedEvent:
 		return handleChangesetCommittedEvent(ctx, r, e)
 	case *schema.ChangesetFailedEvent:
@@ -170,6 +172,7 @@ func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) error
 	if module == nil {
 		return fmt.Errorf("deployment %s not found", e.Deployment)
 	}
+
 	if base, ok := e.Base.Get(); ok {
 		module.ModRuntime().Base = base
 	}
@@ -177,6 +180,14 @@ func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) error
 		module.ModRuntime().Scaling = &scaling
 	}
 	if deployment, ok := e.Deployment.Get(); ok {
+		if deployment.State == schema.DeploymentStateUnspecified {
+			deployment.State = module.Runtime.Deployment.State
+		} else if deployment.State != module.Runtime.Deployment.State {
+			// We only allow a few different externally driven state changes
+			if !(module.Runtime.Deployment.State == schema.DeploymentStateProvisioning && deployment.State == schema.DeploymentStateReady) {
+				return fmt.Errorf("invalid state transition from %d to %d", module.Runtime.Deployment.State, deployment.State)
+			}
+		}
 		module.ModRuntime().Deployment = &deployment
 	}
 	return nil
@@ -210,6 +221,12 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 		if mod.Runtime.Deployment.DeploymentKey.IsZero() {
 			return fmt.Errorf("module %s has no deployment key", mod.Name)
 		}
+		if mod.Runtime.Deployment.State == schema.DeploymentStateUnspecified {
+			mod.Runtime.Deployment.State = schema.DeploymentStateProvisioning
+		}
+		if mod.Runtime.Deployment.State != schema.DeploymentStateProvisioning {
+			return fmt.Errorf("module %s is not in correct state", mod.Name)
+		}
 		deploymentKey := mod.Runtime.Deployment.DeploymentKey
 		deployments = append(deployments, deploymentKey)
 		t.deployments[deploymentKey] = mod
@@ -225,10 +242,37 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 	return nil
 }
 
+func handleChangesetPreparedEvent(t SchemaState, e *schema.ChangesetPreparedEvent) error {
+	changeset, ok := t.changesets[e.Key]
+	if !ok {
+		return fmt.Errorf("changeset %s not found", e.Key)
+	}
+	for _, depName := range changeset.Deployments {
+		dep := t.deployments[depName]
+		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateReady {
+			return fmt.Errorf("deployment %s is not in correct state %d", depName, dep.ModRuntime().ModDeployment().State)
+		}
+	}
+	changeset.State = schema.ChangesetStatePrepared
+	// TODO: what does this actually mean? Worry about it when we start implementing canaries, but it will be clunky
+	// If everything that cares about canaries needs to scan for prepared changesets
+	for _, depName := range changeset.Deployments {
+		t.deployments[depName].Runtime.Deployment.State = schema.DeploymentStateCanary
+	}
+	return nil
+}
+
 func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema.ChangesetCommittedEvent) error {
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
+	}
+
+	for _, depName := range changeset.Deployments {
+		dep := t.deployments[depName]
+		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateCanary {
+			return fmt.Errorf("deployment %s is not in correct state %d", depName, dep.ModRuntime().ModDeployment().State)
+		}
 	}
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted

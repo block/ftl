@@ -159,9 +159,11 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 
 	}
 
-	//TODO: huge hack, this needs be be changed as it means all provisioning has to happen in a single goroutine
-	// I don't even know if this is the right place to commit the changeset
-	_, err := s.schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: req.Key.String()}))
+	_, err := s.schemaClient.PrepareChangeset(ctx, connect.NewRequest(&ftlv1.PrepareChangesetRequest{Changeset: req.Key.String()}))
+	if err != nil {
+		return fmt.Errorf("error preparing changeset: %w", err)
+	}
+	_, err = s.schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: req.Key.String()}))
 	if err != nil {
 		return fmt.Errorf("error committing changeset: %w", err)
 	}

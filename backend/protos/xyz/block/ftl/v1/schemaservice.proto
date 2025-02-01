@@ -109,6 +109,13 @@ message DeployedSchema {
   ftl.schema.v1.Module schema = 2;
   bool is_active = 3;
 }
+message PrepareChangesetRequest {
+  // The changeset key to prepare.
+  string changeset = 1;
+}
+
+message PrepareChangesetResponse {}
+
 message CommitChangesetRequest {
   // The changeset key to commit.
   string changeset = 1;
@@ -154,6 +161,9 @@ service SchemaService {
 
   // CreateChangeset creates a new changeset.
   rpc CreateChangeset(CreateChangesetRequest) returns (CreateChangesetResponse);
+
+  // PrepareChangeset moves the changeset into the prepared state.
+  rpc PrepareChangeset(PrepareChangesetRequest) returns (PrepareChangesetResponse);
 
   // CommitChangeset makes all deployments for the changeset part of the canonical schema.
   rpc CommitChangeset(CommitChangesetRequest) returns (CommitChangesetResponse);

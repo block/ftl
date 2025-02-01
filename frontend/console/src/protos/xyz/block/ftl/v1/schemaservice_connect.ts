@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, FailChangesetRequest, FailChangesetResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
+import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, FailChangesetRequest, FailChangesetResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -94,6 +94,17 @@ export const SchemaService = {
       name: "CreateChangeset",
       I: CreateChangesetRequest,
       O: CreateChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * PrepareChangeset moves the changeset into the prepared state.
+     *
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.PrepareChangeset
+     */
+    prepareChangeset: {
+      name: "PrepareChangeset",
+      I: PrepareChangesetRequest,
+      O: PrepareChangesetResponse,
       kind: MethodKind.Unary,
     },
     /**

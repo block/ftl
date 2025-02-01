@@ -187,6 +187,21 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 	return connect.NewResponse(&ftlv1.CreateChangesetResponse{Changeset: changeset.Key.String()}), nil
 }
 
+// PrepareChangeset prepares an active changeset for deployment.
+func (s *Service) PrepareChangeset(ctx context.Context, req *connect.Request[ftlv1.PrepareChangesetRequest]) (*connect.Response[ftlv1.PrepareChangesetResponse], error) {
+	changesetKey, err := key.ParseChangesetKey(req.Msg.Changeset)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
+	}
+	err = s.State.Publish(ctx, &schema.ChangesetPreparedEvent{
+		Key: changesetKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not prepare changeset %w", err)
+	}
+	return connect.NewResponse(&ftlv1.PrepareChangesetResponse{}), nil
+}
+
 // CommitChangeset makes all deployments for the changeset part of the canonical schema.
 func (s *Service) CommitChangeset(ctx context.Context, req *connect.Request[ftlv1.CommitChangesetRequest]) (*connect.Response[ftlv1.CommitChangesetResponse], error) {
 	changesetKey, err := key.ParseChangesetKey(req.Msg.Changeset)

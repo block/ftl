@@ -107,6 +107,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			Deployment: &schemapb.ModuleRuntimeDeployment{
 				DeploymentKey: deployment.String(),
 				Endpoint:      endpointURI,
+				State:         schemapb.DeploymentState_DEPLOYMENT_STATE_READY,
 			},
 		}}))
 		if err != nil {
@@ -117,6 +118,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			Deployment: optional.Some(schema.ModuleRuntimeDeployment{
 				DeploymentKey: deployment,
 				Endpoint:      endpointURI,
+				State:         schema.DeploymentStateReady,
 			}),
 		}, nil
 	}
