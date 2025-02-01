@@ -26,7 +26,6 @@ type SchemaState struct {
 	// currently active deployments for a given module name. This represents the canonical state of the schema.
 	activeDeployments map[string]key.Deployment
 	changesets        map[key.Changeset]*ChangesetDetails
-	provisioning      map[string]key.Deployment
 }
 
 type ChangesetDetails struct {
@@ -43,7 +42,6 @@ func NewSchemaState() SchemaState {
 		deployments:       map[key.Deployment]*schema.Module{},
 		activeDeployments: map[string]key.Deployment{},
 		changesets:        map[key.Changeset]*ChangesetDetails{},
-		provisioning:      map[string]key.Deployment{},
 	}
 }
 
@@ -59,10 +57,6 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 }
 
 func (r *SchemaState) Marshal() ([]byte, error) {
-	provisioning := []string{}
-	for _, v := range r.provisioning {
-		provisioning = append(provisioning, v.String())
-	}
 	activeDeployments := []string{}
 	for _, v := range r.activeDeployments {
 		activeDeployments = append(activeDeployments, v.String())
@@ -77,7 +71,6 @@ func (r *SchemaState) Marshal() ([]byte, error) {
 	}
 	state := &schema.SchemaState{
 		Modules:             slices.Collect(maps.Values(r.deployments)),
-		Provisioning:        provisioning,
 		ActiveDeployments:   activeDeployments,
 		SerializedChangeset: cs,
 	}
@@ -110,14 +103,6 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 		}
 		r.activeDeployments[deploymentKey.Payload.Module] = deploymentKey
 	}
-	for _, a := range state.Provisioning {
-		deploymentKey, err := key.ParseDeploymentKey(a)
-		if err != nil {
-			return fmt.Errorf("failed to parse deployment key: %w", err)
-		}
-		r.provisioning[deploymentKey.Payload.Module] = deploymentKey
-	}
-
 	return nil
 }
 
@@ -170,14 +155,6 @@ func (r *SchemaState) GetAllActiveDeployments() map[key.Deployment]*schema.Modul
 
 func (r *SchemaState) GetCanonicalDeploymentSchemas() []*schema.Module {
 	return expmaps.Values(r.GetCanonicalDeployments())
-}
-
-func (r *SchemaState) GetProvisioning(moduleName string) (*schema.Module, error) {
-	d, ok := r.provisioning[moduleName]
-	if !ok {
-		return nil, fmt.Errorf("provisioning for module %s not found", moduleName)
-	}
-	return r.deployments[d], nil
 }
 
 type schemaStateMachine struct {

@@ -10,11 +10,11 @@ import (
 	"github.com/jpillora/backoff"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
-	"github.com/block/ftl/backend/schemaservice"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 type TaskState string
@@ -38,7 +38,7 @@ type Task struct {
 	runningToken string
 }
 
-func (t *Task) Start(ctx context.Context) error {
+func (t *Task) Start(ctx context.Context, eventSource *schemaeventsource.EventSource) error {
 	if t.state != TaskStatePending {
 		return fmt.Errorf("task state is not pending: %s", t.state)
 	}
@@ -48,8 +48,7 @@ func (t *Task) Start(ctx context.Context) error {
 	if t.deployment.Previous != nil {
 		previous = t.deployment.Previous.ToProto()
 	}
-
-	module, err := t.deployment.DeploymentState.GetProvisioning(t.module)
+	module, err := t.currentModuleState(eventSource)
 	if err != nil {
 		return fmt.Errorf("error getting module: %w", err)
 	}
@@ -70,7 +69,7 @@ func (t *Task) Start(ctx context.Context) error {
 	return nil
 }
 
-func (t *Task) Progress(ctx context.Context) error {
+func (t *Task) Progress(ctx context.Context, eventSource *schemaeventsource.EventSource) error {
 	if t.state != TaskStateRunning {
 		return fmt.Errorf("task state is not running: %s", t.state)
 	}
@@ -81,7 +80,8 @@ func (t *Task) Progress(ctx context.Context) error {
 	}
 
 	for {
-		module, err := t.deployment.DeploymentState.GetProvisioning(t.module)
+
+		module, err := t.currentModuleState(eventSource)
 		if err != nil {
 			return fmt.Errorf("error getting module: %w", err)
 		}
@@ -98,17 +98,9 @@ func (t *Task) Progress(ctx context.Context) error {
 			events := succ.Success.Events
 
 			for _, eventpb := range events {
-				event, err := schema.EventFromProto(eventpb)
-				if err != nil {
-					return fmt.Errorf("failed to parse event: %w", err)
-				}
 				err = t.deployment.EventHandler(eventpb)
 				if err != nil {
 					return fmt.Errorf("schema server failed to handle provisioning event: %w", err)
-				}
-				err = t.deployment.DeploymentState.ApplyEvent(ctx, event)
-				if err != nil {
-					return fmt.Errorf("failed to apply event: %w", err)
 				}
 			}
 			return nil
@@ -118,14 +110,28 @@ func (t *Task) Progress(ctx context.Context) error {
 	}
 }
 
+func (t *Task) currentModuleState(eventSource *schemaeventsource.EventSource) (*schema.Module, error) {
+	changeset := eventSource.ActiveChangeset()
+	if !changeset.Ok() {
+		return nil, fmt.Errorf("no active changeset")
+	}
+	cs := changeset.MustGet()
+	var module *schema.Module
+	for _, m := range cs.Modules {
+		if m.Name == t.module {
+			module = m
+			break
+		}
+	}
+	return module, nil
+}
+
 // Deployment is a single deployment of resources for a single module
 type Deployment struct {
 	Tasks []*Task
-	// TODO: Merge runtimes at creation time
 
-	DeploymentState *schemaservice.SchemaState
-	Previous        *schema.Module
-	EventHandler    func(event *schemapb.Event) error
+	Previous     *schema.Module
+	EventHandler func(event *schemapb.Event) error
 }
 
 // next running or pending task. Nil if all tasks are done.
@@ -139,7 +145,7 @@ func (d *Deployment) next() optional.Option[*Task] {
 }
 
 // Progress the deployment. Returns true if there are still tasks running or pending.
-func (d *Deployment) Progress(ctx context.Context) (bool, error) {
+func (d *Deployment) Progress(ctx context.Context, source *schemaeventsource.EventSource) (bool, error) {
 	logger := log.FromContext(ctx)
 
 	next, ok := d.next().Get()
@@ -149,14 +155,14 @@ func (d *Deployment) Progress(ctx context.Context) (bool, error) {
 
 	if next.state == TaskStatePending {
 		logger.Debugf("Starting task %s: %s", next.module, next.binding.ID)
-		err := next.Start(ctx)
+		err := next.Start(ctx, source)
 		if err != nil {
 			return true, err
 		}
 	}
 	if next.state != TaskStateDone {
 		logger.Tracef("Progressing task %s: %s", next.module, next.binding.ID)
-		err := next.Progress(ctx)
+		err := next.Progress(ctx, source)
 		if err != nil {
 			return true, err
 		}

@@ -147,7 +147,7 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 		running := true
 		logger.Debugf("Running deployment for module %s", moduleName)
 		for running {
-			r, err := deployment.Progress(ctx)
+			r, err := deployment.Progress(ctx, s.eventSource)
 			if err != nil {
 				// TODO: Deal with failed deployments
 				return fmt.Errorf("error running a provisioner: %w", err)

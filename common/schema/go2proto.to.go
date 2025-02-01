@@ -1047,10 +1047,6 @@ func EventToProto(value Event) *destpb.Event {
 		return &destpb.Event{
 			Value: &destpb.Event_ModuleRuntimeEvent{value.ToProto()},
 		}
-	case *ProvisioningCreatedEvent:
-		return &destpb.Event{
-			Value: &destpb.Event_ProvisioningCreatedEvent{value.ToProto()},
-		}
 	case *TopicRuntimeEvent:
 		return &destpb.Event{
 			Value: &destpb.Event_TopicRuntimeEvent{value.ToProto()},
@@ -1091,8 +1087,6 @@ func EventFromProto(v *destpb.Event) (Event, error) {
 		return DeploymentSchemaUpdatedEventFromProto(v.GetDeploymentSchemaUpdatedEvent())
 	case *destpb.Event_ModuleRuntimeEvent:
 		return ModuleRuntimeEventFromProto(v.GetModuleRuntimeEvent())
-	case *destpb.Event_ProvisioningCreatedEvent:
-		return ProvisioningCreatedEventFromProto(v.GetProvisioningCreatedEvent())
 	case *destpb.Event_TopicRuntimeEvent:
 		return TopicRuntimeEventFromProto(v.GetTopicRuntimeEvent())
 	case *destpb.Event_VerbRuntimeEvent:
@@ -2193,30 +2187,6 @@ func PositionFromProto(v *destpb.Position) (out *Position, err error) {
 	}
 	if out.Column, err = orZeroR(result.From(ptr(int(v.Column)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Column: %w", err)
-	}
-	return out, nil
-}
-
-func (x *ProvisioningCreatedEvent) ToProto() *destpb.ProvisioningCreatedEvent {
-	if x == nil {
-		return nil
-	}
-	return &destpb.ProvisioningCreatedEvent{
-		DesiredModule: x.DesiredModule.ToProto(),
-	}
-}
-
-func ProvisioningCreatedEventFromProto(v *destpb.ProvisioningCreatedEvent) (out *ProvisioningCreatedEvent, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &ProvisioningCreatedEvent{}
-	if out.DesiredModule, err = result.From(ModuleFromProto(v.DesiredModule)).Result(); err != nil {
-		return nil, fmt.Errorf("DesiredModule: %w", err)
-	}
-	if err := out.Validate(); err != nil {
-		return nil, err
 	}
 	return out, nil
 }

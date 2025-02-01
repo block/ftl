@@ -16,6 +16,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 // MockProvisioner is a mock implementation of the Provisioner interface
@@ -75,13 +76,15 @@ func TestDeployment_Progress(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 
 	t.Run("no tasks", func(t *testing.T) {
+		evs := schemaeventsource.NewUnattached()
 		deployment := &provisioner.Deployment{}
-		progress, err := deployment.Progress(ctx)
+		progress, err := deployment.Progress(ctx, &evs)
 		assert.NoError(t, err)
 		assert.False(t, progress)
 	})
 
 	t.Run("progresses each provisioner in order", func(t *testing.T) {
+		evs := schemaeventsource.NewUnattached()
 		mock := &MockProvisioner{}
 
 		registry := provisioner.ProvisionerRegistry{}
@@ -103,16 +106,16 @@ func TestDeployment_Progress(t *testing.T) {
 
 		assert.Equal(t, 2, len(dpl.State().Pending))
 
-		_, err := dpl.Progress(ctx)
+		_, err := dpl.Progress(ctx, &evs)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(dpl.State().Pending))
 		assert.NotEqual(t, 0, len(dpl.State().Done))
 
-		_, err = dpl.Progress(ctx)
+		_, err = dpl.Progress(ctx, &evs)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(dpl.State().Done))
 
-		running, err := dpl.Progress(ctx)
+		running, err := dpl.Progress(ctx, &evs)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(dpl.State().Done))
 		assert.False(t, running)

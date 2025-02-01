@@ -38,8 +38,6 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 		return handleDatabaseRuntimeEvent(r, e)
 	case *schema.ModuleRuntimeEvent:
 		return handleModuleRuntimeEvent(r, e)
-	case *schema.ProvisioningCreatedEvent:
-		return handleProvisioningCreatedEvent(r, e)
 	case *schema.ChangesetCreatedEvent:
 		return handleChangesetCreatedEvent(r, e)
 	case *schema.ChangesetPreparedEvent:
@@ -125,15 +123,18 @@ func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
 }
 
 func provisioningModule(t *SchemaState, module string) (*schema.Module, error) {
-	d, ok := t.provisioning[module]
-	if !ok {
-		return nil, fmt.Errorf("module %s not found", module)
+	for _, cs := range t.changesets {
+		for _, d := range cs.Deployments {
+			if d.Payload.Module == module {
+				m, ok := t.deployments[d]
+				if !ok {
+					return nil, fmt.Errorf("deployment %s not found", d)
+				}
+				return m, nil
+			}
+		}
 	}
-	m, ok := t.deployments[d]
-	if !ok {
-		return nil, fmt.Errorf("deployment %s not found", d)
-	}
-	return m, nil
+	return nil, fmt.Errorf("module not found %s", module)
 }
 
 func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) error {
@@ -193,12 +194,6 @@ func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) error
 	return nil
 }
 
-func handleProvisioningCreatedEvent(t SchemaState, e *schema.ProvisioningCreatedEvent) error {
-	t.deployments[e.DesiredModule.Runtime.Deployment.DeploymentKey] = e.DesiredModule
-	t.provisioning[e.DesiredModule.Name] = e.DesiredModule.Runtime.Deployment.DeploymentKey
-	return nil
-}
-
 func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent) error {
 	if existing := t.changesets[e.Changeset.Key]; existing != nil {
 		return nil
@@ -230,7 +225,6 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 		deploymentKey := mod.Runtime.Deployment.DeploymentKey
 		deployments = append(deployments, deploymentKey)
 		t.deployments[deploymentKey] = mod
-		t.provisioning[mod.Name] = deploymentKey
 	}
 	t.changesets[e.Changeset.Key] = &ChangesetDetails{
 		Key:         e.Changeset.Key,

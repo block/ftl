@@ -1493,19 +1493,19 @@ export class Event extends Message<Event> {
     case: "changesetCommittedEvent";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.ChangesetCreatedEvent changeset_created_event = 11;
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetCreatedEvent changeset_created_event = 10;
      */
     value: ChangesetCreatedEvent;
     case: "changesetCreatedEvent";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedEvent changeset_failed_event = 14;
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedEvent changeset_failed_event = 13;
      */
     value: ChangesetFailedEvent;
     case: "changesetFailedEvent";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.ChangesetPreparedEvent changeset_prepared_event = 13;
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetPreparedEvent changeset_prepared_event = 11;
      */
     value: ChangesetPreparedEvent;
     case: "changesetPreparedEvent";
@@ -1553,12 +1553,6 @@ export class Event extends Message<Event> {
     case: "moduleRuntimeEvent";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.ProvisioningCreatedEvent provisioning_created_event = 10;
-     */
-    value: ProvisioningCreatedEvent;
-    case: "provisioningCreatedEvent";
-  } | {
-    /**
      * @generated from field: xyz.block.ftl.schema.v1.TopicRuntimeEvent topic_runtime_event = 7;
      */
     value: TopicRuntimeEvent;
@@ -1580,9 +1574,9 @@ export class Event extends Message<Event> {
   static readonly typeName = "xyz.block.ftl.schema.v1.Event";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 12, name: "changeset_committed_event", kind: "message", T: ChangesetCommittedEvent, oneof: "value" },
-    { no: 11, name: "changeset_created_event", kind: "message", T: ChangesetCreatedEvent, oneof: "value" },
-    { no: 14, name: "changeset_failed_event", kind: "message", T: ChangesetFailedEvent, oneof: "value" },
-    { no: 13, name: "changeset_prepared_event", kind: "message", T: ChangesetPreparedEvent, oneof: "value" },
+    { no: 10, name: "changeset_created_event", kind: "message", T: ChangesetCreatedEvent, oneof: "value" },
+    { no: 13, name: "changeset_failed_event", kind: "message", T: ChangesetFailedEvent, oneof: "value" },
+    { no: 11, name: "changeset_prepared_event", kind: "message", T: ChangesetPreparedEvent, oneof: "value" },
     { no: 8, name: "database_runtime_event", kind: "message", T: DatabaseRuntimeEvent, oneof: "value" },
     { no: 4, name: "deployment_activated_event", kind: "message", T: DeploymentActivatedEvent, oneof: "value" },
     { no: 1, name: "deployment_created_event", kind: "message", T: DeploymentCreatedEvent, oneof: "value" },
@@ -1590,7 +1584,6 @@ export class Event extends Message<Event> {
     { no: 3, name: "deployment_replicas_updated_event", kind: "message", T: DeploymentReplicasUpdatedEvent, oneof: "value" },
     { no: 2, name: "deployment_schema_updated_event", kind: "message", T: DeploymentSchemaUpdatedEvent, oneof: "value" },
     { no: 9, name: "module_runtime_event", kind: "message", T: ModuleRuntimeEvent, oneof: "value" },
-    { no: 10, name: "provisioning_created_event", kind: "message", T: ProvisioningCreatedEvent, oneof: "value" },
     { no: 7, name: "topic_runtime_event", kind: "message", T: TopicRuntimeEvent, oneof: "value" },
     { no: 6, name: "verb_runtime_event", kind: "message", T: VerbRuntimeEvent, oneof: "value" },
   ]);
@@ -3386,43 +3379,6 @@ export class Position extends Message<Position> {
 
   static equals(a: Position | PlainMessage<Position> | undefined, b: Position | PlainMessage<Position> | undefined): boolean {
     return proto3.util.equals(Position, a, b);
-  }
-}
-
-/**
- * @generated from message xyz.block.ftl.schema.v1.ProvisioningCreatedEvent
- */
-export class ProvisioningCreatedEvent extends Message<ProvisioningCreatedEvent> {
-  /**
-   * @generated from field: xyz.block.ftl.schema.v1.Module desired_module = 1;
-   */
-  desiredModule?: Module;
-
-  constructor(data?: PartialMessage<ProvisioningCreatedEvent>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.schema.v1.ProvisioningCreatedEvent";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "desired_module", kind: "message", T: Module },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProvisioningCreatedEvent {
-    return new ProvisioningCreatedEvent().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ProvisioningCreatedEvent {
-    return new ProvisioningCreatedEvent().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ProvisioningCreatedEvent {
-    return new ProvisioningCreatedEvent().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: ProvisioningCreatedEvent | PlainMessage<ProvisioningCreatedEvent> | undefined, b: ProvisioningCreatedEvent | PlainMessage<ProvisioningCreatedEvent> | undefined): boolean {
-    return proto3.util.equals(ProvisioningCreatedEvent, a, b);
   }
 }
 

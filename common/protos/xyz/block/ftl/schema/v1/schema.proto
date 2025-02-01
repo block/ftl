@@ -203,9 +203,9 @@ message EnumVariant {
 message Event {
   oneof value {
     ChangesetCommittedEvent changeset_committed_event = 12;
-    ChangesetCreatedEvent changeset_created_event = 11;
-    ChangesetFailedEvent changeset_failed_event = 14;
-    ChangesetPreparedEvent changeset_prepared_event = 13;
+    ChangesetCreatedEvent changeset_created_event = 10;
+    ChangesetFailedEvent changeset_failed_event = 13;
+    ChangesetPreparedEvent changeset_prepared_event = 11;
     DatabaseRuntimeEvent database_runtime_event = 8;
     DeploymentActivatedEvent deployment_activated_event = 4;
     DeploymentCreatedEvent deployment_created_event = 1;
@@ -213,7 +213,6 @@ message Event {
     DeploymentReplicasUpdatedEvent deployment_replicas_updated_event = 3;
     DeploymentSchemaUpdatedEvent deployment_schema_updated_event = 2;
     ModuleRuntimeEvent module_runtime_event = 9;
-    ProvisioningCreatedEvent provisioning_created_event = 10;
     TopicRuntimeEvent topic_runtime_event = 7;
     VerbRuntimeEvent verb_runtime_event = 6;
   }
@@ -450,10 +449,6 @@ message Position {
   string filename = 1;
   int64 line = 2;
   int64 column = 3;
-}
-
-message ProvisioningCreatedEvent {
-  Module desired_module = 1;
 }
 
 // Ref is an untyped reference to a symbol.
