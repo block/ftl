@@ -85,7 +85,9 @@ func (r *SchemaState) GetDeployment(deployment key.Deployment, changeset optiona
 	if key, ok := changeset.Get(); ok {
 		cs := r.changesets[key]
 		for _, m := range cs.Modules {
-			return m, nil
+			if m.GetRuntime().Deployment.DeploymentKey == deployment {
+				return m, nil
+			}
 		}
 	}
 	d, ok := r.deployments[deployment.Payload.Module]
