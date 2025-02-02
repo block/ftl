@@ -18,16 +18,23 @@ import (
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/raft"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/statemachine"
 )
 
+type CommonSchemaServiceConfig struct {
+}
+
 type Config struct {
-	Bind *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
+	CommonSchemaServiceConfig
+	Raft raft.RaftConfig `embed:"" prefix:"raft-"`
+	Bind *url.URL        `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
 }
 
 type Service struct {
-	State *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event]
+	State  *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper]
+	Config Config
 }
 
 func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
@@ -48,8 +55,10 @@ func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.Ge
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 
-func New(ctx context.Context) *Service {
-	return &Service{State: NewInMemorySchemaState(ctx)}
+func New(ctx context.Context, handle statemachine.Handle[struct{}, SchemaState, EventWrapper], config Config) *Service {
+	return &Service{
+		State: statemachine.NewSingleQueryHandle(handle, struct{}{}),
+	}
 }
 
 // Start the SchemaService. Blocks until the context is cancelled.
@@ -60,13 +69,35 @@ func Start(
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL schema service")
 
-	svc := New(ctx)
+	g, gctx := errgroup.WithContext(ctx)
+
+	var shard statemachine.Handle[struct{}, SchemaState, EventWrapper]
+	if config.Raft.DataDir == "" {
+		// in local dev mode, use an inmemory state machine
+		shard = statemachine.NewLocalHandle(newStateMachine(ctx))
+	} else {
+		clusterBuilder := raft.NewBuilder(&config.Raft)
+		schemaShard := raft.AddShard(ctx, clusterBuilder, 1, newStateMachine(ctx))
+		cluster := clusterBuilder.Build(ctx)
+
+		// TODO: We can not wait for the cluster to run before reporting healthy, as
+		// otherwise we can not connect to other nodes in the cluster.
+		// figure out something better here. This means that initial calls to the schema service
+		// can fail.
+		g.Go(func() error {
+			if err := cluster.Start(ctx); err != nil {
+				return fmt.Errorf("failed to start raft cluster: %w", err)
+			}
+			return nil
+		})
+		shard = schemaShard
+	}
+
+	svc := New(ctx, shard, config)
 	logger.Debugf("Listening on %s", config.Bind)
 
-	g, ctx := errgroup.WithContext(ctx)
-
 	g.Go(func() error {
-		return rpc.Serve(ctx, config.Bind,
+		return rpc.Serve(gctx, config.Bind,
 			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
 			rpc.PProf(),
 		)
@@ -102,7 +133,7 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
-	err = s.State.Publish(ctx, event)
+	err = s.State.Publish(ctx, EventWrapper{Event: event})
 	if err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
@@ -114,7 +145,7 @@ func (s *Service) UpdateSchema(ctx context.Context, req *connect.Request[ftlv1.U
 	if err != nil {
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
-	if err = s.State.Publish(ctx, event); err != nil {
+	if err = s.State.Publish(ctx, EventWrapper{Event: event}); err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
 	return connect.NewResponse(&ftlv1.UpdateSchemaResponse{}), nil
@@ -163,9 +194,9 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 	}
 
 	// TODO: validate changeset schema with canonical schema
-	err = s.State.Publish(ctx, &schema.ChangesetCreatedEvent{
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetCreatedEvent{
 		Changeset: changeset,
-	})
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("could not create changeset %w", err)
 	}
@@ -179,9 +210,9 @@ func (s *Service) PrepareChangeset(ctx context.Context, req *connect.Request[ftl
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, &schema.ChangesetPreparedEvent{
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetPreparedEvent{
 		Key: changesetKey,
-	})
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("could not prepare changeset %w", err)
 	}
@@ -194,9 +225,9 @@ func (s *Service) CommitChangeset(ctx context.Context, req *connect.Request[ftlv
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, &schema.ChangesetCommittedEvent{
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetCommittedEvent{
 		Key: changesetKey,
-	})
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("could not commit changeset %w", err)
 	}
@@ -214,9 +245,9 @@ func (s *Service) DrainChangeset(ctx context.Context, req *connect.Request[ftlv1
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, &schema.ChangesetDrainedEvent{
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetDrainedEvent{
 		Key: changesetKey,
-	})
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("could not drain changeset %w", err)
 	}
@@ -228,9 +259,9 @@ func (s *Service) FinalizeChangeset(ctx context.Context, req *connect.Request[ft
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, &schema.ChangesetFinalizedEvent{
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetFinalizedEvent{
 		Key: changesetKey,
-	})
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("could not de-provision changeset %w", err)
 	}
@@ -245,8 +276,8 @@ func (s *Service) FailChangeset(context.Context, *connect.Request[ftlv1.FailChan
 func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
 	logger := log.FromContext(ctx)
 
-	uctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("schemaservice: stopped watching for module changes: %w", context.Canceled))
+	uctx, cancel2 := context.WithCancelCause(ctx)
+	defer cancel2(fmt.Errorf("schemaservice: stopped watching for module changes: %w", context.Canceled))
 	stateIter, err := s.State.StateIter(uctx)
 	if err != nil {
 		return fmt.Errorf("failed to get schema state iterator: %w", err)
