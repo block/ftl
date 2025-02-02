@@ -220,14 +220,16 @@ class DatabaseRuntimeConnections(_message.Message):
     def __init__(self, read: _Optional[_Union[DatabaseConnector, _Mapping]] = ..., write: _Optional[_Union[DatabaseConnector, _Mapping]] = ...) -> None: ...
 
 class DatabaseRuntimeEvent(_message.Message):
-    __slots__ = ("module", "id", "connections")
+    __slots__ = ("module", "changeset", "id", "connections")
     MODULE_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     CONNECTIONS_FIELD_NUMBER: _ClassVar[int]
     module: str
+    changeset: str
     id: str
     connections: DatabaseRuntimeConnections
-    def __init__(self, module: _Optional[str] = ..., id: _Optional[str] = ..., connections: _Optional[_Union[DatabaseRuntimeConnections, _Mapping]] = ...) -> None: ...
+    def __init__(self, module: _Optional[str] = ..., changeset: _Optional[str] = ..., id: _Optional[str] = ..., connections: _Optional[_Union[DatabaseRuntimeConnections, _Mapping]] = ...) -> None: ...
 
 class Decl(_message.Message):
     __slots__ = ("config", "data", "database", "enum", "secret", "topic", "type_alias", "verb")
@@ -810,14 +812,16 @@ class TopicRuntime(_message.Message):
     def __init__(self, kafka_brokers: _Optional[_Iterable[str]] = ..., topic_id: _Optional[str] = ...) -> None: ...
 
 class TopicRuntimeEvent(_message.Message):
-    __slots__ = ("module", "id", "payload")
+    __slots__ = ("module", "changeset", "id", "payload")
     MODULE_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     PAYLOAD_FIELD_NUMBER: _ClassVar[int]
     module: str
+    changeset: str
     id: str
     payload: TopicRuntime
-    def __init__(self, module: _Optional[str] = ..., id: _Optional[str] = ..., payload: _Optional[_Union[TopicRuntime, _Mapping]] = ...) -> None: ...
+    def __init__(self, module: _Optional[str] = ..., changeset: _Optional[str] = ..., id: _Optional[str] = ..., payload: _Optional[_Union[TopicRuntime, _Mapping]] = ...) -> None: ...
 
 class Type(_message.Message):
     __slots__ = ("any", "array", "bool", "bytes", "float", "int", "map", "optional", "ref", "string", "time", "unit")
@@ -932,16 +936,18 @@ class VerbRuntimeBase(_message.Message):
     def __init__(self, create_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., start_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class VerbRuntimeEvent(_message.Message):
-    __slots__ = ("module", "id", "base", "subscription")
+    __slots__ = ("module", "changeset", "id", "base", "subscription")
     MODULE_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     BASE_FIELD_NUMBER: _ClassVar[int]
     SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
     module: str
+    changeset: str
     id: str
     base: VerbRuntimeBase
     subscription: VerbRuntimeSubscription
-    def __init__(self, module: _Optional[str] = ..., id: _Optional[str] = ..., base: _Optional[_Union[VerbRuntimeBase, _Mapping]] = ..., subscription: _Optional[_Union[VerbRuntimeSubscription, _Mapping]] = ...) -> None: ...
+    def __init__(self, module: _Optional[str] = ..., changeset: _Optional[str] = ..., id: _Optional[str] = ..., base: _Optional[_Union[VerbRuntimeBase, _Mapping]] = ..., subscription: _Optional[_Union[VerbRuntimeSubscription, _Mapping]] = ...) -> None: ...
 
 class VerbRuntimeSubscription(_message.Message):
     __slots__ = ("kafka_brokers",)

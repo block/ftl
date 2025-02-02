@@ -665,6 +665,7 @@ func (x *DatabaseRuntimeEvent) ToProto() *destpb.DatabaseRuntimeEvent {
 	}
 	return &destpb.DatabaseRuntimeEvent{
 		Module:      orZero(ptr(string(x.Module))),
+		Changeset:   orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 		Id:          orZero(ptr(string(x.ID))),
 		Connections: x.Connections.ToProto(),
 	}
@@ -678,6 +679,9 @@ func DatabaseRuntimeEventFromProto(v *destpb.DatabaseRuntimeEvent) (out *Databas
 	out = &DatabaseRuntimeEvent{}
 	if out.Module, err = orZeroR(result.From(ptr(string(v.Module)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Module: %w", err)
+	}
+	if out.Changeset, err = orZeroR(unmarshallText([]byte(v.Changeset), &out.Changeset)).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
 	}
 	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("ID: %w", err)
@@ -2463,9 +2467,10 @@ func (x *TopicRuntimeEvent) ToProto() *destpb.TopicRuntimeEvent {
 		return nil
 	}
 	return &destpb.TopicRuntimeEvent{
-		Module:  orZero(ptr(string(x.Module))),
-		Id:      orZero(ptr(string(x.ID))),
-		Payload: x.Payload.ToProto(),
+		Module:    orZero(ptr(string(x.Module))),
+		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
+		Id:        orZero(ptr(string(x.ID))),
+		Payload:   x.Payload.ToProto(),
 	}
 }
 
@@ -2477,6 +2482,9 @@ func TopicRuntimeEventFromProto(v *destpb.TopicRuntimeEvent) (out *TopicRuntimeE
 	out = &TopicRuntimeEvent{}
 	if out.Module, err = orZeroR(result.From(ptr(string(v.Module)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Module: %w", err)
+	}
+	if out.Changeset, err = orZeroR(unmarshallText([]byte(v.Changeset), &out.Changeset)).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
 	}
 	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("ID: %w", err)
@@ -2841,6 +2849,7 @@ func (x *VerbRuntimeEvent) ToProto() *destpb.VerbRuntimeEvent {
 	}
 	return &destpb.VerbRuntimeEvent{
 		Module:       orZero(ptr(string(x.Module))),
+		Changeset:    orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 		Id:           orZero(ptr(string(x.ID))),
 		Base:         x.Base.Ptr().ToProto(),
 		Subscription: x.Subscription.Ptr().ToProto(),
@@ -2855,6 +2864,9 @@ func VerbRuntimeEventFromProto(v *destpb.VerbRuntimeEvent) (out *VerbRuntimeEven
 	out = &VerbRuntimeEvent{}
 	if out.Module, err = orZeroR(result.From(ptr(string(v.Module)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Module: %w", err)
+	}
+	if out.Changeset, err = orZeroR(unmarshallText([]byte(v.Changeset), &out.Changeset)).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
 	}
 	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("ID: %w", err)

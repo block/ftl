@@ -108,9 +108,10 @@ func (r *DeploymentDeactivatedEvent) Validate() error {
 //protobuf:6
 type VerbRuntimeEvent struct {
 	Module       string                                   `protobuf:"1"`
-	ID           string                                   `protobuf:"2"`
-	Base         optional.Option[VerbRuntimeBase]         `protobuf:"3"`
-	Subscription optional.Option[VerbRuntimeSubscription] `protobuf:"4"`
+	Changeset    key.Changeset                            `protobuf:"2"`
+	ID           string                                   `protobuf:"3"`
+	Base         optional.Option[VerbRuntimeBase]         `protobuf:"4"`
+	Subscription optional.Option[VerbRuntimeSubscription] `protobuf:"5"`
 }
 
 func (e *VerbRuntimeEvent) event() {}
@@ -121,9 +122,10 @@ func (e *VerbRuntimeEvent) Validate() error {
 
 //protobuf:7
 type TopicRuntimeEvent struct {
-	Module  string        `protobuf:"1"`
-	ID      string        `protobuf:"2"`
-	Payload *TopicRuntime `protobuf:"3"`
+	Module    string        `protobuf:"1"`
+	Changeset key.Changeset `protobuf:"2"`
+	ID        string        `protobuf:"3"`
+	Payload   *TopicRuntime `protobuf:"4"`
 }
 
 func (e *TopicRuntimeEvent) event() {}
@@ -135,8 +137,9 @@ func (e *TopicRuntimeEvent) Validate() error {
 //protobuf:8
 type DatabaseRuntimeEvent struct {
 	Module      string                      `protobuf:"1"`
-	ID          string                      `protobuf:"2"`
-	Connections *DatabaseRuntimeConnections `protobuf:"3"`
+	Changeset   key.Changeset               `protobuf:"2"`
+	ID          string                      `protobuf:"3"`
+	Connections *DatabaseRuntimeConnections `protobuf:"4"`
 }
 
 func (e *DatabaseRuntimeEvent) event() {}

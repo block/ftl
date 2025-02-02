@@ -104,7 +104,7 @@ func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *
 	// - deployment in ended changeset + main list but no longer canonical
 	// - deployment in failed changeset
 	d, ok := r.deployments[deploymentKey.Payload.Module]
-	if ok {
+	if ok && d.Runtime.Deployment.DeploymentKey == deploymentKey {
 		return d, optional.None[key.Changeset](), nil
 	}
 	for _, cs := range r.changesets {
@@ -158,15 +158,17 @@ func (r *SchemaState) GetCanonicalDeploymentSchemas() []*schema.Module {
 	return expmaps.Values(r.GetCanonicalDeployments())
 }
 
-func (r *SchemaState) GetProvisioning(moduleName string) (*schema.Module, error) {
-	for _, cs := range r.changesets {
-		for _, m := range cs.Modules {
-			if m.Name == moduleName {
-				return m, nil
-			}
+func (r *SchemaState) GetProvisioning(module string, cs key.Changeset) (*schema.Module, error) {
+	c, ok := r.changesets[cs]
+	if !ok {
+		return nil, fmt.Errorf("changeset %s not found", cs.String())
+	}
+	for _, m := range c.Modules {
+		if m.Name == module {
+			return m, nil
 		}
 	}
-	return nil, fmt.Errorf("provisioning for module %s not found", moduleName)
+	return nil, fmt.Errorf("provisioning for module %s not found", module)
 }
 
 type schemaStateMachine struct {

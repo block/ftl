@@ -125,8 +125,9 @@ message DatabaseRuntimeConnections {
 
 message DatabaseRuntimeEvent {
   string module = 1;
-  string id = 2;
-  DatabaseRuntimeConnections connections = 3;
+  string changeset = 2;
+  string id = 3;
+  DatabaseRuntimeConnections connections = 4;
 }
 
 // Decl represents user-defined data types in the schema grammar.
@@ -510,8 +511,9 @@ message TopicRuntime {
 
 message TopicRuntimeEvent {
   string module = 1;
-  string id = 2;
-  TopicRuntime payload = 3;
+  string changeset = 2;
+  string id = 3;
+  TopicRuntime payload = 4;
 }
 
 // Type represents a Type Node in the schema grammar.
@@ -587,9 +589,10 @@ message VerbRuntimeBase {
 
 message VerbRuntimeEvent {
   string module = 1;
-  string id = 2;
-  optional VerbRuntimeBase base = 3;
-  optional VerbRuntimeSubscription subscription = 4;
+  string changeset = 2;
+  string id = 3;
+  optional VerbRuntimeBase base = 4;
+  optional VerbRuntimeSubscription subscription = 5;
 }
 
 message VerbRuntimeSubscription {

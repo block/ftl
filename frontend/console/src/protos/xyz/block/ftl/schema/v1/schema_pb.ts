@@ -984,12 +984,17 @@ export class DatabaseRuntimeEvent extends Message<DatabaseRuntimeEvent> {
   module = "";
 
   /**
-   * @generated from field: string id = 2;
+   * @generated from field: string changeset = 2;
+   */
+  changeset = "";
+
+  /**
+   * @generated from field: string id = 3;
    */
   id = "";
 
   /**
-   * @generated from field: xyz.block.ftl.schema.v1.DatabaseRuntimeConnections connections = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.DatabaseRuntimeConnections connections = 4;
    */
   connections?: DatabaseRuntimeConnections;
 
@@ -1002,8 +1007,9 @@ export class DatabaseRuntimeEvent extends Message<DatabaseRuntimeEvent> {
   static readonly typeName = "xyz.block.ftl.schema.v1.DatabaseRuntimeEvent";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "connections", kind: "message", T: DatabaseRuntimeConnections },
+    { no: 2, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "connections", kind: "message", T: DatabaseRuntimeConnections },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DatabaseRuntimeEvent {
@@ -3843,12 +3849,17 @@ export class TopicRuntimeEvent extends Message<TopicRuntimeEvent> {
   module = "";
 
   /**
-   * @generated from field: string id = 2;
+   * @generated from field: string changeset = 2;
+   */
+  changeset = "";
+
+  /**
+   * @generated from field: string id = 3;
    */
   id = "";
 
   /**
-   * @generated from field: xyz.block.ftl.schema.v1.TopicRuntime payload = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.TopicRuntime payload = 4;
    */
   payload?: TopicRuntime;
 
@@ -3861,8 +3872,9 @@ export class TopicRuntimeEvent extends Message<TopicRuntimeEvent> {
   static readonly typeName = "xyz.block.ftl.schema.v1.TopicRuntimeEvent";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "payload", kind: "message", T: TopicRuntime },
+    { no: 2, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "payload", kind: "message", T: TopicRuntime },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TopicRuntimeEvent {
@@ -4428,17 +4440,22 @@ export class VerbRuntimeEvent extends Message<VerbRuntimeEvent> {
   module = "";
 
   /**
-   * @generated from field: string id = 2;
+   * @generated from field: string changeset = 2;
+   */
+  changeset = "";
+
+  /**
+   * @generated from field: string id = 3;
    */
   id = "";
 
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeBase base = 3;
+   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeBase base = 4;
    */
   base?: VerbRuntimeBase;
 
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeSubscription subscription = 4;
+   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeSubscription subscription = 5;
    */
   subscription?: VerbRuntimeSubscription;
 
@@ -4451,9 +4468,10 @@ export class VerbRuntimeEvent extends Message<VerbRuntimeEvent> {
   static readonly typeName = "xyz.block.ftl.schema.v1.VerbRuntimeEvent";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "base", kind: "message", T: VerbRuntimeBase, opt: true },
-    { no: 4, name: "subscription", kind: "message", T: VerbRuntimeSubscription, opt: true },
+    { no: 2, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "base", kind: "message", T: VerbRuntimeBase, opt: true },
+    { no: 5, name: "subscription", kind: "message", T: VerbRuntimeSubscription, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): VerbRuntimeEvent {

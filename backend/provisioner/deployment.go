@@ -50,7 +50,7 @@ func (t *Task) Start(ctx context.Context) error {
 		previous = t.deployment.Previous.ToProto()
 	}
 
-	module, err := t.deployment.DeploymentState.GetProvisioning(t.module)
+	module, err := t.deployment.DeploymentState.GetProvisioning(t.module, t.deployment.Changeset)
 	if err != nil {
 		return fmt.Errorf("error getting module: %w", err)
 	}
@@ -83,7 +83,7 @@ func (t *Task) Progress(ctx context.Context) error {
 	}
 
 	for {
-		module, err := t.deployment.DeploymentState.GetProvisioning(t.module)
+		module, err := t.deployment.DeploymentState.GetProvisioning(t.module, t.deployment.Changeset)
 		if err != nil {
 			return fmt.Errorf("error getting module: %w", err)
 		}

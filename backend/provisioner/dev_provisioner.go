@@ -58,6 +58,7 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 				}
 				return &schema.DatabaseRuntimeEvent{
 					Module:      moduleName,
+					Changeset:   changeset,
 					ID:          res.ResourceID(),
 					Connections: event,
 				}, nil
@@ -172,8 +173,9 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 
 		dsn := dsn.PostgresDSN(dbName, dsn.Port(postgresPort))
 		return &schema.DatabaseRuntimeEvent{
-			ID:     resource.ResourceID(),
-			Module: moduleName,
+			ID:        resource.ResourceID(),
+			Module:    moduleName,
+			Changeset: changeset,
 			Connections: &schema.DatabaseRuntimeConnections{
 				Write: &schema.DSNDatabaseConnector{DSN: dsn},
 				Read:  &schema.DSNDatabaseConnector{DSN: dsn},
@@ -242,8 +244,9 @@ func provisionTopic() InMemResourceProvisionerFn {
 		}
 
 		return &schema.TopicRuntimeEvent{
-			Module: moduleName,
-			ID:     res.ResourceID(),
+			Module:    moduleName,
+			Changeset: changeset,
+			ID:        res.ResourceID(),
 			Payload: &schema.TopicRuntime{
 				KafkaBrokers: redPandaBrokers,
 				TopicID:      topicID,
@@ -262,8 +265,9 @@ func provisionSubscription() InMemResourceProvisionerFn {
 		for range slices.FilterVariants[*schema.MetadataSubscriber](verb.Metadata) {
 			logger.Infof("Provisioning subscription for verb: %s", verb.Name)
 			return &schema.VerbRuntimeEvent{
-				Module: moduleName,
-				ID:     verb.Name,
+				Module:    moduleName,
+				Changeset: changeset,
+				ID:        verb.Name,
 				Subscription: optional.Some(schema.VerbRuntimeSubscription{
 					KafkaBrokers: redPandaBrokers,
 				}),

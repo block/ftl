@@ -71,7 +71,7 @@ func handleDeploymentReplicasUpdatedEvent(t SchemaState, e *schema.DeploymentRep
 }
 
 func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
-	m, err := t.GetProvisioning(e.Module)
+	m, err := t.GetProvisioning(e.Module, e.Changeset)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
 }
 
 func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) error {
-	m, err := t.GetProvisioning(e.Module)
+	m, err := t.GetProvisioning(e.Module, e.Changeset)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) error {
 }
 
 func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) error {
-	m, err := t.GetProvisioning(e.Module)
+	m, err := t.GetProvisioning(e.Module, e.Changeset)
 	if err != nil {
 		return err
 	}
