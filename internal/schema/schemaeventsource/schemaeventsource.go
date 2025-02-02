@@ -371,9 +371,19 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 				return fmt.Errorf("invalid module: %w", err)
 			}
 			logger.Tracef("Module %s upserted", module.Name)
+			cs := optional.Option[key.Changeset]{}
+			if event.DeploymentCreated.Changeset != nil {
+				parsed, err := key.ParseChangesetKey(*event.DeploymentCreated.Changeset)
+				if err != nil {
+					return fmt.Errorf("invalid changeset key: %w", err)
+				}
+				cs = optional.Some(parsed)
+			}
+
 			out.Publish(EventUpsert{
-				Module: module,
-				more:   more,
+				Changeset: cs,
+				Module:    module,
+				more:      more,
 			})
 		case *ftlv1.PullSchemaResponse_DeploymentUpdated_:
 			module, err := schema.ValidatedModuleFromProto(event.DeploymentUpdated.Schema)

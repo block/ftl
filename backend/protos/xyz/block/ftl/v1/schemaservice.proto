@@ -40,7 +40,8 @@ message PullSchemaResponse {
     // If present, the deployment is not yet canonical as it is currently part of a changeset.
     // optional string changeset = 3;
 
-    optional ftl.schema.v1.Module schema = 1;
+    optional string changeset = 1;
+    optional ftl.schema.v1.Module schema = 2;
   }
 
   message DeploymentUpdated {

@@ -28,7 +28,7 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 	case *schema.DatabaseRuntimeEvent:
 		return handleDatabaseRuntimeEvent(r, e)
 	case *schema.ModuleRuntimeEvent:
-		return handleModuleRuntimeEvent(r, e)
+		return handleModuleRuntimeEvent(ctx, r, e)
 	case *schema.ChangesetCreatedEvent:
 		return handleChangesetCreatedEvent(r, e)
 	case *schema.ChangesetPreparedEvent:
@@ -123,7 +123,7 @@ func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) e
 	return fmt.Errorf("database %s not found", e.ID)
 }
 
-func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) error {
+func handleModuleRuntimeEvent(ctx context.Context, t SchemaState, e *schema.ModuleRuntimeEvent) error {
 	var module *schema.Module
 	if e.Changeset != nil {
 		cs := t.changesets[*e.Changeset]
@@ -158,6 +158,7 @@ func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) error
 				return fmt.Errorf("invalid state transition from %d to %d", module.Runtime.Deployment.State, deployment.State)
 			}
 		}
+		log.FromContext(ctx).Debugf("deployment %s state change %v -> %v", module.Name, module.Runtime.Deployment, deployment)
 		module.ModRuntime().Deployment = &deployment
 	}
 	return nil
@@ -196,6 +197,9 @@ func handleChangesetPreparedEvent(t SchemaState, e *schema.ChangesetPreparedEven
 	for _, dep := range changeset.Modules {
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateReady {
 			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
+		}
+		if dep.ModRuntime().ModDeployment().Endpoint == "" {
+			return fmt.Errorf("deployment %s has no endpoint", dep.Name)
 		}
 	}
 	changeset.State = schema.ChangesetStatePrepared

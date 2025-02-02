@@ -3,6 +3,7 @@ package schemaservice
 import (
 	"iter"
 	"slices"
+	"time"
 
 	"github.com/alecthomas/types/tuple"
 	"golang.org/x/exp/maps"
@@ -35,7 +36,7 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 			for i := range changeset.Modules {
 				pd := pc.Modules[i]
 				deployment := changeset.Modules[i]
-				if ok && !pd.Equals(deployment) {
+				if !pd.Equals(deployment) {
 					handledDeployments[deployment.Runtime.Deployment.DeploymentKey] = true
 					// TODO: this seems super inefficient, we should not need to do equality checks on every deployment
 					events = append(events, &schema.DeploymentSchemaUpdatedEvent{
@@ -50,6 +51,14 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 				events = append(events, &schema.ChangesetCommittedEvent{
 					Key: changeset.Key,
 				})
+				for _, deployment := range changeset.Modules {
+					events = append(events, &schema.DeploymentActivatedEvent{
+						Key:         deployment.Runtime.Deployment.DeploymentKey,
+						MinReplicas: 1,
+						ActivatedAt: time.Now(),
+						Changeset:   &changeset.Key,
+					})
+				}
 			} else if changeset.State == schema.ChangesetStateFailed && pc.State != schema.ChangesetStateFailed {
 				events = append(events, &schema.ChangesetFailedEvent{
 					Key:   changeset.Key,

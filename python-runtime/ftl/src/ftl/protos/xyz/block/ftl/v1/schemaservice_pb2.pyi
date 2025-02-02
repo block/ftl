@@ -43,10 +43,12 @@ class PullSchemaResponse(_message.Message):
         key: str
         def __init__(self, key: _Optional[str] = ...) -> None: ...
     class DeploymentCreated(_message.Message):
-        __slots__ = ("schema",)
+        __slots__ = ("changeset", "schema")
+        CHANGESET_FIELD_NUMBER: _ClassVar[int]
         SCHEMA_FIELD_NUMBER: _ClassVar[int]
+        changeset: str
         schema: _schema_pb2.Module
-        def __init__(self, schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
+        def __init__(self, changeset: _Optional[str] = ..., schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
     class DeploymentUpdated(_message.Message):
         __slots__ = ("changeset", "schema")
         CHANGESET_FIELD_NUMBER: _ClassVar[int]

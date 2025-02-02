@@ -290,13 +290,12 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 				continue
 			}
 			changeset := ""
-			if event.Changeset.IsZero() {
+			if !event.Changeset.IsZero() {
 				changeset = event.Changeset.String()
 			}
 			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
 				Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
 					DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
-						// TODO: include changeset info
 						Changeset: &changeset,
 						Schema:    dep.ToProto(),
 					},

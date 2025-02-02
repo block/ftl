@@ -335,7 +335,12 @@ export class PullSchemaResponse_ChangesetCommitted extends Message<PullSchemaRes
  */
 export class PullSchemaResponse_DeploymentCreated extends Message<PullSchemaResponse_DeploymentCreated> {
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.Module schema = 1;
+   * @generated from field: optional string changeset = 1;
+   */
+  changeset?: string;
+
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Module schema = 2;
    */
   schema?: Module;
 
@@ -347,7 +352,8 @@ export class PullSchemaResponse_DeploymentCreated extends Message<PullSchemaResp
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.PullSchemaResponse.DeploymentCreated";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "schema", kind: "message", T: Module, opt: true },
+    { no: 1, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 2, name: "schema", kind: "message", T: Module, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PullSchemaResponse_DeploymentCreated {
