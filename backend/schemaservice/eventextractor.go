@@ -26,22 +26,22 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 	previousAllChangesets := previous.GetChangesets()
 	allChangesets := maps.Values(current.GetChangesets())
 	handledDeployments := map[key.Deployment]bool{}
-	slices.SortFunc(allChangesets, func(a, b *ChangesetDetails) int {
+	slices.SortFunc(allChangesets, func(a, b *schema.Changeset) int {
 		return a.CreatedAt.Compare(b.CreatedAt)
 	})
 	for _, changeset := range allChangesets {
 		pc, ok := previousAllChangesets[changeset.Key]
 		if ok {
-			for _, key := range changeset.Deployments {
-				pd, ok := previous.deployments[key]
-				deployment := current.deployments[key]
+			for i := range changeset.Modules {
+				pd := pc.Modules[i]
+				deployment := changeset.Modules[i]
 				if ok && !pd.Equals(deployment) {
-					handledDeployments[key] = true
+					handledDeployments[deployment.Runtime.Deployment.DeploymentKey] = true
 					// TODO: this seems super inefficient, we should not need to do equality checks on every deployment
 					events = append(events, &schema.DeploymentSchemaUpdatedEvent{
-						Key:       key,
+						Key:       deployment.Runtime.Deployment.DeploymentKey,
 						Schema:    deployment,
-						Changeset: &changeset.Key,
+						Changeset: changeset.Key,
 					})
 				}
 			}
@@ -59,17 +59,17 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 		} else {
 			// New changeset and associated modules
 			events = append(events, &schema.ChangesetCreatedEvent{
-				Changeset: hydrateChangeset(&current, changeset),
+				Changeset: changeset,
 			})
 			// Find new deployments from the changeset
-			for _, deployment := range changeset.Deployments {
+			for _, deployment := range changeset.Modules {
 				// changeset is always a new deployment
 				events = append(events, &schema.DeploymentCreatedEvent{
-					Key:       deployment,
-					Schema:    current.deployments[deployment],
+					Key:       deployment.Runtime.Deployment.DeploymentKey,
+					Schema:    deployment,
 					Changeset: &changeset.Key,
 				})
-				handledDeployments[deployment] = true
+				handledDeployments[deployment.Runtime.Deployment.DeploymentKey] = true
 			}
 		}
 	}

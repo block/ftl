@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
-	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/schemaservice"
 	"github.com/block/ftl/common/reflect"
@@ -73,11 +72,9 @@ func TestChangesetState(t *testing.T) {
 		view, err = state.View(ctx)
 		assert.NoError(t, err)
 		csd := changeset(t, view)
-		assert.Equal(t, 1, len(csd.Deployments))
-		for _, key := range csd.Deployments {
-			d, err := view.GetDeployment(key, optional.Some(csd.Key))
+		assert.Equal(t, 1, len(csd.Modules))
+		for _, d := range csd.Modules {
 			assert.NoError(t, err)
-			assert.Equal(t, key, d.Runtime.Deployment.DeploymentKey)
 			assert.Equal(t, schema.DeploymentStateProvisioning, d.Runtime.Deployment.State)
 			changesetKey = csd.Key
 		}
@@ -89,16 +86,14 @@ func TestChangesetState(t *testing.T) {
 		err = state.Publish(ctx, &schema.DeploymentSchemaUpdatedEvent{
 			Key:       module.Runtime.Deployment.DeploymentKey,
 			Schema:    newState,
-			Changeset: &changesetKey,
+			Changeset: changesetKey,
 		})
 		assert.NoError(t, err)
 		view, err = state.View(ctx)
 		assert.NoError(t, err)
 		csd := changeset(t, view)
-		assert.Equal(t, 1, len(csd.Deployments))
-		for _, key := range csd.Deployments {
-			d, err := view.GetDeployment(key, optional.Some(csd.Key))
-			assert.NoError(t, err)
+		assert.Equal(t, 1, len(csd.Modules))
+		for _, d := range csd.Modules {
 			assert.Equal(t, "http://localhost:8080", d.Runtime.Deployment.Endpoint)
 			assert.Equal(t, schema.DeploymentStateProvisioning, d.Runtime.Deployment.State)
 		}
@@ -126,7 +121,7 @@ func TestChangesetState(t *testing.T) {
 		err = state.Publish(ctx, &schema.DeploymentSchemaUpdatedEvent{
 			Key:       module.Runtime.Deployment.DeploymentKey,
 			Schema:    newState,
-			Changeset: &changesetKey,
+			Changeset: changesetKey,
 		})
 		assert.NoError(t, err)
 		view, err = state.View(ctx)
@@ -157,9 +152,9 @@ func TestChangesetState(t *testing.T) {
 	})
 }
 
-func changeset(t *testing.T, view schemaservice.SchemaState) *schemaservice.ChangesetDetails {
+func changeset(t *testing.T, view schemaservice.SchemaState) *schema.Changeset {
 	assert.Equal(t, 1, len(view.GetChangesets()))
-	var csd *schemaservice.ChangesetDetails
+	var csd *schema.Changeset
 	for k := range view.GetChangesets() {
 		csd = view.GetChangesets()[k]
 		assert.Equal(t, k, csd.Key)

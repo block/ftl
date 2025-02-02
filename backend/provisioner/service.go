@@ -137,7 +137,7 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 			syncExistingRuntimes(existingModule, module)
 		}
 
-		deployment := s.registry.CreateDeployment(ctx, module, existingModule, func(event *schemapb.Event) error {
+		deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(event *schemapb.Event) error {
 			_, err := s.schemaClient.UpdateSchema(ctx, connect.NewRequest(&ftlv1.UpdateSchemaRequest{Event: event}))
 			if err != nil {
 				return fmt.Errorf("error updating schema: %w", err)

@@ -22,6 +22,7 @@ import (
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/dsn"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -35,7 +36,7 @@ func NewSQLMigrationProvisioner(storage *artefacts.OCIArtefactService) *InMemPro
 }
 
 func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, resource schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, moduleName string, resource schema.Provisioned) (schema.Event, error) {
 		db, ok := resource.(*schema.Database)
 		if !ok {
 			return nil, fmt.Errorf("expected database, got %T", resource)

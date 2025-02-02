@@ -20,7 +20,6 @@ type updateCmd struct {
 func (u *updateCmd) Run(ctx context.Context, client ftlv1connect.SchemaServiceClient) error {
 	//TODO: implement this as a changeset
 	_, err := client.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
-		Deployment: u.Deployment.String(),
 		Event: &schemapb.ModuleRuntimeEvent{
 			DeploymentKey: u.Deployment.String(),
 			Scaling:       &schemapb.ModuleRuntimeScaling{MinReplicas: u.Replicas},

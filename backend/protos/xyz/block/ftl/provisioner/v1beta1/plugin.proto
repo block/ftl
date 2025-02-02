@@ -12,7 +12,8 @@ message ProvisionRequest {
   string ftl_cluster_id = 1;
   xyz.block.ftl.schema.v1.Module desired_module = 2;
   xyz.block.ftl.schema.v1.Module previous_module = 3;
-  repeated string kinds = 4;
+  string changeset = 4;
+  repeated string kinds = 5;
 }
 
 message ProvisionResponse {

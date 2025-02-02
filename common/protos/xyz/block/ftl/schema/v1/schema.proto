@@ -42,8 +42,10 @@ message Changeset {
   string key = 1;
   google.protobuf.Timestamp created_at = 2;
   repeated Module modules = 3;
-  ChangesetState state = 4;
-  optional string error = 5;
+  repeated string to_remove = 4;
+  repeated Module removing_modules = 5;
+  ChangesetState state = 6;
+  optional string error = 7;
 }
 
 message ChangesetCommittedEvent {
@@ -213,7 +215,6 @@ message Event {
     DeploymentReplicasUpdatedEvent deployment_replicas_updated_event = 3;
     DeploymentSchemaUpdatedEvent deployment_schema_updated_event = 2;
     ModuleRuntimeEvent module_runtime_event = 9;
-    ProvisioningCreatedEvent provisioning_created_event = 10;
     TopicRuntimeEvent topic_runtime_event = 7;
     VerbRuntimeEvent verb_runtime_event = 6;
   }
@@ -431,9 +432,10 @@ message ModuleRuntimeDeployment {
 
 message ModuleRuntimeEvent {
   string deployment_key = 1;
-  optional ModuleRuntimeBase base = 2;
-  optional ModuleRuntimeScaling scaling = 3;
-  optional ModuleRuntimeDeployment deployment = 4;
+  string changeset = 2;
+  optional ModuleRuntimeBase base = 3;
+  optional ModuleRuntimeScaling scaling = 4;
+  optional ModuleRuntimeDeployment deployment = 5;
 }
 
 message ModuleRuntimeScaling {
@@ -452,10 +454,6 @@ message Position {
   int64 column = 3;
 }
 
-message ProvisioningCreatedEvent {
-  Module desired_module = 1;
-}
-
 // Ref is an untyped reference to a symbol.
 message Ref {
   optional Position pos = 1;
@@ -472,9 +470,7 @@ message Schema {
 // SchemaState is the schema service state as persisted in Raft
 message SchemaState {
   repeated Module modules = 1;
-  repeated string active_deployments = 2;
-  repeated SerializedChangeset serialized_changeset = 3;
-  repeated string provisioning = 4;
+  repeated Changeset changesets = 2;
 }
 
 message Secret {
@@ -482,15 +478,6 @@ message Secret {
   repeated string comments = 2;
   string name = 3;
   Type type = 4;
-}
-
-// SerializedChangeset is a temp hack that needs to go away
-message SerializedChangeset {
-  string key = 1;
-  google.protobuf.Timestamp created_at = 2;
-  repeated string deployments = 3;
-  ChangesetState state = 4;
-  string error = 5;
 }
 
 message String {

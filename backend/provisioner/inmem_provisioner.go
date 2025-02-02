@@ -16,6 +16,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -52,7 +53,7 @@ type RuntimeEvent struct {
 	Verb     *schema.VerbRuntimeEvent
 }
 
-type InMemResourceProvisionerFn func(ctx context.Context, module string, resource schema.Provisioned) (schema.Event, error)
+type InMemResourceProvisionerFn func(ctx context.Context, changeset key.Changeset, module string, resource schema.Provisioned) (schema.Event, error)
 
 // InMemProvisioner for running an in memory provisioner, constructing all resources concurrently
 //
@@ -83,6 +84,11 @@ type stepCompletedEvent struct {
 
 func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[provisioner.ProvisionRequest]) (*connect.Response[provisioner.ProvisionResponse], error) {
 	logger := log.FromContext(ctx)
+	parsed, err := key.ParseChangesetKey(req.Msg.Changeset)
+	if err != nil {
+		err = fmt.Errorf("invalid changeset: %w", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
 
 	var previousModule *schema.Module
 	if req.Msg.PreviousModule != nil {
@@ -120,7 +126,7 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 					step := &inMemProvisioningStep{Done: atomic.New(false)}
 					task.steps = append(task.steps, step)
 					go func() {
-						event, err := handler(ctx, desiredModule.Name, desired)
+						event, err := handler(ctx, parsed, desiredModule.Name, desired)
 						if err != nil {
 							step.Err = err
 							logger.Errorf(err, "failed to provision resource %s:%s", resource.Kind, desired.ResourceID())

@@ -397,12 +397,22 @@ export class Changeset extends Message<Changeset> {
   modules: Module[] = [];
 
   /**
-   * @generated from field: xyz.block.ftl.schema.v1.ChangesetState state = 4;
+   * @generated from field: repeated string to_remove = 4;
+   */
+  toRemove: string[] = [];
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Module removing_modules = 5;
+   */
+  removingModules: Module[] = [];
+
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.ChangesetState state = 6;
    */
   state = ChangesetState.UNSPECIFIED;
 
   /**
-   * @generated from field: optional string error = 5;
+   * @generated from field: optional string error = 7;
    */
   error?: string;
 
@@ -417,8 +427,10 @@ export class Changeset extends Message<Changeset> {
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "created_at", kind: "message", T: Timestamp },
     { no: 3, name: "modules", kind: "message", T: Module, repeated: true },
-    { no: 4, name: "state", kind: "enum", T: proto3.getEnumType(ChangesetState) },
-    { no: 5, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 4, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 5, name: "removing_modules", kind: "message", T: Module, repeated: true },
+    { no: 6, name: "state", kind: "enum", T: proto3.getEnumType(ChangesetState) },
+    { no: 7, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Changeset {
@@ -1553,12 +1565,6 @@ export class Event extends Message<Event> {
     case: "moduleRuntimeEvent";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.ProvisioningCreatedEvent provisioning_created_event = 10;
-     */
-    value: ProvisioningCreatedEvent;
-    case: "provisioningCreatedEvent";
-  } | {
-    /**
      * @generated from field: xyz.block.ftl.schema.v1.TopicRuntimeEvent topic_runtime_event = 7;
      */
     value: TopicRuntimeEvent;
@@ -1590,7 +1596,6 @@ export class Event extends Message<Event> {
     { no: 3, name: "deployment_replicas_updated_event", kind: "message", T: DeploymentReplicasUpdatedEvent, oneof: "value" },
     { no: 2, name: "deployment_schema_updated_event", kind: "message", T: DeploymentSchemaUpdatedEvent, oneof: "value" },
     { no: 9, name: "module_runtime_event", kind: "message", T: ModuleRuntimeEvent, oneof: "value" },
-    { no: 10, name: "provisioning_created_event", kind: "message", T: ProvisioningCreatedEvent, oneof: "value" },
     { no: 7, name: "topic_runtime_event", kind: "message", T: TopicRuntimeEvent, oneof: "value" },
     { no: 6, name: "verb_runtime_event", kind: "message", T: VerbRuntimeEvent, oneof: "value" },
   ]);
@@ -3213,17 +3218,22 @@ export class ModuleRuntimeEvent extends Message<ModuleRuntimeEvent> {
   deploymentKey = "";
 
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeBase base = 2;
+   * @generated from field: string changeset = 2;
+   */
+  changeset = "";
+
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeBase base = 3;
    */
   base?: ModuleRuntimeBase;
 
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeScaling scaling = 3;
+   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeScaling scaling = 4;
    */
   scaling?: ModuleRuntimeScaling;
 
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeDeployment deployment = 4;
+   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeDeployment deployment = 5;
    */
   deployment?: ModuleRuntimeDeployment;
 
@@ -3236,9 +3246,10 @@ export class ModuleRuntimeEvent extends Message<ModuleRuntimeEvent> {
   static readonly typeName = "xyz.block.ftl.schema.v1.ModuleRuntimeEvent";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "base", kind: "message", T: ModuleRuntimeBase, opt: true },
-    { no: 3, name: "scaling", kind: "message", T: ModuleRuntimeScaling, opt: true },
-    { no: 4, name: "deployment", kind: "message", T: ModuleRuntimeDeployment, opt: true },
+    { no: 2, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "base", kind: "message", T: ModuleRuntimeBase, opt: true },
+    { no: 4, name: "scaling", kind: "message", T: ModuleRuntimeScaling, opt: true },
+    { no: 5, name: "deployment", kind: "message", T: ModuleRuntimeDeployment, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeEvent {
@@ -3390,43 +3401,6 @@ export class Position extends Message<Position> {
 }
 
 /**
- * @generated from message xyz.block.ftl.schema.v1.ProvisioningCreatedEvent
- */
-export class ProvisioningCreatedEvent extends Message<ProvisioningCreatedEvent> {
-  /**
-   * @generated from field: xyz.block.ftl.schema.v1.Module desired_module = 1;
-   */
-  desiredModule?: Module;
-
-  constructor(data?: PartialMessage<ProvisioningCreatedEvent>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.schema.v1.ProvisioningCreatedEvent";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "desired_module", kind: "message", T: Module },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProvisioningCreatedEvent {
-    return new ProvisioningCreatedEvent().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ProvisioningCreatedEvent {
-    return new ProvisioningCreatedEvent().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ProvisioningCreatedEvent {
-    return new ProvisioningCreatedEvent().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: ProvisioningCreatedEvent | PlainMessage<ProvisioningCreatedEvent> | undefined, b: ProvisioningCreatedEvent | PlainMessage<ProvisioningCreatedEvent> | undefined): boolean {
-    return proto3.util.equals(ProvisioningCreatedEvent, a, b);
-  }
-}
-
-/**
  * Ref is an untyped reference to a symbol.
  *
  * @generated from message xyz.block.ftl.schema.v1.Ref
@@ -3538,19 +3512,9 @@ export class SchemaState extends Message<SchemaState> {
   modules: Module[] = [];
 
   /**
-   * @generated from field: repeated string active_deployments = 2;
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Changeset changesets = 2;
    */
-  activeDeployments: string[] = [];
-
-  /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.SerializedChangeset serialized_changeset = 3;
-   */
-  serializedChangeset: SerializedChangeset[] = [];
-
-  /**
-   * @generated from field: repeated string provisioning = 4;
-   */
-  provisioning: string[] = [];
+  changesets: Changeset[] = [];
 
   constructor(data?: PartialMessage<SchemaState>) {
     super();
@@ -3561,9 +3525,7 @@ export class SchemaState extends Message<SchemaState> {
   static readonly typeName = "xyz.block.ftl.schema.v1.SchemaState";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
-    { no: 2, name: "active_deployments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: "serialized_changeset", kind: "message", T: SerializedChangeset, repeated: true },
-    { no: 4, name: "provisioning", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 2, name: "changesets", kind: "message", T: Changeset, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SchemaState {
@@ -3635,69 +3597,6 @@ export class Secret extends Message<Secret> {
 
   static equals(a: Secret | PlainMessage<Secret> | undefined, b: Secret | PlainMessage<Secret> | undefined): boolean {
     return proto3.util.equals(Secret, a, b);
-  }
-}
-
-/**
- * SerializedChangeset is a temp hack that needs to go away
- *
- * @generated from message xyz.block.ftl.schema.v1.SerializedChangeset
- */
-export class SerializedChangeset extends Message<SerializedChangeset> {
-  /**
-   * @generated from field: string key = 1;
-   */
-  key = "";
-
-  /**
-   * @generated from field: google.protobuf.Timestamp created_at = 2;
-   */
-  createdAt?: Timestamp;
-
-  /**
-   * @generated from field: repeated string deployments = 3;
-   */
-  deployments: string[] = [];
-
-  /**
-   * @generated from field: xyz.block.ftl.schema.v1.ChangesetState state = 4;
-   */
-  state = ChangesetState.UNSPECIFIED;
-
-  /**
-   * @generated from field: string error = 5;
-   */
-  error = "";
-
-  constructor(data?: PartialMessage<SerializedChangeset>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.schema.v1.SerializedChangeset";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "created_at", kind: "message", T: Timestamp },
-    { no: 3, name: "deployments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 4, name: "state", kind: "enum", T: proto3.getEnumType(ChangesetState) },
-    { no: 5, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SerializedChangeset {
-    return new SerializedChangeset().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SerializedChangeset {
-    return new SerializedChangeset().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SerializedChangeset {
-    return new SerializedChangeset().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: SerializedChangeset | PlainMessage<SerializedChangeset> | undefined, b: SerializedChangeset | PlainMessage<SerializedChangeset> | undefined): boolean {
-    return proto3.util.equals(SerializedChangeset, a, b);
   }
 }
 

@@ -88,7 +88,7 @@ func TestDeployment_Progress(t *testing.T) {
 		registry.Register("mock", mock, schema.ResourceTypePostgres)
 		registry.Register("mock", mock, schema.ResourceTypeMysql)
 
-		dpl := registry.CreateDeployment(ctx, &schema.Module{
+		dpl := registry.CreateDeployment(ctx, key.NewChangesetKey(), &schema.Module{
 			Name: "test-module",
 			Runtime: &schema.ModuleRuntime{
 				Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: key.NewDeploymentKey("test-module")},

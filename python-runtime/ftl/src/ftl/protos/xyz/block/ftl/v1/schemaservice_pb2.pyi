@@ -80,14 +80,10 @@ class PullSchemaResponse(_message.Message):
     def __init__(self, changeset_created: _Optional[_Union[PullSchemaResponse.ChangesetCreated, _Mapping]] = ..., changeset_failed: _Optional[_Union[PullSchemaResponse.ChangesetFailed, _Mapping]] = ..., changeset_committed: _Optional[_Union[PullSchemaResponse.ChangesetCommitted, _Mapping]] = ..., deployment_created: _Optional[_Union[PullSchemaResponse.DeploymentCreated, _Mapping]] = ..., deployment_updated: _Optional[_Union[PullSchemaResponse.DeploymentUpdated, _Mapping]] = ..., deployment_removed: _Optional[_Union[PullSchemaResponse.DeploymentRemoved, _Mapping]] = ..., more: bool = ...) -> None: ...
 
 class UpdateDeploymentRuntimeRequest(_message.Message):
-    __slots__ = ("deployment", "changeset", "event")
-    DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
-    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("event",)
     EVENT_FIELD_NUMBER: _ClassVar[int]
-    deployment: str
-    changeset: str
     event: _schema_pb2.ModuleRuntimeEvent
-    def __init__(self, deployment: _Optional[str] = ..., changeset: _Optional[str] = ..., event: _Optional[_Union[_schema_pb2.ModuleRuntimeEvent, _Mapping]] = ...) -> None: ...
+    def __init__(self, event: _Optional[_Union[_schema_pb2.ModuleRuntimeEvent, _Mapping]] = ...) -> None: ...
 
 class UpdateDeploymentRuntimeResponse(_message.Message):
     __slots__ = ()
@@ -114,10 +110,12 @@ class GetDeploymentsResponse(_message.Message):
     def __init__(self, schema: _Optional[_Iterable[_Union[DeployedSchema, _Mapping]]] = ...) -> None: ...
 
 class CreateChangesetRequest(_message.Message):
-    __slots__ = ("modules",)
+    __slots__ = ("modules", "removed_deployments")
     MODULES_FIELD_NUMBER: _ClassVar[int]
+    REMOVED_DEPLOYMENTS_FIELD_NUMBER: _ClassVar[int]
     modules: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Module]
-    def __init__(self, modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ...) -> None: ...
+    removed_deployments: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ..., removed_deployments: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class CreateChangesetResponse(_message.Message):
     __slots__ = ("changeset",)

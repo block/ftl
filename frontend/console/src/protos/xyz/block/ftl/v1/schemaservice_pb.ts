@@ -473,17 +473,7 @@ export class PullSchemaResponse_DeploymentRemoved extends Message<PullSchemaResp
  */
 export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRuntimeRequest> {
   /**
-   * @generated from field: string deployment = 1;
-   */
-  deployment = "";
-
-  /**
-   * @generated from field: optional string changeset = 2;
-   */
-  changeset?: string;
-
-  /**
-   * @generated from field: xyz.block.ftl.schema.v1.ModuleRuntimeEvent event = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.ModuleRuntimeEvent event = 1;
    */
   event?: ModuleRuntimeEvent;
 
@@ -495,9 +485,7 @@ export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRunt
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "deployment", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 3, name: "event", kind: "message", T: ModuleRuntimeEvent },
+    { no: 1, name: "event", kind: "message", T: ModuleRuntimeEvent },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateDeploymentRuntimeRequest {
@@ -689,9 +677,18 @@ export class GetDeploymentsResponse extends Message<GetDeploymentsResponse> {
  */
 export class CreateChangesetRequest extends Message<CreateChangesetRequest> {
   /**
+   * The modules to add or update.
+   *
    * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 1;
    */
   modules: Module[] = [];
+
+  /**
+   * The deployments to remove.
+   *
+   * @generated from field: repeated string removed_deployments = 2;
+   */
+  removedDeployments: string[] = [];
 
   constructor(data?: PartialMessage<CreateChangesetRequest>) {
     super();
@@ -702,6 +699,7 @@ export class CreateChangesetRequest extends Message<CreateChangesetRequest> {
   static readonly typeName = "xyz.block.ftl.v1.CreateChangesetRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
+    { no: 2, name: "removed_deployments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateChangesetRequest {
