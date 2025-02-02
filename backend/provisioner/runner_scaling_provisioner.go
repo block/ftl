@@ -43,7 +43,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		if deployment.IsZero() {
 			return nil, fmt.Errorf("failed to find deployment for runner")
 		}
-		logger.Debugf("Provisioning runner: %s.%s for deployment %s", module.Name, rc.ResourceID(), deployment)
+		logger.Infof("Provisioning runner: %s.%s for deployment %s", module.Name, rc.ResourceID(), deployment)
 		cron := false
 		http := false
 		for _, decl := range module.Decls {

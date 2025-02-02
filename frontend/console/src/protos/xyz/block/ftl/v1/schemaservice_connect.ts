@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, FailChangesetRequest, FailChangesetResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
+import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, FailChangesetRequest, FailChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -127,6 +127,17 @@ export const SchemaService = {
       name: "FailChangeset",
       I: FailChangesetRequest,
       O: FailChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetDeployment gets a deployment by deployment key
+     *
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.GetDeployment
+     */
+    getDeployment: {
+      name: "GetDeployment",
+      I: GetDeploymentRequest,
+      O: GetDeploymentResponse,
       kind: MethodKind.Unary,
     },
   }

@@ -133,6 +133,13 @@ message FailChangesetRequest {
 
 message FailChangesetResponse {}
 
+message GetDeploymentRequest {
+  string deployment_key = 1;
+}
+message GetDeploymentResponse {
+  ftl.schema.v1.Module schema = 1;
+}
+
 service SchemaService {
   // Ping service for readiness.
   rpc Ping(PingRequest) returns (PingResponse) {
@@ -172,4 +179,6 @@ service SchemaService {
 
   // FailChangeset fails an active changeset.
   rpc FailChangeset(FailChangesetRequest) returns (FailChangesetResponse);
+  // GetDeployment gets a deployment by deployment key
+  rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
 }

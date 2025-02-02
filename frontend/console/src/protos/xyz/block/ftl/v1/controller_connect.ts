@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetDeploymentRequest, GetDeploymentResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
+import { GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.ControllerService
@@ -65,17 +65,6 @@ export const ControllerService = {
       name: "UploadArtefact",
       I: UploadArtefactRequest,
       O: UploadArtefactResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Get the schema and artefact metadata for a deployment.
-     *
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.GetDeployment
-     */
-    getDeployment: {
-      name: "GetDeployment",
-      I: GetDeploymentRequest,
-      O: GetDeploymentResponse,
       kind: MethodKind.Unary,
     },
     /**

@@ -47,9 +47,6 @@ const (
 	// ControllerServiceUploadArtefactProcedure is the fully-qualified name of the ControllerService's
 	// UploadArtefact RPC.
 	ControllerServiceUploadArtefactProcedure = "/xyz.block.ftl.v1.ControllerService/UploadArtefact"
-	// ControllerServiceGetDeploymentProcedure is the fully-qualified name of the ControllerService's
-	// GetDeployment RPC.
-	ControllerServiceGetDeploymentProcedure = "/xyz.block.ftl.v1.ControllerService/GetDeployment"
 	// ControllerServiceGetDeploymentArtefactsProcedure is the fully-qualified name of the
 	// ControllerService's GetDeploymentArtefacts RPC.
 	ControllerServiceGetDeploymentArtefactsProcedure = "/xyz.block.ftl.v1.ControllerService/GetDeploymentArtefacts"
@@ -69,8 +66,6 @@ type ControllerServiceClient interface {
 	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
 	// Upload an artefact to the server.
 	UploadArtefact(context.Context, *connect.Request[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error)
-	// Get the schema and artefact metadata for a deployment.
-	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Stream deployment artefacts from the server.
 	//
 	// Each artefact is streamed one after the other as a sequence of max 1MB
@@ -119,11 +114,6 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			baseURL+ControllerServiceUploadArtefactProcedure,
 			opts...,
 		),
-		getDeployment: connect.NewClient[v1.GetDeploymentRequest, v1.GetDeploymentResponse](
-			httpClient,
-			baseURL+ControllerServiceGetDeploymentProcedure,
-			opts...,
-		),
 		getDeploymentArtefacts: connect.NewClient[v1.GetDeploymentArtefactsRequest, v1.GetDeploymentArtefactsResponse](
 			httpClient,
 			baseURL+ControllerServiceGetDeploymentArtefactsProcedure,
@@ -144,7 +134,6 @@ type controllerServiceClient struct {
 	status                 *connect.Client[v1.StatusRequest, v1.StatusResponse]
 	getArtefactDiffs       *connect.Client[v1.GetArtefactDiffsRequest, v1.GetArtefactDiffsResponse]
 	uploadArtefact         *connect.Client[v1.UploadArtefactRequest, v1.UploadArtefactResponse]
-	getDeployment          *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 	getDeploymentArtefacts *connect.Client[v1.GetDeploymentArtefactsRequest, v1.GetDeploymentArtefactsResponse]
 	registerRunner         *connect.Client[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
 }
@@ -174,11 +163,6 @@ func (c *controllerServiceClient) UploadArtefact(ctx context.Context, req *conne
 	return c.uploadArtefact.CallUnary(ctx, req)
 }
 
-// GetDeployment calls xyz.block.ftl.v1.ControllerService.GetDeployment.
-func (c *controllerServiceClient) GetDeployment(ctx context.Context, req *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
-	return c.getDeployment.CallUnary(ctx, req)
-}
-
 // GetDeploymentArtefacts calls xyz.block.ftl.v1.ControllerService.GetDeploymentArtefacts.
 func (c *controllerServiceClient) GetDeploymentArtefacts(ctx context.Context, req *connect.Request[v1.GetDeploymentArtefactsRequest]) (*connect.ServerStreamForClient[v1.GetDeploymentArtefactsResponse], error) {
 	return c.getDeploymentArtefacts.CallServerStream(ctx, req)
@@ -200,8 +184,6 @@ type ControllerServiceHandler interface {
 	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
 	// Upload an artefact to the server.
 	UploadArtefact(context.Context, *connect.Request[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error)
-	// Get the schema and artefact metadata for a deployment.
-	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Stream deployment artefacts from the server.
 	//
 	// Each artefact is streamed one after the other as a sequence of max 1MB
@@ -246,11 +228,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		svc.UploadArtefact,
 		opts...,
 	)
-	controllerServiceGetDeploymentHandler := connect.NewUnaryHandler(
-		ControllerServiceGetDeploymentProcedure,
-		svc.GetDeployment,
-		opts...,
-	)
 	controllerServiceGetDeploymentArtefactsHandler := connect.NewServerStreamHandler(
 		ControllerServiceGetDeploymentArtefactsProcedure,
 		svc.GetDeploymentArtefacts,
@@ -273,8 +250,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 			controllerServiceGetArtefactDiffsHandler.ServeHTTP(w, r)
 		case ControllerServiceUploadArtefactProcedure:
 			controllerServiceUploadArtefactHandler.ServeHTTP(w, r)
-		case ControllerServiceGetDeploymentProcedure:
-			controllerServiceGetDeploymentHandler.ServeHTTP(w, r)
 		case ControllerServiceGetDeploymentArtefactsProcedure:
 			controllerServiceGetDeploymentArtefactsHandler.ServeHTTP(w, r)
 		case ControllerServiceRegisterRunnerProcedure:
@@ -306,10 +281,6 @@ func (UnimplementedControllerServiceHandler) GetArtefactDiffs(context.Context, *
 
 func (UnimplementedControllerServiceHandler) UploadArtefact(context.Context, *connect.Request[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.UploadArtefact is not implemented"))
-}
-
-func (UnimplementedControllerServiceHandler) GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.GetDeployment is not implemented"))
 }
 
 func (UnimplementedControllerServiceHandler) GetDeploymentArtefacts(context.Context, *connect.Request[v1.GetDeploymentArtefactsRequest], *connect.ServerStream[v1.GetDeploymentArtefactsResponse]) error {

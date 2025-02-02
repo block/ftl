@@ -226,6 +226,7 @@ func (s *serveCommonConfig) run(
 	runnerScaling, err := localscaling.NewLocalScaling(
 		ctx,
 		controllerAddresses,
+		s.SchemaService.Bind,
 		s.Lease.Bind,
 		projConfig.Path,
 		devMode && !projConfig.DisableIDEIntegration,

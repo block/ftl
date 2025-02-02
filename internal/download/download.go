@@ -72,7 +72,7 @@ func Artefacts(ctx context.Context, client ftlv1connect.ControllerServiceClient,
 }
 
 // ArtefactsFromOCI downloads artefacts for a deployment from an OCI registry.
-func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.ControllerServiceClient, key key.Deployment, dest string, service *artefacts.OCIArtefactService) error {
+func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.SchemaServiceClient, key key.Deployment, dest string, service *artefacts.OCIArtefactService) error {
 	logger := log.FromContext(ctx)
 	response, err := client.GetDeployment(ctx, connect.NewRequest(&ftlv1.GetDeploymentRequest{
 		DeploymentKey: key.String(),

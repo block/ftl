@@ -1029,3 +1029,77 @@ export class FailChangesetResponse extends Message<FailChangesetResponse> {
   }
 }
 
+/**
+ * @generated from message xyz.block.ftl.v1.GetDeploymentRequest
+ */
+export class GetDeploymentRequest extends Message<GetDeploymentRequest> {
+  /**
+   * @generated from field: string deployment_key = 1;
+   */
+  deploymentKey = "";
+
+  constructor(data?: PartialMessage<GetDeploymentRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.GetDeploymentRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDeploymentRequest {
+    return new GetDeploymentRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetDeploymentRequest {
+    return new GetDeploymentRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetDeploymentRequest {
+    return new GetDeploymentRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetDeploymentRequest | PlainMessage<GetDeploymentRequest> | undefined, b: GetDeploymentRequest | PlainMessage<GetDeploymentRequest> | undefined): boolean {
+    return proto3.util.equals(GetDeploymentRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.GetDeploymentResponse
+ */
+export class GetDeploymentResponse extends Message<GetDeploymentResponse> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Module schema = 1;
+   */
+  schema?: Module;
+
+  constructor(data?: PartialMessage<GetDeploymentResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.GetDeploymentResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "schema", kind: "message", T: Module },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDeploymentResponse {
+    return new GetDeploymentResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetDeploymentResponse {
+    return new GetDeploymentResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetDeploymentResponse {
+    return new GetDeploymentResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetDeploymentResponse | PlainMessage<GetDeploymentResponse> | undefined, b: GetDeploymentResponse | PlainMessage<GetDeploymentResponse> | undefined): boolean {
+    return proto3.util.equals(GetDeploymentResponse, a, b);
+  }
+}
+

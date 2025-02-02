@@ -29,6 +29,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
+
 	"github.com/block/ftl/backend/controller/artefacts"
 	ftldeploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
@@ -63,6 +64,7 @@ type Config struct {
 	Bind                  *url.URL                `help:"Endpoint the Runner should bind to and advertise." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 	Key                   key.Runner              `help:"Runner key (auto)."`
 	ControllerEndpoint    *url.URL                `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
+	SchemaEndpoint        *url.URL                `name:"schema-endpoint" help:"Schema server endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
 	LeaseEndpoint         *url.URL                `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	QueryEndpoint         *url.URL                `name:"ftl-query-endpoint" help:"Query endpoint." env:"FTL_QUERY_ENDPOINT" default:"http://127.0.0.1:8897"`
 	TimelineEndpoint      *url.URL                `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
@@ -87,9 +89,6 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	}
 	pid := os.Getpid()
 
-	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, config.ControllerEndpoint.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, client)
-
 	logger := log.FromContext(ctx).Attrs(map[string]string{"runner": config.Key.String()})
 	logger.Debugf("Starting FTL Runner")
 
@@ -101,8 +100,10 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 
 	logger.Debugf("Using FTL endpoint: %s", config.ControllerEndpoint)
 	logger.Debugf("Listening on %s", config.Bind)
+	logger.Debugf("Using Schema endpoint %s", config.SchemaEndpoint.String())
 
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, config.ControllerEndpoint.String(), log.Error)
+	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, config.SchemaEndpoint.String(), log.Error)
 
 	runnerKey := config.Key
 	if runnerKey.IsZero() {
@@ -125,6 +126,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 		config:               config,
 		storage:              storage,
 		controllerClient:     controllerClient,
+		schemaClient:         schemaClient,
 		timelineClient:       timelineClient,
 		labels:               labels,
 		deploymentLogQueue:   make(chan log.Entry, 10000),
@@ -263,6 +265,7 @@ type Service struct {
 	config           Config
 	storage          *artefacts.OCIArtefactService
 	controllerClient ftlv1connect.ControllerServiceClient
+	schemaClient     ftlv1connect.SchemaServiceClient
 	timelineClient   *timeline.Client
 	// Failed to register with the Controller
 	registrationFailure  atomic.Value[optional.Option[error]]
@@ -302,7 +305,7 @@ func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 }
 
 func (s *Service) getModule(ctx context.Context, key key.Deployment) (*schema.Module, error) {
-	gdResp, err := s.controllerClient.GetDeployment(ctx, connect.NewRequest(&ftlv1.GetDeploymentRequest{DeploymentKey: s.config.Deployment.String()}))
+	gdResp, err := s.schemaClient.GetDeployment(ctx, connect.NewRequest(&ftlv1.GetDeploymentRequest{DeploymentKey: s.config.Deployment.String()}))
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
 		return nil, fmt.Errorf("failed to get deployment: %w", err)
@@ -428,7 +431,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			return fmt.Errorf("failed to ping dev endpoint: %w", err)
 		}
 	} else {
-		err := download.ArtefactsFromOCI(ctx, s.controllerClient, key, deploymentDir, s.storage)
+		err := download.ArtefactsFromOCI(ctx, s.schemaClient, key, deploymentDir, s.storage)
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
 			return fmt.Errorf("failed to download artefacts: %w", err)

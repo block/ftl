@@ -48,14 +48,6 @@ message GetDeploymentArtefactsResponse {
   DeploymentArtefact artefact = 1;
   bytes chunk = 2;
 }
-
-message GetDeploymentRequest {
-  string deployment_key = 1;
-}
-message GetDeploymentResponse {
-  ftl.schema.v1.Module schema = 1;
-}
-
 message RegisterRunnerRequest {
   string key = 1;
   string endpoint = 2;
@@ -139,9 +131,6 @@ service ControllerService {
 
   // Upload an artefact to the server.
   rpc UploadArtefact(UploadArtefactRequest) returns (UploadArtefactResponse);
-
-  // Get the schema and artefact metadata for a deployment.
-  rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
 
   // Stream deployment artefacts from the server.
   //

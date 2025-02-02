@@ -61,6 +61,9 @@ const (
 	// SchemaServiceFailChangesetProcedure is the fully-qualified name of the SchemaService's
 	// FailChangeset RPC.
 	SchemaServiceFailChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/FailChangeset"
+	// SchemaServiceGetDeploymentProcedure is the fully-qualified name of the SchemaService's
+	// GetDeployment RPC.
+	SchemaServiceGetDeploymentProcedure = "/xyz.block.ftl.v1.SchemaService/GetDeployment"
 )
 
 // SchemaServiceClient is a client for the xyz.block.ftl.v1.SchemaService service.
@@ -88,6 +91,8 @@ type SchemaServiceClient interface {
 	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
 	// FailChangeset fails an active changeset.
 	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
+	// GetDeployment gets a deployment by deployment key
+	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 }
 
 // NewSchemaServiceClient constructs a client for the xyz.block.ftl.v1.SchemaService service. By
@@ -153,6 +158,11 @@ func NewSchemaServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			baseURL+SchemaServiceFailChangesetProcedure,
 			opts...,
 		),
+		getDeployment: connect.NewClient[v1.GetDeploymentRequest, v1.GetDeploymentResponse](
+			httpClient,
+			baseURL+SchemaServiceGetDeploymentProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -168,6 +178,7 @@ type schemaServiceClient struct {
 	prepareChangeset        *connect.Client[v1.PrepareChangesetRequest, v1.PrepareChangesetResponse]
 	commitChangeset         *connect.Client[v1.CommitChangesetRequest, v1.CommitChangesetResponse]
 	failChangeset           *connect.Client[v1.FailChangesetRequest, v1.FailChangesetResponse]
+	getDeployment           *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.SchemaService.Ping.
@@ -220,6 +231,11 @@ func (c *schemaServiceClient) FailChangeset(ctx context.Context, req *connect.Re
 	return c.failChangeset.CallUnary(ctx, req)
 }
 
+// GetDeployment calls xyz.block.ftl.v1.SchemaService.GetDeployment.
+func (c *schemaServiceClient) GetDeployment(ctx context.Context, req *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
+	return c.getDeployment.CallUnary(ctx, req)
+}
+
 // SchemaServiceHandler is an implementation of the xyz.block.ftl.v1.SchemaService service.
 type SchemaServiceHandler interface {
 	// Ping service for readiness.
@@ -245,6 +261,8 @@ type SchemaServiceHandler interface {
 	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
 	// FailChangeset fails an active changeset.
 	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
+	// GetDeployment gets a deployment by deployment key
+	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 }
 
 // NewSchemaServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -306,6 +324,11 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 		svc.FailChangeset,
 		opts...,
 	)
+	schemaServiceGetDeploymentHandler := connect.NewUnaryHandler(
+		SchemaServiceGetDeploymentProcedure,
+		svc.GetDeployment,
+		opts...,
+	)
 	return "/xyz.block.ftl.v1.SchemaService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SchemaServicePingProcedure:
@@ -328,6 +351,8 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 			schemaServiceCommitChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceFailChangesetProcedure:
 			schemaServiceFailChangesetHandler.ServeHTTP(w, r)
+		case SchemaServiceGetDeploymentProcedure:
+			schemaServiceGetDeploymentHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -375,4 +400,8 @@ func (UnimplementedSchemaServiceHandler) CommitChangeset(context.Context, *conne
 
 func (UnimplementedSchemaServiceHandler) FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.FailChangeset is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.GetDeployment is not implemented"))
 }

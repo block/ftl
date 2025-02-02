@@ -30,6 +30,22 @@ type Service struct {
 	State *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event]
 }
 
+func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
+	v, err := s.State.View(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get schema state: %w", err)
+	}
+	deploymentKey, err := key.ParseDeploymentKey(c.Msg.DeploymentKey)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
+	}
+	d, _, err := v.FindDeployment(deploymentKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find deployment: %w", err)
+	}
+	return connect.NewResponse(&ftlv1.GetDeploymentResponse{Schema: d.ToProto()}), nil
+}
+
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 
 func New(ctx context.Context) *Service {

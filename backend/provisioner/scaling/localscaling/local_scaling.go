@@ -39,6 +39,7 @@ type localScaling struct {
 	debugPorts          map[string]*localdebug.DebugInfo
 	controllerAddresses []*url.URL
 	leaseAddress        *url.URL
+	schemaAddress       *url.URL
 
 	prevRunnerSuffix int
 	ideSupport       optional.Option[localdebug.IDEIntegration]
@@ -179,6 +180,7 @@ type runnerInfo struct {
 func NewLocalScaling(
 	ctx context.Context,
 	controllerAddresses []*url.URL,
+	schemaAddress *url.URL,
 	leaseAddress *url.URL,
 	configPath string,
 	enableIDEIntegration bool,
@@ -197,6 +199,7 @@ func NewLocalScaling(
 		runners:                 map[string]map[string]*deploymentInfo{},
 		controllerAddresses:     controllerAddresses,
 		leaseAddress:            leaseAddress,
+		schemaAddress:           schemaAddress,
 		prevRunnerSuffix:        -1,
 		debugPorts:              map[string]*localdebug.DebugInfo{},
 		storage:                 storage,
@@ -299,6 +302,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	config := runner.Config{
 		Bind:                 bindURL,
 		ControllerEndpoint:   controllerEndpoint,
+		SchemaEndpoint:       l.schemaAddress,
 		LeaseEndpoint:        l.leaseAddress,
 		Key:                  key.NewLocalRunnerKey(keySuffix),
 		Deployment:           deploymentKey,
