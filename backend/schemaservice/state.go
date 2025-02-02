@@ -47,15 +47,18 @@ func NewSchemaState() SchemaState {
 	}
 }
 
-func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event] {
+func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper] {
+	handle := statemachine.NewLocalHandle(NewStateMachine(ctx))
+	return statemachine.NewSingleQueryHandle(handle, struct{}{})
+}
+
+func NewStateMachine(ctx context.Context) *schemaStateMachine {
 	notifier := channels.NewNotifier(ctx)
-	handle := statemachine.NewLocalHandle[struct{}, SchemaState, schema.Event](&schemaStateMachine{
+	return &schemaStateMachine{
 		notifier:   notifier,
 		runningCtx: ctx,
 		state:      NewSchemaState(),
-	})
-
-	return statemachine.NewSingleQueryHandle(handle, struct{}{})
+	}
 }
 
 func (r *SchemaState) Marshal() ([]byte, error) {
@@ -180,6 +183,30 @@ func (r *SchemaState) GetProvisioning(moduleName string) (*schema.Module, error)
 	return r.deployments[d], nil
 }
 
+type EventWrapper struct {
+	Event schema.Event
+}
+
+var _ statemachine.Marshallable = EventWrapper{}
+
+func (e EventWrapper) MarshalBinary() ([]byte, error) {
+	pb := schema.EventToProto(e.Event)
+	return proto.Marshal(pb)
+}
+
+func (e *EventWrapper) UnmarshalBinary(bts []byte) error {
+	pb := schemapb.Event{}
+	if err := proto.Unmarshal(bts, &pb); err != nil {
+		return fmt.Errorf("error unmarshalling event proto: %w", err)
+	}
+	event, err := schema.EventFromProto(&pb)
+	if err != nil {
+		return fmt.Errorf("error decoding event proto: %w", err)
+	}
+	e.Event = event
+	return nil
+}
+
 type schemaStateMachine struct {
 	state SchemaState
 
@@ -189,8 +216,8 @@ type schemaStateMachine struct {
 	lock sync.Mutex
 }
 
-var _ statemachine.Snapshotting[struct{}, SchemaState, schema.Event] = &schemaStateMachine{}
-var _ statemachine.Listenable[struct{}, SchemaState, schema.Event] = &schemaStateMachine{}
+var _ statemachine.Snapshotting[struct{}, SchemaState, EventWrapper] = &schemaStateMachine{}
+var _ statemachine.Listenable[struct{}, SchemaState, EventWrapper] = &schemaStateMachine{}
 
 func (c *schemaStateMachine) Lookup(key struct{}) (SchemaState, error) {
 	c.lock.Lock()
@@ -198,10 +225,10 @@ func (c *schemaStateMachine) Lookup(key struct{}) (SchemaState, error) {
 	return reflect.DeepCopy(c.state), nil
 }
 
-func (c *schemaStateMachine) Publish(msg schema.Event) error {
+func (c *schemaStateMachine) Publish(msg EventWrapper) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	err := c.state.ApplyEvent(c.runningCtx, msg)
+	err := c.state.ApplyEvent(c.runningCtx, msg.Event)
 	if err != nil {
 		return fmt.Errorf("update: %w", err)
 	}

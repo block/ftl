@@ -18,22 +18,26 @@ import (
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/raft"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/statemachine"
 )
 
 type Config struct {
-	Bind *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
+	Bind *url.URL        `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
+	Raft raft.RaftConfig `embed:"" prefix:"raft-"`
 }
 
 type Service struct {
-	State *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event]
+	State *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper]
 }
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 
-func New(ctx context.Context) *Service {
-	return &Service{State: NewInMemorySchemaState(ctx)}
+func New(ctx context.Context, handle statemachine.Handle[struct{}, SchemaState, EventWrapper]) *Service {
+	return &Service{
+		State: statemachine.NewSingleQueryHandle(handle, struct{}{}),
+	}
 }
 
 // Start the SchemaService. Blocks until the context is cancelled.
@@ -44,10 +48,18 @@ func Start(
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL schema service")
 
-	svc := New(ctx)
+	clusterBuilder := raft.NewBuilder(&config.Raft)
+	schemaShard := raft.AddShard(ctx, clusterBuilder, 1, NewStateMachine(ctx))
+	cluster := clusterBuilder.Build(ctx)
+
+	svc := New(ctx, schemaShard)
 	logger.Debugf("Listening on %s", config.Bind)
 
 	g, ctx := errgroup.WithContext(ctx)
+
+	if err := cluster.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start raft cluster: %w", err)
+	}
 
 	g.Go(func() error {
 		return rpc.Serve(ctx, config.Bind,
@@ -113,10 +125,10 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
-	err = s.State.Publish(ctx, &schema.DeploymentSchemaUpdatedEvent{
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.DeploymentSchemaUpdatedEvent{
 		Key:    deployment,
 		Schema: module,
-	})
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("could not update schema for module %s: %w", module.Name, err)
 	}
@@ -129,7 +141,7 @@ func (s *Service) UpdateSchema(ctx context.Context, req *connect.Request[ftlv1.U
 	if err != nil {
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
-	if err = s.State.Publish(ctx, event); err != nil {
+	if err = s.State.Publish(ctx, EventWrapper{Event: event}); err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
 	return connect.NewResponse(&ftlv1.UpdateSchemaResponse{}), nil
@@ -177,9 +189,9 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 	}
 
 	// TODO: validate changeset schema with canonical schema
-	err = s.State.Publish(ctx, &schema.ChangesetCreatedEvent{
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetCreatedEvent{
 		Changeset: changeset,
-	})
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("could not create changeset %w", err)
 	}
@@ -193,9 +205,9 @@ func (s *Service) PrepareChangeset(ctx context.Context, req *connect.Request[ftl
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, &schema.ChangesetPreparedEvent{
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetPreparedEvent{
 		Key: changesetKey,
-	})
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("could not prepare changeset %w", err)
 	}
@@ -208,9 +220,9 @@ func (s *Service) CommitChangeset(ctx context.Context, req *connect.Request[ftlv
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, &schema.ChangesetCommittedEvent{
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetCommittedEvent{
 		Key: changesetKey,
-	})
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("could not commit changeset %w", err)
 	}
