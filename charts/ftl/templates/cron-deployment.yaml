@@ -1,13 +1,17 @@
 {{ $version := printf "v%s" .Chart.Version -}}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "ftl.fullname" . }}-cron
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.cron.replicas }}
+  podManagementPolicy: Parallel
+  ordinals:
+    start: 1
   revisionHistoryLimit: {{ .Values.cron.revisionHistoryLimit }}
+  serviceName: ftl-cron-raft
   selector:
     matchLabels:
       {{- include "ftl-cron.selectorLabels" . | nindent 6 }}
@@ -35,13 +39,54 @@ spec:
             {{- toYaml .Values.cron.envFrom | nindent 12 }}
             {{- end }}
           {{- end }}
+          volumeMounts:
+          - name: cron-raft-storage
+            mountPath: /data/raft
+          ports:
+            - name: http
+              containerPort: {{ .Values.cron.services.cron.containerPort }}
+              protocol: TCP
+            - name: raft
+              containerPort: {{ .Values.cron.services.raft.containerPort }}
+              protocol: TCP
           env:
             {{- if .Values.cron.env }}
             {{- toYaml .Values.cron.env | nindent 12 }}
             {{- end }}
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: FTL_BIND
+              value: "http://$(MY_POD_IP):{{ .Values.cron.services.cron.containerPort }}"
             - name: FTL_TIMELINE_ENDPOINT
-              value: "http://{{ .Values.timeline.service.name }}:{{ .Values.timeline.service.port }}"
+              value: "http://ftl-timeline:{{ .Values.timeline.port }}"
             - name: FTL_SCHEMA_ENDPOINT
               value: "http://ftl-schema:8892"
+            - name: RAFT_INITIAL_MEMBERS
+              value: "{{- range $index := until (.Values.cron.replicas | int ) }}{{- if ne $index 0 -}},{{- end -}}ftl-cron-{{ add $index 1  }}.ftl-cron-raft:{{$.Values.cron.services.raft.port}}{{- end -}}"
+            - name: RAFT_INITIAL_REPLICA_IDS
+              value: "{{- range $index := until (.Values.cron.replicas | int ) }}{{- if ne $index 0 -}},{{- end -}}{{ add $index 1  }}{{- end -}}"
+            - name: RAFT_DATA_DIR
+              value: "/data/raft"
+            - name: ORDINAL_NUMBER
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
+            - name: RAFT_ADDRESS
+              value: "ftl-cron-$(ORDINAL_NUMBER).ftl-cron-raft:{{$.Values.cron.services.raft.port}}"
+            - name: RAFT_LISTEN_ADDRESS
+              value: "$(MY_POD_IP):{{$.Values.cron.services.raft.port}}"
+            - name: RAFT_CONTROL_ADDRESS
+              value: "http://ftl-cron:{{ .Values.cron.services.cron.port }}"
           {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.cron | nindent 6 }}
+  volumeClaimTemplates:
+  - metadata:
+      name: cron-raft-storage
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.cron.storage }}

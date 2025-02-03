@@ -26,7 +26,7 @@ full-deploy: build-all-images setup-istio-cluster
   kubectl rollout restart replicaset ftl-schema || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-controller || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-provisioner || true # if this exists already restart it to get the latest image
-  kubectl rollout restart deployment ftl-cron || true # if this exists already restart it to get the latest image
+  kubectl rollout restart statefulset ftl-cron || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-http-ingress || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-timeline || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-console || true # if this exists already restart it to get the latest image
@@ -36,12 +36,11 @@ full-deploy: build-all-images setup-istio-cluster
 # Wait for core Kubernetes components to be ready
 wait-for-kube:
   #!/bin/bash
-  kubectl wait --for=condition=ready pods/ftl-schema-1 --timeout=5m
-  kubectl wait --for=condition=ready pods/ftl-schema-2 --timeout=5m
-  kubectl wait --for=condition=ready pods/ftl-schema-3 --timeout=5m
+  kubectl rollout status --watch statefulset/ftl-schema --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-timeline --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-console --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-controller --timeout=5m
+  kubectl rollout status --watch statefulset/ftl-cron --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-http-ingress --timeout=5m
   kubectl wait --for=condition=available deployment/registry --timeout=5m
   sleep 1

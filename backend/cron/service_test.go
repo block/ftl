@@ -18,6 +18,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/raft"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"
@@ -72,6 +73,19 @@ func TestCron(t *testing.T) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	t.Cleanup(cancel)
 
+	schemaEndpoint, err := url.Parse("http://localhost:8897")
+	assert.NoError(t, err)
+
+	bind, err := url.Parse("http://127.0.0.1:0") // Use port 0 to let the OS assign a random port
+	assert.NoError(t, err)
+
+	cfg := Config{
+		Bind:                  bind,
+		SchemaServiceEndpoint: schemaEndpoint,
+		TimelineEndpoint:      timelineEndpoint,
+		Raft:                  raft.RaftConfig{},
+	}
+
 	wg, ctx := errgroup.WithContext(ctx)
 
 	requestsch := make(chan *ftlv1.CallRequest, 8)
@@ -79,7 +93,7 @@ func TestCron(t *testing.T) {
 		requests: requestsch,
 	}
 
-	wg.Go(func() error { return Start(ctx, eventSource, client, timelineClient) })
+	wg.Go(func() error { return Start(ctx, cfg, eventSource, client, timelineClient) })
 
 	requests := make([]*ftlv1.CallRequest, 0, 2)
 

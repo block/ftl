@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+  name: {{ include "ftl.fullname" . }}-cron
+  {{- if .Values.cron.services.cron.annotations }}
+  annotations:
+    {{- toYaml .Values.cron.services.cron.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+    - name: http
+      port: {{ .Values.cron.services.cron.port }}
+      protocol: TCP
+  selector:
+    {{- include "ftl-cron.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.cron.services.cron.type | default "ClusterIP" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+  name: {{ include "ftl.fullname" . }}-cron-raft
+  {{- if .Values.cron.services.raft.annotations }}
+  annotations:
+    {{- toYaml .Values.cron.services.raft.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  # Headless service needed for StatefulSet
+  clusterIP: None
+  # Let raft cluster bootstrap before cron service is ready
+  publishNotReadyAddresses: true
+  ports:
+    - name: raft
+      port: {{ .Values.cron.services.raft.port }}
+      protocol: TCP
+  selector:
+    {{- include "ftl-cron.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.cron.services.raft.type | default "ClusterIP" }}

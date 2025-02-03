@@ -29,6 +29,7 @@ PROTOS_OUT := "backend/protos/xyz/block/ftl/console/v1/console.pb.go " + \
               "backend/protos/xyz/block/ftl//v1/schemaservice.pb.go " + \
               "backend/protos/xyz/block/ftl/pubsub/v1/admin.pb.go " + \
               "backend/protos/xyz/block/ftl/pubsub/v1/publish.pb.go " + \
+              "backend/protos/xyz/block/ftl/cron/v1/cron.pb.go " + \
               "common/protos/xyz/block/ftl/schema/v1/schema.pb.go " + \
               CONSOLE_ROOT + "/src/protos/xyz/block/ftl/console/v1/console_pb.ts " + \
               CONSOLE_ROOT + "/src/protos/xyz/block/ftl/v1/ftl_pb.ts " + \
@@ -250,6 +251,8 @@ build-protos: go2proto
 go2proto:
   @mk "{{SCHEMA_OUT}}" common/schema/go2proto.to.go : cmd/go2proto common/schema -- \
     "go2proto -m -o \"{{SCHEMA_OUT}}\" ./common/schema && buf format -w && buf lint && bin/gofmt -w common/schema/go2proto.to.go"
+  @mk backend/protos/xyz/block/ftl/cron/v1/cron.proto backend/cron/go2proto.to.go : cmd/go2proto backend/cron -- \
+    "go2proto -m -o \"backend/protos/xyz/block/ftl/cron/v1/cron.proto\" ./backend/cron && buf format -w && buf lint && bin/gofmt -w backend/cron/go2proto.to.go"
 
 # Unconditionally rebuild protos
 build-protos-unconditionally: go2proto lint-protos pnpm-install

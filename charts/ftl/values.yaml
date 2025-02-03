@@ -153,8 +153,32 @@ runner:
 
 
 cron:
-  replicas: 1
+  replicas: 3
+  storage: 50Mi
   revisionHistoryLimit: 0
+  serviceAccountName: ftl-cron
+  
+  services:
+    cron:
+      type: ClusterIP
+      annotations: null
+      containerPort: 8892
+      port: 8892
+    raft:
+      annotations: null
+      containerPort: 8893
+      port: 8893
+
+  env:
+    - name: LOG_LEVEL
+      value: "debug"
+    - name: LOG_JSON
+      value: "true"
+    - name: HOST_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+
   image:
     repository: null
     tag: null
@@ -165,11 +189,18 @@ cron:
   serviceAccountName: ftl-cron
   podAnnotations: null
 
-  env:
-    - name: LOG_LEVEL
-      value: "debug"
-    - name: LOG_JSON
-      value: "true"
+  raft:
+    annotations: null
+    containerPort: 8893
+    port: 8893
+
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 10m
+    limits:
+      memory: 512Mi
+      cpu: 2
 
 postgresql:
   enabled: false
