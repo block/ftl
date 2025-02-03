@@ -62,7 +62,6 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			}
 		}
 		if err := scaling.StartDeployment(ctx, module.Name, deployment.String(), module, cron, http); err != nil {
-			logger.Infof("failed to start deployment: %v", err)
 			return nil, fmt.Errorf("failed to start deployment: %w", err)
 		}
 		endpoint, err := scaling.GetEndpointForDeployment(ctx, module.Name, deployment.String())

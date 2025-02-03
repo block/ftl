@@ -30,14 +30,6 @@ type Service struct {
 	State *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event]
 }
 
-func (s *Service) DrainChangeset(ctx context.Context, c *connect.Request[ftlv1.DrainChangesetRequest]) (*connect.Response[ftlv1.DrainChangesetResponse], error) {
-	panic("implement me")
-}
-
-func (s *Service) DeProvisionChangeset(ctx context.Context, c *connect.Request[ftlv1.DeProvisionChangesetRequest]) (*connect.Response[ftlv1.DeProvisionChangesetResponse], error) {
-	panic("implement me")
-}
-
 func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
 	v, err := s.State.View(ctx)
 	if err != nil {
@@ -208,7 +200,41 @@ func (s *Service) CommitChangeset(ctx context.Context, req *connect.Request[ftlv
 	if err != nil {
 		return nil, fmt.Errorf("could not commit changeset %w", err)
 	}
-	return connect.NewResponse(&ftlv1.CommitChangesetResponse{}), nil
+	v, err := s.State.View(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could get changeset state after commit %w", err)
+	}
+	return connect.NewResponse(&ftlv1.CommitChangesetResponse{
+		Changeset: v.changesets[changesetKey].ToProto(),
+	}), nil
+}
+
+func (s *Service) DrainChangeset(ctx context.Context, req *connect.Request[ftlv1.DrainChangesetRequest]) (*connect.Response[ftlv1.DrainChangesetResponse], error) {
+	changesetKey, err := key.ParseChangesetKey(req.Msg.Changeset)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
+	}
+	err = s.State.Publish(ctx, &schema.ChangesetDrainedEvent{
+		Key: changesetKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not drain changeset %w", err)
+	}
+	return connect.NewResponse(&ftlv1.DrainChangesetResponse{}), nil
+}
+
+func (s *Service) DeProvisionChangeset(ctx context.Context, req *connect.Request[ftlv1.DeProvisionChangesetRequest]) (*connect.Response[ftlv1.DeProvisionChangesetResponse], error) {
+	changesetKey, err := key.ParseChangesetKey(req.Msg.Changeset)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
+	}
+	err = s.State.Publish(ctx, &schema.ChangesetDeProvisionedEvent{
+		Key: changesetKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not de-provision changeset %w", err)
+	}
+	return connect.NewResponse(&ftlv1.DeProvisionChangesetResponse{}), nil
 }
 
 // FailChangeset fails an active changeset.
