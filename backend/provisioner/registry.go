@@ -124,7 +124,7 @@ func (reg *ProvisionerRegistry) Register(id string, handler provisionerconnect.P
 func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, changeset key.Changeset, desiredModule, existingModule *schema.Module, eventHandler func(event *schemapb.Event) error) *Deployment {
 	logger := log.FromContext(ctx)
 	module := desiredModule.GetName()
-	state := schemaservice.NewSchemaState()
+	state := schemaservice.NewSchemaState(false)
 
 	fakeChangeset := &schema.ChangesetCreatedEvent{
 		Changeset: &schema.Changeset{

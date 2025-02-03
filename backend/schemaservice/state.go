@@ -21,14 +21,16 @@ import (
 )
 
 type SchemaState struct {
-	deployments map[string]*schema.Module
-	changesets  map[key.Changeset]*schema.Changeset
+	deployments       map[string]*schema.Module
+	changesets        map[key.Changeset]*schema.Changeset
+	validationEnabled bool // Huge hack to allow provisioner to use this for a single module
 }
 
-func NewSchemaState() SchemaState {
+func NewSchemaState(validationEnbabled bool) SchemaState {
 	return SchemaState{
-		deployments: map[string]*schema.Module{},
-		changesets:  map[key.Changeset]*schema.Changeset{},
+		deployments:       map[string]*schema.Module{},
+		changesets:        map[key.Changeset]*schema.Changeset{},
+		validationEnabled: validationEnbabled,
 	}
 }
 
@@ -37,7 +39,7 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 	handle := statemachine.NewLocalHandle[struct{}, SchemaState, schema.Event](&schemaStateMachine{
 		notifier:   notifier,
 		runningCtx: ctx,
-		state:      NewSchemaState(),
+		state:      NewSchemaState(true),
 	})
 
 	return statemachine.NewSingleQueryHandle(handle, struct{}{})
@@ -72,16 +74,19 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 	for _, a := range state.Changesets {
 		r.changesets[a.Key] = a
 	}
+	r.validationEnabled = true // it is never serialized if validation is not enabled
 	return nil
 }
 
 // GetDeployment returns a deployment based on the deployment key and changeset.
 func (r *SchemaState) GetDeployment(deployment key.Deployment, changeset optional.Option[key.Changeset]) (*schema.Module, error) {
 	if key, ok := changeset.Get(); ok {
-		cs := r.changesets[key]
-		for _, m := range cs.Modules {
-			if m.GetRuntime().Deployment.DeploymentKey == deployment {
-				return m, nil
+		cs, ok := r.changesets[key]
+		if ok {
+			for _, m := range cs.Modules {
+				if m.GetRuntime().Deployment.DeploymentKey == deployment {
+					return m, nil
+				}
 			}
 		}
 	}

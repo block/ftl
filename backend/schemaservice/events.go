@@ -12,6 +12,7 @@ import (
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -172,9 +173,23 @@ func handleModuleRuntimeEvent(ctx context.Context, t SchemaState, e *schema.Modu
 
 func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent) error {
 	if existing := t.changesets[e.Changeset.Key]; existing != nil {
-		return fmt.Errorf("changeset %s already exists", e.Changeset.Key)
+		return fmt.Errorf("changeset %s already exists ", e.Changeset.Key)
+	}
+	existingModules := map[string]key.Changeset{}
+	for _, cs := range t.changesets {
+
+		if cs.State == schema.ChangesetStatePreparing ||
+			cs.State == schema.ChangesetStatePrepared {
+			//TODO: at the moment changesets accumulate forever...
+			for _, mod := range cs.Modules {
+				existingModules[mod.Name] = cs.Key
+			}
+		}
 	}
 	for _, mod := range e.Changeset.Modules {
+		if cs, ok := existingModules[mod.Name]; ok {
+			return fmt.Errorf("module %s is already being updated in changeset %s", mod.Name, cs.String())
+		}
 		if mod.Runtime == nil {
 			return fmt.Errorf("module %s has no runtime", mod.Name)
 		}
@@ -190,18 +205,22 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 		if mod.Runtime.Deployment.State != schema.DeploymentStateProvisioning {
 			return fmt.Errorf("module %s is not in correct state", mod.Name)
 		}
+
 	}
-	sch := &schema.Schema{Modules: maps.Values(t.deployments)}
-	merged := latestSchema(sch, e.Changeset)
-	problems := []error{}
-	for _, mod := range e.Changeset.Modules {
-		_, err := schema.ValidateModuleInSchema(merged, optional.Some(mod))
-		if err != nil {
-			problems = append(problems, fmt.Errorf("module %s is not valid: %w", mod.Name, err))
+	if t.validationEnabled {
+
+		sch := &schema.Schema{Modules: maps.Values(t.deployments)}
+		merged := latestSchema(sch, e.Changeset)
+		problems := []error{}
+		for _, mod := range e.Changeset.Modules {
+			_, err := schema.ValidateModuleInSchema(merged, optional.Some(mod))
+			if err != nil {
+				problems = append(problems, fmt.Errorf("module %s is not valid: %w", mod.Name, err))
+			}
 		}
-	}
-	if len(problems) > 0 {
-		return fmt.Errorf("changest failed validation %w", errors.Join(problems...))
+		if len(problems) > 0 {
+			return fmt.Errorf("changest failed validation %w", errors.Join(problems...))
+		}
 	}
 	t.changesets[e.Changeset.Key] = e.Changeset
 	return nil

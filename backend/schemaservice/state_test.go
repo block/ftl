@@ -15,6 +15,7 @@ import (
 func TestSchemaStateMarshalling(t *testing.T) {
 	k := key.NewDeploymentKey("test")
 	state := SchemaState{
+		validationEnabled: true,
 		deployments: map[string]*schema.Module{
 			"test": {
 				Name: "test",
@@ -31,7 +32,7 @@ func TestSchemaStateMarshalling(t *testing.T) {
 }
 
 func TestStateMarshallingAfterCommonEvents(t *testing.T) {
-	state := NewSchemaState()
+	state := NewSchemaState(true)
 
 	deploymentKey := key.NewDeploymentKey("test2")
 	changesetKey := key.NewChangesetKey()
@@ -72,7 +73,7 @@ func assertRoundTrip(t *testing.T, state SchemaState) {
 		t.Fatalf("failed to marshal schema state: %v", err)
 	}
 
-	unmarshalledState := NewSchemaState()
+	unmarshalledState := NewSchemaState(true)
 	if err := unmarshalledState.Unmarshal(bytes); err != nil {
 		t.Fatalf("failed to unmarshal schema state: %v", err)
 	}
