@@ -31,6 +31,8 @@ type updatesService struct {
 	config Config
 	lock   sync.RWMutex
 	events []*buildenginepb.EngineEvent
+	// Channel for subscribers to receive new events
+	subscribers sync.Map
 }
 
 var _ enginepbconnect.BuildEngineServiceHandler = &updatesService{}
@@ -53,9 +55,27 @@ func (e *Engine) startUpdatesService(ctx context.Context, endpoint *url.URL) err
 	// Start goroutine to collect events
 	go func() {
 		for event := range channels.IterContext(ctx, events) {
+			// Add timestamp to event if not present
+			if event.Timestamp == nil {
+				event.Timestamp = timestamppb.Now()
+			}
+
 			svc.lock.Lock()
 			svc.events = append(svc.events, event)
 			svc.lock.Unlock()
+
+			// Broadcast to all subscribers
+			svc.subscribers.Range(func(key, value interface{}) bool {
+				if ch, ok := value.(chan *buildenginepb.EngineEvent); ok {
+					select {
+					case ch <- event:
+					default:
+						// If channel is full, skip the event for this subscriber
+						logger.Warnf("Subscriber channel is full, dropping event")
+					}
+				}
+				return true
+			})
 		}
 	}()
 
@@ -78,12 +98,12 @@ func (u *updatesService) Ping(context.Context, *connect.Request[ftlv1.PingReques
 }
 
 func (u *updatesService) StreamEngineEvents(ctx context.Context, req *connect.Request[buildenginepb.StreamEngineEventsRequest], stream *connect.ServerStream[buildenginepb.StreamEngineEventsResponse]) error {
-	// First subscribe to new events to avoid missing any
 	events := make(chan *buildenginepb.EngineEvent, 64)
-	u.engine.EngineUpdates.Subscribe(events)
-	defer u.engine.EngineUpdates.Unsubscribe(events)
+	subscriberKey := fmt.Sprintf("subscriber-%p", events)
+	u.subscribers.Store(subscriberKey, events)
+	defer u.subscribers.Delete(subscriberKey)
 
-	// Then send cached events if replay_history is true
+	// Send cached events if replay_history is true
 	if req.Msg.ReplayHistory {
 		u.lock.RLock()
 		for _, event := range u.events {
@@ -100,16 +120,6 @@ func (u *updatesService) StreamEngineEvents(ctx context.Context, req *connect.Re
 
 	// Process new events
 	for event := range channels.IterContext(ctx, events) {
-		// Add timestamp to event
-		if event.Timestamp == nil {
-			event.Timestamp = timestamppb.Now()
-		}
-
-		// Cache the event
-		u.lock.Lock()
-		u.events = append(u.events, event)
-		u.lock.Unlock()
-
 		err := stream.Send(&buildenginepb.StreamEngineEventsResponse{
 			Event: event,
 		})

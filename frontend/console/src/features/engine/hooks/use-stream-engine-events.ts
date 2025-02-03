@@ -27,15 +27,10 @@ export const useStreamEngineEvents = (enabled = true) => {
             const newEvent = response.event as EngineEvent
             if (!old) return { pages: [[newEvent]], pageParams: [0] }
 
-            // Check if this event already exists to avoid duplicates
-            const eventExists = old.pages[0]?.some(
-              (event) => event.timestamp?.seconds === newEvent.timestamp?.seconds && event.timestamp?.nanos === newEvent.timestamp?.nanos,
-            )
-            if (eventExists) return old
-
+            // Add the new event to the end of the first page to maintain chronological order
             return {
               ...old,
-              pages: [[newEvent, ...old.pages[0]], ...old.pages.slice(1)],
+              pages: [[...old.pages[0], newEvent], ...old.pages.slice(1)],
             }
           })
         }
