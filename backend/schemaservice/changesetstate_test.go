@@ -57,11 +57,11 @@ func TestChangesetState(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	var changesetKey key.Changeset
+	changesetKey := key.NewChangesetKey()
 	t.Run("test create changeset", func(t *testing.T) {
 		err = state.Publish(ctx, &schema.ChangesetCreatedEvent{
 			Changeset: &schema.Changeset{
-				Key:       key.NewChangesetKey(),
+				Key:       changesetKey,
 				CreatedAt: time.Now(),
 				Modules:   []*schema.Module{module},
 				Error:     "",
@@ -118,6 +118,7 @@ func TestChangesetState(t *testing.T) {
 	t.Run("test prepare changeset", func(t *testing.T) {
 		newState := reflect.DeepCopy(module)
 		newState.Runtime.Deployment.State = schema.DeploymentStateReady
+		newState.Runtime.Deployment.Endpoint = "http://localhost:8080"
 		err = state.Publish(ctx, &schema.DeploymentSchemaUpdatedEvent{
 			Key:       module.Runtime.Deployment.DeploymentKey,
 			Schema:    newState,

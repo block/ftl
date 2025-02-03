@@ -21,16 +21,14 @@ import (
 )
 
 type SchemaState struct {
-	deployments          map[string]*schema.Module
-	changesets           map[key.Changeset]*schema.Changeset
-	changesetDeployments map[key.Deployment]key.Changeset
+	deployments map[string]*schema.Module
+	changesets  map[key.Changeset]*schema.Changeset
 }
 
 func NewSchemaState() SchemaState {
 	return SchemaState{
-		deployments:          map[string]*schema.Module{},
-		changesetDeployments: map[key.Deployment]key.Changeset{},
-		changesets:           map[key.Changeset]*schema.Changeset{},
+		deployments: map[string]*schema.Module{},
+		changesets:  map[key.Changeset]*schema.Changeset{},
 	}
 }
 
@@ -73,9 +71,6 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 	}
 	for _, a := range state.Changesets {
 		r.changesets[a.Key] = a
-		for _, d := range a.Modules {
-			r.changesetDeployments[d.GetRuntime().GetDeployment().GetDeploymentKey()] = a.Key
-		}
 	}
 	return nil
 }

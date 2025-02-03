@@ -5,9 +5,11 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/internal/log"
 )
 
 func TestSchemaStateMarshalling(t *testing.T) {
@@ -30,19 +32,34 @@ func TestSchemaStateMarshalling(t *testing.T) {
 
 func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 	state := NewSchemaState()
+
 	deploymentKey := key.NewDeploymentKey("test2")
-	assert.NoError(t, state.ApplyEvent(context.Background(), &schema.DeploymentCreatedEvent{
-		Key: deploymentKey,
-		Schema: &schema.Module{
-			Name: "test2",
-			Runtime: &schema.ModuleRuntime{
-				Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey},
+	changesetKey := key.NewChangesetKey()
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
+	assert.NoError(t, state.ApplyEvent(ctx, &schema.ChangesetCreatedEvent{
+		Changeset: &schema.Changeset{
+			Key: changesetKey,
+			Modules: []*schema.Module{
+				&schema.Module{
+					Name: "test2",
+					Runtime: &schema.ModuleRuntime{
+						Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey},
+					},
+				},
 			},
 		},
 	}))
-	assert.NoError(t, state.ApplyEvent(context.Background(), &schema.DeploymentActivatedEvent{
-		Key:         deploymentKey,
-		MinReplicas: 1,
+	assert.NoError(t, state.ApplyEvent(ctx, &schema.ModuleRuntimeEvent{
+		DeploymentKey: deploymentKey,
+		Changeset:     &changesetKey,
+		Deployment:    optional.Some(schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey, State: schema.DeploymentStateReady, Endpoint: "http://localhost:6734"}),
+	}))
+	assert.NoError(t, state.ApplyEvent(ctx, &schema.ChangesetPreparedEvent{
+		Key: changesetKey,
+		// No ActivatedAt, as proto conversion does not retain timezone
+	}))
+	assert.NoError(t, state.ApplyEvent(ctx, &schema.ChangesetCommittedEvent{
+		Key: changesetKey,
 		// No ActivatedAt, as proto conversion does not retain timezone
 	}))
 	assertRoundTrip(t, state)
