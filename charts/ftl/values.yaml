@@ -364,6 +364,7 @@ timeline:
 
 schema:
   enabled: true
+  replicas: 3
   env:
     - name: MY_POD_IP
       valueFrom:
@@ -375,14 +376,21 @@ schema:
       valueFrom:
         fieldRef:
           fieldPath: status.hostIP
+    - name: RAFT_INITIAL_MEMBERS
+      value: "ftl-schema-1.ftl-schema-raft.default.svc.cluster.local:8992,ftl-schema-2.ftl-schema-raft.default.svc.cluster.local:8992,ftl-schema-3.ftl-schema-raft.default.svc.cluster.local:8992"
+    - name: RAFT_DATA_DIR
+      value: "/tmp/ftl-schema"
+    - name: ORDINAL_NUMBER
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
+    - name: RAFT_ADDRESS
+      value: "ftl-schema-$(ORDINAL_NUMBER).ftl-schema-raft.default.svc.cluster.local:8992"
+    - name: RAFT_REPLICA_ID
+      value: "$(ORDINAL_NUMBER)"
+    - name: RAFT_LISTEN_ADDRESS
+      value: "$(MY_POD_IP):8992"
 
-  ports:
-    - name: http
-      containerPort: 8892
-      protocol: TCP
-      port: 8892
-
-  replicas: 1
   revisionHistoryLimit: 0
 
   image:
@@ -399,18 +407,20 @@ schema:
 
   envFrom: null
   serviceAccountName: ftl-schema
+  serviceName: ftl-schema-raft
 
   readinessProbe: null
 
-  service:
-    type: ClusterIP
-    annotations: null
-    ports:
-      - name: "http-8892"
-        port: 8892
-        protocol: TCP
-        targetPort: 8892
-
+  services:
+    schema:
+      type: ClusterIP
+      annotations: null
+      containerPort: 8892
+      port: 8892
+    raft:
+      annotations: null
+      containerPort: 8992
+      port: 8992
   podAnnotations:
     proxy.istio.io/config: |
       holdApplicationUntilProxyStarts: true

@@ -52,6 +52,8 @@ func Start(
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL schema service")
 
+	g, gctx := errgroup.WithContext(ctx)
+
 	var shard statemachine.Handle[struct{}, SchemaState, EventWrapper]
 	if config.Raft.DataDir == "" {
 		// in local dev mode, use an inmemory state machine
@@ -61,19 +63,24 @@ func Start(
 		schemaShard := raft.AddShard(ctx, clusterBuilder, 1, newStateMachine(ctx))
 		cluster := clusterBuilder.Build(ctx)
 
-		if err := cluster.Start(ctx); err != nil {
-			return fmt.Errorf("failed to start raft cluster: %w", err)
-		}
+		// TODO: We can not wait for the cluster to run before reporting healthy, as
+		// otherwise we can not connect to other nodes in the cluster.
+		// figure out something better here. This means that initial calls to the schema service
+		// can fail.
+		g.Go(func() error {
+			if err := cluster.Start(ctx); err != nil {
+				return fmt.Errorf("failed to start raft cluster: %w", err)
+			}
+			return nil
+		})
 		shard = schemaShard
 	}
 
 	svc := New(ctx, shard)
 	logger.Debugf("Listening on %s", config.Bind)
 
-	g, ctx := errgroup.WithContext(ctx)
-
 	g.Go(func() error {
-		return rpc.Serve(ctx, config.Bind,
+		return rpc.Serve(gctx, config.Bind,
 			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
 			rpc.PProf(),
 		)

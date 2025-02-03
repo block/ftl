@@ -30,11 +30,11 @@ import (
 )
 
 type RaftConfig struct {
-	InitialMembers    []string          `help:"Initial members"`
-	ReplicaID         uint64            `help:"Node ID" required:""`
-	DataDir           string            `help:"Data directory" required:""`
-	Address           string            `help:"Address to advertise to other nodes" required:""`
-	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used."`
+	InitialMembers    []string          `help:"Initial members" env:"RAFT_INITIAL_MEMBERS"`
+	ReplicaID         uint64            `help:"Node ID" required:"" env:"RAFT_REPLICA_ID"`
+	DataDir           string            `help:"Data directory" required:"" env:"RAFT_DATA_DIR"`
+	Address           string            `help:"Address to advertise to other nodes" required:"" env:"RAFT_ADDRESS"`
+	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used." env:"RAFT_LISTEN_ADDRESS"`
 	ControlBind       *url.URL          `help:"Address to listen for control traffic. If empty, no control listener will be started."`
 	ShardReadyTimeout time.Duration     `help:"Timeout for shard to be ready" default:"5s"`
 	Retry             retry.RetryConfig `help:"Connection retry configuration" prefix:"retry-" embed:""`
