@@ -56,10 +56,6 @@ message ChangesetCreatedEvent {
   Changeset changeset = 1;
 }
 
-message ChangesetDeProvisionedEvent {
-  string key = 1;
-}
-
 message ChangesetDrainedEvent {
   string key = 1;
 }
@@ -67,6 +63,10 @@ message ChangesetDrainedEvent {
 message ChangesetFailedEvent {
   string key = 1;
   string error = 2;
+}
+
+message ChangesetFinalizedEvent {
+  string key = 1;
 }
 
 message ChangesetPreparedEvent {
@@ -77,12 +77,11 @@ enum ChangesetState {
   CHANGESET_STATE_UNSPECIFIED = 0;
   CHANGESET_STATE_PREPARING = 1;
   CHANGESET_STATE_PREPARED = 2;
-  CHANGESET_STATE_CLEANING_UP = 3;
-  CHANGESET_STATE_COMMITTED = 4;
-  CHANGESET_STATE_DRAINED = 5;
-  CHANGESET_STATE_DE_PROVISIONED = 6;
-  CHANGESET_STATE_ROLLING_BACK = 7;
-  CHANGESET_STATE_FAILED = 8;
+  CHANGESET_STATE_COMMITTED = 3;
+  CHANGESET_STATE_DRAINED = 4;
+  CHANGESET_STATE_FINALIZED = 5;
+  CHANGESET_STATE_ROLLING_BACK = 6;
+  CHANGESET_STATE_FAILED = 7;
 }
 
 message Config {
@@ -217,9 +216,9 @@ message Event {
   oneof value {
     ChangesetCommittedEvent changeset_committed_event = 12;
     ChangesetCreatedEvent changeset_created_event = 10;
-    ChangesetDeProvisionedEvent changeset_de_provisioned_event = 14;
     ChangesetDrainedEvent changeset_drained_event = 13;
     ChangesetFailedEvent changeset_failed_event = 15;
+    ChangesetFinalizedEvent changeset_finalized_event = 14;
     ChangesetPreparedEvent changeset_prepared_event = 11;
     DatabaseRuntimeEvent database_runtime_event = 8;
     DeploymentActivatedEvent deployment_activated_event = 4;

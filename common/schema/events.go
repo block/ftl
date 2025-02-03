@@ -211,13 +211,13 @@ func (e *ChangesetDrainedEvent) Validate() error {
 }
 
 //protobuf:14
-type ChangesetDeProvisionedEvent struct {
+type ChangesetFinalizedEvent struct {
 	Key key.Changeset `protobuf:"1"`
 }
 
-func (e *ChangesetDeProvisionedEvent) event() {}
+func (e *ChangesetFinalizedEvent) event() {}
 
-func (e *ChangesetDeProvisionedEvent) Validate() error {
+func (e *ChangesetFinalizedEvent) Validate() error {
 	return nil
 }
 

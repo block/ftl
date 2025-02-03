@@ -1030,9 +1030,9 @@ export class DrainChangesetResponse extends Message<DrainChangesetResponse> {
 }
 
 /**
- * @generated from message xyz.block.ftl.v1.DeProvisionChangesetRequest
+ * @generated from message xyz.block.ftl.v1.FinalizeChangesetRequest
  */
-export class DeProvisionChangesetRequest extends Message<DeProvisionChangesetRequest> {
+export class FinalizeChangesetRequest extends Message<FinalizeChangesetRequest> {
   /**
    * The changeset key to commit.
    *
@@ -1040,62 +1040,62 @@ export class DeProvisionChangesetRequest extends Message<DeProvisionChangesetReq
    */
   changeset = "";
 
-  constructor(data?: PartialMessage<DeProvisionChangesetRequest>) {
+  constructor(data?: PartialMessage<FinalizeChangesetRequest>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.v1.DeProvisionChangesetRequest";
+  static readonly typeName = "xyz.block.ftl.v1.FinalizeChangesetRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeProvisionChangesetRequest {
-    return new DeProvisionChangesetRequest().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FinalizeChangesetRequest {
+    return new FinalizeChangesetRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeProvisionChangesetRequest {
-    return new DeProvisionChangesetRequest().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FinalizeChangesetRequest {
+    return new FinalizeChangesetRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeProvisionChangesetRequest {
-    return new DeProvisionChangesetRequest().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FinalizeChangesetRequest {
+    return new FinalizeChangesetRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: DeProvisionChangesetRequest | PlainMessage<DeProvisionChangesetRequest> | undefined, b: DeProvisionChangesetRequest | PlainMessage<DeProvisionChangesetRequest> | undefined): boolean {
-    return proto3.util.equals(DeProvisionChangesetRequest, a, b);
+  static equals(a: FinalizeChangesetRequest | PlainMessage<FinalizeChangesetRequest> | undefined, b: FinalizeChangesetRequest | PlainMessage<FinalizeChangesetRequest> | undefined): boolean {
+    return proto3.util.equals(FinalizeChangesetRequest, a, b);
   }
 }
 
 /**
- * @generated from message xyz.block.ftl.v1.DeProvisionChangesetResponse
+ * @generated from message xyz.block.ftl.v1.FinalizeChangesetResponse
  */
-export class DeProvisionChangesetResponse extends Message<DeProvisionChangesetResponse> {
-  constructor(data?: PartialMessage<DeProvisionChangesetResponse>) {
+export class FinalizeChangesetResponse extends Message<FinalizeChangesetResponse> {
+  constructor(data?: PartialMessage<FinalizeChangesetResponse>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.v1.DeProvisionChangesetResponse";
+  static readonly typeName = "xyz.block.ftl.v1.FinalizeChangesetResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeProvisionChangesetResponse {
-    return new DeProvisionChangesetResponse().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FinalizeChangesetResponse {
+    return new FinalizeChangesetResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeProvisionChangesetResponse {
-    return new DeProvisionChangesetResponse().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FinalizeChangesetResponse {
+    return new FinalizeChangesetResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeProvisionChangesetResponse {
-    return new DeProvisionChangesetResponse().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FinalizeChangesetResponse {
+    return new FinalizeChangesetResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: DeProvisionChangesetResponse | PlainMessage<DeProvisionChangesetResponse> | undefined, b: DeProvisionChangesetResponse | PlainMessage<DeProvisionChangesetResponse> | undefined): boolean {
-    return proto3.util.equals(DeProvisionChangesetResponse, a, b);
+  static equals(a: FinalizeChangesetResponse | PlainMessage<FinalizeChangesetResponse> | undefined, b: FinalizeChangesetResponse | PlainMessage<FinalizeChangesetResponse> | undefined): boolean {
+    return proto3.util.equals(FinalizeChangesetResponse, a, b);
   }
 }
 

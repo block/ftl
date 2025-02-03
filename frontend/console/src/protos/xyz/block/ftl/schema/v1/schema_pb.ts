@@ -50,46 +50,40 @@ export enum ChangesetState {
   PREPARED = 2,
 
   /**
-   * @generated from enum value: CHANGESET_STATE_CLEANING_UP = 3;
+   * @generated from enum value: CHANGESET_STATE_COMMITTED = 3;
    */
-  CLEANING_UP = 3,
+  COMMITTED = 3,
 
   /**
-   * @generated from enum value: CHANGESET_STATE_COMMITTED = 4;
+   * @generated from enum value: CHANGESET_STATE_DRAINED = 4;
    */
-  COMMITTED = 4,
+  DRAINED = 4,
 
   /**
-   * @generated from enum value: CHANGESET_STATE_DRAINED = 5;
+   * @generated from enum value: CHANGESET_STATE_FINALIZED = 5;
    */
-  DRAINED = 5,
+  FINALIZED = 5,
 
   /**
-   * @generated from enum value: CHANGESET_STATE_DE_PROVISIONED = 6;
+   * @generated from enum value: CHANGESET_STATE_ROLLING_BACK = 6;
    */
-  DE_PROVISIONED = 6,
+  ROLLING_BACK = 6,
 
   /**
-   * @generated from enum value: CHANGESET_STATE_ROLLING_BACK = 7;
+   * @generated from enum value: CHANGESET_STATE_FAILED = 7;
    */
-  ROLLING_BACK = 7,
-
-  /**
-   * @generated from enum value: CHANGESET_STATE_FAILED = 8;
-   */
-  FAILED = 8,
+  FAILED = 7,
 }
 // Retrieve enum metadata with: proto3.getEnumType(ChangesetState)
 proto3.util.setEnumType(ChangesetState, "xyz.block.ftl.schema.v1.ChangesetState", [
   { no: 0, name: "CHANGESET_STATE_UNSPECIFIED" },
   { no: 1, name: "CHANGESET_STATE_PREPARING" },
   { no: 2, name: "CHANGESET_STATE_PREPARED" },
-  { no: 3, name: "CHANGESET_STATE_CLEANING_UP" },
-  { no: 4, name: "CHANGESET_STATE_COMMITTED" },
-  { no: 5, name: "CHANGESET_STATE_DRAINED" },
-  { no: 6, name: "CHANGESET_STATE_DE_PROVISIONED" },
-  { no: 7, name: "CHANGESET_STATE_ROLLING_BACK" },
-  { no: 8, name: "CHANGESET_STATE_FAILED" },
+  { no: 3, name: "CHANGESET_STATE_COMMITTED" },
+  { no: 4, name: "CHANGESET_STATE_DRAINED" },
+  { no: 5, name: "CHANGESET_STATE_FINALIZED" },
+  { no: 6, name: "CHANGESET_STATE_ROLLING_BACK" },
+  { no: 7, name: "CHANGESET_STATE_FAILED" },
 ]);
 
 /**
@@ -537,43 +531,6 @@ export class ChangesetCreatedEvent extends Message<ChangesetCreatedEvent> {
 }
 
 /**
- * @generated from message xyz.block.ftl.schema.v1.ChangesetDeProvisionedEvent
- */
-export class ChangesetDeProvisionedEvent extends Message<ChangesetDeProvisionedEvent> {
-  /**
-   * @generated from field: string key = 1;
-   */
-  key = "";
-
-  constructor(data?: PartialMessage<ChangesetDeProvisionedEvent>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetDeProvisionedEvent";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetDeProvisionedEvent {
-    return new ChangesetDeProvisionedEvent().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetDeProvisionedEvent {
-    return new ChangesetDeProvisionedEvent().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetDeProvisionedEvent {
-    return new ChangesetDeProvisionedEvent().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: ChangesetDeProvisionedEvent | PlainMessage<ChangesetDeProvisionedEvent> | undefined, b: ChangesetDeProvisionedEvent | PlainMessage<ChangesetDeProvisionedEvent> | undefined): boolean {
-    return proto3.util.equals(ChangesetDeProvisionedEvent, a, b);
-  }
-}
-
-/**
  * @generated from message xyz.block.ftl.schema.v1.ChangesetDrainedEvent
  */
 export class ChangesetDrainedEvent extends Message<ChangesetDrainedEvent> {
@@ -650,6 +607,43 @@ export class ChangesetFailedEvent extends Message<ChangesetFailedEvent> {
 
   static equals(a: ChangesetFailedEvent | PlainMessage<ChangesetFailedEvent> | undefined, b: ChangesetFailedEvent | PlainMessage<ChangesetFailedEvent> | undefined): boolean {
     return proto3.util.equals(ChangesetFailedEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetFinalizedEvent
+ */
+export class ChangesetFinalizedEvent extends Message<ChangesetFinalizedEvent> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  constructor(data?: PartialMessage<ChangesetFinalizedEvent>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetFinalizedEvent";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetFinalizedEvent {
+    return new ChangesetFinalizedEvent().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetFinalizedEvent {
+    return new ChangesetFinalizedEvent().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetFinalizedEvent {
+    return new ChangesetFinalizedEvent().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetFinalizedEvent | PlainMessage<ChangesetFinalizedEvent> | undefined, b: ChangesetFinalizedEvent | PlainMessage<ChangesetFinalizedEvent> | undefined): boolean {
+    return proto3.util.equals(ChangesetFinalizedEvent, a, b);
   }
 }
 
@@ -1603,12 +1597,6 @@ export class Event extends Message<Event> {
     case: "changesetCreatedEvent";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.ChangesetDeProvisionedEvent changeset_de_provisioned_event = 14;
-     */
-    value: ChangesetDeProvisionedEvent;
-    case: "changesetDeProvisionedEvent";
-  } | {
-    /**
      * @generated from field: xyz.block.ftl.schema.v1.ChangesetDrainedEvent changeset_drained_event = 13;
      */
     value: ChangesetDrainedEvent;
@@ -1619,6 +1607,12 @@ export class Event extends Message<Event> {
      */
     value: ChangesetFailedEvent;
     case: "changesetFailedEvent";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFinalizedEvent changeset_finalized_event = 14;
+     */
+    value: ChangesetFinalizedEvent;
+    case: "changesetFinalizedEvent";
   } | {
     /**
      * @generated from field: xyz.block.ftl.schema.v1.ChangesetPreparedEvent changeset_prepared_event = 11;
@@ -1691,9 +1685,9 @@ export class Event extends Message<Event> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 12, name: "changeset_committed_event", kind: "message", T: ChangesetCommittedEvent, oneof: "value" },
     { no: 10, name: "changeset_created_event", kind: "message", T: ChangesetCreatedEvent, oneof: "value" },
-    { no: 14, name: "changeset_de_provisioned_event", kind: "message", T: ChangesetDeProvisionedEvent, oneof: "value" },
     { no: 13, name: "changeset_drained_event", kind: "message", T: ChangesetDrainedEvent, oneof: "value" },
     { no: 15, name: "changeset_failed_event", kind: "message", T: ChangesetFailedEvent, oneof: "value" },
+    { no: 14, name: "changeset_finalized_event", kind: "message", T: ChangesetFinalizedEvent, oneof: "value" },
     { no: 11, name: "changeset_prepared_event", kind: "message", T: ChangesetPreparedEvent, oneof: "value" },
     { no: 8, name: "database_runtime_event", kind: "message", T: DatabaseRuntimeEvent, oneof: "value" },
     { no: 4, name: "deployment_activated_event", kind: "message", T: DeploymentActivatedEvent, oneof: "value" },

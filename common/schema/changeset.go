@@ -12,10 +12,9 @@ const (
 	ChangesetStateUnspecified ChangesetState = iota
 	ChangesetStatePreparing
 	ChangesetStatePrepared
-	ChangesetStateCleaningUp
 	ChangesetStateCommitted
 	ChangesetStateDrained
-	ChangesetStateDeProvisioned
+	ChangesetStateFinalized
 	ChangesetStateRollingBack
 	ChangesetStateFailed
 )
@@ -37,4 +36,17 @@ type Changeset struct {
 	State ChangesetState `protobuf:"6"`
 	// Error is present if state is failed.
 	Error string `protobuf:"7,optional"`
+}
+
+// ModulesAreCanonical returns true if the changeset is in a state when there the Modules field is the canonical state of the modules.
+func (c *Changeset) ModulesAreCanonical() bool {
+	return c.State == ChangesetStatePreparing || c.State == ChangesetStatePrepared || c.State == ChangesetStateRollingBack
+}
+
+// OwnedModules returns the modules that are owned by this changeset. Depending on the state this may be the added modules list or the removing modules list.
+func (c *Changeset) OwnedModules() []*Module {
+	if c.ModulesAreCanonical() {
+		return c.Modules
+	}
+	return c.RemovingModules
 }
