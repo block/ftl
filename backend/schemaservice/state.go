@@ -48,11 +48,11 @@ func NewSchemaState() SchemaState {
 }
 
 func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper] {
-	handle := statemachine.NewLocalHandle(NewStateMachine(ctx))
+	handle := statemachine.NewLocalHandle(newStateMachine(ctx))
 	return statemachine.NewSingleQueryHandle(handle, struct{}{})
 }
 
-func NewStateMachine(ctx context.Context) *schemaStateMachine {
+func newStateMachine(ctx context.Context) *schemaStateMachine {
 	notifier := channels.NewNotifier(ctx)
 	return &schemaStateMachine{
 		notifier:   notifier,
@@ -191,7 +191,11 @@ var _ statemachine.Marshallable = EventWrapper{}
 
 func (e EventWrapper) MarshalBinary() ([]byte, error) {
 	pb := schema.EventToProto(e.Event)
-	return proto.Marshal(pb)
+	bytes, err := proto.Marshal(pb)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal event: %w", err)
+	}
+	return bytes, nil
 }
 
 func (e *EventWrapper) UnmarshalBinary(bts []byte) error {

@@ -23,9 +23,13 @@ import (
 	"github.com/block/ftl/internal/statemachine"
 )
 
+type CommonSchemaServiceConfig struct {
+}
+
 type Config struct {
-	Bind *url.URL        `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
+	CommonSchemaServiceConfig
 	Raft raft.RaftConfig `embed:"" prefix:"raft-"`
+	Bind *url.URL        `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
 }
 
 type Service struct {
@@ -48,18 +52,25 @@ func Start(
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL schema service")
 
-	clusterBuilder := raft.NewBuilder(&config.Raft)
-	schemaShard := raft.AddShard(ctx, clusterBuilder, 1, NewStateMachine(ctx))
-	cluster := clusterBuilder.Build(ctx)
+	var shard statemachine.Handle[struct{}, SchemaState, EventWrapper]
+	if config.Raft.DataDir == "" {
+		// in local dev mode, use an inmemory state machine
+		shard = statemachine.NewLocalHandle(newStateMachine(ctx))
+	} else {
+		clusterBuilder := raft.NewBuilder(&config.Raft)
+		schemaShard := raft.AddShard(ctx, clusterBuilder, 1, newStateMachine(ctx))
+		cluster := clusterBuilder.Build(ctx)
 
-	svc := New(ctx, schemaShard)
+		if err := cluster.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start raft cluster: %w", err)
+		}
+		shard = schemaShard
+	}
+
+	svc := New(ctx, shard)
 	logger.Debugf("Listening on %s", config.Bind)
 
 	g, ctx := errgroup.WithContext(ctx)
-
-	if err := cluster.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start raft cluster: %w", err)
-	}
 
 	g.Go(func() error {
 		return rpc.Serve(ctx, config.Bind,

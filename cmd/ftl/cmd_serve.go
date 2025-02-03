@@ -70,13 +70,13 @@ type serveCommonConfig struct {
 	NoConsole           bool                 `help:"Disable the console."`
 	Ingress             ingress.Config       `embed:"" prefix:"ingress-"`
 	Timeline            timeline.Config      `embed:"" prefix:"timeline-"`
-	SchemaService       schemaservice.Config `embed:"" prefix:"schemaservice-"`
 	Console             console.Config       `embed:"" prefix:"console-"`
 	Lease               lease.Config         `embed:"" prefix:"lease-"`
 	Admin               admin.Config         `embed:"" prefix:"admin-"`
 	Recreate            bool                 `help:"Recreate any stateful resources if they already exist." default:"false"`
 	controller.CommonConfig
 	provisioner.CommonProvisionerConfig
+	schemaservice.CommonSchemaServiceConfig
 }
 
 const ftlRunningErrorMsg = "FTL is already running. Use 'ftl serve --stop' to stop it"
@@ -243,7 +243,16 @@ func (s *serveCommonConfig) run(
 
 	schemaCtx := log.ContextWithLogger(ctx, logger.Scope("schemaservice"))
 	wg.Go(func() error {
-		if err := schemaservice.Start(schemaCtx, s.SchemaService); err != nil {
+		// TODO: Allocate properly, and support multiple instances
+		u, err := url.Parse("http://localhost:8897")
+		if err != nil {
+			return fmt.Errorf("failed to parse bind URL: %w", err)
+		}
+		config := schemaservice.Config{
+			CommonSchemaServiceConfig: s.CommonSchemaServiceConfig,
+			Bind:                      u,
+		}
+		if err := schemaservice.Start(schemaCtx, config); err != nil {
 			logger.Errorf(err, "schemaservice failed: %v", err)
 			return fmt.Errorf("schemaservice failed: %w", err)
 		}
