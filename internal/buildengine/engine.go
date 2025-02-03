@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alecthomas/types/optional"
@@ -79,6 +80,51 @@ type autoRebuildCompletedEvent struct {
 
 func (autoRebuildCompletedEvent) rebuildEvent() {}
 
+type queuedModule struct {
+	module              Module
+	replicas            int32
+	waitForDeployOnline bool
+	done                chan error
+}
+
+type deploymentQueue struct {
+	sync.Mutex
+	pending []queuedModule
+}
+
+func newDeploymentQueue() *deploymentQueue {
+	return &deploymentQueue{
+		pending: make([]queuedModule, 0),
+	}
+}
+
+func (q *deploymentQueue) add(module Module, replicas int32, waitForDeployOnline bool) chan error {
+	q.Lock()
+	defer q.Unlock()
+	done := make(chan error, 1)
+	q.pending = append(q.pending, queuedModule{
+		module:              module,
+		replicas:            replicas,
+		waitForDeployOnline: waitForDeployOnline,
+		done:                done,
+	})
+	return done
+}
+
+func (q *deploymentQueue) takeAll() []queuedModule {
+	q.Lock()
+	defer q.Unlock()
+	modules := q.pending
+	q.pending = make([]queuedModule, 0)
+	return modules
+}
+
+func (q *deploymentQueue) isEmpty() bool {
+	q.Lock()
+	defer q.Unlock()
+	return len(q.pending) == 0
+}
+
 // Engine for building a set of modules.
 type Engine struct {
 	deployClient        DeployClient
@@ -95,6 +141,7 @@ type Engine struct {
 	modulesToBuild      *xsync.MapOf[string, bool]
 	buildEnv            []string
 	startTime           optional.Option[time.Time]
+	deploymentQueue     *deploymentQueue
 
 	// events coming in from plugins
 	pluginEvents chan languageplugin.PluginEvent
@@ -176,6 +223,7 @@ func New(
 		rebuildEvents:       make(chan rebuildEvent, 128),
 		rawEngineUpdates:    make(chan *buildenginepb.EngineEvent, 128),
 		EngineUpdates:       pubsub.New[*buildenginepb.EngineEvent](),
+		deploymentQueue:     newDeploymentQueue(),
 	}
 	for _, option := range options {
 		option(e)
@@ -193,6 +241,7 @@ func New(
 
 	go e.watchForPluginEvents(ctx)
 	go e.watchForEventsToPublish(ctx)
+	go e.processDeployments(ctx)
 	go func() {
 		if err := e.startUpdatesService(ctx, updatesEndpoint); err != nil && !errors.Is(err, context.Canceled) {
 			log.FromContext(ctx).Errorf(err, "updates service failed")
@@ -786,6 +835,58 @@ func (e *Engine) getDependentModuleNames(moduleName string) []string {
 	return maps.Keys(dependentModuleNames)
 }
 
+// processDeployments runs in a separate goroutine and processes deployments from the queue
+func (e *Engine) processDeployments(ctx context.Context) {
+	logger := log.FromContext(ctx)
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if e.deploymentQueue.isEmpty() {
+				continue
+			}
+
+			queuedModules := e.deploymentQueue.takeAll()
+			logger.Debugf("Processing %d modules from deployment queue", len(queuedModules))
+
+			// Group modules by deployment settings
+			settingsGroups := make(map[string][]queuedModule)
+			for _, qm := range queuedModules {
+				key := fmt.Sprintf("%d-%v", qm.replicas, qm.waitForDeployOnline)
+				settingsGroups[key] = append(settingsGroups[key], qm)
+			}
+
+			// Process each group separately
+			for _, modules := range settingsGroups {
+				settings := modules[0] // Use first module's settings as they're all the same in this group
+				logger.Debugf("Deploying %d modules with replicas=%d, wait=%v", len(modules), settings.replicas, settings.waitForDeployOnline)
+
+				// Convert queuedModules to Modules for Deploy
+				moduleList := make([]Module, len(modules))
+				for i, qm := range modules {
+					moduleList[i] = qm.module
+				}
+
+				err := Deploy(ctx, e.projectConfig, moduleList, settings.replicas, settings.waitForDeployOnline, e.deployClient, e.schemaServiceClient)
+
+				// Signal completion to all modules in this group
+				for _, qm := range modules {
+					if err != nil {
+						qm.done <- err
+					} else {
+						qm.done <- nil
+					}
+					close(qm.done)
+				}
+			}
+		}
+	}
+}
+
 // BuildAndDeploy attempts to build and deploy all local modules.
 func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDeployOnline bool, moduleNames ...string) (err error) {
 	logger := log.FromContext(ctx)
@@ -796,38 +897,12 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 		return nil
 	}
 
-	defer func() {
-		if err == nil {
-			return
-		}
-		pendingInitialBuilds := []string{}
-		e.modulesToBuild.Range(func(name string, value bool) bool {
-			if value {
-				pendingInitialBuilds = append(pendingInitialBuilds, name)
-			}
-			return true
-		})
-
-		// Print out all modules that have yet to build if there are any errors
-		if len(pendingInitialBuilds) > 0 {
-			logger.Infof("Modules waiting to build: %s", strings.Join(pendingInitialBuilds, ", "))
-		}
-	}()
-
 	buildGroup := errgroup.Group{}
 
-	modulesToDeploy := []Module{}
+	var modulesToDeploy []Module
 	buildGroup.Go(func() error {
 		return e.buildWithCallback(ctx, func(buildCtx context.Context, module Module) error {
 			e.modulesToBuild.Store(module.Config.Module, false)
-			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-				Timestamp: timestamppb.Now(),
-				Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
-					ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
-						Module: module.Config.Module,
-					},
-				},
-			}
 			modulesToDeploy = append(modulesToDeploy, module)
 			return nil
 		}, moduleNames...)
@@ -839,32 +914,28 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 		return fmt.Errorf("build failed: %w", buildErr)
 	}
 
-	err = Deploy(ctx, e.projectConfig, modulesToDeploy, replicas, waitForDeployOnline, e.deployClient, e.schemaServiceClient)
-	if err != nil {
-		// TODO: redesign deploy events around changesets
-		for _, module := range modulesToDeploy {
-			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-				Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
-					ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
-						Module: module.Config.Module,
-						Errors: &langpb.ErrorList{
-							Errors: errorToLangError(err),
-						},
-					},
-				},
+	// Add modules to deployment queue and collect done channels
+	doneChannels := make([]chan error, 0, len(modulesToDeploy))
+	for _, module := range modulesToDeploy {
+		logger.Debugf("Queueing module %s for deployment (replicas=%d, wait=%v)", module.Config.Module, replicas, waitForDeployOnline)
+		done := e.deploymentQueue.add(module, replicas, waitForDeployOnline)
+		doneChannels = append(doneChannels, done)
+	}
+
+	// If waitForDeployOnline is true, wait for all deployments to complete
+	if waitForDeployOnline {
+		for _, done := range doneChannels {
+			select {
+			case err := <-done:
+				if err != nil {
+					return fmt.Errorf("deployment failed: %w", err)
+				}
+			case <-ctx.Done():
+				return fmt.Errorf("context cancelled: %w", ctx.Err())
 			}
 		}
-		return err
 	}
-	for _, module := range modulesToDeploy {
-		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-			Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
-				ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
-					Module: module.Config.Module,
-				},
-			},
-		}
-	}
+
 	return nil
 }
 
