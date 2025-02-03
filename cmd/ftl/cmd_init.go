@@ -32,7 +32,7 @@ type initCmd struct {
 	Hermit      bool     `help:"Include Hermit language-specific toolchain binaries." negatable:"" default:"true"`
 	ModuleDirs  []string `help:"Child directories of existing modules."`
 	ModuleRoots []string `help:"Root directories of existing modules."`
-	NoGit       bool     `help:"Don't add files to the git repository."`
+	Git         bool     `help:"Commit generated files to git." negatable:"" default:"true"`
 	Startup     string   `help:"Command to run on startup."`
 }
 
@@ -67,7 +67,7 @@ func (i initCmd) Run(
 	config := projectconfig.Config{
 		Name:          i.Name,
 		Hermit:        i.Hermit,
-		NoGit:         i.NoGit,
+		NoGit:         !i.Git,
 		FTLMinVersion: ftl.Version,
 		ModuleDirs:    i.ModuleDirs,
 		Commands: projectconfig.Commands{
@@ -82,7 +82,7 @@ func (i initCmd) Run(
 		Realm:         i.Name,
 		FTLMinVersion: ftl.Version,
 		ModuleRoots:   i.ModuleRoots,
-		NoGit:         i.NoGit,
+		Git:           !i.Git,
 		Root:          i.Dir,
 	}, secretsRegistry, configRegistry)
 	if err != nil {
@@ -94,7 +94,7 @@ func (i initCmd) Run(
 		}
 	}
 
-	if !i.NoGit {
+	if i.Git {
 		err := maybeGitInit(ctx, i.Dir)
 		if err != nil {
 			return fmt.Errorf("running git init: %w", err)

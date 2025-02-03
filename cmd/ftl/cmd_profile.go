@@ -34,7 +34,7 @@ func (p profileInitCmd) Run(
 		Realm:         p.Project,
 		FTLMinVersion: ftl.Version,
 		ModuleRoots:   p.ModuleRoots,
-		NoGit:         p.NoGit,
+		Git:           !p.NoGit,
 		Root:          p.Dir,
 	}, secretsRegistry, configRegistry)
 	if err != nil {

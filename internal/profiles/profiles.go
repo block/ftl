@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/configuration"
@@ -19,13 +21,32 @@ import (
 //
 // It mirrors the internal.Project struct.
 type ProjectConfig struct {
-	Realm          string   `json:"realm"`
-	FTLMinVersion  string   `json:"ftl-min-version,omitempty"`
+	Realm         string `json:"realm"`
+	FTLMinVersion string `json:"ftl-min-version,omitempty"`
+	// ModuleRoots is a list of directories that contain modules.
 	ModuleRoots    []string `json:"module-roots,omitempty"`
-	NoGit          bool     `json:"no-git,omitempty"`
+	Git            bool     `json:"git,omitempty"`
+	Hermit         bool     `json:"hermit,omitempty"`
 	DefaultProfile string   `json:"default-profile,omitempty"`
 
 	Root string `json:"-"`
+}
+
+// AbsModuleDirs returns the absolute path for the module-dirs field from the ftl-project.toml, unless
+// that is not defined, in which case it defaults to the root directory.
+func (c ProjectConfig) AbsModuleDirs() []string {
+	if len(c.ModuleRoots) == 0 {
+		return []string{c.Root}
+	}
+	absDirs := make([]string, len(c.ModuleRoots))
+	for i, dir := range c.ModuleRoots {
+		cleaned := filepath.Clean(filepath.Join(c.Root, dir))
+		if !strings.HasPrefix(cleaned, c.Root) {
+			panic(fmt.Errorf("module-dirs path %q is not within the project root %q", dir, c.Root))
+		}
+		absDirs[i] = cleaned
+	}
+	return absDirs
 }
 
 type Profile struct {
