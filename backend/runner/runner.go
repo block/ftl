@@ -88,9 +88,6 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	}
 	pid := os.Getpid()
 
-	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, config.ControllerEndpoint.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, client)
-
 	runnerKey := config.Key
 	if runnerKey.IsZero() {
 		runnerKey = key.NewRunnerKey(config.Bind.Hostname(), config.Bind.Port())
