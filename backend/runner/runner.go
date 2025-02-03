@@ -88,7 +88,13 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	}
 	pid := os.Getpid()
 
-	logger := log.FromContext(ctx).Attrs(map[string]string{"runner": config.Key.String()})
+	runnerKey := config.Key
+	if runnerKey.IsZero() {
+		runnerKey = key.NewRunnerKey(config.Bind.Hostname(), config.Bind.Port())
+	}
+
+	logger := log.FromContext(ctx).Attrs(map[string]string{"runner": runnerKey.String()})
+	ctx = log.ContextWithLogger(ctx, logger)
 	logger.Debugf("Starting FTL Runner")
 
 	err = manageDeploymentDirectory(logger, config)
@@ -104,10 +110,6 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, config.ControllerEndpoint.String(), log.Error)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, config.SchemaEndpoint.String(), log.Error)
 
-	runnerKey := config.Key
-	if runnerKey.IsZero() {
-		runnerKey = key.NewRunnerKey(config.Bind.Hostname(), config.Bind.Port())
-	}
 	labels, err := structpb.NewStruct(map[string]any{
 		"hostname": hostname,
 		"pid":      pid,
