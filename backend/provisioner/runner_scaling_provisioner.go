@@ -103,7 +103,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			}
 		}
 
-		logger.Infof("Updating module runtime for %s with endpoint %s and changeset %s", module.Name, endpointURI, changeset.String())
+		logger.Debugf("Updating module runtime for %s with endpoint %s and changeset %s", module.Name, endpointURI, changeset.String())
 		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{
 			Changeset: changeset.String(),
 			Key:       deployment.String(),

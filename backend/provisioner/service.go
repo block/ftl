@@ -12,6 +12,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/alecthomas/kong"
 	"github.com/puzpuzpuz/xsync/v3"
+	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemaconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -128,38 +129,46 @@ func RegistryFromConfigFile(ctx context.Context, file *os.File, scaling scaling.
 func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset) error {
 	logger := log.FromContext(ctx)
 	// TODO: Block deployments to make sure only one module is modified at a time
+	group := errgroup.Group{}
 	for _, module := range req.Modules {
-		moduleName := module.Name
+		group.Go(func() error {
 
-		existingModule, _ := s.currentModules.Load(moduleName)
+			moduleName := module.Name
 
-		if existingModule != nil {
-			syncExistingRuntimes(existingModule, module)
-		}
+			existingModule, _ := s.currentModules.Load(moduleName)
 
-		deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(event *schemapb.Event) error {
-			_, err := s.schemaClient.UpdateSchema(ctx, connect.NewRequest(&ftlv1.UpdateSchemaRequest{Event: event}))
-			if err != nil {
-				return fmt.Errorf("error updating schema: %w", err)
+			if existingModule != nil {
+				syncExistingRuntimes(existingModule, module)
 			}
+
+			deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(event *schemapb.Event) error {
+				_, err := s.schemaClient.UpdateSchema(ctx, connect.NewRequest(&ftlv1.UpdateSchemaRequest{Event: event}))
+				if err != nil {
+					return fmt.Errorf("error updating schema: %w", err)
+				}
+				return nil
+			})
+			running := true
+			logger.Debugf("Running deployment for module %s", moduleName)
+			for running {
+				r, err := deployment.Progress(ctx)
+				if err != nil {
+					// TODO: Deal with failed deployments
+					return fmt.Errorf("error running a provisioner: %w", err)
+				}
+				running = r
+			}
+
+			logger.Debugf("Finished deployment for module %s", moduleName)
 			return nil
 		})
-		running := true
-		logger.Debugf("Running deployment for module %s", moduleName)
-		for running {
-			r, err := deployment.Progress(ctx)
-			if err != nil {
-				// TODO: Deal with failed deployments
-				return fmt.Errorf("error running a provisioner: %w", err)
-			}
-			running = r
-		}
-
-		logger.Debugf("Finished deployment for module %s", moduleName)
-
+	}
+	err := group.Wait()
+	if err != nil {
+		return fmt.Errorf("error running a provisioner: %w", err)
 	}
 
-	_, err := s.schemaClient.PrepareChangeset(ctx, connect.NewRequest(&ftlv1.PrepareChangesetRequest{Changeset: req.Key.String()}))
+	_, err = s.schemaClient.PrepareChangeset(ctx, connect.NewRequest(&ftlv1.PrepareChangesetRequest{Changeset: req.Key.String()}))
 	if err != nil {
 		return fmt.Errorf("error preparing changeset: %w", err)
 	}
@@ -167,14 +176,16 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 	if err != nil {
 		return fmt.Errorf("error committing changeset: %w", err)
 	}
+
 	for _, removing := range commitResponse.Msg.Changeset.RemovingModules {
+		logger.Infof("De-provisioning module %s %s", removing.Name, removing.Runtime.GetRunner().GetEndpoint())
 		removing.Runtime.Deployment.State = schemapb.DeploymentState_DEPLOYMENT_STATE_DE_PROVISIONING
 		_, err = s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
 			Event: &schemapb.ModuleRuntimeEvent{
-				Changeset:     req.Key.String(),
-				DeploymentKey: removing.Runtime.Deployment.DeploymentKey,
-				Scaling:       &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
-				Deployment:    removing.Runtime.Deployment,
+				Changeset:  req.Key.String(),
+				Key:        removing.Runtime.Deployment.DeploymentKey,
+				Scaling:    &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
+				Deployment: removing.Runtime.Deployment,
 			},
 		}))
 		if err != nil {
@@ -185,10 +196,10 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 	if err != nil {
 		return fmt.Errorf("error draining changeset: %w", err)
 	}
-	_, err = s.schemaClient.DeProvisionChangeset(ctx, connect.NewRequest(&ftlv1.DeProvisionChangesetRequest{Changeset: req.Key.String()}))
-	if err != nil {
-		return fmt.Errorf("error draining changeset: %w", err)
-	}
+	//_, err = s.schemaClient.DeProvisionChangeset(ctx, connect.NewRequest(&ftlv1.DeProvisionChangesetRequest{Changeset: req.Key.String()}))
+	//if err != nil {
+	//	return fmt.Errorf("error draining changeset: %w", err)
+	//}
 	return nil
 }
 

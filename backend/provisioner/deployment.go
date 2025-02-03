@@ -100,7 +100,7 @@ func (t *Task) Progress(ctx context.Context) error {
 			t.state = TaskStateDone
 			events := succ.Success.Events
 
-			logger.Infof("Received %d events for module %s with task %s", len(events), t.module, t.binding.ID)
+			logger.Debugf("Received %d events for module %s with task %s", len(events), t.module, t.binding.ID)
 			for _, eventpb := range events {
 				event, err := schema.EventFromProto(eventpb)
 				if err != nil {

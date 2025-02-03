@@ -256,6 +256,7 @@ func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateCanary {
 			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
 		}
+		dep.ModRuntime().ModDeployment().State = schema.DeploymentStateCanonical
 	}
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
