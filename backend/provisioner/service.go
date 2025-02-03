@@ -163,9 +163,31 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 	if err != nil {
 		return fmt.Errorf("error preparing changeset: %w", err)
 	}
-	_, err = s.schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: req.Key.String()}))
+	commitResponse, err := s.schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: req.Key.String()}))
 	if err != nil {
 		return fmt.Errorf("error committing changeset: %w", err)
+	}
+	for _, removing := range commitResponse.Msg.Changeset.RemovingModules {
+		removing.Runtime.Deployment.State = schemapb.DeploymentState_DEPLOYMENT_STATE_DE_PROVISIONING
+		_, err = s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
+			Event: &schemapb.ModuleRuntimeEvent{
+				Changeset:     req.Key.String(),
+				DeploymentKey: removing.Runtime.Deployment.DeploymentKey,
+				Scaling:       &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
+				Deployment:    removing.Runtime.Deployment,
+			},
+		}))
+		if err != nil {
+			return fmt.Errorf("error updating deployment runtime: %w", err)
+		}
+	}
+	_, err = s.schemaClient.DrainChangeset(ctx, connect.NewRequest(&ftlv1.DrainChangesetRequest{Changeset: req.Key.String()}))
+	if err != nil {
+		return fmt.Errorf("error draining changeset: %w", err)
+	}
+	_, err = s.schemaClient.DeProvisionChangeset(ctx, connect.NewRequest(&ftlv1.DeProvisionChangesetRequest{Changeset: req.Key.String()}))
+	if err != nil {
+		return fmt.Errorf("error draining changeset: %w", err)
 	}
 	return nil
 }
