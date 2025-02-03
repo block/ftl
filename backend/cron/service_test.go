@@ -49,7 +49,7 @@ func TestCron(t *testing.T) {
 				Request:  &schema.Unit{},
 				Response: &schema.Unit{},
 				Metadata: []schema.Metadata{
-					&schema.MetadataCronJob{Cron: "*/2 * * * * *"},
+					&schema.MetadataCronJob{Cron: "0/2 * * * * *"},
 				},
 			},
 			&schema.Verb{
@@ -57,7 +57,7 @@ func TestCron(t *testing.T) {
 				Request:  &schema.Unit{},
 				Response: &schema.Unit{},
 				Metadata: []schema.Metadata{
-					&schema.MetadataCronJob{Cron: "*/2 * * * * *"},
+					&schema.MetadataCronJob{Cron: "1/2 * * * * *"},
 				},
 			},
 		},
