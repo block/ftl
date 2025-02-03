@@ -3,7 +3,13 @@ package schemaservice
 import (
 	"context"
 	"fmt"
+	slices2 "slices"
 
+	"github.com/alecthomas/types/optional"
+	"golang.org/x/exp/maps"
+
+	"github.com/block/ftl/common/errors"
+	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
@@ -185,6 +191,18 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 			return fmt.Errorf("module %s is not in correct state", mod.Name)
 		}
 	}
+	sch := &schema.Schema{Modules: maps.Values(t.deployments)}
+	merged := latestSchema(sch, e.Changeset)
+	problems := []error{}
+	for _, mod := range e.Changeset.Modules {
+		_, err := schema.ValidateModuleInSchema(merged, optional.Some(mod))
+		if err != nil {
+			problems = append(problems, fmt.Errorf("module %s is not valid: %w", mod.Name, err))
+		}
+	}
+	if len(problems) > 0 {
+		return fmt.Errorf("changest failed validation %w", errors.Join(problems...))
+	}
 	t.changesets[e.Changeset.Key] = e.Changeset
 	return nil
 }
@@ -239,4 +257,17 @@ func handleChangesetFailedEvent(t SchemaState, e *schema.ChangesetFailedEvent) e
 	changeset.State = schema.ChangesetStateFailed
 	changeset.Error = e.Error
 	return nil
+}
+
+// latest schema calculates the latest schema by applying active deployments in changeset to the canonical schema.
+func latestSchema(canonical *schema.Schema, changeset *schema.Changeset) *schema.Schema {
+	sch := reflect.DeepCopy(canonical)
+	for _, module := range changeset.Modules {
+		if i := slices2.IndexFunc(sch.Modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
+			sch.Modules[i] = module
+		} else {
+			sch.Modules = append(sch.Modules, module)
+		}
+	}
+	return sch
 }
