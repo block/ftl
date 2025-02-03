@@ -370,6 +370,54 @@ func ChangesetCreatedEventFromProto(v *destpb.ChangesetCreatedEvent) (out *Chang
 	return out, nil
 }
 
+func (x *ChangesetDeProvisionedEvent) ToProto() *destpb.ChangesetDeProvisionedEvent {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetDeProvisionedEvent{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetDeProvisionedEventFromProto(v *destpb.ChangesetDeProvisionedEvent) (out *ChangesetDeProvisionedEvent, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetDeProvisionedEvent{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (x *ChangesetDrainedEvent) ToProto() *destpb.ChangesetDrainedEvent {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetDrainedEvent{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetDrainedEventFromProto(v *destpb.ChangesetDrainedEvent) (out *ChangesetDrainedEvent, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetDrainedEvent{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (x *ChangesetFailedEvent) ToProto() *destpb.ChangesetFailedEvent {
 	if x == nil {
 		return nil
@@ -1023,6 +1071,14 @@ func EventToProto(value Event) *destpb.Event {
 		return &destpb.Event{
 			Value: &destpb.Event_ChangesetCreatedEvent{value.ToProto()},
 		}
+	case *ChangesetDeProvisionedEvent:
+		return &destpb.Event{
+			Value: &destpb.Event_ChangesetDeProvisionedEvent{value.ToProto()},
+		}
+	case *ChangesetDrainedEvent:
+		return &destpb.Event{
+			Value: &destpb.Event_ChangesetDrainedEvent{value.ToProto()},
+		}
 	case *ChangesetFailedEvent:
 		return &destpb.Event{
 			Value: &destpb.Event_ChangesetFailedEvent{value.ToProto()},
@@ -1081,6 +1137,10 @@ func EventFromProto(v *destpb.Event) (Event, error) {
 		return ChangesetCommittedEventFromProto(v.GetChangesetCommittedEvent())
 	case *destpb.Event_ChangesetCreatedEvent:
 		return ChangesetCreatedEventFromProto(v.GetChangesetCreatedEvent())
+	case *destpb.Event_ChangesetDeProvisionedEvent:
+		return ChangesetDeProvisionedEventFromProto(v.GetChangesetDeProvisionedEvent())
+	case *destpb.Event_ChangesetDrainedEvent:
+		return ChangesetDrainedEventFromProto(v.GetChangesetDrainedEvent())
 	case *destpb.Event_ChangesetFailedEvent:
 		return ChangesetFailedEventFromProto(v.GetChangesetFailedEvent())
 	case *destpb.Event_ChangesetPreparedEvent:

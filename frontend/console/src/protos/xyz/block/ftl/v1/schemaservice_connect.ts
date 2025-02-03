@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, FailChangesetRequest, FailChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
+import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, DeProvisionChangesetRequest, DeProvisionChangesetResponse, DrainChangesetRequest, DrainChangesetResponse, FailChangesetRequest, FailChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -116,6 +116,24 @@ export const SchemaService = {
       name: "CommitChangeset",
       I: CommitChangesetRequest,
       O: CommitChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.DrainChangeset
+     */
+    drainChangeset: {
+      name: "DrainChangeset",
+      I: DrainChangesetRequest,
+      O: DrainChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.DeProvisionChangeset
+     */
+    deProvisionChangeset: {
+      name: "DeProvisionChangeset",
+      I: DeProvisionChangesetRequest,
+      O: DeProvisionChangesetResponse,
       kind: MethodKind.Unary,
     },
     /**

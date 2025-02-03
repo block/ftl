@@ -926,6 +926,11 @@ export class CommitChangesetRequest extends Message<CommitChangesetRequest> {
  * @generated from message xyz.block.ftl.v1.CommitChangesetResponse
  */
 export class CommitChangesetResponse extends Message<CommitChangesetResponse> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Changeset changeset = 1;
+   */
+  changeset?: Changeset;
+
   constructor(data?: PartialMessage<CommitChangesetResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -934,6 +939,7 @@ export class CommitChangesetResponse extends Message<CommitChangesetResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.CommitChangesetResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "message", T: Changeset },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitChangesetResponse {
@@ -950,6 +956,146 @@ export class CommitChangesetResponse extends Message<CommitChangesetResponse> {
 
   static equals(a: CommitChangesetResponse | PlainMessage<CommitChangesetResponse> | undefined, b: CommitChangesetResponse | PlainMessage<CommitChangesetResponse> | undefined): boolean {
     return proto3.util.equals(CommitChangesetResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.DrainChangesetRequest
+ */
+export class DrainChangesetRequest extends Message<DrainChangesetRequest> {
+  /**
+   * The changeset key to commit.
+   *
+   * @generated from field: string changeset = 1;
+   */
+  changeset = "";
+
+  constructor(data?: PartialMessage<DrainChangesetRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.DrainChangesetRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DrainChangesetRequest {
+    return new DrainChangesetRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DrainChangesetRequest {
+    return new DrainChangesetRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DrainChangesetRequest {
+    return new DrainChangesetRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DrainChangesetRequest | PlainMessage<DrainChangesetRequest> | undefined, b: DrainChangesetRequest | PlainMessage<DrainChangesetRequest> | undefined): boolean {
+    return proto3.util.equals(DrainChangesetRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.DrainChangesetResponse
+ */
+export class DrainChangesetResponse extends Message<DrainChangesetResponse> {
+  constructor(data?: PartialMessage<DrainChangesetResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.DrainChangesetResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DrainChangesetResponse {
+    return new DrainChangesetResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DrainChangesetResponse {
+    return new DrainChangesetResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DrainChangesetResponse {
+    return new DrainChangesetResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DrainChangesetResponse | PlainMessage<DrainChangesetResponse> | undefined, b: DrainChangesetResponse | PlainMessage<DrainChangesetResponse> | undefined): boolean {
+    return proto3.util.equals(DrainChangesetResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.DeProvisionChangesetRequest
+ */
+export class DeProvisionChangesetRequest extends Message<DeProvisionChangesetRequest> {
+  /**
+   * The changeset key to commit.
+   *
+   * @generated from field: string changeset = 1;
+   */
+  changeset = "";
+
+  constructor(data?: PartialMessage<DeProvisionChangesetRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.DeProvisionChangesetRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeProvisionChangesetRequest {
+    return new DeProvisionChangesetRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeProvisionChangesetRequest {
+    return new DeProvisionChangesetRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeProvisionChangesetRequest {
+    return new DeProvisionChangesetRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeProvisionChangesetRequest | PlainMessage<DeProvisionChangesetRequest> | undefined, b: DeProvisionChangesetRequest | PlainMessage<DeProvisionChangesetRequest> | undefined): boolean {
+    return proto3.util.equals(DeProvisionChangesetRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.DeProvisionChangesetResponse
+ */
+export class DeProvisionChangesetResponse extends Message<DeProvisionChangesetResponse> {
+  constructor(data?: PartialMessage<DeProvisionChangesetResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.DeProvisionChangesetResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeProvisionChangesetResponse {
+    return new DeProvisionChangesetResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeProvisionChangesetResponse {
+    return new DeProvisionChangesetResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeProvisionChangesetResponse {
+    return new DeProvisionChangesetResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeProvisionChangesetResponse | PlainMessage<DeProvisionChangesetResponse> | undefined, b: DeProvisionChangesetResponse | PlainMessage<DeProvisionChangesetResponse> | undefined): boolean {
+    return proto3.util.equals(DeProvisionChangesetResponse, a, b);
   }
 }
 

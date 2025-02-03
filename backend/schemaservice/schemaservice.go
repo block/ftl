@@ -30,6 +30,14 @@ type Service struct {
 	State *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event]
 }
 
+func (s *Service) DrainChangeset(ctx context.Context, c *connect.Request[ftlv1.DrainChangesetRequest]) (*connect.Response[ftlv1.DrainChangesetResponse], error) {
+	panic("implement me")
+}
+
+func (s *Service) DeProvisionChangeset(ctx context.Context, c *connect.Request[ftlv1.DeProvisionChangesetRequest]) (*connect.Response[ftlv1.DeProvisionChangesetResponse], error) {
+	panic("implement me")
+}
+
 func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
 	v, err := s.State.View(ctx)
 	if err != nil {

@@ -163,7 +163,7 @@ func (e *ModuleRuntimeEvent) Validate() error {
 	return nil
 }
 
-//protobuf:11
+//protobuf:10
 type ChangesetCreatedEvent struct {
 	Changeset *Changeset `protobuf:"1"`
 }
@@ -174,6 +174,17 @@ func (e *ChangesetCreatedEvent) Validate() error {
 	if e.Changeset.Key.IsZero() {
 		return fmt.Errorf("changeset key is required")
 	}
+	return nil
+}
+
+//protobuf:11
+type ChangesetPreparedEvent struct {
+	Key key.Changeset `protobuf:"1"`
+}
+
+func (e *ChangesetPreparedEvent) event() {}
+
+func (e *ChangesetPreparedEvent) Validate() error {
 	return nil
 }
 
@@ -189,17 +200,28 @@ func (e *ChangesetCommittedEvent) Validate() error {
 }
 
 //protobuf:13
-type ChangesetPreparedEvent struct {
+type ChangesetDrainedEvent struct {
 	Key key.Changeset `protobuf:"1"`
 }
 
-func (e *ChangesetPreparedEvent) event() {}
+func (e *ChangesetDrainedEvent) event() {}
 
-func (e *ChangesetPreparedEvent) Validate() error {
+func (e *ChangesetDrainedEvent) Validate() error {
 	return nil
 }
 
 //protobuf:14
+type ChangesetDeProvisionedEvent struct {
+	Key key.Changeset `protobuf:"1"`
+}
+
+func (e *ChangesetDeProvisionedEvent) event() {}
+
+func (e *ChangesetDeProvisionedEvent) Validate() error {
+	return nil
+}
+
+//protobuf:15
 type ChangesetFailedEvent struct {
 	Key   key.Changeset `protobuf:"1"`
 	Error string        `protobuf:"2"`
