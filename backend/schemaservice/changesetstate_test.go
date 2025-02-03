@@ -162,7 +162,7 @@ func TestChangesetState(t *testing.T) {
 		assert.Equal(t, schema.ChangesetStateDrained, csd.State)
 		assert.Equal(t, 1, len(view.GetChangesets()))
 
-		err = state.Publish(ctx, &schema.ChangesetDeProvisionedEvent{
+		err = state.Publish(ctx, &schema.ChangesetFinalizedEvent{
 			Key: changesetKey,
 		})
 		assert.NoError(t, err)

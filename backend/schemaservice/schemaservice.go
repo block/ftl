@@ -223,18 +223,18 @@ func (s *Service) DrainChangeset(ctx context.Context, req *connect.Request[ftlv1
 	return connect.NewResponse(&ftlv1.DrainChangesetResponse{}), nil
 }
 
-func (s *Service) DeProvisionChangeset(ctx context.Context, req *connect.Request[ftlv1.DeProvisionChangesetRequest]) (*connect.Response[ftlv1.DeProvisionChangesetResponse], error) {
+func (s *Service) FinalizeChangeset(ctx context.Context, req *connect.Request[ftlv1.FinalizeChangesetRequest]) (*connect.Response[ftlv1.FinalizeChangesetResponse], error) {
 	changesetKey, err := key.ParseChangesetKey(req.Msg.Changeset)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, &schema.ChangesetDeProvisionedEvent{
+	err = s.State.Publish(ctx, &schema.ChangesetFinalizedEvent{
 		Key: changesetKey,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("could not de-provision changeset %w", err)
 	}
-	return connect.NewResponse(&ftlv1.DeProvisionChangesetResponse{}), nil
+	return connect.NewResponse(&ftlv1.FinalizeChangesetResponse{}), nil
 }
 
 // FailChangeset fails an active changeset.

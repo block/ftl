@@ -44,8 +44,8 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 		return handleChangesetCommittedEvent(ctx, r, e)
 	case *schema.ChangesetDrainedEvent:
 		return handleChangesetDrainedEvent(ctx, r, e)
-	case *schema.ChangesetDeProvisionedEvent:
-		return handleChangesetDeProvisionedEvent(ctx, r, e)
+	case *schema.ChangesetFinalizedEvent:
+		return handleChangesetFinalizedEvent(ctx, r, e)
 	case *schema.ChangesetFailedEvent:
 		return handleChangesetFailedEvent(r, e)
 	default:
@@ -179,14 +179,15 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 	if existing := t.changesets[e.Changeset.Key]; existing != nil {
 		return fmt.Errorf("changeset %s already exists ", e.Changeset.Key)
 	}
+	activeCount := 0
 	existingModules := map[string]key.Changeset{}
 	for _, cs := range t.changesets {
-		if cs.State == schema.ChangesetStatePreparing ||
-			cs.State == schema.ChangesetStatePrepared {
+		if cs.ModulesAreCanonical() {
 			//TODO: at the moment changesets accumulate forever...
 			for _, mod := range cs.Modules {
 				existingModules[mod.Name] = cs.Key
 			}
+			activeCount++
 		}
 	}
 	for _, mod := range e.Changeset.Modules {
@@ -208,10 +209,12 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 		if mod.Runtime.Deployment.State != schema.DeploymentStateProvisioning {
 			return fmt.Errorf("module %s is not in correct state", mod.Name)
 		}
-
 	}
-	if t.validationEnabled {
+	if activeCount > 0 {
+		return fmt.Errorf("only a single changeset can currently be active at any time")
+	}
 
+	if t.validationEnabled {
 		sch := &schema.Schema{Modules: maps.Values(t.deployments)}
 		merged := latestSchema(sch, e.Changeset)
 		problems := []error{}
@@ -294,7 +297,7 @@ func handleChangesetDrainedEvent(ctx context.Context, t SchemaState, e *schema.C
 	changeset.State = schema.ChangesetStateDrained
 	return nil
 }
-func handleChangesetDeProvisionedEvent(ctx context.Context, t SchemaState, e *schema.ChangesetDeProvisionedEvent) error {
+func handleChangesetFinalizedEvent(ctx context.Context, t SchemaState, e *schema.ChangesetFinalizedEvent) error {
 	logger := log.FromContext(ctx)
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
@@ -310,7 +313,7 @@ func handleChangesetDeProvisionedEvent(ctx context.Context, t SchemaState, e *sc
 			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
 		}
 	}
-	changeset.State = schema.ChangesetStateDeProvisioned
+	changeset.State = schema.ChangesetStateFinalized
 	// TODO: archive changesets?
 	delete(t.changesets, changeset.Key)
 	t.archivedChangesets = append(t.archivedChangesets, changeset)

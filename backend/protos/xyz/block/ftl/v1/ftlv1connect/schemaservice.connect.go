@@ -61,9 +61,9 @@ const (
 	// SchemaServiceDrainChangesetProcedure is the fully-qualified name of the SchemaService's
 	// DrainChangeset RPC.
 	SchemaServiceDrainChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/DrainChangeset"
-	// SchemaServiceDeProvisionChangesetProcedure is the fully-qualified name of the SchemaService's
-	// DeProvisionChangeset RPC.
-	SchemaServiceDeProvisionChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/DeProvisionChangeset"
+	// SchemaServiceFinalizeChangesetProcedure is the fully-qualified name of the SchemaService's
+	// FinalizeChangeset RPC.
+	SchemaServiceFinalizeChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/FinalizeChangeset"
 	// SchemaServiceFailChangesetProcedure is the fully-qualified name of the SchemaService's
 	// FailChangeset RPC.
 	SchemaServiceFailChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/FailChangeset"
@@ -96,7 +96,7 @@ type SchemaServiceClient interface {
 	// CommitChangeset makes all deployments for the changeset part of the canonical schema.
 	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
 	DrainChangeset(context.Context, *connect.Request[v1.DrainChangesetRequest]) (*connect.Response[v1.DrainChangesetResponse], error)
-	DeProvisionChangeset(context.Context, *connect.Request[v1.DeProvisionChangesetRequest]) (*connect.Response[v1.DeProvisionChangesetResponse], error)
+	FinalizeChangeset(context.Context, *connect.Request[v1.FinalizeChangesetRequest]) (*connect.Response[v1.FinalizeChangesetResponse], error)
 	// FailChangeset fails an active changeset.
 	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
 	// GetDeployment gets a deployment by deployment key
@@ -166,9 +166,9 @@ func NewSchemaServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			baseURL+SchemaServiceDrainChangesetProcedure,
 			opts...,
 		),
-		deProvisionChangeset: connect.NewClient[v1.DeProvisionChangesetRequest, v1.DeProvisionChangesetResponse](
+		finalizeChangeset: connect.NewClient[v1.FinalizeChangesetRequest, v1.FinalizeChangesetResponse](
 			httpClient,
-			baseURL+SchemaServiceDeProvisionChangesetProcedure,
+			baseURL+SchemaServiceFinalizeChangesetProcedure,
 			opts...,
 		),
 		failChangeset: connect.NewClient[v1.FailChangesetRequest, v1.FailChangesetResponse](
@@ -196,7 +196,7 @@ type schemaServiceClient struct {
 	prepareChangeset        *connect.Client[v1.PrepareChangesetRequest, v1.PrepareChangesetResponse]
 	commitChangeset         *connect.Client[v1.CommitChangesetRequest, v1.CommitChangesetResponse]
 	drainChangeset          *connect.Client[v1.DrainChangesetRequest, v1.DrainChangesetResponse]
-	deProvisionChangeset    *connect.Client[v1.DeProvisionChangesetRequest, v1.DeProvisionChangesetResponse]
+	finalizeChangeset       *connect.Client[v1.FinalizeChangesetRequest, v1.FinalizeChangesetResponse]
 	failChangeset           *connect.Client[v1.FailChangesetRequest, v1.FailChangesetResponse]
 	getDeployment           *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 }
@@ -251,9 +251,9 @@ func (c *schemaServiceClient) DrainChangeset(ctx context.Context, req *connect.R
 	return c.drainChangeset.CallUnary(ctx, req)
 }
 
-// DeProvisionChangeset calls xyz.block.ftl.v1.SchemaService.DeProvisionChangeset.
-func (c *schemaServiceClient) DeProvisionChangeset(ctx context.Context, req *connect.Request[v1.DeProvisionChangesetRequest]) (*connect.Response[v1.DeProvisionChangesetResponse], error) {
-	return c.deProvisionChangeset.CallUnary(ctx, req)
+// FinalizeChangeset calls xyz.block.ftl.v1.SchemaService.FinalizeChangeset.
+func (c *schemaServiceClient) FinalizeChangeset(ctx context.Context, req *connect.Request[v1.FinalizeChangesetRequest]) (*connect.Response[v1.FinalizeChangesetResponse], error) {
+	return c.finalizeChangeset.CallUnary(ctx, req)
 }
 
 // FailChangeset calls xyz.block.ftl.v1.SchemaService.FailChangeset.
@@ -290,7 +290,7 @@ type SchemaServiceHandler interface {
 	// CommitChangeset makes all deployments for the changeset part of the canonical schema.
 	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
 	DrainChangeset(context.Context, *connect.Request[v1.DrainChangesetRequest]) (*connect.Response[v1.DrainChangesetResponse], error)
-	DeProvisionChangeset(context.Context, *connect.Request[v1.DeProvisionChangesetRequest]) (*connect.Response[v1.DeProvisionChangesetResponse], error)
+	FinalizeChangeset(context.Context, *connect.Request[v1.FinalizeChangesetRequest]) (*connect.Response[v1.FinalizeChangesetResponse], error)
 	// FailChangeset fails an active changeset.
 	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
 	// GetDeployment gets a deployment by deployment key
@@ -356,9 +356,9 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 		svc.DrainChangeset,
 		opts...,
 	)
-	schemaServiceDeProvisionChangesetHandler := connect.NewUnaryHandler(
-		SchemaServiceDeProvisionChangesetProcedure,
-		svc.DeProvisionChangeset,
+	schemaServiceFinalizeChangesetHandler := connect.NewUnaryHandler(
+		SchemaServiceFinalizeChangesetProcedure,
+		svc.FinalizeChangeset,
 		opts...,
 	)
 	schemaServiceFailChangesetHandler := connect.NewUnaryHandler(
@@ -393,8 +393,8 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 			schemaServiceCommitChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceDrainChangesetProcedure:
 			schemaServiceDrainChangesetHandler.ServeHTTP(w, r)
-		case SchemaServiceDeProvisionChangesetProcedure:
-			schemaServiceDeProvisionChangesetHandler.ServeHTTP(w, r)
+		case SchemaServiceFinalizeChangesetProcedure:
+			schemaServiceFinalizeChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceFailChangesetProcedure:
 			schemaServiceFailChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceGetDeploymentProcedure:
@@ -448,8 +448,8 @@ func (UnimplementedSchemaServiceHandler) DrainChangeset(context.Context, *connec
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.DrainChangeset is not implemented"))
 }
 
-func (UnimplementedSchemaServiceHandler) DeProvisionChangeset(context.Context, *connect.Request[v1.DeProvisionChangesetRequest]) (*connect.Response[v1.DeProvisionChangesetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.DeProvisionChangeset is not implemented"))
+func (UnimplementedSchemaServiceHandler) FinalizeChangeset(context.Context, *connect.Request[v1.FinalizeChangesetRequest]) (*connect.Response[v1.FinalizeChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.FinalizeChangeset is not implemented"))
 }
 
 func (UnimplementedSchemaServiceHandler) FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error) {

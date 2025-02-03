@@ -134,12 +134,12 @@ message DrainChangesetRequest {
 
 message DrainChangesetResponse {}
 
-message DeProvisionChangesetRequest {
+message FinalizeChangesetRequest {
   // The changeset key to commit.
   string changeset = 1;
 }
 
-message DeProvisionChangesetResponse {}
+message FinalizeChangesetResponse {}
 
 message FailChangesetRequest {
   // The changeset key to fail.
@@ -194,7 +194,7 @@ service SchemaService {
   rpc CommitChangeset(CommitChangesetRequest) returns (CommitChangesetResponse);
 
   rpc DrainChangeset(DrainChangesetRequest) returns (DrainChangesetResponse);
-  rpc DeProvisionChangeset(DeProvisionChangesetRequest) returns (DeProvisionChangesetResponse);
+  rpc FinalizeChangeset(FinalizeChangesetRequest) returns (FinalizeChangesetResponse);
   // FailChangeset fails an active changeset.
   rpc FailChangeset(FailChangesetRequest) returns (FailChangesetResponse);
   // GetDeployment gets a deployment by deployment key

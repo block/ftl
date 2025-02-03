@@ -167,13 +167,13 @@ class DrainChangesetResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
-class DeProvisionChangesetRequest(_message.Message):
+class FinalizeChangesetRequest(_message.Message):
     __slots__ = ("changeset",)
     CHANGESET_FIELD_NUMBER: _ClassVar[int]
     changeset: str
     def __init__(self, changeset: _Optional[str] = ...) -> None: ...
 
-class DeProvisionChangesetResponse(_message.Message):
+class FinalizeChangesetResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 

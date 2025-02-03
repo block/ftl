@@ -33,17 +33,21 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[schema.E
 	for _, changeset := range allChangesets {
 		pc, ok := previousAllChangesets[changeset.Key]
 		if ok {
-			for i := range changeset.Modules {
-				pd := pc.Modules[i]
-				deployment := changeset.Modules[i]
-				if !pd.Equals(deployment) {
-					handledDeployments[deployment.Runtime.Deployment.DeploymentKey] = true
-					// TODO: this seems super inefficient, we should not need to do equality checks on every deployment
-					events = append(events, &schema.DeploymentSchemaUpdatedEvent{
-						Key:       deployment.Runtime.Deployment.DeploymentKey,
-						Schema:    deployment,
-						Changeset: changeset.Key,
-					})
+			if changeset.ModulesAreCanonical() {
+				for i := range changeset.Modules {
+					pd := pc.Modules[i]
+					deployment := changeset.Modules[i]
+					if !pd.Equals(deployment) {
+						handledDeployments[deployment.Runtime.Deployment.DeploymentKey] = true
+						// TODO: this seems super inefficient, we should not need to do equality checks on every deployment
+						events = append(events, &schema.DeploymentSchemaUpdatedEvent{
+							Key:       deployment.Runtime.Deployment.DeploymentKey,
+							Schema:    deployment,
+							Changeset: changeset.Key,
+						})
+					} else {
+						handledDeployments[deployment.Runtime.Deployment.DeploymentKey] = true
+					}
 				}
 			}
 			// Commit final state of changeset

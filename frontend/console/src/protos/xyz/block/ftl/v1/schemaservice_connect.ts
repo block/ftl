@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, DeProvisionChangesetRequest, DeProvisionChangesetResponse, DrainChangesetRequest, DrainChangesetResponse, FailChangesetRequest, FailChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
+import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, DrainChangesetRequest, DrainChangesetResponse, FailChangesetRequest, FailChangesetResponse, FinalizeChangesetRequest, FinalizeChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -128,12 +128,12 @@ export const SchemaService = {
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc xyz.block.ftl.v1.SchemaService.DeProvisionChangeset
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.FinalizeChangeset
      */
-    deProvisionChangeset: {
-      name: "DeProvisionChangeset",
-      I: DeProvisionChangesetRequest,
-      O: DeProvisionChangesetResponse,
+    finalizeChangeset: {
+      name: "FinalizeChangeset",
+      I: FinalizeChangesetRequest,
+      O: FinalizeChangesetResponse,
       kind: MethodKind.Unary,
     },
     /**

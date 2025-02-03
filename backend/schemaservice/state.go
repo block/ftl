@@ -76,7 +76,7 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 		r.deployments[module.Name] = module
 	}
 	for _, a := range state.Changesets {
-		if a.State == schema.ChangesetStateDeProvisioned || a.State == schema.ChangesetStateFailed {
+		if a.State == schema.ChangesetStateFinalized || a.State == schema.ChangesetStateFailed {
 			r.archivedChangesets = append(r.archivedChangesets, a)
 		} else {
 			r.changesets[a.Key] = a
@@ -91,7 +91,8 @@ func (r *SchemaState) GetDeployment(deployment key.Deployment, changeset optiona
 	if key, ok := changeset.Get(); ok {
 		cs, ok := r.changesets[key]
 		if ok {
-			for _, m := range cs.Modules {
+			modules := cs.OwnedModules()
+			for _, m := range modules {
 				if m.GetRuntime().Deployment.DeploymentKey == deployment {
 					return m, nil
 				}
@@ -116,7 +117,8 @@ func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *
 		return d, optional.None[key.Changeset](), nil
 	}
 	for _, cs := range r.changesets {
-		for _, d := range cs.Modules {
+		modules := cs.OwnedModules()
+		for _, d := range modules {
 			if d.GetRuntime().Deployment.DeploymentKey == deploymentKey {
 				return d, optional.Some[key.Changeset](cs.Key), nil
 			}
@@ -132,8 +134,10 @@ func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 		ret[d.GetRuntime().Deployment.DeploymentKey] = d
 	}
 	for _, cs := range r.changesets {
-		for _, d := range cs.Modules {
-			ret[d.GetRuntime().Deployment.DeploymentKey] = d
+		if cs.ModulesAreCanonical() {
+			for _, d := range cs.Modules {
+				ret[d.GetRuntime().Deployment.DeploymentKey] = d
+			}
 		}
 	}
 	return ret
