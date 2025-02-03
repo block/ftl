@@ -19,7 +19,6 @@ type killCmd struct {
 func (k *killCmd) Run(ctx context.Context, client ftlv1connect.SchemaServiceClient) error {
 	//TODO: implement this as a changeset
 	_, err := client.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
-		Deployment: k.Deployment.String(),
 		Event: &schemapb.ModuleRuntimeEvent{
 			DeploymentKey: k.Deployment.String(),
 			Scaling:       &schemapb.ModuleRuntimeScaling{MinReplicas: 0},

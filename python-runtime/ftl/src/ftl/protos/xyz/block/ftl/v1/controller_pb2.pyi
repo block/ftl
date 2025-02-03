@@ -74,18 +74,6 @@ class GetDeploymentArtefactsResponse(_message.Message):
     chunk: bytes
     def __init__(self, artefact: _Optional[_Union[DeploymentArtefact, _Mapping]] = ..., chunk: _Optional[bytes] = ...) -> None: ...
 
-class GetDeploymentRequest(_message.Message):
-    __slots__ = ("deployment_key",)
-    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
-    deployment_key: str
-    def __init__(self, deployment_key: _Optional[str] = ...) -> None: ...
-
-class GetDeploymentResponse(_message.Message):
-    __slots__ = ("schema",)
-    SCHEMA_FIELD_NUMBER: _ClassVar[int]
-    schema: _schema_pb2.Module
-    def __init__(self, schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
-
 class RegisterRunnerRequest(_message.Message):
     __slots__ = ("key", "endpoint", "deployment", "labels")
     KEY_FIELD_NUMBER: _ClassVar[int]

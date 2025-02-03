@@ -30,6 +30,22 @@ type Service struct {
 	State *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event]
 }
 
+func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
+	v, err := s.State.View(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get schema state: %w", err)
+	}
+	deploymentKey, err := key.ParseDeploymentKey(c.Msg.DeploymentKey)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
+	}
+	d, _, err := v.FindDeployment(deploymentKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find deployment: %w", err)
+	}
+	return connect.NewResponse(&ftlv1.GetDeploymentResponse{Schema: d.ToProto()}), nil
+}
+
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 
 func New(ctx context.Context) *Service {
@@ -82,45 +98,14 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 }
 
 func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Request[ftlv1.UpdateDeploymentRuntimeRequest]) (*connect.Response[ftlv1.UpdateDeploymentRuntimeResponse], error) {
-	deployment, err := key.ParseDeploymentKey(req.Msg.Event.DeploymentKey)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
-	}
-	var changeset optional.Option[key.Changeset]
-	if req.Msg.GetChangeset() != "" {
-		c, err := key.ParseChangesetKey(req.Msg.GetChangeset())
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
-		}
-		changeset = optional.Some(c)
-	}
-	view, err := s.State.View(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get controller state: %w", err)
-	}
-	module, err := view.GetDeployment(deployment, changeset)
-	if err != nil {
-		return nil, fmt.Errorf("could not get schema: %w", err)
-	}
-	if module.Runtime == nil {
-		module.Runtime = &schema.ModuleRuntime{}
-	}
 	event, err := schema.ModuleRuntimeEventFromProto(req.Msg.Event)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
-	err = view.ApplyEvent(ctx, event)
+	err = s.State.Publish(ctx, event)
 	if err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
-	err = s.State.Publish(ctx, &schema.DeploymentSchemaUpdatedEvent{
-		Key:    deployment,
-		Schema: module,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("could not update schema for module %s: %w", module.Name, err)
-	}
-
 	return connect.NewResponse(&ftlv1.UpdateDeploymentRuntimeResponse{}), nil
 }
 
@@ -134,6 +119,7 @@ func (s *Service) UpdateSchema(ctx context.Context, req *connect.Request[ftlv1.U
 	}
 	return connect.NewResponse(&ftlv1.UpdateSchemaResponse{}), nil
 }
+
 func (s *Service) GetDeployments(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentsRequest]) (*connect.Response[ftlv1.GetDeploymentsResponse], error) {
 	view, err := s.State.View(ctx)
 	if err != nil {
@@ -314,19 +300,18 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 			if err != nil {
 				return fmt.Errorf("failed to get schema state: %w", err)
 			}
-			dep, err := view.GetDeployment(event.Key, optional.Ptr(event.Changeset))
+			dep, err := view.GetDeployment(event.Key, optional.Some(event.Changeset))
 			if err != nil {
 				logger.Errorf(err, "Deployment not found: %s", event.Key)
 				continue
 			}
 			changeset := ""
-			if event.Changeset != nil {
+			if !event.Changeset.IsZero() {
 				changeset = event.Changeset.String()
 			}
 			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
 				Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
 					DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
-						// TODO: include changeset info
 						Changeset: &changeset,
 						Schema:    dep.ToProto(),
 					},

@@ -40,7 +40,8 @@ message PullSchemaResponse {
     // If present, the deployment is not yet canonical as it is currently part of a changeset.
     // optional string changeset = 3;
 
-    optional ftl.schema.v1.Module schema = 1;
+    optional string changeset = 1;
+    optional ftl.schema.v1.Module schema = 2;
   }
 
   message DeploymentUpdated {
@@ -77,9 +78,7 @@ message PullSchemaResponse {
 }
 
 message UpdateDeploymentRuntimeRequest {
-  string deployment = 1;
-  optional string changeset = 2;
-  ftl.schema.v1.ModuleRuntimeEvent event = 3;
+  ftl.schema.v1.ModuleRuntimeEvent event = 1;
 }
 
 message UpdateDeploymentRuntimeResponse {}
@@ -96,7 +95,10 @@ message GetDeploymentsResponse {
   repeated DeployedSchema schema = 1;
 }
 message CreateChangesetRequest {
+  // The modules to add or update.
   repeated ftl.schema.v1.Module modules = 1;
+  // The deployments to remove.
+  repeated string removed_deployments = 2;
 }
 
 message CreateChangesetResponse {
@@ -130,6 +132,13 @@ message FailChangesetRequest {
 }
 
 message FailChangesetResponse {}
+
+message GetDeploymentRequest {
+  string deployment_key = 1;
+}
+message GetDeploymentResponse {
+  ftl.schema.v1.Module schema = 1;
+}
 
 service SchemaService {
   // Ping service for readiness.
@@ -170,4 +179,6 @@ service SchemaService {
 
   // FailChangeset fails an active changeset.
   rpc FailChangeset(FailChangesetRequest) returns (FailChangesetResponse);
+  // GetDeployment gets a deployment by deployment key
+  rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
 }

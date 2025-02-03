@@ -43,10 +43,12 @@ class PullSchemaResponse(_message.Message):
         key: str
         def __init__(self, key: _Optional[str] = ...) -> None: ...
     class DeploymentCreated(_message.Message):
-        __slots__ = ("schema",)
+        __slots__ = ("changeset", "schema")
+        CHANGESET_FIELD_NUMBER: _ClassVar[int]
         SCHEMA_FIELD_NUMBER: _ClassVar[int]
+        changeset: str
         schema: _schema_pb2.Module
-        def __init__(self, schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
+        def __init__(self, changeset: _Optional[str] = ..., schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
     class DeploymentUpdated(_message.Message):
         __slots__ = ("changeset", "schema")
         CHANGESET_FIELD_NUMBER: _ClassVar[int]
@@ -80,14 +82,10 @@ class PullSchemaResponse(_message.Message):
     def __init__(self, changeset_created: _Optional[_Union[PullSchemaResponse.ChangesetCreated, _Mapping]] = ..., changeset_failed: _Optional[_Union[PullSchemaResponse.ChangesetFailed, _Mapping]] = ..., changeset_committed: _Optional[_Union[PullSchemaResponse.ChangesetCommitted, _Mapping]] = ..., deployment_created: _Optional[_Union[PullSchemaResponse.DeploymentCreated, _Mapping]] = ..., deployment_updated: _Optional[_Union[PullSchemaResponse.DeploymentUpdated, _Mapping]] = ..., deployment_removed: _Optional[_Union[PullSchemaResponse.DeploymentRemoved, _Mapping]] = ..., more: bool = ...) -> None: ...
 
 class UpdateDeploymentRuntimeRequest(_message.Message):
-    __slots__ = ("deployment", "changeset", "event")
-    DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
-    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("event",)
     EVENT_FIELD_NUMBER: _ClassVar[int]
-    deployment: str
-    changeset: str
     event: _schema_pb2.ModuleRuntimeEvent
-    def __init__(self, deployment: _Optional[str] = ..., changeset: _Optional[str] = ..., event: _Optional[_Union[_schema_pb2.ModuleRuntimeEvent, _Mapping]] = ...) -> None: ...
+    def __init__(self, event: _Optional[_Union[_schema_pb2.ModuleRuntimeEvent, _Mapping]] = ...) -> None: ...
 
 class UpdateDeploymentRuntimeResponse(_message.Message):
     __slots__ = ()
@@ -114,10 +112,12 @@ class GetDeploymentsResponse(_message.Message):
     def __init__(self, schema: _Optional[_Iterable[_Union[DeployedSchema, _Mapping]]] = ...) -> None: ...
 
 class CreateChangesetRequest(_message.Message):
-    __slots__ = ("modules",)
+    __slots__ = ("modules", "removed_deployments")
     MODULES_FIELD_NUMBER: _ClassVar[int]
+    REMOVED_DEPLOYMENTS_FIELD_NUMBER: _ClassVar[int]
     modules: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Module]
-    def __init__(self, modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ...) -> None: ...
+    removed_deployments: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ..., removed_deployments: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class CreateChangesetResponse(_message.Message):
     __slots__ = ("changeset",)
@@ -166,3 +166,15 @@ class FailChangesetRequest(_message.Message):
 class FailChangesetResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class GetDeploymentRequest(_message.Message):
+    __slots__ = ("deployment_key",)
+    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
+    deployment_key: str
+    def __init__(self, deployment_key: _Optional[str] = ...) -> None: ...
+
+class GetDeploymentResponse(_message.Message):
+    __slots__ = ("schema",)
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    schema: _schema_pb2.Module
+    def __init__(self, schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...

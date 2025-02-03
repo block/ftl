@@ -14,6 +14,7 @@ import (
 	"github.com/block/ftl/backend/provisioner/scaling"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 )
@@ -27,7 +28,10 @@ func NewRunnerScalingProvisioner(runners scaling.RunnerScaling) *InMemProvisione
 }
 
 func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, rc schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, moduleName string, rc schema.Provisioned) (schema.Event, error) {
+		if changeset.IsZero() {
+			return nil, fmt.Errorf("changeset must be provided")
+		}
 		logger := log.FromContext(ctx)
 
 		module, ok := rc.(*schema.Module)
@@ -39,7 +43,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		if deployment.IsZero() {
 			return nil, fmt.Errorf("failed to find deployment for runner")
 		}
-		logger.Debugf("Provisioning runner: %s.%s for deployment %s", module.Name, rc.ResourceID(), deployment)
+		logger.Debugf("Provisioning runner: %s for deployment %s", module.Name, deployment)
 		cron := false
 		http := false
 		for _, decl := range module.Decls {
@@ -93,17 +97,18 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			logger.Errorf(err, "failed to terminate previous deployments")
 		} else {
 			for _, dep := range deps {
-				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Deployment: deployment.String(), Event: &schemapb.ModuleRuntimeEvent{Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}))
+				cs := changeset.String()
+				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{DeploymentKey: deployment.String(), Changeset: cs, Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}))
 				if err != nil {
 					logger.Errorf(err, "failed to update deployment %s", dep)
 				}
 			}
 		}
 
-		logger.Debugf("Updating module runtime for %s with endpoint %s", module.Name, endpointURI)
-		dk := deployment.String()
+		logger.Infof("Updating module runtime for %s with endpoint %s and changeset %s", module.Name, endpointURI, changeset.String())
 		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{
-			DeploymentKey: dk,
+			Changeset:     changeset.String(),
+			DeploymentKey: deployment.String(),
 			Deployment: &schemapb.ModuleRuntimeDeployment{
 				DeploymentKey: deployment.String(),
 				Endpoint:      endpointURI,
@@ -111,10 +116,11 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			},
 		}}))
 		if err != nil {
-			return nil, fmt.Errorf("failed to update module runtime: %w", err)
+			return nil, fmt.Errorf("failed to update module runtime: %w  changeset: %s", err, changeset.String())
 		}
 		return &schema.ModuleRuntimeEvent{
 			DeploymentKey: deployment,
+			Changeset:     &changeset,
 			Deployment: optional.Some(schema.ModuleRuntimeDeployment{
 				DeploymentKey: deployment,
 				Endpoint:      endpointURI,

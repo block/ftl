@@ -14,6 +14,7 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -49,7 +50,7 @@ func (t *Task) Start(ctx context.Context) error {
 		previous = t.deployment.Previous.ToProto()
 	}
 
-	module, err := t.deployment.DeploymentState.GetProvisioning(t.module)
+	module, err := t.deployment.DeploymentState.GetProvisioning(t.module, t.deployment.Changeset)
 	if err != nil {
 		return fmt.Errorf("error getting module: %w", err)
 	}
@@ -59,6 +60,7 @@ func (t *Task) Start(ctx context.Context) error {
 		// TODO: We need a proper cluster specific ID here
 		FtlClusterId:   "ftl",
 		PreviousModule: previous,
+		Changeset:      t.deployment.Changeset.String(),
 		Kinds:          slices.Map(t.binding.Types, func(x schema.ResourceType) string { return string(x) }),
 	}))
 	if err != nil {
@@ -81,7 +83,7 @@ func (t *Task) Progress(ctx context.Context) error {
 	}
 
 	for {
-		module, err := t.deployment.DeploymentState.GetProvisioning(t.module)
+		module, err := t.deployment.DeploymentState.GetProvisioning(t.module, t.deployment.Changeset)
 		if err != nil {
 			return fmt.Errorf("error getting module: %w", err)
 		}
@@ -126,6 +128,7 @@ type Deployment struct {
 	DeploymentState *schemaservice.SchemaState
 	Previous        *schema.Module
 	EventHandler    func(event *schemapb.Event) error
+	Changeset       key.Changeset
 }
 
 // next running or pending task. Nil if all tasks are done.

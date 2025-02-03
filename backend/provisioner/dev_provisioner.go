@@ -15,6 +15,7 @@ import (
 	"github.com/block/ftl/common/strcase"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/dsn"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
 
@@ -30,7 +31,7 @@ func NewDevProvisioner(postgresPort int, mysqlPort int, recreate bool) *InMemPro
 	})
 }
 func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, res schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, moduleName string, res schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 
 		dbName := strcase.ToLowerSnake(moduleName) + "_" + strcase.ToLowerSnake(res.ResourceID())
@@ -57,6 +58,7 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 				}
 				return &schema.DatabaseRuntimeEvent{
 					Module:      moduleName,
+					Changeset:   changeset,
 					ID:          res.ResourceID(),
 					Connections: event,
 				}, nil
@@ -102,7 +104,7 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 
 func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionPostgres(15432, true)(ctx, moduleName, node)
+	event, err := provisionPostgres(15432, true)(ctx, key.NewChangesetKey(), moduleName, node)
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +114,7 @@ func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string)
 
 func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionMysql(13306, true)(ctx, moduleName, node)
+	event, err := provisionMysql(13306, true)(ctx, key.NewChangesetKey(), moduleName, node)
 	if err != nil {
 		return "", err
 	}
@@ -121,7 +123,7 @@ func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (s
 }
 
 func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, resource schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, moduleName string, resource schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 
 		dbName := strcase.ToLowerSnake(moduleName) + "_" + strcase.ToLowerSnake(resource.ResourceID())
@@ -171,8 +173,9 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 
 		dsn := dsn.PostgresDSN(dbName, dsn.Port(postgresPort))
 		return &schema.DatabaseRuntimeEvent{
-			ID:     resource.ResourceID(),
-			Module: moduleName,
+			ID:        resource.ResourceID(),
+			Module:    moduleName,
+			Changeset: changeset,
 			Connections: &schema.DatabaseRuntimeConnections{
 				Write: &schema.DSNDatabaseConnector{DSN: dsn},
 				Read:  &schema.DSNDatabaseConnector{DSN: dsn},
@@ -183,7 +186,7 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 }
 
 func provisionTopic() InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, res schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, moduleName string, res schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 		if err := dev.SetUpRedPanda(ctx); err != nil {
 			return nil, fmt.Errorf("could not set up redpanda: %w", err)
@@ -241,8 +244,9 @@ func provisionTopic() InMemResourceProvisionerFn {
 		}
 
 		return &schema.TopicRuntimeEvent{
-			Module: moduleName,
-			ID:     res.ResourceID(),
+			Module:    moduleName,
+			Changeset: changeset,
+			ID:        res.ResourceID(),
 			Payload: &schema.TopicRuntime{
 				KafkaBrokers: redPandaBrokers,
 				TopicID:      topicID,
@@ -252,7 +256,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 }
 
 func provisionSubscription() InMemResourceProvisionerFn {
-	return func(ctx context.Context, moduleName string, res schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, moduleName string, res schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 		verb, ok := res.(*schema.Verb)
 		if !ok {
@@ -261,8 +265,9 @@ func provisionSubscription() InMemResourceProvisionerFn {
 		for range slices.FilterVariants[*schema.MetadataSubscriber](verb.Metadata) {
 			logger.Infof("Provisioning subscription for verb: %s", verb.Name)
 			return &schema.VerbRuntimeEvent{
-				Module: moduleName,
-				ID:     verb.Name,
+				Module:    moduleName,
+				Changeset: changeset,
+				ID:        verb.Name,
 				Subscription: optional.Some(schema.VerbRuntimeSubscription{
 					KafkaBrokers: redPandaBrokers,
 				}),

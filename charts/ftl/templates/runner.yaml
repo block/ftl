@@ -64,6 +64,8 @@ data:
                   value: "{{ .Values.registry.repository }}"
                 - name: FTL_BIND
                   value: "http://0.0.0.0:{{ (index .Values.runner.ports 0).containerPort }}"
+                - name: FTL_SCHEMA_ENDPOINT
+                  value: http://ftl-schema:8892
                 - name: FTL_LEASE_ENDPOINT
                   value: http://ftl-lease:8892
                 - name: FTL_TIMELINE_ENDPOINT

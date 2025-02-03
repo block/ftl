@@ -329,6 +329,9 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				Infof("Starting ftl cluster")
 
 				command := []string{"serve", "--recreate"}
+				if os.Getenv("DEBUG") != "" {
+					command = append(command, "--log-level=DEBUG")
+				}
 				if opts.devMode {
 					command = []string{"dev"}
 				}

@@ -15,7 +15,9 @@ import (
 func TestEventExtractor(t *testing.T) {
 	now := time.Now()
 
-	parsed, err := key.ParseDeploymentKey("dpl-test-sjkfislfjslfas")
+	oldKey, err := key.ParseDeploymentKey("dpl-test-sjkfislfjslfas")
+	assert.NoError(t, err)
+	newKey, err := key.ParseDeploymentKey("dpl-test-sjkfislfjslfae")
 	assert.NoError(t, err)
 	tests := []struct {
 		name     string
@@ -27,14 +29,14 @@ func TestEventExtractor(t *testing.T) {
 			name:     "new deployment creates deployment event",
 			previous: SchemaState{},
 			current: SchemaState{
-				activeDeployments: map[string]key.Deployment{"test": parsed},
-				deployments: map[key.Deployment]*schema.Module{
-					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
+				deployments: map[string]*schema.Module{
+					"test": {
 						Name: "test",
 						Runtime: &schema.ModuleRuntime{
 							Base: schema.ModuleRuntimeBase{Language: "go"},
 							Deployment: &schema.ModuleRuntimeDeployment{
-								CreatedAt: now,
+								CreatedAt:     now,
+								DeploymentKey: newKey,
 							},
 						},
 					},
@@ -42,11 +44,12 @@ func TestEventExtractor(t *testing.T) {
 			},
 			want: []schema.Event{
 				&schema.DeploymentCreatedEvent{
-					Key: deploymentKey(t, "dpl-test-sjkfislfjslfas"),
+					Key: newKey,
 					Schema: &schema.Module{Name: "test", Runtime: &schema.ModuleRuntime{
 						Base: schema.ModuleRuntimeBase{Language: "go"},
 						Deployment: &schema.ModuleRuntimeDeployment{
-							CreatedAt: now,
+							CreatedAt:     now,
+							DeploymentKey: newKey,
 						},
 					}},
 				},
@@ -55,17 +58,17 @@ func TestEventExtractor(t *testing.T) {
 		{
 			name: "schema update creates schema updated event",
 			previous: SchemaState{
-				activeDeployments: map[string]key.Deployment{"test": parsed},
-				deployments: map[key.Deployment]*schema.Module{
-					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
-						Name: "test",
+				deployments: map[string]*schema.Module{
+					"test": {
+						Name:    "test",
+						Runtime: &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey}},
 					},
 				},
 			},
 			current: SchemaState{
-				activeDeployments: map[string]key.Deployment{"test": parsed},
-				deployments: map[key.Deployment]*schema.Module{
-					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
+				deployments: map[string]*schema.Module{
+					"test": {
+						Runtime:  &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey}},
 						Name:     "test",
 						Metadata: []schema.Metadata{&schema.MetadataArtefact{}},
 					},
@@ -73,55 +76,30 @@ func TestEventExtractor(t *testing.T) {
 			},
 			want: []schema.Event{
 				&schema.DeploymentSchemaUpdatedEvent{
-					Key:    deploymentKey(t, "dpl-test-sjkfislfjslfas"),
-					Schema: &schema.Module{Name: "test", Metadata: []schema.Metadata{&schema.MetadataArtefact{}}},
+					Key: deploymentKey(t, "dpl-test-sjkfislfjslfas"),
+					Schema: &schema.Module{Name: "test", Runtime: &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey}},
+						Metadata: []schema.Metadata{&schema.MetadataArtefact{}}},
 				},
 			},
 		},
 		{
-			name: "deactivated deployment creates deactivation event",
-			previous: SchemaState{
-				deployments: map[key.Deployment]*schema.Module{
-					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
-						Name: "test",
-					},
-				},
-				activeDeployments: map[string]key.Deployment{
-					"test": deploymentKey(t, "dpl-test-sjkfislfjslfas"),
-				},
-			},
-			current: SchemaState{
-				deployments: map[key.Deployment]*schema.Module{
-					deploymentKey(t, "dpl-test-sjkfislfjslfas"): {
-						Name: "test",
-					},
-				},
-				activeDeployments: map[string]key.Deployment{},
-			},
-			want: []schema.Event{
-				&schema.DeploymentDeactivatedEvent{
-					Key:           deploymentKey(t, "dpl-test-sjkfislfjslfas"),
-					ModuleRemoved: false,
-				},
-			},
-		}, {
 			name: "removing an active deployment creates module removed event",
 			previous: SchemaState{
-				deployments: map[key.Deployment]*schema.Module{
-					deploymentKey(t, "dpl-test-sjkfislfjslfaa"): {
+				deployments: map[string]*schema.Module{
+					"test": {
 						Name: "test",
+						Runtime: &schema.ModuleRuntime{
+							Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey},
+						},
 					},
-				},
-				activeDeployments: map[string]key.Deployment{
-					"test": deploymentKey(t, "dpl-test-sjkfislfjslfaa"),
 				},
 			},
 			current: SchemaState{
-				deployments: map[key.Deployment]*schema.Module{},
+				deployments: map[string]*schema.Module{},
 			},
 			want: []schema.Event{
 				&schema.DeploymentDeactivatedEvent{
-					Key:           deploymentKey(t, "dpl-test-sjkfislfjslfaa"),
+					Key:           oldKey,
 					ModuleRemoved: true,
 				},
 			},

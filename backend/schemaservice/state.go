@@ -7,7 +7,6 @@ import (
 	"maps"
 	"slices"
 	"sync"
-	"time"
 
 	"github.com/alecthomas/types/optional"
 	expmaps "golang.org/x/exp/maps"
@@ -22,28 +21,16 @@ import (
 )
 
 type SchemaState struct {
-	deployments map[key.Deployment]*schema.Module
-	// currently active deployments for a given module name. This represents the canonical state of the schema.
-	activeDeployments map[string]key.Deployment
-	changesets        map[key.Changeset]*ChangesetDetails
-	provisioning      map[string]key.Deployment
+	deployments       map[string]*schema.Module
+	changesets        map[key.Changeset]*schema.Changeset
+	validationEnabled bool // Huge hack to allow provisioner to use this for a single module
 }
 
-type ChangesetDetails struct {
-	Key         key.Changeset
-	CreatedAt   time.Time
-	Deployments []key.Deployment
-	State       schema.ChangesetState
-	// Error is present if state is failed.
-	Error string
-}
-
-func NewSchemaState() SchemaState {
+func NewSchemaState(validationEnbabled bool) SchemaState {
 	return SchemaState{
-		deployments:       map[key.Deployment]*schema.Module{},
-		activeDeployments: map[string]key.Deployment{},
-		changesets:        map[key.Changeset]*ChangesetDetails{},
-		provisioning:      map[string]key.Deployment{},
+		deployments:       map[string]*schema.Module{},
+		changesets:        map[key.Changeset]*schema.Changeset{},
+		validationEnabled: validationEnbabled,
 	}
 }
 
@@ -52,34 +39,16 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 	handle := statemachine.NewLocalHandle[struct{}, SchemaState, schema.Event](&schemaStateMachine{
 		notifier:   notifier,
 		runningCtx: ctx,
-		state:      NewSchemaState(),
+		state:      NewSchemaState(true),
 	})
 
 	return statemachine.NewSingleQueryHandle(handle, struct{}{})
 }
 
 func (r *SchemaState) Marshal() ([]byte, error) {
-	provisioning := []string{}
-	for _, v := range r.provisioning {
-		provisioning = append(provisioning, v.String())
-	}
-	activeDeployments := []string{}
-	for _, v := range r.activeDeployments {
-		activeDeployments = append(activeDeployments, v.String())
-	}
-	cs := []*schema.SerializedChangeset{}
-	for _, v := range r.changesets {
-		deps := []string{}
-		for _, v := range v.Deployments {
-			deps = append(deps, v.String())
-		}
-		cs = append(cs, &schema.SerializedChangeset{Key: v.Key.String(), CreatedAt: v.CreatedAt, Deployments: deps, State: v.State, Error: v.Error})
-	}
 	state := &schema.SchemaState{
-		Modules:             slices.Collect(maps.Values(r.deployments)),
-		Provisioning:        provisioning,
-		ActiveDeployments:   activeDeployments,
-		SerializedChangeset: cs,
+		Modules:    slices.Collect(maps.Values(r.deployments)),
+		Changesets: slices.Collect(maps.Values(r.changesets)),
 	}
 	stateProto := state.ToProto()
 	bytes, err := proto.Marshal(stateProto)
@@ -100,31 +69,28 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 		return fmt.Errorf("failed to unmarshal schema state: %w", err)
 	}
 	for _, module := range state.Modules {
-		dkey := module.GetRuntime().GetDeployment().GetDeploymentKey()
-		r.deployments[dkey] = module
+		r.deployments[module.Name] = module
 	}
-	for _, a := range state.ActiveDeployments {
-		deploymentKey, err := key.ParseDeploymentKey(a)
-		if err != nil {
-			return fmt.Errorf("failed to parse deployment key: %w", err)
-		}
-		r.activeDeployments[deploymentKey.Payload.Module] = deploymentKey
+	for _, a := range state.Changesets {
+		r.changesets[a.Key] = a
 	}
-	for _, a := range state.Provisioning {
-		deploymentKey, err := key.ParseDeploymentKey(a)
-		if err != nil {
-			return fmt.Errorf("failed to parse deployment key: %w", err)
-		}
-		r.provisioning[deploymentKey.Payload.Module] = deploymentKey
-	}
-
+	r.validationEnabled = true // it is never serialized if validation is not enabled
 	return nil
 }
 
 // GetDeployment returns a deployment based on the deployment key and changeset.
 func (r *SchemaState) GetDeployment(deployment key.Deployment, changeset optional.Option[key.Changeset]) (*schema.Module, error) {
-	//TODO: remove this
-	d, ok := r.deployments[deployment]
+	if key, ok := changeset.Get(); ok {
+		cs, ok := r.changesets[key]
+		if ok {
+			for _, m := range cs.Modules {
+				if m.GetRuntime().Deployment.DeploymentKey == deployment {
+					return m, nil
+				}
+			}
+		}
+	}
+	d, ok := r.deployments[deployment.Payload.Module]
 	if !ok {
 		return nil, fmt.Errorf("deployment %s not found", deployment)
 	}
@@ -137,32 +103,52 @@ func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *
 	// - deployment in ended changeset + canonical
 	// - deployment in ended changeset + main list but no longer canonical
 	// - deployment in failed changeset
-	d, ok := r.deployments[deploymentKey]
-	if ok {
+	d, ok := r.deployments[deploymentKey.Payload.Module]
+	if ok && d.Runtime.Deployment.DeploymentKey == deploymentKey {
 		return d, optional.None[key.Changeset](), nil
+	}
+	for _, cs := range r.changesets {
+		for _, d := range cs.Modules {
+			if d.GetRuntime().Deployment.DeploymentKey == deploymentKey {
+				return d, optional.Some[key.Changeset](cs.Key), nil
+			}
+		}
 	}
 	return nil, optional.None[key.Changeset](), fmt.Errorf("deployment %s not found", deploymentKey)
 }
 
 func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
-	return r.deployments
+	//TODO: do we need this method
+	ret := map[key.Deployment]*schema.Module{}
+	for _, d := range r.deployments {
+		ret[d.GetRuntime().Deployment.DeploymentKey] = d
+	}
+	for _, cs := range r.changesets {
+		for _, d := range cs.Modules {
+			ret[d.GetRuntime().Deployment.DeploymentKey] = d
+		}
+	}
+	return ret
 }
 
 // GetCanonicalDeployments returns all active deployments (excluding those in changesets).
 func (r *SchemaState) GetCanonicalDeployments() map[key.Deployment]*schema.Module {
 	deployments := map[key.Deployment]*schema.Module{}
-	for _, dep := range r.activeDeployments {
-		deployments[dep] = r.deployments[dep]
+	for _, dep := range r.deployments {
+		deployments[dep.GetRuntime().Deployment.DeploymentKey] = dep
 	}
 	return deployments
 }
 
-// GetAllActiveDeployments returns all active deployments, including those in changesets.
+// GetAllActiveDeployments returns all active deployments, including those in changesets that are prepared
+// This includes canary deployments that are not yet committed
 func (r *SchemaState) GetAllActiveDeployments() map[key.Deployment]*schema.Module {
 	deployments := r.GetCanonicalDeployments()
 	for _, cs := range r.changesets {
-		for _, dep := range cs.Deployments {
-			deployments[dep] = r.deployments[dep]
+		if cs.State == schema.ChangesetStatePrepared {
+			for _, dep := range cs.Modules {
+				deployments[dep.GetRuntime().Deployment.DeploymentKey] = dep
+			}
 		}
 	}
 	return deployments
@@ -172,12 +158,17 @@ func (r *SchemaState) GetCanonicalDeploymentSchemas() []*schema.Module {
 	return expmaps.Values(r.GetCanonicalDeployments())
 }
 
-func (r *SchemaState) GetProvisioning(moduleName string) (*schema.Module, error) {
-	d, ok := r.provisioning[moduleName]
+func (r *SchemaState) GetProvisioning(module string, cs key.Changeset) (*schema.Module, error) {
+	c, ok := r.changesets[cs]
 	if !ok {
-		return nil, fmt.Errorf("provisioning for module %s not found", moduleName)
+		return nil, fmt.Errorf("changeset %s not found", cs.String())
 	}
-	return r.deployments[d], nil
+	for _, m := range c.Modules {
+		if m.Name == module {
+			return m, nil
+		}
+	}
+	return nil, fmt.Errorf("provisioning for module %s not found", module)
 }
 
 type schemaStateMachine struct {
@@ -239,18 +230,4 @@ func (c *schemaStateMachine) Save(w io.Writer) error {
 		return fmt.Errorf("failed to write snapshot: %w", err)
 	}
 	return nil
-}
-
-func hydrateChangeset(current *SchemaState, changeset *ChangesetDetails) *schema.Changeset {
-	changesetModules := make([]*schema.Module, len(changeset.Deployments))
-	for i, deployment := range changeset.Deployments {
-		changesetModules[i] = current.deployments[deployment]
-	}
-	return &schema.Changeset{
-		Key:       changeset.Key,
-		CreatedAt: changeset.CreatedAt,
-		State:     changeset.State,
-		Modules:   changesetModules,
-		Error:     changeset.Error,
-	}
 }

@@ -27,7 +27,12 @@ export class ProvisionRequest extends Message<ProvisionRequest> {
   previousModule?: Module;
 
   /**
-   * @generated from field: repeated string kinds = 4;
+   * @generated from field: string changeset = 4;
+   */
+  changeset = "";
+
+  /**
+   * @generated from field: repeated string kinds = 5;
    */
   kinds: string[] = [];
 
@@ -42,7 +47,8 @@ export class ProvisionRequest extends Message<ProvisionRequest> {
     { no: 1, name: "ftl_cluster_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "desired_module", kind: "message", T: Module },
     { no: 3, name: "previous_module", kind: "message", T: Module },
-    { no: 4, name: "kinds", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "kinds", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProvisionRequest {

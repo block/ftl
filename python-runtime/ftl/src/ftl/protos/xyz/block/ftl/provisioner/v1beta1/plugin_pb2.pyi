@@ -9,16 +9,18 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ProvisionRequest(_message.Message):
-    __slots__ = ("ftl_cluster_id", "desired_module", "previous_module", "kinds")
+    __slots__ = ("ftl_cluster_id", "desired_module", "previous_module", "changeset", "kinds")
     FTL_CLUSTER_ID_FIELD_NUMBER: _ClassVar[int]
     DESIRED_MODULE_FIELD_NUMBER: _ClassVar[int]
     PREVIOUS_MODULE_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
     KINDS_FIELD_NUMBER: _ClassVar[int]
     ftl_cluster_id: str
     desired_module: _schema_pb2.Module
     previous_module: _schema_pb2.Module
+    changeset: str
     kinds: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, ftl_cluster_id: _Optional[str] = ..., desired_module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., previous_module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., kinds: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(self, ftl_cluster_id: _Optional[str] = ..., desired_module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., previous_module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., changeset: _Optional[str] = ..., kinds: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class ProvisionResponse(_message.Message):
     __slots__ = ("provisioning_token", "status")

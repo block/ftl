@@ -3,9 +3,13 @@ package schemaservice
 import (
 	"context"
 	"fmt"
+	slices2 "slices"
 
 	"github.com/alecthomas/types/optional"
+	"golang.org/x/exp/maps"
 
+	"github.com/block/ftl/common/errors"
+	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
@@ -20,16 +24,10 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 		return fmt.Errorf("invalid event: %w", err)
 	}
 	switch e := event.(type) {
-	case *schema.DeploymentCreatedEvent:
-		return handleDeploymentCreatedEvent(r, e)
 	case *schema.DeploymentSchemaUpdatedEvent:
 		return handleDeploymentSchemaUpdatedEvent(r, e)
 	case *schema.DeploymentReplicasUpdatedEvent:
 		return handleDeploymentReplicasUpdatedEvent(r, e)
-	case *schema.DeploymentActivatedEvent:
-		return handleDeploymentActivatedEvent(r, e)
-	case *schema.DeploymentDeactivatedEvent:
-		return handleDeploymentDeactivatedEvent(r, e)
 	case *schema.VerbRuntimeEvent:
 		return handleVerbRuntimeEvent(r, e)
 	case *schema.TopicRuntimeEvent:
@@ -37,9 +35,7 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 	case *schema.DatabaseRuntimeEvent:
 		return handleDatabaseRuntimeEvent(r, e)
 	case *schema.ModuleRuntimeEvent:
-		return handleModuleRuntimeEvent(r, e)
-	case *schema.ProvisioningCreatedEvent:
-		return handleProvisioningCreatedEvent(r, e)
+		return handleModuleRuntimeEvent(ctx, r, e)
 	case *schema.ChangesetCreatedEvent:
 		return handleChangesetCreatedEvent(r, e)
 	case *schema.ChangesetPreparedEvent:
@@ -53,25 +49,27 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 	}
 }
 
-func handleDeploymentCreatedEvent(t SchemaState, e *schema.DeploymentCreatedEvent) error {
-	if existing := t.deployments[e.Key]; existing != nil {
-		return nil
-	}
-	t.deployments[e.Key] = e.Schema
-	return nil
-}
-
 func handleDeploymentSchemaUpdatedEvent(t SchemaState, e *schema.DeploymentSchemaUpdatedEvent) error {
-	_, ok := t.deployments[e.Key]
-	if !ok {
-		return fmt.Errorf("deployment %s not found", e.Key)
+	if e.Changeset.IsZero() {
+		// The only reason this is optional is for event extract reasons that should change when it is refactored
+		return fmt.Errorf("changeset is required")
 	}
-	t.deployments[e.Key] = e.Schema
-	return nil
+	cs, ok := t.changesets[e.Changeset]
+	if !ok {
+		return fmt.Errorf("changeset %s not found", e.Key)
+	}
+	for i, m := range cs.Modules {
+		if m.Name == e.Schema.Name {
+			cs.Modules[i] = e.Schema
+			return nil
+		}
+	}
+
+	return fmt.Errorf("module %s not found in changeset %s", e.Schema.Name, e.Changeset)
 }
 
 func handleDeploymentReplicasUpdatedEvent(t SchemaState, e *schema.DeploymentReplicasUpdatedEvent) error {
-	existing, ok := t.deployments[e.Key]
+	existing, ok := t.deployments[e.Key.Payload.Module]
 	if !ok {
 		return fmt.Errorf("deployment %s not found", e.Key)
 	}
@@ -79,31 +77,8 @@ func handleDeploymentReplicasUpdatedEvent(t SchemaState, e *schema.DeploymentRep
 	return nil
 }
 
-func handleDeploymentActivatedEvent(t SchemaState, e *schema.DeploymentActivatedEvent) error {
-	existing, ok := t.deployments[e.Key]
-	if !ok {
-		return fmt.Errorf("deployment %s not found", e.Key)
-	}
-	existing.ModRuntime().ModDeployment().ActivatedAt = optional.Some(e.ActivatedAt)
-	existing.ModRuntime().ModScaling().MinReplicas = int32(e.MinReplicas)
-	t.activeDeployments[existing.Name] = e.Key
-	return nil
-}
-
-func handleDeploymentDeactivatedEvent(t SchemaState, e *schema.DeploymentDeactivatedEvent) error {
-	existing, ok := t.deployments[e.Key]
-	if !ok {
-		return fmt.Errorf("deployment %s not found", e.Key)
-	}
-	existing.ModRuntime().ModScaling().MinReplicas = 0
-	if t.activeDeployments[existing.Name] == e.Key {
-		delete(t.activeDeployments, existing.Name)
-	}
-	return nil
-}
-
 func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
-	m, err := provisioningModule(&t, e.Module)
+	m, err := t.GetProvisioning(e.Module, e.Changeset)
 	if err != nil {
 		return err
 	}
@@ -124,20 +99,8 @@ func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
 	return nil
 }
 
-func provisioningModule(t *SchemaState, module string) (*schema.Module, error) {
-	d, ok := t.provisioning[module]
-	if !ok {
-		return nil, fmt.Errorf("module %s not found", module)
-	}
-	m, ok := t.deployments[d]
-	if !ok {
-		return nil, fmt.Errorf("deployment %s not found", d)
-	}
-	return m, nil
-}
-
 func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) error {
-	m, err := provisioningModule(&t, e.Module)
+	m, err := t.GetProvisioning(e.Module, e.Changeset)
 	if err != nil {
 		return err
 	}
@@ -151,7 +114,7 @@ func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) error {
 }
 
 func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) error {
-	m, err := provisioningModule(&t, e.Module)
+	m, err := t.GetProvisioning(e.Module, e.Changeset)
 	if err != nil {
 		return err
 	}
@@ -167,8 +130,22 @@ func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) e
 	return fmt.Errorf("database %s not found", e.ID)
 }
 
-func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) error {
-	module := t.deployments[e.DeploymentKey]
+func handleModuleRuntimeEvent(ctx context.Context, t SchemaState, e *schema.ModuleRuntimeEvent) error {
+	var module *schema.Module
+	if e.Changeset != nil {
+		cs := t.changesets[*e.Changeset]
+		if cs == nil {
+			return fmt.Errorf("changeset %s not found", *e.Changeset)
+		}
+		for _, m := range cs.Modules {
+			if m.Runtime.Deployment.DeploymentKey == e.DeploymentKey {
+				module = m
+				break
+			}
+		}
+	} else {
+		module = t.deployments[e.DeploymentKey.Payload.Module]
+	}
 	if module == nil {
 		return fmt.Errorf("deployment %s not found", e.Deployment)
 	}
@@ -188,30 +165,31 @@ func handleModuleRuntimeEvent(t SchemaState, e *schema.ModuleRuntimeEvent) error
 				return fmt.Errorf("invalid state transition from %d to %d", module.Runtime.Deployment.State, deployment.State)
 			}
 		}
+		log.FromContext(ctx).Debugf("deployment %s state change %v -> %v", module.Name, module.Runtime.Deployment, deployment)
 		module.ModRuntime().Deployment = &deployment
 	}
 	return nil
 }
 
-func handleProvisioningCreatedEvent(t SchemaState, e *schema.ProvisioningCreatedEvent) error {
-	t.deployments[e.DesiredModule.Runtime.Deployment.DeploymentKey] = e.DesiredModule
-	t.provisioning[e.DesiredModule.Name] = e.DesiredModule.Runtime.Deployment.DeploymentKey
-	return nil
-}
-
 func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent) error {
 	if existing := t.changesets[e.Changeset.Key]; existing != nil {
-		return nil
+		return fmt.Errorf("changeset %s already exists ", e.Changeset.Key)
 	}
-	if e.Changeset.State == schema.ChangesetStatePreparing {
-		if active, ok := t.ActiveChangeset().Get(); ok {
-			// TODO: make unit test for this
-			// TODO: how does error handling work here? Does the changeset need to be added but immediately failed? Or is this error propagated to the caller?
-			return fmt.Errorf("can not create active changeset: %s already active", active.Key)
+	existingModules := map[string]key.Changeset{}
+	for _, cs := range t.changesets {
+
+		if cs.State == schema.ChangesetStatePreparing ||
+			cs.State == schema.ChangesetStatePrepared {
+			//TODO: at the moment changesets accumulate forever...
+			for _, mod := range cs.Modules {
+				existingModules[mod.Name] = cs.Key
+			}
 		}
 	}
-	deployments := []key.Deployment{}
 	for _, mod := range e.Changeset.Modules {
+		if cs, ok := existingModules[mod.Name]; ok {
+			return fmt.Errorf("module %s is already being updated in changeset %s", mod.Name, cs.String())
+		}
 		if mod.Runtime == nil {
 			return fmt.Errorf("module %s has no runtime", mod.Name)
 		}
@@ -227,18 +205,24 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 		if mod.Runtime.Deployment.State != schema.DeploymentStateProvisioning {
 			return fmt.Errorf("module %s is not in correct state", mod.Name)
 		}
-		deploymentKey := mod.Runtime.Deployment.DeploymentKey
-		deployments = append(deployments, deploymentKey)
-		t.deployments[deploymentKey] = mod
-		t.provisioning[mod.Name] = deploymentKey
+
 	}
-	t.changesets[e.Changeset.Key] = &ChangesetDetails{
-		Key:         e.Changeset.Key,
-		CreatedAt:   e.Changeset.CreatedAt,
-		Deployments: deployments,
-		State:       e.Changeset.State,
-		Error:       e.Changeset.Error,
+	if t.validationEnabled {
+
+		sch := &schema.Schema{Modules: maps.Values(t.deployments)}
+		merged := latestSchema(sch, e.Changeset)
+		problems := []error{}
+		for _, mod := range e.Changeset.Modules {
+			_, err := schema.ValidateModuleInSchema(merged, optional.Some(mod))
+			if err != nil {
+				problems = append(problems, fmt.Errorf("module %s is not valid: %w", mod.Name, err))
+			}
+		}
+		if len(problems) > 0 {
+			return fmt.Errorf("changest failed validation %w", errors.Join(problems...))
+		}
 	}
+	t.changesets[e.Changeset.Key] = e.Changeset
 	return nil
 }
 
@@ -247,17 +231,19 @@ func handleChangesetPreparedEvent(t SchemaState, e *schema.ChangesetPreparedEven
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
 	}
-	for _, depName := range changeset.Deployments {
-		dep := t.deployments[depName]
+	for _, dep := range changeset.Modules {
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateReady {
-			return fmt.Errorf("deployment %s is not in correct state %d", depName, dep.ModRuntime().ModDeployment().State)
+			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
+		}
+		if dep.ModRuntime().ModDeployment().Endpoint == "" {
+			return fmt.Errorf("deployment %s has no endpoint", dep.Name)
 		}
 	}
 	changeset.State = schema.ChangesetStatePrepared
 	// TODO: what does this actually mean? Worry about it when we start implementing canaries, but it will be clunky
 	// If everything that cares about canaries needs to scan for prepared changesets
-	for _, depName := range changeset.Deployments {
-		t.deployments[depName].Runtime.Deployment.State = schema.DeploymentStateCanary
+	for _, dep := range changeset.Modules {
+		dep.Runtime.Deployment.State = schema.DeploymentStateCanary
 	}
 	return nil
 }
@@ -268,19 +254,16 @@ func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema
 		return fmt.Errorf("changeset %s not found", e.Key)
 	}
 
-	for _, depName := range changeset.Deployments {
-		dep := t.deployments[depName]
+	for _, dep := range changeset.Modules {
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateCanary {
-			return fmt.Errorf("deployment %s is not in correct state %d", depName, dep.ModRuntime().ModDeployment().State)
+			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
 		}
 	}
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
-	for _, depName := range changeset.Deployments {
-		logger.Debugf("activating deployment %s", t.deployments[depName].GetRuntime().GetDeployment().Endpoint)
-		dep := t.deployments[depName]
-		t.activeDeployments[dep.Name] = depName
-		// We need proper cleanup
+	for _, dep := range changeset.Modules {
+		logger.Debugf("activating deployment %s", dep.GetRuntime().GetDeployment().Endpoint)
+		t.deployments[dep.Name] = dep
 	}
 	return nil
 }
@@ -293,4 +276,17 @@ func handleChangesetFailedEvent(t SchemaState, e *schema.ChangesetFailedEvent) e
 	changeset.State = schema.ChangesetStateFailed
 	changeset.Error = e.Error
 	return nil
+}
+
+// latest schema calculates the latest schema by applying active deployments in changeset to the canonical schema.
+func latestSchema(canonical *schema.Schema, changeset *schema.Changeset) *schema.Schema {
+	sch := reflect.DeepCopy(canonical)
+	for _, module := range changeset.Modules {
+		if i := slices2.IndexFunc(sch.Modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
+			sch.Modules[i] = module
+		} else {
+			sch.Modules = append(sch.Modules, module)
+		}
+	}
+	return sch
 }

@@ -31,6 +31,11 @@ var _ Event = (*TopicRuntimeEvent)(nil)
 var _ Event = (*DatabaseRuntimeEvent)(nil)
 var _ Event = (*ModuleRuntimeEvent)(nil)
 
+var _ Event = (*ChangesetCreatedEvent)(nil)
+var _ Event = (*ChangesetPreparedEvent)(nil)
+var _ Event = (*ChangesetCommittedEvent)(nil)
+var _ Event = (*ChangesetFailedEvent)(nil)
+
 //protobuf:1
 type DeploymentCreatedEvent struct {
 	Key       key.Deployment `protobuf:"1"`
@@ -51,7 +56,7 @@ func (r *DeploymentCreatedEvent) Validate() error {
 type DeploymentSchemaUpdatedEvent struct {
 	Key       key.Deployment `protobuf:"1"`
 	Schema    *Module        `protobuf:"2"`
-	Changeset *key.Changeset `protobuf:"3"`
+	Changeset key.Changeset  `protobuf:"3"`
 }
 
 func (r *DeploymentSchemaUpdatedEvent) event() {}
@@ -103,9 +108,10 @@ func (r *DeploymentDeactivatedEvent) Validate() error {
 //protobuf:6
 type VerbRuntimeEvent struct {
 	Module       string                                   `protobuf:"1"`
-	ID           string                                   `protobuf:"2"`
-	Base         optional.Option[VerbRuntimeBase]         `protobuf:"3"`
-	Subscription optional.Option[VerbRuntimeSubscription] `protobuf:"4"`
+	Changeset    key.Changeset                            `protobuf:"2"`
+	ID           string                                   `protobuf:"3"`
+	Base         optional.Option[VerbRuntimeBase]         `protobuf:"4"`
+	Subscription optional.Option[VerbRuntimeSubscription] `protobuf:"5"`
 }
 
 func (e *VerbRuntimeEvent) event() {}
@@ -116,9 +122,10 @@ func (e *VerbRuntimeEvent) Validate() error {
 
 //protobuf:7
 type TopicRuntimeEvent struct {
-	Module  string        `protobuf:"1"`
-	ID      string        `protobuf:"2"`
-	Payload *TopicRuntime `protobuf:"3"`
+	Module    string        `protobuf:"1"`
+	Changeset key.Changeset `protobuf:"2"`
+	ID        string        `protobuf:"3"`
+	Payload   *TopicRuntime `protobuf:"4"`
 }
 
 func (e *TopicRuntimeEvent) event() {}
@@ -130,8 +137,9 @@ func (e *TopicRuntimeEvent) Validate() error {
 //protobuf:8
 type DatabaseRuntimeEvent struct {
 	Module      string                      `protobuf:"1"`
-	ID          string                      `protobuf:"2"`
-	Connections *DatabaseRuntimeConnections `protobuf:"3"`
+	Changeset   key.Changeset               `protobuf:"2"`
+	ID          string                      `protobuf:"3"`
+	Connections *DatabaseRuntimeConnections `protobuf:"4"`
 }
 
 func (e *DatabaseRuntimeEvent) event() {}
@@ -143,25 +151,15 @@ func (e *DatabaseRuntimeEvent) Validate() error {
 //protobuf:9
 type ModuleRuntimeEvent struct {
 	DeploymentKey key.Deployment                           `protobuf:"1"`
-	Base          optional.Option[ModuleRuntimeBase]       `protobuf:"2"`
-	Scaling       optional.Option[ModuleRuntimeScaling]    `protobuf:"3"`
-	Deployment    optional.Option[ModuleRuntimeDeployment] `protobuf:"4"`
+	Changeset     *key.Changeset                           `protobuf:"2"`
+	Base          optional.Option[ModuleRuntimeBase]       `protobuf:"3"`
+	Scaling       optional.Option[ModuleRuntimeScaling]    `protobuf:"4"`
+	Deployment    optional.Option[ModuleRuntimeDeployment] `protobuf:"5"`
 }
 
 func (e *ModuleRuntimeEvent) event() {}
 
 func (e *ModuleRuntimeEvent) Validate() error {
-	return nil
-}
-
-//protobuf:10
-type ProvisioningCreatedEvent struct {
-	DesiredModule *Module `protobuf:"1"`
-}
-
-func (e *ProvisioningCreatedEvent) event() {}
-
-func (e *ProvisioningCreatedEvent) Validate() error {
 	return nil
 }
 
