@@ -24,7 +24,6 @@ func TestProfile(t *testing.T) {
 		Realm:         "test",
 		FTLMinVersion: ftl.Version,
 		ModuleRoots:   []string{"."},
-		NoGit:         true,
 	}
 	sr := providers.NewRegistry[configuration.Secrets]()
 	sr.Register(providers.NewInlineFactory[configuration.Secrets]())
@@ -48,7 +47,6 @@ func TestProfile(t *testing.T) {
 		Realm:          "test",
 		FTLMinVersion:  ftl.Version,
 		ModuleRoots:    []string{"."},
-		NoGit:          true,
 		DefaultProfile: "local",
 	}, profile.ProjectConfig())
 

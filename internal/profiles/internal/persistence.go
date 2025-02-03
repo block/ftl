@@ -56,7 +56,8 @@ type Project struct {
 	Realm          string   `json:"realm"`
 	FTLMinVersion  string   `json:"ftl-min-version,omitempty"`
 	ModuleRoots    []string `json:"module-roots,omitempty"`
-	NoGit          bool     `json:"no-git,omitempty"`
+	Git            bool     `json:"git,omitempty"`
+	Hermit         bool     `json:"hermit,omitempty"`
 	DefaultProfile string   `json:"default-profile,omitempty"`
 
 	Root string `json:"-"`
