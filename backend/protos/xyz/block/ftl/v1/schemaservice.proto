@@ -123,7 +123,23 @@ message CommitChangesetRequest {
   string changeset = 1;
 }
 
-message CommitChangesetResponse {}
+message CommitChangesetResponse {
+  ftl.schema.v1.Changeset changeset = 1;
+}
+
+message DrainChangesetRequest {
+  // The changeset key to commit.
+  string changeset = 1;
+}
+
+message DrainChangesetResponse {}
+
+message DeProvisionChangesetRequest {
+  // The changeset key to commit.
+  string changeset = 1;
+}
+
+message DeProvisionChangesetResponse {}
 
 message FailChangesetRequest {
   // The changeset key to fail.
@@ -177,6 +193,8 @@ service SchemaService {
   // CommitChangeset makes all deployments for the changeset part of the canonical schema.
   rpc CommitChangeset(CommitChangesetRequest) returns (CommitChangesetResponse);
 
+  rpc DrainChangeset(DrainChangesetRequest) returns (DrainChangesetResponse);
+  rpc DeProvisionChangeset(DeProvisionChangesetRequest) returns (DeProvisionChangesetResponse);
   // FailChangeset fails an active changeset.
   rpc FailChangeset(FailChangesetRequest) returns (FailChangesetResponse);
   // GetDeployment gets a deployment by deployment key

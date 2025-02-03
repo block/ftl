@@ -152,6 +152,28 @@ class CommitChangesetRequest(_message.Message):
     def __init__(self, changeset: _Optional[str] = ...) -> None: ...
 
 class CommitChangesetResponse(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: _schema_pb2.Changeset
+    def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
+
+class DrainChangesetRequest(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: str
+    def __init__(self, changeset: _Optional[str] = ...) -> None: ...
+
+class DrainChangesetResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class DeProvisionChangesetRequest(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: str
+    def __init__(self, changeset: _Optional[str] = ...) -> None: ...
+
+class DeProvisionChangesetResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 

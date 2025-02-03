@@ -14,6 +14,8 @@ const (
 	ChangesetStatePrepared
 	ChangesetStateCleaningUp
 	ChangesetStateCommitted
+	ChangesetStateDrained
+	ChangesetStateDeProvisioned
 	ChangesetStateRollingBack
 	ChangesetStateFailed
 )

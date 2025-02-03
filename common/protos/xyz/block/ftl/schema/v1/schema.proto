@@ -56,6 +56,14 @@ message ChangesetCreatedEvent {
   Changeset changeset = 1;
 }
 
+message ChangesetDeProvisionedEvent {
+  string key = 1;
+}
+
+message ChangesetDrainedEvent {
+  string key = 1;
+}
+
 message ChangesetFailedEvent {
   string key = 1;
   string error = 2;
@@ -71,8 +79,10 @@ enum ChangesetState {
   CHANGESET_STATE_PREPARED = 2;
   CHANGESET_STATE_CLEANING_UP = 3;
   CHANGESET_STATE_COMMITTED = 4;
-  CHANGESET_STATE_ROLLING_BACK = 5;
-  CHANGESET_STATE_FAILED = 6;
+  CHANGESET_STATE_DRAINED = 5;
+  CHANGESET_STATE_DE_PROVISIONED = 6;
+  CHANGESET_STATE_ROLLING_BACK = 7;
+  CHANGESET_STATE_FAILED = 8;
 }
 
 message Config {
@@ -206,9 +216,11 @@ message EnumVariant {
 message Event {
   oneof value {
     ChangesetCommittedEvent changeset_committed_event = 12;
-    ChangesetCreatedEvent changeset_created_event = 11;
-    ChangesetFailedEvent changeset_failed_event = 14;
-    ChangesetPreparedEvent changeset_prepared_event = 13;
+    ChangesetCreatedEvent changeset_created_event = 10;
+    ChangesetDeProvisionedEvent changeset_de_provisioned_event = 14;
+    ChangesetDrainedEvent changeset_drained_event = 13;
+    ChangesetFailedEvent changeset_failed_event = 15;
+    ChangesetPreparedEvent changeset_prepared_event = 11;
     DatabaseRuntimeEvent database_runtime_event = 8;
     DeploymentActivatedEvent deployment_activated_event = 4;
     DeploymentCreatedEvent deployment_created_event = 1;
