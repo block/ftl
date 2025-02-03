@@ -21,16 +21,18 @@ import (
 )
 
 type SchemaState struct {
-	deployments       map[string]*schema.Module
-	changesets        map[key.Changeset]*schema.Changeset
-	validationEnabled bool // Huge hack to allow provisioner to use this for a single module
+	deployments        map[string]*schema.Module
+	changesets         map[key.Changeset]*schema.Changeset
+	validationEnabled  bool // Huge hack to allow provisioner to use this for a single module
+	archivedChangesets []*schema.Changeset
 }
 
-func NewSchemaState(validationEnbabled bool) SchemaState {
+func NewSchemaState(validationEnabled bool) SchemaState {
 	return SchemaState{
-		deployments:       map[string]*schema.Module{},
-		changesets:        map[key.Changeset]*schema.Changeset{},
-		validationEnabled: validationEnbabled,
+		deployments:        map[string]*schema.Module{},
+		changesets:         map[key.Changeset]*schema.Changeset{},
+		archivedChangesets: []*schema.Changeset{},
+		validationEnabled:  validationEnabled,
 	}
 }
 
@@ -46,9 +48,11 @@ func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle
 }
 
 func (r *SchemaState) Marshal() ([]byte, error) {
+	changesets := slices.Collect(maps.Values(r.changesets))
+	changesets = append(changesets, r.archivedChangesets...)
 	state := &schema.SchemaState{
 		Modules:    slices.Collect(maps.Values(r.deployments)),
-		Changesets: slices.Collect(maps.Values(r.changesets)),
+		Changesets: changesets,
 	}
 	stateProto := state.ToProto()
 	bytes, err := proto.Marshal(stateProto)
@@ -72,7 +76,11 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 		r.deployments[module.Name] = module
 	}
 	for _, a := range state.Changesets {
-		r.changesets[a.Key] = a
+		if a.State == schema.ChangesetStateDeProvisioned || a.State == schema.ChangesetStateFailed {
+			r.archivedChangesets = append(r.archivedChangesets, a)
+		} else {
+			r.changesets[a.Key] = a
+		}
 	}
 	r.validationEnabled = true // it is never serialized if validation is not enabled
 	return nil

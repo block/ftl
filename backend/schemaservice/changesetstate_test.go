@@ -149,8 +149,28 @@ func TestChangesetState(t *testing.T) {
 		csd := changeset(t, view)
 		assert.Equal(t, schema.ChangesetStateCommitted, csd.State)
 		assert.Equal(t, 1, len(view.GetCanonicalDeployments()))
-
 	})
+
+	t.Run("test archive first changeset", func(t *testing.T) {
+		err = state.Publish(ctx, &schema.ChangesetDrainedEvent{
+			Key: changesetKey,
+		})
+		assert.NoError(t, err)
+		view, err = state.View(ctx)
+		assert.NoError(t, err)
+		csd := changeset(t, view)
+		assert.Equal(t, schema.ChangesetStateDrained, csd.State)
+		assert.Equal(t, 1, len(view.GetChangesets()))
+
+		err = state.Publish(ctx, &schema.ChangesetDeProvisionedEvent{
+			Key: changesetKey,
+		})
+		assert.NoError(t, err)
+		view, err = state.View(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(view.GetChangesets()))
+	})
+
 }
 
 func changeset(t *testing.T, view schemaservice.SchemaState) *schema.Changeset {
