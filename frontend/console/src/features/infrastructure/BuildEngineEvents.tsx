@@ -107,9 +107,11 @@ const EventContent = ({ event }: { event: EngineEvent }) => {
 }
 
 export const BuildEngineEvents = ({ events }: BuildEngineEventsProps) => {
+  const reversedEvents = [...events].reverse()
+
   return (
     <div className='overflow-x-hidden w-full'>
-      <List items={events} renderItem={(event) => <EventContent event={event} />} className='text-xs w-full' />
+      <List items={reversedEvents} renderItem={(event) => <EventContent event={event} />} className='text-xs w-full' />
     </div>
   )
 }
