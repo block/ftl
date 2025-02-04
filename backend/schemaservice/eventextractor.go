@@ -32,9 +32,10 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 	for _, changeset := range allChangesets {
 		pc, ok := previousAllChangesets[changeset.Key]
 		if ok {
-			csEvents := current.changesetEvents[changeset.Key]
-			prEvents := previous.changesetEvents[changeset.Key]
+
 			if changeset.ModulesAreCanonical() {
+				csEvents := current.changesetEvents[changeset.Key]
+				prEvents := previous.changesetEvents[changeset.Key]
 				for _, dep := range changeset.Modules {
 					handledDeployments[dep.Runtime.Deployment.DeploymentKey] = true
 				}
@@ -94,13 +95,18 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 			})
 		}
 	}
+	disappearedDeployments := map[key.Deployment]bool{}
+	for _, v := range previousAllDeployments {
+		disappearedDeployments[v.Runtime.Deployment.DeploymentKey] = true
+	}
 
-	for key, deployment := range current.GetAllActiveDeployments() {
-		if handledDeployments[key] {
+	for dplKey, deployment := range current.GetAllActiveDeployments() {
+		delete(disappearedDeployments, dplKey)
+		if handledDeployments[dplKey] {
 			// Already handled in the changeset
 			continue
 		}
-		pd, ok := previousAllDeployments[key]
+		_, ok := previousAllDeployments[dplKey]
 		if !ok {
 			// We have lost the changeset that created this, this should only happen
 			// if the changeset was deleted as part of raft cleanup.
@@ -111,29 +117,33 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 					},
 				},
 			})
-		} else if !pd.Equals(deployment) {
-			// TODO: this seems super inefficient, we should not need to do equality checks on every deployment
-			events = append(events, &schema.DeploymentSchemaUpdatedEvent{
-				Key:    key,
-				Schema: deployment,
-			})
+		} else {
+			// Check for runtime events
+			csEvents := current.deploymentEvents[deployment.Name] // These are keyed by module name, but we know this is the same deployment
+			prEvents := previous.deploymentEvents[deployment.Name]
+			// Use the event list length to check for changes, and send updated events
+			if len(csEvents) > len(prEvents) {
+				events = append(events, &ftlv1.PullSchemaResponse{
+					Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
+						DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
+							Schema: deployment.ToProto(),
+						},
+					},
+				})
+			}
 		}
+	}
+	for k := range disappearedDeployments {
+		deplKey := k.String()
+		events = append(events, &ftlv1.PullSchemaResponse{
+			Event: &ftlv1.PullSchemaResponse_DeploymentRemoved_{
+				DeploymentRemoved: &ftlv1.PullSchemaResponse_DeploymentRemoved{
+					Key:        &deplKey,
+					ModuleName: k.Payload.Module,
+				},
+			},
+		})
 	}
 
-	currentActive := current.GetCanonicalDeployments()
-	currentAll := current.GetDeployments()
-	currentModules := map[string]bool{}
-	for _, deployment := range currentAll {
-		currentModules[deployment.Name] = true
-	}
-	for key, deployment := range previous.GetCanonicalDeployments() {
-		if _, ok := currentActive[key]; !ok {
-			_, ok2 := currentModules[deployment.Name]
-			events = append(events, &schema.DeploymentDeactivatedEvent{
-				Key:           key,
-				ModuleRemoved: !ok2,
-			})
-		}
-	}
 	return iterops.Const(events...)
 }

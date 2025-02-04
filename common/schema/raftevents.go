@@ -150,15 +150,15 @@ type VerbRuntimeEvent struct {
 	Subscription optional.Option[VerbRuntimeSubscription] `protobuf:"4"`
 }
 
-func (x *VerbRuntimeEvent) DeploymentKey() key.Deployment {
-	return x.Deployment
+func (e *VerbRuntimeEvent) DeploymentKey() key.Deployment {
+	return e.Deployment
 }
 
-func (x *VerbRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
-	return optional.Ptr(x.Changeset)
+func (e *VerbRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
+	return optional.Ptr(e.Changeset)
 }
 
-func (x *VerbRuntimeEvent) runtimeEvent() {
+func (e *VerbRuntimeEvent) runtimeEvent() {
 
 }
 
@@ -180,15 +180,15 @@ type TopicRuntimeEvent struct {
 	Payload    *TopicRuntime  `protobuf:"4"`
 }
 
-func (x *TopicRuntimeEvent) DeploymentKey() key.Deployment {
-	return x.Deployment
+func (e *TopicRuntimeEvent) DeploymentKey() key.Deployment {
+	return e.Deployment
 }
 
-func (x *TopicRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
-	return optional.Ptr(x.Changeset)
+func (e *TopicRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
+	return optional.Ptr(e.Changeset)
 }
 
-func (x *TopicRuntimeEvent) runtimeEvent() {
+func (e *TopicRuntimeEvent) runtimeEvent() {
 }
 
 func (e *TopicRuntimeEvent) DebugString() string {
@@ -209,15 +209,15 @@ type DatabaseRuntimeEvent struct {
 	Connections *DatabaseRuntimeConnections `protobuf:"4"`
 }
 
-func (x *DatabaseRuntimeEvent) DeploymentKey() key.Deployment {
-	return x.Deployment
+func (e *DatabaseRuntimeEvent) DeploymentKey() key.Deployment {
+	return e.Deployment
 }
 
-func (x *DatabaseRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
-	return optional.Ptr(x.Changeset)
+func (e *DatabaseRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
+	return optional.Ptr(e.Changeset)
 }
 
-func (x *DatabaseRuntimeEvent) runtimeEvent() {
+func (e *DatabaseRuntimeEvent) runtimeEvent() {
 }
 
 func (e *DatabaseRuntimeEvent) DebugString() string {
@@ -239,15 +239,15 @@ type ModuleRuntimeEvent struct {
 	Deployment optional.Option[ModuleRuntimeDeployment] `protobuf:"5"`
 }
 
-func (x *ModuleRuntimeEvent) DeploymentKey() key.Deployment {
-	return x.Key
+func (e *ModuleRuntimeEvent) DeploymentKey() key.Deployment {
+	return e.Key
 }
 
-func (x *ModuleRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
-	return optional.Ptr(x.Changeset)
+func (e *ModuleRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
+	return optional.Ptr(e.Changeset)
 }
 
-func (x *ModuleRuntimeEvent) runtimeEvent() {
+func (e *ModuleRuntimeEvent) runtimeEvent() {
 }
 
 func (e *ModuleRuntimeEvent) DebugString() string {

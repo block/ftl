@@ -356,7 +356,7 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 				more:    more,
 			})
 		case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
-			key, err := key.ParseChangesetKey(event.ChangesetCommitted.Key)
+			key, err := key.ParseChangesetKey(event.ChangesetCommitted.Changeset.Key)
 			if err != nil {
 				return fmt.Errorf("invalid changeset key: %w", err)
 			}

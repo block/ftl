@@ -7,7 +7,10 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/tuple"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 )
@@ -23,7 +26,7 @@ func TestEventExtractor(t *testing.T) {
 		name     string
 		previous SchemaState
 		current  SchemaState
-		want     []schema.Event
+		want     []*ftlv1.PullSchemaResponse
 	}{
 		{
 			name:     "new deployment creates deployment event",
@@ -42,16 +45,19 @@ func TestEventExtractor(t *testing.T) {
 					},
 				},
 			},
-			want: []schema.Event{
-				&schema.DeploymentCreatedEvent{
-					Key: newKey,
-					Schema: &schema.Module{Name: "test", Runtime: &schema.ModuleRuntime{
-						Base: schema.ModuleRuntimeBase{Language: "go"},
-						Deployment: &schema.ModuleRuntimeDeployment{
-							CreatedAt:     now,
-							DeploymentKey: newKey,
+			want: []*ftlv1.PullSchemaResponse{
+				{
+					Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
+						DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
+							Schema: &schemapb.Module{Name: "test", Runtime: &schemapb.ModuleRuntime{
+								Base: &schemapb.ModuleRuntimeBase{Language: "go"},
+								Deployment: &schemapb.ModuleRuntimeDeployment{
+									CreatedAt:     timestamppb.New(now),
+									DeploymentKey: newKey.String(),
+								},
+							}},
 						},
-					}},
+					},
 				},
 			},
 		},
@@ -68,17 +74,26 @@ func TestEventExtractor(t *testing.T) {
 			current: SchemaState{
 				deployments: map[string]*schema.Module{
 					"test": {
-						Runtime:  &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey}},
-						Name:     "test",
-						Metadata: []schema.Metadata{&schema.MetadataArtefact{}},
+						Runtime: &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey, Endpoint: "http://localhost:8080"}},
+						Name:    "test",
 					},
 				},
 			},
-			want: []schema.Event{
-				&schema.DeploymentSchemaUpdatedEvent{
-					Key: deploymentKey(t, "dpl-test-sjkfislfjslfas"),
-					Schema: &schema.Module{Name: "test", Runtime: &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey}},
-						Metadata: []schema.Metadata{&schema.MetadataArtefact{}}},
+			want: []*ftlv1.PullSchemaResponse{
+				{
+					Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
+						DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
+							Schema: &schemapb.Module{
+								Name: "test",
+								Runtime: &schemapb.ModuleRuntime{
+									Base: &schemapb.ModuleRuntimeBase{Language: "go"},
+									Deployment: &schemapb.ModuleRuntimeDeployment{
+										CreatedAt:     timestamppb.New(now),
+										DeploymentKey: newKey.String(),
+									},
+								}},
+						},
+					},
 				},
 			},
 		},
@@ -97,10 +112,21 @@ func TestEventExtractor(t *testing.T) {
 			current: SchemaState{
 				deployments: map[string]*schema.Module{},
 			},
-			want: []schema.Event{
-				&schema.DeploymentDeactivatedEvent{
-					Key:           oldKey,
-					ModuleRemoved: true,
+			want: []*ftlv1.PullSchemaResponse{
+				{
+					Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
+						DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
+							Schema: &schemapb.Module{
+								Name: "test",
+								Runtime: &schemapb.ModuleRuntime{
+									Base: &schemapb.ModuleRuntimeBase{Language: "go"},
+									Deployment: &schemapb.ModuleRuntimeDeployment{
+										CreatedAt:     timestamppb.New(now),
+										DeploymentKey: newKey.String(),
+									},
+								}},
+						},
+					},
 				},
 			},
 		},

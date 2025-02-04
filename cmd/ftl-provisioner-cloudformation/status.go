@@ -11,6 +11,7 @@ import (
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/key"
 )
 
 func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Request[provisioner.StatusRequest]) (*connect.Response[provisioner.StatusResponse], error) {
@@ -30,7 +31,11 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 	if task.outputs.Load() != nil {
 		c.running.Delete(token)
 
-		events, err := c.updateResources(ctx, req.Msg.DesiredModule.Name, task.outputs.Load())
+		deploymentKey, err := key.ParseDeploymentKey(req.Msg.DesiredModule.Runtime.Deployment.DeploymentKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse deployment key: %w", err)
+		}
+		events, err := c.updateResources(ctx, deploymentKey, task.outputs.Load())
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +91,7 @@ func outputsByPropertyName(outputs []types.Output) (map[string]types.Output, err
 	return m, nil
 }
 
-func (c *CloudformationProvisioner) updateResources(ctx context.Context, module string, outputs []types.Output) ([]schema.Event, error) {
+func (c *CloudformationProvisioner) updateResources(ctx context.Context, deployment key.Deployment, outputs []types.Output) ([]schema.Event, error) {
 	byKind, err := outputsByKind(outputs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to group outputs by kind: %w", err)
@@ -102,7 +107,7 @@ func (c *CloudformationProvisioner) updateResources(ctx context.Context, module 
 		for id, outputs := range byResourceID {
 			switch kind {
 			case ResourceKindPostgres:
-				e, err := updatePostgresOutputs(ctx, module, id, outputs)
+				e, err := updatePostgresOutputs(ctx, deployment, id, outputs)
 				if err != nil {
 					return nil, fmt.Errorf("failed to update postgres outputs: %w", err)
 				}

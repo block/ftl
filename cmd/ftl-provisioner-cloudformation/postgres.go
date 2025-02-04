@@ -12,6 +12,7 @@ import (
 	"github.com/awslabs/goformation/v7/cloudformation/rds"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 )
 
 type PostgresTemplater struct {
@@ -133,15 +134,15 @@ func createPostgresDatabase(ctx context.Context, endpoint, resourceID, username,
 	return nil
 }
 
-func updatePostgresOutputs(_ context.Context, module, resourceID string, outputs []types.Output) ([]schema.Event, error) {
+func updatePostgresOutputs(_ context.Context, deployment key.Deployment, resourceID string, outputs []types.Output) ([]schema.Event, error) {
 	byName, err := outputsByPropertyName(outputs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to group outputs by property name: %w", err)
 	}
 
 	event := schema.DatabaseRuntimeEvent{
-		Module: module,
-		ID:     resourceID,
+		Deployment: deployment,
+		ID:         resourceID,
 		Connections: &schema.DatabaseRuntimeConnections{
 			Write: &schema.AWSIAMAuthDatabaseConnector{
 				Endpoint: fmt.Sprintf("%s:%d", *byName[PropertyPsqlWriteEndpoint].OutputValue, 5432),

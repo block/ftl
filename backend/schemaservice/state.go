@@ -57,12 +57,6 @@ func newStateMachine(ctx context.Context) *schemaStateMachine {
 func (r *SchemaState) Marshal() ([]byte, error) {
 	changesets := slices.Collect(maps.Values(r.changesets))
 	changesets = append(changesets, r.archivedChangesets...)
-	state := &schema.SchemaState{
-		Modules:    slices.Collect(maps.Values(r.deployments)),
-		Changesets: changesets,
-	}
-	stateProto := state.ToProto()
-	bytes, err := proto.Marshal(stateProto)
 	events := []schema.RuntimeEvent{}
 	for _, e := range r.changesetEvents {
 		events = append(events, e...)
@@ -70,6 +64,13 @@ func (r *SchemaState) Marshal() ([]byte, error) {
 	for _, e := range r.deploymentEvents {
 		events = append(events, e...)
 	}
+	state := &schema.SchemaState{
+		Modules:       slices.Collect(maps.Values(r.deployments)),
+		Changesets:    changesets,
+		RuntimeEvents: events,
+	}
+	stateProto := state.ToProto()
+	bytes, err := proto.Marshal(stateProto)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal schema state: %w", err)
 	}
@@ -100,7 +101,7 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 	}
 	for _, a := range state.RuntimeEvents {
 		if activeDeployments[a.DeploymentKey()] {
-			r.deploymentEvents[a.DeploymentKey().Payload.Module] = append(r.deploymentEvents[a.DeploymentKey().String()], a)
+			r.deploymentEvents[a.DeploymentKey().Payload.Module] = append(r.deploymentEvents[a.DeploymentKey().Payload.Module], a)
 		} else if cs, ok := a.ChangesetKey().Get(); ok {
 			r.changesetEvents[cs] = append(r.changesetEvents[cs], a)
 		}
