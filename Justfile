@@ -89,6 +89,8 @@ errtrace:
 clean:
   rm -rf build
   rm -rf node_modules
+  rm -rf docs/build
+  rm -rf docs/node_modules
   rm -rf frontend/console/dist
   rm -rf frontend/console/node_modules
   rm -rf python-runtime/ftl/.venv
