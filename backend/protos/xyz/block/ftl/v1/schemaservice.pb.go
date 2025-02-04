@@ -1352,7 +1352,7 @@ func (x *PullSchemaResponse_ChangesetCommitted) GetKey() string {
 	return ""
 }
 
-// Deployment created is sent when a deployment is new to the listener but is not part of a changeset.
+// Deployment created is sent At
 type PullSchemaResponse_DeploymentCreated struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Changeset     *string                `protobuf:"bytes,1,opt,name=changeset,proto3,oneof" json:"changeset,omitempty"`

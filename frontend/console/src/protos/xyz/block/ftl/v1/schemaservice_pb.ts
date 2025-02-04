@@ -323,7 +323,7 @@ export class PullSchemaResponse_ChangesetCommitted extends Message<PullSchemaRes
 }
 
 /**
- * Deployment created is sent when a deployment is new to the listener but is not part of a changeset.
+ * Deployment created is sent At
  *
  * Will not be set for builtin modules.
  * optional string key = 1;
