@@ -10,6 +10,8 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner"
 	"github.com/block/ftl/backend/provisioner/scaling/k8sscaling"
+	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
@@ -32,7 +34,8 @@ func main() {
 	)
 	cli.ProvisionerConfig.SetDefaults()
 
-	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig))
+	logger := log.Configure(os.Stderr, cli.LogConfig)
+	ctx := log.ContextWithLogger(context.Background(), logger)
 	err := observability.Init(ctx, false, "", "ftl-provisioner", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
@@ -45,8 +48,16 @@ func main() {
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.PluginConfigFile, controllerClient, scaling)
-
 	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
+
+	// Use k8s scaling as fallback for runner provisioning if no other provisioner is registered
+	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
+		return slices.Contains(binding.Types, schema.ResourceTypeRunner)
+	}); !ok {
+		runnerProvisioner := provisioner.NewRunnerScalingProvisioner(scaling)
+		runnerBinding := registry.Register("kubernetes", runnerProvisioner, schema.ResourceTypeRunner)
+		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
+	}
 
 	err = provisioner.Start(ctx, cli.ProvisionerConfig, registry, schemaClient)
 	kctx.FatalIfErrorf(err, "failed to start provisioner")
