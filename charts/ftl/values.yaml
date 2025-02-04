@@ -229,6 +229,7 @@ postgresql:
 
 istio:
   enabled: false # set to true to have this chart install the grpc config to enable trailers
+  holdApplicationUntilProxyStarts: true
 
 registry:
   repository: ""
@@ -483,22 +484,10 @@ console:
   tolerations: null
 
 lease:
-  env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: FTL_BIND
-      value: "http://0.0.0.0:8892"
-    - name: LOG_LEVEL
-      value: "debug"
-    - name: LOG_JSON
-      value: "true"
-  ports:
-    - name: http2
-      containerPort: 8892
-      protocol: TCP
-      port: 8892
+  env: null
+  port: 8892
+  logLevel: debug
+  logJson: true
 
   replicas: 1
   revisionHistoryLimit: 0
@@ -521,17 +510,9 @@ lease:
   readinessProbe: null
 
   service:
-    type: ClusterIP
     annotations: null
-    ports:
-      - name: "http2"
-        port: 8892
-        protocol: TCP
-        targetPort: 8892
 
-  podAnnotations:
-    proxy.istio.io/config: |
-      holdApplicationUntilProxyStarts: true
+  podAnnotations: null
   nodeSelector: null
   affinity: null
   topologySpreadConstraints: null

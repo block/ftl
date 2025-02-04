@@ -15,9 +15,13 @@ spec:
     metadata:
       labels:
         {{- include "ftl-lease.selectorLabels" . | nindent 8 }}
-      {{- if .Values.lease.podAnnotations }}
       annotations:
+      {{- if .Values.lease.podAnnotations }}
         {{- toYaml .Values.lease.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{ if .Values.istio.holdApplicationUntilProxyStarts }}
+        proxy.istio.io/config: |
+          holdApplicationUntilProxyStarts: true
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.lease.serviceAccountName }}
@@ -42,13 +46,21 @@ spec:
             {{- if .Values.lease.env }}
             {{- toYaml .Values.lease.env | nindent 12 }}
             {{- end }}
-
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: FTL_BIND
+              value: "http://0.0.0.0:8892"
+            - name: LOG_LEVEL
+              value: "{{ .Values.lease.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.lease.logJson }}"
           ports:
-            {{- range .Values.lease.ports }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
-            {{- end }}
+            - name: "http2"
+              containerPort: 8892
+              hostPort: {{ .Values.lease.port }}
+              protocol: "TCP"
           readinessProbe:
             {{- if .Values.lease.readinessProbe }}
             {{- toYaml .Values.lease.readinessProbe | nindent 12 }}
