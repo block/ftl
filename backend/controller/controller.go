@@ -1024,46 +1024,6 @@ func (s *Service) UploadArtefact(ctx context.Context, req *connect.Request[ftlv1
 	return connect.NewResponse(&ftlv1.UploadArtefactResponse{Digest: digest[:]}), nil
 }
 
-func (s *Service) CreateDeployment(ctx context.Context, req *connect.Request[ftlv1.CreateDeploymentRequest]) (*connect.Response[ftlv1.CreateDeploymentResponse], error) {
-	logger := log.FromContext(ctx)
-
-	ms := req.Msg.Schema
-	if ms.Runtime == nil {
-		err := errors.New("missing runtime metadata")
-		logger.Errorf(err, "Missing runtime metadata")
-		return nil, err
-	}
-
-	module, err := schema.ValidatedModuleFromProto(ms)
-	if err != nil {
-		logger.Errorf(err, "Invalid module schema")
-		return nil, fmt.Errorf("invalid module schema: %w", err)
-	}
-
-	dkey := key.NewDeploymentKey(module.Name)
-	module.ModRuntime().ModDeployment().CreatedAt = time.Now()
-	_, err = s.schemaClient.UpdateSchema(ctx, &connect.Request[ftlv1.UpdateSchemaRequest]{
-		Msg: &ftlv1.UpdateSchemaRequest{
-			Event: &schemapb.Event{
-				Value: &schemapb.Event_DeploymentCreatedEvent{
-					DeploymentCreatedEvent: &schemapb.DeploymentCreatedEvent{
-						Key:    dkey.String(),
-						Schema: module.ToProto(),
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		logger.Errorf(err, "Could not create deployment event")
-		return nil, fmt.Errorf("could not create deployment event: %w", err)
-	}
-
-	deploymentLogger := s.getDeploymentLogger(ctx, dkey)
-	deploymentLogger.Debugf("Created deployment %s", dkey)
-	return connect.NewResponse(&ftlv1.CreateDeploymentResponse{DeploymentKey: dkey.String()}), nil
-}
-
 func (s *Service) getDeployment(ctx context.Context, dkey key.Deployment) (*schema.Module, error) {
 	deployments, err := s.schemaClient.GetDeployments(ctx, &connect.Request[ftlv1.GetDeploymentsRequest]{})
 	if err != nil {
