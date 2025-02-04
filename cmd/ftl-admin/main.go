@@ -24,13 +24,13 @@ import (
 )
 
 var cli struct {
-	Version              kong.VersionFlag     `help:"Show version."`
-	ObservabilityConfig  observability.Config `embed:"" prefix:"o11y-"`
-	LogConfig            log.Config           `embed:"" prefix:"log-"`
-	AdminConfig          admin.Config         `embed:"" prefix:"admin-"`
-	SchemaServerEndpoint *url.URL             `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
-	Config               string               `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
-	Secrets              string               `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
+	Version             kong.VersionFlag     `help:"Show version."`
+	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
+	LogConfig           log.Config           `embed:"" prefix:"log-"`
+	AdminConfig         admin.Config         `embed:"" prefix:"admin-"`
+	SchemaEndpoint      *url.URL             `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
+	Config              string               `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
+	Secrets             string               `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
 }
 
 func main() {
@@ -58,7 +58,7 @@ func main() {
 	sm, err := manager.New[cf.Secrets](ctx, dbSecretResolver, asmSecretProvider)
 	kctx.FatalIfErrorf(err)
 
-	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaServerEndpoint.String(), log.Error)
+	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, schemaClient)
 
 	err = admin.Start(ctx, cli.AdminConfig, cm, sm, admin.NewSchemaRetreiver(eventSource))
