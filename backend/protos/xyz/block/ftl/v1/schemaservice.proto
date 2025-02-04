@@ -32,7 +32,7 @@ message PullSchemaResponse {
     string key = 1;
   }
 
-  // Deployment created is sent when a deployment is new to the listener but is not part of a changeset.
+  // Deployment created is sent At
   message DeploymentCreated {
     // Will not be set for builtin modules.
     // optional string key = 1;

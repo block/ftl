@@ -55,3 +55,6 @@ __pycache__/
 *.pyc
 *.pyo
 .venv/
+
+types.ftl.go
+queries.ftl.go
