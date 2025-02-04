@@ -1,3 +1,4 @@
 packages:
+  - "docs"
   - "frontend/console"
   - "frontend/vscode"

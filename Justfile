@@ -89,6 +89,8 @@ errtrace:
 clean:
   rm -rf build
   rm -rf node_modules
+  rm -rf docs/build
+  rm -rf docs/node_modules
   rm -rf frontend/console/dist
   rm -rf frontend/console/node_modules
   rm -rf python-runtime/ftl/.venv
@@ -311,12 +313,11 @@ lint-scripts:
 
 # Run live docs server
 docs:
-  git submodule update --init --recursive
-  cd docs && zola serve
+  @cd docs && pnpm start
 
 # Generate LSP hover help text
 lsp-generate:
-  @mk internal/lsp/hoveritems.go : internal/lsp docs/content -- ftl-gen-lsp
+  @mk internal/lsp/hoveritems.go : internal/lsp docs/docs -- ftl-gen-lsp
 
 # Run `ftl dev` providing a Delve endpoint for attaching a debugger.
 debug *args:

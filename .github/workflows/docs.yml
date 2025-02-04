@@ -1,22 +1,26 @@
+name: Publish Docs
 on:
   push:
     branches:
       - main
-name: Publish Docs
+
 jobs:
-  build:
+  deploy:
+    name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-      - name: checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: cashapp/activate-hermit@v1.1.3
+      - name: Install dependencies
+        run: just pnpm-install
+      - name: Build website
+        run: cd docs && pnpm build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          submodules: true
-      - name: build_and_deploy
-        uses: shalzz/zola-deploy-action@v0.19.2
-        env:
-          # Target branch
-          PAGES_BRANCH: gh-pages
-          # Or if publishing to the same repo, use the automatic token
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUILD_DIR: docs
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
