@@ -110,7 +110,7 @@ func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
 		}
 		rt := module.Runtime.Deployment
 		if rt.Endpoint == "" {
-			logger.Debugf("Skipping route for %s/%s as it is not ready yet", module.Name, rt.DeploymentKey)
+			logger.Tracef("Skipping route for %s/%s as it is not ready yet", module.Name, rt.DeploymentKey)
 			continue
 		}
 		u, err := url.Parse(rt.Endpoint)
