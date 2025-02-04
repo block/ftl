@@ -30,22 +30,23 @@ import (
 )
 
 type RaftConfig struct {
-	InitialMembers    []string          `help:"Initial members"`
-	ReplicaID         uint64            `help:"Node ID" required:""`
-	DataDir           string            `help:"Data directory" required:""`
-	Address           string            `help:"Address to advertise to other nodes" required:""`
-	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used."`
+	InitialMembers    []string          `help:"Initial members" env:"RAFT_INITIAL_MEMBERS"`
+	ReplicaID         uint64            `help:"Node ID" required:"" env:"RAFT_REPLICA_ID"`
+	DataDir           string            `help:"Data directory" required:"" env:"RAFT_DATA_DIR"`
+	Address           string            `help:"Address to advertise to other nodes" required:"" env:"RAFT_ADDRESS"`
+	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used." env:"RAFT_LISTEN_ADDRESS"`
 	ControlBind       *url.URL          `help:"Address to listen for control traffic. If empty, no control listener will be started."`
 	ShardReadyTimeout time.Duration     `help:"Timeout for shard to be ready" default:"5s"`
 	Retry             retry.RetryConfig `help:"Connection retry configuration" prefix:"retry-" embed:""`
 	ChangesInterval   time.Duration     `help:"Interval for changes to be checked" default:"10ms"`
 	ChangesTimeout    time.Duration     `help:"Timeout for changes to be checked" default:"1s"`
+	QueryTimeout      time.Duration     `help:"Timeout for queries" default:"5s"`
 
 	// Raft configuration
 	RTT                time.Duration `help:"Estimated average round trip time between nodes" default:"200ms"`
 	ElectionRTT        uint64        `help:"Election RTT as a multiple of RTT" default:"10"`
 	HeartbeatRTT       uint64        `help:"Heartbeat RTT as a multiple of RTT" default:"1"`
-	SnapshotEntries    uint64        `help:"Snapshot entries" default:"10"`
+	SnapshotEntries    uint64        `help:"Snapshot entries" default:"100"`
 	CompactionOverhead uint64        `help:"Compaction overhead" default:"100"`
 }
 
@@ -184,6 +185,9 @@ func (s *ShardHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 
 // Query the state of the shard.
 func (s *ShardHandle[Q, R, E]) Query(ctx context.Context, query Q) (R, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.cluster.config.QueryTimeout)
+	defer cancel()
+
 	s.verifyReady()
 
 	var zero R
@@ -209,9 +213,7 @@ func (s *ShardHandle[Q, R, E]) Query(ctx context.Context, query Q) (R, error) {
 // Note, that this is not guaranteed to receive an event for every change, but
 // will always receive the latest state of the shard.
 func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq[R], error) {
-	if s.cluster.nh == nil {
-		panic("cluster not started")
-	}
+	s.verifyReady()
 
 	result := make(chan R, 64)
 	logger := log.FromContext(ctx).Scope("raft")
@@ -251,9 +253,7 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 
 					s.lastKnownIndex.Store(last)
 
-					ctx, cancel := context.WithTimeout(ctx, s.cluster.config.ChangesTimeout)
 					res, err := s.Query(ctx, query)
-					cancel()
 
 					if err != nil {
 						logger.Errorf(err, "failed to query shard")

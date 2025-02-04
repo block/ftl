@@ -36,15 +36,18 @@ func NewSchemaState(validationEnabled bool) SchemaState {
 	}
 }
 
-func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, schema.Event] {
+func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper] {
+	handle := statemachine.NewLocalHandle(newStateMachine(ctx))
+	return statemachine.NewSingleQueryHandle(handle, struct{}{})
+}
+
+func newStateMachine(ctx context.Context) *schemaStateMachine {
 	notifier := channels.NewNotifier(ctx)
-	handle := statemachine.NewLocalHandle[struct{}, SchemaState, schema.Event](&schemaStateMachine{
+	return &schemaStateMachine{
 		notifier:   notifier,
 		runningCtx: ctx,
 		state:      NewSchemaState(true),
-	})
-
-	return statemachine.NewSingleQueryHandle(handle, struct{}{})
+	}
 }
 
 func (r *SchemaState) Marshal() ([]byte, error) {
@@ -183,6 +186,38 @@ func (r *SchemaState) GetProvisioning(module string, cs key.Changeset) (*schema.
 	return nil, fmt.Errorf("provisioning for module %s not found", module)
 }
 
+type EventWrapper struct {
+	Event schema.Event
+}
+
+func (e EventWrapper) String() string {
+	return fmt.Sprintf("EventWrapper{Event: %T}", e.Event)
+}
+
+var _ statemachine.Marshallable = EventWrapper{}
+
+func (e EventWrapper) MarshalBinary() ([]byte, error) {
+	pb := schema.EventToProto(e.Event)
+	bytes, err := proto.Marshal(pb)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal event: %w", err)
+	}
+	return bytes, nil
+}
+
+func (e *EventWrapper) UnmarshalBinary(bts []byte) error {
+	pb := schemapb.Event{}
+	if err := proto.Unmarshal(bts, &pb); err != nil {
+		return fmt.Errorf("error unmarshalling event proto: %w", err)
+	}
+	event, err := schema.EventFromProto(&pb)
+	if err != nil {
+		return fmt.Errorf("error decoding event proto: %w", err)
+	}
+	e.Event = event
+	return nil
+}
+
 type schemaStateMachine struct {
 	state SchemaState
 
@@ -192,8 +227,8 @@ type schemaStateMachine struct {
 	lock sync.Mutex
 }
 
-var _ statemachine.Snapshotting[struct{}, SchemaState, schema.Event] = &schemaStateMachine{}
-var _ statemachine.Listenable[struct{}, SchemaState, schema.Event] = &schemaStateMachine{}
+var _ statemachine.Snapshotting[struct{}, SchemaState, EventWrapper] = &schemaStateMachine{}
+var _ statemachine.Listenable[struct{}, SchemaState, EventWrapper] = &schemaStateMachine{}
 
 func (c *schemaStateMachine) Lookup(key struct{}) (SchemaState, error) {
 	c.lock.Lock()
@@ -201,10 +236,10 @@ func (c *schemaStateMachine) Lookup(key struct{}) (SchemaState, error) {
 	return reflect.DeepCopy(c.state), nil
 }
 
-func (c *schemaStateMachine) Publish(msg schema.Event) error {
+func (c *schemaStateMachine) Publish(msg EventWrapper) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	err := c.state.ApplyEvent(c.runningCtx, msg)
+	err := c.state.ApplyEvent(c.runningCtx, msg.Event)
 	if err != nil {
 		return fmt.Errorf("update: %w", err)
 	}

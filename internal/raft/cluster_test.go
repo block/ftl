@@ -196,6 +196,7 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 		ShardReadyTimeout:  5 * time.Second,
 		ChangesInterval:    5 * time.Millisecond,
 		ChangesTimeout:     1 * time.Second,
+		QueryTimeout:       5 * time.Second,
 		Retry: retry.RetryConfig{
 			Min:    50 * time.Millisecond,
 			Max:    1 * time.Second,
@@ -251,7 +252,5 @@ func assertShardValue(ctx context.Context, t *testing.T, expected int64, shards 
 
 func testContext(t *testing.T) context.Context {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(60*time.Second))
-	t.Cleanup(cancel)
 	return ctx
 }
