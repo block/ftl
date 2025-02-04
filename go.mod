@@ -52,7 +52,6 @@ require (
 	github.com/otiai10/copy v1.14.1
 	github.com/posener/complete v1.2.3
 	github.com/radovskyb/watcher v1.0.7
-	github.com/reugn/go-quartz v0.12.0
 	github.com/rs/cors v1.11.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/sqlc-dev/sqlc v1.28.0
