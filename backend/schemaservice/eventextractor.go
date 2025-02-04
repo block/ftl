@@ -8,6 +8,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
@@ -44,6 +45,32 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 					csName := changeset.Key.String()
 					changedDeployments := map[key.Deployment]bool{}
 					for _, event := range csEvents[len(prEvents):] {
+						switch e := event.(type) {
+						case *schema.VerbRuntimeEvent:
+							if sub, ok := e.Subscription.Get(); ok {
+								events = append(events, &ftlv1.PullSchemaResponse{
+									Event: &ftlv1.PullSchemaResponse_RuntimeUpdated{
+										RuntimeUpdated: &ftlv1.RuntimeElementUpdatedNotification{
+											Changeset: &csName,
+
+											Runtime: sub.ToProto(),
+										},
+									},
+								})
+							}
+						}
+
+						events = append(events, &ftlv1.PullSchemaResponse{
+							Event: &ftlv1.ModuleRuntimeUpdatedNotification{
+								Deployment: event.DeploymentKey(),
+								Changeset:  &csName,
+
+								DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
+									Changeset: &csName,
+									Schema:    e.ToProto(),
+								},
+							},
+						})
 						changedDeployments[event.DeploymentKey()] = true
 					}
 					for _, e := range changeset.Modules {

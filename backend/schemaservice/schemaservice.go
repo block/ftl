@@ -6,6 +6,8 @@ import (
 	"net/url"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/types/optional"
+	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -284,34 +286,18 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 	seedDeployments := view.GetCanonicalDeployments()
 	initialCount := len(seedDeployments)
 
-	builtins := schema.Builtins().ToProto()
+	modules := append([]*schemapb.Module{}, schema.Builtins().ToProto())
+	modules = append(modules, slices.Map(maps.Values(view.GetCanonicalDeployments()), func(t *schema.Module) *schemapb.Module {
+		return t.ToProto()
+	})...)
 	builtinsResponse := &ftlv1.PullSchemaResponse{
-		Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-			DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-				Schema: builtins,
+		Event: &ftlv1.PullSchemaResponse_InitialSchema{
+			InitialSchema: &ftlv1.InitialSchemaNotification{
+				Schema: &schemapb.Schema{Modules: modules},
 			},
 		},
-		More: initialCount > 0,
 	}
 	err = sendChange(builtinsResponse)
-	if err != nil {
-		return err
-	}
-	for _, initial := range seedDeployments {
-		initialCount--
-		module := initial.ToProto()
-		err := sendChange(&ftlv1.PullSchemaResponse{
-			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-					Schema: module,
-				},
-			},
-			More: initialCount > 0,
-		})
-		if err != nil {
-			return err
-		}
-	}
 	logger.Tracef("Seeded %d deployments", initialCount)
 
 	for notification := range iterops.Changes(stateIter, EventExtractor) {

@@ -19,6 +19,66 @@ class GetSchemaResponse(_message.Message):
     changesets: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Changeset]
     def __init__(self, schema: _Optional[_Union[_schema_pb2.Schema, _Mapping]] = ..., changesets: _Optional[_Iterable[_Union[_schema_pb2.Changeset, _Mapping]]] = ...) -> None: ...
 
+class ChangesetCreatedNotification(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: _schema_pb2.Changeset
+    def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
+
+class ChangesetPreparedNotification(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: _schema_pb2.Changeset
+    def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
+
+class ChangesetCommittedNotification(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: _schema_pb2.Changeset
+    def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
+
+class ChangesetRollingBackNotification(_message.Message):
+    __slots__ = ("key", "error")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    error: str
+    def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
+
+class ChangesetFailedNotification(_message.Message):
+    __slots__ = ("key", "error")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    error: str
+    def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
+
+class ChangesetDrainedNotification(_message.Message):
+    __slots__ = ("key",)
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    def __init__(self, key: _Optional[str] = ...) -> None: ...
+
+class ChangesetFinalizedNotification(_message.Message):
+    __slots__ = ("key",)
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    def __init__(self, key: _Optional[str] = ...) -> None: ...
+
+class InitialSchemaNotification(_message.Message):
+    __slots__ = ("schema",)
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    schema: _schema_pb2.Schema
+    def __init__(self, schema: _Optional[_Union[_schema_pb2.Schema, _Mapping]] = ...) -> None: ...
+
+class RuntimeElementUpdatedNotification(_message.Message):
+    __slots__ = ("changeset", "runtime")
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    RUNTIME_FIELD_NUMBER: _ClassVar[int]
+    changeset: str
+    runtime: _schema_pb2.RuntimeElement
+    def __init__(self, changeset: _Optional[str] = ..., runtime: _Optional[_Union[_schema_pb2.RuntimeElement, _Mapping]] = ...) -> None: ...
+
 class PullSchemaRequest(_message.Message):
     __slots__ = ("subscription_id",)
     SUBSCRIPTION_ID_FIELD_NUMBER: _ClassVar[int]
@@ -26,62 +86,26 @@ class PullSchemaRequest(_message.Message):
     def __init__(self, subscription_id: _Optional[str] = ...) -> None: ...
 
 class PullSchemaResponse(_message.Message):
-    __slots__ = ("changeset_created", "changeset_failed", "changeset_committed", "deployment_created", "deployment_updated", "deployment_removed", "more")
-    class ChangesetCreated(_message.Message):
-        __slots__ = ("changeset",)
-        CHANGESET_FIELD_NUMBER: _ClassVar[int]
-        changeset: _schema_pb2.Changeset
-        def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
-    class ChangesetFailed(_message.Message):
-        __slots__ = ("key", "error")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        ERROR_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        error: str
-        def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
-    class ChangesetCommitted(_message.Message):
-        __slots__ = ("changeset",)
-        CHANGESET_FIELD_NUMBER: _ClassVar[int]
-        changeset: _schema_pb2.Changeset
-        def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
-    class DeploymentCreated(_message.Message):
-        __slots__ = ("changeset", "schema")
-        CHANGESET_FIELD_NUMBER: _ClassVar[int]
-        SCHEMA_FIELD_NUMBER: _ClassVar[int]
-        changeset: str
-        schema: _schema_pb2.Module
-        def __init__(self, changeset: _Optional[str] = ..., schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
-    class DeploymentUpdated(_message.Message):
-        __slots__ = ("changeset", "schema")
-        CHANGESET_FIELD_NUMBER: _ClassVar[int]
-        SCHEMA_FIELD_NUMBER: _ClassVar[int]
-        changeset: str
-        schema: _schema_pb2.Module
-        def __init__(self, changeset: _Optional[str] = ..., schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
-    class DeploymentRemoved(_message.Message):
-        __slots__ = ("key", "module_name", "module_removed")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        MODULE_NAME_FIELD_NUMBER: _ClassVar[int]
-        MODULE_REMOVED_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        module_name: str
-        module_removed: bool
-        def __init__(self, key: _Optional[str] = ..., module_name: _Optional[str] = ..., module_removed: bool = ...) -> None: ...
+    __slots__ = ("initial_schema", "changeset_created", "changeset_prepared", "changeset_committed", "changeset_rolling_back", "changeset_failed", "changeset_drained", "changeset_finalized", "runtime_updated")
+    INITIAL_SCHEMA_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_CREATED_FIELD_NUMBER: _ClassVar[int]
-    CHANGESET_FAILED_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_PREPARED_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_COMMITTED_FIELD_NUMBER: _ClassVar[int]
-    DEPLOYMENT_CREATED_FIELD_NUMBER: _ClassVar[int]
-    DEPLOYMENT_UPDATED_FIELD_NUMBER: _ClassVar[int]
-    DEPLOYMENT_REMOVED_FIELD_NUMBER: _ClassVar[int]
-    MORE_FIELD_NUMBER: _ClassVar[int]
-    changeset_created: PullSchemaResponse.ChangesetCreated
-    changeset_failed: PullSchemaResponse.ChangesetFailed
-    changeset_committed: PullSchemaResponse.ChangesetCommitted
-    deployment_created: PullSchemaResponse.DeploymentCreated
-    deployment_updated: PullSchemaResponse.DeploymentUpdated
-    deployment_removed: PullSchemaResponse.DeploymentRemoved
-    more: bool
-    def __init__(self, changeset_created: _Optional[_Union[PullSchemaResponse.ChangesetCreated, _Mapping]] = ..., changeset_failed: _Optional[_Union[PullSchemaResponse.ChangesetFailed, _Mapping]] = ..., changeset_committed: _Optional[_Union[PullSchemaResponse.ChangesetCommitted, _Mapping]] = ..., deployment_created: _Optional[_Union[PullSchemaResponse.DeploymentCreated, _Mapping]] = ..., deployment_updated: _Optional[_Union[PullSchemaResponse.DeploymentUpdated, _Mapping]] = ..., deployment_removed: _Optional[_Union[PullSchemaResponse.DeploymentRemoved, _Mapping]] = ..., more: bool = ...) -> None: ...
+    CHANGESET_ROLLING_BACK_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FAILED_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_DRAINED_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FINALIZED_FIELD_NUMBER: _ClassVar[int]
+    RUNTIME_UPDATED_FIELD_NUMBER: _ClassVar[int]
+    initial_schema: InitialSchemaNotification
+    changeset_created: ChangesetCreatedNotification
+    changeset_prepared: ChangesetPreparedNotification
+    changeset_committed: ChangesetCommittedNotification
+    changeset_rolling_back: ChangesetRollingBackNotification
+    changeset_failed: ChangesetFailedNotification
+    changeset_drained: ChangesetDrainedNotification
+    changeset_finalized: ChangesetFinalizedNotification
+    runtime_updated: RuntimeElementUpdatedNotification
+    def __init__(self, initial_schema: _Optional[_Union[InitialSchemaNotification, _Mapping]] = ..., changeset_created: _Optional[_Union[ChangesetCreatedNotification, _Mapping]] = ..., changeset_prepared: _Optional[_Union[ChangesetPreparedNotification, _Mapping]] = ..., changeset_committed: _Optional[_Union[ChangesetCommittedNotification, _Mapping]] = ..., changeset_rolling_back: _Optional[_Union[ChangesetRollingBackNotification, _Mapping]] = ..., changeset_failed: _Optional[_Union[ChangesetFailedNotification, _Mapping]] = ..., changeset_drained: _Optional[_Union[ChangesetDrainedNotification, _Mapping]] = ..., changeset_finalized: _Optional[_Union[ChangesetFinalizedNotification, _Mapping]] = ..., runtime_updated: _Optional[_Union[RuntimeElementUpdatedNotification, _Mapping]] = ...) -> None: ...
 
 class UpdateDeploymentRuntimeRequest(_message.Message):
     __slots__ = ("changeset", "update")
