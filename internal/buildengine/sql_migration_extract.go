@@ -43,9 +43,6 @@ func extractSQLMigrations(migrationsDir string, targetDir string, sch *schema.Mo
 				return nil, fmt.Errorf("failed to read migration tar for sha256 %s: %w", dir.Name(), err)
 			}
 			db.Metadata = append(db.Metadata, &schema.MetadataSQLMigration{Digest: digest.String()})
-			if err != nil {
-				return nil, fmt.Errorf("failed to read migrations for %s: %w", dir.Name(), err)
-			}
 			ret = append(ret, fileName)
 			break
 		}

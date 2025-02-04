@@ -24,7 +24,6 @@ import (
 	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/controller/artefacts"
@@ -36,7 +35,6 @@ import (
 	deploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
@@ -353,216 +351,7 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	return connect.NewResponse(resp), nil
 }
 
-func (s *Service) setDeploymentReplicas(ctx context.Context, key key.Deployment, minReplicas int) (err error) {
-	deployments, err := s.schemaClient.GetDeployments(ctx, connect.NewRequest(&ftlv1.GetDeploymentsRequest{}))
-
-	if err != nil {
-		return fmt.Errorf("failed to get schema deployments: %w", err)
-	}
-	deploymentMap := map[string]*ftlv1.DeployedSchema{}
-	for _, deployment := range deployments.Msg.Schema {
-		deploymentMap[deployment.DeploymentKey] = deployment
-	}
-	deployment, ok := deploymentMap[key.String()]
-	if !ok {
-		return fmt.Errorf("could not get deployment: %w", err)
-	}
-
-	_, err = s.schemaClient.UpdateSchema(ctx, &connect.Request[ftlv1.UpdateSchemaRequest]{
-		Msg: &ftlv1.UpdateSchemaRequest{
-			Event: &schemapb.Event{
-				Value: &schemapb.Event_DeploymentReplicasUpdatedEvent{
-					DeploymentReplicasUpdatedEvent: &schemapb.DeploymentReplicasUpdatedEvent{
-						Key:      key.String(),
-						Replicas: int64(minReplicas),
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("could not update deployment replicas: %w", err)
-	}
-	if minReplicas == 0 {
-		_, err = s.schemaClient.UpdateSchema(ctx, &connect.Request[ftlv1.UpdateSchemaRequest]{
-			Msg: &ftlv1.UpdateSchemaRequest{
-				Event: &schemapb.Event{
-					Value: &schemapb.Event_DeploymentDeactivatedEvent{
-						DeploymentDeactivatedEvent: &schemapb.DeploymentDeactivatedEvent{
-							Key:           key.String(),
-							ModuleRemoved: true,
-						},
-					},
-				},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("could not deactivate deployment: %w", err)
-		}
-	} else if deployment.Schema.GetRuntime().GetScaling().GetMinReplicas() == 0 {
-		_, err = s.schemaClient.UpdateSchema(ctx, &connect.Request[ftlv1.UpdateSchemaRequest]{
-			Msg: &ftlv1.UpdateSchemaRequest{
-				Event: &schemapb.Event{
-					Value: &schemapb.Event_DeploymentActivatedEvent{
-						DeploymentActivatedEvent: &schemapb.DeploymentActivatedEvent{
-							Key:         key.String(),
-							MinReplicas: int64(minReplicas),
-							ActivatedAt: timestamppb.New(time.Now()),
-						},
-					},
-				},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("could not activate deployment: %w", err)
-		}
-	}
-	s.timelineClient.Publish(ctx, timelineclient.DeploymentUpdated{
-		DeploymentKey:   key,
-		MinReplicas:     minReplicas,
-		PrevMinReplicas: int(deployment.Schema.GetRuntime().GetScaling().GetMinReplicas()),
-	})
-
-	return nil
-}
-
-func (s *Service) ReplaceDeploy(ctx context.Context, c *connect.Request[ftlv1.ReplaceDeployRequest]) (*connect.Response[ftlv1.ReplaceDeployResponse], error) {
-	newDeploymentKey, err := key.ParseDeploymentKey(c.Msg.DeploymentKey)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-	logger := s.getDeploymentLogger(ctx, newDeploymentKey)
-	logger.Debugf("Replace deployment for: %s", newDeploymentKey)
-
-	deployments, err := s.schemaClient.GetDeployments(ctx, connect.NewRequest(&ftlv1.GetDeploymentsRequest{}))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get schema deployments: %w", err)
-	}
-	deploymentMap := map[string]*ftlv1.DeployedSchema{}
-	for _, deployment := range deployments.Msg.Schema {
-		deploymentMap[deployment.DeploymentKey] = deployment
-	}
-
-	newDeployment, ok := deploymentMap[newDeploymentKey.String()]
-	if !ok {
-		return nil, fmt.Errorf("deployment not found: %s", newDeploymentKey)
-	}
-	minReplicas := int(c.Msg.MinReplicas)
-	_, err = s.schemaClient.UpdateSchema(ctx, &connect.Request[ftlv1.UpdateSchemaRequest]{
-		Msg: &ftlv1.UpdateSchemaRequest{
-			Event: &schemapb.Event{
-				Value: &schemapb.Event_DeploymentActivatedEvent{
-					DeploymentActivatedEvent: &schemapb.DeploymentActivatedEvent{
-						Key:         newDeploymentKey.String(),
-						MinReplicas: int64(minReplicas),
-						ActivatedAt: timestamppb.New(time.Now()),
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("replace deployment failed to activate: %w", err)
-	}
-
-	// If there's an existing deployment, set its desired replicas to 0
-	var replacedDeploymentKey optional.Option[key.Deployment]
-	// TODO: remove all this, it needs to be event driven
-	var oldDeployment *schema.Module
-	var oldKey key.Deployment
-
-	activeDeployments := map[string]*schema.Module{}
-	for _, deployment := range deployments.Msg.Schema {
-		if deployment.IsActive {
-			module, err := schema.ModuleFromProto(deployment.Schema)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get schema module: %w", err)
-			}
-			activeDeployments[deployment.DeploymentKey] = module
-		}
-	}
-
-	for k, dep := range activeDeployments {
-		if dep.Name == newDeployment.Schema.Name {
-			oldDeployment = dep
-			newKey, err := key.ParseDeploymentKey(k)
-			if err != nil {
-				return nil, fmt.Errorf("invalid deployment key: %w", err)
-			}
-			oldKey = newKey
-			break
-		}
-	}
-	if oldDeployment != nil {
-		if oldKey.String() == newDeploymentKey.String() {
-			return nil, fmt.Errorf("replace deployment failed: deployment already exists from %v to %v", oldKey, newDeploymentKey)
-		}
-		_, err = s.schemaClient.UpdateSchema(ctx, &connect.Request[ftlv1.UpdateSchemaRequest]{
-			Msg: &ftlv1.UpdateSchemaRequest{
-				Event: &schemapb.Event{
-					Value: &schemapb.Event_DeploymentReplicasUpdatedEvent{
-						DeploymentReplicasUpdatedEvent: &schemapb.DeploymentReplicasUpdatedEvent{
-							Key:      newDeploymentKey.String(),
-							Replicas: int64(minReplicas),
-						},
-					},
-				},
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("replace deployment failed to set new deployment replicas from %v to %v: %w", oldKey, newDeploymentKey, err)
-		}
-		_, err = s.schemaClient.UpdateSchema(ctx, &connect.Request[ftlv1.UpdateSchemaRequest]{
-			Msg: &ftlv1.UpdateSchemaRequest{
-				Event: &schemapb.Event{
-					Value: &schemapb.Event_DeploymentDeactivatedEvent{
-						DeploymentDeactivatedEvent: &schemapb.DeploymentDeactivatedEvent{
-							Key:           oldKey.String(),
-							ModuleRemoved: true,
-						},
-					},
-				},
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("replace deployment failed to deactivate old deployment %v: %w", oldKey, err)
-		}
-		replacedDeploymentKey = optional.Some(oldKey)
-	} else {
-		// Set the desired replicas for the new deployment
-		_, err = s.schemaClient.UpdateSchema(ctx, &connect.Request[ftlv1.UpdateSchemaRequest]{
-			Msg: &ftlv1.UpdateSchemaRequest{
-				Event: &schemapb.Event{
-					Value: &schemapb.Event_DeploymentReplicasUpdatedEvent{
-						DeploymentReplicasUpdatedEvent: &schemapb.DeploymentReplicasUpdatedEvent{
-							Key:      newDeploymentKey.String(),
-							Replicas: int64(minReplicas),
-						},
-					},
-				},
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("replace deployment failed to set replicas for %v: %w", newDeploymentKey, err)
-		}
-	}
-
-	s.timelineClient.Publish(ctx, timelineclient.DeploymentCreated{
-		DeploymentKey:      newDeploymentKey,
-		ModuleName:         newDeployment.Schema.Name,
-		MinReplicas:        minReplicas,
-		ReplacedDeployment: replacedDeploymentKey,
-		Language:           newDeployment.Schema.Runtime.Base.Language,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("replace deployment failed to create event: %w", err)
-	}
-
-	return connect.NewResponse(&ftlv1.ReplaceDeployResponse{}), nil
-}
-
 func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStream[ftlv1.RegisterRunnerRequest]) (*connect.Response[ftlv1.RegisterRunnerResponse], error) {
-
 	deferredDeregistration := false
 
 	logger := log.FromContext(ctx)
@@ -606,9 +395,6 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 				}
 			}()
 			deferredDeregistration = true
-		}
-		if err != nil {
-			return nil, fmt.Errorf("could not sync routes: %w", err)
 		}
 	}
 	if stream.Err() != nil {

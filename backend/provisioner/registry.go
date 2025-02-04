@@ -7,7 +7,6 @@ import (
 	"time"
 
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/backend/schemaservice"
 	"github.com/block/ftl/common/plugin"
@@ -67,14 +66,14 @@ func (reg *ProvisionerRegistry) listBindings() []*ProvisionerBinding {
 	return result
 }
 
-func registryFromConfig(ctx context.Context, cfg *provisionerPluginConfig, controller ftlv1connect.ControllerServiceClient, runnerScaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
+func registryFromConfig(ctx context.Context, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("error validating provisioner config: %w", err)
 	}
 	for _, plugin := range cfg.Plugins {
-		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, controller, runnerScaling)
+		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, runnerScaling)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +83,7 @@ func registryFromConfig(ctx context.Context, cfg *provisionerPluginConfig, contr
 	return result, nil
 }
 
-func provisionerIDToProvisioner(ctx context.Context, id string, controller ftlv1connect.ControllerServiceClient, scaling scaling.RunnerScaling) (provisionerconnect.ProvisionerPluginServiceClient, error) {
+func provisionerIDToProvisioner(ctx context.Context, id string, scaling scaling.RunnerScaling) (provisionerconnect.ProvisionerPluginServiceClient, error) {
 	switch id {
 	case "kubernetes":
 		// TODO: move this into a plugin
