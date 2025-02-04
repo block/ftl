@@ -112,9 +112,7 @@ type Engine struct {
 	devMode                bool
 
 	// deployment queue and state tracking
-	deploymentQueue    chan []Module
-	activeChangesetKey optional.Option[string]
-	pendingDeployments []Module
+	deploymentQueue chan []Module
 }
 
 type Option func(o *Engine)
@@ -182,7 +180,6 @@ func New(
 		rawEngineUpdates:    make(chan *buildenginepb.EngineEvent, 128),
 		EngineUpdates:       pubsub.New[*buildenginepb.EngineEvent](),
 		deploymentQueue:     make(chan []Module, 128),
-		activeChangesetKey:  optional.None[string](),
 	}
 	for _, option := range options {
 		option(e)
@@ -1298,22 +1295,6 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 // processDeploymentQueue handles the deployment queue and groups pending deployments into changesets
 func (e *Engine) processDeploymentQueue(ctx context.Context) {
 	logger := log.FromContext(ctx)
-	// Subscribe to schema changes
-	schemaChanges := make(chan schemaeventsource.Event, 128)
-	e.schemaChanges.Subscribe(schemaChanges)
-	defer e.schemaChanges.Unsubscribe(schemaChanges)
-
-	// Create a channel to track when deployments complete
-	deploymentComplete := make(chan error, 1)
-	var currentDeployment []Module
-
-	startDeployment := func(modules []Module) {
-		currentDeployment = modules
-		go func() {
-			err := Deploy(ctx, e.projectConfig, modules, 1, true, e.deployClient, e.schemaServiceClient)
-			deploymentComplete <- err
-		}()
-	}
 
 	for {
 		select {
@@ -1321,21 +1302,24 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 			return
 
 		case modules := <-e.deploymentQueue:
-			// Always add new modules to pending deployments
-			logger.Debugf("Queueing %d modules for deployment", len(modules))
-			e.pendingDeployments = append(e.pendingDeployments, modules...)
-
-			// If we have no active changeset and no current deployment, start a new deployment with all pending modules
-			if _, ok := e.activeChangesetKey.Get(); !ok && currentDeployment == nil {
-				pending := e.pendingDeployments
-				e.pendingDeployments = nil
-				startDeployment(pending)
+			// Collect any additional modules that have been queued
+			more := true
+			for more {
+				select {
+				case newModules := <-e.deploymentQueue:
+					modules = append(modules, newModules...)
+				default:
+					more = false
+				}
 			}
 
-		case err := <-deploymentComplete:
+			logger.Debugf("Deploying %d modules", len(modules))
+
+			// Deploy all collected modules
+			err := Deploy(ctx, e.projectConfig, modules, 1, true, e.deployClient, e.schemaServiceClient)
 			if err != nil {
 				// Handle deployment failure
-				for _, module := range currentDeployment {
+				for _, module := range modules {
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 						Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
 							ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
@@ -1349,7 +1333,7 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 				}
 			} else {
 				// Handle deployment success
-				for _, module := range currentDeployment {
+				for _, module := range modules {
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 						Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
 							ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
@@ -1358,38 +1342,6 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 						},
 					}
 				}
-			}
-			currentDeployment = nil
-
-			// If we have pending deployments and no active changeset, start a new deployment
-			if len(e.pendingDeployments) > 0 {
-				if _, ok := e.activeChangesetKey.Get(); !ok {
-					pending := e.pendingDeployments
-					e.pendingDeployments = nil
-					startDeployment(pending)
-				}
-			}
-
-		case event := <-schemaChanges:
-			// Watch for changeset completion events
-			switch event := event.(type) {
-			case schemaeventsource.EventChangesetEnded:
-				// Clear active changeset
-				e.activeChangesetKey = optional.None[string]()
-
-				// If we have pending deployments and no current deployment, start a new one
-				if len(e.pendingDeployments) > 0 && currentDeployment == nil {
-					pending := e.pendingDeployments
-					e.pendingDeployments = nil
-					startDeployment(pending)
-				}
-			case schemaeventsource.EventChangesetStarted:
-				// Track the active changeset
-				e.activeChangesetKey = optional.Some(event.Changeset.Key.String())
-			case schemaeventsource.EventRemove:
-				// We don't need to do anything for remove events in the deployment queue
-			case schemaeventsource.EventUpsert:
-				// We don't need to do anything for upsert events in the deployment queue
 			}
 		}
 	}
