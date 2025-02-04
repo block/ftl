@@ -311,8 +311,7 @@ lint-scripts:
 
 # Run live docs server
 docs:
-  git submodule update --init --recursive
-  cd docs && zola serve
+  cd docs && pnpm start
 
 # Generate LSP hover help text
 lsp-generate:

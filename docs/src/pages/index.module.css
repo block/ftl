@@ -1,0 +1,75 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+.heroBanner {
+  padding: 4rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--ifm-color-primary);
+  color: var(--ifm-font-color-base-inverse);
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.version {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.version p {
+  margin: 0.5rem 0;
+}
+
+.version a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+}
+
+.feature {
+  padding: 1.5rem;
+  border-radius: var(--ifm-card-border-radius);
+  background: var(--ifm-card-background-color);
+  box-shadow: var(--ifm-card-shadow);
+}
+
+.feature h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.feature p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.feature a {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+.feature a:hover {
+  text-decoration: underline;
+}
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 2rem;
+  }
+}
