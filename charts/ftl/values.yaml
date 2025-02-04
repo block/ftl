@@ -545,6 +545,8 @@ admin:
           fieldPath: status.podIP
     - name: FTL_BIND
       value: "http://0.0.0.0:8892"
+    - name: FTL_SCHEMA_ENDPOINT
+      value: "http://ftl-schema:8892"
     - name: LOG_LEVEL
       value: "debug"
     - name: LOG_JSON
