@@ -28,7 +28,7 @@ func NewRunnerScalingProvisioner(runners scaling.RunnerScaling) *InMemProvisione
 }
 
 func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, moduleName string, rc schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned) (schema.Event, error) {
 		if changeset.IsZero() {
 			return nil, fmt.Errorf("changeset must be provided")
 		}
@@ -39,7 +39,6 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			return nil, fmt.Errorf("expected module, got %T", rc)
 		}
 
-		deployment := module.Runtime.Deployment.DeploymentKey
 		if deployment.IsZero() {
 			return nil, fmt.Errorf("failed to find deployment for runner")
 		}
@@ -97,7 +96,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		} else {
 			for _, dep := range deps {
 				cs := changeset.String()
-				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{DeploymentKey: deployment.String(), Changeset: cs, Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}))
+				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{Key: deployment.String(), Changeset: cs, Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}))
 				if err != nil {
 					logger.Errorf(err, "failed to update deployment %s", dep)
 				}
@@ -106,8 +105,8 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 
 		logger.Infof("Updating module runtime for %s with endpoint %s and changeset %s", module.Name, endpointURI, changeset.String())
 		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{
-			Changeset:     changeset.String(),
-			DeploymentKey: deployment.String(),
+			Changeset: changeset.String(),
+			Key:       deployment.String(),
 			Deployment: &schemapb.ModuleRuntimeDeployment{
 				DeploymentKey: deployment.String(),
 				Endpoint:      endpointURI,
@@ -118,8 +117,8 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			return nil, fmt.Errorf("failed to update module runtime: %w  changeset: %s", err, changeset.String())
 		}
 		return &schema.ModuleRuntimeEvent{
-			DeploymentKey: deployment,
-			Changeset:     &changeset,
+			Key:       deployment,
+			Changeset: &changeset,
 			Deployment: optional.Some(schema.ModuleRuntimeDeployment{
 				DeploymentKey: deployment,
 				Endpoint:      endpointURI,

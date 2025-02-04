@@ -194,8 +194,8 @@ func terminateModuleDeployment(ctx context.Context, client DeployClient, schemaC
 	logger.Infof("Terminating deployment %s", key)
 	_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
 		Event: &schemapb.ModuleRuntimeEvent{
-			DeploymentKey: key,
-			Scaling:       &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
+			Key:     key,
+			Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
 		},
 	}))
 	if err != nil {

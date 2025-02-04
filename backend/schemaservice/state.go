@@ -23,6 +23,8 @@ import (
 type SchemaState struct {
 	deployments        map[string]*schema.Module
 	changesets         map[key.Changeset]*schema.Changeset
+	changesetEvents    map[key.Changeset][]schema.RuntimeEvent
+	deploymentEvents   map[string][]schema.RuntimeEvent
 	validationEnabled  bool // Huge hack to allow provisioner to use this for a single module
 	archivedChangesets []*schema.Changeset
 }
@@ -31,6 +33,8 @@ func NewSchemaState(validationEnabled bool) SchemaState {
 	return SchemaState{
 		deployments:        map[string]*schema.Module{},
 		changesets:         map[key.Changeset]*schema.Changeset{},
+		deploymentEvents:   map[string][]schema.RuntimeEvent{},
+		changesetEvents:    map[key.Changeset][]schema.RuntimeEvent{},
 		archivedChangesets: []*schema.Changeset{},
 		validationEnabled:  validationEnabled,
 	}
@@ -59,6 +63,13 @@ func (r *SchemaState) Marshal() ([]byte, error) {
 	}
 	stateProto := state.ToProto()
 	bytes, err := proto.Marshal(stateProto)
+	events := []schema.RuntimeEvent{}
+	for _, e := range r.changesetEvents {
+		events = append(events, e...)
+	}
+	for _, e := range r.deploymentEvents {
+		events = append(events, e...)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal schema state: %w", err)
 	}
@@ -75,14 +86,23 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal schema state: %w", err)
 	}
+	activeDeployments := map[key.Deployment]bool{}
 	for _, module := range state.Modules {
 		r.deployments[module.Name] = module
+		activeDeployments[module.Runtime.Deployment.DeploymentKey] = true
 	}
 	for _, a := range state.Changesets {
 		if a.State == schema.ChangesetStateFinalized || a.State == schema.ChangesetStateFailed {
 			r.archivedChangesets = append(r.archivedChangesets, a)
 		} else {
 			r.changesets[a.Key] = a
+		}
+	}
+	for _, a := range state.RuntimeEvents {
+		if activeDeployments[a.DeploymentKey()] {
+			r.deploymentEvents[a.DeploymentKey().Payload.Module] = append(r.deploymentEvents[a.DeploymentKey().String()], a)
+		} else if cs, ok := a.ChangesetKey().Get(); ok {
+			r.changesetEvents[cs] = append(r.changesetEvents[cs], a)
 		}
 	}
 	r.validationEnabled = true // it is never serialized if validation is not enabled
@@ -184,6 +204,35 @@ func (r *SchemaState) GetProvisioning(module string, cs key.Changeset) (*schema.
 		}
 	}
 	return nil, fmt.Errorf("provisioning for module %s not found", module)
+}
+
+func (r *SchemaState) handleRuntimeEvent(e schema.RuntimeEvent) (*schema.Module, func(), error) {
+	if cs, ok := e.ChangesetKey().Get(); ok {
+		c, ok := r.changesets[cs]
+		if !ok {
+			return nil, func() {
+
+			}, fmt.Errorf("changeset %s not found", cs.String())
+		}
+		module := e.DeploymentKey().Payload.Module
+		for _, m := range c.Modules {
+			if m.Name == module {
+				return m, func() {
+					r.changesetEvents[cs] = append(r.changesetEvents[cs], e)
+				}, nil
+			}
+		}
+	}
+	for k, m := range r.deployments {
+		if m.Runtime.Deployment.DeploymentKey == e.DeploymentKey() {
+			return m, func() {
+				r.deploymentEvents[k] = append(r.deploymentEvents[k], e)
+			}, nil
+		}
+	}
+	return nil, func() {
+
+	}, fmt.Errorf("deployment %s not found", e.DeploymentKey().String())
 }
 
 type EventWrapper struct {

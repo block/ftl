@@ -20,8 +20,8 @@ func (k *killCmd) Run(ctx context.Context, client ftlv1connect.SchemaServiceClie
 	//TODO: implement this as a changeset
 	_, err := client.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
 		Event: &schemapb.ModuleRuntimeEvent{
-			DeploymentKey: k.Deployment.String(),
-			Scaling:       &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
+			Key:     k.Deployment.String(),
+			Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
 		},
 	}))
 	if err != nil {

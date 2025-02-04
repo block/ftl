@@ -21,8 +21,8 @@ func (u *updateCmd) Run(ctx context.Context, client ftlv1connect.SchemaServiceCl
 	//TODO: implement this as a changeset
 	_, err := client.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
 		Event: &schemapb.ModuleRuntimeEvent{
-			DeploymentKey: u.Deployment.String(),
-			Scaling:       &schemapb.ModuleRuntimeScaling{MinReplicas: u.Replicas},
+			Key:     u.Deployment.String(),
+			Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: u.Replicas},
 		},
 	}))
 	if err != nil {
