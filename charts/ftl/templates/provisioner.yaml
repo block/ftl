@@ -47,19 +47,6 @@ spec:
               containerPort: {{ .containerPort }}
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
-          readinessProbe:
-            {{- if .Values.provisioner.readinessProbe }}
-            {{- toYaml .Values.provisioner.readinessProbe | nindent 12 }}
-            {{- else }}
-            httpGet:
-              path: /healthz
-              port: {{ (index .Values.provisioner.ports 0).containerPort }}
-            initialDelaySeconds: 1
-            periodSeconds: 2
-            timeoutSeconds: 2
-            successThreshold: 1
-            failureThreshold: 15
-            {{- end }}
           volumeMounts:
             - mountPath: /config
               name: config
