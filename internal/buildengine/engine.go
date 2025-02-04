@@ -77,6 +77,12 @@ type autoRebuildCompletedEvent struct {
 	schema *schema.Module
 }
 
+type pendingDeploy struct {
+	modules  []Module
+	done     chan struct{}
+	replicas int32
+}
+
 func (autoRebuildCompletedEvent) rebuildEvent() {}
 
 // Engine for building a set of modules.
@@ -112,7 +118,7 @@ type Engine struct {
 	devMode                bool
 
 	// deployment queue and state tracking
-	deploymentQueue chan []Module
+	deploymentQueue chan pendingDeploy
 }
 
 type Option func(o *Engine)
@@ -179,7 +185,7 @@ func New(
 		rebuildEvents:       make(chan rebuildEvent, 128),
 		rawEngineUpdates:    make(chan *buildenginepb.EngineEvent, 128),
 		EngineUpdates:       pubsub.New[*buildenginepb.EngineEvent](),
-		deploymentQueue:     make(chan []Module, 128),
+		deploymentQueue:     make(chan pendingDeploy, 128),
 	}
 	for _, option := range options {
 		option(e)
@@ -847,7 +853,14 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 	}
 
 	// Queue the modules for deployment instead of deploying directly
-	e.deploymentQueue <- modulesToDeploy
+	done := make(chan struct{})
+	e.deploymentQueue <- pendingDeploy{modules: modulesToDeploy, replicas: replicas, done: done}
+	if waitForDeployOnline {
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
+	}
 	return nil
 }
 
@@ -1301,13 +1314,17 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 		case <-ctx.Done():
 			return
 
-		case modules := <-e.deploymentQueue:
+		case deployment := <-e.deploymentQueue:
 			// Collect any additional modules that have been queued
+			modules := []Module{}
+			modules = append(modules, deployment.modules...)
+			toClose := []chan struct{}{deployment.done}
 			more := true
 			for more {
 				select {
 				case newModules := <-e.deploymentQueue:
-					modules = append(modules, newModules...)
+					toClose = append(toClose, newModules.done)
+					modules = append(modules, newModules.modules...)
 				default:
 					more = false
 				}
@@ -1316,7 +1333,10 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 			logger.Debugf("Deploying %d modules", len(modules))
 
 			// Deploy all collected modules
-			err := Deploy(ctx, e.projectConfig, modules, 1, true, e.deployClient, e.schemaServiceClient)
+			err := Deploy(ctx, e.projectConfig, modules, deployment.replicas, true, e.deployClient, e.schemaServiceClient)
+			for _, done := range toClose {
+				close(done)
+			}
 			if err != nil {
 				// Handle deployment failure
 				for _, module := range modules {
