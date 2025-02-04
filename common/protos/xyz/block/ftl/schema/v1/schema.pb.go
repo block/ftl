@@ -5932,8 +5932,7 @@ func (x *Verb) GetRuntime() *VerbRuntime {
 
 type VerbRuntime struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Base          *VerbRuntimeBase         `protobuf:"bytes,1,opt,name=base,proto3" json:"base,omitempty"`
-	Subscription  *VerbRuntimeSubscription `protobuf:"bytes,2,opt,name=subscription,proto3,oneof" json:"subscription,omitempty"`
+	Subscription  *VerbRuntimeSubscription `protobuf:"bytes,1,opt,name=subscription,proto3,oneof" json:"subscription,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5968,68 +5967,9 @@ func (*VerbRuntime) Descriptor() ([]byte, []int) {
 	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{80}
 }
 
-func (x *VerbRuntime) GetBase() *VerbRuntimeBase {
-	if x != nil {
-		return x.Base
-	}
-	return nil
-}
-
 func (x *VerbRuntime) GetSubscription() *VerbRuntimeSubscription {
 	if x != nil {
 		return x.Subscription
-	}
-	return nil
-}
-
-type VerbRuntimeBase struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=create_time,json=createTime,proto3,oneof" json:"create_time,omitempty"`
-	StartTime     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime,proto3,oneof" json:"start_time,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *VerbRuntimeBase) Reset() {
-	*x = VerbRuntimeBase{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *VerbRuntimeBase) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*VerbRuntimeBase) ProtoMessage() {}
-
-func (x *VerbRuntimeBase) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use VerbRuntimeBase.ProtoReflect.Descriptor instead.
-func (*VerbRuntimeBase) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{81}
-}
-
-func (x *VerbRuntimeBase) GetCreateTime() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreateTime
-	}
-	return nil
-}
-
-func (x *VerbRuntimeBase) GetStartTime() *timestamppb.Timestamp {
-	if x != nil {
-		return x.StartTime
 	}
 	return nil
 }
@@ -6039,15 +5979,14 @@ type VerbRuntimeEvent struct {
 	Module        string                   `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
 	Changeset     string                   `protobuf:"bytes,2,opt,name=changeset,proto3" json:"changeset,omitempty"`
 	Id            string                   `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
-	Base          *VerbRuntimeBase         `protobuf:"bytes,4,opt,name=base,proto3,oneof" json:"base,omitempty"`
-	Subscription  *VerbRuntimeSubscription `protobuf:"bytes,5,opt,name=subscription,proto3,oneof" json:"subscription,omitempty"`
+	Subscription  *VerbRuntimeSubscription `protobuf:"bytes,4,opt,name=subscription,proto3,oneof" json:"subscription,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *VerbRuntimeEvent) Reset() {
 	*x = VerbRuntimeEvent{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6059,7 +5998,7 @@ func (x *VerbRuntimeEvent) String() string {
 func (*VerbRuntimeEvent) ProtoMessage() {}
 
 func (x *VerbRuntimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6072,7 +6011,7 @@ func (x *VerbRuntimeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntimeEvent.ProtoReflect.Descriptor instead.
 func (*VerbRuntimeEvent) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{82}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *VerbRuntimeEvent) GetModule() string {
@@ -6096,13 +6035,6 @@ func (x *VerbRuntimeEvent) GetId() string {
 	return ""
 }
 
-func (x *VerbRuntimeEvent) GetBase() *VerbRuntimeBase {
-	if x != nil {
-		return x.Base
-	}
-	return nil
-}
-
 func (x *VerbRuntimeEvent) GetSubscription() *VerbRuntimeSubscription {
 	if x != nil {
 		return x.Subscription
@@ -6119,7 +6051,7 @@ type VerbRuntimeSubscription struct {
 
 func (x *VerbRuntimeSubscription) Reset() {
 	*x = VerbRuntimeSubscription{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6131,7 +6063,7 @@ func (x *VerbRuntimeSubscription) String() string {
 func (*VerbRuntimeSubscription) ProtoMessage() {}
 
 func (x *VerbRuntimeSubscription) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6144,7 +6076,7 @@ func (x *VerbRuntimeSubscription) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntimeSubscription.ProtoReflect.Descriptor instead.
 func (*VerbRuntimeSubscription) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{83}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *VerbRuntimeSubscription) GetKafkaBrokers() []string {
@@ -7179,46 +7111,26 @@ var file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = []byte{
 	0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x56, 0x65,
 	0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x48, 0x01, 0x52, 0x07, 0x72, 0x75, 0x6e,
 	0x74, 0x69, 0x6d, 0x65, 0x88, 0x01, 0x01, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x42,
-	0x0a, 0x0a, 0x08, 0x5f, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x22, 0xb7, 0x01, 0x0a, 0x0b,
-	0x56, 0x65, 0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x12, 0x3c, 0x0a, 0x04, 0x62,
-	0x61, 0x73, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x78, 0x79, 0x7a, 0x2e,
-	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61,
-	0x2e, 0x76, 0x31, 0x2e, 0x56, 0x65, 0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x42,
-	0x61, 0x73, 0x65, 0x52, 0x04, 0x62, 0x61, 0x73, 0x65, 0x12, 0x59, 0x0a, 0x0c, 0x73, 0x75, 0x62,
-	0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x30, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e,
-	0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x56, 0x65, 0x72, 0x62, 0x52, 0x75,
-	0x6e, 0x74, 0x69, 0x6d, 0x65, 0x53, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f,
-	0x6e, 0x48, 0x00, 0x52, 0x0c, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f,
-	0x6e, 0x88, 0x01, 0x01, 0x42, 0x0f, 0x0a, 0x0d, 0x5f, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69,
-	0x70, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0xb2, 0x01, 0x0a, 0x0f, 0x56, 0x65, 0x72, 0x62, 0x52, 0x75,
-	0x6e, 0x74, 0x69, 0x6d, 0x65, 0x42, 0x61, 0x73, 0x65, 0x12, 0x40, 0x0a, 0x0b, 0x63, 0x72, 0x65,
-	0x61, 0x74, 0x65, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a,
-	0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
-	0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x48, 0x00, 0x52, 0x0a, 0x63, 0x72,
-	0x65, 0x61, 0x74, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x88, 0x01, 0x01, 0x12, 0x3e, 0x0a, 0x0a, 0x73,
-	0x74, 0x61, 0x72, 0x74, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75,
-	0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x48, 0x01, 0x52, 0x09, 0x73,
-	0x74, 0x61, 0x72, 0x74, 0x54, 0x69, 0x6d, 0x65, 0x88, 0x01, 0x01, 0x42, 0x0e, 0x0a, 0x0c, 0x5f,
-	0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x42, 0x0d, 0x0a, 0x0b, 0x5f,
-	0x73, 0x74, 0x61, 0x72, 0x74, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x90, 0x02, 0x0a, 0x10, 0x56,
-	0x65, 0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12,
-	0x16, 0x0a, 0x06, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x06, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x63, 0x68, 0x61, 0x6e, 0x67,
-	0x65, 0x73, 0x65, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x63, 0x68, 0x61, 0x6e,
-	0x67, 0x65, 0x73, 0x65, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x41, 0x0a, 0x04, 0x62, 0x61, 0x73, 0x65, 0x18, 0x04, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e,
-	0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x56, 0x65,
-	0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x42, 0x61, 0x73, 0x65, 0x48, 0x00, 0x52,
-	0x04, 0x62, 0x61, 0x73, 0x65, 0x88, 0x01, 0x01, 0x12, 0x59, 0x0a, 0x0c, 0x73, 0x75, 0x62, 0x73,
-	0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x30,
-	0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73,
-	0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x56, 0x65, 0x72, 0x62, 0x52, 0x75, 0x6e,
-	0x74, 0x69, 0x6d, 0x65, 0x53, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e,
-	0x48, 0x01, 0x52, 0x0c, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e,
-	0x88, 0x01, 0x01, 0x42, 0x07, 0x0a, 0x05, 0x5f, 0x62, 0x61, 0x73, 0x65, 0x42, 0x0f, 0x0a, 0x0d,
+	0x0a, 0x0a, 0x08, 0x5f, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x79, 0x0a, 0x0b, 0x56,
+	0x65, 0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x12, 0x59, 0x0a, 0x0c, 0x73, 0x75,
+	0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x30, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c,
+	0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x56, 0x65, 0x72, 0x62, 0x52,
+	0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x53, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69,
+	0x6f, 0x6e, 0x48, 0x00, 0x52, 0x0c, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69,
+	0x6f, 0x6e, 0x88, 0x01, 0x01, 0x42, 0x0f, 0x0a, 0x0d, 0x5f, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72,
+	0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0xc4, 0x01, 0x0a, 0x10, 0x56, 0x65, 0x72, 0x62, 0x52,
+	0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x6d,
+	0x6f, 0x64, 0x75, 0x6c, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x6d, 0x6f, 0x64,
+	0x75, 0x6c, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65, 0x74,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65,
+	0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69,
+	0x64, 0x12, 0x59, 0x0a, 0x0c, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f,
+	0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x30, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c,
+	0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76,
+	0x31, 0x2e, 0x56, 0x65, 0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x53, 0x75, 0x62,
+	0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x0c, 0x73, 0x75, 0x62,
+	0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x88, 0x01, 0x01, 0x42, 0x0f, 0x0a, 0x0d,
 	0x5f, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x3e, 0x0a,
 	0x17, 0x56, 0x65, 0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x53, 0x75, 0x62, 0x73,
 	0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x23, 0x0a, 0x0d, 0x6b, 0x61, 0x66, 0x6b,
@@ -7290,7 +7202,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP() []byte {
 }
 
 var file_xyz_block_ftl_schema_v1_schema_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 84)
+var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 83)
 var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(AliasKind)(0),                         // 0: xyz.block.ftl.schema.v1.AliasKind
 	(ChangesetState)(0),                    // 1: xyz.block.ftl.schema.v1.ChangesetState
@@ -7377,10 +7289,9 @@ var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(*Value)(nil),                          // 82: xyz.block.ftl.schema.v1.Value
 	(*Verb)(nil),                           // 83: xyz.block.ftl.schema.v1.Verb
 	(*VerbRuntime)(nil),                    // 84: xyz.block.ftl.schema.v1.VerbRuntime
-	(*VerbRuntimeBase)(nil),                // 85: xyz.block.ftl.schema.v1.VerbRuntimeBase
-	(*VerbRuntimeEvent)(nil),               // 86: xyz.block.ftl.schema.v1.VerbRuntimeEvent
-	(*VerbRuntimeSubscription)(nil),        // 87: xyz.block.ftl.schema.v1.VerbRuntimeSubscription
-	(*timestamppb.Timestamp)(nil),          // 88: google.protobuf.Timestamp
+	(*VerbRuntimeEvent)(nil),               // 85: xyz.block.ftl.schema.v1.VerbRuntimeEvent
+	(*VerbRuntimeSubscription)(nil),        // 86: xyz.block.ftl.schema.v1.VerbRuntimeSubscription
+	(*timestamppb.Timestamp)(nil),          // 87: google.protobuf.Timestamp
 }
 var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	66,  // 0: xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
@@ -7389,7 +7300,7 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	77,  // 3: xyz.block.ftl.schema.v1.Array.element:type_name -> xyz.block.ftl.schema.v1.Type
 	66,  // 4: xyz.block.ftl.schema.v1.Bool.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	66,  // 5: xyz.block.ftl.schema.v1.Bytes.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	88,  // 6: xyz.block.ftl.schema.v1.Changeset.created_at:type_name -> google.protobuf.Timestamp
+	87,  // 6: xyz.block.ftl.schema.v1.Changeset.created_at:type_name -> google.protobuf.Timestamp
 	59,  // 7: xyz.block.ftl.schema.v1.Changeset.modules:type_name -> xyz.block.ftl.schema.v1.Module
 	59,  // 8: xyz.block.ftl.schema.v1.Changeset.removing_modules:type_name -> xyz.block.ftl.schema.v1.Module
 	1,   // 9: xyz.block.ftl.schema.v1.Changeset.state:type_name -> xyz.block.ftl.schema.v1.ChangesetState
@@ -7418,7 +7329,7 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	74,  // 32: xyz.block.ftl.schema.v1.Decl.topic:type_name -> xyz.block.ftl.schema.v1.Topic
 	78,  // 33: xyz.block.ftl.schema.v1.Decl.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
 	83,  // 34: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
-	88,  // 35: xyz.block.ftl.schema.v1.DeploymentActivatedEvent.activated_at:type_name -> google.protobuf.Timestamp
+	87,  // 35: xyz.block.ftl.schema.v1.DeploymentActivatedEvent.activated_at:type_name -> google.protobuf.Timestamp
 	59,  // 36: xyz.block.ftl.schema.v1.DeploymentCreatedEvent.schema:type_name -> xyz.block.ftl.schema.v1.Module
 	59,  // 37: xyz.block.ftl.schema.v1.DeploymentSchemaUpdatedEvent.schema:type_name -> xyz.block.ftl.schema.v1.Module
 	66,  // 38: xyz.block.ftl.schema.v1.Enum.pos:type_name -> xyz.block.ftl.schema.v1.Position
@@ -7440,7 +7351,7 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	29,  // 54: xyz.block.ftl.schema.v1.Event.deployment_schema_updated_event:type_name -> xyz.block.ftl.schema.v1.DeploymentSchemaUpdatedEvent
 	63,  // 55: xyz.block.ftl.schema.v1.Event.module_runtime_event:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeEvent
 	76,  // 56: xyz.block.ftl.schema.v1.Event.topic_runtime_event:type_name -> xyz.block.ftl.schema.v1.TopicRuntimeEvent
-	86,  // 57: xyz.block.ftl.schema.v1.Event.verb_runtime_event:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeEvent
+	85,  // 57: xyz.block.ftl.schema.v1.Event.verb_runtime_event:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeEvent
 	66,  // 58: xyz.block.ftl.schema.v1.Field.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	77,  // 59: xyz.block.ftl.schema.v1.Field.type:type_name -> xyz.block.ftl.schema.v1.Type
 	41,  // 60: xyz.block.ftl.schema.v1.Field.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
@@ -7505,9 +7416,9 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	61,  // 119: xyz.block.ftl.schema.v1.ModuleRuntime.base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
 	64,  // 120: xyz.block.ftl.schema.v1.ModuleRuntime.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
 	62,  // 121: xyz.block.ftl.schema.v1.ModuleRuntime.deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	88,  // 122: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
-	88,  // 123: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.created_at:type_name -> google.protobuf.Timestamp
-	88,  // 124: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.activated_at:type_name -> google.protobuf.Timestamp
+	87,  // 122: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
+	87,  // 123: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.created_at:type_name -> google.protobuf.Timestamp
+	87,  // 124: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.activated_at:type_name -> google.protobuf.Timestamp
 	2,   // 125: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.state:type_name -> xyz.block.ftl.schema.v1.DeploymentState
 	61,  // 126: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
 	64,  // 127: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
@@ -7557,17 +7468,13 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	77,  // 171: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
 	41,  // 172: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
 	84,  // 173: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
-	85,  // 174: xyz.block.ftl.schema.v1.VerbRuntime.base:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeBase
-	87,  // 175: xyz.block.ftl.schema.v1.VerbRuntime.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
-	88,  // 176: xyz.block.ftl.schema.v1.VerbRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
-	88,  // 177: xyz.block.ftl.schema.v1.VerbRuntimeBase.start_time:type_name -> google.protobuf.Timestamp
-	85,  // 178: xyz.block.ftl.schema.v1.VerbRuntimeEvent.base:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeBase
-	87,  // 179: xyz.block.ftl.schema.v1.VerbRuntimeEvent.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
-	180, // [180:180] is the sub-list for method output_type
-	180, // [180:180] is the sub-list for method input_type
-	180, // [180:180] is the sub-list for extension type_name
-	180, // [180:180] is the sub-list for extension extendee
-	0,   // [0:180] is the sub-list for field type_name
+	86,  // 174: xyz.block.ftl.schema.v1.VerbRuntime.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
+	86,  // 175: xyz.block.ftl.schema.v1.VerbRuntimeEvent.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
+	176, // [176:176] is the sub-list for method output_type
+	176, // [176:176] is the sub-list for method input_type
+	176, // [176:176] is the sub-list for extension type_name
+	176, // [176:176] is the sub-list for extension extendee
+	0,   // [0:176] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_schema_v1_schema_proto_init() }
@@ -7705,14 +7612,13 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_xyz_block_ftl_schema_v1_schema_proto_rawDesc,
 			NumEnums:      4,
-			NumMessages:   84,
+			NumMessages:   83,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

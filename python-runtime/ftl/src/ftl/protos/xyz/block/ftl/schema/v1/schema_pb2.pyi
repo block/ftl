@@ -938,34 +938,22 @@ class Verb(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., export: bool = ..., name: _Optional[str] = ..., request: _Optional[_Union[Type, _Mapping]] = ..., response: _Optional[_Union[Type, _Mapping]] = ..., metadata: _Optional[_Iterable[_Union[Metadata, _Mapping]]] = ..., runtime: _Optional[_Union[VerbRuntime, _Mapping]] = ...) -> None: ...
 
 class VerbRuntime(_message.Message):
-    __slots__ = ("base", "subscription")
-    BASE_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("subscription",)
     SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
-    base: VerbRuntimeBase
     subscription: VerbRuntimeSubscription
-    def __init__(self, base: _Optional[_Union[VerbRuntimeBase, _Mapping]] = ..., subscription: _Optional[_Union[VerbRuntimeSubscription, _Mapping]] = ...) -> None: ...
-
-class VerbRuntimeBase(_message.Message):
-    __slots__ = ("create_time", "start_time")
-    CREATE_TIME_FIELD_NUMBER: _ClassVar[int]
-    START_TIME_FIELD_NUMBER: _ClassVar[int]
-    create_time: _timestamp_pb2.Timestamp
-    start_time: _timestamp_pb2.Timestamp
-    def __init__(self, create_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., start_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, subscription: _Optional[_Union[VerbRuntimeSubscription, _Mapping]] = ...) -> None: ...
 
 class VerbRuntimeEvent(_message.Message):
-    __slots__ = ("module", "changeset", "id", "base", "subscription")
+    __slots__ = ("module", "changeset", "id", "subscription")
     MODULE_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
-    BASE_FIELD_NUMBER: _ClassVar[int]
     SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
     module: str
     changeset: str
     id: str
-    base: VerbRuntimeBase
     subscription: VerbRuntimeSubscription
-    def __init__(self, module: _Optional[str] = ..., changeset: _Optional[str] = ..., id: _Optional[str] = ..., base: _Optional[_Union[VerbRuntimeBase, _Mapping]] = ..., subscription: _Optional[_Union[VerbRuntimeSubscription, _Mapping]] = ...) -> None: ...
+    def __init__(self, module: _Optional[str] = ..., changeset: _Optional[str] = ..., id: _Optional[str] = ..., subscription: _Optional[_Union[VerbRuntimeSubscription, _Mapping]] = ...) -> None: ...
 
 class VerbRuntimeSubscription(_message.Message):
     __slots__ = ("kafka_brokers",)

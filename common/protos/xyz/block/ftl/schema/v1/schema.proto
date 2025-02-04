@@ -589,21 +589,14 @@ message Verb {
 }
 
 message VerbRuntime {
-  VerbRuntimeBase base = 1;
-  optional VerbRuntimeSubscription subscription = 2;
-}
-
-message VerbRuntimeBase {
-  optional google.protobuf.Timestamp create_time = 1;
-  optional google.protobuf.Timestamp start_time = 2;
+  optional VerbRuntimeSubscription subscription = 1;
 }
 
 message VerbRuntimeEvent {
   string module = 1;
   string changeset = 2;
   string id = 3;
-  optional VerbRuntimeBase base = 4;
-  optional VerbRuntimeSubscription subscription = 5;
+  optional VerbRuntimeSubscription subscription = 4;
 }
 
 message VerbRuntimeSubscription {

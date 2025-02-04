@@ -92,9 +92,6 @@ func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
 				verb.Runtime = &schema.VerbRuntime{}
 			}
 
-			if base, ok := e.Base.Get(); ok {
-				verb.Runtime.Base = base
-			}
 			if subscription, ok := e.Subscription.Get(); ok {
 				verb.Runtime.Subscription = &subscription
 			}

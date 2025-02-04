@@ -2858,7 +2858,6 @@ func (x *VerbRuntime) ToProto() *destpb.VerbRuntime {
 		return nil
 	}
 	return &destpb.VerbRuntime{
-		Base:         x.Base.ToProto(),
 		Subscription: x.Subscription.ToProto(),
 	}
 }
@@ -2869,36 +2868,8 @@ func VerbRuntimeFromProto(v *destpb.VerbRuntime) (out *VerbRuntime, err error) {
 	}
 
 	out = &VerbRuntime{}
-	if out.Base, err = orZeroR(result.From(VerbRuntimeBaseFromProto(v.Base))).Result(); err != nil {
-		return nil, fmt.Errorf("Base: %w", err)
-	}
 	if out.Subscription, err = result.From(VerbRuntimeSubscriptionFromProto(v.Subscription)).Result(); err != nil {
 		return nil, fmt.Errorf("Subscription: %w", err)
-	}
-	return out, nil
-}
-
-func (x *VerbRuntimeBase) ToProto() *destpb.VerbRuntimeBase {
-	if x == nil {
-		return nil
-	}
-	return &destpb.VerbRuntimeBase{
-		CreateTime: timestamppb.New(x.CreateTime),
-		StartTime:  timestamppb.New(x.StartTime),
-	}
-}
-
-func VerbRuntimeBaseFromProto(v *destpb.VerbRuntimeBase) (out *VerbRuntimeBase, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &VerbRuntimeBase{}
-	if out.CreateTime, err = orZeroR(result.From(setNil(ptr(v.CreateTime.AsTime()), v.CreateTime), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("CreateTime: %w", err)
-	}
-	if out.StartTime, err = orZeroR(result.From(setNil(ptr(v.StartTime.AsTime()), v.StartTime), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("StartTime: %w", err)
 	}
 	return out, nil
 }
@@ -2911,7 +2882,6 @@ func (x *VerbRuntimeEvent) ToProto() *destpb.VerbRuntimeEvent {
 		Module:       orZero(ptr(string(x.Module))),
 		Changeset:    orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 		Id:           orZero(ptr(string(x.ID))),
-		Base:         x.Base.Ptr().ToProto(),
 		Subscription: x.Subscription.Ptr().ToProto(),
 	}
 }
@@ -2930,9 +2900,6 @@ func VerbRuntimeEventFromProto(v *destpb.VerbRuntimeEvent) (out *VerbRuntimeEven
 	}
 	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("ID: %w", err)
-	}
-	if out.Base, err = optionalR(result.From(VerbRuntimeBaseFromProto(v.Base))).Result(); err != nil {
-		return nil, fmt.Errorf("Base: %w", err)
 	}
 	if out.Subscription, err = optionalR(result.From(VerbRuntimeSubscriptionFromProto(v.Subscription))).Result(); err != nil {
 		return nil, fmt.Errorf("Subscription: %w", err)

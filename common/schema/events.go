@@ -110,8 +110,7 @@ type VerbRuntimeEvent struct {
 	Module       string                                   `protobuf:"1"`
 	Changeset    key.Changeset                            `protobuf:"2"`
 	ID           string                                   `protobuf:"3"`
-	Base         optional.Option[VerbRuntimeBase]         `protobuf:"4"`
-	Subscription optional.Option[VerbRuntimeSubscription] `protobuf:"5"`
+	Subscription optional.Option[VerbRuntimeSubscription] `protobuf:"4"`
 }
 
 func (e *VerbRuntimeEvent) event() {}
