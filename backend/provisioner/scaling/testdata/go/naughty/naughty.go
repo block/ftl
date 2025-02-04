@@ -3,7 +3,6 @@ package naughty
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -17,13 +16,13 @@ func BeNaughty(ctx context.Context, endpoint map[string]string) (string, error) 
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return fmt.Sprintf("Error making GET request: to %s %v\n", url, err), nil
+		return "false", nil
 	}
 	defer resp.Body.Close()
 
 	_, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Sprintf("Error reading response body: %v\n", err), nil
+		return "false", nil
 	}
 	return strconv.FormatBool(resp.StatusCode == 200), nil
 }
