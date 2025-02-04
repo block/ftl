@@ -31,15 +31,6 @@ message DeploymentArtefact {
   bool executable = 3;
 }
 
-message CreateDeploymentRequest {
-  ftl.schema.v1.Module schema = 1;
-}
-message CreateDeploymentResponse {
-  string deployment_key = 1;
-  // Currently active deployment for this module, if any.
-  optional string active_deployment_key = 2;
-}
-
 message GetDeploymentArtefactsRequest {
   string deployment_key = 1;
   repeated DeploymentArtefact have_artefacts = 2;

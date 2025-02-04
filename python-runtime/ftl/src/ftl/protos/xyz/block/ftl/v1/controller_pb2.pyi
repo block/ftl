@@ -44,20 +44,6 @@ class DeploymentArtefact(_message.Message):
     executable: bool
     def __init__(self, digest: _Optional[str] = ..., path: _Optional[str] = ..., executable: bool = ...) -> None: ...
 
-class CreateDeploymentRequest(_message.Message):
-    __slots__ = ("schema",)
-    SCHEMA_FIELD_NUMBER: _ClassVar[int]
-    schema: _schema_pb2.Module
-    def __init__(self, schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
-
-class CreateDeploymentResponse(_message.Message):
-    __slots__ = ("deployment_key", "active_deployment_key")
-    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
-    ACTIVE_DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
-    deployment_key: str
-    active_deployment_key: str
-    def __init__(self, deployment_key: _Optional[str] = ..., active_deployment_key: _Optional[str] = ...) -> None: ...
-
 class GetDeploymentArtefactsRequest(_message.Message):
     __slots__ = ("deployment_key", "have_artefacts")
     DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
