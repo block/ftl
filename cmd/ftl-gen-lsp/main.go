@@ -2,7 +2,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,7 +17,7 @@ import (
 
 type CLI struct {
 	Config  string `type:"filepath" default:"internal/lsp/hover.json" help:"Path to the hover configuration file"`
-	DocRoot string `type:"dirpath" default:"docs/content/docs" help:"Path to the config referenced markdowns"`
+	DocRoot string `type:"dirpath" default:"docs/docs" help:"Path to the config referenced markdowns"`
 	Output  string `type:"filepath" default:"internal/lsp/hoveritems.go" help:"Path to the generated Go file"`
 }
 
@@ -119,27 +118,39 @@ type Doc struct {
 	Content string
 }
 
-// getMarkdownWithTitle reads a Zola markdown file and returns the full markdown content and the title.
+// getMarkdownWithTitle reads a Docusaurus markdown file and returns the full markdown content and the title.
 func getMarkdownWithTitle(file *os.File) (*Doc, error) {
 	content, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %s: %w", file.Name(), err)
 	}
 
-	// Zola markdown files have a +++ delimiter. An initial one, then metadata, then markdown content.
-	parts := bytes.Split(content, []byte("+++"))
-	if len(parts) < 3 {
-		return nil, fmt.Errorf("file %s does not contain two +++ strings", file.Name())
+	// Find the frontmatter boundaries
+	lines := strings.Split(string(content), "\n")
+	var frontmatterStart, frontmatterEnd int
+	foundStart := false
+
+	for i, line := range lines {
+		if line == "---" {
+			if !foundStart {
+				frontmatterStart = i
+				foundStart = true
+			} else {
+				frontmatterEnd = i
+				break
+			}
+		}
 	}
 
-	// Look for the title in the metadata.
-	// title = "PubSub"
+	if !foundStart || frontmatterEnd == 0 {
+		return nil, fmt.Errorf("file %s does not contain frontmatter delimiters", file.Name())
+	}
+
+	// Extract frontmatter and look for title
 	title := ""
-	lines := strings.Split(string(parts[1]), "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "title = ") {
-			title = strings.TrimSpace(strings.TrimPrefix(line, "title = "))
-			title = strings.Trim(title, "\"")
+	for _, line := range lines[frontmatterStart+1 : frontmatterEnd] {
+		if strings.HasPrefix(line, "title:") {
+			title = strings.TrimSpace(strings.TrimPrefix(line, "title:"))
 			break
 		}
 	}
@@ -147,7 +158,9 @@ func getMarkdownWithTitle(file *os.File) (*Doc, error) {
 		return nil, fmt.Errorf("file %s does not contain a title", file.Name())
 	}
 
-	return &Doc{Title: title, Content: string(parts[2])}, nil
+	// Join the content after frontmatter
+	contentLines := lines[frontmatterEnd+1:]
+	return &Doc{Title: title, Content: strings.Join(contentLines, "\n")}, nil
 }
 
 var HTMLCommentRegex = regexp.MustCompile(`<!--\w*(.*?)\w*-->`)
@@ -155,34 +168,42 @@ var HTMLCommentRegex = regexp.MustCompile(`<!--\w*(.*?)\w*-->`)
 // stripNonGoDocs removes non-Go code blocks from the markdown content.
 func stripNonGoDocs(content string) string {
 	lines := strings.Split(content, "\n")
-
 	var currentLang string
 	var collected []string
 	for _, line := range lines {
-		if strings.Contains(line, "code_selector()") {
-			currentLang = ""
-			continue
-		}
-		if line == "{% end %}" {
-			currentLang = ""
+		// Keep Docusaurus imports and components
+		if strings.Contains(line, "import") || strings.Contains(line, "TabItem") || strings.Contains(line, "Tabs") {
+			collected = append(collected, line)
 			continue
 		}
 
-		// Grab the language from the HTML comment text
-		values := HTMLCommentRegex.FindStringSubmatch(line)
-		if len(values) > 1 {
-			lang := strings.TrimSpace(values[1])
-			// end starts "common" text block
-			if lang == "end" {
-				currentLang = ""
-			} else {
+		// Keep all markdown content (headings, text, etc.)
+		if !strings.HasPrefix(line, "```") && currentLang == "" {
+			collected = append(collected, line)
+			continue
+		}
+
+		// Handle code blocks
+		if strings.HasPrefix(line, "```") {
+			if currentLang == "" {
+				// Starting a code block
+				lang := strings.TrimPrefix(line, "```")
 				currentLang = lang
+				if lang == "go" {
+					collected = append(collected, line)
+				}
+			} else {
+				// Ending a code block
+				if currentLang == "go" {
+					collected = append(collected, line)
+				}
+				currentLang = ""
 			}
 			continue
 		}
 
-		// If we're in a Go block or unspecified, collect the line.
-		if currentLang == "go" || currentLang == "" {
+		// If we're in a Go block, keep the line
+		if currentLang == "go" {
 			collected = append(collected, line)
 		}
 	}

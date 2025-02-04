@@ -217,4 +217,43 @@ public enum Colour {
 
 ## Type aliases
 
-A type alias is an alternate name for an existing type. It can be declared like so: 
+A type alias is an alternate name for an existing type. It can be declared like so:
+
+<Tabs>
+  <TabItem value="go" label="Go" default>
+
+```go
+//ftl:typealias
+type UserID string
+```
+
+  </TabItem>
+  <TabItem value="kotlin" label="Kotlin">
+
+```kotlin
+typealias UserID = String
+```
+
+  </TabItem>
+  <TabItem value="java" label="Java">
+
+```java
+// Java does not support type aliases directly
+// Use a wrapper class instead
+public class UserID {
+    private final String value;
+    
+    public UserID(String value) {
+        this.value = value;
+    }
+    
+    public String getValue() {
+        return value;
+    }
+}
+```
+
+  </TabItem>
+</Tabs>
+
+Type aliases are useful for making code more readable and type-safe by giving meaningful names to types that represent specific concepts in your domain.
