@@ -328,14 +328,19 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 	resp, err := client.Ping(pingCtx, connect.NewRequest(&ftlv1.PingRequest{}))
 	out.live.Store(err == nil && resp.Msg.NotReady == nil)
 
+	logger.Debugf("Schema pull live: %t", out.live.Load())
+
 	go rpc.RetryStreamingServerStream(ctx, "schema-sync", backoff.Backoff{}, &ftlv1.PullSchemaRequest{}, client.PullSchema, func(_ context.Context, resp *ftlv1.PullSchemaResponse) error {
 		out.live.Store(true)
 		// resp.More can become true again if the streaming client reconnects, but we don't want downstream to have to
 		// care about a new initial sync restarting.
 		more = more && resp.More
 
+		logger.Debugf("Schema pull more: %t", more)
+
 		switch event := resp.Event.(type) {
 		case *ftlv1.PullSchemaResponse_ChangesetCreated_:
+			logger.Debugf("Schema pull changeset created")
 			changeset, err := schema.ChangesetFromProto(event.ChangesetCreated.Changeset)
 			if err != nil {
 				return fmt.Errorf("invalid changeset: %w", err)
@@ -345,6 +350,7 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 				more:      more,
 			})
 		case *ftlv1.PullSchemaResponse_ChangesetFailed_:
+			logger.Debugf("Schema pull changeset failed")
 			key, err := key.ParseChangesetKey(event.ChangesetFailed.Key)
 			if err != nil {
 				return fmt.Errorf("invalid changeset key: %w", err)
@@ -356,6 +362,7 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 				more:    more,
 			})
 		case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
+			logger.Debugf("Schema pull changeset committed")
 			key, err := key.ParseChangesetKey(event.ChangesetCommitted.Key)
 			if err != nil {
 				return fmt.Errorf("invalid changeset key: %w", err)
@@ -366,6 +373,7 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 				more:    more,
 			})
 		case *ftlv1.PullSchemaResponse_DeploymentCreated_:
+			logger.Debugf("Schema pull deployment created")
 			module, err := schema.ValidatedModuleFromProto(event.DeploymentCreated.Schema)
 			if err != nil {
 				return fmt.Errorf("invalid module: %w", err)
@@ -386,6 +394,7 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 				more:      more,
 			})
 		case *ftlv1.PullSchemaResponse_DeploymentUpdated_:
+			logger.Debugf("Schema pull deployment updated")
 			module, err := schema.ValidatedModuleFromProto(event.DeploymentUpdated.Schema)
 			if err != nil {
 				return fmt.Errorf("invalid module: %w", err)
@@ -405,6 +414,7 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 				more:      more,
 			})
 		case *ftlv1.PullSchemaResponse_DeploymentRemoved_:
+			logger.Debugf("Schema pull deployment removed")
 			// TODO: bring this back? but we can't right because there can be multiple?
 			// if !resp.ModuleRemoved {
 			// 	return nil
@@ -425,6 +435,7 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 				more:       more,
 			})
 		default:
+			logger.Debugf("Schema pull unknown change type %T", event)
 			return fmt.Errorf("schema-sync: unknown change type %T", event)
 		}
 

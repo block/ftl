@@ -46,7 +46,7 @@ type RaftConfig struct {
 	RTT                time.Duration `help:"Estimated average round trip time between nodes" default:"200ms"`
 	ElectionRTT        uint64        `help:"Election RTT as a multiple of RTT" default:"10"`
 	HeartbeatRTT       uint64        `help:"Heartbeat RTT as a multiple of RTT" default:"1"`
-	SnapshotEntries    uint64        `help:"Snapshot entries" default:"10"`
+	SnapshotEntries    uint64        `help:"Snapshot entries" default:"100"`
 	CompactionOverhead uint64        `help:"Compaction overhead" default:"100"`
 }
 

@@ -372,6 +372,8 @@ schema:
           fieldPath: status.podIP
     - name: FTL_BIND
       value: "http://$(MY_POD_IP):8892"
+    - name: LOG_LEVEL
+      value: "trace"
     - name: HOST_IP
       valueFrom:
         fieldRef:
@@ -379,7 +381,7 @@ schema:
     - name: RAFT_INITIAL_MEMBERS
       value: "ftl-schema-1.ftl-schema-raft.default.svc.cluster.local:8992,ftl-schema-2.ftl-schema-raft.default.svc.cluster.local:8992,ftl-schema-3.ftl-schema-raft.default.svc.cluster.local:8992"
     - name: RAFT_DATA_DIR
-      value: "/tmp/ftl-schema"
+      value: "/tmp/ftl-schema-$(ORDINAL_NUMBER)"
     - name: ORDINAL_NUMBER
       valueFrom:
         fieldRef:
