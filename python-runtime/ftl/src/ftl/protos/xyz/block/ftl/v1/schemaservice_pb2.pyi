@@ -38,10 +38,10 @@ class PullSchemaResponse(_message.Message):
         error: str
         def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
     class ChangesetCommitted(_message.Message):
-        __slots__ = ("key",)
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        def __init__(self, key: _Optional[str] = ...) -> None: ...
+        __slots__ = ("changeset",)
+        CHANGESET_FIELD_NUMBER: _ClassVar[int]
+        changeset: _schema_pb2.Changeset
+        def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
     class DeploymentCreated(_message.Message):
         __slots__ = ("changeset", "schema")
         CHANGESET_FIELD_NUMBER: _ClassVar[int]

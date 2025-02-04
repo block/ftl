@@ -290,9 +290,9 @@ export class PullSchemaResponse_ChangesetFailed extends Message<PullSchemaRespon
  */
 export class PullSchemaResponse_ChangesetCommitted extends Message<PullSchemaResponse_ChangesetCommitted> {
   /**
-   * @generated from field: string key = 1;
+   * @generated from field: xyz.block.ftl.schema.v1.Changeset changeset = 1;
    */
-  key = "";
+  changeset?: Changeset;
 
   constructor(data?: PartialMessage<PullSchemaResponse_ChangesetCommitted>) {
     super();
@@ -302,7 +302,7 @@ export class PullSchemaResponse_ChangesetCommitted extends Message<PullSchemaRes
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.PullSchemaResponse.ChangesetCommitted";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "changeset", kind: "message", T: Changeset },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PullSchemaResponse_ChangesetCommitted {

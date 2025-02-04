@@ -29,7 +29,7 @@ message PullSchemaResponse {
 
   // ChangesetFailed is sent when a changeset becomes canonical.
   message ChangesetCommitted {
-    string key = 1;
+    ftl.schema.v1.Changeset changeset = 1;
   }
 
   // Deployment created is sent when a deployment is new to the listener but is not part of a changeset.
