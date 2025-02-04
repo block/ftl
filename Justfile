@@ -312,7 +312,7 @@ lint-scripts:
   shellcheck -f gcc -e SC2016 $(find scripts -type f -not -path scripts/tests) | to-annotation
 
 # Run live docs server
-docs:
+docs: pnpm-install
   @cd docs && pnpm start
 
 # Generate LSP hover help text
