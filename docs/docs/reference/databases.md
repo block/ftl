@@ -10,7 +10,11 @@ FTL has support for Postgresql and MySQL databases, including support for automa
 
 The process for declaring a database differs by language.
 
-## Go
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs groupId="languages">
+  <TabItem value="go" label="Go" default>
 
 To use a database in go you must create a struct that implements either the `ftl.MySQLDatabaseConfig` or 
 `ftl.PostgresDatabaseConfig` interface. Generally this will involve creating a struct that embeds the
@@ -64,7 +68,8 @@ func Query(ctx context.Context, db ftl.DatabaseHandle[TestDatasourceConfig]) ([]
 }
 ```
 
-## Kotlin
+  </TabItem>
+  <TabItem value="kotlin" label="Kotlin">
 
 To declare a datasource in Kotlin you must use the `@SQLDatasource` annotation. This annotations is used to define
 the database name and type.
@@ -103,7 +108,8 @@ This will require adding one of the following dependencies:
 
 Note that this will likely change significantly in future once FTL has SQL Verbs.
 
-## Java
+  </TabItem>
+  <TabItem value="java" label="Java">
 
 To declare a datasource in Java you must use the `@SQLDatasource` annotation. This annotations is used to define
 the database name and type.
@@ -141,6 +147,9 @@ This will require adding one of the following dependencies:
 ```
 
 Note that this will likely change significantly in future once FTL has SQL Verbs.
+
+  </TabItem>
+</Tabs>
 
 ## Provisioning
 

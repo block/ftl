@@ -37,7 +37,7 @@ The following table shows how FTL types map to language-specific types:
 
 FTL supports user-defined data structures, declared using the idiomatic syntax of the target language.
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 ```go
@@ -79,7 +79,7 @@ public class Person {
 
 FTL has first-class support for generics, declared using the idiomatic syntax of the target language.
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 ```go
@@ -121,7 +121,7 @@ public class Pair<T, U> {
 
 [Sum types](https://en.wikipedia.org/wiki/Tagged_union) are supported by FTL's type system.
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 Sum types aren't directly supported by Go, however they can be approximated with the use of [sealed interfaces](https://blog.chewxy.com/2018/03/18/golang-interfaces/):
@@ -165,7 +165,7 @@ class Dog() : Animal
 
 A value enum is an enumerated set of string or integer values.
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 ```go
@@ -219,7 +219,7 @@ public enum Colour {
 
 A type alias is an alternate name for an existing type. It can be declared like so:
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 ```go

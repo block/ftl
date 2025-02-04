@@ -17,7 +17,7 @@ Install the FTL CLI via [Homebrew](https://brew.sh/), [Hermit](https://cashapp.g
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-<Tabs>
+<Tabs groupId="package-manager">
   <TabItem value="homebrew" label="Homebrew (Mac or Linux)" default>
 
 ```bash
@@ -70,7 +70,7 @@ This will create a new `myproject` directory containing an `ftl-project.toml` fi
 
 Now that you have an FTL project, create a new module:
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 ```bash
@@ -196,7 +196,7 @@ And view your trace in the console:
 
 Create another module and call `alice.echo` from it with by importing the `alice` module and adding the verb client, `alice.EchoClient`, to the signature of the calling verb. It can be invoked as a function:
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 ```go

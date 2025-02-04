@@ -17,7 +17,7 @@ Types that are transitively referenced by an exported declaration will be automa
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 The following table describes the go directives used to export the corresponding declaration:

@@ -313,7 +313,7 @@ lint-scripts:
 
 # Run live docs server
 docs:
-  cd docs && pnpm start
+  @cd docs && pnpm start
 
 # Generate LSP hover help text
 lsp-generate:

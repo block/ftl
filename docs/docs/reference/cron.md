@@ -17,7 +17,7 @@ The following function will be called hourly:
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 ```go
@@ -58,7 +58,7 @@ class MyCron {
 
 Every 12 hours, starting at UTC midnight:
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 ```go
@@ -99,7 +99,7 @@ class MyCron {
 
 Every Monday at UTC midnight:
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 ```go

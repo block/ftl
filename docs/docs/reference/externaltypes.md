@@ -38,16 +38,6 @@ typealias FtlType Any
   +typemap go "github.com/external.OtherType"
 ```
 
-### Cross-Runtime Type Mappings
-
-FTL also provides the capability to declare type mappings for other runtimes. For instance, to include a type mapping for another language:
-
-```go
-//ftl:typealias
-//ftl:typemap java "com.external.other.OtherType"
-type FtlType external.OtherType
-```
-
 </TabItem>
 <TabItem value="kotlin" label="Kotlin">
 
@@ -99,17 +89,6 @@ The corresponding type alias will be to a `String`, which makes the schema more 
 ```
 typealias FtlType String
   +typemap kotlin "foo.bar.OtherType"
-```
-
-### Cross-Runtime Type Mappings
-
-FTL also provides the capability to declare type mappings for other runtimes:
-
-```kotlin
-@TypeAlias(
-  name = "OtherType",
-  languageTypeMappings = [LanguageTypeMapping(language = "go", type = "github.com/external.OtherType")]
-)
 ```
 
 </TabItem>
@@ -167,9 +146,34 @@ typealias FtlType String
   +typemap java "com.external.other.OtherType"
 ```
 
-### Cross-Runtime Type Mappings
+</TabItem>
+</Tabs>
 
-FTL also provides the capability to declare type mappings for other runtimes:
+## Cross-Runtime Type Mappings
+
+FTL also provides the capability to declare type mappings for other runtimes. Here's how to do it in each language:
+
+<Tabs groupId="languages">
+<TabItem value="go" label="Go" default>
+
+```go
+//ftl:typealias
+//ftl:typemap java "com.external.other.OtherType"
+type FtlType external.OtherType
+```
+
+</TabItem>
+<TabItem value="kotlin" label="Kotlin">
+
+```kotlin
+@TypeAlias(
+  name = "OtherType",
+  languageTypeMappings = [LanguageTypeMapping(language = "go", type = "github.com/external.OtherType")]
+)
+```
+
+</TabItem>
+<TabItem value="java" label="Java">
 
 ```java
 @TypeAlias(name = "OtherType", languageTypeMappings = {

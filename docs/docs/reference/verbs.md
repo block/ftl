@@ -11,7 +11,7 @@ description: Declaring and calling Verbs
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 To declare a Verb, write a normal Go function with the following signature, annotated with the Go [comment directive](https://tip.golang.org/doc/comment#syntax) `//ftl:verb`:
@@ -90,7 +90,7 @@ By default verbs are only visible to other verbs in the same module (see [visibi
 
 ## Calling Verbs
 
-<Tabs>
+<Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
 To call a verb, import the module's verb client (`{ModuleName}.{VerbName}Client`), add it to your verb's signature, then invoke it as a function. eg.
