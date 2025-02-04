@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/reugn/go-quartz/logger"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -35,7 +34,8 @@ func main() {
 	)
 	cli.ProvisionerConfig.SetDefaults()
 
-	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig))
+	logger := log.Configure(os.Stderr, cli.LogConfig)
+	ctx := log.ContextWithLogger(context.Background(), logger)
 	err := observability.Init(ctx, false, "", "ftl-provisioner", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
