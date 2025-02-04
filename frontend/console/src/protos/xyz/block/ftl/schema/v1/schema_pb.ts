@@ -4443,12 +4443,7 @@ export class Verb extends Message<Verb> {
  */
 export class VerbRuntime extends Message<VerbRuntime> {
   /**
-   * @generated from field: xyz.block.ftl.schema.v1.VerbRuntimeBase base = 1;
-   */
-  base?: VerbRuntimeBase;
-
-  /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeSubscription subscription = 2;
+   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeSubscription subscription = 1;
    */
   subscription?: VerbRuntimeSubscription;
 
@@ -4460,8 +4455,7 @@ export class VerbRuntime extends Message<VerbRuntime> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.schema.v1.VerbRuntime";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "base", kind: "message", T: VerbRuntimeBase },
-    { no: 2, name: "subscription", kind: "message", T: VerbRuntimeSubscription, opt: true },
+    { no: 1, name: "subscription", kind: "message", T: VerbRuntimeSubscription, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): VerbRuntime {
@@ -4478,49 +4472,6 @@ export class VerbRuntime extends Message<VerbRuntime> {
 
   static equals(a: VerbRuntime | PlainMessage<VerbRuntime> | undefined, b: VerbRuntime | PlainMessage<VerbRuntime> | undefined): boolean {
     return proto3.util.equals(VerbRuntime, a, b);
-  }
-}
-
-/**
- * @generated from message xyz.block.ftl.schema.v1.VerbRuntimeBase
- */
-export class VerbRuntimeBase extends Message<VerbRuntimeBase> {
-  /**
-   * @generated from field: optional google.protobuf.Timestamp create_time = 1;
-   */
-  createTime?: Timestamp;
-
-  /**
-   * @generated from field: optional google.protobuf.Timestamp start_time = 2;
-   */
-  startTime?: Timestamp;
-
-  constructor(data?: PartialMessage<VerbRuntimeBase>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.schema.v1.VerbRuntimeBase";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "create_time", kind: "message", T: Timestamp, opt: true },
-    { no: 2, name: "start_time", kind: "message", T: Timestamp, opt: true },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): VerbRuntimeBase {
-    return new VerbRuntimeBase().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): VerbRuntimeBase {
-    return new VerbRuntimeBase().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): VerbRuntimeBase {
-    return new VerbRuntimeBase().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: VerbRuntimeBase | PlainMessage<VerbRuntimeBase> | undefined, b: VerbRuntimeBase | PlainMessage<VerbRuntimeBase> | undefined): boolean {
-    return proto3.util.equals(VerbRuntimeBase, a, b);
   }
 }
 
@@ -4544,12 +4495,7 @@ export class VerbRuntimeEvent extends Message<VerbRuntimeEvent> {
   id = "";
 
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeBase base = 4;
-   */
-  base?: VerbRuntimeBase;
-
-  /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeSubscription subscription = 5;
+   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeSubscription subscription = 4;
    */
   subscription?: VerbRuntimeSubscription;
 
@@ -4564,8 +4510,7 @@ export class VerbRuntimeEvent extends Message<VerbRuntimeEvent> {
     { no: 1, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "base", kind: "message", T: VerbRuntimeBase, opt: true },
-    { no: 5, name: "subscription", kind: "message", T: VerbRuntimeSubscription, opt: true },
+    { no: 4, name: "subscription", kind: "message", T: VerbRuntimeSubscription, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): VerbRuntimeEvent {
