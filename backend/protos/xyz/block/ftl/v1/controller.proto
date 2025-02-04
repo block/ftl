@@ -48,12 +48,6 @@ message RegisterRunnerRequest {
 
 message RegisterRunnerResponse {}
 
-message ReplaceDeployRequest {
-  string deployment_key = 1;
-  int32 min_replicas = 2;
-}
-message ReplaceDeployResponse {}
-
 message StatusRequest {}
 message StatusResponse {
   message Controller {

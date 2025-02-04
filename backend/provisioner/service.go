@@ -107,7 +107,7 @@ func Start(
 	return nil
 }
 
-func RegistryFromConfigFile(ctx context.Context, file *os.File, controller schemaconnect.ControllerServiceClient, scaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
+func RegistryFromConfigFile(ctx context.Context, file *os.File, scaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
 	config := provisionerPluginConfig{}
 	bytes, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil {
@@ -117,7 +117,7 @@ func RegistryFromConfigFile(ctx context.Context, file *os.File, controller schem
 		return nil, fmt.Errorf("error parsing plugin configuration: %w", err)
 	}
 
-	registry, err := registryFromConfig(ctx, &config, controller, scaling)
+	registry, err := registryFromConfig(ctx, &config, scaling)
 	if err != nil {
 		return nil, fmt.Errorf("error creating provisioner registry: %w", err)
 	}

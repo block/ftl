@@ -47,7 +47,7 @@ func main() {
 	scaling := k8sscaling.NewK8sScaling(false, cli.ProvisionerConfig.ControllerEndpoint.String())
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
-	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.PluginConfigFile, controllerClient, scaling)
+	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.PluginConfigFile, scaling)
 	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
 
 	// Use k8s scaling as fallback for runner provisioning if no other provisioner is registered

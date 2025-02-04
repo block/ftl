@@ -338,7 +338,7 @@ func (s *serveCommonConfig) run(
 
 		// read provisioners from a config file if provided
 		if s.PluginConfigFile != nil {
-			r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.PluginConfigFile, controllerClient, runnerScaling)
+			r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.PluginConfigFile, runnerScaling)
 			if err != nil {
 				return fmt.Errorf("failed to create provisioner registry: %w", err)
 			}

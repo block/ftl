@@ -492,9 +492,6 @@ func (r *k8sScaling) syncDeployment(ctx context.Context, thisImage string, deplo
 			changes = append(changes, func(deployment *kubeapps.Deployment) {
 				deployment.Spec.Template.Spec.Containers[0].Image = base + ":" + ourVersion
 			})
-			if err != nil {
-				return nil, err
-			}
 		}
 	}
 

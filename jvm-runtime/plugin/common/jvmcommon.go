@@ -906,9 +906,6 @@ func setPOMProperties(ctx context.Context, baseDir string) error {
 	if err != nil {
 		return fmt.Errorf("unable to write %s: %w", pomFile, err)
 	}
-	if err != nil {
-		return fmt.Errorf("could not mark %s as modified: %w", pomFile, err)
-	}
 	return nil
 }
 
