@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <link rel="preload" as="font" href="https://block.github.io/ftl/fonts/vendor/jost/jost-v4-latin-regular.woff2" type="font/woff2" crossorigin>
+  <link rel="preload" as="font" href="https://block.github.io/ftl/fonts/vendor/jost/jost-v4-latin-700.woff2"  type="font/woff2" crossorigin>
+
+
+<link rel="stylesheet" href="https://block.github.io/ftl/main.css">
+
+
+
+  
+  
+    
+  
+
+  
+  
+    
+    
+  
+  
+  
+    
+  
+  
+  
+  
+    
+  
+  
+  
+
+
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+
+
+	
+
+
+	
+
+<title>Databases | FTL</title>
+<meta name="description" content="Databases">
+<link rel="canonical" href="https://block.github.io/ftl/docs/reference/databases/">
+
+
+
+
+
+
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BreadcrumbList",
+    
+      
+      
+        
+        
+        
+        
+        
+        
+        
+        
+          {
+            "@type": "ListItem",
+            "position":  1 ,
+            "name": "Home",
+            "item": "https://block.github.io/ftl/"
+          },
+          
+          
+          {
+            "@type": "ListItem",
+            "position":  2 ,
+            "name": "Docs",
+            "item": "https://block.github.io/ftl/docs/"
+          },
+        
+      
+        
+        
+        
+        
+        
+        
+        
+        
+          
+          
+          {
+            "@type": "ListItem",
+            "position":  3 ,
+            "name": "Reference",
+            "item": "https://block.github.io/ftl/docs/reference/"
+          },
+        
+      
+        
+        
+        
+        
+        
+        
+        
+        
+          
+          
+          {
+            "@type": "ListItem",
+            "position":  4 ,
+            "name": "Databases",
+            "item": "https://block.github.io/ftl/docs/reference/databases/"
+          },
+        
+      
+    
+  }
+</script>
+
+
+
+
+
+
+  <meta name="theme-color" content="#fff">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://block.github.io/ftl/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://block.github.io/ftl/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://block.github.io/ftl/favicon-16x16.png">
+  
+    <link rel="manifest" href="https://block.github.io/ftl/site.webmanifest" crossorigin>
+  
+
+
+  
+
+</head>
+
+  
+
+<body class="docs single">
+  
+  
+  
+  
+<div class="header-bar fixed-top"></div>
+<header class="navbar fixed-top navbar-expand-md navbar-light">
+	<div class="container">
+		<input class="menu-btn order-0" type="checkbox" id="menu-btn">
+		<label class="menu-icon d-md-none" for="menu-btn"><span class="navicon"></span></label>
+		<a class="navbar-brand order-1 order-md-0 me-auto" href="https://block.github.io/ftl/">FTL</a>
+		<button id="mode" class="btn btn-link order-2 order-md-4" type="button" aria-label="Toggle mode">
+			<span class="toggle-dark"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></span>
+			<span class="toggle-light"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-sun"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg></span>
+		</button>
+		<ul class="navbar-nav fork-me order-3 order-md-5">
+			
+				
+					<li class="nav-item">
+						<a class="nav-link" href="https://twitter.com/blocks"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-twitter"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg><span class="ms-2 visually-hidden">Twitter</span></a>
+					</li>
+				
+					<li class="nav-item">
+						<a class="nav-link" href="https://github.com/block/ftl"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-github"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg><span class="ms-2 visually-hidden">GitHub</span></a>
+					</li>
+				
+			
+		</ul>
+		<div class="collapse navbar-collapse order-4 order-md-1">
+			<ul class="navbar-nav main-nav me-auto order-5 order-md-2">
+				
+					
+				
+				
+				
+					
+						<li class="nav-item docs active">
+							<a class="nav-link" href="https://block.github.io/ftl/docs/getting-started/introduction/">Docs</a>
+						</li>
+					
+				
+			</ul>
+			<div class="break order-6 d-md-none"></div>
+			
+				<form class="navbar-form flex-grow-1 order-7 order-md-3">
+					<input id="userinput" class="form-control is-search" type="search" placeholder="Search docs..."
+						aria-label="Search docs..." autocomplete="off">
+					<div id="suggestions" class="shadow bg-white rounded"></div>
+				</form>
+			
+		</div>
+	</div>
+</header>
+
+
+
+  
+<div class="wrap container" role="document">
+  <div class="content">
+    <div class="row flex-xl-nowrap">
+	  
+<div class="col-lg-5 col-xl-4 docs-sidebar">
+	<nav class="docs-links" aria-label="Main navigation">
+			
+			
+			
+			
+					
+					
+					
+							<h3>Getting Started</h3>
+							<ul class="list-unstyled">
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/getting-started/introduction/">Introduction</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/getting-started/quick-start/">Quick Start</a></li>
+							
+					</ul>
+					
+					
+					
+					
+							<h3>Reference</h3>
+							<ul class="list-unstyled">
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/verbs/">Verbs</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/types/">Types</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/visibility/">Visibility</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/ingress/">HTTP Ingress</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/cron/">Cron</a></li>
+							                           
+									<li><a class="docs-link active" href="https://block.github.io/ftl/docs/reference/databases/">Databases</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/secretsconfig/">Secrets&#x2F;Config</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/pubsub/">PubSub</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/retries/">Retries</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/externaltypes/">External Types</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/unittests/">Unit Tests</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/reference/matrix/">Feature Matrix</a></li>
+							
+					</ul>
+					
+					
+					
+					
+							<h3>Observability</h3>
+							<ul class="list-unstyled">
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/observability/metrics/">Metrics</a></li>
+							
+					</ul>
+					
+					
+					
+					
+							<h3>Help</h3>
+							<ul class="list-unstyled">
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/help/faq/">FAQ</a></li>
+							                           
+									<li><a class="docs-link" href="https://block.github.io/ftl/docs/help/glossary/">Glossary</a></li>
+							
+					</ul>
+					
+					
+			
+	</nav>
+</div>
+
+	  
+  
+  <nav class="docs-toc d-none d-xl-block col-xl-3" aria-label="Secondary navigation">
+  	<div class="page-links">
+  			<h3>On this page</h3>
+  			<nav id="TableOfContents">
+  					<ul>
+  							
+  					</ul>
+  			</nav>
+  	</div>
+  </nav>
+  
+
+      <main class="docs-content col-lg-11 col-xl-9">
+        <h1>Databases</h1>
+        
+        <p>FTL has support for Postgresql and MySQL databases, including support for automatic provisioning and migrations.</p>
+<p>The process for declaring a database differs by language.</p>
+<div class="code-selector">
+<ul class="nav nav-tabs mb-2">
+</ul>
+<!-- go -->
+<p>To use a database in go you must create a struct that implements either the <code>ftl.MySQLDatabaseConfig</code> or
+<code>ftl.PostgresDatabaseConfig</code> interface. Generally this will involve creating a struct that embeds the
+<code>ftl.DefaultMySQLDatabaseConfig</code> or <code>ftl.DefaultPostgresDatabaseConfig</code> struct and then implementing the <code>Name() string</code> method.</p>
+<p>You can then use the <code>ftl.DatabaseHandle</code> type to access the database by injecting it into an FTL verb.
+An example for MySQL is shown below:</p>
+<pre data-lang="go" style="background-color:#2b303b;color:#c0c5ce;" class="language-go "><code class="language-go" data-lang="go"><span style="color:#b48ead;">package </span><span style="color:#bf616a;">mysql
+</span><span>
+</span><span style="color:#b48ead;">import </span><span>(
+</span><span>	&quot;</span><span style="color:#a3be8c;">context</span><span>&quot;
+</span><span>	&quot;</span><span style="color:#a3be8c;">database/sql</span><span>&quot;
+</span><span>
+</span><span>	&quot;</span><span style="color:#a3be8c;">github.com/block/ftl/go-runtime/ftl</span><span>&quot; </span><span style="color:#65737e;">// Import the FTL SDK.
+</span><span>)
+</span><span>
+</span><span style="color:#b48ead;">type </span><span>TestDatasourceConfig </span><span style="color:#b48ead;">struct </span><span>{
+</span><span>	</span><span style="color:#bf616a;">ftl</span><span>.</span><span style="color:#a3be8c;">DefaultMySQLDatabaseConfig
+</span><span>}
+</span><span>
+</span><span style="color:#b48ead;">func </span><span>(</span><span style="color:#b48ead;">TestDatasourceConfig</span><span>) </span><span style="color:#8fa1b3;">Name</span><span>() </span><span style="color:#b48ead;">string </span><span>{ </span><span style="color:#b48ead;">return </span><span>&quot;</span><span style="color:#a3be8c;">testdb</span><span>&quot; }
+</span><span>
+</span><span style="color:#65737e;">//ftl:verb export
+</span><span style="color:#b48ead;">func </span><span style="color:#8fa1b3;">Query</span><span>(</span><span style="color:#bf616a;">ctx context</span><span>.</span><span style="color:#b48ead;">Context</span><span>, </span><span style="color:#bf616a;">db ftl</span><span>.</span><span style="color:#b48ead;">DatabaseHandle</span><span>[</span><span style="color:#bf616a;">TestDatasourceConfig</span><span>]) ([]</span><span style="color:#b48ead;">string</span><span>, </span><span style="color:#b48ead;">error</span><span>) {
+</span><span>	</span><span style="color:#b48ead;">var </span><span style="color:#bf616a;">database </span><span>*</span><span style="color:#bf616a;">sql</span><span>.</span><span style="color:#b48ead;">DB </span><span>= </span><span style="color:#bf616a;">db</span><span>.</span><span style="color:#bf616a;">Get</span><span>(</span><span style="color:#bf616a;">ctx</span><span>) </span><span style="color:#65737e;">// Get the database connection.
+</span><span>	</span><span style="color:#65737e;">// The following code is standard golang SQL code, it has nothing FTL specific.
+</span><span>	</span><span style="color:#bf616a;">rows</span><span>, </span><span style="color:#bf616a;">err </span><span>:= </span><span style="color:#bf616a;">database</span><span>.</span><span style="color:#bf616a;">QueryContext</span><span>(</span><span style="color:#bf616a;">ctx</span><span>, &quot;</span><span style="color:#a3be8c;">SELECT data FROM requests</span><span>&quot;)
+</span><span>	</span><span style="color:#b48ead;">if </span><span style="color:#bf616a;">err </span><span>!= </span><span style="color:#d08770;">nil </span><span>{
+</span><span>		</span><span style="color:#b48ead;">return </span><span style="color:#d08770;">nil</span><span>, </span><span style="color:#bf616a;">err
+</span><span>	}
+</span><span>	</span><span style="color:#b48ead;">defer </span><span style="color:#bf616a;">rows</span><span>.</span><span style="color:#bf616a;">Close</span><span>()
+</span><span>	</span><span style="color:#b48ead;">var </span><span style="color:#bf616a;">items </span><span>[]</span><span style="color:#b48ead;">string
+</span><span>	</span><span style="color:#b48ead;">for </span><span style="color:#bf616a;">rows</span><span>.</span><span style="color:#bf616a;">Next</span><span>() {
+</span><span>		</span><span style="color:#b48ead;">var </span><span style="color:#bf616a;">i </span><span style="color:#b48ead;">string
+</span><span>		</span><span style="color:#b48ead;">if </span><span style="color:#bf616a;">err </span><span>:= </span><span style="color:#bf616a;">rows</span><span>.</span><span style="color:#bf616a;">Scan</span><span>(
+</span><span>			&amp;</span><span style="color:#bf616a;">i</span><span>,
+</span><span>		); </span><span style="color:#bf616a;">err </span><span>!= </span><span style="color:#d08770;">nil </span><span>{
+</span><span>			</span><span style="color:#b48ead;">return </span><span style="color:#d08770;">nil</span><span>, </span><span style="color:#bf616a;">err
+</span><span>		}
+</span><span>		</span><span style="color:#bf616a;">items </span><span>= </span><span style="color:#96b5b4;">append</span><span>(</span><span style="color:#bf616a;">items</span><span>, </span><span style="color:#bf616a;">i</span><span>)
+</span><span>	}
+</span><span>	</span><span style="color:#b48ead;">if </span><span style="color:#bf616a;">err </span><span>:= </span><span style="color:#bf616a;">rows</span><span>.</span><span style="color:#bf616a;">Close</span><span>(); </span><span style="color:#bf616a;">err </span><span>!= </span><span style="color:#d08770;">nil </span><span>{
+</span><span>		</span><span style="color:#b48ead;">return </span><span style="color:#d08770;">nil</span><span>, </span><span style="color:#bf616a;">err
+</span><span>	}
+</span><span>	</span><span style="color:#b48ead;">if </span><span style="color:#bf616a;">err </span><span>:= </span><span style="color:#bf616a;">rows</span><span>.</span><span style="color:#bf616a;">Err</span><span>(); </span><span style="color:#bf616a;">err </span><span>!= </span><span style="color:#d08770;">nil </span><span>{
+</span><span>		</span><span style="color:#b48ead;">return </span><span style="color:#d08770;">nil</span><span>, </span><span style="color:#bf616a;">err
+</span><span>	}
+</span><span>	</span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">items</span><span>, </span><span style="color:#d08770;">nil
+</span><span>}
+</span><span>
+</span></code></pre>
+<!-- kotlin -->
+<p>To declare a datasource in Kotlin you must use the <code>@SQLDatasource</code> annotation. This annotations is used to define
+the database name and type.</p>
+<pre data-lang="kotlin" style="background-color:#2b303b;color:#c0c5ce;" class="language-kotlin "><code class="language-kotlin" data-lang="kotlin"><span>@SQLDatasource(name = &quot;</span><span style="color:#a3be8c;">testdb</span><span>&quot;, type = SQLDatabaseType.</span><span style="color:#d08770;">POSTGRESQL</span><span>)
+</span></code></pre>
+<p>You must also include the appropriate depdencies in your <code>pom.xml</code> for the database you are using:</p>
+<pre data-lang="xml" style="background-color:#2b303b;color:#c0c5ce;" class="language-xml "><code class="language-xml" data-lang="xml"><span>&lt;</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">groupId</span><span>&gt;io.quarkus&lt;/</span><span style="color:#bf616a;">groupId</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">artifactId</span><span>&gt;quarkus-jdbc-postgresql&lt;/</span><span style="color:#bf616a;">artifactId</span><span>&gt;
+</span><span>&lt;/</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>&lt;</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">groupId</span><span>&gt;io.quarkus&lt;/</span><span style="color:#bf616a;">groupId</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">artifactId</span><span>&gt;quarkus-jdbc-mysql&lt;/</span><span style="color:#bf616a;">artifactId</span><span>&gt;
+</span><span>&lt;/</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span></code></pre>
+<p>You can also use <a href="https://quarkus.io/guides/hibernate-orm">Hibernate directly</a> or using <a href="https://quarkus.io/guides/hibernate-orm-panache">Panache</a>.</p>
+<p>This will require adding one of the following dependencies:</p>
+<pre data-lang="xml" style="background-color:#2b303b;color:#c0c5ce;" class="language-xml "><code class="language-xml" data-lang="xml"><span>&lt;</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">groupId</span><span>&gt;io.quarkus&lt;/</span><span style="color:#bf616a;">groupId</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">artifactId</span><span>&gt;quarkus-hibernate-orm&lt;/</span><span style="color:#bf616a;">artifactId</span><span>&gt;
+</span><span>&lt;/</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>&lt;</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">groupId</span><span>&gt;io.quarkus&lt;/</span><span style="color:#bf616a;">groupId</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">artifactId</span><span>&gt;quarkus-hibernate-orm-panache&lt;/</span><span style="color:#bf616a;">artifactId</span><span>&gt;
+</span><span>&lt;/</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span></code></pre>
+<p>Note that this will likely change significantly in future once FTL has SQL Verbs.</p>
+<!-- java -->
+<p>To declare a datasource in Java you must use the <code>@SQLDatasource</code> annotation. This annotations is used to define
+the database name and type.</p>
+<pre data-lang="java" style="background-color:#2b303b;color:#c0c5ce;" class="language-java "><code class="language-java" data-lang="java"><span>@</span><span style="color:#bf616a;">SQLDatasource</span><span>(</span><span style="color:#bf616a;">name </span><span>= &quot;</span><span style="color:#a3be8c;">testdb</span><span>&quot;, </span><span style="color:#bf616a;">type </span><span>= </span><span style="color:#ebcb8b;">SQLDatabaseType</span><span>.</span><span style="color:#d08770;">POSTGRESQL</span><span>)
+</span></code></pre>
+<p>You must also include the appropriate depdencies in your <code>pom.xml</code> for the database you are using:</p>
+<pre data-lang="xml" style="background-color:#2b303b;color:#c0c5ce;" class="language-xml "><code class="language-xml" data-lang="xml"><span>&lt;</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">groupId</span><span>&gt;io.quarkus&lt;/</span><span style="color:#bf616a;">groupId</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">artifactId</span><span>&gt;quarkus-jdbc-postgresql&lt;/</span><span style="color:#bf616a;">artifactId</span><span>&gt;
+</span><span>&lt;/</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>&lt;</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">groupId</span><span>&gt;io.quarkus&lt;/</span><span style="color:#bf616a;">groupId</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">artifactId</span><span>&gt;quarkus-jdbc-mysql&lt;/</span><span style="color:#bf616a;">artifactId</span><span>&gt;
+</span><span>&lt;/</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span></code></pre>
+<p>You can also use <a href="https://quarkus.io/guides/hibernate-orm">Hibernate directly</a> or using <a href="https://quarkus.io/guides/hibernate-orm-panache">Panache</a>.</p>
+<p>This will require adding one of the following dependencies:</p>
+<pre data-lang="xml" style="background-color:#2b303b;color:#c0c5ce;" class="language-xml "><code class="language-xml" data-lang="xml"><span>&lt;</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">groupId</span><span>&gt;io.quarkus&lt;/</span><span style="color:#bf616a;">groupId</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">artifactId</span><span>&gt;quarkus-hibernate-orm&lt;/</span><span style="color:#bf616a;">artifactId</span><span>&gt;
+</span><span>&lt;/</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>&lt;</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">groupId</span><span>&gt;io.quarkus&lt;/</span><span style="color:#bf616a;">groupId</span><span>&gt;
+</span><span>    &lt;</span><span style="color:#bf616a;">artifactId</span><span>&gt;quarkus-hibernate-orm-panache&lt;/</span><span style="color:#bf616a;">artifactId</span><span>&gt;
+</span><span>&lt;/</span><span style="color:#bf616a;">dependency</span><span>&gt;
+</span></code></pre>
+<p>Note that this will likely change significantly in future once FTL has SQL Verbs.</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>
+</span><span>&lt;/div&gt;
+</span><span>
+</span><span>
+</span><span># Provisioning
+</span><span>
+</span><span>FTL includes support for automatically provisioning databases. The actual backing implementation is
+</span><span>extensible, and presently we include support for both local development provisioning using docker,
+</span><span>and cloud formations based provisioning for AWS deployments. When using `ftl dev` a docker container
+</span><span>will automatically be spun up for each datasource that has been defined, and FTL will automatically
+</span><span>handle configuration. The same applies when deploying to an AWS cluster with cloud formations
+</span><span>provisioning setup.
+</span><span>
+</span><span># Migrations
+</span><span>
+</span><span>FTL includes support for automatically running migrations on databases. This is provided by [dbmate](https://github.com/amacneil/dbmate). 
+</span><span>
+</span><span>To create migrations you can use the `ftl new-sql-migration` command. This will create new migration files, and initialize the required
+</span><span>directory structure if it does not exist. The format of the command is `ftl new-sql-migration &lt;module&gt;.&lt;datasource&gt; &lt;migration-name&gt;`.
+</span><span>
+</span><span>The module name can be omitted if the current working directory only contains a single module.
+</span><span>
+</span><span>E.g. to create a new migration called `init` for the `testdb` datasource in the `mysql` module you would run `ftl new-sql-migration mysql.testdb init`.
+</span><span>
+</span><span>When the modules are provisioned FTL will automatically run these migrations for you.
+</span></code></pre>
+
+        
+        
+<div class="docs-navigation d-flex justify-content-between">
+  
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+          
+        
+      
+        
+        
+          
+        
+      
+        
+        
+          
+        
+      
+        
+        
+          
+            
+              
+              <a href="https:&#x2F;&#x2F;block.github.io&#x2F;ftl&#x2F;docs&#x2F;getting-started&#x2F;quick-start&#x2F;">
+                <div class="card my-1">
+                  <div class="card-body py-2">
+                    &larr; Quick Start
+                  </div>
+                </div>
+              </a>
+            
+            
+            
+          
+        
+      
+    
+  
+
+  
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+      
+      
+        
+      
+    
+      
+      
+        
+          
+          
+          <a class="ms-auto" href="https:&#x2F;&#x2F;block.github.io&#x2F;ftl&#x2F;docs&#x2F;observability&#x2F;metrics&#x2F;">
+            <div class="card my-1">
+              <div class="card-body py-2">
+                Metrics &rarr;
+              </div>
+            </div>
+          </a>
+          
+          
+          
+        
+      
+    
+      
+      
+        
+      
+    
+  
+</div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+
+  
+
+    
+<footer class="footer text-muted">
+	<div class="container">
+		<div class="row">
+			<div class="col-lg-8 order-last order-lg-first">
+				<ul class="list-inline">
+					
+						<li class="list-inline-item">Powered by <a href="https://www.getzola.org/">Zola</a>, and <a href="https://github.com/aaranxu/adidoks">AdiDoks</a></li>
+					
+				</ul>
+			</div>
+			<div class="col-lg-8 order-first order-lg-last text-lg-end">
+				<ul class="list-inline">
+					
+				</ul>
+			</div>
+		</div>
+	</div>
+</footer>
+
+  
+<script src="https://block.github.io/ftl/js/copy-code.js" defer></script>
+<script src="https://block.github.io/ftl/js/code-selector.js" defer></script>
+
+
+  
+<script type="text/javascript" src="https://block.github.io/ftl/js/main.js" defer></script>
+
+  <script type="text/javascript" src="https://block.github.io/ftl/plugins/elasticlunr.min.js" defer></script>
+  <script type="text/javascript" src="https://block.github.io/ftl/search_index.en.js" defer></script>
+  <script type="text/javascript" src="https://block.github.io/ftl/js/search.js" defer></script>
+
+  
+</body>
+</html>
