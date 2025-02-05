@@ -69,6 +69,14 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 		}
 		collectedSchemas = append(collectedSchemas, sch)
 	}
+
+	ctx, closeStream := context.WithCancelCause(ctx)
+	defer closeStream(fmt.Errorf("function is complete: %w", context.Canceled))
+	stream, err := schemaserviceClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
+	if err != nil {
+		return fmt.Errorf("failed to pull schema: %w", err)
+	}
+
 	resp, err := schemaserviceClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
 		Modules: collectedSchemas,
 	}))
@@ -78,12 +86,6 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 	}
 	key := resp.Msg.Changeset
 
-	ctx, closeStream := context.WithCancelCause(ctx)
-	stream, err := schemaserviceClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
-	if err != nil {
-		return fmt.Errorf("failed to pull schema: %w", err)
-	}
-	defer closeStream(fmt.Errorf("function is complete"))
 	for {
 		if !stream.Receive() {
 			return fmt.Errorf("failed to pull schema: %w", stream.Err())
