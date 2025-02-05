@@ -1,28 +1,23 @@
+//go:build integration
+
 package sqlc
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/scaffolder"
+
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/scaffolder"
 )
 
 func TestAddQueriesToSchema(t *testing.T) {
-	if err := os.RemoveAll(filepath.Join(os.TempDir(), ".ftl")); err != nil {
-		t.Fatal(err)
-	}
+	tmpDir := t.TempDir()
 
-	tmpDir, err := os.MkdirTemp("", "sqlc-test-*")
-	assert.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
-
-	err = scaffolder.Scaffold("testdata", tmpDir, nil)
+	err := scaffolder.Scaffold("testdata", tmpDir, nil)
 	assert.NoError(t, err)
 	mc := moduleconfig.ModuleConfig{
 		Dir:                   tmpDir,
@@ -31,7 +26,7 @@ func TestAddQueriesToSchema(t *testing.T) {
 		SQLQueryDirectory:     "db/queries",
 		DeployDir:             ".ftl",
 	}
-	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, log.Config{Level: log.Debug}))
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
 	out := &schema.Schema{}
 	updated, err := AddQueriesToSchema(ctx, tmpDir, mc.Abs(), out)
 	assert.NoError(t, err)

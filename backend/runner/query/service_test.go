@@ -9,14 +9,14 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 
 	querypb "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	assert.NoError(t, err)
 
 	_, err = db.Exec(`
@@ -30,7 +30,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 	// Insert some test data
 	_, err = db.Exec(`
-		INSERT INTO test_table (id, name, value) VALUES 
+		INSERT INTO test_table (id, name, value) VALUES
 		(1, 'test1', 100),
 		(2, 'test2', 200),
 		(3, 'test3', 300)
