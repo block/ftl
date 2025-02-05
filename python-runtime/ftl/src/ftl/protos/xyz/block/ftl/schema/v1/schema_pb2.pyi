@@ -763,6 +763,22 @@ class Ref(_message.Message):
     type_parameters: _containers.RepeatedCompositeFieldContainer[Type]
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., module: _Optional[str] = ..., name: _Optional[str] = ..., type_parameters: _Optional[_Iterable[_Union[Type, _Mapping]]] = ...) -> None: ...
 
+class Runtime(_message.Message):
+    __slots__ = ("database_runtime", "module_runtime_deployment", "module_runtime_runner", "module_runtime_scaling", "topic_runtime", "verb_runtime")
+    DATABASE_RUNTIME_FIELD_NUMBER: _ClassVar[int]
+    MODULE_RUNTIME_DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
+    MODULE_RUNTIME_RUNNER_FIELD_NUMBER: _ClassVar[int]
+    MODULE_RUNTIME_SCALING_FIELD_NUMBER: _ClassVar[int]
+    TOPIC_RUNTIME_FIELD_NUMBER: _ClassVar[int]
+    VERB_RUNTIME_FIELD_NUMBER: _ClassVar[int]
+    database_runtime: DatabaseRuntime
+    module_runtime_deployment: ModuleRuntimeDeployment
+    module_runtime_runner: ModuleRuntimeRunner
+    module_runtime_scaling: ModuleRuntimeScaling
+    topic_runtime: TopicRuntime
+    verb_runtime: VerbRuntime
+    def __init__(self, database_runtime: _Optional[_Union[DatabaseRuntime, _Mapping]] = ..., module_runtime_deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ..., module_runtime_runner: _Optional[_Union[ModuleRuntimeRunner, _Mapping]] = ..., module_runtime_scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., topic_runtime: _Optional[_Union[TopicRuntime, _Mapping]] = ..., verb_runtime: _Optional[_Union[VerbRuntime, _Mapping]] = ...) -> None: ...
+
 class RuntimeEvent(_message.Message):
     __slots__ = ("database_runtime_event", "module_runtime_event", "topic_runtime_event", "verb_runtime_event")
     DATABASE_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]

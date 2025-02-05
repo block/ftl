@@ -22,6 +22,19 @@ const (
 	DeploymentStateFailed
 )
 
+//sumtype:decl
+//protobuf:export
+type Runtime interface {
+	runtimeElement()
+}
+
+var _ Runtime = (*ModuleRuntimeScaling)(nil)
+var _ Runtime = (*ModuleRuntimeRunner)(nil)
+var _ Runtime = (*ModuleRuntimeDeployment)(nil)
+var _ Runtime = (*VerbRuntime)(nil)
+var _ Runtime = (*TopicRuntime)(nil)
+var _ Runtime = (*DatabaseRuntime)(nil)
+
 // ModuleRuntime is runtime configuration for a module that can be dynamically updated.
 type ModuleRuntime struct {
 	Base       ModuleRuntimeBase        `protobuf:"1"` // Base is always present.
@@ -40,10 +53,7 @@ type ModuleRuntimeBase struct {
 	Image string `protobuf:"5,optional"`
 }
 
-type ModuleRuntimeScaling struct {
-	MinReplicas int32 `protobuf:"1"`
-}
-
+//protobuf:1
 type ModuleRuntimeDeployment struct {
 	DeploymentKey key.Deployment             `protobuf:"2"`
 	CreatedAt     time.Time                  `protobuf:"3"`
@@ -51,9 +61,25 @@ type ModuleRuntimeDeployment struct {
 	State         DeploymentState            `protobuf:"5"`
 }
 
+func (m *ModuleRuntimeDeployment) runtimeElement() {
+
+}
+
+//protobuf:2
+type ModuleRuntimeScaling struct {
+	MinReplicas int32 `protobuf:"1"`
+}
+
+func (m *ModuleRuntimeScaling) runtimeElement() {
+}
+
+//protobuf:3
 type ModuleRuntimeRunner struct {
 	// Endpoint is the endpoint of the deployed module.
 	Endpoint string `protobuf:"1"`
+}
+
+func (m *ModuleRuntimeRunner) runtimeElement() {
 }
 
 func (m *ModuleRuntimeRunner) GetEndpoint() string {

@@ -2325,6 +2325,62 @@ func RefFromProto(v *destpb.Ref) (out *Ref, err error) {
 	return out, nil
 }
 
+// RuntimeToProto converts a Runtime sum type to a protobuf message.
+func RuntimeToProto(value Runtime) *destpb.Runtime {
+	switch value := value.(type) {
+	case nil:
+		return nil
+	case *DatabaseRuntime:
+		return &destpb.Runtime{
+			Value: &destpb.Runtime_DatabaseRuntime{value.ToProto()},
+		}
+	case *ModuleRuntimeDeployment:
+		return &destpb.Runtime{
+			Value: &destpb.Runtime_ModuleRuntimeDeployment{value.ToProto()},
+		}
+	case *ModuleRuntimeRunner:
+		return &destpb.Runtime{
+			Value: &destpb.Runtime_ModuleRuntimeRunner{value.ToProto()},
+		}
+	case *ModuleRuntimeScaling:
+		return &destpb.Runtime{
+			Value: &destpb.Runtime_ModuleRuntimeScaling{value.ToProto()},
+		}
+	case *TopicRuntime:
+		return &destpb.Runtime{
+			Value: &destpb.Runtime_TopicRuntime{value.ToProto()},
+		}
+	case *VerbRuntime:
+		return &destpb.Runtime{
+			Value: &destpb.Runtime_VerbRuntime{value.ToProto()},
+		}
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", value))
+	}
+}
+
+func RuntimeFromProto(v *destpb.Runtime) (Runtime, error) {
+	if v == nil {
+		return nil, nil
+	}
+	switch v.Value.(type) {
+	case *destpb.Runtime_DatabaseRuntime:
+		return DatabaseRuntimeFromProto(v.GetDatabaseRuntime())
+	case *destpb.Runtime_ModuleRuntimeDeployment:
+		return ModuleRuntimeDeploymentFromProto(v.GetModuleRuntimeDeployment())
+	case *destpb.Runtime_ModuleRuntimeRunner:
+		return ModuleRuntimeRunnerFromProto(v.GetModuleRuntimeRunner())
+	case *destpb.Runtime_ModuleRuntimeScaling:
+		return ModuleRuntimeScalingFromProto(v.GetModuleRuntimeScaling())
+	case *destpb.Runtime_TopicRuntime:
+		return TopicRuntimeFromProto(v.GetTopicRuntime())
+	case *destpb.Runtime_VerbRuntime:
+		return VerbRuntimeFromProto(v.GetVerbRuntime())
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", v.Value))
+	}
+}
+
 // RuntimeEventToProto converts a RuntimeEvent sum type to a protobuf message.
 func RuntimeEventToProto(value RuntimeEvent) *destpb.RuntimeEvent {
 	switch value := value.(type) {

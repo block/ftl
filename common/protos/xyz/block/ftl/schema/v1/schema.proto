@@ -479,6 +479,17 @@ message Ref {
   repeated Type type_parameters = 4;
 }
 
+message Runtime {
+  oneof value {
+    DatabaseRuntime database_runtime = 6;
+    ModuleRuntimeDeployment module_runtime_deployment = 1;
+    ModuleRuntimeRunner module_runtime_runner = 3;
+    ModuleRuntimeScaling module_runtime_scaling = 2;
+    TopicRuntime topic_runtime = 5;
+    VerbRuntime verb_runtime = 4;
+  }
+}
+
 message RuntimeEvent {
   oneof value {
     DatabaseRuntimeEvent database_runtime_event = 8;
