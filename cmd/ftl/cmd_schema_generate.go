@@ -78,7 +78,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 
 	wg.Go(func() error {
 		for {
-			stream, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
+			stream, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-schema-generate"}))
 			if err != nil {
 				return fmt.Errorf("failed to pull schema: %w", err)
 			}

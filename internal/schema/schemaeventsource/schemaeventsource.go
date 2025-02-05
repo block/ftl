@@ -328,11 +328,15 @@ func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaS
 	resp, err := client.Ping(pingCtx, connect.NewRequest(&ftlv1.PingRequest{}))
 	out.live.Store(err == nil && resp.Msg.NotReady == nil)
 
+	logger.Debugf("Schema pull live: %t", out.live.Load())
+
 	go rpc.RetryStreamingServerStream(ctx, "schema-sync", backoff.Backoff{}, &ftlv1.PullSchemaRequest{SubscriptionId: subscriptionID}, client.PullSchema, func(_ context.Context, resp *ftlv1.PullSchemaResponse) error {
 		out.live.Store(true)
 		// resp.More can become true again if the streaming client reconnects, but we don't want downstream to have to
 		// care about a new initial sync restarting.
 		more = more && resp.More
+
+		logger.Debugf("Schema pull (more: %t, event: %T)", more, resp.Event)
 
 		switch event := resp.Event.(type) {
 		case *ftlv1.PullSchemaResponse_ChangesetCreated_:

@@ -1,13 +1,21 @@
 {{ $version := printf "v%s" .Chart.Version -}}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "ftl.fullname" . }}-schema
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.schema.replicas }}
+  podManagementPolicy: Parallel
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  ordinals:
+    start: 1
   revisionHistoryLimit: {{ .Values.schema.revisionHistoryLimit }}
+  serviceName: {{ .Values.schema.serviceName }}
   selector:
     matchLabels:
       {{- include "ftl-schema.selectorLabels" . | nindent 6 }}
@@ -40,20 +48,21 @@ spec:
             {{- toYaml .Values.schema.env | nindent 12 }}
             {{- end }}
             - name: FTL_BIND
-              value: "http://0.0.0.0:{{ (index .Values.schema.ports 0).containerPort }}"
+              value: "http://0.0.0.0:{{ .Values.schema.services.schema.containerPort }}"
           ports:
-            {{- range .Values.schema.ports }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
-            {{- end }}
+            - name: http
+              containerPort: {{ .Values.schema.services.schema.containerPort }}
+              protocol: "TCP"
+            - name: raft
+              containerPort: {{ .Values.schema.services.raft.containerPort }}
+              protocol: "TCP"
           readinessProbe:
             {{- if .Values.schema.readinessProbe }}
             {{- toYaml .Values.schema.readinessProbe | nindent 12 }}
             {{- else }}
             httpGet:
               path: /healthz
-              port: {{ (index .Values.schema.ports 0).containerPort }}
+              port: {{ .Values.schema.services.schema.containerPort }}
             initialDelaySeconds: 1
             periodSeconds: 2
             timeoutSeconds: 2

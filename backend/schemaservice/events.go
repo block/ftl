@@ -20,8 +20,8 @@ import (
 
 // ApplyEvent applies an event to the schema state
 func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
-	logger := log.FromContext(ctx)
-	logger.Debugf("Applying Raft event %s", event.DebugString())
+	logger := log.FromContext(ctx).Scope("schemaevents")
+	logger.Debugf("Applying %s", event.DebugString())
 	if err := event.Validate(); err != nil {
 		return fmt.Errorf("invalid event: %w", err)
 	}

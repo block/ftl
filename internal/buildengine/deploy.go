@@ -72,7 +72,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 
 	ctx, closeStream := context.WithCancelCause(ctx)
 	defer closeStream(fmt.Errorf("function is complete: %w", context.Canceled))
-	stream, err := schemaserviceClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
+	stream, err := schemaserviceClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-deploy"}))
 	if err != nil {
 		return fmt.Errorf("failed to pull schema: %w", err)
 	}
