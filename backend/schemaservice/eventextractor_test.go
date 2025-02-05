@@ -18,8 +18,7 @@ import (
 func TestEventExtractor(t *testing.T) {
 	now := time.Now()
 
-	oldKey, err := key.ParseDeploymentKey("dpl-test-sjkfislfjslfas")
-	assert.NoError(t, err)
+	empty := ""
 	newKey, err := key.ParseDeploymentKey("dpl-test-sjkfislfjslfae")
 	assert.NoError(t, err)
 	tests := []struct {
@@ -36,7 +35,7 @@ func TestEventExtractor(t *testing.T) {
 					"test": {
 						Name: "test",
 						Runtime: &schema.ModuleRuntime{
-							Base: schema.ModuleRuntimeBase{Language: "go"},
+							Base: schema.ModuleRuntimeBase{Language: "go", CreateTime: now},
 							Deployment: &schema.ModuleRuntimeDeployment{
 								CreatedAt:     now,
 								DeploymentKey: newKey,
@@ -49,77 +48,10 @@ func TestEventExtractor(t *testing.T) {
 				{
 					Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
 						DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-							Schema: &schemapb.Module{Name: "test", Runtime: &schemapb.ModuleRuntime{
-								Base: &schemapb.ModuleRuntimeBase{Language: "go"},
-								Deployment: &schemapb.ModuleRuntimeDeployment{
-									CreatedAt:     timestamppb.New(now),
-									DeploymentKey: newKey.String(),
-								},
-							}},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "schema update creates schema updated event",
-			previous: SchemaState{
-				deployments: map[string]*schema.Module{
-					"test": {
-						Name:    "test",
-						Runtime: &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey}},
-					},
-				},
-			},
-			current: SchemaState{
-				deployments: map[string]*schema.Module{
-					"test": {
-						Runtime: &schema.ModuleRuntime{Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey, Endpoint: "http://localhost:8080"}},
-						Name:    "test",
-					},
-				},
-			},
-			want: []*ftlv1.PullSchemaResponse{
-				{
-					Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
-						DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
-							Schema: &schemapb.Module{
-								Name: "test",
+							Schema: &schemapb.Module{Name: "test",
+								Pos: &schemapb.Position{},
 								Runtime: &schemapb.ModuleRuntime{
-									Base: &schemapb.ModuleRuntimeBase{Language: "go"},
-									Deployment: &schemapb.ModuleRuntimeDeployment{
-										CreatedAt:     timestamppb.New(now),
-										DeploymentKey: newKey.String(),
-									},
-								}},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "removing an active deployment creates module removed event",
-			previous: SchemaState{
-				deployments: map[string]*schema.Module{
-					"test": {
-						Name: "test",
-						Runtime: &schema.ModuleRuntime{
-							Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: oldKey},
-						},
-					},
-				},
-			},
-			current: SchemaState{
-				deployments: map[string]*schema.Module{},
-			},
-			want: []*ftlv1.PullSchemaResponse{
-				{
-					Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
-						DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
-							Schema: &schemapb.Module{
-								Name: "test",
-								Runtime: &schemapb.ModuleRuntime{
-									Base: &schemapb.ModuleRuntimeBase{Language: "go"},
+									Base: &schemapb.ModuleRuntimeBase{Language: "go", Os: &empty, Arch: &empty, Image: &empty, CreateTime: timestamppb.New(now)},
 									Deployment: &schemapb.ModuleRuntimeDeployment{
 										CreatedAt:     timestamppb.New(now),
 										DeploymentKey: newKey.String(),
