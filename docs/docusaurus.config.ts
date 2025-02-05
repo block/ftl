@@ -64,7 +64,33 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: '/ftl/img/docusaurus-social-card.jpg',
+    metadata: [
+      {
+        name: 'description',
+        content: 'FTL - Towards a λ-calculus for large-scale systems. A modern approach to building and deploying distributed systems.',
+      },
+      {
+        name: 'og:title',
+        content: 'FTL Documentation',
+      },
+      {
+        name: 'og:description',
+        content: 'FTL - Towards a λ-calculus for large-scale systems. A modern approach to building and deploying distributed systems.',
+      },
+      {
+        property: 'og:image',
+        content: '/ftl/img/docusaurus-social-card.jpg',
+      },
+      {
+        name: 'twitter:card',
+        content: 'summary_large_image',
+      },
+      {
+        name: 'twitter:image',
+        content: '/ftl/img/docusaurus-social-card.jpg',
+      },
+    ],
     navbar: {
       title: 'FTL',
       items: [
