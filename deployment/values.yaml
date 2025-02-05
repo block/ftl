@@ -58,6 +58,7 @@ timeline:
     repository: "ftl:5000/ftl-timeline"
     tag: "latest"
     pullPolicy: Always
+
 console:
   image:
     repository: "ftl:5000/ftl-console"
@@ -75,6 +76,7 @@ lease:
     repository: "ftl:5000/ftl-lease"
     tag: "latest"
     pullPolicy: Always
+
 istio:
   enabled: true
 

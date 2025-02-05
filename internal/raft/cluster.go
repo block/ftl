@@ -19,7 +19,7 @@ import (
 	"github.com/lni/dragonboat/v4/statemachine"
 
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
-	raftpbconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/iterops"
@@ -133,8 +133,6 @@ type ShardHandle[Q any, R any, E sm.Marshallable] struct {
 	cluster *Cluster
 	session *client.Session
 
-	lastKnownIndex atomic.Value[uint64]
-
 	mu sync.Mutex
 }
 
@@ -223,7 +221,9 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 	if err != nil {
 		logger.Errorf(err, "Failed to get last index")
 	}
-	s.lastKnownIndex.Store(last)
+
+	lastKnownIndex := atomic.Value[uint64]{}
+	lastKnownIndex.Store(last)
 
 	previous, err := s.Query(ctx, query)
 	if err != nil {
@@ -248,10 +248,10 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 				last, err := s.getLastIndex()
 				if err != nil {
 					logger.Warnf("Failed to get last index: %s", err)
-				} else if last > s.lastKnownIndex.Load() {
-					logger.Debugf("Changes detected, index: %d -> %d on (%d, %d)", s.lastKnownIndex.Load(), last, s.shardID, s.cluster.config.ReplicaID)
+				} else if last > lastKnownIndex.Load() {
+					logger.Debugf("Changes detected, index: %d -> %d on (%d, %d)", lastKnownIndex.Load(), last, s.shardID, s.cluster.config.ReplicaID)
 
-					s.lastKnownIndex.Store(last)
+					lastKnownIndex.Store(last)
 
 					res, err := s.Query(ctx, query)
 
