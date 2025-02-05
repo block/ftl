@@ -12,8 +12,8 @@ const config: PlaywrightTestConfig = {
   forbidOnly: !!process.env.CI,
   /* Retry on CI only. */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Use 2 workers in CI, auto-detect cores in development */
+  workers: process.env.CI ? 2 : undefined,
   /* With additional example modules, it can take a bit of time for everything to start up. */
   timeout: 90 * 1000,
   reporter: 'html',
@@ -28,19 +28,17 @@ const config: PlaywrightTestConfig = {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
     },
-
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
     },
   ],
   webServer: {
-    command: 'ftl dev',
+    command: process.env.CI ? 'ftl dev -j 2' : 'ftl dev',
     url: 'http://localhost:8899',
     reuseExistingServer: !process.env.CI,
     /* If the test ends up needing to pull the postgres docker image, this can take a while. Give it a few minutes. */
