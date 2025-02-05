@@ -79,7 +79,7 @@ type autoRebuildCompletedEvent struct {
 
 type pendingDeploy struct {
 	modules  []Module
-	done     chan struct{}
+	err      chan error
 	replicas int32
 }
 
@@ -853,11 +853,12 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 	}
 
 	// Queue the modules for deployment instead of deploying directly
-	done := make(chan struct{})
-	e.deploymentQueue <- pendingDeploy{modules: modulesToDeploy, replicas: replicas, done: done}
+	errChan := make(chan error)
+	e.deploymentQueue <- pendingDeploy{modules: modulesToDeploy, replicas: replicas, err: errChan}
 	if waitForDeployOnline {
 		select {
-		case <-done:
+		case err = <-errChan:
+			return err
 		case <-ctx.Done():
 		}
 	}
@@ -1318,12 +1319,12 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 			// Collect any additional modules that have been queued
 			modules := []Module{}
 			modules = append(modules, deployment.modules...)
-			toClose := []chan struct{}{deployment.done}
+			errChans := []chan error{deployment.err}
 			more := true
 			for more {
 				select {
 				case newModules := <-e.deploymentQueue:
-					toClose = append(toClose, newModules.done)
+					errChans = append(errChans, newModules.err)
 					modules = append(modules, newModules.modules...)
 				default:
 					more = false
@@ -1334,8 +1335,9 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 
 			// Deploy all collected modules
 			err := Deploy(ctx, e.projectConfig, modules, deployment.replicas, true, e.deployClient, e.schemaServiceClient)
-			for _, done := range toClose {
-				close(done)
+			for _, errChan := range errChans {
+				errChan <- err
+				close(errChan)
 			}
 			if err != nil {
 				// Handle deployment failure
