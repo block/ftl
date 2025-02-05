@@ -17,7 +17,6 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemaconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
@@ -139,10 +138,14 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 			syncExistingRuntimes(existingModule, module)
 		}
 		group.Go(func() error {
-			deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(event *schemapb.Event) error {
-				_, err := s.schemaClient.UpdateSchema(ctx, connect.NewRequest(&ftlv1.UpdateSchemaRequest{Event: event}))
+			deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(element *schema.RuntimeElement) error {
+				cs := req.Key.String()
+				_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
+					Changeset: &cs,
+					Update:    element.ToProto(),
+				}))
 				if err != nil {
-					return fmt.Errorf("error updating schema: %w", err)
+					return fmt.Errorf("error updating runtime: %w", err)
 				}
 				return nil
 			})
@@ -167,6 +170,14 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 		return fmt.Errorf("error running deployments: %w", err)
 	}
 
+	for _, mod := range req.Modules {
+		element := &schema.RuntimeElement{Deployment: mod.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeDeployment{DeploymentKey: mod.Runtime.Deployment.DeploymentKey, State: schema.DeploymentStateReady}}
+		changeset := req.Key.String()
+		_, err = s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Changeset: &changeset, Update: element.ToProto()}))
+		if err != nil {
+			return fmt.Errorf("error preparing changeset: %w", err)
+		}
+	}
 	_, err = s.schemaClient.PrepareChangeset(ctx, connect.NewRequest(&ftlv1.PrepareChangesetRequest{Changeset: req.Key.String()}))
 	if err != nil {
 		return fmt.Errorf("error preparing changeset: %w", err)

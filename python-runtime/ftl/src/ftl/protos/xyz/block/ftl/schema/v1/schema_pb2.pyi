@@ -779,6 +779,16 @@ class Runtime(_message.Message):
     verb_runtime: VerbRuntime
     def __init__(self, database_runtime: _Optional[_Union[DatabaseRuntime, _Mapping]] = ..., module_runtime_deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ..., module_runtime_runner: _Optional[_Union[ModuleRuntimeRunner, _Mapping]] = ..., module_runtime_scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., topic_runtime: _Optional[_Union[TopicRuntime, _Mapping]] = ..., verb_runtime: _Optional[_Union[VerbRuntime, _Mapping]] = ...) -> None: ...
 
+class RuntimeElement(_message.Message):
+    __slots__ = ("element", "deployment", "name")
+    ELEMENT_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    element: Runtime
+    deployment: str
+    name: str
+    def __init__(self, element: _Optional[_Union[Runtime, _Mapping]] = ..., deployment: _Optional[str] = ..., name: _Optional[str] = ...) -> None: ...
+
 class RuntimeEvent(_message.Message):
     __slots__ = ("database_runtime_event", "module_runtime_event", "topic_runtime_event", "verb_runtime_event")
     DATABASE_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]

@@ -76,7 +76,6 @@ deps:
       - frontend
       - timeline-service #TODO: Timeline should have a separate client package.
       - internal
-      - libdal
       - backend-protos
   frontend:
     mayDependOn:

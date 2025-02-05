@@ -94,6 +94,7 @@ func TestTimeline(t *testing.T) {
 					},
 				},
 			}, func(ctx context.Context, t testing.TB, events []*timelinepb.Event) {
+				assert.Equal(t, 1, len(events))
 				scheduled, ok := events[0].Entry.(*timelinepb.Event_CronScheduled)
 				assert.True(t, ok, "expected scheduled event")
 

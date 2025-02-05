@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, DrainChangesetRequest, DrainChangesetResponse, FailChangesetRequest, FailChangesetResponse, FinalizeChangesetRequest, FinalizeChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UpdateSchemaRequest, UpdateSchemaResponse } from "./schemaservice_pb.js";
+import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, DrainChangesetRequest, DrainChangesetResponse, FailChangesetRequest, FailChangesetResponse, FinalizeChangesetRequest, FinalizeChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -61,17 +61,6 @@ export const SchemaService = {
       name: "UpdateDeploymentRuntime",
       I: UpdateDeploymentRuntimeRequest,
       O: UpdateDeploymentRuntimeResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * UpdateSchema is used to update the schema.
-     *
-     * @generated from rpc xyz.block.ftl.v1.SchemaService.UpdateSchema
-     */
-    updateSchema: {
-      name: "UpdateSchema",
-      I: UpdateSchemaRequest,
-      O: UpdateSchemaResponse,
       kind: MethodKind.Unary,
     },
     /**

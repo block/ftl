@@ -490,6 +490,12 @@ message Runtime {
   }
 }
 
+message RuntimeElement {
+  Runtime element = 1;
+  string deployment = 2;
+  optional string name = 3;
+}
+
 message RuntimeEvent {
   oneof value {
     DatabaseRuntimeEvent database_runtime_event = 8;

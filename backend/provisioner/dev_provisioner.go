@@ -31,7 +31,7 @@ func NewDevProvisioner(postgresPort int, mysqlPort int, recreate bool) *InMemPro
 	})
 }
 func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 
 		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(res.ResourceID())
@@ -56,12 +56,12 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 					logger.Debugf("failed to establish mysql database: %s", err.Error())
 					continue
 				}
-				return &schema.DatabaseRuntimeEvent{
-					Deployment:  deployment,
-					Changeset:   &changeset,
-					ID:          res.ResourceID(),
-					Connections: event,
-				}, nil
+				return &schema.RuntimeElement{
+					Deployment: deployment,
+					Name:       optional.Some(res.ResourceID()),
+					Element: &schema.DatabaseRuntime{
+						Connections: event,
+					}}, nil
 			}
 		}
 	}
@@ -109,7 +109,7 @@ func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string)
 		return "", err
 	}
 
-	return event.(*schema.DatabaseRuntimeEvent).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
+	return event.Element.(*schema.DatabaseRuntime).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
 }
 
 func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (string, error) {
@@ -118,12 +118,12 @@ func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (s
 	if err != nil {
 		return "", err
 	}
-	return event.(*schema.DatabaseRuntimeEvent).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
+	return event.Element.(*schema.DatabaseRuntime).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
 
 }
 
 func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 
 		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(resource.ResourceID())
@@ -172,21 +172,22 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 		}
 
 		dsn := dsn.PostgresDSN(dbName, dsn.Port(postgresPort))
-		return &schema.DatabaseRuntimeEvent{
-			ID:         resource.ResourceID(),
+
+		return &schema.RuntimeElement{
+			Name:       optional.Some(resource.ResourceID()),
 			Deployment: deployment,
-			Changeset:  &changeset,
-			Connections: &schema.DatabaseRuntimeConnections{
-				Write: &schema.DSNDatabaseConnector{DSN: dsn},
-				Read:  &schema.DSNDatabaseConnector{DSN: dsn},
-			},
-		}, nil
+			Element: &schema.DatabaseRuntime{
+				Connections: &schema.DatabaseRuntimeConnections{
+					Write: &schema.DSNDatabaseConnector{DSN: dsn},
+					Read:  &schema.DSNDatabaseConnector{DSN: dsn},
+				},
+			}}, nil
 	}
 
 }
 
 func provisionTopic() InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 		if err := dev.SetUpRedPanda(ctx); err != nil {
 			return nil, fmt.Errorf("could not set up redpanda: %w", err)
@@ -243,20 +244,18 @@ func provisionTopic() InMemResourceProvisionerFn {
 			}
 		}
 
-		return &schema.TopicRuntimeEvent{
+		return &schema.RuntimeElement{
+			Name:       optional.Some(res.ResourceID()),
 			Deployment: deployment,
-			Changeset:  &changeset,
-			ID:         res.ResourceID(),
-			Payload: &schema.TopicRuntime{
+			Element: &schema.TopicRuntime{
 				KafkaBrokers: redPandaBrokers,
 				TopicID:      topicID,
-			},
-		}, nil
+			}}, nil
 	}
 }
 
 func provisionSubscription() InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 		verb, ok := res.(*schema.Verb)
 		if !ok {
@@ -264,14 +263,14 @@ func provisionSubscription() InMemResourceProvisionerFn {
 		}
 		for range slices.FilterVariants[*schema.MetadataSubscriber](verb.Metadata) {
 			logger.Infof("Provisioning subscription for verb: %s", verb.Name)
-			return &schema.VerbRuntimeEvent{
+			return &schema.RuntimeElement{
+				Name:       optional.Some(res.ResourceID()),
 				Deployment: deployment,
-				Changeset:  &changeset,
-				ID:         verb.Name,
-				Subscription: optional.Some(schema.VerbRuntimeSubscription{
-					KafkaBrokers: redPandaBrokers,
-				}),
-			}, nil
+				Element: &schema.VerbRuntime{
+					Subscription: &schema.VerbRuntimeSubscription{
+						KafkaBrokers: redPandaBrokers,
+					},
+				}}, nil
 		}
 		return nil, nil
 	}

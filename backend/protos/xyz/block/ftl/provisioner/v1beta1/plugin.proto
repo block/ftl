@@ -40,7 +40,7 @@ message StatusResponse {
   }
 
   message ProvisioningSuccess {
-    repeated xyz.block.ftl.schema.v1.Event events = 1;
+    repeated xyz.block.ftl.schema.v1.RuntimeElement outputs = 1;
   }
 
   oneof status {

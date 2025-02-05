@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/provisioner/scaling"
-	"github.com/block/ftl/backend/schemaservice"
 	"github.com/block/ftl/common/plugin"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
@@ -120,32 +117,15 @@ func (reg *ProvisionerRegistry) Register(id string, handler provisionerconnect.P
 }
 
 // CreateDeployment to take the system to the desired state
-func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, changeset key.Changeset, desiredModule, existingModule *schema.Module, eventHandler func(event *schemapb.Event) error) *Deployment {
+func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, changeset key.Changeset, desiredModule, existingModule *schema.Module, updateHandler func(*schema.RuntimeElement) error) *Deployment {
 	logger := log.FromContext(ctx)
 	module := desiredModule.GetName()
-	state := schemaservice.NewSchemaState(false)
-
-	fakeChangeset := &schema.ChangesetCreatedEvent{
-		Changeset: &schema.Changeset{
-			Key:       changeset,
-			CreatedAt: time.Now(),
-			Modules: []*schema.Module{
-				desiredModule,
-			},
-			State: schema.ChangesetStatePreparing,
-		},
-	}
-	err := state.ApplyEvent(ctx, fakeChangeset)
-	if err != nil {
-		// should never happen
-		panic(fmt.Sprintf("error applying provisioning created event: %v", err))
-	}
 
 	deployment := &Deployment{
-		DeploymentState: &state,
+		DeploymentState: desiredModule,
 		Previous:        existingModule,
-		EventHandler:    eventHandler,
 		Changeset:       changeset,
+		UpdateHandler:   updateHandler,
 	}
 
 	allDesired := schema.GetProvisionedResources(desiredModule)

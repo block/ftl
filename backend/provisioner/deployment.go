@@ -10,7 +10,6 @@ import (
 	"github.com/jpillora/backoff"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
-	"github.com/block/ftl/backend/schemaservice"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -50,13 +49,8 @@ func (t *Task) Start(ctx context.Context) error {
 		previous = t.deployment.Previous.ToProto()
 	}
 
-	module, err := t.deployment.DeploymentState.GetProvisioning(t.module, t.deployment.Changeset)
-	if err != nil {
-		return fmt.Errorf("error getting module: %w", err)
-	}
-
 	resp, err := t.binding.Provisioner.Provision(ctx, connect.NewRequest(&provisioner.ProvisionRequest{
-		DesiredModule: module.ToProto(),
+		DesiredModule: t.deployment.DeploymentState.ToProto(),
 		// TODO: We need a proper cluster specific ID here
 		FtlClusterId:   "ftl",
 		PreviousModule: previous,
@@ -73,7 +67,7 @@ func (t *Task) Start(ctx context.Context) error {
 }
 
 func (t *Task) Progress(ctx context.Context) error {
-	logger := log.FromContext(ctx)
+
 	if t.state != TaskStateRunning {
 		return fmt.Errorf("task state is not running: %s", t.state)
 	}
@@ -84,13 +78,10 @@ func (t *Task) Progress(ctx context.Context) error {
 	}
 
 	for {
-		module, err := t.deployment.DeploymentState.GetProvisioning(t.module, t.deployment.Changeset)
-		if err != nil {
-			return fmt.Errorf("error getting module: %w", err)
-		}
+
 		resp, err := t.binding.Provisioner.Status(ctx, connect.NewRequest(&provisioner.StatusRequest{
 			ProvisioningToken: t.runningToken,
-			DesiredModule:     module.ToProto(),
+			DesiredModule:     t.deployment.DeploymentState.ToProto(),
 		}))
 		if err != nil {
 			t.state = TaskStateFailed
@@ -98,22 +89,23 @@ func (t *Task) Progress(ctx context.Context) error {
 		}
 		if succ, ok := resp.Msg.Status.(*provisioner.StatusResponse_Success); ok {
 			t.state = TaskStateDone
-			events := succ.Success.Events
+			for _, r := range succ.Success.Outputs {
+				element, err := schema.RuntimeElementFromProto(r)
+				if err != nil {
+					return fmt.Errorf("error converting runtime: %w", err)
+				}
+				err = element.ApplyToModule(t.deployment.DeploymentState)
+				if err != nil {
+					return fmt.Errorf("error applying runtime: %w", err)
+				}
+				err = t.deployment.UpdateHandler(element)
+				if err != nil {
+					return fmt.Errorf("error updating runtime: %w", err)
+				}
+				if err != nil {
+					return err
+				}
 
-			logger.Infof("Received %d events for module %s with task %s", len(events), t.module, t.binding.ID)
-			for _, eventpb := range events {
-				event, err := schema.EventFromProto(eventpb)
-				if err != nil {
-					return fmt.Errorf("failed to parse event: %w", err)
-				}
-				err = t.deployment.EventHandler(eventpb)
-				if err != nil {
-					return fmt.Errorf("schema server failed to handle provisioning event: %w", err)
-				}
-				err = t.deployment.DeploymentState.ApplyEvent(ctx, event)
-				if err != nil {
-					return fmt.Errorf("failed to apply event: %w", err)
-				}
 			}
 			return nil
 
@@ -127,10 +119,10 @@ type Deployment struct {
 	Tasks []*Task
 	// TODO: Merge runtimes at creation time
 
-	DeploymentState *schemaservice.SchemaState
+	DeploymentState *schema.Module
 	Previous        *schema.Module
-	EventHandler    func(event *schemapb.Event) error
 	Changeset       key.Changeset
+	UpdateHandler   func(*schema.RuntimeElement) error
 }
 
 // next running or pending task. Nil if all tasks are done.

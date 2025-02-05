@@ -8,7 +8,7 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 )
 
@@ -18,11 +18,9 @@ type killCmd struct {
 
 func (k *killCmd) Run(ctx context.Context, client ftlv1connect.SchemaServiceClient) error {
 	//TODO: implement this as a changeset
+	update := schema.RuntimeElement{Deployment: k.Deployment, Element: &schema.ModuleRuntimeScaling{MinReplicas: 0}}
 	_, err := client.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
-		Event: &schemapb.ModuleRuntimeEvent{
-			Key:     k.Deployment.String(),
-			Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
-		},
+		Update: update.ToProto(),
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to kill deployment: %w", err)

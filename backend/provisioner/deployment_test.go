@@ -65,7 +65,7 @@ func (m *MockProvisioner) Status(ctx context.Context, req *connect.Request[proto
 	return connect.NewResponse(&proto.StatusResponse{
 		Status: &proto.StatusResponse_Success{
 			Success: &proto.StatusResponse_ProvisioningSuccess{
-				Events: []*schemapb.Event{},
+				Outputs: []*schemapb.RuntimeElement{},
 			},
 		},
 	}), nil
@@ -97,9 +97,7 @@ func TestDeployment_Progress(t *testing.T) {
 				&schema.Database{Name: "a", Type: "mysql"},
 				&schema.Database{Name: "b", Type: "postgres"},
 			},
-		}, nil, func(event *schemapb.Event) error {
-			return nil
-		})
+		}, nil, nil)
 
 		assert.Equal(t, 2, len(dpl.State().Pending))
 

@@ -8,7 +8,7 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 )
 
@@ -19,11 +19,10 @@ type updateCmd struct {
 
 func (u *updateCmd) Run(ctx context.Context, client ftlv1connect.SchemaServiceClient) error {
 	//TODO: implement this as a changeset
+
+	update := schema.RuntimeElement{Deployment: u.Deployment, Element: &schema.ModuleRuntimeScaling{MinReplicas: u.Replicas}}
 	_, err := client.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
-		Event: &schemapb.ModuleRuntimeEvent{
-			Key:     u.Deployment.String(),
-			Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: u.Replicas},
-		},
+		Update: update.ToProto(),
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to update deployment: %w", err)
