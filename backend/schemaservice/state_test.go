@@ -53,7 +53,8 @@ func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 	assert.NoError(t, state.ApplyEvent(ctx, &schema.ModuleRuntimeEvent{
 		Key:        deploymentKey,
 		Changeset:  &changesetKey,
-		Deployment: optional.Some(schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey, State: schema.DeploymentStateReady, Endpoint: "http://localhost:6734"}),
+		Deployment: optional.Some(schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey, State: schema.DeploymentStateReady}),
+		Runner:     optional.Some(schema.ModuleRuntimeRunner{Endpoint: "http://localhost:6734"}),
 	}))
 	assert.NoError(t, state.ApplyEvent(ctx, &schema.ChangesetPreparedEvent{
 		Key: changesetKey,

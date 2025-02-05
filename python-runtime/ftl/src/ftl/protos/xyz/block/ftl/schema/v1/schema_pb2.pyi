@@ -668,14 +668,16 @@ class Module(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., builtin: bool = ..., name: _Optional[str] = ..., metadata: _Optional[_Iterable[_Union[Metadata, _Mapping]]] = ..., decls: _Optional[_Iterable[_Union[Decl, _Mapping]]] = ..., runtime: _Optional[_Union[ModuleRuntime, _Mapping]] = ...) -> None: ...
 
 class ModuleRuntime(_message.Message):
-    __slots__ = ("base", "scaling", "deployment")
+    __slots__ = ("base", "scaling", "deployment", "runner")
     BASE_FIELD_NUMBER: _ClassVar[int]
     SCALING_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
+    RUNNER_FIELD_NUMBER: _ClassVar[int]
     base: ModuleRuntimeBase
     scaling: ModuleRuntimeScaling
     deployment: ModuleRuntimeDeployment
-    def __init__(self, base: _Optional[_Union[ModuleRuntimeBase, _Mapping]] = ..., scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ...) -> None: ...
+    runner: ModuleRuntimeRunner
+    def __init__(self, base: _Optional[_Union[ModuleRuntimeBase, _Mapping]] = ..., scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ..., runner: _Optional[_Union[ModuleRuntimeRunner, _Mapping]] = ...) -> None: ...
 
 class ModuleRuntimeBase(_message.Message):
     __slots__ = ("create_time", "language", "os", "arch", "image")
@@ -692,32 +694,38 @@ class ModuleRuntimeBase(_message.Message):
     def __init__(self, create_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., language: _Optional[str] = ..., os: _Optional[str] = ..., arch: _Optional[str] = ..., image: _Optional[str] = ...) -> None: ...
 
 class ModuleRuntimeDeployment(_message.Message):
-    __slots__ = ("endpoint", "deployment_key", "created_at", "activated_at", "state")
-    ENDPOINT_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("deployment_key", "created_at", "activated_at", "state")
     DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     ACTIVATED_AT_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
-    endpoint: str
     deployment_key: str
     created_at: _timestamp_pb2.Timestamp
     activated_at: _timestamp_pb2.Timestamp
     state: DeploymentState
-    def __init__(self, endpoint: _Optional[str] = ..., deployment_key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., state: _Optional[_Union[DeploymentState, str]] = ...) -> None: ...
+    def __init__(self, deployment_key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., state: _Optional[_Union[DeploymentState, str]] = ...) -> None: ...
 
 class ModuleRuntimeEvent(_message.Message):
-    __slots__ = ("key", "changeset", "base", "scaling", "deployment")
+    __slots__ = ("key", "changeset", "base", "scaling", "deployment", "runner")
     KEY_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_FIELD_NUMBER: _ClassVar[int]
     BASE_FIELD_NUMBER: _ClassVar[int]
     SCALING_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
+    RUNNER_FIELD_NUMBER: _ClassVar[int]
     key: str
     changeset: str
     base: ModuleRuntimeBase
     scaling: ModuleRuntimeScaling
     deployment: ModuleRuntimeDeployment
-    def __init__(self, key: _Optional[str] = ..., changeset: _Optional[str] = ..., base: _Optional[_Union[ModuleRuntimeBase, _Mapping]] = ..., scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ...) -> None: ...
+    runner: ModuleRuntimeRunner
+    def __init__(self, key: _Optional[str] = ..., changeset: _Optional[str] = ..., base: _Optional[_Union[ModuleRuntimeBase, _Mapping]] = ..., scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ..., runner: _Optional[_Union[ModuleRuntimeRunner, _Mapping]] = ...) -> None: ...
+
+class ModuleRuntimeRunner(_message.Message):
+    __slots__ = ("endpoint",)
+    ENDPOINT_FIELD_NUMBER: _ClassVar[int]
+    endpoint: str
+    def __init__(self, endpoint: _Optional[str] = ...) -> None: ...
 
 class ModuleRuntimeScaling(_message.Message):
     __slots__ = ("min_replicas",)

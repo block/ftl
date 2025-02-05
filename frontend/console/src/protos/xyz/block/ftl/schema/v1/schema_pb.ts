@@ -3156,6 +3156,11 @@ export class ModuleRuntime extends Message<ModuleRuntime> {
    */
   deployment?: ModuleRuntimeDeployment;
 
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeRunner runner = 4;
+   */
+  runner?: ModuleRuntimeRunner;
+
   constructor(data?: PartialMessage<ModuleRuntime>) {
     super();
     proto3.util.initPartial(data, this);
@@ -3167,6 +3172,7 @@ export class ModuleRuntime extends Message<ModuleRuntime> {
     { no: 1, name: "base", kind: "message", T: ModuleRuntimeBase },
     { no: 2, name: "scaling", kind: "message", T: ModuleRuntimeScaling, opt: true },
     { no: 3, name: "deployment", kind: "message", T: ModuleRuntimeDeployment, opt: true },
+    { no: 4, name: "runner", kind: "message", T: ModuleRuntimeRunner, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntime {
@@ -3252,11 +3258,6 @@ export class ModuleRuntimeBase extends Message<ModuleRuntimeBase> {
  */
 export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
   /**
-   * @generated from field: string endpoint = 1;
-   */
-  endpoint = "";
-
-  /**
    * @generated from field: string deployment_key = 2;
    */
   deploymentKey = "";
@@ -3284,7 +3285,6 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.schema.v1.ModuleRuntimeDeployment";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "created_at", kind: "message", T: Timestamp },
     { no: 4, name: "activated_at", kind: "message", T: Timestamp, opt: true },
@@ -3337,6 +3337,11 @@ export class ModuleRuntimeEvent extends Message<ModuleRuntimeEvent> {
    */
   deployment?: ModuleRuntimeDeployment;
 
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeRunner runner = 6;
+   */
+  runner?: ModuleRuntimeRunner;
+
   constructor(data?: PartialMessage<ModuleRuntimeEvent>) {
     super();
     proto3.util.initPartial(data, this);
@@ -3350,6 +3355,7 @@ export class ModuleRuntimeEvent extends Message<ModuleRuntimeEvent> {
     { no: 3, name: "base", kind: "message", T: ModuleRuntimeBase, opt: true },
     { no: 4, name: "scaling", kind: "message", T: ModuleRuntimeScaling, opt: true },
     { no: 5, name: "deployment", kind: "message", T: ModuleRuntimeDeployment, opt: true },
+    { no: 6, name: "runner", kind: "message", T: ModuleRuntimeRunner, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeEvent {
@@ -3366,6 +3372,43 @@ export class ModuleRuntimeEvent extends Message<ModuleRuntimeEvent> {
 
   static equals(a: ModuleRuntimeEvent | PlainMessage<ModuleRuntimeEvent> | undefined, b: ModuleRuntimeEvent | PlainMessage<ModuleRuntimeEvent> | undefined): boolean {
     return proto3.util.equals(ModuleRuntimeEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.ModuleRuntimeRunner
+ */
+export class ModuleRuntimeRunner extends Message<ModuleRuntimeRunner> {
+  /**
+   * @generated from field: string endpoint = 1;
+   */
+  endpoint = "";
+
+  constructor(data?: PartialMessage<ModuleRuntimeRunner>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ModuleRuntimeRunner";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeRunner {
+    return new ModuleRuntimeRunner().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ModuleRuntimeRunner {
+    return new ModuleRuntimeRunner().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ModuleRuntimeRunner {
+    return new ModuleRuntimeRunner().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ModuleRuntimeRunner | PlainMessage<ModuleRuntimeRunner> | undefined, b: ModuleRuntimeRunner | PlainMessage<ModuleRuntimeRunner> | undefined): boolean {
+    return proto3.util.equals(ModuleRuntimeRunner, a, b);
   }
 }
 

@@ -237,6 +237,7 @@ type ModuleRuntimeEvent struct {
 	Base       optional.Option[ModuleRuntimeBase]       `protobuf:"3"`
 	Scaling    optional.Option[ModuleRuntimeScaling]    `protobuf:"4"`
 	Deployment optional.Option[ModuleRuntimeDeployment] `protobuf:"5"`
+	Runner     optional.Option[ModuleRuntimeRunner]     `protobuf:"6"`
 }
 
 func (e *ModuleRuntimeEvent) DeploymentKey() key.Deployment {

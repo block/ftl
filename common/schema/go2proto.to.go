@@ -2057,6 +2057,7 @@ func (x *ModuleRuntime) ToProto() *destpb.ModuleRuntime {
 		Base:       x.Base.ToProto(),
 		Scaling:    x.Scaling.ToProto(),
 		Deployment: x.Deployment.ToProto(),
+		Runner:     x.Runner.ToProto(),
 	}
 }
 
@@ -2074,6 +2075,9 @@ func ModuleRuntimeFromProto(v *destpb.ModuleRuntime) (out *ModuleRuntime, err er
 	}
 	if out.Deployment, err = result.From(ModuleRuntimeDeploymentFromProto(v.Deployment)).Result(); err != nil {
 		return nil, fmt.Errorf("Deployment: %w", err)
+	}
+	if out.Runner, err = result.From(ModuleRuntimeRunnerFromProto(v.Runner)).Result(); err != nil {
+		return nil, fmt.Errorf("Runner: %w", err)
 	}
 	return out, nil
 }
@@ -2120,7 +2124,6 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 		return nil
 	}
 	return &destpb.ModuleRuntimeDeployment{
-		Endpoint:      orZero(ptr(string(x.Endpoint))),
 		DeploymentKey: orZero(ptr(string(protoMust(x.DeploymentKey.MarshalText())))),
 		CreatedAt:     timestamppb.New(x.CreatedAt),
 		ActivatedAt:   setNil(timestamppb.New(orZero(x.ActivatedAt.Ptr())), x.ActivatedAt.Ptr()),
@@ -2134,9 +2137,6 @@ func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) (out *M
 	}
 
 	out = &ModuleRuntimeDeployment{}
-	if out.Endpoint, err = orZeroR(result.From(ptr(string(v.Endpoint)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Endpoint: %w", err)
-	}
 	if out.DeploymentKey, err = orZeroR(unmarshallText([]byte(v.DeploymentKey), &out.DeploymentKey)).Result(); err != nil {
 		return nil, fmt.Errorf("DeploymentKey: %w", err)
 	}
@@ -2162,6 +2162,7 @@ func (x *ModuleRuntimeEvent) ToProto() *destpb.ModuleRuntimeEvent {
 		Base:       x.Base.Ptr().ToProto(),
 		Scaling:    x.Scaling.Ptr().ToProto(),
 		Deployment: x.Deployment.Ptr().ToProto(),
+		Runner:     x.Runner.Ptr().ToProto(),
 	}
 }
 
@@ -2186,8 +2187,32 @@ func ModuleRuntimeEventFromProto(v *destpb.ModuleRuntimeEvent) (out *ModuleRunti
 	if out.Deployment, err = optionalR(result.From(ModuleRuntimeDeploymentFromProto(v.Deployment))).Result(); err != nil {
 		return nil, fmt.Errorf("Deployment: %w", err)
 	}
+	if out.Runner, err = optionalR(result.From(ModuleRuntimeRunnerFromProto(v.Runner))).Result(); err != nil {
+		return nil, fmt.Errorf("Runner: %w", err)
+	}
 	if err := out.Validate(); err != nil {
 		return nil, err
+	}
+	return out, nil
+}
+
+func (x *ModuleRuntimeRunner) ToProto() *destpb.ModuleRuntimeRunner {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ModuleRuntimeRunner{
+		Endpoint: orZero(ptr(string(x.Endpoint))),
+	}
+}
+
+func ModuleRuntimeRunnerFromProto(v *destpb.ModuleRuntimeRunner) (out *ModuleRuntimeRunner, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ModuleRuntimeRunner{}
+	if out.Endpoint, err = orZeroR(result.From(ptr(string(v.Endpoint)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Endpoint: %w", err)
 	}
 	return out, nil
 }

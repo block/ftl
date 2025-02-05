@@ -148,6 +148,9 @@ func handleModuleRuntimeEvent(ctx context.Context, t SchemaState, e *schema.Modu
 	if scaling, ok := e.Scaling.Get(); ok {
 		module.ModRuntime().Scaling = &scaling
 	}
+	if runner, ok := e.Runner.Get(); ok {
+		module.ModRuntime().Runner = &runner
+	}
 	if deployment, ok := e.Deployment.Get(); ok {
 		if deployment.State == schema.DeploymentStateUnspecified {
 			deployment.State = module.Runtime.Deployment.State
@@ -230,7 +233,7 @@ func handleChangesetPreparedEvent(t SchemaState, e *schema.ChangesetPreparedEven
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateReady {
 			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
 		}
-		if dep.ModRuntime().ModDeployment().Endpoint == "" {
+		if dep.ModRuntime().ModRunner().Endpoint == "" {
 			return fmt.Errorf("deployment %s has no endpoint", dep.Name)
 		}
 	}
@@ -257,7 +260,7 @@ func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
 	for _, dep := range changeset.Modules {
-		logger.Debugf("activating deployment %s", dep.GetRuntime().GetDeployment().Endpoint)
+		logger.Debugf("activating deployment %s %s", dep.GetRuntime().GetDeployment().DeploymentKey.String(), dep.Runtime.GetRunner().Endpoint)
 		if old, ok := t.deployments[dep.Name]; ok {
 			old.Runtime.Deployment.State = schema.DeploymentStateDraining
 			changeset.RemovingModules = append(changeset.RemovingModules, old)

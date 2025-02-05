@@ -82,7 +82,7 @@ func TestChangesetState(t *testing.T) {
 
 	t.Run("test update module schema", func(t *testing.T) {
 		newState := reflect.DeepCopy(module)
-		newState.Runtime.Deployment.Endpoint = "http://localhost:8080"
+		newState.ModRuntime().ModRunner().Endpoint = "http://localhost:8080"
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentSchemaUpdatedEvent{
 			Key:       module.Runtime.Deployment.DeploymentKey,
 			Schema:    newState,
@@ -94,7 +94,7 @@ func TestChangesetState(t *testing.T) {
 		csd := changeset(t, view)
 		assert.Equal(t, 1, len(csd.Modules))
 		for _, d := range csd.Modules {
-			assert.Equal(t, "http://localhost:8080", d.Runtime.Deployment.Endpoint)
+			assert.Equal(t, "http://localhost:8080", d.Runtime.Runner.Endpoint)
 			assert.Equal(t, schema.DeploymentStateProvisioning, d.Runtime.Deployment.State)
 		}
 	})
@@ -118,7 +118,7 @@ func TestChangesetState(t *testing.T) {
 	t.Run("test prepare changeset", func(t *testing.T) {
 		newState := reflect.DeepCopy(module)
 		newState.Runtime.Deployment.State = schema.DeploymentStateReady
-		newState.Runtime.Deployment.Endpoint = "http://localhost:8080"
+		newState.ModRuntime().ModRunner().Endpoint = "http://localhost:8080"
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentSchemaUpdatedEvent{
 			Key:       module.Runtime.Deployment.DeploymentKey,
 			Schema:    newState,

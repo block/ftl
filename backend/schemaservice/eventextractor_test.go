@@ -18,6 +18,7 @@ import (
 func TestEventExtractor(t *testing.T) {
 	now := time.Now()
 
+	// TODO: lots of tests once we have new runtime events
 	empty := ""
 	newKey, err := key.ParseDeploymentKey("dpl-test-sjkfislfjslfae")
 	assert.NoError(t, err)

@@ -107,9 +107,11 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{
 			Changeset: changeset.String(),
 			Key:       deployment.String(),
+			Runner: &schemapb.ModuleRuntimeRunner{
+				Endpoint: endpointURI,
+			},
 			Deployment: &schemapb.ModuleRuntimeDeployment{
 				DeploymentKey: deployment.String(),
-				Endpoint:      endpointURI,
 				State:         schemapb.DeploymentState_DEPLOYMENT_STATE_READY,
 			},
 		}}))
@@ -119,9 +121,11 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		return &schema.ModuleRuntimeEvent{
 			Key:       deployment,
 			Changeset: &changeset,
+			Runner: optional.Some(schema.ModuleRuntimeRunner{
+				Endpoint: endpointURI,
+			}),
 			Deployment: optional.Some(schema.ModuleRuntimeDeployment{
 				DeploymentKey: deployment,
-				Endpoint:      endpointURI,
 				State:         schema.DeploymentStateReady,
 			}),
 		}, nil
