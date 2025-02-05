@@ -4783,6 +4783,152 @@ func (x *Ref) GetTypeParameters() []*Type {
 	return nil
 }
 
+type Runtime struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Value:
+	//
+	//	*Runtime_DatabaseRuntime
+	//	*Runtime_ModuleRuntimeDeployment
+	//	*Runtime_ModuleRuntimeRunner
+	//	*Runtime_ModuleRuntimeScaling
+	//	*Runtime_TopicRuntime
+	//	*Runtime_VerbRuntime
+	Value         isRuntime_Value `protobuf_oneof:"value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Runtime) Reset() {
+	*x = Runtime{}
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Runtime) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Runtime) ProtoMessage() {}
+
+func (x *Runtime) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Runtime.ProtoReflect.Descriptor instead.
+func (*Runtime) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *Runtime) GetValue() isRuntime_Value {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+func (x *Runtime) GetDatabaseRuntime() *DatabaseRuntime {
+	if x != nil {
+		if x, ok := x.Value.(*Runtime_DatabaseRuntime); ok {
+			return x.DatabaseRuntime
+		}
+	}
+	return nil
+}
+
+func (x *Runtime) GetModuleRuntimeDeployment() *ModuleRuntimeDeployment {
+	if x != nil {
+		if x, ok := x.Value.(*Runtime_ModuleRuntimeDeployment); ok {
+			return x.ModuleRuntimeDeployment
+		}
+	}
+	return nil
+}
+
+func (x *Runtime) GetModuleRuntimeRunner() *ModuleRuntimeRunner {
+	if x != nil {
+		if x, ok := x.Value.(*Runtime_ModuleRuntimeRunner); ok {
+			return x.ModuleRuntimeRunner
+		}
+	}
+	return nil
+}
+
+func (x *Runtime) GetModuleRuntimeScaling() *ModuleRuntimeScaling {
+	if x != nil {
+		if x, ok := x.Value.(*Runtime_ModuleRuntimeScaling); ok {
+			return x.ModuleRuntimeScaling
+		}
+	}
+	return nil
+}
+
+func (x *Runtime) GetTopicRuntime() *TopicRuntime {
+	if x != nil {
+		if x, ok := x.Value.(*Runtime_TopicRuntime); ok {
+			return x.TopicRuntime
+		}
+	}
+	return nil
+}
+
+func (x *Runtime) GetVerbRuntime() *VerbRuntime {
+	if x != nil {
+		if x, ok := x.Value.(*Runtime_VerbRuntime); ok {
+			return x.VerbRuntime
+		}
+	}
+	return nil
+}
+
+type isRuntime_Value interface {
+	isRuntime_Value()
+}
+
+type Runtime_DatabaseRuntime struct {
+	DatabaseRuntime *DatabaseRuntime `protobuf:"bytes,6,opt,name=database_runtime,json=databaseRuntime,proto3,oneof"`
+}
+
+type Runtime_ModuleRuntimeDeployment struct {
+	ModuleRuntimeDeployment *ModuleRuntimeDeployment `protobuf:"bytes,1,opt,name=module_runtime_deployment,json=moduleRuntimeDeployment,proto3,oneof"`
+}
+
+type Runtime_ModuleRuntimeRunner struct {
+	ModuleRuntimeRunner *ModuleRuntimeRunner `protobuf:"bytes,3,opt,name=module_runtime_runner,json=moduleRuntimeRunner,proto3,oneof"`
+}
+
+type Runtime_ModuleRuntimeScaling struct {
+	ModuleRuntimeScaling *ModuleRuntimeScaling `protobuf:"bytes,2,opt,name=module_runtime_scaling,json=moduleRuntimeScaling,proto3,oneof"`
+}
+
+type Runtime_TopicRuntime struct {
+	TopicRuntime *TopicRuntime `protobuf:"bytes,5,opt,name=topic_runtime,json=topicRuntime,proto3,oneof"`
+}
+
+type Runtime_VerbRuntime struct {
+	VerbRuntime *VerbRuntime `protobuf:"bytes,4,opt,name=verb_runtime,json=verbRuntime,proto3,oneof"`
+}
+
+func (*Runtime_DatabaseRuntime) isRuntime_Value() {}
+
+func (*Runtime_ModuleRuntimeDeployment) isRuntime_Value() {}
+
+func (*Runtime_ModuleRuntimeRunner) isRuntime_Value() {}
+
+func (*Runtime_ModuleRuntimeScaling) isRuntime_Value() {}
+
+func (*Runtime_TopicRuntime) isRuntime_Value() {}
+
+func (*Runtime_VerbRuntime) isRuntime_Value() {}
+
 type RuntimeEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Value:
@@ -4798,7 +4944,7 @@ type RuntimeEvent struct {
 
 func (x *RuntimeEvent) Reset() {
 	*x = RuntimeEvent{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4810,7 +4956,7 @@ func (x *RuntimeEvent) String() string {
 func (*RuntimeEvent) ProtoMessage() {}
 
 func (x *RuntimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4823,7 +4969,7 @@ func (x *RuntimeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeEvent.ProtoReflect.Descriptor instead.
 func (*RuntimeEvent) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{65}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *RuntimeEvent) GetValue() isRuntimeEvent_Value {
@@ -4907,7 +5053,7 @@ type Schema struct {
 
 func (x *Schema) Reset() {
 	*x = Schema{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4919,7 +5065,7 @@ func (x *Schema) String() string {
 func (*Schema) ProtoMessage() {}
 
 func (x *Schema) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4932,7 +5078,7 @@ func (x *Schema) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Schema.ProtoReflect.Descriptor instead.
 func (*Schema) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{66}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *Schema) GetPos() *Position {
@@ -4961,7 +5107,7 @@ type SchemaState struct {
 
 func (x *SchemaState) Reset() {
 	*x = SchemaState{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4973,7 +5119,7 @@ func (x *SchemaState) String() string {
 func (*SchemaState) ProtoMessage() {}
 
 func (x *SchemaState) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4986,7 +5132,7 @@ func (x *SchemaState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SchemaState.ProtoReflect.Descriptor instead.
 func (*SchemaState) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{67}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *SchemaState) GetModules() []*Module {
@@ -5022,7 +5168,7 @@ type Secret struct {
 
 func (x *Secret) Reset() {
 	*x = Secret{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5034,7 +5180,7 @@ func (x *Secret) String() string {
 func (*Secret) ProtoMessage() {}
 
 func (x *Secret) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5047,7 +5193,7 @@ func (x *Secret) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Secret.ProtoReflect.Descriptor instead.
 func (*Secret) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{68}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *Secret) GetPos() *Position {
@@ -5087,7 +5233,7 @@ type String struct {
 
 func (x *String) Reset() {
 	*x = String{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5099,7 +5245,7 @@ func (x *String) String() string {
 func (*String) ProtoMessage() {}
 
 func (x *String) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5112,7 +5258,7 @@ func (x *String) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use String.ProtoReflect.Descriptor instead.
 func (*String) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{69}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *String) GetPos() *Position {
@@ -5132,7 +5278,7 @@ type StringValue struct {
 
 func (x *StringValue) Reset() {
 	*x = StringValue{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5144,7 +5290,7 @@ func (x *StringValue) String() string {
 func (*StringValue) ProtoMessage() {}
 
 func (x *StringValue) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5157,7 +5303,7 @@ func (x *StringValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StringValue.ProtoReflect.Descriptor instead.
 func (*StringValue) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{70}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *StringValue) GetPos() *Position {
@@ -5183,7 +5329,7 @@ type Time struct {
 
 func (x *Time) Reset() {
 	*x = Time{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5195,7 +5341,7 @@ func (x *Time) String() string {
 func (*Time) ProtoMessage() {}
 
 func (x *Time) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5208,7 +5354,7 @@ func (x *Time) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Time.ProtoReflect.Descriptor instead.
 func (*Time) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{71}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *Time) GetPos() *Position {
@@ -5233,7 +5379,7 @@ type Topic struct {
 
 func (x *Topic) Reset() {
 	*x = Topic{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5245,7 +5391,7 @@ func (x *Topic) String() string {
 func (*Topic) ProtoMessage() {}
 
 func (x *Topic) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5258,7 +5404,7 @@ func (x *Topic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Topic.ProtoReflect.Descriptor instead.
 func (*Topic) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{72}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *Topic) GetPos() *Position {
@@ -5320,7 +5466,7 @@ type TopicRuntime struct {
 
 func (x *TopicRuntime) Reset() {
 	*x = TopicRuntime{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5332,7 +5478,7 @@ func (x *TopicRuntime) String() string {
 func (*TopicRuntime) ProtoMessage() {}
 
 func (x *TopicRuntime) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5345,7 +5491,7 @@ func (x *TopicRuntime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopicRuntime.ProtoReflect.Descriptor instead.
 func (*TopicRuntime) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{73}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *TopicRuntime) GetKafkaBrokers() []string {
@@ -5374,7 +5520,7 @@ type TopicRuntimeEvent struct {
 
 func (x *TopicRuntimeEvent) Reset() {
 	*x = TopicRuntimeEvent{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5386,7 +5532,7 @@ func (x *TopicRuntimeEvent) String() string {
 func (*TopicRuntimeEvent) ProtoMessage() {}
 
 func (x *TopicRuntimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5399,7 +5545,7 @@ func (x *TopicRuntimeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopicRuntimeEvent.ProtoReflect.Descriptor instead.
 func (*TopicRuntimeEvent) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{74}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *TopicRuntimeEvent) GetDeployment() string {
@@ -5454,7 +5600,7 @@ type Type struct {
 
 func (x *Type) Reset() {
 	*x = Type{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5466,7 +5612,7 @@ func (x *Type) String() string {
 func (*Type) ProtoMessage() {}
 
 func (x *Type) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5479,7 +5625,7 @@ func (x *Type) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Type.ProtoReflect.Descriptor instead.
 func (*Type) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{75}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *Type) GetValue() isType_Value {
@@ -5687,7 +5833,7 @@ type TypeAlias struct {
 
 func (x *TypeAlias) Reset() {
 	*x = TypeAlias{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5699,7 +5845,7 @@ func (x *TypeAlias) String() string {
 func (*TypeAlias) ProtoMessage() {}
 
 func (x *TypeAlias) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5712,7 +5858,7 @@ func (x *TypeAlias) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeAlias.ProtoReflect.Descriptor instead.
 func (*TypeAlias) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{76}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *TypeAlias) GetPos() *Position {
@@ -5767,7 +5913,7 @@ type TypeParameter struct {
 
 func (x *TypeParameter) Reset() {
 	*x = TypeParameter{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[77]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5779,7 +5925,7 @@ func (x *TypeParameter) String() string {
 func (*TypeParameter) ProtoMessage() {}
 
 func (x *TypeParameter) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[77]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5792,7 +5938,7 @@ func (x *TypeParameter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeParameter.ProtoReflect.Descriptor instead.
 func (*TypeParameter) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{77}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *TypeParameter) GetPos() *Position {
@@ -5819,7 +5965,7 @@ type TypeValue struct {
 
 func (x *TypeValue) Reset() {
 	*x = TypeValue{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[78]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5831,7 +5977,7 @@ func (x *TypeValue) String() string {
 func (*TypeValue) ProtoMessage() {}
 
 func (x *TypeValue) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[78]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5844,7 +5990,7 @@ func (x *TypeValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeValue.ProtoReflect.Descriptor instead.
 func (*TypeValue) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{78}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *TypeValue) GetPos() *Position {
@@ -5870,7 +6016,7 @@ type Unit struct {
 
 func (x *Unit) Reset() {
 	*x = Unit{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5882,7 +6028,7 @@ func (x *Unit) String() string {
 func (*Unit) ProtoMessage() {}
 
 func (x *Unit) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5895,7 +6041,7 @@ func (x *Unit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Unit.ProtoReflect.Descriptor instead.
 func (*Unit) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{79}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *Unit) GetPos() *Position {
@@ -5920,7 +6066,7 @@ type Value struct {
 
 func (x *Value) Reset() {
 	*x = Value{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5932,7 +6078,7 @@ func (x *Value) String() string {
 func (*Value) ProtoMessage() {}
 
 func (x *Value) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5945,7 +6091,7 @@ func (x *Value) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Value.ProtoReflect.Descriptor instead.
 func (*Value) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{80}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *Value) GetValue() isValue_Value {
@@ -6020,7 +6166,7 @@ type Verb struct {
 
 func (x *Verb) Reset() {
 	*x = Verb{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6032,7 +6178,7 @@ func (x *Verb) String() string {
 func (*Verb) ProtoMessage() {}
 
 func (x *Verb) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6045,7 +6191,7 @@ func (x *Verb) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Verb.ProtoReflect.Descriptor instead.
 func (*Verb) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{81}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *Verb) GetPos() *Position {
@@ -6113,7 +6259,7 @@ type VerbRuntime struct {
 
 func (x *VerbRuntime) Reset() {
 	*x = VerbRuntime{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6125,7 +6271,7 @@ func (x *VerbRuntime) String() string {
 func (*VerbRuntime) ProtoMessage() {}
 
 func (x *VerbRuntime) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6138,7 +6284,7 @@ func (x *VerbRuntime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntime.ProtoReflect.Descriptor instead.
 func (*VerbRuntime) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{82}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *VerbRuntime) GetSubscription() *VerbRuntimeSubscription {
@@ -6160,7 +6306,7 @@ type VerbRuntimeEvent struct {
 
 func (x *VerbRuntimeEvent) Reset() {
 	*x = VerbRuntimeEvent{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6172,7 +6318,7 @@ func (x *VerbRuntimeEvent) String() string {
 func (*VerbRuntimeEvent) ProtoMessage() {}
 
 func (x *VerbRuntimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6185,7 +6331,7 @@ func (x *VerbRuntimeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntimeEvent.ProtoReflect.Descriptor instead.
 func (*VerbRuntimeEvent) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{83}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *VerbRuntimeEvent) GetDeployment() string {
@@ -6225,7 +6371,7 @@ type VerbRuntimeSubscription struct {
 
 func (x *VerbRuntimeSubscription) Reset() {
 	*x = VerbRuntimeSubscription{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6237,7 +6383,7 @@ func (x *VerbRuntimeSubscription) String() string {
 func (*VerbRuntimeSubscription) ProtoMessage() {}
 
 func (x *VerbRuntimeSubscription) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6250,7 +6396,7 @@ func (x *VerbRuntimeSubscription) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntimeSubscription.ProtoReflect.Descriptor instead.
 func (*VerbRuntimeSubscription) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{84}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *VerbRuntimeSubscription) GetKafkaBrokers() []string {
@@ -7098,7 +7244,43 @@ var file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = []byte{
 	0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66,
 	0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x54, 0x79, 0x70,
 	0x65, 0x52, 0x0e, 0x74, 0x79, 0x70, 0x65, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x65, 0x74, 0x65, 0x72,
-	0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0x98, 0x03, 0x0a, 0x0c, 0x52, 0x75,
+	0x73, 0x42, 0x06, 0x0a, 0x04, 0x5f, 0x70, 0x6f, 0x73, 0x22, 0xbd, 0x04, 0x0a, 0x07, 0x52, 0x75,
+	0x6e, 0x74, 0x69, 0x6d, 0x65, 0x12, 0x55, 0x0a, 0x10, 0x64, 0x61, 0x74, 0x61, 0x62, 0x61, 0x73,
+	0x65, 0x5f, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x28, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e,
+	0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x61, 0x74, 0x61, 0x62, 0x61,
+	0x73, 0x65, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x48, 0x00, 0x52, 0x0f, 0x64, 0x61, 0x74,
+	0x61, 0x62, 0x61, 0x73, 0x65, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x12, 0x6e, 0x0a, 0x19,
+	0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x5f, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x5f, 0x64,
+	0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x30, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e,
+	0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65,
+	0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e,
+	0x74, 0x48, 0x00, 0x52, 0x17, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x52, 0x75, 0x6e, 0x74, 0x69,
+	0x6d, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x62, 0x0a, 0x15,
+	0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x5f, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x5f, 0x72,
+	0x75, 0x6e, 0x6e, 0x65, 0x72, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2c, 0x2e, 0x78, 0x79,
+	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65,
+	0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x52, 0x75, 0x6e, 0x74,
+	0x69, 0x6d, 0x65, 0x52, 0x75, 0x6e, 0x6e, 0x65, 0x72, 0x48, 0x00, 0x52, 0x13, 0x6d, 0x6f, 0x64,
+	0x75, 0x6c, 0x65, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x52, 0x75, 0x6e, 0x6e, 0x65, 0x72,
+	0x12, 0x65, 0x0a, 0x16, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x5f, 0x72, 0x75, 0x6e, 0x74, 0x69,
+	0x6d, 0x65, 0x5f, 0x73, 0x63, 0x61, 0x6c, 0x69, 0x6e, 0x67, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x2d, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c,
+	0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c,
+	0x65, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x53, 0x63, 0x61, 0x6c, 0x69, 0x6e, 0x67, 0x48,
+	0x00, 0x52, 0x14, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65,
+	0x53, 0x63, 0x61, 0x6c, 0x69, 0x6e, 0x67, 0x12, 0x4c, 0x0a, 0x0d, 0x74, 0x6f, 0x70, 0x69, 0x63,
+	0x5f, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x25,
+	0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73,
+	0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x54, 0x6f, 0x70, 0x69, 0x63, 0x52, 0x75,
+	0x6e, 0x74, 0x69, 0x6d, 0x65, 0x48, 0x00, 0x52, 0x0c, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x52, 0x75,
+	0x6e, 0x74, 0x69, 0x6d, 0x65, 0x12, 0x49, 0x0a, 0x0c, 0x76, 0x65, 0x72, 0x62, 0x5f, 0x72, 0x75,
+	0x6e, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x24, 0x2e, 0x78, 0x79,
+	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65,
+	0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x56, 0x65, 0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d,
+	0x65, 0x48, 0x00, 0x52, 0x0b, 0x76, 0x65, 0x72, 0x62, 0x52, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65,
+	0x42, 0x07, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x98, 0x03, 0x0a, 0x0c, 0x52, 0x75,
 	0x6e, 0x74, 0x69, 0x6d, 0x65, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x65, 0x0a, 0x16, 0x64, 0x61,
 	0x74, 0x61, 0x62, 0x61, 0x73, 0x65, 0x5f, 0x72, 0x75, 0x6e, 0x74, 0x69, 0x6d, 0x65, 0x5f, 0x65,
 	0x76, 0x65, 0x6e, 0x74, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2d, 0x2e, 0x78, 0x79, 0x7a,
@@ -7419,7 +7601,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP() []byte {
 }
 
 var file_xyz_block_ftl_schema_v1_schema_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 85)
+var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 86)
 var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(AliasKind)(0),                         // 0: xyz.block.ftl.schema.v1.AliasKind
 	(ChangesetState)(0),                    // 1: xyz.block.ftl.schema.v1.ChangesetState
@@ -7490,45 +7672,46 @@ var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(*Optional)(nil),                       // 66: xyz.block.ftl.schema.v1.Optional
 	(*Position)(nil),                       // 67: xyz.block.ftl.schema.v1.Position
 	(*Ref)(nil),                            // 68: xyz.block.ftl.schema.v1.Ref
-	(*RuntimeEvent)(nil),                   // 69: xyz.block.ftl.schema.v1.RuntimeEvent
-	(*Schema)(nil),                         // 70: xyz.block.ftl.schema.v1.Schema
-	(*SchemaState)(nil),                    // 71: xyz.block.ftl.schema.v1.SchemaState
-	(*Secret)(nil),                         // 72: xyz.block.ftl.schema.v1.Secret
-	(*String)(nil),                         // 73: xyz.block.ftl.schema.v1.String
-	(*StringValue)(nil),                    // 74: xyz.block.ftl.schema.v1.StringValue
-	(*Time)(nil),                           // 75: xyz.block.ftl.schema.v1.Time
-	(*Topic)(nil),                          // 76: xyz.block.ftl.schema.v1.Topic
-	(*TopicRuntime)(nil),                   // 77: xyz.block.ftl.schema.v1.TopicRuntime
-	(*TopicRuntimeEvent)(nil),              // 78: xyz.block.ftl.schema.v1.TopicRuntimeEvent
-	(*Type)(nil),                           // 79: xyz.block.ftl.schema.v1.Type
-	(*TypeAlias)(nil),                      // 80: xyz.block.ftl.schema.v1.TypeAlias
-	(*TypeParameter)(nil),                  // 81: xyz.block.ftl.schema.v1.TypeParameter
-	(*TypeValue)(nil),                      // 82: xyz.block.ftl.schema.v1.TypeValue
-	(*Unit)(nil),                           // 83: xyz.block.ftl.schema.v1.Unit
-	(*Value)(nil),                          // 84: xyz.block.ftl.schema.v1.Value
-	(*Verb)(nil),                           // 85: xyz.block.ftl.schema.v1.Verb
-	(*VerbRuntime)(nil),                    // 86: xyz.block.ftl.schema.v1.VerbRuntime
-	(*VerbRuntimeEvent)(nil),               // 87: xyz.block.ftl.schema.v1.VerbRuntimeEvent
-	(*VerbRuntimeSubscription)(nil),        // 88: xyz.block.ftl.schema.v1.VerbRuntimeSubscription
-	(*timestamppb.Timestamp)(nil),          // 89: google.protobuf.Timestamp
+	(*Runtime)(nil),                        // 69: xyz.block.ftl.schema.v1.Runtime
+	(*RuntimeEvent)(nil),                   // 70: xyz.block.ftl.schema.v1.RuntimeEvent
+	(*Schema)(nil),                         // 71: xyz.block.ftl.schema.v1.Schema
+	(*SchemaState)(nil),                    // 72: xyz.block.ftl.schema.v1.SchemaState
+	(*Secret)(nil),                         // 73: xyz.block.ftl.schema.v1.Secret
+	(*String)(nil),                         // 74: xyz.block.ftl.schema.v1.String
+	(*StringValue)(nil),                    // 75: xyz.block.ftl.schema.v1.StringValue
+	(*Time)(nil),                           // 76: xyz.block.ftl.schema.v1.Time
+	(*Topic)(nil),                          // 77: xyz.block.ftl.schema.v1.Topic
+	(*TopicRuntime)(nil),                   // 78: xyz.block.ftl.schema.v1.TopicRuntime
+	(*TopicRuntimeEvent)(nil),              // 79: xyz.block.ftl.schema.v1.TopicRuntimeEvent
+	(*Type)(nil),                           // 80: xyz.block.ftl.schema.v1.Type
+	(*TypeAlias)(nil),                      // 81: xyz.block.ftl.schema.v1.TypeAlias
+	(*TypeParameter)(nil),                  // 82: xyz.block.ftl.schema.v1.TypeParameter
+	(*TypeValue)(nil),                      // 83: xyz.block.ftl.schema.v1.TypeValue
+	(*Unit)(nil),                           // 84: xyz.block.ftl.schema.v1.Unit
+	(*Value)(nil),                          // 85: xyz.block.ftl.schema.v1.Value
+	(*Verb)(nil),                           // 86: xyz.block.ftl.schema.v1.Verb
+	(*VerbRuntime)(nil),                    // 87: xyz.block.ftl.schema.v1.VerbRuntime
+	(*VerbRuntimeEvent)(nil),               // 88: xyz.block.ftl.schema.v1.VerbRuntimeEvent
+	(*VerbRuntimeSubscription)(nil),        // 89: xyz.block.ftl.schema.v1.VerbRuntimeSubscription
+	(*timestamppb.Timestamp)(nil),          // 90: google.protobuf.Timestamp
 }
 var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	67,  // 0: xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	67,  // 1: xyz.block.ftl.schema.v1.Any.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	67,  // 2: xyz.block.ftl.schema.v1.Array.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 3: xyz.block.ftl.schema.v1.Array.element:type_name -> xyz.block.ftl.schema.v1.Type
+	80,  // 3: xyz.block.ftl.schema.v1.Array.element:type_name -> xyz.block.ftl.schema.v1.Type
 	67,  // 4: xyz.block.ftl.schema.v1.Bool.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	67,  // 5: xyz.block.ftl.schema.v1.Bytes.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	89,  // 6: xyz.block.ftl.schema.v1.Changeset.created_at:type_name -> google.protobuf.Timestamp
+	90,  // 6: xyz.block.ftl.schema.v1.Changeset.created_at:type_name -> google.protobuf.Timestamp
 	59,  // 7: xyz.block.ftl.schema.v1.Changeset.modules:type_name -> xyz.block.ftl.schema.v1.Module
 	59,  // 8: xyz.block.ftl.schema.v1.Changeset.removing_modules:type_name -> xyz.block.ftl.schema.v1.Module
 	1,   // 9: xyz.block.ftl.schema.v1.Changeset.state:type_name -> xyz.block.ftl.schema.v1.ChangesetState
 	9,   // 10: xyz.block.ftl.schema.v1.ChangesetCreatedEvent.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
 	67,  // 11: xyz.block.ftl.schema.v1.Config.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 12: xyz.block.ftl.schema.v1.Config.type:type_name -> xyz.block.ftl.schema.v1.Type
+	80,  // 12: xyz.block.ftl.schema.v1.Config.type:type_name -> xyz.block.ftl.schema.v1.Type
 	67,  // 13: xyz.block.ftl.schema.v1.DSNDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	67,  // 14: xyz.block.ftl.schema.v1.Data.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 15: xyz.block.ftl.schema.v1.Data.type_parameters:type_name -> xyz.block.ftl.schema.v1.TypeParameter
+	82,  // 15: xyz.block.ftl.schema.v1.Data.type_parameters:type_name -> xyz.block.ftl.schema.v1.TypeParameter
 	33,  // 16: xyz.block.ftl.schema.v1.Data.fields:type_name -> xyz.block.ftl.schema.v1.Field
 	41,  // 17: xyz.block.ftl.schema.v1.Data.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
 	67,  // 18: xyz.block.ftl.schema.v1.Database.pos:type_name -> xyz.block.ftl.schema.v1.Position
@@ -7544,18 +7727,18 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	18,  // 28: xyz.block.ftl.schema.v1.Decl.data:type_name -> xyz.block.ftl.schema.v1.Data
 	19,  // 29: xyz.block.ftl.schema.v1.Decl.database:type_name -> xyz.block.ftl.schema.v1.Database
 	30,  // 30: xyz.block.ftl.schema.v1.Decl.enum:type_name -> xyz.block.ftl.schema.v1.Enum
-	72,  // 31: xyz.block.ftl.schema.v1.Decl.secret:type_name -> xyz.block.ftl.schema.v1.Secret
-	76,  // 32: xyz.block.ftl.schema.v1.Decl.topic:type_name -> xyz.block.ftl.schema.v1.Topic
-	80,  // 33: xyz.block.ftl.schema.v1.Decl.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
-	85,  // 34: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
-	89,  // 35: xyz.block.ftl.schema.v1.DeploymentActivatedEvent.activated_at:type_name -> google.protobuf.Timestamp
+	73,  // 31: xyz.block.ftl.schema.v1.Decl.secret:type_name -> xyz.block.ftl.schema.v1.Secret
+	77,  // 32: xyz.block.ftl.schema.v1.Decl.topic:type_name -> xyz.block.ftl.schema.v1.Topic
+	81,  // 33: xyz.block.ftl.schema.v1.Decl.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
+	86,  // 34: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
+	90,  // 35: xyz.block.ftl.schema.v1.DeploymentActivatedEvent.activated_at:type_name -> google.protobuf.Timestamp
 	59,  // 36: xyz.block.ftl.schema.v1.DeploymentCreatedEvent.schema:type_name -> xyz.block.ftl.schema.v1.Module
 	59,  // 37: xyz.block.ftl.schema.v1.DeploymentSchemaUpdatedEvent.schema:type_name -> xyz.block.ftl.schema.v1.Module
 	67,  // 38: xyz.block.ftl.schema.v1.Enum.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 39: xyz.block.ftl.schema.v1.Enum.type:type_name -> xyz.block.ftl.schema.v1.Type
+	80,  // 39: xyz.block.ftl.schema.v1.Enum.type:type_name -> xyz.block.ftl.schema.v1.Type
 	31,  // 40: xyz.block.ftl.schema.v1.Enum.variants:type_name -> xyz.block.ftl.schema.v1.EnumVariant
 	67,  // 41: xyz.block.ftl.schema.v1.EnumVariant.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 42: xyz.block.ftl.schema.v1.EnumVariant.value:type_name -> xyz.block.ftl.schema.v1.Value
+	85,  // 42: xyz.block.ftl.schema.v1.EnumVariant.value:type_name -> xyz.block.ftl.schema.v1.Value
 	10,  // 43: xyz.block.ftl.schema.v1.Event.changeset_committed_event:type_name -> xyz.block.ftl.schema.v1.ChangesetCommittedEvent
 	11,  // 44: xyz.block.ftl.schema.v1.Event.changeset_created_event:type_name -> xyz.block.ftl.schema.v1.ChangesetCreatedEvent
 	12,  // 45: xyz.block.ftl.schema.v1.Event.changeset_drained_event:type_name -> xyz.block.ftl.schema.v1.ChangesetDrainedEvent
@@ -7569,10 +7752,10 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	28,  // 53: xyz.block.ftl.schema.v1.Event.deployment_replicas_updated_event:type_name -> xyz.block.ftl.schema.v1.DeploymentReplicasUpdatedEvent
 	29,  // 54: xyz.block.ftl.schema.v1.Event.deployment_schema_updated_event:type_name -> xyz.block.ftl.schema.v1.DeploymentSchemaUpdatedEvent
 	63,  // 55: xyz.block.ftl.schema.v1.Event.module_runtime_event:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeEvent
-	78,  // 56: xyz.block.ftl.schema.v1.Event.topic_runtime_event:type_name -> xyz.block.ftl.schema.v1.TopicRuntimeEvent
-	87,  // 57: xyz.block.ftl.schema.v1.Event.verb_runtime_event:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeEvent
+	79,  // 56: xyz.block.ftl.schema.v1.Event.topic_runtime_event:type_name -> xyz.block.ftl.schema.v1.TopicRuntimeEvent
+	88,  // 57: xyz.block.ftl.schema.v1.Event.verb_runtime_event:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeEvent
 	67,  // 58: xyz.block.ftl.schema.v1.Field.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 59: xyz.block.ftl.schema.v1.Field.type:type_name -> xyz.block.ftl.schema.v1.Type
+	80,  // 59: xyz.block.ftl.schema.v1.Field.type:type_name -> xyz.block.ftl.schema.v1.Type
 	41,  // 60: xyz.block.ftl.schema.v1.Field.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
 	67,  // 61: xyz.block.ftl.schema.v1.Float.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	36,  // 62: xyz.block.ftl.schema.v1.IngressPathComponent.ingress_path_literal:type_name -> xyz.block.ftl.schema.v1.IngressPathLiteral
@@ -7582,8 +7765,8 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	67,  // 66: xyz.block.ftl.schema.v1.Int.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	67,  // 67: xyz.block.ftl.schema.v1.IntValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	67,  // 68: xyz.block.ftl.schema.v1.Map.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 69: xyz.block.ftl.schema.v1.Map.key:type_name -> xyz.block.ftl.schema.v1.Type
-	79,  // 70: xyz.block.ftl.schema.v1.Map.value:type_name -> xyz.block.ftl.schema.v1.Type
+	80,  // 69: xyz.block.ftl.schema.v1.Map.key:type_name -> xyz.block.ftl.schema.v1.Type
+	80,  // 70: xyz.block.ftl.schema.v1.Map.value:type_name -> xyz.block.ftl.schema.v1.Type
 	42,  // 71: xyz.block.ftl.schema.v1.Metadata.alias:type_name -> xyz.block.ftl.schema.v1.MetadataAlias
 	43,  // 72: xyz.block.ftl.schema.v1.Metadata.artefact:type_name -> xyz.block.ftl.schema.v1.MetadataArtefact
 	44,  // 73: xyz.block.ftl.schema.v1.Metadata.calls:type_name -> xyz.block.ftl.schema.v1.MetadataCalls
@@ -7636,71 +7819,77 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	65,  // 120: xyz.block.ftl.schema.v1.ModuleRuntime.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
 	62,  // 121: xyz.block.ftl.schema.v1.ModuleRuntime.deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
 	64,  // 122: xyz.block.ftl.schema.v1.ModuleRuntime.runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
-	89,  // 123: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
-	89,  // 124: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.created_at:type_name -> google.protobuf.Timestamp
-	89,  // 125: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.activated_at:type_name -> google.protobuf.Timestamp
+	90,  // 123: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
+	90,  // 124: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.created_at:type_name -> google.protobuf.Timestamp
+	90,  // 125: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.activated_at:type_name -> google.protobuf.Timestamp
 	2,   // 126: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.state:type_name -> xyz.block.ftl.schema.v1.DeploymentState
 	61,  // 127: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
 	65,  // 128: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
 	62,  // 129: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
 	64,  // 130: xyz.block.ftl.schema.v1.ModuleRuntimeEvent.runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
 	67,  // 131: xyz.block.ftl.schema.v1.Optional.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 132: xyz.block.ftl.schema.v1.Optional.type:type_name -> xyz.block.ftl.schema.v1.Type
+	80,  // 132: xyz.block.ftl.schema.v1.Optional.type:type_name -> xyz.block.ftl.schema.v1.Type
 	67,  // 133: xyz.block.ftl.schema.v1.Ref.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 134: xyz.block.ftl.schema.v1.Ref.type_parameters:type_name -> xyz.block.ftl.schema.v1.Type
-	23,  // 135: xyz.block.ftl.schema.v1.RuntimeEvent.database_runtime_event:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntimeEvent
-	63,  // 136: xyz.block.ftl.schema.v1.RuntimeEvent.module_runtime_event:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeEvent
-	78,  // 137: xyz.block.ftl.schema.v1.RuntimeEvent.topic_runtime_event:type_name -> xyz.block.ftl.schema.v1.TopicRuntimeEvent
-	87,  // 138: xyz.block.ftl.schema.v1.RuntimeEvent.verb_runtime_event:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeEvent
-	67,  // 139: xyz.block.ftl.schema.v1.Schema.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	59,  // 140: xyz.block.ftl.schema.v1.Schema.modules:type_name -> xyz.block.ftl.schema.v1.Module
-	59,  // 141: xyz.block.ftl.schema.v1.SchemaState.modules:type_name -> xyz.block.ftl.schema.v1.Module
-	9,   // 142: xyz.block.ftl.schema.v1.SchemaState.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
-	69,  // 143: xyz.block.ftl.schema.v1.SchemaState.runtime_events:type_name -> xyz.block.ftl.schema.v1.RuntimeEvent
-	67,  // 144: xyz.block.ftl.schema.v1.Secret.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 145: xyz.block.ftl.schema.v1.Secret.type:type_name -> xyz.block.ftl.schema.v1.Type
-	67,  // 146: xyz.block.ftl.schema.v1.String.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	67,  // 147: xyz.block.ftl.schema.v1.StringValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	67,  // 148: xyz.block.ftl.schema.v1.Time.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	67,  // 149: xyz.block.ftl.schema.v1.Topic.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	77,  // 150: xyz.block.ftl.schema.v1.Topic.runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
-	79,  // 151: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
-	41,  // 152: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	77,  // 153: xyz.block.ftl.schema.v1.TopicRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
-	5,   // 154: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
-	6,   // 155: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
-	7,   // 156: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
-	8,   // 157: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
-	34,  // 158: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
-	38,  // 159: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
-	40,  // 160: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
-	66,  // 161: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
-	68,  // 162: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
-	73,  // 163: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
-	75,  // 164: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
-	83,  // 165: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
-	67,  // 166: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 167: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
-	41,  // 168: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	67,  // 169: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	67,  // 170: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 171: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
-	67,  // 172: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	39,  // 173: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
-	74,  // 174: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
-	82,  // 175: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
-	67,  // 176: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	79,  // 177: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
-	79,  // 178: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
-	41,  // 179: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	86,  // 180: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
-	88,  // 181: xyz.block.ftl.schema.v1.VerbRuntime.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
-	88,  // 182: xyz.block.ftl.schema.v1.VerbRuntimeEvent.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
-	183, // [183:183] is the sub-list for method output_type
-	183, // [183:183] is the sub-list for method input_type
-	183, // [183:183] is the sub-list for extension type_name
-	183, // [183:183] is the sub-list for extension extendee
-	0,   // [0:183] is the sub-list for field type_name
+	80,  // 134: xyz.block.ftl.schema.v1.Ref.type_parameters:type_name -> xyz.block.ftl.schema.v1.Type
+	21,  // 135: xyz.block.ftl.schema.v1.Runtime.database_runtime:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntime
+	62,  // 136: xyz.block.ftl.schema.v1.Runtime.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
+	64,  // 137: xyz.block.ftl.schema.v1.Runtime.module_runtime_runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
+	65,  // 138: xyz.block.ftl.schema.v1.Runtime.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	78,  // 139: xyz.block.ftl.schema.v1.Runtime.topic_runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
+	87,  // 140: xyz.block.ftl.schema.v1.Runtime.verb_runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
+	23,  // 141: xyz.block.ftl.schema.v1.RuntimeEvent.database_runtime_event:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntimeEvent
+	63,  // 142: xyz.block.ftl.schema.v1.RuntimeEvent.module_runtime_event:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeEvent
+	79,  // 143: xyz.block.ftl.schema.v1.RuntimeEvent.topic_runtime_event:type_name -> xyz.block.ftl.schema.v1.TopicRuntimeEvent
+	88,  // 144: xyz.block.ftl.schema.v1.RuntimeEvent.verb_runtime_event:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeEvent
+	67,  // 145: xyz.block.ftl.schema.v1.Schema.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	59,  // 146: xyz.block.ftl.schema.v1.Schema.modules:type_name -> xyz.block.ftl.schema.v1.Module
+	59,  // 147: xyz.block.ftl.schema.v1.SchemaState.modules:type_name -> xyz.block.ftl.schema.v1.Module
+	9,   // 148: xyz.block.ftl.schema.v1.SchemaState.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
+	70,  // 149: xyz.block.ftl.schema.v1.SchemaState.runtime_events:type_name -> xyz.block.ftl.schema.v1.RuntimeEvent
+	67,  // 150: xyz.block.ftl.schema.v1.Secret.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	80,  // 151: xyz.block.ftl.schema.v1.Secret.type:type_name -> xyz.block.ftl.schema.v1.Type
+	67,  // 152: xyz.block.ftl.schema.v1.String.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	67,  // 153: xyz.block.ftl.schema.v1.StringValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	67,  // 154: xyz.block.ftl.schema.v1.Time.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	67,  // 155: xyz.block.ftl.schema.v1.Topic.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	78,  // 156: xyz.block.ftl.schema.v1.Topic.runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
+	80,  // 157: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
+	41,  // 158: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	78,  // 159: xyz.block.ftl.schema.v1.TopicRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
+	5,   // 160: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
+	6,   // 161: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
+	7,   // 162: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
+	8,   // 163: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
+	34,  // 164: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
+	38,  // 165: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
+	40,  // 166: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
+	66,  // 167: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
+	68,  // 168: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
+	74,  // 169: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
+	76,  // 170: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
+	84,  // 171: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
+	67,  // 172: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	80,  // 173: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
+	41,  // 174: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	67,  // 175: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	67,  // 176: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	80,  // 177: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
+	67,  // 178: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	39,  // 179: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
+	75,  // 180: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
+	83,  // 181: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
+	67,  // 182: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	80,  // 183: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
+	80,  // 184: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
+	41,  // 185: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	87,  // 186: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
+	89,  // 187: xyz.block.ftl.schema.v1.VerbRuntime.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
+	89,  // 188: xyz.block.ftl.schema.v1.VerbRuntimeEvent.subscription:type_name -> xyz.block.ftl.schema.v1.VerbRuntimeSubscription
+	189, // [189:189] is the sub-list for method output_type
+	189, // [189:189] is the sub-list for method input_type
+	189, // [189:189] is the sub-list for extension type_name
+	189, // [189:189] is the sub-list for extension extendee
+	0,   // [0:189] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_schema_v1_schema_proto_init() }
@@ -7807,18 +7996,26 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[62].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[64].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[65].OneofWrappers = []any{
+		(*Runtime_DatabaseRuntime)(nil),
+		(*Runtime_ModuleRuntimeDeployment)(nil),
+		(*Runtime_ModuleRuntimeRunner)(nil),
+		(*Runtime_ModuleRuntimeScaling)(nil),
+		(*Runtime_TopicRuntime)(nil),
+		(*Runtime_VerbRuntime)(nil),
+	}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66].OneofWrappers = []any{
 		(*RuntimeEvent_DatabaseRuntimeEvent)(nil),
 		(*RuntimeEvent_ModuleRuntimeEvent)(nil),
 		(*RuntimeEvent_TopicRuntimeEvent)(nil),
 		(*RuntimeEvent_VerbRuntimeEvent)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[66].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[67].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76].OneofWrappers = []any{
 		(*Type_Any)(nil),
 		(*Type_Array)(nil),
 		(*Type_Bool)(nil),
@@ -7832,25 +8029,25 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 		(*Type_Time)(nil),
 		(*Type_Unit)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[77].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[78].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81].OneofWrappers = []any{
 		(*Value_IntValue)(nil),
 		(*Value_StringValue)(nil),
 		(*Value_TypeValue)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_xyz_block_ftl_schema_v1_schema_proto_rawDesc,
 			NumEnums:      4,
-			NumMessages:   85,
+			NumMessages:   86,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -4,8 +4,13 @@ import (
 	"fmt"
 )
 
+//protobuf:6
 type DatabaseRuntime struct {
 	Connections *DatabaseRuntimeConnections `parser:"" protobuf:"1,optional"`
+}
+
+func (m *DatabaseRuntime) runtimeElement() {
+
 }
 
 var _ Symbol = (*DatabaseRuntime)(nil)
