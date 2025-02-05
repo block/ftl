@@ -10,12 +10,10 @@ metadata:
   {{- end }}
 spec:
   ports:
-    {{- range .Values.admin.service.ports }}
-    - name: {{ .name }}
-      port: {{ .port }}
-      protocol: {{ .protocol | default "TCP" }}
-      targetPort: {{ .targetPort }}
-    {{- end }}
+    - name: http2
+      port: {{ .Values.admin.service.port }}
+      protocol: "TCP"
+      targetPort: {{ .Values.admin.port }}
   selector:
     {{- include "ftl-admin.selectorLabels" . | nindent 4 }}
-  type: {{ .Values.admin.service.type | default "ClusterIP" }}
+  type: ClusterIP

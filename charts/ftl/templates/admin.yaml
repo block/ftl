@@ -15,9 +15,13 @@ spec:
     metadata:
       labels:
         {{- include "ftl-admin.selectorLabels" . | nindent 8 }}
-      {{- if .Values.admin.podAnnotations }}
       annotations:
+      {{- if .Values.admin.podAnnotations }}
         {{- toYaml .Values.admin.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{ if .Values.istio.holdApplicationUntilProxyStarts }}
+        proxy.istio.io/config: |
+          holdApplicationUntilProxyStarts: true
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.admin.serviceAccountName }}
@@ -43,16 +47,27 @@ spec:
               value: /config.json
             - name: FTL_SECRETS
               value: /secrets.json
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: FTL_BIND
+              value: "http://0.0.0.0:8892"
+            - name: FTL_SCHEMA_ENDPOINT
+              value: "http://{{ include "ftl.fullname" . }}-schema:{{ .Values.schema.service.port }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.admin.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.admin.logJson }}"
             {{- if .Values.admin.env }}
             {{- toYaml .Values.admin.env | nindent 12 }}
             {{- end }}
 
           ports:
-            {{- range .Values.admin.ports }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
-            {{- end }}
+            - name: http2
+              containerPort: 8892
+              protocol: TCP
+              hostPort: {{ .Values.admin.port }}
           readinessProbe:
             {{- if .Values.admin.readinessProbe }}
             {{- toYaml .Values.admin.readinessProbe | nindent 12 }}
