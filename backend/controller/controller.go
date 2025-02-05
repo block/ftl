@@ -175,7 +175,7 @@ func New(
 	ldb := leases.NewClientLeaser(ctx)
 	scheduler := scheduledtask.New(ctx, controllerKey, ldb)
 
-	routingTable := routing.New(ctx, schemaeventsource.New(ctx, rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx)))
+	routingTable := routing.New(ctx, schemaeventsource.New(ctx, "controller", rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx)))
 
 	svc := &Service{
 		tasks:          scheduler,

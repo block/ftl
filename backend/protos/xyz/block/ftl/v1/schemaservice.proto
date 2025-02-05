@@ -14,7 +14,9 @@ message GetSchemaResponse {
   repeated ftl.schema.v1.Changeset changesets = 2;
 }
 
-message PullSchemaRequest {}
+message PullSchemaRequest {
+  string subscription_id = 1;
+}
 message PullSchemaResponse {
   // ChangesetCreated is sent when a new changeset is created.
   message ChangesetCreated {

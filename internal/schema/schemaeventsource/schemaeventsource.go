@@ -315,7 +315,7 @@ func (e EventSource) Publish(event Event) {
 // materialised view (ie. [schema.Schema]).
 //
 // The sync will terminate when the context is cancelled.
-func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSource {
+func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaServiceClient) EventSource {
 	logger := log.FromContext(ctx).Scope("schema-sync")
 	out := NewUnattached()
 	more := true
@@ -328,7 +328,7 @@ func New(ctx context.Context, client ftlv1connect.SchemaServiceClient) EventSour
 	resp, err := client.Ping(pingCtx, connect.NewRequest(&ftlv1.PingRequest{}))
 	out.live.Store(err == nil && resp.Msg.NotReady == nil)
 
-	go rpc.RetryStreamingServerStream(ctx, "schema-sync", backoff.Backoff{}, &ftlv1.PullSchemaRequest{}, client.PullSchema, func(_ context.Context, resp *ftlv1.PullSchemaResponse) error {
+	go rpc.RetryStreamingServerStream(ctx, "schema-sync", backoff.Backoff{}, &ftlv1.PullSchemaRequest{SubscriptionId: subscriptionID}, client.PullSchema, func(_ context.Context, resp *ftlv1.PullSchemaResponse) error {
 		out.live.Store(true)
 		// resp.More can become true again if the streaming client reconnects, but we don't want downstream to have to
 		// care about a new initial sync restarting.

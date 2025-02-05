@@ -85,6 +85,11 @@ export class GetSchemaResponse extends Message<GetSchemaResponse> {
  * @generated from message xyz.block.ftl.v1.PullSchemaRequest
  */
 export class PullSchemaRequest extends Message<PullSchemaRequest> {
+  /**
+   * @generated from field: string subscription_id = 1;
+   */
+  subscriptionId = "";
+
   constructor(data?: PartialMessage<PullSchemaRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -93,6 +98,7 @@ export class PullSchemaRequest extends Message<PullSchemaRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.PullSchemaRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "subscription_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PullSchemaRequest {

@@ -37,10 +37,10 @@ func main() {
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.CronConfig.SchemaServiceEndpoint.String(), log.Error)
-	eventSource := schemaeventsource.New(ctx, schemaClient)
+	eventSource := schemaeventsource.New(ctx, "cron", schemaClient)
 
 	timelineClient := timelineclient.NewClient(ctx, cli.CronConfig.TimelineEndpoint)
-	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, schemaClient), timelineClient)
+	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, "cron-timeline", schemaClient), timelineClient)
 
 	err = cron.Start(ctx, eventSource, routeManager, timelineClient)
 	kctx.FatalIfErrorf(err, "failed to start cron")

@@ -59,7 +59,7 @@ func main() {
 	kctx.FatalIfErrorf(err)
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
-	eventSource := schemaeventsource.New(ctx, schemaClient)
+	eventSource := schemaeventsource.New(ctx, "admin", schemaClient)
 
 	err = admin.Start(ctx, cli.AdminConfig, cm, sm, admin.NewSchemaRetreiver(eventSource))
 	kctx.FatalIfErrorf(err, "failed to start timeline service")

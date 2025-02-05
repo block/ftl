@@ -57,7 +57,7 @@ func New(
 	schemaClient schemaconnect.SchemaServiceClient,
 ) (*Service, error) {
 
-	eventSource := schemaeventsource.New(ctx, schemaClient)
+	eventSource := schemaeventsource.New(ctx, "provisioner", schemaClient)
 	return &Service{
 		currentModules: xsync.NewMapOf[string, *schema.Module](),
 		registry:       registry,
