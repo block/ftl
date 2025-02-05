@@ -12,6 +12,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/alecthomas/kong"
 	"github.com/puzpuzpuz/xsync/v3"
+	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemaconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -127,6 +128,7 @@ func RegistryFromConfigFile(ctx context.Context, file *os.File, scaling scaling.
 
 func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset) error {
 	logger := log.FromContext(ctx)
+	group := errgroup.Group{}
 	// TODO: Block deployments to make sure only one module is modified at a time
 	for _, module := range req.Modules {
 		moduleName := module.Name
@@ -136,30 +138,36 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 		if existingModule != nil {
 			syncExistingRuntimes(existingModule, module)
 		}
-
-		deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(event *schemapb.Event) error {
-			_, err := s.schemaClient.UpdateSchema(ctx, connect.NewRequest(&ftlv1.UpdateSchemaRequest{Event: event}))
-			if err != nil {
-				return fmt.Errorf("error updating schema: %w", err)
+		group.Go(func() error {
+			deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(event *schemapb.Event) error {
+				_, err := s.schemaClient.UpdateSchema(ctx, connect.NewRequest(&ftlv1.UpdateSchemaRequest{Event: event}))
+				if err != nil {
+					return fmt.Errorf("error updating schema: %w", err)
+				}
+				return nil
+			})
+			running := true
+			logger.Debugf("Running deployment for module %s", moduleName)
+			for running {
+				r, err := deployment.Progress(ctx)
+				if err != nil {
+					// TODO: Deal with failed deployments
+					return fmt.Errorf("error running a provisioner: %w", err)
+				}
+				running = r
 			}
+
+			logger.Debugf("Finished deployment for module %s", moduleName)
 			return nil
 		})
-		running := true
-		logger.Debugf("Running deployment for module %s", moduleName)
-		for running {
-			r, err := deployment.Progress(ctx)
-			if err != nil {
-				// TODO: Deal with failed deployments
-				return fmt.Errorf("error running a provisioner: %w", err)
-			}
-			running = r
-		}
-
-		logger.Debugf("Finished deployment for module %s", moduleName)
 
 	}
+	err := group.Wait()
+	if err != nil {
+		return fmt.Errorf("error running deployments: %w", err)
+	}
 
-	_, err := s.schemaClient.PrepareChangeset(ctx, connect.NewRequest(&ftlv1.PrepareChangesetRequest{Changeset: req.Key.String()}))
+	_, err = s.schemaClient.PrepareChangeset(ctx, connect.NewRequest(&ftlv1.PrepareChangesetRequest{Changeset: req.Key.String()}))
 	if err != nil {
 		return fmt.Errorf("error preparing changeset: %w", err)
 	}
