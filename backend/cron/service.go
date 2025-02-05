@@ -203,6 +203,9 @@ func extractCronJobs(module *schema.Module) ([]cronJob, error) {
 	if module.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 		return nil, nil
 	}
+	if module.GetRuntime().GetDeployment().State != schema.DeploymentStateCanonical {
+		return nil, nil
+	}
 	cronJobs := []cronJob{}
 	for verb := range slices.FilterVariants[*schema.Verb](module.Decls) {
 		cronmd, ok := slices.FindVariant[*schema.MetadataCronJob](verb.Metadata)
