@@ -216,7 +216,7 @@ func (r *SchemaState) handleRuntimeEvent(e schema.RuntimeEvent) (*schema.Module,
 			}, fmt.Errorf("changeset %s not found", cs.String())
 		}
 		module := e.DeploymentKey().Payload.Module
-		for _, m := range c.Modules {
+		for _, m := range c.OwnedModules() {
 			if m.Name == module {
 				return m, func() {
 					r.changesetEvents[cs] = append(r.changesetEvents[cs], e)

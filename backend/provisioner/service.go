@@ -178,7 +178,7 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 	}
 
 	for _, removing := range commitResponse.Msg.Changeset.RemovingModules {
-		logger.Infof("De-provisioning module %s %s", removing.Name, removing.Runtime.GetRunner().GetEndpoint())
+		logger.Debugf("De-provisioning module %s %s", removing.Name, removing.Runtime.GetRunner().GetEndpoint())
 		removing.Runtime.Deployment.State = schemapb.DeploymentState_DEPLOYMENT_STATE_DE_PROVISIONING
 		_, err = s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
 			Event: &schemapb.ModuleRuntimeEvent{
@@ -196,10 +196,11 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 	if err != nil {
 		return fmt.Errorf("error draining changeset: %w", err)
 	}
-	//_, err = s.schemaClient.DeProvisionChangeset(ctx, connect.NewRequest(&ftlv1.DeProvisionChangesetRequest{Changeset: req.Key.String()}))
-	//if err != nil {
-	//	return fmt.Errorf("error draining changeset: %w", err)
-	//}
+
+	_, err = s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: req.Key.String()}))
+	if err != nil {
+		return fmt.Errorf("error draining changeset: %w", err)
+	}
 	return nil
 }
 

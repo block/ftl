@@ -44,7 +44,7 @@ func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 				&schema.Module{
 					Name: "test2",
 					Runtime: &schema.ModuleRuntime{
-						Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey},
+						Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey, State: schema.DeploymentStateProvisioning},
 					},
 				},
 			},

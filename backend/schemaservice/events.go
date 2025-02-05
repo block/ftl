@@ -156,7 +156,8 @@ func handleModuleRuntimeEvent(ctx context.Context, t SchemaState, e *schema.Modu
 			deployment.State = module.Runtime.Deployment.State
 		} else if deployment.State != module.Runtime.Deployment.State {
 			// We only allow a few different externally driven state changes
-			if !(module.Runtime.Deployment.State == schema.DeploymentStateProvisioning && deployment.State == schema.DeploymentStateReady) {
+			if !((module.Runtime.Deployment.State == schema.DeploymentStateProvisioning && deployment.State == schema.DeploymentStateReady) ||
+				(module.Runtime.Deployment.State == schema.DeploymentStateDraining && deployment.State == schema.DeploymentStateDeProvisioning)) {
 				return fmt.Errorf("invalid state transition from %d to %d", module.Runtime.Deployment.State, deployment.State)
 			}
 		}
@@ -220,6 +221,7 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 			return fmt.Errorf("changest failed validation %w", errors.Join(problems...))
 		}
 	}
+	e.Changeset.State = schema.ChangesetStatePreparing
 	t.changesets[e.Changeset.Key] = e.Changeset
 	return nil
 }
@@ -251,20 +253,24 @@ func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
 	}
+	if changeset.State != schema.ChangesetStatePrepared {
+		return fmt.Errorf("changeset %v is not in the correct state", changeset.Key)
+	}
 
 	for _, dep := range changeset.Modules {
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateCanary {
 			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
 		}
-		dep.ModRuntime().ModDeployment().State = schema.DeploymentStateCanonical
 	}
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
 	for _, dep := range changeset.Modules {
+		dep.ModRuntime().ModDeployment().State = schema.DeploymentStateCanonical
 		logger.Debugf("activating deployment %s %s", dep.GetRuntime().GetDeployment().DeploymentKey.String(), dep.Runtime.GetRunner().Endpoint)
 		if old, ok := t.deployments[dep.Name]; ok {
 			old.Runtime.Deployment.State = schema.DeploymentStateDraining
 			changeset.RemovingModules = append(changeset.RemovingModules, old)
+			logger.Debugf("replacing deployment %s with %s", old.GetRuntime().GetDeployment().DeploymentKey.String(), dep.GetRuntime().GetDeployment().DeploymentKey.String())
 		}
 		t.deployments[dep.Name] = dep
 		delete(t.deploymentEvents, dep.Name)
@@ -304,9 +310,10 @@ func handleChangesetFinalizedEvent(ctx context.Context, t SchemaState, e *schema
 	logger.Debugf("Changeset %s de-provisioned", e.Key)
 
 	for _, dep := range changeset.RemovingModules {
-		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeleted {
+		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeProvisioning {
 			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
 		}
+		dep.ModRuntime().ModDeployment().State = schema.DeploymentStateDeleted
 	}
 	changeset.State = schema.ChangesetStateFinalized
 	// TODO: archive changesets?
