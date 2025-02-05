@@ -21,38 +21,46 @@ import (
 // ApplyEvent applies an event to the schema state
 func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 	logger := log.FromContext(ctx)
-	logger.Debugf("Applying Raft event %s", event.DebugString())
+	logger.Debugf("Applying event %s", event.DebugString())
 	if err := event.Validate(); err != nil {
-		return fmt.Errorf("invalid event: %w", err)
+		logger.Errorf(err, "Failed to Apply Event")
+		return nil
 	}
+	// TODO: Properly validate events before applying them to raft log.
+	// If we return an error here after it is applied to the log, the raft host will crash.
+	var err error
 	switch e := event.(type) {
 	case *schema.DeploymentSchemaUpdatedEvent:
-		return handleDeploymentSchemaUpdatedEvent(r, e)
+		err = handleDeploymentSchemaUpdatedEvent(r, e)
 	case *schema.DeploymentReplicasUpdatedEvent:
-		return handleDeploymentReplicasUpdatedEvent(r, e)
+		err = handleDeploymentReplicasUpdatedEvent(r, e)
 	case *schema.VerbRuntimeEvent:
-		return handleVerbRuntimeEvent(r, e)
+		err = handleVerbRuntimeEvent(r, e)
 	case *schema.TopicRuntimeEvent:
-		return handleTopicRuntimeEvent(r, e)
+		err = handleTopicRuntimeEvent(r, e)
 	case *schema.DatabaseRuntimeEvent:
-		return handleDatabaseRuntimeEvent(r, e)
+		err = handleDatabaseRuntimeEvent(r, e)
 	case *schema.ModuleRuntimeEvent:
-		return handleModuleRuntimeEvent(ctx, r, e)
+		err = handleModuleRuntimeEvent(ctx, r, e)
 	case *schema.ChangesetCreatedEvent:
-		return handleChangesetCreatedEvent(r, e)
+		err = handleChangesetCreatedEvent(r, e)
 	case *schema.ChangesetPreparedEvent:
-		return handleChangesetPreparedEvent(r, e)
+		err = handleChangesetPreparedEvent(r, e)
 	case *schema.ChangesetCommittedEvent:
-		return handleChangesetCommittedEvent(ctx, r, e)
+		err = handleChangesetCommittedEvent(ctx, r, e)
 	case *schema.ChangesetDrainedEvent:
-		return handleChangesetDrainedEvent(ctx, r, e)
+		err = handleChangesetDrainedEvent(ctx, r, e)
 	case *schema.ChangesetFinalizedEvent:
-		return handleChangesetFinalizedEvent(ctx, r, e)
+		err = handleChangesetFinalizedEvent(ctx, r, e)
 	case *schema.ChangesetFailedEvent:
-		return handleChangesetFailedEvent(r, e)
+		err = handleChangesetFailedEvent(r, e)
 	default:
-		return fmt.Errorf("unknown event type: %T", e)
+		err = fmt.Errorf("unknown event type: %T", e)
 	}
+	if err != nil {
+		logger.Errorf(err, "Failed to Handle Event")
+	}
+	return nil
 }
 
 func handleDeploymentSchemaUpdatedEvent(t SchemaState, e *schema.DeploymentSchemaUpdatedEvent) error {
