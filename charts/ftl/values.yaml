@@ -70,18 +70,9 @@ controller:
     annotations: null
     ports:
       - name: "http-8892"
-        port: 80
+        port: 8892
         protocol: TCP
         targetPort: 8892
-
-  ingressService:
-    type: ClusterIP
-    annotations: null
-    ports:
-      - name: "http-8891"
-        port: 80
-        protocol: TCP
-        targetPort: 8891
 
   podAnnotations:
     proxy.istio.io/config: |
@@ -128,15 +119,6 @@ provisioner:
       protocol: TCP
 
   readinessProbe: null
-
-  service:
-    type: ClusterIP
-    annotations: null
-    ports:
-      - name: "http-8893"
-        port: 80
-        protocol: TCP
-        targetPort: 8893
 
   podAnnotations:
       proxy.istio.io/config: |
@@ -382,6 +364,15 @@ schema:
       containerPort: 8892
       protocol: TCP
       port: 8892
+
+  service:
+    type: ClusterIP
+    annotations: null
+    ports:
+      - name: "http-8892"
+        port: 8892
+        protocol: TCP
+        targetPort: 8892
 
   replicas: 1
   revisionHistoryLimit: 0
