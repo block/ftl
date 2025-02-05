@@ -50,10 +50,10 @@ func Start(ctx context.Context, config Config, schemaClient ftlv1connect.SchemaS
 	logger := log.FromContext(ctx).Scope("http-ingress")
 	ctx = log.ContextWithLogger(ctx, logger)
 	svc := &service{
-		view:           syncView(ctx, schemaeventsource.New(ctx, schemaClient)),
+		view:           syncView(ctx, schemaeventsource.New(ctx, "ingress-view", schemaClient)),
 		client:         client,
 		timelineClient: timelineClient,
-		routeTable:     routing.New(ctx, schemaeventsource.New(ctx, schemaClient)),
+		routeTable:     routing.New(ctx, schemaeventsource.New(ctx, "ingress-route", schemaClient)),
 	}
 
 	ingressHandler := otelhttp.NewHandler(http.Handler(svc), "ftl.ingress")

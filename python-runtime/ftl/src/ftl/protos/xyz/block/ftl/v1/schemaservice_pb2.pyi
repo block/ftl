@@ -20,8 +20,10 @@ class GetSchemaResponse(_message.Message):
     def __init__(self, schema: _Optional[_Union[_schema_pb2.Schema, _Mapping]] = ..., changesets: _Optional[_Iterable[_Union[_schema_pb2.Changeset, _Mapping]]] = ...) -> None: ...
 
 class PullSchemaRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+    __slots__ = ("subscription_id",)
+    SUBSCRIPTION_ID_FIELD_NUMBER: _ClassVar[int]
+    subscription_id: str
+    def __init__(self, subscription_id: _Optional[str] = ...) -> None: ...
 
 class PullSchemaResponse(_message.Message):
     __slots__ = ("changeset_created", "changeset_failed", "changeset_committed", "deployment_created", "deployment_updated", "deployment_removed", "more")

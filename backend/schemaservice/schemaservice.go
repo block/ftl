@@ -101,7 +101,7 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], stream *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
-	return s.watchModuleChanges(ctx, func(response *ftlv1.PullSchemaResponse) error {
+	return s.watchModuleChanges(ctx, req.Msg.SubscriptionId, func(response *ftlv1.PullSchemaResponse) error {
 		return stream.Send(response)
 	})
 }
@@ -251,7 +251,7 @@ func (s *Service) FailChangeset(context.Context, *connect.Request[ftlv1.FailChan
 	return connect.NewResponse(&ftlv1.FailChangesetResponse{}), nil
 }
 
-func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
+func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
 	logger := log.FromContext(ctx)
 
 	uctx, cancel2 := context.WithCancelCause(ctx)
@@ -303,6 +303,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 	logger.Tracef("Seeded %d deployments", initialCount)
 
 	for notification := range iterops.Changes(stateIter, EventExtractor) {
+		logger.Debugf("Send Notification (subscription: %s, event: %T)", subscriptionID, notification.Event)
 		err := sendChange(notification)
 		if err != nil {
 			return err

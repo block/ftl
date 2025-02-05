@@ -49,9 +49,9 @@ func main() {
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.ControllerEndpoint.String(), log.Error)
 	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.BuildEngineEndpoint.String(), log.Error)
-	eventSource := schemaeventsource.New(ctx, schemaClient)
+	eventSource := schemaeventsource.New(ctx, "console", schemaClient)
 
-	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, schemaClient), timelineClient)
+	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, "console-timeline", schemaClient), timelineClient)
 
 	err = console.Start(ctx, cli.ConsoleConfig, eventSource, controllerClient, timelineClient, adminClient, routeManager, buildEngineClient)
 	kctx.FatalIfErrorf(err, "failed to start console service")

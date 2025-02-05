@@ -35,7 +35,7 @@ func TestSchemaEventSource(t *testing.T) {
 	go sv.Serve(ctx) //nolint:errcheck
 	bind := <-bindChan
 
-	changes := New(ctx, rpc.Dial(ftlv1connect.NewSchemaServiceClient, bind.String(), log.Debug))
+	changes := New(ctx, "test", rpc.Dial(ftlv1connect.NewSchemaServiceClient, bind.String(), log.Debug))
 
 	send := func(t testing.TB, resp *ftlv1.PullSchemaResponse) {
 		select {
