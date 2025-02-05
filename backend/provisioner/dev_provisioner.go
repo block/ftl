@@ -31,10 +31,10 @@ func NewDevProvisioner(postgresPort int, mysqlPort int, recreate bool) *InMemPro
 	})
 }
 func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, moduleName string, res schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 
-		dbName := strcase.ToLowerSnake(moduleName) + "_" + strcase.ToLowerSnake(res.ResourceID())
+		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(res.ResourceID())
 
 		logger.Infof("Provisioning mysql database: %s", dbName)
 
@@ -57,8 +57,8 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 					continue
 				}
 				return &schema.DatabaseRuntimeEvent{
-					Module:      moduleName,
-					Changeset:   changeset,
+					Deployment:  deployment,
+					Changeset:   &changeset,
 					ID:          res.ResourceID(),
 					Connections: event,
 				}, nil
@@ -104,7 +104,7 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 
 func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionPostgres(15432, true)(ctx, key.NewChangesetKey(), moduleName, node)
+	event, err := provisionPostgres(15432, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(moduleName), node)
 	if err != nil {
 		return "", err
 	}
@@ -114,7 +114,7 @@ func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string)
 
 func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionMysql(13306, true)(ctx, key.NewChangesetKey(), moduleName, node)
+	event, err := provisionMysql(13306, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(moduleName), node)
 	if err != nil {
 		return "", err
 	}
@@ -123,10 +123,10 @@ func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (s
 }
 
 func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, moduleName string, resource schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 
-		dbName := strcase.ToLowerSnake(moduleName) + "_" + strcase.ToLowerSnake(resource.ResourceID())
+		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(resource.ResourceID())
 		logger.Infof("Provisioning postgres database: %s", dbName)
 
 		// We assume that the DB has already been started when running in dev mode
@@ -173,9 +173,9 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 
 		dsn := dsn.PostgresDSN(dbName, dsn.Port(postgresPort))
 		return &schema.DatabaseRuntimeEvent{
-			ID:        resource.ResourceID(),
-			Module:    moduleName,
-			Changeset: changeset,
+			ID:         resource.ResourceID(),
+			Deployment: deployment,
+			Changeset:  &changeset,
 			Connections: &schema.DatabaseRuntimeConnections{
 				Write: &schema.DSNDatabaseConnector{DSN: dsn},
 				Read:  &schema.DSNDatabaseConnector{DSN: dsn},
@@ -186,7 +186,7 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 }
 
 func provisionTopic() InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, moduleName string, res schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 		if err := dev.SetUpRedPanda(ctx); err != nil {
 			return nil, fmt.Errorf("could not set up redpanda: %w", err)
@@ -196,7 +196,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 			panic(fmt.Errorf("unexpected resource type: %T", res))
 		}
 
-		topicID := fmt.Sprintf("%s.%s", moduleName, topic.Name)
+		topicID := fmt.Sprintf("%s.%s", deployment.Payload.Module, topic.Name)
 		logger.Infof("Provisioning topic: %s", topicID)
 
 		config := sarama.NewConfig()
@@ -244,9 +244,9 @@ func provisionTopic() InMemResourceProvisionerFn {
 		}
 
 		return &schema.TopicRuntimeEvent{
-			Module:    moduleName,
-			Changeset: changeset,
-			ID:        res.ResourceID(),
+			Deployment: deployment,
+			Changeset:  &changeset,
+			ID:         res.ResourceID(),
 			Payload: &schema.TopicRuntime{
 				KafkaBrokers: redPandaBrokers,
 				TopicID:      topicID,
@@ -256,7 +256,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 }
 
 func provisionSubscription() InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, moduleName string, res schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (schema.Event, error) {
 		logger := log.FromContext(ctx)
 		verb, ok := res.(*schema.Verb)
 		if !ok {
@@ -265,9 +265,9 @@ func provisionSubscription() InMemResourceProvisionerFn {
 		for range slices.FilterVariants[*schema.MetadataSubscriber](verb.Metadata) {
 			logger.Infof("Provisioning subscription for verb: %s", verb.Name)
 			return &schema.VerbRuntimeEvent{
-				Module:    moduleName,
-				Changeset: changeset,
-				ID:        verb.Name,
+				Deployment: deployment,
+				Changeset:  &changeset,
+				ID:         verb.Name,
 				Subscription: optional.Some(schema.VerbRuntimeSubscription{
 					KafkaBrokers: redPandaBrokers,
 				}),

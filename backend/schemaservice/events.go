@@ -84,7 +84,7 @@ func handleDeploymentReplicasUpdatedEvent(t SchemaState, e *schema.DeploymentRep
 }
 
 func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
-	m, err := t.GetProvisioning(e.Module, e.Changeset)
+	m, storeEvent, err := t.handleRuntimeEvent(e)
 	if err != nil {
 		return err
 	}
@@ -99,17 +99,19 @@ func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
 			}
 		}
 	}
+	storeEvent()
 	return nil
 }
 
 func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) error {
-	m, err := t.GetProvisioning(e.Module, e.Changeset)
+	m, storeEvent, err := t.handleRuntimeEvent(e)
 	if err != nil {
 		return err
 	}
 	for topic := range slices.FilterVariants[*schema.Topic](m.Decls) {
 		if topic.Name == e.ID {
 			topic.Runtime = e.Payload
+			storeEvent()
 			return nil
 		}
 	}
@@ -117,7 +119,7 @@ func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) error {
 }
 
 func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) error {
-	m, err := t.GetProvisioning(e.Module, e.Changeset)
+	m, storeEvent, err := t.handleRuntimeEvent(e)
 	if err != nil {
 		return err
 	}
@@ -127,6 +129,7 @@ func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) e
 				db.Runtime = &schema.DatabaseRuntime{}
 			}
 			db.Runtime.Connections = e.Connections
+			storeEvent()
 			return nil
 		}
 	}
@@ -134,23 +137,9 @@ func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) e
 }
 
 func handleModuleRuntimeEvent(ctx context.Context, t SchemaState, e *schema.ModuleRuntimeEvent) error {
-	var module *schema.Module
-	if e.Changeset != nil {
-		cs := t.changesets[*e.Changeset]
-		if cs == nil {
-			return fmt.Errorf("changeset %s not found", *e.Changeset)
-		}
-		for _, m := range cs.Modules {
-			if m.Runtime.Deployment.DeploymentKey == e.DeploymentKey {
-				module = m
-				break
-			}
-		}
-	} else {
-		module = t.deployments[e.DeploymentKey.Payload.Module]
-	}
-	if module == nil {
-		return fmt.Errorf("deployment %s not found", e.Deployment)
+	module, storeEvent, err := t.handleRuntimeEvent(e)
+	if err != nil {
+		return err
 	}
 
 	if base, ok := e.Base.Get(); ok {
@@ -171,6 +160,7 @@ func handleModuleRuntimeEvent(ctx context.Context, t SchemaState, e *schema.Modu
 		log.FromContext(ctx).Debugf("deployment %s state change %v -> %v", module.Name, module.Runtime.Deployment, deployment)
 		module.ModRuntime().Deployment = &deployment
 	}
+	storeEvent()
 	return nil
 }
 
@@ -273,7 +263,9 @@ func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema
 			changeset.RemovingModules = append(changeset.RemovingModules, old)
 		}
 		t.deployments[dep.Name] = dep
+		delete(t.deploymentEvents, dep.Name)
 	}
+	delete(t.changesetEvents, e.Key)
 	return nil
 }
 

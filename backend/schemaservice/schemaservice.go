@@ -6,9 +6,7 @@ import (
 	"net/url"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/proto"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -305,103 +303,9 @@ func (s *Service) watchModuleChanges(ctx context.Context, sendChange func(respon
 	logger.Tracef("Seeded %d deployments", initialCount)
 
 	for notification := range iterops.Changes(stateIter, EventExtractor) {
-		switch event := notification.(type) {
-		case *schema.DeploymentCreatedEvent:
-			err := sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-					DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-						Schema: event.Schema.ToProto(),
-					},
-				},
-			})
-			if err != nil {
-				return err
-			}
-		case *schema.DeploymentDeactivatedEvent:
-			view, err := s.State.View(ctx)
-			if err != nil {
-				return fmt.Errorf("failed to get schema state: %w", err)
-			}
-			dep, err := view.GetDeployment(event.Key, optional.Ptr(event.Changeset))
-			if err != nil {
-				logger.Errorf(err, "Deployment not found: %s", event.Key)
-				continue
-			}
-			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				Event: &ftlv1.PullSchemaResponse_DeploymentRemoved_{
-					DeploymentRemoved: &ftlv1.PullSchemaResponse_DeploymentRemoved{
-						Key:        proto.String(event.Key.String()),
-						ModuleName: dep.Name,
-						// If this is true then the module was removed as well as the deployment.
-						ModuleRemoved: event.ModuleRemoved,
-					},
-				},
-			})
-			if err != nil {
-				return err
-			}
-		case *schema.DeploymentSchemaUpdatedEvent:
-			view, err := s.State.View(ctx)
-			if err != nil {
-				return fmt.Errorf("failed to get schema state: %w", err)
-			}
-			dep, err := view.GetDeployment(event.Key, optional.Some(event.Changeset))
-			if err != nil {
-				logger.Errorf(err, "Deployment not found: %s", event.Key)
-				continue
-			}
-			changeset := ""
-			if !event.Changeset.IsZero() {
-				changeset = event.Changeset.String()
-			}
-			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
-					DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
-						Changeset: &changeset,
-						Schema:    dep.ToProto(),
-					},
-				},
-			})
-			if err != nil {
-				return err
-			}
-		case *schema.ChangesetCreatedEvent:
-			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				Event: &ftlv1.PullSchemaResponse_ChangesetCreated_{
-					ChangesetCreated: &ftlv1.PullSchemaResponse_ChangesetCreated{
-						// TODO: include changeset info
-						Changeset: event.Changeset.ToProto(),
-					},
-				},
-			})
-			if err != nil {
-				return err
-			}
-		case *schema.ChangesetFailedEvent:
-			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				Event: &ftlv1.PullSchemaResponse_ChangesetFailed_{
-					ChangesetFailed: &ftlv1.PullSchemaResponse_ChangesetFailed{
-						// TODO: include changeset info
-						Key:   event.Key.String(),
-						Error: event.Error,
-					},
-				},
-			})
-			if err != nil {
-				return err
-			}
-		case *schema.ChangesetCommittedEvent:
-			err = sendChange(&ftlv1.PullSchemaResponse{ //nolint:forcetypeassert
-				Event: &ftlv1.PullSchemaResponse_ChangesetCommitted_{
-					ChangesetCommitted: &ftlv1.PullSchemaResponse_ChangesetCommitted{
-						// TODO: include changeset info
-						Key: event.Key.String(),
-					},
-				},
-			})
-			if err != nil {
-				return err
-			}
+		err := sendChange(notification)
+		if err != nil {
+			return err
 		}
 	}
 	return nil

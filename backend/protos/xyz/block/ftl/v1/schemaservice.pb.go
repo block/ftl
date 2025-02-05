@@ -1310,7 +1310,7 @@ func (x *PullSchemaResponse_ChangesetFailed) GetError() string {
 // ChangesetFailed is sent when a changeset becomes canonical.
 type PullSchemaResponse_ChangesetCommitted struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Changeset     *v1.Changeset          `protobuf:"bytes,1,opt,name=changeset,proto3" json:"changeset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1345,11 +1345,11 @@ func (*PullSchemaResponse_ChangesetCommitted) Descriptor() ([]byte, []int) {
 	return file_xyz_block_ftl_v1_schemaservice_proto_rawDescGZIP(), []int{3, 2}
 }
 
-func (x *PullSchemaResponse_ChangesetCommitted) GetKey() string {
+func (x *PullSchemaResponse_ChangesetCommitted) GetChangeset() *v1.Changeset {
 	if x != nil {
-		return x.Key
+		return x.Changeset
 	}
-	return ""
+	return nil
 }
 
 // Deployment created is sent when a deployment is new to the listener but is not part of a changeset.
@@ -1545,7 +1545,7 @@ var file_xyz_block_ftl_v1_schemaservice_proto_rawDesc = []byte{
 	0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x68, 0x61, 0x6e,
 	0x67, 0x65, 0x73, 0x65, 0x74, 0x52, 0x0a, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65, 0x74,
 	0x73, 0x22, 0x13, 0x0a, 0x11, 0x50, 0x75, 0x6c, 0x6c, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0xf8, 0x09, 0x0a, 0x12, 0x50, 0x75, 0x6c, 0x6c, 0x53,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0xa8, 0x0a, 0x0a, 0x12, 0x50, 0x75, 0x6c, 0x6c, 0x53,
 	0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x64, 0x0a,
 	0x11, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65, 0x74, 0x5f, 0x63, 0x72, 0x65, 0x61, 0x74,
 	0x65, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x35, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62,
@@ -1596,9 +1596,12 @@ var file_xyz_block_ftl_v1_schemaservice_proto_rawDesc = []byte{
 	0x6e, 0x67, 0x65, 0x73, 0x65, 0x74, 0x46, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x12, 0x10, 0x0a, 0x03,
 	0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14,
 	0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x65,
-	0x72, 0x72, 0x6f, 0x72, 0x1a, 0x26, 0x0a, 0x12, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65,
-	0x74, 0x43, 0x6f, 0x6d, 0x6d, 0x69, 0x74, 0x74, 0x65, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65,
-	0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x1a, 0x8d, 0x01, 0x0a,
+	0x72, 0x72, 0x6f, 0x72, 0x1a, 0x56, 0x0a, 0x12, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65,
+	0x74, 0x43, 0x6f, 0x6d, 0x6d, 0x69, 0x74, 0x74, 0x65, 0x64, 0x12, 0x40, 0x0a, 0x09, 0x63, 0x68,
+	0x61, 0x6e, 0x67, 0x65, 0x73, 0x65, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e,
+	0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63,
+	0x68, 0x65, 0x6d, 0x61, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65,
+	0x74, 0x52, 0x09, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65, 0x74, 0x1a, 0x8d, 0x01, 0x0a,
 	0x11, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x43, 0x72, 0x65, 0x61, 0x74,
 	0x65, 0x64, 0x12, 0x21, 0x0a, 0x09, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65, 0x74, 0x18,
 	0x01, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x09, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73,
@@ -1868,39 +1871,40 @@ var file_xyz_block_ftl_v1_schemaservice_proto_depIdxs = []int32{
 	32, // 13: xyz.block.ftl.v1.CommitChangesetResponse.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
 	35, // 14: xyz.block.ftl.v1.GetDeploymentResponse.schema:type_name -> xyz.block.ftl.schema.v1.Module
 	32, // 15: xyz.block.ftl.v1.PullSchemaResponse.ChangesetCreated.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
-	35, // 16: xyz.block.ftl.v1.PullSchemaResponse.DeploymentCreated.schema:type_name -> xyz.block.ftl.schema.v1.Module
-	35, // 17: xyz.block.ftl.v1.PullSchemaResponse.DeploymentUpdated.schema:type_name -> xyz.block.ftl.schema.v1.Module
-	36, // 18: xyz.block.ftl.v1.SchemaService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
-	0,  // 19: xyz.block.ftl.v1.SchemaService.GetSchema:input_type -> xyz.block.ftl.v1.GetSchemaRequest
-	2,  // 20: xyz.block.ftl.v1.SchemaService.PullSchema:input_type -> xyz.block.ftl.v1.PullSchemaRequest
-	4,  // 21: xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime:input_type -> xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest
-	6,  // 22: xyz.block.ftl.v1.SchemaService.UpdateSchema:input_type -> xyz.block.ftl.v1.UpdateSchemaRequest
-	8,  // 23: xyz.block.ftl.v1.SchemaService.GetDeployments:input_type -> xyz.block.ftl.v1.GetDeploymentsRequest
-	10, // 24: xyz.block.ftl.v1.SchemaService.CreateChangeset:input_type -> xyz.block.ftl.v1.CreateChangesetRequest
-	13, // 25: xyz.block.ftl.v1.SchemaService.PrepareChangeset:input_type -> xyz.block.ftl.v1.PrepareChangesetRequest
-	15, // 26: xyz.block.ftl.v1.SchemaService.CommitChangeset:input_type -> xyz.block.ftl.v1.CommitChangesetRequest
-	17, // 27: xyz.block.ftl.v1.SchemaService.DrainChangeset:input_type -> xyz.block.ftl.v1.DrainChangesetRequest
-	19, // 28: xyz.block.ftl.v1.SchemaService.FinalizeChangeset:input_type -> xyz.block.ftl.v1.FinalizeChangesetRequest
-	21, // 29: xyz.block.ftl.v1.SchemaService.FailChangeset:input_type -> xyz.block.ftl.v1.FailChangesetRequest
-	23, // 30: xyz.block.ftl.v1.SchemaService.GetDeployment:input_type -> xyz.block.ftl.v1.GetDeploymentRequest
-	37, // 31: xyz.block.ftl.v1.SchemaService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	1,  // 32: xyz.block.ftl.v1.SchemaService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
-	3,  // 33: xyz.block.ftl.v1.SchemaService.PullSchema:output_type -> xyz.block.ftl.v1.PullSchemaResponse
-	5,  // 34: xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime:output_type -> xyz.block.ftl.v1.UpdateDeploymentRuntimeResponse
-	7,  // 35: xyz.block.ftl.v1.SchemaService.UpdateSchema:output_type -> xyz.block.ftl.v1.UpdateSchemaResponse
-	9,  // 36: xyz.block.ftl.v1.SchemaService.GetDeployments:output_type -> xyz.block.ftl.v1.GetDeploymentsResponse
-	11, // 37: xyz.block.ftl.v1.SchemaService.CreateChangeset:output_type -> xyz.block.ftl.v1.CreateChangesetResponse
-	14, // 38: xyz.block.ftl.v1.SchemaService.PrepareChangeset:output_type -> xyz.block.ftl.v1.PrepareChangesetResponse
-	16, // 39: xyz.block.ftl.v1.SchemaService.CommitChangeset:output_type -> xyz.block.ftl.v1.CommitChangesetResponse
-	18, // 40: xyz.block.ftl.v1.SchemaService.DrainChangeset:output_type -> xyz.block.ftl.v1.DrainChangesetResponse
-	20, // 41: xyz.block.ftl.v1.SchemaService.FinalizeChangeset:output_type -> xyz.block.ftl.v1.FinalizeChangesetResponse
-	22, // 42: xyz.block.ftl.v1.SchemaService.FailChangeset:output_type -> xyz.block.ftl.v1.FailChangesetResponse
-	24, // 43: xyz.block.ftl.v1.SchemaService.GetDeployment:output_type -> xyz.block.ftl.v1.GetDeploymentResponse
-	31, // [31:44] is the sub-list for method output_type
-	18, // [18:31] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	32, // 16: xyz.block.ftl.v1.PullSchemaResponse.ChangesetCommitted.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
+	35, // 17: xyz.block.ftl.v1.PullSchemaResponse.DeploymentCreated.schema:type_name -> xyz.block.ftl.schema.v1.Module
+	35, // 18: xyz.block.ftl.v1.PullSchemaResponse.DeploymentUpdated.schema:type_name -> xyz.block.ftl.schema.v1.Module
+	36, // 19: xyz.block.ftl.v1.SchemaService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	0,  // 20: xyz.block.ftl.v1.SchemaService.GetSchema:input_type -> xyz.block.ftl.v1.GetSchemaRequest
+	2,  // 21: xyz.block.ftl.v1.SchemaService.PullSchema:input_type -> xyz.block.ftl.v1.PullSchemaRequest
+	4,  // 22: xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime:input_type -> xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest
+	6,  // 23: xyz.block.ftl.v1.SchemaService.UpdateSchema:input_type -> xyz.block.ftl.v1.UpdateSchemaRequest
+	8,  // 24: xyz.block.ftl.v1.SchemaService.GetDeployments:input_type -> xyz.block.ftl.v1.GetDeploymentsRequest
+	10, // 25: xyz.block.ftl.v1.SchemaService.CreateChangeset:input_type -> xyz.block.ftl.v1.CreateChangesetRequest
+	13, // 26: xyz.block.ftl.v1.SchemaService.PrepareChangeset:input_type -> xyz.block.ftl.v1.PrepareChangesetRequest
+	15, // 27: xyz.block.ftl.v1.SchemaService.CommitChangeset:input_type -> xyz.block.ftl.v1.CommitChangesetRequest
+	17, // 28: xyz.block.ftl.v1.SchemaService.DrainChangeset:input_type -> xyz.block.ftl.v1.DrainChangesetRequest
+	19, // 29: xyz.block.ftl.v1.SchemaService.FinalizeChangeset:input_type -> xyz.block.ftl.v1.FinalizeChangesetRequest
+	21, // 30: xyz.block.ftl.v1.SchemaService.FailChangeset:input_type -> xyz.block.ftl.v1.FailChangesetRequest
+	23, // 31: xyz.block.ftl.v1.SchemaService.GetDeployment:input_type -> xyz.block.ftl.v1.GetDeploymentRequest
+	37, // 32: xyz.block.ftl.v1.SchemaService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	1,  // 33: xyz.block.ftl.v1.SchemaService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
+	3,  // 34: xyz.block.ftl.v1.SchemaService.PullSchema:output_type -> xyz.block.ftl.v1.PullSchemaResponse
+	5,  // 35: xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime:output_type -> xyz.block.ftl.v1.UpdateDeploymentRuntimeResponse
+	7,  // 36: xyz.block.ftl.v1.SchemaService.UpdateSchema:output_type -> xyz.block.ftl.v1.UpdateSchemaResponse
+	9,  // 37: xyz.block.ftl.v1.SchemaService.GetDeployments:output_type -> xyz.block.ftl.v1.GetDeploymentsResponse
+	11, // 38: xyz.block.ftl.v1.SchemaService.CreateChangeset:output_type -> xyz.block.ftl.v1.CreateChangesetResponse
+	14, // 39: xyz.block.ftl.v1.SchemaService.PrepareChangeset:output_type -> xyz.block.ftl.v1.PrepareChangesetResponse
+	16, // 40: xyz.block.ftl.v1.SchemaService.CommitChangeset:output_type -> xyz.block.ftl.v1.CommitChangesetResponse
+	18, // 41: xyz.block.ftl.v1.SchemaService.DrainChangeset:output_type -> xyz.block.ftl.v1.DrainChangesetResponse
+	20, // 42: xyz.block.ftl.v1.SchemaService.FinalizeChangeset:output_type -> xyz.block.ftl.v1.FinalizeChangesetResponse
+	22, // 43: xyz.block.ftl.v1.SchemaService.FailChangeset:output_type -> xyz.block.ftl.v1.FailChangesetResponse
+	24, // 44: xyz.block.ftl.v1.SchemaService.GetDeployment:output_type -> xyz.block.ftl.v1.GetDeploymentResponse
+	32, // [32:45] is the sub-list for method output_type
+	19, // [19:32] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_v1_schemaservice_proto_init() }

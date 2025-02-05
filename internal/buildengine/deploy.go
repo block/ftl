@@ -91,8 +91,8 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 		msg := stream.Msg()
 		switch msg := msg.Event.(type) {
 		case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
-			if msg.ChangesetCommitted.Key != key {
-				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommitted.Key)
+			if msg.ChangesetCommitted.Changeset.Key != key {
+				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommitted.Changeset.Key)
 				continue
 			}
 			logger.Infof("Changeset %s deployed and ready", key)
@@ -194,8 +194,8 @@ func terminateModuleDeployment(ctx context.Context, client DeployClient, schemaC
 	logger.Infof("Terminating deployment %s", key)
 	_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
 		Event: &schemapb.ModuleRuntimeEvent{
-			DeploymentKey: key,
-			Scaling:       &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
+			Key:     key,
+			Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0},
 		},
 	}))
 	if err != nil {

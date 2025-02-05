@@ -133,7 +133,7 @@ message DatabaseRuntimeConnections {
 }
 
 message DatabaseRuntimeEvent {
-  string module = 1;
+  string deployment = 1;
   string changeset = 2;
   string id = 3;
   DatabaseRuntimeConnections connections = 4;
@@ -443,7 +443,7 @@ message ModuleRuntimeDeployment {
 }
 
 message ModuleRuntimeEvent {
-  string deployment_key = 1;
+  string key = 1;
   string changeset = 2;
   optional ModuleRuntimeBase base = 3;
   optional ModuleRuntimeScaling scaling = 4;
@@ -474,6 +474,15 @@ message Ref {
   repeated Type type_parameters = 4;
 }
 
+message RuntimeEvent {
+  oneof value {
+    DatabaseRuntimeEvent database_runtime_event = 8;
+    ModuleRuntimeEvent module_runtime_event = 9;
+    TopicRuntimeEvent topic_runtime_event = 7;
+    VerbRuntimeEvent verb_runtime_event = 6;
+  }
+}
+
 message Schema {
   optional Position pos = 1;
   repeated Module modules = 2;
@@ -483,6 +492,7 @@ message Schema {
 message SchemaState {
   repeated Module modules = 1;
   repeated Changeset changesets = 2;
+  repeated RuntimeEvent runtime_events = 3;
 }
 
 message Secret {
@@ -521,7 +531,7 @@ message TopicRuntime {
 }
 
 message TopicRuntimeEvent {
-  string module = 1;
+  string deployment = 1;
   string changeset = 2;
   string id = 3;
   TopicRuntime payload = 4;
@@ -593,7 +603,7 @@ message VerbRuntime {
 }
 
 message VerbRuntimeEvent {
-  string module = 1;
+  string deployment = 1;
   string changeset = 2;
   string id = 3;
   optional VerbRuntimeSubscription subscription = 4;

@@ -712,7 +712,7 @@ func (x *DatabaseRuntimeEvent) ToProto() *destpb.DatabaseRuntimeEvent {
 		return nil
 	}
 	return &destpb.DatabaseRuntimeEvent{
-		Module:      orZero(ptr(string(x.Module))),
+		Deployment:  orZero(ptr(string(protoMust(x.Deployment.MarshalText())))),
 		Changeset:   orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 		Id:          orZero(ptr(string(x.ID))),
 		Connections: x.Connections.ToProto(),
@@ -725,10 +725,10 @@ func DatabaseRuntimeEventFromProto(v *destpb.DatabaseRuntimeEvent) (out *Databas
 	}
 
 	out = &DatabaseRuntimeEvent{}
-	if out.Module, err = orZeroR(result.From(ptr(string(v.Module)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Module: %w", err)
+	if out.Deployment, err = orZeroR(unmarshallText([]byte(v.Deployment), &out.Deployment)).Result(); err != nil {
+		return nil, fmt.Errorf("Deployment: %w", err)
 	}
-	if out.Changeset, err = orZeroR(unmarshallText([]byte(v.Changeset), &out.Changeset)).Result(); err != nil {
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
 	}
 	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {
@@ -2157,11 +2157,11 @@ func (x *ModuleRuntimeEvent) ToProto() *destpb.ModuleRuntimeEvent {
 		return nil
 	}
 	return &destpb.ModuleRuntimeEvent{
-		DeploymentKey: orZero(ptr(string(protoMust(x.DeploymentKey.MarshalText())))),
-		Changeset:     orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
-		Base:          x.Base.Ptr().ToProto(),
-		Scaling:       x.Scaling.Ptr().ToProto(),
-		Deployment:    x.Deployment.Ptr().ToProto(),
+		Key:        orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Changeset:  orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
+		Base:       x.Base.Ptr().ToProto(),
+		Scaling:    x.Scaling.Ptr().ToProto(),
+		Deployment: x.Deployment.Ptr().ToProto(),
 	}
 }
 
@@ -2171,8 +2171,8 @@ func ModuleRuntimeEventFromProto(v *destpb.ModuleRuntimeEvent) (out *ModuleRunti
 	}
 
 	out = &ModuleRuntimeEvent{}
-	if out.DeploymentKey, err = orZeroR(unmarshallText([]byte(v.DeploymentKey), &out.DeploymentKey)).Result(); err != nil {
-		return nil, fmt.Errorf("DeploymentKey: %w", err)
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
 	}
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
@@ -2300,6 +2300,50 @@ func RefFromProto(v *destpb.Ref) (out *Ref, err error) {
 	return out, nil
 }
 
+// RuntimeEventToProto converts a RuntimeEvent sum type to a protobuf message.
+func RuntimeEventToProto(value RuntimeEvent) *destpb.RuntimeEvent {
+	switch value := value.(type) {
+	case nil:
+		return nil
+	case *DatabaseRuntimeEvent:
+		return &destpb.RuntimeEvent{
+			Value: &destpb.RuntimeEvent_DatabaseRuntimeEvent{value.ToProto()},
+		}
+	case *ModuleRuntimeEvent:
+		return &destpb.RuntimeEvent{
+			Value: &destpb.RuntimeEvent_ModuleRuntimeEvent{value.ToProto()},
+		}
+	case *TopicRuntimeEvent:
+		return &destpb.RuntimeEvent{
+			Value: &destpb.RuntimeEvent_TopicRuntimeEvent{value.ToProto()},
+		}
+	case *VerbRuntimeEvent:
+		return &destpb.RuntimeEvent{
+			Value: &destpb.RuntimeEvent_VerbRuntimeEvent{value.ToProto()},
+		}
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", value))
+	}
+}
+
+func RuntimeEventFromProto(v *destpb.RuntimeEvent) (RuntimeEvent, error) {
+	if v == nil {
+		return nil, nil
+	}
+	switch v.Value.(type) {
+	case *destpb.RuntimeEvent_DatabaseRuntimeEvent:
+		return DatabaseRuntimeEventFromProto(v.GetDatabaseRuntimeEvent())
+	case *destpb.RuntimeEvent_ModuleRuntimeEvent:
+		return ModuleRuntimeEventFromProto(v.GetModuleRuntimeEvent())
+	case *destpb.RuntimeEvent_TopicRuntimeEvent:
+		return TopicRuntimeEventFromProto(v.GetTopicRuntimeEvent())
+	case *destpb.RuntimeEvent_VerbRuntimeEvent:
+		return VerbRuntimeEventFromProto(v.GetVerbRuntimeEvent())
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", v.Value))
+	}
+}
+
 func (x *Schema) ToProto() *destpb.Schema {
 	if x == nil {
 		return nil
@@ -2330,8 +2374,9 @@ func (x *SchemaState) ToProto() *destpb.SchemaState {
 		return nil
 	}
 	return &destpb.SchemaState{
-		Modules:    sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
-		Changesets: sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
+		Modules:       sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		Changesets:    sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
+		RuntimeEvents: sliceMap(x.RuntimeEvents, func(v RuntimeEvent) *destpb.RuntimeEvent { return RuntimeEventToProto(v) }),
 	}
 }
 
@@ -2346,6 +2391,11 @@ func SchemaStateFromProto(v *destpb.SchemaState) (out *SchemaState, err error) {
 	}
 	if out.Changesets, err = sliceMapR(v.Changesets, func(v *destpb.Changeset) result.Result[*Changeset] { return result.From(ChangesetFromProto(v)) }).Result(); err != nil {
 		return nil, fmt.Errorf("Changesets: %w", err)
+	}
+	if out.RuntimeEvents, err = sliceMapR(v.RuntimeEvents, func(v *destpb.RuntimeEvent) result.Result[RuntimeEvent] {
+		return orZeroR(ptrR(result.From(RuntimeEventFromProto(v))))
+	}).Result(); err != nil {
+		return nil, fmt.Errorf("RuntimeEvents: %w", err)
 	}
 	return out, nil
 }
@@ -2527,10 +2577,10 @@ func (x *TopicRuntimeEvent) ToProto() *destpb.TopicRuntimeEvent {
 		return nil
 	}
 	return &destpb.TopicRuntimeEvent{
-		Module:    orZero(ptr(string(x.Module))),
-		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
-		Id:        orZero(ptr(string(x.ID))),
-		Payload:   x.Payload.ToProto(),
+		Deployment: orZero(ptr(string(protoMust(x.Deployment.MarshalText())))),
+		Changeset:  orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
+		Id:         orZero(ptr(string(x.ID))),
+		Payload:    x.Payload.ToProto(),
 	}
 }
 
@@ -2540,10 +2590,10 @@ func TopicRuntimeEventFromProto(v *destpb.TopicRuntimeEvent) (out *TopicRuntimeE
 	}
 
 	out = &TopicRuntimeEvent{}
-	if out.Module, err = orZeroR(result.From(ptr(string(v.Module)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Module: %w", err)
+	if out.Deployment, err = orZeroR(unmarshallText([]byte(v.Deployment), &out.Deployment)).Result(); err != nil {
+		return nil, fmt.Errorf("Deployment: %w", err)
 	}
-	if out.Changeset, err = orZeroR(unmarshallText([]byte(v.Changeset), &out.Changeset)).Result(); err != nil {
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
 	}
 	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {
@@ -2879,7 +2929,7 @@ func (x *VerbRuntimeEvent) ToProto() *destpb.VerbRuntimeEvent {
 		return nil
 	}
 	return &destpb.VerbRuntimeEvent{
-		Module:       orZero(ptr(string(x.Module))),
+		Deployment:   orZero(ptr(string(protoMust(x.Deployment.MarshalText())))),
 		Changeset:    orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 		Id:           orZero(ptr(string(x.ID))),
 		Subscription: x.Subscription.Ptr().ToProto(),
@@ -2892,10 +2942,10 @@ func VerbRuntimeEventFromProto(v *destpb.VerbRuntimeEvent) (out *VerbRuntimeEven
 	}
 
 	out = &VerbRuntimeEvent{}
-	if out.Module, err = orZeroR(result.From(ptr(string(v.Module)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Module: %w", err)
+	if out.Deployment, err = orZeroR(unmarshallText([]byte(v.Deployment), &out.Deployment)).Result(); err != nil {
+		return nil, fmt.Errorf("Deployment: %w", err)
 	}
-	if out.Changeset, err = orZeroR(unmarshallText([]byte(v.Changeset), &out.Changeset)).Result(); err != nil {
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
 	}
 	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {

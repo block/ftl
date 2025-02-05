@@ -20,6 +20,17 @@ type Event interface {
 	DebugString() string
 }
 
+//sumtype:decl
+//protobuf:export
+type RuntimeEvent interface {
+	runtimeEvent()
+	Validate() error
+	// DebugString returns a string representation of the event for debugging purposes
+	DebugString() string
+	DeploymentKey() key.Deployment
+	ChangesetKey() optional.Option[key.Changeset]
+}
+
 // deployment events
 var _ Event = (*DeploymentCreatedEvent)(nil)
 var _ Event = (*DeploymentActivatedEvent)(nil)
@@ -29,9 +40,13 @@ var _ Event = (*DeploymentReplicasUpdatedEvent)(nil)
 
 // provisioner events
 var _ Event = (*VerbRuntimeEvent)(nil)
+var _ RuntimeEvent = (*VerbRuntimeEvent)(nil)
 var _ Event = (*TopicRuntimeEvent)(nil)
+var _ RuntimeEvent = (*TopicRuntimeEvent)(nil)
 var _ Event = (*DatabaseRuntimeEvent)(nil)
+var _ RuntimeEvent = (*DatabaseRuntimeEvent)(nil)
 var _ Event = (*ModuleRuntimeEvent)(nil)
+var _ RuntimeEvent = (*ModuleRuntimeEvent)(nil)
 
 var _ Event = (*ChangesetCreatedEvent)(nil)
 var _ Event = (*ChangesetPreparedEvent)(nil)
@@ -129,14 +144,26 @@ func (r *DeploymentDeactivatedEvent) Validate() error {
 
 //protobuf:6
 type VerbRuntimeEvent struct {
-	Module       string                                   `protobuf:"1"`
-	Changeset    key.Changeset                            `protobuf:"2"`
+	Deployment   key.Deployment                           `protobuf:"1"`
+	Changeset    *key.Changeset                           `protobuf:"2"`
 	ID           string                                   `protobuf:"3"`
 	Subscription optional.Option[VerbRuntimeSubscription] `protobuf:"4"`
 }
 
+func (e *VerbRuntimeEvent) DeploymentKey() key.Deployment {
+	return e.Deployment
+}
+
+func (e *VerbRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
+	return optional.Ptr(e.Changeset)
+}
+
+func (e *VerbRuntimeEvent) runtimeEvent() {
+
+}
+
 func (e *VerbRuntimeEvent) DebugString() string {
-	return fmt.Sprintf("VerbRuntimeEvent{module: %s, changeset: %s, id: %v, subscription: %v}", e.Module, e.Changeset.String(), e.ID, e.Subscription)
+	return fmt.Sprintf("VerbRuntimeEvent{module: %s, changeset: %s, id: %v, subscription: %v}", e.Deployment.String(), e.Changeset.String(), e.ID, e.Subscription)
 }
 
 func (e *VerbRuntimeEvent) event() {}
@@ -147,14 +174,25 @@ func (e *VerbRuntimeEvent) Validate() error {
 
 //protobuf:7
 type TopicRuntimeEvent struct {
-	Module    string        `protobuf:"1"`
-	Changeset key.Changeset `protobuf:"2"`
-	ID        string        `protobuf:"3"`
-	Payload   *TopicRuntime `protobuf:"4"`
+	Deployment key.Deployment `protobuf:"1"`
+	Changeset  *key.Changeset `protobuf:"2"`
+	ID         string         `protobuf:"3"`
+	Payload    *TopicRuntime  `protobuf:"4"`
+}
+
+func (e *TopicRuntimeEvent) DeploymentKey() key.Deployment {
+	return e.Deployment
+}
+
+func (e *TopicRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
+	return optional.Ptr(e.Changeset)
+}
+
+func (e *TopicRuntimeEvent) runtimeEvent() {
 }
 
 func (e *TopicRuntimeEvent) DebugString() string {
-	return fmt.Sprintf("TopicRuntimeEvent{module: %s, changeset: %s, id: %v, payload: %v}", e.Module, e.Changeset.String(), e.ID, e.Payload)
+	return fmt.Sprintf("TopicRuntimeEvent{module: %s, changeset: %s, id: %v, payload: %v}", e.Deployment.String(), e.Changeset.String(), e.ID, e.Payload)
 }
 
 func (e *TopicRuntimeEvent) event() {}
@@ -165,14 +203,25 @@ func (e *TopicRuntimeEvent) Validate() error {
 
 //protobuf:8
 type DatabaseRuntimeEvent struct {
-	Module      string                      `protobuf:"1"`
-	Changeset   key.Changeset               `protobuf:"2"`
+	Deployment  key.Deployment              `protobuf:"1"`
+	Changeset   *key.Changeset              `protobuf:"2"`
 	ID          string                      `protobuf:"3"`
 	Connections *DatabaseRuntimeConnections `protobuf:"4"`
 }
 
+func (e *DatabaseRuntimeEvent) DeploymentKey() key.Deployment {
+	return e.Deployment
+}
+
+func (e *DatabaseRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
+	return optional.Ptr(e.Changeset)
+}
+
+func (e *DatabaseRuntimeEvent) runtimeEvent() {
+}
+
 func (e *DatabaseRuntimeEvent) DebugString() string {
-	return fmt.Sprintf("DatabaseRuntimeEvent{module: %s, changeset: %s, id: %v, connections: %v}", e.Module, e.Changeset.String(), e.ID, e.Connections)
+	return fmt.Sprintf("DatabaseRuntimeEvent{module: %s, changeset: %s, id: %v, connections: %v}", e.Deployment, e.Changeset.String(), e.ID, e.Connections)
 }
 
 func (e *DatabaseRuntimeEvent) event() {}
@@ -183,15 +232,26 @@ func (e *DatabaseRuntimeEvent) Validate() error {
 
 //protobuf:9
 type ModuleRuntimeEvent struct {
-	DeploymentKey key.Deployment                           `protobuf:"1"`
-	Changeset     *key.Changeset                           `protobuf:"2"`
-	Base          optional.Option[ModuleRuntimeBase]       `protobuf:"3"`
-	Scaling       optional.Option[ModuleRuntimeScaling]    `protobuf:"4"`
-	Deployment    optional.Option[ModuleRuntimeDeployment] `protobuf:"5"`
+	Key        key.Deployment                           `protobuf:"1"`
+	Changeset  *key.Changeset                           `protobuf:"2"`
+	Base       optional.Option[ModuleRuntimeBase]       `protobuf:"3"`
+	Scaling    optional.Option[ModuleRuntimeScaling]    `protobuf:"4"`
+	Deployment optional.Option[ModuleRuntimeDeployment] `protobuf:"5"`
+}
+
+func (e *ModuleRuntimeEvent) DeploymentKey() key.Deployment {
+	return e.Key
+}
+
+func (e *ModuleRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
+	return optional.Ptr(e.Changeset)
+}
+
+func (e *ModuleRuntimeEvent) runtimeEvent() {
 }
 
 func (e *ModuleRuntimeEvent) DebugString() string {
-	return fmt.Sprintf("ModuleRuntimeEvent{deployment: %s, changeset: %s, deployment %v}", e.DeploymentKey.String(), e.Changeset.String(), e.Deployment)
+	return fmt.Sprintf("ModuleRuntimeEvent{deployment: %s, changeset: %s, deployment %v}", e.Key.String(), e.Changeset.String(), e.Deployment)
 }
 
 func (e *ModuleRuntimeEvent) event() {}

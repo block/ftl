@@ -36,7 +36,7 @@ func NewSQLMigrationProvisioner(storage *artefacts.OCIArtefactService) *InMemPro
 }
 
 func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, moduleName string, resource schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (schema.Event, error) {
 		db, ok := resource.(*schema.Database)
 		if !ok {
 			return nil, fmt.Errorf("expected database, got %T", resource)
@@ -86,7 +86,7 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 				return nil, fmt.Errorf("failed to create and migrate database: %w", err)
 			}
 			logger := log.FromContext(ctx)
-			logger.Infof("Provisioned SQL migration for: %s.%s", moduleName, db.Name)
+			logger.Infof("Provisioned SQL migration for: %s.%s", deployment.String(), db.Name)
 		}
 		return nil, nil
 	}
