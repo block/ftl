@@ -33,27 +33,31 @@ func TestChangesetState(t *testing.T) {
 	assert.Equal(t, 0, len(view.GetChangesets()))
 
 	t.Run("changeset must have id", func(t *testing.T) {
-		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.ChangesetCreatedEvent{
+		event := &schema.ChangesetCreatedEvent{
 			Changeset: &schema.Changeset{
 				CreatedAt: time.Now(),
 				Modules:   []*schema.Module{module},
 				Error:     "",
 			},
-		}})
+		}
+		sm := schemaservice.SchemaState{}
+		err = sm.ApplyEvent(ctx, event)
 		assert.Error(t, err)
 	})
 
 	t.Run("deployment must must have deployment key", func(t *testing.T) {
 		nm := reflect.DeepCopy(module)
 		nm.Runtime = nil
-		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.ChangesetCreatedEvent{
+		event := &schema.ChangesetCreatedEvent{
 			Changeset: &schema.Changeset{
 				Key:       key.NewChangesetKey(),
 				CreatedAt: time.Now(),
 				Modules:   []*schema.Module{nm},
 				Error:     "",
 			},
-		}})
+		}
+		sm := schemaservice.SchemaState{}
+		err = sm.ApplyEvent(ctx, event)
 		assert.Error(t, err)
 	})
 
@@ -101,17 +105,21 @@ func TestChangesetState(t *testing.T) {
 
 	t.Run("test commit changeset in bad state", func(t *testing.T) {
 		// The deployment is not provisioned yet, this should fail
-		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.ChangesetCommittedEvent{
+		event := &schema.ChangesetCommittedEvent{
 			Key: changesetKey,
-		}})
+		}
+		sm := schemaservice.SchemaState{}
+		err = sm.ApplyEvent(ctx, event)
 		assert.Error(t, err)
 	})
 
 	t.Run("test prepare changeset in bad state", func(t *testing.T) {
 		// The deployment is not provisioned yet, this should fail
-		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.ChangesetPreparedEvent{
+		event := &schema.ChangesetPreparedEvent{
 			Key: changesetKey,
-		}})
+		}
+		sm := schemaservice.SchemaState{}
+		err = sm.ApplyEvent(ctx, event)
 		assert.Error(t, err)
 	})
 
