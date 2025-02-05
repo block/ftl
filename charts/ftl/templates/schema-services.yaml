@@ -4,21 +4,38 @@ metadata:
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
   name: {{ include "ftl.fullname" . }}-schema
-  {{- if .Values.schema.service.annotations }}
+  {{- if .Values.schema.services.schema.annotations }}
   annotations:
-    {{- toYaml .Values.schema.service.annotations | nindent 4 }}
+    {{- toYaml .Values.schema.services.schema.annotations | nindent 4 }}
   {{- end }}
 spec:
   ports:
-    {{- range .Values.schema.service.ports }}
-    - name: {{ .name }}
-      port: {{ .port }}
-      protocol: {{ .protocol | default "TCP" }}
-      {{- if .appProtocol }}
-      appProtocol: {{ .appProtocol }}
-      {{- end }}
-      targetPort: {{ .targetPort }}
-    {{- end }}
+    - name: http
+      port: {{ .Values.schema.services.schema.port }}
+      protocol: TCP
   selector:
     {{- include "ftl-schema.selectorLabels" . | nindent 4 }}
-  type: {{ .Values.schema.service.type | default "ClusterIP" }}
+  type: {{ .Values.schema.services.schema.type | default "ClusterIP" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+  name: {{ include "ftl.fullname" . }}-schema-raft
+  {{- if .Values.schema.services.raft.annotations }}
+  annotations:
+    {{- toYaml .Values.schema.services.raft.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  # Headless service is needed whith stateful sets
+  clusterIP: None
+  # Needed to let raft cluster to bootstrap before schema service is ready
+  publishNotReadyAddresses: true
+  ports:
+    - name: raft
+      port: {{ .Values.schema.services.raft.port }}
+      protocol: TCP
+  selector:
+    {{- include "ftl-schema.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.schema.services.raft.type | default "ClusterIP" }}

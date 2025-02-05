@@ -16,6 +16,7 @@ import (
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/raft"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/statemachine"
 )
@@ -25,7 +26,8 @@ type CommonSchemaServiceConfig struct {
 
 type Config struct {
 	CommonSchemaServiceConfig
-	Bind *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
+	Raft raft.RaftConfig `embed:"" prefix:"raft-"`
+	Bind *url.URL        `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
 }
 
 type Service struct {
@@ -67,9 +69,19 @@ func Start(
 
 	g, gctx := errgroup.WithContext(ctx)
 
-	// TODO: Enable raft
-	// in local dev mode, use an inmemory state machine
-	shard := statemachine.NewLocalHandle(newStateMachine(ctx))
+	var shard statemachine.Handle[struct{}, SchemaState, EventWrapper]
+	if config.Raft.DataDir == "" {
+		// in local dev mode, use an inmemory state machine
+		shard = statemachine.NewLocalHandle(newStateMachine(ctx))
+	} else {
+		clusterBuilder := raft.NewBuilder(&config.Raft)
+		schemaShard := raft.AddShard(ctx, clusterBuilder, 1, newStateMachine(ctx))
+		cluster := clusterBuilder.Build(ctx)
+		if err := cluster.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start raft cluster: %w", err)
+		}
+		shard = schemaShard
+	}
 
 	svc := New(ctx, shard, config)
 	logger.Debugf("Listening on %s", config.Bind)
@@ -101,6 +113,9 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], stream *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
+	logger := log.FromContext(ctx)
+	logger.Debugf("PullSchema subscription: %s", req.Msg.SubscriptionId)
+
 	return s.watchModuleChanges(ctx, req.Msg.SubscriptionId, func(response *ftlv1.PullSchemaResponse) error {
 		return stream.Send(response)
 	})
@@ -252,7 +267,7 @@ func (s *Service) FailChangeset(context.Context, *connect.Request[ftlv1.FailChan
 }
 
 func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string, sendChange func(response *ftlv1.PullSchemaResponse) error) error {
-	logger := log.FromContext(ctx)
+	logger := log.FromContext(ctx).Scope(subscriptionID)
 
 	uctx, cancel2 := context.WithCancelCause(ctx)
 	defer cancel2(fmt.Errorf("schemaservice: stopped watching for module changes: %w", context.Canceled))
