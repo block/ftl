@@ -35,7 +35,7 @@ type RaftConfig struct {
 	DataDir           string            `help:"Data directory" required:"" env:"RAFT_DATA_DIR"`
 	Address           string            `help:"Address to advertise to other nodes" required:"" env:"RAFT_ADDRESS"`
 	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used." env:"RAFT_LISTEN_ADDRESS"`
-	ControlBind       *url.URL          `help:"Address to listen for control traffic. If empty, no control listener will be started."`
+	ControlAddress    *url.URL          `help:"Address to connect to the control server" env:"RAFT_CONTROL_ADDRESS"`
 	ShardReadyTimeout time.Duration     `help:"Timeout for shard to be ready" default:"5s"`
 	Retry             retry.RetryConfig `help:"Connection retry configuration" prefix:"retry-" embed:""`
 	ChangesInterval   time.Duration     `help:"Interval for changes to be checked" default:"10ms"`
@@ -270,6 +270,24 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 	return iterops.Dedup(channels.IterContext(ctx, result)), nil
 }
 
+func RPCOption(cluster *Cluster) rpc.Option {
+	return rpc.Options(
+		rpc.StartHook(func(ctx context.Context) error {
+			if err := cluster.Start(ctx); err != nil {
+				return fmt.Errorf("failed to start raft cluster: %w", err)
+			}
+			return nil
+		}),
+		rpc.ShutdownHook(func(ctx context.Context) error {
+			logger := log.FromContext(ctx)
+			logger.Debugf("stopping raft cluster")
+			cluster.Stop(ctx)
+			return nil
+		}),
+		rpc.GRPC(raftpbconnect.NewRaftServiceHandler, cluster),
+	)
+}
+
 func (s *ShardHandle[Q, R, E]) getLastIndex() (uint64, error) {
 	s.verifyReady()
 
@@ -292,10 +310,24 @@ func (s *ShardHandle[Q, R, E]) verifyReady() {
 
 // Start the cluster. Blocks until the cluster instance is ready.
 func (c *Cluster) Start(ctx context.Context) error {
+	logger := log.FromContext(ctx).Scope("raft")
 	if c.nh != nil {
 		panic("cluster already started")
 	}
 
+	isInitial := false
+	for _, member := range c.config.InitialMembers {
+		if member == c.config.Address {
+			isInitial = true
+			break
+		}
+	}
+
+	if !isInitial {
+		logger.Infof("joining cluster as a new member")
+		return c.Join(ctx, c.config.ControlAddress.String())
+	}
+	logger.Infof("joining cluster as an initial member")
 	return c.start(ctx, false)
 }
 
@@ -331,6 +363,8 @@ func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
 }
 
 func (c *Cluster) start(ctx context.Context, join bool) error {
+	logger := log.FromContext(ctx).Scope("raft")
+
 	// Create node host config
 	nhc := config.NodeHostConfig{
 		WALDir:         c.config.DataDir,
@@ -356,18 +390,16 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 
 	// Wait for all shards to be ready
 	for shardID := range c.shards {
-		if err := c.waitReady(ctx, shardID); err != nil {
+		err := c.waitReady(ctx, shardID)
+		if err != nil {
 			return fmt.Errorf("failed to wait for shard %d to be ready on replica %d: %w", shardID, c.config.ReplicaID, err)
 		}
 	}
+	logger.Infof("All shards are ready")
 
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
 	c.runningCtxCancel = cancel
 	c.runningCtx = ctx
-
-	if err := c.startControlServer(ctx); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -398,40 +430,17 @@ func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statema
 	return nil
 }
 
-func (c *Cluster) startControlServer(ctx context.Context) error {
-	logger := log.FromContext(ctx).Scope("raft")
-
-	if c.config.ControlBind == nil {
-		return nil
-	}
-
-	logger.Infof("Starting control server on %s", c.config.ControlBind.String())
-	go func() {
-		err := rpc.Serve(ctx, c.config.ControlBind,
-			rpc.GRPC(raftpbconnect.NewRaftServiceHandler, c),
-			rpc.PProf())
-		if err != nil && !errors.Is(err, context.Canceled) {
-			logger.Errorf(err, "error serving control listener")
-		}
-		logger.Infof("Control server stopped")
-	}()
-	return nil
-}
-
 // Stop the node host and all shards.
 // After this call, all the shard handlers created with this cluster are invalid.
 func (c *Cluster) Stop(ctx context.Context) {
+	logger := log.FromContext(ctx).Scope("raft")
 	if c.nh != nil {
-		logger := log.FromContext(ctx).Scope("raft")
-		logger.Infof("stopping replica %d", c.config.ReplicaID)
-
-		for shardID := range c.shards {
-			c.removeShardMember(ctx, shardID, c.config.ReplicaID)
-		}
 		c.runningCtxCancel(fmt.Errorf("stopping raft cluster: %w", context.Canceled))
 		c.nh.Close()
 		c.nh = nil
 		c.shards = nil
+	} else {
+		logger.Debugf("raft cluster already stopped")
 	}
 }
 
@@ -547,5 +556,6 @@ func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
 		}
 		break
 	}
+	logger.Debugf("Shard %d on replica %d is ready", shardID, c.config.ReplicaID)
 	return nil
 }

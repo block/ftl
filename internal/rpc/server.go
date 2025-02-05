@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 	"golang.org/x/net/http2/h2c"
 
 	gaphttp "github.com/block/ftl/internal/http"
+	"github.com/block/ftl/internal/log"
 )
 
 const ShutdownGracePeriod = time.Second * 5
@@ -25,6 +27,8 @@ type serverOptions struct {
 	mux             *http.ServeMux
 	reflectionPaths []string
 	healthCheck     http.HandlerFunc
+	startHooks      []func(ctx context.Context) error
+	shutdownHooks   []func(ctx context.Context) error
 }
 
 type Option func(*serverOptions)
@@ -73,10 +77,35 @@ func HTTP(prefix string, handler http.Handler) Option {
 	}
 }
 
+// ShutdownHook is called when the server is shutting down.
+func ShutdownHook(hook func(ctx context.Context) error) Option {
+	return func(so *serverOptions) {
+		so.shutdownHooks = append(so.shutdownHooks, hook)
+	}
+}
+
+// StartHook is called when the server is starting up.
+func StartHook(hook func(ctx context.Context) error) Option {
+	return func(so *serverOptions) {
+		so.startHooks = append(so.startHooks, hook)
+	}
+}
+
+// Options is a convenience function for aggregating multiple options.
+func Options(options ...Option) Option {
+	return func(so *serverOptions) {
+		for _, option := range options {
+			option(so)
+		}
+	}
+}
+
 type Server struct {
-	listen *url.URL
-	Bind   *pubsub.Topic[*url.URL] // Will be updated with the actual bind address.
-	Server *http.Server
+	listen        *url.URL
+	shutdownHooks []func(ctx context.Context) error
+	startHooks    []func(ctx context.Context) error
+	Bind          *pubsub.Topic[*url.URL] // Will be updated with the actual bind address.
+	Server        *http.Server
 }
 
 func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server, error) {
@@ -106,9 +135,11 @@ func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server
 	}
 
 	return &Server{
-		listen: listen,
-		Bind:   pubsub.New[*url.URL](),
-		Server: http1Server,
+		listen:        listen,
+		shutdownHooks: opts.shutdownHooks,
+		startHooks:    opts.startHooks,
+		Bind:          pubsub.New[*url.URL](),
+		Server:        http1Server,
 	}, nil
 }
 
@@ -127,22 +158,40 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	// Shutdown server on context cancellation.
 	tree.Go(func(ctx context.Context) error {
+		logger := log.FromContext(ctx)
+
 		<-ctx.Done()
+
 		ctx, cancel := context.WithTimeout(context.Background(), ShutdownGracePeriod)
 		defer cancel()
+		ctx = log.ContextWithLogger(ctx, logger)
+
 		err := s.Server.Shutdown(ctx)
-		if err == nil {
-			return nil
-		}
 		if errors.Is(err, context.Canceled) {
 			_ = s.Server.Close()
 			return err
 		}
-		return err
+
+		for i, hook := range s.shutdownHooks {
+			logger.Debugf("Running shutdown hook %d/%d", i+1, len(s.shutdownHooks))
+			if err := hook(ctx); err != nil {
+				logger.Errorf(err, "shutdown hook failed")
+			}
+		}
+
+		return nil
 	})
 
 	// Start server.
 	tree.Go(func(ctx context.Context) error {
+		logger := log.FromContext(ctx)
+		for i, hook := range s.startHooks {
+			logger.Debugf("Running start hook %d/%d", i+1, len(s.startHooks))
+			if err := hook(ctx); err != nil {
+				logger.Errorf(err, "start hook failed")
+			}
+		}
+
 		err = s.Server.Serve(listener)
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
@@ -150,7 +199,12 @@ func (s *Server) Serve(ctx context.Context) error {
 		return err
 	})
 
-	return tree.Wait()
+	err = tree.Wait()
+	if err != nil {
+		return fmt.Errorf("failed to start server: %w", err)
+	}
+
+	return nil
 }
 
 // Serve starts a HTTP and Connect gRPC server with sane defaults for FTL.

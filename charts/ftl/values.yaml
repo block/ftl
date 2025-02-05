@@ -375,6 +375,8 @@ schema:
       value: "$(ORDINAL_NUMBER)"
     - name: RAFT_LISTEN_ADDRESS
       value: "$(MY_POD_IP):8992"
+    - name: RAFT_CONTROL_ADDRESS
+      value: "http://ftl-schema:8892"
 
   revisionHistoryLimit: 0
 

@@ -182,7 +182,6 @@ func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address stri
 	return raft.NewBuilder(&raft.RaftConfig{
 		ReplicaID:          id,
 		Address:            address,
-		ControlBind:        controlBind,
 		DataDir:            t.TempDir(),
 		InitialMembers:     members,
 		HeartbeatRTT:       1,
