@@ -2381,6 +2381,35 @@ func RuntimeFromProto(v *destpb.Runtime) (Runtime, error) {
 	}
 }
 
+func (x *RuntimeElement) ToProto() *destpb.RuntimeElement {
+	if x == nil {
+		return nil
+	}
+	return &destpb.RuntimeElement{
+		Element:    RuntimeToProto(x.Element),
+		Deployment: orZero(ptr(string(protoMust(x.Deployment.MarshalText())))),
+		Name:       setNil(ptr(string(orZero(x.Name.Ptr()))), x.Name.Ptr()),
+	}
+}
+
+func RuntimeElementFromProto(v *destpb.RuntimeElement) (out *RuntimeElement, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &RuntimeElement{}
+	if out.Element, err = orZeroR(ptrR(result.From(RuntimeFromProto(v.Element)))).Result(); err != nil {
+		return nil, fmt.Errorf("Element: %w", err)
+	}
+	if out.Deployment, err = orZeroR(unmarshallText([]byte(v.Deployment), &out.Deployment)).Result(); err != nil {
+		return nil, fmt.Errorf("Deployment: %w", err)
+	}
+	if out.Name, err = optionalR(result.From(setNil(ptr(string(orZero(v.Name))), v.Name), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Name: %w", err)
+	}
+	return out, nil
+}
+
 // RuntimeEventToProto converts a RuntimeEvent sum type to a protobuf message.
 func RuntimeEventToProto(value RuntimeEvent) *destpb.RuntimeEvent {
 	switch value := value.(type) {

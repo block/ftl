@@ -80,16 +80,11 @@ message PullSchemaResponse {
 }
 
 message UpdateDeploymentRuntimeRequest {
-  ftl.schema.v1.ModuleRuntimeEvent event = 1;
+  optional string changeset = 1;
+  xyz.block.ftl.schema.v1.RuntimeElement update = 2;
 }
 
 message UpdateDeploymentRuntimeResponse {}
-
-message UpdateSchemaRequest {
-  ftl.schema.v1.Event event = 1;
-}
-
-message UpdateSchemaResponse {}
 
 message GetDeploymentsRequest {}
 
@@ -179,9 +174,6 @@ service SchemaService {
 
   // UpdateModuleRuntime is used to update the runtime configuration of a module.
   rpc UpdateDeploymentRuntime(UpdateDeploymentRuntimeRequest) returns (UpdateDeploymentRuntimeResponse);
-
-  // UpdateSchema is used to update the schema.
-  rpc UpdateSchema(UpdateSchemaRequest) returns (UpdateSchemaResponse);
 
   // GetDeployments is used to get the schema for all deployments.
   rpc GetDeployments(GetDeploymentsRequest) returns (GetDeploymentsResponse);

@@ -3679,6 +3679,55 @@ export class Runtime extends Message<Runtime> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.schema.v1.RuntimeElement
+ */
+export class RuntimeElement extends Message<RuntimeElement> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Runtime element = 1;
+   */
+  element?: Runtime;
+
+  /**
+   * @generated from field: string deployment = 2;
+   */
+  deployment = "";
+
+  /**
+   * @generated from field: optional string name = 3;
+   */
+  name?: string;
+
+  constructor(data?: PartialMessage<RuntimeElement>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.RuntimeElement";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "element", kind: "message", T: Runtime },
+    { no: 2, name: "deployment", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RuntimeElement {
+    return new RuntimeElement().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RuntimeElement {
+    return new RuntimeElement().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RuntimeElement {
+    return new RuntimeElement().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RuntimeElement | PlainMessage<RuntimeElement> | undefined, b: RuntimeElement | PlainMessage<RuntimeElement> | undefined): boolean {
+    return proto3.util.equals(RuntimeElement, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.RuntimeEvent
  */
 export class RuntimeEvent extends Message<RuntimeEvent> {

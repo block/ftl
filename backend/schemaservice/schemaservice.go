@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -122,26 +123,50 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 }
 
 func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Request[ftlv1.UpdateDeploymentRuntimeRequest]) (*connect.Response[ftlv1.UpdateDeploymentRuntimeResponse], error) {
-	event, err := schema.ModuleRuntimeEventFromProto(req.Msg.Event)
+	event, err := schema.RuntimeElementFromProto(req.Msg.Update)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
-	err = s.State.Publish(ctx, EventWrapper{Event: event})
+	var changeset *key.Changeset
+	if req.Msg.Changeset != nil {
+		cs, err := key.ParseChangesetKey(*req.Msg.Changeset)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse changeset: %w", err)
+		}
+		changeset = &cs
+	}
+	var re schema.Event
+	switch e := event.Element.(type) {
+	case *schema.ModuleRuntimeScaling:
+		re = &schema.ModuleRuntimeEvent{Changeset: changeset, Key: event.Deployment, Scaling: optional.Ptr(e)}
+	case *schema.ModuleRuntimeDeployment:
+		re = &schema.ModuleRuntimeEvent{Changeset: changeset, Key: event.Deployment, Deployment: optional.Ptr(e)}
+	case *schema.ModuleRuntimeRunner:
+		re = &schema.ModuleRuntimeEvent{Changeset: changeset, Key: event.Deployment, Runner: optional.Ptr(e)}
+	case *schema.VerbRuntime:
+		id, ok := event.Name.Get()
+		if !ok {
+			return nil, fmt.Errorf("missing name in event")
+		}
+		re = &schema.VerbRuntimeEvent{ID: id, Changeset: changeset, Deployment: event.Deployment, Subscription: optional.Ptr(e.Subscription)}
+	case *schema.TopicRuntime:
+		id, ok := event.Name.Get()
+		if !ok {
+			return nil, fmt.Errorf("missing name in event")
+		}
+		re = &schema.TopicRuntimeEvent{ID: id, Changeset: changeset, Deployment: event.Deployment, Payload: e}
+	case *schema.DatabaseRuntime:
+		id, ok := event.Name.Get()
+		if !ok {
+			return nil, fmt.Errorf("missing name in event")
+		}
+		re = &schema.DatabaseRuntimeEvent{ID: id, Changeset: changeset, Deployment: event.Deployment, Connections: e.Connections}
+	}
+	err = s.State.Publish(ctx, EventWrapper{Event: re})
 	if err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
 	return connect.NewResponse(&ftlv1.UpdateDeploymentRuntimeResponse{}), nil
-}
-
-func (s *Service) UpdateSchema(ctx context.Context, req *connect.Request[ftlv1.UpdateSchemaRequest]) (*connect.Response[ftlv1.UpdateSchemaResponse], error) {
-	event, err := schema.EventFromProto(req.Msg.Event)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse event: %w", err)
-	}
-	if err = s.State.Publish(ctx, EventWrapper{Event: event}); err != nil {
-		return nil, fmt.Errorf("could not apply event: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.UpdateSchemaResponse{}), nil
 }
 
 func (s *Service) GetDeployments(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentsRequest]) (*connect.Response[ftlv1.GetDeploymentsResponse], error) {

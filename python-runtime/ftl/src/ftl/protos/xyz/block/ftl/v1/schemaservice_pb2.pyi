@@ -84,22 +84,14 @@ class PullSchemaResponse(_message.Message):
     def __init__(self, changeset_created: _Optional[_Union[PullSchemaResponse.ChangesetCreated, _Mapping]] = ..., changeset_failed: _Optional[_Union[PullSchemaResponse.ChangesetFailed, _Mapping]] = ..., changeset_committed: _Optional[_Union[PullSchemaResponse.ChangesetCommitted, _Mapping]] = ..., deployment_created: _Optional[_Union[PullSchemaResponse.DeploymentCreated, _Mapping]] = ..., deployment_updated: _Optional[_Union[PullSchemaResponse.DeploymentUpdated, _Mapping]] = ..., deployment_removed: _Optional[_Union[PullSchemaResponse.DeploymentRemoved, _Mapping]] = ..., more: bool = ...) -> None: ...
 
 class UpdateDeploymentRuntimeRequest(_message.Message):
-    __slots__ = ("event",)
-    EVENT_FIELD_NUMBER: _ClassVar[int]
-    event: _schema_pb2.ModuleRuntimeEvent
-    def __init__(self, event: _Optional[_Union[_schema_pb2.ModuleRuntimeEvent, _Mapping]] = ...) -> None: ...
+    __slots__ = ("changeset", "update")
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_FIELD_NUMBER: _ClassVar[int]
+    changeset: str
+    update: _schema_pb2.RuntimeElement
+    def __init__(self, changeset: _Optional[str] = ..., update: _Optional[_Union[_schema_pb2.RuntimeElement, _Mapping]] = ...) -> None: ...
 
 class UpdateDeploymentRuntimeResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class UpdateSchemaRequest(_message.Message):
-    __slots__ = ("event",)
-    EVENT_FIELD_NUMBER: _ClassVar[int]
-    event: _schema_pb2.Event
-    def __init__(self, event: _Optional[_Union[_schema_pb2.Event, _Mapping]] = ...) -> None: ...
-
-class UpdateSchemaResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 

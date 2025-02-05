@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
@@ -42,7 +43,9 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 		return connect.NewResponse(&provisioner.StatusResponse{
 			Status: &provisioner.StatusResponse_Success{
 				Success: &provisioner.StatusResponse_ProvisioningSuccess{
-					Events: slices.Map(events, schema.EventToProto),
+					Outputs: slices.Map(events, func(t *schema.RuntimeElement) *schemapb.RuntimeElement {
+						return t.ToProto()
+					}),
 				},
 			},
 		}), nil
@@ -91,13 +94,13 @@ func outputsByPropertyName(outputs []types.Output) (map[string]types.Output, err
 	return m, nil
 }
 
-func (c *CloudformationProvisioner) updateResources(ctx context.Context, deployment key.Deployment, outputs []types.Output) ([]schema.Event, error) {
+func (c *CloudformationProvisioner) updateResources(ctx context.Context, deployment key.Deployment, outputs []types.Output) ([]*schema.RuntimeElement, error) {
 	byKind, err := outputsByKind(outputs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to group outputs by kind: %w", err)
 	}
 
-	var events []schema.Event
+	var events []*schema.RuntimeElement
 
 	for kind, outputs := range byKind {
 		byResourceID, err := outputsByResourceID(outputs)

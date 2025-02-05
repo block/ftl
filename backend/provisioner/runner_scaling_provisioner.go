@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/types/optional"
 	_ "github.com/go-sql-driver/mysql"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -28,7 +27,7 @@ func NewRunnerScalingProvisioner(runners scaling.RunnerScaling) *InMemProvisione
 }
 
 func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned) (schema.Event, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned) (*schema.RuntimeElement, error) {
 		if changeset.IsZero() {
 			return nil, fmt.Errorf("changeset must be provided")
 		}
@@ -90,13 +89,14 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 
 		schemaClient := rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx)
 
+		cs := changeset.String()
 		deps, err := scaling.TerminatePreviousDeployments(ctx, module.Name, deployment.String())
 		if err != nil {
 			logger.Errorf(err, "failed to terminate previous deployments")
 		} else {
+			// TODO: remove this
 			for _, dep := range deps {
-				cs := changeset.String()
-				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{Key: deployment.String(), Changeset: cs, Scaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}))
+				_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Changeset: &cs, Update: &schemapb.RuntimeElement{Deployment: deployment.String(), Element: &schemapb.Runtime{Value: &schemapb.Runtime_ModuleRuntimeScaling{ModuleRuntimeScaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}}}}))
 				if err != nil {
 					logger.Errorf(err, "failed to update deployment %s", dep)
 				}
@@ -104,30 +104,18 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		}
 
 		logger.Infof("Updating module runtime for %s with endpoint %s and changeset %s", module.Name, endpointURI, changeset.String())
-		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Event: &schemapb.ModuleRuntimeEvent{
-			Changeset: changeset.String(),
-			Key:       deployment.String(),
-			Runner: &schemapb.ModuleRuntimeRunner{
-				Endpoint: endpointURI,
-			},
-			Deployment: &schemapb.ModuleRuntimeDeployment{
-				DeploymentKey: deployment.String(),
-				State:         schemapb.DeploymentState_DEPLOYMENT_STATE_READY,
-			},
-		}}))
+		_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Changeset: &cs, Update: &schemapb.RuntimeElement{Deployment: deployment.String(), Element: &schemapb.Runtime{Value: &schemapb.Runtime_ModuleRuntimeRunner{ModuleRuntimeRunner: &schemapb.ModuleRuntimeRunner{
+			Endpoint: endpointURI,
+		},
+		}}}}))
 		if err != nil {
 			return nil, fmt.Errorf("failed to update module runtime: %w  changeset: %s", err, changeset.String())
 		}
-		return &schema.ModuleRuntimeEvent{
-			Key:       deployment,
-			Changeset: &changeset,
-			Runner: optional.Some(schema.ModuleRuntimeRunner{
+		return &schema.RuntimeElement{
+			Deployment: deployment,
+			Element: &schema.ModuleRuntimeRunner{
 				Endpoint: endpointURI,
-			}),
-			Deployment: optional.Some(schema.ModuleRuntimeDeployment{
-				DeploymentKey: deployment,
-				State:         schema.DeploymentStateReady,
-			}),
+			},
 		}, nil
 	}
 }

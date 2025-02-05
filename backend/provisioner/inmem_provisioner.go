@@ -13,6 +13,7 @@ import (
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
@@ -23,7 +24,7 @@ import (
 type inMemProvisioningTask struct {
 	steps []*inMemProvisioningStep
 
-	events []schema.Event
+	events []*schema.RuntimeElement
 }
 
 func (t *inMemProvisioningTask) Done() (bool, error) {
@@ -44,16 +45,7 @@ type inMemProvisioningStep struct {
 	Done *atomic.Value[bool]
 }
 
-// RuntimeEvent is a union type of all runtime events
-// TODO: Remove once we have fully typed provisioners
-type RuntimeEvent struct {
-	Module   schema.ModuleRuntimeEvent
-	Database *schema.DatabaseRuntimeEvent
-	Topic    *schema.TopicRuntimeEvent
-	Verb     *schema.VerbRuntimeEvent
-}
-
-type InMemResourceProvisionerFn func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (schema.Event, error)
+type InMemResourceProvisionerFn func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (*schema.RuntimeElement, error)
 
 // InMemProvisioner for running an in memory provisioner, constructing all resources concurrently
 //
@@ -79,7 +71,7 @@ func (d *InMemProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingRequ
 
 type stepCompletedEvent struct {
 	step  *inMemProvisioningStep
-	event optional.Option[schema.Event]
+	event optional.Option[schema.RuntimeElement]
 }
 
 func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[provisioner.ProvisionRequest]) (*connect.Response[provisioner.ProvisionResponse], error) {
@@ -135,7 +127,7 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 						}
 						completions <- stepCompletedEvent{
 							step:  step,
-							event: optional.From(event, event != nil),
+							event: optional.Ptr(event),
 						}
 					}()
 				}
@@ -146,7 +138,7 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 	go func() {
 		for c := range channels.IterContext(ctx, completions) {
 			if e, ok := c.event.Get(); ok {
-				task.events = append(task.events, e)
+				task.events = append(task.events, &e)
 			}
 			c.step.Done.Store(true)
 			done, err := task.Done()
@@ -192,7 +184,9 @@ func (d *InMemProvisioner) Status(ctx context.Context, req *connect.Request[prov
 	return connect.NewResponse(&provisioner.StatusResponse{
 		Status: &provisioner.StatusResponse_Success{
 			Success: &provisioner.StatusResponse_ProvisioningSuccess{
-				Events: slices.Map(task.events, schema.EventToProto),
+				Outputs: slices.Map(task.events, func(e *schema.RuntimeElement) *schemapb.RuntimeElement {
+					return e.ToProto()
+				}),
 			},
 		},
 	}), nil

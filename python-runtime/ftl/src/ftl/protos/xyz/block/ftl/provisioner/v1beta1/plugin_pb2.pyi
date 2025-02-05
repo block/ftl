@@ -55,10 +55,10 @@ class StatusResponse(_message.Message):
         error_message: str
         def __init__(self, error_message: _Optional[str] = ...) -> None: ...
     class ProvisioningSuccess(_message.Message):
-        __slots__ = ("events",)
-        EVENTS_FIELD_NUMBER: _ClassVar[int]
-        events: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Event]
-        def __init__(self, events: _Optional[_Iterable[_Union[_schema_pb2.Event, _Mapping]]] = ...) -> None: ...
+        __slots__ = ("outputs",)
+        OUTPUTS_FIELD_NUMBER: _ClassVar[int]
+        outputs: _containers.RepeatedCompositeFieldContainer[_schema_pb2.RuntimeElement]
+        def __init__(self, outputs: _Optional[_Iterable[_Union[_schema_pb2.RuntimeElement, _Mapping]]] = ...) -> None: ...
     RUNNING_FIELD_NUMBER: _ClassVar[int]
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     running: StatusResponse.ProvisioningRunning
