@@ -20,18 +20,57 @@ import TabItem from '@theme/TabItem';
 
 The following table shows how FTL types map to language-specific types:
 
-| FTL        | Go                          | Kotlin                      | Java                        | Java (optional)             |
-| :--------- | :-------------------------- | :-------------------------- | :-------------------------- | :-------------------------- |
-| `Int`      | `int`                       | `Long`                      | `long`                      | `Long`                      |
-| `Float`    | `float64`                   | `Double`                    | `double`                    | `Double`                    |
-| `String`   | `string`                    | `String`                    | `String`                    | `@Nullable String`          |
-| `Bytes`    | `[]byte`                    | `ByteArray`                 | `[]byte`                    | `@Nullable byte[]`          |
-| `Bool`     | `bool`                      | `Boolean`                   | `boolean`                   | `Boolean`                   |
-| `Time`     | `time.Time`                 | `ZonedDateTime`             | `ZonedDateTime️`             | `@Nullable ZonedDateTime`   |
-| `Any`      | [External](./externaltypes) | [External](./externaltypes) | [External](./externaltypes) | [External](./externaltypes) |
-| `Unit`     | N/A                         | N/A                         | `void`                      | N/A                         |
-| `Map<K,V>` | `map[K]V`                   | `Map<K,V>`                  | `Map<K,V>`                  | `@Nullable Map<K,V>`        |
-| `Array<T>` | `[]T`                       | `List<T>`                   | `List<T>`                   | `@Nullable List<T>`         |
+<Tabs groupId="languages">
+  <TabItem value="go" label="Go" default>
+
+| FTL        | Go                          |
+| :--------- | :-------------------------- |
+| `Int`      | `int`                       |
+| `Float`    | `float64`                   |
+| `String`   | `string`                    |
+| `Bytes`    | `[]byte`                    |
+| `Bool`     | `bool`                      |
+| `Time`     | `time.Time`                 |
+| `Any`      | [External](./externaltypes) |
+| `Unit`     | N/A                         |
+| `Map<K,V>` | `map[K]V`                   |
+| `Array<T>` | `[]T`                       |
+
+  </TabItem>
+  <TabItem value="kotlin" label="Kotlin">
+
+
+| FTL        | Kotlin                      |
+| :--------- | :-------------------------- |
+| `Int`      | `Long`                      |
+| `Float`    | `Double`                    |
+| `String`   | `String`                    |
+| `Bytes`    | `ByteArray`                 |
+| `Bool`     | `Boolean`                   |
+| `Time`     | `ZonedDateTime`             |
+| `Any`      | [External](./externaltypes) |
+| `Unit`     | N/A                         |
+| `Map<K,V>` | `Map<K,V>`                  |
+| `Array<T>` | `List<T>`                   |
+
+  </TabItem>
+  <TabItem value="java" label="Java">
+
+| FTL        | Java                        | Java (optional)             |
+| :--------- | :-------------------------- | :-------------------------- |
+| `Int`      | `long`                      | `Long`                      |
+| `Float`    | `double`                    | `Double`                    |
+| `String`   | `String`                    | `@Nullable String`          |
+| `Bytes`    | `[]byte`                    | `@Nullable byte[]`          |
+| `Bool`     | `boolean`                   | `Boolean`                   |
+| `Time`     | `ZonedDateTime️`             | `@Nullable ZonedDateTime`   |
+| `Any`      | [External](./externaltypes) | [External](./externaltypes) |
+| `Unit`     | `void`                      | N/A                         |
+| `Map<K,V>` | `Map<K,V>`                  | `@Nullable Map<K,V>`        |
+| `Array<T>` | `List<T>`                   | `@Nullable List<T>`         |
+
+  </TabItem>
+</Tabs>
 
 ## Data structures
 
@@ -242,11 +281,11 @@ typealias UserID = String
 // Use a wrapper class instead
 public class UserID {
     private final String value;
-    
+
     public UserID(String value) {
         this.value = value;
     }
-    
+
     public String getValue() {
         return value;
     }
