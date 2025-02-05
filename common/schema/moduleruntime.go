@@ -27,6 +27,7 @@ type ModuleRuntime struct {
 	Base       ModuleRuntimeBase        `protobuf:"1"` // Base is always present.
 	Scaling    *ModuleRuntimeScaling    `protobuf:"2,optional"`
 	Deployment *ModuleRuntimeDeployment `protobuf:"3,optional"`
+	Runner     *ModuleRuntimeRunner     `protobuf:"4,optional"`
 }
 
 type ModuleRuntimeBase struct {
@@ -44,12 +45,23 @@ type ModuleRuntimeScaling struct {
 }
 
 type ModuleRuntimeDeployment struct {
-	// Endpoint is the endpoint of the deployed module.
-	Endpoint      string                     `protobuf:"1"`
 	DeploymentKey key.Deployment             `protobuf:"2"`
 	CreatedAt     time.Time                  `protobuf:"3"`
 	ActivatedAt   optional.Option[time.Time] `protobuf:"4"`
 	State         DeploymentState            `protobuf:"5"`
+}
+
+type ModuleRuntimeRunner struct {
+	// Endpoint is the endpoint of the deployed module.
+	Endpoint string `protobuf:"1"`
+}
+
+func (m *ModuleRuntimeRunner) GetEndpoint() string {
+	if m == nil {
+		return ""
+	}
+	return m.Endpoint
+
 }
 
 func (m *ModuleRuntime) GetScaling() *ModuleRuntimeScaling {
@@ -71,6 +83,18 @@ func (m *ModuleRuntime) GetDeployment() *ModuleRuntimeDeployment {
 		return nil
 	}
 	return m.Deployment
+}
+func (m *ModuleRuntime) GetRunner() *ModuleRuntimeRunner {
+	if m == nil {
+		return nil
+	}
+	return m.Runner
+}
+func (m *ModuleRuntime) ModRunner() *ModuleRuntimeRunner {
+	if m.Runner == nil {
+		m.Runner = &ModuleRuntimeRunner{}
+	}
+	return m.Runner
 }
 
 func (m *ModuleRuntime) ModDeployment() *ModuleRuntimeDeployment {

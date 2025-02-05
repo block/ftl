@@ -369,7 +369,7 @@ func (s *AdminService) ResetSubscription(ctx context.Context, req *connect.Reque
 		return nil, fmt.Errorf("failed to get partition count for topic %s: %w", topicID, err)
 	}
 
-	client := rpc.Dial(pubsubpbconnect.NewPubSubAdminServiceClient, module.Runtime.Deployment.Endpoint, log.Error)
+	client := rpc.Dial(pubsubpbconnect.NewPubSubAdminServiceClient, module.Runtime.Runner.Endpoint, log.Error)
 	resp, err := client.ResetOffsetsOfSubscription(ctx, connect.NewRequest(&pubsubpb.ResetOffsetsOfSubscriptionRequest{
 		Subscription: req.Msg.Subscription,
 		Offset:       req.Msg.Offset,

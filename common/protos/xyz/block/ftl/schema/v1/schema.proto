@@ -424,6 +424,7 @@ message ModuleRuntime {
   ModuleRuntimeBase base = 1;
   optional ModuleRuntimeScaling scaling = 2;
   optional ModuleRuntimeDeployment deployment = 3;
+  optional ModuleRuntimeRunner runner = 4;
 }
 
 message ModuleRuntimeBase {
@@ -435,7 +436,6 @@ message ModuleRuntimeBase {
 }
 
 message ModuleRuntimeDeployment {
-  string endpoint = 1;
   string deployment_key = 2;
   google.protobuf.Timestamp created_at = 3;
   optional google.protobuf.Timestamp activated_at = 4;
@@ -448,6 +448,11 @@ message ModuleRuntimeEvent {
   optional ModuleRuntimeBase base = 3;
   optional ModuleRuntimeScaling scaling = 4;
   optional ModuleRuntimeDeployment deployment = 5;
+  optional ModuleRuntimeRunner runner = 6;
+}
+
+message ModuleRuntimeRunner {
+  string endpoint = 1;
 }
 
 message ModuleRuntimeScaling {

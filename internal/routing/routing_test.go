@@ -23,8 +23,10 @@ func TestRouting(t *testing.T) {
 			Name: "time",
 			Runtime: &schema.ModuleRuntime{
 				Deployment: &schema.ModuleRuntimeDeployment{
-					Endpoint:      "http://time.ftl",
 					DeploymentKey: deploymentKey(t, "dpl-time-sjkfislfjslfas"),
+				},
+				Runner: &schema.ModuleRuntimeRunner{
+					Endpoint: "http://time.ftl",
 				},
 			},
 		},
@@ -40,8 +42,10 @@ func TestRouting(t *testing.T) {
 			Name: "echo",
 			Runtime: &schema.ModuleRuntime{
 				Deployment: &schema.ModuleRuntimeDeployment{
-					Endpoint:      "http://echo.ftl",
 					DeploymentKey: deploymentKey(t, "dpl-echo-sjkfiaslfjslfs"),
+				},
+				Runner: &schema.ModuleRuntimeRunner{
+					Endpoint: "http://echo.ftl",
 				},
 			},
 		},
