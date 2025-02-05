@@ -18,12 +18,8 @@ jobs:
         uses: cashapp/activate-hermit@v1.1.3
       - name: Build Language Plugins
         run: just build-language-plugins
-      - name: Build SQLC
-        run: just build ftl-sqlc
       - name: Test
-        run: |
-          go-test-annotate
-          # go-test-annotate ${{ (github.event_name == 'pull_request' && github.event.action != 'enqueued' && !contains( github.event.pull_request.labels.*.name, 'run-all')) && '-short' || '' }}
+        run:  go-test-annotate
   test-readme:
     name: Test README
     runs-on: ubuntu-latest

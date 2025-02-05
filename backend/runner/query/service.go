@@ -15,7 +15,7 @@ import (
 	"connectrpc.com/connect"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/puzpuzpuz/xsync/v3"
 
 	querypb "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1"
@@ -471,9 +471,11 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 func getDriverName(engine string) string {
 	switch engine {
 	case "postgres":
-		return "postgres"
-	default:
+		return "pgx"
+	case "mysql":
 		return "mysql"
+	default:
+		panic("unsupported database engine: " + engine)
 	}
 }
 
