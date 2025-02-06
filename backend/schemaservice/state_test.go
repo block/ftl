@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
-	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
@@ -50,11 +49,13 @@ func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 			},
 		},
 	}))
-	assert.NoError(t, state.ApplyEvent(ctx, &schema.ModuleRuntimeEvent{
-		Key:        deploymentKey,
-		Changeset:  &changesetKey,
-		Deployment: optional.Some(schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey, State: schema.DeploymentStateReady}),
-		Runner:     optional.Some(schema.ModuleRuntimeRunner{Endpoint: "http://localhost:6734"}),
+	assert.NoError(t, state.ApplyEvent(ctx, &schema.DeploymentRuntimeEvent{
+		Payload:   &schema.RuntimeElement{Deployment: deploymentKey, Element: &schema.ModuleRuntimeRunner{Endpoint: "http://localhost:8080"}},
+		Changeset: &changesetKey,
+	}))
+	assert.NoError(t, state.ApplyEvent(ctx, &schema.DeploymentRuntimeEvent{
+		Payload:   &schema.RuntimeElement{Deployment: deploymentKey, Element: &schema.ModuleRuntimeDeployment{State: schema.DeploymentStateReady}},
+		Changeset: &changesetKey,
 	}))
 	assert.NoError(t, state.ApplyEvent(ctx, &schema.ChangesetPreparedEvent{
 		Key: changesetKey,

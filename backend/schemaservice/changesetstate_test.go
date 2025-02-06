@@ -87,10 +87,9 @@ func TestChangesetState(t *testing.T) {
 	t.Run("test update module schema", func(t *testing.T) {
 		newState := reflect.DeepCopy(module)
 		newState.ModRuntime().ModRunner().Endpoint = "http://localhost:8080"
-		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentSchemaUpdatedEvent{
-			Key:       module.Runtime.Deployment.DeploymentKey,
-			Schema:    newState,
-			Changeset: changesetKey,
+		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentRuntimeEvent{
+			Payload:   &schema.RuntimeElement{Deployment: module.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeRunner{Endpoint: "http://localhost:8080"}},
+			Changeset: &changesetKey,
 		}})
 		assert.NoError(t, err)
 		view, err = state.View(ctx)
@@ -126,11 +125,9 @@ func TestChangesetState(t *testing.T) {
 	t.Run("test prepare changeset", func(t *testing.T) {
 		newState := reflect.DeepCopy(module)
 		newState.Runtime.Deployment.State = schema.DeploymentStateReady
-		newState.ModRuntime().ModRunner().Endpoint = "http://localhost:8080"
-		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentSchemaUpdatedEvent{
-			Key:       module.Runtime.Deployment.DeploymentKey,
-			Schema:    newState,
-			Changeset: changesetKey,
+		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentRuntimeEvent{
+			Payload:   &schema.RuntimeElement{Deployment: module.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeDeployment{State: schema.DeploymentStateReady}},
+			Changeset: &changesetKey,
 		}})
 		assert.NoError(t, err)
 		view, err = state.View(ctx)

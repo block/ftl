@@ -6,7 +6,6 @@ import (
 	"net/url"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -135,34 +134,7 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 		}
 		changeset = &cs
 	}
-	var re schema.Event
-	switch e := event.Element.(type) {
-	case *schema.ModuleRuntimeScaling:
-		re = &schema.ModuleRuntimeEvent{Changeset: changeset, Key: event.Deployment, Scaling: optional.Ptr(e)}
-	case *schema.ModuleRuntimeDeployment:
-		re = &schema.ModuleRuntimeEvent{Changeset: changeset, Key: event.Deployment, Deployment: optional.Ptr(e)}
-	case *schema.ModuleRuntimeRunner:
-		re = &schema.ModuleRuntimeEvent{Changeset: changeset, Key: event.Deployment, Runner: optional.Ptr(e)}
-	case *schema.VerbRuntime:
-		id, ok := event.Name.Get()
-		if !ok {
-			return nil, fmt.Errorf("missing name in event")
-		}
-		re = &schema.VerbRuntimeEvent{ID: id, Changeset: changeset, Deployment: event.Deployment, Subscription: optional.Ptr(e.Subscription)}
-	case *schema.TopicRuntime:
-		id, ok := event.Name.Get()
-		if !ok {
-			return nil, fmt.Errorf("missing name in event")
-		}
-		re = &schema.TopicRuntimeEvent{ID: id, Changeset: changeset, Deployment: event.Deployment, Payload: e}
-	case *schema.DatabaseRuntime:
-		id, ok := event.Name.Get()
-		if !ok {
-			return nil, fmt.Errorf("missing name in event")
-		}
-		re = &schema.DatabaseRuntimeEvent{ID: id, Changeset: changeset, Deployment: event.Deployment, Connections: e.Connections}
-	}
-	err = s.State.Publish(ctx, EventWrapper{Event: re})
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.DeploymentRuntimeEvent{Changeset: changeset, Payload: event}})
 	if err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
