@@ -132,13 +132,6 @@ message DatabaseRuntimeConnections {
   DatabaseConnector write = 2;
 }
 
-message DatabaseRuntimeEvent {
-  string deployment = 1;
-  string changeset = 2;
-  string id = 3;
-  DatabaseRuntimeConnections connections = 4;
-}
-
 // Decl represents user-defined data types in the schema grammar.
 message Decl {
   oneof value {
@@ -153,35 +146,15 @@ message Decl {
   }
 }
 
-message DeploymentActivatedEvent {
-  string key = 1;
-  google.protobuf.Timestamp activated_at = 2;
-  int64 min_replicas = 3;
-  string changeset = 4;
-}
-
 message DeploymentCreatedEvent {
   string key = 1;
   Module schema = 2;
   string changeset = 3;
 }
 
-message DeploymentDeactivatedEvent {
-  string key = 1;
-  bool module_removed = 2;
-  string changeset = 3;
-}
-
-message DeploymentReplicasUpdatedEvent {
-  string key = 1;
-  int64 replicas = 2;
-  string changeset = 3;
-}
-
-message DeploymentSchemaUpdatedEvent {
-  string key = 1;
-  Module schema = 2;
-  string changeset = 3;
+message DeploymentRuntimeEvent {
+  RuntimeElement payload = 1;
+  string changeset = 2;
 }
 
 enum DeploymentState {
@@ -214,21 +187,14 @@ message EnumVariant {
 
 message Event {
   oneof value {
-    ChangesetCommittedEvent changeset_committed_event = 12;
-    ChangesetCreatedEvent changeset_created_event = 10;
-    ChangesetDrainedEvent changeset_drained_event = 13;
-    ChangesetFailedEvent changeset_failed_event = 15;
-    ChangesetFinalizedEvent changeset_finalized_event = 14;
-    ChangesetPreparedEvent changeset_prepared_event = 11;
-    DatabaseRuntimeEvent database_runtime_event = 8;
-    DeploymentActivatedEvent deployment_activated_event = 4;
+    ChangesetCommittedEvent changeset_committed_event = 5;
+    ChangesetCreatedEvent changeset_created_event = 3;
+    ChangesetDrainedEvent changeset_drained_event = 6;
+    ChangesetFailedEvent changeset_failed_event = 8;
+    ChangesetFinalizedEvent changeset_finalized_event = 7;
+    ChangesetPreparedEvent changeset_prepared_event = 4;
     DeploymentCreatedEvent deployment_created_event = 1;
-    DeploymentDeactivatedEvent deployment_deactivated_event = 5;
-    DeploymentReplicasUpdatedEvent deployment_replicas_updated_event = 3;
-    DeploymentSchemaUpdatedEvent deployment_schema_updated_event = 2;
-    ModuleRuntimeEvent module_runtime_event = 9;
-    TopicRuntimeEvent topic_runtime_event = 7;
-    VerbRuntimeEvent verb_runtime_event = 6;
+    DeploymentRuntimeEvent deployment_runtime_event = 2;
   }
 }
 
@@ -442,15 +408,6 @@ message ModuleRuntimeDeployment {
   DeploymentState state = 5;
 }
 
-message ModuleRuntimeEvent {
-  string key = 1;
-  string changeset = 2;
-  optional ModuleRuntimeBase base = 3;
-  optional ModuleRuntimeScaling scaling = 4;
-  optional ModuleRuntimeDeployment deployment = 5;
-  optional ModuleRuntimeRunner runner = 6;
-}
-
 message ModuleRuntimeRunner {
   string endpoint = 1;
 }
@@ -496,15 +453,6 @@ message RuntimeElement {
   optional string name = 3;
 }
 
-message RuntimeEvent {
-  oneof value {
-    DatabaseRuntimeEvent database_runtime_event = 8;
-    ModuleRuntimeEvent module_runtime_event = 9;
-    TopicRuntimeEvent topic_runtime_event = 7;
-    VerbRuntimeEvent verb_runtime_event = 6;
-  }
-}
-
 message Schema {
   optional Position pos = 1;
   repeated Module modules = 2;
@@ -514,7 +462,7 @@ message Schema {
 message SchemaState {
   repeated Module modules = 1;
   repeated Changeset changesets = 2;
-  repeated RuntimeEvent runtime_events = 3;
+  repeated DeploymentRuntimeEvent runtime_events = 3;
 }
 
 message Secret {
@@ -550,13 +498,6 @@ message Topic {
 message TopicRuntime {
   repeated string kafka_brokers = 1;
   string topic_id = 2;
-}
-
-message TopicRuntimeEvent {
-  string deployment = 1;
-  string changeset = 2;
-  string id = 3;
-  TopicRuntime payload = 4;
 }
 
 // Type represents a Type Node in the schema grammar.
@@ -622,13 +563,6 @@ message Verb {
 
 message VerbRuntime {
   optional VerbRuntimeSubscription subscription = 1;
-}
-
-message VerbRuntimeEvent {
-  string deployment = 1;
-  string changeset = 2;
-  string id = 3;
-  optional VerbRuntimeSubscription subscription = 4;
 }
 
 message VerbRuntimeSubscription {

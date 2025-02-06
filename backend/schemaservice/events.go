@@ -11,7 +11,6 @@ import (
 	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
@@ -26,18 +25,8 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 		return fmt.Errorf("invalid event: %w", err)
 	}
 	switch e := event.(type) {
-	case *schema.DeploymentSchemaUpdatedEvent:
-		return handleDeploymentSchemaUpdatedEvent(r, e)
-	case *schema.DeploymentReplicasUpdatedEvent:
-		return handleDeploymentReplicasUpdatedEvent(r, e)
-	case *schema.VerbRuntimeEvent:
-		return handleVerbRuntimeEvent(r, e)
-	case *schema.TopicRuntimeEvent:
-		return handleTopicRuntimeEvent(r, e)
-	case *schema.DatabaseRuntimeEvent:
-		return handleDatabaseRuntimeEvent(r, e)
-	case *schema.ModuleRuntimeEvent:
-		return handleModuleRuntimeEvent(ctx, r, e)
+	case *schema.DeploymentRuntimeEvent:
+		return handleDeploymentRuntimeEvent(r, e)
 	case *schema.ChangesetCreatedEvent:
 		return handleChangesetCreatedEvent(r, e)
 	case *schema.ChangesetPreparedEvent:
@@ -55,116 +44,35 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 	}
 }
 
-func handleDeploymentSchemaUpdatedEvent(t SchemaState, e *schema.DeploymentSchemaUpdatedEvent) error {
-	if e.Changeset.IsZero() {
-		// The only reason this is optional is for event extract reasons that should change when it is refactored
-		return fmt.Errorf("changeset is required")
+func handleDeploymentRuntimeEvent(t SchemaState, e *schema.DeploymentRuntimeEvent) error {
+	if cs, ok := e.ChangesetKey().Get(); ok {
+		c, ok := t.changesets[cs]
+		if !ok {
+			return fmt.Errorf("changeset %s not found", cs.String())
+		}
+		module := e.DeploymentKey().Payload.Module
+		for _, m := range c.Modules {
+			if m.Name == module {
+				err := e.Payload.ApplyToModule(m)
+				if err != nil {
+					return fmt.Errorf("error applying runtime event to module %s: %w", module, err)
+				}
+				t.changesetEvents[cs] = append(t.changesetEvents[cs], e)
+				return nil
+			}
+		}
 	}
-	cs, ok := t.changesets[e.Changeset]
-	if !ok {
-		return fmt.Errorf("changeset %s not found", e.Key)
-	}
-	for i, m := range cs.Modules {
-		if m.Name == e.Schema.Name {
-			cs.Modules[i] = e.Schema
+	for k, m := range t.deployments {
+		if m.Runtime.Deployment.DeploymentKey == e.DeploymentKey() {
+			err := e.Payload.ApplyToModule(m)
+			if err != nil {
+				return fmt.Errorf("error applying runtime event to module %s: %w", m, err)
+			}
+			t.deploymentEvents[k] = append(t.deploymentEvents[k], e)
 			return nil
 		}
 	}
-
-	return fmt.Errorf("module %s not found in changeset %s", e.Schema.Name, e.Changeset)
-}
-
-func handleDeploymentReplicasUpdatedEvent(t SchemaState, e *schema.DeploymentReplicasUpdatedEvent) error {
-	existing, ok := t.deployments[e.Key.Payload.Module]
-	if !ok {
-		return fmt.Errorf("deployment %s not found", e.Key)
-	}
-	existing.ModRuntime().ModScaling().MinReplicas = int32(e.Replicas)
-	return nil
-}
-
-func handleVerbRuntimeEvent(t SchemaState, e *schema.VerbRuntimeEvent) error {
-	m, storeEvent, err := t.handleRuntimeEvent(e)
-	if err != nil {
-		return err
-	}
-	for verb := range slices.FilterVariants[*schema.Verb](m.Decls) {
-		if verb.Name == e.ID {
-			if verb.Runtime == nil {
-				verb.Runtime = &schema.VerbRuntime{}
-			}
-
-			if subscription, ok := e.Subscription.Get(); ok {
-				verb.Runtime.Subscription = &subscription
-			}
-		}
-	}
-	storeEvent()
-	return nil
-}
-
-func handleTopicRuntimeEvent(t SchemaState, e *schema.TopicRuntimeEvent) error {
-	m, storeEvent, err := t.handleRuntimeEvent(e)
-	if err != nil {
-		return err
-	}
-	for topic := range slices.FilterVariants[*schema.Topic](m.Decls) {
-		if topic.Name == e.ID {
-			topic.Runtime = e.Payload
-			storeEvent()
-			return nil
-		}
-	}
-	return fmt.Errorf("topic %s not found", e.ID)
-}
-
-func handleDatabaseRuntimeEvent(t SchemaState, e *schema.DatabaseRuntimeEvent) error {
-	m, storeEvent, err := t.handleRuntimeEvent(e)
-	if err != nil {
-		return err
-	}
-	for _, decl := range m.Decls {
-		if db, ok := decl.(*schema.Database); ok && db.Name == e.ID {
-			if db.Runtime == nil {
-				db.Runtime = &schema.DatabaseRuntime{}
-			}
-			db.Runtime.Connections = e.Connections
-			storeEvent()
-			return nil
-		}
-	}
-	return fmt.Errorf("database %s not found", e.ID)
-}
-
-func handleModuleRuntimeEvent(ctx context.Context, t SchemaState, e *schema.ModuleRuntimeEvent) error {
-	module, storeEvent, err := t.handleRuntimeEvent(e)
-	if err != nil {
-		return err
-	}
-
-	if base, ok := e.Base.Get(); ok {
-		module.ModRuntime().Base = base
-	}
-	if scaling, ok := e.Scaling.Get(); ok {
-		module.ModRuntime().Scaling = &scaling
-	}
-	if runner, ok := e.Runner.Get(); ok {
-		module.ModRuntime().Runner = &runner
-	}
-	if deployment, ok := e.Deployment.Get(); ok {
-		if deployment.State == schema.DeploymentStateUnspecified {
-			deployment.State = module.Runtime.Deployment.State
-		} else if deployment.State != module.Runtime.Deployment.State {
-			// We only allow a few different externally driven state changes
-			if !(module.Runtime.Deployment.State == schema.DeploymentStateProvisioning && deployment.State == schema.DeploymentStateReady) {
-				return fmt.Errorf("invalid state transition from %d to %d", module.Runtime.Deployment.State, deployment.State)
-			}
-		}
-		log.FromContext(ctx).Debugf("deployment %s state change %v -> %v", module.Name, module.Runtime.Deployment, deployment)
-		module.ModRuntime().Deployment = &deployment
-	}
-	storeEvent()
-	return nil
+	return fmt.Errorf("deployment %s not found", e.DeploymentKey().String())
 }
 
 func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent) error {

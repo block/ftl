@@ -18,6 +18,9 @@ type RuntimeElement struct {
 func (x *RuntimeElement) ApplyToModule(state *Module) error {
 	switch v := x.Element.(type) {
 	case *ModuleRuntimeDeployment:
+		if v.DeploymentKey.IsZero() {
+			v.DeploymentKey = state.Runtime.Deployment.DeploymentKey
+		}
 		state.Runtime.Deployment = v
 	case *ModuleRuntimeScaling:
 		state.Runtime.Scaling = v
