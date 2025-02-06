@@ -15,9 +15,13 @@ spec:
     metadata:
       labels:
         {{- include "ftl-cron.selectorLabels" . | nindent 8 }}
-      {{- if .Values.cron.podAnnotations }}
       annotations:
+      {{- if .Values.cron.podAnnotations }}
         {{- toYaml .Values.cron.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{ if .Values.istio.holdApplicationUntilProxyStarts }}
+        proxy.istio.io/config: |
+          holdApplicationUntilProxyStarts: true
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.cron.serviceAccountName }}

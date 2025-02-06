@@ -74,9 +74,7 @@ controller:
         protocol: TCP
         targetPort: 8892
 
-  podAnnotations:
-    proxy.istio.io/config: |
-      holdApplicationUntilProxyStarts: true
+  podAnnotations: null
   nodeSelector: null
   affinity: null
   topologySpreadConstraints: null
@@ -120,9 +118,7 @@ provisioner:
 
   readinessProbe: null
 
-  podAnnotations:
-      proxy.istio.io/config: |
-        holdApplicationUntilProxyStarts: true
+  podAnnotations: null
   nodeSelector: null
   affinity: null
   topologySpreadConstraints: null
@@ -166,9 +162,7 @@ runner:
 
   readinessProbe: null
 
-  podAnnotations:
-    proxy.istio.io/config: |
-      holdApplicationUntilProxyStarts: true
+  podAnnotations: null
   nodeSelector: null
   affinity: null
   topologySpreadConstraints: null
@@ -184,6 +178,7 @@ cron:
 
   envFrom: null
   serviceAccountName: ftl-cron
+  podAnnotations: null
 
   env:
     - name: FTL_ENDPOINT
@@ -278,9 +273,7 @@ ingress:
         protocol: TCP
         targetPort: 8891
 
-  podAnnotations:
-    proxy.istio.io/config: |
-      holdApplicationUntilProxyStarts: true
+  podAnnotations: null
   nodeSelector: null
   affinity: null
   topologySpreadConstraints: null
@@ -337,9 +330,7 @@ timeline:
         protocol: TCP
         targetPort: 8892
 
-  podAnnotations:
-    proxy.istio.io/config: |
-      holdApplicationUntilProxyStarts: true
+  podAnnotations: null
   nodeSelector: null
   affinity: null
   topologySpreadConstraints: null
@@ -409,9 +400,7 @@ schema:
       annotations: null
       containerPort: 8992
       port: 8992
-  podAnnotations:
-    proxy.istio.io/config: |
-      holdApplicationUntilProxyStarts: true
+  podAnnotations: null
   nodeSelector: null
   affinity: null
   topologySpreadConstraints: null
@@ -472,9 +461,7 @@ console:
         protocol: TCP
         targetPort: 8892
 
-  podAnnotations:
-    proxy.istio.io/config: |
-      holdApplicationUntilProxyStarts: true
+  podAnnotations: null
   nodeSelector: null
   affinity: null
   topologySpreadConstraints: null

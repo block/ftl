@@ -16,9 +16,13 @@ spec:
     metadata:
       labels:
         {{- include "ftl-http-ingress.selectorLabels" . | nindent 8 }}
-      {{- if .Values.ingress.podAnnotations }}
       annotations:
+      {{- if .Values.ingress.podAnnotations }}
         {{- toYaml .Values.ingress.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{ if .Values.istio.holdApplicationUntilProxyStarts }}
+        proxy.istio.io/config: |
+          holdApplicationUntilProxyStarts: true
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.ingress.serviceAccountName }}
