@@ -59,7 +59,7 @@ func (c streamSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.
 }
 
 func (c streamSchemaRetriever) GetLatestSchema(ctx context.Context) (*schema.Schema, error) {
-	view := c.source.LatestView()
+	view := c.source.CanonicalView()
 	return &schema.Schema{Modules: view.Modules}, nil
 }
 

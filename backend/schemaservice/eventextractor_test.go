@@ -47,18 +47,25 @@ func TestEventExtractor(t *testing.T) {
 			},
 			want: []*ftlv1.PullSchemaResponse{
 				{
-					Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-						DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-							Schema: &schemapb.Module{Name: "test",
+					Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{
+						FullSchemaNotification: &schemapb.FullSchemaNotification{
+							Schema: &schemapb.Schema{
 								Pos: &schemapb.Position{},
-								Runtime: &schemapb.ModuleRuntime{
-									Base: &schemapb.ModuleRuntimeBase{Language: "go", Os: &empty, Arch: &empty, Image: &empty, CreateTime: timestamppb.New(now)},
-									Deployment: &schemapb.ModuleRuntimeDeployment{
-										CreatedAt:     timestamppb.New(now),
-										DeploymentKey: newKey.String(),
+								Modules: []*schemapb.Module{
+									{Name: "test",
+										Pos: &schemapb.Position{},
+										Runtime: &schemapb.ModuleRuntime{
+											Base: &schemapb.ModuleRuntimeBase{Language: "go", Os: &empty, Arch: &empty, Image: &empty, CreateTime: timestamppb.New(now)},
+											Deployment: &schemapb.ModuleRuntimeDeployment{
+												CreatedAt:     timestamppb.New(now),
+												DeploymentKey: newKey.String(),
+											},
+										},
 									},
-								}},
+								},
+							},
 						},
+					},
 					},
 				},
 			},

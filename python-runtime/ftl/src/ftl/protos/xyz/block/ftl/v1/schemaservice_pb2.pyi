@@ -26,62 +26,10 @@ class PullSchemaRequest(_message.Message):
     def __init__(self, subscription_id: _Optional[str] = ...) -> None: ...
 
 class PullSchemaResponse(_message.Message):
-    __slots__ = ("changeset_created", "changeset_failed", "changeset_committed", "deployment_created", "deployment_updated", "deployment_removed", "more")
-    class ChangesetCreated(_message.Message):
-        __slots__ = ("changeset",)
-        CHANGESET_FIELD_NUMBER: _ClassVar[int]
-        changeset: _schema_pb2.Changeset
-        def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
-    class ChangesetFailed(_message.Message):
-        __slots__ = ("key", "error")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        ERROR_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        error: str
-        def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
-    class ChangesetCommitted(_message.Message):
-        __slots__ = ("changeset",)
-        CHANGESET_FIELD_NUMBER: _ClassVar[int]
-        changeset: _schema_pb2.Changeset
-        def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
-    class DeploymentCreated(_message.Message):
-        __slots__ = ("changeset", "schema")
-        CHANGESET_FIELD_NUMBER: _ClassVar[int]
-        SCHEMA_FIELD_NUMBER: _ClassVar[int]
-        changeset: str
-        schema: _schema_pb2.Module
-        def __init__(self, changeset: _Optional[str] = ..., schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
-    class DeploymentUpdated(_message.Message):
-        __slots__ = ("changeset", "schema")
-        CHANGESET_FIELD_NUMBER: _ClassVar[int]
-        SCHEMA_FIELD_NUMBER: _ClassVar[int]
-        changeset: str
-        schema: _schema_pb2.Module
-        def __init__(self, changeset: _Optional[str] = ..., schema: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
-    class DeploymentRemoved(_message.Message):
-        __slots__ = ("key", "module_name", "module_removed")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        MODULE_NAME_FIELD_NUMBER: _ClassVar[int]
-        MODULE_REMOVED_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        module_name: str
-        module_removed: bool
-        def __init__(self, key: _Optional[str] = ..., module_name: _Optional[str] = ..., module_removed: bool = ...) -> None: ...
-    CHANGESET_CREATED_FIELD_NUMBER: _ClassVar[int]
-    CHANGESET_FAILED_FIELD_NUMBER: _ClassVar[int]
-    CHANGESET_COMMITTED_FIELD_NUMBER: _ClassVar[int]
-    DEPLOYMENT_CREATED_FIELD_NUMBER: _ClassVar[int]
-    DEPLOYMENT_UPDATED_FIELD_NUMBER: _ClassVar[int]
-    DEPLOYMENT_REMOVED_FIELD_NUMBER: _ClassVar[int]
-    MORE_FIELD_NUMBER: _ClassVar[int]
-    changeset_created: PullSchemaResponse.ChangesetCreated
-    changeset_failed: PullSchemaResponse.ChangesetFailed
-    changeset_committed: PullSchemaResponse.ChangesetCommitted
-    deployment_created: PullSchemaResponse.DeploymentCreated
-    deployment_updated: PullSchemaResponse.DeploymentUpdated
-    deployment_removed: PullSchemaResponse.DeploymentRemoved
-    more: bool
-    def __init__(self, changeset_created: _Optional[_Union[PullSchemaResponse.ChangesetCreated, _Mapping]] = ..., changeset_failed: _Optional[_Union[PullSchemaResponse.ChangesetFailed, _Mapping]] = ..., changeset_committed: _Optional[_Union[PullSchemaResponse.ChangesetCommitted, _Mapping]] = ..., deployment_created: _Optional[_Union[PullSchemaResponse.DeploymentCreated, _Mapping]] = ..., deployment_updated: _Optional[_Union[PullSchemaResponse.DeploymentUpdated, _Mapping]] = ..., deployment_removed: _Optional[_Union[PullSchemaResponse.DeploymentRemoved, _Mapping]] = ..., more: bool = ...) -> None: ...
+    __slots__ = ("event",)
+    EVENT_FIELD_NUMBER: _ClassVar[int]
+    event: _schema_pb2.Notification
+    def __init__(self, event: _Optional[_Union[_schema_pb2.Notification, _Mapping]] = ...) -> None: ...
 
 class UpdateDeploymentRuntimeRequest(_message.Message):
     __slots__ = ("changeset", "update")

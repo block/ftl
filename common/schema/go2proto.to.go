@@ -346,6 +346,27 @@ func ChangesetCommittedEventFromProto(v *destpb.ChangesetCommittedEvent) (out *C
 	return out, nil
 }
 
+func (x *ChangesetCommittedNotification) ToProto() *destpb.ChangesetCommittedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetCommittedNotification{
+		Changeset: x.Changeset.ToProto(),
+	}
+}
+
+func ChangesetCommittedNotificationFromProto(v *destpb.ChangesetCommittedNotification) (out *ChangesetCommittedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetCommittedNotification{}
+	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	return out, nil
+}
+
 func (x *ChangesetCreatedEvent) ToProto() *destpb.ChangesetCreatedEvent {
 	if x == nil {
 		return nil
@@ -370,6 +391,27 @@ func ChangesetCreatedEventFromProto(v *destpb.ChangesetCreatedEvent) (out *Chang
 	return out, nil
 }
 
+func (x *ChangesetCreatedNotification) ToProto() *destpb.ChangesetCreatedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetCreatedNotification{
+		Changeset: x.Changeset.ToProto(),
+	}
+}
+
+func ChangesetCreatedNotificationFromProto(v *destpb.ChangesetCreatedNotification) (out *ChangesetCreatedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetCreatedNotification{}
+	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	return out, nil
+}
+
 func (x *ChangesetDrainedEvent) ToProto() *destpb.ChangesetDrainedEvent {
 	if x == nil {
 		return nil
@@ -390,6 +432,27 @@ func ChangesetDrainedEventFromProto(v *destpb.ChangesetDrainedEvent) (out *Chang
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
+	}
+	return out, nil
+}
+
+func (x *ChangesetDrainedNotification) ToProto() *destpb.ChangesetDrainedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetDrainedNotification{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetDrainedNotificationFromProto(v *destpb.ChangesetDrainedNotification) (out *ChangesetDrainedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetDrainedNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
 	}
 	return out, nil
 }
@@ -422,6 +485,31 @@ func ChangesetFailedEventFromProto(v *destpb.ChangesetFailedEvent) (out *Changes
 	return out, nil
 }
 
+func (x *ChangesetFailedNotification) ToProto() *destpb.ChangesetFailedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetFailedNotification{
+		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Error: orZero(ptr(string(x.Error))),
+	}
+}
+
+func ChangesetFailedNotificationFromProto(v *destpb.ChangesetFailedNotification) (out *ChangesetFailedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetFailedNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
+	}
+	return out, nil
+}
+
 func (x *ChangesetFinalizedEvent) ToProto() *destpb.ChangesetFinalizedEvent {
 	if x == nil {
 		return nil
@@ -446,6 +534,27 @@ func ChangesetFinalizedEventFromProto(v *destpb.ChangesetFinalizedEvent) (out *C
 	return out, nil
 }
 
+func (x *ChangesetFinalizedNotification) ToProto() *destpb.ChangesetFinalizedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetFinalizedNotification{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetFinalizedNotificationFromProto(v *destpb.ChangesetFinalizedNotification) (out *ChangesetFinalizedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetFinalizedNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	return out, nil
+}
+
 func (x *ChangesetPreparedEvent) ToProto() *destpb.ChangesetPreparedEvent {
 	if x == nil {
 		return nil
@@ -466,6 +575,52 @@ func ChangesetPreparedEventFromProto(v *destpb.ChangesetPreparedEvent) (out *Cha
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
+	}
+	return out, nil
+}
+
+func (x *ChangesetPreparedNotification) ToProto() *destpb.ChangesetPreparedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetPreparedNotification{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetPreparedNotificationFromProto(v *destpb.ChangesetPreparedNotification) (out *ChangesetPreparedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetPreparedNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	return out, nil
+}
+
+func (x *ChangesetRollingBackNotification) ToProto() *destpb.ChangesetRollingBackNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetRollingBackNotification{
+		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Error: orZero(ptr(string(x.Error))),
+	}
+}
+
+func ChangesetRollingBackNotificationFromProto(v *destpb.ChangesetRollingBackNotification) (out *ChangesetRollingBackNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetRollingBackNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
 	}
 	return out, nil
 }
@@ -835,6 +990,31 @@ func DeploymentRuntimeEventFromProto(v *destpb.DeploymentRuntimeEvent) (out *Dep
 	return out, nil
 }
 
+func (x *DeploymentRuntimeNotification) ToProto() *destpb.DeploymentRuntimeNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.DeploymentRuntimeNotification{
+		Payload:   x.Payload.ToProto(),
+		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
+	}
+}
+
+func DeploymentRuntimeNotificationFromProto(v *destpb.DeploymentRuntimeNotification) (out *DeploymentRuntimeNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &DeploymentRuntimeNotification{}
+	if out.Payload, err = result.From(RuntimeElementFromProto(v.Payload)).Result(); err != nil {
+		return nil, fmt.Errorf("Payload: %w", err)
+	}
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	return out, nil
+}
+
 func (x DeploymentState) ToProto() destpb.DeploymentState {
 	return destpb.DeploymentState(x)
 }
@@ -1053,6 +1233,31 @@ func (x FromOffset) ToProto() destpb.FromOffset {
 func FromOffsetFromProto(v destpb.FromOffset) (FromOffset, error) {
 	// TODO: Check if the value is valid.
 	return FromOffset(v), nil
+}
+
+func (x *FullSchemaNotification) ToProto() *destpb.FullSchemaNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.FullSchemaNotification{
+		Schema:     x.Schema.ToProto(),
+		Changesets: sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
+	}
+}
+
+func FullSchemaNotificationFromProto(v *destpb.FullSchemaNotification) (out *FullSchemaNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &FullSchemaNotification{}
+	if out.Schema, err = result.From(SchemaFromProto(v.Schema)).Result(); err != nil {
+		return nil, fmt.Errorf("Schema: %w", err)
+	}
+	if out.Changesets, err = sliceMapR(v.Changesets, func(v *destpb.Changeset) result.Result[*Changeset] { return result.From(ChangesetFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Changesets: %w", err)
+	}
+	return out, nil
 }
 
 // IngressPathComponentToProto converts a IngressPathComponent sum type to a protobuf message.
@@ -2010,6 +2215,80 @@ func ModuleRuntimeScalingFromProto(v *destpb.ModuleRuntimeScaling) (out *ModuleR
 		return nil, fmt.Errorf("MinReplicas: %w", err)
 	}
 	return out, nil
+}
+
+// NotificationToProto converts a Notification sum type to a protobuf message.
+func NotificationToProto(value Notification) *destpb.Notification {
+	switch value := value.(type) {
+	case nil:
+		return nil
+	case *ChangesetCommittedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetCommittedNotification{value.ToProto()},
+		}
+	case *ChangesetCreatedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetCreatedNotification{value.ToProto()},
+		}
+	case *ChangesetDrainedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetDrainedNotification{value.ToProto()},
+		}
+	case *ChangesetFailedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetFailedNotification{value.ToProto()},
+		}
+	case *ChangesetFinalizedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetFinalizedNotification{value.ToProto()},
+		}
+	case *ChangesetPreparedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetPreparedNotification{value.ToProto()},
+		}
+	case *ChangesetRollingBackNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetRollingBackNotification{value.ToProto()},
+		}
+	case *DeploymentRuntimeNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_DeploymentRuntimeNotification{value.ToProto()},
+		}
+	case *FullSchemaNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_FullSchemaNotification{value.ToProto()},
+		}
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", value))
+	}
+}
+
+func NotificationFromProto(v *destpb.Notification) (Notification, error) {
+	if v == nil {
+		return nil, nil
+	}
+	switch v.Value.(type) {
+	case *destpb.Notification_ChangesetCommittedNotification:
+		return ChangesetCommittedNotificationFromProto(v.GetChangesetCommittedNotification())
+	case *destpb.Notification_ChangesetCreatedNotification:
+		return ChangesetCreatedNotificationFromProto(v.GetChangesetCreatedNotification())
+	case *destpb.Notification_ChangesetDrainedNotification:
+		return ChangesetDrainedNotificationFromProto(v.GetChangesetDrainedNotification())
+	case *destpb.Notification_ChangesetFailedNotification:
+		return ChangesetFailedNotificationFromProto(v.GetChangesetFailedNotification())
+	case *destpb.Notification_ChangesetFinalizedNotification:
+		return ChangesetFinalizedNotificationFromProto(v.GetChangesetFinalizedNotification())
+	case *destpb.Notification_ChangesetPreparedNotification:
+		return ChangesetPreparedNotificationFromProto(v.GetChangesetPreparedNotification())
+	case *destpb.Notification_ChangesetRollingBackNotification:
+		return ChangesetRollingBackNotificationFromProto(v.GetChangesetRollingBackNotification())
+	case *destpb.Notification_DeploymentRuntimeNotification:
+		return DeploymentRuntimeNotificationFromProto(v.GetDeploymentRuntimeNotification())
+	case *destpb.Notification_FullSchemaNotification:
+		return FullSchemaNotificationFromProto(v.GetFullSchemaNotification())
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", v.Value))
+	}
 }
 
 func (x *Optional) ToProto() *destpb.Optional {

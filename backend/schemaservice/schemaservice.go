@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"connectrpc.com/connect"
+	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -288,41 +289,19 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 		return fmt.Errorf("failed to get schema state: %w", err)
 	}
 
-	// TODO: update this to send changesets as well
+	modules := append([]*schema.Module{}, schema.Builtins())
+	modules = append(modules, maps.Values(view.GetCanonicalDeployments())...)
 
-	// Seed the notification channel with the current deployments.
-	seedDeployments := view.GetCanonicalDeployments()
-	initialCount := len(seedDeployments)
-
-	builtins := schema.Builtins().ToProto()
-	builtinsResponse := &ftlv1.PullSchemaResponse{
-		Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-			DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-				Schema: builtins,
-			},
-		},
-		More: initialCount > 0,
+	notification := &schema.FullSchemaNotification{
+		Schema:     &schema.Schema{Modules: modules},
+		Changesets: maps.Values(view.GetChangesets()),
 	}
-	err = sendChange(builtinsResponse)
+	err = sendChange(&ftlv1.PullSchemaResponse{
+		Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{notification.ToProto()}},
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send initial schema: %w", err)
 	}
-	for _, initial := range seedDeployments {
-		initialCount--
-		module := initial.ToProto()
-		err := sendChange(&ftlv1.PullSchemaResponse{
-			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-					Schema: module,
-				},
-			},
-			More: initialCount > 0,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	logger.Tracef("Seeded %d deployments", initialCount)
 
 	for notification := range iterops.Changes(stateIter, EventExtractor) {
 		logger.Debugf("Send Notification (subscription: %s, event: %T)", subscriptionID, notification.Event)

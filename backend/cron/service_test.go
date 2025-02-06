@@ -62,9 +62,7 @@ func TestCron(t *testing.T) {
 			},
 		},
 	}
-	eventSource.Publish(schemaeventsource.EventUpsert{
-		Module: module,
-	})
+	assert.NoError(t, eventSource.PublishModuleForTest(module))
 
 	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, log.Config{Level: log.Trace}))
 	timelineEndpoint, err := url.Parse("http://localhost:8080")

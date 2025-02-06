@@ -20,8 +20,8 @@ func syncView(ctx context.Context, schemaEventSource schemaeventsource.EventSour
 	})
 	logger.Debugf("Starting routing sync from schema")
 	go func() {
-		for event := range channels.IterContext(ctx, schemaEventSource.Events()) {
-			state := extractIngressRoutingEntries(event.GetCanonical())
+		for range channels.IterContext(ctx, schemaEventSource.Events()) {
+			state := extractIngressRoutingEntries(schemaEventSource.CanonicalView())
 			out.Store(state)
 		}
 	}()

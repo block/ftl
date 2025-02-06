@@ -7,9 +7,9 @@ import (
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
-func Predictors(view schemaeventsource.View) map[string]complete.Predictor {
+func Predictors(view *schemaeventsource.View) map[string]complete.Predictor {
 	return map[string]complete.Predictor{
-		"verbs": &verbPredictor{view: view},
+		"verbs": &verbPredictor{view: *view},
 	}
 }
 

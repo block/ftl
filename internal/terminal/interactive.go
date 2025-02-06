@@ -192,7 +192,7 @@ func errorf(format string, args ...any) {
 
 type FTLCompletion struct {
 	app  *kong.Kong
-	view schemaeventsource.View
+	view *schemaeventsource.View
 }
 
 func (f *FTLCompletion) Do(line []rune, pos int) ([][]rune, int) {

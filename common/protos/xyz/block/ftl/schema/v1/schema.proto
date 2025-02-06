@@ -52,11 +52,23 @@ message ChangesetCommittedEvent {
   string key = 1;
 }
 
+message ChangesetCommittedNotification {
+  Changeset changeset = 1;
+}
+
 message ChangesetCreatedEvent {
   Changeset changeset = 1;
 }
 
+message ChangesetCreatedNotification {
+  Changeset changeset = 1;
+}
+
 message ChangesetDrainedEvent {
+  string key = 1;
+}
+
+message ChangesetDrainedNotification {
   string key = 1;
 }
 
@@ -65,12 +77,30 @@ message ChangesetFailedEvent {
   string error = 2;
 }
 
+message ChangesetFailedNotification {
+  string key = 1;
+  string error = 2;
+}
+
 message ChangesetFinalizedEvent {
+  string key = 1;
+}
+
+message ChangesetFinalizedNotification {
   string key = 1;
 }
 
 message ChangesetPreparedEvent {
   string key = 1;
+}
+
+message ChangesetPreparedNotification {
+  string key = 1;
+}
+
+message ChangesetRollingBackNotification {
+  string key = 1;
+  string error = 2;
 }
 
 enum ChangesetState {
@@ -157,6 +187,11 @@ message DeploymentRuntimeEvent {
   string changeset = 2;
 }
 
+message DeploymentRuntimeNotification {
+  RuntimeElement payload = 1;
+  string changeset = 2;
+}
+
 enum DeploymentState {
   DEPLOYMENT_STATE_UNSPECIFIED = 0;
   DEPLOYMENT_STATE_PROVISIONING = 1;
@@ -214,6 +249,11 @@ enum FromOffset {
   FROM_OFFSET_UNSPECIFIED = 0;
   FROM_OFFSET_BEGINNING = 1;
   FROM_OFFSET_LATEST = 2;
+}
+
+message FullSchemaNotification {
+  Schema schema = 1;
+  repeated Changeset changesets = 2;
 }
 
 message IngressPathComponent {
@@ -414,6 +454,20 @@ message ModuleRuntimeRunner {
 
 message ModuleRuntimeScaling {
   int32 min_replicas = 1;
+}
+
+message Notification {
+  oneof value {
+    ChangesetCommittedNotification changeset_committed_notification = 5;
+    ChangesetCreatedNotification changeset_created_notification = 3;
+    ChangesetDrainedNotification changeset_drained_notification = 6;
+    ChangesetFailedNotification changeset_failed_notification = 9;
+    ChangesetFinalizedNotification changeset_finalized_notification = 7;
+    ChangesetPreparedNotification changeset_prepared_notification = 4;
+    ChangesetRollingBackNotification changeset_rolling_back_notification = 8;
+    DeploymentRuntimeNotification deployment_runtime_notification = 2;
+    FullSchemaNotification full_schema_notification = 1;
+  }
 }
 
 // Optional represents a Type whose value may be optional.

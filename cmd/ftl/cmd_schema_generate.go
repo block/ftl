@@ -17,6 +17,7 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
@@ -84,49 +85,52 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.S
 			}
 
 			modules := map[string]*schema.Module{}
-			regenerate := false
 			for stream.Receive() {
 				msg := stream.Msg()
-				switch msg := msg.Event.(type) {
-				case *ftlv1.PullSchemaResponse_ChangesetCreated_:
-
-				case *ftlv1.PullSchemaResponse_ChangesetFailed_:
-
-				case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
-					// TODO: need to implement this so we can move deployments from changeset to canonical
-				case *ftlv1.PullSchemaResponse_DeploymentCreated_:
-					event := msg.DeploymentCreated
-					module, err := schema.ValidatedModuleFromProto(event.Schema)
-					if err != nil {
-						return fmt.Errorf("invalid module: %w", err)
+				switch msg := msg.Event.Value.(type) {
+				case *schemapb.Notification_FullSchemaNotification:
+					for _, m := range msg.FullSchemaNotification.Schema.Modules {
+						module, err := schema.ValidatedModuleFromProto(m)
+						if err != nil {
+							return fmt.Errorf("invalid module: %w", err)
+						}
+						modules[module.Name] = module
 					}
-					modules[module.Name] = module
-
-				case *ftlv1.PullSchemaResponse_DeploymentUpdated_:
-					event := msg.DeploymentUpdated
-					module, err := schema.ValidatedModuleFromProto(event.Schema)
+				case *schemapb.Notification_DeploymentRuntimeNotification:
+					not, err := schema.DeploymentRuntimeNotificationFromProto(msg.DeploymentRuntimeNotification)
 					if err != nil {
-						return fmt.Errorf("invalid module: %w", err)
+						return fmt.Errorf("invalid deployment runtime notification: %w", err)
 					}
-					modules[module.Name] = module
-				case *ftlv1.PullSchemaResponse_DeploymentRemoved_:
-					event := msg.DeploymentRemoved
-					delete(modules, event.ModuleName)
+					if not.Changeset == nil || not.Changeset.IsZero() {
+						m, ok := modules[not.Payload.Deployment.Payload.Module]
+						if ok {
+							err := not.Payload.ApplyToModule(m)
+							if err != nil {
+								return fmt.Errorf("failed to apply deployment runtime: %w", err)
+							}
+						}
+					}
+				case *schemapb.Notification_ChangesetCreatedNotification:
+				case *schemapb.Notification_ChangesetPreparedNotification:
+				case *schemapb.Notification_ChangesetCommittedNotification:
+					for _, m := range msg.ChangesetCommittedNotification.Changeset.RemovingModules {
+						delete(modules, m.Name)
+					}
+					for _, m := range msg.ChangesetCommittedNotification.Changeset.Modules {
+						module, err := schema.ValidatedModuleFromProto(m)
+						if err != nil {
+							return fmt.Errorf("invalid module: %w", err)
+						}
+						modules[module.Name] = module
+					}
+
+					moduleChange <- maps.Values(modules)
 				}
 
-				if !msg.More {
-					regenerate = true
-				}
-				if !regenerate {
-					continue
-				}
-
-				moduleChange <- maps.Values(modules)
+				stream.Close()
+				logger.Debugf("Stream disconnected, attempting to reconnect...")
+				time.Sleep(s.ReconnectDelay)
 			}
-
-			stream.Close()
-			logger.Debugf("Stream disconnected, attempting to reconnect...")
-			time.Sleep(s.ReconnectDelay)
 		}
 	})
 

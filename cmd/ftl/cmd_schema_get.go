@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"strings"
 
 	"connectrpc.com/connect"
 	"golang.org/x/exp/maps"
@@ -42,27 +41,20 @@ func (g *getSchemaCmd) Run(ctx context.Context, client ftlv1connect.SchemaServic
 	}
 	for resp.Receive() {
 		msg := resp.Msg()
-		switch e := msg.Event.(type) {
-		case *ftlv1.PullSchemaResponse_DeploymentCreated_:
-			s := e.DeploymentCreated.Schema
-			err = g.handleSchema(s, remainingNames, msg.More)
+		switch e := msg.Event.Value.(type) {
+		case *schemapb.Notification_FullSchemaNotification:
+			err = g.handleSchema(e.FullSchemaNotification.Schema.Modules...)
 			if err != nil {
 				return err
 			}
-			if !msg.More && !g.Watch {
+			if !g.Watch {
 				return nil
 			}
-		case *ftlv1.PullSchemaResponse_DeploymentUpdated_:
-			s := e.DeploymentUpdated.Schema
-			err = g.handleSchema(s, remainingNames, msg.More)
+		case *schemapb.Notification_ChangesetCommittedNotification:
+			err = g.handleSchema(e.ChangesetCommittedNotification.Changeset.Modules...)
 			if err != nil {
 				return err
 			}
-			if !msg.More && !g.Watch {
-				return nil
-			}
-		case *ftlv1.PullSchemaResponse_DeploymentRemoved_:
-			fmt.Printf("deployment %s removed\n", *e.DeploymentRemoved.Key)
 		default:
 			// Ignore for now
 		}
@@ -74,27 +66,14 @@ func (g *getSchemaCmd) Run(ctx context.Context, client ftlv1connect.SchemaServic
 	return nil
 }
 
-func (g *getSchemaCmd) handleSchema(s *schemapb.Module, remainingNames map[string]bool, more bool) error {
-	if s == nil {
-		return fmt.Errorf("schema is nil for added/changed deployment %q", s.Runtime.Deployment.DeploymentKey)
-	}
-	module, err := schema.ValidatedModuleFromProto(s)
-	if err != nil {
-		return fmt.Errorf("invalid module: %w", err)
-	}
-	if len(g.Modules) == 0 || remainingNames[s.Name] {
-		fmt.Println(module)
-		delete(remainingNames, s.Name)
-	}
-	if !more {
-		missingNames := maps.Keys(remainingNames)
-		slices.Sort(missingNames)
-		if len(missingNames) > 0 {
-			if g.Watch {
-				fmt.Printf("missing modules: %s\n", strings.Join(missingNames, ", "))
-			} else {
-				return fmt.Errorf("missing modules: %s", strings.Join(missingNames, ", "))
-			}
+func (g *getSchemaCmd) handleSchema(modules ...*schemapb.Module) error {
+	for _, s := range modules {
+		module, err := schema.ValidatedModuleFromProto(s)
+		if err != nil {
+			return fmt.Errorf("invalid module: %w", err)
+		}
+		if len(g.Modules) == 0 || slices.Contains(g.Modules, s.Name) {
+			fmt.Println(module)
 		}
 	}
 	return nil
@@ -105,17 +84,18 @@ func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.Pu
 	for _, name := range g.Modules {
 		remainingNames[name] = true
 	}
+
 	schema := &schemapb.Schema{}
 	for resp.Receive() {
 		msg := resp.Msg()
 
-		switch e := msg.Event.(type) {
-		case *ftlv1.PullSchemaResponse_DeploymentCreated_:
-			if len(g.Modules) == 0 || remainingNames[e.DeploymentCreated.Schema.Name] {
-				schema.Modules = append(schema.Modules, e.DeploymentCreated.Schema)
-				delete(remainingNames, e.DeploymentCreated.Schema.Name)
-			}
-			if !msg.More {
+		switch e := msg.Event.Value.(type) {
+		case *schemapb.Notification_FullSchemaNotification:
+			for _, module := range e.FullSchemaNotification.Schema.Modules {
+				if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
+					schema.Modules = append(schema.Modules, module)
+					delete(remainingNames, module.Name)
+				}
 				break
 			}
 		default:
@@ -146,19 +126,19 @@ func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.P
 	schema := &schemapb.Schema{}
 	for resp.Receive() {
 		msg := resp.Msg()
-		switch e := msg.Event.(type) {
-		case *ftlv1.PullSchemaResponse_DeploymentCreated_:
-			if len(g.Modules) == 0 || remainingNames[e.DeploymentCreated.Schema.Name] {
-				schema.Modules = append(schema.Modules, e.DeploymentCreated.Schema)
-				delete(remainingNames, e.DeploymentCreated.Schema.Name)
-			}
-			if !msg.More {
+
+		switch e := msg.Event.Value.(type) {
+		case *schemapb.Notification_FullSchemaNotification:
+			for _, module := range e.FullSchemaNotification.Schema.Modules {
+				if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
+					schema.Modules = append(schema.Modules, module)
+					delete(remainingNames, module.Name)
+				}
 				break
 			}
 		default:
 			// Ignore for now
 		}
-
 	}
 	if err := resp.Err(); err != nil {
 		return err
