@@ -95,7 +95,7 @@ type Engine struct {
 	moduleDirs          []string
 	watcher             *watch.Watcher // only watches for module toml changes
 	controllerSchema    *xsync.MapOf[string, *schema.Module]
-	schemaChanges       *pubsub.Topic[schemaeventsource.Event]
+	schemaChanges       *pubsub.Topic[schema.Notification]
 	cancel              context.CancelCauseFunc
 	parallelism         int
 	modulesToBuild      *xsync.MapOf[string, bool]
@@ -178,7 +178,7 @@ func New(
 		moduleMetas:         xsync.NewMapOf[string, moduleMeta](),
 		watcher:             watch.NewWatcher(optional.Some(projectConfig.WatchModulesLockPath()), "ftl.toml"),
 		controllerSchema:    xsync.NewMapOf[string, *schema.Module](),
-		schemaChanges:       pubsub.New[schemaeventsource.Event](),
+		schemaChanges:       pubsub.New[schema.Notification](),
 		pluginEvents:        make(chan languageplugin.PluginEvent, 128),
 		parallelism:         runtime.NumCPU(),
 		modulesToBuild:      xsync.NewMapOf[string, bool](),
@@ -258,12 +258,9 @@ func (e *Engine) startSchemaSync(ctx context.Context) {
 	if !e.schemaSource.Live() {
 		logger.Debugf("Schema source is not live, skipping initial sync.")
 	} else {
-	initialSync:
-		for event := range channels.IterContext(ctx, e.schemaSource.Events()) {
-			e.processEvent(event)
-			if !event.More() {
-				break initialSync
-			}
+		e.schemaSource.WaitForInitialSync(ctx)
+		for _, module := range e.schemaSource.CanonicalView().Modules {
+			e.controllerSchema.Store(module.Name, module)
 		}
 	}
 
@@ -274,16 +271,17 @@ func (e *Engine) startSchemaSync(ctx context.Context) {
 	}()
 }
 
-func (e *Engine) processEvent(event schemaeventsource.Event) {
+func (e *Engine) processEvent(event schema.Notification) {
 	switch event := event.(type) {
-	case schemaeventsource.EventUpsert:
-		// TODO: timing issue? Changeset updates modules, then canonical deployment is updated? edge case...
-		e.controllerSchema.Store(event.Module.Name, event.Module)
+	case *schema.ChangesetCommittedNotification:
+		for _, removed := range event.Changeset.RemovingModules {
+			e.controllerSchema.Delete(removed.Name)
+		}
+		for _, module := range event.Changeset.Modules {
+			e.controllerSchema.Store(module.Name, module)
+		}
+	default:
 
-	case schemaeventsource.EventRemove:
-		e.controllerSchema.Delete(event.Module)
-
-	case schemaeventsource.EventChangesetEnded, schemaeventsource.EventChangesetStarted:
 	}
 	e.schemaChanges.Publish(event)
 }
@@ -386,7 +384,7 @@ func (e *Engine) Dev(ctx context.Context, period time.Duration) error {
 func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration) error {
 	logger := log.FromContext(ctx)
 
-	schemaChanges := make(chan schemaeventsource.Event, 128)
+	schemaChanges := make(chan schema.Notification, 128)
 	e.schemaChanges.Subscribe(schemaChanges)
 	defer func() {
 		e.schemaChanges.Unsubscribe(schemaChanges)
@@ -497,31 +495,39 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 			}
 		case event := <-schemaChanges:
 			switch event := event.(type) {
-			case schemaeventsource.EventRemove:
-				continue
-			case schemaeventsource.EventUpsert:
-				existingHash, ok := moduleHashes[event.Module.Name]
-				if !ok {
-					existingHash = []byte{}
+			case *schema.ChangesetCommittedNotification:
+				inCs := map[string]bool{}
+				for _, module := range event.Changeset.Modules {
+					inCs[module.Name] = true
 				}
+				for _, module := range event.Changeset.Modules {
+					existingHash, ok := moduleHashes[module.Name]
+					if !ok {
+						existingHash = []byte{}
+					}
 
-				hash, err := computeModuleHash(event.Module)
-				if err != nil {
-					logger.Errorf(err, "compute hash for %s failed", event.Module.Name)
-					continue
-				}
+					hash, err := computeModuleHash(module)
+					if err != nil {
+						logger.Errorf(err, "compute hash for %s failed", module.Name)
+						continue
+					}
 
-				if bytes.Equal(hash, existingHash) {
-					logger.Tracef("schema for %s has not changed", event.Module.Name)
-					continue
-				}
+					if bytes.Equal(hash, existingHash) {
+						logger.Tracef("schema for %s has not changed", module.Name)
+						continue
+					}
 
-				moduleHashes[event.Module.Name] = hash
+					moduleHashes[module.Name] = hash
 
-				dependentModuleNames := e.getDependentModuleNames(event.Module.Name)
-				if len(dependentModuleNames) > 0 {
-					logger.Infof("%s's schema changed; processing %s", event.Module.Name, strings.Join(dependentModuleNames, ", "))
-					_ = e.BuildAndDeploy(ctx, 1, true, dependentModuleNames...) //nolint:errcheck
+					dependentModuleNames := e.getDependentModuleNames(module.Name)
+					dependentModuleNames = slices.Filter(dependentModuleNames, func(name string) bool {
+						// We don't update if this was already part of the same changeset
+						return !inCs[name]
+					})
+					if len(dependentModuleNames) > 0 {
+						logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", "))
+						_ = e.BuildAndDeploy(ctx, 1, true, dependentModuleNames...) //nolint:errcheck
+					}
 				}
 			default:
 
@@ -1145,7 +1151,7 @@ func (e *Engine) gatherSchemas(
 
 func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[string]*schema.Module, metasMap map[string]moduleMeta) error {
 	fullSchema := &schema.Schema{Modules: maps.Values(newModules)}
-	for _, module := range e.schemaSource.LatestView().Modules {
+	for _, module := range e.schemaSource.CanonicalView().Modules {
 		if _, ok := newModules[module.Name]; !ok {
 			fullSchema.Modules = append(fullSchema.Modules, module)
 		}

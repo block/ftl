@@ -18,38 +18,34 @@ import (
 
 func TestRouting(t *testing.T) {
 	events := schemaeventsource.NewUnattached()
-	events.Publish(schemaeventsource.EventUpsert{
-		Module: &schema.Module{
-			Name: "time",
-			Runtime: &schema.ModuleRuntime{
-				Deployment: &schema.ModuleRuntimeDeployment{
-					DeploymentKey: deploymentKey(t, "dpl-time-sjkfislfjslfas"),
-				},
-				Runner: &schema.ModuleRuntimeRunner{
-					Endpoint: "http://time.ftl",
-				},
+	assert.NoError(t, events.PublishModuleForTest(&schema.Module{
+		Name: "time",
+		Runtime: &schema.ModuleRuntime{
+			Deployment: &schema.ModuleRuntimeDeployment{
+				DeploymentKey: deploymentKey(t, "dpl-time-sjkfislfjslfas"),
+			},
+			Runner: &schema.ModuleRuntimeRunner{
+				Endpoint: "http://time.ftl",
 			},
 		},
-	})
+	}))
 
 	rt := New(log.ContextWithNewDefaultLogger(context.TODO()), events)
 	current := rt.Current()
 	assert.Equal(t, optional.Ptr(must.Get(url.Parse("http://time.ftl"))), current.GetForModule("time"))
 	assert.Equal(t, optional.None[url.URL](), current.GetForModule("echo"))
 
-	events.Publish(schemaeventsource.EventUpsert{
-		Module: &schema.Module{
-			Name: "echo",
-			Runtime: &schema.ModuleRuntime{
-				Deployment: &schema.ModuleRuntimeDeployment{
-					DeploymentKey: deploymentKey(t, "dpl-echo-sjkfiaslfjslfs"),
-				},
-				Runner: &schema.ModuleRuntimeRunner{
-					Endpoint: "http://echo.ftl",
-				},
+	assert.NoError(t, events.PublishModuleForTest(&schema.Module{
+		Name: "echo",
+		Runtime: &schema.ModuleRuntime{
+			Deployment: &schema.ModuleRuntimeDeployment{
+				DeploymentKey: deploymentKey(t, "dpl-echo-sjkfiaslfjslfs"),
+			},
+			Runner: &schema.ModuleRuntimeRunner{
+				Endpoint: "http://echo.ftl",
 			},
 		},
-	})
+	}))
 
 	time.Sleep(time.Millisecond * 250)
 	current = rt.Current()

@@ -289,6 +289,9 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 	err = sendChange(&ftlv1.PullSchemaResponse{
 		Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{notification.ToProto()}},
 	})
+	if err != nil {
+		return fmt.Errorf("failed to send initial schema: %w", err)
+	}
 
 	for notification := range iterops.Changes(stateIter, EventExtractor) {
 		logger.Debugf("Send Notification (subscription: %s, event: %T)", subscriptionID, notification.Event)

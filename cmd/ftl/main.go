@@ -278,7 +278,8 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		})
 		kctx.FatalIfErrorf(err)
 
-		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(schemaeventsource.New(ctx, "cli", schemaServiceClient).ViewOnly())))
+		source := schemaeventsource.New(ctx, "cli", schemaServiceClient)
+		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(source.ViewOnly())))
 
 		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.Endpoint.String(), log.Error)
 		ctx = rpc.ContextWithClient(ctx, verbServiceClient)

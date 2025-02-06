@@ -91,26 +91,22 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 			return fmt.Errorf("failed to pull schema: %w", stream.Err())
 		}
 		msg := stream.Msg()
-		switch msg := msg.Event.(type) {
-		case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
-			if msg.ChangesetCommitted.Changeset.Key != key {
-				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommitted.Changeset.Key)
+		switch msg := msg.Event.Value.(type) {
+		case *schemapb.Notification_ChangesetCommittedNotification:
+			if msg.ChangesetCommittedNotification.Changeset.Key != key {
+				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommittedNotification.Changeset.Key)
 				continue
 			}
 			logger.Infof("Changeset %s deployed and ready", key)
 			return nil
-		case *ftlv1.PullSchemaResponse_ChangesetFailed_:
-			if msg.ChangesetFailed.Key != key {
-				logger.Warnf("Expecting changeset %s to complete but got failure for %s", key, msg.ChangesetFailed.Key)
+		case *schemapb.Notification_ChangesetFailedNotification:
+			if msg.ChangesetFailedNotification.Key != key {
+				logger.Warnf("Expecting changeset %s to complete but got failure for %s", key, msg.ChangesetFailedNotification.Key)
 				continue
 			}
-			return fmt.Errorf("changeset %s failed: %s", key, msg.ChangesetFailed.Error)
+			return fmt.Errorf("changeset %s failed: %s", key, msg.ChangesetFailedNotification.Error)
 
-		case *ftlv1.PullSchemaResponse_ChangesetCreated_:
-			// TODO: handle this case where stream starts after changeset ends. Or reconnects when changeset has ended
-		case *ftlv1.PullSchemaResponse_DeploymentCreated_,
-			*ftlv1.PullSchemaResponse_DeploymentUpdated_,
-			*ftlv1.PullSchemaResponse_DeploymentRemoved_:
+		default:
 		}
 	}
 }
@@ -118,7 +114,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, module Module, client DeployClient) (*schemapb.Module, error) {
 	logger := log.FromContext(ctx).Module(module.Config.Module).Scope("deploy")
 	ctx = log.ContextWithLogger(ctx, logger)
-	logger.Infof("Deploying module")
+	logger.Debugf("Deploying module")
 
 	moduleConfig := module.Config.Abs()
 	files, err := FindFilesToDeploy(moduleConfig, module.Deploy)

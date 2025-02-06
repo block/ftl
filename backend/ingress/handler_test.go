@@ -119,9 +119,7 @@ func TestIngress(t *testing.T) {
 				},
 			}
 			// Publish the test module to the event source
-			eventSource.Publish(schemaeventsource.EventUpsert{
-				Module: testModule,
-			})
+			assert.NoError(t, eventSource.PublishModuleForTest(testModule))
 
 			svc := &service{
 				view:           syncView(ctx, eventSource),

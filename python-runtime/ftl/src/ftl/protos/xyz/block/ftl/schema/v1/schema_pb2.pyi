@@ -195,6 +195,14 @@ class ChangesetPreparedNotification(_message.Message):
     key: str
     def __init__(self, key: _Optional[str] = ...) -> None: ...
 
+class ChangesetRollingBackNotification(_message.Message):
+    __slots__ = ("key", "error")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    error: str
+    def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
+
 class Config(_message.Message):
     __slots__ = ("pos", "comments", "name", "type")
     POS_FIELD_NUMBER: _ClassVar[int]
@@ -712,13 +720,14 @@ class ModuleRuntimeScaling(_message.Message):
     def __init__(self, min_replicas: _Optional[int] = ...) -> None: ...
 
 class Notification(_message.Message):
-    __slots__ = ("changeset_committed_notification", "changeset_created_notification", "changeset_drained_notification", "changeset_failed_notification", "changeset_finalized_notification", "changeset_prepared_notification", "deployment_runtime_notification", "full_schema_notification")
+    __slots__ = ("changeset_committed_notification", "changeset_created_notification", "changeset_drained_notification", "changeset_failed_notification", "changeset_finalized_notification", "changeset_prepared_notification", "changeset_rolling_back_notification", "deployment_runtime_notification", "full_schema_notification")
     CHANGESET_COMMITTED_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_CREATED_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_DRAINED_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_FAILED_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_FINALIZED_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_PREPARED_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_ROLLING_BACK_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_RUNTIME_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
     FULL_SCHEMA_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
     changeset_committed_notification: ChangesetCommittedNotification
@@ -727,9 +736,10 @@ class Notification(_message.Message):
     changeset_failed_notification: ChangesetFailedNotification
     changeset_finalized_notification: ChangesetFinalizedNotification
     changeset_prepared_notification: ChangesetPreparedNotification
+    changeset_rolling_back_notification: ChangesetRollingBackNotification
     deployment_runtime_notification: DeploymentRuntimeNotification
     full_schema_notification: FullSchemaNotification
-    def __init__(self, changeset_committed_notification: _Optional[_Union[ChangesetCommittedNotification, _Mapping]] = ..., changeset_created_notification: _Optional[_Union[ChangesetCreatedNotification, _Mapping]] = ..., changeset_drained_notification: _Optional[_Union[ChangesetDrainedNotification, _Mapping]] = ..., changeset_failed_notification: _Optional[_Union[ChangesetFailedNotification, _Mapping]] = ..., changeset_finalized_notification: _Optional[_Union[ChangesetFinalizedNotification, _Mapping]] = ..., changeset_prepared_notification: _Optional[_Union[ChangesetPreparedNotification, _Mapping]] = ..., deployment_runtime_notification: _Optional[_Union[DeploymentRuntimeNotification, _Mapping]] = ..., full_schema_notification: _Optional[_Union[FullSchemaNotification, _Mapping]] = ...) -> None: ...
+    def __init__(self, changeset_committed_notification: _Optional[_Union[ChangesetCommittedNotification, _Mapping]] = ..., changeset_created_notification: _Optional[_Union[ChangesetCreatedNotification, _Mapping]] = ..., changeset_drained_notification: _Optional[_Union[ChangesetDrainedNotification, _Mapping]] = ..., changeset_failed_notification: _Optional[_Union[ChangesetFailedNotification, _Mapping]] = ..., changeset_finalized_notification: _Optional[_Union[ChangesetFinalizedNotification, _Mapping]] = ..., changeset_prepared_notification: _Optional[_Union[ChangesetPreparedNotification, _Mapping]] = ..., changeset_rolling_back_notification: _Optional[_Union[ChangesetRollingBackNotification, _Mapping]] = ..., deployment_runtime_notification: _Optional[_Union[DeploymentRuntimeNotification, _Mapping]] = ..., full_schema_notification: _Optional[_Union[FullSchemaNotification, _Mapping]] = ...) -> None: ...
 
 class Optional(_message.Message):
     __slots__ = ("pos", "type")

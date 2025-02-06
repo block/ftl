@@ -913,6 +913,49 @@ export class ChangesetPreparedNotification extends Message<ChangesetPreparedNoti
 }
 
 /**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetRollingBackNotification
+ */
+export class ChangesetRollingBackNotification extends Message<ChangesetRollingBackNotification> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  /**
+   * @generated from field: string error = 2;
+   */
+  error = "";
+
+  constructor(data?: PartialMessage<ChangesetRollingBackNotification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetRollingBackNotification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetRollingBackNotification {
+    return new ChangesetRollingBackNotification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetRollingBackNotification {
+    return new ChangesetRollingBackNotification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetRollingBackNotification {
+    return new ChangesetRollingBackNotification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetRollingBackNotification | PlainMessage<ChangesetRollingBackNotification> | undefined, b: ChangesetRollingBackNotification | PlainMessage<ChangesetRollingBackNotification> | undefined): boolean {
+    return proto3.util.equals(ChangesetRollingBackNotification, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.Config
  */
 export class Config extends Message<Config> {
@@ -3460,7 +3503,7 @@ export class Notification extends Message<Notification> {
     case: "changesetDrainedNotification";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedNotification changeset_failed_notification = 8;
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedNotification changeset_failed_notification = 9;
      */
     value: ChangesetFailedNotification;
     case: "changesetFailedNotification";
@@ -3476,6 +3519,12 @@ export class Notification extends Message<Notification> {
      */
     value: ChangesetPreparedNotification;
     case: "changesetPreparedNotification";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetRollingBackNotification changeset_rolling_back_notification = 8;
+     */
+    value: ChangesetRollingBackNotification;
+    case: "changesetRollingBackNotification";
   } | {
     /**
      * @generated from field: xyz.block.ftl.schema.v1.DeploymentRuntimeNotification deployment_runtime_notification = 2;
@@ -3501,9 +3550,10 @@ export class Notification extends Message<Notification> {
     { no: 5, name: "changeset_committed_notification", kind: "message", T: ChangesetCommittedNotification, oneof: "value" },
     { no: 3, name: "changeset_created_notification", kind: "message", T: ChangesetCreatedNotification, oneof: "value" },
     { no: 6, name: "changeset_drained_notification", kind: "message", T: ChangesetDrainedNotification, oneof: "value" },
-    { no: 8, name: "changeset_failed_notification", kind: "message", T: ChangesetFailedNotification, oneof: "value" },
+    { no: 9, name: "changeset_failed_notification", kind: "message", T: ChangesetFailedNotification, oneof: "value" },
     { no: 7, name: "changeset_finalized_notification", kind: "message", T: ChangesetFinalizedNotification, oneof: "value" },
     { no: 4, name: "changeset_prepared_notification", kind: "message", T: ChangesetPreparedNotification, oneof: "value" },
+    { no: 8, name: "changeset_rolling_back_notification", kind: "message", T: ChangesetRollingBackNotification, oneof: "value" },
     { no: 2, name: "deployment_runtime_notification", kind: "message", T: DeploymentRuntimeNotification, oneof: "value" },
     { no: 1, name: "full_schema_notification", kind: "message", T: FullSchemaNotification, oneof: "value" },
   ]);

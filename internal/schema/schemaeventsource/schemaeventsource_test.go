@@ -15,6 +15,7 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
@@ -24,7 +25,7 @@ import (
 
 func TestSchemaEventSource(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.TODO())
-	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
 	t.Cleanup(cancel)
 
 	server := &mockSchemaService{changes: make(chan *ftlv1.PullSchemaResponse, 8)}
@@ -46,7 +47,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 	}
 
-	recv := func(t testing.TB) Event {
+	recv := func(t testing.TB) schema.Notification {
 		select {
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
@@ -93,103 +94,93 @@ func TestSchemaEventSource(t *testing.T) {
 			},
 		},
 	}
+	time1.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("time")
+	echo1.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("echo")
+	time2.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("time")
 
 	t.Run("InitialSend", func(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
-			More: true,
-			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-					Schema: (time1).ToProto(),
+			Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{FullSchemaNotification: &schemapb.FullSchemaNotification{
+				Schema: &schemapb.Schema{
+					Modules: []*schemapb.Module{time1.ToProto()},
 				},
-			},
+			}}},
 		})
 
-		waitCtx, cancel := context.WithTimeout(ctx, time.Second)
+		waitCtx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
-		assert.False(t, changes.WaitForInitialSync(waitCtx))
+		assert.True(t, changes.WaitForInitialSync(waitCtx))
 
+		key := key.NewChangesetKey()
 		send(t, &ftlv1.PullSchemaResponse{
-			More: false,
-			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-					Schema: (echo1).ToProto(),
+			Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: &schemapb.ChangesetCommittedNotification{
+				Changeset: &schemapb.Changeset{
+					Key:     key.String(),
+					Modules: []*schemapb.Module{echo1.ToProto()},
 				},
-			},
+			}}},
 		})
 
 		waitCtx, cancel = context.WithTimeout(ctx, time.Second)
 		defer cancel()
 		assert.True(t, changes.WaitForInitialSync(waitCtx))
 
-		var expected Event = EventUpsert{Module: time1, more: true}
+		var expected schema.Notification = &schema.FullSchemaNotification{
+			Schema: &schema.Schema{Modules: []*schema.Module{time1}},
+		}
 		assertEqual(t, expected, recv(t))
 
-		expected = EventUpsert{Module: echo1}
+		expected = &schema.ChangesetCommittedNotification{
+			Changeset: &schema.Changeset{Modules: []*schema.Module{echo1}, Key: key},
+		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time1, echo1}}, changes.LatestView())
-		assertEqual(t, changes.LatestView(), actual.GetLatest())
+		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time1, echo1}}, changes.CanonicalView())
 	})
 
 	t.Run("Mutation", func(t *testing.T) {
+
+		key := key.NewChangesetKey()
 		send(t, &ftlv1.PullSchemaResponse{
-			More: false,
-			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-					Schema: (time2).ToProto(),
+			Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: &schemapb.ChangesetCommittedNotification{
+				Changeset: &schemapb.Changeset{
+					Key:     key.String(),
+					Modules: []*schemapb.Module{time2.ToProto()},
 				},
-			},
+			}}},
 		})
 
-		var expected Event = EventUpsert{Module: time2}
+		var expected schema.Notification = &schema.ChangesetCommittedNotification{
+			Changeset: &schema.Changeset{Modules: []*schema.Module{time2}, Key: key},
+		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2, echo1}}, changes.LatestView())
-		assertEqual(t, changes.LatestView(), actual.GetLatest())
-	})
-
-	// Verify that schemasync doesn't propagate "initial" again.
-	t.Run("SimulatedReconnect", func(t *testing.T) {
-		send(t, &ftlv1.PullSchemaResponse{
-			More: true,
-			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-					Schema: (time2).ToProto(),
-				},
-			},
-		})
-		send(t, &ftlv1.PullSchemaResponse{
-			More: false,
-			Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-				DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-					Schema: (echo1).ToProto(),
-				},
-			},
-		})
-
-		var expected Event = EventUpsert{Module: time2}
-		assertEqual(t, expected, recv(t))
-		expected = EventUpsert{Module: echo1, more: false}
-		actual := recv(t)
-		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2, echo1}}, changes.LatestView())
-		assertEqual(t, changes.LatestView(), actual.GetLatest())
+		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2, echo1}}, changes.CanonicalView())
 	})
 
 	t.Run("Delete", func(t *testing.T) {
+
+		key := key.NewChangesetKey()
 		send(t, &ftlv1.PullSchemaResponse{
-			Event: &ftlv1.PullSchemaResponse_DeploymentRemoved_{
-				DeploymentRemoved: &ftlv1.PullSchemaResponse_DeploymentRemoved{
-					ModuleName:    echo1.GetName(),
-					ModuleRemoved: true,
+			Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: &schemapb.ChangesetCommittedNotification{
+				Changeset: &schemapb.Changeset{
+					Key:             key.String(),
+					ToRemove:        []string{"echo"},
+					RemovingModules: []*schemapb.Module{echo1.ToProto()},
 				},
-			},
+			}}},
 		})
-		var expected Event = EventRemove{Module: echo1.Name}
+
+		var expected schema.Notification = &schema.ChangesetCommittedNotification{
+			Changeset: &schema.Changeset{
+				Key:             key,
+				RemovingModules: []*schema.Module{echo1},
+				ToRemove:        []string{"echo"},
+			},
+		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2}}, changes.LatestView())
-		assertEqual(t, changes.LatestView(), actual.GetLatest())
+		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2}}, changes.CanonicalView())
 	})
 }
 

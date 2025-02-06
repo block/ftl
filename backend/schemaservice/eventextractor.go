@@ -23,53 +23,114 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 
 	// previousAllDeployments will be updated with committed changesets so that we only send relevant
 	// DeploymentCreatedEvent and DeploymentSchemaUpdatedEvent events after changeset events have been processed by the receiver.
-	previousAllDeployments := previous.GetDeployments()
+	previousAllDeployments := previous.GetCanonicalDeployments()
 	previousAllChangesets := previous.GetChangesets()
 	allChangesets := maps.Values(current.GetChangesets())
 	handledDeployments := map[key.Deployment]bool{}
 	slices.SortFunc(allChangesets, func(a, b *schema.Changeset) int {
 		return a.CreatedAt.Compare(b.CreatedAt)
 	})
+
+	disappearedDeployments := map[key.Deployment]bool{}
+	for _, v := range previousAllDeployments {
+		disappearedDeployments[v.Runtime.Deployment.DeploymentKey] = true
+	}
 	for _, changeset := range allChangesets {
 		pc, ok := previousAllChangesets[changeset.Key]
 		if ok {
 
-			if changeset.ModulesAreCanonical() {
-				csEvents := current.changesetEvents[changeset.Key]
-				prEvents := previous.changesetEvents[changeset.Key]
-				for _, dep := range changeset.Modules {
-					handledDeployments[dep.Runtime.Deployment.DeploymentKey] = true
+			// Check for runtime changes in the changeset
+			csEvents := current.changesetEvents[changeset.Key]
+			prEvents := previous.changesetEvents[changeset.Key]
+			for _, dep := range changeset.OwnedModules() {
+				handledDeployments[dep.Runtime.Deployment.DeploymentKey] = true
+				delete(disappearedDeployments, dep.Runtime.Deployment.DeploymentKey)
+			}
+			// Use the event list length to check for changes, and send updated events
+			if len(csEvents) > len(prEvents) {
+				for _, event := range csEvents[len(prEvents):] {
+					e := &schema.DeploymentRuntimeNotification{
+						Changeset: &changeset.Key,
+						Payload:   event.Payload,
+					}
+					events = append(events, &ftlv1.PullSchemaResponse{
+						Event: &schemapb.Notification{
+							Value: &schemapb.Notification_DeploymentRuntimeNotification{
+								DeploymentRuntimeNotification: e.ToProto()},
+						},
+					})
 				}
-				// Use the event list length to check for changes, and send updated events
-				if len(csEvents) > len(prEvents) {
-					for _, event := range csEvents[len(prEvents):] {
-						e := &schema.DeploymentRuntimeNotification{
-							Changeset: &changeset.Key,
-							Payload:   event.Payload,
+			}
+			if pc.State != changeset.State {
+				// State changes
+
+				// Note that we use larger than or equal to here, as we want to send the events for the state changes
+				// even if we missed a transition state
+				if changeset.State == schema.ChangesetStateRollingBack || changeset.State == schema.ChangesetStateFailed {
+					// Fail conditions first, which means in the following else block we just have to deal with the happy path
+					if changeset.State >= schema.ChangesetStateRollingBack {
+						notification := &schema.ChangesetRollingBackNotification{
+							Key: changeset.Key,
 						}
 						events = append(events, &ftlv1.PullSchemaResponse{
-							Event: &schemapb.Notification{
-								Value: &schemapb.Notification_DeploymentRuntimeNotification{
-									DeploymentRuntimeNotification: e.ToProto()},
-							},
+							Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetRollingBackNotification{ChangesetRollingBackNotification: notification.ToProto()}},
+						})
+					}
+					if changeset.State == schema.ChangesetStateFailed {
+						notification := &schema.ChangesetFailedNotification{
+							Key: changeset.Key,
+						}
+						events = append(events, &ftlv1.PullSchemaResponse{
+							Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetFailedNotification{ChangesetFailedNotification: notification.ToProto()}},
+						})
+					}
+				} else {
+
+					if changeset.State >= schema.ChangesetStatePrepared && pc.State < schema.ChangesetStatePrepared {
+						// New changeset and associated modules
+						notification := &schema.ChangesetPreparedNotification{
+							Key: changeset.Key,
+						}
+						events = append(events, &ftlv1.PullSchemaResponse{
+							Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetPreparedNotification{ChangesetPreparedNotification: notification.ToProto()}},
+						})
+					}
+					if changeset.State >= schema.ChangesetStateCommitted && pc.State < schema.ChangesetStateCommitted {
+						// New changeset and associated modules
+						notification := &schema.ChangesetCommittedNotification{
+							Changeset: changeset,
+						}
+						events = append(events, &ftlv1.PullSchemaResponse{
+							Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: notification.ToProto()}},
+						})
+						for _, removing := range pc.RemovingModules {
+							handledDeployments[removing.Runtime.Deployment.DeploymentKey] = true
+						}
+						// These modules were added as part of the committed changeset, we don't want to treat them as new ones
+						for _, dep := range changeset.Modules {
+							handledDeployments[dep.Runtime.Deployment.DeploymentKey] = true
+						}
+					}
+					if changeset.State >= schema.ChangesetStateDrained && pc.State < schema.ChangesetStateDrained {
+						// New changeset and associated modules
+						notification := &schema.ChangesetDrainedNotification{
+							Key: changeset.Key,
+						}
+						events = append(events, &ftlv1.PullSchemaResponse{
+							Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetDrainedNotification{ChangesetDrainedNotification: notification.ToProto()}},
+						})
+					}
+					if changeset.State >= schema.ChangesetStateFinalized && pc.State < schema.ChangesetStateFinalized {
+						// New changeset and associated modules
+						notification := &schema.ChangesetFinalizedNotification{
+							Key: changeset.Key,
+						}
+						events = append(events, &ftlv1.PullSchemaResponse{
+							Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetFinalizedNotification{ChangesetFinalizedNotification: notification.ToProto()}},
 						})
 					}
 				}
-			} else if changeset.State == schema.ChangesetStateCommitted && pc.State != schema.ChangesetStateCommitted {
-				// New changeset and associated modules
-				notification := &schema.ChangesetCommittedNotification{
-					Changeset: changeset,
-				}
-				events = append(events, &ftlv1.PullSchemaResponse{
-					Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: notification.ToProto()}},
-				})
-				for _, removing := range pc.RemovingModules {
-					handledDeployments[removing.Runtime.Deployment.DeploymentKey] = true
-				}
-				// These modules were added as part of the committed changeset, we don't want to treat them as new ones
-				for _, dep := range changeset.Modules {
-					handledDeployments[dep.Runtime.Deployment.DeploymentKey] = true
-				}
+
 			} else if changeset.State == schema.ChangesetStateFailed && pc.State != schema.ChangesetStateFailed {
 				notification := &schema.ChangesetFailedNotification{
 					Key: changeset.Key,
@@ -90,12 +151,8 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 				}})
 		}
 	}
-	disappearedDeployments := map[key.Deployment]bool{}
-	for _, v := range previousAllDeployments {
-		disappearedDeployments[v.Runtime.Deployment.DeploymentKey] = true
-	}
 
-	for dplKey, deployment := range current.GetAllActiveDeployments() {
+	for dplKey, deployment := range current.GetCanonicalDeployments() {
 		delete(disappearedDeployments, dplKey)
 		if handledDeployments[dplKey] {
 			// Already handled in the changeset
@@ -135,7 +192,6 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 }
 
 func sendFullSchema(current *SchemaState) iter.Seq[*ftlv1.PullSchemaResponse] {
-
 	notification := &schema.FullSchemaNotification{
 		Schema:     &schema.Schema{Modules: current.GetCanonicalDeploymentSchemas()},
 		Changesets: maps.Values(current.GetChangesets()),

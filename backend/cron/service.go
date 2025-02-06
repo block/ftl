@@ -150,22 +150,35 @@ func scheduleNext(ctx context.Context, cronQueue []cronJob, timelineClient *time
 	return time.Until(cronQueue[0].next), true
 }
 
-func updateCronJobs(ctx context.Context, cronJobs map[string][]cronJob, change schemaeventsource.Event) error {
+func updateCronJobs(ctx context.Context, cronJobs map[string][]cronJob, change schema.Notification) error {
 	logger := log.FromContext(ctx).Scope("cron")
 	switch change := change.(type) {
-	case schemaeventsource.EventRemove:
-		// TODO: revisit this
-		// logger.Debugf("Removing cron jobs for module %s", change.Module.Name)
-		// delete(cronJobs, change.Module.Name)
 
-	case schemaeventsource.EventUpsert:
-		logger.Debugf("Updated cron jobs for module %s", change.Module.Name)
-		moduleJobs, err := extractCronJobs(change.Module)
-		if err != nil {
-			return fmt.Errorf("failed to extract cron jobs: %w", err)
+	case *schema.FullSchemaNotification:
+		for _, module := range change.Schema.Modules {
+			logger.Debugf("Updated cron jobs for module %s", module.Name)
+			moduleJobs, err := extractCronJobs(module)
+			if err != nil {
+				return fmt.Errorf("failed to extract cron jobs: %w", err)
+			}
+			logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), module)
+			cronJobs[module.Name] = moduleJobs
 		}
-		logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), change.Module.Name)
-		cronJobs[change.Module.Name] = moduleJobs
+	case *schema.ChangesetCommittedNotification:
+		for _, removed := range change.Changeset.RemovingModules {
+			// These are modules that are properly deleted
+			logger.Debugf("Removing cron jobs for module %s", removed.Name)
+			delete(cronJobs, removed.Name)
+		}
+		for _, module := range change.Changeset.Modules {
+			logger.Debugf("Updated cron jobs for module %s", module.Name)
+			moduleJobs, err := extractCronJobs(module)
+			if err != nil {
+				return fmt.Errorf("failed to extract cron jobs: %w", err)
+			}
+			logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), module)
+			cronJobs[module.Name] = moduleJobs
+		}
 	default:
 	}
 	return nil

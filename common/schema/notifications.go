@@ -80,6 +80,14 @@ type ChangesetFinalizedNotification struct {
 func (e *ChangesetFinalizedNotification) notification() {}
 
 //protobuf:8
+type ChangesetRollingBackNotification struct {
+	Key   key.Changeset `protobuf:"1"`
+	Error string        `protobuf:"2"`
+}
+
+func (e *ChangesetRollingBackNotification) notification() {}
+
+//protobuf:9
 type ChangesetFailedNotification struct {
 	Key   key.Changeset `protobuf:"1"`
 	Error string        `protobuf:"2"`

@@ -20,7 +20,6 @@ import (
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
-	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
@@ -88,19 +87,27 @@ func Start(
 	}
 	logger.Debugf("Provisioner available at: %s", config.Bind)
 	logger.Debugf("Using FTL endpoint: %s", config.ControllerEndpoint)
-	// Hack: as we only have one changeset at a time at the moment, we can just keep track of the last key
 
-	var lastKey key.Changeset
 	for event := range channels.IterContext(ctx, svc.eventSource.Events()) {
-		if cs, ok := event.ActiveChangeset().Get(); ok {
-			if cs.Key != lastKey {
-				lastKey = cs.Key
-				err := svc.ProvisionChangeset(ctx, cs)
-				if err != nil {
-					logger.Errorf(err, "Error provisioning changeset")
-					continue
+		if cs, ok := event.(*schema.ChangesetCreatedNotification); ok {
+			logger.Debugf("Provisioning changeset from created notification for %s", cs.Changeset.Key.String())
+			err := svc.ProvisionChangeset(ctx, cs.Changeset)
+			if err != nil {
+				logger.Errorf(err, "Error provisioning changeset")
+				continue
+			}
+			logger.Debugf("Changeset %s provisioned", cs.Changeset.Key)
+		} else if fs, ok := event.(*schema.FullSchemaNotification); ok {
+			logger.Debugf("Provisioning changesets from full schema notification")
+			for _, cs := range fs.Changesets {
+				if cs.State == schema.ChangesetStatePreparing {
+					err := svc.ProvisionChangeset(ctx, cs)
+					if err != nil {
+						logger.Errorf(err, "Error provisioning changeset")
+						continue
+					}
+					logger.Debugf("Changeset %s provisioned", cs.Key)
 				}
-				logger.Debugf("Changeset %s provisioned", cs.Key)
 			}
 		}
 	}

@@ -600,6 +600,31 @@ func ChangesetPreparedNotificationFromProto(v *destpb.ChangesetPreparedNotificat
 	return out, nil
 }
 
+func (x *ChangesetRollingBackNotification) ToProto() *destpb.ChangesetRollingBackNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetRollingBackNotification{
+		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Error: orZero(ptr(string(x.Error))),
+	}
+}
+
+func ChangesetRollingBackNotificationFromProto(v *destpb.ChangesetRollingBackNotification) (out *ChangesetRollingBackNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetRollingBackNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
+	}
+	return out, nil
+}
+
 func (x ChangesetState) ToProto() destpb.ChangesetState {
 	return destpb.ChangesetState(x)
 }
@@ -2221,6 +2246,10 @@ func NotificationToProto(value Notification) *destpb.Notification {
 		return &destpb.Notification{
 			Value: &destpb.Notification_ChangesetPreparedNotification{value.ToProto()},
 		}
+	case *ChangesetRollingBackNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetRollingBackNotification{value.ToProto()},
+		}
 	case *DeploymentRuntimeNotification:
 		return &destpb.Notification{
 			Value: &destpb.Notification_DeploymentRuntimeNotification{value.ToProto()},
@@ -2251,6 +2280,8 @@ func NotificationFromProto(v *destpb.Notification) (Notification, error) {
 		return ChangesetFinalizedNotificationFromProto(v.GetChangesetFinalizedNotification())
 	case *destpb.Notification_ChangesetPreparedNotification:
 		return ChangesetPreparedNotificationFromProto(v.GetChangesetPreparedNotification())
+	case *destpb.Notification_ChangesetRollingBackNotification:
+		return ChangesetRollingBackNotificationFromProto(v.GetChangesetRollingBackNotification())
 	case *destpb.Notification_DeploymentRuntimeNotification:
 		return DeploymentRuntimeNotificationFromProto(v.GetDeploymentRuntimeNotification())
 	case *destpb.Notification_FullSchemaNotification:

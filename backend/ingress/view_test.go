@@ -18,26 +18,24 @@ func TestSyncView(t *testing.T) {
 	source := schemaeventsource.NewUnattached()
 	view := syncView(ctx, source)
 
-	source.Publish(schemaeventsource.EventUpsert{
-		Module: &schema.Module{
-			Name: "time",
-			Decls: []schema.Decl{
-				&schema.Verb{
-					Name: "time",
-					Metadata: []schema.Metadata{
-						&schema.MetadataIngress{
-							Type:   "http",
-							Method: "GET",
-							Path: []schema.IngressPathComponent{
-								&schema.IngressPathLiteral{Text: "foo"},
-								&schema.IngressPathParameter{Name: "bar"},
-							},
+	assert.NoError(t, source.PublishModuleForTest(&schema.Module{
+		Name: "time",
+		Decls: []schema.Decl{
+			&schema.Verb{
+				Name: "time",
+				Metadata: []schema.Metadata{
+					&schema.MetadataIngress{
+						Type:   "http",
+						Method: "GET",
+						Path: []schema.IngressPathComponent{
+							&schema.IngressPathLiteral{Text: "foo"},
+							&schema.IngressPathParameter{Name: "bar"},
 						},
 					},
 				},
 			},
 		},
-	})
+	}))
 
 	time.Sleep(time.Millisecond * 100)
 
