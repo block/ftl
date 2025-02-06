@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from xyz.block.ftl.v1 import ftl_pb2 as xyz_dot_block_dot_ftl_dot_v1_dot_ftl__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n xyz/block/ftl/raft/v1/raft.proto\x12\x15xyz.block.ftl.raft.v1\x1a\x1axyz/block/ftl/v1/ftl.proto\"h\n\x10\x41\x64\x64MemberRequest\x12\x18\n\x07\x61\x64\x64ress\x18\x01 \x01(\tR\x07\x61\x64\x64ress\x12\x1d\n\nreplica_id\x18\x02 \x01(\x04R\treplicaId\x12\x1b\n\tshard_ids\x18\x03 \x03(\x04R\x08shardIds\"\x13\n\x11\x41\x64\x64MemberResponse2\xb9\x01\n\x0bRaftService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12^\n\tAddMember\x12\'.xyz.block.ftl.raft.v1.AddMemberRequest\x1a(.xyz.block.ftl.raft.v1.AddMemberResponseBDP\x01Z@github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1;raftpbb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n xyz/block/ftl/raft/v1/raft.proto\x12\x15xyz.block.ftl.raft.v1\x1a\x1axyz/block/ftl/v1/ftl.proto\"h\n\x10\x41\x64\x64MemberRequest\x12\x18\n\x07\x61\x64\x64ress\x18\x01 \x01(\tR\x07\x61\x64\x64ress\x12\x1d\n\nreplica_id\x18\x02 \x01(\x04R\treplicaId\x12\x1b\n\tshard_ids\x18\x03 \x03(\x04R\x08shardIds\"\x13\n\x11\x41\x64\x64MemberResponse\"Q\n\x13RemoveMemberRequest\x12\x1d\n\nreplica_id\x18\x01 \x01(\x04R\treplicaId\x12\x1b\n\tshard_ids\x18\x02 \x03(\x04R\x08shardIds\"\x16\n\x14RemoveMemberResponse2\xa2\x02\n\x0bRaftService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12^\n\tAddMember\x12\'.xyz.block.ftl.raft.v1.AddMemberRequest\x1a(.xyz.block.ftl.raft.v1.AddMemberResponse\x12g\n\x0cRemoveMember\x12*.xyz.block.ftl.raft.v1.RemoveMemberRequest\x1a+.xyz.block.ftl.raft.v1.RemoveMemberResponseBDP\x01Z@github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1;raftpbb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,6 +39,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ADDMEMBERREQUEST']._serialized_end=191
   _globals['_ADDMEMBERRESPONSE']._serialized_start=193
   _globals['_ADDMEMBERRESPONSE']._serialized_end=212
-  _globals['_RAFTSERVICE']._serialized_start=215
-  _globals['_RAFTSERVICE']._serialized_end=400
+  _globals['_REMOVEMEMBERREQUEST']._serialized_start=214
+  _globals['_REMOVEMEMBERREQUEST']._serialized_end=295
+  _globals['_REMOVEMEMBERRESPONSE']._serialized_start=297
+  _globals['_REMOVEMEMBERRESPONSE']._serialized_end=319
+  _globals['_RAFTSERVICE']._serialized_start=322
+  _globals['_RAFTSERVICE']._serialized_end=612
 # @@protoc_insertion_point(module_scope)

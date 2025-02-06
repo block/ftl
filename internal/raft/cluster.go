@@ -457,9 +457,22 @@ func (c *Cluster) AddMember(ctx context.Context, req *connect.Request[raftpb.Add
 	return connect.NewResponse(&raftpb.AddMemberResponse{}), nil
 }
 
+func (c *Cluster) RemoveMember(ctx context.Context, req *connect.Request[raftpb.RemoveMemberRequest]) (*connect.Response[raftpb.RemoveMemberResponse], error) {
+	logger := log.FromContext(ctx).Scope("raft")
+	logger.Infof("Request to remove member %d from shards %v on replica %d", req.Msg.ReplicaId, req.Msg.ShardIds, req.Msg.ReplicaId)
+
+	for _, shardID := range req.Msg.ShardIds {
+		if err := c.removeShardMember(ctx, shardID, req.Msg.ReplicaId); err != nil {
+			return nil, fmt.Errorf("failed to remove member from shard %d: %w", shardID, err)
+		}
+	}
+
+	return connect.NewResponse(&raftpb.RemoveMemberResponse{}), nil
+}
+
 // removeShardMember from the given shard. This removes the given member from the membership group
 // and blocks until the change has been committed
-func (c *Cluster) removeShardMember(ctx context.Context, shardID uint64, replicaID uint64) {
+func (c *Cluster) removeShardMember(ctx context.Context, shardID uint64, replicaID uint64) error {
 	logger := log.FromContext(ctx).Scope("raft")
 	logger.Infof("Removing replica %d from shard %d", shardID, replicaID)
 
@@ -469,7 +482,9 @@ func (c *Cluster) removeShardMember(ctx context.Context, shardID uint64, replica
 	}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
 		// This can happen if the cluster is shutting down and no longer has quorum.
 		logger.Warnf("Removing replica %d from shard %d failed: %s", replicaID, shardID, err)
+		return err
 	}
+	return nil
 }
 
 // Ping the cluster.

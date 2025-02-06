@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { AddMemberRequest, AddMemberResponse } from "./raft_pb.js";
+import { AddMemberRequest, AddMemberResponse, RemoveMemberRequest, RemoveMemberResponse } from "./raft_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.raft.v1.RaftService
@@ -34,6 +34,17 @@ export const RaftService = {
       name: "AddMember",
       I: AddMemberRequest,
       O: AddMemberResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Remove a member from the cluster.
+     *
+     * @generated from rpc xyz.block.ftl.raft.v1.RaftService.RemoveMember
+     */
+    removeMember: {
+      name: "RemoveMember",
+      I: RemoveMemberRequest,
+      O: RemoveMemberResponse,
       kind: MethodKind.Unary,
     },
   }
