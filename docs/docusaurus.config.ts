@@ -114,8 +114,8 @@ const config: Config = {
           title: 'Docs',
           items: [
             {
-              label: 'Getting Started',
-              to: '/docs/getting-started/introduction',
+              label: 'Quickstart',
+              to: '/docs/getting-started/quick-start',
             },
           ],
         },
