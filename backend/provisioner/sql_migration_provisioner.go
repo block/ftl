@@ -11,9 +11,6 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/amacneil/dbmate/v2/pkg/dbmate"
-	_ "github.com/amacneil/dbmate/v2/pkg/driver/mysql"
-	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
@@ -24,6 +21,7 @@ import (
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/sqlmigrate"
 )
 
 const tenMB = 1024 * 1024 * 10
@@ -77,11 +75,7 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 				return nil, fmt.Errorf("invalid DSN: %w", err)
 			}
 
-			dbm := dbmate.New(u)
-			dbm.AutoDumpSchema = false
-			dbm.Log = log.FromContext(ctx).Scope("migrate").WriterAt(log.Info)
-			dbm.MigrationsDir = []string{dir}
-			err = dbm.CreateAndMigrate()
+			err = sqlmigrate.Migrate(ctx, u, os.DirFS(dir))
 			if err != nil {
 				return nil, fmt.Errorf("failed to create and migrate database: %w", err)
 			}
@@ -115,11 +109,7 @@ func runDBMateMigration(ctx context.Context, dsn string, moduleDir string, name 
 		return fmt.Errorf("invalid DSN: %w", err)
 	}
 
-	db := dbmate.New(u)
-	db.AutoDumpSchema = false
-	db.Log = log.FromContext(ctx).Scope("migrate").WriterAt(log.Info)
-	db.MigrationsDir = []string{migrationDir}
-	err = db.CreateAndMigrate()
+	err = sqlmigrate.Migrate(ctx, u, os.DirFS(migrationDir))
 	if err != nil {
 		return fmt.Errorf("failed to create and migrate database: %w", err)
 	}

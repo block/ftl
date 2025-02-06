@@ -3,12 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/amacneil/dbmate/v2/pkg/dbmate"
+	"time"
 
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/log"
@@ -69,9 +67,9 @@ func (i newSQLMigrationCmd) Run(ctx context.Context) error {
 
 	logger := log.FromContext(ctx)
 	logger.Debugf("Creating DBMate SQL migration %s in module %q in %s", i.Name, module.Module, migrationDir)
-	db := dbmate.New(&url.URL{})
-	db.MigrationsDir = []string{migrationDir}
-	err = db.NewMigration(i.Name)
+	// Create file in the form YYYYMMDDHHMMSS_<name>.sql
+	migrationFile := filepath.Join(migrationDir, fmt.Sprintf("%s%s.sql", time.Now().Format("20060102150405"), i.Name))
+	err = os.WriteFile(migrationFile, []byte{}, 0644) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to create migration: %w", err)
 	}
