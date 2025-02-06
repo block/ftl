@@ -236,7 +236,7 @@ format-frontend:
 
 # Install Node dependencies using pnpm
 pnpm-install:
-  @mk node_modules/.modules.yaml : pnpm-lock.yaml -- @retry 3 pnpm install --frozen-lockfile
+  @mk $(yq '.packages[] | . + "/node_modules"' pnpm-workspace.yaml) node_modules/.modules.yaml : pnpm-lock.yaml -- @retry 3 pnpm install --frozen-lockfile
 
 # Copy plugin protos from the SQLC release
 update-sqlc-plugin-codegen-proto:
@@ -314,6 +314,10 @@ lint-scripts:
 # Run live docs server
 docs: pnpm-install
   @cd docs && pnpm start
+
+# Build docs
+build-docs: pnpm-install
+  @cd docs && pnpm build
 
 # Generate LSP hover help text
 lsp-generate:

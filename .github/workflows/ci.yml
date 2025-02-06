@@ -177,10 +177,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: cashapp/activate-hermit@v1.1.3
-      - name: Install dependencies
-        run: just pnpm-install
       - name: Build website
-        run: cd docs && pnpm build
+        run: just build-docs
   gen-lsp:
     name: Generate LSP Help
     runs-on: ubuntu-latest
