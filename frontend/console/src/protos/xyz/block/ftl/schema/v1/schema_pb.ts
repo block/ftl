@@ -494,6 +494,43 @@ export class ChangesetCommittedEvent extends Message<ChangesetCommittedEvent> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetCommittedNotification
+ */
+export class ChangesetCommittedNotification extends Message<ChangesetCommittedNotification> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Changeset changeset = 1;
+   */
+  changeset?: Changeset;
+
+  constructor(data?: PartialMessage<ChangesetCommittedNotification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetCommittedNotification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "message", T: Changeset },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetCommittedNotification {
+    return new ChangesetCommittedNotification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetCommittedNotification {
+    return new ChangesetCommittedNotification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetCommittedNotification {
+    return new ChangesetCommittedNotification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetCommittedNotification | PlainMessage<ChangesetCommittedNotification> | undefined, b: ChangesetCommittedNotification | PlainMessage<ChangesetCommittedNotification> | undefined): boolean {
+    return proto3.util.equals(ChangesetCommittedNotification, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.ChangesetCreatedEvent
  */
 export class ChangesetCreatedEvent extends Message<ChangesetCreatedEvent> {
@@ -531,6 +568,43 @@ export class ChangesetCreatedEvent extends Message<ChangesetCreatedEvent> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetCreatedNotification
+ */
+export class ChangesetCreatedNotification extends Message<ChangesetCreatedNotification> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Changeset changeset = 1;
+   */
+  changeset?: Changeset;
+
+  constructor(data?: PartialMessage<ChangesetCreatedNotification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetCreatedNotification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "message", T: Changeset },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetCreatedNotification {
+    return new ChangesetCreatedNotification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetCreatedNotification {
+    return new ChangesetCreatedNotification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetCreatedNotification {
+    return new ChangesetCreatedNotification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetCreatedNotification | PlainMessage<ChangesetCreatedNotification> | undefined, b: ChangesetCreatedNotification | PlainMessage<ChangesetCreatedNotification> | undefined): boolean {
+    return proto3.util.equals(ChangesetCreatedNotification, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.ChangesetDrainedEvent
  */
 export class ChangesetDrainedEvent extends Message<ChangesetDrainedEvent> {
@@ -564,6 +638,43 @@ export class ChangesetDrainedEvent extends Message<ChangesetDrainedEvent> {
 
   static equals(a: ChangesetDrainedEvent | PlainMessage<ChangesetDrainedEvent> | undefined, b: ChangesetDrainedEvent | PlainMessage<ChangesetDrainedEvent> | undefined): boolean {
     return proto3.util.equals(ChangesetDrainedEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetDrainedNotification
+ */
+export class ChangesetDrainedNotification extends Message<ChangesetDrainedNotification> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  constructor(data?: PartialMessage<ChangesetDrainedNotification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetDrainedNotification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetDrainedNotification {
+    return new ChangesetDrainedNotification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetDrainedNotification {
+    return new ChangesetDrainedNotification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetDrainedNotification {
+    return new ChangesetDrainedNotification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetDrainedNotification | PlainMessage<ChangesetDrainedNotification> | undefined, b: ChangesetDrainedNotification | PlainMessage<ChangesetDrainedNotification> | undefined): boolean {
+    return proto3.util.equals(ChangesetDrainedNotification, a, b);
   }
 }
 
@@ -611,6 +722,49 @@ export class ChangesetFailedEvent extends Message<ChangesetFailedEvent> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetFailedNotification
+ */
+export class ChangesetFailedNotification extends Message<ChangesetFailedNotification> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  /**
+   * @generated from field: string error = 2;
+   */
+  error = "";
+
+  constructor(data?: PartialMessage<ChangesetFailedNotification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetFailedNotification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetFailedNotification {
+    return new ChangesetFailedNotification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetFailedNotification {
+    return new ChangesetFailedNotification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetFailedNotification {
+    return new ChangesetFailedNotification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetFailedNotification | PlainMessage<ChangesetFailedNotification> | undefined, b: ChangesetFailedNotification | PlainMessage<ChangesetFailedNotification> | undefined): boolean {
+    return proto3.util.equals(ChangesetFailedNotification, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.ChangesetFinalizedEvent
  */
 export class ChangesetFinalizedEvent extends Message<ChangesetFinalizedEvent> {
@@ -648,6 +802,43 @@ export class ChangesetFinalizedEvent extends Message<ChangesetFinalizedEvent> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetFinalizedNotification
+ */
+export class ChangesetFinalizedNotification extends Message<ChangesetFinalizedNotification> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  constructor(data?: PartialMessage<ChangesetFinalizedNotification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetFinalizedNotification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetFinalizedNotification {
+    return new ChangesetFinalizedNotification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetFinalizedNotification {
+    return new ChangesetFinalizedNotification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetFinalizedNotification {
+    return new ChangesetFinalizedNotification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetFinalizedNotification | PlainMessage<ChangesetFinalizedNotification> | undefined, b: ChangesetFinalizedNotification | PlainMessage<ChangesetFinalizedNotification> | undefined): boolean {
+    return proto3.util.equals(ChangesetFinalizedNotification, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.ChangesetPreparedEvent
  */
 export class ChangesetPreparedEvent extends Message<ChangesetPreparedEvent> {
@@ -681,6 +872,43 @@ export class ChangesetPreparedEvent extends Message<ChangesetPreparedEvent> {
 
   static equals(a: ChangesetPreparedEvent | PlainMessage<ChangesetPreparedEvent> | undefined, b: ChangesetPreparedEvent | PlainMessage<ChangesetPreparedEvent> | undefined): boolean {
     return proto3.util.equals(ChangesetPreparedEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetPreparedNotification
+ */
+export class ChangesetPreparedNotification extends Message<ChangesetPreparedNotification> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  constructor(data?: PartialMessage<ChangesetPreparedNotification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetPreparedNotification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetPreparedNotification {
+    return new ChangesetPreparedNotification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetPreparedNotification {
+    return new ChangesetPreparedNotification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetPreparedNotification {
+    return new ChangesetPreparedNotification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetPreparedNotification | PlainMessage<ChangesetPreparedNotification> | undefined, b: ChangesetPreparedNotification | PlainMessage<ChangesetPreparedNotification> | undefined): boolean {
+    return proto3.util.equals(ChangesetPreparedNotification, a, b);
   }
 }
 
@@ -1241,6 +1469,49 @@ export class DeploymentRuntimeEvent extends Message<DeploymentRuntimeEvent> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.schema.v1.DeploymentRuntimeNotification
+ */
+export class DeploymentRuntimeNotification extends Message<DeploymentRuntimeNotification> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.RuntimeElement payload = 1;
+   */
+  payload?: RuntimeElement;
+
+  /**
+   * @generated from field: string changeset = 2;
+   */
+  changeset = "";
+
+  constructor(data?: PartialMessage<DeploymentRuntimeNotification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.DeploymentRuntimeNotification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "payload", kind: "message", T: RuntimeElement },
+    { no: 2, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeploymentRuntimeNotification {
+    return new DeploymentRuntimeNotification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeploymentRuntimeNotification {
+    return new DeploymentRuntimeNotification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeploymentRuntimeNotification {
+    return new DeploymentRuntimeNotification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeploymentRuntimeNotification | PlainMessage<DeploymentRuntimeNotification> | undefined, b: DeploymentRuntimeNotification | PlainMessage<DeploymentRuntimeNotification> | undefined): boolean {
+    return proto3.util.equals(DeploymentRuntimeNotification, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.Enum
  */
 export class Enum extends Message<Enum> {
@@ -1549,6 +1820,49 @@ export class Float extends Message<Float> {
 
   static equals(a: Float | PlainMessage<Float> | undefined, b: Float | PlainMessage<Float> | undefined): boolean {
     return proto3.util.equals(Float, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.FullSchemaNotification
+ */
+export class FullSchemaNotification extends Message<FullSchemaNotification> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Schema schema = 1;
+   */
+  schema?: Schema;
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Changeset changesets = 2;
+   */
+  changesets: Changeset[] = [];
+
+  constructor(data?: PartialMessage<FullSchemaNotification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.FullSchemaNotification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "schema", kind: "message", T: Schema },
+    { no: 2, name: "changesets", kind: "message", T: Changeset, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FullSchemaNotification {
+    return new FullSchemaNotification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FullSchemaNotification {
+    return new FullSchemaNotification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FullSchemaNotification {
+    return new FullSchemaNotification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: FullSchemaNotification | PlainMessage<FullSchemaNotification> | undefined, b: FullSchemaNotification | PlainMessage<FullSchemaNotification> | undefined): boolean {
+    return proto3.util.equals(FullSchemaNotification, a, b);
   }
 }
 
@@ -3116,6 +3430,98 @@ export class ModuleRuntimeScaling extends Message<ModuleRuntimeScaling> {
 
   static equals(a: ModuleRuntimeScaling | PlainMessage<ModuleRuntimeScaling> | undefined, b: ModuleRuntimeScaling | PlainMessage<ModuleRuntimeScaling> | undefined): boolean {
     return proto3.util.equals(ModuleRuntimeScaling, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.Notification
+ */
+export class Notification extends Message<Notification> {
+  /**
+   * @generated from oneof xyz.block.ftl.schema.v1.Notification.value
+   */
+  value: {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetCommittedNotification changeset_committed_notification = 5;
+     */
+    value: ChangesetCommittedNotification;
+    case: "changesetCommittedNotification";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetCreatedNotification changeset_created_notification = 3;
+     */
+    value: ChangesetCreatedNotification;
+    case: "changesetCreatedNotification";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetDrainedNotification changeset_drained_notification = 6;
+     */
+    value: ChangesetDrainedNotification;
+    case: "changesetDrainedNotification";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedNotification changeset_failed_notification = 8;
+     */
+    value: ChangesetFailedNotification;
+    case: "changesetFailedNotification";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFinalizedNotification changeset_finalized_notification = 7;
+     */
+    value: ChangesetFinalizedNotification;
+    case: "changesetFinalizedNotification";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetPreparedNotification changeset_prepared_notification = 4;
+     */
+    value: ChangesetPreparedNotification;
+    case: "changesetPreparedNotification";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.DeploymentRuntimeNotification deployment_runtime_notification = 2;
+     */
+    value: DeploymentRuntimeNotification;
+    case: "deploymentRuntimeNotification";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.FullSchemaNotification full_schema_notification = 1;
+     */
+    value: FullSchemaNotification;
+    case: "fullSchemaNotification";
+  } | { case: undefined; value?: undefined } = { case: undefined };
+
+  constructor(data?: PartialMessage<Notification>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.Notification";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 5, name: "changeset_committed_notification", kind: "message", T: ChangesetCommittedNotification, oneof: "value" },
+    { no: 3, name: "changeset_created_notification", kind: "message", T: ChangesetCreatedNotification, oneof: "value" },
+    { no: 6, name: "changeset_drained_notification", kind: "message", T: ChangesetDrainedNotification, oneof: "value" },
+    { no: 8, name: "changeset_failed_notification", kind: "message", T: ChangesetFailedNotification, oneof: "value" },
+    { no: 7, name: "changeset_finalized_notification", kind: "message", T: ChangesetFinalizedNotification, oneof: "value" },
+    { no: 4, name: "changeset_prepared_notification", kind: "message", T: ChangesetPreparedNotification, oneof: "value" },
+    { no: 2, name: "deployment_runtime_notification", kind: "message", T: DeploymentRuntimeNotification, oneof: "value" },
+    { no: 1, name: "full_schema_notification", kind: "message", T: FullSchemaNotification, oneof: "value" },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Notification {
+    return new Notification().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Notification {
+    return new Notification().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Notification {
+    return new Notification().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Notification | PlainMessage<Notification> | undefined, b: Notification | PlainMessage<Notification> | undefined): boolean {
+    return proto3.util.equals(Notification, a, b);
   }
 }
 

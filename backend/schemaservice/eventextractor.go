@@ -42,58 +42,26 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 				}
 				// Use the event list length to check for changes, and send updated events
 				if len(csEvents) > len(prEvents) {
-					csName := changeset.Key.String()
-					changedDeployments := map[key.Deployment]bool{}
 					for _, event := range csEvents[len(prEvents):] {
-						switch e := event.(type) {
-						case *schema.VerbRuntimeEvent:
-							if sub, ok := e.Subscription.Get(); ok {
-								events = append(events, &ftlv1.PullSchemaResponse{
-									Event: &ftlv1.PullSchemaResponse_RuntimeUpdated{
-										RuntimeUpdated: &ftlv1.RuntimeElementUpdatedNotification{
-											Changeset: &csName,
-
-											Runtime: sub.ToProto(),
-										},
-									},
-								})
-							}
+						e := &schema.DeploymentRuntimeNotification{
+							Changeset: &changeset.Key,
+							Payload:   event.Payload,
 						}
-
 						events = append(events, &ftlv1.PullSchemaResponse{
-							Event: &ftlv1.ModuleRuntimeUpdatedNotification{
-								Deployment: event.DeploymentKey(),
-								Changeset:  &csName,
-
-								DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
-									Changeset: &csName,
-									Schema:    e.ToProto(),
-								},
+							Event: &schemapb.Notification{
+								Value: &schemapb.Notification_DeploymentRuntimeNotification{
+									DeploymentRuntimeNotification: e.ToProto()},
 							},
 						})
-						changedDeployments[event.DeploymentKey()] = true
-					}
-					for _, e := range changeset.Modules {
-						if changedDeployments[e.Runtime.Deployment.DeploymentKey] {
-							events = append(events, &ftlv1.PullSchemaResponse{
-								Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
-									DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
-										Changeset: &csName,
-										Schema:    e.ToProto(),
-									},
-								},
-							})
-						}
 					}
 				}
 			} else if changeset.State == schema.ChangesetStateCommitted && pc.State != schema.ChangesetStateCommitted {
 				// New changeset and associated modules
+				notification := &schema.ChangesetCommittedNotification{
+					Changeset: changeset,
+				}
 				events = append(events, &ftlv1.PullSchemaResponse{
-					Event: &ftlv1.PullSchemaResponse_ChangesetCommitted_{
-						ChangesetCommitted: &ftlv1.PullSchemaResponse_ChangesetCommitted{
-							Changeset: changeset.ToProto(),
-						},
-					},
+					Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: notification.ToProto()}},
 				})
 				for _, removing := range pc.RemovingModules {
 					handledDeployments[removing.Runtime.Deployment.DeploymentKey] = true
@@ -103,23 +71,23 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 					handledDeployments[dep.Runtime.Deployment.DeploymentKey] = true
 				}
 			} else if changeset.State == schema.ChangesetStateFailed && pc.State != schema.ChangesetStateFailed {
+				notification := &schema.ChangesetFailedNotification{
+					Key: changeset.Key,
+				}
 				events = append(events, &ftlv1.PullSchemaResponse{
-					Event: &ftlv1.PullSchemaResponse_ChangesetFailed_{
-						ChangesetFailed: &ftlv1.PullSchemaResponse_ChangesetFailed{
-							Key: changeset.Key.String(),
-						},
-					},
+					Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetFailedNotification{ChangesetFailedNotification: notification.ToProto()}},
 				})
 			}
 		} else {
-			// New changeset and associated modules
+			e := &schema.ChangesetCreatedNotification{
+				Changeset: changeset,
+			}
 			events = append(events, &ftlv1.PullSchemaResponse{
-				Event: &ftlv1.PullSchemaResponse_ChangesetCreated_{
-					ChangesetCreated: &ftlv1.PullSchemaResponse_ChangesetCreated{
-						Changeset: changeset.ToProto(),
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetCreatedNotification{
+						ChangesetCreatedNotification: e.ToProto(),
 					},
-				},
-			})
+				}})
 		}
 	}
 	disappearedDeployments := map[key.Deployment]bool{}
@@ -137,40 +105,44 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 		if !ok {
 			// We have lost the changeset that created this, this should only happen
 			// if the changeset was deleted as part of raft cleanup.
-			events = append(events, &ftlv1.PullSchemaResponse{
-				Event: &ftlv1.PullSchemaResponse_DeploymentCreated_{
-					DeploymentCreated: &ftlv1.PullSchemaResponse_DeploymentCreated{
-						Schema: deployment.ToProto(),
-					},
-				},
-			})
+			return sendFullSchema(&current)
 		} else {
 			// Check for runtime events
 			csEvents := current.deploymentEvents[deployment.Name] // These are keyed by module name, but we know this is the same deployment
 			prEvents := previous.deploymentEvents[deployment.Name]
 			// Use the event list length to check for changes, and send updated events
 			if len(csEvents) > len(prEvents) {
-				events = append(events, &ftlv1.PullSchemaResponse{
-					Event: &ftlv1.PullSchemaResponse_DeploymentUpdated_{
-						DeploymentUpdated: &ftlv1.PullSchemaResponse_DeploymentUpdated{
-							Schema: deployment.ToProto(),
+				for _, event := range csEvents[len(prEvents):] {
+					e := &schema.DeploymentRuntimeNotification{
+						Payload: event.Payload,
+					}
+					events = append(events, &ftlv1.PullSchemaResponse{
+						Event: &schemapb.Notification{
+							Value: &schemapb.Notification_DeploymentRuntimeNotification{
+								DeploymentRuntimeNotification: e.ToProto()},
 						},
-					},
-				})
+					})
+				}
 			}
 		}
 	}
-	for k := range disappearedDeployments {
-		deplKey := k.String()
-		events = append(events, &ftlv1.PullSchemaResponse{
-			Event: &ftlv1.PullSchemaResponse_DeploymentRemoved_{
-				DeploymentRemoved: &ftlv1.PullSchemaResponse_DeploymentRemoved{
-					Key:        &deplKey,
-					ModuleName: k.Payload.Module,
-				},
-			},
-		})
+	if len(disappearedDeployments) > 0 {
+		// We have lost the changeset that created this, this should only happen rarely, just sent the full schema
+		return sendFullSchema(&current)
 	}
 
 	return iterops.Const(events...)
+}
+
+func sendFullSchema(current *SchemaState) iter.Seq[*ftlv1.PullSchemaResponse] {
+
+	notification := &schema.FullSchemaNotification{
+		Schema:     &schema.Schema{Modules: current.GetCanonicalDeploymentSchemas()},
+		Changesets: maps.Values(current.GetChangesets()),
+	}
+	full := &ftlv1.PullSchemaResponse{Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{
+		FullSchemaNotification: notification.ToProto(),
+	}}}
+	// Just return the initial schema event, we don't need any more as this has all the info
+	return iterops.Const(full)
 }

@@ -346,6 +346,27 @@ func ChangesetCommittedEventFromProto(v *destpb.ChangesetCommittedEvent) (out *C
 	return out, nil
 }
 
+func (x *ChangesetCommittedNotification) ToProto() *destpb.ChangesetCommittedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetCommittedNotification{
+		Changeset: x.Changeset.ToProto(),
+	}
+}
+
+func ChangesetCommittedNotificationFromProto(v *destpb.ChangesetCommittedNotification) (out *ChangesetCommittedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetCommittedNotification{}
+	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	return out, nil
+}
+
 func (x *ChangesetCreatedEvent) ToProto() *destpb.ChangesetCreatedEvent {
 	if x == nil {
 		return nil
@@ -370,6 +391,27 @@ func ChangesetCreatedEventFromProto(v *destpb.ChangesetCreatedEvent) (out *Chang
 	return out, nil
 }
 
+func (x *ChangesetCreatedNotification) ToProto() *destpb.ChangesetCreatedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetCreatedNotification{
+		Changeset: x.Changeset.ToProto(),
+	}
+}
+
+func ChangesetCreatedNotificationFromProto(v *destpb.ChangesetCreatedNotification) (out *ChangesetCreatedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetCreatedNotification{}
+	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	return out, nil
+}
+
 func (x *ChangesetDrainedEvent) ToProto() *destpb.ChangesetDrainedEvent {
 	if x == nil {
 		return nil
@@ -390,6 +432,27 @@ func ChangesetDrainedEventFromProto(v *destpb.ChangesetDrainedEvent) (out *Chang
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
+	}
+	return out, nil
+}
+
+func (x *ChangesetDrainedNotification) ToProto() *destpb.ChangesetDrainedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetDrainedNotification{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetDrainedNotificationFromProto(v *destpb.ChangesetDrainedNotification) (out *ChangesetDrainedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetDrainedNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
 	}
 	return out, nil
 }
@@ -422,6 +485,31 @@ func ChangesetFailedEventFromProto(v *destpb.ChangesetFailedEvent) (out *Changes
 	return out, nil
 }
 
+func (x *ChangesetFailedNotification) ToProto() *destpb.ChangesetFailedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetFailedNotification{
+		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Error: orZero(ptr(string(x.Error))),
+	}
+}
+
+func ChangesetFailedNotificationFromProto(v *destpb.ChangesetFailedNotification) (out *ChangesetFailedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetFailedNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
+	}
+	return out, nil
+}
+
 func (x *ChangesetFinalizedEvent) ToProto() *destpb.ChangesetFinalizedEvent {
 	if x == nil {
 		return nil
@@ -446,6 +534,27 @@ func ChangesetFinalizedEventFromProto(v *destpb.ChangesetFinalizedEvent) (out *C
 	return out, nil
 }
 
+func (x *ChangesetFinalizedNotification) ToProto() *destpb.ChangesetFinalizedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetFinalizedNotification{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetFinalizedNotificationFromProto(v *destpb.ChangesetFinalizedNotification) (out *ChangesetFinalizedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetFinalizedNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	return out, nil
+}
+
 func (x *ChangesetPreparedEvent) ToProto() *destpb.ChangesetPreparedEvent {
 	if x == nil {
 		return nil
@@ -466,6 +575,27 @@ func ChangesetPreparedEventFromProto(v *destpb.ChangesetPreparedEvent) (out *Cha
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
+	}
+	return out, nil
+}
+
+func (x *ChangesetPreparedNotification) ToProto() *destpb.ChangesetPreparedNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetPreparedNotification{
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+	}
+}
+
+func ChangesetPreparedNotificationFromProto(v *destpb.ChangesetPreparedNotification) (out *ChangesetPreparedNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetPreparedNotification{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
 	}
 	return out, nil
 }
@@ -707,42 +837,6 @@ func DatabaseRuntimeConnectionsFromProto(v *destpb.DatabaseRuntimeConnections) (
 	return out, nil
 }
 
-<<<<<<< HEAD
-=======
-func (x *DatabaseRuntimeEvent) ToProto() *destpb.DatabaseRuntimeEvent {
-	if x == nil {
-		return nil
-	}
-	return &destpb.DatabaseRuntimeEvent{
-		Connections: x.Connections.ToProto(),
-	}
-}
-
-func DatabaseRuntimeEventFromProto(v *destpb.DatabaseRuntimeEvent) (out *DatabaseRuntimeEvent, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &DatabaseRuntimeEvent{}
-	if out.Deployment, err = orZeroR(unmarshallText([]byte(v.Deployment), &out.Deployment)).Result(); err != nil {
-		return nil, fmt.Errorf("Deployment: %w", err)
-	}
-	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
-	}
-	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("ID: %w", err)
-	}
-	if out.Connections, err = result.From(DatabaseRuntimeConnectionsFromProto(v.Connections)).Result(); err != nil {
-		return nil, fmt.Errorf("Connections: %w", err)
-	}
-	if err := out.Validate(); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
->>>>>>> b22613bf6 (feat: new PullSchema events)
 // DeclToProto converts a Decl sum type to a protobuf message.
 func DeclToProto(value Decl) *destpb.Decl {
 	switch value := value.(type) {
@@ -811,45 +905,6 @@ func DeclFromProto(v *destpb.Decl) (Decl, error) {
 	}
 }
 
-<<<<<<< HEAD
-=======
-func (x *DeploymentActivatedEvent) ToProto() *destpb.DeploymentActivatedEvent {
-	if x == nil {
-		return nil
-	}
-	return &destpb.DeploymentActivatedEvent{
-		Key:         orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		ActivatedAt: timestamppb.New(x.ActivatedAt),
-		MinReplicas: orZero(ptr(int64(x.MinReplicas))),
-		Changeset:   orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
-	}
-}
-
-func DeploymentActivatedEventFromProto(v *destpb.DeploymentActivatedEvent) (out *DeploymentActivatedEvent, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &DeploymentActivatedEvent{}
-	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
-	}
-	if out.ActivatedAt, err = orZeroR(result.From(setNil(ptr(v.ActivatedAt.AsTime()), v.ActivatedAt), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("ActivatedAt: %w", err)
-	}
-	if out.MinReplicas, err = orZeroR(result.From(ptr(int(v.MinReplicas)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("MinReplicas: %w", err)
-	}
-	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
-	}
-	if err := out.Validate(); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
->>>>>>> b22613bf6 (feat: new PullSchema events)
 func (x *DeploymentCreatedEvent) ToProto() *destpb.DeploymentCreatedEvent {
 	if x == nil {
 		return nil
@@ -886,51 +941,8 @@ func (x *DeploymentRuntimeEvent) ToProto() *destpb.DeploymentRuntimeEvent {
 	if x == nil {
 		return nil
 	}
-<<<<<<< HEAD
 	return &destpb.DeploymentRuntimeEvent{
 		Payload:   x.Payload.ToProto(),
-=======
-	return &destpb.DeploymentDeactivatedEvent{
-		Key:           orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		ModuleRemoved: orZero(ptr(bool(x.ModuleRemoved))),
-		Changeset:     orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
-	}
-}
-
-func DeploymentDeactivatedEventFromProto(v *destpb.DeploymentDeactivatedEvent) (out *DeploymentDeactivatedEvent, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &DeploymentDeactivatedEvent{}
-	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
-	}
-	if out.ModuleRemoved, err = orZeroR(result.From(ptr(bool(v.ModuleRemoved)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("ModuleRemoved: %w", err)
-	}
-	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
-	}
-	if err := out.Validate(); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (x *DeploymentReplicasUpdatedEvent) ToProto() *destpb.DeploymentReplicasUpdatedEvent {
-	if x == nil {
-		return nil
-	}
-	return &destpb.DeploymentReplicasUpdatedEvent{
-<<<<<<< HEAD
-		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Replicas: orZero(ptr(int64(x.Replicas))),
->>>>>>> b22613bf6 (feat: new PullSchema events)
-=======
-		Key:       orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Replicas:  orZero(ptr(int64(x.Replicas))),
->>>>>>> b51c22b84 (fix)
 		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
@@ -953,41 +965,31 @@ func DeploymentRuntimeEventFromProto(v *destpb.DeploymentRuntimeEvent) (out *Dep
 	return out, nil
 }
 
-<<<<<<< HEAD
-=======
-func (x *DeploymentSchemaUpdatedEvent) ToProto() *destpb.DeploymentSchemaUpdatedEvent {
+func (x *DeploymentRuntimeNotification) ToProto() *destpb.DeploymentRuntimeNotification {
 	if x == nil {
 		return nil
 	}
-	return &destpb.DeploymentSchemaUpdatedEvent{
-		Key:       orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Schema:    x.Schema.ToProto(),
+	return &destpb.DeploymentRuntimeNotification{
+		Payload:   x.Payload.ToProto(),
 		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
 
-func DeploymentSchemaUpdatedEventFromProto(v *destpb.DeploymentSchemaUpdatedEvent) (out *DeploymentSchemaUpdatedEvent, err error) {
+func DeploymentRuntimeNotificationFromProto(v *destpb.DeploymentRuntimeNotification) (out *DeploymentRuntimeNotification, err error) {
 	if v == nil {
 		return nil, nil
 	}
 
-	out = &DeploymentSchemaUpdatedEvent{}
-	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+	out = &DeploymentRuntimeNotification{}
+	if out.Payload, err = result.From(RuntimeElementFromProto(v.Payload)).Result(); err != nil {
+		return nil, fmt.Errorf("Payload: %w", err)
 	}
-	if out.Schema, err = result.From(ModuleFromProto(v.Schema)).Result(); err != nil {
-		return nil, fmt.Errorf("Schema: %w", err)
-	}
-	if out.Changeset, err = orZeroR(unmarshallText([]byte(v.Changeset), &out.Changeset)).Result(); err != nil {
+	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
-	}
-	if err := out.Validate(); err != nil {
-		return nil, err
 	}
 	return out, nil
 }
 
->>>>>>> b22613bf6 (feat: new PullSchema events)
 func (x DeploymentState) ToProto() destpb.DeploymentState {
 	return destpb.DeploymentState(x)
 }
@@ -1206,6 +1208,31 @@ func (x FromOffset) ToProto() destpb.FromOffset {
 func FromOffsetFromProto(v destpb.FromOffset) (FromOffset, error) {
 	// TODO: Check if the value is valid.
 	return FromOffset(v), nil
+}
+
+func (x *FullSchemaNotification) ToProto() *destpb.FullSchemaNotification {
+	if x == nil {
+		return nil
+	}
+	return &destpb.FullSchemaNotification{
+		Schema:     x.Schema.ToProto(),
+		Changesets: sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
+	}
+}
+
+func FullSchemaNotificationFromProto(v *destpb.FullSchemaNotification) (out *FullSchemaNotification, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &FullSchemaNotification{}
+	if out.Schema, err = result.From(SchemaFromProto(v.Schema)).Result(); err != nil {
+		return nil, fmt.Errorf("Schema: %w", err)
+	}
+	if out.Changesets, err = sliceMapR(v.Changesets, func(v *destpb.Changeset) result.Result[*Changeset] { return result.From(ChangesetFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Changesets: %w", err)
+	}
+	return out, nil
 }
 
 // IngressPathComponentToProto converts a IngressPathComponent sum type to a protobuf message.
@@ -2123,51 +2150,6 @@ func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) (out *M
 	return out, nil
 }
 
-<<<<<<< HEAD
-=======
-func (x *ModuleRuntimeEvent) ToProto() *destpb.ModuleRuntimeEvent {
-	if x == nil {
-		return nil
-	}
-	return &destpb.ModuleRuntimeEvent{
-		Changeset:     orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
-		Base:          x.Base.Ptr().ToProto(),
-		Scaling:       x.Scaling.Ptr().ToProto(),
-		Deployment:    x.Deployment.Ptr().ToProto(),
-	}
-}
-
-func ModuleRuntimeEventFromProto(v *destpb.ModuleRuntimeEvent) (out *ModuleRuntimeEvent, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &ModuleRuntimeEvent{}
-	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
-	}
-	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
-	}
-	if out.Base, err = optionalR(result.From(ModuleRuntimeBaseFromProto(v.Base))).Result(); err != nil {
-		return nil, fmt.Errorf("Base: %w", err)
-	}
-	if out.Scaling, err = optionalR(result.From(ModuleRuntimeScalingFromProto(v.Scaling))).Result(); err != nil {
-		return nil, fmt.Errorf("Scaling: %w", err)
-	}
-	if out.Deployment, err = optionalR(result.From(ModuleRuntimeDeploymentFromProto(v.Deployment))).Result(); err != nil {
-		return nil, fmt.Errorf("Deployment: %w", err)
-	}
-	if out.Runner, err = optionalR(result.From(ModuleRuntimeRunnerFromProto(v.Runner))).Result(); err != nil {
-		return nil, fmt.Errorf("Runner: %w", err)
-	}
-	if err := out.Validate(); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
->>>>>>> b22613bf6 (feat: new PullSchema events)
 func (x *ModuleRuntimeRunner) ToProto() *destpb.ModuleRuntimeRunner {
 	if x == nil {
 		return nil
@@ -2208,6 +2190,74 @@ func ModuleRuntimeScalingFromProto(v *destpb.ModuleRuntimeScaling) (out *ModuleR
 		return nil, fmt.Errorf("MinReplicas: %w", err)
 	}
 	return out, nil
+}
+
+// NotificationToProto converts a Notification sum type to a protobuf message.
+func NotificationToProto(value Notification) *destpb.Notification {
+	switch value := value.(type) {
+	case nil:
+		return nil
+	case *ChangesetCommittedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetCommittedNotification{value.ToProto()},
+		}
+	case *ChangesetCreatedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetCreatedNotification{value.ToProto()},
+		}
+	case *ChangesetDrainedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetDrainedNotification{value.ToProto()},
+		}
+	case *ChangesetFailedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetFailedNotification{value.ToProto()},
+		}
+	case *ChangesetFinalizedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetFinalizedNotification{value.ToProto()},
+		}
+	case *ChangesetPreparedNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_ChangesetPreparedNotification{value.ToProto()},
+		}
+	case *DeploymentRuntimeNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_DeploymentRuntimeNotification{value.ToProto()},
+		}
+	case *FullSchemaNotification:
+		return &destpb.Notification{
+			Value: &destpb.Notification_FullSchemaNotification{value.ToProto()},
+		}
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", value))
+	}
+}
+
+func NotificationFromProto(v *destpb.Notification) (Notification, error) {
+	if v == nil {
+		return nil, nil
+	}
+	switch v.Value.(type) {
+	case *destpb.Notification_ChangesetCommittedNotification:
+		return ChangesetCommittedNotificationFromProto(v.GetChangesetCommittedNotification())
+	case *destpb.Notification_ChangesetCreatedNotification:
+		return ChangesetCreatedNotificationFromProto(v.GetChangesetCreatedNotification())
+	case *destpb.Notification_ChangesetDrainedNotification:
+		return ChangesetDrainedNotificationFromProto(v.GetChangesetDrainedNotification())
+	case *destpb.Notification_ChangesetFailedNotification:
+		return ChangesetFailedNotificationFromProto(v.GetChangesetFailedNotification())
+	case *destpb.Notification_ChangesetFinalizedNotification:
+		return ChangesetFinalizedNotificationFromProto(v.GetChangesetFinalizedNotification())
+	case *destpb.Notification_ChangesetPreparedNotification:
+		return ChangesetPreparedNotificationFromProto(v.GetChangesetPreparedNotification())
+	case *destpb.Notification_DeploymentRuntimeNotification:
+		return DeploymentRuntimeNotificationFromProto(v.GetDeploymentRuntimeNotification())
+	case *destpb.Notification_FullSchemaNotification:
+		return FullSchemaNotificationFromProto(v.GetFullSchemaNotification())
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", v.Value))
+	}
 }
 
 func (x *Optional) ToProto() *destpb.Optional {
@@ -2414,21 +2464,7 @@ func (x *SchemaState) ToProto() *destpb.SchemaState {
 	return &destpb.SchemaState{
 		Modules:       sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
 		Changesets:    sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
-<<<<<<< HEAD
 		RuntimeEvents: sliceMap(x.RuntimeEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
-=======
-		RuntimeEvents: sliceMap(x.RuntimeEvents, func(v RuntimeEvent) *destpb.RuntimeEvent { return RuntimeEventToProto(v) }),
-<<<<<<< HEAD
-=======
-		Modules: sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
-=======
-		Modules:    sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
->>>>>>> 9c5330d90 (fix)
-		Changesets: sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
->>>>>>> 483f97c4b (feat: new PullSchema events)
->>>>>>> b22613bf6 (feat: new PullSchema events)
-=======
->>>>>>> ea68a91f4 (tmp)
 	}
 }
 
@@ -2624,41 +2660,6 @@ func TopicRuntimeFromProto(v *destpb.TopicRuntime) (out *TopicRuntime, err error
 	return out, nil
 }
 
-<<<<<<< HEAD
-=======
-func (x *TopicRuntimeEvent) ToProto() *destpb.TopicRuntimeEvent {
-	if x == nil {
-		return nil
-	}
-	return &destpb.TopicRuntimeEvent{
-	}
-}
-
-func TopicRuntimeEventFromProto(v *destpb.TopicRuntimeEvent) (out *TopicRuntimeEvent, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &TopicRuntimeEvent{}
-	if out.Deployment, err = orZeroR(unmarshallText([]byte(v.Deployment), &out.Deployment)).Result(); err != nil {
-		return nil, fmt.Errorf("Deployment: %w", err)
-	}
-	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
-	}
-	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("ID: %w", err)
-	}
-	if out.Payload, err = result.From(TopicRuntimeFromProto(v.Payload)).Result(); err != nil {
-		return nil, fmt.Errorf("Payload: %w", err)
-	}
-	if err := out.Validate(); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
->>>>>>> b22613bf6 (feat: new PullSchema events)
 // TypeToProto converts a Type sum type to a protobuf message.
 func TypeToProto(value Type) *destpb.Type {
 	switch value := value.(type) {
@@ -2975,42 +2976,6 @@ func VerbRuntimeFromProto(v *destpb.VerbRuntime) (out *VerbRuntime, err error) {
 	return out, nil
 }
 
-<<<<<<< HEAD
-=======
-func (x *VerbRuntimeEvent) ToProto() *destpb.VerbRuntimeEvent {
-	if x == nil {
-		return nil
-	}
-	return &destpb.VerbRuntimeEvent{
-		Subscription: x.Subscription.Ptr().ToProto(),
-	}
-}
-
-func VerbRuntimeEventFromProto(v *destpb.VerbRuntimeEvent) (out *VerbRuntimeEvent, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &VerbRuntimeEvent{}
-	if out.Deployment, err = orZeroR(unmarshallText([]byte(v.Deployment), &out.Deployment)).Result(); err != nil {
-		return nil, fmt.Errorf("Deployment: %w", err)
-	}
-	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
-	}
-	if out.ID, err = orZeroR(result.From(ptr(string(v.Id)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("ID: %w", err)
-	}
-	if out.Subscription, err = optionalR(result.From(VerbRuntimeSubscriptionFromProto(v.Subscription))).Result(); err != nil {
-		return nil, fmt.Errorf("Subscription: %w", err)
-	}
-	if err := out.Validate(); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
->>>>>>> b22613bf6 (feat: new PullSchema events)
 func (x *VerbRuntimeSubscription) ToProto() *destpb.VerbRuntimeSubscription {
 	if x == nil {
 		return nil

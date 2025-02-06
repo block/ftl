@@ -61,8 +61,6 @@ func (v *View) GetActiveChangeset() optional.Option[*schema.Changeset] {
 //
 //sumtype:decl
 type Event interface {
-	// More returns true if there are more changes to come as part of the initial sync.
-	More() bool
 	// GetCanonical is the READ-ONLY canonical schema after this event was applied.
 	GetCanonical() *schema.Schema
 	// GetLatest is the READ-ONLY latest schema, by applying active deployments in changesetz to the canonical schema.
@@ -339,7 +337,7 @@ func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaS
 		logger.Debugf("Schema pull (more: %t, event: %T)", more, resp.Event)
 
 		switch event := resp.Event.(type) {
-		case *ftlv1.PullSchemaResponse_ChangesetCreated_:
+		case *ftlv1.PullSchemaResponse_ChangesetCreated:
 			changeset, err := schema.ChangesetFromProto(event.ChangesetCreated.Changeset)
 			if err != nil {
 				return fmt.Errorf("invalid changeset: %w", err)
@@ -348,7 +346,7 @@ func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaS
 				Changeset: changeset,
 				more:      more,
 			})
-		case *ftlv1.PullSchemaResponse_ChangesetFailed_:
+		case *ftlv1.PullSchemaResponse_ChangesetFailed:
 			key, err := key.ParseChangesetKey(event.ChangesetFailed.Key)
 			if err != nil {
 				return fmt.Errorf("invalid changeset key: %w", err)
@@ -359,7 +357,7 @@ func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaS
 				Error:   event.ChangesetFailed.Error,
 				more:    more,
 			})
-		case *ftlv1.PullSchemaResponse_ChangesetCommitted_:
+		case *ftlv1.PullSchemaResponse_ChangesetCommitted:
 			key, err := key.ParseChangesetKey(event.ChangesetCommitted.Changeset.Key)
 			if err != nil {
 				return fmt.Errorf("invalid changeset key: %w", err)
@@ -369,7 +367,7 @@ func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaS
 				Success: true,
 				more:    more,
 			})
-		case *ftlv1.PullSchemaResponse_DeploymentCreated_:
+		case *ftlv1.PullSchemaResponse_DeploymentCreated:
 			module, err := schema.ValidatedModuleFromProto(event.DeploymentCreated.Schema)
 			if err != nil {
 				return fmt.Errorf("invalid module: %w", err)
@@ -389,7 +387,7 @@ func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaS
 				Module:    module,
 				more:      more,
 			})
-		case *ftlv1.PullSchemaResponse_DeploymentUpdated_:
+		case *ftlv1.PullSchemaResponse_DeploymentUpdated:
 			module, err := schema.ValidatedModuleFromProto(event.DeploymentUpdated.Schema)
 			if err != nil {
 				return fmt.Errorf("invalid module: %w", err)
@@ -408,7 +406,7 @@ func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaS
 				Changeset: changeset,
 				more:      more,
 			})
-		case *ftlv1.PullSchemaResponse_DeploymentRemoved_:
+		case *ftlv1.PullSchemaResponse_DeploymentRemoved:
 			// TODO: bring this back? but we can't right because there can be multiple?
 			// if !resp.ModuleRemoved {
 			// 	return nil

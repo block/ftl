@@ -6,7 +6,6 @@ import (
 	"net/url"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 
@@ -280,25 +279,16 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 		return fmt.Errorf("failed to get schema state: %w", err)
 	}
 
-	// TODO: update this to send changesets as well
+	modules := append([]*schema.Module{}, schema.Builtins())
+	modules = append(modules, maps.Values(view.GetCanonicalDeployments())...)
 
-	// Seed the notification channel with the current deployments.
-	seedDeployments := view.GetCanonicalDeployments()
-	initialCount := len(seedDeployments)
-
-	modules := append([]*schemapb.Module{}, schema.Builtins().ToProto())
-	modules = append(modules, slices.Map(maps.Values(view.GetCanonicalDeployments()), func(t *schema.Module) *schemapb.Module {
-		return t.ToProto()
-	})...)
-	builtinsResponse := &ftlv1.PullSchemaResponse{
-		Event: &ftlv1.PullSchemaResponse_InitialSchema{
-			InitialSchema: &ftlv1.InitialSchemaNotification{
-				Schema: &schemapb.Schema{Modules: modules},
-			},
-		},
+	notification := &schema.FullSchemaNotification{
+		Schema:     &schema.Schema{Modules: modules},
+		Changesets: maps.Values(view.GetChangesets()),
 	}
-	err = sendChange(builtinsResponse)
-	logger.Tracef("Seeded %d deployments", initialCount)
+	err = sendChange(&ftlv1.PullSchemaResponse{
+		Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{notification.ToProto()}},
+	})
 
 	for notification := range iterops.Changes(stateIter, EventExtractor) {
 		logger.Debugf("Send Notification (subscription: %s, event: %T)", subscriptionID, notification.Event)
