@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"connectrpc.com/connect"
 	"golang.org/x/exp/maps"
@@ -189,9 +190,10 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	changeset := &schema.Changeset{
-		Key:     key.NewChangesetKey(),
-		State:   schema.ChangesetStatePreparing,
-		Modules: modules,
+		Key:       key.NewChangesetKey(),
+		State:     schema.ChangesetStatePreparing,
+		Modules:   modules,
+		CreatedAt: time.Now(),
 	}
 
 	// TODO: validate changeset schema with canonical schema
