@@ -19,3 +19,15 @@ class AddMemberRequest(_message.Message):
 class AddMemberResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class RemoveMemberRequest(_message.Message):
+    __slots__ = ("replica_id", "shard_ids")
+    REPLICA_ID_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDS_FIELD_NUMBER: _ClassVar[int]
+    replica_id: int
+    shard_ids: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, replica_id: _Optional[int] = ..., shard_ids: _Optional[_Iterable[int]] = ...) -> None: ...
+
+class RemoveMemberResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...

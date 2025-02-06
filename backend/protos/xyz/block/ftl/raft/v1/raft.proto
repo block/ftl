@@ -15,6 +15,13 @@ message AddMemberRequest {
 
 message AddMemberResponse {}
 
+message RemoveMemberRequest {
+  uint64 replica_id = 1;
+  repeated uint64 shard_ids = 2;
+}
+
+message RemoveMemberResponse {}
+
 service RaftService {
   // Ping service for readiness.
   rpc Ping(xyz.block.ftl.v1.PingRequest) returns (xyz.block.ftl.v1.PingResponse) {
@@ -23,4 +30,7 @@ service RaftService {
 
   // Add a new member to the cluster.
   rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
+
+  // Remove a member from the cluster.
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
 }

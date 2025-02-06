@@ -38,6 +38,9 @@ const (
 	RaftServicePingProcedure = "/xyz.block.ftl.raft.v1.RaftService/Ping"
 	// RaftServiceAddMemberProcedure is the fully-qualified name of the RaftService's AddMember RPC.
 	RaftServiceAddMemberProcedure = "/xyz.block.ftl.raft.v1.RaftService/AddMember"
+	// RaftServiceRemoveMemberProcedure is the fully-qualified name of the RaftService's RemoveMember
+	// RPC.
+	RaftServiceRemoveMemberProcedure = "/xyz.block.ftl.raft.v1.RaftService/RemoveMember"
 )
 
 // RaftServiceClient is a client for the xyz.block.ftl.raft.v1.RaftService service.
@@ -46,6 +49,8 @@ type RaftServiceClient interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	// Add a new member to the cluster.
 	AddMember(context.Context, *connect.Request[v11.AddMemberRequest]) (*connect.Response[v11.AddMemberResponse], error)
+	// Remove a member from the cluster.
+	RemoveMember(context.Context, *connect.Request[v11.RemoveMemberRequest]) (*connect.Response[v11.RemoveMemberResponse], error)
 }
 
 // NewRaftServiceClient constructs a client for the xyz.block.ftl.raft.v1.RaftService service. By
@@ -69,13 +74,19 @@ func NewRaftServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			baseURL+RaftServiceAddMemberProcedure,
 			opts...,
 		),
+		removeMember: connect.NewClient[v11.RemoveMemberRequest, v11.RemoveMemberResponse](
+			httpClient,
+			baseURL+RaftServiceRemoveMemberProcedure,
+			opts...,
+		),
 	}
 }
 
 // raftServiceClient implements RaftServiceClient.
 type raftServiceClient struct {
-	ping      *connect.Client[v1.PingRequest, v1.PingResponse]
-	addMember *connect.Client[v11.AddMemberRequest, v11.AddMemberResponse]
+	ping         *connect.Client[v1.PingRequest, v1.PingResponse]
+	addMember    *connect.Client[v11.AddMemberRequest, v11.AddMemberResponse]
+	removeMember *connect.Client[v11.RemoveMemberRequest, v11.RemoveMemberResponse]
 }
 
 // Ping calls xyz.block.ftl.raft.v1.RaftService.Ping.
@@ -88,12 +99,19 @@ func (c *raftServiceClient) AddMember(ctx context.Context, req *connect.Request[
 	return c.addMember.CallUnary(ctx, req)
 }
 
+// RemoveMember calls xyz.block.ftl.raft.v1.RaftService.RemoveMember.
+func (c *raftServiceClient) RemoveMember(ctx context.Context, req *connect.Request[v11.RemoveMemberRequest]) (*connect.Response[v11.RemoveMemberResponse], error) {
+	return c.removeMember.CallUnary(ctx, req)
+}
+
 // RaftServiceHandler is an implementation of the xyz.block.ftl.raft.v1.RaftService service.
 type RaftServiceHandler interface {
 	// Ping service for readiness.
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	// Add a new member to the cluster.
 	AddMember(context.Context, *connect.Request[v11.AddMemberRequest]) (*connect.Response[v11.AddMemberResponse], error)
+	// Remove a member from the cluster.
+	RemoveMember(context.Context, *connect.Request[v11.RemoveMemberRequest]) (*connect.Response[v11.RemoveMemberResponse], error)
 }
 
 // NewRaftServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -113,12 +131,19 @@ func NewRaftServiceHandler(svc RaftServiceHandler, opts ...connect.HandlerOption
 		svc.AddMember,
 		opts...,
 	)
+	raftServiceRemoveMemberHandler := connect.NewUnaryHandler(
+		RaftServiceRemoveMemberProcedure,
+		svc.RemoveMember,
+		opts...,
+	)
 	return "/xyz.block.ftl.raft.v1.RaftService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RaftServicePingProcedure:
 			raftServicePingHandler.ServeHTTP(w, r)
 		case RaftServiceAddMemberProcedure:
 			raftServiceAddMemberHandler.ServeHTTP(w, r)
+		case RaftServiceRemoveMemberProcedure:
+			raftServiceRemoveMemberHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -134,4 +159,8 @@ func (UnimplementedRaftServiceHandler) Ping(context.Context, *connect.Request[v1
 
 func (UnimplementedRaftServiceHandler) AddMember(context.Context, *connect.Request[v11.AddMemberRequest]) (*connect.Response[v11.AddMemberResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.raft.v1.RaftService.AddMember is not implemented"))
+}
+
+func (UnimplementedRaftServiceHandler) RemoveMember(context.Context, *connect.Request[v11.RemoveMemberRequest]) (*connect.Response[v11.RemoveMemberResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.raft.v1.RaftService.RemoveMember is not implemented"))
 }
