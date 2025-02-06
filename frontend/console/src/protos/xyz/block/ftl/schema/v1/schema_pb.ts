@@ -3913,9 +3913,14 @@ export class SchemaState extends Message<SchemaState> {
   changesets: Changeset[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.DeploymentRuntimeEvent runtime_events = 3;
+   * @generated from field: repeated xyz.block.ftl.schema.v1.DeploymentRuntimeEvent changeset_events = 3;
    */
-  runtimeEvents: DeploymentRuntimeEvent[] = [];
+  changesetEvents: DeploymentRuntimeEvent[] = [];
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.DeploymentRuntimeEvent deployment_events = 4;
+   */
+  deploymentEvents: DeploymentRuntimeEvent[] = [];
 
   constructor(data?: PartialMessage<SchemaState>) {
     super();
@@ -3927,7 +3932,8 @@ export class SchemaState extends Message<SchemaState> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
     { no: 2, name: "changesets", kind: "message", T: Changeset, repeated: true },
-    { no: 3, name: "runtime_events", kind: "message", T: DeploymentRuntimeEvent, repeated: true },
+    { no: 3, name: "changeset_events", kind: "message", T: DeploymentRuntimeEvent, repeated: true },
+    { no: 4, name: "deployment_events", kind: "message", T: DeploymentRuntimeEvent, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SchemaState {

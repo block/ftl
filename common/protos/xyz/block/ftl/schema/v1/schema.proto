@@ -516,7 +516,8 @@ message Schema {
 message SchemaState {
   repeated Module modules = 1;
   repeated Changeset changesets = 2;
-  repeated DeploymentRuntimeEvent runtime_events = 3;
+  repeated DeploymentRuntimeEvent changeset_events = 3;
+  repeated DeploymentRuntimeEvent deployment_events = 4;
 }
 
 message Secret {

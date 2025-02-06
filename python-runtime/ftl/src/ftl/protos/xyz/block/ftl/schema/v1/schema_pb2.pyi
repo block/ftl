@@ -806,14 +806,16 @@ class Schema(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ...) -> None: ...
 
 class SchemaState(_message.Message):
-    __slots__ = ("modules", "changesets", "runtime_events")
+    __slots__ = ("modules", "changesets", "changeset_events", "deployment_events")
     MODULES_FIELD_NUMBER: _ClassVar[int]
     CHANGESETS_FIELD_NUMBER: _ClassVar[int]
-    RUNTIME_EVENTS_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_EVENTS_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_EVENTS_FIELD_NUMBER: _ClassVar[int]
     modules: _containers.RepeatedCompositeFieldContainer[Module]
     changesets: _containers.RepeatedCompositeFieldContainer[Changeset]
-    runtime_events: _containers.RepeatedCompositeFieldContainer[DeploymentRuntimeEvent]
-    def __init__(self, modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., changesets: _Optional[_Iterable[_Union[Changeset, _Mapping]]] = ..., runtime_events: _Optional[_Iterable[_Union[DeploymentRuntimeEvent, _Mapping]]] = ...) -> None: ...
+    changeset_events: _containers.RepeatedCompositeFieldContainer[DeploymentRuntimeEvent]
+    deployment_events: _containers.RepeatedCompositeFieldContainer[DeploymentRuntimeEvent]
+    def __init__(self, modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., changesets: _Optional[_Iterable[_Union[Changeset, _Mapping]]] = ..., changeset_events: _Optional[_Iterable[_Union[DeploymentRuntimeEvent, _Mapping]]] = ..., deployment_events: _Optional[_Iterable[_Union[DeploymentRuntimeEvent, _Mapping]]] = ...) -> None: ...
 
 class Secret(_message.Message):
     __slots__ = ("pos", "comments", "name", "type")

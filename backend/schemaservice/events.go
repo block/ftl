@@ -175,8 +175,8 @@ func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema
 		}
 		t.deployments[dep.Name] = dep
 		delete(t.deploymentEvents, dep.Name)
+		dep.Runtime.Deployment.State = schema.DeploymentStateCanonical
 	}
-	delete(t.changesetEvents, e.Key)
 	return nil
 }
 
@@ -192,7 +192,9 @@ func handleChangesetDrainedEvent(ctx context.Context, t SchemaState, e *schema.C
 	logger.Debugf("Changeset %s drained", e.Key)
 
 	for _, dep := range changeset.RemovingModules {
-		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeProvisioning {
+		if dep.ModRuntime().ModDeployment().State == schema.DeploymentStateDraining {
+			dep.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
+		} else if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeProvisioning {
 			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
 		}
 	}
@@ -211,13 +213,16 @@ func handleChangesetFinalizedEvent(ctx context.Context, t SchemaState, e *schema
 	logger.Debugf("Changeset %s de-provisioned", e.Key)
 
 	for _, dep := range changeset.RemovingModules {
-		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeleted {
+		if dep.ModRuntime().ModDeployment().State == schema.DeploymentStateDeProvisioning {
+			dep.Runtime.Deployment.State = schema.DeploymentStateDeleted
+		} else if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeleted {
 			return fmt.Errorf("deployment %s is not in correct state %d", dep.Name, dep.ModRuntime().ModDeployment().State)
 		}
 	}
 	changeset.State = schema.ChangesetStateFinalized
 	// TODO: archive changesets?
 	delete(t.changesets, changeset.Key)
+	delete(t.changesetEvents, e.Key)
 	t.archivedChangesets = append(t.archivedChangesets, changeset)
 	return nil
 }
