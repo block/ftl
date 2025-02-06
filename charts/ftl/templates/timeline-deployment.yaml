@@ -16,9 +16,13 @@ spec:
     metadata:
       labels:
         {{- include "ftl-timeline.selectorLabels" . | nindent 8 }}
-      {{- if .Values.timeline.podAnnotations }}
       annotations:
+      {{- if .Values.timeline.podAnnotations }}
         {{- toYaml .Values.timeline.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{ if .Values.istio.holdApplicationUntilProxyStarts }}
+        proxy.istio.io/config: |
+          holdApplicationUntilProxyStarts: true
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.timeline.serviceAccountName }}

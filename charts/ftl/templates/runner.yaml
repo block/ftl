@@ -36,9 +36,13 @@ data:
         metadata:
           labels:
             {{- include "ftl-runner.selectorLabels" . | nindent 12 }}
-          {{- if .Values.runner.podAnnotations }}
           annotations:
+          {{- if .Values.runner.podAnnotations }}
             {{- toYaml .Values.runner.podAnnotations | nindent 12 }}
+          {{- end }}
+          {{ if .Values.istio.holdApplicationUntilProxyStarts }}
+            proxy.istio.io/config: |
+              holdApplicationUntilProxyStarts: true
           {{- end }}
         spec:
           containers:

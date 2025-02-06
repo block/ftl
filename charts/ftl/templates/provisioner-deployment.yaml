@@ -15,9 +15,13 @@ spec:
     metadata:
       labels:
         {{- include "ftl-provisioner.selectorLabels" . | nindent 8 }}
-      {{- if .Values.provisioner.podAnnotations }}
       annotations:
+      {{- if .Values.provisioner.podAnnotations }}
         {{- toYaml .Values.provisioner.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{ if .Values.istio.holdApplicationUntilProxyStarts }}
+        proxy.istio.io/config: |
+          holdApplicationUntilProxyStarts: true
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.provisioner.serviceAccountName }}
