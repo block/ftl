@@ -2493,9 +2493,10 @@ func (x *SchemaState) ToProto() *destpb.SchemaState {
 		return nil
 	}
 	return &destpb.SchemaState{
-		Modules:       sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
-		Changesets:    sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
-		RuntimeEvents: sliceMap(x.RuntimeEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
+		Modules:          sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		Changesets:       sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
+		ChangesetEvents:  sliceMap(x.ChangesetEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
+		DeploymentEvents: sliceMap(x.DeploymentEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
 	}
 }
 
@@ -2511,10 +2512,15 @@ func SchemaStateFromProto(v *destpb.SchemaState) (out *SchemaState, err error) {
 	if out.Changesets, err = sliceMapR(v.Changesets, func(v *destpb.Changeset) result.Result[*Changeset] { return result.From(ChangesetFromProto(v)) }).Result(); err != nil {
 		return nil, fmt.Errorf("Changesets: %w", err)
 	}
-	if out.RuntimeEvents, err = sliceMapR(v.RuntimeEvents, func(v *destpb.DeploymentRuntimeEvent) result.Result[*DeploymentRuntimeEvent] {
+	if out.ChangesetEvents, err = sliceMapR(v.ChangesetEvents, func(v *destpb.DeploymentRuntimeEvent) result.Result[*DeploymentRuntimeEvent] {
 		return result.From(DeploymentRuntimeEventFromProto(v))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("RuntimeEvents: %w", err)
+		return nil, fmt.Errorf("ChangesetEvents: %w", err)
+	}
+	if out.DeploymentEvents, err = sliceMapR(v.DeploymentEvents, func(v *destpb.DeploymentRuntimeEvent) result.Result[*DeploymentRuntimeEvent] {
+		return result.From(DeploymentRuntimeEventFromProto(v))
+	}).Result(); err != nil {
+		return nil, fmt.Errorf("DeploymentEvents: %w", err)
 	}
 	return out, nil
 }

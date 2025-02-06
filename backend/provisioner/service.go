@@ -177,9 +177,9 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 		return fmt.Errorf("error running deployments: %w", err)
 	}
 
+	changeset := req.Key.String()
 	for _, mod := range req.Modules {
 		element := &schema.RuntimeElement{Deployment: mod.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeDeployment{DeploymentKey: mod.Runtime.Deployment.DeploymentKey, State: schema.DeploymentStateReady}}
-		changeset := req.Key.String()
 		_, err = s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Changeset: &changeset, Update: element.ToProto()}))
 		if err != nil {
 			return fmt.Errorf("error preparing changeset: %w", err)
@@ -189,9 +189,20 @@ func (s *Service) ProvisionChangeset(ctx context.Context, req *schema.Changeset)
 	if err != nil {
 		return fmt.Errorf("error preparing changeset: %w", err)
 	}
+
 	_, err = s.schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: req.Key.String()}))
 	if err != nil {
 		return fmt.Errorf("error committing changeset: %w", err)
+	}
+
+	_, err = s.schemaClient.DrainChangeset(ctx, connect.NewRequest(&ftlv1.DrainChangesetRequest{Changeset: req.Key.String()}))
+	if err != nil {
+		return fmt.Errorf("error draining changeset: %w", err)
+	}
+
+	_, err = s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: req.Key.String()}))
+	if err != nil {
+		return fmt.Errorf("error finalizing changeset: %w", err)
 	}
 	return nil
 }

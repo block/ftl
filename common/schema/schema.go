@@ -279,7 +279,8 @@ func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
 //
 //protobuf:export
 type SchemaState struct {
-	Modules       []*Module                 `protobuf:"1"`
-	Changesets    []*Changeset              `protobuf:"2"`
-	RuntimeEvents []*DeploymentRuntimeEvent `protobuf:"3"`
+	Modules          []*Module                 `protobuf:"1"`
+	Changesets       []*Changeset              `protobuf:"2"`
+	ChangesetEvents  []*DeploymentRuntimeEvent `protobuf:"3"`
+	DeploymentEvents []*DeploymentRuntimeEvent `protobuf:"4"`
 }

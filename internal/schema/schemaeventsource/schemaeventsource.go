@@ -141,17 +141,23 @@ func (e *EventSource) Publish(event schema.Notification) error {
 			}
 		}
 		e.view.Store(clone)
-
 	case *schema.ChangesetCreatedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		clone.activeChangesets[event.Changeset.Key] = event.Changeset
 		e.view.Store(clone)
-
+	case *schema.ChangesetPreparedNotification:
+		clone := reflect.DeepCopy(e.view.Load())
+		cs := clone.activeChangesets[event.Key]
+		for _, module := range cs.Modules {
+			module.Runtime.Deployment.State = schema.DeploymentStateCanary
+		}
+		e.view.Store(clone)
 	case *schema.ChangesetCommittedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		clone.activeChangesets[event.Changeset.Key] = event.Changeset
 		modules := clone.schema.Modules
 		for _, module := range event.Changeset.Modules {
+			module.Runtime.Deployment.State = schema.DeploymentStateCanonical
 			if i := slices.IndexFunc(modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
 				modules[i] = module
 			} else {
@@ -166,8 +172,28 @@ func (e *EventSource) Publish(event schema.Notification) error {
 		}
 		clone.schema.Modules = modules
 		e.view.Store(clone)
-	default:
-
+	case *schema.ChangesetDrainedNotification:
+		clone := reflect.DeepCopy(e.view.Load())
+		cs := clone.activeChangesets[event.Key]
+		for _, module := range cs.Modules {
+			module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
+		}
+		e.view.Store(clone)
+	case *schema.ChangesetRollingBackNotification:
+		clone := reflect.DeepCopy(e.view.Load())
+		cs := clone.activeChangesets[event.Key]
+		for _, module := range cs.Modules {
+			module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
+		}
+		e.view.Store(clone)
+	case *schema.ChangesetFailedNotification:
+		clone := reflect.DeepCopy(e.view.Load())
+		delete(clone.activeChangesets, event.Key)
+		e.view.Store(clone)
+	case *schema.ChangesetFinalizedNotification:
+		clone := reflect.DeepCopy(e.view.Load())
+		delete(clone.activeChangesets, event.Key)
+		e.view.Store(clone)
 	}
 	e.events <- event
 	return nil
