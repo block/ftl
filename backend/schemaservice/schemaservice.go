@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os/signal"
+	"syscall"
 
 	"connectrpc.com/connect"
 	"golang.org/x/sync/errgroup"
@@ -68,6 +70,10 @@ func Start(
 	logger.Debugf("Starting FTL schema service")
 
 	g, gctx := errgroup.WithContext(ctx)
+	gctx, cancel := signal.NotifyContext(gctx, syscall.SIGTERM)
+	defer cancel()
+
+	var rpcOpts []rpc.Option
 
 	var shard statemachine.Handle[struct{}, SchemaState, EventWrapper]
 	if config.Raft.DataDir == "" {
@@ -75,12 +81,11 @@ func Start(
 		shard = statemachine.NewLocalHandle(newStateMachine(ctx))
 	} else {
 		clusterBuilder := raft.NewBuilder(&config.Raft)
-		schemaShard := raft.AddShard(ctx, clusterBuilder, 1, newStateMachine(ctx))
-		cluster := clusterBuilder.Build(ctx)
-		if err := cluster.Start(ctx); err != nil {
-			return fmt.Errorf("failed to start raft cluster: %w", err)
-		}
+		schemaShard := raft.AddShard(gctx, clusterBuilder, 1, newStateMachine(ctx))
+		cluster := clusterBuilder.Build(gctx)
 		shard = schemaShard
+
+		rpcOpts = append(rpcOpts, raft.RPCOption(cluster))
 	}
 
 	svc := New(ctx, shard, config)
@@ -88,14 +93,19 @@ func Start(
 
 	g.Go(func() error {
 		return rpc.Serve(gctx, config.Bind,
-			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
-			rpc.PProf(),
+			append(rpcOpts,
+				rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
+				rpc.PProf(),
+			)...,
 		)
 	})
 
 	err := g.Wait()
 	if err != nil {
-		return fmt.Errorf("failed to start schema service: %w", err)
+		if gctx.Err() == nil {
+			// startup failure if the context was not cancelled
+			return fmt.Errorf("failed to start schema service: %w", err)
+		}
 	}
 	return nil
 }
