@@ -58,12 +58,3 @@ func (t *Topic) GetProvisioned() ResourceSet {
 func (t *Topic) ResourceID() string {
 	return t.Name
 }
-
-//protobuf:5
-type TopicRuntime struct {
-	KafkaBrokers []string `parser:"" protobuf:"1"`
-	TopicID      string   `parser:"" protobuf:"2"`
-}
-
-func (m *TopicRuntime) runtimeElement() {
-}

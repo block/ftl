@@ -5,6 +5,8 @@ type VerbRuntime struct {
 	Subscription *VerbRuntimeSubscription `protobuf:"1,optional"`
 }
 
+var _ Runtime = (*VerbRuntime)(nil)
+
 func (m *VerbRuntime) runtimeElement() {
 }
 
