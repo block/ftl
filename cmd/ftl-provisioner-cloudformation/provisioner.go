@@ -32,12 +32,15 @@ const (
 	PropertyMySQLReadEndpoint  = "mysql:read_endpoint"
 	PropertyMySQLWriteEndpoint = "mysql:write_endpoint"
 	PropertyMySQLMasterUserARN = "mysql:master_user_secret_arn"
+	PropertyMSKCluserARN       = "msk:cluster_arn"
 )
 
 type Config struct {
+	VPCID                  string `help:"VPC ID to create resources in" env:"FTL_PROVISIONER_CF_VPC_ID"`
 	DatabaseSubnetGroupARN string `help:"ARN for the subnet group to be used to create Databases in" env:"FTL_PROVISIONER_CF_DB_SUBNET_GROUP"`
 	// TODO: remove this once we have module specific security groups
-	DatabaseSecurityGroup string `help:"SG for databases" env:"FTL_PROVISIONER_CF_DB_SECURITY_GROUP"`
+	DatabaseSecurityGroup string   `help:"SG for databases" env:"FTL_PROVISIONER_CF_DB_SECURITY_GROUP"`
+	MSKSubnetIDs          []string `help:"Subnet IDs to create the MSK cluster in" env:"FTL_PROVISIONER_CF_MSK_SUBNET_IDS"`
 }
 
 type CloudformationProvisioner struct {
@@ -105,7 +108,7 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 func (c *CloudformationProvisioner) createChangeSet(ctx context.Context, req *provisioner.ProvisionRequest) (*cloudformation.CreateChangeSetOutput, bool, error) {
 	stack := stackName(req)
 	changeSet := generateChangeSetName(stack)
-	templateStr, err := c.createTemplate(req)
+	templateStr, err := c.createTemplate(ctx, req)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to create cloudformation template: %w", err)
 	}
@@ -136,7 +139,8 @@ func generateChangeSetName(stack string) string {
 	return sanitize(stack) + strconv.FormatInt(time.Now().Unix(), 10)
 }
 
-func (c *CloudformationProvisioner) createTemplate(req *provisioner.ProvisionRequest) (string, error) {
+func (c *CloudformationProvisioner) createTemplate(ctx context.Context, req *provisioner.ProvisionRequest) (string, error) {
+	logger := log.FromContext(ctx)
 	template := goformation.NewTemplate()
 
 	module, err := schema.ModuleFromProto(req.DesiredModule)
@@ -166,10 +170,24 @@ func (c *CloudformationProvisioner) createTemplate(req *provisioner.ProvisionReq
 					module:     req.DesiredModule.Name,
 					config:     c.confg,
 				}
+			case schema.ResourceTypeTopic:
+				templater = &MSKTopicTemplater{
+					resourceID: provisioned.ResourceID(),
+					cluster:    req.FtlClusterId,
+					module:     req.DesiredModule.Name,
+					config:     c.confg,
+				}
+			case schema.ResourceTypeSubscription:
+				templater = &MSKSubscriptionTemplater{
+					resourceID: provisioned.ResourceID(),
+					cluster:    req.FtlClusterId,
+					module:     req.DesiredModule.Name,
+					config:     c.confg,
+				}
 			default:
 				continue
 			}
-
+			logger.Debugf("Adding resource %s %s to template", resource.Kind, provisioned.ResourceID())
 			if err := templater.AddToTemplate(template); err != nil {
 				return "", fmt.Errorf("failed to add resource to template: %w", err)
 			}
@@ -192,14 +210,20 @@ type ResourceTemplater interface {
 	AddToTemplate(tmpl *goformation.Template) error
 }
 
-func ftlTags(cluster, module string) []tags.Tag {
-	return []tags.Tag{{
-		Key:   "ftl:module",
-		Value: module,
-	}, {
+func ftlClusterTag(cluster string) tags.Tag {
+	return tags.Tag{
 		Key:   "ftl:cluster",
 		Value: cluster,
-	}}
+	}
+}
+
+func ftlTags(cluster, module string) []tags.Tag {
+	return []tags.Tag{
+		ftlClusterTag(cluster),
+		{
+			Key:   "ftl:module",
+			Value: module,
+		}}
 }
 
 func cloudformationResourceID(strs ...string) string {

@@ -121,7 +121,12 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 		schema.Builtins().ToProto(),
 	}
 	modules = append(modules, slices.Map(schemas, func(d *schema.Module) *schemapb.Module { return d.ToProto() })...)
-	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Modules: modules}}), nil
+
+	resp := &ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Modules: modules}}
+	if changeset, ok := view.ActiveChangeset().Get(); ok {
+		resp.Changesets = append(resp.Changesets, changeset.ToProto())
+	}
+	return connect.NewResponse(resp), nil
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], stream *connect.ServerStream[ftlv1.PullSchemaResponse]) error {

@@ -117,6 +117,18 @@ func (c *CloudformationProvisioner) updateResources(ctx context.Context, deploym
 				events = append(events, e...)
 			case ResourceKindMySQL:
 				panic("mysql not implemented")
+			case ResourceKindTopic:
+				e, err := updateTopicOutputs(ctx, deployment, id, outputs)
+				if err != nil {
+					return nil, fmt.Errorf("failed to update topic outputs: %w", err)
+				}
+				events = append(events, e...)
+			case ResourceKindSubscription:
+				e, err := updateSubscriptionOutputs(ctx, deployment, id, outputs)
+				if err != nil {
+					return nil, fmt.Errorf("failed to update subscription outputs: %w", err)
+				}
+				events = append(events, e...)
 			}
 		}
 	}
