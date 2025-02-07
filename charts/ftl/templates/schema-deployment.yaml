@@ -53,6 +53,22 @@ spec:
             {{- end }}
             - name: FTL_BIND
               value: "http://0.0.0.0:{{ .Values.schema.services.schema.containerPort }}"
+            - name: RAFT_INITIAL_MEMBERS
+              value: "{{- range $index := until (.Values.schema.replicas | int ) }}{{- if ne $index 0 -}},{{- end -}}ftl-schema-{{ add $index 1  }}.ftl-schema-raft:{{$.Values.schema.services.raft.port}}{{- end -}}"
+            - name: RAFT_DATA_DIR
+              value: "/tmp/ftl-schema-$(ORDINAL_NUMBER)"
+            - name: ORDINAL_NUMBER
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
+            - name: RAFT_ADDRESS
+              value: "ftl-schema-$(ORDINAL_NUMBER).ftl-schema-raft:8992"
+            - name: RAFT_REPLICA_ID
+              value: "$(ORDINAL_NUMBER)"
+            - name: RAFT_LISTEN_ADDRESS
+              value: "$(MY_POD_IP):8992"
+            - name: RAFT_CONTROL_ADDRESS
+              value: "http://ftl-schema:8892"
           ports:
             - name: http
               containerPort: {{ .Values.schema.services.schema.containerPort }}
