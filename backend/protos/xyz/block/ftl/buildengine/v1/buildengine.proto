@@ -51,6 +51,11 @@ message ModuleBuildSuccess {
   bool is_auto_rebuild = 2;
 }
 
+// ModuleDeployStarted is published when a deploy has been queued
+message ModuleDeployWaiting {
+  string module = 1;
+}
+
 // ModuleDeployStarted is published when a deploy has begun for a module.
 message ModuleDeployStarted {
   string module = 1;
@@ -79,9 +84,10 @@ message EngineEvent {
     ModuleBuildStarted module_build_started = 7;
     ModuleBuildFailed module_build_failed = 8;
     ModuleBuildSuccess module_build_success = 9;
-    ModuleDeployStarted module_deploy_started = 10;
-    ModuleDeployFailed module_deploy_failed = 11;
-    ModuleDeploySuccess module_deploy_success = 12;
+    ModuleDeployWaiting module_deploy_waiting = 10;
+    ModuleDeployStarted module_deploy_started = 11;
+    ModuleDeployFailed module_deploy_failed = 12;
+    ModuleDeploySuccess module_deploy_success = 13;
   }
 }
 

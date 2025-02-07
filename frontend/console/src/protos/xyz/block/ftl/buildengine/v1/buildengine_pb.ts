@@ -341,6 +341,45 @@ export class ModuleBuildSuccess extends Message<ModuleBuildSuccess> {
 }
 
 /**
+ * ModuleDeployStarted is published when a deploy has been queued
+ *
+ * @generated from message xyz.block.ftl.buildengine.v1.ModuleDeployWaiting
+ */
+export class ModuleDeployWaiting extends Message<ModuleDeployWaiting> {
+  /**
+   * @generated from field: string module = 1;
+   */
+  module = "";
+
+  constructor(data?: PartialMessage<ModuleDeployWaiting>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.buildengine.v1.ModuleDeployWaiting";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleDeployWaiting {
+    return new ModuleDeployWaiting().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ModuleDeployWaiting {
+    return new ModuleDeployWaiting().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ModuleDeployWaiting {
+    return new ModuleDeployWaiting().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ModuleDeployWaiting | PlainMessage<ModuleDeployWaiting> | undefined, b: ModuleDeployWaiting | PlainMessage<ModuleDeployWaiting> | undefined): boolean {
+    return proto3.util.equals(ModuleDeployWaiting, a, b);
+  }
+}
+
+/**
  * ModuleDeployStarted is published when a deploy has begun for a module.
  *
  * @generated from message xyz.block.ftl.buildengine.v1.ModuleDeployStarted
@@ -527,19 +566,25 @@ export class EngineEvent extends Message<EngineEvent> {
     case: "moduleBuildSuccess";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeployStarted module_deploy_started = 10;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeployWaiting module_deploy_waiting = 10;
+     */
+    value: ModuleDeployWaiting;
+    case: "moduleDeployWaiting";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeployStarted module_deploy_started = 11;
      */
     value: ModuleDeployStarted;
     case: "moduleDeployStarted";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeployFailed module_deploy_failed = 11;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeployFailed module_deploy_failed = 12;
      */
     value: ModuleDeployFailed;
     case: "moduleDeployFailed";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeploySuccess module_deploy_success = 12;
+     * @generated from field: xyz.block.ftl.buildengine.v1.ModuleDeploySuccess module_deploy_success = 13;
      */
     value: ModuleDeploySuccess;
     case: "moduleDeploySuccess";
@@ -562,9 +607,10 @@ export class EngineEvent extends Message<EngineEvent> {
     { no: 7, name: "module_build_started", kind: "message", T: ModuleBuildStarted, oneof: "event" },
     { no: 8, name: "module_build_failed", kind: "message", T: ModuleBuildFailed, oneof: "event" },
     { no: 9, name: "module_build_success", kind: "message", T: ModuleBuildSuccess, oneof: "event" },
-    { no: 10, name: "module_deploy_started", kind: "message", T: ModuleDeployStarted, oneof: "event" },
-    { no: 11, name: "module_deploy_failed", kind: "message", T: ModuleDeployFailed, oneof: "event" },
-    { no: 12, name: "module_deploy_success", kind: "message", T: ModuleDeploySuccess, oneof: "event" },
+    { no: 10, name: "module_deploy_waiting", kind: "message", T: ModuleDeployWaiting, oneof: "event" },
+    { no: 11, name: "module_deploy_started", kind: "message", T: ModuleDeployStarted, oneof: "event" },
+    { no: 12, name: "module_deploy_failed", kind: "message", T: ModuleDeployFailed, oneof: "event" },
+    { no: 13, name: "module_deploy_success", kind: "message", T: ModuleDeploySuccess, oneof: "event" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EngineEvent {

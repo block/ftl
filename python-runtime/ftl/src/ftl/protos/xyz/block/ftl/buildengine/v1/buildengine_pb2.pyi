@@ -69,6 +69,12 @@ class ModuleBuildSuccess(_message.Message):
     is_auto_rebuild: bool
     def __init__(self, config: _Optional[_Union[_language_pb2.ModuleConfig, _Mapping]] = ..., is_auto_rebuild: bool = ...) -> None: ...
 
+class ModuleDeployWaiting(_message.Message):
+    __slots__ = ("module",)
+    MODULE_FIELD_NUMBER: _ClassVar[int]
+    module: str
+    def __init__(self, module: _Optional[str] = ...) -> None: ...
+
 class ModuleDeployStarted(_message.Message):
     __slots__ = ("module",)
     MODULE_FIELD_NUMBER: _ClassVar[int]
@@ -90,7 +96,7 @@ class ModuleDeploySuccess(_message.Message):
     def __init__(self, module: _Optional[str] = ...) -> None: ...
 
 class EngineEvent(_message.Message):
-    __slots__ = ("timestamp", "engine_started", "engine_ended", "module_added", "module_removed", "module_build_waiting", "module_build_started", "module_build_failed", "module_build_success", "module_deploy_started", "module_deploy_failed", "module_deploy_success")
+    __slots__ = ("timestamp", "engine_started", "engine_ended", "module_added", "module_removed", "module_build_waiting", "module_build_started", "module_build_failed", "module_build_success", "module_deploy_waiting", "module_deploy_started", "module_deploy_failed", "module_deploy_success")
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
     ENGINE_STARTED_FIELD_NUMBER: _ClassVar[int]
     ENGINE_ENDED_FIELD_NUMBER: _ClassVar[int]
@@ -100,6 +106,7 @@ class EngineEvent(_message.Message):
     MODULE_BUILD_STARTED_FIELD_NUMBER: _ClassVar[int]
     MODULE_BUILD_FAILED_FIELD_NUMBER: _ClassVar[int]
     MODULE_BUILD_SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    MODULE_DEPLOY_WAITING_FIELD_NUMBER: _ClassVar[int]
     MODULE_DEPLOY_STARTED_FIELD_NUMBER: _ClassVar[int]
     MODULE_DEPLOY_FAILED_FIELD_NUMBER: _ClassVar[int]
     MODULE_DEPLOY_SUCCESS_FIELD_NUMBER: _ClassVar[int]
@@ -112,10 +119,11 @@ class EngineEvent(_message.Message):
     module_build_started: ModuleBuildStarted
     module_build_failed: ModuleBuildFailed
     module_build_success: ModuleBuildSuccess
+    module_deploy_waiting: ModuleDeployWaiting
     module_deploy_started: ModuleDeployStarted
     module_deploy_failed: ModuleDeployFailed
     module_deploy_success: ModuleDeploySuccess
-    def __init__(self, timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., engine_started: _Optional[_Union[EngineStarted, _Mapping]] = ..., engine_ended: _Optional[_Union[EngineEnded, _Mapping]] = ..., module_added: _Optional[_Union[ModuleAdded, _Mapping]] = ..., module_removed: _Optional[_Union[ModuleRemoved, _Mapping]] = ..., module_build_waiting: _Optional[_Union[ModuleBuildWaiting, _Mapping]] = ..., module_build_started: _Optional[_Union[ModuleBuildStarted, _Mapping]] = ..., module_build_failed: _Optional[_Union[ModuleBuildFailed, _Mapping]] = ..., module_build_success: _Optional[_Union[ModuleBuildSuccess, _Mapping]] = ..., module_deploy_started: _Optional[_Union[ModuleDeployStarted, _Mapping]] = ..., module_deploy_failed: _Optional[_Union[ModuleDeployFailed, _Mapping]] = ..., module_deploy_success: _Optional[_Union[ModuleDeploySuccess, _Mapping]] = ...) -> None: ...
+    def __init__(self, timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., engine_started: _Optional[_Union[EngineStarted, _Mapping]] = ..., engine_ended: _Optional[_Union[EngineEnded, _Mapping]] = ..., module_added: _Optional[_Union[ModuleAdded, _Mapping]] = ..., module_removed: _Optional[_Union[ModuleRemoved, _Mapping]] = ..., module_build_waiting: _Optional[_Union[ModuleBuildWaiting, _Mapping]] = ..., module_build_started: _Optional[_Union[ModuleBuildStarted, _Mapping]] = ..., module_build_failed: _Optional[_Union[ModuleBuildFailed, _Mapping]] = ..., module_build_success: _Optional[_Union[ModuleBuildSuccess, _Mapping]] = ..., module_deploy_waiting: _Optional[_Union[ModuleDeployWaiting, _Mapping]] = ..., module_deploy_started: _Optional[_Union[ModuleDeployStarted, _Mapping]] = ..., module_deploy_failed: _Optional[_Union[ModuleDeployFailed, _Mapping]] = ..., module_deploy_success: _Optional[_Union[ModuleDeploySuccess, _Mapping]] = ...) -> None: ...
 
 class StreamEngineEventsRequest(_message.Message):
     __slots__ = ("replay_history",)
