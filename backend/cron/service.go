@@ -51,9 +51,9 @@ func Start(ctx context.Context, eventSource schemaeventsource.EventSource, clien
 	logger := log.FromContext(ctx).Scope("cron")
 	ctx = log.ContextWithLogger(ctx, logger)
 	// Map of cron jobs for each module.
-	cronJobs := map[string][]cronJob{}
+	cronJobs := map[string][]*cronJob{}
 	// Cron jobs ordered by next execution.
-	cronQueue := []cronJob{}
+	cronQueue := []*cronJob{}
 
 	logger.Debugf("Starting cron service")
 
@@ -110,7 +110,7 @@ func Start(ctx context.Context, eventSource schemaeventsource.EventSource, clien
 	}
 }
 
-func callCronJob(ctx context.Context, verbClient routing.CallClient, cronJob cronJob) error {
+func callCronJob(ctx context.Context, verbClient routing.CallClient, cronJob *cronJob) error {
 	logger := log.FromContext(ctx).Scope("cron")
 	ref := schema.Ref{Module: cronJob.module, Name: cronJob.verb.Name}
 	logger.Debugf("Calling cron job %s", cronJob)
@@ -137,7 +137,7 @@ func callCronJob(ctx context.Context, verbClient routing.CallClient, cronJob cro
 	}
 }
 
-func scheduleNext(ctx context.Context, cronQueue []cronJob, timelineClient *timelineclient.Client) (time.Duration, bool) {
+func scheduleNext(ctx context.Context, cronQueue []*cronJob, timelineClient *timelineclient.Client) (time.Duration, bool) {
 	if len(cronQueue) == 0 {
 		return 0, false
 	}
@@ -150,7 +150,7 @@ func scheduleNext(ctx context.Context, cronQueue []cronJob, timelineClient *time
 	return time.Until(cronQueue[0].next), true
 }
 
-func updateCronJobs(ctx context.Context, cronJobs map[string][]cronJob, change schema.Notification) error {
+func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change schema.Notification) error {
 	logger := log.FromContext(ctx).Scope("cron")
 	switch change := change.(type) {
 
@@ -184,14 +184,14 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]cronJob, change s
 	return nil
 }
 
-func orderQueue(queue []cronJob) {
+func orderQueue(queue []*cronJob) {
 	sort.SliceStable(queue, func(i, j int) bool {
 		return queue[i].next.Before(queue[j].next)
 	})
 }
 
-func rebuildQueue(cronJobs map[string][]cronJob) []cronJob {
-	queue := make([]cronJob, 0, len(cronJobs)*2) // Assume 2 cron jobs per module.
+func rebuildQueue(cronJobs map[string][]*cronJob) []*cronJob {
+	queue := make([]*cronJob, 0, len(cronJobs)*2) // Assume 2 cron jobs per module.
 	for _, jobs := range cronJobs {
 		queue = append(queue, jobs...)
 	}
@@ -199,11 +199,11 @@ func rebuildQueue(cronJobs map[string][]cronJob) []cronJob {
 	return queue
 }
 
-func extractCronJobs(module *schema.Module) ([]cronJob, error) {
+func extractCronJobs(module *schema.Module) ([]*cronJob, error) {
 	if module.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 		return nil, nil
 	}
-	cronJobs := []cronJob{}
+	cronJobs := []*cronJob{}
 	for verb := range slices.FilterVariants[*schema.Verb](module.Decls) {
 		cronmd, ok := slices.FindVariant[*schema.MetadataCronJob](verb.Metadata)
 		if !ok {
@@ -217,7 +217,7 @@ func extractCronJobs(module *schema.Module) ([]cronJob, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cronmd.Pos, err)
 		}
-		cronJobs = append(cronJobs, cronJob{
+		cronJobs = append(cronJobs, &cronJob{
 			module:     module.Name,
 			deployment: module.Runtime.Deployment.DeploymentKey,
 			verb:       verb,
