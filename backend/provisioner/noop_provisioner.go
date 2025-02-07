@@ -13,6 +13,13 @@ import (
 // NoopProvisioner is a provisioner that does nothing
 type NoopProvisioner struct{}
 
+func (d *NoopProvisioner) DeProvision(ctx context.Context, c *connect.Request[provisioner.DeProvisionRequest]) (*connect.Response[provisioner.DeProvisionResponse], error) {
+	return connect.NewResponse(&provisioner.DeProvisionResponse{
+		Status:            provisioner.ProvisionResponseStatus_PROVISION_RESPONSE_STATUS_SUBMITTED,
+		ProvisioningToken: "token",
+	}), nil
+}
+
 var _ provisionerconnect.ProvisionerPluginServiceClient = (*NoopProvisioner)(nil)
 
 func (d *NoopProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
@@ -21,7 +28,7 @@ func (d *NoopProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingReque
 
 func (d *NoopProvisioner) Provision(ctx context.Context, req *connect.Request[provisioner.ProvisionRequest]) (*connect.Response[provisioner.ProvisionResponse], error) {
 	return connect.NewResponse(&provisioner.ProvisionResponse{
-		Status:            provisioner.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
+		Status:            provisioner.ProvisionResponseStatus_PROVISION_RESPONSE_STATUS_SUBMITTED,
 		ProvisioningToken: "token",
 	}), nil
 }

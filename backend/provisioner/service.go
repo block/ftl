@@ -182,7 +182,44 @@ func (s *Service) HandleChangesetCommitted(ctx context.Context, req *schema.Chan
 	return nil
 }
 func (s *Service) HandleChangesetDrained(ctx context.Context, req key.Changeset) error {
+	logger := log.FromContext(ctx)
+	group := errgroup.Group{}
+	// TODO: Block deployments to make sure only one module is modified at a time
+	for _, module := range s.eventSource.ActiveChangeset()[req].RemovingModules {
+		moduleName := module.Name
 
+		group.Go(func() error {
+			deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(element *schema.RuntimeElement) error {
+				cs := req.Key.String()
+				_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
+					Changeset: &cs,
+					Update:    element.ToProto(),
+				}))
+				if err != nil {
+					return fmt.Errorf("error updating runtime: %w", err)
+				}
+				return nil
+			})
+			running := true
+			logger.Debugf("Running deployment for module %s", moduleName)
+			for running {
+				r, err := deployment.Progress(ctx)
+				if err != nil {
+					// TODO: Deal with failed deployments
+					return fmt.Errorf("error running a provisioner: %w", err)
+				}
+				running = r
+			}
+
+			logger.Debugf("Finished deployment for module %s", moduleName)
+			return nil
+		})
+
+	}
+	err := group.Wait()
+	if err != nil {
+		return fmt.Errorf("error running deployments: %w", err)
+	}
 	_, err := s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: req.String()}))
 	if err != nil {
 		return fmt.Errorf("error finalizing changeset: %w", err)

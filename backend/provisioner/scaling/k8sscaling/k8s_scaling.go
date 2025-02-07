@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/exp/maps"
@@ -26,10 +27,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/rpc"
 )
 
 const controllerDeploymentName = "ftl-controller"
@@ -107,7 +111,22 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 		return url.URL{}, err
 	}
 
-	return r.GetEndpointForDeployment(deploymentKey), err
+	endpoint := r.GetEndpointForDeployment(deploymentKey)
+	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, endpoint.String(), log.Error)
+	timeout := time.After(1 * time.Minute)
+	for {
+		select {
+		case <-ctx.Done():
+			return url.URL{}, fmt.Errorf("context cancelled: %w", ctx.Err())
+		case <-timeout:
+			return url.URL{}, fmt.Errorf("timed out waiting for runner to be ready")
+		case <-time.After(time.Millisecond * 100):
+			_, err := client.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
+			if err == nil {
+				return endpoint, nil
+			}
+		}
+	}
 }
 
 func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey string) error {

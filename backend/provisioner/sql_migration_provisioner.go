@@ -32,7 +32,7 @@ const tenMB = 1024 * 1024 * 10
 func NewSQLMigrationProvisioner(storage *artefacts.OCIArtefactService) *InMemProvisioner {
 	return NewEmbeddedProvisioner(map[schema.ResourceType]InMemResourceProvisionerFn{
 		schema.ResourceTypeSQLMigration: provisionSQLMigration(storage),
-	})
+	}, make(map[schema.ResourceType]InMemResourceProvisionerFn))
 }
 
 func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceProvisionerFn {

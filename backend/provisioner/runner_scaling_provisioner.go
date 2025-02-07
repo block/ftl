@@ -17,7 +17,10 @@ import (
 func NewRunnerScalingProvisioner(runners scaling.RunnerScaling) *InMemProvisioner {
 	return NewEmbeddedProvisioner(map[schema.ResourceType]InMemResourceProvisionerFn{
 		schema.ResourceTypeRunner: provisionRunner(runners),
-	})
+	},
+		map[schema.ResourceType]InMemResourceProvisionerFn{
+			schema.ResourceTypeRunner: deProvisionRunner(runners),
+		})
 }
 
 func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
@@ -58,15 +61,35 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 			return nil, fmt.Errorf("failed to start deployment: %w", err)
 		}
 
-		logger.Debugf("Updating module runtime for %s with endpoint %s and changeset %s", module.Name, endpointURI.String(), changeset.String())
-		if err != nil {
-			return nil, fmt.Errorf("failed to update module runtime: %w  changeset: %s", err, changeset.String())
-		}
 		return &schema.RuntimeElement{
 			Deployment: deployment,
 			Element: &schema.ModuleRuntimeRunner{
 				Endpoint: endpointURI.String(),
 			},
 		}, nil
+	}
+}
+
+func deProvisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned) (*schema.RuntimeElement, error) {
+		if changeset.IsZero() {
+			return nil, fmt.Errorf("changeset must be provided")
+		}
+		logger := log.FromContext(ctx)
+
+		module, ok := rc.(*schema.Module)
+		if !ok {
+			return nil, fmt.Errorf("expected module, got %T", rc)
+		}
+
+		if deployment.IsZero() {
+			return nil, fmt.Errorf("failed to find deployment for runner")
+		}
+		logger.Infof("Removing runner: %s for deployment %s", module.Name, deployment)
+		err := scaling.TerminateDeployment(ctx, deployment.String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to start deployment: %w", err)
+		}
+		return nil, err
 	}
 }

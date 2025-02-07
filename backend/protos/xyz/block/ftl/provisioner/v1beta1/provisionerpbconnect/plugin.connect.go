@@ -40,6 +40,9 @@ const (
 	// ProvisionerPluginServiceProvisionProcedure is the fully-qualified name of the
 	// ProvisionerPluginService's Provision RPC.
 	ProvisionerPluginServiceProvisionProcedure = "/xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService/Provision"
+	// ProvisionerPluginServiceDeProvisionProcedure is the fully-qualified name of the
+	// ProvisionerPluginService's DeProvision RPC.
+	ProvisionerPluginServiceDeProvisionProcedure = "/xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService/DeProvision"
 	// ProvisionerPluginServiceStatusProcedure is the fully-qualified name of the
 	// ProvisionerPluginService's Status RPC.
 	ProvisionerPluginServiceStatusProcedure = "/xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService/Status"
@@ -50,6 +53,7 @@ const (
 type ProvisionerPluginServiceClient interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	Provision(context.Context, *connect.Request[v1beta1.ProvisionRequest]) (*connect.Response[v1beta1.ProvisionResponse], error)
+	DeProvision(context.Context, *connect.Request[v1beta1.DeProvisionRequest]) (*connect.Response[v1beta1.DeProvisionResponse], error)
 	Status(context.Context, *connect.Request[v1beta1.StatusRequest]) (*connect.Response[v1beta1.StatusResponse], error)
 }
 
@@ -74,6 +78,11 @@ func NewProvisionerPluginServiceClient(httpClient connect.HTTPClient, baseURL st
 			baseURL+ProvisionerPluginServiceProvisionProcedure,
 			opts...,
 		),
+		deProvision: connect.NewClient[v1beta1.DeProvisionRequest, v1beta1.DeProvisionResponse](
+			httpClient,
+			baseURL+ProvisionerPluginServiceDeProvisionProcedure,
+			opts...,
+		),
 		status: connect.NewClient[v1beta1.StatusRequest, v1beta1.StatusResponse](
 			httpClient,
 			baseURL+ProvisionerPluginServiceStatusProcedure,
@@ -84,9 +93,10 @@ func NewProvisionerPluginServiceClient(httpClient connect.HTTPClient, baseURL st
 
 // provisionerPluginServiceClient implements ProvisionerPluginServiceClient.
 type provisionerPluginServiceClient struct {
-	ping      *connect.Client[v1.PingRequest, v1.PingResponse]
-	provision *connect.Client[v1beta1.ProvisionRequest, v1beta1.ProvisionResponse]
-	status    *connect.Client[v1beta1.StatusRequest, v1beta1.StatusResponse]
+	ping        *connect.Client[v1.PingRequest, v1.PingResponse]
+	provision   *connect.Client[v1beta1.ProvisionRequest, v1beta1.ProvisionResponse]
+	deProvision *connect.Client[v1beta1.DeProvisionRequest, v1beta1.DeProvisionResponse]
+	status      *connect.Client[v1beta1.StatusRequest, v1beta1.StatusResponse]
 }
 
 // Ping calls xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Ping.
@@ -99,6 +109,11 @@ func (c *provisionerPluginServiceClient) Provision(ctx context.Context, req *con
 	return c.provision.CallUnary(ctx, req)
 }
 
+// DeProvision calls xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.DeProvision.
+func (c *provisionerPluginServiceClient) DeProvision(ctx context.Context, req *connect.Request[v1beta1.DeProvisionRequest]) (*connect.Response[v1beta1.DeProvisionResponse], error) {
+	return c.deProvision.CallUnary(ctx, req)
+}
+
 // Status calls xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Status.
 func (c *provisionerPluginServiceClient) Status(ctx context.Context, req *connect.Request[v1beta1.StatusRequest]) (*connect.Response[v1beta1.StatusResponse], error) {
 	return c.status.CallUnary(ctx, req)
@@ -109,6 +124,7 @@ func (c *provisionerPluginServiceClient) Status(ctx context.Context, req *connec
 type ProvisionerPluginServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	Provision(context.Context, *connect.Request[v1beta1.ProvisionRequest]) (*connect.Response[v1beta1.ProvisionResponse], error)
+	DeProvision(context.Context, *connect.Request[v1beta1.DeProvisionRequest]) (*connect.Response[v1beta1.DeProvisionResponse], error)
 	Status(context.Context, *connect.Request[v1beta1.StatusRequest]) (*connect.Response[v1beta1.StatusResponse], error)
 }
 
@@ -128,6 +144,11 @@ func NewProvisionerPluginServiceHandler(svc ProvisionerPluginServiceHandler, opt
 		svc.Provision,
 		opts...,
 	)
+	provisionerPluginServiceDeProvisionHandler := connect.NewUnaryHandler(
+		ProvisionerPluginServiceDeProvisionProcedure,
+		svc.DeProvision,
+		opts...,
+	)
 	provisionerPluginServiceStatusHandler := connect.NewUnaryHandler(
 		ProvisionerPluginServiceStatusProcedure,
 		svc.Status,
@@ -139,6 +160,8 @@ func NewProvisionerPluginServiceHandler(svc ProvisionerPluginServiceHandler, opt
 			provisionerPluginServicePingHandler.ServeHTTP(w, r)
 		case ProvisionerPluginServiceProvisionProcedure:
 			provisionerPluginServiceProvisionHandler.ServeHTTP(w, r)
+		case ProvisionerPluginServiceDeProvisionProcedure:
+			provisionerPluginServiceDeProvisionHandler.ServeHTTP(w, r)
 		case ProvisionerPluginServiceStatusProcedure:
 			provisionerPluginServiceStatusHandler.ServeHTTP(w, r)
 		default:
@@ -156,6 +179,10 @@ func (UnimplementedProvisionerPluginServiceHandler) Ping(context.Context, *conne
 
 func (UnimplementedProvisionerPluginServiceHandler) Provision(context.Context, *connect.Request[v1beta1.ProvisionRequest]) (*connect.Response[v1beta1.ProvisionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Provision is not implemented"))
+}
+
+func (UnimplementedProvisionerPluginServiceHandler) DeProvision(context.Context, *connect.Request[v1beta1.DeProvisionRequest]) (*connect.Response[v1beta1.DeProvisionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.DeProvision is not implemented"))
 }
 
 func (UnimplementedProvisionerPluginServiceHandler) Status(context.Context, *connect.Request[v1beta1.StatusRequest]) (*connect.Response[v1beta1.StatusResponse], error) {
