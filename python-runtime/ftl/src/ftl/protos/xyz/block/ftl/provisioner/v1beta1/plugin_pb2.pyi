@@ -8,13 +8,6 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class ProvisionResponseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    PROVISION_RESPONSE_STATUS_UNSPECIFIED: _ClassVar[ProvisionResponseStatus]
-    PROVISION_RESPONSE_STATUS_SUBMITTED: _ClassVar[ProvisionResponseStatus]
-PROVISION_RESPONSE_STATUS_UNSPECIFIED: ProvisionResponseStatus
-PROVISION_RESPONSE_STATUS_SUBMITTED: ProvisionResponseStatus
-
 class ProvisionRequest(_message.Message):
     __slots__ = ("ftl_cluster_id", "desired_module", "previous_module", "changeset", "kinds")
     FTL_CLUSTER_ID_FIELD_NUMBER: _ClassVar[int]
@@ -31,33 +24,17 @@ class ProvisionRequest(_message.Message):
 
 class ProvisionResponse(_message.Message):
     __slots__ = ("provisioning_token", "status")
+    class ProvisionResponseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        PROVISION_RESPONSE_STATUS_UNSPECIFIED: _ClassVar[ProvisionResponse.ProvisionResponseStatus]
+        PROVISION_RESPONSE_STATUS_SUBMITTED: _ClassVar[ProvisionResponse.ProvisionResponseStatus]
+    PROVISION_RESPONSE_STATUS_UNSPECIFIED: ProvisionResponse.ProvisionResponseStatus
+    PROVISION_RESPONSE_STATUS_SUBMITTED: ProvisionResponse.ProvisionResponseStatus
     PROVISIONING_TOKEN_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
     provisioning_token: str
-    status: ProvisionResponseStatus
-    def __init__(self, provisioning_token: _Optional[str] = ..., status: _Optional[_Union[ProvisionResponseStatus, str]] = ...) -> None: ...
-
-class DeProvisionRequest(_message.Message):
-    __slots__ = ("ftl_cluster_id", "module", "replacement_module", "changeset", "kinds")
-    FTL_CLUSTER_ID_FIELD_NUMBER: _ClassVar[int]
-    MODULE_FIELD_NUMBER: _ClassVar[int]
-    REPLACEMENT_MODULE_FIELD_NUMBER: _ClassVar[int]
-    CHANGESET_FIELD_NUMBER: _ClassVar[int]
-    KINDS_FIELD_NUMBER: _ClassVar[int]
-    ftl_cluster_id: str
-    module: _schema_pb2.Module
-    replacement_module: _schema_pb2.Module
-    changeset: str
-    kinds: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, ftl_cluster_id: _Optional[str] = ..., module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., replacement_module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., changeset: _Optional[str] = ..., kinds: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class DeProvisionResponse(_message.Message):
-    __slots__ = ("provisioning_token", "status")
-    PROVISIONING_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    STATUS_FIELD_NUMBER: _ClassVar[int]
-    provisioning_token: str
-    status: ProvisionResponseStatus
-    def __init__(self, provisioning_token: _Optional[str] = ..., status: _Optional[_Union[ProvisionResponseStatus, str]] = ...) -> None: ...
+    status: ProvisionResponse.ProvisionResponseStatus
+    def __init__(self, provisioning_token: _Optional[str] = ..., status: _Optional[_Union[ProvisionResponse.ProvisionResponseStatus, str]] = ...) -> None: ...
 
 class StatusRequest(_message.Message):
     __slots__ = ("provisioning_token", "desired_module")

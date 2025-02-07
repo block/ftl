@@ -16,26 +16,12 @@ message ProvisionRequest {
   repeated string kinds = 5;
 }
 
-enum ProvisionResponseStatus {
-  PROVISION_RESPONSE_STATUS_UNSPECIFIED = 0;
-  PROVISION_RESPONSE_STATUS_SUBMITTED = 1;
-}
-
 message ProvisionResponse {
+  enum ProvisionResponseStatus {
+    PROVISION_RESPONSE_STATUS_UNSPECIFIED = 0;
+    PROVISION_RESPONSE_STATUS_SUBMITTED = 1;
+  }
 
-  string provisioning_token = 1;
-  ProvisionResponseStatus status = 2;
-}
-
-message DeProvisionRequest {
-  string ftl_cluster_id = 1;
-  xyz.block.ftl.schema.v1.Module module = 2;
-  optional xyz.block.ftl.schema.v1.Module replacement_module = 3;
-  string changeset = 4;
-  repeated string kinds = 5;
-}
-
-message DeProvisionResponse {
   string provisioning_token = 1;
   ProvisionResponseStatus status = 2;
 }
@@ -67,6 +53,5 @@ service ProvisionerPluginService {
   rpc Ping(xyz.block.ftl.v1.PingRequest) returns (xyz.block.ftl.v1.PingResponse);
 
   rpc Provision(ProvisionRequest) returns (ProvisionResponse);
-  rpc DeProvision(DeProvisionRequest) returns (DeProvisionResponse);
   rpc Status(StatusRequest) returns (StatusResponse);
 }

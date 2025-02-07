@@ -21,7 +21,7 @@ func Time(ctx context.Context, req TimeRequest, ic InternalClient) (TimeResponse
 	return TimeResponse{Time: internalTime.Time}, nil
 }
 
-//ftl:verb
+//ftl:verb export
 func Internal(ctx context.Context, req TimeRequest) (TimeResponse, error) {
 	return TimeResponse{Time: time.Now()}, nil
 }

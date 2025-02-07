@@ -8,26 +8,6 @@ import { Message, proto3 } from "@bufbuild/protobuf";
 import { Module, RuntimeElement } from "../../schema/v1/schema_pb.js";
 
 /**
- * @generated from enum xyz.block.ftl.provisioner.v1beta1.ProvisionResponseStatus
- */
-export enum ProvisionResponseStatus {
-  /**
-   * @generated from enum value: PROVISION_RESPONSE_STATUS_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: PROVISION_RESPONSE_STATUS_SUBMITTED = 1;
-   */
-  SUBMITTED = 1,
-}
-// Retrieve enum metadata with: proto3.getEnumType(ProvisionResponseStatus)
-proto3.util.setEnumType(ProvisionResponseStatus, "xyz.block.ftl.provisioner.v1beta1.ProvisionResponseStatus", [
-  { no: 0, name: "PROVISION_RESPONSE_STATUS_UNSPECIFIED" },
-  { no: 1, name: "PROVISION_RESPONSE_STATUS_SUBMITTED" },
-]);
-
-/**
  * @generated from message xyz.block.ftl.provisioner.v1beta1.ProvisionRequest
  */
 export class ProvisionRequest extends Message<ProvisionRequest> {
@@ -98,9 +78,9 @@ export class ProvisionResponse extends Message<ProvisionResponse> {
   provisioningToken = "";
 
   /**
-   * @generated from field: xyz.block.ftl.provisioner.v1beta1.ProvisionResponseStatus status = 2;
+   * @generated from field: xyz.block.ftl.provisioner.v1beta1.ProvisionResponse.ProvisionResponseStatus status = 2;
    */
-  status = ProvisionResponseStatus.UNSPECIFIED;
+  status = ProvisionResponse_ProvisionResponseStatus.UNSPECIFIED;
 
   constructor(data?: PartialMessage<ProvisionResponse>) {
     super();
@@ -111,7 +91,7 @@ export class ProvisionResponse extends Message<ProvisionResponse> {
   static readonly typeName = "xyz.block.ftl.provisioner.v1beta1.ProvisionResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "provisioning_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "status", kind: "enum", T: proto3.getEnumType(ProvisionResponseStatus) },
+    { no: 2, name: "status", kind: "enum", T: proto3.getEnumType(ProvisionResponse_ProvisionResponseStatus) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProvisionResponse {
@@ -132,108 +112,24 @@ export class ProvisionResponse extends Message<ProvisionResponse> {
 }
 
 /**
- * @generated from message xyz.block.ftl.provisioner.v1beta1.DeProvisionRequest
+ * @generated from enum xyz.block.ftl.provisioner.v1beta1.ProvisionResponse.ProvisionResponseStatus
  */
-export class DeProvisionRequest extends Message<DeProvisionRequest> {
+export enum ProvisionResponse_ProvisionResponseStatus {
   /**
-   * @generated from field: string ftl_cluster_id = 1;
+   * @generated from enum value: PROVISION_RESPONSE_STATUS_UNSPECIFIED = 0;
    */
-  ftlClusterId = "";
-
-  /**
-   * @generated from field: xyz.block.ftl.schema.v1.Module module = 2;
-   */
-  module?: Module;
+  UNSPECIFIED = 0,
 
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.Module replacement_module = 3;
+   * @generated from enum value: PROVISION_RESPONSE_STATUS_SUBMITTED = 1;
    */
-  replacementModule?: Module;
-
-  /**
-   * @generated from field: string changeset = 4;
-   */
-  changeset = "";
-
-  /**
-   * @generated from field: repeated string kinds = 5;
-   */
-  kinds: string[] = [];
-
-  constructor(data?: PartialMessage<DeProvisionRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.provisioner.v1beta1.DeProvisionRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "ftl_cluster_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "module", kind: "message", T: Module },
-    { no: 3, name: "replacement_module", kind: "message", T: Module, opt: true },
-    { no: 4, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "kinds", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeProvisionRequest {
-    return new DeProvisionRequest().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeProvisionRequest {
-    return new DeProvisionRequest().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeProvisionRequest {
-    return new DeProvisionRequest().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: DeProvisionRequest | PlainMessage<DeProvisionRequest> | undefined, b: DeProvisionRequest | PlainMessage<DeProvisionRequest> | undefined): boolean {
-    return proto3.util.equals(DeProvisionRequest, a, b);
-  }
+  SUBMITTED = 1,
 }
-
-/**
- * @generated from message xyz.block.ftl.provisioner.v1beta1.DeProvisionResponse
- */
-export class DeProvisionResponse extends Message<DeProvisionResponse> {
-  /**
-   * @generated from field: string provisioning_token = 1;
-   */
-  provisioningToken = "";
-
-  /**
-   * @generated from field: xyz.block.ftl.provisioner.v1beta1.ProvisionResponseStatus status = 2;
-   */
-  status = ProvisionResponseStatus.UNSPECIFIED;
-
-  constructor(data?: PartialMessage<DeProvisionResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.provisioner.v1beta1.DeProvisionResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "provisioning_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "status", kind: "enum", T: proto3.getEnumType(ProvisionResponseStatus) },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeProvisionResponse {
-    return new DeProvisionResponse().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeProvisionResponse {
-    return new DeProvisionResponse().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeProvisionResponse {
-    return new DeProvisionResponse().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: DeProvisionResponse | PlainMessage<DeProvisionResponse> | undefined, b: DeProvisionResponse | PlainMessage<DeProvisionResponse> | undefined): boolean {
-    return proto3.util.equals(DeProvisionResponse, a, b);
-  }
-}
+// Retrieve enum metadata with: proto3.getEnumType(ProvisionResponse_ProvisionResponseStatus)
+proto3.util.setEnumType(ProvisionResponse_ProvisionResponseStatus, "xyz.block.ftl.provisioner.v1beta1.ProvisionResponse.ProvisionResponseStatus", [
+  { no: 0, name: "PROVISION_RESPONSE_STATUS_UNSPECIFIED" },
+  { no: 1, name: "PROVISION_RESPONSE_STATUS_SUBMITTED" },
+]);
 
 /**
  * @generated from message xyz.block.ftl.provisioner.v1beta1.StatusRequest

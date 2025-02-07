@@ -272,7 +272,18 @@ func (s *Service) FinalizeChangeset(ctx context.Context, req *connect.Request[ft
 }
 
 // FailChangeset fails an active changeset.
-func (s *Service) FailChangeset(context.Context, *connect.Request[ftlv1.FailChangesetRequest]) (*connect.Response[ftlv1.FailChangesetResponse], error) {
+func (s *Service) FailChangeset(ctx context.Context, req *connect.Request[ftlv1.FailChangesetRequest]) (*connect.Response[ftlv1.FailChangesetResponse], error) {
+	changesetKey, err := key.ParseChangesetKey(req.Msg.Changeset)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
+	}
+	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetFailedEvent{
+		Key:   changesetKey,
+		Error: req.Msg.Error,
+	}})
+	if err != nil {
+		return nil, fmt.Errorf("could not fail changeset %w", err)
+	}
 	return connect.NewResponse(&ftlv1.FailChangesetResponse{}), nil
 }
 

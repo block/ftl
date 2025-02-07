@@ -96,10 +96,14 @@ func Start(
 			err := svc.HandleChangesetPreparing(ctx, e.Changeset)
 			if err != nil {
 				logger.Errorf(err, "Error provisioning changeset")
+				_, err := svc.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: e.Changeset.Key.String(), Error: err.Error()}))
+				logger.Errorf(err, "Error provisioning changeset")
 			}
 		case *schema.ChangesetPreparedNotification:
 			err := svc.HandleChangesetPrepared(ctx, e.Key)
 			if err != nil {
+				logger.Errorf(err, "Error provisioning changeset")
+				_, err := svc.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: e.Key.String(), Error: err.Error()}))
 				logger.Errorf(err, "Error provisioning changeset")
 			}
 		case *schema.ChangesetCommittedNotification:
@@ -110,7 +114,9 @@ func Start(
 		case *schema.ChangesetDrainedNotification:
 			err := svc.HandleChangesetDrained(ctx, e.Key)
 			if err != nil {
-				logger.Errorf(err, "Error provisioning changeset")
+				if err != nil {
+					return err
+				}
 			}
 		case *schema.FullSchemaNotification:
 			logger.Debugf("Provisioning changesets from full schema notification")
@@ -119,12 +125,20 @@ func Start(
 					err := svc.HandleChangesetPreparing(ctx, cs)
 					if err != nil {
 						logger.Errorf(err, "Error provisioning changeset")
+						_, err := svc.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+						if err != nil {
+							return err
+						}
 						continue
 					}
 				} else if cs.State == schema.ChangesetStatePrepared {
 					err := svc.HandleChangesetPrepared(ctx, cs.Key)
 					if err != nil {
 						logger.Errorf(err, "Error provisioning changeset")
+						_, err := svc.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+						if err != nil {
+							return err
+						}
 						continue
 					}
 				} else if cs.State == schema.ChangesetStateCommitted {
@@ -181,16 +195,22 @@ func (s *Service) HandleChangesetCommitted(ctx context.Context, req *schema.Chan
 	}()
 	return nil
 }
-func (s *Service) HandleChangesetDrained(ctx context.Context, req key.Changeset) error {
+func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) error {
 	logger := log.FromContext(ctx)
 	group := errgroup.Group{}
 	// TODO: Block deployments to make sure only one module is modified at a time
-	for _, module := range s.eventSource.ActiveChangeset()[req].RemovingModules {
+	changeset := s.eventSource.ActiveChangeset()[cs]
+	for _, module := range changeset.RemovingModules {
 		moduleName := module.Name
 
 		group.Go(func() error {
-			deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(element *schema.RuntimeElement) error {
-				cs := req.Key.String()
+			var current *schema.Module
+			existing := s.eventSource.CanonicalView().Module(moduleName)
+			if f, ok := existing.Get(); ok {
+				current = f
+			}
+			deployment := s.registry.CreateDeployment(ctx, cs, module, current, func(element *schema.RuntimeElement) error {
+				cs := cs.String()
 				_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
 					Changeset: &cs,
 					Update:    element.ToProto(),
@@ -220,7 +240,7 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, req key.Changeset)
 	if err != nil {
 		return fmt.Errorf("error running deployments: %w", err)
 	}
-	_, err := s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: req.String()}))
+	_, err = s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: cs.String()}))
 	if err != nil {
 		return fmt.Errorf("error finalizing changeset: %w", err)
 	}

@@ -2,7 +2,6 @@ package localscaling
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -288,23 +287,15 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	exit := make(chan struct{})
 	go func() {
 		err := runner.Start(runnerCtx, config, l.storage)
+		close(exit)
+		cancel(fmt.Errorf("runner exited %w", err))
 		l.lock.Lock()
 		defer l.lock.Unlock()
 		if devEndpoint != nil {
 			// Runner is complete, clear the deployment key
 			devEndpoint.deploymentKey = optional.None[key.Deployment]()
 		}
-		close(exit)
-		// Don't count context.Canceled as an a restart error
-		if err != nil && !errors.Is(err, context.Canceled) {
-			logger.Errorf(err, "Runner failed: %s", err)
-		}
-		logger.Errorf(fmt.Errorf("too many restarts"), "Runner failed too many times, not restarting")
-
 		info.runner = optional.None[runnerInfo]()
-		if err != nil {
-			logger.Errorf(err, "Failed to reconcile runners")
-		}
 	}()
 	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, bindURL.String(), log.Error)
 	timeout := time.After(1 * time.Minute)
