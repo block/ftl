@@ -35,6 +35,8 @@ func updateTerminalWithEngineEvents(ctx context.Context, topic *pubsub.Topic[*bu
 			case *buildenginepb.EngineEvent_ModuleBuildFailed:
 				terminal.UpdateModuleState(ctx, evt.ModuleBuildFailed.Config.Name, terminal.BuildStateFailed)
 
+			case *buildenginepb.EngineEvent_ModuleDeployWaiting:
+				terminal.UpdateModuleState(ctx, evt.ModuleDeployWaiting.Module, terminal.BuildStateDeployWaiting)
 			case *buildenginepb.EngineEvent_ModuleDeployStarted:
 				terminal.UpdateModuleState(ctx, evt.ModuleDeployStarted.Module, terminal.BuildStateDeploying)
 			case *buildenginepb.EngineEvent_ModuleDeploySuccess:

@@ -33,6 +33,7 @@ type BuildState string
 const BuildStateWaiting BuildState = "Waiting"
 const BuildStateBuilding BuildState = "Building"
 const BuildStateBuilt BuildState = "Built"
+const BuildStateDeployWaiting BuildState = "DeployWaiting"
 const BuildStateDeploying BuildState = "Deploying"
 const BuildStateDeployed BuildState = "Deployed"
 const BuildStateFailed BuildState = "Failed"
@@ -52,12 +53,13 @@ var spinner = []string{"◜", "◝", "◞", "◟"}
 
 func init() {
 	buildColors = map[BuildState]string{
-		BuildStateWaiting:   "\u001B[93m",
-		BuildStateBuilding:  "\u001B[94m",
-		BuildStateBuilt:     "\u001B[92m",
-		BuildStateDeploying: "\u001B[94m",
-		BuildStateDeployed:  "\u001B[92m",
-		BuildStateFailed:    "\u001B[91m",
+		BuildStateWaiting:       "\u001B[93m",
+		BuildStateBuilding:      "\u001B[94m",
+		BuildStateBuilt:         "\u001B[92m",
+		BuildStateDeployWaiting: "\u001B[93m",
+		BuildStateDeploying:     "\u001B[94m",
+		BuildStateDeployed:      "\u001B[92m",
+		BuildStateFailed:        "\u001B[91m",
 	}
 	spin := func(spinnerCount int) string {
 		return spinner[spinnerCount]
@@ -72,12 +74,13 @@ func init() {
 		return "•"
 	}
 	buildStateIcon = map[BuildState]func(int) string{
-		BuildStateWaiting:   empty,
-		BuildStateBuilding:  spin,
-		BuildStateBuilt:     block,
-		BuildStateDeploying: spin,
-		BuildStateDeployed:  block,
-		BuildStateFailed:    cross,
+		BuildStateWaiting:       empty,
+		BuildStateBuilding:      spin,
+		BuildStateBuilt:         block,
+		BuildStateDeployWaiting: empty,
+		BuildStateDeploying:     spin,
+		BuildStateDeployed:      block,
+		BuildStateFailed:        cross,
 	}
 }
 
