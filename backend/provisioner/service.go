@@ -7,13 +7,13 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/BurntSushi/toml"
 	"github.com/alecthomas/kong"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"
-	"time"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemaconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
