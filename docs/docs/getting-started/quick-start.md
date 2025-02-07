@@ -47,11 +47,9 @@ Download binaries from the [latest release page](https://github.com/block/ftl/re
   </TabItem>
 </Tabs>
 
----
-
 ### Install the VSCode extension
 
-The [FTL VSCode extension](https://marketplace.visualstudio.com/items?itemName=FTL.ftl) will run FTL within VSCode, and provide LSP support for FTL, displaying errors within the editor.
+The [FTL VSCode extension](https://marketplace.visualstudio.com/items?itemName=FTL.ftl) provides error and problem reporting through the language server and includes code snippets for common FTL patterns.
 
 ## Development
 
@@ -158,15 +156,7 @@ Any number of modules can be added to your project, adjacent to each other.
 
 ### Start the FTL cluster
 
-#### VSCode
-
-If using VSCode, opening the directory will prompt you to start FTL:
-
-![VSCode](/img/quick-start/vscode.png)
-
-#### Manually
-
-Alternatively start the local FTL development cluster from the command-line:
+Start the local FTL development cluster from the command-line:
 
 ![ftl dev](/img/quick-start/ftldev.png)
 
