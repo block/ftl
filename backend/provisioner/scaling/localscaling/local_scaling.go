@@ -10,10 +10,13 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/controller/artefacts"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/backend/runner"
 	"github.com/block/ftl/common/plugin"
@@ -23,18 +26,17 @@ import (
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/localdebug"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/rpc"
 )
 
 var _ scaling.RunnerScaling = &localScaling{}
-
-const maxExits = 10
 
 type localScaling struct {
 	ctx      context.Context
 	lock     sync.Mutex
 	cacheDir string
-	// Module -> Deployments -> info
-	runners map[string]map[string]*deploymentInfo
+	// Deployments -> info
+	runners map[string]*deploymentInfo
 	// Module -> Port
 	debugPorts          map[string]*localdebug.DebugInfo
 	controllerAddresses []*url.URL
@@ -50,54 +52,59 @@ type localScaling struct {
 	devModeEndpoints        map[string]*devModeRunner
 }
 
-func (l *localScaling) StartDeployment(ctx context.Context, module string, deployment string, sch *schema.Module, hasCron bool, hasIngress bool) error {
-	if sch.Runtime == nil {
-		return nil
-	}
-	return l.setReplicas(module, deployment, sch.Runtime.Base.Language, 1)
-}
-
-func (l *localScaling) setReplicas(module string, deployment string, language string, replicas int32) error {
+func (l *localScaling) StartDeployment(ctx context.Context, deployment string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	deploymentKey, err := key.ParseDeploymentKey(deployment)
 	if err != nil {
-		return fmt.Errorf("failed to parse deployment key: %w", err)
+		return url.URL{}, fmt.Errorf("failed to parse deployment key: %w", err)
 	}
-	ctx := l.ctx
-	logger := log.FromContext(ctx).Scope("localScaling").Module(module)
+	logger := log.FromContext(ctx).Scope("localScaling").Module(deploymentKey.Payload.Module)
 	ctx = log.ContextWithLogger(ctx, logger)
 	logger.Debugf("Starting deployment for %s", deployment)
-	moduleDeployments := l.runners[module]
-	if moduleDeployments == nil {
-		moduleDeployments = map[string]*deploymentInfo{}
-		l.runners[module] = moduleDeployments
+	dep := &deploymentInfo{runner: optional.None[runnerInfo](), key: deploymentKey, language: sch.Runtime.Base.Language}
+	l.runners[deployment] = dep
+	//  Make sure we have all endpoint updates
+	for {
+		select {
+		case devEndpoints := <-l.devModeEndpointsUpdates:
+			l.updateDevModeEndpoint(ctx, devEndpoints)
+			continue
+		default:
+		}
+		break
 	}
-	deploymentRunners := moduleDeployments[deployment]
-	if deploymentRunners == nil {
-		deploymentRunners = &deploymentInfo{runner: optional.None[runnerInfo](), key: deploymentKey, module: module, language: language}
-		moduleDeployments[deployment] = deploymentRunners
-	}
-	deploymentRunners.replicas = replicas
 
-	return l.reconcileRunners(ctx, deploymentRunners)
+	if err := l.startRunner(ctx, dep.key, dep); err != nil {
+		logger.Errorf(err, "Failed to start runner")
+		return url.URL{}, err
+	}
+
+	if r, ok := dep.runner.Get(); ok {
+		return r.getURL(), nil
+	}
+	return url.URL{}, fmt.Errorf("runner not found")
 }
 
-func (l *localScaling) TerminatePreviousDeployments(ctx context.Context, module string, deployment string) ([]string, error) {
+func (l *localScaling) UpdateDeployment(ctx context.Context, deployment string, sch *schema.Module) error {
+	// NOOP for local
+	return nil
+}
+
+func (l *localScaling) TerminateDeployment(ctx context.Context, deployment string) error {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	logger := log.FromContext(ctx)
-	var ret []string
-	// So hacky, all this needs to change when the provisioner is a proper schema observer
 	logger.Debugf("Terminating previous deployments for %s", deployment)
-	for dep := range l.runners[module] {
-		if dep != deployment {
-			ret = append(ret, dep)
-			logger.Debugf("Terminating deployment %s", dep)
-			if err := l.setReplicas(module, dep, "", 0); err != nil {
-				return nil, err
-			}
-		}
+	dep := l.runners[deployment]
+	if dep == nil {
+		return nil
 	}
-	return ret, nil
+	if r, ok := dep.runner.Get(); ok {
+		r.cancelFunc(fmt.Errorf("deployment terminated: %w", context.Canceled))
+	}
+	delete(l.runners, deployment)
+	return nil
 }
 
 type devModeRunner struct {
@@ -143,38 +150,22 @@ func (l *localScaling) updateDevModeEndpoint(ctx context.Context, devEndpoints d
 	}
 }
 
-func (l *localScaling) GetEndpointForDeployment(ctx context.Context, module string, deployment string) (optional.Option[url.URL], error) {
-	l.lock.Lock()
-	defer l.lock.Unlock()
-	mod := l.runners[module]
-	if mod == nil {
-		return optional.None[url.URL](), fmt.Errorf("module %s not found", module)
-	}
-	dep := mod[deployment]
-	if dep == nil {
-		return optional.None[url.URL](), fmt.Errorf("deployment %s not found", module)
-	}
-	if r, ok := dep.runner.Get(); ok {
-		return optional.Some(url.URL{
-			Scheme: "http",
-			Host:   fmt.Sprintf("%s:%d", r.host, r.port),
-		}), nil
-	}
-	return optional.None[url.URL](), nil
-}
-
 type deploymentInfo struct {
 	runner   optional.Option[runnerInfo]
-	module   string
-	replicas int32
 	key      key.Deployment
 	language string
-	exits    int
 }
 type runnerInfo struct {
 	cancelFunc context.CancelCauseFunc
 	port       int
 	host       string
+}
+
+func (r runnerInfo) getURL() url.URL {
+	return url.URL{
+		Scheme: "http",
+		Host:   fmt.Sprintf("%s:%d", r.host, r.port),
+	}
 }
 
 func NewLocalScaling(
@@ -196,7 +187,7 @@ func NewLocalScaling(
 		ctx:                     ctx,
 		lock:                    sync.Mutex{},
 		cacheDir:                cacheDir,
-		runners:                 map[string]map[string]*deploymentInfo{},
+		runners:                 map[string]*deploymentInfo{},
 		controllerAddresses:     controllerAddresses,
 		leaseAddress:            leaseAddress,
 		schemaAddress:           schemaAddress,
@@ -214,40 +205,6 @@ func NewLocalScaling(
 	return &local, nil
 }
 
-func (l *localScaling) reconcileRunners(ctx context.Context, deploymentRunners *deploymentInfo) error {
-	// Must be called under lock
-
-	// First make sure we have all endpoint updates
-	for {
-		select {
-		case devEndpoints := <-l.devModeEndpointsUpdates:
-			l.updateDevModeEndpoint(ctx, devEndpoints)
-			continue
-		default:
-		}
-		break
-	}
-
-	logger := log.FromContext(ctx)
-	if deploymentRunners.replicas > 0 && !deploymentRunners.runner.Ok() && deploymentRunners.exits < maxExits {
-		if err := l.startRunner(ctx, deploymentRunners.key, deploymentRunners); err != nil {
-			logger.Errorf(err, "Failed to start runner")
-			return err
-		}
-	} else if runner, ok := deploymentRunners.runner.Get(); deploymentRunners.replicas == 0 && ok {
-		go func() {
-			// Nasty hack, we want all the controllers to have updated their route tables before we kill the runner
-			// so we add a slight delay here
-			time.Sleep(time.Second * 5)
-			l.lock.Lock()
-			defer l.lock.Unlock()
-			runner.cancelFunc(fmt.Errorf("runner terminated: %w", context.Canceled))
-		}()
-		deploymentRunners.runner = optional.None[runnerInfo]()
-	}
-	return nil
-}
-
 func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deployment, info *deploymentInfo) error {
 	select {
 	case <-ctx.Done():
@@ -257,7 +214,8 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	default:
 	}
 
-	devEndpoint := l.devModeEndpoints[info.module]
+	module := info.key.Payload.Module
+	devEndpoint := l.devModeEndpoints[module]
 	devURI := optional.None[string]()
 	devHotReloadURI := optional.None[string]()
 	debugPort := 0
@@ -280,7 +238,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 			Language: info.language,
 			Port:     debugBind.Port,
 		}
-		l.debugPorts[info.module] = debug
+		l.debugPorts[module] = debug
 		ide.SyncIDEDebugIntegrations(ctx, l.debugPorts)
 		debugPort = debug.Port
 	}
@@ -322,11 +280,12 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	config.HeartbeatPeriod = time.Second
 	config.HeartbeatJitter = time.Millisecond * 100
 
-	runnerCtx := log.ContextWithLogger(ctx, logger.Scope(simpleName).Module(info.module))
+	runnerCtx := log.ContextWithLogger(ctx, logger.Scope(simpleName).Module(module))
 
 	runnerCtx, cancel := context.WithCancelCause(runnerCtx)
 	info.runner = optional.Some(runnerInfo{cancelFunc: cancel, port: bind.Port, host: "127.0.0.1"})
 
+	exit := make(chan struct{})
 	go func() {
 		err := runner.Start(runnerCtx, config, l.storage)
 		l.lock.Lock()
@@ -335,19 +294,33 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 			// Runner is complete, clear the deployment key
 			devEndpoint.deploymentKey = optional.None[key.Deployment]()
 		}
+		close(exit)
 		// Don't count context.Canceled as an a restart error
 		if err != nil && !errors.Is(err, context.Canceled) {
 			logger.Errorf(err, "Runner failed: %s", err)
-			info.exits++
 		}
-		if info.exits >= maxExits {
-			logger.Errorf(fmt.Errorf("too many restarts"), "Runner failed too many times, not restarting")
-		}
+		logger.Errorf(fmt.Errorf("too many restarts"), "Runner failed too many times, not restarting")
+
 		info.runner = optional.None[runnerInfo]()
-		err = l.reconcileRunners(ctx, info)
 		if err != nil {
 			logger.Errorf(err, "Failed to reconcile runners")
 		}
 	}()
-	return nil
+	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, bindURL.String(), log.Error)
+	timeout := time.After(1 * time.Minute)
+	for {
+		select {
+		case <-runnerCtx.Done():
+			return fmt.Errorf("context cancelled: %w", runnerCtx.Err())
+		case <-timeout:
+			return fmt.Errorf("timed out waiting for runner to be ready")
+		case <-exit:
+			return fmt.Errorf("runner exited")
+		case <-time.After(time.Millisecond * 100):
+			_, err := client.Ping(runnerCtx, connect.NewRequest(&ftlv1.PingRequest{}))
+			if err == nil {
+				return nil
+			}
+		}
+	}
 }
