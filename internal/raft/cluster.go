@@ -239,10 +239,12 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 
 		for {
 			select {
+			case <-ctx.Done():
+				close(result)
+				return
 			case <-s.cluster.runningCtx.Done():
 				logger.Infof("Changes channel closed")
 				close(result)
-
 				return
 			case <-timer.C:
 				last, err := s.getLastIndex()
