@@ -54,7 +54,6 @@ const config: Config = {
           // Remove this to remove the "edit this page" links.
           editUrl: 'https://github.com/block/ftl/tree/main/docs/',
         },
-        blog: false,
         theme: {
           customCss: './src/css/custom.css',
         },
