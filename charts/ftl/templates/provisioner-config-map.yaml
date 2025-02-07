@@ -7,6 +7,6 @@ metadata:
 data:
   config.toml: |
     plugins = [
-        { id = "cloudformation", resources = ["postgres", "mysql", "sql-migration", "topic", subscription"] },
+        { id = "cloudformation", resources = ["postgres", "mysql", "sql-migration", "topic", "subscription"] },
     ]
 {{- end}}
