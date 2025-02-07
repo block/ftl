@@ -39,21 +39,29 @@ spec:
               memory: "{{ .Values.timeline.resources.requests.memory }}"
           {{- if .Values.timeline.envFrom }}
           envFrom:
-            {{- if .Values.timeline.envFrom }}
             {{- toYaml .Values.timeline.envFrom | nindent 12 }}
-            {{- end }}
           {{- end }}
           env:
             {{- if .Values.timeline.env }}
             {{- toYaml .Values.timeline.env | nindent 12 }}
             {{- end }}
-
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: FTL_BIND
+              value: "http://0.0.0.0:8892"
+            - name: LOG_LEVEL
+              value: "{{ .Values.timeline.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.timeline.logJson }}"
           ports:
-            {{- range .Values.timeline.ports }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
-            {{- end }}
+            - name: http2
+              containerPort: 8892
+              protocol: TCP
+              {{- if .Values.timeline.port }}
+              hostPort: {{ .Values.timeline.port }}
+              {{- end }}
           readinessProbe:
             {{- if .Values.timeline.readinessProbe }}
             {{- toYaml .Values.timeline.readinessProbe | nindent 12 }}
@@ -83,5 +91,4 @@ spec:
       tolerations:
         {{- toYaml .Values.timeline.tolerations | nindent 8 }}
       {{- end }}
-
-      {{- end }}
+{{- end }}

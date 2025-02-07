@@ -29,11 +29,16 @@ spec:
         - name: app
           image: "{{ .Values.provisioner.image.repository }}:{{ .Values.provisioner.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.provisioner.image.pullPolicy }}
+          resources:
+            limits:
+              cpu: "{{ .Values.provisioner.resources.limits.cpu }}"
+              memory: "{{ .Values.provisioner.resources.limits.memory }}"
+            requests:
+              cpu: "{{ .Values.provisioner.resources.requests.cpu }}"
+              memory: "{{ .Values.provisioner.resources.requests.memory }}"
           {{- if .Values.provisioner.envFrom }}
           envFrom:
-            {{- if .Values.provisioner.envFrom }}
             {{- toYaml .Values.provisioner.envFrom | nindent 12 }}
-            {{- end }}
           {{- else if or .Values.secrets.logEncryptionKey .Values.secrets.asyncEncryptionKey }}
           envFrom:
             - secretRef:
@@ -43,13 +48,35 @@ spec:
             {{- if .Values.provisioner.env }}
             {{- toYaml .Values.provisioner.env | nindent 12 }}
             {{- end }}
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
             - name: FTL_BIND
               value: "http://0.0.0.0:{{ (index .Values.provisioner.ports 0).containerPort }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.provisioner.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.provisioner.logJson }}"
           ports:
-            {{- range .Values.provisioner.ports }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
+            - name: http2
+              containerPort: {{ (index .Values.provisioner.ports 0).containerPort }}
+              protocol: TCP
+              {{- if .Values.provisioner.port }}
+              hostPort: {{ .Values.provisioner.port }}
+              {{- end }}
+          readinessProbe:
+            {{- if .Values.provisioner.readinessProbe }}
+            {{- toYaml .Values.provisioner.readinessProbe | nindent 12 }}
+            {{- else }}
+            httpGet:
+              path: /healthz
+              port: {{ (index .Values.provisioner.ports 0).containerPort }}
+            initialDelaySeconds: 1
+            periodSeconds: 2
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 15
             {{- end }}
           volumeMounts:
             - mountPath: /config

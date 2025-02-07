@@ -37,11 +37,16 @@ spec:
         - name: app
           image: "{{ .Values.schema.image.repository }}:{{ .Values.schema.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.schema.image.pullPolicy }}
+          resources:
+            limits:
+              cpu: "{{ .Values.schema.resources.limits.cpu }}"
+              memory: "{{ .Values.schema.resources.limits.memory }}"
+            requests:
+              cpu: "{{ .Values.schema.resources.requests.cpu }}"
+              memory: "{{ .Values.schema.resources.requests.memory }}"
           {{- if .Values.schema.envFrom }}
           envFrom:
-            {{- if .Values.schema.envFrom }}
             {{- toYaml .Values.schema.envFrom | nindent 12 }}
-            {{- end }}
           {{- else if or .Values.secrets.logEncryptionKey .Values.secrets.asyncEncryptionKey }}
           envFrom:
             - secretRef:
@@ -51,6 +56,10 @@ spec:
             {{- if .Values.schema.env }}
             {{- toYaml .Values.schema.env | nindent 12 }}
             {{- end }}
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
             - name: FTL_BIND
               value: "http://0.0.0.0:{{ .Values.schema.services.schema.containerPort }}"
             - name: RAFT_INITIAL_MEMBERS
@@ -69,13 +78,20 @@ spec:
               value: "$(MY_POD_IP):8992"
             - name: RAFT_CONTROL_ADDRESS
               value: "http://ftl-schema:8892"
+            - name: LOG_LEVEL
+              value: "{{ .Values.schema.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.schema.logJson }}"
           ports:
-            - name: http
+            - name: http2
               containerPort: {{ .Values.schema.services.schema.containerPort }}
-              protocol: "TCP"
+              protocol: TCP
+              {{- if .Values.schema.port }}
+              hostPort: {{ .Values.schema.port }}
+              {{- end }}
             - name: raft
               containerPort: {{ .Values.schema.services.raft.containerPort }}
-              protocol: "TCP"
+              protocol: TCP
           readinessProbe:
             {{- if .Values.schema.readinessProbe }}
             {{- toYaml .Values.schema.readinessProbe | nindent 12 }}

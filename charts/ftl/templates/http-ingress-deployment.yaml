@@ -39,23 +39,31 @@ spec:
               memory: "{{ .Values.ingress.resources.requests.memory }}"
           {{- if .Values.ingress.envFrom }}
           envFrom:
-            {{- if .Values.ingress.envFrom }}
             {{- toYaml .Values.ingress.envFrom | nindent 12 }}
-            {{- end }}
           {{- end }}
           env:
             {{- if .Values.ingress.env }}
             {{- toYaml .Values.ingress.env | nindent 12 }}
             {{- end }}
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: FTL_BIND
+              value: "http://0.0.0.0:8891"
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ .Values.timeline.service.name }}:{{ .Values.timeline.service.port }}"
-
+            - name: LOG_LEVEL
+              value: "{{ .Values.ingress.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.ingress.logJson }}"
           ports:
-            {{- range .Values.ingress.ports }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
-            {{- end }}
+            - name: http2
+              containerPort: 8891
+              protocol: TCP
+              {{- if .Values.ingress.port }}
+              hostPort: {{ .Values.ingress.port }}
+              {{- end }}
           readinessProbe:
             {{- if .Values.ingress.readinessProbe }}
             {{- toYaml .Values.ingress.readinessProbe | nindent 12 }}
@@ -85,5 +93,4 @@ spec:
       tolerations:
         {{- toYaml .Values.ingress.tolerations | nindent 8 }}
       {{- end }}
-
-      {{- end }}
+{{- end }}

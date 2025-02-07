@@ -38,36 +38,33 @@ spec:
               memory: "{{ .Values.admin.resources.requests.memory }}"
           {{- if .Values.admin.envFrom }}
           envFrom:
-            {{- if .Values.admin.envFrom }}
             {{- toYaml .Values.admin.envFrom | nindent 12 }}
-            {{- end }}
           {{- end }}
           env:
-            - name: FTL_CONFIG #TODO: make this configurable, and add a PVC to make it persistent
-              value: /config.json
-            - name: FTL_SECRETS
-              value: /secrets.json
+            {{- if .Values.admin.env }}
+            {{- toYaml .Values.admin.env | nindent 12 }}
+            {{- end }}
             - name: MY_POD_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
             - name: FTL_BIND
               value: "http://0.0.0.0:8892"
+            - name: FTL_CONFIG
+              value: /config.json
+            - name: FTL_SECRETS
+              value: /secrets.json
             - name: FTL_SCHEMA_ENDPOINT
               value: "http://ftl-schema:8892"
             - name: LOG_LEVEL
               value: "{{ .Values.admin.logLevel }}"
             - name: LOG_JSON
               value: "{{ .Values.admin.logJson }}"
-            {{- if .Values.admin.env }}
-            {{- toYaml .Values.admin.env | nindent 12 }}
-            {{- end }}
-
           ports:
             - name: http2
               containerPort: 8892
-              protocol: TCP
               hostPort: {{ .Values.admin.port }}
+              protocol: TCP
           readinessProbe:
             {{- if .Values.admin.readinessProbe }}
             {{- toYaml .Values.admin.readinessProbe | nindent 12 }}
