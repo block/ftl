@@ -7,6 +7,10 @@ import (
 	"iter"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,7 +35,8 @@ import (
 
 type RaftConfig struct {
 	InitialMembers    []string          `help:"Initial members" env:"RAFT_INITIAL_MEMBERS"`
-	ReplicaID         uint64            `help:"Node ID" required:"" env:"RAFT_REPLICA_ID"`
+	InitialReplicaIDs []uint64          `help:"Initial replica IDs" env:"RAFT_INITIAL_REPLICA_IDS"`
+	ReplicaID         uint64            `help:"Node ID" env:"RAFT_REPLICA_ID" required:""`
 	DataDir           string            `help:"Data directory" required:"" env:"RAFT_DATA_DIR"`
 	Address           string            `help:"Address to advertise to other nodes" required:"" env:"RAFT_ADDRESS"`
 	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used." env:"RAFT_LISTEN_ADDRESS"`
@@ -367,6 +372,11 @@ func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
 func (c *Cluster) start(ctx context.Context, join bool) error {
 	logger := log.FromContext(ctx).Scope("raft")
 
+	// Verify replica ID before starting
+	if err := c.verifyReplicaID(); err != nil {
+		return fmt.Errorf("replica ID verification failed: %w", err)
+	}
+
 	// Create node host config
 	nhc := config.NodeHostConfig{
 		WALDir:         c.config.DataDir,
@@ -407,6 +417,10 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 }
 
 func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statemachine.CreateStateMachineFunc, join bool) error {
+	if len(c.config.InitialReplicaIDs) != len(c.config.InitialMembers) {
+		return fmt.Errorf("initial replica IDs and initial members must be the same length")
+	}
+
 	cfg := config.Config{
 		ReplicaID:          c.config.ReplicaID,
 		ShardID:            shardID,
@@ -421,7 +435,7 @@ func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statema
 	peers := make(map[uint64]string)
 	if !join {
 		for idx, peer := range c.config.InitialMembers {
-			peers[uint64(idx+1)] = peer
+			peers[c.config.InitialReplicaIDs[idx]] = peer
 		}
 	}
 
@@ -574,5 +588,33 @@ func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
 		break
 	}
 	logger.Debugf("Shard %d on replica %d is ready", shardID, c.config.ReplicaID)
+	return nil
+}
+
+func (c *Cluster) verifyReplicaID() error {
+	replicaIDFile := filepath.Join(c.config.DataDir, "replica_id")
+
+	// If file exists, verify the ID matches
+	if data, err := os.ReadFile(replicaIDFile); err == nil {
+		storedID, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid replica ID stored in %s: %w", replicaIDFile, err)
+		}
+		if storedID != c.config.ReplicaID {
+			return fmt.Errorf("replica ID mismatch: stored ID %d does not match configured ID %d",
+				storedID, c.config.ReplicaID)
+		}
+		return nil
+	}
+
+	// File doesn't exist, create it with current ID
+	if err := os.MkdirAll(c.config.DataDir, 0755); err != nil {
+		return fmt.Errorf("failed to create data directory: %w", err)
+	}
+
+	if err := os.WriteFile(replicaIDFile, []byte(strconv.FormatUint(c.config.ReplicaID, 10)), 0644); err != nil {
+		return fmt.Errorf("failed to write replica ID file: %w", err)
+	}
+
 	return nil
 }
