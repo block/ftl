@@ -58,15 +58,13 @@ spec:
             - name: RAFT_INITIAL_REPLICA_IDS
               value: "{{- range $index := until (.Values.schema.replicas | int ) }}{{- if ne $index 0 -}},{{- end -}}{{ add $index 1  }}{{- end -}}"
             - name: RAFT_DATA_DIR
-              value: "/tmp/ftl-schema-$(ORDINAL_NUMBER)"
+              value: "/tmp/ftl-schema"
             - name: ORDINAL_NUMBER
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
             - name: RAFT_ADDRESS
               value: "ftl-schema-$(ORDINAL_NUMBER).ftl-schema-raft:8992"
-            - name: RAFT_REPLICA_ID
-              value: "$(ORDINAL_NUMBER)"
             - name: RAFT_LISTEN_ADDRESS
               value: "$(MY_POD_IP):8992"
             - name: RAFT_CONTROL_ADDRESS

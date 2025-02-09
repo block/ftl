@@ -2,6 +2,8 @@ package raft
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"iter"
@@ -10,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -24,7 +25,6 @@ import (
 
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/log"
@@ -33,10 +33,12 @@ import (
 	sm "github.com/block/ftl/internal/statemachine"
 )
 
+// maxJoinAttempts is the maximum number of times to attempt to join the cluster.
+const maxJoinAttempts = 5
+
 type RaftConfig struct {
 	InitialMembers    []string          `help:"Initial members" env:"RAFT_INITIAL_MEMBERS"`
 	InitialReplicaIDs []uint64          `help:"Initial replica IDs" env:"RAFT_INITIAL_REPLICA_IDS"`
-	ReplicaID         uint64            `help:"Node ID" env:"RAFT_REPLICA_ID" required:""`
 	DataDir           string            `help:"Data directory" required:"" env:"RAFT_DATA_DIR"`
 	Address           string            `help:"Address to advertise to other nodes" required:"" env:"RAFT_ADDRESS"`
 	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used." env:"RAFT_LISTEN_ADDRESS"`
@@ -96,10 +98,11 @@ func AddShard[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable[E]](
 
 // Cluster of dragonboat nodes.
 type Cluster struct {
-	config        *RaftConfig
-	nh            *dragonboat.NodeHost
-	shards        map[uint64]statemachine.CreateStateMachineFunc
-	controlClient *http.Client
+	config           *RaftConfig
+	nh               *dragonboat.NodeHost
+	shards           map[uint64]statemachine.CreateStateMachineFunc
+	controlClient    *http.Client
+	runtimeReplicaID uint64
 
 	// runningCtx is cancelled when the cluster is stopped.
 	runningCtx       context.Context
@@ -158,21 +161,21 @@ func (s *ShardHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
 	if s.session == nil {
-		if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.config.ReplicaID, func(ctx context.Context) error {
-			logger.Debugf("Getting session for shard %d on replica %d", s.shardID, s.cluster.config.ReplicaID)
+		if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.runtimeReplicaID, func(ctx context.Context) error {
+			logger.Debugf("Getting session for shard %d on replica %d", s.shardID, s.cluster.runtimeReplicaID)
 			s.session, err = s.cluster.nh.SyncGetSession(ctx, s.shardID)
 			if err != nil {
 				return err //nolint:wrapcheck
 			}
-			logger.Debugf("Got clientID %d for shard %d on replica %d", s.session.ClientID, s.shardID, s.cluster.config.ReplicaID)
+			logger.Debugf("Got clientID %d for shard %d on replica %d", s.session.ClientID, s.shardID, s.cluster.runtimeReplicaID)
 			return nil
 		}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout, dragonboat.ErrRejected); err != nil {
 			return fmt.Errorf("failed to get session: %w", err)
 		}
 	}
 
-	if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.config.ReplicaID, func(ctx context.Context) error {
-		logger.Debugf("Proposing event to shard %d on replica %d", s.shardID, s.cluster.config.ReplicaID)
+	if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.runtimeReplicaID, func(ctx context.Context) error {
+		logger.Debugf("Proposing event to shard %d on replica %d", s.shardID, s.cluster.runtimeReplicaID)
 		_, err := s.cluster.nh.SyncPropose(ctx, s.session, msgBytes)
 		if err != nil {
 			return err //nolint:wrapcheck
@@ -256,7 +259,7 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 				if err != nil {
 					logger.Warnf("Failed to get last index: %s", err)
 				} else if last > lastKnownIndex.Load() {
-					logger.Debugf("Changes detected, index: %d -> %d on (%d, %d)", lastKnownIndex.Load(), last, s.shardID, s.cluster.config.ReplicaID)
+					logger.Debugf("Changes detected, index: %d -> %d on (%d, %d)", lastKnownIndex.Load(), last, s.shardID, s.cluster.runtimeReplicaID)
 
 					lastKnownIndex.Store(last)
 
@@ -265,7 +268,7 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 					if err != nil {
 						logger.Errorf(err, "failed to query shard")
 					} else {
-						logger.Debugf("Publishing to state iterator on (%d, %d)", s.shardID, s.cluster.config.ReplicaID)
+						logger.Debugf("Publishing to state iterator on (%d, %d)", s.shardID, s.cluster.runtimeReplicaID)
 						result <- res
 					}
 				}
@@ -322,25 +325,39 @@ func (c *Cluster) Start(ctx context.Context) error {
 		panic("cluster already started")
 	}
 
-	isInitial := false
-	for _, member := range c.config.InitialMembers {
-		if member == c.config.Address {
-			isInitial = true
-			break
-		}
-	}
-
-	if !isInitial {
+	if c.initialMemberIndex() < 0 {
 		logger.Infof("joining cluster as a new member")
 		return c.Join(ctx, c.config.ControlAddress.String())
 	}
+
+	r, err := c.getOrGenerateReplicaID(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get or generate replica ID: %w", err)
+	}
+	c.runtimeReplicaID = r
+
 	logger.Infof("joining cluster as an initial member")
 	return c.start(ctx, false)
+}
+
+func (c *Cluster) initialMemberIndex() int {
+	for i, member := range c.config.InitialMembers {
+		if member == c.config.Address {
+			return i
+		}
+	}
+	return -1
 }
 
 // Join the cluster as a new member. Blocks until the cluster instance is ready.
 func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
 	logger := log.FromContext(ctx).Scope("raft")
+
+	r, err := c.getOrGenerateReplicaID(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get or generate replica ID: %w", err)
+	}
+	c.runtimeReplicaID = r
 
 	// call control server to join the cluster
 	client := raftpbconnect.NewRaftServiceClient(http.DefaultClient, controlAddress)
@@ -354,10 +371,14 @@ func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
 	for i := 0; true; i++ {
 		_, err := client.AddMember(ctx, connect.NewRequest(&raftpb.AddMemberRequest{
 			ShardIds:  shardIDs,
-			ReplicaId: c.config.ReplicaID,
+			ReplicaId: c.runtimeReplicaID,
 			Address:   c.config.Address,
 		}))
 		if err != nil {
+			if i >= maxJoinAttempts {
+				return fmt.Errorf("failed to join cluster: %w", err)
+			}
+
 			duration := retry.Duration()
 			logger.Warnf("failed to join cluster: %s, retrying in %s", err, duration)
 			time.Sleep(duration)
@@ -369,13 +390,55 @@ func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
 	return c.start(ctx, true)
 }
 
-func (c *Cluster) start(ctx context.Context, join bool) error {
+func (c *Cluster) getOrGenerateReplicaID(ctx context.Context) (uint64, error) {
 	logger := log.FromContext(ctx).Scope("raft")
 
-	// Verify replica ID before starting
-	if err := c.verifyReplicaID(); err != nil {
-		return fmt.Errorf("replica ID verification failed: %w", err)
+	initialIndex := c.initialMemberIndex()
+
+	if initialIndex < 0 {
+		replicaIDFile := filepath.Join(c.config.DataDir, "replica_id")
+
+		// if file does not exist, generate a random ID
+		if _, err := os.Stat(replicaIDFile); os.IsNotExist(err) {
+			replicaID, err := randint64()
+			if err != nil {
+				return 0, fmt.Errorf("failed to generate replica ID: %w", err)
+			}
+			logger.Infof("generated new replica ID %d", replicaID)
+			return replicaID, nil
+		}
+
+		replicaIDBytes, err := os.ReadFile(replicaIDFile)
+		if err != nil {
+			return 0, fmt.Errorf("failed to read replica ID file: %w", err)
+		}
+		replicaID, err := strconv.ParseUint(string(replicaIDBytes), 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse replica ID: %w", err)
+		}
+
+		logger.Infof("using existing replica ID %d", replicaID)
+		return replicaID, nil
 	}
+
+	return c.config.InitialReplicaIDs[initialIndex], nil
+}
+
+func (c *Cluster) writeReplicaID(replicaID uint64) error {
+	replicaIDFile := filepath.Join(c.config.DataDir, "replica_id")
+	if err := os.MkdirAll(c.config.DataDir, 0750); err != nil {
+		return fmt.Errorf("failed to create data directory: %w", err)
+	}
+
+	if err := os.WriteFile(replicaIDFile, []byte(strconv.FormatUint(replicaID, 10)), 0600); err != nil {
+		return fmt.Errorf("failed to write replica ID file: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Cluster) start(ctx context.Context, join bool) error {
+	logger := log.FromContext(ctx).Scope("raft")
 
 	// Create node host config
 	nhc := config.NodeHostConfig{
@@ -404,10 +467,14 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 	for shardID := range c.shards {
 		err := c.waitReady(ctx, shardID)
 		if err != nil {
-			return fmt.Errorf("failed to wait for shard %d to be ready on replica %d: %w", shardID, c.config.ReplicaID, err)
+			return fmt.Errorf("failed to wait for shard %d to be ready on replica %d: %w", shardID, c.runtimeReplicaID, err)
 		}
 	}
 	logger.Infof("All shards are ready")
+
+	if err := c.writeReplicaID(c.runtimeReplicaID); err != nil {
+		return fmt.Errorf("failed to write replica ID: %w", err)
+	}
 
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
 	c.runningCtxCancel = cancel
@@ -422,7 +489,7 @@ func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statema
 	}
 
 	cfg := config.Config{
-		ReplicaID:          c.config.ReplicaID,
+		ReplicaID:          c.runtimeReplicaID,
 		ShardID:            shardID,
 		CheckQuorum:        true,
 		ElectionRTT:        c.config.ElectionRTT,
@@ -441,7 +508,7 @@ func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statema
 
 	// Start the raft node for this shard
 	if err := nh.StartReplica(peers, join, sm, cfg); err != nil {
-		return fmt.Errorf("failed to start replica %d for shard %d: %w", c.config.ReplicaID, shardID, err)
+		return fmt.Errorf("failed to start replica %d for shard %d: %w", c.runtimeReplicaID, shardID, err)
 	}
 	return nil
 }
@@ -458,63 +525,6 @@ func (c *Cluster) Stop(ctx context.Context) {
 	} else {
 		logger.Debugf("raft cluster already stopped")
 	}
-}
-
-// AddMember to the cluster. This needs to be called on an existing running cluster member,
-// before the new member is started.
-func (c *Cluster) AddMember(ctx context.Context, req *connect.Request[raftpb.AddMemberRequest]) (*connect.Response[raftpb.AddMemberResponse], error) {
-	logger := log.FromContext(ctx).Scope("raft")
-
-	shards := req.Msg.ShardIds
-	replicaID := req.Msg.ReplicaId
-	address := req.Msg.Address
-
-	logger.Infof("Adding member %s to shard %d on replica %d", address, shards, replicaID)
-
-	for _, shardID := range shards {
-		if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
-			logger.Debugf("Requesting add replica to shard %d on replica %d", shardID, replicaID)
-			return c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0)
-		}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
-			return nil, fmt.Errorf("failed to add member: %w", err)
-		}
-	}
-	return connect.NewResponse(&raftpb.AddMemberResponse{}), nil
-}
-
-func (c *Cluster) RemoveMember(ctx context.Context, req *connect.Request[raftpb.RemoveMemberRequest]) (*connect.Response[raftpb.RemoveMemberResponse], error) {
-	logger := log.FromContext(ctx).Scope("raft")
-	logger.Infof("Request to remove member %d from shards %v on replica %d", req.Msg.ReplicaId, req.Msg.ShardIds, req.Msg.ReplicaId)
-
-	for _, shardID := range req.Msg.ShardIds {
-		if err := c.removeShardMember(ctx, shardID, req.Msg.ReplicaId); err != nil {
-			return nil, fmt.Errorf("failed to remove member from shard %d: %w", shardID, err)
-		}
-	}
-
-	return connect.NewResponse(&raftpb.RemoveMemberResponse{}), nil
-}
-
-// removeShardMember from the given shard. This removes the given member from the membership group
-// and blocks until the change has been committed
-func (c *Cluster) removeShardMember(ctx context.Context, shardID uint64, replicaID uint64) error {
-	logger := log.FromContext(ctx).Scope("raft")
-	logger.Infof("Removing replica %d from shard %d", shardID, replicaID)
-
-	if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
-		logger.Debugf("Requesting delete replica from shard %d on replica %d", shardID, replicaID)
-		return c.nh.SyncRequestDeleteReplica(ctx, shardID, replicaID, 0)
-	}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
-		// This can happen if the cluster is shutting down and no longer has quorum.
-		logger.Warnf("Removing replica %d from shard %d failed: %s", replicaID, shardID, err)
-		return err
-	}
-	return nil
-}
-
-// Ping the cluster.
-func (c *Cluster) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return connect.NewResponse(&ftlv1.PingResponse{}), nil
 }
 
 // withTimeout runs an async dragonboat call and blocks until it succeeds or the context is cancelled.
@@ -577,7 +587,7 @@ func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
 		res := <-rs.ResultC()
 		rs.Release()
 		if !res.Completed() {
-			logger.Debugf("Waiting for shard %d to be ready on replica %d: %s", shardID, c.config.ReplicaID, wait)
+			logger.Debugf("Waiting for shard %d to be ready on replica %d: %s", shardID, c.runtimeReplicaID, wait)
 			select {
 			case <-ctx.Done():
 				return fmt.Errorf("context cancelled: %w", ctx.Err())
@@ -587,34 +597,14 @@ func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
 		}
 		break
 	}
-	logger.Debugf("Shard %d on replica %d is ready", shardID, c.config.ReplicaID)
+	logger.Debugf("Shard %d on replica %d is ready", shardID, c.runtimeReplicaID)
 	return nil
 }
 
-func (c *Cluster) verifyReplicaID() error {
-	replicaIDFile := filepath.Join(c.config.DataDir, "replica_id")
-
-	// If file exists, verify the ID matches
-	if data, err := os.ReadFile(replicaIDFile); err == nil {
-		storedID, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
-		if err != nil {
-			return fmt.Errorf("invalid replica ID stored in %s: %w", replicaIDFile, err)
-		}
-		if storedID != c.config.ReplicaID {
-			return fmt.Errorf("replica ID mismatch: stored ID %d does not match configured ID %d",
-				storedID, c.config.ReplicaID)
-		}
-		return nil
+func randint64() (uint64, error) {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return 0, fmt.Errorf("failed to read random bytes: %w", err)
 	}
-
-	// File doesn't exist, create it with current ID
-	if err := os.MkdirAll(c.config.DataDir, 0755); err != nil {
-		return fmt.Errorf("failed to create data directory: %w", err)
-	}
-
-	if err := os.WriteFile(replicaIDFile, []byte(strconv.FormatUint(c.config.ReplicaID, 10)), 0644); err != nil {
-		return fmt.Errorf("failed to write replica ID file: %w", err)
-	}
-
-	return nil
+	return binary.LittleEndian.Uint64(b[:]), nil
 }
