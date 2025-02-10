@@ -28,7 +28,7 @@ spec:
       serviceAccountName: {{ .Values.console.serviceAccountName }}
       containers:
         - name: app
-          image: "{{ .Values.console.image.repository }}:{{ .Values.console.image.tag | default $version }}"
+          image: "{{ .Values.console.image.repository | default (printf "%s/%s" .Values.image.base .Values.console.image.name) }}:{{ .Values.console.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.console.image.pullPolicy }}
           resources:
             limits:

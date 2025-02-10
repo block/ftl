@@ -27,7 +27,7 @@ spec:
       serviceAccountName: {{ .Values.lease.serviceAccountName }}
       containers:
         - name: app
-          image: "{{ .Values.lease.image.repository }}:{{ .Values.lease.image.tag | default $version }}"
+          image: "{{ .Values.lease.image.repository | default (printf "%s/%s" .Values.image.base .Values.lease.image.name) }}:{{ .Values.lease.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.lease.image.pullPolicy }}
           resources:
             limits:

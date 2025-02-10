@@ -27,7 +27,7 @@ spec:
       serviceAccountName: {{ .Values.provisioner.serviceAccountName }}
       containers:
         - name: app
-          image: "{{ .Values.provisioner.image.repository }}:{{ .Values.provisioner.image.tag | default $version }}"
+          image: "{{ .Values.provisioner.image.repository | default (printf "%s/%s" .Values.image.base .Values.provisioner.image.name) }}:{{ .Values.provisioner.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.provisioner.image.pullPolicy }}
           {{- if .Values.provisioner.envFrom }}
           envFrom:

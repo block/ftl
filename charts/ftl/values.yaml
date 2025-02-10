@@ -1,6 +1,10 @@
 fullnameOverride: ""
 nameOverride: ""
 
+image:
+  tag: null
+  pullPolicy: IfNotPresent
+  base: "ftl0"
 
 secrets:
   logEncryptionKey: null
@@ -16,8 +20,10 @@ controller:
   revisionHistoryLimit: 0
 
   image:
-    repository: "ftl0/ftl-controller"
-    pullPolicy: IfNotPresent
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-controller"
 
   resources:
     requests:
@@ -71,8 +77,10 @@ provisioner:
   revisionHistoryLimit: 0
   configMap: "ftl-provisioner-default-config"
   image:
-    repository: "ftl0/ftl-provisioner"
-    pullPolicy: IfNotPresent
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-provisioner"
 
   envFrom: null
   serviceAccountName: ftl-provisioner
@@ -110,7 +118,8 @@ runner:
 
   envFrom: null
   image:
-    pullPolicy: IfNotPresent
+    pullPolicy: null
+
   resources:
     requests:
       memory: 256Mi
@@ -149,8 +158,10 @@ cron:
   replicas: 1
   revisionHistoryLimit: 0
   image:
-    repository: "ftl0/ftl-cron"
-    pullPolicy: IfNotPresent
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-cron"
 
   envFrom: null
   serviceAccountName: ftl-cron
@@ -224,8 +235,10 @@ ingress:
   revisionHistoryLimit: 0
 
   image:
-    repository: "ftl0/ftl-http-ingress"
-    pullPolicy: IfNotPresent
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-http-ingress"
 
   resources:
     requests:
@@ -277,8 +290,10 @@ timeline:
   revisionHistoryLimit: 0
 
   image:
-    repository: "ftl0/ftl-timeline"
-    pullPolicy: IfNotPresent
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-timeline"
 
   resources:
     requests:
@@ -323,8 +338,10 @@ schema:
   revisionHistoryLimit: 0
 
   image:
-    repository: "ftl0/ftl-schema"
-    pullPolicy: IfNotPresent
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-schema"
 
   resources:
     requests:
@@ -357,7 +374,6 @@ schema:
   topologySpreadConstraints: null
   tolerations: null
 
-
 console:
   enabled: true
   env:
@@ -387,8 +403,10 @@ console:
   revisionHistoryLimit: 0
 
   image:
-    repository: "ftl0/ftl-console"
-    pullPolicy: IfNotPresent
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-console"
 
   resources:
     requests:
@@ -428,8 +446,10 @@ lease:
   revisionHistoryLimit: 0
 
   image:
-    repository: "ftl0/ftl-lease"
-    pullPolicy: IfNotPresent
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-lease"
 
   resources:
     requests:
@@ -462,8 +482,10 @@ admin:
   revisionHistoryLimit: 0
 
   image:
-    repository: "ftl0/ftl-admin"
-    pullPolicy: IfNotPresent
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-admin"
 
   resources:
     requests:

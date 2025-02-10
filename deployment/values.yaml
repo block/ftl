@@ -1,72 +1,27 @@
 fullnameOverride: "ftl"
+
+image:
+  tag: "latest"
+  pullPolicy: Always
+  base: "ftl:5000"
+
 ingress:
   enabled: true
   image:
     repository: "ftl:5000/ftl-http-ingress"
-    tag: "latest"
-    pullPolicy: Always
   ingressAnnotations:
     ingress.kubernetes.io/ssl-redirect: "false"
     kubernetes.io/ingress.class: traefik
 
-controller:
-  image:
-    repository: "ftl:5000/ftl-controller"
-    tag: "latest"
-    pullPolicy: Always
-  service:
-    port: 8892
-  podAnnotations:
-    sidecar.istio.io/logLevel: "debug"
-
 schema:
-  image:
-    repository: "ftl:5000/ftl-schema"
-    tag: "latest"
-    pullPolicy: Always
   service:
     ports:
       - name: "http-8892"
         port: 8892
-  podAnnotations:
-    sidecar.istio.io/logLevel: "debug"
+
 runner:
   podAnnotations:
     sidecar.istio.io/logLevel: "debug"
-
-provisioner:
-  image:
-    repository: "ftl:5000/ftl-provisioner"
-    tag: "latest"
-    pullPolicy: Always
-  service:
-    ports:
-      - name: "http-8893"
-        port: 8893
-
-timeline:
-  image:
-    repository: "ftl:5000/ftl-timeline"
-    tag: "latest"
-    pullPolicy: Always
-
-console:
-  image:
-    repository: "ftl:5000/ftl-console"
-    tag: "latest"
-    pullPolicy: Always
-
-cron:
-  image:
-    repository: "ftl:5000/ftl-cron"
-    tag: "latest"
-    pullPolicy: Always
-
-lease:
-  image:
-    repository: "ftl:5000/ftl-lease"
-    tag: "latest"
-    pullPolicy: Always
 
 istio:
   enabled: true
@@ -76,8 +31,3 @@ registry:
     allowInsecure: "true"
     create: true
 
-admin:
-  image:
-    repository: "ftl:5000/ftl-admin"
-    tag: "latest"
-    pullPolicy: Always    
