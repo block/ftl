@@ -11,7 +11,7 @@ FROM scratch AS scratch-runtime
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Used for ftl-runner
-FROM ubuntu:24.04@sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab AS ubuntu-runtime
+FROM ubuntu:24.04@sha256:72297848456d5d37d1262630108ab308d3e9ec7ed1c3286a32fe09856619a782 AS ubuntu-runtime
 RUN apt-get update && apt-get install -y ca-certificates
 RUN mkdir -p /root/deployments
 
