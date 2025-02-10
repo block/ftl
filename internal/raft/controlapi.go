@@ -5,10 +5,11 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	"github.com/lni/dragonboat/v4"
+
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/internal/log"
-	"github.com/lni/dragonboat/v4"
 )
 
 // AddMember to the cluster. This needs to be called on an existing running cluster member,
