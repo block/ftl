@@ -78,12 +78,18 @@ func (s *Server) HandleBuildEvent(ctx context.Context, response *buildenginepb.S
 		s.publishBuildState(buildStateBuilding, nil)
 
 	case *buildenginepb.EngineEvent_EngineEnded:
-		if len(event.EngineEnded.ModuleErrors) == 0 {
+		moduleErrors := map[string]*langpb.ErrorList{}
+		for _, module := range event.EngineEnded.Modules {
+			if len(module.Errors.Errors) > 0 {
+				moduleErrors[module.Module] = module.Errors
+			}
+		}
+		if len(moduleErrors) == 0 {
 			s.publishBuildState(buildStateSuccess, nil)
 			return
 		}
 		errs := []error{}
-		for module, e := range event.EngineEnded.ModuleErrors {
+		for module, e := range moduleErrors {
 			errs = append(errs, fmt.Errorf("%s: %v", module, e))
 		}
 		s.publishBuildState(buildStateFailure, errors.Join(errs...))

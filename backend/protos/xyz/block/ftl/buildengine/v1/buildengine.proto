@@ -14,7 +14,12 @@ message EngineStarted {}
 // EngineEnded is published when the engine is no longer building or deploying any modules.
 // If there are any remaining errors, they will be included in the ModuleErrors map.
 message EngineEnded {
-  map<string, xyz.block.ftl.language.v1.ErrorList> module_errors = 1; // module name -> error
+  message Module {
+    string module = 1;
+    string path = 2;
+    optional xyz.block.ftl.language.v1.ErrorList errors = 3;
+  }
+  repeated Module modules = 1;
 }
 
 // ModuleAdded is published when the engine discovers a module.

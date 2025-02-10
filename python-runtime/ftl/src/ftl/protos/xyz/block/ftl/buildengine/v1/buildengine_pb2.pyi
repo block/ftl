@@ -4,7 +4,7 @@ from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -13,17 +13,19 @@ class EngineStarted(_message.Message):
     def __init__(self) -> None: ...
 
 class EngineEnded(_message.Message):
-    __slots__ = ("module_errors",)
-    class ModuleErrorsEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: _language_pb2.ErrorList
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ...) -> None: ...
-    MODULE_ERRORS_FIELD_NUMBER: _ClassVar[int]
-    module_errors: _containers.MessageMap[str, _language_pb2.ErrorList]
-    def __init__(self, module_errors: _Optional[_Mapping[str, _language_pb2.ErrorList]] = ...) -> None: ...
+    __slots__ = ("modules",)
+    class Module(_message.Message):
+        __slots__ = ("module", "path", "errors")
+        MODULE_FIELD_NUMBER: _ClassVar[int]
+        PATH_FIELD_NUMBER: _ClassVar[int]
+        ERRORS_FIELD_NUMBER: _ClassVar[int]
+        module: str
+        path: str
+        errors: _language_pb2.ErrorList
+        def __init__(self, module: _Optional[str] = ..., path: _Optional[str] = ..., errors: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ...) -> None: ...
+    MODULES_FIELD_NUMBER: _ClassVar[int]
+    modules: _containers.RepeatedCompositeFieldContainer[EngineEnded.Module]
+    def __init__(self, modules: _Optional[_Iterable[_Union[EngineEnded.Module, _Mapping]]] = ...) -> None: ...
 
 class ModuleAdded(_message.Message):
     __slots__ = ("module",)
