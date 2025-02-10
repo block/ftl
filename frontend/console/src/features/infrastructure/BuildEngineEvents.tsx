@@ -67,9 +67,10 @@ const EventContent = ({ event }: { event: EngineEvent }) => {
       case 'moduleBuildFailed':
       case 'moduleDeployFailed':
         return 'error'
-      case 'engineEnded':
-        const hasErrors = event.event.value.modules.some((module) => (module.errors?.errors?.length ?? 0) > 0)
+      case 'engineEnded': {
+        const hasErrors = event.event.value.modules.some(module => (module.errors?.errors?.length ?? 0) > 0)
         return hasErrors ? 'error' : 'success'
+      }
       default:
         return 'new'
     }

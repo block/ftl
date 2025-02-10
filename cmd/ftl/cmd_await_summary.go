@@ -20,7 +20,7 @@ import (
 )
 
 // awaitSummaryCmd waits for the engine to finish and prints a summary of the current module (paths and errors) and schema.
-// It is useful for goose as it accomodates delays in detecting code changes, building and deploying.
+// It is useful for goose as it accommodates delays in detecting code changes, building and deploying.
 type awaitSummaryCmd struct {
 }
 
