@@ -92,22 +92,8 @@ spec:
             successThreshold: 1
             failureThreshold: 15
             {{- end }}
-      {{- if .Values.schema.nodeSelector }}
-      nodeSelector:
-        {{- toYaml .Values.schema.nodeSelector | nindent 8 }}
-      {{- end }}
-      {{- if .Values.schema.affinity }}
-      affinity:
-        {{- toYaml .Values.schema.affinity | nindent 8 }}
-      {{- end }}
-      {{- if .Values.schema.topologySpreadConstraints }}
-      topologySpreadConstraints:
-        {{- toYaml .Values.schema.topologySpreadConstraints | nindent 8 }}
-      {{- end }}
-      {{- if .Values.schema.tolerations }}
-      tolerations:
-        {{- toYaml .Values.schema.tolerations | nindent 8 }}
-      {{- end }}
+      {{- include "ftl.commonPodConfig" .Values.schema | nindent 6 }}
+
   volumeClaimTemplates:
   - metadata:
       name: schema-raft-storage  # This name will be used as a PVC name

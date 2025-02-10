@@ -81,19 +81,5 @@ spec:
             successThreshold: 1
             failureThreshold: 15
             {{- end }}
-      {{- if .Values.admin.nodeSelector }}
-      nodeSelector:
-        {{- toYaml .Values.admin.nodeSelector | nindent 8 }}
-      {{- end }}
-      {{- if .Values.admin.affinity }}
-      affinity:
-        {{- toYaml .Values.admin.affinity | nindent 8 }}
-      {{- end }}
-      {{- if .Values.admin.topologySpreadConstraints }}
-      topologySpreadConstraints:
-        {{- toYaml .Values.admin.topologySpreadConstraints | nindent 8 }}
-      {{- end }}
-      {{- if .Values.admin.tolerations }}
-      tolerations:
-        {{- toYaml .Values.admin.tolerations | nindent 8 }}
-      {{- end }}
+      {{- include "ftl.commonPodConfig" .Values.admin | nindent 6 }}
+

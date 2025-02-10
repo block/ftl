@@ -69,21 +69,7 @@ spec:
             successThreshold: 1
             failureThreshold: 15
             {{- end }}
-      {{- if .Values.ingress.nodeSelector }}
-      nodeSelector:
-        {{- toYaml .Values.ingress.nodeSelector | nindent 8 }}
-      {{- end }}
-      {{- if .Values.ingress.affinity }}
-      affinity:
-        {{- toYaml .Values.ingress.affinity | nindent 8 }}
-      {{- end }}
-      {{- if .Values.ingress.topologySpreadConstraints }}
-      topologySpreadConstraints:
-        {{- toYaml .Values.ingress.topologySpreadConstraints | nindent 8 }}
-      {{- end }}
-      {{- if .Values.ingress.tolerations }}
-      tolerations:
-        {{- toYaml .Values.ingress.tolerations | nindent 8 }}
-      {{- end }}
+      {{- include "ftl.commonPodConfig" .Values.ingress | nindent 6 }}
 
-      {{- end }}
+
+{{- end }}
