@@ -27,6 +27,17 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 	previousAllChangesets := previous.GetChangesets()
 	allChangesets := maps.Values(current.GetChangesets())
 	handledDeployments := map[key.Deployment]bool{}
+
+	for _, cs := range current.archivedChangesets {
+		// Check if there are newly archived changesets
+		if len(previous.archivedChangesets) > 0 {
+			if previous.archivedChangesets[0].Key == cs.Key {
+				break
+			}
+		}
+		allChangesets = append(allChangesets, cs)
+	}
+
 	slices.SortFunc(allChangesets, func(a, b *schema.Changeset) int {
 		return a.CreatedAt.Compare(b.CreatedAt)
 	})
@@ -63,7 +74,6 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 			}
 			if pc.State != changeset.State {
 				// State changes
-
 				// Note that we use larger than or equal to here, as we want to send the events for the state changes
 				// even if we missed a transition state
 				if changeset.State == schema.ChangesetStateRollingBack || changeset.State == schema.ChangesetStateFailed {
@@ -78,7 +88,8 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 					}
 					if changeset.State == schema.ChangesetStateFailed {
 						notification := &schema.ChangesetFailedNotification{
-							Key: changeset.Key,
+							Key:   changeset.Key,
+							Error: changeset.Error,
 						}
 						events = append(events, &ftlv1.PullSchemaResponse{
 							Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetFailedNotification{ChangesetFailedNotification: notification.ToProto()}},

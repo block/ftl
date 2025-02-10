@@ -18,7 +18,7 @@ import (
 // TODO: these should be event methods once we can move them to this package
 
 // ApplyEvent applies an event to the schema state
-func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
+func (r *SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 	logger := log.FromContext(ctx).Scope("schemaevents")
 	logger.Debugf("Applying %s", event.DebugString())
 	if err := event.Validate(); err != nil {
@@ -44,7 +44,7 @@ func (r SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error {
 	}
 }
 
-func handleDeploymentRuntimeEvent(t SchemaState, e *schema.DeploymentRuntimeEvent) error {
+func handleDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEvent) error {
 	if cs, ok := e.ChangesetKey().Get(); ok {
 		c, ok := t.changesets[cs]
 		if !ok {
@@ -75,7 +75,7 @@ func handleDeploymentRuntimeEvent(t SchemaState, e *schema.DeploymentRuntimeEven
 	return fmt.Errorf("deployment %s not found", e.DeploymentKey().String())
 }
 
-func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent) error {
+func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent) error {
 	if existing := t.changesets[e.Changeset.Key]; existing != nil {
 		return fmt.Errorf("changeset %s already exists ", e.Changeset.Key)
 	}
@@ -132,7 +132,7 @@ func handleChangesetCreatedEvent(t SchemaState, e *schema.ChangesetCreatedEvent)
 	return nil
 }
 
-func handleChangesetPreparedEvent(t SchemaState, e *schema.ChangesetPreparedEvent) error {
+func handleChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEvent) error {
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
@@ -154,7 +154,7 @@ func handleChangesetPreparedEvent(t SchemaState, e *schema.ChangesetPreparedEven
 	return nil
 }
 
-func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema.ChangesetCommittedEvent) error {
+func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schema.ChangesetCommittedEvent) error {
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
@@ -180,7 +180,7 @@ func handleChangesetCommittedEvent(ctx context.Context, t SchemaState, e *schema
 	return nil
 }
 
-func handleChangesetDrainedEvent(ctx context.Context, t SchemaState, e *schema.ChangesetDrainedEvent) error {
+func handleChangesetDrainedEvent(ctx context.Context, t *SchemaState, e *schema.ChangesetDrainedEvent) error {
 	logger := log.FromContext(ctx)
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
@@ -201,9 +201,9 @@ func handleChangesetDrainedEvent(ctx context.Context, t SchemaState, e *schema.C
 	changeset.State = schema.ChangesetStateDrained
 	return nil
 }
-func handleChangesetFinalizedEvent(ctx context.Context, t SchemaState, e *schema.ChangesetFinalizedEvent) error {
+func handleChangesetFinalizedEvent(ctx context.Context, r *SchemaState, e *schema.ChangesetFinalizedEvent) error {
 	logger := log.FromContext(ctx)
-	changeset, ok := t.changesets[e.Key]
+	changeset, ok := r.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
 	}
@@ -221,13 +221,16 @@ func handleChangesetFinalizedEvent(ctx context.Context, t SchemaState, e *schema
 	}
 	changeset.State = schema.ChangesetStateFinalized
 	// TODO: archive changesets?
-	delete(t.changesets, changeset.Key)
-	delete(t.changesetEvents, e.Key)
-	t.archivedChangesets = append(t.archivedChangesets, changeset)
+	delete(r.changesets, changeset.Key)
+	delete(r.changesetEvents, e.Key)
+	// Archived changeset always has the most recent one at the head
+	nl := []*schema.Changeset{changeset}
+	nl = append(nl, r.archivedChangesets...)
+	r.archivedChangesets = nl
 	return nil
 }
 
-func handleChangesetFailedEvent(t SchemaState, e *schema.ChangesetFailedEvent) error {
+func handleChangesetFailedEvent(t *SchemaState, e *schema.ChangesetFailedEvent) error {
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
@@ -236,7 +239,10 @@ func handleChangesetFailedEvent(t SchemaState, e *schema.ChangesetFailedEvent) e
 	changeset.Error = e.Error
 	//TODO: de-provisioning on failure?
 	delete(t.changesets, changeset.Key)
-	t.archivedChangesets = append(t.archivedChangesets, changeset)
+	// Archived changeset always has the most recent one at the head
+	nl := []*schema.Changeset{changeset}
+	nl = append(nl, t.archivedChangesets...)
+	t.archivedChangesets = nl
 	return nil
 }
 
