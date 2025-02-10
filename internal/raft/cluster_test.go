@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/local"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
 	"github.com/block/ftl/internal/retry"
+	"github.com/block/ftl/internal/rpc"
 	sm "github.com/block/ftl/internal/statemachine"
 	"golang.org/x/sync/errgroup"
 )
@@ -71,9 +73,6 @@ func TestClusterWith2Shards(t *testing.T) {
 }
 
 func TestJoiningExistingCluster(t *testing.T) {
-	// TODO: This is flaky, fix and re-enable when Raft is used
-	t.Skip()
-
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -97,6 +96,12 @@ func TestJoiningExistingCluster(t *testing.T) {
 	wg, wctx := errgroup.WithContext(ctx)
 	wg.Go(func() error { return cluster1.Start(wctx) })
 	wg.Go(func() error { return cluster2.Start(wctx) })
+	// set up the control endpoint to cluster 1
+	go func() {
+		assert.NoError(t, rpc.Serve(ctx, controlBind,
+			rpc.GRPC(raftpbconnect.NewRaftServiceHandler, cluster1),
+		))
+	}()
 	assert.NoError(t, wg.Wait())
 	t.Cleanup(func() {
 		cluster1.Stop(ctx)
