@@ -43,19 +43,4 @@ spec:
               value: "http://{{ .Values.timeline.service.name }}:{{ .Values.timeline.service.port }}"
             - name: FTL_SCHEMA_ENDPOINT
               value: "http://ftl-schema:8892"
-      {{- if .Values.cron.nodeSelector }}
-      nodeSelector:
-        {{- toYaml .Values.cron.nodeSelector | nindent 8 }}
-      {{- end }}
-      {{- if .Values.cron.affinity }}
-      affinity:
-        {{- toYaml .Values.cron.affinity | nindent 8 }}
-      {{- end }}
-      {{- if .Values.cron.topologySpreadConstraints }}
-      topologySpreadConstraints:
-        {{- toYaml .Values.cron.topologySpreadConstraints | nindent 8 }}
-      {{- end }}
-      {{- if .Values.cron.tolerations }}
-      tolerations:
-        {{- toYaml .Values.cron.tolerations | nindent 8 }}
-      {{- end }}
+      {{- include "ftl.commonPodConfig" .Values.cron | nindent 6 }}

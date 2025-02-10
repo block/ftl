@@ -58,19 +58,4 @@ spec:
         - name: config
           configMap:
             name: {{ .Values.provisioner.configMap }}
-      {{- if .Values.provisioner.nodeSelector }}
-      nodeSelector:
-        {{- toYaml .Values.provisioner.nodeSelector | nindent 8 }}
-      {{- end }}
-      {{- if .Values.provisioner.affinity }}
-      affinity:
-        {{- toYaml .Values.provisioner.affinity | nindent 8 }}
-      {{- end }}
-      {{- if .Values.provisioner.topologySpreadConstraints }}
-      topologySpreadConstraints:
-        {{- toYaml .Values.provisioner.topologySpreadConstraints | nindent 8 }}
-      {{- end }}
-      {{- if .Values.provisioner.tolerations }}
-      tolerations:
-        {{- toYaml .Values.provisioner.tolerations | nindent 8 }}
-      {{- end }}
+      {{- include "ftl.commonPodConfig" .Values.provisioner | nindent 6 }}
