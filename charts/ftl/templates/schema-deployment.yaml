@@ -67,9 +67,9 @@ spec:
                 fieldRef:
                   fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
             - name: RAFT_ADDRESS
-              value: "ftl-schema-$(ORDINAL_NUMBER).ftl-schema-raft:8992"
+              value: "ftl-schema-$(ORDINAL_NUMBER).ftl-schema-raft:{{$.Values.schema.services.raft.port}}"
             - name: RAFT_LISTEN_ADDRESS
-              value: "$(MY_POD_IP):8992"
+              value: "$(MY_POD_IP):{{$.Values.schema.services.raft.port}}"
             - name: RAFT_CONTROL_ADDRESS
               value: "http://ftl-schema:8892"
           ports:
