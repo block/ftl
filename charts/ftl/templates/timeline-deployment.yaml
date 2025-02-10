@@ -28,7 +28,7 @@ spec:
       serviceAccountName: {{ .Values.timeline.serviceAccountName }}
       containers:
         - name: app
-          image: "{{ .Values.timeline.image.repository }}:{{ .Values.timeline.image.tag | default $version }}"
+          image: "{{ .Values.timeline.image.repository | default (printf "%s/%s" .Values.image.base .Values.timeline.image.name) }}:{{ .Values.timeline.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.timeline.image.pullPolicy }}
           resources:
             limits:
@@ -66,6 +66,5 @@ spec:
             failureThreshold: 15
             {{- end }}
       {{- include "ftl.commonPodConfig" .Values.timeline | nindent 6 }}
-
 
 {{- end }}

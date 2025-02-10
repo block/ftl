@@ -28,7 +28,7 @@ spec:
       serviceAccountName: {{ .Values.ingress.serviceAccountName }}
       containers:
         - name: app
-          image: "{{ .Values.ingress.image.repository }}:{{ .Values.ingress.image.tag | default $version }}"
+          image: "{{ .Values.ingress.image.repository | default (printf "%s/%s" .Values.image.base .Values.ingress.image.name) }}:{{ .Values.ingress.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.ingress.image.pullPolicy }}
           resources:
             limits:

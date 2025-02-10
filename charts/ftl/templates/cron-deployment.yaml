@@ -27,7 +27,7 @@ spec:
       serviceAccountName: {{ .Values.cron.serviceAccountName }}
       containers:
         - name: app
-          image: "{{ .Values.cron.image.repository }}:{{ .Values.cron.image.tag | default $version }}"
+          image: "{{ .Values.cron.image.repository | default (printf "%s/%s" .Values.image.base .Values.cron.image.name) }}:{{ .Values.cron.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.cron.image.pullPolicy }}
           {{- if .Values.cron.envFrom }}
           envFrom:

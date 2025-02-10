@@ -48,7 +48,7 @@ data:
           containers:
             - name: app
               image: "(replaced)"
-              imagePullPolicy: {{ .Values.runner.image.pullPolicy }}
+              imagePullPolicy: {{ .Values.runner.image.pullPolicy | default .Values.image.pullPolicy }}
               resources:
                 limits:
                   cpu: "{{ .Values.runner.resources.limits.cpu }}"
