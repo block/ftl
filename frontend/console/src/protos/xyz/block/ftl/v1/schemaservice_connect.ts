@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, DrainChangesetRequest, DrainChangesetResponse, FailChangesetRequest, FailChangesetResponse, FinalizeChangesetRequest, FinalizeChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse } from "./schemaservice_pb.js";
+import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, DrainChangesetRequest, DrainChangesetResponse, FailChangesetRequest, FailChangesetResponse, FinalizeChangesetRequest, FinalizeChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, RollbackChangesetRequest, RollbackChangesetResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -123,6 +123,17 @@ export const SchemaService = {
       name: "FinalizeChangeset",
       I: FinalizeChangesetRequest,
       O: FinalizeChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * RollbackChangeset Rolls back a failing changeset
+     *
+     * @generated from rpc xyz.block.ftl.v1.SchemaService.RollbackChangeset
+     */
+    rollbackChangeset: {
+      name: "RollbackChangeset",
+      I: RollbackChangesetRequest,
+      O: RollbackChangesetResponse,
       kind: MethodKind.Unary,
     },
     /**

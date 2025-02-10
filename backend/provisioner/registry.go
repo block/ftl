@@ -127,8 +127,10 @@ func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, changeset 
 		Changeset:       changeset,
 		UpdateHandler:   updateHandler,
 	}
-
-	allDesired := schema.GetProvisionedResources(desiredModule)
+	var allDesired schema.ResourceSet
+	if desiredModule.Runtime.Deployment.State != schema.DeploymentStateDeProvisioning {
+		allDesired = schema.GetProvisionedResources(desiredModule)
+	}
 	allExisting := schema.GetProvisionedResources(existingModule)
 
 	for _, binding := range reg.listBindings() {

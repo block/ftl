@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/exp/maps"
@@ -26,10 +27,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/rpc"
 )
 
 const controllerDeploymentName = "ftl-controller"
@@ -59,11 +63,26 @@ func NewK8sScaling(disableIstio bool, controllerURL string) scaling.RunnerScalin
 	return &k8sScaling{disableIstio: disableIstio, controller: controllerURL}
 }
 
-func (r *k8sScaling) StartDeployment(ctx context.Context, module string, deploymentKey string, sch *schema.Module, hasCron bool, hasIngress bool) error {
+func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string, sch *schema.Module) error {
 	logger := log.FromContext(ctx)
+	module := sch.Name
 	logger = logger.Module(module)
 	ctx = log.ContextWithLogger(ctx, logger)
-	logger.Debugf("Handling schema change for %s", deploymentKey)
+	logger.Debugf("Updating deployment for %s", deploymentKey)
+	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
+	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get deployment %s: %w", deploymentKey, err)
+	}
+	return r.handleExistingDeployment(ctx, deployment)
+}
+
+func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
+	logger := log.FromContext(ctx)
+	module := sch.Name
+	logger = logger.Module(module)
+	ctx = log.ContextWithLogger(ctx, logger)
+	logger.Debugf("Creating deployment for %s", deploymentKey)
 	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
 	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
 	deploymentExists := true
@@ -71,58 +90,57 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, module string, deploym
 		if errors.IsNotFound(err) {
 			deploymentExists = false
 		} else {
-			return fmt.Errorf("failed to get deployment %s: %w", deploymentKey, err)
+			return url.URL{}, fmt.Errorf("failed to get deployment %s: %w", deploymentKey, err)
 		}
 	}
 
-	// Note that a change is now currently usually and add and a delete
-	// As it should really be called a module changed, not a deployment changed
-	// This will need to be fixed as part of the support for rolling deployments
 	r.knownDeployments.Store(deploymentKey, true)
 	if deploymentExists {
+		// This should never really happen, but if it does we need to handle it
 		logger.Debugf("Updating deployment %s", deploymentKey)
-		return r.handleExistingDeployment(ctx, deployment)
+		err = r.handleExistingDeployment(ctx, deployment)
+		return r.GetEndpointForDeployment(deploymentKey), err
 
 	}
 	err = r.handleNewDeployment(ctx, module, deploymentKey, sch, hasCron, hasIngress)
 	if err != nil {
-		return err
+		return url.URL{}, err
 	}
 	err = r.waitForDeploymentReady(ctx, deploymentKey, deployTimeout)
 	if err != nil {
-		return err
+		return url.URL{}, err
 	}
 
-	return nil
-}
-
-func (r *k8sScaling) TerminatePreviousDeployments(ctx context.Context, module string, deploymentKey string) ([]string, error) {
-	logger := log.FromContext(ctx)
-	logger = logger.Module(module)
-	delCtx := log.ContextWithLogger(context.Background(), logger)
-	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
-	deployments, err := deploymentClient.List(ctx, v1.ListOptions{LabelSelector: moduleLabel + "=" + module})
-	var ret []string
-	if err != nil {
-		return nil, fmt.Errorf("failed to list deployments: %w", err)
-	}
-	for _, deploy := range deployments.Items {
-		if deploy.Name != deploymentKey {
-			logger.Debugf("Queing old deployment %s for deletion", deploy.Name)
-			ret = append(ret, deploy.Name)
-		}
-	}
-	// So hacky, all this needs to change when the provisioner is a proper schema observer
-	go func() {
-		time.Sleep(time.Second * 20)
-		for _, dep := range ret {
-			err = deploymentClient.Delete(delCtx, dep, v1.DeleteOptions{})
-			if err != nil {
-				logger.Errorf(err, "Failed to delete deployment %s", dep)
+	endpoint := r.GetEndpointForDeployment(deploymentKey)
+	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, endpoint.String(), log.Error)
+	timeout := time.After(1 * time.Minute)
+	for {
+		select {
+		case <-ctx.Done():
+			return url.URL{}, fmt.Errorf("context cancelled: %w", ctx.Err())
+		case <-timeout:
+			return url.URL{}, fmt.Errorf("timed out waiting for runner to be ready")
+		case <-time.After(time.Millisecond * 100):
+			_, err := client.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
+			if err == nil {
+				return endpoint, nil
 			}
 		}
-	}()
-	return ret, nil
+	}
+}
+
+func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey string) error {
+	logger := log.FromContext(ctx)
+	delCtx := log.ContextWithLogger(context.Background(), logger)
+	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
+	err := deploymentClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to delete deployment %s: %w", deploymentKey, err)
+	}
+	return nil
 }
 
 func (r *k8sScaling) Start(ctx context.Context) error {
@@ -203,12 +221,12 @@ func getKubeConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-func (r *k8sScaling) GetEndpointForDeployment(ctx context.Context, module string, deployment string) (optional.Option[url.URL], error) {
+func (r *k8sScaling) GetEndpointForDeployment(deployment string) url.URL {
 	// TODO: hard coded port? It's hard to deal with as we might not have the lease
 	// I think requiring this port is fine for now
-	return optional.Some(url.URL{Scheme: "http",
+	return url.URL{Scheme: "http",
 		Host: fmt.Sprintf("%s:8892", deployment),
-	}), nil
+	}
 }
 
 func GetCurrentNamespace() (string, error) {

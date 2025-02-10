@@ -159,13 +159,28 @@ func (e *ChangesetFinalizedEvent) Validate() error {
 }
 
 //protobuf:8
-type ChangesetFailedEvent struct {
+type ChangesetRollingBackEvent struct {
 	Key   key.Changeset `protobuf:"1"`
 	Error string        `protobuf:"2"`
 }
 
+func (e *ChangesetRollingBackEvent) DebugString() string {
+	return fmt.Sprintf("ChangesetRollingBackEvent{changeset: %s, Error: %s}", e.Key.String(), e.Error)
+}
+
+func (e *ChangesetRollingBackEvent) event() {}
+
+func (e *ChangesetRollingBackEvent) Validate() error {
+	return nil
+}
+
+//protobuf:9
+type ChangesetFailedEvent struct {
+	Key key.Changeset `protobuf:"1"`
+}
+
 func (e *ChangesetFailedEvent) DebugString() string {
-	return fmt.Sprintf("ChangesetFailedEvent{changeset: %s, Error: %s}", e.Key.String(), e.Error)
+	return fmt.Sprintf("ChangesetFailedEvent{changeset: %s}", e.Key.String())
 }
 
 func (e *ChangesetFailedEvent) event() {}

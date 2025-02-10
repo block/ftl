@@ -28,7 +28,7 @@ func NewDevProvisioner(postgresPort int, mysqlPort int, recreate bool) *InMemPro
 		schema.ResourceTypeMysql:        provisionMysql(mysqlPort, recreate),
 		schema.ResourceTypeTopic:        provisionTopic(),
 		schema.ResourceTypeSubscription: provisionSubscription(),
-	})
+	}, map[schema.ResourceType]InMemResourceProvisionerFn{})
 }
 func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (*schema.RuntimeElement, error) {

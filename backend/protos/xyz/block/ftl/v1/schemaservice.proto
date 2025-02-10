@@ -84,10 +84,19 @@ message FinalizeChangesetResponse {}
 message FailChangesetRequest {
   // The changeset key to fail.
   string changeset = 1;
-  string error = 2;
 }
 
 message FailChangesetResponse {}
+
+message RollbackChangesetRequest {
+  // The changeset key to fail.
+  string changeset = 1;
+  string error = 2;
+}
+
+message RollbackChangesetResponse {
+  ftl.schema.v1.Changeset changeset = 1;
+}
 
 message GetDeploymentRequest {
   string deployment_key = 1;
@@ -131,7 +140,10 @@ service SchemaService {
   rpc CommitChangeset(CommitChangesetRequest) returns (CommitChangesetResponse);
 
   rpc DrainChangeset(DrainChangesetRequest) returns (DrainChangesetResponse);
+
   rpc FinalizeChangeset(FinalizeChangesetRequest) returns (FinalizeChangesetResponse);
+  // RollbackChangeset Rolls back a failing changeset
+  rpc RollbackChangeset(RollbackChangesetRequest) returns (RollbackChangesetResponse);
   // FailChangeset fails an active changeset.
   rpc FailChangeset(FailChangesetRequest) returns (FailChangesetResponse);
   // GetDeployment gets a deployment by deployment key

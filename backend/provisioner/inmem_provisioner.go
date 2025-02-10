@@ -52,14 +52,16 @@ type InMemResourceProvisionerFn func(ctx context.Context, changeset key.Changese
 // It spawns a separate goroutine for each resource to be provisioned, and
 // finishes the task when all resources are provisioned or an error occurs.
 type InMemProvisioner struct {
-	running  *xsync.MapOf[string, *inMemProvisioningTask]
-	handlers map[schema.ResourceType]InMemResourceProvisionerFn
+	running        *xsync.MapOf[string, *inMemProvisioningTask]
+	handlers       map[schema.ResourceType]InMemResourceProvisionerFn
+	removeHandlers map[schema.ResourceType]InMemResourceProvisionerFn
 }
 
-func NewEmbeddedProvisioner(handlers map[schema.ResourceType]InMemResourceProvisionerFn) *InMemProvisioner {
+func NewEmbeddedProvisioner(handlers map[schema.ResourceType]InMemResourceProvisionerFn, deProvisionHandlers map[schema.ResourceType]InMemResourceProvisionerFn) *InMemProvisioner {
 	return &InMemProvisioner{
-		running:  xsync.NewMapOf[string, *inMemProvisioningTask](),
-		handlers: handlers,
+		running:        xsync.NewMapOf[string, *inMemProvisioningTask](),
+		handlers:       handlers,
+		removeHandlers: deProvisionHandlers,
 	}
 }
 
@@ -105,15 +107,25 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 	completions := make(chan stepCompletedEvent, 16)
 
 	for id, desired := range desiredNodes {
-		previous, ok := previousNodes[id]
+		previous, prevOk := previousNodes[id]
 
 		for _, resource := range desired.GetProvisioned() {
-			if !ok || !resource.IsEqual(previous.GetProvisioned().Get(resource.Kind)) {
+			if !prevOk || !resource.IsEqual(previous.GetProvisioned().Get(resource.Kind)) || desiredModule.Runtime.Deployment.State == schema.DeploymentStateDeProvisioning {
 				if slices.Contains(kinds, resource.Kind) {
-					handler, ok := d.handlers[resource.Kind]
-					if !ok {
-						err := fmt.Errorf("unsupported resource type: %s", resource.Kind)
-						return nil, connect.NewError(connect.CodeInvalidArgument, err)
+					var handler InMemResourceProvisionerFn
+					var ok bool
+					if desiredModule.Runtime.Deployment.State == schema.DeploymentStateDeProvisioning {
+						handler, ok = d.removeHandlers[resource.Kind]
+						if !ok {
+							// TODO: should a missing de-provisioner handler be an error?
+							continue
+						}
+					} else {
+						handler, ok = d.handlers[resource.Kind]
+						if !ok {
+							err := fmt.Errorf("unsupported resource type: %s", resource.Kind)
+							return nil, connect.NewError(connect.CodeInvalidArgument, err)
+						}
 					}
 					step := &inMemProvisioningStep{Done: atomic.New(false)}
 					task.steps = append(task.steps, step)
@@ -121,7 +133,6 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 						event, err := handler(ctx, parsed, desiredModule.Runtime.Deployment.DeploymentKey, desired)
 						if err != nil {
 							step.Err = err
-							logger.Errorf(err, "failed to provision resource %s:%s", resource.Kind, desired.ResourceID())
 							completions <- stepCompletedEvent{step: step}
 							return
 						}

@@ -175,16 +175,17 @@ func (e *EventSource) Publish(event schema.Notification) error {
 	case *schema.ChangesetDrainedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		cs := clone.activeChangesets[event.Key]
-		for _, module := range cs.Modules {
+		for _, module := range cs.OwnedModules() {
 			module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
 		}
 		e.view.Store(clone)
 	case *schema.ChangesetRollingBackNotification:
 		clone := reflect.DeepCopy(e.view.Load())
-		cs := clone.activeChangesets[event.Key]
+		cs := event.Changeset
 		for _, module := range cs.Modules {
 			module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
 		}
+		cs.Error = event.Error
 		e.view.Store(clone)
 	case *schema.ChangesetFailedNotification:
 		clone := reflect.DeepCopy(e.view.Load())

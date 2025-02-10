@@ -4,17 +4,15 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/alecthomas/types/optional"
-
 	"github.com/block/ftl/common/schema"
 )
 
 type RunnerScaling interface {
 	Start(ctx context.Context) error
 
-	GetEndpointForDeployment(ctx context.Context, module string, deployment string) (optional.Option[url.URL], error)
+	StartDeployment(ctx context.Context, deployment string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error)
 
-	StartDeployment(ctx context.Context, module string, deployment string, sch *schema.Module, hasCron bool, hasIngress bool) error
+	UpdateDeployment(ctx context.Context, deployment string, sch *schema.Module) error
 
-	TerminatePreviousDeployments(ctx context.Context, module string, currentDeployment string) ([]string, error)
+	TerminateDeployment(ctx context.Context, deployment string) error
 }
