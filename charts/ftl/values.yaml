@@ -349,8 +349,8 @@ schema:
       port: 8892
     raft:
       annotations: null
-      containerPort: 8992
-      port: 8992
+      containerPort: 8893
+      port: 8893
   podAnnotations: null
   nodeSelector: null
   affinity: null
