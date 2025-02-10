@@ -339,6 +339,7 @@ timeline:
 schema:
   enabled: true
   replicas: 3
+  storage: 50Mi
   env:
     - name: MY_POD_IP
       valueFrom:
