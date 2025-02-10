@@ -729,11 +729,6 @@ export class FailChangesetRequest extends Message<FailChangesetRequest> {
    */
   changeset = "";
 
-  /**
-   * @generated from field: string error = 2;
-   */
-  error = "";
-
   constructor(data?: PartialMessage<FailChangesetRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -743,7 +738,6 @@ export class FailChangesetRequest extends Message<FailChangesetRequest> {
   static readonly typeName = "xyz.block.ftl.v1.FailChangesetRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FailChangesetRequest {
@@ -791,6 +785,88 @@ export class FailChangesetResponse extends Message<FailChangesetResponse> {
 
   static equals(a: FailChangesetResponse | PlainMessage<FailChangesetResponse> | undefined, b: FailChangesetResponse | PlainMessage<FailChangesetResponse> | undefined): boolean {
     return proto3.util.equals(FailChangesetResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.RollbackChangesetRequest
+ */
+export class RollbackChangesetRequest extends Message<RollbackChangesetRequest> {
+  /**
+   * The changeset key to fail.
+   *
+   * @generated from field: string changeset = 1;
+   */
+  changeset = "";
+
+  /**
+   * @generated from field: string error = 2;
+   */
+  error = "";
+
+  constructor(data?: PartialMessage<RollbackChangesetRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.RollbackChangesetRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RollbackChangesetRequest {
+    return new RollbackChangesetRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RollbackChangesetRequest {
+    return new RollbackChangesetRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RollbackChangesetRequest {
+    return new RollbackChangesetRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RollbackChangesetRequest | PlainMessage<RollbackChangesetRequest> | undefined, b: RollbackChangesetRequest | PlainMessage<RollbackChangesetRequest> | undefined): boolean {
+    return proto3.util.equals(RollbackChangesetRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.RollbackChangesetResponse
+ */
+export class RollbackChangesetResponse extends Message<RollbackChangesetResponse> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Changeset changeset = 1;
+   */
+  changeset?: Changeset;
+
+  constructor(data?: PartialMessage<RollbackChangesetResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.RollbackChangesetResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "message", T: Changeset },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RollbackChangesetResponse {
+    return new RollbackChangesetResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RollbackChangesetResponse {
+    return new RollbackChangesetResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RollbackChangesetResponse {
+    return new RollbackChangesetResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RollbackChangesetResponse | PlainMessage<RollbackChangesetResponse> | undefined, b: RollbackChangesetResponse | PlainMessage<RollbackChangesetResponse> | undefined): boolean {
+    return proto3.util.equals(RollbackChangesetResponse, a, b);
   }
 }
 

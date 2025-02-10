@@ -156,12 +156,10 @@ class ChangesetDrainedNotification(_message.Message):
     def __init__(self, key: _Optional[str] = ...) -> None: ...
 
 class ChangesetFailedEvent(_message.Message):
-    __slots__ = ("key", "error")
+    __slots__ = ("key",)
     KEY_FIELD_NUMBER: _ClassVar[int]
-    ERROR_FIELD_NUMBER: _ClassVar[int]
     key: str
-    error: str
-    def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
+    def __init__(self, key: _Optional[str] = ...) -> None: ...
 
 class ChangesetFailedNotification(_message.Message):
     __slots__ = ("key", "error")
@@ -195,13 +193,21 @@ class ChangesetPreparedNotification(_message.Message):
     key: str
     def __init__(self, key: _Optional[str] = ...) -> None: ...
 
-class ChangesetRollingBackNotification(_message.Message):
+class ChangesetRollingBackEvent(_message.Message):
     __slots__ = ("key", "error")
     KEY_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     key: str
     error: str
     def __init__(self, key: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
+
+class ChangesetRollingBackNotification(_message.Message):
+    __slots__ = ("changeset", "error")
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    changeset: Changeset
+    error: str
+    def __init__(self, changeset: _Optional[_Union[Changeset, _Mapping]] = ..., error: _Optional[str] = ...) -> None: ...
 
 class Config(_message.Message):
     __slots__ = ("pos", "comments", "name", "type")
@@ -354,13 +360,14 @@ class EnumVariant(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., name: _Optional[str] = ..., value: _Optional[_Union[Value, _Mapping]] = ...) -> None: ...
 
 class Event(_message.Message):
-    __slots__ = ("changeset_committed_event", "changeset_created_event", "changeset_drained_event", "changeset_failed_event", "changeset_finalized_event", "changeset_prepared_event", "deployment_created_event", "deployment_runtime_event")
+    __slots__ = ("changeset_committed_event", "changeset_created_event", "changeset_drained_event", "changeset_failed_event", "changeset_finalized_event", "changeset_prepared_event", "changeset_rolling_back_event", "deployment_created_event", "deployment_runtime_event")
     CHANGESET_COMMITTED_EVENT_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_CREATED_EVENT_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_DRAINED_EVENT_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_FAILED_EVENT_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_FINALIZED_EVENT_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_PREPARED_EVENT_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_ROLLING_BACK_EVENT_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_CREATED_EVENT_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_RUNTIME_EVENT_FIELD_NUMBER: _ClassVar[int]
     changeset_committed_event: ChangesetCommittedEvent
@@ -369,9 +376,10 @@ class Event(_message.Message):
     changeset_failed_event: ChangesetFailedEvent
     changeset_finalized_event: ChangesetFinalizedEvent
     changeset_prepared_event: ChangesetPreparedEvent
+    changeset_rolling_back_event: ChangesetRollingBackEvent
     deployment_created_event: DeploymentCreatedEvent
     deployment_runtime_event: DeploymentRuntimeEvent
-    def __init__(self, changeset_committed_event: _Optional[_Union[ChangesetCommittedEvent, _Mapping]] = ..., changeset_created_event: _Optional[_Union[ChangesetCreatedEvent, _Mapping]] = ..., changeset_drained_event: _Optional[_Union[ChangesetDrainedEvent, _Mapping]] = ..., changeset_failed_event: _Optional[_Union[ChangesetFailedEvent, _Mapping]] = ..., changeset_finalized_event: _Optional[_Union[ChangesetFinalizedEvent, _Mapping]] = ..., changeset_prepared_event: _Optional[_Union[ChangesetPreparedEvent, _Mapping]] = ..., deployment_created_event: _Optional[_Union[DeploymentCreatedEvent, _Mapping]] = ..., deployment_runtime_event: _Optional[_Union[DeploymentRuntimeEvent, _Mapping]] = ...) -> None: ...
+    def __init__(self, changeset_committed_event: _Optional[_Union[ChangesetCommittedEvent, _Mapping]] = ..., changeset_created_event: _Optional[_Union[ChangesetCreatedEvent, _Mapping]] = ..., changeset_drained_event: _Optional[_Union[ChangesetDrainedEvent, _Mapping]] = ..., changeset_failed_event: _Optional[_Union[ChangesetFailedEvent, _Mapping]] = ..., changeset_finalized_event: _Optional[_Union[ChangesetFinalizedEvent, _Mapping]] = ..., changeset_prepared_event: _Optional[_Union[ChangesetPreparedEvent, _Mapping]] = ..., changeset_rolling_back_event: _Optional[_Union[ChangesetRollingBackEvent, _Mapping]] = ..., deployment_created_event: _Optional[_Union[DeploymentCreatedEvent, _Mapping]] = ..., deployment_runtime_event: _Optional[_Union[DeploymentRuntimeEvent, _Mapping]] = ...) -> None: ...
 
 class Field(_message.Message):
     __slots__ = ("pos", "comments", "name", "type", "metadata")

@@ -687,11 +687,6 @@ export class ChangesetFailedEvent extends Message<ChangesetFailedEvent> {
    */
   key = "";
 
-  /**
-   * @generated from field: string error = 2;
-   */
-  error = "";
-
   constructor(data?: PartialMessage<ChangesetFailedEvent>) {
     super();
     proto3.util.initPartial(data, this);
@@ -701,7 +696,6 @@ export class ChangesetFailedEvent extends Message<ChangesetFailedEvent> {
   static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetFailedEvent";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetFailedEvent {
@@ -913,13 +907,56 @@ export class ChangesetPreparedNotification extends Message<ChangesetPreparedNoti
 }
 
 /**
- * @generated from message xyz.block.ftl.schema.v1.ChangesetRollingBackNotification
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetRollingBackEvent
  */
-export class ChangesetRollingBackNotification extends Message<ChangesetRollingBackNotification> {
+export class ChangesetRollingBackEvent extends Message<ChangesetRollingBackEvent> {
   /**
    * @generated from field: string key = 1;
    */
   key = "";
+
+  /**
+   * @generated from field: string error = 2;
+   */
+  error = "";
+
+  constructor(data?: PartialMessage<ChangesetRollingBackEvent>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetRollingBackEvent";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChangesetRollingBackEvent {
+    return new ChangesetRollingBackEvent().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ChangesetRollingBackEvent {
+    return new ChangesetRollingBackEvent().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ChangesetRollingBackEvent {
+    return new ChangesetRollingBackEvent().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ChangesetRollingBackEvent | PlainMessage<ChangesetRollingBackEvent> | undefined, b: ChangesetRollingBackEvent | PlainMessage<ChangesetRollingBackEvent> | undefined): boolean {
+    return proto3.util.equals(ChangesetRollingBackEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.ChangesetRollingBackNotification
+ */
+export class ChangesetRollingBackNotification extends Message<ChangesetRollingBackNotification> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Changeset changeset = 1;
+   */
+  changeset?: Changeset;
 
   /**
    * @generated from field: string error = 2;
@@ -934,7 +971,7 @@ export class ChangesetRollingBackNotification extends Message<ChangesetRollingBa
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.schema.v1.ChangesetRollingBackNotification";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "changeset", kind: "message", T: Changeset },
     { no: 2, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
@@ -1703,7 +1740,7 @@ export class Event extends Message<Event> {
     case: "changesetDrainedEvent";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedEvent changeset_failed_event = 8;
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetFailedEvent changeset_failed_event = 9;
      */
     value: ChangesetFailedEvent;
     case: "changesetFailedEvent";
@@ -1719,6 +1756,12 @@ export class Event extends Message<Event> {
      */
     value: ChangesetPreparedEvent;
     case: "changesetPreparedEvent";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.ChangesetRollingBackEvent changeset_rolling_back_event = 8;
+     */
+    value: ChangesetRollingBackEvent;
+    case: "changesetRollingBackEvent";
   } | {
     /**
      * @generated from field: xyz.block.ftl.schema.v1.DeploymentCreatedEvent deployment_created_event = 1;
@@ -1744,9 +1787,10 @@ export class Event extends Message<Event> {
     { no: 5, name: "changeset_committed_event", kind: "message", T: ChangesetCommittedEvent, oneof: "value" },
     { no: 3, name: "changeset_created_event", kind: "message", T: ChangesetCreatedEvent, oneof: "value" },
     { no: 6, name: "changeset_drained_event", kind: "message", T: ChangesetDrainedEvent, oneof: "value" },
-    { no: 8, name: "changeset_failed_event", kind: "message", T: ChangesetFailedEvent, oneof: "value" },
+    { no: 9, name: "changeset_failed_event", kind: "message", T: ChangesetFailedEvent, oneof: "value" },
     { no: 7, name: "changeset_finalized_event", kind: "message", T: ChangesetFinalizedEvent, oneof: "value" },
     { no: 4, name: "changeset_prepared_event", kind: "message", T: ChangesetPreparedEvent, oneof: "value" },
+    { no: 8, name: "changeset_rolling_back_event", kind: "message", T: ChangesetRollingBackEvent, oneof: "value" },
     { no: 1, name: "deployment_created_event", kind: "message", T: DeploymentCreatedEvent, oneof: "value" },
     { no: 2, name: "deployment_runtime_event", kind: "message", T: DeploymentRuntimeEvent, oneof: "value" },
   ]);

@@ -61,6 +61,9 @@ const (
 	// SchemaServiceFinalizeChangesetProcedure is the fully-qualified name of the SchemaService's
 	// FinalizeChangeset RPC.
 	SchemaServiceFinalizeChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/FinalizeChangeset"
+	// SchemaServiceRollbackChangesetProcedure is the fully-qualified name of the SchemaService's
+	// RollbackChangeset RPC.
+	SchemaServiceRollbackChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/RollbackChangeset"
 	// SchemaServiceFailChangesetProcedure is the fully-qualified name of the SchemaService's
 	// FailChangeset RPC.
 	SchemaServiceFailChangesetProcedure = "/xyz.block.ftl.v1.SchemaService/FailChangeset"
@@ -92,6 +95,8 @@ type SchemaServiceClient interface {
 	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
 	DrainChangeset(context.Context, *connect.Request[v1.DrainChangesetRequest]) (*connect.Response[v1.DrainChangesetResponse], error)
 	FinalizeChangeset(context.Context, *connect.Request[v1.FinalizeChangesetRequest]) (*connect.Response[v1.FinalizeChangesetResponse], error)
+	// RollbackChangeset Rolls back a failing changeset
+	RollbackChangeset(context.Context, *connect.Request[v1.RollbackChangesetRequest]) (*connect.Response[v1.RollbackChangesetResponse], error)
 	// FailChangeset fails an active changeset.
 	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
 	// GetDeployment gets a deployment by deployment key
@@ -161,6 +166,11 @@ func NewSchemaServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			baseURL+SchemaServiceFinalizeChangesetProcedure,
 			opts...,
 		),
+		rollbackChangeset: connect.NewClient[v1.RollbackChangesetRequest, v1.RollbackChangesetResponse](
+			httpClient,
+			baseURL+SchemaServiceRollbackChangesetProcedure,
+			opts...,
+		),
 		failChangeset: connect.NewClient[v1.FailChangesetRequest, v1.FailChangesetResponse](
 			httpClient,
 			baseURL+SchemaServiceFailChangesetProcedure,
@@ -186,6 +196,7 @@ type schemaServiceClient struct {
 	commitChangeset         *connect.Client[v1.CommitChangesetRequest, v1.CommitChangesetResponse]
 	drainChangeset          *connect.Client[v1.DrainChangesetRequest, v1.DrainChangesetResponse]
 	finalizeChangeset       *connect.Client[v1.FinalizeChangesetRequest, v1.FinalizeChangesetResponse]
+	rollbackChangeset       *connect.Client[v1.RollbackChangesetRequest, v1.RollbackChangesetResponse]
 	failChangeset           *connect.Client[v1.FailChangesetRequest, v1.FailChangesetResponse]
 	getDeployment           *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 }
@@ -240,6 +251,11 @@ func (c *schemaServiceClient) FinalizeChangeset(ctx context.Context, req *connec
 	return c.finalizeChangeset.CallUnary(ctx, req)
 }
 
+// RollbackChangeset calls xyz.block.ftl.v1.SchemaService.RollbackChangeset.
+func (c *schemaServiceClient) RollbackChangeset(ctx context.Context, req *connect.Request[v1.RollbackChangesetRequest]) (*connect.Response[v1.RollbackChangesetResponse], error) {
+	return c.rollbackChangeset.CallUnary(ctx, req)
+}
+
 // FailChangeset calls xyz.block.ftl.v1.SchemaService.FailChangeset.
 func (c *schemaServiceClient) FailChangeset(ctx context.Context, req *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error) {
 	return c.failChangeset.CallUnary(ctx, req)
@@ -273,6 +289,8 @@ type SchemaServiceHandler interface {
 	CommitChangeset(context.Context, *connect.Request[v1.CommitChangesetRequest]) (*connect.Response[v1.CommitChangesetResponse], error)
 	DrainChangeset(context.Context, *connect.Request[v1.DrainChangesetRequest]) (*connect.Response[v1.DrainChangesetResponse], error)
 	FinalizeChangeset(context.Context, *connect.Request[v1.FinalizeChangesetRequest]) (*connect.Response[v1.FinalizeChangesetResponse], error)
+	// RollbackChangeset Rolls back a failing changeset
+	RollbackChangeset(context.Context, *connect.Request[v1.RollbackChangesetRequest]) (*connect.Response[v1.RollbackChangesetResponse], error)
 	// FailChangeset fails an active changeset.
 	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
 	// GetDeployment gets a deployment by deployment key
@@ -338,6 +356,11 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 		svc.FinalizeChangeset,
 		opts...,
 	)
+	schemaServiceRollbackChangesetHandler := connect.NewUnaryHandler(
+		SchemaServiceRollbackChangesetProcedure,
+		svc.RollbackChangeset,
+		opts...,
+	)
 	schemaServiceFailChangesetHandler := connect.NewUnaryHandler(
 		SchemaServiceFailChangesetProcedure,
 		svc.FailChangeset,
@@ -370,6 +393,8 @@ func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOp
 			schemaServiceDrainChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceFinalizeChangesetProcedure:
 			schemaServiceFinalizeChangesetHandler.ServeHTTP(w, r)
+		case SchemaServiceRollbackChangesetProcedure:
+			schemaServiceRollbackChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceFailChangesetProcedure:
 			schemaServiceFailChangesetHandler.ServeHTTP(w, r)
 		case SchemaServiceGetDeploymentProcedure:
@@ -421,6 +446,10 @@ func (UnimplementedSchemaServiceHandler) DrainChangeset(context.Context, *connec
 
 func (UnimplementedSchemaServiceHandler) FinalizeChangeset(context.Context, *connect.Request[v1.FinalizeChangesetRequest]) (*connect.Response[v1.FinalizeChangesetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.FinalizeChangeset is not implemented"))
+}
+
+func (UnimplementedSchemaServiceHandler) RollbackChangeset(context.Context, *connect.Request[v1.RollbackChangesetRequest]) (*connect.Response[v1.RollbackChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.RollbackChangeset is not implemented"))
 }
 
 func (UnimplementedSchemaServiceHandler) FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error) {

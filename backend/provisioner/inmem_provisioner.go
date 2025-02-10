@@ -133,7 +133,6 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 						event, err := handler(ctx, parsed, desiredModule.Runtime.Deployment.DeploymentKey, desired)
 						if err != nil {
 							step.Err = err
-							logger.Errorf(err, "failed to provision resource %s:%s", resource.Kind, desired.ResourceID())
 							completions <- stepCompletedEvent{step: step}
 							return
 						}

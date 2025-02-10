@@ -74,7 +74,6 @@ message ChangesetDrainedNotification {
 
 message ChangesetFailedEvent {
   string key = 1;
-  string error = 2;
 }
 
 message ChangesetFailedNotification {
@@ -98,8 +97,13 @@ message ChangesetPreparedNotification {
   string key = 1;
 }
 
-message ChangesetRollingBackNotification {
+message ChangesetRollingBackEvent {
   string key = 1;
+  string error = 2;
+}
+
+message ChangesetRollingBackNotification {
+  Changeset changeset = 1;
   string error = 2;
 }
 
@@ -225,9 +229,10 @@ message Event {
     ChangesetCommittedEvent changeset_committed_event = 5;
     ChangesetCreatedEvent changeset_created_event = 3;
     ChangesetDrainedEvent changeset_drained_event = 6;
-    ChangesetFailedEvent changeset_failed_event = 8;
+    ChangesetFailedEvent changeset_failed_event = 9;
     ChangesetFinalizedEvent changeset_finalized_event = 7;
     ChangesetPreparedEvent changeset_prepared_event = 4;
+    ChangesetRollingBackEvent changeset_rolling_back_event = 8;
     DeploymentCreatedEvent deployment_created_event = 1;
     DeploymentRuntimeEvent deployment_runtime_event = 2;
   }

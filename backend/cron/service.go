@@ -161,7 +161,7 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change 
 			if err != nil {
 				return fmt.Errorf("failed to extract cron jobs: %w", err)
 			}
-			logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), module)
+			logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), module.Name)
 			cronJobs[module.Name] = moduleJobs
 		}
 	case *schema.ChangesetCommittedNotification:

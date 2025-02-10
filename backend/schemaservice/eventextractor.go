@@ -78,9 +78,10 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 				// even if we missed a transition state
 				if changeset.State == schema.ChangesetStateRollingBack || changeset.State == schema.ChangesetStateFailed {
 					// Fail conditions first, which means in the following else block we just have to deal with the happy path
-					if changeset.State >= schema.ChangesetStateRollingBack {
+					if changeset.State >= schema.ChangesetStateRollingBack && pc.State != schema.ChangesetStateRollingBack {
 						notification := &schema.ChangesetRollingBackNotification{
-							Key: changeset.Key,
+							Changeset: changeset,
+							Error:     changeset.Error,
 						}
 						events = append(events, &ftlv1.PullSchemaResponse{
 							Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetRollingBackNotification{ChangesetRollingBackNotification: notification.ToProto()}},
@@ -144,7 +145,8 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 
 			} else if changeset.State == schema.ChangesetStateFailed && pc.State != schema.ChangesetStateFailed {
 				notification := &schema.ChangesetFailedNotification{
-					Key: changeset.Key,
+					Key:   changeset.Key,
+					Error: changeset.Error,
 				}
 				events = append(events, &ftlv1.PullSchemaResponse{
 					Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetFailedNotification{ChangesetFailedNotification: notification.ToProto()}},

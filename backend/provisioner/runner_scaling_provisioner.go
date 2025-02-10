@@ -90,6 +90,6 @@ func deProvisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn
 		if err != nil {
 			return nil, fmt.Errorf("failed to start deployment: %w", err)
 		}
-		return nil, err
+		return nil, nil
 	}
 }

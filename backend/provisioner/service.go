@@ -95,15 +95,13 @@ func Start(
 		case *schema.ChangesetCreatedNotification:
 			err := svc.HandleChangesetPreparing(ctx, e.Changeset)
 			if err != nil {
-				logger.Errorf(err, "Error provisioning changeset")
-				_, err := svc.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: e.Changeset.Key.String(), Error: err.Error()}))
+				_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: e.Changeset.Key.String(), Error: err.Error()}))
 				logger.Errorf(err, "Error provisioning changeset")
 			}
 		case *schema.ChangesetPreparedNotification:
 			err := svc.HandleChangesetPrepared(ctx, e.Key)
 			if err != nil {
-				logger.Errorf(err, "Error provisioning changeset")
-				_, err := svc.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: e.Key.String(), Error: err.Error()}))
+				_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: e.Key.String(), Error: err.Error()}))
 				logger.Errorf(err, "Error provisioning changeset")
 			}
 		case *schema.ChangesetCommittedNotification:
@@ -114,9 +112,12 @@ func Start(
 		case *schema.ChangesetDrainedNotification:
 			err := svc.HandleChangesetDrained(ctx, e.Key)
 			if err != nil {
-				if err != nil {
-					return err
-				}
+				logger.Errorf(err, "Error de-provisioning changeset")
+			}
+		case *schema.ChangesetRollingBackNotification:
+			err := svc.HandleChangesetRollingBack(ctx, e.Changeset)
+			if err != nil {
+				logger.Errorf(err, "Error de-provisioning changeset")
 			}
 		case *schema.FullSchemaNotification:
 			logger.Debugf("Provisioning changesets from full schema notification")
@@ -125,9 +126,9 @@ func Start(
 					err := svc.HandleChangesetPreparing(ctx, cs)
 					if err != nil {
 						logger.Errorf(err, "Error provisioning changeset")
-						_, err := svc.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+						_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
 						if err != nil {
-							return err
+							return fmt.Errorf("error rolling back changeset: %w", err)
 						}
 						continue
 					}
@@ -135,9 +136,9 @@ func Start(
 					err := svc.HandleChangesetPrepared(ctx, cs.Key)
 					if err != nil {
 						logger.Errorf(err, "Error provisioning changeset")
-						_, err := svc.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+						_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
 						if err != nil {
-							return err
+							return fmt.Errorf("error rolling back changeset: %w", err)
 						}
 						continue
 					}
@@ -150,7 +151,13 @@ func Start(
 				} else if cs.State == schema.ChangesetStateDrained {
 					err := svc.HandleChangesetDrained(ctx, cs.Key)
 					if err != nil {
-						logger.Errorf(err, "Error provisioning changeset")
+						logger.Errorf(err, "Error de-provsisiong changeset")
+						continue
+					}
+				} else if cs.State == schema.ChangesetStateRollingBack {
+					err := svc.HandleChangesetRollingBack(ctx, cs)
+					if err != nil {
+						logger.Errorf(err, "Error rolling back changeset")
 						continue
 					}
 				}
@@ -195,12 +202,38 @@ func (s *Service) HandleChangesetCommitted(ctx context.Context, req *schema.Chan
 	}()
 	return nil
 }
+
 func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) error {
+	changeset := s.eventSource.ActiveChangeset()[cs]
+	err := s.deProvision(ctx, cs, changeset.RemovingModules)
+	if err != nil {
+		return err
+	}
+	_, err = s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: cs.String()}))
+	if err != nil {
+		return fmt.Errorf("error finalizing changeset: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) HandleChangesetRollingBack(ctx context.Context, changeset *schema.Changeset) error {
+	err := s.deProvision(ctx, changeset.Key, changeset.Modules)
+	if err != nil {
+		return err
+	}
+	_, err = s.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: changeset.Key.String()}))
+	if err != nil {
+		return fmt.Errorf("error finalizing changeset: %w", err)
+	}
+	return nil
+
+}
+
+func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*schema.Module) error {
+
 	logger := log.FromContext(ctx)
 	group := errgroup.Group{}
-	// TODO: Block deployments to make sure only one module is modified at a time
-	changeset := s.eventSource.ActiveChangeset()[cs]
-	for _, module := range changeset.RemovingModules {
+	for _, module := range modules {
 		moduleName := module.Name
 
 		group.Go(func() error {
@@ -239,10 +272,6 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 	err := group.Wait()
 	if err != nil {
 		return fmt.Errorf("error running deployments: %w", err)
-	}
-	_, err = s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: cs.String()}))
-	if err != nil {
-		return fmt.Errorf("error finalizing changeset: %w", err)
 	}
 	return nil
 }

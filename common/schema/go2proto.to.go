@@ -462,8 +462,7 @@ func (x *ChangesetFailedEvent) ToProto() *destpb.ChangesetFailedEvent {
 		return nil
 	}
 	return &destpb.ChangesetFailedEvent{
-		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Error: orZero(ptr(string(x.Error))),
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
 	}
 }
 
@@ -475,9 +474,6 @@ func ChangesetFailedEventFromProto(v *destpb.ChangesetFailedEvent) (out *Changes
 	out = &ChangesetFailedEvent{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
 		return nil, fmt.Errorf("Key: %w", err)
-	}
-	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Error: %w", err)
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -600,13 +596,41 @@ func ChangesetPreparedNotificationFromProto(v *destpb.ChangesetPreparedNotificat
 	return out, nil
 }
 
+func (x *ChangesetRollingBackEvent) ToProto() *destpb.ChangesetRollingBackEvent {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ChangesetRollingBackEvent{
+		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Error: orZero(ptr(string(x.Error))),
+	}
+}
+
+func ChangesetRollingBackEventFromProto(v *destpb.ChangesetRollingBackEvent) (out *ChangesetRollingBackEvent, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ChangesetRollingBackEvent{}
+	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
+		return nil, fmt.Errorf("Key: %w", err)
+	}
+	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Error: %w", err)
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (x *ChangesetRollingBackNotification) ToProto() *destpb.ChangesetRollingBackNotification {
 	if x == nil {
 		return nil
 	}
 	return &destpb.ChangesetRollingBackNotification{
-		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Error: orZero(ptr(string(x.Error))),
+		Changeset: x.Changeset.ToProto(),
+		Error:     orZero(ptr(string(x.Error))),
 	}
 }
 
@@ -616,8 +640,8 @@ func ChangesetRollingBackNotificationFromProto(v *destpb.ChangesetRollingBackNot
 	}
 
 	out = &ChangesetRollingBackNotification{}
-	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
+		return nil, fmt.Errorf("Changeset: %w", err)
 	}
 	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Error: %w", err)
@@ -1127,6 +1151,10 @@ func EventToProto(value Event) *destpb.Event {
 		return &destpb.Event{
 			Value: &destpb.Event_ChangesetPreparedEvent{value.ToProto()},
 		}
+	case *ChangesetRollingBackEvent:
+		return &destpb.Event{
+			Value: &destpb.Event_ChangesetRollingBackEvent{value.ToProto()},
+		}
 	case *DeploymentCreatedEvent:
 		return &destpb.Event{
 			Value: &destpb.Event_DeploymentCreatedEvent{value.ToProto()},
@@ -1157,6 +1185,8 @@ func EventFromProto(v *destpb.Event) (Event, error) {
 		return ChangesetFinalizedEventFromProto(v.GetChangesetFinalizedEvent())
 	case *destpb.Event_ChangesetPreparedEvent:
 		return ChangesetPreparedEventFromProto(v.GetChangesetPreparedEvent())
+	case *destpb.Event_ChangesetRollingBackEvent:
+		return ChangesetRollingBackEventFromProto(v.GetChangesetRollingBackEvent())
 	case *destpb.Event_DeploymentCreatedEvent:
 		return DeploymentCreatedEventFromProto(v.GetDeploymentCreatedEvent())
 	case *destpb.Event_DeploymentRuntimeEvent:

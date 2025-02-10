@@ -120,6 +120,16 @@ class FinalizeChangesetResponse(_message.Message):
     def __init__(self) -> None: ...
 
 class FailChangesetRequest(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: str
+    def __init__(self, changeset: _Optional[str] = ...) -> None: ...
+
+class FailChangesetResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class RollbackChangesetRequest(_message.Message):
     __slots__ = ("changeset", "error")
     CHANGESET_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
@@ -127,9 +137,11 @@ class FailChangesetRequest(_message.Message):
     error: str
     def __init__(self, changeset: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
 
-class FailChangesetResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+class RollbackChangesetResponse(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: _schema_pb2.Changeset
+    def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
 
 class GetDeploymentRequest(_message.Message):
     __slots__ = ("deployment_key",)
