@@ -47,6 +47,9 @@ spec:
             - secretRef:
                 name: {{ include "ftl.fullname" . }}-secrets
           {{- end }}
+          volumeMounts:
+          - name: schema-raft-storage
+            mountPath: /data/raft
           env:
             {{- if .Values.schema.env }}
             {{- toYaml .Values.schema.env | nindent 12 }}
@@ -58,7 +61,7 @@ spec:
             - name: RAFT_INITIAL_REPLICA_IDS
               value: "{{- range $index := until (.Values.schema.replicas | int ) }}{{- if ne $index 0 -}},{{- end -}}{{ add $index 1  }}{{- end -}}"
             - name: RAFT_DATA_DIR
-              value: "/tmp/ftl-schema"
+              value: "/data/raft"
             - name: ORDINAL_NUMBER
               valueFrom:
                 fieldRef:
@@ -105,3 +108,12 @@ spec:
       tolerations:
         {{- toYaml .Values.schema.tolerations | nindent 8 }}
       {{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: schema-raft-storage  # This name will be used as a PVC name
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.schema.storage }}
