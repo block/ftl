@@ -679,30 +679,51 @@ func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, policiesClie
 func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, key string, timeout time.Duration) error {
 	logger := log.FromContext(ctx)
 	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
+	podClient := r.client.CoreV1().Pods(r.namespace)
 	watch, err := deploymentClient.Watch(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
+	podWatch, err := podClient.Watch(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
 	if err != nil {
 		return fmt.Errorf("failed to watch deployment %s: %w", key, err)
 	}
-	watch.ResultChan()
 	end := time.After(timeout)
 	for {
-		deployment, err := deploymentClient.Get(ctx, key, v1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to get deployment %s: %w", key, err)
-		}
-		if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
-			logger.Debugf("Deployment %s is ready", key)
-			return nil
-		}
-		for _, condition := range deployment.Status.Conditions {
-			if condition.Type == kubeapps.DeploymentReplicaFailure && condition.Status == kubecore.ConditionTrue {
-				return fmt.Errorf("deployment %s is in error state: %s", deployment, condition.Message)
-			}
-		}
 		select {
 		case <-end:
 			return fmt.Errorf("deployment %s did not become ready in time", key)
 		case <-watch.ResultChan():
+			deployment, err := deploymentClient.Get(ctx, key, v1.GetOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to get deployment %s: %w", key, err)
+			}
+			if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
+				logger.Debugf("Deployment %s is ready", key)
+				return nil
+			}
+			for _, condition := range deployment.Status.Conditions {
+				if condition.Type == kubeapps.DeploymentReplicaFailure && condition.Status == kubecore.ConditionTrue {
+					return fmt.Errorf("deployment %s is in error state: %s", deployment, condition.Message)
+				}
+			}
+		case <-podWatch.ResultChan():
+			pods, err := podClient.List(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
+			if err != nil {
+				return fmt.Errorf("failed to get deployment %s: %w", key, err)
+			}
+			for _, p := range pods.Items {
+				if p.Status.Phase == kubecore.PodFailed {
+					return fmt.Errorf("pod %s failed: %s", p.Name, p.Status.Message)
+				}
+				for _, container := range p.Status.ContainerStatuses {
+					if container.State.Waiting != nil {
+						if container.State.Waiting.Reason == "ImagePullBackOff" {
+							return fmt.Errorf("pod %s is in ImagePullBackOff state", p.Name)
+						}
+						if container.State.Waiting.Reason == "CrashLoopBackOff" {
+							return fmt.Errorf("pod %s is in CrashLoopBackOff state", p.Name)
+						}
+					}
+				}
+			}
 		}
 	}
 }

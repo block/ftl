@@ -89,6 +89,14 @@ func TestKubeScaling(t *testing.T) {
 		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bonjour, Bob!!!", response)
 		}),
+		in.Deploy("echo"),
+		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
+			assert.Equal(t, "Bonjour, Bob!!!", response)
+		}),
+		in.EditFile("echo", func(content []byte) []byte {
+			return []byte(strings.ReplaceAll(string(content), "os.Getenv(\"BOGUS\")", "os.Exit(1)"))
+		}, "echo.go"),
+		in.DeployBroken("echo"),
 		func(t testing.TB, ic in.TestContext) {
 
 			// Disabled until after the refactor

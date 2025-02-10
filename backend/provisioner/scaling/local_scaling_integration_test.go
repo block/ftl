@@ -26,5 +26,12 @@ func TestLocalScaling(t *testing.T) {
 		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bye, Bob!!!", response)
 		}),
+		in.EditFile("echo", func(content []byte) []byte {
+			return []byte(strings.ReplaceAll(string(content), "os.Getenv(\"BOGUS\")", "os.Exit(1)"))
+		}, "echo.go"),
+		in.DeployBroken("echo"),
+		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
+			assert.Equal(t, "Bye, Bob!!!", response)
+		}),
 	)
 }
