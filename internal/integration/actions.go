@@ -236,6 +236,21 @@ func Deploy(module string) Action {
 	)
 }
 
+// Deploy a module from the working directory and expect it to fail
+func DeployBroken(module string) Action {
+	return Chain(
+		func(t testing.TB, ic TestContext) {
+			args := []string{"deploy", "-t", "4m"}
+			if ic.kubeClient.Ok() {
+				args = append(args, "--build-env", "GOOS=linux", "--build-env", "GOARCH=amd64", "--build-env", "CGO_ENABLED=0")
+			}
+			args = append(args, module)
+			ExecWithExpectedError("failed to deploy", "ftl", args...)(t, ic)
+		},
+		WaitWithTimeout(module, time.Minute),
+	)
+}
+
 // Build modules from the working directory and wait for it to become available.
 func Build(modules ...string) Action {
 	args := []string{"build"}
