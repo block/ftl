@@ -10,9 +10,6 @@ secrets:
   runnerRegistryUsername: null
   runnerRegistryPassword: null
 
-dbMigration:
-  enabled: true
-
 controller:
   controllersRoleArn: arn:aws:iam::ftl-controllers-irsa-role
   replicas: 1
@@ -53,26 +50,14 @@ controller:
       valueFrom:
         fieldRef:
           fieldPath: status.hostIP
-#    - name: OTEL_EXPORTER_OTLP_ENDPOINT
-#      value: "http://$(HOST_IP):4317"
-#    - name: OTEL_RESOURCE_ATTRIBUTES
-#      value: "env=ftlDefault"
 
-  ports:
-    - name: http
-      containerPort: 8892
-      protocol: TCP
+  port: 8892
 
   readinessProbe: null
 
   service:
     type: ClusterIP
     annotations: null
-    ports:
-      - name: "http-8892"
-        port: 8892
-        protocol: TCP
-        targetPort: 8892
 
   podAnnotations: null
   nodeSelector: null
@@ -111,10 +96,6 @@ provisioner:
       valueFrom:
         fieldRef:
           fieldPath: status.hostIP
-  ports:
-    - name: http
-      containerPort: 8893
-      protocol: TCP
 
   readinessProbe: null
 
@@ -144,8 +125,6 @@ runner:
           fieldPath: status.podIP
     - name: FTL_ENDPOINT
       value: "http://ftl-controller"
-    - name: FTL_BIND
-      value: "http://$(MY_POD_IP):8893"
     - name: LOG_LEVEL
       value: "debug"
     - name: LOG_JSON
@@ -155,10 +134,7 @@ runner:
         fieldRef:
           fieldPath: status.hostIP
 
-  ports:
-    - name: http
-      containerPort: 8892
-      protocol: TCP
+  port: 8892
 
   readinessProbe: null
 
@@ -295,11 +271,7 @@ timeline:
         fieldRef:
           fieldPath: status.hostIP
 
-  ports:
-    - name: http
-      containerPort: 8892
-      protocol: TCP
-      port: 8892
+  port: 8892
 
   replicas: 1
   revisionHistoryLimit: 0
@@ -322,13 +294,7 @@ timeline:
   readinessProbe: null
 
   service:
-    type: ClusterIP
     annotations: null
-    ports:
-      - name: "http-8892"
-        port: 8892
-        protocol: TCP
-        targetPort: 8892
 
   podAnnotations: null
   nodeSelector: null

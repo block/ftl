@@ -8,21 +8,17 @@ ingress:
   ingressAnnotations:
     ingress.kubernetes.io/ssl-redirect: "false"
     kubernetes.io/ingress.class: traefik
+
 controller:
   image:
     repository: "ftl:5000/ftl-controller"
     tag: "latest"
     pullPolicy: Always
   service:
-    ports:
-      - name: "http-8892"
-        port: 8892
-  ingressService:
-    ports:
-      - name: "http-8891"
-        port: 8891
+    port: 8892
   podAnnotations:
     sidecar.istio.io/logLevel: "debug"
+
 schema:
   image:
     repository: "ftl:5000/ftl-schema"
@@ -47,6 +43,7 @@ provisioner:
     ports:
       - name: "http-8893"
         port: 8893
+
 timeline:
   image:
     repository: "ftl:5000/ftl-timeline"
