@@ -144,8 +144,6 @@ runner:
           fieldPath: status.podIP
     - name: FTL_ENDPOINT
       value: "http://ftl-controller"
-    - name: FTL_BIND
-      value: "http://$(MY_POD_IP):8893"
     - name: LOG_LEVEL
       value: "debug"
     - name: LOG_JSON
@@ -155,10 +153,7 @@ runner:
         fieldRef:
           fieldPath: status.hostIP
 
-  ports:
-    - name: http
-      containerPort: 8892
-      protocol: TCP
+  port: 8892
 
   readinessProbe: null
 

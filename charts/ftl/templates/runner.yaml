@@ -16,7 +16,7 @@ data:
           protocol: TCP
           port: 8892
           appProtocol: http
-          targetPort: 8892
+          targetPort: {{ .Values.runner.port }}
       type: ClusterIP
   deploymentTemplate: |-
     apiVersion: apps/v1
@@ -67,7 +67,7 @@ data:
                 - name: FTL_ARTEFACT_REGISTRY
                   value: "{{ .Values.registry.repository }}"
                 - name: FTL_BIND
-                  value: "http://0.0.0.0:{{ (index .Values.runner.ports 0).containerPort }}"
+                  value: "http://0.0.0.0:{{ .Values.runner.port }}"
                 - name: FTL_SCHEMA_ENDPOINT
                   value: http://ftl-schema:8892
                 - name: FTL_LEASE_ENDPOINT
@@ -89,18 +89,16 @@ data:
                       key: FTL_RUNNER_REGISTRY_PASSWORD
                       optional: true
               ports:
-                {{- range .Values.runner.ports }}
-                - name: {{ .name }}
-                  containerPort: {{ .containerPort }}
-                  protocol: {{ .protocol | default "TCP" }}
-                {{- end }}
+                - name: https
+                  containerPort: {{ .Values.runner.port }}
+                  protocol: "TCP"
               readinessProbe:
                 {{- if .Values.runner.readinessProbe }}
                 {{- toYaml .Values.runner.readinessProbe | nindent 16 }}
                 {{- else }}
                 httpGet:
                   path: /healthz
-                  port: {{ (index .Values.runner.ports 0).containerPort }}
+                  port: {{ .Values.runner.port }}
                 initialDelaySeconds: 1
                 periodSeconds: 2
                 timeoutSeconds: 2
