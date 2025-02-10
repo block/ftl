@@ -188,7 +188,7 @@ func (s *Server) Serve(ctx context.Context) error {
 		for i, hook := range s.startHooks {
 			logger.Debugf("Running start hook %d/%d", i+1, len(s.startHooks))
 			if err := hook(ctx); err != nil {
-				logger.Errorf(err, "start hook failed")
+				return fmt.Errorf("start hook failed: %w", err)
 			}
 		}
 

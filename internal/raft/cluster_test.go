@@ -86,11 +86,11 @@ func TestJoiningExistingCluster(t *testing.T) {
 	controlBind, err := url.Parse(controlAddress)
 	assert.NoError(t, err)
 
-	builder1 := testBuilder(t, members[:2], 1, members[0].String(), controlBind)
+	builder1 := testBuilder(t, members[:2], members[0].String(), controlBind)
 	shard1 := raft.AddShard(ctx, builder1, 1, &IntStateMachine{})
 	cluster1 := builder1.Build(ctx)
 
-	builder2 := testBuilder(t, members[:2], 2, members[1].String(), nil)
+	builder2 := testBuilder(t, members[:2], members[1].String(), nil)
 	shard2 := raft.AddShard(ctx, builder2, 1, &IntStateMachine{})
 	cluster2 := builder2.Build(ctx)
 
@@ -104,7 +104,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 	})
 
 	t.Log("join to the existing cluster as a new member")
-	builder3 := testBuilder(t, nil, 3, members[2].String(), nil)
+	builder3 := testBuilder(t, nil, members[2].String(), nil)
 	shard3 := raft.AddShard(ctx, builder3, 1, &IntStateMachine{})
 	cluster3 := builder3.Build(ctx)
 
@@ -118,7 +118,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 	assertShardValue(ctx, t, 1, shard1, shard2, shard3)
 
 	t.Log("join through the new member")
-	builder4 := testBuilder(t, nil, 4, members[3].String(), nil)
+	builder4 := testBuilder(t, nil, members[3].String(), nil)
 	shard4 := raft.AddShard(ctx, builder4, 1, &IntStateMachine{})
 	cluster4 := builder4.Build(ctx)
 
@@ -173,17 +173,22 @@ func TestStateIter(t *testing.T) {
 	assert.True(t, iterops.Contains(changes, 2))
 }
 
-func testBuilder(t *testing.T, addresses []*net.TCPAddr, id uint64, address string, controlBind *url.URL) *raft.Builder {
+func testBuilder(t *testing.T, addresses []*net.TCPAddr, address string, _ *url.URL) *raft.Builder {
 	members := make([]string, len(addresses))
 	for i, member := range addresses {
 		members[i] = member.String()
 	}
 
+	initialIDs := make([]uint64, len(addresses))
+	for i := range addresses {
+		initialIDs[i] = uint64(i + 1)
+	}
+
 	return raft.NewBuilder(&raft.RaftConfig{
-		ReplicaID:          id,
 		Address:            address,
 		DataDir:            t.TempDir(),
 		InitialMembers:     members,
+		InitialReplicaIDs:  initialIDs,
 		HeartbeatRTT:       1,
 		ElectionRTT:        5,
 		SnapshotEntries:    10,
@@ -211,7 +216,7 @@ func startClusters[T any](ctx context.Context, t *testing.T, count int, builderF
 	result := make([]T, count)
 
 	for i := range count {
-		builder := testBuilder(t, members, uint64(i+1), members[i].String(), nil)
+		builder := testBuilder(t, members, members[i].String(), nil)
 		result[i] = builderF(builder)
 		clusters[i] = builder.Build(ctx)
 	}

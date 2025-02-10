@@ -38,6 +38,13 @@ spec:
               name: ftl-schema
               port:
                 number: 8892
+        - path: /xyz.block.ftl.raft.v1.RaftService/
+          pathType: Prefix
+          backend:
+            service:
+              name: ftl-schema
+              port:
+                number: 8892
         - path: /xyz.block.ftl.v1.VerbService/
           pathType: Prefix
           backend:
