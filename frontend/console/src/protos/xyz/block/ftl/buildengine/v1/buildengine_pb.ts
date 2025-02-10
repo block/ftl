@@ -48,11 +48,9 @@ export class EngineStarted extends Message<EngineStarted> {
  */
 export class EngineEnded extends Message<EngineEnded> {
   /**
-   * module name -> error
-   *
-   * @generated from field: map<string, xyz.block.ftl.language.v1.ErrorList> module_errors = 1;
+   * @generated from field: repeated xyz.block.ftl.buildengine.v1.EngineEnded.Module modules = 1;
    */
-  moduleErrors: { [key: string]: ErrorList } = {};
+  modules: EngineEnded_Module[] = [];
 
   constructor(data?: PartialMessage<EngineEnded>) {
     super();
@@ -62,7 +60,7 @@ export class EngineEnded extends Message<EngineEnded> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.buildengine.v1.EngineEnded";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "module_errors", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: ErrorList} },
+    { no: 1, name: "modules", kind: "message", T: EngineEnded_Module, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EngineEnded {
@@ -79,6 +77,55 @@ export class EngineEnded extends Message<EngineEnded> {
 
   static equals(a: EngineEnded | PlainMessage<EngineEnded> | undefined, b: EngineEnded | PlainMessage<EngineEnded> | undefined): boolean {
     return proto3.util.equals(EngineEnded, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.buildengine.v1.EngineEnded.Module
+ */
+export class EngineEnded_Module extends Message<EngineEnded_Module> {
+  /**
+   * @generated from field: string module = 1;
+   */
+  module = "";
+
+  /**
+   * @generated from field: string path = 2;
+   */
+  path = "";
+
+  /**
+   * @generated from field: optional xyz.block.ftl.language.v1.ErrorList errors = 3;
+   */
+  errors?: ErrorList;
+
+  constructor(data?: PartialMessage<EngineEnded_Module>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.buildengine.v1.EngineEnded.Module";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "errors", kind: "message", T: ErrorList, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EngineEnded_Module {
+    return new EngineEnded_Module().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EngineEnded_Module {
+    return new EngineEnded_Module().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EngineEnded_Module {
+    return new EngineEnded_Module().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: EngineEnded_Module | PlainMessage<EngineEnded_Module> | undefined, b: EngineEnded_Module | PlainMessage<EngineEnded_Module> | undefined): boolean {
+    return proto3.util.equals(EngineEnded_Module, a, b);
   }
 }
 

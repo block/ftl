@@ -87,6 +87,8 @@ type CLI struct {
 
 	// Specify the 1Password vault to access secrets from.
 	Vault string `name:"opvault" help:"1Password vault to be used for secrets. The name of the 1Password item will be the <ref> and the secret will be stored in the password field." placeholder:"VAULT"`
+
+	AwaitSummary awaitSummaryCmd `cmd:"" help:"Get summary of discovered modules and schema from build engine, waiting for all build and deploys to finish." hidden:""`
 }
 
 var cli CLI

@@ -67,8 +67,10 @@ const EventContent = ({ event }: { event: EngineEvent }) => {
       case 'moduleBuildFailed':
       case 'moduleDeployFailed':
         return 'error'
-      case 'engineEnded':
-        return Object.keys(event.event.value.moduleErrors).length > 0 ? 'error' : 'success'
+      case 'engineEnded': {
+        const hasErrors = event.event.value.modules.some((module) => (module.errors?.errors?.length ?? 0) > 0)
+        return hasErrors ? 'error' : 'success'
+      }
       default:
         return 'new'
     }
@@ -77,7 +79,7 @@ const EventContent = ({ event }: { event: EngineEvent }) => {
   const getErrors = () => {
     switch (event.event.case) {
       case 'engineEnded':
-        return Object.values(event.event.value.moduleErrors).flatMap((errorList) => errorList.errors)
+        return Object.values(event.event.value.modules).flatMap((module) => module.errors?.errors ?? [])
       case 'moduleBuildFailed':
         return event.event.value.errors?.errors ?? []
       default:

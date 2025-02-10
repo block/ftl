@@ -670,14 +670,23 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 			}
 			isFirstRound = false
 
-			publicBuildErrors := map[string]*langpb.ErrorList{}
-			maps.Copy(moduleErrors, publicBuildErrors)
-
+			modulesOutput := []*buildenginepb.EngineEnded_Module{}
+			for module := range moduleStates {
+				meta, ok := e.moduleMetas.Load(module)
+				if !ok {
+					continue
+				}
+				modulesOutput = append(modulesOutput, &buildenginepb.EngineEnded_Module{
+					Module: module,
+					Path:   meta.module.Config.Dir,
+					Errors: moduleErrors[module],
+				})
+			}
 			evt := &buildenginepb.EngineEvent{
 				Timestamp: timestamppb.Now(),
 				Event: &buildenginepb.EngineEvent_EngineEnded{
 					EngineEnded: &buildenginepb.EngineEnded{
-						ModuleErrors: publicBuildErrors,
+						Modules: modulesOutput,
 					},
 				},
 			}

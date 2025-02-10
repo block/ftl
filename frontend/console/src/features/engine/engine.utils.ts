@@ -31,8 +31,8 @@ export const getEventText = (event: EngineEvent | undefined): string => {
     case 'engineStarted':
       return 'Engine started'
     case 'engineEnded': {
-      const errorCount = Object.keys(event.event.value.moduleErrors).length
-      return errorCount > 0 ? 'Engine ended with errors' : 'Engine ended successfully'
+      const hasErrors = event.event.value.modules.some((module) => (module.errors?.errors?.length ?? 0) > 0)
+      return hasErrors ? 'Engine ended with errors' : 'Engine ended successfully'
     }
     case 'moduleAdded':
       return 'Module added'
