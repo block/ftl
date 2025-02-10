@@ -60,7 +60,7 @@ streamLoop:
 		case <-idleDeadline:
 			break streamLoop
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf("did not complete build engine update stream: %w", ctx.Err())
 		case event, ok := <-streamChan:
 			if !ok {
 				err = <-errChan
