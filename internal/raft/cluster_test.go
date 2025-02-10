@@ -50,6 +50,7 @@ func (s *IntStateMachine) Save(writer io.Writer) error     { return nil }
 func (s *IntStateMachine) Close() error                    { return nil }
 
 func TestClusterWith2Shards(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -73,6 +74,7 @@ func TestClusterWith2Shards(t *testing.T) {
 }
 
 func TestJoiningExistingCluster(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -138,6 +140,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 }
 
 func TestLeavingCluster(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -160,6 +163,7 @@ func TestLeavingCluster(t *testing.T) {
 }
 
 func TestStateIter(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.SkipNow()
 	}
