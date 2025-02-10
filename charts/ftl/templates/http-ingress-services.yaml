@@ -19,6 +19,6 @@ spec:
     {{- end }}
   selector:
     {{- include "ftl-http-ingress.selectorLabels" . | nindent 4 }}
-  type: {{ .Values.controller.ingressService.type | default "ClusterIP" }}
+  type: "ClusterIP"
 
 {{- end }}

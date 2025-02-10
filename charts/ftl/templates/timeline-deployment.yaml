@@ -49,11 +49,9 @@ spec:
             {{- end }}
 
           ports:
-            {{- range .Values.timeline.ports }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
-            {{- end }}
+            - name: http2
+              containerPort: {{ .Values.timeline.port }}
+              protocol: "TCP"
           readinessProbe:
             {{- if .Values.timeline.readinessProbe }}
             {{- toYaml .Values.timeline.readinessProbe | nindent 12 }}
