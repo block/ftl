@@ -175,7 +175,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 	case *schema.ChangesetDrainedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		cs := clone.activeChangesets[event.Key]
-		for _, module := range cs.Modules {
+		for _, module := range cs.OwnedModules() {
 			module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
 		}
 		e.view.Store(clone)
