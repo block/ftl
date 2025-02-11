@@ -53,6 +53,7 @@ spec:
               containerPort: {{ .Values.timeline.port }}
               protocol: "TCP"
           {{- include "ftl.healthProbes" .Values.timeline | nindent 10 }}
+          {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.timeline | nindent 6 }}
 
 {{- end }}

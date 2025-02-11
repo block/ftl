@@ -121,3 +121,16 @@ readinessProbe:
   failureThreshold: 15
   {{- end }}
 {{- end -}}
+{{- define "ftl.securityContext" -}}
+securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+      drop:
+          - "ALL"
+  seccompProfile:
+    type: RuntimeDefault
+  runAsUser: 1000
+  runAsGroup: 1000
+{{- end -}}

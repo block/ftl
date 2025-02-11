@@ -69,5 +69,6 @@ spec:
               protocol: TCP
               hostPort: {{ .Values.admin.port }}
           {{- include "ftl.healthProbes" .Values.admin | nindent 10 }}
+          {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.admin | nindent 6 }}
 

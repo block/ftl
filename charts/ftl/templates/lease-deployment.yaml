@@ -62,4 +62,5 @@ spec:
               hostPort: {{ .Values.lease.port }}
               protocol: "TCP"
           {{- include "ftl.healthProbes" .Values.lease | nindent 10 }}
+          {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.lease | nindent 6 }}

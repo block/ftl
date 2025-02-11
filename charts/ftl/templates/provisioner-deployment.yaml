@@ -52,6 +52,7 @@ spec:
               name: config
             - mountPath: /working
               name: working
+          {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       volumes:
         - name: config
           configMap:

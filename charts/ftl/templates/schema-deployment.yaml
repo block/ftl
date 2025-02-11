@@ -80,6 +80,7 @@ spec:
               containerPort: {{ .Values.schema.services.raft.containerPort }}
               protocol: "TCP"
           {{- include "ftl.healthProbes" .Values.schema | nindent 10 }}
+          {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.schema | nindent 6 }}
 
   volumeClaimTemplates:
