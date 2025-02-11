@@ -640,7 +640,7 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 				return fmt.Errorf("failed to delete %s: %w", ftlQueriesFilename, err)
 			}
 			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
-				return fmt.Errorf("failed to mark %s as modified: %w", ftlQueriesFilename, err)
+				return fmt.Errorf("failed to mark %s as deleted: %w", ftlQueriesFilename, err)
 			}
 		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlTypesFilename)); err != nil {
