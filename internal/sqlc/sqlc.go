@@ -70,7 +70,7 @@ func AddQueriesToSchema(ctx context.Context, projectRoot string, mc moduleconfig
 		return false, fmt.Errorf("failed to scaffold SQLC config file: %w", err)
 	}
 
-	if err := exec.Command(ctx, log.Debug, ".", "ftl-sqlc", "generate", "--file", cfg.getSQLCConfigPath()).RunBuffered(ctx); err != nil {
+	if err := exec.Command(ctx, log.Debug, ".", "ftl-sqlc", "generate", "--file", cfg.getSQLCConfigPath()).RunStderrError(ctx); err != nil {
 		return false, fmt.Errorf("sqlc generate failed: %w", err)
 	}
 
