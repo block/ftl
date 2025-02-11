@@ -127,7 +127,7 @@ func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 			}
 		}
 		if len(problems) > 0 {
-			return fmt.Errorf("changest failed validation %w", errors.Join(problems...))
+			return fmt.Errorf("changeset failed validation %w", errors.Join(problems...))
 		}
 	}
 	t.changesets[e.Changeset.Key] = e.Changeset
