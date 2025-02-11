@@ -153,8 +153,6 @@ public class ModuleProcessor {
             DefaultOptionalBuildItem defaultOptionalBuildItem,
             List<SchemaContributorBuildItem> schemaContributorBuildItems,
             LaunchModeBuildItem launchModeBuildItem,
-            ShutdownContextBuildItem shutdownContextBuildItem,
-            BuildProducer<SystemPropertyBuildItem> systemPropertyBuildItemBuildProducer,
             CommentsBuildItem comments) throws Exception {
         String moduleName = moduleNameBuildItem.getModuleName();
 
