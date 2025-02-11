@@ -82,7 +82,9 @@ app.kubernetes.io/name: {{ include "ftl.fullname" . }}
 app.kubernetes.io/component: schema
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
-
+{{/*
+Common pod configuration, boilerplate that is not generally used
+*/}}
 {{- define "ftl.commonPodConfig" -}}
     {{- if .nodeSelector }}
     nodeSelector:
@@ -100,4 +102,22 @@ app.kubernetes.io/instance: {{ .Release.Name }}
     tolerations:
       {{- toYaml .tolerations | nindent 8 }}
     {{- end }}
+{{- end -}}
+{{/*
+Pod health checks
+*/}}
+{{- define "ftl.healthProbes" -}}
+readinessProbe:
+  {{- if .readinessProbe }}
+  {{- toYaml .readinessProbe | nindent 12 }}
+  {{- else }}
+  httpGet:
+    path: /healthz
+    port: 8892
+  initialDelaySeconds: 1
+  periodSeconds: 2
+  timeoutSeconds: 2
+  successThreshold: 1
+  failureThreshold: 15
+  {{- end }}
 {{- end -}}

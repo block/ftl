@@ -61,17 +61,5 @@ spec:
               containerPort: 8892
               hostPort: {{ .Values.lease.port }}
               protocol: "TCP"
-          readinessProbe:
-            {{- if .Values.lease.readinessProbe }}
-            {{- toYaml .Values.lease.readinessProbe | nindent 12 }}
-            {{- else }}
-            httpGet:
-              path: /healthz
-              port: 8892
-            initialDelaySeconds: 1
-            periodSeconds: 2
-            timeoutSeconds: 2
-            successThreshold: 1
-            failureThreshold: 15
-            {{- end }}
+          {{- include "ftl.healthProbes" .Values.lease | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.lease | nindent 6 }}
