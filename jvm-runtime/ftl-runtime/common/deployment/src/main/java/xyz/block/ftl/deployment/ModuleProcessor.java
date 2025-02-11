@@ -36,7 +36,6 @@ import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.LaunchModeBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.ServiceStartBuildItem;
-import io.quarkus.deployment.builditem.ShutdownContextBuildItem;
 import io.quarkus.deployment.builditem.SystemPropertyBuildItem;
 import io.quarkus.deployment.pkg.builditem.OutputTargetBuildItem;
 import io.quarkus.grpc.deployment.BindableServiceBuildItem;
@@ -153,8 +152,6 @@ public class ModuleProcessor {
             DefaultOptionalBuildItem defaultOptionalBuildItem,
             List<SchemaContributorBuildItem> schemaContributorBuildItems,
             LaunchModeBuildItem launchModeBuildItem,
-            ShutdownContextBuildItem shutdownContextBuildItem,
-            BuildProducer<SystemPropertyBuildItem> systemPropertyBuildItemBuildProducer,
             CommentsBuildItem comments) throws Exception {
         String moduleName = moduleNameBuildItem.getModuleName();
 

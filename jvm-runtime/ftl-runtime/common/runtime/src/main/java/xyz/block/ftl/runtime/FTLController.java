@@ -44,6 +44,7 @@ public class FTLController implements LeaseClient {
         this.moduleName = System.getProperty("ftl.module.name");
         if (LaunchMode.current() != LaunchMode.DEVELOPMENT) {
             haveRunnerInfo = true;
+        } else {
             RunnerNotification.onRunnerDetails(this::devModeShutdown);
         }
     }
