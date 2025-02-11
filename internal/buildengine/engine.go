@@ -619,17 +619,19 @@ func isIdle(moduleStates map[string]moduleState) bool {
 	}
 	for _, state := range moduleStates {
 		switch state {
-		case moduleStateFailed,
-			moduleStateDeployed,
-			moduleStateBuildWaiting, // Modules can stay in this state if dependant modules fail to build
-			moduleStateDeployWaiting:
-			return true
 		case moduleStateExplicitlyBuilding,
 			moduleStateAutoRebuilding,
 			moduleStateDeploying:
+			return false
+
+		case moduleStateFailed,
+			moduleStateDeployed,
+			moduleStateBuildWaiting, // Modules can stay in this state if dependant modules fail to build
+			moduleStateDeployWaiting,
+			moduleStateBuilt:
 		}
 	}
-	return false
+	return true
 }
 
 // watchForEventsToPublish listens for raw build events, collects state, and publishes public events to BuildUpdates topic.

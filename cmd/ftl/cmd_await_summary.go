@@ -34,7 +34,7 @@ func (c *awaitSummaryCmd) Run(ctx context.Context, buildEngineClient buildengine
 
 	start := time.Now()
 	idleDuration := 1500 * time.Millisecond
-	engineEnded := optional.None[*buildenginepb.EngineEnded]()
+	engineEnded := optional.Some(&buildenginepb.EngineEnded{})
 
 	streamChan := make(chan *buildenginepb.EngineEvent)
 	errChan := make(chan error)
