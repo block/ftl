@@ -279,18 +279,6 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 			if err != nil {
 				return fmt.Errorf("could not send auto rebuild started event: %w", err)
 			}
-			_, err := sqlc.AddQueriesToSchema(ctx, projectConfig.Root(), buildCtx.Config, buildCtx.Schema)
-			if err != nil {
-				buildEvent := buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
-					Type:  builderrors.FTL,
-					Level: builderrors.ERROR,
-					Msg:   fmt.Errorf("failed to add queries to schema: %w", err).Error(),
-				})
-				if err = stream.Send(buildEvent); err != nil {
-					return fmt.Errorf("could not send build event: %w", err)
-				}
-				continue
-			}
 		}
 		if err = buildAndSend(ctx, stream, projectConfig, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, true); err != nil {
 			return err
@@ -414,6 +402,15 @@ func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		return nil, fmt.Errorf("could not acquire build lock: %w", err)
 	}
 	defer release() //nolint:errcheck
+
+	_, err = sqlc.AddQueriesToSchema(ctx, projectConfig.Root(), buildCtx.Config, buildCtx.Schema)
+	if err != nil {
+		return buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
+			Type:  builderrors.FTL,
+			Level: builderrors.ERROR,
+			Msg:   fmt.Errorf("failed to add queries to schema: %w", err).Error(),
+		}), nil
+	}
 
 	m, buildErrs, err := compile.Build(ctx, projectConfig, stubsRoot, buildCtx.Config, buildCtx.Schema, buildCtx.Dependencies, buildCtx.BuildEnv, transaction, ongoingState, devMode)
 	if err != nil {

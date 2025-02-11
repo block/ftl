@@ -18,7 +18,6 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
-	"github.com/block/ftl/internal/sqlc"
 )
 
 var errInvalidateDependencies = errors.New("dependencies need to be updated")
@@ -31,11 +30,6 @@ var errInvalidateDependencies = errors.New("dependencies need to be updated")
 func build(ctx context.Context, plugin *languageplugin.LanguagePlugin, projectConfig projectconfig.Config, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
 	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
-
-	_, err = sqlc.AddQueriesToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to add queries to schema: %w", err)
-	}
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
 	return handleBuildResult(ctx, projectConfig, bctx.Config, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devModeEndpoints)
 }
