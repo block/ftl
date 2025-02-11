@@ -2,6 +2,7 @@ package watch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -274,6 +275,10 @@ func (t *modifyFilesTransaction) ModifiedFiles(paths ...string) error {
 	}
 
 	for _, path := range paths {
+		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+			delete(moduleHashes.Hashes, path)
+			continue
+		}
 		hash, matched, err := computeFileHash(moduleHashes.Config.Dir, path, t.watcher.patterns)
 		if err != nil {
 			return err
