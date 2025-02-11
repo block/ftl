@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec" //nolint:depguard
+	"strings"
 	"syscall"
 
 	"github.com/kballard/go-shellquote"
@@ -83,7 +84,7 @@ func (c *Cmd) RunStderrError(ctx context.Context) error {
 	c.Cmd.Stderr = errorBuffer.WriterAt(ctx, c.level)
 
 	if err := c.Run(); err != nil {
-		return errors.New(string(errorBuffer.Bytes()))
+		return errors.New(strings.TrimSpace(string(errorBuffer.Bytes())))
 	}
 
 	return nil

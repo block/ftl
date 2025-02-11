@@ -126,8 +126,9 @@ streamLoop:
 				}
 				posStr += ": "
 			}
-			return fmt.Sprintf("  [%s] %s%s", errorType, posStr, e.Msg)
-		}), "\n"))
+			errorMsg := strings.ReplaceAll(e.Msg, "\n", "\n    ")
+			return fmt.Sprintf("  [%s] %s%s", errorType, posStr, errorMsg)
+		}), "\n"), "\n")
 	}
 
 	fmt.Printf("\n\nSchema:\n%s", schema.String())
