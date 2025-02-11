@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { Config as Config$1, Data as Data$1, Database as Database$1, Enum as Enum$1, Ref, Secret as Secret$1, Topic as Topic$1, TypeAlias as TypeAlias$1, Verb as Verb$1 } from "../../schema/v1/schema_pb.js";
+import { Config as Config$1, Data as Data$1, Database as Database$1, Enum as Enum$1, ModuleRuntime, Ref, Secret as Secret$1, Topic as Topic$1, TypeAlias as TypeAlias$1, Verb as Verb$1 } from "../../schema/v1/schema_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.console.v1.Edges
@@ -458,57 +458,52 @@ export class Module extends Message<Module> {
   name = "";
 
   /**
-   * @generated from field: string deployment_key = 2;
-   */
-  deploymentKey = "";
-
-  /**
-   * @generated from field: string language = 3;
-   */
-  language = "";
-
-  /**
-   * @generated from field: string schema = 4;
+   * @generated from field: string schema = 2;
    */
   schema = "";
 
   /**
-   * @generated from field: repeated xyz.block.ftl.console.v1.Verb verbs = 5;
+   * @generated from field: xyz.block.ftl.schema.v1.ModuleRuntime runtime = 3;
+   */
+  runtime?: ModuleRuntime;
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.console.v1.Verb verbs = 4;
    */
   verbs: Verb[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.console.v1.Data data = 6;
+   * @generated from field: repeated xyz.block.ftl.console.v1.Data data = 5;
    */
   data: Data[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.console.v1.Secret secrets = 7;
+   * @generated from field: repeated xyz.block.ftl.console.v1.Secret secrets = 6;
    */
   secrets: Secret[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.console.v1.Config configs = 8;
+   * @generated from field: repeated xyz.block.ftl.console.v1.Config configs = 7;
    */
   configs: Config[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.console.v1.Database databases = 9;
+   * @generated from field: repeated xyz.block.ftl.console.v1.Database databases = 8;
    */
   databases: Database[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.console.v1.Enum enums = 10;
+   * @generated from field: repeated xyz.block.ftl.console.v1.Enum enums = 9;
    */
   enums: Enum[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.console.v1.Topic topics = 11;
+   * @generated from field: repeated xyz.block.ftl.console.v1.Topic topics = 10;
    */
   topics: Topic[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.console.v1.TypeAlias typealiases = 12;
+   * @generated from field: repeated xyz.block.ftl.console.v1.TypeAlias typealiases = 11;
    */
   typealiases: TypeAlias[] = [];
 
@@ -521,17 +516,16 @@ export class Module extends Message<Module> {
   static readonly typeName = "xyz.block.ftl.console.v1.Module";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "language", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "verbs", kind: "message", T: Verb, repeated: true },
-    { no: 6, name: "data", kind: "message", T: Data, repeated: true },
-    { no: 7, name: "secrets", kind: "message", T: Secret, repeated: true },
-    { no: 8, name: "configs", kind: "message", T: Config, repeated: true },
-    { no: 9, name: "databases", kind: "message", T: Database, repeated: true },
-    { no: 10, name: "enums", kind: "message", T: Enum, repeated: true },
-    { no: 11, name: "topics", kind: "message", T: Topic, repeated: true },
-    { no: 12, name: "typealiases", kind: "message", T: TypeAlias, repeated: true },
+    { no: 2, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "runtime", kind: "message", T: ModuleRuntime },
+    { no: 4, name: "verbs", kind: "message", T: Verb, repeated: true },
+    { no: 5, name: "data", kind: "message", T: Data, repeated: true },
+    { no: 6, name: "secrets", kind: "message", T: Secret, repeated: true },
+    { no: 7, name: "configs", kind: "message", T: Config, repeated: true },
+    { no: 8, name: "databases", kind: "message", T: Database, repeated: true },
+    { no: 9, name: "enums", kind: "message", T: Enum, repeated: true },
+    { no: 10, name: "topics", kind: "message", T: Topic, repeated: true },
+    { no: 11, name: "typealiases", kind: "message", T: TypeAlias, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Module {
@@ -1102,6 +1096,80 @@ export class SetSecretResponse extends Message<SetSecretResponse> {
 
   static equals(a: SetSecretResponse | PlainMessage<SetSecretResponse> | undefined, b: SetSecretResponse | PlainMessage<SetSecretResponse> | undefined): boolean {
     return proto3.util.equals(SetSecretResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.console.v1.GetInfoRequest
+ */
+export class GetInfoRequest extends Message<GetInfoRequest> {
+  constructor(data?: PartialMessage<GetInfoRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.console.v1.GetInfoRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetInfoRequest {
+    return new GetInfoRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetInfoRequest {
+    return new GetInfoRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetInfoRequest {
+    return new GetInfoRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetInfoRequest | PlainMessage<GetInfoRequest> | undefined, b: GetInfoRequest | PlainMessage<GetInfoRequest> | undefined): boolean {
+    return proto3.util.equals(GetInfoRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.console.v1.GetInfoResponse
+ */
+export class GetInfoResponse extends Message<GetInfoResponse> {
+  /**
+   * @generated from field: string version = 1;
+   */
+  version = "";
+
+  /**
+   * @generated from field: string build_time = 4;
+   */
+  buildTime = "";
+
+  constructor(data?: PartialMessage<GetInfoResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.console.v1.GetInfoResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "build_time", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetInfoResponse {
+    return new GetInfoResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetInfoResponse {
+    return new GetInfoResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetInfoResponse {
+    return new GetInfoResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetInfoResponse | PlainMessage<GetInfoResponse> | undefined, b: GetInfoResponse | PlainMessage<GetInfoResponse> | undefined): boolean {
+    return proto3.util.equals(GetInfoResponse, a, b);
   }
 }
 

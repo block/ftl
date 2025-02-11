@@ -5,9 +5,8 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { GetConfigRequest, GetConfigResponse, GetModulesRequest, GetModulesResponse, GetSecretRequest, GetSecretResponse, SetConfigRequest, SetConfigResponse, SetSecretRequest, SetSecretResponse, StreamModulesRequest, StreamModulesResponse } from "./console_pb.js";
+import { GetConfigRequest, GetConfigResponse, GetInfoRequest, GetInfoResponse, GetModulesRequest, GetModulesResponse, GetSecretRequest, GetSecretResponse, SetConfigRequest, SetConfigResponse, SetSecretRequest, SetSecretResponse, StreamModulesRequest, StreamModulesResponse } from "./console_pb.js";
 import { GetTimelineRequest, GetTimelineResponse, StreamTimelineRequest, StreamTimelineResponse } from "../../timeline/v1/timeline_pb.js";
-import { StatusRequest, StatusResponse } from "../../v1/controller_pb.js";
 import { CallRequest, CallResponse } from "../../v1/verb_pb.js";
 import { StreamEngineEventsRequest, StreamEngineEventsResponse } from "../../buildengine/v1/buildengine_pb.js";
 
@@ -102,15 +101,6 @@ export const ConsoleService = {
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc xyz.block.ftl.console.v1.ConsoleService.Status
-     */
-    status: {
-      name: "Status",
-      I: StatusRequest,
-      O: StatusResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * @generated from rpc xyz.block.ftl.console.v1.ConsoleService.Call
      */
     call: {
@@ -127,6 +117,15 @@ export const ConsoleService = {
       I: StreamEngineEventsRequest,
       O: StreamEngineEventsResponse,
       kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * @generated from rpc xyz.block.ftl.console.v1.ConsoleService.GetInfo
+     */
+    getInfo: {
+      name: "GetInfo",
+      I: GetInfoRequest,
+      O: GetInfoResponse,
+      kind: MethodKind.Unary,
     },
   }
 } as const;

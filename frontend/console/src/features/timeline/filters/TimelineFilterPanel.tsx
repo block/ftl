@@ -60,7 +60,7 @@ export const TimelineFilterPanel = ({
     if (!modules.isSuccess || modules.data.modules.length === 0) {
       return
     }
-    const newModules = modules.data.modules.map((module) => module.deploymentKey)
+    const newModules = modules.data.modules.map((module) => module.runtime?.deployment?.deploymentKey || '')
     const addedModules = newModules.filter((name) => !previousModules.includes(name))
 
     if (addedModules.length > 0) {
@@ -169,16 +169,16 @@ export const TimelineFilterPanel = ({
           {modules.isSuccess && (
             <FilterPanelSection title='Modules'>
               {modules.data.modules.map((module) => (
-                <div key={module.deploymentKey} className='group flex items-center'>
+                <div key={module.runtime?.deployment?.deploymentKey} className='group flex items-center'>
                   <Checkbox
-                    id={`module-${module.deploymentKey}`}
-                    checked={selectedModules.includes(module.deploymentKey)}
-                    onChange={(e) => handleModuleChanged(module.deploymentKey, e.target.checked)}
+                    id={`module-${module.runtime?.deployment?.deploymentKey}`}
+                    checked={selectedModules.includes(module.runtime?.deployment?.deploymentKey || '')}
+                    onChange={(e) => handleModuleChanged(module.runtime?.deployment?.deploymentKey || '', e.target.checked)}
                     label={<span className={textColor}>{module.name}</span>}
                   />
                   <button
                     type='button'
-                    onClick={() => setSelectedModules([module.deploymentKey])}
+                    onClick={() => setSelectedModules([module.runtime?.deployment?.deploymentKey || ''])}
                     className='opacity-0 group-hover:opacity-100 text-xs bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100 dark:bg-indigo-900 dark:text-indigo-300 dark:hover:bg-indigo-800 dark:ring-1 dark:ring-indigo-800 rounded px-1 shadow-sm ml-auto'
                   >
                     only
@@ -188,7 +188,7 @@ export const TimelineFilterPanel = ({
               <div className='relative flex items-center pt-1'>
                 <button
                   type='button'
-                  onClick={() => setSelectedModules(modules.data.modules.map((module) => module.deploymentKey))}
+                  onClick={() => setSelectedModules(modules.data.modules.map((module) => module.runtime?.deployment?.deploymentKey || ''))}
                   className='text-indigo-500 cursor-pointer hover:text-indigo-500'
                 >
                   Select all

@@ -4,17 +4,11 @@ test('shows infrastructure', async ({ page }) => {
   await page.goto('/')
   const infrastructureNavItem = page.getByRole('link', { name: 'Infrastructure' })
   await infrastructureNavItem.click()
-  await expect(page).toHaveURL(/\/infrastructure\/controllers$/)
-
-  const controllersTab = await page.getByRole('button', { name: 'Controllers' })
-  await expect(controllersTab).toBeVisible()
-
-  const runnersTab = await page.getByRole('button', { name: 'Runners' })
-  await expect(runnersTab).toBeVisible()
+  await expect(page).toHaveURL(/\/infrastructure\/deployments$/)
 
   const deploymentsTab = await page.getByRole('button', { name: 'Deployments' })
   await expect(deploymentsTab).toBeVisible()
 
-  const routesTab = await page.getByRole('button', { name: 'Routes' })
-  await expect(routesTab).toBeVisible()
+  const buildEventsTab = await page.getByRole('button', { name: 'Build Engine Events' })
+  await expect(buildEventsTab).toBeVisible()
 })

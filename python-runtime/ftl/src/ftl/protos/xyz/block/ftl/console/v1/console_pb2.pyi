@@ -1,7 +1,6 @@
 from xyz.block.ftl.buildengine.v1 import buildengine_pb2 as _buildengine_pb2
 from xyz.block.ftl.schema.v1 import schema_pb2 as _schema_pb2
 from xyz.block.ftl.timeline.v1 import timeline_pb2 as _timeline_pb2
-from xyz.block.ftl.v1 import controller_pb2 as _controller_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
 from xyz.block.ftl.v1 import verb_pb2 as _verb_pb2
 from google.protobuf.internal import containers as _containers
@@ -101,11 +100,10 @@ class Verb(_message.Message):
     def __init__(self, verb: _Optional[_Union[_schema_pb2.Verb, _Mapping]] = ..., schema: _Optional[str] = ..., json_request_schema: _Optional[str] = ..., edges: _Optional[_Union[Edges, _Mapping]] = ...) -> None: ...
 
 class Module(_message.Message):
-    __slots__ = ("name", "deployment_key", "language", "schema", "verbs", "data", "secrets", "configs", "databases", "enums", "topics", "typealiases")
+    __slots__ = ("name", "schema", "runtime", "verbs", "data", "secrets", "configs", "databases", "enums", "topics", "typealiases")
     NAME_FIELD_NUMBER: _ClassVar[int]
-    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
-    LANGUAGE_FIELD_NUMBER: _ClassVar[int]
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    RUNTIME_FIELD_NUMBER: _ClassVar[int]
     VERBS_FIELD_NUMBER: _ClassVar[int]
     DATA_FIELD_NUMBER: _ClassVar[int]
     SECRETS_FIELD_NUMBER: _ClassVar[int]
@@ -115,9 +113,8 @@ class Module(_message.Message):
     TOPICS_FIELD_NUMBER: _ClassVar[int]
     TYPEALIASES_FIELD_NUMBER: _ClassVar[int]
     name: str
-    deployment_key: str
-    language: str
     schema: str
+    runtime: _schema_pb2.ModuleRuntime
     verbs: _containers.RepeatedCompositeFieldContainer[Verb]
     data: _containers.RepeatedCompositeFieldContainer[Data]
     secrets: _containers.RepeatedCompositeFieldContainer[Secret]
@@ -126,7 +123,7 @@ class Module(_message.Message):
     enums: _containers.RepeatedCompositeFieldContainer[Enum]
     topics: _containers.RepeatedCompositeFieldContainer[Topic]
     typealiases: _containers.RepeatedCompositeFieldContainer[TypeAlias]
-    def __init__(self, name: _Optional[str] = ..., deployment_key: _Optional[str] = ..., language: _Optional[str] = ..., schema: _Optional[str] = ..., verbs: _Optional[_Iterable[_Union[Verb, _Mapping]]] = ..., data: _Optional[_Iterable[_Union[Data, _Mapping]]] = ..., secrets: _Optional[_Iterable[_Union[Secret, _Mapping]]] = ..., configs: _Optional[_Iterable[_Union[Config, _Mapping]]] = ..., databases: _Optional[_Iterable[_Union[Database, _Mapping]]] = ..., enums: _Optional[_Iterable[_Union[Enum, _Mapping]]] = ..., topics: _Optional[_Iterable[_Union[Topic, _Mapping]]] = ..., typealiases: _Optional[_Iterable[_Union[TypeAlias, _Mapping]]] = ...) -> None: ...
+    def __init__(self, name: _Optional[str] = ..., schema: _Optional[str] = ..., runtime: _Optional[_Union[_schema_pb2.ModuleRuntime, _Mapping]] = ..., verbs: _Optional[_Iterable[_Union[Verb, _Mapping]]] = ..., data: _Optional[_Iterable[_Union[Data, _Mapping]]] = ..., secrets: _Optional[_Iterable[_Union[Secret, _Mapping]]] = ..., configs: _Optional[_Iterable[_Union[Config, _Mapping]]] = ..., databases: _Optional[_Iterable[_Union[Database, _Mapping]]] = ..., enums: _Optional[_Iterable[_Union[Enum, _Mapping]]] = ..., topics: _Optional[_Iterable[_Union[Topic, _Mapping]]] = ..., typealiases: _Optional[_Iterable[_Union[TypeAlias, _Mapping]]] = ...) -> None: ...
 
 class TopologyGroup(_message.Message):
     __slots__ = ("modules",)
@@ -223,3 +220,15 @@ class SetSecretResponse(_message.Message):
     VALUE_FIELD_NUMBER: _ClassVar[int]
     value: bytes
     def __init__(self, value: _Optional[bytes] = ...) -> None: ...
+
+class GetInfoRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class GetInfoResponse(_message.Message):
+    __slots__ = ("version", "build_time")
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    BUILD_TIME_FIELD_NUMBER: _ClassVar[int]
+    version: str
+    build_time: str
+    def __init__(self, version: _Optional[str] = ..., build_time: _Optional[str] = ...) -> None: ...

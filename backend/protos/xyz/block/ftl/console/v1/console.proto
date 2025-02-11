@@ -5,7 +5,6 @@ package xyz.block.ftl.console.v1;
 import "xyz/block/ftl/buildengine/v1/buildengine.proto";
 import "xyz/block/ftl/schema/v1/schema.proto";
 import "xyz/block/ftl/timeline/v1/timeline.proto";
-import "xyz/block/ftl/v1/controller.proto";
 import "xyz/block/ftl/v1/ftl.proto";
 import "xyz/block/ftl/v1/verb.proto";
 
@@ -68,17 +67,16 @@ message Verb {
 
 message Module {
   string name = 1;
-  string deployment_key = 2;
-  string language = 3;
-  string schema = 4;
-  repeated Verb verbs = 5;
-  repeated Data data = 6;
-  repeated Secret secrets = 7;
-  repeated Config configs = 8;
-  repeated Database databases = 9;
-  repeated Enum enums = 10;
-  repeated Topic topics = 11;
-  repeated TypeAlias typealiases = 12;
+  string schema = 2;
+  ftl.schema.v1.ModuleRuntime runtime = 3;
+  repeated Verb verbs = 4;
+  repeated Data data = 5;
+  repeated Secret secrets = 6;
+  repeated Config configs = 7;
+  repeated Database databases = 8;
+  repeated Enum enums = 9;
+  repeated Topic topics = 10;
+  repeated TypeAlias typealiases = 11;
 }
 
 message TopologyGroup {
@@ -139,6 +137,13 @@ message SetSecretResponse {
   bytes value = 1;
 }
 
+message GetInfoRequest {}
+
+message GetInfoResponse {
+  string version = 1;
+  string build_time = 4;
+}
+
 service ConsoleService {
   // Ping service for readiness.
   rpc Ping(ftl.v1.PingRequest) returns (ftl.v1.PingResponse) {
@@ -157,9 +162,9 @@ service ConsoleService {
   rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
   rpc SetSecret(SetSecretRequest) returns (SetSecretResponse);
 
-  rpc Status(ftl.v1.StatusRequest) returns (ftl.v1.StatusResponse);
-
   rpc Call(ftl.v1.CallRequest) returns (ftl.v1.CallResponse);
 
   rpc StreamEngineEvents(ftl.buildengine.v1.StreamEngineEventsRequest) returns (stream ftl.buildengine.v1.StreamEngineEventsResponse);
+
+  rpc GetInfo(GetInfoRequest) returns (GetInfoResponse);
 }
