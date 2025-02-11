@@ -13,7 +13,6 @@ public class DevModeRunnerDetails implements RunnerDetails {
     private volatile String proxyAddress;
     private volatile String deployment;
     private volatile boolean closed;
-    private volatile boolean loaded = false;
 
     public DevModeRunnerDetails() {
         RunnerNotification.setCallback(this::setRunnerInfo);
@@ -24,7 +23,6 @@ public class DevModeRunnerDetails implements RunnerDetails {
             proxyAddress = runnerInfo.address();
             deployment = runnerInfo.deployment();
             databases = runnerInfo.databases();
-            loaded = true;
             notifyAll();
         }
     }
