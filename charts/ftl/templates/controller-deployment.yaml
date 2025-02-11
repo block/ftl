@@ -78,17 +78,5 @@ spec:
             - name: http2
               containerPort: {{ .Values.controller.port }}
               protocol: "TCP"
-          readinessProbe:
-            {{- if .Values.controller.readinessProbe }}
-            {{- toYaml .Values.controller.readinessProbe | nindent 12 }}
-            {{- else }}
-            httpGet:
-              path: /healthz
-              port: 8892
-            initialDelaySeconds: 1
-            periodSeconds: 2
-            timeoutSeconds: 2
-            successThreshold: 1
-            failureThreshold: 15
-            {{- end }}
-    {{- include "ftl.commonPodConfig" .Values.cron | nindent 6 }}
+          {{- include "ftl.healthProbes" .Values.controller | nindent 10 }}
+    {{- include "ftl.commonPodConfig" .Values.controller | nindent 6 }}

@@ -56,19 +56,7 @@ spec:
               containerPort: {{ .containerPort }}
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
-          readinessProbe:
-            {{- if .Values.ingress.readinessProbe }}
-            {{- toYaml .Values.ingress.readinessProbe | nindent 12 }}
-            {{- else }}
-            httpGet:
-              path: /healthz
-              port: 8891
-            initialDelaySeconds: 1
-            periodSeconds: 2
-            timeoutSeconds: 2
-            successThreshold: 1
-            failureThreshold: 15
-            {{- end }}
+          {{- include "ftl.healthProbes" .Values.ingress | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.ingress | nindent 6 }}
 
 

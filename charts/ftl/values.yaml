@@ -231,7 +231,7 @@ ingress:
 
   ingressAnnotations:
     kubernetes.io/ingress.class: nginx
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 0
 
   image:
