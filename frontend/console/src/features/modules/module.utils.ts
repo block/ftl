@@ -37,7 +37,7 @@ export const moduleTreeFromStream = (modules: Module[]) => {
     (module) =>
       ({
         name: module.name,
-        deploymentKey: module.deploymentKey,
+        deploymentKey: module.runtime?.deployment?.deploymentKey || '',
         isBuiltin: module.name === 'builtin',
         decls: [
           ...module.configs.map((d) => ({ declType: 'config', value: d.config, decl: d, path: `/modules/${module.name}/config/${d.config?.name}` })),

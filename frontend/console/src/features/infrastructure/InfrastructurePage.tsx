@@ -2,12 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Tabs } from '../../shared/components/Tabs'
 import { useStreamEngineEvents } from '../engine/hooks/use-stream-engine-events'
+import { useStreamModules } from '../modules/hooks/use-stream-modules'
 import { BuildEngineEvents } from './BuildEngineEvents'
-import { ControllersList } from './ControllersList'
 import { DeploymentsList } from './DeploymentsList'
-import { RoutesList } from './RoutesList'
-import { RunnersList } from './RunnersList'
-import { useStatus } from './hooks/use-status'
 
 interface Tab {
   name: string
@@ -16,38 +13,28 @@ interface Tab {
 }
 
 export const InfrastructurePage = () => {
-  const status = useStatus()
   const navigate = useNavigate()
   const location = useLocation()
+  const { data: modulesData } = useStreamModules()
   const { data } = useStreamEngineEvents()
   const events = useMemo(() => (data?.pages ?? []).flatMap((page) => (Array.isArray(page) ? page : [])), [data?.pages])
 
   const [tabs, setTabs] = useState<Tab[]>([
-    { name: 'Controllers', id: 'controllers' },
-    { name: 'Runners', id: 'runners' },
     { name: 'Deployments', id: 'deployments' },
-    { name: 'Routes', id: 'routes' },
     { name: 'Build Engine Events', id: 'build-engine-events' },
   ])
 
   const currentTab = location.pathname.split('/').pop()
 
-  useEffect(() => {
-    if (!status.data) {
-      return
-    }
+  const modules = useMemo(() => modulesData?.modules.filter((module) => module.name !== 'builtin') ?? [], [modulesData])
 
+  useEffect(() => {
     setTabs((prevTabs: Tab[]) =>
       prevTabs.map((tab: Tab) => {
         switch (tab.id) {
-          case 'controllers':
-            return { ...tab, count: status.data.controllers.length }
-          case 'runners':
-            return { ...tab, count: status.data.runners.length }
-          case 'deployments':
-            return { ...tab, count: status.data.deployments.length }
-          case 'routes':
-            return { ...tab, count: status.data.routes.length }
+          case 'deployments': {
+            return { ...tab, count: modules.length }
+          }
           case 'build-engine-events': {
             const { count: _, ...rest } = tab
             return rest
@@ -57,18 +44,12 @@ export const InfrastructurePage = () => {
         }
       }),
     )
-  }, [status.data])
+  }, [modulesData])
 
   const renderTabContent = () => {
     switch (currentTab) {
-      case 'controllers':
-        return <ControllersList controllers={status.data?.controllers || []} />
-      case 'runners':
-        return <RunnersList runners={status.data?.runners || []} />
       case 'deployments':
-        return <DeploymentsList deployments={status.data?.deployments || []} />
-      case 'routes':
-        return <RoutesList routes={status.data?.routes || []} />
+        return <DeploymentsList modules={modules} />
       case 'build-engine-events':
         return <BuildEngineEvents events={events} />
       default:

@@ -289,7 +289,7 @@ func (s *serveCommonConfig) run(
 		wg.Go(func() error {
 			// Deliberately start Console in the foreground.
 			ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
-			err := console.Start(ctx, s.Console, schemaEventSourceFactory(), controllerClient, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), buildEngineClient)
+			err := console.Start(ctx, s.Console, schemaEventSourceFactory(), timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), buildEngineClient)
 			if err != nil {
 				return fmt.Errorf("failed to start console server: %w", err)
 			}

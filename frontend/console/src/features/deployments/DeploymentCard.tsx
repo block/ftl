@@ -14,7 +14,7 @@ export const DeploymentCard = ({ deploymentKey, className }: { deploymentKey: st
 
   useEffect(() => {
     if (modules.isSuccess) {
-      const module = modules.data.modules.find((module) => module.deploymentKey === deploymentKey)
+      const module = modules.data.modules.find((module) => module.runtime?.deployment?.deploymentKey === deploymentKey)
       setModule(module)
     }
   }, [modules.data])
@@ -24,7 +24,7 @@ export const DeploymentCard = ({ deploymentKey, className }: { deploymentKey: st
       <div className='flex flex-col'>
         <div className='flex items-center'>
           <p className={`truncate flex-grow min-w-0 pr-2 ${deploymentTextColor(deploymentKey)}`}>{deploymentKey}</p>
-          <Badge className='ml-auto' name={module?.language ?? ''} />
+          <Badge className='ml-auto' name={module?.runtime?.base?.language ?? ''} />
         </div>
 
         <div className='mt-4 gap-1 flex flex-wrap'>

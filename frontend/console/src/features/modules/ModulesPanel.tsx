@@ -27,12 +27,14 @@ export const ModulesPanel = () => {
                   <p>{module.name}</p>
                 </div>
 
-                <p className={classNames(deploymentTextColor(module.deploymentKey), 'text-sm leading-6')}>{module.deploymentKey}</p>
+                <p className={classNames(deploymentTextColor(module.runtime?.deployment?.deploymentKey || ''), 'text-sm leading-6')}>
+                  {module.runtime?.deployment?.deploymentKey}
+                </p>
               </div>
             </div>
             <div className='flex gap-x-4 items-center w-1/2 justify-end'>
               <div className='flex flex-wrap gap-2'>
-                <AttributeBadge name='language' value={module.language} />
+                <AttributeBadge name='language' value={module.runtime?.base?.language || ''} />
               </div>
             </div>
           </div>

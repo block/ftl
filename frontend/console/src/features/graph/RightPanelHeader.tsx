@@ -61,7 +61,7 @@ const moduleHeader = (module: Module) => {
         <div className='text-sm font-medium truncate'>{module.name}</div>
         <div className='flex pt-1'>
           <span className='font-roboto-mono inline-flex items-center rounded truncate bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs px-1'>
-            <span className='truncate'>{module.deploymentKey}</span>
+            <span className='truncate'>{module.runtime?.deployment?.deploymentKey}</span>
           </span>
         </div>
       </>

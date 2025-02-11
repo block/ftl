@@ -20,7 +20,7 @@ const router = createBrowserRouter(
         <Route path='modules/:moduleName' element={<ModulesPage body={<ModulePanel />} />} />
         <Route path='modules/:moduleName/:declCase/:declName' element={<ModulesPage body={<DeclPanel />} />} />
         <Route path='graph' element={<GraphPage />} />
-        <Route path='infrastructure' element={<Navigate to='infrastructure/controllers' replace />} />
+        <Route path='infrastructure' element={<Navigate to='deployments' replace />} />
         <Route path='infrastructure/*' element={<InfrastructurePage />} />
         <Route path='traces/:requestKey' element={<TracesPage />} />
       </Route>

@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	ftlversion "github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
@@ -16,7 +17,6 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1/consolepbconnect"
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	frontend "github.com/block/ftl/frontend/console"
@@ -37,7 +37,6 @@ type Config struct {
 
 type service struct {
 	schemaEventSource schemaeventsource.EventSource
-	controllerClient  ftlv1connect.ControllerServiceClient
 	timelineClient    *timelineclient.Client
 	adminClient       admin.Client
 	callClient        routing.CallClient
@@ -46,13 +45,12 @@ type service struct {
 
 var _ consolepbconnect.ConsoleServiceHandler = (*service)(nil)
 
-func Start(ctx context.Context, config Config, eventSource schemaeventsource.EventSource, controllerClient ftlv1connect.ControllerServiceClient, timelineClient *timelineclient.Client, adminClient admin.Client, client routing.CallClient, buildEngineClient buildenginepbconnect.BuildEngineServiceClient) error {
+func Start(ctx context.Context, config Config, eventSource schemaeventsource.EventSource, timelineClient *timelineclient.Client, adminClient admin.Client, client routing.CallClient, buildEngineClient buildenginepbconnect.BuildEngineServiceClient) error {
 	logger := log.FromContext(ctx).Scope("console")
 	ctx = log.ContextWithLogger(ctx, logger)
 
 	svc := &service{
 		schemaEventSource: eventSource,
-		controllerClient:  controllerClient,
 		timelineClient:    timelineClient,
 		adminClient:       adminClient,
 		callClient:        client,
@@ -153,14 +151,13 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 		}
 
 		modules = append(modules, &consolepb.Module{
-			Name:          mod.Name,
-			DeploymentKey: mod.Runtime.Deployment.DeploymentKey.String(),
-			Language:      mod.Runtime.Base.Language,
-			Verbs:         verbs,
-			Data:          data,
-			Secrets:       secrets,
-			Configs:       configs,
-			Schema:        mod.String(),
+			Name:    mod.Name,
+			Runtime: mod.Runtime.ToProto(),
+			Verbs:   verbs,
+			Data:    data,
+			Secrets: secrets,
+			Configs: configs,
+			Schema:  mod.String(),
 		})
 	}
 
@@ -306,10 +303,8 @@ func moduleFromDeployment(deployment *schema.Module, sch *schema.Schema) (*conso
 	}
 
 	module.Name = deployment.Name
-	module.DeploymentKey = deployment.Runtime.Deployment.DeploymentKey.String()
-	module.Language = deployment.Runtime.Base.Language
 	module.Schema = deployment.String()
-
+	module.Runtime = deployment.Runtime.ToProto()
 	return module, nil
 }
 
@@ -452,8 +447,8 @@ func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.Ser
 		return err
 	}
 	builtinModule.Name = builtin.Name
-	builtinModule.Language = "go"
 	builtinModule.Schema = builtin.String()
+	builtinModule.Runtime = builtin.Runtime.ToProto()
 	modules = append(modules, builtinModule)
 
 	err = stream.Send(&consolepb.StreamModulesResponse{
@@ -578,14 +573,6 @@ func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timel
 	return nil
 }
 
-func (s *service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error) {
-	resp, err := s.controllerClient.Status(ctx, connect.NewRequest(req.Msg))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get status from controller: %w", err)
-	}
-	return connect.NewResponse(resp.Msg), nil
-}
-
 func (s *service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
 	resp, err := s.callClient.Call(ctx, connect.NewRequest(req.Msg))
 	if err != nil {
@@ -615,4 +602,11 @@ func (s *service) StreamEngineEvents(ctx context.Context, req *connect.Request[b
 		return fmt.Errorf("error streaming build events: %w", err)
 	}
 	return nil
+}
+
+func (s *service) GetInfo(ctx context.Context, _ *connect.Request[consolepb.GetInfoRequest]) (*connect.Response[consolepb.GetInfoResponse], error) {
+	return connect.NewResponse(&consolepb.GetInfoResponse{
+		Version:   ftlversion.Version,
+		BuildTime: ftlversion.Timestamp.Format(time.RFC3339),
+	}), nil
 }
