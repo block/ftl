@@ -37,6 +37,7 @@ func TestModel(t *testing.T) {
 		ExternalRoot:    external.Root{Prefix: "abc", Suffix: "xyz"},
 		OptionalTime:    optional.Some(now),
 		OptionalMessage: optional.None[Message](),
+		Map:             map[string]time.Time{now.Format(time.RFC3339): now},
 	}
 	pb := model.ToProto()
 	data, err := proto.Marshal(pb)

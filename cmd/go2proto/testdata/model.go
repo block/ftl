@@ -30,6 +30,7 @@ type Root struct {
 	Key             key.Deployment             `protobuf:"15"`
 	OptionalTime    optional.Option[time.Time] `protobuf:"16"`
 	OptionalMessage optional.Option[Message]   `protobuf:"17"`
+	Map             map[string]time.Time       `protobuf:"18"`
 }
 
 type Message struct {

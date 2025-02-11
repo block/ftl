@@ -10,6 +10,8 @@ import "google.golang.org/protobuf/types/known/durationpb"
 import "github.com/alecthomas/types/optional"
 import "github.com/alecthomas/types/result"
 
+import "time"
+
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
 var _ = durationpb.Duration{}
@@ -48,6 +50,27 @@ func sliceMapR[T any, U any](values []T, f func(T) result.Result[U]) result.Resu
 		out[i], _ = r.Get()
 	}
 	return result.Ok[[]U](out)
+}
+
+func mapValues[K comparable, V, U any](m map[K]V, f func(V) U) map[K]U {
+	out := make(map[K]U, len(m))
+	for k, v := range m {
+		out[k] = f(v)
+	}
+	return out
+}
+
+func mapValuesR[K comparable, V, U any](m map[K]V, f func(V) result.Result[U]) result.Result[map[K]U] {
+	out := make(map[K]U, len(m))
+	for k, v := range m {
+		r := f(v)
+		if r.Err() != nil {
+			return result.Err[map[K]U](r.Err())
+		}
+		val, _ := r.Get()
+		out[k] = val
+	}
+	return result.Ok[map[K]U](out)
 }
 
 func orZero[T any](v *T) T {
@@ -242,6 +265,7 @@ func (x *Root) ToProto() *destpb.Root {
 		Key:             orZero(ptr(string(protoMust(x.Key.MarshalText())))),
 		OptionalTime:    setNil(timestamppb.New(orZero(x.OptionalTime.Ptr())), x.OptionalTime.Ptr()),
 		OptionalMessage: x.OptionalMessage.Ptr().ToProto(),
+		Map:             mapValues(x.Map, func(x time.Time) *timestamppb.Timestamp { return timestamppb.New(x) }),
 	}
 }
 
@@ -298,6 +322,11 @@ func RootFromProto(v *destpb.Root) (out *Root, err error) {
 	}
 	if out.OptionalMessage, err = optionalR(result.From(MessageFromProto(v.OptionalMessage))).Result(); err != nil {
 		return nil, fmt.Errorf("OptionalMessage: %w", err)
+	}
+	if out.Map, err = mapValuesR(v.Map, func(v *timestamppb.Timestamp) result.Result[time.Time] {
+		return orZeroR(result.From(setNil(ptr(v.AsTime()), v), nil))
+	}).Result(); err != nil {
+		return nil, fmt.Errorf("Map: %w", err)
 	}
 	return out, nil
 }

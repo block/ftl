@@ -55,7 +55,9 @@ import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
 import "github.com/alecthomas/types/optional"
 import "github.com/alecthomas/types/result"
-
+{{ range .GoImports }}
+import "{{ . }}"
+{{ end }}
 
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
@@ -95,6 +97,27 @@ func sliceMapR[T any, U any](values []T, f func(T) result.Result[U]) result.Resu
 		out[i], _ = r.Get()
 	}
 	return result.Ok[[]U](out)
+}
+
+func mapValues[K comparable, V, U any](m map[K]V, f func(V) U) map[K]U {
+	out := make(map[K]U, len(m))
+	for k, v := range m {
+		out[k] = f(v)
+	}
+	return out
+}
+
+func mapValuesR[K comparable, V, U any](m map[K]V, f func(V) result.Result[U]) result.Result[map[K]U] {
+	out := make(map[K]U, len(m))
+	for k, v := range m {
+		r := f(v)
+		if r.Err() != nil {
+			return result.Err[map[K]U](r.Err())
+		}
+		val, _ := r.Get()
+		out[k] = val
+	}
+	return result.Ok[map[K]U](out)
 }
 
 func orZero[T any](v *T) T {

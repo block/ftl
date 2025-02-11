@@ -43,6 +43,7 @@ message Root {
   string key = 15;
   optional google.protobuf.Timestamp optional_time = 16;
   optional Message optional_message = 17;
+  map<string, google.protobuf.Timestamp> map = 18;
 }
 
 

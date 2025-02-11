@@ -202,6 +202,7 @@ const (
 	KindSumType         Kind = "SumType"
 	KindBinaryMarshaler Kind = "BinaryMarshaler"
 	KindTextMarshaler   Kind = "TextMarshaler"
+	KindMap             Kind = "Map"
 )
 
 type Field struct {
@@ -215,6 +216,10 @@ type Field struct {
 	OptionalWrapper bool // optional as alecthomas/types/optional.Option
 	Repeated        bool
 	Pointer         bool
+
+	// Map-specific fields
+	MapKey   *Field // Type information for map keys
+	MapValue *Field // Type information for map values
 
 	Import    string // required import to create this type
 	Converter *TypeConverter
@@ -507,8 +512,8 @@ func extract(config Config, pkg *PkgRefs) (File, []string, error) {
 	imports := map[string]bool{}
 	for msg := range state.Messages {
 		for _, field := range msg.Fields {
-			if field.Import != "" && field.Pointer { // We only need imports for pointer types.
-				imports[field.Import] = true
+			if field.MapValue != nil && field.MapValue.Import != "" {
+				imports[field.MapValue.Import] = true
 			}
 		}
 	}
@@ -605,6 +610,12 @@ func (s *State) maybeExtractDecl(n types.Object, t types.Type) error {
 	case *types.Interface:
 		return s.extractSumType(n, t)
 
+	case *types.Map:
+		if err := s.maybeExtractDecl(n, t.Elem()); err != nil {
+			return err
+		}
+		return nil
+
 	default:
 		return nil
 	}
@@ -640,40 +651,47 @@ func (s *State) populateFields(decl *Message, n *types.Named) error {
 		}
 
 		s.populateConverters(field)
-
 		decl.Fields = append(decl.Fields, field)
 	}
 	return errf()
 }
 
 func (f *Field) ToProto() string {
+	name := "x"
+	if fn := f.Name; fn != "" {
+		name = fmt.Sprintf("%s.%s", name, fn)
+	}
 	if f.Optional {
 		if f.OptionalWrapper {
 			if f.Converter.ToProtoTakesPointer {
-				return f.Converter.ToProto("x." + f.Name + ".Ptr()")
+				return f.Converter.ToProto(name + ".Ptr()")
 			}
-			return "setNil(" + f.Converter.ToProto("orZero(x."+f.Name+".Ptr())") + ", x." + f.Name + ".Ptr())"
+			return "setNil(" + f.Converter.ToProto("orZero("+name+".Ptr())") + ", " + name + ".Ptr())"
 		} else if f.Pointer && !f.Converter.ProtoPointer {
-			return "setNil(" + f.Converter.ToProto("orZero(x."+f.Name+")") + ", x." + f.Name + ")"
+			return "setNil(" + f.Converter.ToProto("orZero("+name+")") + ", " + name + ")"
 		}
-		return f.Converter.ToProto("x." + f.Name)
+		return f.Converter.ToProto(name)
 	} else if f.Repeated {
 		if f.Converter.ProtoPointer {
-			return "sliceMap(x." + f.Name + ", func(v " + f.OriginTypeSignature() + ") " + f.ProtoGoType + " { return " + f.Converter.ToProto("v") + " })"
+			return "sliceMap(" + name + ", func(v " + f.OriginTypeSignature() + ") " + f.ProtoGoType + " { return " + f.Converter.ToProto("v") + " })"
 		}
-		return "sliceMap(x." + f.Name + ", func(v " + f.OriginType + ") " + f.ProtoGoType + " { return orZero(" + f.Converter.ToProto("v") + ") })"
+		return "sliceMap(" + name + ", func(v " + f.OriginType + ") " + f.ProtoGoType + " { return orZero(" + f.Converter.ToProto("v") + ") })"
 	}
 
-	if f.Converter.ProtoPointer {
-		return f.Converter.ToProto("x." + f.Name)
+	if f.Converter.ProtoPointer || f.Kind == KindMap {
+		return f.Converter.ToProto(name)
 	}
 
-	return "orZero(" + f.Converter.ToProto("x."+f.Name) + ")"
+	return "orZero(" + f.Converter.ToProto(name) + ")"
 }
 
 func (f *Field) FromProto() string {
+	name := "v"
+	if fn := f.EscapedName(); fn != "" {
+		name = fmt.Sprintf("%s.%s", name, fn)
+	}
 	// inputs are result.Result[*T]
-	input := f.Converter.FromProto("v." + f.EscapedName())
+	input := f.Converter.FromProto(name)
 	if f.Optional {
 		if f.OptionalWrapper {
 			return "optionalR(" + input + ")"
@@ -684,9 +702,11 @@ func (f *Field) FromProto() string {
 		return input
 	} else if f.Repeated {
 		if !f.Pointer {
-			return "sliceMapR(v." + f.EscapedName() + ", func(v " + f.ProtoGoType + ") result.Result[" + f.OriginType + "] { return orZeroR(" + f.Converter.FromProto("v") + ") })"
+			return "sliceMapR(" + name + ", func(v " + f.ProtoGoType + ") result.Result[" + f.OriginType + "] { return orZeroR(" + f.Converter.FromProto("v") + ") })"
 		}
-		return "sliceMapR(v." + f.EscapedName() + ", func(v " + f.ProtoGoType + ") result.Result[*" + f.OriginType + "] { return " + f.Converter.FromProto("v") + " })"
+		return "sliceMapR(" + name + ", func(v " + f.ProtoGoType + ") result.Result[*" + f.OriginType + "] { return " + f.Converter.FromProto("v") + " })"
+	} else if f.Kind == KindMap {
+		return input
 	} else if !f.Pointer {
 		return "orZeroR(" + input + ")"
 	}
@@ -694,17 +714,46 @@ func (f *Field) FromProto() string {
 }
 
 func (s *State) populateConverters(field *Field) {
+	if field.Kind == KindMap {
+		s.populateConverters(field.MapKey)
+		s.populateConverters(field.MapValue)
+	}
+	s.populateNestedConverters(field)
+}
+
+func (s *State) populateNestedConverters(field *Field) {
 	if field.ProtoType == "google.protobuf.Timestamp" {
 		field.Converter = &TypeConverter{
 			FromProto:    func(v string) string { return fmt.Sprintf("result.From(setNil(ptr(%s.AsTime()), %s), nil)", v, v) },
 			ToProto:      func(v string) string { return fmt.Sprintf("timestamppb.New(%s)", v) },
 			ProtoPointer: true,
 		}
+		field.ProtoGoType = "*timestamppb.Timestamp"
+		field.OriginType = "time.Time"
 	} else if field.ProtoType == "google.protobuf.Duration" {
 		field.Converter = &TypeConverter{
 			FromProto:    func(v string) string { return fmt.Sprintf("result.From(setNil(ptr(%s.AsDuration()), %s), nil)", v, v) },
 			ToProto:      func(v string) string { return fmt.Sprintf("durationpb.New(%s)", v) },
 			ProtoPointer: true,
+		}
+		field.ProtoGoType = "*durationpb.Duration"
+		field.OriginType = "time.Duration"
+	} else if field.Kind == KindMap {
+		field.Converter = &TypeConverter{
+			FromProto: func(v string) string {
+				return fmt.Sprintf("mapValuesR(%s, func(v %s) result.Result[%s] { return %s })",
+					v,
+					field.MapValue.ProtoGoType,
+					field.MapValue.OriginType,
+					field.MapValue.FromProto())
+			},
+			ToProto: func(v string) string {
+				return fmt.Sprintf("mapValues(%s, func(x %s) %s { return %s })",
+					v,
+					field.MapValue.OriginType,
+					field.MapValue.ProtoGoType,
+					field.MapValue.ToProto())
+			},
 		}
 	} else if field.Kind == KindMessage {
 		field.Converter = &TypeConverter{
@@ -900,6 +949,10 @@ func importStr(t types.Type) string {
 		parts := strings.Split(str, ".")
 		return strings.TrimPrefix(strings.Join(parts[:len(parts)-1], "."), "*")
 	}
+	if _, ok := stdTypes[str]; ok {
+		parts := strings.Split(str, ".")
+		return parts[0]
+	}
 	return ""
 }
 
@@ -977,6 +1030,33 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 			return fmt.Errorf("unsupported basic type %s", t)
 
 		}
+	case *types.Map:
+		keyType := t.Key()
+		valueType := t.Elem()
+
+		field.MapKey = &Field{}
+		field.MapValue = &Field{}
+
+		if err := s.applyFieldType(keyType, field.MapKey); err != nil {
+			return fmt.Errorf("invalid map key type: %w", err)
+		}
+		if err := s.applyFieldType(valueType, field.MapValue); err != nil {
+			return fmt.Errorf("invalid map value type: %w", err)
+		}
+
+		// only integral or string types allowed as map keys (https://protobuf.dev/programming-guides/proto3/)
+		switch field.MapKey.ProtoType {
+		case "int32", "int64", "uint32", "uint64", "sint32", "sint64",
+			"fixed32", "fixed64", "sfixed32", "sfixed64", "string":
+		default:
+			return fmt.Errorf("invalid map key type %s: map keys must be integral or string types", field.MapKey.ProtoType)
+		}
+
+		field.ProtoType = fmt.Sprintf("map<%s, %s>", field.MapKey.ProtoType, field.MapValue.ProtoType)
+		field.ProtoGoType = fmt.Sprintf("map[%s]%s", field.MapKey.ProtoGoType, field.MapValue.ProtoGoType)
+		field.OriginType = fmt.Sprintf("map[%s]%s", field.MapKey.OriginType, field.MapValue.OriginType)
+		field.Kind = KindMap
+		field.Import = field.MapValue.Import
 
 	default:
 		return fmt.Errorf("unsupported type %s (%T)", t, t)
