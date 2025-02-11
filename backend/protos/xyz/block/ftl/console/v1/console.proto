@@ -168,5 +168,3 @@ service ConsoleService {
 
   rpc GetInfo(GetInfoRequest) returns (GetInfoResponse);
 }
-
-
