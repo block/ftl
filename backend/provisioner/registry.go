@@ -63,14 +63,14 @@ func (reg *ProvisionerRegistry) listBindings() []*ProvisionerBinding {
 	return result
 }
 
-func registryFromConfig(ctx context.Context, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
+func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("error validating provisioner config: %w", err)
 	}
 	for _, plugin := range cfg.Plugins {
-		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, runnerScaling)
+		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling)
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +80,7 @@ func registryFromConfig(ctx context.Context, cfg *provisionerPluginConfig, runne
 	return result, nil
 }
 
-func provisionerIDToProvisioner(ctx context.Context, id string, scaling scaling.RunnerScaling) (provisionerconnect.ProvisionerPluginServiceClient, error) {
+func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling) (provisionerconnect.ProvisionerPluginServiceClient, error) {
 	switch id {
 	case "kubernetes":
 		// TODO: move this into a plugin
@@ -93,7 +93,7 @@ func provisionerIDToProvisioner(ctx context.Context, id string, scaling scaling.
 			log.FromContext(ctx).GetLevel(),
 			"ftl-provisioner-"+id,
 			"",
-			".",
+			workingDir,
 			"ftl-provisioner-"+id,
 			provisionerconnect.NewProvisionerPluginServiceClient,
 		)

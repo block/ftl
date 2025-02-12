@@ -220,7 +220,7 @@ func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaS
 	go rpc.RetryStreamingServerStream(ctx, "schema-sync", backoff.Backoff{}, &ftlv1.PullSchemaRequest{SubscriptionId: subscriptionID}, client.PullSchema, func(_ context.Context, resp *ftlv1.PullSchemaResponse) error {
 		out.live.Store(true)
 
-		logger.Debugf("Schema pull %s (event: %T)", subscriptionID, resp.Event)
+		logger.Debugf("Schema pull %s (event: %T)", subscriptionID, resp.Event.Value)
 
 		proto, err := schema.NotificationFromProto(resp.Event)
 		if err != nil {
