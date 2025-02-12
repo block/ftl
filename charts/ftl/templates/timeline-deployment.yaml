@@ -29,7 +29,7 @@ spec:
       containers:
         - name: app
           image: "{{ .Values.timeline.image.repository | default (printf "%s/%s" .Values.image.base .Values.timeline.image.name) }}:{{ .Values.timeline.image.tag | default .Values.image.tag | default $version }}"
-          imagePullPolicy: {{ .Values.timeline.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.timeline.image.pullPolicy | default .Values.image.pullPolicy }}
           resources:
             limits:
               cpu: "{{ .Values.timeline.resources.limits.cpu }}"

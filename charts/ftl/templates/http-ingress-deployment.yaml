@@ -29,7 +29,7 @@ spec:
       containers:
         - name: app
           image: "{{ .Values.ingress.image.repository | default (printf "%s/%s" .Values.image.base .Values.ingress.image.name) }}:{{ .Values.ingress.image.tag | default .Values.image.tag | default $version }}"
-          imagePullPolicy: {{ .Values.ingress.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.ingress.image.pullPolicy | default .Values.image.pullPolicy  }}
           resources:
             limits:
               cpu: "{{ .Values.ingress.resources.limits.cpu }}"

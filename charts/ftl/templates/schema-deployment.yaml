@@ -36,7 +36,7 @@ spec:
       containers:
         - name: app
           image: "{{ .Values.schema.image.repository | default (printf "%s/%s" .Values.image.base .Values.schema.image.name) }}:{{ .Values.schema.image.tag | default .Values.image.tag | default $version }}"
-          imagePullPolicy: {{ .Values.schema.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.schema.image.pullPolicy | default .Values.image.pullPolicy }}
           {{- if .Values.schema.envFrom }}
           envFrom:
             {{- if .Values.schema.envFrom }}

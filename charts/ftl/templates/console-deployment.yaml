@@ -29,7 +29,7 @@ spec:
       containers:
         - name: app
           image: "{{ .Values.console.image.repository | default (printf "%s/%s" .Values.image.base .Values.console.image.name) }}:{{ .Values.console.image.tag | default .Values.image.tag | default $version }}"
-          imagePullPolicy: {{ .Values.console.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.console.image.pullPolicy | default .Values.image.pullPolicy  }}
           resources:
             limits:
               cpu: "{{ .Values.console.resources.limits.cpu }}"

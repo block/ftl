@@ -28,7 +28,7 @@ spec:
       containers:
         - name: app
           image: "{{ .Values.cron.image.repository | default (printf "%s/%s" .Values.image.base .Values.cron.image.name) }}:{{ .Values.cron.image.tag | default .Values.image.tag | default $version }}"
-          imagePullPolicy: {{ .Values.cron.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.cron.image.pullPolicy | default .Values.image.pullPolicy }}
           {{- if .Values.cron.envFrom }}
           envFrom:
             {{- if .Values.cron.envFrom }}

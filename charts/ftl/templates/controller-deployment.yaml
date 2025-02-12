@@ -28,7 +28,7 @@ spec:
       containers:
         - name: app
           image: "{{ .Values.controller.image.repository | default (printf "%s/%s" .Values.image.base .Values.controller.image.name) }}:{{ .Values.controller.image.tag | default .Values.image.tag | default $version }}"
-          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy | default .Values.image.pullPolicy  }}
           resources:
             limits:
               cpu: "{{ .Values.controller.resources.limits.cpu }}"
