@@ -521,7 +521,7 @@ func (s *Service) Close() error {
 		case <-done:
 		case <-depl.ctx.Done():
 		case <-time.After(10 * time.Second):
-			if !cmd.ProcessState.Exited() {
+			if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
 				err := cmd.Kill(syscall.SIGKILL)
 				if err != nil {
 					return fmt.Errorf("failed to kill plugin: %w", err)
