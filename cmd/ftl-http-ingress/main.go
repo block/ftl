@@ -24,7 +24,7 @@ var cli struct {
 	ObservabilityConfig  observability.Config `embed:"" prefix:"o11y-"`
 	LogConfig            log.Config           `embed:"" prefix:"log-"`
 	HTTPIngressConfig    ingress.Config       `embed:""`
-	SchemaServerEndpoint *url.URL             `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
+	SchemaServerEndpoint *url.URL             `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
 	TimelineEndpoint     *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 }
 

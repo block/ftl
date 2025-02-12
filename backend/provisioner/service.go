@@ -29,6 +29,7 @@ import (
 // CommonProvisionerConfig is shared config between the production controller and development server.
 type CommonProvisionerConfig struct {
 	PluginConfigFile *os.File `name:"provisioner-plugin-config" help:"Path to the plugin configuration file." env:"FTL_PROVISIONER_PLUGIN_CONFIG_FILE"`
+	WorkingDir       string   `help:"Working directory." env:"FTL_WORKING_DIR" default:"."`
 }
 
 type Config struct {
@@ -167,7 +168,7 @@ func Start(
 	return nil
 }
 
-func RegistryFromConfigFile(ctx context.Context, file *os.File, scaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
+func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.File, scaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
 	config := provisionerPluginConfig{}
 	bytes, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil {
@@ -177,7 +178,7 @@ func RegistryFromConfigFile(ctx context.Context, file *os.File, scaling scaling.
 		return nil, fmt.Errorf("error parsing plugin configuration: %w", err)
 	}
 
-	registry, err := registryFromConfig(ctx, &config, scaling)
+	registry, err := registryFromConfig(ctx, workingDir, &config, scaling)
 	if err != nil {
 		return nil, fmt.Errorf("error creating provisioner registry: %w", err)
 	}

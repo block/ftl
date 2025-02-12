@@ -50,6 +50,7 @@ func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.Ge
 	}
 	d, _, err := v.FindDeployment(deploymentKey)
 	if err != nil {
+		log.FromContext(ctx).Errorf(err, "failed to find deployment")
 		return nil, fmt.Errorf("failed to find deployment: %w", err)
 	}
 	return connect.NewResponse(&ftlv1.GetDeploymentResponse{Schema: d.ToProto()}), nil
@@ -333,7 +334,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 	}
 
 	for notification := range iterops.Changes(stateIter, EventExtractor) {
-		logger.Debugf("Send Notification (subscription: %s, event: %T)", subscriptionID, notification.Event)
+		logger.Debugf("Send Notification (subscription: %s, event: %T)", subscriptionID, notification.Event.Value)
 		err := sendChange(notification)
 		if err != nil {
 			return err
