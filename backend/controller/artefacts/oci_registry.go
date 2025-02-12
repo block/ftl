@@ -3,14 +3,18 @@ package artefacts
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/atomic"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	googleremote "github.com/google/go-containerregistry/pkg/v1/remote"
@@ -26,12 +30,6 @@ import (
 
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/internal/log"
-
-	"encoding/base64"
-	"strings"
-
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/ecr"
 )
 
 var _ Service = &OCIArtefactService{}
