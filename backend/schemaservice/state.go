@@ -18,6 +18,7 @@ import (
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/raft"
 	"github.com/block/ftl/internal/statemachine"
 )
 
@@ -274,7 +275,7 @@ func (c *schemaStateMachine) Publish(msg EventWrapper) error {
 		// TODO: we need to validate the events before they are
 		// committed to the log
 		logger.Errorf(err, "failed to apply event")
-		return nil
+		return raft.ErrInvalidEvent
 	}
 	// Notify all subscribers using broadcaster
 	c.notifier.Notify(c.runningCtx)

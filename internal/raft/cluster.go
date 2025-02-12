@@ -176,11 +176,15 @@ func (s *ShardHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 
 	if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.runtimeReplicaID, func(ctx context.Context) error {
 		logger.Debugf("Proposing event to shard %d on replica %d", s.shardID, s.cluster.runtimeReplicaID)
-		_, err := s.cluster.nh.SyncPropose(ctx, s.session, msgBytes)
+		res, err := s.cluster.nh.SyncPropose(ctx, s.session, msgBytes)
 		if err != nil {
 			return err //nolint:wrapcheck
 		}
 		s.session.ProposalCompleted()
+
+		if res.Value == InvalidEventValue {
+			return ErrInvalidEvent
+		}
 		return nil
 	}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
 		return fmt.Errorf("failed to propose event: %w", err)
