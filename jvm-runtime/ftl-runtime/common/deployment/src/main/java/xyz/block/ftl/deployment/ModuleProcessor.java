@@ -182,9 +182,6 @@ public class ModuleProcessor {
         var errBytes = err.toByteArray();
         recorder.loadModuleContextOnStartup();
 
-        Files.write(output, schBytes);
-        Files.write(errorOutput, errBytes);
-
         if (launchModeBuildItem.getLaunchMode() == LaunchMode.DEVELOPMENT) {
             HotReloadHandler.getInstance().setResults(schRef.get(), errRef.get());
             // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
@@ -195,8 +192,8 @@ public class ModuleProcessor {
                 RunnerNotification.setRequiresNewRunnerDetails();
             }
         } else {
-            output = outputTargetBuildItem.getOutputDirectory().resolve("launch");
-            try (var out = Files.newOutputStream(output)) {
+            var launch = outputTargetBuildItem.getOutputDirectory().resolve("launch");
+            try (var out = Files.newOutputStream(launch)) {
                 out.write(
                         """
                                 #!/bin/bash
@@ -206,12 +203,16 @@ public class ModuleProcessor {
                                 exec java $FTL_JVM_OPTS -jar quarkus-app/quarkus-run.jar"""
                                 .getBytes(StandardCharsets.UTF_8));
             }
-            var perms = Files.getPosixFilePermissions(output);
+            var perms = Files.getPosixFilePermissions(launch);
             EnumSet<PosixFilePermission> newPerms = EnumSet.copyOf(perms);
             newPerms.add(PosixFilePermission.GROUP_EXECUTE);
             newPerms.add(PosixFilePermission.OWNER_EXECUTE);
-            Files.setPosixFilePermissions(output, newPerms);
+            Files.setPosixFilePermissions(launch, newPerms);
         }
+
+        Files.write(output, schBytes);
+        Files.write(errorOutput, errBytes);
+
     }
 
     @BuildStep
