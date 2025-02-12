@@ -10,12 +10,13 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
 	cronpb "github.com/block/ftl/backend/protos/xyz/block/ftl/cron/v1"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/statemachine"
-	"google.golang.org/protobuf/proto"
 )
 
 // CronState is the state of scheduled cron jobs
