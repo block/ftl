@@ -47,6 +47,8 @@ spec:
             {{- if .Values.console.env }}
             {{- toYaml .Values.console.env | nindent 12 }}
             {{- end }}
+            - name: FTL_BIND
+              value: "http://0.0.0.0:8892"
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://ftl-timeline:8892"
             - name: FTL_ENDPOINT

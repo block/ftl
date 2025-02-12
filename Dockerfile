@@ -13,19 +13,18 @@ COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Used for ftl-runner
 FROM ubuntu:24.04@sha256:72297848456d5d37d1262630108ab308d3e9ec7ed1c3286a32fe09856619a782 AS ubuntu-runtime
 RUN apt-get update && apt-get install -y ca-certificates
-RUN mkdir -p /root/deployments
 
 # Final stage selection
 FROM ${RUNTIME}
 ARG EXTRA_FILES
 ARG SERVICE
 
-WORKDIR /root/
+WORKDIR /home/ubuntu/
 COPY . .
 
 
 # Common environment variables
-ENV PATH="$PATH:/root"
+ENV PATH="$PATH:/home/ubuntu"
 
 # Service-specific configurations
 EXPOSE 8891
@@ -42,7 +41,7 @@ ENV FTL_DSN="postgres://host.docker.internal/ftl?sslmode=disable&user=postgres&p
 ENV FTL_CONTROLLER_CONSOLE_URL="*"
 
 # Provisioner-specific configurations
-ENV FTL_PROVISIONER_PLUGIN_CONFIG_FILE="/root/ftl-provisioner-config.toml"
+ENV FTL_PROVISIONER_PLUGIN_CONFIG_FILE="/home/ubuntu/ftl-provisioner-config.toml"
 
 # Default command
-CMD ["/root/svc"]
+CMD ["/home/ubuntu/svc"]

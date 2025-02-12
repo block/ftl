@@ -105,6 +105,12 @@ data:
                 successThreshold: 1
                 failureThreshold: 15
                 {{- end }}
+              volumeMounts:
+                - mountPath: /home/ubuntu/.cache
+                  name: cache
+          volumes:
+            - name: cache
+              emptyDir: {}
           {{- if .Values.runner.nodeSelector }}
           nodeSelector:
             {{- toYaml .Values.runner.nodeSelector | nindent 12 }}

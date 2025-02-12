@@ -40,14 +40,22 @@ spec:
                 name: {{ include "ftl.fullname" . }}-secrets
           {{- end }}
           env:
+            - name: FTL_WORKING_DIR
+              value: "/working"
+            - name: FTL_ENDPOINT
+              value: "http://ftl-controller:{{ .Values.controller.port }}"
             {{- if .Values.provisioner.env }}
             {{- toYaml .Values.provisioner.env | nindent 12 }}
             {{- end }}
           volumeMounts:
             - mountPath: /config
               name: config
+            - mountPath: /working
+              name: working
       volumes:
         - name: config
           configMap:
             name: {{ .Values.provisioner.configMap }}
+        - name: working
+          emptyDir: {}
       {{- include "ftl.commonPodConfig" .Values.provisioner | nindent 6 }}

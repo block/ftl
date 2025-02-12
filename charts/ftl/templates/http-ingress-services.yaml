@@ -15,7 +15,7 @@ spec:
     - name: {{ .name }}
       port: {{ .port }}
       protocol: {{ .protocol | default "TCP" }}
-      targetPort: {{ .targetPort }}
+      targetPort: 8892
     {{- end }}
   selector:
     {{- include "ftl-http-ingress.selectorLabels" . | nindent 4 }}

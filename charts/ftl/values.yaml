@@ -92,8 +92,6 @@ provisioner:
           fieldPath: status.podIP
     - name: FTL_BIND
       value: "http://$(MY_POD_IP):8893"
-    - name: FTL_ENDPOINT
-      value: "http://ftl-controller:8892"
     - name: FTL_SCHEMA_ENDPOINT
       value: "http://ftl-schema:8892"
     - name: LOG_LEVEL
@@ -168,8 +166,6 @@ cron:
   podAnnotations: null
 
   env:
-    - name: FTL_ENDPOINT
-      value: "http://ftl-controller:8892"
     - name: LOG_LEVEL
       value: "debug"
     - name: LOG_JSON
@@ -209,10 +205,6 @@ ingress:
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-    - name: FTL_ENDPOINT
-      value: "http://ftl-controller:8892"
-    - name: FTL_BIND
-      value: "http://$(MY_POD_IP):8891"
     - name: FTL_INGRESS_ALLOW_ORIGIN
       value: "*"
     - name: LOG_LEVEL
@@ -381,10 +373,6 @@ console:
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
-    - name: FTL_ENDPOINT
-      value: "http://ftl-controller:8892"
-    - name: FTL_BIND
-      value: "http://$(MY_POD_IP):8892"
     - name: HOST_IP
       valueFrom:
         fieldRef:
