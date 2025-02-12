@@ -21,8 +21,8 @@ type releaseCmd struct {
 type releasePublishCmd struct {
 }
 
-func (d *releasePublishCmd) Run(release *releaseCmd) error {
-	svc, err := createContainerService(release)
+func (d *releasePublishCmd) Run(ctx context.Context, release *releaseCmd) error {
+	svc, err := createContainerService(ctx, release)
 	if err != nil {
 		return fmt.Errorf("failed to create container service: %w", err)
 	}
@@ -46,8 +46,8 @@ type releaseExistsCmd struct {
 	Digests []string `help:"Digest sha256:hex" default:""`
 }
 
-func (d *releaseExistsCmd) Run(release *releaseCmd) error {
-	svc, err := createContainerService(release)
+func (d *releaseExistsCmd) Run(ctx context.Context, release *releaseCmd) error {
+	svc, err := createContainerService(ctx, release)
 	if err != nil {
 		return fmt.Errorf("failed to create container service: %w", err)
 	}
@@ -69,8 +69,8 @@ func (d *releaseExistsCmd) Run(release *releaseCmd) error {
 	return nil
 }
 
-func createContainerService(release *releaseCmd) (*artefacts.OCIArtefactService, error) {
-	storage, err := artefacts.NewOCIRegistryStorage(release.Registry)
+func createContainerService(ctx context.Context, release *releaseCmd) (*artefacts.OCIArtefactService, error) {
+	storage, err := artefacts.NewOCIRegistryStorage(ctx, release.Registry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OCI registry storage: %w", err)
 	}

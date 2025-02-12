@@ -47,7 +47,7 @@ func main() {
 	err := observability.Init(ctx, false, "", "ftl-controller", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
-	storage, err := artefacts.NewOCIRegistryStorage(cli.RegistryConfig)
+	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 
 	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, cli.LeaseEndpoint.String(), log.Error)

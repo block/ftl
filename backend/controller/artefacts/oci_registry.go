@@ -3,11 +3,18 @@ package artefacts
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
+	"strings"
+	"time"
 
+	"github.com/alecthomas/atomic"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	googleremote "github.com/google/go-containerregistry/pkg/v1/remote"
@@ -35,9 +42,10 @@ type RegistryConfig struct {
 }
 
 type OCIArtefactService struct {
-	config RegistryConfig
-	auth   authn.AuthConfig
-	puller *googleremote.Puller
+	auth          *atomic.Value[authn.AuthConfig]
+	puller        *googleremote.Puller
+	registry      string
+	allowInsecure bool
 }
 
 type ArtefactRepository struct {
@@ -55,30 +63,97 @@ type ArtefactBlobs struct {
 }
 
 func NewForTesting() *OCIArtefactService {
-	storage, err := NewOCIRegistryStorage(RegistryConfig{Registry: "127.0.0.1:15000/ftl-tests", AllowInsecure: true})
+	storage, err := NewOCIRegistryStorage(context.TODO(), RegistryConfig{Registry: "127.0.0.1:15000/ftl-tests", AllowInsecure: true})
 	if err != nil {
 		panic(err)
 	}
 	return storage
 }
 
-func NewOCIRegistryStorage(config RegistryConfig) (*OCIArtefactService, error) {
+func isECRRepository(repo string) bool {
+	ecrRegex := regexp.MustCompile(`(?i)^\d{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/`)
+	return ecrRegex.MatchString(repo)
+}
+
+func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArtefactService, error) {
 	// Connect the registry targeting the specified container
 	puller, err := googleremote.NewPuller()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create puller for registry '%s': %w", config.Registry, err)
 	}
-	return &OCIArtefactService{
-		config: config,
-		auth:   authn.AuthConfig{Username: config.Username, Password: config.Password},
-		puller: puller,
-	}, nil
+
+	o := &OCIArtefactService{
+		auth:          &atomic.Value[authn.AuthConfig]{},
+		puller:        puller,
+		registry:      config.Registry,
+		allowInsecure: config.AllowInsecure,
+	}
+
+	if isECRRepository(config.Registry) {
+
+		username, password, err := getECRCredentials(ctx)
+		if err != nil {
+			return nil, err
+		}
+		o.auth.Store(authn.AuthConfig{Username: username, Password: password})
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(time.Hour):
+					username, password, err := getECRCredentials(ctx)
+					if err != nil {
+						log.FromContext(ctx).Errorf(err, "failed to refresh ECR credentials")
+					}
+					o.auth.Store(authn.AuthConfig{Username: username, Password: password})
+				}
+			}
+		}()
+	} else {
+		o.auth.Store(authn.AuthConfig{Username: config.Username, Password: config.Password})
+	}
+	return o, nil
+}
+
+func getECRCredentials(ctx context.Context) (string, string, error) {
+	// Load AWS Config
+	cfg, err := awsconfig.LoadDefaultConfig(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	// Create ECR client
+	ecrClient := ecr.NewFromConfig(cfg)
+	// Get authorization token
+	resp, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get authorization token: %w", err)
+	}
+
+	if len(resp.AuthorizationData) == 0 {
+		return "", "", fmt.Errorf("no authorization data: %w", err)
+	}
+	authData := resp.AuthorizationData[0]
+	token, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to decode auth token: %w", err)
+	}
+
+	splitToken := strings.SplitN(string(token), ":", 2)
+	if len(splitToken) != 2 {
+		return "", "", fmt.Errorf("failed to decode auth token due to invalid format: %w", err)
+	}
+
+	username := splitToken[0]
+	password := splitToken[1]
+	return username, password, nil
 }
 
 func (s *OCIArtefactService) GetDigestsKeys(ctx context.Context, digests []sha256.SHA256) (keys []ArtefactKey, missing []sha256.SHA256, err error) {
 	repo, err := s.repoFactory()
 	if err != nil {
-		return nil, nil, fmt.Errorf("unable to connect to container registry '%s': %w", s.config.Registry, err)
+		return nil, nil, fmt.Errorf("unable to connect to container registry '%s': %w", s.registry, err)
 	}
 	set := make(map[sha256.SHA256]bool)
 	for _, d := range digests {
@@ -109,7 +184,7 @@ func (s *OCIArtefactService) Upload(ctx context.Context, artefact Artefact) (sha
 	repo, err := s.repoFactory()
 	logger := log.FromContext(ctx)
 	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to connect to repository '%s': %w", s.config.Registry, err)
+		return sha256.SHA256{}, fmt.Errorf("unable to connect to repository '%s': %w", s.registry, err)
 	}
 
 	// 2. Pack the files and tag the packed manifest
@@ -160,10 +235,10 @@ func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io
 	// So we are using google's go-containerregistry to do the actual download
 	// This is not great, we should remove oras at some point
 	opts := []name.Option{}
-	if s.config.AllowInsecure {
+	if s.allowInsecure {
 		opts = append(opts, name.Insecure)
 	}
-	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", s.config.Registry, dg.String()), opts...)
+	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", s.registry, dg.String()), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create digest '%s': %w", dg, err)
 	}
@@ -179,20 +254,21 @@ func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io
 }
 
 func (s *OCIArtefactService) repoFactory() (*remote.Repository, error) {
-	reg, err := remote.NewRepository(s.config.Registry)
+	reg, err := remote.NewRepository(s.registry)
 	if err != nil {
-		return nil, fmt.Errorf("unable to connect to container registry '%s': %w", s.config.Registry, err)
+		return nil, fmt.Errorf("unable to connect to container registry '%s': %w", s.registry, err)
 	}
 
+	a := s.auth.Load()
 	reg.Client = &auth.Client{
 		Client: retry.DefaultClient,
 		Cache:  auth.NewCache(),
-		Credential: auth.StaticCredential(s.config.Registry, auth.Credential{
-			Username: s.config.Username,
-			Password: s.config.Password,
+		Credential: auth.StaticCredential(s.registry, auth.Credential{
+			Username: a.Username,
+			Password: a.Password,
 		}),
 	}
-	reg.PlainHTTP = s.config.AllowInsecure
+	reg.PlainHTTP = s.allowInsecure
 	return reg, nil
 }
 
