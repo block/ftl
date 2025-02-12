@@ -146,7 +146,7 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 		}
 		changeset = &cs
 	}
-	err = s.State.Publish(ctx, EventWrapper{Event: &schema.DeploymentRuntimeEvent{Changeset: changeset, Payload: event}})
+	err = s.publishEvent(ctx, &schema.DeploymentRuntimeEvent{Changeset: changeset, Payload: event})
 	if err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
@@ -199,9 +199,7 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 	}
 
 	// TODO: validate changeset schema with canonical schema
-	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetCreatedEvent{
-		Changeset: changeset,
-	}})
+	err = s.publishEvent(ctx, &schema.ChangesetCreatedEvent{Changeset: changeset})
 	if err != nil {
 		return nil, fmt.Errorf("could not create changeset %w", err)
 	}
@@ -215,9 +213,7 @@ func (s *Service) PrepareChangeset(ctx context.Context, req *connect.Request[ftl
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetPreparedEvent{
-		Key: changesetKey,
-	}})
+	err = s.publishEvent(ctx, &schema.ChangesetPreparedEvent{Key: changesetKey})
 	if err != nil {
 		return nil, fmt.Errorf("could not prepare changeset %w", err)
 	}
@@ -230,9 +226,7 @@ func (s *Service) CommitChangeset(ctx context.Context, req *connect.Request[ftlv
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetCommittedEvent{
-		Key: changesetKey,
-	}})
+	err = s.publishEvent(ctx, &schema.ChangesetCommittedEvent{Key: changesetKey})
 	if err != nil {
 		return nil, fmt.Errorf("could not commit changeset %w", err)
 	}
@@ -250,9 +244,7 @@ func (s *Service) DrainChangeset(ctx context.Context, req *connect.Request[ftlv1
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetDrainedEvent{
-		Key: changesetKey,
-	}})
+	err = s.publishEvent(ctx, &schema.ChangesetDrainedEvent{Key: changesetKey})
 	if err != nil {
 		return nil, fmt.Errorf("could not drain changeset %w", err)
 	}
@@ -264,9 +256,7 @@ func (s *Service) FinalizeChangeset(ctx context.Context, req *connect.Request[ft
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetFinalizedEvent{
-		Key: changesetKey,
-	}})
+	err = s.publishEvent(ctx, &schema.ChangesetFinalizedEvent{Key: changesetKey})
 	if err != nil {
 		return nil, fmt.Errorf("could not de-provision changeset %w", err)
 	}
@@ -278,10 +268,10 @@ func (s *Service) RollbackChangeset(ctx context.Context, req *connect.Request[ft
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetRollingBackEvent{
+	err = s.publishEvent(ctx, &schema.ChangesetRollingBackEvent{
 		Key:   changesetKey,
 		Error: req.Msg.Error,
-	}})
+	})
 	if err != nil {
 		return nil, fmt.Errorf("could not fail changeset %w", err)
 	}
@@ -294,13 +284,26 @@ func (s *Service) FailChangeset(ctx context.Context, req *connect.Request[ftlv1.
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
-	err = s.State.Publish(ctx, EventWrapper{Event: &schema.ChangesetFailedEvent{
-		Key: changesetKey,
-	}})
+	err = s.publishEvent(ctx, &schema.ChangesetFailedEvent{Key: changesetKey})
 	if err != nil {
 		return nil, fmt.Errorf("could not fail changeset %w", err)
 	}
 	return connect.NewResponse(&ftlv1.FailChangesetResponse{}), nil
+}
+
+func (s *Service) publishEvent(ctx context.Context, event schema.Event) error {
+	// Verify the event against the latest known state before publishing
+	state, err := s.State.View(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get schema state: %w", err)
+	}
+	if err := state.VerifyEvent(ctx, event); err != nil {
+		return fmt.Errorf("invalid event: %w", err)
+	}
+	if err := s.State.Publish(ctx, EventWrapper{Event: event}); err != nil {
+		return fmt.Errorf("failed to publish event: %w", err)
+	}
+	return nil
 }
 
 func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string, sendChange func(response *ftlv1.PullSchemaResponse) error) error {

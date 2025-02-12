@@ -14,6 +14,7 @@ import (
 //protobuf:export
 type Event interface {
 	event()
+	// Validate the event is internally consistent
 	Validate() error
 	// DebugString returns a string representation of the event for debugging purposes
 	DebugString() string

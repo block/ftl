@@ -46,13 +46,60 @@ func (r *SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error 
 	}
 }
 
-func handleDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEvent) error {
+// VerifyEvent verifies an event is valid for the given state, without applying it
+func (r *SchemaState) VerifyEvent(ctx context.Context, event schema.Event) error {
+	if err := event.Validate(); err != nil {
+		return fmt.Errorf("invalid event: %w", err)
+	}
+	switch e := event.(type) {
+	case *schema.DeploymentRuntimeEvent:
+		return verifyDeploymentRuntimeEvent(r, e)
+	case *schema.ChangesetCreatedEvent:
+		return verifyChangesetCreatedEvent(r, e)
+	case *schema.ChangesetPreparedEvent:
+		return verifyChangesetPreparedEvent(r, e)
+	case *schema.ChangesetCommittedEvent:
+		return verifyChangesetCommittedEvent(r, e)
+	case *schema.ChangesetDrainedEvent:
+		return verifyChangesetDrainedEvent(r, e)
+	case *schema.ChangesetFinalizedEvent:
+		return verifyChangesetFinalizedEvent(r, e)
+	case *schema.ChangesetRollingBackEvent:
+		return verifyChangesetRollingBackEvent(r, e)
+	case *schema.ChangesetFailedEvent:
+		return verifyChangesetFailedEvent(r, e)
+	default:
+		return fmt.Errorf("unknown event type: %T", e)
+	}
+}
+
+func verifyDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEvent) error {
 	if cs, ok := e.ChangesetKey().Get(); ok {
-		c, ok := t.changesets[cs]
+		_, ok := t.changesets[cs]
 		if !ok {
 			return fmt.Errorf("changeset %s not found", cs.String())
 		}
+		for _, m := range t.changesets[cs].Modules {
+			if m.Name == e.DeploymentKey().Payload.Module {
+				return nil
+			}
+		}
+	}
+	for _, m := range t.deployments {
+		if m.Runtime.Deployment.DeploymentKey == e.DeploymentKey() {
+			return nil
+		}
+	}
+	return fmt.Errorf("deployment %s not found", e.DeploymentKey().String())
+}
+
+func handleDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEvent) error {
+	if err := verifyDeploymentRuntimeEvent(t, e); err != nil {
+		return err
+	}
+	if cs, ok := e.ChangesetKey().Get(); ok {
 		module := e.DeploymentKey().Payload.Module
+		c := t.changesets[cs]
 		for _, m := range c.Modules {
 			if m.Name == module {
 				err := e.Payload.ApplyToModule(m)
@@ -77,7 +124,7 @@ func handleDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEve
 	return fmt.Errorf("deployment %s not found", e.DeploymentKey().String())
 }
 
-func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent) error {
+func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent) error {
 	if existing := t.changesets[e.Changeset.Key]; existing != nil {
 		return fmt.Errorf("changeset %s already exists ", e.Changeset.Key)
 	}
@@ -85,7 +132,6 @@ func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	existingModules := map[string]key.Changeset{}
 	for _, cs := range t.changesets {
 		if cs.ModulesAreCanonical() {
-			//TODO: at the moment changesets accumulate forever...
 			for _, mod := range cs.Modules {
 				existingModules[mod.Name] = cs.Key
 			}
@@ -130,11 +176,18 @@ func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 			return fmt.Errorf("changeset failed validation %w", errors.Join(problems...))
 		}
 	}
+	return nil
+}
+
+func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent) error {
+	if err := verifyChangesetCreatedEvent(t, e); err != nil {
+		return err
+	}
 	t.changesets[e.Changeset.Key] = e.Changeset
 	return nil
 }
 
-func handleChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEvent) error {
+func verifyChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEvent) error {
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
@@ -147,6 +200,14 @@ func handleChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEve
 			return fmt.Errorf("deployment %s has no endpoint", dep.Name)
 		}
 	}
+	return nil
+}
+
+func handleChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEvent) error {
+	if err := verifyChangesetPreparedEvent(t, e); err != nil {
+		return err
+	}
+	changeset := t.changesets[e.Key]
 	changeset.State = schema.ChangesetStatePrepared
 	// TODO: what does this actually mean? Worry about it when we start implementing canaries, but it will be clunky
 	// If everything that cares about canaries needs to scan for prepared changesets
@@ -156,7 +217,7 @@ func handleChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEve
 	return nil
 }
 
-func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schema.ChangesetCommittedEvent) error {
+func verifyChangesetCommittedEvent(t *SchemaState, e *schema.ChangesetCommittedEvent) error {
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
@@ -167,6 +228,15 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", dep.Name, schema.DeploymentStateCanary, dep.Runtime.Deployment.State)
 		}
 	}
+	return nil
+}
+
+func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schema.ChangesetCommittedEvent) error {
+	if err := verifyChangesetCommittedEvent(t, e); err != nil {
+		return err
+	}
+
+	changeset := t.changesets[e.Key]
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
 	for _, dep := range changeset.Modules {
@@ -182,8 +252,7 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 	return nil
 }
 
-func handleChangesetDrainedEvent(ctx context.Context, t *SchemaState, e *schema.ChangesetDrainedEvent) error {
-	logger := log.FromContext(ctx)
+func verifyChangesetDrainedEvent(t *SchemaState, e *schema.ChangesetDrainedEvent) error {
 	changeset, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
@@ -191,34 +260,65 @@ func handleChangesetDrainedEvent(ctx context.Context, t *SchemaState, e *schema.
 	if changeset.State != schema.ChangesetStateCommitted {
 		return fmt.Errorf("changeset %v is not in the correct state", changeset.Key)
 	}
+
+	for _, dep := range changeset.RemovingModules {
+		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDraining &&
+			dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeProvisioning {
+			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", dep.Name, schema.DeploymentStateDeProvisioning, dep.Runtime.Deployment.State)
+		}
+	}
+	return nil
+}
+
+func handleChangesetDrainedEvent(ctx context.Context, t *SchemaState, e *schema.ChangesetDrainedEvent) error {
+	if err := verifyChangesetDrainedEvent(t, e); err != nil {
+		return err
+	}
+
+	logger := log.FromContext(ctx)
+	changeset := t.changesets[e.Key]
 	logger.Debugf("Changeset %s drained", e.Key)
 
 	for _, dep := range changeset.RemovingModules {
 		if dep.ModRuntime().ModDeployment().State == schema.DeploymentStateDraining {
 			dep.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
-		} else if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeProvisioning {
-			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", dep.Name, schema.DeploymentStateDeProvisioning, dep.Runtime.Deployment.State)
 		}
 	}
 	changeset.State = schema.ChangesetStateDrained
 	return nil
 }
-func handleChangesetFinalizedEvent(ctx context.Context, r *SchemaState, e *schema.ChangesetFinalizedEvent) error {
-	logger := log.FromContext(ctx)
-	changeset, ok := r.changesets[e.Key]
+func verifyChangesetFinalizedEvent(t *SchemaState, e *schema.ChangesetFinalizedEvent) error {
+	changeset, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
 	}
 	if changeset.State != schema.ChangesetStateDrained {
 		return fmt.Errorf("changeset %v is not in the correct state expected %v got %v", changeset.Key, schema.ChangesetStateDrained, changeset.State)
 	}
+
+	for _, dep := range changeset.RemovingModules {
+		if dep.ModRuntime().ModDeployment().State == schema.DeploymentStateDeProvisioning {
+			continue
+		}
+		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeleted {
+			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", dep.Name, schema.DeploymentStateDeleted, dep.Runtime.Deployment.State)
+		}
+	}
+	return nil
+}
+
+func handleChangesetFinalizedEvent(ctx context.Context, r *SchemaState, e *schema.ChangesetFinalizedEvent) error {
+	if err := verifyChangesetFinalizedEvent(r, e); err != nil {
+		return err
+	}
+
+	logger := log.FromContext(ctx)
+	changeset := r.changesets[e.Key]
 	logger.Debugf("Changeset %s de-provisioned", e.Key)
 
 	for _, dep := range changeset.RemovingModules {
 		if dep.ModRuntime().ModDeployment().State == schema.DeploymentStateDeProvisioning {
 			dep.Runtime.Deployment.State = schema.DeploymentStateDeleted
-		} else if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeleted {
-			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", dep.Name, schema.DeploymentStateDeleted, dep.Runtime.Deployment.State)
 		}
 	}
 	changeset.State = schema.ChangesetStateFinalized
@@ -232,11 +332,20 @@ func handleChangesetFinalizedEvent(ctx context.Context, r *SchemaState, e *schem
 	return nil
 }
 
-func handleChangesetFailedEvent(t *SchemaState, e *schema.ChangesetFailedEvent) error {
-	changeset, ok := t.changesets[e.Key]
+func verifyChangesetFailedEvent(t *SchemaState, e *schema.ChangesetFailedEvent) error {
+	_, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
 	}
+	return nil
+}
+
+func handleChangesetFailedEvent(t *SchemaState, e *schema.ChangesetFailedEvent) error {
+	if err := verifyChangesetFailedEvent(t, e); err != nil {
+		return err
+	}
+
+	changeset := t.changesets[e.Key]
 	changeset.State = schema.ChangesetStateFailed
 	//TODO: de-provisioning on failure?
 	delete(t.changesets, changeset.Key)
@@ -246,14 +355,22 @@ func handleChangesetFailedEvent(t *SchemaState, e *schema.ChangesetFailedEvent) 
 	t.archivedChangesets = nl
 	return nil
 }
-func handleChangesetRollingBackEvent(t *SchemaState, e *schema.ChangesetRollingBackEvent) error {
-	changeset, ok := t.changesets[e.Key]
+func verifyChangesetRollingBackEvent(t *SchemaState, e *schema.ChangesetRollingBackEvent) error {
+	_, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
 	}
+	return nil
+}
+
+func handleChangesetRollingBackEvent(t *SchemaState, e *schema.ChangesetRollingBackEvent) error {
+	if err := verifyChangesetRollingBackEvent(t, e); err != nil {
+		return err
+	}
+
+	changeset := t.changesets[e.Key]
 	changeset.State = schema.ChangesetStateRollingBack
 	changeset.Error = e.Error
-	println("ERROR " + e.Error)
 	for _, module := range changeset.Modules {
 		module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
 	}
