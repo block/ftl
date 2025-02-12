@@ -79,4 +79,5 @@ spec:
               containerPort: {{ .Values.controller.port }}
               protocol: "TCP"
           {{- include "ftl.healthProbes" .Values.controller | nindent 10 }}
+          {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
     {{- include "ftl.commonPodConfig" .Values.controller | nindent 6 }}

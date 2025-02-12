@@ -92,41 +92,14 @@ data:
                 - name: https
                   containerPort: {{ .Values.runner.port }}
                   protocol: "TCP"
-              readinessProbe:
-                {{- if .Values.runner.readinessProbe }}
-                {{- toYaml .Values.runner.readinessProbe | nindent 16 }}
-                {{- else }}
-                httpGet:
-                  path: /healthz
-                  port: {{ .Values.runner.port }}
-                initialDelaySeconds: 1
-                periodSeconds: 2
-                timeoutSeconds: 2
-                successThreshold: 1
-                failureThreshold: 15
-                {{- end }}
+              {{- include "ftl.healthProbes" .Values.timeline | nindent 14 }}
               volumeMounts:
                 - mountPath: /home/ubuntu/.cache
                   name: cache
           volumes:
             - name: cache
               emptyDir: {}
-          {{- if .Values.runner.nodeSelector }}
-          nodeSelector:
-            {{- toYaml .Values.runner.nodeSelector | nindent 12 }}
-          {{- end }}
-          {{- if .Values.runner.affinity }}
-          affinity:
-            {{- toYaml .Values.runner.affinity | nindent 12 }}
-          {{- end }}
-          {{- if .Values.runner.topologySpreadConstraints }}
-          topologySpreadConstraints:
-            {{- toYaml .Values.runner.topologySpreadConstraints | nindent 12 }}
-          {{- end }}
-          {{- if .Values.runner.tolerations }}
-          tolerations:
-            {{- toYaml .Values.runner.tolerations | nindent 12 }}
-          {{- end }}
+      {{- include "ftl.commonPodConfig" .Values.runner | nindent 10 }}
   serviceAccountTemplate: |-
     apiVersion: v1
     kind: ServiceAccount

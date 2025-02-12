@@ -66,6 +66,7 @@ spec:
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
           {{- include "ftl.healthProbes" .Values.console | nindent 10 }}
+          {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.console | nindent 6 }}
 
 {{- end }}
