@@ -42,6 +42,6 @@ ENV FTL_CONTROLLER_CONSOLE_URL="*"
 
 # Provisioner-specific configurations
 ENV FTL_PROVISIONER_PLUGIN_CONFIG_FILE="/home/ubuntu/ftl-provisioner-config.toml"
-USER 1000:1000
+
 # Default command
 CMD ["/home/ubuntu/svc"]
