@@ -34,10 +34,15 @@ func build(ctx context.Context, plugin *languageplugin.LanguagePlugin, projectCo
 
 	_, err = sqlc.AddQueriesToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to add queries to schema: %w", err)
+		logger.Errorf(err, "Failed to add queries to schema")
+		// Continue with build even if sqlc generation fails
 	}
+
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
-	return handleBuildResult(ctx, projectConfig, bctx.Config, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devModeEndpoints)
+	buildResult := result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode))
+
+	// Process the build result
+	return handleBuildResult(ctx, projectConfig, bctx.Config, buildResult, devModeEndpoints)
 }
 
 // handleBuildResult processes the result of a build

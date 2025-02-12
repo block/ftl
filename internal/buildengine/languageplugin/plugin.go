@@ -360,7 +360,6 @@ func (p *LanguagePlugin) watchForCmdError(ctx context.Context) {
 }
 
 func (p *LanguagePlugin) run(ctx context.Context) {
-
 	// State
 	var bctx BuildContext
 	var stubsRoot string
@@ -428,6 +427,7 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 				continue
 			}
 
+			// Start a new build stream
 			newStreamChan, newCancelFunc, err := p.client.build(ctx, connect.NewRequest(&langpb.BuildRequest{
 				ProjectConfig:        projectConfig,
 				StubsRoot:            stubsRoot,
@@ -441,12 +441,36 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 				},
 			}))
 			if err != nil {
+				// Even if build stream fails, we want to keep watching for changes if requested
+				if c.rebuildAutomatically {
+					logger.Debugf("Build stream failed but continuing to watch for changes")
+					// Set up a new stream for watching changes only
+					newStreamChan, newCancelFunc, err = p.client.build(ctx, connect.NewRequest(&langpb.BuildRequest{
+						ProjectConfig:        projectConfig,
+						StubsRoot:            stubsRoot,
+						RebuildAutomatically: true,
+						BuildContext: &langpb.BuildContext{
+							Id:           contextID(bctx.Config, contextCounter) + "-watch",
+							ModuleConfig: configProto,
+							Schema:       schemaProto,
+							Dependencies: bctx.Dependencies,
+							BuildEnv:     c.BuildEnv,
+						},
+					}))
+					if err != nil {
+						logger.Errorf(err, "Failed to set up watch stream")
+					} else {
+						streamChan = newStreamChan
+						streamCancel = newCancelFunc
+					}
+				}
 				c.result <- result.Err[BuildResult](fmt.Errorf("failed to start build stream: %w", err))
 				continue
 			}
-			activeBuildCmd = optional.Some[buildCommand](c)
+
 			streamChan = newStreamChan
 			streamCancel = newCancelFunc
+			activeBuildCmd = optional.Some[buildCommand](c)
 
 		// Receive messages from the current build stream
 		case r := <-streamChan:
@@ -457,6 +481,7 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 					c.result <- result.Err[BuildResult](err)
 					activeBuildCmd = optional.None[buildCommand]()
 				}
+				streamCancel()
 				streamCancel = nil
 				streamChan = nil
 			}
