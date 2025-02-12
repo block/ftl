@@ -42,6 +42,6 @@ func main() {
 	timelineClient := timelineclient.NewClient(ctx, cli.CronConfig.TimelineEndpoint)
 	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, "cron-timeline", schemaClient), timelineClient)
 
-	err = cron.Start(ctx, eventSource, routeManager, timelineClient)
+	err = cron.Start(ctx, cli.CronConfig, eventSource, routeManager, timelineClient)
 	kctx.FatalIfErrorf(err, "failed to start cron")
 }
