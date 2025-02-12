@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 	"io"
 	"regexp"
+	"time"
 
 	"github.com/alecthomas/atomic"
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -122,7 +122,7 @@ func getECRCredentials(ctx context.Context) (string, string, error) {
 	// Load AWS Config
 	cfg, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to load AWS config: %v", err)
+		return "", "", fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
 	// Create ECR client
@@ -130,21 +130,21 @@ func getECRCredentials(ctx context.Context) (string, string, error) {
 	// Get authorization token
 	resp, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get authorization token: %v", err)
+		return "", "", fmt.Errorf("failed to get authorization token: %w", err)
 	}
 
 	if len(resp.AuthorizationData) == 0 {
-		return "", "", fmt.Errorf("no authorization data: %v", err)
+		return "", "", fmt.Errorf("no authorization data: %w", err)
 	}
 	authData := resp.AuthorizationData[0]
 	token, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to decode auth token: %v", err)
+		return "", "", fmt.Errorf("failed to decode auth token: %w", err)
 	}
 
 	splitToken := strings.SplitN(string(token), ":", 2)
 	if len(splitToken) != 2 {
-		return "", "", fmt.Errorf("failed to decode auth token due to invalid format: %v", err)
+		return "", "", fmt.Errorf("failed to decode auth token due to invalid format: %w", err)
 	}
 
 	username := splitToken[0]
