@@ -40,6 +40,11 @@ type IntStateMachine struct {
 var _ sm.Snapshotting[int64, int64, IntEvent] = &IntStateMachine{}
 
 func (s *IntStateMachine) Publish(event IntEvent) error {
+	if event == 12345 {
+		// 12345 is not a valid number, so we return an error
+		return raft.ErrInvalidEvent
+	}
+
 	s.sum += int64(event)
 	return nil
 }
@@ -180,6 +185,30 @@ func TestStateIter(t *testing.T) {
 	assert.NoError(t, shards[1].Publish(ctx, IntEvent(1)))
 
 	assert.True(t, iterops.Contains(changes, 2))
+}
+
+func TestInvalidEvents(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.SkipNow()
+	}
+	ctx := testContext(t)
+
+	_, shards := startClusters(ctx, t, 2, func(b *raft.Builder) []sm.Handle[int64, int64, IntEvent] {
+		return []sm.Handle[int64, int64, IntEvent]{
+			raft.AddShard(ctx, b, 1, &IntStateMachine{}),
+		}
+	})
+
+	// 12345 is not actually a valid number, so we expect an error
+	err := shards[0][0].Publish(ctx, IntEvent(12345))
+	assert.IsError(t, err, raft.ErrInvalidEvent)
+
+	// check that the event did not impact the state machine
+	assertShardValue(ctx, t, 0, shards[0][0])
+	// and we can still publish valid events
+	assert.NoError(t, shards[0][0].Publish(ctx, IntEvent(1)))
+	assertShardValue(ctx, t, 1, shards[0][0])
 }
 
 func testBuilder(t *testing.T, addresses []*net.TCPAddr, address string, _ *url.URL) *raft.Builder {

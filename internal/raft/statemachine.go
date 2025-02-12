@@ -1,6 +1,7 @@
 package raft
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -8,6 +9,11 @@ import (
 
 	sm "github.com/block/ftl/internal/statemachine"
 )
+
+// ErrInvalidEvent is returned if we are attempting to publish an invalid event.
+var ErrInvalidEvent = errors.New("invalid event")
+
+const InvalidEventValue = 0x1001
 
 // stateMachineShim is a shim to convert a typed StateMachine to a dragonboat statemachine.IStateMachine.
 type stateMachineShim[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable[E]] struct {
@@ -44,6 +50,11 @@ func (s *stateMachineShim[Q, R, E, EPtr]) Update(entry statemachine.Entry) (stat
 		return statemachine.Result{}, fmt.Errorf("failed to unmarshal event: %w", err)
 	}
 	if err := s.sm.Publish(to); err != nil {
+		if errors.Is(err, ErrInvalidEvent) {
+			return statemachine.Result{
+				Value: InvalidEventValue,
+			}, nil
+		}
 		return statemachine.Result{}, fmt.Errorf("failed to update state machine: %w", err)
 	}
 
