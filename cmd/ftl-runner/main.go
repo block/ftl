@@ -41,7 +41,7 @@ and route to user code.
 	ctx := log.ContextWithLogger(context.Background(), logger)
 	err = observability.Init(ctx, false, "", "ftl-runner", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialise observability")
-	storage, err := artefacts.NewOCIRegistryStorage(cli.RegistryConfig)
+	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 	// Substitute in the runner key into the deployment directory.
 	cli.RunnerConfig.DeploymentDir = os.Expand(cli.RunnerConfig.DeploymentDir, func(key string) string {

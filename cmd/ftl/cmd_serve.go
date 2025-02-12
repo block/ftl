@@ -176,7 +176,7 @@ func (s *serveCommonConfig) run(
 	if err != nil {
 		return fmt.Errorf("registry init failed: %w", err)
 	}
-	storage, err := artefacts.NewOCIRegistryStorage(artefacts.RegistryConfig{
+	storage, err := artefacts.NewOCIRegistryStorage(ctx, artefacts.RegistryConfig{
 		AllowInsecure: true,
 		Registry:      fmt.Sprintf("127.0.0.1:%d/ftl", s.RegistryPort),
 	})
