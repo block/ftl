@@ -7,6 +7,7 @@ image:
 
 ingress:
   enabled: true
+  k8sIngress: true
   image:
     repository: "ftl:5000/ftl-http-ingress"
   ingressAnnotations:

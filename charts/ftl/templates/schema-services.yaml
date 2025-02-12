@@ -1,3 +1,4 @@
+{{- if .Values.routing.services }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -39,3 +40,4 @@ spec:
   selector:
     {{- include "ftl-schema.selectorLabels" . | nindent 4 }}
   type: {{ .Values.schema.services.raft.type | default "ClusterIP" }}
+{{- end }}

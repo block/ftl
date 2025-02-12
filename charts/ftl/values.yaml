@@ -6,6 +6,9 @@ image:
   pullPolicy: IfNotPresent
   base: "ftl0"
 
+routing:
+  services: true
+
 secrets:
   logEncryptionKey: null
   asyncEncryptionKey: null
@@ -200,6 +203,7 @@ registry:
 
 ingress:
   enabled: false
+  k8sIngress: false
   env:
     - name: MY_POD_IP
       valueFrom:

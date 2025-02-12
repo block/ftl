@@ -19,8 +19,13 @@ rules:
     resources: [ "deployments" ]
     verbs: [ "get", "list", "watch", "delete", "create", "update", "patch" ]
   - apiGroups: [ "" ]
-    resources: [ "services" , "serviceaccounts"]
+    resources: [ "serviceaccounts"]
     verbs: [ "get", "list", "watch", "delete", "create", "update", "patch" ]
+{{ if .Values.routing.services }}
+  - apiGroups: [ "" ]
+    resources: [ "services" ]
+    verbs: [ "get", "list", "watch", "delete", "create", "update", "patch" ]
+{{ end }}
   - apiGroups: [ "" ]
     resources: [ "pods" ]
     verbs: [ "get", "list", "watch" ]
@@ -29,9 +34,11 @@ rules:
     resourceNames:
       - ftl-controller-deployment-config
     verbs: [ "get"]
+{{ if .Values.istio.enabled }}
   - apiGroups: [ "security.istio.io" ]
     resources: [ "authorizationpolicies" ]
     verbs: [ "get", "list", "watch", "delete", "create", "update", "patch" ]
+{{ end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

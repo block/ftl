@@ -1,4 +1,4 @@
-{{- if .Values.timeline.enabled }}
+{{- if and .Values.timeline.enabled .Values.routing.services }}
 apiVersion: v1
 kind: Service
 metadata:

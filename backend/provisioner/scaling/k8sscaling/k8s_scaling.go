@@ -305,34 +305,10 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	if err != nil {
 		return fmt.Errorf("failed to get deployment %s: %w", provisionerDeploymentName, err)
 	}
-	// First create a Service, this will be the root owner of all the other resources
-	// Only create if it does not exist already
-	servicesClient := r.client.CoreV1().Services(r.namespace)
-	service, err := servicesClient.Get(ctx, name, v1.GetOptions{})
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("failed to get service %s: %w", name, err)
-		}
-		logger.Debugf("Creating new kube service %s", name)
-		err = decodeBytesToObject([]byte(cm.Data[serviceTemplate]), service)
-		if err != nil {
-			return fmt.Errorf("failed to decode service from configMap %s: %w", configMapName, err)
-		}
-		service.Name = name
-		service.OwnerReferences = []v1.OwnerReference{{APIVersion: "apps/v1", Kind: "deployment", Name: controllerDeploymentName, UID: controllerDeployment.UID}}
-		service.Spec.Selector = map[string]string{"app": name}
-		addLabels(&service.ObjectMeta, module, name)
-		service, err = servicesClient.Create(ctx, service, v1.CreateOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to create service %s: %w", name, err)
-		}
-		logger.Debugf("Created kube service %s", name)
-	} else {
-		logger.Debugf("Service %s already exists", name)
-	}
 
 	// Now create a ServiceAccount, we mostly need this for Istio but we create it for all deployments
 	// To keep things consistent
+	// This will be the owner of all the other resources
 	serviceAccountClient := r.client.CoreV1().ServiceAccounts(r.namespace)
 	serviceAccount, err := serviceAccountClient.Get(ctx, module, v1.GetOptions{})
 	if err != nil {
@@ -350,7 +326,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 			serviceAccount.Labels = map[string]string{}
 		}
 		serviceAccount.Labels[moduleLabel] = module
-		_, err = serviceAccountClient.Create(ctx, serviceAccount, v1.CreateOptions{})
+		serviceAccount, err = serviceAccountClient.Create(ctx, serviceAccount, v1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to create service account%s: %w", name, err)
 		}
@@ -359,9 +335,40 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		logger.Debugf("Service account %s already exists", name)
 	}
 
+	// First create a Service, this will be the root owner of all the other resources
+	// Only create if it does not exist already
+	servicesClient := r.client.CoreV1().Services(r.namespace)
+	service, err := servicesClient.Get(ctx, name, v1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("failed to get service %s: %w", name, err)
+		}
+		svt, ok := cm.Data[serviceTemplate]
+		if ok {
+			logger.Debugf("Creating new kube service %s", name)
+			err = decodeBytesToObject([]byte(svt), service)
+			if err != nil {
+				return fmt.Errorf("failed to decode service from configMap %s: %w", configMapName, err)
+			}
+			service.Name = name
+			service.OwnerReferences = []v1.OwnerReference{{APIVersion: "apps/v1", Kind: "serviceaccount", Name: module, UID: serviceAccount.UID}}
+			service.Spec.Selector = map[string]string{"app": name}
+			addLabels(&service.ObjectMeta, module, name)
+			_, err = servicesClient.Create(ctx, service, v1.CreateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to create service %s: %w", name, err)
+			}
+			logger.Debugf("Created kube service %s", name)
+		} else {
+			logger.Debugf("No service template found in configMap %s", configMapName)
+		}
+	} else {
+		logger.Debugf("Service %s already exists", name)
+	}
+
 	// Sync the istio policy if applicable
 	if sec, ok := r.istioSecurity.Get(); ok {
-		err = r.syncIstioPolicy(ctx, sec, module, name, service, controllerDeployment, provisionerDeployment, sch, cron, ingress)
+		err = r.syncIstioPolicy(ctx, sec, module, name, serviceAccount, controllerDeployment, provisionerDeployment, sch, cron, ingress)
 		if err != nil {
 			return err
 		}
@@ -411,7 +418,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	}
 
 	deployment.Name = name
-	deployment.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
+	deployment.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "serviceaccount", Name: name, UID: serviceAccount.UID}}
 	deployment.Spec.Template.Spec.Containers[0].Image = fmt.Sprintf("%s:%s", runnerImage, ourVersion)
 	deployment.Spec.Selector = &v1.LabelSelector{MatchLabels: map[string]string{"app": name}}
 	if deployment.Spec.Template.ObjectMeta.Labels == nil {
@@ -551,7 +558,7 @@ func (r *k8sScaling) updateEnvVar(deployment *kubeapps.Deployment, envVerName st
 	return changes
 }
 
-func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, module string, name string, service *kubecore.Service, controllerDeployment *kubeapps.Deployment, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
+func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, module string, name string, serviceAccount *kubecore.ServiceAccount, controllerDeployment *kubeapps.Deployment, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Creating new istio policy for %s", name)
 
@@ -579,7 +586,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 		policy.Name = name
 		policy.Namespace = r.namespace
 		addLabels(&policy.ObjectMeta, module, name)
-		policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
+		policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "serviceaccount", Name: name, UID: serviceAccount.UID}}
 		// At present we only allow ingress from the controller
 		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{"app": name}}
 		policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
@@ -623,7 +630,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 				policy.Labels = map[string]string{}
 			}
 			policy.Labels[moduleLabel] = module
-			policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
+			policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "serviceaccount", Name: name, UID: serviceAccount.UID}}
 			policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{moduleLabel: callableModule}}
 			policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 			policy.Spec.Rules = []*istiosecmodel.Rule{

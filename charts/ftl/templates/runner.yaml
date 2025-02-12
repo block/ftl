@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: ftl-controller-deployment-config
 data:
+  {{- if .Values.routing.services }}
   serviceTemplate: |-
     apiVersion: v1
     kind: Service
@@ -18,6 +19,7 @@ data:
           appProtocol: http
           targetPort: {{ .Values.runner.port }}
       type: ClusterIP
+    {{- end }}
   deploymentTemplate: |-
     apiVersion: apps/v1
     kind: Deployment
