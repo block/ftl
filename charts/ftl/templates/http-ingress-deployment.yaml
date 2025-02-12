@@ -47,13 +47,17 @@ spec:
             {{- if .Values.ingress.env }}
             {{- toYaml .Values.ingress.env | nindent 12 }}
             {{- end }}
+            - name: FTL_BIND
+              value: "http://0.0.0.0:8892"
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ .Values.timeline.service.name }}:{{ .Values.timeline.service.port }}"
+            - name: FTL_SCHEMA_ENDPOINT
+              value: "http://ftl-schema:8892"
 
           ports:
             {{- range .Values.ingress.ports }}
             - name: {{ .name }}
-              containerPort: {{ .containerPort }}
+              containerPort: 8892
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
           {{- include "ftl.healthProbes" .Values.ingress | nindent 10 }}
