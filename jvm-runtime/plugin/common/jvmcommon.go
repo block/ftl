@@ -577,7 +577,7 @@ func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint str
 
 			buildErrs := output.FinalizeCapture()
 			if len(buildErrs) == 0 {
-				buildErrs = []builderrors.Error{{Msg: "The dev mode process exited", Level: builderrors.ERROR, Type: builderrors.COMPILER}}
+				buildErrs = []builderrors.Error{{Msg: "Compile process unexpectedly exited without reporting any errors", Level: builderrors.ERROR, Type: builderrors.COMPILER}}
 			}
 			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 				BuildFailure: &langpb.BuildFailure{
