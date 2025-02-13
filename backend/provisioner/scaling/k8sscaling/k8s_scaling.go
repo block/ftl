@@ -1,8 +1,10 @@
 package k8sscaling
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"strings"
@@ -24,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
+	v3 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -108,6 +111,10 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 	}
 	err = r.waitForDeploymentReady(ctx, deploymentKey, deployTimeout)
 	if err != nil {
+		err2 := r.TerminateDeployment(ctx, deploymentKey)
+		if err2 != nil {
+			logger.Errorf(err2, "Failed to terminate deployment %s after failure", deploymentKey)
+		}
 		return url.URL{}, err
 	}
 
@@ -719,13 +726,41 @@ func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, key string, tim
 							return fmt.Errorf("pod %s is in ImagePullBackOff state", p.Name)
 						}
 						if container.State.Waiting.Reason == "CrashLoopBackOff" {
-							return fmt.Errorf("pod %s is in CrashLoopBackOff state", p.Name)
+							logs, err := readPodLogs(ctx, podClient, &p)
+							if err != nil {
+								return fmt.Errorf("pod %s is in CrashLoopBackOff state and reading logs failed %w", p.Name, err)
+							}
+							return fmt.Errorf("pod %s is in CrashLoopBackOff state, logs:\n%s", p.Name, logs)
 						}
 					}
 				}
 			}
 		}
 	}
+}
+
+func readPodLogs(ctx context.Context, client v3.PodInterface, pod *kubecore.Pod) (string, error) {
+	logs := ""
+	for _, container := range pod.Spec.Containers {
+		if container.Name == "istio-proxy" {
+			continue
+		}
+		req := client.GetLogs(pod.Name, &kubecore.PodLogOptions{Container: container.Name, Previous: false})
+		podLogs, err := req.Stream(ctx)
+		if err != nil {
+			return "", fmt.Errorf("failed to read logs for pod %s: %w", pod.Name, err)
+		}
+		defer func() {
+			_ = podLogs.Close()
+		}()
+		buf := new(bytes.Buffer)
+		_, err = io.Copy(buf, podLogs)
+		if err != nil {
+			return "", fmt.Errorf("failed to read logs for pod %s: %w", pod.Name, err)
+		}
+		logs += buf.String()
+	}
+	return logs, nil
 }
 
 func extractTag(image string) (string, error) {
