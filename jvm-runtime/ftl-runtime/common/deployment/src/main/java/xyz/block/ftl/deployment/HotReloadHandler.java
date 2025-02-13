@@ -48,7 +48,8 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     private volatile ErrorList errors;
     private volatile Server server;
     private boolean explicitlyReloading = false;
-    private boolean sentResults = false;
+    private boolean sentResults = true;
+    private boolean first = true;
     private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
 
     public static HotReloadHandler getInstance() {
@@ -75,7 +76,11 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                 }
             }
         }
-        sentResults = false;
+        if (first) {
+            first = false;
+        } else {
+            sentResults = false;
+        }
         explicitlyReloading = false;
         notifyAll();
     }
@@ -100,7 +105,6 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         // This is complex, as the restart can't happen until the runner is up
         // We want to report on the results of the schema generations, so we can bring up a runner
         // Run the restart in a new thread, so we can report on the schema once it is ready
-        var currentModule = module;
         synchronized (HotReloadHandler.this) {
             if (explicitlyReloading) {
                 responseObserver.onNext(ReloadResponse.newBuilder()
