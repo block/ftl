@@ -81,7 +81,11 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     }
 
     private static @NotNull SchemaState buildState(Module module, ErrorList errors) {
-        return SchemaState.newBuilder().setErrors(errors).setModule(module).build();
+        if (errors != null && errors.getErrorsCount() > 0) {
+            return SchemaState.newBuilder().setErrors(errors).build();
+        } else {
+            return SchemaState.newBuilder().setModule(module).build();
+        }
     }
 
     @Override

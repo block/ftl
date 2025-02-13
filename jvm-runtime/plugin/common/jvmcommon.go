@@ -413,8 +413,9 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		var module *schemapb.Module
 		for event := range channels.IterContext(ctx, reloadEvents) {
 			changed := false
-			if event.state.GetErrors() != nil {
-				bytes, err := proto.Marshal(event.state.GetErrors())
+			errorList := event.state.GetErrors()
+			if errorList != nil {
+				bytes, err := proto.Marshal(errorList)
 				if err != nil {
 					logger.Errorf(err, "failed to marshal errors")
 					continue
@@ -450,19 +451,13 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 						continue
 					}
 				}
-				buildErrs, err := loadProtoErrors(buildCtx.Config)
-				if err != nil {
-					// This is likely a transient error
-					logger.Errorf(err, "failed to load build errors")
-					continue
-				}
-				if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(buildErrs)) {
+				if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) {
 					// skip reading schema
 					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 						BuildFailure: &langpb.BuildFailure{
 							IsAutomaticRebuild: auto,
 							ContextId:          buildCtx.ID,
-							Errors:             buildErrs,
+							Errors:             errorList,
 						}}})
 					if err != nil {
 						logger.Errorf(err, "Could not send build event")
