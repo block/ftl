@@ -2,6 +2,7 @@ package schemaservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os/signal"
@@ -104,11 +105,8 @@ func Start(
 	})
 
 	err := g.Wait()
-	if err != nil {
-		if gctx.Err() == nil {
-			// startup failure if the context was not cancelled
-			return fmt.Errorf("failed to start schema service: %w", err)
-		}
+	if err != nil && !errors.Is(err, context.Canceled) {
+		return fmt.Errorf("failed to run schema service: %w", err)
 	}
 	return nil
 }
