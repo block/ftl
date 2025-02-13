@@ -383,6 +383,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		return err
 	}
 	logger.Debugf("Dev mode process started")
+	_ = output.FinalizeCapture()
 
 	schemaHash := sha256.SHA256{}
 	errorHash := sha256.SHA256{}
