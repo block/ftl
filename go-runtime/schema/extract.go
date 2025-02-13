@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"go/token"
 	"go/types"
 
 	"github.com/alecthomas/types/optional"
@@ -10,8 +11,8 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl-golang-tools/go/analysis"
+	checker "github.com/block/ftl-golang-tools/go/analysis/checker"
 	"github.com/block/ftl-golang-tools/go/analysis/passes/inspect"
-	checker "github.com/block/ftl-golang-tools/go/analysis/programmaticchecker"
 	"github.com/block/ftl-golang-tools/go/packages"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
@@ -119,19 +120,42 @@ func init() {
 func Extract(moduleDir string, sch *schema.Schema) (Result, error) {
 	pkgConfig := packages.Config{
 		Dir:  moduleDir,
-		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedImports,
+		Mode: packages.LoadTypes | packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedImports,
 	}
-	cConfig := checker.Config{
-		LoadConfig:                  pkgConfig,
-		ReverseImportExecutionOrder: true,
-		Patterns:                    []string{"./..."},
-	}
-	results, diagnostics, err := checker.Run(cConfig, orderedAnalyzers...)
+	pkgs, err := packages.Load(&pkgConfig, "./...")
 	if err != nil {
-		return Result{}, err
+		return Result{}, fmt.Errorf("failed to load packages: %w", err)
 	}
-	return combineAllPackageResults(sch, results, diagnostics)
+	graph, err := checker.Analyze(orderedAnalyzers, pkgs, &checker.Options{
+		ReverseImportExecutionOrder: true,
+	})
+	if err != nil {
+		return Result{}, fmt.Errorf("failed to analyze module packages: %w", err)
+	}
 
+	var errors []builderrors.Error
+	finalizeResults := []finalize.Result{}
+	for act := range graph.All() {
+		for _, d := range act.Diagnostics {
+			errors = append(errors, builderrors.Error{
+				Pos:   optional.Some(toErrorPos(act.Package.Fset.Position(d.Pos), act.Package.Fset.Position(d.End))),
+				Msg:   d.Message,
+				Level: common.DiagnosticCategory(d.Category).ToErrorLevel(),
+			})
+		}
+		if act.Analyzer == finalize.Analyzer {
+			fr, ok := act.Result.(finalize.Result)
+			if !ok {
+				return Result{}, fmt.Errorf("unexpected schema extraction result type: %T", act.Result)
+			}
+			finalizeResults = append(finalizeResults, fr)
+		}
+	}
+	if len(finalizeResults) == 0 {
+		return Result{}, fmt.Errorf("schema extraction finalizer result not found")
+	}
+
+	return combineAllPackageResults(sch, finalizeResults, errors)
 }
 
 type refResultType int
@@ -165,9 +189,9 @@ type combinedData struct {
 	globalUniqueness map[string]tuple.Pair[types.Object, schema.Position]
 }
 
-func newCombinedData(diagnostics []analysis.SimpleDiagnostic) *combinedData {
+func newCombinedData(diagnostics []builderrors.Error) *combinedData {
 	return &combinedData{
-		errs:                   diagnosticsToSchemaErrors(diagnostics),
+		errs:                   diagnostics,
 		nativeNames:            make(NativeNames),
 		functionCalls:          make(map[schema.Position]finalize.FunctionCall),
 		verbs:                  make(map[types.Object]*schema.Verb),
@@ -320,21 +344,10 @@ func dependenciesBeforeIndex(idx int) []*analysis.Analyzer {
 	return deps
 }
 
-func combineAllPackageResults(sch *schema.Schema, results map[*analysis.Analyzer][]any, diagnostics []analysis.SimpleDiagnostic) (Result, error) {
-	cd := newCombinedData(diagnostics)
+func combineAllPackageResults(sch *schema.Schema, finalizeResults []finalize.Result, errors []builderrors.Error) (Result, error) {
+	cd := newCombinedData(errors)
 
-	fResults, ok := results[finalize.Analyzer]
-	if !ok {
-		return Result{}, fmt.Errorf("schema extraction finalizer result not found")
-	}
-	for _, r := range fResults {
-		if r == nil {
-			return Result{}, fmt.Errorf("schema extraction failed")
-		}
-		fr, ok := r.(finalize.Result)
-		if !ok {
-			return Result{}, fmt.Errorf("unexpected schema extraction result type: %T", r)
-		}
+	for _, fr := range finalizeResults {
 		if err := cd.updateModule(fr); err != nil {
 			return Result{}, err
 		}
@@ -421,21 +434,6 @@ func updateTransitiveVisibility(d schema.Decl, module *schema.Module) {
 	})
 }
 
-func diagnosticsToSchemaErrors(diagnostics []analysis.SimpleDiagnostic) []builderrors.Error {
-	if len(diagnostics) == 0 {
-		return nil
-	}
-	errors := make([]builderrors.Error, 0, len(diagnostics))
-	for _, d := range diagnostics {
-		errors = append(errors, builderrors.Error{
-			Pos:   optional.Some(simplePosToErrorPos(d.Pos, d.End.Column)),
-			Msg:   d.Message,
-			Level: common.DiagnosticCategory(d.Category).ToErrorLevel(),
-		})
-	}
-	return errors
-}
-
 func copyFailedRefs(parsedRefs map[schema.RefKey]refResult, failedRefs map[schema.RefKey]types.Object) {
 	for ref, obj := range failedRefs {
 		parsedRefs[ref] = refResult{typ: failed, obj: obj}
@@ -459,12 +457,12 @@ func goQualifiedNameForWidenedType(obj types.Object, metadata []schema.Metadata)
 	return nativeName, nil
 }
 
-func simplePosToErrorPos(pos analysis.SimplePosition, endColumn int) builderrors.Position {
+func toErrorPos(pos token.Position, end token.Position) builderrors.Position {
 	return builderrors.Position{
 		Filename:    pos.Filename,
 		Offset:      pos.Offset,
 		Line:        pos.Line,
 		StartColumn: pos.Column,
-		EndColumn:   endColumn,
+		EndColumn:   end.Column,
 	}
 }

@@ -12,9 +12,11 @@ type PingUserClient func(context.Context, User) error
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
 			PingInternalUser,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			PingUser,
 		),

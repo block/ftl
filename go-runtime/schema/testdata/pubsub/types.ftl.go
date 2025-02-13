@@ -18,17 +18,21 @@ type ProcessPayinClient func(context.Context, PayinEvent) error
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
 			Broadcast,
 			server.TopicHandle[PayinEvent, ftl.SinglePartitionMap[PayinEvent]]("pubsub", "publicBroadcast"),
 		),
+
 		reflection.ProvideResourcesForVerb(
 			Payin,
 			server.TopicHandle[PayinEvent, PartitionMapper]("pubsub", "payins"),
 		),
+
 		reflection.ProvideResourcesForVerb(
 			ProcessBroadcast,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			ProcessPayin,
 		),
