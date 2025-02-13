@@ -31,6 +31,18 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 func (o *errorDetector) FinalizeCapture() []builderrors.Error {
 	o.ended.Store(true)
 
+	// Example error output:
+	// [ERROR] /example/path/StockPricePublisher.kt: (31, 24) 'public' function exposes its 'internal' parameter type 'StockPricesTopic'.
+	// [ERROR] Failed to execute goal io.quarkus:quarkus-maven-plugin:3.18.1:dev (default-cli) on project stockprices: Unable to execute mojo: Compilation failure
+	// [ERROR] /example/path/StockPricePublisher.kt:[31,24] 'public' function exposes its 'internal' parameter type 'StockPricesTopic'.
+	// [ERROR] -> [Help 1]
+	// [ERROR]
+	// [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+	// [ERROR] Re-run Maven using the -X switch to enable full debug logging.
+	// [ERROR]
+	// [ERROR] For more information about the errors and possible solutions, please read the following articles:
+	// [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+
 	var errs []builderrors.Error
 	lines := slices.Filter(strings.Split(o.output, "\n"), func(s string) bool {
 		return strings.HasPrefix(s, "[ERROR] ")
