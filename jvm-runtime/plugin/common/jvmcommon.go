@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -372,11 +373,12 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	if os.Getenv("FTL_SUSPEND") == "true" {
 		devModeBuild += " -Dsuspend "
 	}
-	launchQuarkusProcessAsync(ctx, devModeBuild, buildCtx, bind, cancel)
+	output := &errorDetector{}
+	launchQuarkusProcessAsync(ctx, devModeBuild, buildCtx, bind, output, cancel)
 
 	// Wait for the plugin to start.
 	hotReloadEndpoint := fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
-	client, err := s.connectReloadClient(ctx, hotReloadEndpoint, stream, buildCtx)
+	client, err := s.connectReloadClient(ctx, hotReloadEndpoint, stream, output, buildCtx)
 	if err != nil || client == nil {
 		return err
 	}
@@ -541,13 +543,13 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 	}
 }
 
-func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, buildCtx buildContext, bind string, cancel context.CancelCauseFunc) {
+func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, buildCtx buildContext, bind string, stdout io.Writer, cancel context.CancelCauseFunc) {
 	go func() {
 		logger := log.FromContext(ctx)
 		logger.Infof("Using dev mode build command '%s'", devModeBuild)
 		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
 		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind), "MAVEN_OPTS=-Xmx1024m")
-		command.Stdout = os.Stdout
+		command.Stdout = stdout
 		command.Stderr = os.Stderr
 		err := command.Run()
 		if err != nil {
@@ -560,7 +562,7 @@ func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, buildCt
 	}()
 }
 
-func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint string, stream *connect.ServerStream[langpb.BuildResponse], buildCtx buildContext) (hotreloadpbconnect.HotReloadServiceClient, error) {
+func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint string, stream *connect.ServerStream[langpb.BuildResponse], output *errorDetector, buildCtx buildContext) (hotreloadpbconnect.HotReloadServiceClient, error) {
 	logger := log.FromContext(ctx)
 	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotReloadEndpoint, log.Trace)
 	err := rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
@@ -571,11 +573,16 @@ func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint str
 			// Dev mode process has exited, we don't return an error so we can restart it
 			// the context is done before we notified the build engine
 			// we need to send a build failure event
+
+			buildErrs := output.FinalizeCapture()
+			if len(buildErrs) == 0 {
+				buildErrs = []builderrors.Error{{Msg: "The dev mode process exited", Level: builderrors.ERROR, Type: builderrors.COMPILER}}
+			}
 			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 				BuildFailure: &langpb.BuildFailure{
 					IsAutomaticRebuild: false,
 					ContextId:          buildCtx.ID,
-					Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
+					Errors:             langpb.ErrorsToProto(buildErrs),
 				}}})
 			if err != nil {
 				return nil, fmt.Errorf("could not send build event: %w", err)
@@ -585,6 +592,7 @@ func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint str
 		}
 		return nil, fmt.Errorf("timed out waiting for start %w", err)
 	}
+	_ = output.FinalizeCapture()
 	return client, nil
 }
 
