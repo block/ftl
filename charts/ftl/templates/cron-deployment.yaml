@@ -29,6 +29,8 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.cron.serviceAccountName }}
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: app
           image: "{{ .Values.cron.image.repository | default (printf "%s/%s" .Values.image.base .Values.cron.image.name) }}:{{ .Values.cron.image.tag | default .Values.image.tag | default $version }}"
