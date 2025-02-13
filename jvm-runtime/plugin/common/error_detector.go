@@ -21,7 +21,7 @@ type errorDetector struct {
 }
 
 func (o *errorDetector) Write(p []byte) (n int, err error) {
-	//forward output to stdout
+	// Forward output to stdout
 	fmt.Printf("%s", string(p))
 	if !o.ended.Load() {
 		o.output += string(p)
