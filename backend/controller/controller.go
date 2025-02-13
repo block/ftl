@@ -11,6 +11,7 @@ import (
 	"hash"
 	"io"
 	"net/url"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -146,6 +147,10 @@ type Service struct {
 	routeTable   *routing.RouteTable
 	schemaClient ftlv1connect.SchemaServiceClient
 	runnerState  eventstream.EventStream[state.RunnerState, state.RunnerEvent]
+}
+
+func (s *Service) ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error) {
+	return connect.NewResponse(&ftlv1.ClusterInfoResponse{Os: runtime.GOOS, Arch: runtime.GOARCH}), nil
 }
 
 func New(

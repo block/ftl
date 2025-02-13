@@ -92,6 +92,8 @@ type BuildContext struct {
 	Schema       *schema.Schema
 	Dependencies []string
 	BuildEnv     []string
+	Os           string
+	Arch         string
 }
 
 var ErrPluginNotRunning = errors.New("language plugin no longer running")
@@ -418,6 +420,8 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 						Schema:       schemaProto,
 						Dependencies: bctx.Dependencies,
 						BuildEnv:     c.BuildEnv,
+						Os:           c.Os,
+						Arch:         c.Arch,
 					},
 				}))
 				if err != nil {
@@ -438,6 +442,8 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 					Schema:       schemaProto,
 					Dependencies: bctx.Dependencies,
 					BuildEnv:     c.BuildEnv,
+					Os:           c.Os,
+					Arch:         c.Arch,
 				},
 			}))
 			if err != nil {

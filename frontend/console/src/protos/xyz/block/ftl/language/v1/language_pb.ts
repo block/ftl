@@ -683,6 +683,16 @@ export class BuildContext extends Message<BuildContext> {
    */
   buildEnv: string[] = [];
 
+  /**
+   * @generated from field: string os = 6;
+   */
+  os = "";
+
+  /**
+   * @generated from field: string arch = 7;
+   */
+  arch = "";
+
   constructor(data?: PartialMessage<BuildContext>) {
     super();
     proto3.util.initPartial(data, this);
@@ -696,6 +706,8 @@ export class BuildContext extends Message<BuildContext> {
     { no: 3, name: "schema", kind: "message", T: Schema },
     { no: 4, name: "dependencies", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 5, name: "build_env", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 6, name: "os", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "arch", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildContext {

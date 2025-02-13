@@ -48,6 +48,12 @@ message RegisterRunnerRequest {
 
 message RegisterRunnerResponse {}
 
+message ClusterInfoRequest {}
+message ClusterInfoResponse {
+  string os = 1;
+  string arch = 2;
+}
+
 message StatusRequest {}
 message StatusResponse {
   message Controller {
@@ -106,6 +112,7 @@ service ControllerService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  rpc ClusterInfo(ClusterInfoRequest) returns (ClusterInfoResponse);
   // List "processes" running on the cluster.
   rpc ProcessList(ProcessListRequest) returns (ProcessListResponse);
 

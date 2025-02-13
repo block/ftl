@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/puzpuzpuz/xsync/v3"
@@ -21,6 +22,7 @@ import (
 
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
@@ -119,6 +121,8 @@ type Engine struct {
 
 	// deployment queue and state tracking
 	deploymentQueue chan pendingDeploy
+	os              string
+	arch            string
 }
 
 type Option func(o *Engine)
@@ -186,6 +190,8 @@ func New(
 		rawEngineUpdates:    make(chan *buildenginepb.EngineEvent, 128),
 		EngineUpdates:       pubsub.New[*buildenginepb.EngineEvent](),
 		deploymentQueue:     make(chan pendingDeploy, 128),
+		arch:                runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
+		os:                  runtime.GOOS,
 	}
 	for _, option := range options {
 		option(e)
@@ -243,6 +249,15 @@ func New(
 	}
 	if err := wg.Wait(); err != nil {
 		return nil, err //nolint:wrapcheck
+	}
+	if deployClient != nil {
+		info, err := deployClient.ClusterInfo(ctx, connect.NewRequest(&ftlv1.ClusterInfoRequest{}))
+		if err != nil {
+			log.FromContext(ctx).Errorf(err, "failed to get cluster info")
+		} else {
+			e.os = info.Msg.Os
+			e.arch = info.Msg.Arch
+		}
 	}
 	if deployClient == nil || schemaServiceClient == nil {
 		return e, nil
@@ -1091,6 +1106,8 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 		Schema:       sch,
 		Dependencies: meta.module.Dependencies(Raw),
 		BuildEnv:     e.buildEnv,
+		Os:           e.os,
+		Arch:         e.arch,
 	}, e.devMode, e.devModeEndpointUpdates)
 	if err != nil {
 		if errors.Is(err, errInvalidateDependencies) {

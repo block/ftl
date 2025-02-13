@@ -385,6 +385,80 @@ export class RegisterRunnerResponse extends Message<RegisterRunnerResponse> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.v1.ClusterInfoRequest
+ */
+export class ClusterInfoRequest extends Message<ClusterInfoRequest> {
+  constructor(data?: PartialMessage<ClusterInfoRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.ClusterInfoRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ClusterInfoRequest {
+    return new ClusterInfoRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ClusterInfoRequest {
+    return new ClusterInfoRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ClusterInfoRequest {
+    return new ClusterInfoRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ClusterInfoRequest | PlainMessage<ClusterInfoRequest> | undefined, b: ClusterInfoRequest | PlainMessage<ClusterInfoRequest> | undefined): boolean {
+    return proto3.util.equals(ClusterInfoRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.ClusterInfoResponse
+ */
+export class ClusterInfoResponse extends Message<ClusterInfoResponse> {
+  /**
+   * @generated from field: string os = 1;
+   */
+  os = "";
+
+  /**
+   * @generated from field: string arch = 2;
+   */
+  arch = "";
+
+  constructor(data?: PartialMessage<ClusterInfoResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.ClusterInfoResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "os", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "arch", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ClusterInfoResponse {
+    return new ClusterInfoResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ClusterInfoResponse {
+    return new ClusterInfoResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ClusterInfoResponse {
+    return new ClusterInfoResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ClusterInfoResponse | PlainMessage<ClusterInfoResponse> | undefined, b: ClusterInfoResponse | PlainMessage<ClusterInfoResponse> | undefined): boolean {
+    return proto3.util.equals(ClusterInfoResponse, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.v1.StatusRequest
  */
 export class StatusRequest extends Message<StatusRequest> {
