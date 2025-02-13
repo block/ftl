@@ -32,15 +32,16 @@ spec:
           imagePullPolicy: {{ .Values.timeline.image.pullPolicy | default .Values.image.pullPolicy }}
           {{- if .Values.timeline.envFrom }}
           envFrom:
-            {{- if .Values.timeline.envFrom }}
             {{- toYaml .Values.timeline.envFrom | nindent 12 }}
-            {{- end }}
           {{- end }}
           env:
+            - name: FTL_ENDPOINT
+              value: "http://{{- include "ftl.fullname" . -}}:8892"
+            - name: FTL_BIND
+              value: "http://0.0.0.0:8892"
             {{- if .Values.timeline.env }}
-            {{- toYaml .Values.timeline.env | nindent 12 }}
+            {{- toYaml .Values.provisioner.env | nindent 12 }}
             {{- end }}
-
           ports:
             - name: http2
               containerPort: {{ .Values.timeline.port }}

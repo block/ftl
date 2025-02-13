@@ -57,7 +57,7 @@ spec:
             {{- toYaml .Values.schema.env | nindent 12 }}
             {{- end }}
             - name: FTL_BIND
-              value: "http://0.0.0.0:{{ .Values.schema.services.schema.containerPort }}"
+              value: "http://0.0.0.0:{{ .Values.schema.services.schema.port }}"
             - name: RAFT_INITIAL_MEMBERS
               value: "{{- range $index := until (.Values.schema.replicas | int ) }}{{- if ne $index 0 -}},{{- end -}}ftl-schema-{{ add $index 1  }}.ftl-schema-raft:{{$.Values.schema.services.raft.port}}{{- end -}}"
             - name: RAFT_INITIAL_REPLICA_IDS
@@ -69,17 +69,17 @@ spec:
                 fieldRef:
                   fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
             - name: RAFT_ADDRESS
-              value: "ftl-schema-$(ORDINAL_NUMBER).ftl-schema-raft:{{$.Values.schema.services.raft.port}}"
+              value: "{{ include "ftl.fullname" . }}-schema-$(ORDINAL_NUMBER).{{ include "ftl.fullname" . }}-schema-raft:{{$.Values.schema.services.raft.port}}"
             - name: RAFT_LISTEN_ADDRESS
-              value: "$(MY_POD_IP):{{$.Values.schema.services.raft.port}}"
+              value: "0.0.0.0:{{$.Values.schema.services.raft.port}}"
             - name: RAFT_CONTROL_ADDRESS
-              value: "http://ftl-schema:8892"
+              value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
           ports:
             - name: http
-              containerPort: {{ .Values.schema.services.schema.containerPort }}
+              containerPort: {{ .Values.schema.services.schema.port }}
               protocol: "TCP"
             - name: raft
-              containerPort: {{ .Values.schema.services.raft.containerPort }}
+              containerPort: {{ .Values.schema.services.raft.port }}
               protocol: "TCP"
           {{- include "ftl.resources" .Values.schema | nindent 10 }}
           {{- include "ftl.healthProbes" .Values.schema | nindent 10 }}
