@@ -33,6 +33,8 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.schema.serviceAccountName }}
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: app
           image: "{{ .Values.schema.image.repository | default (printf "%s/%s" .Values.image.base .Values.schema.image.name) }}:{{ .Values.schema.image.tag | default .Values.image.tag | default $version }}"
