@@ -253,7 +253,7 @@ func New(
 	if deployClient != nil {
 		info, err := deployClient.ClusterInfo(ctx, connect.NewRequest(&ftlv1.ClusterInfoRequest{}))
 		if err != nil {
-			log.FromContext(ctx).Errorf(err, "failed to get cluster info")
+			log.FromContext(ctx).Debugf("failed to get cluster info: %s", err)
 		} else {
 			e.os = info.Msg.Os
 			e.arch = info.Msg.Arch
