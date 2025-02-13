@@ -142,6 +142,8 @@ message BuildContext {
   repeated string dependencies = 4;
   // Build environment provides environment variables to be set for the build command
   repeated string build_env = 5;
+  string os = 6;
+  string arch = 7;
 }
 
 message BuildContextUpdatedRequest {

@@ -35,6 +35,9 @@ const (
 const (
 	// ControllerServicePingProcedure is the fully-qualified name of the ControllerService's Ping RPC.
 	ControllerServicePingProcedure = "/xyz.block.ftl.v1.ControllerService/Ping"
+	// ControllerServiceClusterInfoProcedure is the fully-qualified name of the ControllerService's
+	// ClusterInfo RPC.
+	ControllerServiceClusterInfoProcedure = "/xyz.block.ftl.v1.ControllerService/ClusterInfo"
 	// ControllerServiceProcessListProcedure is the fully-qualified name of the ControllerService's
 	// ProcessList RPC.
 	ControllerServiceProcessListProcedure = "/xyz.block.ftl.v1.ControllerService/ProcessList"
@@ -59,6 +62,7 @@ const (
 type ControllerServiceClient interface {
 	// Ping service for readiness.
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error)
 	// List "processes" running on the cluster.
 	ProcessList(context.Context, *connect.Request[v1.ProcessListRequest]) (*connect.Response[v1.ProcessListResponse], error)
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
@@ -93,6 +97,11 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			baseURL+ControllerServicePingProcedure,
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
+		),
+		clusterInfo: connect.NewClient[v1.ClusterInfoRequest, v1.ClusterInfoResponse](
+			httpClient,
+			baseURL+ControllerServiceClusterInfoProcedure,
+			opts...,
 		),
 		processList: connect.NewClient[v1.ProcessListRequest, v1.ProcessListResponse](
 			httpClient,
@@ -130,6 +139,7 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 // controllerServiceClient implements ControllerServiceClient.
 type controllerServiceClient struct {
 	ping                   *connect.Client[v1.PingRequest, v1.PingResponse]
+	clusterInfo            *connect.Client[v1.ClusterInfoRequest, v1.ClusterInfoResponse]
 	processList            *connect.Client[v1.ProcessListRequest, v1.ProcessListResponse]
 	status                 *connect.Client[v1.StatusRequest, v1.StatusResponse]
 	getArtefactDiffs       *connect.Client[v1.GetArtefactDiffsRequest, v1.GetArtefactDiffsResponse]
@@ -141,6 +151,11 @@ type controllerServiceClient struct {
 // Ping calls xyz.block.ftl.v1.ControllerService.Ping.
 func (c *controllerServiceClient) Ping(ctx context.Context, req *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
 	return c.ping.CallUnary(ctx, req)
+}
+
+// ClusterInfo calls xyz.block.ftl.v1.ControllerService.ClusterInfo.
+func (c *controllerServiceClient) ClusterInfo(ctx context.Context, req *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error) {
+	return c.clusterInfo.CallUnary(ctx, req)
 }
 
 // ProcessList calls xyz.block.ftl.v1.ControllerService.ProcessList.
@@ -177,6 +192,7 @@ func (c *controllerServiceClient) RegisterRunner(ctx context.Context) *connect.C
 type ControllerServiceHandler interface {
 	// Ping service for readiness.
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error)
 	// List "processes" running on the cluster.
 	ProcessList(context.Context, *connect.Request[v1.ProcessListRequest]) (*connect.Response[v1.ProcessListResponse], error)
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
@@ -207,6 +223,11 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		svc.Ping,
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
+	)
+	controllerServiceClusterInfoHandler := connect.NewUnaryHandler(
+		ControllerServiceClusterInfoProcedure,
+		svc.ClusterInfo,
+		opts...,
 	)
 	controllerServiceProcessListHandler := connect.NewUnaryHandler(
 		ControllerServiceProcessListProcedure,
@@ -242,6 +263,8 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		switch r.URL.Path {
 		case ControllerServicePingProcedure:
 			controllerServicePingHandler.ServeHTTP(w, r)
+		case ControllerServiceClusterInfoProcedure:
+			controllerServiceClusterInfoHandler.ServeHTTP(w, r)
 		case ControllerServiceProcessListProcedure:
 			controllerServiceProcessListHandler.ServeHTTP(w, r)
 		case ControllerServiceStatusProcedure:
@@ -265,6 +288,10 @@ type UnimplementedControllerServiceHandler struct{}
 
 func (UnimplementedControllerServiceHandler) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.Ping is not implemented"))
+}
+
+func (UnimplementedControllerServiceHandler) ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.ClusterInfo is not implemented"))
 }
 
 func (UnimplementedControllerServiceHandler) ProcessList(context.Context, *connect.Request[v1.ProcessListRequest]) (*connect.Response[v1.ProcessListResponse], error) {

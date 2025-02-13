@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
+import { ClusterInfoRequest, ClusterInfoResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.ControllerService
@@ -24,6 +24,15 @@ export const ControllerService = {
       O: PingResponse,
       kind: MethodKind.Unary,
       idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * @generated from rpc xyz.block.ftl.v1.ControllerService.ClusterInfo
+     */
+    clusterInfo: {
+      name: "ClusterInfo",
+      I: ClusterInfoRequest,
+      O: ClusterInfoResponse,
+      kind: MethodKind.Unary,
     },
     /**
      * List "processes" running on the cluster.

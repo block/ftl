@@ -76,6 +76,18 @@ class RegisterRunnerResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
+class ClusterInfoRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class ClusterInfoResponse(_message.Message):
+    __slots__ = ("os", "arch")
+    OS_FIELD_NUMBER: _ClassVar[int]
+    ARCH_FIELD_NUMBER: _ClassVar[int]
+    os: str
+    arch: str
+    def __init__(self, os: _Optional[str] = ..., arch: _Optional[str] = ...) -> None: ...
+
 class StatusRequest(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...

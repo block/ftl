@@ -65,13 +65,30 @@ func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 		return buildContext{}, fmt.Errorf("could not parse schema from proto: %w", err)
 	}
 	config := langpb.ModuleConfigFromProto(proto.ModuleConfig)
-	return buildContext{
+	bc := buildContext{
 		ID:           proto.Id,
 		Config:       config,
 		Schema:       sch,
 		Dependencies: proto.Dependencies,
 		BuildEnv:     proto.BuildEnv,
-	}, nil
+	}
+	arch := false
+	os := false
+	for _, i := range bc.BuildEnv {
+		if strings.HasPrefix(i, "GOARCH=") {
+			arch = true
+		} else if strings.HasPrefix(i, "GOOS=") {
+			os = true
+		}
+	}
+	if !arch {
+		bc.BuildEnv = append(bc.BuildEnv, "GOARCH="+proto.Arch)
+	}
+	if !os {
+		bc.BuildEnv = append(bc.BuildEnv, "GOOS="+proto.Os)
+	}
+
+	return bc, nil
 }
 
 type Service struct {
