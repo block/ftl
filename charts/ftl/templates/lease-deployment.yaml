@@ -29,13 +29,6 @@ spec:
         - name: app
           image: "{{ .Values.lease.image.repository | default (printf "%s/%s" .Values.image.base .Values.lease.image.name) }}:{{ .Values.lease.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.lease.image.pullPolicy | default .Values.image.pullPolicy  }}
-          resources:
-            limits:
-              cpu: "{{ .Values.lease.resources.limits.cpu }}"
-              memory: "{{ .Values.lease.resources.limits.memory }}"
-            requests:
-              cpu: "{{ .Values.lease.resources.requests.cpu }}"
-              memory: "{{ .Values.lease.resources.requests.memory }}"
           {{- if .Values.lease.envFrom }}
           envFrom:
             {{- if .Values.lease.envFrom }}
@@ -61,6 +54,7 @@ spec:
               containerPort: 8892
               hostPort: {{ .Values.lease.port }}
               protocol: "TCP"
+          {{- include "ftl.resources" .Values.lease | nindent 10 }}
           {{- include "ftl.healthProbes" .Values.lease | nindent 10 }}
           {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.lease | nindent 6 }}

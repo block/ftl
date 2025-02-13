@@ -30,13 +30,6 @@ spec:
         - name: app
           image: "{{ .Values.console.image.repository | default (printf "%s/%s" .Values.image.base .Values.console.image.name) }}:{{ .Values.console.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.console.image.pullPolicy | default .Values.image.pullPolicy  }}
-          resources:
-            limits:
-              cpu: "{{ .Values.console.resources.limits.cpu }}"
-              memory: "{{ .Values.console.resources.limits.memory }}"
-            requests:
-              cpu: "{{ .Values.console.resources.requests.cpu }}"
-              memory: "{{ .Values.console.resources.requests.memory }}"
           {{- if .Values.console.envFrom }}
           envFrom:
             {{- if .Values.console.envFrom }}
@@ -65,6 +58,7 @@ spec:
               containerPort: {{ .containerPort }}
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
+          {{- include "ftl.resources" .Values.console | nindent 10 }}
           {{- include "ftl.healthProbes" .Values.console | nindent 10 }}
           {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.console | nindent 6 }}

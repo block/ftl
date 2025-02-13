@@ -134,3 +134,12 @@ securityContext:
   runAsUser: 1000
   runAsGroup: 1000
 {{- end -}}
+{{- define "ftl.resources" -}}
+resources:
+  limits:
+    cpu: "{{ .resources.limits.cpu }}"
+    memory: "{{ .resources.limits.memory }}"
+  requests:
+    cpu: "{{ .resources.requests.cpu }}"
+    memory: "{{ .resources.requests.memory }}"
+{{- end -}}

@@ -27,10 +27,10 @@ controller:
 
   resources:
     requests:
-      memory: 512Mi
+      memory: 256Mi
       cpu: 10m
     limits:
-      memory: 512Mi
+      memory: 256Mi
       cpu: 2
 
   envFrom: null
@@ -110,7 +110,13 @@ provisioner:
   affinity: null
   topologySpreadConstraints: null
   tolerations: null
-
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 10m
+    limits:
+      memory: 256Mi
+      cpu: 2
 runner:
   revisionHistoryLimit: 0
 
@@ -156,7 +162,6 @@ cron:
   replicas: 3
   storage: 50Mi
   revisionHistoryLimit: 0
-  serviceAccountName: ftl-cron
   
   services:
     cron:
@@ -196,10 +201,10 @@ cron:
 
   resources:
     requests:
-      memory: 512Mi
+      memory: 128Mi
       cpu: 10m
     limits:
-      memory: 512Mi
+      memory: 128Mi
       cpu: 2
 
 postgresql:
@@ -265,10 +270,10 @@ ingress:
 
   resources:
     requests:
-      memory: 512Mi
+      memory: 128Mi
       cpu: 10m
     limits:
-      memory: 512Mi
+      memory: 128Mi
       cpu: 2
 
   envFrom: null
@@ -320,10 +325,10 @@ timeline:
 
   resources:
     requests:
-      memory: 512Mi
+      memory: 128Mi
       cpu: 10m
     limits:
-      memory: 512Mi
+      memory: 128Mi
       cpu: 2
 
   envFrom: null
@@ -368,10 +373,10 @@ schema:
 
   resources:
     requests:
-      memory: 512Mi
+      memory: 256Mi
       cpu: 10m
     limits:
-      memory: 512Mi
+      memory: 256Mi
       cpu: 2
 
   envFrom: null
@@ -429,10 +434,10 @@ console:
 
   resources:
     requests:
-      memory: 512Mi
+      memory: 128Mi
       cpu: 10m
     limits:
-      memory: 512Mi
+      memory: 128Mi
       cpu: 2
 
   envFrom: null

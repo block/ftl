@@ -29,13 +29,6 @@ spec:
         - name: app
           image: "{{ .Values.controller.image.repository | default (printf "%s/%s" .Values.image.base .Values.controller.image.name) }}:{{ .Values.controller.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.controller.image.pullPolicy | default .Values.image.pullPolicy  }}
-          resources:
-            limits:
-              cpu: "{{ .Values.controller.resources.limits.cpu }}"
-              memory: "{{ .Values.controller.resources.limits.memory }}"
-            requests:
-              cpu: "{{ .Values.controller.resources.requests.cpu }}"
-              memory: "{{ .Values.controller.resources.requests.memory }}"
           {{- if .Values.controller.envFrom }}
           envFrom:
             {{- if .Values.controller.envFrom }}
@@ -78,6 +71,7 @@ spec:
             - name: http2
               containerPort: {{ .Values.controller.port }}
               protocol: "TCP"
+          {{- include "ftl.resources" .Values.controller | nindent 10 }}
           {{- include "ftl.healthProbes" .Values.controller | nindent 10 }}
           {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
     {{- include "ftl.commonPodConfig" .Values.controller | nindent 6 }}
