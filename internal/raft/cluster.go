@@ -38,10 +38,10 @@ const maxJoinAttempts = 5
 
 type RaftConfig struct {
 	InitialMembers    []string          `help:"Initial members" env:"RAFT_INITIAL_MEMBERS" and:"raft"`
-	InitialReplicaIDs []uint64          `help:"Initial replica IDs" env:"RAFT_INITIAL_REPLICA_IDS" and:"raft"`
+	InitialReplicaIDs []uint64          `name:"initial-replica-ids" help:"Initial replica IDs" env:"RAFT_INITIAL_REPLICA_IDS" and:"raft"`
 	DataDir           string            `help:"Data directory" env:"RAFT_DATA_DIR" and:"raft"`
 	Address           string            `help:"Address to advertise to other nodes" env:"RAFT_ADDRESS" and:"raft"`
-	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used." env:"RAFT_LISTEN_ADDRESS" and:"raft"`
+	ListenAddress     string            `help:"Address to listen for incoming traffic. If empty, Address will be used." env:"RAFT_LISTEN_ADDRESS"`
 	ControlAddress    *url.URL          `help:"Address to connect to the control server" env:"RAFT_CONTROL_ADDRESS"`
 	ShardReadyTimeout time.Duration     `help:"Timeout for shard to be ready" default:"5s"`
 	Retry             retry.RetryConfig `help:"Connection retry configuration" prefix:"retry-" embed:""`
