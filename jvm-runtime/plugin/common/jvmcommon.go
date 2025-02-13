@@ -386,6 +386,23 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
 	if err != nil {
 		logger.Infof("Dev mode process failed to start")
+		select {
+		case <-ctx.Done():
+			// Dev mode process has exited, we don't return an error so we can restart it
+			// the context is done before we notified the build engine
+			// we need to send a build failure event
+			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+				BuildFailure: &langpb.BuildFailure{
+					IsAutomaticRebuild: false,
+					ContextId:          buildCtx.ID,
+					Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
+				}}})
+			if err != nil {
+				return fmt.Errorf("could not send build event: %w", err)
+			}
+			return nil
+		default:
+		}
 		return fmt.Errorf("timed out waiting for start %w", err)
 	}
 	logger.Debugf("Dev mode process started")
@@ -510,7 +527,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Debugf("Context done")
+			logger.Infof("Context done")
 			// the context is done before we notified the build engine
 			// we need to send a build failure event
 			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
