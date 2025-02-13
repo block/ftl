@@ -79,7 +79,8 @@ spec:
               value: "$(MY_POD_IP):{{$.Values.cron.services.raft.port}}"
             - name: RAFT_CONTROL_ADDRESS
               value: "http://ftl-cron:{{ .Values.cron.services.cron.port }}"
-          {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
+          {{- include "ftl.resources" .Values.cron | nindent 10 }}
+          {{- include "ftl.securityContext" .Values.cron | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.cron | nindent 6 }}
   volumeClaimTemplates:
   - metadata:

@@ -30,13 +30,6 @@ spec:
         - name: app
           image: "{{ .Values.ingress.image.repository | default (printf "%s/%s" .Values.image.base .Values.ingress.image.name) }}:{{ .Values.ingress.image.tag | default .Values.image.tag | default $version }}"
           imagePullPolicy: {{ .Values.ingress.image.pullPolicy | default .Values.image.pullPolicy  }}
-          resources:
-            limits:
-              cpu: "{{ .Values.ingress.resources.limits.cpu }}"
-              memory: "{{ .Values.ingress.resources.limits.memory }}"
-            requests:
-              cpu: "{{ .Values.ingress.resources.requests.cpu }}"
-              memory: "{{ .Values.ingress.resources.requests.memory }}"
           {{- if .Values.ingress.envFrom }}
           envFrom:
             {{- if .Values.ingress.envFrom }}
@@ -60,6 +53,7 @@ spec:
               containerPort: 8892
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
+          {{- include "ftl.resources" .Values.ingress | nindent 10 }}
           {{- include "ftl.healthProbes" .Values.ingress | nindent 10 }}
           {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.ingress | nindent 6 }}
