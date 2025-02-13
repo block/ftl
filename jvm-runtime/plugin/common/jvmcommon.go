@@ -247,7 +247,7 @@ func (s *Service) runDevMode(ctx context.Context, req *connect.Request[langpb.Bu
 				return fmt.Errorf("could not send build event: %w", err)
 			}
 		}
-		err := s.runQuarkusDev(ctx, req, stream, first)
+		err := s.runQuarkusDev(ctx, req, stream, first, fileEvents)
 		first = false
 		if err != nil {
 			log.FromContext(ctx).Errorf(err, "Dev mode process exited")
@@ -315,6 +315,8 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 
 	go func() {
 		for e := range channels.IterContext(ctx, watchEvents) {
+			loger := log.FromContext(ctx)
+			loger.Infof("File change detected: %v", e)
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
 				events <- change
 			}
@@ -323,7 +325,13 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	return nil
 }
 
-func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse], firstAttempt bool) error {
+type buildResult struct {
+	state               *hotreloadpb.SchemaState
+	forceReload         bool
+	buildContextUpdated bool
+}
+
+func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse], firstAttempt bool, fileEvents chan watch.WatchEventModuleChanged) error {
 	logger := log.FromContext(ctx)
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(fmt.Errorf("stopping JVM language plugin (Quarkus dev mode): %w", context.Canceled))
@@ -364,46 +372,13 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	if os.Getenv("FTL_SUSPEND") == "true" {
 		devModeBuild += " -Dsuspend "
 	}
-	go func() {
-		logger.Infof("Using dev mode build command '%s'", devModeBuild)
-		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
-		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind), "MAVEN_OPTS=-Xmx1024m")
-		command.Stdout = os.Stdout
-		command.Stderr = os.Stderr
-		err = command.Run()
-		if err != nil {
-			logger.Errorf(err, "Dev mode process exited with error")
-			cancel(fmt.Errorf("dev mode process exited with error: %w: %w", context.Canceled, err))
-		} else {
-			logger.Infof("Dev mode process exited")
-			cancel(fmt.Errorf("dev mode process exited: %w", context.Canceled))
-		}
-	}()
+	launchQuarkusProcessAsync(ctx, devModeBuild, buildCtx, bind, cancel)
 
 	// Wait for the plugin to start.
 	hotReloadEndpoint := fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
-	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotReloadEndpoint, log.Trace)
-	err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
-	if err != nil {
-		logger.Infof("Dev mode process failed to start")
-		select {
-		case <-ctx.Done():
-			// Dev mode process has exited, we don't return an error so we can restart it
-			// the context is done before we notified the build engine
-			// we need to send a build failure event
-			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-				BuildFailure: &langpb.BuildFailure{
-					IsAutomaticRebuild: false,
-					ContextId:          buildCtx.ID,
-					Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
-				}}})
-			if err != nil {
-				return fmt.Errorf("could not send build event: %w", err)
-			}
-			return nil
-		default:
-		}
-		return fmt.Errorf("timed out waiting for start %w", err)
+	client, err := s.connectReloadClient(ctx, hotReloadEndpoint, stream, buildCtx)
+	if err != nil || client == nil {
+		return err
 	}
 	logger.Debugf("Dev mode process started")
 
@@ -418,94 +393,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		}
 	}
 
-	type buildResult struct {
-		state               *hotreloadpb.SchemaState
-		forceReload         bool
-		buildContextUpdated bool
-	}
-
 	reloadEvents := make(chan *buildResult, 32)
-	go func() {
-		firstAttempt := true
-		var module *schemapb.Module
-		for event := range channels.IterContext(ctx, reloadEvents) {
-			changed := false
-			errorList := event.state.GetErrors()
-			if errorList != nil {
-				bytes, err := proto.Marshal(errorList)
-				if err != nil {
-					logger.Errorf(err, "failed to marshal errors")
-					continue
-				}
-				sum := sha256.Sum(bytes)
-				if sum != errorHash {
-					changed = true
-					errorHash = sum
-				}
-			}
-			if event.state.GetModule() != nil {
-				module = event.state.GetModule()
-				bytes, err := proto.Marshal(module)
-				if err != nil {
-					logger.Errorf(err, "failed to marshal schema")
-					continue
-				}
-				sum := sha256.Sum(bytes)
-				if sum != schemaHash {
-					changed = true
-					schemaHash = sum
-				}
-			}
-			logger.Tracef("Checking for schema changes %v %v %v", changed, schemaHash, errorHash)
-
-			if changed || event.forceReload {
-				auto := !firstAttempt && !event.buildContextUpdated
-				if auto {
-					logger.Debugf("sending auto build event")
-					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
-					if err != nil {
-						logger.Errorf(err, "could not send build event")
-						continue
-					}
-				}
-				if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) {
-					// skip reading schema
-					err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-						BuildFailure: &langpb.BuildFailure{
-							IsAutomaticRebuild: auto,
-							ContextId:          buildCtx.ID,
-							Errors:             errorList,
-						}}})
-					if err != nil {
-						logger.Errorf(err, "Could not send build event")
-					}
-					firstAttempt = false
-					continue
-				}
-
-				if !firstAttempt {
-					logger.Infof("Live reload schema changed, sending build success event")
-				}
-				firstAttempt = false
-				err = stream.Send(&langpb.BuildResponse{
-					Event: &langpb.BuildResponse_BuildSuccess{
-						BuildSuccess: &langpb.BuildSuccess{
-							ContextId:            buildCtx.ID,
-							IsAutomaticRebuild:   auto,
-							Module:               module,
-							DevEndpoint:          ptr(devModeEndpoint),
-							DevHotReloadEndpoint: ptr(hotReloadEndpoint),
-							DebugPort:            &debugPort32,
-							Deploy:               []string{SchemaFile},
-						},
-					},
-				})
-				if err != nil {
-					logger.Errorf(err, "could not send build event")
-				}
-			}
-		}
-	}()
 
 	schemaWatch, err := client.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
 	if !schemaWatch.Receive() {
@@ -521,9 +409,10 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			reloadEvents <- &buildResult{state: schemaWatch.Msg().GetState()}
 		}
 	}()
+	go func() {
+		s.watchReloadEvents(ctx, reloadEvents, errorHash, schemaHash, firstAttempt, stream, buildCtx, devModeEndpoint, hotReloadEndpoint, debugPort32)
+	}()
 
-	schemaChangeTicker := time.NewTicker(500 * time.Millisecond)
-	defer schemaChangeTicker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
@@ -548,14 +437,13 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true}
-		case <-schemaChangeTicker.C:
+		case <-fileEvents:
 			changed := false
-			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: false}))
+			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			logger.Tracef("Checking for schema changes")
-
+			logger.Debugf("Checking for SQL schema changes")
 			if fileExists(buildCtx.Config.SQLMigrationDirectory) {
 				newMigrationHash, err := watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"**/*.sql"})
 				if err != nil {
@@ -569,6 +457,135 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 
 		}
 	}
+}
+
+func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, errorHash sha256.SHA256, schemaHash sha256.SHA256, firstAttempt bool, stream *connect.ServerStream[langpb.BuildResponse], buildCtx buildContext, devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32) {
+	var module *schemapb.Module
+	logger := log.FromContext(ctx)
+	for event := range channels.IterContext(ctx, reloadEvents) {
+		changed := false
+		errorList := event.state.GetErrors()
+		if errorList != nil {
+			bytes, err := proto.Marshal(errorList)
+			if err != nil {
+				logger.Errorf(err, "failed to marshal errors")
+				continue
+			}
+			sum := sha256.Sum(bytes)
+			if sum != errorHash {
+				changed = true
+				errorHash = sum
+			}
+		}
+		if event.state.GetModule() != nil {
+			module = event.state.GetModule()
+			bytes, err := proto.Marshal(module)
+			if err != nil {
+				logger.Errorf(err, "failed to marshal schema")
+				continue
+			}
+			sum := sha256.Sum(bytes)
+			if sum != schemaHash {
+				changed = true
+				schemaHash = sum
+			}
+		}
+		logger.Debugf("Checking for schema changes %v %v %v", changed, schemaHash, errorHash)
+
+		if changed || event.forceReload {
+			auto := !firstAttempt && !event.buildContextUpdated
+			if auto {
+				logger.Debugf("sending auto build event")
+				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
+				if err != nil {
+					logger.Errorf(err, "could not send build event")
+					continue
+				}
+			}
+			if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) {
+				// skip reading schema
+				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+					BuildFailure: &langpb.BuildFailure{
+						IsAutomaticRebuild: auto,
+						ContextId:          buildCtx.ID,
+						Errors:             errorList,
+					}}})
+				if err != nil {
+					logger.Errorf(err, "Could not send build event")
+				}
+				firstAttempt = false
+				continue
+			}
+
+			if !firstAttempt {
+				logger.Debugf("Live reload schema changed, sending build success event")
+			}
+			firstAttempt = false
+			err := stream.Send(&langpb.BuildResponse{
+				Event: &langpb.BuildResponse_BuildSuccess{
+					BuildSuccess: &langpb.BuildSuccess{
+						ContextId:            buildCtx.ID,
+						IsAutomaticRebuild:   auto,
+						Module:               module,
+						DevEndpoint:          ptr(devModeEndpoint),
+						DevHotReloadEndpoint: ptr(hotReloadEndpoint),
+						DebugPort:            &debugPort32,
+						Deploy:               []string{SchemaFile},
+					},
+				},
+			})
+			if err != nil {
+				logger.Errorf(err, "could not send build event")
+			}
+		}
+	}
+}
+
+func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, buildCtx buildContext, bind string, cancel context.CancelCauseFunc) {
+	go func() {
+		logger := log.FromContext(ctx)
+		logger.Infof("Using dev mode build command '%s'", devModeBuild)
+		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
+		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind), "MAVEN_OPTS=-Xmx1024m")
+		command.Stdout = os.Stdout
+		command.Stderr = os.Stderr
+		err := command.Run()
+		if err != nil {
+			logger.Errorf(err, "Dev mode process exited with error")
+			cancel(fmt.Errorf("dev mode process exited with error: %w: %w", context.Canceled, err))
+		} else {
+			logger.Infof("Dev mode process exited")
+			cancel(fmt.Errorf("dev mode process exited: %w", context.Canceled))
+		}
+	}()
+}
+
+func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint string, stream *connect.ServerStream[langpb.BuildResponse], buildCtx buildContext) (hotreloadpbconnect.HotReloadServiceClient, error) {
+	logger := log.FromContext(ctx)
+	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotReloadEndpoint, log.Trace)
+	err := rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
+	if err != nil {
+		logger.Infof("Dev mode process failed to start")
+		select {
+		case <-ctx.Done():
+			// Dev mode process has exited, we don't return an error so we can restart it
+			// the context is done before we notified the build engine
+			// we need to send a build failure event
+			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+				BuildFailure: &langpb.BuildFailure{
+					IsAutomaticRebuild: false,
+					ContextId:          buildCtx.ID,
+					Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
+				}}})
+			if err != nil {
+				return nil, fmt.Errorf("could not send build event: %w", err)
+			}
+			return nil, nil
+		default:
+		}
+		return nil, fmt.Errorf("timed out waiting for start %w", err)
+	}
+	return client, nil
 }
 
 func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.BuildResponse, error) {
