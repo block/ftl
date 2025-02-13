@@ -43,7 +43,9 @@ spec:
             - name: FTL_WORKING_DIR
               value: "/working"
             - name: FTL_ENDPOINT
-              value: "http://ftl-controller:{{ .Values.controller.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-controller:{{ .Values.controller.port }}"
+            - name: FTL_SCHEMA_ENDPOINT
+              value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
             {{- if .Values.provisioner.env }}
             {{- toYaml .Values.provisioner.env | nindent 12 }}
             {{- end }}

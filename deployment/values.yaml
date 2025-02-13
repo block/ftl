@@ -7,17 +7,9 @@ image:
 
 ingress:
   enabled: true
-  image:
-    repository: "ftl:5000/ftl-http-ingress"
   ingressAnnotations:
     ingress.kubernetes.io/ssl-redirect: "false"
     kubernetes.io/ingress.class: traefik
-
-schema:
-  service:
-    ports:
-      - name: "http-8892"
-        port: 8892
 
 runner:
   podAnnotations:

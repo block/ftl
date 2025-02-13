@@ -46,8 +46,6 @@ controller:
       value: "http://$(MY_POD_IP):8892"
     - name: FTL_ADVERTISE
       value: "http://$(MY_POD_IP):8892"
-    - name: FTL_SCHEMA_ENDPOINT
-      value: "http://ftl-schema:8892"
     - name: LOG_LEVEL
       value: "debug"
     - name: LOG_JSON
@@ -86,14 +84,6 @@ provisioner:
   serviceAccountName: ftl-provisioner
 
   env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: FTL_BIND
-      value: "http://$(MY_POD_IP):8893"
-    - name: FTL_SCHEMA_ENDPOINT
-      value: "http://ftl-schema:8892"
     - name: LOG_LEVEL
       value: "debug"
     - name: LOG_JSON
@@ -298,19 +288,7 @@ ingress:
 
 timeline:
   enabled: true
-  env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: FTL_ENDPOINT
-      value: "http://ftl-controller:8892"
-    - name: FTL_BIND
-      value: "http://$(MY_POD_IP):8892"
-    - name: HOST_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.hostIP
+  env: nil
 
   port: 8892
 
@@ -330,10 +308,8 @@ timeline:
     limits:
       memory: 128Mi
       cpu: 2
-
   envFrom: null
   serviceAccountName: ftl-timeline
-
   readinessProbe: null
 
   service:
@@ -350,18 +326,8 @@ schema:
   replicas: 3
   storage: 50Mi
   env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: FTL_BIND
-      value: "http://$(MY_POD_IP):8892"
     - name: LOG_LEVEL
       value: "trace"
-    - name: HOST_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.hostIP
 
   revisionHistoryLimit: 0
 
@@ -386,15 +352,12 @@ schema:
   readinessProbe: null
 
   services:
-    port: 8892
     schema:
       type: ClusterIP
       annotations: null
-      containerPort: 8892
       port: 8892
     raft:
       annotations: null
-      containerPort: 8893
       port: 8893
   podAnnotations: null
   nodeSelector: null
@@ -417,11 +380,7 @@ console:
       value: "debug"
     - name: LOG_JSON
       value: "true"
-  ports:
-    - name: http
-      containerPort: 8892
-      protocol: TCP
-      port: 8892
+  port: 8892
 
   replicas: 1
   revisionHistoryLimit: 0

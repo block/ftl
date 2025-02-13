@@ -55,16 +55,12 @@ spec:
             {{- if .Values.cron.env }}
             {{- toYaml .Values.cron.env | nindent 12 }}
             {{- end }}
-            - name: MY_POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
             - name: FTL_BIND
-              value: "http://$(MY_POD_IP):{{ .Values.cron.services.cron.containerPort }}"
+              value: "http://0.0.0.0:{{ .Values.cron.services.cron.containerPort }}"
             - name: FTL_TIMELINE_ENDPOINT
-              value: "http://ftl-timeline:{{ .Values.timeline.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
             - name: FTL_SCHEMA_ENDPOINT
-              value: "http://ftl-schema:8892"
+              value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
             - name: RAFT_INITIAL_MEMBERS
               value: "{{- range $index := until (.Values.cron.replicas | int ) }}{{- if ne $index 0 -}},{{- end -}}ftl-cron-{{ add $index 1  }}.ftl-cron-raft:{{$.Values.cron.services.raft.port}}{{- end -}}"
             - name: RAFT_INITIAL_REPLICA_IDS
@@ -76,11 +72,11 @@ spec:
                 fieldRef:
                   fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
             - name: RAFT_ADDRESS
-              value: "ftl-cron-$(ORDINAL_NUMBER).ftl-cron-raft:{{$.Values.cron.services.raft.port}}"
+              value: "{{ include "ftl.fullname" . }}-cron-$(ORDINAL_NUMBER).{{ include "ftl.fullname" . }}-cron-raft:{{$.Values.cron.services.raft.port}}"
             - name: RAFT_LISTEN_ADDRESS
-              value: "$(MY_POD_IP):{{$.Values.cron.services.raft.port}}"
+              value: "0.0.0.0:{{$.Values.cron.services.raft.port}}"
             - name: RAFT_CONTROL_ADDRESS
-              value: "http://ftl-cron:{{ .Values.cron.services.cron.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-cron:{{ .Values.cron.services.cron.port }}"
           {{- include "ftl.resources" .Values.cron | nindent 10 }}
           {{- include "ftl.securityContext" .Values.cron | nindent 10 }}
       {{- include "ftl.commonPodConfig" .Values.cron | nindent 6 }}
