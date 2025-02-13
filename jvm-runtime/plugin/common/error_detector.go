@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/atomic"
+
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/slices"
 )
