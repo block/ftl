@@ -46,10 +46,10 @@ func (o *errorDetector) FinalizeCapture() []builderrors.Error {
 
 	var errs []builderrors.Error
 	lines := slices.Filter(strings.Split(o.output, "\n"), func(s string) bool {
-		return strings.HasPrefix(s, "[ERROR] ")
+		return strings.HasPrefix(s, "[ERROR]")
 	})
 	for _, line := range lines {
-		line = strings.TrimPrefix(line, "[ERROR] ")
+		line = strings.TrimSpace(strings.TrimPrefix(line, "[ERROR]"))
 		if len(line) == 0 {
 			continue
 		}
