@@ -58,6 +58,10 @@ spec:
             {{- end }}
             - name: FTL_BIND
               value: "http://0.0.0.0:{{ .Values.schema.services.schema.port }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.schema.logLevel | default .Values.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.schema.logJson | default .Values.logJson }}"
             - name: RAFT_INITIAL_MEMBERS
               value: "{{- range $index := until (.Values.schema.replicas | int ) }}{{- if ne $index 0 -}},{{- end -}}ftl-schema-{{ add $index 1  }}.ftl-schema-raft:{{$.Values.schema.services.raft.port}}{{- end -}}"
             - name: RAFT_INITIAL_REPLICA_IDS
