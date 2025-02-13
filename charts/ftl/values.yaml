@@ -1,6 +1,9 @@
 fullnameOverride: ""
 nameOverride: ""
 
+logLevel: debug
+logJson: true
+
 image:
   tag: null
   pullPolicy: IfNotPresent
@@ -46,10 +49,6 @@ controller:
       value: "http://$(MY_POD_IP):8892"
     - name: FTL_ADVERTISE
       value: "http://$(MY_POD_IP):8892"
-    - name: LOG_LEVEL
-      value: "debug"
-    - name: LOG_JSON
-      value: "true"
     - name: HOST_IP
       valueFrom:
         fieldRef:
@@ -83,16 +82,6 @@ provisioner:
   envFrom: null
   serviceAccountName: ftl-provisioner
 
-  env:
-    - name: LOG_LEVEL
-      value: "debug"
-    - name: LOG_JSON
-      value: "true"
-    - name: HOST_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.hostIP
-
   readinessProbe: null
 
   podAnnotations: null
@@ -121,21 +110,7 @@ runner:
     limits:
       memory: 256Mi
       cpu: 2
-  env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: FTL_ENDPOINT
-      value: "http://ftl-controller"
-    - name: LOG_LEVEL
-      value: "debug"
-    - name: LOG_JSON
-      value: "true"
-    - name: HOST_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.hostIP
+  env: null
 
   port: 8892
 
@@ -164,16 +139,7 @@ cron:
       containerPort: 8893
       port: 8893
 
-  env:
-    - name: LOG_LEVEL
-      value: "debug"
-    - name: LOG_JSON
-      value: "true"
-    - name: HOST_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.hostIP
-
+  env: null
   image:
     repository: null
     tag: null
@@ -226,21 +192,9 @@ registry:
 
 ingress:
   enabled: false
-  env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: FTL_INGRESS_ALLOW_ORIGIN
-      value: "*"
-    - name: LOG_LEVEL
-      value: "debug"
-    - name: LOG_JSON
-      value: "true"
-    - name: HOST_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.hostIP
+  allowOrigin: "*"
+  env: null
+
   ports:
     - name: ingress
       containerPort: 8891
@@ -288,7 +242,7 @@ ingress:
 
 timeline:
   enabled: true
-  env: nil
+  env: null
 
   port: 8892
 
@@ -325,9 +279,7 @@ schema:
   enabled: true
   replicas: 3
   storage: 50Mi
-  env:
-    - name: LOG_LEVEL
-      value: "trace"
+  env: null
 
   revisionHistoryLimit: 0
 
@@ -367,19 +319,7 @@ schema:
 
 console:
   enabled: true
-  env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: HOST_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.hostIP
-    - name: LOG_LEVEL
-      value: "debug"
-    - name: LOG_JSON
-      value: "true"
+  env: null
   port: 8892
 
   replicas: 1

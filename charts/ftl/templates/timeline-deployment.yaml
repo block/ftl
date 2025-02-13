@@ -35,11 +35,13 @@ spec:
             {{- toYaml .Values.timeline.envFrom | nindent 12 }}
           {{- end }}
           env:
-            - name: FTL_ENDPOINT
-              value: "http://{{- include "ftl.fullname" . -}}:8892"
             - name: FTL_BIND
               value: "http://0.0.0.0:8892"
-            {{- if .Values.timeline.env }}
+            - name: LOG_LEVEL
+              value: "{{ .Values.timeline.logLevel | default .Values.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.timeline.logJson | default .Values.logJson }}"
+            {{ if .Values.timeline.env }}
             {{- toYaml .Values.provisioner.env | nindent 12 }}
             {{- end }}
           ports:

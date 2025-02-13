@@ -61,6 +61,10 @@ spec:
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
             - name: FTL_SCHEMA_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.cron.logLevel | default .Values.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.cron.logJson | default .Values.logJson }}"
             - name: RAFT_INITIAL_MEMBERS
               value: "{{- range $index := until (.Values.cron.replicas | int ) }}{{- if ne $index 0 -}},{{- end -}}ftl-cron-{{ add $index 1  }}.ftl-cron-raft:{{$.Values.cron.services.raft.port}}{{- end -}}"
             - name: RAFT_INITIAL_REPLICA_IDS

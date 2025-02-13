@@ -46,9 +46,9 @@ spec:
             - name: FTL_BIND
               value: "http://0.0.0.0:8892"
             - name: LOG_LEVEL
-              value: "{{ .Values.lease.logLevel }}"
+              value: "{{ .Values.lease.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON
-              value: "{{ .Values.lease.logJson }}"
+              value: "{{ .Values.lease.logJson | default .Values.logJson }}"
           ports:
             - name: "http2"
               containerPort: 8892

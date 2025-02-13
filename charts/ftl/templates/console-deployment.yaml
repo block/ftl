@@ -29,7 +29,7 @@ spec:
       containers:
         - name: app
           image: "{{ .Values.console.image.repository | default (printf "%s/%s" .Values.image.base .Values.console.image.name) }}:{{ .Values.console.image.tag | default .Values.image.tag | default $version }}"
-          imagePullPolicy: {{ .Values.console.image.pullPolicy | default .Values.image.pullPolicy  }}
+          imagePullPolicy: {{ .Values.console.image.pullPolicy | default .Values.image.pullPolicy }}
           {{- if .Values.console.envFrom }}
           envFrom:
             {{- if .Values.console.envFrom }}
@@ -51,7 +51,11 @@ spec:
             - name: FTL_VERB_SERVICE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-controller:8892"
             - name: FTL_SCHEMA_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-schema:{{ .Values.schema.services.schema.port }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.console.logLevel | default .Values.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.console.logJson | default .Values.logJson }}"
           ports:
             - name: http2
               containerPort: 8892

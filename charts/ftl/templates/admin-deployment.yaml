@@ -49,9 +49,9 @@ spec:
             - name: FTL_SCHEMA_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-schema:{{ .Values.schema.services.schema.port }}"
             - name: LOG_LEVEL
-              value: "{{ .Values.admin.logLevel }}"
+              value: "{{ .Values.admin.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON
-              value: "{{ .Values.admin.logJson }}"
+              value: "{{ .Values.admin.logJson | default .Values.logJson }}"
             {{- if .Values.admin.env }}
             {{- toYaml .Values.admin.env | nindent 12 }}
             {{- end }}
