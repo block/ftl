@@ -56,7 +56,7 @@ spec:
             {{- toYaml .Values.cron.env | nindent 12 }}
             {{- end }}
             - name: FTL_BIND
-              value: "http://0.0.0.0:{{ .Values.cron.services.cron.containerPort }}"
+              value: "http://0.0.0.0:{{ .Values.cron.services.cron.port }}"
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
             - name: FTL_SCHEMA_ENDPOINT
