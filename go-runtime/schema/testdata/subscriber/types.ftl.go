@@ -11,6 +11,7 @@ type ConsumesSubscriptionFromExternalTopicClient func(context.Context, ftlpubsub
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
 			ConsumesSubscriptionFromExternalTopic,
 		),

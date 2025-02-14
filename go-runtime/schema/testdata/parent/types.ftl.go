@@ -17,9 +17,11 @@ func init() {
 			*new(ftlchild.List),
 			*new(ftlchild.Scalar),
 		),
+
 		reflection.ProvideResourcesForVerb(
 			ftlchild.ChildVerb,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			Verb,
 		),
