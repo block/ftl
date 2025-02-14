@@ -200,7 +200,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	})
 
 	err = tree.Wait()
-	if err != nil {
+	if err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
 
