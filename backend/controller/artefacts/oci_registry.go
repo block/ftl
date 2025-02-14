@@ -46,6 +46,7 @@ type OCIArtefactService struct {
 	puller        *googleremote.Puller
 	registry      string
 	allowInsecure bool
+	logger        *log.Logger
 }
 
 type ArtefactRepository struct {
@@ -82,11 +83,13 @@ func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArte
 		return nil, fmt.Errorf("unable to create puller for registry '%s': %w", config.Registry, err)
 	}
 
+	logger := log.FromContext(ctx)
 	o := &OCIArtefactService{
 		auth:          &atomic.Value[authn.AuthConfig]{},
 		puller:        puller,
 		registry:      config.Registry,
 		allowInsecure: config.AllowInsecure,
+		logger:        logger,
 	}
 
 	if isECRRepository(config.Registry) {
@@ -95,6 +98,7 @@ func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArte
 		if err != nil {
 			return nil, err
 		}
+		logger.Debugf("Using ECR credentials for registry '%s'", config.Registry)
 		o.auth.Store(authn.AuthConfig{Username: username, Password: password})
 		go func() {
 			for {
@@ -104,7 +108,7 @@ func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArte
 				case <-time.After(time.Hour):
 					username, password, err := getECRCredentials(ctx)
 					if err != nil {
-						log.FromContext(ctx).Errorf(err, "failed to refresh ECR credentials")
+						logger.Errorf(err, "failed to refresh ECR credentials")
 					}
 					o.auth.Store(authn.AuthConfig{Username: username, Password: password})
 				}
@@ -242,7 +246,8 @@ func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io
 	if err != nil {
 		return nil, fmt.Errorf("unable to create digest '%s': %w", dg, err)
 	}
-	layer, err := googleremote.Layer(newDigest, googleremote.WithAuthFromKeychain(authn.DefaultKeychain), googleremote.Reuse(s.puller))
+	auth := s.auth.Load()
+	layer, err := googleremote.Layer(newDigest, googleremote.WithAuth(authn.FromConfig(auth)), googleremote.Reuse(s.puller))
 	if err != nil {
 		return nil, fmt.Errorf("unable to read layer '%s': %w", newDigest, err)
 	}
@@ -260,13 +265,16 @@ func (s *OCIArtefactService) repoFactory() (*remote.Repository, error) {
 	}
 
 	a := s.auth.Load()
+	s.logger.Debugf("Connecting to registry '%s'", s.registry)
 	reg.Client = &auth.Client{
 		Client: retry.DefaultClient,
 		Cache:  auth.NewCache(),
-		Credential: auth.StaticCredential(s.registry, auth.Credential{
-			Username: a.Username,
-			Password: a.Password,
-		}),
+		Credential: func(ctx context.Context, hostport string) (auth.Credential, error) {
+			return auth.Credential{
+				Username: a.Username,
+				Password: a.Password,
+			}, nil
+		},
 	}
 	reg.PlainHTTP = s.allowInsecure
 	return reg, nil
