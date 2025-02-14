@@ -420,7 +420,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 
 	// Build and deploy all modules first.
 	err = e.BuildAndDeploy(ctx, 1, true)
-	if err != nil {
+	if err != nil && !errors.Is(err, context.Canceled) {
 		logger.Errorf(err, "Initial deploy failed")
 	}
 
