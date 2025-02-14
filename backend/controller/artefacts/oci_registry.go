@@ -22,7 +22,6 @@ import (
 	"github.com/opencontainers/image-spec/specs-go"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
-	"oras.land/oras-go/v2/content/memory"
 	"oras.land/oras-go/v2/errdef"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
@@ -194,8 +193,7 @@ func (s *OCIArtefactService) Upload(ctx context.Context, artefact Artefact) (sha
 	// 2. Pack the files and tag the packed manifest
 	artifactType := "application/vnd.ftl.artifact"
 
-	store := memory.New()
-	desc, err := pushBlob(ctx, artifactType, artefact.Content, store)
+	desc, err := pushBlob(ctx, artifactType, artefact.Content, repo)
 	if err != nil {
 		return sha256.SHA256{}, fmt.Errorf("unable to push to in memory repository %w", err)
 	}
@@ -208,8 +206,13 @@ func (s *OCIArtefactService) Upload(ctx context.Context, artefact Artefact) (sha
 	logger.Debugf("Tagging module blob with digest '%s'", tag)
 
 	fileDescriptors := []ocispec.Descriptor{desc}
-	var configBlob []byte
-	configDesc, err := pushBlob(ctx, ocispec.MediaTypeImageConfig, configBlob, store) // push config blob
+	config := ocispec.ImageConfig{} // Create a new image config
+	config.Labels = map[string]string{"type": "ftl-artifact"}
+	configBlob, err := json.Marshal(config) // Marshal the config to json
+	if err != nil {
+		return sha256.SHA256{}, fmt.Errorf("unable to marshal config %w", err)
+	}
+	configDesc, err := pushBlob(ctx, ocispec.MediaTypeImageConfig, configBlob, repo) // push config blob
 	if err != nil {
 		return sha256.SHA256{}, fmt.Errorf("unable to push config to in memory repository %w", err)
 	}
@@ -217,18 +220,12 @@ func (s *OCIArtefactService) Upload(ctx context.Context, artefact Artefact) (sha
 	if err != nil {
 		return sha256.SHA256{}, fmt.Errorf("unable to generate manifest content %w", err)
 	}
-	manifestDesc, err := pushBlob(ctx, ocispec.MediaTypeImageManifest, manifestBlob, store) // push manifest blob
+	manifestDesc, err := pushBlob(ctx, ocispec.MediaTypeImageManifest, manifestBlob, repo) // push manifest blob
 	if err != nil {
 		return sha256.SHA256{}, fmt.Errorf("unable to push manifest to in memory repository %w", err)
 	}
-	if err = store.Tag(ctx, manifestDesc, tag); err != nil {
+	if err = repo.Tag(ctx, manifestDesc, tag); err != nil {
 		return sha256.SHA256{}, fmt.Errorf("unable to tag in memory repository %w", err)
-	}
-
-	// 4. Copy from the file store to the remote repository
-	_, err = oras.Copy(ctx, store, tag, repo, tag, oras.DefaultCopyOptions)
-	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to upload artifact: %w", err)
 	}
 
 	return artefact.Digest, nil
