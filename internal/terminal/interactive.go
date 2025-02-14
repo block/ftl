@@ -58,7 +58,10 @@ func (r *interactiveConsole) Close() {
 		return
 	}
 	r.closed = true
-	r.Close()
+	err := r.l.Close()
+	if err != nil {
+		return
+	}
 	r.closeWait.Wait()
 }
 func RunInteractiveConsole(ctx context.Context, k *kong.Kong, binder KongContextBinder, eventSource schemaeventsource.EventSource) error {
@@ -98,7 +101,7 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 		tsm.statusLock.Unlock()
 	}
 	context.AfterFunc(ctx, func() {
-		_ = l.Close()
+		r.Close()
 	})
 	l.CaptureExitSignal()
 	// Overload the exit function to avoid exiting the process
@@ -122,7 +125,10 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 			continue
 		} else if errors.Is(err, io.EOF) {
 			defer func() { // We want the earlier defer to run first
-				_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck
+				if !r.closed {
+					// We only call sigint if this closure was because of ctrl+D
+					_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck
+				}
 			}()
 			return nil
 		}
