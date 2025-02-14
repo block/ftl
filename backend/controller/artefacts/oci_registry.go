@@ -48,6 +48,11 @@ type OCIArtefactService struct {
 	logger        *log.Logger
 }
 
+func (s *OCIArtefactService) Authorization() (*authn.AuthConfig, error) {
+	out := s.auth.Load()
+	return &out, nil
+}
+
 type ArtefactRepository struct {
 	ModuleDigest     sha256.SHA256
 	MediaType        string
@@ -77,19 +82,19 @@ func isECRRepository(repo string) bool {
 
 func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArtefactService, error) {
 	// Connect the registry targeting the specified container
-	puller, err := googleremote.NewPuller()
-	if err != nil {
-		return nil, fmt.Errorf("unable to create puller for registry '%s': %w", config.Registry, err)
-	}
 
 	logger := log.FromContext(ctx)
 	o := &OCIArtefactService{
 		auth:          &atomic.Value[authn.AuthConfig]{},
-		puller:        puller,
 		registry:      config.Registry,
 		allowInsecure: config.AllowInsecure,
 		logger:        logger,
 	}
+	puller, err := googleremote.NewPuller(googleremote.WithAuth(o))
+	if err != nil {
+		return nil, fmt.Errorf("unable to create puller for registry '%s': %w", config.Registry, err)
+	}
+	o.puller = puller
 
 	if isECRRepository(config.Registry) {
 
