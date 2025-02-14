@@ -86,6 +86,7 @@ func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.Pu
 	}
 
 	schema := &schemapb.Schema{}
+msgloop:
 	for resp.Receive() {
 		msg := resp.Msg()
 
@@ -96,8 +97,8 @@ func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.Pu
 					schema.Modules = append(schema.Modules, module)
 					delete(remainingNames, module.Name)
 				}
-				break
 			}
+			break msgloop
 		default:
 			// Ignore for now
 		}
