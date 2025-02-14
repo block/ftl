@@ -123,7 +123,7 @@ func (d *devCmd) Run(
 	})
 
 	err = g.Wait()
-	if err != nil {
+	if err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("error during dev: %w", err)
 	}
 	return nil
