@@ -179,6 +179,7 @@ func main() {
 	if sm, ok := csm.statusManager.Get(); ok {
 		sm.Close()
 	}
+	kctx.Exit = os.Exit
 
 	if err != nil {
 		kctx.FatalIfErrorf(err)

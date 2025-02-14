@@ -189,7 +189,6 @@ func NewStatusManager(ctx context.Context) StatusManager {
 					sm.writeLine(current, true)
 					if !closed {
 						sm.statusLock.Lock()
-						sm.clearStatusMessages()
 						sm.exitWait.Done()
 						closed = true
 						sm.statusLock.Unlock()
@@ -217,11 +216,6 @@ func NewStatusManager(ctx context.Context) StatusManager {
 				}
 			}
 		}
-	}()
-
-	go func() {
-		<-ctx.Done()
-		sm.Close()
 	}()
 
 	// Animate the spinners
@@ -278,6 +272,9 @@ func IsANSITerminal(ctx context.Context) bool {
 }
 
 func (r *terminalStatusManager) clearStatusMessages() {
+	if r.closed.Load() {
+		return
+	}
 	if r.statusLock.TryLock() {
 		panic("clearStatusMessages called without holding the lock")
 	}
@@ -370,24 +367,32 @@ func (r *terminalStatusManager) SetModuleState(module string, state BuildState) 
 
 func (r *terminalStatusManager) Close() {
 	r.statusLock.Lock()
+	r.closed.Store(true)
+	if r.closed.Load() {
+		r.statusLock.Unlock()
+		return
+	}
 	if it, ok := r.interactiveConsole.Get(); ok {
 		it.Close()
 	}
 	r.clearStatusMessages()
 	r.totalStatusLines = 0
 	r.lines = []*terminalStatusLine{}
-	r.statusLock.Unlock()
 	os.Stdout = r.old // restoring the real stdout
 	os.Stderr = r.oldErr
-	r.closed.Store(true)
 	// We send a null byte to the write pipe to unblock the read
 	_, _ = r.write.Write([]byte{0}) //nolint:errcheck
+	r.statusLock.Unlock()
 	r.exitWait.Wait()
 }
 
 func (r *terminalStatusManager) writeLine(s string, last bool) {
 	r.statusLock.Lock()
 	defer r.statusLock.Unlock()
+	if r.closed.Load() {
+		os.Stdout.WriteString(s + "\n") //nolint:errcheck
+		return
+	}
 	if !last {
 		s += "\n"
 	}
