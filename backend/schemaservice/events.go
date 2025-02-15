@@ -11,6 +11,7 @@ import (
 	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
@@ -158,24 +159,36 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", mod.Name, schema.DeploymentStateProvisioning, mod.Runtime.Deployment.State)
 		}
 	}
-	if activeCount > 0 {
-		return fmt.Errorf("only a single changeset can currently be active at any time")
+	rem := map[string]bool{}
+	for _, mod := range e.Changeset.ToRemove {
+		rem[mod] = true
+	}
+	sch := &schema.Schema{Modules: maps.Values(t.deployments)}
+	merged := latestSchema(sch, e.Changeset)
+	merged.Modules = slices.Filter(merged.Modules, func(m *schema.Module) bool {
+		if m.Builtin {
+			return true
+		}
+		remove := rem[m.Runtime.Deployment.DeploymentKey.String()]
+		if remove {
+			delete(rem, m.Runtime.Deployment.DeploymentKey.String())
+		}
+		return !remove
+	})
+	if len(rem) > 0 {
+		return fmt.Errorf("changeset has modules to remove that are not in the schema: %v", maps.Keys(rem))
+	}
+	problems := []error{}
+	for _, mod := range merged.Modules {
+		_, err := schema.ValidateModuleInSchema(merged, optional.Some(mod))
+		if err != nil {
+			problems = append(problems, fmt.Errorf("module %s is not valid: %w", mod.Name, err))
+		}
+	}
+	if len(problems) > 0 {
+		return fmt.Errorf("changeset failed validation %w", errors.Join(problems...))
 	}
 
-	if t.validationEnabled {
-		sch := &schema.Schema{Modules: maps.Values(t.deployments)}
-		merged := latestSchema(sch, e.Changeset)
-		problems := []error{}
-		for _, mod := range e.Changeset.Modules {
-			_, err := schema.ValidateModuleInSchema(merged, optional.Some(mod))
-			if err != nil {
-				problems = append(problems, fmt.Errorf("module %s is not valid: %w", mod.Name, err))
-			}
-		}
-		if len(problems) > 0 {
-			return fmt.Errorf("changeset failed validation %w", errors.Join(problems...))
-		}
-	}
 	return nil
 }
 
@@ -248,6 +261,18 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 		t.deployments[dep.Name] = dep
 		delete(t.deploymentEvents, dep.Name)
 		dep.Runtime.Deployment.State = schema.DeploymentStateCanonical
+	}
+	for _, dep := range changeset.ToRemove {
+		logger.Debugf("Removing deployment %s", dep)
+		dk, err := key.ParseDeploymentKey(dep)
+		if err != nil {
+			logger.Errorf(err, "Error parsing deployment key %s", dep)
+		} else {
+			old := t.deployments[dk.Payload.Module]
+			old.Runtime.Deployment.State = schema.DeploymentStateDraining
+			changeset.RemovingModules = append(changeset.RemovingModules, old)
+			delete(t.deployments, dk.Payload.Module)
+		}
 	}
 	return nil
 }

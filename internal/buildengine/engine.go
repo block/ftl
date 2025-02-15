@@ -289,8 +289,23 @@ func (e *Engine) startSchemaSync(ctx context.Context) {
 func (e *Engine) processEvent(event schema.Notification) {
 	switch event := event.(type) {
 	case *schema.ChangesetCommittedNotification:
+		adding := map[string]bool{}
+		for _, a := range event.Changeset.Modules {
+			adding[a.Name] = true
+		}
 		for _, removed := range event.Changeset.RemovingModules {
+			// If a module has been explicitly killed we only find out about it here
 			e.controllerSchema.Delete(removed.Name)
+			if !adding[removed.Name] {
+				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+					Timestamp: timestamppb.Now(),
+					Event: &buildenginepb.EngineEvent_ModuleRemoved{
+						ModuleRemoved: &buildenginepb.ModuleRemoved{
+							Module: removed.Name,
+						},
+					},
+				}
+			}
 		}
 		for _, module := range event.Changeset.Modules {
 			e.controllerSchema.Store(module.Name, module)

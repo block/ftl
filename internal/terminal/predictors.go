@@ -9,7 +9,8 @@ import (
 
 func Predictors(view *schemaeventsource.View) map[string]complete.Predictor {
 	return map[string]complete.Predictor{
-		"verbs": &verbPredictor{view: *view},
+		"verbs":       &verbPredictor{view: *view},
+		"deployments": &deploymentsPredictor{view: *view},
 	}
 }
 
@@ -27,6 +28,22 @@ func (v *verbPredictor) Predict(args complete.Args) []string {
 				ret = append(ret, ref.String())
 			}
 		}
+	}
+	return ret
+}
+
+type deploymentsPredictor struct {
+	view schemaeventsource.View
+}
+
+func (v *deploymentsPredictor) Predict(args complete.Args) []string {
+	sch := v.view.GetCanonical()
+	ret := []string{}
+	for _, module := range sch.Modules {
+		if module.Runtime == nil || module.Runtime.Deployment == nil {
+			continue
+		}
+		ret = append(ret, module.Runtime.Deployment.DeploymentKey.String())
 	}
 	return ret
 }
