@@ -696,11 +696,11 @@ func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, key string, tim
 	for {
 		select {
 		case <-end:
-			return fmt.Errorf("deployment %s did not become ready in time", key)
+			return fmt.Errorf("deployment %s did not become ready in time \n%s", key, r.findPodLogs(ctx, key, podClient))
 		case <-watch.ResultChan():
 			deployment, err := deploymentClient.Get(ctx, key, v1.GetOptions{})
 			if err != nil {
-				return fmt.Errorf("failed to get deployment %s: %w", key, err)
+				return fmt.Errorf("failed to get deployment %s: %w\n%s", key, err, r.findPodLogs(ctx, key, podClient))
 			}
 			if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 				logger.Debugf("Deployment %s is ready", key)
@@ -708,13 +708,13 @@ func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, key string, tim
 			}
 			for _, condition := range deployment.Status.Conditions {
 				if condition.Type == kubeapps.DeploymentReplicaFailure && condition.Status == kubecore.ConditionTrue {
-					return fmt.Errorf("deployment %s is in error state: %s", deployment, condition.Message)
+					return fmt.Errorf("deployment %s is in error state: %s \n%s", deployment, condition.Message, r.findPodLogs(ctx, key, podClient))
 				}
 			}
 		case <-podWatch.ResultChan():
 			pods, err := podClient.List(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
 			if err != nil {
-				return fmt.Errorf("failed to get deployment %s: %w", key, err)
+				return fmt.Errorf("failed to get pods for deployment %s: %w", key, err)
 			}
 			for _, p := range pods.Items {
 				if p.Status.Phase == kubecore.PodFailed {
@@ -737,6 +737,24 @@ func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, key string, tim
 			}
 		}
 	}
+}
+
+func (r *k8sScaling) findPodLogs(ctx context.Context, key string, podClient v3.PodInterface) string {
+	pods, err := podClient.List(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
+	if err != nil {
+		log.FromContext(ctx).Errorf(err, "Failed to read logs for deployment %s", key)
+	}
+	ret := ""
+	for _, p := range pods.Items {
+		for _, container := range p.Status.ContainerStatuses {
+			logs, err := readPodLogs(ctx, podClient, &p)
+			if err != nil {
+				log.FromContext(ctx).Errorf(err, "Failed to read logs for pod %s", p.Name)
+			}
+			ret += fmt.Sprintf("-- pod %s, container: %s\n%s", p.Name, container.Name, logs)
+		}
+	}
+	return ret
 }
 
 func readPodLogs(ctx context.Context, client v3.PodInterface, pod *kubecore.Pod) (string, error) {
