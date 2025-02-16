@@ -31,7 +31,39 @@ import (
 	"github.com/block/ftl/internal/log"
 )
 
-var _ Service = &OCIArtefactService{}
+type ArtefactReader interface {
+	io.ReadCloser
+}
+
+// Metadata container for an artefact's metadata
+type Metadata struct {
+	Executable bool
+	Size       int64
+	Path       string
+}
+
+type ArtefactUpload struct {
+	Digest  sha256.SHA256
+	Size    int64
+	Content io.ReadCloser
+}
+
+// Artefact container for an artefact's payload and metadata
+type Artefact struct {
+	Digest   sha256.SHA256
+	Metadata Metadata
+	Content  io.ReadCloser
+}
+
+type ArtefactKey struct {
+	Digest sha256.SHA256
+}
+
+type ReleaseArtefact struct {
+	Artefact   ArtefactKey
+	Path       string
+	Executable bool
+}
 
 type RegistryConfig struct {
 	Registry      string `help:"OCI container registry, in the form host[:port]/repository" env:"FTL_ARTEFACT_REGISTRY" required:""`
@@ -188,52 +220,58 @@ func (s *OCIArtefactService) GetDigestsKeys(ctx context.Context, digests []sha25
 }
 
 // Upload uploads the specific artifact as a raw blob and links it to a manifest to prevent GC
-func (s *OCIArtefactService) Upload(ctx context.Context, artefact Artefact) (sha256.SHA256, error) {
+func (s *OCIArtefactService) Upload(ctx context.Context, artefact ArtefactUpload) error {
 	repo, err := s.repoFactory()
-	logger := log.FromContext(ctx)
+	logger := log.FromContext(ctx).Scope("oci:" + artefact.Digest.String())
 	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to connect to repository '%s': %w", s.registry, err)
+		return fmt.Errorf("unable to connect to repository '%s': %w", s.registry, err)
 	}
 
-	// 2. Pack the files and tag the packed manifest
-	artifactType := "application/vnd.ftl.artifact"
+	parseSHA256, err := sha256.ParseSHA256(artefact.Digest.String())
+	if err != nil {
+		return fmt.Errorf("unable to parse sha %w", err)
+	}
 
-	desc, err := pushBlob(ctx, artifactType, artefact.Content, repo)
-	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to push to in memory repository %w", err)
+	logger.Debugf("Pushing artefact blob")
+	contentDesc := ocispec.Descriptor{
+		MediaType: "application/vnd.ftl.artifact",
+		Digest:    digest.Digest("sha256:" + artefact.Digest.String()),
+		Size:      artefact.Size,
 	}
-	tag := desc.Digest.Hex()
-	parseSHA256, err := sha256.ParseSHA256(tag)
+	err = repo.Push(ctx, contentDesc, artefact.Content)
 	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to parse sha %w", err)
+		return fmt.Errorf("unable to push to in memory repository %w", err)
 	}
+
+	tag := contentDesc.Digest.Hex()
 	artefact.Digest = parseSHA256
-	logger.Debugf("Tagging module blob with digest '%s'", tag)
 
-	fileDescriptors := []ocispec.Descriptor{desc}
+	logger.Debugf("Tagging module blob with digest '%s'", tag)
+	fileDescriptors := []ocispec.Descriptor{contentDesc}
 	config := ocispec.ImageConfig{} // Create a new image config
 	config.Labels = map[string]string{"type": "ftl-artifact"}
 	configBlob, err := json.Marshal(config) // Marshal the config to json
 	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to marshal config %w", err)
+		return fmt.Errorf("unable to marshal OCI image config: %w", err)
 	}
 	configDesc, err := pushBlob(ctx, ocispec.MediaTypeImageConfig, configBlob, repo) // push config blob
 	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to push config to in memory repository %w", err)
+		return fmt.Errorf("unable to push OCI image config to OCI registry: %w", err)
 	}
+
 	manifestBlob, err := generateManifestContent(configDesc, fileDescriptors...)
 	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to generate manifest content %w", err)
+		return fmt.Errorf("unable to generate manifest content: %w", err)
 	}
 	manifestDesc, err := pushBlob(ctx, ocispec.MediaTypeImageManifest, manifestBlob, repo) // push manifest blob
 	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to push manifest to in memory repository %w", err)
+		return fmt.Errorf("unable to push manifest to OCI registry: %w", err)
 	}
 	if err = repo.Tag(ctx, manifestDesc, tag); err != nil {
-		return sha256.SHA256{}, fmt.Errorf("unable to tag in memory repository %w", err)
+		return fmt.Errorf("unable to tag OCI registry: %w", err)
 	}
 
-	return artefact.Digest, nil
+	return nil
 }
 
 func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io.ReadCloser, error) {

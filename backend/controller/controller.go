@@ -5,6 +5,7 @@ import (
 	sha "crypto/sha256"
 	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -803,15 +804,64 @@ func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftl
 	}), nil
 }
 
-func (s *Service) UploadArtefact(ctx context.Context, req *connect.Request[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error) {
-	logger := log.FromContext(ctx)
+func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStream[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error) {
+	logger := log.FromContext(ctx).Scope("uploadArtefact")
+	firstMsg := NewOnceValue[*ftlv1.UploadArtefactRequest]()
+	wg, ctx := errgroup.WithContext(ctx)
 	logger.Debugf("Uploading artefact")
-	digest, err := s.storage.Upload(ctx, artefacts.Artefact{Content: req.Msg.Content})
+	r, w := io.Pipe()
+	// Read bytes from client and upload to OCI
+	wg.Go(func() error {
+		defer r.Close()
+		logger.Tracef("Waiting for first message")
+		msg, ok := firstMsg.Get(ctx)
+		if !ok {
+			return nil
+		}
+		if msg.Size == 0 {
+			return fmt.Errorf("artefact size must be specified")
+		}
+		digest, err := sha256.ParseSHA256(hex.EncodeToString(msg.Digest))
+		if err != nil {
+			return fmt.Errorf("failed to parse digest: %w", err)
+		}
+		logger = logger.Scope("uploadArtefact:" + digest.String())
+		logger.Debugf("Starting upload to OCI")
+		err = s.storage.Upload(ctx, artefacts.ArtefactUpload{
+			Digest:  digest,
+			Size:    msg.Size,
+			Content: r,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upload artefact: %w", err)
+		}
+		logger.Debugf("Created new artefact %s", digest)
+		return nil
+	})
+	// Stream bytes from client into the pipe
+	wg.Go(func() error {
+		defer w.Close()
+		logger.Debugf("Starting forwarder from client to OCI")
+		for stream.Receive() {
+			msg := stream.Msg()
+			if len(msg.Chunk) == 0 {
+				return fmt.Errorf("zero length chunk received")
+			}
+			firstMsg.Set(msg)
+			if _, err := w.Write(msg.Chunk); err != nil {
+				return fmt.Errorf("failed to write chunk: %w", err)
+			}
+		}
+		if err := stream.Err(); err != nil {
+			return fmt.Errorf("failed to upload artefact: %w", err)
+		}
+		return nil
+	})
+	err := wg.Wait()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to upload artefact: %w", err)
 	}
-	logger.Debugf("Created new artefact %s", digest)
-	return connect.NewResponse(&ftlv1.UploadArtefactResponse{Digest: digest[:]}), nil
+	return connect.NewResponse(&ftlv1.UploadArtefactResponse{}), nil
 }
 
 func (s *Service) getDeployment(ctx context.Context, dkey key.Deployment) (*schema.Module, error) {
@@ -909,4 +959,33 @@ func validateCallBody(body []byte, verb *schema.Verb, sch *schema.Schema) error 
 		return fmt.Errorf("could not validate call request body: %w", err)
 	}
 	return nil
+}
+
+type OnceValue[T any] struct {
+	value T
+	ready chan struct{}
+	once  sync.Once
+}
+
+func NewOnceValue[T any]() *OnceValue[T] {
+	return &OnceValue[T]{
+		ready: make(chan struct{}),
+	}
+}
+
+func (o *OnceValue[T]) Set(value T) {
+	o.once.Do(func() {
+		o.value = value
+		close(o.ready)
+	})
+}
+
+func (o *OnceValue[T]) Get(ctx context.Context) (T, bool) {
+	select {
+	case <-o.ready:
+		return o.value, true
+	case <-ctx.Done():
+		var zero T
+		return zero, false
+	}
 }

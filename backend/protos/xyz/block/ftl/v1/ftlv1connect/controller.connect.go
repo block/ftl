@@ -69,7 +69,7 @@ type ControllerServiceClient interface {
 	// Get list of artefacts that differ between the server and client.
 	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
 	// Upload an artefact to the server.
-	UploadArtefact(context.Context, *connect.Request[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error)
+	UploadArtefact(context.Context) *connect.ClientStreamForClient[v1.UploadArtefactRequest, v1.UploadArtefactResponse]
 	// Stream deployment artefacts from the server.
 	//
 	// Each artefact is streamed one after the other as a sequence of max 1MB
@@ -174,8 +174,8 @@ func (c *controllerServiceClient) GetArtefactDiffs(ctx context.Context, req *con
 }
 
 // UploadArtefact calls xyz.block.ftl.v1.ControllerService.UploadArtefact.
-func (c *controllerServiceClient) UploadArtefact(ctx context.Context, req *connect.Request[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error) {
-	return c.uploadArtefact.CallUnary(ctx, req)
+func (c *controllerServiceClient) UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[v1.UploadArtefactRequest, v1.UploadArtefactResponse] {
+	return c.uploadArtefact.CallClientStream(ctx)
 }
 
 // GetDeploymentArtefacts calls xyz.block.ftl.v1.ControllerService.GetDeploymentArtefacts.
@@ -199,7 +199,7 @@ type ControllerServiceHandler interface {
 	// Get list of artefacts that differ between the server and client.
 	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
 	// Upload an artefact to the server.
-	UploadArtefact(context.Context, *connect.Request[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error)
+	UploadArtefact(context.Context, *connect.ClientStream[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error)
 	// Stream deployment artefacts from the server.
 	//
 	// Each artefact is streamed one after the other as a sequence of max 1MB
@@ -244,7 +244,7 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		svc.GetArtefactDiffs,
 		opts...,
 	)
-	controllerServiceUploadArtefactHandler := connect.NewUnaryHandler(
+	controllerServiceUploadArtefactHandler := connect.NewClientStreamHandler(
 		ControllerServiceUploadArtefactProcedure,
 		svc.UploadArtefact,
 		opts...,
@@ -306,7 +306,7 @@ func (UnimplementedControllerServiceHandler) GetArtefactDiffs(context.Context, *
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.GetArtefactDiffs is not implemented"))
 }
 
-func (UnimplementedControllerServiceHandler) UploadArtefact(context.Context, *connect.Request[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error) {
+func (UnimplementedControllerServiceHandler) UploadArtefact(context.Context, *connect.ClientStream[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.UploadArtefact is not implemented"))
 }
 

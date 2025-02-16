@@ -259,10 +259,18 @@ build-protos-unconditionally: go2proto lint-protos pnpm-install
   cd common/protos && buf generate
   cd backend/protos && buf generate
 
+# Alias for integration-tests
+test-integration *test:
+  @just integration-tests {{test}}
+
 # Run integration test(s)
 integration-tests *test:
   #!/bin/bash
   retry 3 /bin/bash -c "go test -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
+
+# Alias for infrastructure-tests
+test-infrastructure *test:
+  @just infrastructure-tests {{test}}
 
 # Run integration test(s)
 infrastructure-tests *test:
