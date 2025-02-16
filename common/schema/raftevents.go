@@ -64,7 +64,11 @@ func (e *DeploymentRuntimeEvent) ChangesetKey() optional.Option[key.Changeset] {
 }
 
 func (e *DeploymentRuntimeEvent) DebugString() string {
-	return fmt.Sprintf("DeploymentRuntimeEvent{module: %s, changeset: %s, id: %v, data: %v}", e.DeploymentKey().String(), e.Changeset.String(), e.Payload.Name, e.Payload.Element)
+	cs := ""
+	if e.Changeset != nil {
+		cs = e.Changeset.String()
+	}
+	return fmt.Sprintf("DeploymentRuntimeEvent{module: %s, changeset: %s, id: %v, data: %v}", e.DeploymentKey().String(), cs, e.Payload.Name, e.Payload.Element)
 }
 
 func (e *DeploymentRuntimeEvent) event() {}

@@ -137,6 +137,9 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, fmt.Errorf("could not parse event: %w", err)
 	}
+	if event.Deployment.IsZero() {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("deployment key is required"))
+	}
 	var changeset *key.Changeset
 	if req.Msg.Changeset != nil {
 		cs, err := key.ParseChangesetKey(*req.Msg.Changeset)

@@ -191,11 +191,8 @@ func terminateModuleDeployment(ctx context.Context, client DeployClient, schemaC
 	}
 
 	logger.Infof("Terminating deployment %s", key)
-	_, err = schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
-		Update: &schemapb.RuntimeElement{
-			Deployment: key,
-			Element:    &schemapb.Runtime{Value: &schemapb.Runtime_ModuleRuntimeScaling{ModuleRuntimeScaling: &schemapb.ModuleRuntimeScaling{MinReplicas: 0}}},
-		},
+	_, err = schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
+		RemovedDeployments: []string{key},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to kill deployment: %w", err)
