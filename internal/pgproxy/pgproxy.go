@@ -68,6 +68,7 @@ func (p *PgProxy) Start(ctx context.Context, started chan<- Started) error {
 			logger.Errorf(err, "failed to accept connection")
 			continue
 		}
+		logger.Debugf("Accepted postgres connection from %s", conn.RemoteAddr())
 		go HandleConnection(ctx, conn, p.connectionStringFn)
 	}
 }
