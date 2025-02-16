@@ -75,6 +75,9 @@ public class TopicsProcessor {
             if (topicDefinition.value("partitions") != null) {
                 partitions = topicDefinition.value("partitions").asInt();
             }
+            if (partitionMapperClass.equals(FTLDotNames.SINGLE_PARTITION_MAPPER) && partitions != 1) {
+                throw new RuntimeException("SinglePartitionMapper can only be used with a single partition");
+            }
 
             String name = topicDefinition.value("name").asString();
             if (names.contains(name)) {
