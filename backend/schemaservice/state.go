@@ -27,18 +27,16 @@ type SchemaState struct {
 	changesets         map[key.Changeset]*schema.Changeset
 	changesetEvents    map[key.Changeset][]*schema.DeploymentRuntimeEvent
 	deploymentEvents   map[string][]*schema.DeploymentRuntimeEvent
-	validationEnabled  bool // Huge hack to allow provisioner to use this for a single module
 	archivedChangesets []*schema.Changeset
 }
 
-func NewSchemaState(validationEnabled bool) SchemaState {
+func NewSchemaState() SchemaState {
 	return SchemaState{
 		deployments:        map[string]*schema.Module{},
 		changesets:         map[key.Changeset]*schema.Changeset{},
 		deploymentEvents:   map[string][]*schema.DeploymentRuntimeEvent{},
 		changesetEvents:    map[key.Changeset][]*schema.DeploymentRuntimeEvent{},
 		archivedChangesets: []*schema.Changeset{},
-		validationEnabled:  validationEnabled,
 	}
 }
 
@@ -52,7 +50,7 @@ func newStateMachine(ctx context.Context) *schemaStateMachine {
 	return &schemaStateMachine{
 		notifier:   notifier,
 		runningCtx: ctx,
-		state:      NewSchemaState(true),
+		state:      NewSchemaState(),
 	}
 }
 
@@ -113,7 +111,6 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 			r.changesetEvents[cs] = append(r.changesetEvents[cs], a)
 		}
 	}
-	r.validationEnabled = true // it is never serialized if validation is not enabled
 	return nil
 }
 

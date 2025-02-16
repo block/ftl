@@ -195,6 +195,7 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 		State:     schema.ChangesetStatePreparing,
 		Modules:   modules,
 		CreatedAt: time.Now(),
+		ToRemove:  req.Msg.RemovedDeployments,
 	}
 
 	// TODO: validate changeset schema with canonical schema
