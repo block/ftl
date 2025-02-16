@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -157,10 +158,10 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 		return svc.startMySQLProxy(ctx, module, startedLatch, dbAddresses)
 	})
 	g.Go(func() error {
-		return svc.startQueryServices(ctx, module)
-	})
-	g.Go(func() error {
 		startedLatch.Wait()
+		g.Go(func() error {
+			return svc.startQueryServices(ctx, module, dbAddresses)
+		})
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -722,7 +723,7 @@ func (s *Service) startPgProxy(ctx context.Context, module *schema.Module, start
 }
 
 // Run query services for each database
-func (s *Service) startQueryServices(ctx context.Context, module *schema.Module) error {
+func (s *Service) startQueryServices(ctx context.Context, module *schema.Module, addresses *xsync.MapOf[string, string]) error {
 	logger := log.FromContext(ctx)
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -734,13 +735,25 @@ func (s *Service) startQueryServices(ctx context.Context, module *schema.Module)
 		}
 
 		logger.Debugf("Initializing query service for %s database: %s.%s", db.Type, module.Name, db.Name)
+		dbadr, ok := addresses.Load(db.Name)
+		if !ok {
+			return fmt.Errorf("could not find DSN for DB %s", db.Name)
+		}
+		parts := strings.Split(dbadr, ":")
+		port, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return fmt.Errorf("failed to parse port: %w", err)
+		}
+		host := parts[0]
+		var sdsn string
 
-		var dsn string
-		switch conn := db.Runtime.Connections.Write.(type) {
-		case *schema.DSNDatabaseConnector:
-			dsn = conn.DSN
+		switch db.Type {
+		case schema.MySQLDatabaseType:
+			sdsn = dsn.MySQLDSN(db.Name, dsn.Host(host), dsn.Port(port))
+		case schema.PostgresDatabaseType:
+			sdsn = dsn.PostgresDSN(db.Name, dsn.Host(host), dsn.Port(port))
 		default:
-			return fmt.Errorf("unsupported database connector type: %T", db.Runtime.Connections.Write)
+			return fmt.Errorf("unsupported database type: %T", db.Type)
 		}
 
 		baseURL, err := url.Parse("http://127.0.0.1:0")
@@ -749,7 +762,7 @@ func (s *Service) startQueryServices(ctx context.Context, module *schema.Module)
 		}
 
 		querySvc, err := query.New(ctx, query.Config{
-			DSN:      dsn,
+			DSN:      sdsn,
 			Engine:   db.Type,
 			Endpoint: baseURL,
 		})
