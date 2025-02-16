@@ -74,7 +74,7 @@ export const ControllerService = {
       name: "UploadArtefact",
       I: UploadArtefactRequest,
       O: UploadArtefactResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.ClientStreaming,
     },
     /**
      * Stream deployment artefacts from the server.

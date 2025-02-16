@@ -3,6 +3,7 @@ package buildengine
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,7 +32,7 @@ type deploymentArtefact struct {
 type DeployClient interface {
 	ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error)
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error)
-	UploadArtefact(ctx context.Context, req *connect.Request[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error)
+	UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[ftlv1.UploadArtefactRequest, ftlv1.UploadArtefactResponse]
 	Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
@@ -142,14 +143,31 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 	logger.Debugf("Uploading %d/%d files", len(gadResp.Msg.MissingDigests), len(files))
 	for _, missing := range gadResp.Msg.MissingDigests {
 		file := filesByHash[missing]
-		content, err := os.ReadFile(file.localPath)
+		f, err := os.Open(file.localPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read file %w", err)
 		}
+		defer f.Close()
 		logger.Debugf("Uploading %s", relToCWD(file.localPath))
-		resp, err := client.UploadArtefact(ctx, connect.NewRequest(&ftlv1.UploadArtefactRequest{
-			Content: content,
-		}))
+		stream := client.UploadArtefact(ctx)
+
+		data := make([]byte, 0, 1024)
+		for {
+			n, err := f.Read(data)
+			if err != nil && err != io.EOF {
+				return nil, fmt.Errorf("failed to read file %w", err)
+			}
+			if n == 0 {
+				break
+			}
+			err = stream.Send(&ftlv1.UploadArtefactRequest{
+				Content: data[:n],
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to upload artefact: %w", err)
+			}
+		}
+		resp, err := stream.CloseAndReceive()
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload artefact: %w", err)
 		}

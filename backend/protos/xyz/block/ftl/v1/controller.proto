@@ -122,7 +122,7 @@ service ControllerService {
   rpc GetArtefactDiffs(GetArtefactDiffsRequest) returns (GetArtefactDiffsResponse);
 
   // Upload an artefact to the server.
-  rpc UploadArtefact(UploadArtefactRequest) returns (UploadArtefactResponse);
+  rpc UploadArtefact(stream UploadArtefactRequest) returns (UploadArtefactResponse);
 
   // Stream deployment artefacts from the server.
   //
