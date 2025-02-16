@@ -837,6 +837,7 @@ func (b *mainDeploymentContextBuilder) visit(
 				return fmt.Errorf("failed to visit children of %s: %w", n, err)
 			}
 			return next()
+		default:
 		}
 
 		maybeGoType, isLocal, err := b.getGoType(module, node)
@@ -900,6 +901,8 @@ func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]queryV
 			}
 			verbs = append(verbs, nestedVerbs...)
 			data = append(data, nestedData...)
+		default:
+
 		}
 		return next()
 	})
@@ -1696,6 +1699,8 @@ func usesType(actual schema.Type, expected schema.Type) bool {
 		return usesType(t.Type, expected)
 	case *schema.Array:
 		return usesType(t.Element, expected)
+	default:
+
 	}
 	return false
 }

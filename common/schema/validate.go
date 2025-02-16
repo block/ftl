@@ -186,7 +186,8 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 						validateRetries(module, md, optional.Some(n.Request), scopes, optional.Some(schema))
 
 					case *MetadataCronJob, *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap,
-						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, DatabaseConnector:
+						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact,
+						*MetadataPartitions, *MetadataSQLColumn, *MetadataSQLQuery, DatabaseConnector:
 					}
 				}
 			case *Database:
@@ -226,7 +227,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 				IngressPathComponent, Metadata, Value, Type, DatabaseConnector,
 				*Module, *Optional, *Schema, *TypeAlias, *String, *Time, *Unit, *Any, *TypeParameter,
 				*EnumVariant, *Config, *Secret, *Topic, *DatabaseRuntime, *DatabaseRuntimeConnections,
-				*Data, *Field:
+				*Data, *Field, *MetadataPartitions, *MetadataSQLQuery, *MetadataSQLColumn:
 			}
 			return nil
 		})
@@ -476,6 +477,8 @@ func sortMetadataType(md Metadata) {
 		return
 	case *MetadataSQLQuery:
 		return
+	case *MetadataPartitions:
+		return
 	}
 }
 
@@ -514,6 +517,9 @@ func getMetadataSortingPriority(metadata Metadata) int {
 		priority = 15
 	case *MetadataSQLQuery:
 		priority = 16
+	case *MetadataPartitions:
+		priority = 17
+
 	}
 	return priority
 }
@@ -715,7 +721,7 @@ func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error)
 			merr = append(merr, errorf(md, "metadata %q is not valid on verbs", strings.TrimSpace(md.String())))
 
 		case *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap, *MetadataEncoding,
-			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery:
+			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery, *MetadataPartitions:
 		}
 	}
 	return
