@@ -47,6 +47,7 @@ type Started struct {
 func (p *PgProxy) Start(ctx context.Context, started chan<- Started) error {
 	logger := log.FromContext(ctx)
 
+	logger.Debugf("starting pgproxy on %s", p.listenAddress)
 	listener, err := net.Listen("tcp", p.listenAddress)
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", p.listenAddress, err)
