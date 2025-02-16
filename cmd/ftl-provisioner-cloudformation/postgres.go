@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	goformation "github.com/awslabs/goformation/v7/cloudformation"
 	"github.com/awslabs/goformation/v7/cloudformation/rds"
+	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
