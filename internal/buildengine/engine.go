@@ -80,9 +80,11 @@ type autoRebuildCompletedEvent struct {
 }
 
 type pendingDeploy struct {
-	modules  []Module
-	err      chan error
-	replicas int32
+	modules           []Module
+	err               chan error
+	replicas          int32
+	superseded        bool
+	supercededModules []*pendingDeploy
 }
 
 func (autoRebuildCompletedEvent) rebuildEvent() {}
@@ -185,8 +187,8 @@ func New(
 		modulesToBuild:   xsync.NewMapOf[string, bool](),
 		rebuildEvents:    make(chan rebuildEvent, 128),
 		rawEngineUpdates: make(chan *buildenginepb.EngineEvent, 128),
-		EngineUpdates:    pubsub.New[*buildenginepb.EngineEvent](),
 		deploymentQueue:  make(chan pendingDeploy, 128),
+		EngineUpdates:    pubsub.New[*buildenginepb.EngineEvent](),
 		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
 		os:               runtime.GOOS,
 	}
@@ -432,7 +434,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	}()
 
 	// Build and deploy all modules first.
-	err = e.BuildAndDeploy(ctx, 1, true)
+	err = e.BuildAndDeploy(ctx, 1, true, false)
 	if err != nil && !errors.Is(err, context.Canceled) {
 		logger.Errorf(err, "Initial deploy failed")
 	}
@@ -475,7 +477,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 						},
 					}
 					logger.Debugf("calling build and deploy %q", event.Config.Module)
-					_ = e.BuildAndDeploy(ctx, 1, true, config.Module) //nolint:errcheck
+					_ = e.BuildAndDeploy(ctx, 1, true, false, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
 				err := terminateModuleDeployment(ctx, e.schemaSource, e.adminClient, event.Config.Module)
@@ -519,7 +521,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				meta.module.Config = validConfig
 				e.moduleMetas.Store(event.Config.Module, meta)
 
-				_ = e.BuildAndDeploy(ctx, 1, true, event.Config.Module) //nolint:errcheck
+				_ = e.BuildAndDeploy(ctx, 1, true, false, event.Config.Module) //nolint:errcheck
 			}
 		case event := <-schemaChanges:
 			switch event := event.(type) {
@@ -554,7 +556,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					})
 					if len(dependentModuleNames) > 0 {
 						logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", "))
-						_ = e.BuildAndDeploy(ctx, 1, true, dependentModuleNames...) //nolint:errcheck
+						_ = e.BuildAndDeploy(ctx, 1, true, false, dependentModuleNames...) //nolint:errcheck
 					}
 				}
 			default:
@@ -609,7 +611,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 						modulesToDeploy = append(modulesToDeploy, moduleToDeploy.module)
 					}
 				}
-				_ = e.deploy(ctx, modulesToDeploy, 1, false) //nolint:errcheck
+				_ = e.deploy(ctx, modulesToDeploy, 1) //nolint:errcheck
 			}
 
 			// Batch together all new builds requested
@@ -622,7 +624,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				modulesToBuild[event.module] = true
 			}
 			if len(modulesToBuild) > 0 {
-				_ = e.BuildAndDeploy(ctx, 1, true, maps.Keys(modulesToBuild)...) //nolint:errcheck
+				_ = e.BuildAndDeploy(ctx, 1, true, false, maps.Keys(modulesToBuild)...) //nolint
 			}
 		}
 	}
@@ -830,7 +832,7 @@ func (e *Engine) getDependentModuleNames(moduleName string) []string {
 }
 
 // BuildAndDeploy attempts to build and deploy all local modules.
-func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDeployOnline bool, moduleNames ...string) (err error) {
+func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDeployOnline bool, singleChangeset bool, moduleNames ...string) (err error) {
 	logger := log.FromContext(ctx)
 	if len(moduleNames) == 0 {
 		moduleNames = e.Modules()
@@ -863,7 +865,6 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 	buildGroup.Go(func() error {
 		return e.buildWithCallback(ctx, func(buildCtx context.Context, module Module) error {
 			e.modulesToBuild.Store(module.Config.Module, false)
-			modulesToDeploy = append(modulesToDeploy, module)
 			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 				Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
 					ModuleDeployWaiting: &buildenginepb.ModuleDeployWaiting{
@@ -871,7 +872,11 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 					},
 				},
 			}
-			return nil
+			if singleChangeset {
+				modulesToDeploy = append(modulesToDeploy, module)
+				return nil
+			}
+			return e.deploy(ctx, []Module{module}, replicas)
 		}, moduleNames...)
 	})
 
@@ -881,8 +886,12 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 		return fmt.Errorf("build failed: %w", buildErr)
 	}
 
-	// Queue the modules for deployment instead of deploying directly
-	return e.deploy(ctx, modulesToDeploy, replicas, waitForDeployOnline)
+	if singleChangeset {
+		// Queue the modules for deployment instead of deploying directly
+		return e.deploy(ctx, modulesToDeploy, replicas)
+	}
+	return nil
+
 }
 
 type buildCallback func(ctx context.Context, module Module) error
@@ -1328,7 +1337,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 	}
 }
 
-func (e *Engine) deploy(ctx context.Context, modules []Module, replicas int32, wait bool) error {
+func (e *Engine) deploy(ctx context.Context, modules []Module, replicas int32) error {
 	for _, module := range modules {
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 			Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
@@ -1340,84 +1349,127 @@ func (e *Engine) deploy(ctx context.Context, modules []Module, replicas int32, w
 	}
 	errChan := make(chan error, 1)
 	e.deploymentQueue <- pendingDeploy{modules: modules, replicas: replicas, err: errChan}
-	if wait {
-		select {
-		case <-ctx.Done():
-			return ctx.Err() //nolint:wrapcheck
-		case err := <-errChan:
-			return err
-		}
+	select {
+	case <-ctx.Done():
+		return ctx.Err() //nolint:wrapcheck
+	case err := <-errChan:
+		return err
 	}
 	return nil
 }
 
 // processDeploymentQueue handles the deployment queue and groups pending deployments into changesets
 func (e *Engine) processDeploymentQueue(ctx context.Context) {
-	logger := log.FromContext(ctx)
+	events := e.schemaSource.Subscribe(ctx)
 
+	toDeploy := []*pendingDeploy{}
 	for {
 		select {
 		case <-ctx.Done():
 			return
 
 		case deployment := <-e.deploymentQueue:
-			// Collect any additional modules that have been queued
-			modules := []Module{}
-			modules = append(modules, deployment.modules...)
-			errChans := []chan error{deployment.err}
-			more := true
-			for more {
-				select {
-				case newModules := <-e.deploymentQueue:
-					errChans = append(errChans, newModules.err)
-					modules = append(modules, newModules.modules...)
-				default:
-					more = false
+			// Try and deploy, unless there are conflicting changesets this will happen immediately
+			if !e.tryDeployFromQueue(ctx, &deployment) {
+				// We could not deploy, add to the list of pending deployments
+				// But first check if there are older deployments that are superceded by this one
+				modules := map[string]bool{}
+				for _, module := range deployment.modules {
+					modules[module.Config.Module] = true
+				}
+				for _, existing := range toDeploy {
+					for _, mod := range existing.modules {
+						if modules[mod.Config.Module] {
+							existing.superseded = true
+							deployment.supercededModules = append(deployment.supercededModules, existing)
+							deployment.supercededModules = append(deployment.supercededModules, existing.supercededModules...)
+						}
+					}
+				}
+				toDeploy = slices.Filter(toDeploy, func(d *pendingDeploy) bool {
+					return !d.superseded
+				})
+				toDeploy = append(toDeploy, &deployment)
+			}
+		case notification := <-events:
+			switch notification.(type) {
+			case *schema.ChangesetCommittedNotification, *schema.ChangesetRollingBackNotification:
+				tmp := []*pendingDeploy{}
+				for _, mod := range toDeploy {
+					if e.tryDeployFromQueue(ctx, mod) {
+						continue
+					}
+					tmp = append(tmp, mod)
+				}
+				toDeploy = tmp
+			default:
+
+			}
+		}
+	}
+}
+
+func (e *Engine) tryDeployFromQueue(ctx context.Context, deployment *pendingDeploy) bool {
+	sets := e.schemaSource.ActiveChangeset()
+	modules := map[string]bool{}
+	for _, module := range deployment.modules {
+		modules[module.Config.Module] = true
+	}
+	for _, cs := range sets {
+		if cs.State >= schema.ChangesetStateCommitted {
+			continue
+		}
+		for _, mod := range cs.Modules {
+			if modules[mod.Name] {
+				return false
+			}
+		}
+	}
+
+	// No conflicts, lets deploy
+
+	// Deploy all collected modules
+	for _, module := range deployment.modules {
+		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+			Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
+				ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
+					Module: module.Config.Module,
+				},
+			},
+		}
+	}
+	go func() {
+		err := Deploy(ctx, e.projectConfig, deployment.modules, deployment.replicas, true, e.adminClient)
+		if err != nil {
+			// Handle deployment failure
+			for _, module := range deployment.modules {
+				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+					Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
+						ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
+							Module: module.Config.Module,
+							Errors: &langpb.ErrorList{
+								Errors: errorToLangError(err),
+							},
+						},
+					},
 				}
 			}
-
-			logger.Debugf("Deploying %d modules", len(modules))
-
-			// Deploy all collected modules
-			for _, module := range modules {
+		} else {
+			// Handle deployment success
+			for _, module := range deployment.modules {
 				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-					Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
-						ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
+					Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
+						ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
 							Module: module.Config.Module,
 						},
 					},
 				}
 			}
-			err := Deploy(ctx, e.projectConfig, modules, deployment.replicas, true, e.adminClient)
-			if err != nil {
-				// Handle deployment failure
-				for _, module := range modules {
-					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-						Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
-							ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
-								Module: module.Config.Module,
-								Errors: &langpb.ErrorList{
-									Errors: errorToLangError(err),
-								},
-							},
-						},
-					}
-				}
-			} else {
-				// Handle deployment success
-				for _, module := range modules {
-					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-						Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
-							ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
-								Module: module.Config.Module,
-							},
-						},
-					}
-				}
-			}
-			for _, errChan := range errChans {
-				errChan <- err
-			}
 		}
-	}
+		deployment.err <- err
+		for _, sup := range deployment.supercededModules {
+			sup.err <- err
+		}
+	}()
+	return true
 }
