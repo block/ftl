@@ -80,7 +80,7 @@ func (s *Server) HandleBuildEvent(ctx context.Context, response *buildenginepb.S
 	case *buildenginepb.EngineEvent_EngineEnded:
 		moduleErrors := map[string]*langpb.ErrorList{}
 		for _, module := range event.EngineEnded.Modules {
-			if len(module.Errors.Errors) > 0 {
+			if module.Errors != nil && len(module.Errors.Errors) > 0 {
 				moduleErrors[module.Module] = module.Errors
 			}
 		}
