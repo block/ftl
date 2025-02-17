@@ -14,6 +14,7 @@ message AWSIAMAuthDatabaseConnector {
   string endpoint = 3;
   string database = 4;
 }
+
 // AliasKind is the kind of alias.
 enum AliasKind {
   ALIAS_KIND_UNSPECIFIED = 0;
@@ -128,6 +129,7 @@ message DSNDatabaseConnector {
   optional Position pos = 1;
   string dsn = 2;
 }
+
 // A Data structure.
 message Data {
   optional Position pos = 1;
@@ -147,7 +149,6 @@ message Database {
   string name = 3;
   repeated Metadata metadata = 5;
 }
-
 
 message DatabaseConnector {
   oneof value {
@@ -223,7 +224,6 @@ message EnumVariant {
   Value value = 4;
 }
 
-
 message Event {
   oneof value {
     ChangesetCommittedEvent changeset_committed_event = 5;
@@ -260,7 +260,6 @@ message FullSchemaNotification {
   Schema schema = 1;
   repeated Changeset changesets = 2;
 }
-
 
 message IngressPathComponent {
   oneof value {
@@ -329,11 +328,13 @@ message MetadataArtefact {
   string digest = 3;
   bool executable = 4;
 }
+
 // MetadataCalls represents a metadata block with a list of calls.
 message MetadataCalls {
   optional Position pos = 1;
   repeated Ref calls = 2;
 }
+
 // MetadataConfig represents a metadata block with a list of config items that are used.
 message MetadataConfig {
   optional Position pos = 1;
@@ -380,6 +381,7 @@ message MetadataRetry {
   string max_backoff = 4;
   optional Ref catch = 5;
 }
+
 // MetadataSQLColumn designates a database column.
 message MetadataSQLColumn {
   optional Position pos = 1;
@@ -391,12 +393,14 @@ message MetadataSQLMigration {
   optional Position pos = 1;
   string digest = 2;
 }
+
 // MetadataSQLQuery designates a query verb; a verb generated from a SQL query.
 message MetadataSQLQuery {
   optional Position pos = 1;
   string command = 2;
   string query = 3;
 }
+
 // MetadataSecrets represents a metadata block with a list of config items that are used.
 message MetadataSecrets {
   optional Position pos = 1;
@@ -425,6 +429,7 @@ message Module {
   repeated Decl decls = 5;
   ModuleRuntime runtime = 31634;
 }
+
 // ModuleRuntime is runtime configuration for a module that can be dynamically updated.
 message ModuleRuntime {
   ModuleRuntimeBase base = 1;
@@ -456,7 +461,6 @@ message ModuleRuntimeScaling {
   int32 min_replicas = 1;
 }
 
-
 message Notification {
   oneof value {
     ChangesetCommittedNotification changeset_committed_notification = 5;
@@ -470,6 +474,7 @@ message Notification {
     FullSchemaNotification full_schema_notification = 1;
   }
 }
+
 // Optional represents a Type whose value may be optional.
 message Optional {
   optional Position pos = 1;
@@ -481,6 +486,7 @@ message Position {
   int64 line = 2;
   int64 column = 3;
 }
+
 // Ref is an untyped reference to a symbol.
 message Ref {
   optional Position pos = 1;
@@ -488,7 +494,6 @@ message Ref {
   string name = 2;
   repeated Type type_parameters = 4;
 }
-
 
 message Runtime {
   oneof value {
@@ -511,6 +516,7 @@ message Schema {
   optional Position pos = 1;
   repeated Module modules = 2;
 }
+
 // SchemaState is the schema service state as persisted in Raft
 message SchemaState {
   repeated Module modules = 1;
@@ -622,4 +628,3 @@ message VerbRuntime {
 message VerbRuntimeSubscription {
   repeated string kafka_brokers = 1;
 }
-
