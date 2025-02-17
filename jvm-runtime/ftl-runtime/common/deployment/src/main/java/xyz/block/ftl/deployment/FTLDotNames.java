@@ -10,6 +10,7 @@ import xyz.block.ftl.Export;
 import xyz.block.ftl.GeneratedRef;
 import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.Secret;
+import xyz.block.ftl.SinglePartitionMapper;
 import xyz.block.ftl.Subscription;
 import xyz.block.ftl.Topic;
 import xyz.block.ftl.TypeAlias;
@@ -35,4 +36,5 @@ public class FTLDotNames {
     public static final DotName LEASE_CLIENT = DotName.createSimple(LeaseClient.class);
     public static final DotName GENERATED_REF = DotName.createSimple(GeneratedRef.class);
     public static final DotName TOPIC = DotName.createSimple(Topic.class);
+    public static final DotName SINGLE_PARTITION_MAPPER = DotName.createSimple(SinglePartitionMapper.class);
 }
