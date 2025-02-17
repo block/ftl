@@ -531,7 +531,7 @@ func (r *terminalStatusLine) SetMessage(message string) {
 	r.manager.recalculateLines()
 }
 
-func LaunchEmbeddedConsole(ctx context.Context, k *kong.Kong, binder KongContextBinder, eventSource schemaeventsource.EventSource) {
+func LaunchEmbeddedConsole(ctx context.Context, k *kong.Kong, binder KongContextBinder, eventSource *schemaeventsource.EventSource) {
 	sm := FromContext(ctx)
 	if tsm, ok := sm.(*terminalStatusManager); ok {
 		it, err := newInteractiveConsole(k, binder, eventSource)

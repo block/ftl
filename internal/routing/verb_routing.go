@@ -98,13 +98,13 @@ func NewVerbRouterFromTable(ctx context.Context, routeTable *RouteTable, timelin
 	logger := log.FromContext(ctx)
 	go func() {
 		for module := range channels.IterContext(ctx, routeUpdates) {
-			logger.Debugf("Removing client for module %s", module)
+			logger.Tracef("Removing client for module %s", module)
 			svc.moduleClients.Delete(module)
 		}
 	}()
 	return svc
 }
-func NewVerbRouter(ctx context.Context, changes schemaeventsource.EventSource, timelineClient *timelineclient.Client) *VerbCallRouter {
+func NewVerbRouter(ctx context.Context, changes *schemaeventsource.EventSource, timelineClient *timelineclient.Client) *VerbCallRouter {
 	return NewVerbRouterFromTable(ctx, New(ctx, changes), timelineClient)
 }
 

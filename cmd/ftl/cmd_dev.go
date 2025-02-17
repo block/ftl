@@ -40,13 +40,12 @@ func (d *devCmd) Run(
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
 	bindContext terminal.KongContextBinder,
-	schemaEventSourceFactory func() schemaeventsource.EventSource,
+	schemaEventSource *schemaeventsource.EventSource,
 	controllerClient ftlv1connect.ControllerServiceClient,
 	schemaServiceClient ftlv1connect.SchemaServiceClient,
 	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
-	verbClient ftlv1connect.VerbServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	startTime := time.Now()
@@ -59,7 +58,7 @@ func (d *devCmd) Run(
 		return errors.New("no directories specified")
 	}
 
-	terminal.LaunchEmbeddedConsole(ctx, k, bindContext, schemaEventSourceFactory())
+	terminal.LaunchEmbeddedConsole(ctx, k, bindContext, schemaEventSource)
 	var deployClient buildengine.DeployClient = controllerClient
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -87,7 +86,7 @@ func (d *devCmd) Run(
 	controllerReady := make(chan bool, 1)
 	if !d.NoServe {
 		if d.ServeCmd.Stop {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSource, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
 				return fmt.Errorf("failed to stop server: %w", err)
 			}
@@ -95,7 +94,7 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSource, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
 				cancel(fmt.Errorf("dev server failed: %w: %w", context.Canceled, err))
 			} else {
@@ -114,7 +113,7 @@ func (d *devCmd) Run(
 		starting.Close()
 
 		opts := []buildengine.Option{buildengine.Parallelism(d.Build.Parallelism), buildengine.BuildEnv(d.Build.BuildEnv), buildengine.WithDevMode(devModeEndpointUpdates), buildengine.WithStartTime(startTime)}
-		engine, err := buildengine.New(ctx, deployClient, schemaServiceClient, schemaEventSourceFactory(), projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, opts...)
+		engine, err := buildengine.New(ctx, deployClient, schemaServiceClient, schemaEventSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, opts...)
 		if err != nil {
 			return err
 		}

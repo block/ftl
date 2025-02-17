@@ -46,13 +46,14 @@ func TestSchemaEventSource(t *testing.T) {
 		case server.changes <- resp:
 		}
 	}
+	events := changes.Subscribe(ctx)
 
 	recv := func(t testing.TB) schema.Notification {
 		select {
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
 
-		case change := <-changes.Events():
+		case change := <-events:
 			return change
 
 		}

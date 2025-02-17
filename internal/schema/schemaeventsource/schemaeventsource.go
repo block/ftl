@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	"github.com/alecthomas/types/pubsub"
 	"github.com/jpillora/backoff"
+	"golang.org/x/exp/maps"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -34,39 +37,50 @@ type currentState struct {
 func (v *View) GetCanonical() *schema.Schema { return v.eventSource.view.Load().schema }
 
 // NewUnattached creates a new EventSource that is not attached to a SchemaService.
-func NewUnattached() EventSource {
-	return EventSource{
-		events:              make(chan schema.Notification, 1024),
+func NewUnattached() *EventSource {
+	return &EventSource{
+		events:              pubsub.New[schema.Notification](),
 		view:                atomic.New(&currentState{schema: &schema.Schema{}, activeChangesets: map[key.Changeset]*schema.Changeset{}}),
 		live:                atomic.New[bool](false),
 		initialSyncComplete: make(chan struct{}),
+		subscribeLock:       &sync.Mutex{},
 	}
 }
 
 // EventSource represents a stream of schema events and the materialised view of those events.
 type EventSource struct {
-	events              chan schema.Notification
+	events              *pubsub.Topic[schema.Notification]
 	view                *atomic.Value[*currentState]
 	live                *atomic.Value[bool]
+	subscribeLock       *sync.Mutex
 	initialSyncComplete chan struct{}
 	initialSync         bool
 }
 
-// Events is a stream of schema change events.
+// Subscribe subscribes you to the schema events
 //
-// "View" will be updated with these changes prior to being sent on this channel.
-//
-// NOTE: Only a single goroutine should read from the EventSource.
-func (e *EventSource) Events() <-chan schema.Notification { return e.events }
+// This method guarentes you will always receive a FullSchemaNotification as the first message
+func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification {
+	e.subscribeLock.Lock()
+	defer e.subscribeLock.Unlock()
+	subscribe := e.events.Subscribe(nil)
+	context.AfterFunc(ctx, func() {
+		e.events.Unsubscribe(subscribe)
+	})
+	// We always send a full schema event
+	select {
+	case <-e.initialSyncComplete:
+		// Initial sync is complete, we send an initial Full schema event
+		state := e.view.Load()
+		subscribe <- &schema.FullSchemaNotification{Schema: state.schema, Changesets: maps.Values(state.activeChangesets)}
+	default:
+
+	}
+	return subscribe
+}
 
 // ViewOnly converts the EventSource into a read-only view of the schema.
-//
-// This will consume all events so the EventSource doesn't block as the view is automatically updated.
 func (e *EventSource) ViewOnly() *View {
-	go func() {
-		for range e.Events() { //nolint:revive
-		}
-	}()
 	return &View{eventSource: e}
 
 }
@@ -105,6 +119,8 @@ func (e *EventSource) PublishModuleForTest(module *schema.Module) error {
 //
 // This is mostly useful in conjunction with NewUnattached, for testing.
 func (e *EventSource) Publish(event schema.Notification) error {
+	e.subscribeLock.Lock()
+	defer e.subscribeLock.Unlock()
 	switch event := event.(type) {
 	case *schema.FullSchemaNotification:
 		changesets := map[key.Changeset]*schema.Changeset{}
@@ -196,7 +212,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 		delete(clone.activeChangesets, event.Key)
 		e.view.Store(clone)
 	}
-	e.events <- event
+	e.events.Publish(event)
 	return nil
 }
 
@@ -204,7 +220,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 // materialised view (ie. [schema.Schema]).
 //
 // The sync will terminate when the context is cancelled.
-func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaServiceClient) EventSource {
+func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaServiceClient) *EventSource {
 	logger := log.FromContext(ctx).Scope("schema-sync")
 	out := NewUnattached()
 	logger.Debugf("Starting schema pull")
@@ -215,12 +231,12 @@ func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaS
 	resp, err := client.Ping(pingCtx, connect.NewRequest(&ftlv1.PingRequest{}))
 	out.live.Store(err == nil && resp.Msg.NotReady == nil)
 
-	logger.Debugf("Schema pull live: %t", out.live.Load())
+	logger.Tracef("Schema pull live: %t", out.live.Load())
 
 	go rpc.RetryStreamingServerStream(ctx, "schema-sync", backoff.Backoff{}, &ftlv1.PullSchemaRequest{SubscriptionId: subscriptionID}, client.PullSchema, func(_ context.Context, resp *ftlv1.PullSchemaResponse) error {
 		out.live.Store(true)
 
-		logger.Debugf("Schema pull %s (event: %T)", subscriptionID, resp.Event.Value)
+		logger.Tracef("Schema pull %s (event: %T)", subscriptionID, resp.Event.Value)
 
 		proto, err := schema.NotificationFromProto(resp.Event)
 		if err != nil {

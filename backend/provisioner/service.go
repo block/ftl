@@ -61,7 +61,7 @@ func New(
 	return &Service{
 		currentModules: xsync.NewMapOf[string, *schema.Module](),
 		registry:       registry,
-		eventSource:    &eventSource,
+		eventSource:    eventSource,
 		schemaClient:   schemaClient,
 	}, nil
 }
@@ -85,7 +85,7 @@ func Start(
 		return err
 	}
 
-	for event := range channels.IterContext(ctx, svc.eventSource.Events()) {
+	for event := range channels.IterContext(ctx, svc.eventSource.Subscribe(ctx)) {
 		switch e := event.(type) {
 		case *schema.ChangesetCreatedNotification:
 			err := svc.HandleChangesetPreparing(ctx, e.Changeset)

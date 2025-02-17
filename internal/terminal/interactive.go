@@ -35,7 +35,7 @@ type interactiveConsole struct {
 	closed    bool
 }
 
-func newInteractiveConsole(k *kong.Kong, binder KongContextBinder, eventSource schemaeventsource.EventSource) (*interactiveConsole, error) {
+func newInteractiveConsole(k *kong.Kong, binder KongContextBinder, eventSource *schemaeventsource.EventSource) (*interactiveConsole, error) {
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          interactivePrompt,
 		InterruptPrompt: "^C",
@@ -64,7 +64,7 @@ func (r *interactiveConsole) Close() {
 	}
 	r.closeWait.Wait()
 }
-func RunInteractiveConsole(ctx context.Context, k *kong.Kong, binder KongContextBinder, eventSource schemaeventsource.EventSource) error {
+func RunInteractiveConsole(ctx context.Context, k *kong.Kong, binder KongContextBinder, eventSource *schemaeventsource.EventSource) error {
 	if !readline.DefaultIsTerminal() {
 		return nil
 	}

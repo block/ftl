@@ -24,7 +24,7 @@ func (b *buildCmd) Run(
 	ctx context.Context,
 	controllerClient ftlv1connect.ControllerServiceClient,
 	schemaServiceClient ftlv1connect.SchemaServiceClient,
-	schemaSourceFactory func() schemaeventsource.EventSource,
+	schemaSource *schemaeventsource.EventSource,
 	projConfig projectconfig.Config,
 ) error {
 	logger := log.FromContext(ctx)
@@ -42,7 +42,7 @@ func (b *buildCmd) Run(
 		ctx,
 		controllerClient,
 		schemaServiceClient,
-		schemaSourceFactory(),
+		schemaSource,
 		projConfig,
 		b.Dirs,
 		b.UpdatesEndpoint,

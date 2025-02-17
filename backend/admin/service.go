@@ -43,14 +43,14 @@ type SchemaRetriever interface {
 	GetLatestSchema(ctx context.Context) (*schema.Schema, error)
 }
 
-func NewSchemaRetreiver(source schemaeventsource.EventSource) SchemaRetriever {
+func NewSchemaRetreiver(source *schemaeventsource.EventSource) SchemaRetriever {
 	return &streamSchemaRetriever{
 		source: source,
 	}
 }
 
 type streamSchemaRetriever struct {
-	source schemaeventsource.EventSource
+	source *schemaeventsource.EventSource
 }
 
 func (c streamSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.Schema, error) {
