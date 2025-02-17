@@ -3,8 +3,8 @@ syntax = "proto3";
 package xyz.block.ftl.v1;
 
 import "xyz/block/ftl/schema/v1/schema.proto";
-import "xyz/block/ftl/v1/schemaservice.proto";
 import "xyz/block/ftl/v1/ftl.proto";
+import "xyz/block/ftl/v1/schemaservice.proto";
 
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1";
 option java_multiple_files = true;
@@ -187,6 +187,7 @@ message ClusterInfoResponse {
   string os = 1;
   string arch = 2;
 }
+
 // AdminService is the service that provides and updates admin data. For example,
 // it is used to encapsulate configuration and secrets.
 service AdminService {
@@ -245,7 +246,6 @@ service AdminService {
   rpc PullSchema(PullSchemaRequest) returns (stream PullSchemaResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
-
 
   rpc ClusterInfo(ClusterInfoRequest) returns (ClusterInfoResponse);
 

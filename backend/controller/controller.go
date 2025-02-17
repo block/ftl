@@ -5,8 +5,6 @@ import (
 	sha "crypto/sha256"
 	"database/sql"
 	"encoding/binary"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"hash"
 	"net/url"
@@ -16,8 +14,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/types/optional"
-	"github.com/alecthomas/types/result"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
@@ -28,8 +24,6 @@ import (
 	"github.com/block/ftl/backend/controller/observability"
 	"github.com/block/ftl/backend/controller/scheduledtask"
 	"github.com/block/ftl/backend/controller/state"
-	ftldeployment "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1"
-	deploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/schema"
@@ -41,7 +35,6 @@ import (
 	internalobservability "github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
-	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"
 )
@@ -105,8 +98,6 @@ func Start(
 
 	g.Go(func() error {
 		return rpc.Serve(ctx, config.Bind,
-			rpc.GRPC(ftlv1connect.NewVerbServiceHandler, svc),
-			rpc.GRPC(deploymentconnect.NewDeploymentServiceHandler, svc),
 			rpc.GRPC(ftlv1connect.NewControllerServiceHandler, svc),
 			rpc.PProf(),
 		)
@@ -444,7 +435,7 @@ func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 }
 
 // GetDeploymentContext retrieves config, secrets and DSNs for a module.
-func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request[ftldeployment.GetDeploymentContextRequest], resp *connect.ServerStream[ftldeployment.GetDeploymentContextResponse]) error {
+func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentContextRequest], resp *connect.ServerStream[ftlv1.GetDeploymentContextResponse]) error {
 	logger := log.FromContext(ctx)
 	updates := s.routeTable.Subscribe()
 	defer s.routeTable.Unsubscribe(updates)
@@ -570,155 +561,6 @@ func hashRoutesTable(h hash.Hash, m map[string]string) error {
 	return nil
 }
 
-func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
-	return s.callWithRequest(ctx, headers.CopyRequestForForwarding(req), optional.None[key.Request](), optional.None[key.Request]())
-}
-
-func (s *Service) callWithRequest(
-	ctx context.Context,
-	req *connect.Request[ftlv1.CallRequest],
-	requestKeyOpt optional.Option[key.Request],
-	parentKey optional.Option[key.Request],
-) (*connect.Response[ftlv1.CallResponse], error) {
-	logger := log.FromContext(ctx)
-	start := time.Now()
-	ctx, span := observability.Calls.BeginSpan(ctx, req.Msg.Verb)
-	defer span.End()
-
-	if req.Msg.Verb == nil {
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("invalid request: missing verb"))
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("verb is required"))
-	}
-	if req.Msg.Body == nil {
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("invalid request: missing body"))
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("body is required"))
-	}
-
-	routes := s.routeTable.Current()
-	sch := routes.Schema()
-
-	verbRef, err := schema.RefFromProto(req.Msg.Verb)
-	if err != nil {
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("invalid request: invalid verb"))
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid verb: %w", err))
-	}
-	verb := &schema.Verb{}
-	logger = logger.Module(verbRef.Module)
-
-	if err := sch.ResolveToType(verbRef, verb); err != nil {
-		if errors.Is(err, schema.ErrNotFound) {
-			observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("verb not found"))
-			return nil, connect.NewError(connect.CodeNotFound, err)
-		}
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("verb resolution failed"))
-		return nil, err
-	}
-
-	callers, err := headers.GetCallers(req.Header())
-	if err != nil {
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get callers"))
-		return nil, err
-	}
-
-	var currentCaller *schema.Ref // might be nil but that's fine. just means that it's not a cal from another verb
-	if len(callers) > 0 {
-		currentCaller = callers[len(callers)-1]
-	}
-
-	var requestKey key.Request
-	var isNewRequestKey bool
-	if k, ok := requestKeyOpt.Get(); ok {
-		requestKey = k
-		isNewRequestKey = false
-	} else {
-		k, ok, err := headers.GetRequestKey(req.Header())
-		if err != nil {
-			observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get request key"))
-			return nil, err
-		} else if !ok {
-			requestKey = key.NewRequestKey(key.OriginIngress, "grpc")
-			isNewRequestKey = true
-		} else {
-			requestKey = k
-			isNewRequestKey = false
-		}
-	}
-	if isNewRequestKey {
-		headers.SetRequestKey(req.Header(), requestKey)
-	}
-
-	module := verbRef.Module
-	deployment, ok := routes.GetDeployment(module).Get()
-	if !ok {
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to find deployment"))
-		return nil, fmt.Errorf("deployment not found for module %q", module)
-	}
-
-	callEvent := &timelineclient.Call{
-		DeploymentKey:    deployment,
-		RequestKey:       requestKey,
-		ParentRequestKey: parentKey,
-		StartTime:        start,
-		DestVerb:         verbRef,
-		Callers:          callers,
-		Request:          req.Msg,
-	}
-
-	route, ok := routes.Get(deployment).Get()
-	if !ok {
-		err = fmt.Errorf("no routes for module %q", module)
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("no routes for module"))
-		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
-		s.timelineClient.Publish(ctx, callEvent)
-		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-
-	if currentCaller != nil && currentCaller.Module != module && !verb.IsExported() {
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("invalid request: verb not exported"))
-		err = connect.NewError(connect.CodePermissionDenied, fmt.Errorf("verb %q is not exported", verbRef))
-		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
-		s.timelineClient.Publish(ctx, callEvent)
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("verb %q is not exported", verbRef))
-	}
-
-	err = validateCallBody(req.Msg.Body, verb, sch)
-	if err != nil {
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("invalid request: invalid call body"))
-		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
-		s.timelineClient.Publish(ctx, callEvent)
-		return nil, err
-	}
-
-	client := s.clientsForEndpoint(route.String())
-
-	if pk, ok := parentKey.Get(); ok {
-		ctx = rpc.WithParentRequestKey(ctx, pk)
-	}
-	ctx = rpc.WithRequestKey(ctx, requestKey)
-	ctx = rpc.WithVerbs(ctx, append(callers, verbRef))
-	reqVerb, err := schema.RefFromProto(req.Msg.Verb)
-	if err != nil {
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("invalid request: invalid verb"))
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid verb: %w", err))
-	}
-	headers.AddCaller(req.Header(), reqVerb)
-
-	response, err := client.verb.Call(ctx, req)
-	var resp *connect.Response[ftlv1.CallResponse]
-	if err == nil {
-		resp = connect.NewResponse(response.Msg)
-		callEvent.Response = result.Ok(resp.Msg)
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.None[string]())
-	} else {
-		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
-		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("verb call failed"))
-		logger.Errorf(err, "Call failed to verb %s for module %s", verbRef.String(), module)
-	}
-
-	s.timelineClient.Publish(ctx, callEvent)
-	return resp, err
-}
-
 func (s *Service) getDeployment(ctx context.Context, dkey key.Deployment) (*schema.Module, error) {
 	deployments, err := s.schemaClient.GetDeployments(ctx, &connect.Request[ftlv1.GetDeploymentsRequest]{})
 	if err != nil {
@@ -796,22 +638,4 @@ func makeBackoff(min, max time.Duration) backoff.Backoff {
 		Jitter: true,
 		Factor: 2,
 	}
-}
-
-func validateCallBody(body []byte, verb *schema.Verb, sch *schema.Schema) error {
-	var root any
-	err := json.Unmarshal(body, &root)
-	if err != nil {
-		return fmt.Errorf("request body is not valid JSON: %w", err)
-	}
-
-	var opts []schema.EncodingOption
-	if e, ok := slices.FindVariant[*schema.MetadataEncoding](verb.Metadata); ok && e.Lenient {
-		opts = append(opts, schema.LenientMode())
-	}
-	err = schema.ValidateJSONValue(verb.Request, []string{verb.Request.String()}, root, sch, opts...)
-	if err != nil {
-		return fmt.Errorf("could not validate call request body: %w", err)
-	}
-	return nil
 }

@@ -31,8 +31,11 @@ import (
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type Config struct {
@@ -46,9 +49,11 @@ type Service struct {
 	source       *schemaeventsource.EventSource
 	storage      *artefacts.OCIArtefactService
 	config       Config
+	routeTable   *routing.VerbCallRouter
 }
 
 var _ ftlv1connect.AdminServiceHandler = (*Service)(nil)
+var _ ftlv1connect.VerbServiceHandler = (*Service)(nil)
 
 func NewSchemaRetriever(source *schemaeventsource.EventSource) SchemaClient {
 	return &streamSchemaRetriever{
@@ -67,13 +72,14 @@ func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, 
 
 // NewAdminService creates a new Service.
 // bindAllocator is optional and should be set if a local client is to be used that accesses schema from disk using language plugins.
-func NewAdminService(config Config, env *EnvironmentManager, schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource, storage *artefacts.OCIArtefactService) *Service {
+func NewAdminService(config Config, env *EnvironmentManager, schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource, storage *artefacts.OCIArtefactService, routes *routing.VerbCallRouter) *Service {
 	return &Service{
 		config:       config,
 		env:          env,
 		schemaClient: schr,
 		source:       source,
 		storage:      storage,
+		routeTable:   routes,
 	}
 }
 
@@ -82,12 +88,14 @@ func Start(
 	config Config,
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
-	schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource,
+	schr ftlv1connect.SchemaServiceClient,
+	source *schemaeventsource.EventSource,
+	timelineClient *timelineclient.Client,
 	storage *artefacts.OCIArtefactService) error {
 
 	logger := log.FromContext(ctx).Scope("admin")
 
-	svc := NewAdminService(config, &EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm}, schr, source, storage)
+	svc := NewAdminService(config, &EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm}, schr, source, storage, routing.NewVerbRouter(ctx, source, timelineClient))
 
 	logger.Debugf("Admin service listening on: %s", config.Bind)
 	err := rpc.Serve(ctx, config.Bind,
@@ -510,6 +518,14 @@ nextArtefact:
 
 func (s *Service) ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error) {
 	return connect.NewResponse(&ftlv1.ClusterInfoResponse{Os: runtime.GOOS, Arch: runtime.GOARCH}), nil
+}
+
+func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
+	call, err := s.routeTable.Call(ctx, headers.CopyRequestForForwarding(req))
+	if err != nil {
+		return nil, fmt.Errorf("failed to call verb: %w", err)
+	}
+	return call, err
 }
 
 type OnceValue[T any] struct {

@@ -40,10 +40,8 @@ func (d *devCmd) Run(
 	projConfig projectconfig.Config,
 	bindContext terminal.KongContextBinder,
 	schemaEventSource *schemaeventsource.EventSource,
-	controllerClient ftlv1connect.ControllerServiceClient,
 	timelineClient *timelineclient.Client,
 	adminClient ftlv1connect.AdminServiceClient,
-	schemaClient ftlv1connect.SchemaServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	startTime := time.Now()
@@ -84,7 +82,7 @@ func (d *devCmd) Run(
 	controllerReady := make(chan bool, 1)
 	if !d.NoServe {
 		if d.ServeCmd.Stop {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSource, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
 				return fmt.Errorf("failed to stop server: %w", err)
 			}
@@ -92,7 +90,7 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSource, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
 				cancel(fmt.Errorf("dev server failed: %w: %w", context.Canceled, err))
 			} else {

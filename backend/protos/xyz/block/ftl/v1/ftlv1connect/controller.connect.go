@@ -41,6 +41,9 @@ const (
 	// ControllerServiceStatusProcedure is the fully-qualified name of the ControllerService's Status
 	// RPC.
 	ControllerServiceStatusProcedure = "/xyz.block.ftl.v1.ControllerService/Status"
+	// ControllerServiceGetDeploymentContextProcedure is the fully-qualified name of the
+	// ControllerService's GetDeploymentContext RPC.
+	ControllerServiceGetDeploymentContextProcedure = "/xyz.block.ftl.v1.ControllerService/GetDeploymentContext"
 	// ControllerServiceRegisterRunnerProcedure is the fully-qualified name of the ControllerService's
 	// RegisterRunner RPC.
 	ControllerServiceRegisterRunnerProcedure = "/xyz.block.ftl.v1.ControllerService/RegisterRunner"
@@ -53,6 +56,8 @@ type ControllerServiceClient interface {
 	// List "processes" running on the cluster.
 	ProcessList(context.Context, *connect.Request[v1.ProcessListRequest]) (*connect.Response[v1.ProcessListResponse], error)
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
+	// Get configuration state for the deployment
+	GetDeploymentContext(context.Context, *connect.Request[v1.GetDeploymentContextRequest]) (*connect.ServerStreamForClient[v1.GetDeploymentContextResponse], error)
 	// Register a Runner with the Controller.
 	//
 	// Each runner issue a RegisterRunnerRequest to the ControllerService
@@ -86,6 +91,11 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			baseURL+ControllerServiceStatusProcedure,
 			opts...,
 		),
+		getDeploymentContext: connect.NewClient[v1.GetDeploymentContextRequest, v1.GetDeploymentContextResponse](
+			httpClient,
+			baseURL+ControllerServiceGetDeploymentContextProcedure,
+			opts...,
+		),
 		registerRunner: connect.NewClient[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse](
 			httpClient,
 			baseURL+ControllerServiceRegisterRunnerProcedure,
@@ -96,10 +106,11 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 
 // controllerServiceClient implements ControllerServiceClient.
 type controllerServiceClient struct {
-	ping           *connect.Client[v1.PingRequest, v1.PingResponse]
-	processList    *connect.Client[v1.ProcessListRequest, v1.ProcessListResponse]
-	status         *connect.Client[v1.StatusRequest, v1.StatusResponse]
-	registerRunner *connect.Client[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
+	ping                 *connect.Client[v1.PingRequest, v1.PingResponse]
+	processList          *connect.Client[v1.ProcessListRequest, v1.ProcessListResponse]
+	status               *connect.Client[v1.StatusRequest, v1.StatusResponse]
+	getDeploymentContext *connect.Client[v1.GetDeploymentContextRequest, v1.GetDeploymentContextResponse]
+	registerRunner       *connect.Client[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.ControllerService.Ping.
@@ -117,6 +128,11 @@ func (c *controllerServiceClient) Status(ctx context.Context, req *connect.Reque
 	return c.status.CallUnary(ctx, req)
 }
 
+// GetDeploymentContext calls xyz.block.ftl.v1.ControllerService.GetDeploymentContext.
+func (c *controllerServiceClient) GetDeploymentContext(ctx context.Context, req *connect.Request[v1.GetDeploymentContextRequest]) (*connect.ServerStreamForClient[v1.GetDeploymentContextResponse], error) {
+	return c.getDeploymentContext.CallServerStream(ctx, req)
+}
+
 // RegisterRunner calls xyz.block.ftl.v1.ControllerService.RegisterRunner.
 func (c *controllerServiceClient) RegisterRunner(ctx context.Context) *connect.ClientStreamForClient[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse] {
 	return c.registerRunner.CallClientStream(ctx)
@@ -129,6 +145,8 @@ type ControllerServiceHandler interface {
 	// List "processes" running on the cluster.
 	ProcessList(context.Context, *connect.Request[v1.ProcessListRequest]) (*connect.Response[v1.ProcessListResponse], error)
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
+	// Get configuration state for the deployment
+	GetDeploymentContext(context.Context, *connect.Request[v1.GetDeploymentContextRequest], *connect.ServerStream[v1.GetDeploymentContextResponse]) error
 	// Register a Runner with the Controller.
 	//
 	// Each runner issue a RegisterRunnerRequest to the ControllerService
@@ -158,6 +176,11 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		svc.Status,
 		opts...,
 	)
+	controllerServiceGetDeploymentContextHandler := connect.NewServerStreamHandler(
+		ControllerServiceGetDeploymentContextProcedure,
+		svc.GetDeploymentContext,
+		opts...,
+	)
 	controllerServiceRegisterRunnerHandler := connect.NewClientStreamHandler(
 		ControllerServiceRegisterRunnerProcedure,
 		svc.RegisterRunner,
@@ -171,6 +194,8 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 			controllerServiceProcessListHandler.ServeHTTP(w, r)
 		case ControllerServiceStatusProcedure:
 			controllerServiceStatusHandler.ServeHTTP(w, r)
+		case ControllerServiceGetDeploymentContextProcedure:
+			controllerServiceGetDeploymentContextHandler.ServeHTTP(w, r)
 		case ControllerServiceRegisterRunnerProcedure:
 			controllerServiceRegisterRunnerHandler.ServeHTTP(w, r)
 		default:
@@ -192,6 +217,10 @@ func (UnimplementedControllerServiceHandler) ProcessList(context.Context, *conne
 
 func (UnimplementedControllerServiceHandler) Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.Status is not implemented"))
+}
+
+func (UnimplementedControllerServiceHandler) GetDeploymentContext(context.Context, *connect.Request[v1.GetDeploymentContextRequest], *connect.ServerStream[v1.GetDeploymentContextResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.GetDeploymentContext is not implemented"))
 }
 
 func (UnimplementedControllerServiceHandler) RegisterRunner(context.Context, *connect.ClientStream[v1.RegisterRunnerRequest]) (*connect.Response[v1.RegisterRunnerResponse], error) {

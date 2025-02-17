@@ -31,7 +31,6 @@ import (
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
 	"github.com/block/ftl/backend/controller/artefacts"
-	ftldeploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect"
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
@@ -360,7 +359,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 		}
 	}
 
-	deploymentServiceClient := rpc.Dial(ftldeploymentconnect.NewDeploymentServiceClient, s.config.ControllerEndpoint.String(), log.Error)
+	deploymentServiceClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.config.ControllerEndpoint.String(), log.Error)
 	ctx = rpc.ContextWithClient(ctx, deploymentServiceClient)
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
@@ -381,7 +380,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	}
 	proxyServer, err := rpc.NewServer(ctx, parse,
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s.proxy),
-		rpc.GRPC(ftldeploymentconnect.NewDeploymentServiceHandler, s.proxy),
+		rpc.GRPC(ftlv1connect.NewControllerServiceHandler, s.proxy),
 		rpc.GRPC(ftlleaseconnect.NewLeaseServiceHandler, s.proxy),
 		rpc.GRPC(pubsubpbconnect.NewPublishServiceHandler, s.pubSub),
 	)

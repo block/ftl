@@ -44,6 +44,7 @@ import (
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/routing"
+	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"
 )
@@ -54,6 +55,8 @@ type serveCmd struct {
 
 type serveCommonConfig struct {
 	Bind                *url.URL             `help:"Starting endpoint to bind to and advertise to. Each controller, ingress, runner and language plugin will increment the port by 1" default:"http://127.0.0.1:8891"`
+	Endpoint            *url.URL             `default:"http://127.0.0.1:8892" help:"FTL endpoint to bind/connect to." env:"FTL_ENDPOINT"`
+	SchemaEndpoint      *url.URL             `help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
 	DBPort              int                  `help:"Port to use for the database." env:"FTL_DB_PORT" default:"15432"`
 	MysqlPort           int                  `help:"Port to use for the MySQL database, if one is required." env:"FTL_MYSQL_PORT" default:"13306"`
 	RegistryPort        int                  `help:"Port to use for the registry." env:"FTL_OCI_REGISTRY_PORT" default:"15000"`
@@ -85,18 +88,15 @@ func (s *serveCmd) Run(
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
-	controllerClient ftlv1connect.ControllerServiceClient,
 	timelineClient *timelineclient.Client,
 	adminClient ftlv1connect.AdminServiceClient,
-	schemaClient ftlv1connect.SchemaServiceClient,
-	schemaEventSource *schemaeventsource.EventSource,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	bindAllocator, err := bind.NewBindAllocator(s.Bind, 2)
 	if err != nil {
 		return fmt.Errorf("could not create bind allocator: %w", err)
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSource, buildEngineClient, s.Recreate, nil)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, timelineClient, adminClient, buildEngineClient, s.Recreate, nil)
 }
 
 //nolint:maintidx
@@ -108,17 +108,24 @@ func (s *serveCommonConfig) run(
 	initialised optional.Option[chan bool],
 	devMode bool,
 	bindAllocator *bind.BindAllocator,
-	controllerClient ftlv1connect.ControllerServiceClient,
 	timelineClient *timelineclient.Client,
 	adminClient ftlv1connect.AdminServiceClient,
-	schemaClient ftlv1connect.SchemaServiceClient,
-	schemaEventSource *schemaeventsource.EventSource,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	recreate bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,
 ) error {
 
 	logger := log.FromContext(ctx)
+
+	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.Endpoint.String(), log.Error)
+	ctx = rpc.ContextWithClient(ctx, controllerClient)
+	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.SchemaEndpoint.String(), log.Error)
+	ctx = rpc.ContextWithClient(ctx, schemaClient)
+
+	// We must use our own event source here
+	// The injected one is connected to the admin client for CLI commands, we need this one to connect directly
+	// to the schema service as it is used by the Admin service
+	schemaEventSource := schemaeventsource.New(ctx, "serve", schemaClient)
 
 	if s.Background {
 		if s.Stop {
@@ -184,7 +191,7 @@ func (s *serveCommonConfig) run(
 	if err != nil {
 		return fmt.Errorf("could not allocate port for ingress: %w", err)
 	}
-	controllerBind, err := bindAllocator.Next()
+	_, err = bindAllocator.Next()
 	if err != nil {
 		return fmt.Errorf("could not allocate port for controller: %w", err)
 	}
@@ -209,7 +216,7 @@ func (s *serveCommonConfig) run(
 
 	runnerScaling, err := localscaling.NewLocalScaling(
 		ctx,
-		controllerBind,
+		s.Endpoint,
 		schemaBind,
 		s.Lease.Bind,
 		projConfig.Path,
@@ -242,7 +249,7 @@ func (s *serveCommonConfig) run(
 
 	config := controller.Config{
 		CommonConfig: s.CommonConfig,
-		Bind:         controllerBind,
+		Bind:         s.Endpoint,
 		Key:          key.NewLocalControllerKey(1),
 	}
 	config.SetDefaults()
@@ -355,7 +362,7 @@ func (s *serveCommonConfig) run(
 	})
 	// Start Admin
 	wg.Go(func() error {
-		err := admin.Start(ctx, s.Admin, cm, sm, schemaClient, schemaEventSource, storage)
+		err := admin.Start(ctx, s.Admin, cm, sm, schemaClient, schemaEventSource, timelineClient, storage)
 		if err != nil {
 			return fmt.Errorf("lease failed: %w", err)
 		}

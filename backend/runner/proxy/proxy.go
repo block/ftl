@@ -11,8 +11,6 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 
 	"github.com/block/ftl/backend/controller/observability"
-	ftldeployment "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1"
-	ftldeploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	ftllease "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1"
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -27,7 +25,7 @@ import (
 )
 
 var _ ftlv1connect.VerbServiceHandler = &Service{}
-var _ ftldeploymentconnect.DeploymentServiceHandler = &Service{}
+var _ ftlv1connect.ControllerServiceHandler = &Service{}
 
 type moduleVerbService struct {
 	client     ftlv1connect.VerbServiceClient
@@ -36,7 +34,7 @@ type moduleVerbService struct {
 }
 
 type Service struct {
-	controllerDeploymentService ftldeploymentconnect.DeploymentServiceClient
+	controllerDeploymentService ftlv1connect.ControllerServiceClient
 	controllerLeaseService      ftlleaseconnect.LeaseServiceClient
 	moduleVerbService           *xsync.MapOf[string, moduleVerbService]
 	timelineClient              *timelineclient.Client
@@ -46,7 +44,7 @@ type Service struct {
 	localDeployment             key.Deployment
 }
 
-func New(controllerModuleService ftldeploymentconnect.DeploymentServiceClient,
+func New(controllerModuleService ftlv1connect.ControllerServiceClient,
 	leaseClient ftlleaseconnect.LeaseServiceClient,
 	timelineClient *timelineclient.Client,
 	queryService *query.MultiService,
@@ -65,7 +63,7 @@ func New(controllerModuleService ftldeploymentconnect.DeploymentServiceClient,
 	return proxy
 }
 
-func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[ftldeployment.GetDeploymentContextRequest], c2 *connect.ServerStream[ftldeployment.GetDeploymentContextResponse]) error {
+func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentContextRequest], c2 *connect.ServerStream[ftlv1.GetDeploymentContextResponse]) error {
 	moduleContext, err := r.controllerDeploymentService.GetDeploymentContext(ctx, connect.NewRequest(c.Msg))
 	logger := log.FromContext(ctx)
 	if err != nil {
@@ -190,4 +188,16 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 	r.timelineClient.Publish(ctx, callEvent)
 	observability.Calls.Request(ctx, req.Msg.Verb, start, optional.None[string]())
 	return resp, nil
+}
+
+func (r *Service) ProcessList(ctx context.Context, c *connect.Request[ftlv1.ProcessListRequest]) (*connect.Response[ftlv1.ProcessListResponse], error) {
+	return nil, fmt.Errorf("should never be called, this is temp refactoring debt")
+}
+
+func (r *Service) Status(ctx context.Context, c *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error) {
+	return nil, fmt.Errorf("should never be called, this is temp refactoring debt")
+}
+
+func (r *Service) RegisterRunner(ctx context.Context, c *connect.ClientStream[ftlv1.RegisterRunnerRequest]) (*connect.Response[ftlv1.RegisterRunnerResponse], error) {
+	return nil, fmt.Errorf("should never be called, this is temp refactoring debt")
 }

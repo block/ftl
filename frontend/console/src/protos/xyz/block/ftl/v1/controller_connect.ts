@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse } from "./controller_pb.js";
+import { GetDeploymentContextRequest, GetDeploymentContextResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse } from "./controller_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.ControllerService
@@ -44,6 +44,17 @@ export const ControllerService = {
       I: StatusRequest,
       O: StatusResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * Get configuration state for the deployment
+     *
+     * @generated from rpc xyz.block.ftl.v1.ControllerService.GetDeploymentContext
+     */
+    getDeploymentContext: {
+      name: "GetDeploymentContext",
+      I: GetDeploymentContextRequest,
+      O: GetDeploymentContextResponse,
+      kind: MethodKind.ServerStreaming,
     },
     /**
      * Register a Runner with the Controller.

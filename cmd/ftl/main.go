@@ -40,11 +40,9 @@ import (
 
 type InteractiveCLI struct {
 	Version          kong.VersionFlag `help:"Show version."`
-	Endpoint         *url.URL         `default:"http://127.0.0.1:8892" help:"FTL endpoint to bind/connect to." env:"FTL_ENDPOINT"`
 	TimelineEndpoint *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	LeaseEndpoint    *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	AdminEndpoint    *url.URL         `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
-	SchemaEndpoint   *url.URL         `help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
 	Trace            string           `help:"File to write golang runtime/trace output to." hidden:""`
 
 	Ping            pingCmd            `cmd:"" help:"Ping the FTL cluster."`
@@ -241,10 +239,6 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		kctx.FatalIfErrorf(err)
 		kctx.Bind(logger)
 
-		controllerServiceClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.Endpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, controllerServiceClient)
-		kctx.BindTo(controllerServiceClient, (*ftlv1connect.ControllerServiceClient)(nil))
-
 		timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 		kctx.Bind(timelineClient)
 
@@ -274,7 +268,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		kctx.BindTo(source, (**schemaeventsource.EventSource)(nil))
 		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(source.ViewOnly())))
 
-		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.Endpoint.String(), log.Error)
+		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.AdminEndpoint.String(), log.Error)
 		ctx = rpc.ContextWithClient(ctx, verbServiceClient)
 		kctx.BindTo(verbServiceClient, (*ftlv1connect.VerbServiceClient)(nil))
 
@@ -292,7 +286,6 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		err = kctx.BindToProvider(provideAdminClient)
 		kctx.FatalIfErrorf(err)
 
-		kctx.Bind(cli.Endpoint)
 		kctx.BindTo(ctx, (*context.Context)(nil))
 		kctx.Bind(bindContext)
 		kctx.BindTo(cancel, (*context.CancelCauseFunc)(nil))

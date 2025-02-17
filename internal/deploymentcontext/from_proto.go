@@ -3,23 +3,23 @@ package deploymentcontext
 import (
 	"fmt"
 
-	deploymentpb "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 )
 
-func DBTypeFromProto(x deploymentpb.GetDeploymentContextResponse_DbType) DBType {
+func DBTypeFromProto(x ftlv1.GetDeploymentContextResponse_DbType) DBType {
 	switch x {
-	case deploymentpb.GetDeploymentContextResponse_DB_TYPE_UNSPECIFIED:
+	case ftlv1.GetDeploymentContextResponse_DB_TYPE_UNSPECIFIED:
 		return DBTypeUnspecified
-	case deploymentpb.GetDeploymentContextResponse_DB_TYPE_POSTGRES:
+	case ftlv1.GetDeploymentContextResponse_DB_TYPE_POSTGRES:
 		return DBTypePostgres
-	case deploymentpb.GetDeploymentContextResponse_DB_TYPE_MYSQL:
+	case ftlv1.GetDeploymentContextResponse_DB_TYPE_MYSQL:
 		return DBTypeMySQL
 	default:
 		panic(fmt.Sprintf("unknown DB type: %d", x))
 	}
 }
 
-func FromProto(response *deploymentpb.GetDeploymentContextResponse) (DeploymentContext, error) {
+func FromProto(response *ftlv1.GetDeploymentContextResponse) (DeploymentContext, error) {
 	databases := map[string]Database{}
 	for name, entry := range response.Databases {
 		db, err := NewDatabase(DBTypeFromProto(entry.Type), entry.Dsn)
