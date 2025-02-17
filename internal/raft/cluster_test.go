@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"net/url"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/local"
@@ -126,6 +129,15 @@ func TestJoiningExistingCluster(t *testing.T) {
 	assert.NoError(t, shard3.Publish(ctx, IntEvent(1)))
 
 	assertShardValue(ctx, t, 1, shard1, shard2, shard3)
+
+	t.Log("joining with an existing member should be a noop")
+	client := raftpbconnect.NewRaftServiceClient(http.DefaultClient, controlAddress)
+	_, err = client.AddMember(ctx, connect.NewRequest(&raftpb.AddMemberRequest{
+		Address:   members[2].String(),
+		ShardIds:  []uint64{1},
+		ReplicaId: cluster3.RuntimeReplicaID(),
+	}))
+	assert.NoError(t, err)
 
 	t.Log("join through the new member")
 	builder4 := testBuilder(t, nil, members[3].String(), nil)

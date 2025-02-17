@@ -2,7 +2,9 @@ package raft
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/lni/dragonboat/v4"
@@ -28,10 +30,40 @@ func (c *Cluster) AddMember(ctx context.Context, req *connect.Request[raftpb.Add
 			logger.Debugf("Requesting add replica to shard %d on replica %d", shardID, replicaID)
 			return c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0)
 		}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
-			return nil, fmt.Errorf("failed to add member: %w", err)
+			if errors.Is(err, dragonboat.ErrRejected) {
+				// The request can be rejected if the member is already in the cluster.
+				// Check if the member in the cluster matches the requested address.
+				ok, err := c.isMember(ctx, shardID, replicaID, address)
+				if err != nil {
+					return nil, fmt.Errorf("failed to check if member is already in cluster: %w", err)
+				}
+				if !ok {
+					return nil, fmt.Errorf("failed to add member not in cluster: %w", err)
+				}
+			} else {
+				return nil, fmt.Errorf("failed to add member: %w", err)
+			}
 		}
 	}
 	return connect.NewResponse(&raftpb.AddMemberResponse{}), nil
+}
+
+func (c *Cluster) isMember(ctx context.Context, shardID uint64, replicaID uint64, address string) (bool, error) {
+	timeout := time.Duration(c.config.ElectionRTT) * c.config.RTT
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	membership, err := c.nh.SyncGetShardMembership(ctx, shardID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get cluster info: %w", err)
+	}
+
+	for id, addr := range membership.Nodes {
+		if id == replicaID && addr == address {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (c *Cluster) RemoveMember(ctx context.Context, req *connect.Request[raftpb.RemoveMemberRequest]) (*connect.Response[raftpb.RemoveMemberResponse], error) {
