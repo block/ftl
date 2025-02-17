@@ -137,6 +137,18 @@ message ResetSubscriptionRequest {
 
 message ResetSubscriptionResponse {}
 
+message ApplyChangesetRequest {
+  // The modules to add or update.
+  repeated ftl.schema.v1.Module modules = 1;
+  // The deployments to remove.
+  repeated string to_remove = 2;
+}
+
+message ApplyChangesetResponse {
+  // The changeset, the result can be determined by checking the state
+  ftl.schema.v1.Changeset changeset = 2;
+}
+
 // AdminService is the service that provides and updates admin data. For example,
 // it is used to encapsulate configuration and secrets.
 service AdminService {
@@ -178,4 +190,8 @@ service AdminService {
 
   // Reset the offset for a subscription to the latest of each partition.
   rpc ResetSubscription(ResetSubscriptionRequest) returns (ResetSubscriptionResponse);
+
+  // Creates and applies a changeset, returning the result
+  // This blocks until the changeset has completed
+  rpc ApplyChangeset(ApplyChangesetRequest) returns (ApplyChangesetResponse);
 }

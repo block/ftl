@@ -23,7 +23,7 @@ func (d *deployCmd) Run(
 	ctx context.Context,
 	projConfig projectconfig.Config,
 	controllerClient ftlv1connect.ControllerServiceClient,
-	schemaServiceClient ftlv1connect.SchemaServiceClient,
+	adminClient ftlv1connect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
 ) error {
 	logger := log.FromContext(ctx)
@@ -38,7 +38,7 @@ func (d *deployCmd) Run(
 		defer cancel(fmt.Errorf("stopping deploy: %w", context.Canceled))
 	}
 	engine, err := buildengine.New(
-		ctx, controllerClient, schemaServiceClient, schemaSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint,
+		ctx, controllerClient, adminClient, schemaSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint,
 		buildengine.BuildEnv(d.Build.BuildEnv),
 		buildengine.Parallelism(d.Build.Parallelism),
 	)

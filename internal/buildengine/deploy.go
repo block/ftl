@@ -39,15 +39,13 @@ type DeployClient interface {
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
 
-type SchemaServiceClient interface {
-	CreateChangeset(ctx context.Context, req *connect.Request[ftlv1.CreateChangesetRequest]) (*connect.Response[ftlv1.CreateChangesetResponse], error)
-	PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest]) (*connect.ServerStreamForClient[ftlv1.PullSchemaResponse], error)
+type AdminClient interface {
+	ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
-	UpdateDeploymentRuntime(ctx context.Context, req *connect.Request[ftlv1.UpdateDeploymentRuntimeRequest]) (*connect.Response[ftlv1.UpdateDeploymentRuntimeResponse], error)
 }
 
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, deployClient DeployClient, schemaserviceClient SchemaServiceClient) error {
+func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, deployClient DeployClient, adminClient AdminClient) error {
 	logger := log.FromContext(ctx)
 	uploadGroup := errgroup.Group{}
 	moduleSchemas := make(chan *schemapb.Module, len(modules))
@@ -76,43 +74,15 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 
 	ctx, closeStream := context.WithCancelCause(ctx)
 	defer closeStream(fmt.Errorf("function is complete: %w", context.Canceled))
-	stream, err := schemaserviceClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-deploy"}))
-	if err != nil {
-		return fmt.Errorf("failed to pull schema: %w", err)
-	}
 
-	resp, err := schemaserviceClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
+	_, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
 		Modules: collectedSchemas,
 	}))
-	logger.Debugf("Created changeset with %d modules", len(collectedSchemas))
 	if err != nil {
-		return fmt.Errorf("failed to create changeset: %w", err)
+		return fmt.Errorf("failed to deploy changeset: %w", err)
 	}
-	key := resp.Msg.Changeset
-
-	for {
-		if !stream.Receive() {
-			return fmt.Errorf("failed to pull schema: %w", stream.Err())
-		}
-		msg := stream.Msg()
-		switch msg := msg.Event.Value.(type) {
-		case *schemapb.Notification_ChangesetCommittedNotification:
-			if msg.ChangesetCommittedNotification.Changeset.Key != key {
-				logger.Warnf("Expecting changeset %s to complete but got commit for %s", key, msg.ChangesetCommittedNotification.Changeset.Key)
-				continue
-			}
-			logger.Infof("Changeset %s deployed and ready", key)
-			return nil
-		case *schemapb.Notification_ChangesetFailedNotification:
-			if msg.ChangesetFailedNotification.Key != key {
-				logger.Warnf("Expecting changeset %s to complete but got failure for %s", key, msg.ChangesetFailedNotification.Key)
-				continue
-			}
-			return fmt.Errorf("changeset %s failed: %s", key, msg.ChangesetFailedNotification.Error)
-
-		default:
-		}
-	}
+	logger.Debugf("Deployed changeset with %d modules", len(collectedSchemas))
+	return nil
 }
 
 func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, module Module, client DeployClient) (*schemapb.Module, error) {
@@ -208,7 +178,7 @@ func uploadDeploymentArtefact(ctx context.Context, client DeployClient, file dep
 	return nil
 }
 
-func terminateModuleDeployment(ctx context.Context, client DeployClient, schemaClient SchemaServiceClient, module string) error {
+func terminateModuleDeployment(ctx context.Context, client DeployClient, adminClient AdminClient, module string) error {
 	logger := log.FromContext(ctx).Module(module).Scope("terminate")
 
 	status, err := client.Status(ctx, connect.NewRequest(&ftlv1.StatusRequest{}))
@@ -229,8 +199,8 @@ func terminateModuleDeployment(ctx context.Context, client DeployClient, schemaC
 	}
 
 	logger.Infof("Terminating deployment %s", key)
-	_, err = schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
-		RemovedDeployments: []string{key},
+	_, err = adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
+		ToRemove: []string{key},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to kill deployment: %w", err)

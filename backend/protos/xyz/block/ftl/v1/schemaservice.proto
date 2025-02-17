@@ -38,7 +38,7 @@ message CreateChangesetRequest {
   // The modules to add or update.
   repeated ftl.schema.v1.Module modules = 1;
   // The deployments to remove.
-  repeated string removed_deployments = 2;
+  repeated string to_remove = 2;
 }
 
 message CreateChangesetResponse {

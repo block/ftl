@@ -7,6 +7,7 @@ import (
 	"github.com/alecthomas/types/either"
 	"github.com/alecthomas/types/optional"
 
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/schema"
 	cf "github.com/block/ftl/internal/configuration"
@@ -19,12 +20,16 @@ import (
 // calls. It allows us to interface with local ftl-project.toml files without needing to
 // start a controller.
 type localClient struct {
-	*AdminService
+	*Service
 }
 
 type diskSchemaRetriever struct {
 	// Omit to use the project root as the deploy root (used in tests)
 	deployRoot optional.Option[string]
+}
+
+func (s *diskSchemaRetriever) ApplyChangeset(ctx context.Context, req *ftlv1.ApplyChangesetRequest) (*ftlv1.ApplyChangesetResponse, error) {
+	return nil, fmt.Errorf("cannot create changesets when not attached to a runner cluster")
 }
 
 // NewLocalClient creates a admin client that reads and writes from the provided config and secret managers

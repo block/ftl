@@ -11,7 +11,6 @@ import (
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/block/ftl/backend/admin"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal/bind"
@@ -42,9 +41,8 @@ func (d *devCmd) Run(
 	bindContext terminal.KongContextBinder,
 	schemaEventSource *schemaeventsource.EventSource,
 	controllerClient ftlv1connect.ControllerServiceClient,
-	schemaServiceClient ftlv1connect.SchemaServiceClient,
 	timelineClient *timelineclient.Client,
-	adminClient admin.Client,
+	adminClient ftlv1connect.AdminServiceClient,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
@@ -113,7 +111,7 @@ func (d *devCmd) Run(
 		starting.Close()
 
 		opts := []buildengine.Option{buildengine.Parallelism(d.Build.Parallelism), buildengine.BuildEnv(d.Build.BuildEnv), buildengine.WithDevMode(devModeEndpointUpdates), buildengine.WithStartTime(startTime)}
-		engine, err := buildengine.New(ctx, deployClient, schemaServiceClient, schemaEventSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, opts...)
+		engine, err := buildengine.New(ctx, deployClient, adminClient, schemaEventSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, opts...)
 		if err != nil {
 			return err
 		}

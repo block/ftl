@@ -220,3 +220,17 @@ class ResetSubscriptionRequest(_message.Message):
 class ResetSubscriptionResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class ApplyChangesetRequest(_message.Message):
+    __slots__ = ("modules", "to_remove")
+    MODULES_FIELD_NUMBER: _ClassVar[int]
+    TO_REMOVE_FIELD_NUMBER: _ClassVar[int]
+    modules: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Module]
+    to_remove: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ..., to_remove: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class ApplyChangesetResponse(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: _schema_pb2.Changeset
+    def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...

@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { Ref } from "../schema/v1/schema_pb.js";
+import { Changeset, Module, Ref } from "../schema/v1/schema_pb.js";
 
 /**
  * @generated from enum xyz.block.ftl.v1.ConfigProvider
@@ -1093,6 +1093,92 @@ export class ResetSubscriptionResponse extends Message<ResetSubscriptionResponse
 
   static equals(a: ResetSubscriptionResponse | PlainMessage<ResetSubscriptionResponse> | undefined, b: ResetSubscriptionResponse | PlainMessage<ResetSubscriptionResponse> | undefined): boolean {
     return proto3.util.equals(ResetSubscriptionResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.ApplyChangesetRequest
+ */
+export class ApplyChangesetRequest extends Message<ApplyChangesetRequest> {
+  /**
+   * The modules to add or update.
+   *
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 1;
+   */
+  modules: Module[] = [];
+
+  /**
+   * The deployments to remove.
+   *
+   * @generated from field: repeated string to_remove = 2;
+   */
+  toRemove: string[] = [];
+
+  constructor(data?: PartialMessage<ApplyChangesetRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.ApplyChangesetRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
+    { no: 2, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ApplyChangesetRequest {
+    return new ApplyChangesetRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ApplyChangesetRequest {
+    return new ApplyChangesetRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ApplyChangesetRequest {
+    return new ApplyChangesetRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ApplyChangesetRequest | PlainMessage<ApplyChangesetRequest> | undefined, b: ApplyChangesetRequest | PlainMessage<ApplyChangesetRequest> | undefined): boolean {
+    return proto3.util.equals(ApplyChangesetRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.ApplyChangesetResponse
+ */
+export class ApplyChangesetResponse extends Message<ApplyChangesetResponse> {
+  /**
+   * The changeset, the result can be determined by checking the state
+   *
+   * @generated from field: xyz.block.ftl.schema.v1.Changeset changeset = 2;
+   */
+  changeset?: Changeset;
+
+  constructor(data?: PartialMessage<ApplyChangesetResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.ApplyChangesetResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 2, name: "changeset", kind: "message", T: Changeset },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ApplyChangesetResponse {
+    return new ApplyChangesetResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ApplyChangesetResponse {
+    return new ApplyChangesetResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ApplyChangesetResponse {
+    return new ApplyChangesetResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ApplyChangesetResponse | PlainMessage<ApplyChangesetResponse> | undefined, b: ApplyChangesetResponse | PlainMessage<ApplyChangesetResponse> | undefined): boolean {
+    return proto3.util.equals(ApplyChangesetResponse, a, b);
   }
 }
 

@@ -89,20 +89,20 @@ func (autoRebuildCompletedEvent) rebuildEvent() {}
 
 // Engine for building a set of modules.
 type Engine struct {
-	deployClient        DeployClient
-	schemaServiceClient SchemaServiceClient
-	schemaSource        *schemaeventsource.EventSource
-	moduleMetas         *xsync.MapOf[string, moduleMeta]
-	projectConfig       projectconfig.Config
-	moduleDirs          []string
-	watcher             *watch.Watcher // only watches for module toml changes
-	controllerSchema    *xsync.MapOf[string, *schema.Module]
-	schemaChanges       *pubsub.Topic[schema.Notification]
-	cancel              context.CancelCauseFunc
-	parallelism         int
-	modulesToBuild      *xsync.MapOf[string, bool]
-	buildEnv            []string
-	startTime           optional.Option[time.Time]
+	deployClient     DeployClient
+	adminClient      AdminClient
+	schemaSource     *schemaeventsource.EventSource
+	moduleMetas      *xsync.MapOf[string, moduleMeta]
+	projectConfig    projectconfig.Config
+	moduleDirs       []string
+	watcher          *watch.Watcher // only watches for module toml changes
+	controllerSchema *xsync.MapOf[string, *schema.Module]
+	schemaChanges    *pubsub.Topic[schema.Notification]
+	cancel           context.CancelCauseFunc
+	parallelism      int
+	modulesToBuild   *xsync.MapOf[string, bool]
+	buildEnv         []string
+	startTime        optional.Option[time.Time]
 
 	// events coming in from plugins
 	pluginEvents chan languageplugin.PluginEvent
@@ -164,7 +164,7 @@ func WithStartTime(startTime time.Time) Option {
 func New(
 	ctx context.Context,
 	deployClient DeployClient,
-	schemaServiceClient SchemaServiceClient,
+	schemaServiceClient AdminClient,
 	schemaSource *schemaeventsource.EventSource,
 	projectConfig projectconfig.Config,
 	moduleDirs []string,
@@ -174,24 +174,24 @@ func New(
 	ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("build-engine"))
 	ctx = rpc.ContextWithClient(rpc.ContextWithClient(ctx, deployClient), schemaServiceClient)
 	e := &Engine{
-		deployClient:        deployClient,
-		schemaServiceClient: schemaServiceClient,
-		schemaSource:        schemaSource,
-		projectConfig:       projectConfig,
-		moduleDirs:          moduleDirs,
-		moduleMetas:         xsync.NewMapOf[string, moduleMeta](),
-		watcher:             watch.NewWatcher(optional.Some(projectConfig.WatchModulesLockPath()), "ftl.toml"),
-		controllerSchema:    xsync.NewMapOf[string, *schema.Module](),
-		schemaChanges:       pubsub.New[schema.Notification](),
-		pluginEvents:        make(chan languageplugin.PluginEvent, 128),
-		parallelism:         runtime.NumCPU(),
-		modulesToBuild:      xsync.NewMapOf[string, bool](),
-		rebuildEvents:       make(chan rebuildEvent, 128),
-		rawEngineUpdates:    make(chan *buildenginepb.EngineEvent, 128),
-		EngineUpdates:       pubsub.New[*buildenginepb.EngineEvent](),
-		deploymentQueue:     make(chan pendingDeploy, 128),
-		arch:                runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
-		os:                  runtime.GOOS,
+		deployClient:     deployClient,
+		adminClient:      schemaServiceClient,
+		schemaSource:     schemaSource,
+		projectConfig:    projectConfig,
+		moduleDirs:       moduleDirs,
+		moduleMetas:      xsync.NewMapOf[string, moduleMeta](),
+		watcher:          watch.NewWatcher(optional.Some(projectConfig.WatchModulesLockPath()), "ftl.toml"),
+		controllerSchema: xsync.NewMapOf[string, *schema.Module](),
+		schemaChanges:    pubsub.New[schema.Notification](),
+		pluginEvents:     make(chan languageplugin.PluginEvent, 128),
+		parallelism:      runtime.NumCPU(),
+		modulesToBuild:   xsync.NewMapOf[string, bool](),
+		rebuildEvents:    make(chan rebuildEvent, 128),
+		rawEngineUpdates: make(chan *buildenginepb.EngineEvent, 128),
+		EngineUpdates:    pubsub.New[*buildenginepb.EngineEvent](),
+		deploymentQueue:  make(chan pendingDeploy, 128),
+		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
+		os:               runtime.GOOS,
 	}
 	for _, option := range options {
 		option(e)
@@ -481,7 +481,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					_ = e.BuildAndDeploy(ctx, 1, true, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
-				err := terminateModuleDeployment(ctx, e.deployClient, e.schemaServiceClient, event.Config.Module)
+				err := terminateModuleDeployment(ctx, e.deployClient, e.adminClient, event.Config.Module)
 				if err != nil {
 					logger.Errorf(err, "terminate %s failed", event.Config.Module)
 				}
@@ -1391,7 +1391,7 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 					},
 				}
 			}
-			err := Deploy(ctx, e.projectConfig, modules, deployment.replicas, true, e.deployClient, e.schemaServiceClient)
+			err := Deploy(ctx, e.projectConfig, modules, deployment.replicas, true, e.deployClient, e.adminClient)
 			if err != nil {
 				// Handle deployment failure
 				for _, module := range modules {

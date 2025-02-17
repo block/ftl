@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse } from "./admin_pb.js";
+import { ApplyChangesetRequest, ApplyChangesetResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse } from "./admin_pb.js";
 
 /**
  * AdminService is the service that provides and updates admin data. For example,
@@ -147,6 +147,18 @@ export const AdminService = {
       name: "ResetSubscription",
       I: ResetSubscriptionRequest,
       O: ResetSubscriptionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Creates and applies a changeset, returning the result
+     * This blocks until the changeset has completed
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.ApplyChangeset
+     */
+    applyChangeset: {
+      name: "ApplyChangeset",
+      I: ApplyChangesetRequest,
+      O: ApplyChangesetResponse,
       kind: MethodKind.Unary,
     },
   }

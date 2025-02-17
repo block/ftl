@@ -63,6 +63,9 @@ const (
 	// AdminServiceResetSubscriptionProcedure is the fully-qualified name of the AdminService's
 	// ResetSubscription RPC.
 	AdminServiceResetSubscriptionProcedure = "/xyz.block.ftl.v1.AdminService/ResetSubscription"
+	// AdminServiceApplyChangesetProcedure is the fully-qualified name of the AdminService's
+	// ApplyChangeset RPC.
+	AdminServiceApplyChangesetProcedure = "/xyz.block.ftl.v1.AdminService/ApplyChangeset"
 )
 
 // AdminServiceClient is a client for the xyz.block.ftl.v1.AdminService service.
@@ -92,6 +95,9 @@ type AdminServiceClient interface {
 	MapSecretsForModule(context.Context, *connect.Request[v1.MapSecretsForModuleRequest]) (*connect.Response[v1.MapSecretsForModuleResponse], error)
 	// Reset the offset for a subscription to the latest of each partition.
 	ResetSubscription(context.Context, *connect.Request[v1.ResetSubscriptionRequest]) (*connect.Response[v1.ResetSubscriptionResponse], error)
+	// Creates and applies a changeset, returning the result
+	// This blocks until the changeset has completed
+	ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the xyz.block.ftl.v1.AdminService service. By
@@ -165,6 +171,11 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			baseURL+AdminServiceResetSubscriptionProcedure,
 			opts...,
 		),
+		applyChangeset: connect.NewClient[v1.ApplyChangesetRequest, v1.ApplyChangesetResponse](
+			httpClient,
+			baseURL+AdminServiceApplyChangesetProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -182,6 +193,7 @@ type adminServiceClient struct {
 	mapConfigsForModule *connect.Client[v1.MapConfigsForModuleRequest, v1.MapConfigsForModuleResponse]
 	mapSecretsForModule *connect.Client[v1.MapSecretsForModuleRequest, v1.MapSecretsForModuleResponse]
 	resetSubscription   *connect.Client[v1.ResetSubscriptionRequest, v1.ResetSubscriptionResponse]
+	applyChangeset      *connect.Client[v1.ApplyChangesetRequest, v1.ApplyChangesetResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.AdminService.Ping.
@@ -244,6 +256,11 @@ func (c *adminServiceClient) ResetSubscription(ctx context.Context, req *connect
 	return c.resetSubscription.CallUnary(ctx, req)
 }
 
+// ApplyChangeset calls xyz.block.ftl.v1.AdminService.ApplyChangeset.
+func (c *adminServiceClient) ApplyChangeset(ctx context.Context, req *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error) {
+	return c.applyChangeset.CallUnary(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the xyz.block.ftl.v1.AdminService service.
 type AdminServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -271,6 +288,9 @@ type AdminServiceHandler interface {
 	MapSecretsForModule(context.Context, *connect.Request[v1.MapSecretsForModuleRequest]) (*connect.Response[v1.MapSecretsForModuleResponse], error)
 	// Reset the offset for a subscription to the latest of each partition.
 	ResetSubscription(context.Context, *connect.Request[v1.ResetSubscriptionRequest]) (*connect.Response[v1.ResetSubscriptionResponse], error)
+	// Creates and applies a changeset, returning the result
+	// This blocks until the changeset has completed
+	ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error)
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -340,6 +360,11 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		svc.ResetSubscription,
 		opts...,
 	)
+	adminServiceApplyChangesetHandler := connect.NewUnaryHandler(
+		AdminServiceApplyChangesetProcedure,
+		svc.ApplyChangeset,
+		opts...,
+	)
 	return "/xyz.block.ftl.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServicePingProcedure:
@@ -366,6 +391,8 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceMapSecretsForModuleHandler.ServeHTTP(w, r)
 		case AdminServiceResetSubscriptionProcedure:
 			adminServiceResetSubscriptionHandler.ServeHTTP(w, r)
+		case AdminServiceApplyChangesetProcedure:
+			adminServiceApplyChangesetHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -421,4 +448,8 @@ func (UnimplementedAdminServiceHandler) MapSecretsForModule(context.Context, *co
 
 func (UnimplementedAdminServiceHandler) ResetSubscription(context.Context, *connect.Request[v1.ResetSubscriptionRequest]) (*connect.Response[v1.ResetSubscriptionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.ResetSubscription is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.ApplyChangeset is not implemented"))
 }

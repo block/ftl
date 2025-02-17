@@ -76,7 +76,7 @@ func testAdminConfigs(
 	t *testing.T,
 	ctx context.Context,
 	envarName string,
-	admin *AdminService,
+	admin *Service,
 	entries []expectedEntry,
 ) {
 	t.Helper()
@@ -111,7 +111,7 @@ func testAdminSecrets(
 	t *testing.T,
 	ctx context.Context,
 	envarName string,
-	admin *AdminService,
+	admin *Service,
 	entries []expectedEntry,
 ) {
 	t.Helper()
@@ -195,6 +195,10 @@ var testSchema = schema.MustValidate(&schema.Schema{
 type mockSchemaRetriever struct {
 }
 
+func (d *mockSchemaRetriever) ApplyChangeset(ctx context.Context, req *ftlv1.ApplyChangesetRequest) (*ftlv1.ApplyChangesetResponse, error) {
+	panic("implement me")
+}
+
 func (d *mockSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.Schema, error) {
 	return d.GetActiveSchema(ctx)
 }
@@ -233,7 +237,7 @@ func TestAdminValidation(t *testing.T) {
 }
 
 // nolint
-func testSetConfig(t testing.TB, ctx context.Context, admin *AdminService, module string, name string, jsonVal any, expectedError string) {
+func testSetConfig(t testing.TB, ctx context.Context, admin *Service, module string, name string, jsonVal any, expectedError string) {
 	t.Helper()
 	buffer, err := json.Marshal(jsonVal)
 	assert.NoError(t, err)
@@ -252,7 +256,7 @@ func testSetConfig(t testing.TB, ctx context.Context, admin *AdminService, modul
 }
 
 // nolint
-func testSetSecret(t testing.TB, ctx context.Context, admin *AdminService, module string, name string, jsonVal any, expectedError string) {
+func testSetSecret(t testing.TB, ctx context.Context, admin *Service, module string, name string, jsonVal any, expectedError string) {
 	t.Helper()
 	buffer, err := json.Marshal(jsonVal)
 	assert.NoError(t, err)
