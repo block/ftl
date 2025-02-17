@@ -91,7 +91,7 @@ func (autoRebuildCompletedEvent) rebuildEvent() {}
 type Engine struct {
 	deployClient        DeployClient
 	schemaServiceClient SchemaServiceClient
-	schemaSource        schemaeventsource.EventSource
+	schemaSource        *schemaeventsource.EventSource
 	moduleMetas         *xsync.MapOf[string, moduleMeta]
 	projectConfig       projectconfig.Config
 	moduleDirs          []string
@@ -165,7 +165,7 @@ func New(
 	ctx context.Context,
 	deployClient DeployClient,
 	schemaServiceClient SchemaServiceClient,
-	schemaSource schemaeventsource.EventSource,
+	schemaSource *schemaeventsource.EventSource,
 	projectConfig projectconfig.Config,
 	moduleDirs []string,
 	updatesEndpoint *url.URL,
@@ -280,7 +280,8 @@ func (e *Engine) startSchemaSync(ctx context.Context) {
 	}
 
 	go func() {
-		for event := range channels.IterContext(ctx, e.schemaSource.Events()) {
+		events := e.schemaSource.Subscribe(ctx)
+		for event := range channels.IterContext(ctx, events) {
 			e.processEvent(event)
 		}
 	}()

@@ -245,12 +245,6 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		ctx = rpc.ContextWithClient(ctx, schemaServiceClient)
 		kctx.BindTo(schemaServiceClient, (*ftlv1connect.SchemaServiceClient)(nil))
 
-		// Bind a factory function that creates a new schema event source, as the event source cannot be reused.
-		err = kctx.BindToProvider(func(client ftlv1connect.SchemaServiceClient) (func() schemaeventsource.EventSource, error) {
-			return func() schemaeventsource.EventSource { return schemaeventsource.New(ctx, "cli", schemaServiceClient) }, nil
-		})
-		kctx.FatalIfErrorf(err)
-
 		controllerServiceClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.Endpoint.String(), log.Error)
 		ctx = rpc.ContextWithClient(ctx, controllerServiceClient)
 		kctx.BindTo(controllerServiceClient, (*ftlv1connect.ControllerServiceClient)(nil))
@@ -281,6 +275,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		kctx.FatalIfErrorf(err)
 
 		source := schemaeventsource.New(ctx, "cli", schemaServiceClient)
+		kctx.BindTo(source, (**schemaeventsource.EventSource)(nil))
 		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(source.ViewOnly())))
 
 		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.Endpoint.String(), log.Error)

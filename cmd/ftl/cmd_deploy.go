@@ -24,7 +24,7 @@ func (d *deployCmd) Run(
 	projConfig projectconfig.Config,
 	controllerClient ftlv1connect.ControllerServiceClient,
 	schemaServiceClient ftlv1connect.SchemaServiceClient,
-	schemaSourceFactory func() schemaeventsource.EventSource,
+	schemaSource *schemaeventsource.EventSource,
 ) error {
 	logger := log.FromContext(ctx)
 	// Cancel build engine context to ensure all language plugins are killed.
@@ -38,7 +38,7 @@ func (d *deployCmd) Run(
 		defer cancel(fmt.Errorf("stopping deploy: %w", context.Canceled))
 	}
 	engine, err := buildengine.New(
-		ctx, controllerClient, schemaServiceClient, schemaSourceFactory(), projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint,
+		ctx, controllerClient, schemaServiceClient, schemaSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint,
 		buildengine.BuildEnv(d.Build.BuildEnv),
 		buildengine.Parallelism(d.Build.Parallelism),
 	)

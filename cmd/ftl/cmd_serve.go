@@ -91,14 +91,14 @@ func (s *serveCmd) Run(
 	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
-	schemaEventSourceFactory func() schemaeventsource.EventSource,
+	schemaEventSource *schemaeventsource.EventSource,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	bindAllocator, err := bind.NewBindAllocator(s.Bind, 2)
 	if err != nil {
 		return fmt.Errorf("could not create bind allocator: %w", err)
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSourceFactory, buildEngineClient, s.Recreate, nil)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, controllerClient, timelineClient, adminClient, schemaClient, schemaEventSource, buildEngineClient, s.Recreate, nil)
 }
 
 //nolint:maintidx
@@ -114,7 +114,7 @@ func (s *serveCommonConfig) run(
 	timelineClient *timelineclient.Client,
 	adminClient admin.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
-	schemaEventSourceFactory func() schemaeventsource.EventSource,
+	schemaEventSource *schemaeventsource.EventSource,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	recreate bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,
@@ -290,7 +290,7 @@ func (s *serveCommonConfig) run(
 		wg.Go(func() error {
 			// Deliberately start Console in the foreground.
 			ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
-			err := console.Start(ctx, s.Console, schemaEventSourceFactory(), timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), buildEngineClient)
+			err := console.Start(ctx, s.Console, schemaEventSource, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), buildEngineClient)
 			if err != nil {
 				return fmt.Errorf("failed to start console server: %w", err)
 			}
@@ -366,7 +366,7 @@ func (s *serveCommonConfig) run(
 	// Start Cron
 	wg.Go(func() error {
 		ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("cron"))
-		err := cron.Start(ctx, s.Cron, schemaEventSourceFactory(), routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), timelineClient)
+		err := cron.Start(ctx, s.Cron, schemaEventSource, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), timelineClient)
 		if err != nil {
 			return fmt.Errorf("cron failed: %w", err)
 		}
@@ -375,7 +375,7 @@ func (s *serveCommonConfig) run(
 	// Start Ingress
 	wg.Go(func() error {
 		ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("http-ingress"))
-		err := ingress.Start(ctx, s.Ingress, schemaClient, routing.NewVerbRouter(ctx, schemaEventSourceFactory(), timelineClient), timelineClient)
+		err := ingress.Start(ctx, s.Ingress, schemaEventSource, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), timelineClient)
 		if err != nil {
 			return fmt.Errorf("ingress failed: %w", err)
 		}
@@ -391,7 +391,7 @@ func (s *serveCommonConfig) run(
 	})
 	// Start Admin
 	wg.Go(func() error {
-		err := admin.Start(ctx, s.Admin, cm, sm, admin.NewSchemaRetreiver(schemaEventSourceFactory()))
+		err := admin.Start(ctx, s.Admin, cm, sm, admin.NewSchemaRetreiver(schemaEventSource))
 		if err != nil {
 			return fmt.Errorf("lease failed: %w", err)
 		}

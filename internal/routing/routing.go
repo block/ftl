@@ -27,7 +27,7 @@ type RouteTable struct {
 	changeNotification *pubsub.Topic[string]
 }
 
-func New(ctx context.Context, changes schemaeventsource.EventSource) *RouteTable {
+func New(ctx context.Context, changes *schemaeventsource.EventSource) *RouteTable {
 	r := &RouteTable{
 		routes:             atomic.New(extractRoutes(ctx, changes.CanonicalView())),
 		changeNotification: pubsub.New[string](),
@@ -36,8 +36,8 @@ func New(ctx context.Context, changes schemaeventsource.EventSource) *RouteTable
 	return r
 }
 
-func (r *RouteTable) run(ctx context.Context, changes schemaeventsource.EventSource) {
-	for event := range channels.IterContext(ctx, changes.Events()) {
+func (r *RouteTable) run(ctx context.Context, changes *schemaeventsource.EventSource) {
+	for event := range channels.IterContext(ctx, changes.Subscribe(ctx)) {
 		logger := log.FromContext(ctx)
 		logger.Debugf("Received schema event: %T", event)
 		old := r.routes.Load()
@@ -118,7 +118,7 @@ func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
 			logger.Warnf("Failed to parse endpoint URL for module %q: %v", module.Name, err)
 			continue
 		}
-		logger.Debugf("Adding route for %s/%s: %s", module.Name, rt.DeploymentKey, u)
+		logger.Tracef("Adding route for %s/%s: %s", module.Name, rt.DeploymentKey, u)
 		moduleToDeployment[module.Name] = rt.DeploymentKey
 		byDeployment[rt.DeploymentKey.String()] = u
 	}

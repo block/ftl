@@ -49,7 +49,7 @@ func main() {
 	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.BuildEngineEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "console", schemaClient)
 
-	routeManager := routing.NewVerbRouter(ctx, schemaeventsource.New(ctx, "console-timeline", schemaClient), timelineClient)
+	routeManager := routing.NewVerbRouter(ctx, eventSource, timelineClient)
 
 	err = console.Start(ctx, cli.ConsoleConfig, eventSource, timelineClient, adminClient, routeManager, buildEngineClient)
 	kctx.FatalIfErrorf(err, "failed to start console service")

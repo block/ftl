@@ -59,7 +59,7 @@ type Config struct {
 }
 
 // Start the cron service. Blocks until the context is cancelled.
-func Start(ctx context.Context, config Config, eventSource schemaeventsource.EventSource, client routing.CallClient, timelineClient *timelineclient.Client) error {
+func Start(ctx context.Context, config Config, eventSource *schemaeventsource.EventSource, client routing.CallClient, timelineClient *timelineclient.Client) error {
 	logger := log.FromContext(ctx).Scope("cron")
 	ctx = log.ContextWithLogger(ctx, logger)
 	// Map of cron jobs for each module.
@@ -68,6 +68,7 @@ func Start(ctx context.Context, config Config, eventSource schemaeventsource.Eve
 	cronQueue := []*cronJob{}
 
 	logger.Debugf("Starting FTL cron service")
+	events := eventSource.Subscribe(ctx)
 
 	var rpcOpts []rpc.Option
 	var shard statemachine.Handle[struct{}, CronState, CronEvent]
@@ -121,7 +122,7 @@ func Start(ctx context.Context, config Config, eventSource schemaeventsource.Eve
 			case <-ctx.Done():
 				return fmt.Errorf("cron service stopped: %w", ctx.Err())
 
-			case change := <-eventSource.Events():
+			case change := <-events:
 				if err := updateCronJobs(ctx, cronJobs, change); err != nil {
 					logger.Errorf(err, "Failed to update cron jobs")
 					continue

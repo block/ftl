@@ -36,7 +36,7 @@ type Config struct {
 }
 
 type service struct {
-	schemaEventSource schemaeventsource.EventSource
+	schemaEventSource *schemaeventsource.EventSource
 	timelineClient    *timelineclient.Client
 	adminClient       admin.Client
 	callClient        routing.CallClient
@@ -45,7 +45,7 @@ type service struct {
 
 var _ consolepbconnect.ConsoleServiceHandler = (*service)(nil)
 
-func Start(ctx context.Context, config Config, eventSource schemaeventsource.EventSource, timelineClient *timelineclient.Client, adminClient admin.Client, client routing.CallClient, buildEngineClient buildenginepbconnect.BuildEngineServiceClient) error {
+func Start(ctx context.Context, config Config, eventSource *schemaeventsource.EventSource, timelineClient *timelineclient.Client, adminClient admin.Client, client routing.CallClient, buildEngineClient buildenginepbconnect.BuildEngineServiceClient) error {
 	logger := log.FromContext(ctx).Scope("console")
 	ctx = log.ContextWithLogger(ctx, logger)
 
@@ -374,7 +374,8 @@ func (s *service) StreamModules(ctx context.Context, req *connect.Request[consol
 		return err
 	}
 
-	for range channels.IterContext(ctx, s.schemaEventSource.Events()) {
+	events := s.schemaEventSource.Subscribe(ctx)
+	for range channels.IterContext(ctx, events) {
 		err = s.sendStreamModulesResp(ctx, stream)
 		if err != nil {
 			return err
