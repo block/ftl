@@ -6,7 +6,7 @@
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
 import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
-import { GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse } from "./schemaservice_pb.js";
+import { FailChangesetRequest, FailChangesetResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, RollbackChangesetRequest, RollbackChangesetResponse } from "./schemaservice_pb.js";
 
 /**
  * AdminService is the service that provides and updates admin data. For example,
@@ -188,6 +188,28 @@ export const AdminService = {
       O: PullSchemaResponse,
       kind: MethodKind.ServerStreaming,
       idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * RollbackChangeset Rolls back a failing changeset
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.RollbackChangeset
+     */
+    rollbackChangeset: {
+      name: "RollbackChangeset",
+      I: RollbackChangesetRequest,
+      O: RollbackChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * FailChangeset fails an active changeset.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.FailChangeset
+     */
+    failChangeset: {
+      name: "FailChangeset",
+      I: FailChangesetRequest,
+      O: FailChangesetResponse,
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc xyz.block.ftl.v1.AdminService.ClusterInfo

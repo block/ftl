@@ -2155,7 +2155,7 @@ var file_xyz_block_ftl_v1_admin_proto_rawDesc = string([]byte{
 	0x4e, 0x5f, 0x4f, 0x46, 0x46, 0x53, 0x45, 0x54, 0x5f, 0x45, 0x41, 0x52, 0x4c, 0x49, 0x45, 0x53,
 	0x54, 0x10, 0x01, 0x12, 0x1e, 0x0a, 0x1a, 0x53, 0x55, 0x42, 0x53, 0x43, 0x52, 0x49, 0x50, 0x54,
 	0x49, 0x4f, 0x4e, 0x5f, 0x4f, 0x46, 0x46, 0x53, 0x45, 0x54, 0x5f, 0x4c, 0x41, 0x54, 0x45, 0x53,
-	0x54, 0x10, 0x02, 0x32, 0xc2, 0x0e, 0x0a, 0x0c, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x53, 0x65, 0x72,
+	0x54, 0x10, 0x02, 0x32, 0x92, 0x10, 0x0a, 0x0c, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x53, 0x65, 0x72,
 	0x76, 0x69, 0x63, 0x65, 0x12, 0x4a, 0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x1d, 0x2e, 0x78,
 	0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e,
 	0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1e, 0x2e, 0x78, 0x79,
@@ -2244,7 +2244,20 @@ var file_xyz_block_ftl_v1_admin_proto_rawDesc = string([]byte{
 	0x6c, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24,
 	0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76,
 	0x31, 0x2e, 0x50, 0x75, 0x6c, 0x6c, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x22, 0x03, 0x90, 0x02, 0x01, 0x30, 0x01, 0x12, 0x5a, 0x0a, 0x0b, 0x43,
+	0x6f, 0x6e, 0x73, 0x65, 0x22, 0x03, 0x90, 0x02, 0x01, 0x30, 0x01, 0x12, 0x6c, 0x0a, 0x11, 0x52,
+	0x6f, 0x6c, 0x6c, 0x62, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65, 0x74,
+	0x12, 0x2a, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c,
+	0x2e, 0x76, 0x31, 0x2e, 0x52, 0x6f, 0x6c, 0x6c, 0x62, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e,
+	0x67, 0x65, 0x73, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2b, 0x2e, 0x78,
+	0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e,
+	0x52, 0x6f, 0x6c, 0x6c, 0x62, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65,
+	0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x60, 0x0a, 0x0d, 0x46, 0x61, 0x69,
+	0x6c, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65, 0x74, 0x12, 0x26, 0x2e, 0x78, 0x79, 0x7a,
+	0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x46, 0x61,
+	0x69, 0x6c, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x27, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66,
+	0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x46, 0x61, 0x69, 0x6c, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65,
+	0x73, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x5a, 0x0a, 0x0b, 0x43,
 	0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x24, 0x2e, 0x78, 0x79, 0x7a,
 	0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x6c,
 	0x75, 0x73, 0x74, 0x65, 0x72, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
@@ -2340,9 +2353,13 @@ var file_xyz_block_ftl_v1_admin_proto_goTypes = []any{
 	(*PingRequest)(nil),                    // 44: xyz.block.ftl.v1.PingRequest
 	(*GetSchemaRequest)(nil),               // 45: xyz.block.ftl.v1.GetSchemaRequest
 	(*PullSchemaRequest)(nil),              // 46: xyz.block.ftl.v1.PullSchemaRequest
-	(*PingResponse)(nil),                   // 47: xyz.block.ftl.v1.PingResponse
-	(*GetSchemaResponse)(nil),              // 48: xyz.block.ftl.v1.GetSchemaResponse
-	(*PullSchemaResponse)(nil),             // 49: xyz.block.ftl.v1.PullSchemaResponse
+	(*RollbackChangesetRequest)(nil),       // 47: xyz.block.ftl.v1.RollbackChangesetRequest
+	(*FailChangesetRequest)(nil),           // 48: xyz.block.ftl.v1.FailChangesetRequest
+	(*PingResponse)(nil),                   // 49: xyz.block.ftl.v1.PingResponse
+	(*GetSchemaResponse)(nil),              // 50: xyz.block.ftl.v1.GetSchemaResponse
+	(*PullSchemaResponse)(nil),             // 51: xyz.block.ftl.v1.PullSchemaResponse
+	(*RollbackChangesetResponse)(nil),      // 52: xyz.block.ftl.v1.RollbackChangesetResponse
+	(*FailChangesetResponse)(nil),          // 53: xyz.block.ftl.v1.FailChangesetResponse
 }
 var file_xyz_block_ftl_v1_admin_proto_depIdxs = []int32{
 	0,  // 0: xyz.block.ftl.v1.ConfigListRequest.provider:type_name -> xyz.block.ftl.v1.ConfigProvider
@@ -2383,31 +2400,35 @@ var file_xyz_block_ftl_v1_admin_proto_depIdxs = []int32{
 	26, // 35: xyz.block.ftl.v1.AdminService.ApplyChangeset:input_type -> xyz.block.ftl.v1.ApplyChangesetRequest
 	45, // 36: xyz.block.ftl.v1.AdminService.GetSchema:input_type -> xyz.block.ftl.v1.GetSchemaRequest
 	46, // 37: xyz.block.ftl.v1.AdminService.PullSchema:input_type -> xyz.block.ftl.v1.PullSchemaRequest
-	35, // 38: xyz.block.ftl.v1.AdminService.ClusterInfo:input_type -> xyz.block.ftl.v1.ClusterInfoRequest
-	28, // 39: xyz.block.ftl.v1.AdminService.GetArtefactDiffs:input_type -> xyz.block.ftl.v1.GetArtefactDiffsRequest
-	30, // 40: xyz.block.ftl.v1.AdminService.GetDeploymentArtefacts:input_type -> xyz.block.ftl.v1.GetDeploymentArtefactsRequest
-	33, // 41: xyz.block.ftl.v1.AdminService.UploadArtefact:input_type -> xyz.block.ftl.v1.UploadArtefactRequest
-	47, // 42: xyz.block.ftl.v1.AdminService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	5,  // 43: xyz.block.ftl.v1.AdminService.ConfigList:output_type -> xyz.block.ftl.v1.ConfigListResponse
-	7,  // 44: xyz.block.ftl.v1.AdminService.ConfigGet:output_type -> xyz.block.ftl.v1.ConfigGetResponse
-	9,  // 45: xyz.block.ftl.v1.AdminService.ConfigSet:output_type -> xyz.block.ftl.v1.ConfigSetResponse
-	11, // 46: xyz.block.ftl.v1.AdminService.ConfigUnset:output_type -> xyz.block.ftl.v1.ConfigUnsetResponse
-	13, // 47: xyz.block.ftl.v1.AdminService.SecretsList:output_type -> xyz.block.ftl.v1.SecretsListResponse
-	15, // 48: xyz.block.ftl.v1.AdminService.SecretGet:output_type -> xyz.block.ftl.v1.SecretGetResponse
-	17, // 49: xyz.block.ftl.v1.AdminService.SecretSet:output_type -> xyz.block.ftl.v1.SecretSetResponse
-	19, // 50: xyz.block.ftl.v1.AdminService.SecretUnset:output_type -> xyz.block.ftl.v1.SecretUnsetResponse
-	21, // 51: xyz.block.ftl.v1.AdminService.MapConfigsForModule:output_type -> xyz.block.ftl.v1.MapConfigsForModuleResponse
-	23, // 52: xyz.block.ftl.v1.AdminService.MapSecretsForModule:output_type -> xyz.block.ftl.v1.MapSecretsForModuleResponse
-	25, // 53: xyz.block.ftl.v1.AdminService.ResetSubscription:output_type -> xyz.block.ftl.v1.ResetSubscriptionResponse
-	27, // 54: xyz.block.ftl.v1.AdminService.ApplyChangeset:output_type -> xyz.block.ftl.v1.ApplyChangesetResponse
-	48, // 55: xyz.block.ftl.v1.AdminService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
-	49, // 56: xyz.block.ftl.v1.AdminService.PullSchema:output_type -> xyz.block.ftl.v1.PullSchemaResponse
-	36, // 57: xyz.block.ftl.v1.AdminService.ClusterInfo:output_type -> xyz.block.ftl.v1.ClusterInfoResponse
-	29, // 58: xyz.block.ftl.v1.AdminService.GetArtefactDiffs:output_type -> xyz.block.ftl.v1.GetArtefactDiffsResponse
-	31, // 59: xyz.block.ftl.v1.AdminService.GetDeploymentArtefacts:output_type -> xyz.block.ftl.v1.GetDeploymentArtefactsResponse
-	34, // 60: xyz.block.ftl.v1.AdminService.UploadArtefact:output_type -> xyz.block.ftl.v1.UploadArtefactResponse
-	42, // [42:61] is the sub-list for method output_type
-	23, // [23:42] is the sub-list for method input_type
+	47, // 38: xyz.block.ftl.v1.AdminService.RollbackChangeset:input_type -> xyz.block.ftl.v1.RollbackChangesetRequest
+	48, // 39: xyz.block.ftl.v1.AdminService.FailChangeset:input_type -> xyz.block.ftl.v1.FailChangesetRequest
+	35, // 40: xyz.block.ftl.v1.AdminService.ClusterInfo:input_type -> xyz.block.ftl.v1.ClusterInfoRequest
+	28, // 41: xyz.block.ftl.v1.AdminService.GetArtefactDiffs:input_type -> xyz.block.ftl.v1.GetArtefactDiffsRequest
+	30, // 42: xyz.block.ftl.v1.AdminService.GetDeploymentArtefacts:input_type -> xyz.block.ftl.v1.GetDeploymentArtefactsRequest
+	33, // 43: xyz.block.ftl.v1.AdminService.UploadArtefact:input_type -> xyz.block.ftl.v1.UploadArtefactRequest
+	49, // 44: xyz.block.ftl.v1.AdminService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	5,  // 45: xyz.block.ftl.v1.AdminService.ConfigList:output_type -> xyz.block.ftl.v1.ConfigListResponse
+	7,  // 46: xyz.block.ftl.v1.AdminService.ConfigGet:output_type -> xyz.block.ftl.v1.ConfigGetResponse
+	9,  // 47: xyz.block.ftl.v1.AdminService.ConfigSet:output_type -> xyz.block.ftl.v1.ConfigSetResponse
+	11, // 48: xyz.block.ftl.v1.AdminService.ConfigUnset:output_type -> xyz.block.ftl.v1.ConfigUnsetResponse
+	13, // 49: xyz.block.ftl.v1.AdminService.SecretsList:output_type -> xyz.block.ftl.v1.SecretsListResponse
+	15, // 50: xyz.block.ftl.v1.AdminService.SecretGet:output_type -> xyz.block.ftl.v1.SecretGetResponse
+	17, // 51: xyz.block.ftl.v1.AdminService.SecretSet:output_type -> xyz.block.ftl.v1.SecretSetResponse
+	19, // 52: xyz.block.ftl.v1.AdminService.SecretUnset:output_type -> xyz.block.ftl.v1.SecretUnsetResponse
+	21, // 53: xyz.block.ftl.v1.AdminService.MapConfigsForModule:output_type -> xyz.block.ftl.v1.MapConfigsForModuleResponse
+	23, // 54: xyz.block.ftl.v1.AdminService.MapSecretsForModule:output_type -> xyz.block.ftl.v1.MapSecretsForModuleResponse
+	25, // 55: xyz.block.ftl.v1.AdminService.ResetSubscription:output_type -> xyz.block.ftl.v1.ResetSubscriptionResponse
+	27, // 56: xyz.block.ftl.v1.AdminService.ApplyChangeset:output_type -> xyz.block.ftl.v1.ApplyChangesetResponse
+	50, // 57: xyz.block.ftl.v1.AdminService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
+	51, // 58: xyz.block.ftl.v1.AdminService.PullSchema:output_type -> xyz.block.ftl.v1.PullSchemaResponse
+	52, // 59: xyz.block.ftl.v1.AdminService.RollbackChangeset:output_type -> xyz.block.ftl.v1.RollbackChangesetResponse
+	53, // 60: xyz.block.ftl.v1.AdminService.FailChangeset:output_type -> xyz.block.ftl.v1.FailChangesetResponse
+	36, // 61: xyz.block.ftl.v1.AdminService.ClusterInfo:output_type -> xyz.block.ftl.v1.ClusterInfoResponse
+	29, // 62: xyz.block.ftl.v1.AdminService.GetArtefactDiffs:output_type -> xyz.block.ftl.v1.GetArtefactDiffsResponse
+	31, // 63: xyz.block.ftl.v1.AdminService.GetDeploymentArtefacts:output_type -> xyz.block.ftl.v1.GetDeploymentArtefactsResponse
+	34, // 64: xyz.block.ftl.v1.AdminService.UploadArtefact:output_type -> xyz.block.ftl.v1.UploadArtefactResponse
+	44, // [44:65] is the sub-list for method output_type
+	23, // [23:44] is the sub-list for method input_type
 	23, // [23:23] is the sub-list for extension type_name
 	23, // [23:23] is the sub-list for extension extendee
 	0,  // [0:23] is the sub-list for field type_name

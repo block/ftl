@@ -32,7 +32,7 @@ func (d *schemaDiffCmd) Run(
 	ctx context.Context,
 	currentURL *url.URL,
 	projConfig projectconfig.Config,
-	schemaClient ftlv1connect.SchemaServiceClient,
+	schemaClient ftlv1connect.AdminServiceClient,
 ) error {
 	var other *schema.Schema
 	var err error
@@ -130,7 +130,7 @@ func localSchema(ctx context.Context, projectConfig projectconfig.Config) (*sche
 	}
 	return sch, nil
 }
-func schemaForURL(ctx context.Context, schemaClient ftlv1connect.SchemaServiceClient, url url.URL) (*schema.Schema, error) {
+func schemaForURL(ctx context.Context, schemaClient ftlv1connect.AdminServiceClient, url url.URL) (*schema.Schema, error) {
 	resp, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("url %s: failed to get schema: %w", url.String(), err)

@@ -70,6 +70,12 @@ const (
 	AdminServiceGetSchemaProcedure = "/xyz.block.ftl.v1.AdminService/GetSchema"
 	// AdminServicePullSchemaProcedure is the fully-qualified name of the AdminService's PullSchema RPC.
 	AdminServicePullSchemaProcedure = "/xyz.block.ftl.v1.AdminService/PullSchema"
+	// AdminServiceRollbackChangesetProcedure is the fully-qualified name of the AdminService's
+	// RollbackChangeset RPC.
+	AdminServiceRollbackChangesetProcedure = "/xyz.block.ftl.v1.AdminService/RollbackChangeset"
+	// AdminServiceFailChangesetProcedure is the fully-qualified name of the AdminService's
+	// FailChangeset RPC.
+	AdminServiceFailChangesetProcedure = "/xyz.block.ftl.v1.AdminService/FailChangeset"
 	// AdminServiceClusterInfoProcedure is the fully-qualified name of the AdminService's ClusterInfo
 	// RPC.
 	AdminServiceClusterInfoProcedure = "/xyz.block.ftl.v1.AdminService/ClusterInfo"
@@ -121,6 +127,10 @@ type AdminServiceClient interface {
 	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
 	// just retrieving the schema. Use GetSchema for that.
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest]) (*connect.ServerStreamForClient[v1.PullSchemaResponse], error)
+	// RollbackChangeset Rolls back a failing changeset
+	RollbackChangeset(context.Context, *connect.Request[v1.RollbackChangesetRequest]) (*connect.Response[v1.RollbackChangesetResponse], error)
+	// FailChangeset fails an active changeset.
+	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
 	ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error)
 	// Get list of artefacts that differ between the server and client.
 	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
@@ -221,6 +231,16 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		rollbackChangeset: connect.NewClient[v1.RollbackChangesetRequest, v1.RollbackChangesetResponse](
+			httpClient,
+			baseURL+AdminServiceRollbackChangesetProcedure,
+			opts...,
+		),
+		failChangeset: connect.NewClient[v1.FailChangesetRequest, v1.FailChangesetResponse](
+			httpClient,
+			baseURL+AdminServiceFailChangesetProcedure,
+			opts...,
+		),
 		clusterInfo: connect.NewClient[v1.ClusterInfoRequest, v1.ClusterInfoResponse](
 			httpClient,
 			baseURL+AdminServiceClusterInfoProcedure,
@@ -261,6 +281,8 @@ type adminServiceClient struct {
 	applyChangeset         *connect.Client[v1.ApplyChangesetRequest, v1.ApplyChangesetResponse]
 	getSchema              *connect.Client[v1.GetSchemaRequest, v1.GetSchemaResponse]
 	pullSchema             *connect.Client[v1.PullSchemaRequest, v1.PullSchemaResponse]
+	rollbackChangeset      *connect.Client[v1.RollbackChangesetRequest, v1.RollbackChangesetResponse]
+	failChangeset          *connect.Client[v1.FailChangesetRequest, v1.FailChangesetResponse]
 	clusterInfo            *connect.Client[v1.ClusterInfoRequest, v1.ClusterInfoResponse]
 	getArtefactDiffs       *connect.Client[v1.GetArtefactDiffsRequest, v1.GetArtefactDiffsResponse]
 	getDeploymentArtefacts *connect.Client[v1.GetDeploymentArtefactsRequest, v1.GetDeploymentArtefactsResponse]
@@ -342,6 +364,16 @@ func (c *adminServiceClient) PullSchema(ctx context.Context, req *connect.Reques
 	return c.pullSchema.CallServerStream(ctx, req)
 }
 
+// RollbackChangeset calls xyz.block.ftl.v1.AdminService.RollbackChangeset.
+func (c *adminServiceClient) RollbackChangeset(ctx context.Context, req *connect.Request[v1.RollbackChangesetRequest]) (*connect.Response[v1.RollbackChangesetResponse], error) {
+	return c.rollbackChangeset.CallUnary(ctx, req)
+}
+
+// FailChangeset calls xyz.block.ftl.v1.AdminService.FailChangeset.
+func (c *adminServiceClient) FailChangeset(ctx context.Context, req *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error) {
+	return c.failChangeset.CallUnary(ctx, req)
+}
+
 // ClusterInfo calls xyz.block.ftl.v1.AdminService.ClusterInfo.
 func (c *adminServiceClient) ClusterInfo(ctx context.Context, req *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error) {
 	return c.clusterInfo.CallUnary(ctx, req)
@@ -399,6 +431,10 @@ type AdminServiceHandler interface {
 	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
 	// just retrieving the schema. Use GetSchema for that.
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error
+	// RollbackChangeset Rolls back a failing changeset
+	RollbackChangeset(context.Context, *connect.Request[v1.RollbackChangesetRequest]) (*connect.Response[v1.RollbackChangesetResponse], error)
+	// FailChangeset fails an active changeset.
+	FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error)
 	ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error)
 	// Get list of artefacts that differ between the server and client.
 	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
@@ -495,6 +531,16 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServiceRollbackChangesetHandler := connect.NewUnaryHandler(
+		AdminServiceRollbackChangesetProcedure,
+		svc.RollbackChangeset,
+		opts...,
+	)
+	adminServiceFailChangesetHandler := connect.NewUnaryHandler(
+		AdminServiceFailChangesetProcedure,
+		svc.FailChangeset,
+		opts...,
+	)
 	adminServiceClusterInfoHandler := connect.NewUnaryHandler(
 		AdminServiceClusterInfoProcedure,
 		svc.ClusterInfo,
@@ -547,6 +593,10 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceGetSchemaHandler.ServeHTTP(w, r)
 		case AdminServicePullSchemaProcedure:
 			adminServicePullSchemaHandler.ServeHTTP(w, r)
+		case AdminServiceRollbackChangesetProcedure:
+			adminServiceRollbackChangesetHandler.ServeHTTP(w, r)
+		case AdminServiceFailChangesetProcedure:
+			adminServiceFailChangesetHandler.ServeHTTP(w, r)
 		case AdminServiceClusterInfoProcedure:
 			adminServiceClusterInfoHandler.ServeHTTP(w, r)
 		case AdminServiceGetArtefactDiffsProcedure:
@@ -622,6 +672,14 @@ func (UnimplementedAdminServiceHandler) GetSchema(context.Context, *connect.Requ
 
 func (UnimplementedAdminServiceHandler) PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.PullSchema is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) RollbackChangeset(context.Context, *connect.Request[v1.RollbackChangesetRequest]) (*connect.Response[v1.RollbackChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.RollbackChangeset is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) FailChangeset(context.Context, *connect.Request[v1.FailChangesetRequest]) (*connect.Response[v1.FailChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.FailChangeset is not implemented"))
 }
 
 func (UnimplementedAdminServiceHandler) ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error) {

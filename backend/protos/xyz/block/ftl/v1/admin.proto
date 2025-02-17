@@ -246,6 +246,10 @@ service AdminService {
   rpc PullSchema(PullSchemaRequest) returns (stream PullSchemaResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+  // RollbackChangeset Rolls back a failing changeset
+  rpc RollbackChangeset(RollbackChangesetRequest) returns (RollbackChangesetResponse);
+  // FailChangeset fails an active changeset.
+  rpc FailChangeset(FailChangesetRequest) returns (FailChangesetResponse);
 
   rpc ClusterInfo(ClusterInfoRequest) returns (ClusterInfoResponse);
 

@@ -528,6 +528,22 @@ func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 	return call, err
 }
 
+func (s *Service) RollbackChangeset(ctx context.Context, c *connect.Request[ftlv1.RollbackChangesetRequest]) (*connect.Response[ftlv1.RollbackChangesetResponse], error) {
+	res, err := s.schemaClient.RollbackChangeset(ctx, connect.NewRequest(c.Msg))
+	if err != nil {
+		return nil, fmt.Errorf("failed to rollback changeset: %w", err)
+	}
+	return connect.NewResponse(res.Msg), nil
+}
+
+func (s *Service) FailChangeset(ctx context.Context, c *connect.Request[ftlv1.FailChangesetRequest]) (*connect.Response[ftlv1.FailChangesetResponse], error) {
+	res, err := s.schemaClient.FailChangeset(ctx, connect.NewRequest(c.Msg))
+	if err != nil {
+		return nil, fmt.Errorf("failed to fail changeset: %w", err)
+	}
+	return connect.NewResponse(res.Msg), nil
+}
+
 type OnceValue[T any] struct {
 	value T
 	ready chan struct{}
