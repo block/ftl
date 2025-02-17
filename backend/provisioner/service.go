@@ -120,6 +120,8 @@ func Start(
 			if err != nil {
 				logger.Errorf(err, "Error de-provisioning changeset")
 			}
+		case *schema.DeploymentRuntimeNotification:
+			//TODO: scaling support
 		case *schema.FullSchemaNotification:
 			logger.Debugf("Provisioning changesets from full schema notification")
 			for _, cs := range e.Changesets {
@@ -163,6 +165,7 @@ func Start(
 					}
 				}
 			}
+		case *schema.ChangesetFailedNotification, *schema.ChangesetFinalizedNotification:
 		}
 	}
 	return nil
