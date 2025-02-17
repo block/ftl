@@ -200,16 +200,20 @@ func (s *ShardHandle[Q, R, E]) Query(ctx context.Context, query Q) (R, error) {
 
 	s.verifyReady()
 
-	var zero R
-
-	res, err := s.cluster.nh.SyncRead(ctx, s.shardID, query)
-	if err != nil {
-		return zero, fmt.Errorf("failed to query shard: %w", err)
-	}
-
-	response, ok := res.(R)
-	if !ok {
-		panic(fmt.Errorf("invalid response type: %T", res))
+	var response R
+	if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.runtimeReplicaID, func(ctx context.Context) error {
+		res, err := s.cluster.nh.SyncRead(ctx, s.shardID, query)
+		if err != nil {
+			return err //nolint:wrapcheck
+		}
+		r, ok := res.(R)
+		if !ok {
+			return fmt.Errorf("invalid response type: %T", res)
+		}
+		response = r
+		return nil
+	}, dragonboat.ErrShardNotReady); err != nil {
+		return response, err
 	}
 
 	return response, nil
