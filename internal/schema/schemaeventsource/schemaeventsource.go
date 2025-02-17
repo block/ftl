@@ -118,7 +118,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 		}
 	case *schema.DeploymentRuntimeNotification:
 		clone := reflect.DeepCopy(e.view.Load())
-		if event.Changeset != nil {
+		if event.Changeset != nil && !event.Changeset.IsZero() {
 			cs := clone.activeChangesets[*event.Changeset]
 			for _, m := range cs.Modules {
 				if m.Runtime.Deployment.DeploymentKey == event.Payload.Deployment {

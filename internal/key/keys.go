@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	base36 "github.com/multiformats/go-base36"
+	"github.com/multiformats/go-base36"
 )
 
 // Overridable random source for testing
@@ -104,7 +104,12 @@ func (d KeyType[T, TP]) String() string {
 	return strings.Join(parts, "-")
 }
 
-func (d KeyType[T, TP]) MarshalText() ([]byte, error) { return []byte(d.String()), nil }
+func (d *KeyType[T, TP]) MarshalText() ([]byte, error) {
+	if d == nil {
+		return nil, nil
+	}
+	return []byte(d.String()), nil
+}
 func (d *KeyType[T, TP]) UnmarshalText(bytes []byte) error {
 	if len(bytes) == 0 {
 		var zero KeyType[T, TP]
