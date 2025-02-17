@@ -357,6 +357,10 @@ func (c *Cluster) initialMemberIndex() int {
 	return -1
 }
 
+func (c *Cluster) RuntimeReplicaID() uint64 {
+	return c.runtimeReplicaID
+}
+
 // Join the cluster as a new member. Blocks until the cluster instance is ready.
 func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
 	logger := log.FromContext(ctx).Scope("raft")
@@ -535,7 +539,7 @@ func (c *Cluster) Stop(ctx context.Context) {
 	}
 }
 
-// withTimeout runs an async dragonboat call and blocks until it succeeds or the context is cancelled.
+// withRetry runs an async dragonboat call and blocks until it succeeds or the context is cancelled.
 // the call is retried if the request is dropped, which can happen if the leader is not available.
 func (c *Cluster) withRetry(octx context.Context, shardID, replicaID uint64, f func(ctx context.Context) error, retryErrors ...error) error {
 	retry := c.config.Retry.Backoff()
