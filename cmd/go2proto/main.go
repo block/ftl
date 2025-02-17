@@ -560,6 +560,9 @@ func (s *State) extractDecl(obj types.Object, named *types.Named) error {
 		return s.extractEnum(named)
 
 	default:
+		if implements(named, binaryMarshaler) || implements(named, textMarshaler) {
+			return nil
+		}
 		return genErrorf(obj.Pos(), "unsupported named type %T", u)
 	}
 }
@@ -600,6 +603,9 @@ func (s *State) maybeExtractDecl(n types.Object, t types.Type) error {
 	switch t := t.(type) {
 	case *types.Named:
 		return s.extractDecl(n, t)
+
+	case *types.Array:
+		return s.maybeExtractDecl(n, t.Elem())
 
 	case *types.Slice:
 		return s.maybeExtractDecl(n, t.Elem())
@@ -988,6 +994,14 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 			field.ProtoType = t.Obj().Name()
 			field.ProtoGoType = "*destpb." + protoName(t.Obj().Name())
 			field.OriginType = t.Obj().Name()
+		}
+
+	case *types.Array:
+		if t.Elem().String() == "byte" {
+			field.ProtoType = "bytes"
+		} else {
+			field.Repeated = true
+			return s.applyFieldType(t.Elem(), field)
 		}
 
 	case *types.Slice:

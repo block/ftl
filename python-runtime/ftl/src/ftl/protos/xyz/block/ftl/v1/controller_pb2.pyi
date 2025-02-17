@@ -41,10 +41,10 @@ class DeploymentArtefact(_message.Message):
     DIGEST_FIELD_NUMBER: _ClassVar[int]
     PATH_FIELD_NUMBER: _ClassVar[int]
     EXECUTABLE_FIELD_NUMBER: _ClassVar[int]
-    digest: str
+    digest: bytes
     path: str
     executable: bool
-    def __init__(self, digest: _Optional[str] = ..., path: _Optional[str] = ..., executable: bool = ...) -> None: ...
+    def __init__(self, digest: _Optional[bytes] = ..., path: _Optional[str] = ..., executable: bool = ...) -> None: ...
 
 class GetDeploymentArtefactsRequest(_message.Message):
     __slots__ = ("deployment_key", "have_artefacts")

@@ -3,6 +3,7 @@ package sha256
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -32,11 +33,14 @@ func SumFile(path string) (SHA256, error) {
 	return SumReader(f)
 }
 
-// FromBytes converts a SHA256 in []byte form to a SHA256.
-func FromBytes(data []byte) SHA256 {
+// ParseBytes parses a SHA256 in []byte form to a SHA256.
+func ParseBytes(data []byte) (SHA256, error) {
+	if len(data) != sha256.Size {
+		return SHA256{}, fmt.Errorf("SHA256 should be %d bytes but is %d", sha256.Size, len(data))
+	}
 	var out SHA256
 	copy(out[:], data)
-	return out
+	return out, nil
 }
 
 // ParseSHA256 parses a hex-ecndoded SHA256 hash from a string.

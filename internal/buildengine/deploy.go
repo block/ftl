@@ -2,6 +2,7 @@ package buildengine
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -154,7 +155,7 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 			Value: &schemapb.Metadata_Artefact{
 				Artefact: &schemapb.MetadataArtefact{
 					Path:       artefact.Path,
-					Digest:     artefact.Digest,
+					Digest:     hex.EncodeToString(artefact.Digest),
 					Executable: artefact.Executable,
 				},
 			},
@@ -164,7 +165,7 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 }
 
 func uploadDeploymentArtefact(ctx context.Context, client DeployClient, file deploymentArtefact) error {
-	logger := log.FromContext(ctx).Scope("upload:" + file.Digest)
+	logger := log.FromContext(ctx).Scope("upload:" + hex.EncodeToString(file.Digest))
 	f, err := os.Open(file.localPath)
 	if err != nil {
 		return fmt.Errorf("failed to read file %w", err)
@@ -174,7 +175,7 @@ func uploadDeploymentArtefact(ctx context.Context, client DeployClient, file dep
 	if err != nil {
 		return fmt.Errorf("failed to get file info: %w", err)
 	}
-	digest, err := sha256.ParseSHA256(file.Digest)
+	digest, err := sha256.ParseBytes(file.Digest)
 	if err != nil {
 		return fmt.Errorf("failed to parse SHA256 digest: %w", err)
 	}
@@ -326,7 +327,7 @@ func hashFiles(base string, files []string) (filesByHash map[string]deploymentAr
 		}
 		filesByHash[hash.String()] = deploymentArtefact{
 			DeploymentArtefact: &ftlv1.DeploymentArtefact{
-				Digest:     hash.String(),
+				Digest:     hash[:],
 				Path:       path,
 				Executable: isExecutable,
 			},

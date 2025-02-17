@@ -1,6 +1,7 @@
 package download
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -30,12 +31,12 @@ func Artefacts(ctx context.Context, client ftlv1connect.ControllerServiceClient,
 	}
 	start := time.Now()
 	count := 0
-	var digest string
+	var digest []byte
 	var w *os.File
 	for stream.Receive() {
 		msg := stream.Msg()
 		artefact := msg.Artefact
-		if digest != artefact.Digest {
+		if !bytes.Equal(digest, artefact.Digest) {
 			if w != nil {
 				w.Close()
 			}

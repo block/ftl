@@ -80,7 +80,7 @@ func (m *Module) Hash() (sha256.SHA256, error) {
 	if err != nil {
 		return sha256.SHA256{}, fmt.Errorf("failed to marshal module to bytes: %w", err)
 	}
-	return sha256.FromBytes(pb), nil
+	return sha256.Sum(pb), nil
 }
 
 // Resolve returns the declaration in this module with the given name, or nil

@@ -425,7 +425,7 @@ func (s *Service) GetDeployment(ctx context.Context, req *connect.Request[ftlv1.
 	artefacts := []*ftlv1.DeploymentArtefact{}
 	for artefact := range slices.FilterVariants[schema.MetadataArtefact](deployment.Metadata) {
 		artefacts = append(artefacts, &ftlv1.DeploymentArtefact{
-			Digest:     artefact.Digest,
+			Digest:     artefact.Digest[:],
 			Path:       artefact.Path,
 			Executable: artefact.Executable,
 		})
@@ -453,12 +453,8 @@ func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Reque
 	chunk := make([]byte, s.config.ArtefactChunkSize)
 nextArtefact:
 	for artefact := range slices.FilterVariants[schema.MetadataArtefact](deployment.Metadata) {
-		digest, err := sha256.ParseSHA256(artefact.Digest)
-		if err != nil {
-			return fmt.Errorf("invalid digest: %w", err)
-		}
 		deploymentArtefact := &state.DeploymentArtefact{
-			Digest:     digest,
+			Digest:     artefact.Digest,
 			Path:       artefact.Path,
 			Executable: artefact.Executable,
 		}
@@ -467,7 +463,7 @@ nextArtefact:
 				continue nextArtefact
 			}
 		}
-		reader, err := s.storage.Download(ctx, digest)
+		reader, err := s.storage.Download(ctx, artefact.Digest)
 		if err != nil {
 			return fmt.Errorf("could not download artefact: %w", err)
 		}

@@ -180,11 +180,9 @@ export class UploadArtefactResponse extends Message<UploadArtefactResponse> {
  */
 export class DeploymentArtefact extends Message<DeploymentArtefact> {
   /**
-   * TODO: This should be "bytes" to match other usages
-   *
-   * @generated from field: string digest = 1;
+   * @generated from field: bytes digest = 1;
    */
-  digest = "";
+  digest = new Uint8Array(0);
 
   /**
    * @generated from field: string path = 2;
@@ -204,7 +202,7 @@ export class DeploymentArtefact extends Message<DeploymentArtefact> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.DeploymentArtefact";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "digest", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "digest", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
     { no: 2, name: "path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "executable", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
