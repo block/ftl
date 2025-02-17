@@ -76,6 +76,12 @@ func (t *Task) Progress(ctx context.Context) error {
 		Min: 50 * time.Millisecond,
 		Max: 30 * time.Second,
 	}
+	if _, ok := t.binding.Provisioner.(*InMemProvisioner); ok {
+		retry = backoff.Backoff{
+			Min: 50 * time.Millisecond,
+			Max: 100 * time.Millisecond,
+		}
+	}
 
 	for {
 
