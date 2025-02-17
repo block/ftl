@@ -39,14 +39,13 @@ import (
 )
 
 type InteractiveCLI struct {
-	Version             kong.VersionFlag `help:"Show version."`
-	Endpoint            *url.URL         `default:"http://127.0.0.1:8892" help:"FTL endpoint to bind/connect to." env:"FTL_ENDPOINT"`
-	ProvisionerEndpoint *url.URL         `help:"Provisioner endpoint." env:"FTL_PROVISIONER_ENDPOINT" default:"http://127.0.0.1:8893"`
-	TimelineEndpoint    *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
-	LeaseEndpoint       *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
-	AdminEndpoint       *url.URL         `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
-	SchemaEndpoint      *url.URL         `help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
-	Trace               string           `help:"File to write golang runtime/trace output to." hidden:""`
+	Version          kong.VersionFlag `help:"Show version."`
+	Endpoint         *url.URL         `default:"http://127.0.0.1:8892" help:"FTL endpoint to bind/connect to." env:"FTL_ENDPOINT"`
+	TimelineEndpoint *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
+	LeaseEndpoint    *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
+	AdminEndpoint    *url.URL         `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
+	SchemaEndpoint   *url.URL         `help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
+	Trace            string           `help:"File to write golang runtime/trace output to." hidden:""`
 
 	Ping            pingCmd            `cmd:"" help:"Ping the FTL cluster."`
 	Status          statusCmd          `cmd:"" help:"Show FTL status."`

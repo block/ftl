@@ -87,7 +87,6 @@ func WithKubernetes() Option {
 	return func(o *options) {
 		o.kube = true
 		o.startController = false
-		o.startProvisioner = false
 		o.startTimeline = false
 	}
 }
@@ -158,13 +157,6 @@ func WithoutController() Option {
 	}
 }
 
-// WithoutProvisioner is a Run* option that disables starting the provisioner service.
-func WithoutProvisioner() Option {
-	return func(o *options) {
-		o.startProvisioner = false
-	}
-}
-
 // WithoutTimeline is a Run* option that disables starting the timeline service.
 func WithoutTimeline() Option {
 	return func(o *options) {
@@ -192,7 +184,6 @@ type options struct {
 	ftlConfigPath     string
 	startController   bool
 	devMode           bool
-	startProvisioner  bool
 	startTimeline     bool
 	provisionerConfig string
 	requireJava       bool
@@ -212,11 +203,10 @@ func Run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 	t.Helper()
 	opts := options{
-		startController:  true,
-		startProvisioner: true,
-		startTimeline:    true,
-		languages:        []string{"go"},
-		envars:           map[string]string{},
+		startController: true,
+		startTimeline:   true,
+		languages:       []string{"go"},
+		envars:          map[string]string{},
 	}
 	actions := []Action{}
 	for _, opt := range actionsOrOptions {
@@ -340,14 +330,11 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				if !opts.console {
 					args = append(args, "--no-console")
 				}
-				if opts.startProvisioner {
-					args = append(args, "--provisioners=1")
 
-					if opts.provisionerConfig != "" {
-						configFile := filepath.Join(tmpDir, "provisioner-plugin-config.toml")
-						os.WriteFile(configFile, []byte(opts.provisionerConfig), 0644)
-						args = append(args, "--provisioner-plugin-config="+configFile)
-					}
+				if opts.provisionerConfig != "" {
+					configFile := filepath.Join(tmpDir, "provisioner-plugin-config.toml")
+					os.WriteFile(configFile, []byte(opts.provisionerConfig), 0644)
+					args = append(args, "--provisioner-plugin-config="+configFile)
 				}
 				ctx = startProcess(ctx, t, tmpDir, opts.devMode, args...)
 			}

@@ -17,7 +17,7 @@ func TestConfigsWithController(t *testing.T) {
 }
 
 func TestConfigsWithoutController(t *testing.T) {
-	Run(t, configActions(t, WithoutController(), WithoutProvisioner(), WithoutTimeline())...)
+	Run(t, configActions(t, WithoutController(), WithoutTimeline())...)
 }
 
 func configActions(t *testing.T, prepend ...ActionOrOption) []ActionOrOption {
@@ -44,7 +44,7 @@ func TestSecretsWithController(t *testing.T) {
 }
 
 func TestSecretsWithoutController(t *testing.T) {
-	Run(t, secretActions(t, WithoutController(), WithoutProvisioner(), WithoutTimeline())...)
+	Run(t, secretActions(t, WithoutController(), WithoutTimeline())...)
 }
 
 func secretActions(t *testing.T, prepend ...ActionOrOption) []ActionOrOption {
@@ -96,7 +96,6 @@ func testImportExport(t *testing.T, object string) {
 
 	Run(t,
 		WithoutController(),
-		WithoutProvisioner(),
 		WithoutTimeline(),
 		// duplicate project file in the temp directory
 		Exec("cp", firstProjFile, secondProjFile),

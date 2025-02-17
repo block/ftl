@@ -59,6 +59,6 @@ func main() {
 		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
 	}
 
-	err = provisioner.Start(ctx, cli.ProvisionerConfig, registry, schemaClient)
+	err = provisioner.Start(ctx, registry, schemaClient)
 	kctx.FatalIfErrorf(err, "failed to start provisioner")
 }

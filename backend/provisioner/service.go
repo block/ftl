@@ -33,7 +33,6 @@ type CommonProvisionerConfig struct {
 }
 
 type Config struct {
-	Bind               *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8893" env:"FTL_BIND"`
 	ControllerEndpoint *url.URL `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	SchemaEndpoint     *url.URL `help:"Schema service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
 	CommonProvisionerConfig
@@ -54,7 +53,6 @@ type Service struct {
 
 func New(
 	ctx context.Context,
-	config Config,
 	registry *ProvisionerRegistry,
 	schemaClient schemaconnect.SchemaServiceClient,
 ) (*Service, error) {
@@ -75,21 +73,17 @@ func (s *Service) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*c
 // Start the Provisioner. Blocks until the context is cancelled.
 func Start(
 	ctx context.Context,
-	config Config,
 	registry *ProvisionerRegistry,
 	schemaClient schemaconnect.SchemaServiceClient,
 ) error {
-	config.SetDefaults()
 
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL provisioner")
 
-	svc, err := New(ctx, config, registry, schemaClient)
+	svc, err := New(ctx, registry, schemaClient)
 	if err != nil {
 		return err
 	}
-	logger.Debugf("Provisioner available at: %s", config.Bind)
-	logger.Debugf("Using FTL endpoint: %s", config.ControllerEndpoint)
 
 	for event := range channels.IterContext(ctx, svc.eventSource.Events()) {
 		switch e := event.(type) {
