@@ -2,7 +2,9 @@ package buildengine
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,7 +33,7 @@ type deploymentArtefact struct {
 type DeployClient interface {
 	ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error)
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error)
-	UploadArtefact(ctx context.Context, req *connect.Request[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error)
+	UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[ftlv1.UploadArtefactRequest, ftlv1.UploadArtefactResponse]
 	Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
@@ -142,18 +144,9 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 	logger.Debugf("Uploading %d/%d files", len(gadResp.Msg.MissingDigests), len(files))
 	for _, missing := range gadResp.Msg.MissingDigests {
 		file := filesByHash[missing]
-		content, err := os.ReadFile(file.localPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read file %w", err)
+		if err := uploadDeploymentArtefact(ctx, client, file); err != nil {
+			return nil, fmt.Errorf("failed to upload deployment artefact: %w", err)
 		}
-		logger.Debugf("Uploading %s", relToCWD(file.localPath))
-		resp, err := client.UploadArtefact(ctx, connect.NewRequest(&ftlv1.UploadArtefactRequest{
-			Content: content,
-		}))
-		if err != nil {
-			return nil, fmt.Errorf("failed to upload artefact: %w", err)
-		}
-		logger.Debugf("Uploaded %s as %s:%s", relToCWD(file.localPath), sha256.FromBytes(resp.Msg.Digest), file.Path)
 	}
 
 	for _, artefact := range filesByHash {
@@ -168,6 +161,50 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 		})
 	}
 	return moduleSchema, nil
+}
+
+func uploadDeploymentArtefact(ctx context.Context, client DeployClient, file deploymentArtefact) error {
+	logger := log.FromContext(ctx).Scope("upload:" + file.Digest)
+	f, err := os.Open(file.localPath)
+	if err != nil {
+		return fmt.Errorf("failed to read file %w", err)
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to get file info: %w", err)
+	}
+	digest, err := sha256.ParseSHA256(file.Digest)
+	if err != nil {
+		return fmt.Errorf("failed to parse SHA256 digest: %w", err)
+	}
+	logger.Debugf("Uploading %s", relToCWD(file.localPath))
+	stream := client.UploadArtefact(ctx)
+
+	// 4KB chunks
+	data := make([]byte, 4096)
+	for {
+		n, err := f.Read(data)
+		if errors.Is(err, io.EOF) {
+			break
+		} else if err != nil {
+			return fmt.Errorf("failed to read file %w", err)
+		}
+		err = stream.Send(&ftlv1.UploadArtefactRequest{
+			Chunk:  data[:n],
+			Digest: digest[:],
+			Size:   info.Size(),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upload artefact: %w", err)
+		}
+	}
+	_, err = stream.CloseAndReceive()
+	if err != nil {
+		return fmt.Errorf("failed to upload artefact: %w", err)
+	}
+	logger.Debugf("Uploaded %s as %s:%s", relToCWD(file.localPath), digest, file.Path)
+	return nil
 }
 
 func terminateModuleDeployment(ctx context.Context, client DeployClient, schemaClient SchemaServiceClient, module string) error {

@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, Struct } from "@bufbuild/protobuf";
+import { Message, proto3, protoInt64, Struct } from "@bufbuild/protobuf";
 import { Module } from "../schema/v1/schema_pb.js";
 
 /**
@@ -94,9 +94,25 @@ export class GetArtefactDiffsResponse extends Message<GetArtefactDiffsResponse> 
  */
 export class UploadArtefactRequest extends Message<UploadArtefactRequest> {
   /**
-   * @generated from field: bytes content = 1;
+   * Digest of the complete artefact.
+   *
+   * @generated from field: bytes digest = 1;
    */
-  content = new Uint8Array(0);
+  digest = new Uint8Array(0);
+
+  /**
+   * Size of the complete artefact.
+   *
+   * @generated from field: int64 size = 2;
+   */
+  size = protoInt64.zero;
+
+  /**
+   * Chunk of the artefact.
+   *
+   * @generated from field: bytes chunk = 3;
+   */
+  chunk = new Uint8Array(0);
 
   constructor(data?: PartialMessage<UploadArtefactRequest>) {
     super();
@@ -106,7 +122,9 @@ export class UploadArtefactRequest extends Message<UploadArtefactRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.UploadArtefactRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "content", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 1, name: "digest", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "size", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "chunk", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UploadArtefactRequest {
@@ -130,11 +148,6 @@ export class UploadArtefactRequest extends Message<UploadArtefactRequest> {
  * @generated from message xyz.block.ftl.v1.UploadArtefactResponse
  */
 export class UploadArtefactResponse extends Message<UploadArtefactResponse> {
-  /**
-   * @generated from field: bytes digest = 2;
-   */
-  digest = new Uint8Array(0);
-
   constructor(data?: PartialMessage<UploadArtefactResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -143,7 +156,6 @@ export class UploadArtefactResponse extends Message<UploadArtefactResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.UploadArtefactResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 2, name: "digest", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UploadArtefactResponse {
@@ -168,6 +180,8 @@ export class UploadArtefactResponse extends Message<UploadArtefactResponse> {
  */
 export class DeploymentArtefact extends Message<DeploymentArtefact> {
   /**
+   * TODO: This should be "bytes" to match other usages
+   *
    * @generated from field: string digest = 1;
    */
   digest = "";

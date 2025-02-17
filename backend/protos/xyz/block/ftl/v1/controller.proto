@@ -19,14 +19,17 @@ message GetArtefactDiffsResponse {
 }
 
 message UploadArtefactRequest {
-  bytes content = 1;
+  // Digest of the complete artefact.
+  bytes digest = 1;
+  // Size of the complete artefact.
+  int64 size = 2;
+  // Chunk of the artefact.
+  bytes chunk = 3;
 }
-message UploadArtefactResponse {
-  bytes digest = 2;
-}
+message UploadArtefactResponse {}
 
 message DeploymentArtefact {
-  string digest = 1;
+  string digest = 1; //TODO: This should be "bytes" to match other usages
   string path = 2;
   bool executable = 3;
 }
@@ -122,7 +125,7 @@ service ControllerService {
   rpc GetArtefactDiffs(GetArtefactDiffsRequest) returns (GetArtefactDiffsResponse);
 
   // Upload an artefact to the server.
-  rpc UploadArtefact(UploadArtefactRequest) returns (UploadArtefactResponse);
+  rpc UploadArtefact(stream UploadArtefactRequest) returns (UploadArtefactResponse);
 
   // Stream deployment artefacts from the server.
   //

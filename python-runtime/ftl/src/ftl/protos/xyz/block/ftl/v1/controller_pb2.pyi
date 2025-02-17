@@ -23,16 +23,18 @@ class GetArtefactDiffsResponse(_message.Message):
     def __init__(self, missing_digests: _Optional[_Iterable[str]] = ..., client_artefacts: _Optional[_Iterable[_Union[DeploymentArtefact, _Mapping]]] = ...) -> None: ...
 
 class UploadArtefactRequest(_message.Message):
-    __slots__ = ("content",)
-    CONTENT_FIELD_NUMBER: _ClassVar[int]
-    content: bytes
-    def __init__(self, content: _Optional[bytes] = ...) -> None: ...
+    __slots__ = ("digest", "size", "chunk")
+    DIGEST_FIELD_NUMBER: _ClassVar[int]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    CHUNK_FIELD_NUMBER: _ClassVar[int]
+    digest: bytes
+    size: int
+    chunk: bytes
+    def __init__(self, digest: _Optional[bytes] = ..., size: _Optional[int] = ..., chunk: _Optional[bytes] = ...) -> None: ...
 
 class UploadArtefactResponse(_message.Message):
-    __slots__ = ("digest",)
-    DIGEST_FIELD_NUMBER: _ClassVar[int]
-    digest: bytes
-    def __init__(self, digest: _Optional[bytes] = ...) -> None: ...
+    __slots__ = ()
+    def __init__(self) -> None: ...
 
 class DeploymentArtefact(_message.Message):
     __slots__ = ("digest", "path", "executable")
