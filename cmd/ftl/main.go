@@ -55,6 +55,7 @@ type InteractiveCLI struct {
 	New             newCmd             `cmd:"" help:"Create a new FTL module. See language specific flags with 'ftl new <language> --help'."`
 	PS              psCmd              `cmd:"" help:"List deployments."`
 	Call            callCmd            `cmd:"" help:"Call an FTL function."`
+	Changeset       changesetCmd       `cmd:"" help:"Work with changesets."`
 	Bench           benchCmd           `cmd:"" help:"Benchmark an FTL function."`
 	Replay          replayCmd          `cmd:"" help:"Call an FTL function with the same request body as the last invocation."`
 	Update          updateCmd          `cmd:"" help:"Update a deployment."`
