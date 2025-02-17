@@ -31,7 +31,7 @@ func TestAdminService(t *testing.T) {
 
 	sm, err := manager.New(ctx, routers.ProjectConfig[configuration.Secrets]{Config: config}, providers.Inline[configuration.Secrets]{})
 	assert.NoError(t, err)
-	admin := NewAdminService(cm, sm, &diskSchemaRetriever{})
+	admin := NewEnvironmentClient(cm, sm, &diskSchemaRetriever{})
 	assert.NotZero(t, admin)
 
 	expectedEnvarValue, err := json.MarshalIndent(map[string]string{"bar": "barfoo"}, "", "  ")
@@ -76,7 +76,7 @@ func testAdminConfigs(
 	t *testing.T,
 	ctx context.Context,
 	envarName string,
-	admin *Service,
+	admin EnvironmentClient,
 	entries []expectedEntry,
 ) {
 	t.Helper()
@@ -111,7 +111,7 @@ func testAdminSecrets(
 	t *testing.T,
 	ctx context.Context,
 	envarName string,
-	admin *Service,
+	admin EnvironmentClient,
 	entries []expectedEntry,
 ) {
 	t.Helper()
@@ -195,19 +195,7 @@ var testSchema = schema.MustValidate(&schema.Schema{
 type mockSchemaRetriever struct {
 }
 
-func (d *mockSchemaRetriever) ApplyChangeset(ctx context.Context, req *ftlv1.ApplyChangesetRequest) (*ftlv1.ApplyChangesetResponse, error) {
-	panic("implement me")
-}
-
-func (d *mockSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.Schema, error) {
-	return d.GetActiveSchema(ctx)
-}
-
-func (d *mockSchemaRetriever) GetLatestSchema(ctx context.Context) (*schema.Schema, error) {
-	return d.GetActiveSchema(ctx)
-}
-
-func (d *mockSchemaRetriever) GetActiveSchema(ctx context.Context) (*schema.Schema, error) {
+func (d *mockSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, error) {
 	return testSchema, nil
 }
 
@@ -220,7 +208,7 @@ func TestAdminValidation(t *testing.T) {
 
 	sm, err := manager.New(ctx, routers.ProjectConfig[configuration.Secrets]{Config: config}, providers.Inline[configuration.Secrets]{})
 	assert.NoError(t, err)
-	admin := NewAdminService(cm, sm, &mockSchemaRetriever{})
+	admin := NewEnvironmentClient(cm, sm, &mockSchemaRetriever{})
 
 	testSetConfig(t, ctx, admin, "batmobile", "color", "Black", "")
 	testSetConfig(t, ctx, admin, "batmobile", "color", "Red", "JSON validation failed: Red is not a valid variant of enum batmobile.Color")
@@ -237,7 +225,7 @@ func TestAdminValidation(t *testing.T) {
 }
 
 // nolint
-func testSetConfig(t testing.TB, ctx context.Context, admin *Service, module string, name string, jsonVal any, expectedError string) {
+func testSetConfig(t testing.TB, ctx context.Context, admin EnvironmentClient, module string, name string, jsonVal any, expectedError string) {
 	t.Helper()
 	buffer, err := json.Marshal(jsonVal)
 	assert.NoError(t, err)
@@ -256,7 +244,7 @@ func testSetConfig(t testing.TB, ctx context.Context, admin *Service, module str
 }
 
 // nolint
-func testSetSecret(t testing.TB, ctx context.Context, admin *Service, module string, name string, jsonVal any, expectedError string) {
+func testSetSecret(t testing.TB, ctx context.Context, admin EnvironmentClient, module string, name string, jsonVal any, expectedError string) {
 	t.Helper()
 	buffer, err := json.Marshal(jsonVal)
 	assert.NoError(t, err)

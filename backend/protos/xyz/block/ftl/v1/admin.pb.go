@@ -1658,7 +1658,7 @@ var file_xyz_block_ftl_v1_admin_proto_rawDesc = string([]byte{
 	0x5f, 0x4f, 0x46, 0x46, 0x53, 0x45, 0x54, 0x5f, 0x45, 0x41, 0x52, 0x4c, 0x49, 0x45, 0x53, 0x54,
 	0x10, 0x01, 0x12, 0x1e, 0x0a, 0x1a, 0x53, 0x55, 0x42, 0x53, 0x43, 0x52, 0x49, 0x50, 0x54, 0x49,
 	0x4f, 0x4e, 0x5f, 0x4f, 0x46, 0x46, 0x53, 0x45, 0x54, 0x5f, 0x4c, 0x41, 0x54, 0x45, 0x53, 0x54,
-	0x10, 0x02, 0x32, 0xb5, 0x0a, 0x0a, 0x0c, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x53, 0x65, 0x72, 0x76,
+	0x10, 0x02, 0x32, 0x95, 0x0b, 0x0a, 0x0c, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x53, 0x65, 0x72, 0x76,
 	0x69, 0x63, 0x65, 0x12, 0x4a, 0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x1d, 0x2e, 0x78, 0x79,
 	0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x50,
 	0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1e, 0x2e, 0x78, 0x79, 0x7a,
@@ -1741,7 +1741,13 @@ var file_xyz_block_ftl_v1_admin_proto_rawDesc = string([]byte{
 	0x47, 0x65, 0x74, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
 	0x1a, 0x23, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c,
 	0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x03, 0x90, 0x02, 0x01, 0x42, 0x3e, 0x50, 0x01, 0x5a, 0x3a,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x03, 0x90, 0x02, 0x01, 0x12, 0x5e, 0x0a, 0x0a, 0x50, 0x75,
+	0x6c, 0x6c, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x12, 0x23, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62,
+	0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x75, 0x6c, 0x6c,
+	0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e,
+	0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x76, 0x31,
+	0x2e, 0x50, 0x75, 0x6c, 0x6c, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x22, 0x03, 0x90, 0x02, 0x01, 0x30, 0x01, 0x42, 0x3e, 0x50, 0x01, 0x5a, 0x3a,
 	0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x62, 0x6c, 0x6f, 0x63, 0x6b,
 	0x2f, 0x66, 0x74, 0x6c, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x70, 0x72, 0x6f,
 	0x74, 0x6f, 0x73, 0x2f, 0x78, 0x79, 0x7a, 0x2f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2f, 0x66, 0x74,
@@ -1801,8 +1807,10 @@ var file_xyz_block_ftl_v1_admin_proto_goTypes = []any{
 	(*v1.Changeset)(nil),                // 34: xyz.block.ftl.schema.v1.Changeset
 	(*PingRequest)(nil),                 // 35: xyz.block.ftl.v1.PingRequest
 	(*GetSchemaRequest)(nil),            // 36: xyz.block.ftl.v1.GetSchemaRequest
-	(*PingResponse)(nil),                // 37: xyz.block.ftl.v1.PingResponse
-	(*GetSchemaResponse)(nil),           // 38: xyz.block.ftl.v1.GetSchemaResponse
+	(*PullSchemaRequest)(nil),           // 37: xyz.block.ftl.v1.PullSchemaRequest
+	(*PingResponse)(nil),                // 38: xyz.block.ftl.v1.PingResponse
+	(*GetSchemaResponse)(nil),           // 39: xyz.block.ftl.v1.GetSchemaResponse
+	(*PullSchemaResponse)(nil),          // 40: xyz.block.ftl.v1.PullSchemaResponse
 }
 var file_xyz_block_ftl_v1_admin_proto_depIdxs = []int32{
 	0,  // 0: xyz.block.ftl.v1.ConfigListRequest.provider:type_name -> xyz.block.ftl.v1.ConfigProvider
@@ -1839,22 +1847,24 @@ var file_xyz_block_ftl_v1_admin_proto_depIdxs = []int32{
 	24, // 31: xyz.block.ftl.v1.AdminService.ResetSubscription:input_type -> xyz.block.ftl.v1.ResetSubscriptionRequest
 	26, // 32: xyz.block.ftl.v1.AdminService.ApplyChangeset:input_type -> xyz.block.ftl.v1.ApplyChangesetRequest
 	36, // 33: xyz.block.ftl.v1.AdminService.GetSchema:input_type -> xyz.block.ftl.v1.GetSchemaRequest
-	37, // 34: xyz.block.ftl.v1.AdminService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	5,  // 35: xyz.block.ftl.v1.AdminService.ConfigList:output_type -> xyz.block.ftl.v1.ConfigListResponse
-	7,  // 36: xyz.block.ftl.v1.AdminService.ConfigGet:output_type -> xyz.block.ftl.v1.ConfigGetResponse
-	9,  // 37: xyz.block.ftl.v1.AdminService.ConfigSet:output_type -> xyz.block.ftl.v1.ConfigSetResponse
-	11, // 38: xyz.block.ftl.v1.AdminService.ConfigUnset:output_type -> xyz.block.ftl.v1.ConfigUnsetResponse
-	13, // 39: xyz.block.ftl.v1.AdminService.SecretsList:output_type -> xyz.block.ftl.v1.SecretsListResponse
-	15, // 40: xyz.block.ftl.v1.AdminService.SecretGet:output_type -> xyz.block.ftl.v1.SecretGetResponse
-	17, // 41: xyz.block.ftl.v1.AdminService.SecretSet:output_type -> xyz.block.ftl.v1.SecretSetResponse
-	19, // 42: xyz.block.ftl.v1.AdminService.SecretUnset:output_type -> xyz.block.ftl.v1.SecretUnsetResponse
-	21, // 43: xyz.block.ftl.v1.AdminService.MapConfigsForModule:output_type -> xyz.block.ftl.v1.MapConfigsForModuleResponse
-	23, // 44: xyz.block.ftl.v1.AdminService.MapSecretsForModule:output_type -> xyz.block.ftl.v1.MapSecretsForModuleResponse
-	25, // 45: xyz.block.ftl.v1.AdminService.ResetSubscription:output_type -> xyz.block.ftl.v1.ResetSubscriptionResponse
-	27, // 46: xyz.block.ftl.v1.AdminService.ApplyChangeset:output_type -> xyz.block.ftl.v1.ApplyChangesetResponse
-	38, // 47: xyz.block.ftl.v1.AdminService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
-	34, // [34:48] is the sub-list for method output_type
-	20, // [20:34] is the sub-list for method input_type
+	37, // 34: xyz.block.ftl.v1.AdminService.PullSchema:input_type -> xyz.block.ftl.v1.PullSchemaRequest
+	38, // 35: xyz.block.ftl.v1.AdminService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	5,  // 36: xyz.block.ftl.v1.AdminService.ConfigList:output_type -> xyz.block.ftl.v1.ConfigListResponse
+	7,  // 37: xyz.block.ftl.v1.AdminService.ConfigGet:output_type -> xyz.block.ftl.v1.ConfigGetResponse
+	9,  // 38: xyz.block.ftl.v1.AdminService.ConfigSet:output_type -> xyz.block.ftl.v1.ConfigSetResponse
+	11, // 39: xyz.block.ftl.v1.AdminService.ConfigUnset:output_type -> xyz.block.ftl.v1.ConfigUnsetResponse
+	13, // 40: xyz.block.ftl.v1.AdminService.SecretsList:output_type -> xyz.block.ftl.v1.SecretsListResponse
+	15, // 41: xyz.block.ftl.v1.AdminService.SecretGet:output_type -> xyz.block.ftl.v1.SecretGetResponse
+	17, // 42: xyz.block.ftl.v1.AdminService.SecretSet:output_type -> xyz.block.ftl.v1.SecretSetResponse
+	19, // 43: xyz.block.ftl.v1.AdminService.SecretUnset:output_type -> xyz.block.ftl.v1.SecretUnsetResponse
+	21, // 44: xyz.block.ftl.v1.AdminService.MapConfigsForModule:output_type -> xyz.block.ftl.v1.MapConfigsForModuleResponse
+	23, // 45: xyz.block.ftl.v1.AdminService.MapSecretsForModule:output_type -> xyz.block.ftl.v1.MapSecretsForModuleResponse
+	25, // 46: xyz.block.ftl.v1.AdminService.ResetSubscription:output_type -> xyz.block.ftl.v1.ResetSubscriptionResponse
+	27, // 47: xyz.block.ftl.v1.AdminService.ApplyChangeset:output_type -> xyz.block.ftl.v1.ApplyChangesetResponse
+	39, // 48: xyz.block.ftl.v1.AdminService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
+	40, // 49: xyz.block.ftl.v1.AdminService.PullSchema:output_type -> xyz.block.ftl.v1.PullSchemaResponse
+	35, // [35:50] is the sub-list for method output_type
+	20, // [20:35] is the sub-list for method input_type
 	20, // [20:20] is the sub-list for extension type_name
 	20, // [20:20] is the sub-list for extension extendee
 	0,  // [0:20] is the sub-list for field type_name

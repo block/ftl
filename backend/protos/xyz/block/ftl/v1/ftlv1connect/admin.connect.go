@@ -68,6 +68,8 @@ const (
 	AdminServiceApplyChangesetProcedure = "/xyz.block.ftl.v1.AdminService/ApplyChangeset"
 	// AdminServiceGetSchemaProcedure is the fully-qualified name of the AdminService's GetSchema RPC.
 	AdminServiceGetSchemaProcedure = "/xyz.block.ftl.v1.AdminService/GetSchema"
+	// AdminServicePullSchemaProcedure is the fully-qualified name of the AdminService's PullSchema RPC.
+	AdminServicePullSchemaProcedure = "/xyz.block.ftl.v1.AdminService/PullSchema"
 )
 
 // AdminServiceClient is a client for the xyz.block.ftl.v1.AdminService service.
@@ -102,6 +104,11 @@ type AdminServiceClient interface {
 	ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error)
 	// Get the full schema.
 	GetSchema(context.Context, *connect.Request[v1.GetSchemaRequest]) (*connect.Response[v1.GetSchemaResponse], error)
+	// Pull schema changes from the Schema Service.
+	//
+	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
+	// just retrieving the schema. Use GetSchema for that.
+	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest]) (*connect.ServerStreamForClient[v1.PullSchemaResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the xyz.block.ftl.v1.AdminService service. By
@@ -186,6 +193,12 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		pullSchema: connect.NewClient[v1.PullSchemaRequest, v1.PullSchemaResponse](
+			httpClient,
+			baseURL+AdminServicePullSchemaProcedure,
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -205,6 +218,7 @@ type adminServiceClient struct {
 	resetSubscription   *connect.Client[v1.ResetSubscriptionRequest, v1.ResetSubscriptionResponse]
 	applyChangeset      *connect.Client[v1.ApplyChangesetRequest, v1.ApplyChangesetResponse]
 	getSchema           *connect.Client[v1.GetSchemaRequest, v1.GetSchemaResponse]
+	pullSchema          *connect.Client[v1.PullSchemaRequest, v1.PullSchemaResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.AdminService.Ping.
@@ -277,6 +291,11 @@ func (c *adminServiceClient) GetSchema(ctx context.Context, req *connect.Request
 	return c.getSchema.CallUnary(ctx, req)
 }
 
+// PullSchema calls xyz.block.ftl.v1.AdminService.PullSchema.
+func (c *adminServiceClient) PullSchema(ctx context.Context, req *connect.Request[v1.PullSchemaRequest]) (*connect.ServerStreamForClient[v1.PullSchemaResponse], error) {
+	return c.pullSchema.CallServerStream(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the xyz.block.ftl.v1.AdminService service.
 type AdminServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -309,6 +328,11 @@ type AdminServiceHandler interface {
 	ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error)
 	// Get the full schema.
 	GetSchema(context.Context, *connect.Request[v1.GetSchemaRequest]) (*connect.Response[v1.GetSchemaResponse], error)
+	// Pull schema changes from the Schema Service.
+	//
+	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
+	// just retrieving the schema. Use GetSchema for that.
+	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -389,6 +413,12 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServicePullSchemaHandler := connect.NewServerStreamHandler(
+		AdminServicePullSchemaProcedure,
+		svc.PullSchema,
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/xyz.block.ftl.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServicePingProcedure:
@@ -419,6 +449,8 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceApplyChangesetHandler.ServeHTTP(w, r)
 		case AdminServiceGetSchemaProcedure:
 			adminServiceGetSchemaHandler.ServeHTTP(w, r)
+		case AdminServicePullSchemaProcedure:
+			adminServicePullSchemaHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -482,4 +514,8 @@ func (UnimplementedAdminServiceHandler) ApplyChangeset(context.Context, *connect
 
 func (UnimplementedAdminServiceHandler) GetSchema(context.Context, *connect.Request[v1.GetSchemaRequest]) (*connect.Response[v1.GetSchemaResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.GetSchema is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.PullSchema is not implemented"))
 }

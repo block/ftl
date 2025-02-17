@@ -6,7 +6,7 @@
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
 import { ApplyChangesetRequest, ApplyChangesetResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse } from "./admin_pb.js";
-import { GetSchemaRequest, GetSchemaResponse } from "./schemaservice_pb.js";
+import { GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse } from "./schemaservice_pb.js";
 
 /**
  * AdminService is the service that provides and updates admin data. For example,
@@ -172,6 +172,21 @@ export const AdminService = {
       I: GetSchemaRequest,
       O: GetSchemaResponse,
       kind: MethodKind.Unary,
+      idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * Pull schema changes from the Schema Service.
+     *
+     * Note that if there are no deployments this will block indefinitely, making it unsuitable for
+     * just retrieving the schema. Use GetSchema for that.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.PullSchema
+     */
+    pullSchema: {
+      name: "PullSchema",
+      I: PullSchemaRequest,
+      O: PullSchemaResponse,
+      kind: MethodKind.ServerStreaming,
       idempotency: MethodIdempotency.NoSideEffects,
     },
   }

@@ -200,4 +200,12 @@ service AdminService {
   rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // Pull schema changes from the Schema Service.
+  //
+  // Note that if there are no deployments this will block indefinitely, making it unsuitable for
+  // just retrieving the schema. Use GetSchema for that.
+  rpc PullSchema(PullSchemaRequest) returns (stream PullSchemaResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }

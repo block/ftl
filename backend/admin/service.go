@@ -34,52 +34,6 @@ type Service struct {
 	source       *schemaeventsource.EventSource
 }
 
-func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
-	sch, err := s.schemaClient.GetSchema(ctx, connect.NewRequest(c.Msg))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get latest schema: %w", err)
-	}
-	return connect.NewResponse(sch.Msg), nil
-}
-
-func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error) {
-	events := s.source.Subscribe(ctx)
-	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
-		Modules:  req.Msg.Modules,
-		ToRemove: req.Msg.ToRemove,
-	}))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create changeset: %w", err)
-	}
-	changeset := &schemapb.Changeset{
-		Key:      cs.Msg.Changeset,
-		Modules:  req.Msg.Modules,
-		ToRemove: req.Msg.ToRemove,
-	}
-	for e := range channels.IterContext(ctx, events) {
-		switch event := e.(type) {
-		case *schema.ChangesetFinalizedNotification:
-			//
-			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
-				Changeset: changeset,
-			}), nil
-		case *schema.ChangesetFailedNotification:
-			return nil, fmt.Errorf("failed to apply changeset: %s", event.Error)
-		case *schema.ChangesetCommittedNotification:
-			changeset = event.Changeset.ToProto()
-			// We don't wait for cleanup, just return immediately
-			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
-				Changeset: changeset,
-			}), nil
-		case *schema.ChangesetRollingBackNotification:
-			changeset = event.Changeset.ToProto()
-		default:
-
-		}
-	}
-	return nil, fmt.Errorf("failed to apply changeset: context cancelled")
-}
-
 var _ ftlv1connect.AdminServiceHandler = (*Service)(nil)
 
 func NewSchemaRetriever(source *schemaeventsource.EventSource) SchemaClient {
@@ -262,4 +216,150 @@ func kafkaPartitionCount(ctx context.Context, brokers []string, topicID string) 
 		return 0, fmt.Errorf("failed to describe topic %s: %w", topicID, topicMetas[0].Err)
 	}
 	return len(topicMetas[0].Partitions), nil
+}
+
+func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
+	sch, err := s.schemaClient.GetSchema(ctx, connect.NewRequest(c.Msg))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest schema: %w", err)
+	}
+	return connect.NewResponse(sch.Msg), nil
+}
+
+func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error) {
+	events := s.source.Subscribe(ctx)
+	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
+		Modules:  req.Msg.Modules,
+		ToRemove: req.Msg.ToRemove,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create changeset: %w", err)
+	}
+	changeset := &schemapb.Changeset{
+		Key:      cs.Msg.Changeset,
+		Modules:  req.Msg.Modules,
+		ToRemove: req.Msg.ToRemove,
+	}
+	for e := range channels.IterContext(ctx, events) {
+		switch event := e.(type) {
+		case *schema.ChangesetFinalizedNotification:
+			//
+			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
+				Changeset: changeset,
+			}), nil
+		case *schema.ChangesetFailedNotification:
+			return nil, fmt.Errorf("failed to apply changeset: %s", event.Error)
+		case *schema.ChangesetCommittedNotification:
+			changeset = event.Changeset.ToProto()
+			// We don't wait for cleanup, just return immediately
+			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
+				Changeset: changeset,
+			}), nil
+		case *schema.ChangesetRollingBackNotification:
+			changeset = event.Changeset.ToProto()
+		default:
+
+		}
+	}
+	return nil, fmt.Errorf("failed to apply changeset: context cancelled")
+}
+
+func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], resp *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
+	events := s.source.Subscribe(ctx)
+	for event := range channels.IterContext(ctx, events) {
+		switch e := event.(type) {
+		case *schema.FullSchemaNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_FullSchemaNotification{FullSchemaNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.DeploymentRuntimeNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_DeploymentRuntimeNotification{DeploymentRuntimeNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetCreatedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetCreatedNotification{ChangesetCreatedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetPreparedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetPreparedNotification{ChangesetPreparedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetCommittedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetDrainedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetDrainedNotification{ChangesetDrainedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetFinalizedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetFinalizedNotification{ChangesetFinalizedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetRollingBackNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetRollingBackNotification{ChangesetRollingBackNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetFailedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetFailedNotification{ChangesetFailedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		}
+
+	}
+	return fmt.Errorf("context cancelled %w", ctx.Err())
 }
