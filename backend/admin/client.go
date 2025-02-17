@@ -14,11 +14,9 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 )
 
-// Client standardizes an common interface between the Service as accessed via gRPC
+// EnvironmentClient standardizes an common interface between the Service as accessed via gRPC
 // and a purely-local variant that doesn't require a running controller to access.
-type Client interface {
-	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
-
+type EnvironmentClient interface {
 	// List configuration.
 	ConfigList(ctx context.Context, req *connect.Request[ftlv1.ConfigListRequest]) (*connect.Response[ftlv1.ConfigListResponse], error)
 
@@ -50,11 +48,6 @@ type Client interface {
 	// MapSecretsForModule combines all secrets visible to the module.
 	// Local values take precedence.
 	MapSecretsForModule(ctx context.Context, req *connect.Request[ftlv1.MapSecretsForModuleRequest]) (*connect.Response[ftlv1.MapSecretsForModuleResponse], error)
-
-	// Reset a subscription.
-	ResetSubscription(ctx context.Context, req *connect.Request[ftlv1.ResetSubscriptionRequest]) (*connect.Response[ftlv1.ResetSubscriptionResponse], error)
-
-	ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error)
 }
 
 // ShouldUseLocalClient returns whether a local admin client should be used based on the admin service client and the endpoint.

@@ -3,6 +3,7 @@ syntax = "proto3";
 package xyz.block.ftl.v1;
 
 import "xyz/block/ftl/schema/v1/schema.proto";
+import "xyz/block/ftl/v1/schemaservice.proto";
 import "xyz/block/ftl/v1/ftl.proto";
 
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1";
@@ -194,4 +195,9 @@ service AdminService {
   // Creates and applies a changeset, returning the result
   // This blocks until the changeset has completed
   rpc ApplyChangeset(ApplyChangesetRequest) returns (ApplyChangesetResponse);
+
+  // Get the full schema.
+  rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }

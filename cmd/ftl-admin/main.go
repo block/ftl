@@ -61,6 +61,6 @@ func main() {
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "admin", schemaClient)
 
-	err = admin.Start(ctx, cli.AdminConfig, cm, sm, admin.NewSchemaRetriever(eventSource, schemaClient))
+	err = admin.Start(ctx, cli.AdminConfig, cm, sm, schemaClient, eventSource)
 	kctx.FatalIfErrorf(err, "failed to start timeline service")
 }

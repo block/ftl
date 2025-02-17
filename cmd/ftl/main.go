@@ -316,7 +316,7 @@ func provideAdminClient(
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	adminClient ftlv1connect.AdminServiceClient,
-) (client admin.Client, err error) {
+) (client admin.EnvironmentClient, err error) {
 	shouldUseLocalClient, err := admin.ShouldUseLocalClient(ctx, adminClient, cli.AdminEndpoint)
 	if err != nil {
 		return client, fmt.Errorf("could not create admin client: %w", err)

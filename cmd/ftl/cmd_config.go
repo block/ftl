@@ -56,7 +56,7 @@ type configListCmd struct {
 	Module string `optional:"" arg:"" placeholder:"MODULE" help:"List configuration only in this module."`
 }
 
-func (s *configListCmd) Run(ctx context.Context, adminClient admin.Client) error {
+func (s *configListCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
 	resp, err := adminClient.ConfigList(ctx, connect.NewRequest(&ftlv1.ConfigListRequest{
 		Module:        &s.Module,
 		IncludeValues: &s.Values,
@@ -86,7 +86,7 @@ Returns a JSON-encoded configuration value.
 `
 }
 
-func (s *configGetCmd) Run(ctx context.Context, adminClient admin.Client) error {
+func (s *configGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
 	resp, err := adminClient.ConfigGet(ctx, connect.NewRequest(&ftlv1.ConfigGetRequest{
 		Ref: configRefFromRef(s.Ref),
 	}))
@@ -103,7 +103,7 @@ type configSetCmd struct {
 	Value *string           `arg:"" placeholder:"VALUE" help:"Configuration value (read from stdin if omitted)." optional:""`
 }
 
-func (s *configSetCmd) Run(ctx context.Context, scmd *configCmd, adminClient admin.Client) (err error) {
+func (s *configSetCmd) Run(ctx context.Context, scmd *configCmd, adminClient admin.EnvironmentClient) (err error) {
 	var config []byte
 	if s.Value != nil {
 		config = []byte(*s.Value)
@@ -146,7 +146,7 @@ type configUnsetCmd struct {
 	Ref configuration.Ref `arg:"" help:"Configuration reference in the form [<module>.]<name>."`
 }
 
-func (s *configUnsetCmd) Run(ctx context.Context, scmd *configCmd, adminClient admin.Client) error {
+func (s *configUnsetCmd) Run(ctx context.Context, scmd *configCmd, adminClient admin.EnvironmentClient) error {
 	req := &ftlv1.ConfigUnsetRequest{
 		Ref: configRefFromRef(s.Ref),
 	}
@@ -170,7 +170,7 @@ Imports configuration values from a JSON object.
 `
 }
 
-func (s *configImportCmd) Run(ctx context.Context, cmd *configCmd, adminClient admin.Client) error {
+func (s *configImportCmd) Run(ctx context.Context, cmd *configCmd, adminClient admin.EnvironmentClient) error {
 	input, err := io.ReadAll(s.Input)
 	if err != nil {
 		return fmt.Errorf("failed to read input: %w", err)
@@ -213,7 +213,7 @@ Outputs configuration values in a JSON object. A provider can be used to filter 
 `
 }
 
-func (s *configExportCmd) Run(ctx context.Context, cmd *configCmd, adminClient admin.Client) error {
+func (s *configExportCmd) Run(ctx context.Context, cmd *configCmd, adminClient admin.EnvironmentClient) error {
 	req := &ftlv1.ConfigListRequest{
 		IncludeValues: optional.Some(true).Ptr(),
 	}

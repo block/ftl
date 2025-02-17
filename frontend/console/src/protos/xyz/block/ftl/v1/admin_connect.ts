@@ -6,6 +6,7 @@
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
 import { ApplyChangesetRequest, ApplyChangesetResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse } from "./admin_pb.js";
+import { GetSchemaRequest, GetSchemaResponse } from "./schemaservice_pb.js";
 
 /**
  * AdminService is the service that provides and updates admin data. For example,
@@ -160,6 +161,18 @@ export const AdminService = {
       I: ApplyChangesetRequest,
       O: ApplyChangesetResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * Get the full schema.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.GetSchema
+     */
+    getSchema: {
+      name: "GetSchema",
+      I: GetSchemaRequest,
+      O: GetSchemaResponse,
+      kind: MethodKind.Unary,
+      idempotency: MethodIdempotency.NoSideEffects,
     },
   }
 } as const;

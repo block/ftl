@@ -2,7 +2,6 @@ package admin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"slices"
@@ -14,14 +13,12 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/common/encoding"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -32,69 +29,48 @@ type Config struct {
 }
 
 type Service struct {
-	schr SchemaClient
-	cm   *manager.Manager[configuration.Configuration]
-	sm   *manager.Manager[configuration.Secrets]
-}
-
-func (s *Service) ApplyChangeset(ctx context.Context, c *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error) {
-	changeset, err := s.schr.ApplyChangeset(ctx, c.Msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to apply changeset: %w", err)
-	}
-	return connect.NewResponse(changeset), nil
-}
-
-var _ ftlv1connect.AdminServiceHandler = (*Service)(nil)
-
-type SchemaClient interface {
-	// TODO: docs
-	GetCanonicalSchema(ctx context.Context) (*schema.Schema, error)
-	GetLatestSchema(ctx context.Context) (*schema.Schema, error)
-	ApplyChangeset(ctx context.Context, req *ftlv1.ApplyChangesetRequest) (*ftlv1.ApplyChangesetResponse, error)
-}
-
-func NewSchemaRetriever(source *schemaeventsource.EventSource, schemaClient ftlv1connect.SchemaServiceClient) SchemaClient {
-	return &streamSchemaRetriever{
-		source:       source,
-		schemaClient: schemaClient,
-	}
-}
-
-type streamSchemaRetriever struct {
-	source       *schemaeventsource.EventSource
+	env          *EnvironmentManager
 	schemaClient ftlv1connect.SchemaServiceClient
+	source       *schemaeventsource.EventSource
 }
 
-func (c *streamSchemaRetriever) ApplyChangeset(ctx context.Context, req *ftlv1.ApplyChangesetRequest) (*ftlv1.ApplyChangesetResponse, error) {
-	events := c.source.Subscribe(ctx)
-	cs, err := c.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
-		Modules:  req.Modules,
-		ToRemove: req.ToRemove,
+func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
+	sch, err := s.schemaClient.GetSchema(ctx, connect.NewRequest(c.Msg))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest schema: %w", err)
+	}
+	return connect.NewResponse(sch.Msg), nil
+}
+
+func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error) {
+	events := s.source.Subscribe(ctx)
+	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
+		Modules:  req.Msg.Modules,
+		ToRemove: req.Msg.ToRemove,
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create changeset: %w", err)
 	}
 	changeset := &schemapb.Changeset{
 		Key:      cs.Msg.Changeset,
-		Modules:  req.Modules,
-		ToRemove: req.ToRemove,
+		Modules:  req.Msg.Modules,
+		ToRemove: req.Msg.ToRemove,
 	}
 	for e := range channels.IterContext(ctx, events) {
 		switch event := e.(type) {
 		case *schema.ChangesetFinalizedNotification:
 			//
-			return &ftlv1.ApplyChangesetResponse{
+			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
 				Changeset: changeset,
-			}, nil
+			}), nil
 		case *schema.ChangesetFailedNotification:
 			return nil, fmt.Errorf("failed to apply changeset: %s", event.Error)
 		case *schema.ChangesetCommittedNotification:
 			changeset = event.Changeset.ToProto()
 			// We don't wait for cleanup, just return immediately
-			return &ftlv1.ApplyChangesetResponse{
+			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
 				Changeset: changeset,
-			}, nil
+			}), nil
 		case *schema.ChangesetRollingBackNotification:
 			changeset = event.Changeset.ToProto()
 		default:
@@ -104,23 +80,30 @@ func (c *streamSchemaRetriever) ApplyChangeset(ctx context.Context, req *ftlv1.A
 	return nil, fmt.Errorf("failed to apply changeset: context cancelled")
 }
 
-func (c *streamSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.Schema, error) {
-	view := c.source.CanonicalView()
-	return &schema.Schema{Modules: view.Modules}, nil
+var _ ftlv1connect.AdminServiceHandler = (*Service)(nil)
+
+func NewSchemaRetriever(source *schemaeventsource.EventSource) SchemaClient {
+	return &streamSchemaRetriever{
+		source: source,
+	}
 }
 
-func (c *streamSchemaRetriever) GetLatestSchema(ctx context.Context) (*schema.Schema, error) {
+type streamSchemaRetriever struct {
+	source *schemaeventsource.EventSource
+}
+
+func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, error) {
 	view := c.source.CanonicalView()
 	return &schema.Schema{Modules: view.Modules}, nil
 }
 
 // NewAdminService creates a new Service.
 // bindAllocator is optional and should be set if a local client is to be used that accesses schema from disk using language plugins.
-func NewAdminService(cm *manager.Manager[configuration.Configuration], sm *manager.Manager[configuration.Secrets], schr SchemaClient) *Service {
+func NewAdminService(env *EnvironmentManager, schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource) *Service {
 	return &Service{
-		schr: schr,
-		cm:   cm,
-		sm:   sm,
+		env:          env,
+		schemaClient: schr,
+		source:       source,
 	}
 }
 
@@ -129,11 +112,12 @@ func Start(
 	config Config,
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
-	schr SchemaClient,
+	schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource,
 ) error {
 
 	logger := log.FromContext(ctx).Scope("admin")
-	svc := NewAdminService(cm, sm, schr)
+
+	svc := NewAdminService(&EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm}, schr, source)
 
 	logger.Debugf("Admin service listening on: %s", config.Bind)
 	err := rpc.Serve(ctx, config.Bind,
@@ -151,247 +135,58 @@ func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 
 // ConfigList returns the list of configuration values, optionally filtered by module.
 func (s *Service) ConfigList(ctx context.Context, req *connect.Request[ftlv1.ConfigListRequest]) (*connect.Response[ftlv1.ConfigListResponse], error) {
-	listing, err := s.cm.List(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list configs: %w", err)
-	}
-
-	configs := []*ftlv1.ConfigListResponse_Config{}
-	for _, config := range listing {
-		module, ok := config.Module.Get()
-		if req.Msg.Module != nil && *req.Msg.Module != "" && module != *req.Msg.Module {
-			continue
-		}
-
-		ref := config.Name
-		if ok {
-			ref = fmt.Sprintf("%s.%s", module, config.Name)
-		}
-
-		var cv []byte
-		if *req.Msg.IncludeValues {
-			var value any
-			err := s.cm.Get(ctx, config.Ref, &value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get value for %v: %w", ref, err)
-			}
-			cv, err = json.Marshal(value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal value for %s: %w", ref, err)
-			}
-		}
-
-		configs = append(configs, &ftlv1.ConfigListResponse_Config{
-			RefPath: ref,
-			Value:   cv,
-		})
-	}
-	return connect.NewResponse(&ftlv1.ConfigListResponse{Configs: configs}), nil
+	return s.env.ConfigList(ctx, req)
 }
 
 // ConfigGet returns the configuration value for a given ref string.
 func (s *Service) ConfigGet(ctx context.Context, req *connect.Request[ftlv1.ConfigGetRequest]) (*connect.Response[ftlv1.ConfigGetResponse], error) {
-	var value any
-	err := s.cm.Get(ctx, refFromConfigRef(req.Msg.GetRef()), &value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get from config manager: %w", err)
-	}
-	vb, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal value: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.ConfigGetResponse{Value: vb}), nil
-}
-
-func configProviderKey(p *ftlv1.ConfigProvider) configuration.ProviderKey {
-	if p == nil {
-		return ""
-	}
-	switch *p {
-	case ftlv1.ConfigProvider_CONFIG_PROVIDER_INLINE:
-		return providers.InlineProviderKey
-	case ftlv1.ConfigProvider_CONFIG_PROVIDER_ENVAR:
-		return providers.EnvarProviderKey
-	}
-	return ""
+	return s.env.ConfigGet(ctx, req)
 }
 
 // ConfigSet sets the configuration at the given ref to the provided value.
 func (s *Service) ConfigSet(ctx context.Context, req *connect.Request[ftlv1.ConfigSetRequest]) (*connect.Response[ftlv1.ConfigSetResponse], error) {
-	err := s.validateAgainstSchema(ctx, false, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.cm.SetJSON(ctx, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set config: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.ConfigSetResponse{}), nil
+	return s.env.ConfigSet(ctx, req)
 }
 
 // ConfigUnset unsets the config value at the given ref.
 func (s *Service) ConfigUnset(ctx context.Context, req *connect.Request[ftlv1.ConfigUnsetRequest]) (*connect.Response[ftlv1.ConfigUnsetResponse], error) {
-	err := s.cm.Unset(ctx, refFromConfigRef(req.Msg.GetRef()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to unset config: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.ConfigUnsetResponse{}), nil
+	return s.env.ConfigUnset(ctx, req)
 }
 
 // SecretsList returns the list of secrets, optionally filtered by module.
 func (s *Service) SecretsList(ctx context.Context, req *connect.Request[ftlv1.SecretsListRequest]) (*connect.Response[ftlv1.SecretsListResponse], error) {
-	listing, err := s.sm.List(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list secrets: %w", err)
-	}
-	secrets := []*ftlv1.SecretsListResponse_Secret{}
-	for _, secret := range listing {
-		module, ok := secret.Module.Get()
-		if req.Msg.Module != nil && *req.Msg.Module != "" && module != *req.Msg.Module {
-			continue
-		}
-		ref := secret.Name
-		if ok {
-			ref = fmt.Sprintf("%s.%s", module, secret.Name)
-		}
-		var sv []byte
-		if *req.Msg.IncludeValues {
-			var value any
-			err := s.sm.Get(ctx, secret.Ref, &value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get value for %v: %w", ref, err)
-			}
-			sv, err = json.Marshal(value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal value for %s: %w", ref, err)
-			}
-		}
-		secrets = append(secrets, &ftlv1.SecretsListResponse_Secret{
-			RefPath: ref,
-			Value:   sv,
-		})
-	}
-	return connect.NewResponse(&ftlv1.SecretsListResponse{Secrets: secrets}), nil
+	return s.env.SecretsList(ctx, req)
 }
 
 // SecretGet returns the secret value for a given ref string.
 func (s *Service) SecretGet(ctx context.Context, req *connect.Request[ftlv1.SecretGetRequest]) (*connect.Response[ftlv1.SecretGetResponse], error) {
-	var value any
-	err := s.sm.Get(ctx, refFromConfigRef(req.Msg.GetRef()), &value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get from secret manager: %w", err)
-	}
-	vb, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal value: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.SecretGetResponse{Value: vb}), nil
+	return s.env.SecretGet(ctx, req)
 }
 
 // SecretSet sets the secret at the given ref to the provided value.
 func (s *Service) SecretSet(ctx context.Context, req *connect.Request[ftlv1.SecretSetRequest]) (*connect.Response[ftlv1.SecretSetResponse], error) {
-	err := s.validateAgainstSchema(ctx, true, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.sm.SetJSON(ctx, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set secret: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.SecretSetResponse{}), nil
+	return s.env.SecretSet(ctx, req)
 }
 
 // SecretUnset unsets the secret value at the given ref.
 func (s *Service) SecretUnset(ctx context.Context, req *connect.Request[ftlv1.SecretUnsetRequest]) (*connect.Response[ftlv1.SecretUnsetResponse], error) {
-	err := s.sm.Unset(ctx, refFromConfigRef(req.Msg.GetRef()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to unset secret: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.SecretUnsetResponse{}), nil
+	return s.env.SecretUnset(ctx, req)
 }
 
 // MapConfigsForModule combines all configuration values visible to the module.
 func (s *Service) MapConfigsForModule(ctx context.Context, req *connect.Request[ftlv1.MapConfigsForModuleRequest]) (*connect.Response[ftlv1.MapConfigsForModuleResponse], error) {
-	values, err := s.cm.MapForModule(ctx, req.Msg.Module)
-	if err != nil {
-		return nil, fmt.Errorf("failed to map configs for module: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.MapConfigsForModuleResponse{Values: values}), nil
+	return s.env.MapConfigsForModule(ctx, req)
 }
 
 // MapSecretsForModule combines all secrets visible to the module.
 func (s *Service) MapSecretsForModule(ctx context.Context, req *connect.Request[ftlv1.MapSecretsForModuleRequest]) (*connect.Response[ftlv1.MapSecretsForModuleResponse], error) {
-	values, err := s.sm.MapForModule(ctx, req.Msg.Module)
-	if err != nil {
-		return nil, fmt.Errorf("failed to map secrets for module: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.MapSecretsForModuleResponse{Values: values}), nil
-}
-
-func refFromConfigRef(cr *ftlv1.ConfigRef) configuration.Ref {
-	return configuration.NewRef(cr.GetModule(), cr.GetName())
-}
-
-func (s *Service) validateAgainstSchema(ctx context.Context, isSecret bool, ref configuration.Ref, value json.RawMessage) error {
-	logger := log.FromContext(ctx)
-
-	// Globals aren't in the module schemas, so we have nothing to validate against.
-	if !ref.Module.Ok() {
-		return nil
-	}
-
-	// If we can't retrieve an active schema, skip validation.
-	sch, err := s.schr.GetLatestSchema(ctx)
-	if err != nil {
-		logger.Debugf("skipping validation; could not get the active schema: %v", err)
-		return nil
-	}
-
-	r := schema.RefKey{Module: ref.Module.Default(""), Name: ref.Name}.ToRef()
-	decl, ok := sch.Resolve(r).Get()
-	if !ok {
-		logger.Debugf("skipping validation; declaration %q not found", ref.Name)
-		return nil
-	}
-
-	var fieldType schema.Type
-	if isSecret {
-		decl, ok := decl.(*schema.Secret)
-		if !ok {
-			return fmt.Errorf("%q is not a secret declaration", ref.Name)
-		}
-		fieldType = decl.Type
-	} else {
-		decl, ok := decl.(*schema.Config)
-		if !ok {
-			return fmt.Errorf("%q is not a config declaration", ref.Name)
-		}
-		fieldType = decl.Type
-	}
-
-	var v any
-	err = encoding.Unmarshal(value, &v)
-	if err != nil {
-		return fmt.Errorf("could not unmarshal JSON value: %w", err)
-	}
-
-	err = schema.ValidateJSONValue(fieldType, []string{ref.Name}, v, sch)
-	if err != nil {
-		return fmt.Errorf("JSON validation failed: %w", err)
-	}
-
-	return nil
+	return s.env.MapSecretsForModule(ctx, req)
 }
 
 func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ftlv1.ResetSubscriptionRequest]) (*connect.Response[ftlv1.ResetSubscriptionResponse], error) {
 	// Find nodes in schema
 	// TODO: we really want all deployments for a module... not just latest... Use canonical and check ActiveChangeset?
-	sch, err := s.schr.GetCanonicalSchema(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("could not get the active schema: %w", err)
-	}
+	sch := s.source.CanonicalView()
 	module, ok := islices.Find(sch.Modules, func(m *schema.Module) bool {
 		return m.Name == req.Msg.Subscription.Module
 	})

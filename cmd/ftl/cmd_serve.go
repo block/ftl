@@ -110,7 +110,7 @@ func (s *serveCommonConfig) run(
 	bindAllocator *bind.BindAllocator,
 	controllerClient ftlv1connect.ControllerServiceClient,
 	timelineClient *timelineclient.Client,
-	adminClient admin.Client,
+	adminClient ftlv1connect.AdminServiceClient,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	schemaEventSource *schemaeventsource.EventSource,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
@@ -355,7 +355,7 @@ func (s *serveCommonConfig) run(
 	})
 	// Start Admin
 	wg.Go(func() error {
-		err := admin.Start(ctx, s.Admin, cm, sm, admin.NewSchemaRetriever(schemaEventSource, schemaClient))
+		err := admin.Start(ctx, s.Admin, cm, sm, schemaClient, schemaEventSource)
 		if err != nil {
 			return fmt.Errorf("lease failed: %w", err)
 		}
