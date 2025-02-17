@@ -29,7 +29,7 @@ message UploadArtefactRequest {
 message UploadArtefactResponse {}
 
 message DeploymentArtefact {
-  string digest = 1; //TODO: This should be "bytes" to match other usages
+  bytes digest = 1;
   string path = 2;
   bool executable = 3;
 }

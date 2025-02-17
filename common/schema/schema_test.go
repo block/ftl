@@ -10,6 +10,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/errors"
+	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
 )
 
@@ -323,7 +324,7 @@ func TestParsing(t *testing.T) {
 		{name: "TimeEcho",
 			input: `
 				module echo {
-					+artefact "echo" "asf4as1fdfa2"
+					+artefact "echo" "1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167"
 
 					data EchoRequest {
 						name String?
@@ -355,7 +356,7 @@ func TestParsing(t *testing.T) {
 				Modules: []*Module{{
 					Name: "echo",
 					Metadata: []Metadata{
-						&MetadataArtefact{Path: "echo", Digest: "asf4as1fdfa2", Executable: false},
+						&MetadataArtefact{Path: "echo", Digest: sha256.MustParseSHA256("1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167"), Executable: false},
 					},
 					Decls: []Decl{
 						&Data{Name: "EchoRequest", Fields: []*Field{{Name: "name", Type: &Optional{Type: &String{}}}}},
