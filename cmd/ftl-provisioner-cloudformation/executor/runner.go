@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/block/ftl/internal/log"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -16,10 +17,15 @@ type ProvisionRunner struct {
 }
 
 func (r *ProvisionRunner) Run(ctx context.Context) ([]State, error) {
+	logger := log.FromContext(ctx)
+
 	for {
 		if r.stage >= StageDone {
+			logger.Debugf("runner finished")
 			return r.finalResult()
 		}
+
+		logger.Debugf("running stage %s", r.stage)
 
 		executors, err := r.executorMap()
 		if err != nil {
@@ -36,7 +42,7 @@ func (r *ProvisionRunner) Run(ctx context.Context) ([]State, error) {
 		}
 
 		r.CurrentState = newStates
-		r.stage = r.stage + 1
+		r.stage++
 	}
 }
 
@@ -49,7 +55,7 @@ func (r *ProvisionRunner) prepare(ctx context.Context, executors map[ResourceKin
 		}
 
 		if err := executor.Prepare(ctx, state); err != nil {
-			return err
+			return fmt.Errorf("failed to prepare executor: %w", err)
 		}
 	}
 	return nil
@@ -62,7 +68,7 @@ func (r *ProvisionRunner) execute(ctx context.Context, executors map[ResourceKin
 		eg.Go(func() error {
 			outputs, err := executor.Execute(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to execute executor: %w", err)
 			}
 			reschan <- outputs
 			return nil
@@ -70,11 +76,11 @@ func (r *ProvisionRunner) execute(ctx context.Context, executors map[ResourceKin
 	}
 
 	if err := eg.Wait(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute executors: %w", err)
 	}
 
 	result := r.skipped
-	for i := 0; i < len(executors); i++ {
+	for range len(executors) {
 		states := <-reschan
 		result = append(result, states...)
 	}

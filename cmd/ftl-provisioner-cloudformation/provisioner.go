@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	goformation "github.com/awslabs/goformation/v7/cloudformation"
-	cf "github.com/awslabs/goformation/v7/cloudformation/cloudformation"
 	"github.com/awslabs/goformation/v7/cloudformation/tags"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/text/cases"
@@ -20,6 +19,7 @@ import (
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
@@ -75,57 +75,37 @@ func (c *CloudformationProvisioner) Ping(context.Context, *connect.Request[ftlv1
 func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.Request[provisioner.ProvisionRequest]) (*connect.Response[provisioner.ProvisionResponse], error) {
 	logger := log.FromContext(ctx)
 
-	res, updated, err := c.createChangeSet(ctx, req.Msg)
+	module, err := schema.ModuleFromProto(req.Msg.DesiredModule)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to convert module from proto: %w", err)
 	}
-	token := *res.StackId
-	changeSetID := *res.Id
-
-	if !updated {
-		return connect.NewResponse(&provisioner.ProvisionResponse{
-			// even if there are no changes, return the stack id so that any resource outputs can be populated
-			Status:            provisioner.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
-			ProvisioningToken: token,
-		}), nil
+	var acceptedKinds []schema.ResourceType
+	for _, k := range req.Msg.Kinds {
+		acceptedKinds = append(acceptedKinds, schema.ResourceType(k))
 	}
 
-	task := &task{stackID: token}
-	if _, ok := c.running.LoadOrStore(token, task); ok {
-		return nil, fmt.Errorf("provisioner already running: %s", token)
+	inputStates := inputsFromSchema(module, acceptedKinds, req.Msg.FtlClusterId, req.Msg.DesiredModule.Name)
+	stackID := stackName(req.Msg)
+
+	runner := &executor.ProvisionRunner{
+		CurrentState: inputStates,
+		Executors: []executor.Executor{
+			NewCloudFormationExecutor(stackID, c.client, c.secrets, c.confg),
+			NewPostgresSetupExecutor(c.secrets),
+			// TODO: PG and MySQL user / DB creation executor
+		},
 	}
-	logger.Debugf("Starting task for module %s: %s (%s)", req.Msg.DesiredModule.Name, token, changeSetID)
-	task.Start(ctx, c.client, c.secrets, changeSetID)
+
+	task := &task{stackID: stackID, runner: runner}
+	if _, ok := c.running.LoadOrStore(stackID, task); ok {
+		return nil, fmt.Errorf("provisioner already running: %s", stackID)
+	}
+	logger.Debugf("Starting task for module %s: %s", req.Msg.DesiredModule.Name, stackID)
+	task.Start(ctx, c.client, c.secrets, stackID)
 	return connect.NewResponse(&provisioner.ProvisionResponse{
 		Status:            provisioner.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
-		ProvisioningToken: token,
+		ProvisioningToken: stackID,
 	}), nil
-}
-
-func (c *CloudformationProvisioner) createChangeSet(ctx context.Context, req *provisioner.ProvisionRequest) (*cloudformation.CreateChangeSetOutput, bool, error) {
-	stack := stackName(req)
-	changeSet := generateChangeSetName(stack)
-	templateStr, err := c.createTemplate(req)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to create cloudformation template: %w", err)
-	}
-	if err := ensureStackExists(ctx, c.client, stack); err != nil {
-		return nil, false, fmt.Errorf("failed to verify the stack exists: %w", err)
-	}
-
-	res, err := c.client.CreateChangeSet(ctx, &cloudformation.CreateChangeSetInput{
-		StackName:     &stack,
-		ChangeSetName: &changeSet,
-		TemplateBody:  &templateStr,
-	})
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to create change-set: %w", err)
-	}
-	updated, err := waitChangeSetReady(ctx, c.client, changeSet, stack)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to wait for change-set to become ready: %w", err)
-	}
-	return res, updated, nil
 }
 
 func stackName(req *provisioner.ProvisionRequest) string {
@@ -136,55 +116,31 @@ func generateChangeSetName(stack string) string {
 	return sanitize(stack) + strconv.FormatInt(time.Now().Unix(), 10)
 }
 
-func (c *CloudformationProvisioner) createTemplate(req *provisioner.ProvisionRequest) (string, error) {
-	template := goformation.NewTemplate()
-
-	module, err := schema.ModuleFromProto(req.DesiredModule)
-	if err != nil {
-		return "", fmt.Errorf("failed to convert module from proto: %w", err)
-	}
-	var acceptedKinds []schema.ResourceType
-	for _, k := range req.Kinds {
-		acceptedKinds = append(acceptedKinds, schema.ResourceType(k))
-	}
-
+func inputsFromSchema(module *schema.Module, acceptedKinds []schema.ResourceType, clusterID string, moduleName string) []executor.State {
+	var inputStates []executor.State
 	for _, provisioned := range schema.GetProvisioned(module) {
 		for _, resource := range provisioned.GetProvisioned().FilterByType(acceptedKinds...) {
-			var templater ResourceTemplater
 			switch resource.Kind {
 			case schema.ResourceTypePostgres:
-				templater = &PostgresTemplater{
-					resourceID: provisioned.ResourceID(),
-					cluster:    req.FtlClusterId,
-					module:     req.DesiredModule.Name,
-					config:     c.confg,
+				input := executor.PostgresInputState{
+					ResourceID: provisioned.ResourceID(),
+					Cluster:    clusterID,
+					Module:     moduleName,
 				}
+				inputStates = append(inputStates, input)
 			case schema.ResourceTypeMysql:
-				templater = &MySQLTemplater{
-					resourceID: provisioned.ResourceID(),
-					cluster:    req.FtlClusterId,
-					module:     req.DesiredModule.Name,
-					config:     c.confg,
+				input := executor.MySQLInputState{
+					ResourceID: provisioned.ResourceID(),
+					Cluster:    clusterID,
+					Module:     moduleName,
 				}
+				inputStates = append(inputStates, input)
 			default:
 				continue
 			}
-
-			if err := templater.AddToTemplate(template); err != nil {
-				return "", fmt.Errorf("failed to add resource to template: %w", err)
-			}
 		}
 	}
-	// Stack can not be empty, insert a null resource to keep the stack around
-	if req.DesiredModule == nil {
-		template.Resources["NullResource"] = &cf.WaitConditionHandle{}
-	}
-
-	bytes, err := template.JSON()
-	if err != nil {
-		return "", fmt.Errorf("failed to create cloudformation template: %w", err)
-	}
-	return string(bytes), nil
+	return inputStates
 }
 
 // ResourceTemplater interface for different resource types

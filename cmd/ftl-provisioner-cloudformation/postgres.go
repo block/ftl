@@ -6,29 +6,26 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alecthomas/types/optional"
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	goformation "github.com/awslabs/goformation/v7/cloudformation"
 	"github.com/awslabs/goformation/v7/cloudformation/rds"
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
+	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/internal/concurrency"
 )
 
 type PostgresTemplater struct {
-	resourceID string
-	cluster    string
-	module     string
-	config     *Config
+	input  executor.PostgresInputState
+	config *Config
 }
 
 var _ ResourceTemplater = (*PostgresTemplater)(nil)
 
 func (p *PostgresTemplater) AddToTemplate(template *goformation.Template) error {
-	clusterID := cloudformationResourceID(p.resourceID, "cluster")
-	instanceID := cloudformationResourceID(p.resourceID, "instance")
+	clusterID := cloudformationResourceID(p.input.ResourceID, "cluster")
+	instanceID := cloudformationResourceID(p.input.ResourceID, "instance")
 	template.Resources[clusterID] = &rds.DBCluster{
 		Engine:                          ptr("aurora-postgresql"),
 		MasterUsername:                  ptr("root"),
@@ -42,123 +39,135 @@ func (p *PostgresTemplater) AddToTemplate(template *goformation.Template) error 
 			MinCapacity: ptr(0.5),
 			MaxCapacity: ptr(10.0),
 		},
-		Tags: ftlTags(p.cluster, p.module),
+		Tags: ftlTags(p.input.Cluster, p.input.Module),
 	}
 	template.Resources[instanceID] = &rds.DBInstance{
 		Engine:              ptr("aurora-postgresql"),
 		DBInstanceClass:     ptr("db.serverless"),
 		DBClusterIdentifier: ptr(goformation.Ref(clusterID)),
-		Tags:                ftlTags(p.cluster, p.module),
+		Tags:                ftlTags(p.input.Cluster, p.input.Module),
 	}
 	addOutput(template.Outputs, goformation.GetAtt(clusterID, "Endpoint.Address"), &CloudformationOutputKey{
-		ResourceID:   p.resourceID,
+		ResourceID:   p.input.ResourceID,
 		PropertyName: PropertyPsqlWriteEndpoint,
 		ResourceKind: ResourceKindPostgres,
 	})
 	addOutput(template.Outputs, goformation.GetAtt(clusterID, "ReadEndpoint.Address"), &CloudformationOutputKey{
-		ResourceID:   p.resourceID,
+		ResourceID:   p.input.ResourceID,
 		PropertyName: PropertyPsqlReadEndpoint,
 		ResourceKind: ResourceKindPostgres,
 	})
 	addOutput(template.Outputs, goformation.GetAtt(clusterID, "MasterUserSecret.SecretArn"), &CloudformationOutputKey{
-		ResourceID:   p.resourceID,
+		ResourceID:   p.input.ResourceID,
 		PropertyName: PropertyPsqlMasterUserARN,
 		ResourceKind: ResourceKindPostgres,
 	})
 	return nil
 }
 
-func PostgresPostUpdate(ctx context.Context, secrets *secretsmanager.Client, byName map[string]types.Output, resourceID string) error {
-	if write, ok := byName[PropertyPsqlWriteEndpoint]; ok {
-		if secret, ok := byName[PropertyPsqlMasterUserARN]; ok {
-			secretARN := *secret.OutputValue
-			username, password, err := secretARNToUsernamePassword(ctx, secrets, secretARN)
-			if err != nil {
-				return fmt.Errorf("failed to get username and password from secret ARN: %w", err)
-			}
+type PostgresSetupExecutor struct {
+	secrets *secretsmanager.Client
+	inputs  []executor.State
+}
 
-			if err := createPostgresDatabase(ctx, *write.OutputValue, resourceID, username, password); err != nil {
-				return fmt.Errorf("failed to create postgres database: %w", err)
-			}
-			adminEndpoint := endpointToDSN(write.OutputValue, resourceID, 5432, username, password)
-			db, err := sql.Open("pgx", adminEndpoint)
-			if err != nil {
-				return fmt.Errorf("failed to connect to postgres: %w", err)
-			}
-			defer db.Close()
+func NewPostgresSetupExecutor(secrets *secretsmanager.Client) *PostgresSetupExecutor {
+	return &PostgresSetupExecutor{secrets: secrets}
+}
 
-			// Create the database if it doesn't exist
-			if _, err := db.ExecContext(ctx, "CREATE DATABASE "+resourceID); err != nil {
-				// Ignore if database already exists
-				if !strings.Contains(err.Error(), "already exists") {
-					return fmt.Errorf("failed to create database: %w", err)
-				}
-			}
-			if _, err := db.ExecContext(ctx, "CREATE USER ftluser WITH LOGIN; GRANT rds_iam TO ftluser;"); err != nil {
-				// Ignore if user already exists
-				if !strings.Contains(err.Error(), "already exists") {
-					return fmt.Errorf("failed to create database: %w", err)
-				}
-			}
-			if _, err := db.ExecContext(ctx, fmt.Sprintf(`
-				GRANT CONNECT ON DATABASE %s TO ftluser;
-				GRANT USAGE ON SCHEMA public TO ftluser;
-				GRANT CREATE ON SCHEMA public TO ftluser;
-				GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ftluser;
-				GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ftluser;
-				ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ftluser;
-				ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ftluser;
-			`, resourceID)); err != nil {
-				return fmt.Errorf("failed to grant FTL user privileges: %w", err)
-			}
-		}
-	}
+var _ executor.Executor = &PostgresSetupExecutor{}
+
+func (e *PostgresSetupExecutor) Stage() executor.Stage {
+	return executor.StageSetup
+}
+
+func (e *PostgresSetupExecutor) Resources() []executor.ResourceKind {
+	return []executor.ResourceKind{executor.ResourceKindPostgres}
+}
+
+func (e *PostgresSetupExecutor) Prepare(_ context.Context, input executor.State) error {
+	e.inputs = append(e.inputs, input)
 	return nil
 }
 
-func createPostgresDatabase(ctx context.Context, endpoint, resourceID, username, password string) error {
-	adminEndpoint := endpointToDSN(&endpoint, "postgres", 5432, username, password)
+func (e *PostgresSetupExecutor) Execute(ctx context.Context) ([]executor.State, error) {
+	rg := concurrency.ResourceGroup[executor.State]{}
 
-	// Connect to postgres without a specific database to create the new one
-	db, err := sql.Open("pgx", adminEndpoint)
+	for _, input := range e.inputs {
+		if input, ok := input.(executor.PostgresInstanceReadyState); ok {
+			rg.Go(func() (executor.State, error) {
+				connector := &schema.AWSIAMAuthDatabaseConnector{
+					Database: input.ResourceID,
+					Endpoint: input.WriteEndpoint,
+					Username: "ftluser",
+				}
+
+				adminDSN, err := postgresAdminDSN(ctx, e.secrets, input.MasterUserSecretARN, connector)
+				if err != nil {
+					return nil, err
+				}
+
+				if err := postgresSetup(ctx, adminDSN, connector); err != nil {
+					return nil, err
+				}
+
+				return executor.PostgresDBDoneState{
+					PostgresInstanceReadyState: input,
+					Connector:                  connector,
+				}, nil
+			})
+		}
+	}
+
+	res, err := rg.Wait()
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute postgres setup: %w", err)
+	}
+
+	return res, nil
+}
+
+func postgresAdminDSN(ctx context.Context, secrets *secretsmanager.Client, secretARN string, connector *schema.AWSIAMAuthDatabaseConnector) (string, error) {
+	adminUsername, adminPassword, err := secretARNToUsernamePassword(ctx, secrets, secretARN)
+	if err != nil {
+		return "", fmt.Errorf("failed to get username and password from secret ARN: %w", err)
+	}
+
+	return endpointToDSN(&connector.Endpoint, connector.Database, 5432, adminUsername, adminPassword), nil
+}
+
+func postgresSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAuthDatabaseConnector) error {
+	database := connector.Database
+	username := connector.Username
+
+	db, err := sql.Open("pgx", adminDSN)
 	if err != nil {
 		return fmt.Errorf("failed to connect to postgres: %w", err)
 	}
 	defer db.Close()
 
 	// Create the database if it doesn't exist
-	if _, err := db.ExecContext(ctx, "CREATE DATABASE "+resourceID); err != nil {
+	if _, err := db.ExecContext(ctx, "CREATE DATABASE "+database); err != nil {
 		// Ignore if database already exists
 		if !strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
 	}
+	if _, err := db.ExecContext(ctx, "CREATE USER "+username+" WITH LOGIN; GRANT rds_iam TO "+username+";"); err != nil {
+		// Ignore if user already exists
+		if !strings.Contains(err.Error(), "already exists") {
+			return fmt.Errorf("failed to create database: %w", err)
+		}
+	}
+	if _, err := db.ExecContext(ctx, fmt.Sprintf(`
+				GRANT CONNECT ON DATABASE %s TO %s;
+				GRANT USAGE ON SCHEMA public TO %s;
+				GRANT CREATE ON SCHEMA public TO %s;
+				GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO %s;
+				GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO %s;
+				ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO %s;
+				ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO %s;
+			`, database, username, username, username, username, username, username, username)); err != nil {
+		return fmt.Errorf("failed to grant FTL user privileges: %w", err)
+	}
 	return nil
-}
-
-func updatePostgresOutputs(_ context.Context, deployment key.Deployment, resourceID string, outputs []types.Output) ([]*schema.RuntimeElement, error) {
-	byName, err := outputsByPropertyName(outputs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to group outputs by property name: %w", err)
-	}
-
-	event := schema.RuntimeElement{
-		Deployment: deployment,
-		Name:       optional.Some(resourceID),
-		Element: &schema.DatabaseRuntime{
-			Connections: &schema.DatabaseRuntimeConnections{
-				Write: &schema.AWSIAMAuthDatabaseConnector{
-					Endpoint: fmt.Sprintf("%s:%d", *byName[PropertyPsqlWriteEndpoint].OutputValue, 5432),
-					Database: resourceID,
-					Username: "ftluser",
-				},
-				Read: &schema.AWSIAMAuthDatabaseConnector{
-					Endpoint: fmt.Sprintf("%s:%d", *byName[PropertyPsqlReadEndpoint].OutputValue, 5432),
-					Database: resourceID,
-					Username: "ftluser",
-				},
-			},
-		},
-	}
-	return []*schema.RuntimeElement{&event}, nil
 }

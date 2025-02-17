@@ -36,7 +36,7 @@ const (
 	ResourceKindMySQL    ResourceKind = "mysql"
 )
 
-var AllResources []ResourceKind = nil
+var AllResources []ResourceKind
 
 // State of a single resource in execution.
 type State interface {

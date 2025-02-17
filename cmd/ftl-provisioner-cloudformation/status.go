@@ -6,9 +6,11 @@ import (
 	"net/url"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
+	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -36,10 +38,7 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse deployment key: %w", err)
 		}
-		events, err := c.updateResources(ctx, deploymentKey, task.outputs.Load())
-		if err != nil {
-			return nil, err
-		}
+		events := c.updateResources(deploymentKey, task.outputs.Load())
 		return connect.NewResponse(&provisioner.StatusResponse{
 			Status: &provisioner.StatusResponse_Success{
 				Success: &provisioner.StatusResponse_ProvisioningSuccess{
@@ -70,57 +69,39 @@ func outputsByResourceID(outputs []types.Output) (map[string][]types.Output, err
 	return m, nil
 }
 
-func outputsByKind(outputs []types.Output) (map[string][]types.Output, error) {
-	m := make(map[string][]types.Output)
+func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, outputs []executor.State) []*schema.RuntimeElement {
+	var results []*schema.RuntimeElement
+
 	for _, output := range outputs {
-		key, err := decodeOutputKey(output)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode output key: %w", err)
-		}
-		m[key.ResourceKind] = append(m[key.ResourceKind], output)
-	}
-	return m, nil
-}
-
-func outputsByPropertyName(outputs []types.Output) (map[string]types.Output, error) {
-	m := make(map[string]types.Output)
-	for _, output := range outputs {
-		key, err := decodeOutputKey(output)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode output key: %w", err)
-		}
-		m[key.PropertyName] = output
-	}
-	return m, nil
-}
-
-func (c *CloudformationProvisioner) updateResources(ctx context.Context, deployment key.Deployment, outputs []types.Output) ([]*schema.RuntimeElement, error) {
-	byKind, err := outputsByKind(outputs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to group outputs by kind: %w", err)
-	}
-
-	var events []*schema.RuntimeElement
-
-	for kind, outputs := range byKind {
-		byResourceID, err := outputsByResourceID(outputs)
-		if err != nil {
-			return nil, fmt.Errorf("failed to group outputs by resource ID: %w", err)
-		}
-		for id, outputs := range byResourceID {
-			switch kind {
-			case ResourceKindPostgres:
-				e, err := updatePostgresOutputs(ctx, deployment, id, outputs)
-				if err != nil {
-					return nil, fmt.Errorf("failed to update postgres outputs: %w", err)
-				}
-				events = append(events, e...)
-			case ResourceKindMySQL:
-				panic("mysql not implemented")
-			}
+		switch o := output.(type) {
+		case executor.PostgresDBDoneState:
+			results = append(results, &schema.RuntimeElement{
+				Deployment: deployment,
+				Name:       optional.Some(o.PostgresInputState.ResourceID),
+				Element: &schema.DatabaseRuntime{
+					Connections: &schema.DatabaseRuntimeConnections{
+						Write: o.Connector,
+						Read:  o.Connector,
+					},
+				},
+			})
+		case executor.MySQLDBDoneState:
+			results = append(results, &schema.RuntimeElement{
+				Deployment: deployment,
+				Name:       optional.Some(o.MySQLInputState.ResourceID),
+				Element: &schema.DatabaseRuntime{
+					Connections: &schema.DatabaseRuntimeConnections{
+						Write: o.Connector,
+						Read:  o.Connector,
+					},
+				},
+			})
+		default:
+			panic(fmt.Sprintf("unknown output type: %T", o))
 		}
 	}
-	return events, nil
+
+	return results
 }
 
 func endpointToDSN(endpoint *string, database string, port int, username, password string) string {
