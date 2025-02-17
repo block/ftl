@@ -57,8 +57,6 @@ type serveCommonConfig struct {
 	DBPort              int                  `help:"Port to use for the database." env:"FTL_DB_PORT" default:"15432"`
 	MysqlPort           int                  `help:"Port to use for the MySQL database, if one is required." env:"FTL_MYSQL_PORT" default:"13306"`
 	RegistryPort        int                  `help:"Port to use for the registry." env:"FTL_OCI_REGISTRY_PORT" default:"15000"`
-	Controllers         int                  `short:"c" help:"Number of controllers to start." default:"1"`
-	Provisioners        int                  `short:"p" help:"Number of provisioners to start." default:"1"`
 	Background          bool                 `help:"Run in the background." default:"false"`
 	Stop                bool                 `help:"Stop the running FTL instance. Can be used with --background to restart the server" default:"false"`
 	StartupTimeout      time.Duration        `help:"Timeout for the server to start up." default:"10s" env:"FTL_STARTUP_TIMEOUT"`
@@ -151,11 +149,6 @@ func (s *serveCommonConfig) run(
 		// The controller is already running, bail out.
 		return errors.New(ftlRunningErrorMsg)
 	}
-	if s.Provisioners > 0 {
-		logger.Debugf("Starting FTL with %d controller(s) and %d provisioner(s)", s.Controllers, s.Provisioners)
-	} else {
-		logger.Debugf("Starting FTL with %d controller(s)", s.Controllers)
-	}
 
 	if s.EnableGrafana && !bool(s.ObservabilityConfig.ExportOTEL) {
 		err := dev.SetupGrafana(ctx, s.GrafanaImage)
@@ -187,19 +180,13 @@ func (s *serveCommonConfig) run(
 
 	wg, ctx := errgroup.WithContext(ctx)
 
-	controllerAddresses := make([]*url.URL, 0, s.Controllers)
-	controllerIngressAddresses := make([]*url.URL, 0, s.Controllers)
-	for range s.Controllers {
-		ingressBind, err := bindAllocator.Next()
-		if err != nil {
-			return fmt.Errorf("could not allocate port for controller ingress: %w", err)
-		}
-		controllerIngressAddresses = append(controllerIngressAddresses, ingressBind)
-		controllerBind, err := bindAllocator.Next()
-		if err != nil {
-			return fmt.Errorf("could not allocate port for controller: %w", err)
-		}
-		controllerAddresses = append(controllerAddresses, controllerBind)
+	_, err = bindAllocator.Next() // skip the first port, which is used by ingress
+	if err != nil {
+		return fmt.Errorf("could not allocate port for ingress: %w", err)
+	}
+	controllerBind, err := bindAllocator.Next()
+	if err != nil {
+		return fmt.Errorf("could not allocate port for controller: %w", err)
 	}
 
 	// Add console addresses to allow origins for console requests
@@ -215,15 +202,6 @@ func (s *serveCommonConfig) run(
 		s.Ingress.AllowOrigins = append(s.Ingress.AllowOrigins, consoleURL)
 	}
 
-	provisionerAddresses := make([]*url.URL, 0, s.Provisioners)
-	for range s.Provisioners {
-		bind, err := bindAllocator.Next()
-		if err != nil {
-			return fmt.Errorf("could not allocate port for provisioner: %w", err)
-		}
-		provisionerAddresses = append(provisionerAddresses, bind)
-	}
-
 	schemaBind, err := url.Parse("http://localhost:8897")
 	if err != nil {
 		return fmt.Errorf("failed to parse bind URL: %w", err)
@@ -231,7 +209,7 @@ func (s *serveCommonConfig) run(
 
 	runnerScaling, err := localscaling.NewLocalScaling(
 		ctx,
-		controllerAddresses,
+		controllerBind,
 		schemaBind,
 		s.Lease.Bind,
 		projConfig.Path,
@@ -262,26 +240,23 @@ func (s *serveCommonConfig) run(
 		return nil
 	})
 
-	for i := range s.Controllers {
-		config := controller.Config{
-			CommonConfig: s.CommonConfig,
-			Bind:         controllerAddresses[i],
-			Key:          key.NewLocalControllerKey(i),
-		}
-		config.SetDefaults()
-		config.ModuleUpdateFrequency = time.Second * 1
-
-		scope := fmt.Sprintf("controller%d", i)
-		controllerCtx := log.ContextWithLogger(ctx, logger.Scope(scope))
-
-		wg.Go(func() error {
-			if err := controller.Start(controllerCtx, config, storage, adminClient, timelineClient, schemaClient, true); err != nil {
-				logger.Errorf(err, "controller%d failed: %v", i, err)
-				return fmt.Errorf("controller%d failed: %w", i, err)
-			}
-			return nil
-		})
+	config := controller.Config{
+		CommonConfig: s.CommonConfig,
+		Bind:         controllerBind,
+		Key:          key.NewLocalControllerKey(1),
 	}
+	config.SetDefaults()
+	config.ModuleUpdateFrequency = time.Second * 1
+
+	controllerCtx := log.ContextWithLogger(ctx, logger.Scope("controller"))
+
+	wg.Go(func() error {
+		if err := controller.Start(controllerCtx, config, storage, adminClient, timelineClient, schemaClient, true); err != nil {
+			logger.Errorf(err, "controller failed: %v", err)
+			return fmt.Errorf("controller failed: %w", err)
+		}
+		return nil
+	})
 
 	if !s.NoConsole {
 		if err := consolefrontend.PrepareServer(ctx); err != nil {
@@ -298,62 +273,51 @@ func (s *serveCommonConfig) run(
 		})
 	}
 
-	for i := range s.Provisioners {
-		config := provisioner.Config{
-			Bind:                    provisionerAddresses[i],
-			ControllerEndpoint:      controllerAddresses[i%len(controllerAddresses)],
-			CommonProvisionerConfig: s.CommonProvisionerConfig,
-		}
+	provisionerCtx := log.ContextWithLogger(ctx, logger.Scope("provisioner"))
 
-		config.SetDefaults()
+	// default local dev provisioner
 
-		scope := fmt.Sprintf("provisioner%d", i)
-		provisionerCtx := log.ContextWithLogger(ctx, logger.Scope(scope))
-
-		// default local dev provisioner
-
-		provisionerRegistry := &provisioner.ProvisionerRegistry{
-			Bindings: []*provisioner.ProvisionerBinding{
-				{
-					Provisioner: provisioner.NewDevProvisioner(s.DBPort, s.MysqlPort, s.Recreate),
-					Types: []schema.ResourceType{
-						schema.ResourceTypeMysql,
-						schema.ResourceTypePostgres,
-						schema.ResourceTypeTopic,
-						schema.ResourceTypeSubscription,
-					},
-					ID: "dev",
+	provisionerRegistry := &provisioner.ProvisionerRegistry{
+		Bindings: []*provisioner.ProvisionerBinding{
+			{
+				Provisioner: provisioner.NewDevProvisioner(s.DBPort, s.MysqlPort, s.Recreate),
+				Types: []schema.ResourceType{
+					schema.ResourceTypeMysql,
+					schema.ResourceTypePostgres,
+					schema.ResourceTypeTopic,
+					schema.ResourceTypeSubscription,
 				},
-				{
-					Provisioner: provisioner.NewSQLMigrationProvisioner(storage),
-					Types:       []schema.ResourceType{schema.ResourceTypeSQLMigration},
-					ID:          "migration",
-				},
-				{
-					Provisioner: provisioner.NewRunnerScalingProvisioner(runnerScaling),
-					Types:       []schema.ResourceType{schema.ResourceTypeRunner},
-					ID:          "runner",
-				},
+				ID: "dev",
 			},
-		}
-
-		// read provisioners from a config file if provided
-		if s.PluginConfigFile != nil {
-			r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.WorkingDir, s.PluginConfigFile, runnerScaling)
-			if err != nil {
-				return fmt.Errorf("failed to create provisioner registry: %w", err)
-			}
-			provisionerRegistry = r
-		}
-
-		wg.Go(func() error {
-			if err := provisioner.Start(provisionerCtx, config, provisionerRegistry, schemaClient); err != nil {
-				logger.Errorf(err, "provisioner%d failed: %v", i, err)
-				return fmt.Errorf("provisioner%d failed: %w", i, err)
-			}
-			return nil
-		})
+			{
+				Provisioner: provisioner.NewSQLMigrationProvisioner(storage),
+				Types:       []schema.ResourceType{schema.ResourceTypeSQLMigration},
+				ID:          "migration",
+			},
+			{
+				Provisioner: provisioner.NewRunnerScalingProvisioner(runnerScaling),
+				Types:       []schema.ResourceType{schema.ResourceTypeRunner},
+				ID:          "runner",
+			},
+		},
 	}
+
+	// read provisioners from a config file if provided
+	if s.PluginConfigFile != nil {
+		r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.WorkingDir, s.PluginConfigFile, runnerScaling)
+		if err != nil {
+			return fmt.Errorf("failed to create provisioner registry: %w", err)
+		}
+		provisionerRegistry = r
+	}
+
+	wg.Go(func() error {
+		if err := provisioner.Start(provisionerCtx, provisionerRegistry, schemaClient); err != nil {
+			logger.Errorf(err, "provisionerfailed: %v", err)
+			return fmt.Errorf("provisionerfailed: %w", err)
+		}
+		return nil
+	})
 
 	// Start Timeline
 	wg.Go(func() error {

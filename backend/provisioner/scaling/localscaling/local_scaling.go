@@ -37,10 +37,10 @@ type localScaling struct {
 	// Deployments -> info
 	runners map[string]*deploymentInfo
 	// Module -> Port
-	debugPorts          map[string]*localdebug.DebugInfo
-	controllerAddresses []*url.URL
-	leaseAddress        *url.URL
-	schemaAddress       *url.URL
+	debugPorts        map[string]*localdebug.DebugInfo
+	controllerAddress *url.URL
+	leaseAddress      *url.URL
+	schemaAddress     *url.URL
 
 	prevRunnerSuffix int
 	ideSupport       optional.Option[localdebug.IDEIntegration]
@@ -169,7 +169,7 @@ func (r runnerInfo) getURL() url.URL {
 
 func NewLocalScaling(
 	ctx context.Context,
-	controllerAddresses []*url.URL,
+	controllerAddresse *url.URL,
 	schemaAddress *url.URL,
 	leaseAddress *url.URL,
 	configPath string,
@@ -187,7 +187,7 @@ func NewLocalScaling(
 		lock:                    sync.Mutex{},
 		cacheDir:                cacheDir,
 		runners:                 map[string]*deploymentInfo{},
-		controllerAddresses:     controllerAddresses,
+		controllerAddress:       controllerAddresse,
 		leaseAddress:            leaseAddress,
 		schemaAddress:           schemaAddress,
 		prevRunnerSuffix:        -1,
@@ -241,7 +241,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		ide.SyncIDEDebugIntegrations(ctx, l.debugPorts)
 		debugPort = debug.Port
 	}
-	controllerEndpoint := l.controllerAddresses[len(l.runners)%len(l.controllerAddresses)]
+	controllerEndpoint := l.controllerAddress
 	logger := log.FromContext(ctx)
 
 	bind, err := plugin.AllocatePort()

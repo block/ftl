@@ -28,7 +28,6 @@ func TestDiskSchemaRetrieverWithBuildArtefact(t *testing.T) {
 	in.Run(t,
 		in.WithFTLConfig("ftl-project-dr.toml"),
 		in.WithoutController(),
-		in.WithoutProvisioner(),
 		in.WithoutTimeline(),
 		in.CopyModule("dischema"),
 		in.Build("dischema"),
@@ -47,7 +46,6 @@ func TestDiskSchemaRetrieverWithNoSchema(t *testing.T) {
 	in.Run(t,
 		in.WithFTLConfig("ftl-project-dr.toml"),
 		in.WithoutController(),
-		in.WithoutProvisioner(),
 		in.WithoutTimeline(),
 		in.CopyModule("dischema"),
 		func(t testing.TB, ic in.TestContext) {

@@ -73,7 +73,7 @@ func (d *devCmd) Run(
 	defer statusManager.Close()
 	starting := statusManager.NewStatus("\u001B[92mStarting FTL Server 🚀\u001B[39m")
 
-	bindAllocator, err := bind.NewBindAllocator(d.ServeCmd.Bind, 1)
+	bindAllocator, err := bind.NewBindAllocator(d.ServeCmd.Bind, 2)
 	if err != nil {
 		return fmt.Errorf("could not create bind allocator: %w", err)
 	}
