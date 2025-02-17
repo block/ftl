@@ -35,24 +35,12 @@ const (
 const (
 	// ControllerServicePingProcedure is the fully-qualified name of the ControllerService's Ping RPC.
 	ControllerServicePingProcedure = "/xyz.block.ftl.v1.ControllerService/Ping"
-	// ControllerServiceClusterInfoProcedure is the fully-qualified name of the ControllerService's
-	// ClusterInfo RPC.
-	ControllerServiceClusterInfoProcedure = "/xyz.block.ftl.v1.ControllerService/ClusterInfo"
 	// ControllerServiceProcessListProcedure is the fully-qualified name of the ControllerService's
 	// ProcessList RPC.
 	ControllerServiceProcessListProcedure = "/xyz.block.ftl.v1.ControllerService/ProcessList"
 	// ControllerServiceStatusProcedure is the fully-qualified name of the ControllerService's Status
 	// RPC.
 	ControllerServiceStatusProcedure = "/xyz.block.ftl.v1.ControllerService/Status"
-	// ControllerServiceGetArtefactDiffsProcedure is the fully-qualified name of the ControllerService's
-	// GetArtefactDiffs RPC.
-	ControllerServiceGetArtefactDiffsProcedure = "/xyz.block.ftl.v1.ControllerService/GetArtefactDiffs"
-	// ControllerServiceUploadArtefactProcedure is the fully-qualified name of the ControllerService's
-	// UploadArtefact RPC.
-	ControllerServiceUploadArtefactProcedure = "/xyz.block.ftl.v1.ControllerService/UploadArtefact"
-	// ControllerServiceGetDeploymentArtefactsProcedure is the fully-qualified name of the
-	// ControllerService's GetDeploymentArtefacts RPC.
-	ControllerServiceGetDeploymentArtefactsProcedure = "/xyz.block.ftl.v1.ControllerService/GetDeploymentArtefacts"
 	// ControllerServiceRegisterRunnerProcedure is the fully-qualified name of the ControllerService's
 	// RegisterRunner RPC.
 	ControllerServiceRegisterRunnerProcedure = "/xyz.block.ftl.v1.ControllerService/RegisterRunner"
@@ -62,19 +50,9 @@ const (
 type ControllerServiceClient interface {
 	// Ping service for readiness.
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
-	ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error)
 	// List "processes" running on the cluster.
 	ProcessList(context.Context, *connect.Request[v1.ProcessListRequest]) (*connect.Response[v1.ProcessListResponse], error)
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
-	// Get list of artefacts that differ between the server and client.
-	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
-	// Upload an artefact to the server.
-	UploadArtefact(context.Context) *connect.ClientStreamForClient[v1.UploadArtefactRequest, v1.UploadArtefactResponse]
-	// Stream deployment artefacts from the server.
-	//
-	// Each artefact is streamed one after the other as a sequence of max 1MB
-	// chunks.
-	GetDeploymentArtefacts(context.Context, *connect.Request[v1.GetDeploymentArtefactsRequest]) (*connect.ServerStreamForClient[v1.GetDeploymentArtefactsResponse], error)
 	// Register a Runner with the Controller.
 	//
 	// Each runner issue a RegisterRunnerRequest to the ControllerService
@@ -98,11 +76,6 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
-		clusterInfo: connect.NewClient[v1.ClusterInfoRequest, v1.ClusterInfoResponse](
-			httpClient,
-			baseURL+ControllerServiceClusterInfoProcedure,
-			opts...,
-		),
 		processList: connect.NewClient[v1.ProcessListRequest, v1.ProcessListResponse](
 			httpClient,
 			baseURL+ControllerServiceProcessListProcedure,
@@ -111,21 +84,6 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 		status: connect.NewClient[v1.StatusRequest, v1.StatusResponse](
 			httpClient,
 			baseURL+ControllerServiceStatusProcedure,
-			opts...,
-		),
-		getArtefactDiffs: connect.NewClient[v1.GetArtefactDiffsRequest, v1.GetArtefactDiffsResponse](
-			httpClient,
-			baseURL+ControllerServiceGetArtefactDiffsProcedure,
-			opts...,
-		),
-		uploadArtefact: connect.NewClient[v1.UploadArtefactRequest, v1.UploadArtefactResponse](
-			httpClient,
-			baseURL+ControllerServiceUploadArtefactProcedure,
-			opts...,
-		),
-		getDeploymentArtefacts: connect.NewClient[v1.GetDeploymentArtefactsRequest, v1.GetDeploymentArtefactsResponse](
-			httpClient,
-			baseURL+ControllerServiceGetDeploymentArtefactsProcedure,
 			opts...,
 		),
 		registerRunner: connect.NewClient[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse](
@@ -138,24 +96,15 @@ func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, o
 
 // controllerServiceClient implements ControllerServiceClient.
 type controllerServiceClient struct {
-	ping                   *connect.Client[v1.PingRequest, v1.PingResponse]
-	clusterInfo            *connect.Client[v1.ClusterInfoRequest, v1.ClusterInfoResponse]
-	processList            *connect.Client[v1.ProcessListRequest, v1.ProcessListResponse]
-	status                 *connect.Client[v1.StatusRequest, v1.StatusResponse]
-	getArtefactDiffs       *connect.Client[v1.GetArtefactDiffsRequest, v1.GetArtefactDiffsResponse]
-	uploadArtefact         *connect.Client[v1.UploadArtefactRequest, v1.UploadArtefactResponse]
-	getDeploymentArtefacts *connect.Client[v1.GetDeploymentArtefactsRequest, v1.GetDeploymentArtefactsResponse]
-	registerRunner         *connect.Client[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
+	ping           *connect.Client[v1.PingRequest, v1.PingResponse]
+	processList    *connect.Client[v1.ProcessListRequest, v1.ProcessListResponse]
+	status         *connect.Client[v1.StatusRequest, v1.StatusResponse]
+	registerRunner *connect.Client[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.ControllerService.Ping.
 func (c *controllerServiceClient) Ping(ctx context.Context, req *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
 	return c.ping.CallUnary(ctx, req)
-}
-
-// ClusterInfo calls xyz.block.ftl.v1.ControllerService.ClusterInfo.
-func (c *controllerServiceClient) ClusterInfo(ctx context.Context, req *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error) {
-	return c.clusterInfo.CallUnary(ctx, req)
 }
 
 // ProcessList calls xyz.block.ftl.v1.ControllerService.ProcessList.
@@ -168,21 +117,6 @@ func (c *controllerServiceClient) Status(ctx context.Context, req *connect.Reque
 	return c.status.CallUnary(ctx, req)
 }
 
-// GetArtefactDiffs calls xyz.block.ftl.v1.ControllerService.GetArtefactDiffs.
-func (c *controllerServiceClient) GetArtefactDiffs(ctx context.Context, req *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error) {
-	return c.getArtefactDiffs.CallUnary(ctx, req)
-}
-
-// UploadArtefact calls xyz.block.ftl.v1.ControllerService.UploadArtefact.
-func (c *controllerServiceClient) UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[v1.UploadArtefactRequest, v1.UploadArtefactResponse] {
-	return c.uploadArtefact.CallClientStream(ctx)
-}
-
-// GetDeploymentArtefacts calls xyz.block.ftl.v1.ControllerService.GetDeploymentArtefacts.
-func (c *controllerServiceClient) GetDeploymentArtefacts(ctx context.Context, req *connect.Request[v1.GetDeploymentArtefactsRequest]) (*connect.ServerStreamForClient[v1.GetDeploymentArtefactsResponse], error) {
-	return c.getDeploymentArtefacts.CallServerStream(ctx, req)
-}
-
 // RegisterRunner calls xyz.block.ftl.v1.ControllerService.RegisterRunner.
 func (c *controllerServiceClient) RegisterRunner(ctx context.Context) *connect.ClientStreamForClient[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse] {
 	return c.registerRunner.CallClientStream(ctx)
@@ -192,19 +126,9 @@ func (c *controllerServiceClient) RegisterRunner(ctx context.Context) *connect.C
 type ControllerServiceHandler interface {
 	// Ping service for readiness.
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
-	ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error)
 	// List "processes" running on the cluster.
 	ProcessList(context.Context, *connect.Request[v1.ProcessListRequest]) (*connect.Response[v1.ProcessListResponse], error)
 	Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error)
-	// Get list of artefacts that differ between the server and client.
-	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
-	// Upload an artefact to the server.
-	UploadArtefact(context.Context, *connect.ClientStream[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error)
-	// Stream deployment artefacts from the server.
-	//
-	// Each artefact is streamed one after the other as a sequence of max 1MB
-	// chunks.
-	GetDeploymentArtefacts(context.Context, *connect.Request[v1.GetDeploymentArtefactsRequest], *connect.ServerStream[v1.GetDeploymentArtefactsResponse]) error
 	// Register a Runner with the Controller.
 	//
 	// Each runner issue a RegisterRunnerRequest to the ControllerService
@@ -224,11 +148,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
-	controllerServiceClusterInfoHandler := connect.NewUnaryHandler(
-		ControllerServiceClusterInfoProcedure,
-		svc.ClusterInfo,
-		opts...,
-	)
 	controllerServiceProcessListHandler := connect.NewUnaryHandler(
 		ControllerServiceProcessListProcedure,
 		svc.ProcessList,
@@ -237,21 +156,6 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 	controllerServiceStatusHandler := connect.NewUnaryHandler(
 		ControllerServiceStatusProcedure,
 		svc.Status,
-		opts...,
-	)
-	controllerServiceGetArtefactDiffsHandler := connect.NewUnaryHandler(
-		ControllerServiceGetArtefactDiffsProcedure,
-		svc.GetArtefactDiffs,
-		opts...,
-	)
-	controllerServiceUploadArtefactHandler := connect.NewClientStreamHandler(
-		ControllerServiceUploadArtefactProcedure,
-		svc.UploadArtefact,
-		opts...,
-	)
-	controllerServiceGetDeploymentArtefactsHandler := connect.NewServerStreamHandler(
-		ControllerServiceGetDeploymentArtefactsProcedure,
-		svc.GetDeploymentArtefacts,
 		opts...,
 	)
 	controllerServiceRegisterRunnerHandler := connect.NewClientStreamHandler(
@@ -263,18 +167,10 @@ func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.H
 		switch r.URL.Path {
 		case ControllerServicePingProcedure:
 			controllerServicePingHandler.ServeHTTP(w, r)
-		case ControllerServiceClusterInfoProcedure:
-			controllerServiceClusterInfoHandler.ServeHTTP(w, r)
 		case ControllerServiceProcessListProcedure:
 			controllerServiceProcessListHandler.ServeHTTP(w, r)
 		case ControllerServiceStatusProcedure:
 			controllerServiceStatusHandler.ServeHTTP(w, r)
-		case ControllerServiceGetArtefactDiffsProcedure:
-			controllerServiceGetArtefactDiffsHandler.ServeHTTP(w, r)
-		case ControllerServiceUploadArtefactProcedure:
-			controllerServiceUploadArtefactHandler.ServeHTTP(w, r)
-		case ControllerServiceGetDeploymentArtefactsProcedure:
-			controllerServiceGetDeploymentArtefactsHandler.ServeHTTP(w, r)
 		case ControllerServiceRegisterRunnerProcedure:
 			controllerServiceRegisterRunnerHandler.ServeHTTP(w, r)
 		default:
@@ -290,28 +186,12 @@ func (UnimplementedControllerServiceHandler) Ping(context.Context, *connect.Requ
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.Ping is not implemented"))
 }
 
-func (UnimplementedControllerServiceHandler) ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.ClusterInfo is not implemented"))
-}
-
 func (UnimplementedControllerServiceHandler) ProcessList(context.Context, *connect.Request[v1.ProcessListRequest]) (*connect.Response[v1.ProcessListResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.ProcessList is not implemented"))
 }
 
 func (UnimplementedControllerServiceHandler) Status(context.Context, *connect.Request[v1.StatusRequest]) (*connect.Response[v1.StatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.Status is not implemented"))
-}
-
-func (UnimplementedControllerServiceHandler) GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.GetArtefactDiffs is not implemented"))
-}
-
-func (UnimplementedControllerServiceHandler) UploadArtefact(context.Context, *connect.ClientStream[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.UploadArtefact is not implemented"))
-}
-
-func (UnimplementedControllerServiceHandler) GetDeploymentArtefacts(context.Context, *connect.Request[v1.GetDeploymentArtefactsRequest], *connect.ServerStream[v1.GetDeploymentArtefactsResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.ControllerService.GetDeploymentArtefacts is not implemented"))
 }
 
 func (UnimplementedControllerServiceHandler) RegisterRunner(context.Context, *connect.ClientStream[v1.RegisterRunnerRequest]) (*connect.Response[v1.RegisterRunnerResponse], error) {

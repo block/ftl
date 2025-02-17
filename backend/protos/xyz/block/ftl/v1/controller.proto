@@ -9,39 +9,7 @@ import "xyz/block/ftl/v1/ftl.proto";
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1";
 option java_multiple_files = true;
 
-message GetArtefactDiffsRequest {
-  repeated string client_digests = 1;
-}
-message GetArtefactDiffsResponse {
-  repeated string missing_digests = 1;
-  // Artefacts that the client already has, and their path+executable status.
-  repeated DeploymentArtefact client_artefacts = 2;
-}
 
-message UploadArtefactRequest {
-  // Digest of the complete artefact.
-  bytes digest = 1;
-  // Size of the complete artefact.
-  int64 size = 2;
-  // Chunk of the artefact.
-  bytes chunk = 3;
-}
-message UploadArtefactResponse {}
-
-message DeploymentArtefact {
-  bytes digest = 1;
-  string path = 2;
-  bool executable = 3;
-}
-
-message GetDeploymentArtefactsRequest {
-  string deployment_key = 1;
-  repeated DeploymentArtefact have_artefacts = 2;
-}
-message GetDeploymentArtefactsResponse {
-  DeploymentArtefact artefact = 1;
-  bytes chunk = 2;
-}
 message RegisterRunnerRequest {
   string key = 1;
   string endpoint = 2;
@@ -51,11 +19,6 @@ message RegisterRunnerRequest {
 
 message RegisterRunnerResponse {}
 
-message ClusterInfoRequest {}
-message ClusterInfoResponse {
-  string os = 1;
-  string arch = 2;
-}
 
 message StatusRequest {}
 message StatusResponse {
@@ -115,23 +78,10 @@ service ControllerService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
-  rpc ClusterInfo(ClusterInfoRequest) returns (ClusterInfoResponse);
   // List "processes" running on the cluster.
   rpc ProcessList(ProcessListRequest) returns (ProcessListResponse);
 
   rpc Status(StatusRequest) returns (StatusResponse);
-
-  // Get list of artefacts that differ between the server and client.
-  rpc GetArtefactDiffs(GetArtefactDiffsRequest) returns (GetArtefactDiffsResponse);
-
-  // Upload an artefact to the server.
-  rpc UploadArtefact(stream UploadArtefactRequest) returns (UploadArtefactResponse);
-
-  // Stream deployment artefacts from the server.
-  //
-  // Each artefact is streamed one after the other as a sequence of max 1MB
-  // chunks.
-  rpc GetDeploymentArtefacts(GetDeploymentArtefactsRequest) returns (stream GetDeploymentArtefactsResponse);
 
   // Register a Runner with the Controller.
   //

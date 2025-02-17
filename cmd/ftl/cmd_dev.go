@@ -57,7 +57,7 @@ func (d *devCmd) Run(
 	}
 
 	terminal.LaunchEmbeddedConsole(ctx, k, bindContext, schemaEventSource)
-	var deployClient buildengine.DeployClient = controllerClient
+	var deployClient buildengine.AdminClient = adminClient
 
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -111,7 +111,7 @@ func (d *devCmd) Run(
 		starting.Close()
 
 		opts := []buildengine.Option{buildengine.Parallelism(d.Build.Parallelism), buildengine.BuildEnv(d.Build.BuildEnv), buildengine.WithDevMode(devModeEndpointUpdates), buildengine.WithStartTime(startTime)}
-		engine, err := buildengine.New(ctx, deployClient, adminClient, schemaEventSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, opts...)
+		engine, err := buildengine.New(ctx, deployClient, schemaEventSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, opts...)
 		if err != nil {
 			return err
 		}

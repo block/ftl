@@ -8,60 +8,6 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class GetArtefactDiffsRequest(_message.Message):
-    __slots__ = ("client_digests",)
-    CLIENT_DIGESTS_FIELD_NUMBER: _ClassVar[int]
-    client_digests: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, client_digests: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class GetArtefactDiffsResponse(_message.Message):
-    __slots__ = ("missing_digests", "client_artefacts")
-    MISSING_DIGESTS_FIELD_NUMBER: _ClassVar[int]
-    CLIENT_ARTEFACTS_FIELD_NUMBER: _ClassVar[int]
-    missing_digests: _containers.RepeatedScalarFieldContainer[str]
-    client_artefacts: _containers.RepeatedCompositeFieldContainer[DeploymentArtefact]
-    def __init__(self, missing_digests: _Optional[_Iterable[str]] = ..., client_artefacts: _Optional[_Iterable[_Union[DeploymentArtefact, _Mapping]]] = ...) -> None: ...
-
-class UploadArtefactRequest(_message.Message):
-    __slots__ = ("digest", "size", "chunk")
-    DIGEST_FIELD_NUMBER: _ClassVar[int]
-    SIZE_FIELD_NUMBER: _ClassVar[int]
-    CHUNK_FIELD_NUMBER: _ClassVar[int]
-    digest: bytes
-    size: int
-    chunk: bytes
-    def __init__(self, digest: _Optional[bytes] = ..., size: _Optional[int] = ..., chunk: _Optional[bytes] = ...) -> None: ...
-
-class UploadArtefactResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class DeploymentArtefact(_message.Message):
-    __slots__ = ("digest", "path", "executable")
-    DIGEST_FIELD_NUMBER: _ClassVar[int]
-    PATH_FIELD_NUMBER: _ClassVar[int]
-    EXECUTABLE_FIELD_NUMBER: _ClassVar[int]
-    digest: bytes
-    path: str
-    executable: bool
-    def __init__(self, digest: _Optional[bytes] = ..., path: _Optional[str] = ..., executable: bool = ...) -> None: ...
-
-class GetDeploymentArtefactsRequest(_message.Message):
-    __slots__ = ("deployment_key", "have_artefacts")
-    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
-    HAVE_ARTEFACTS_FIELD_NUMBER: _ClassVar[int]
-    deployment_key: str
-    have_artefacts: _containers.RepeatedCompositeFieldContainer[DeploymentArtefact]
-    def __init__(self, deployment_key: _Optional[str] = ..., have_artefacts: _Optional[_Iterable[_Union[DeploymentArtefact, _Mapping]]] = ...) -> None: ...
-
-class GetDeploymentArtefactsResponse(_message.Message):
-    __slots__ = ("artefact", "chunk")
-    ARTEFACT_FIELD_NUMBER: _ClassVar[int]
-    CHUNK_FIELD_NUMBER: _ClassVar[int]
-    artefact: DeploymentArtefact
-    chunk: bytes
-    def __init__(self, artefact: _Optional[_Union[DeploymentArtefact, _Mapping]] = ..., chunk: _Optional[bytes] = ...) -> None: ...
-
 class RegisterRunnerRequest(_message.Message):
     __slots__ = ("key", "endpoint", "deployment", "labels")
     KEY_FIELD_NUMBER: _ClassVar[int]
@@ -77,18 +23,6 @@ class RegisterRunnerRequest(_message.Message):
 class RegisterRunnerResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
-
-class ClusterInfoRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class ClusterInfoResponse(_message.Message):
-    __slots__ = ("os", "arch")
-    OS_FIELD_NUMBER: _ClassVar[int]
-    ARCH_FIELD_NUMBER: _ClassVar[int]
-    os: str
-    arch: str
-    def __init__(self, os: _Optional[str] = ..., arch: _Optional[str] = ...) -> None: ...
 
 class StatusRequest(_message.Message):
     __slots__ = ()

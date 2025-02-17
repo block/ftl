@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ApplyChangesetRequest, ApplyChangesetResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse } from "./admin_pb.js";
+import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
 import { GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse } from "./schemaservice_pb.js";
 
 /**
@@ -188,6 +188,51 @@ export const AdminService = {
       O: PullSchemaResponse,
       kind: MethodKind.ServerStreaming,
       idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * @generated from rpc xyz.block.ftl.v1.AdminService.ClusterInfo
+     */
+    clusterInfo: {
+      name: "ClusterInfo",
+      I: ClusterInfoRequest,
+      O: ClusterInfoResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get list of artefacts that differ between the server and client.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.GetArtefactDiffs
+     */
+    getArtefactDiffs: {
+      name: "GetArtefactDiffs",
+      I: GetArtefactDiffsRequest,
+      O: GetArtefactDiffsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Stream deployment artefacts from the server.
+     *
+     * Each artefact is streamed one after the other as a sequence of max 1MB
+     * chunks.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.GetDeploymentArtefacts
+     */
+    getDeploymentArtefacts: {
+      name: "GetDeploymentArtefacts",
+      I: GetDeploymentArtefactsRequest,
+      O: GetDeploymentArtefactsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Upload an artefact to the server.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.UploadArtefact
+     */
+    uploadArtefact: {
+      name: "UploadArtefact",
+      I: UploadArtefactRequest,
+      O: UploadArtefactResponse,
+      kind: MethodKind.ClientStreaming,
     },
   }
 } as const;

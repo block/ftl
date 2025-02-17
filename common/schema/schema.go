@@ -13,6 +13,7 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/internal/key"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -179,6 +180,16 @@ func (s *Schema) ResolveToType(ref *Ref, out Decl) error {
 func (s *Schema) Module(name string) optional.Option[*Module] {
 	for _, module := range s.Modules {
 		if module.Name == name {
+			return optional.Some(module)
+		}
+	}
+	return optional.None[*Module]()
+}
+
+// Deployment returns the named deployment if it exists.
+func (s *Schema) Deployment(name key.Deployment) optional.Option[*Module] {
+	for _, module := range s.Modules {
+		if module.GetRuntime().GetDeployment().GetDeploymentKey() == name {
 			return optional.Some(module)
 		}
 	}

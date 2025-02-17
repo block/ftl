@@ -241,10 +241,6 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		kctx.FatalIfErrorf(err)
 		kctx.Bind(logger)
 
-		schemaServiceClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, schemaServiceClient)
-		kctx.BindTo(schemaServiceClient, (*ftlv1connect.SchemaServiceClient)(nil))
-
 		controllerServiceClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.Endpoint.String(), log.Error)
 		ctx = rpc.ContextWithClient(ctx, controllerServiceClient)
 		kctx.BindTo(controllerServiceClient, (*ftlv1connect.ControllerServiceClient)(nil))
@@ -274,7 +270,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		})
 		kctx.FatalIfErrorf(err)
 
-		source := schemaeventsource.New(ctx, "cli", schemaServiceClient)
+		source := schemaeventsource.New(ctx, "cli", adminClient)
 		kctx.BindTo(source, (**schemaeventsource.EventSource)(nil))
 		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(source.ViewOnly())))
 

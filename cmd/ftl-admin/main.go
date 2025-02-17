@@ -11,6 +11,7 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
+	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	cf "github.com/block/ftl/internal/configuration"
@@ -24,13 +25,14 @@ import (
 )
 
 var cli struct {
-	Version             kong.VersionFlag     `help:"Show version."`
-	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
-	LogConfig           log.Config           `embed:"" prefix:"log-"`
-	AdminConfig         admin.Config         `embed:"" prefix:"admin-"`
-	SchemaEndpoint      *url.URL             `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
-	Config              string               `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
-	Secrets             string               `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
+	Version             kong.VersionFlag         `help:"Show version."`
+	ObservabilityConfig observability.Config     `embed:"" prefix:"o11y-"`
+	LogConfig           log.Config               `embed:"" prefix:"log-"`
+	AdminConfig         admin.Config             `embed:"" prefix:"admin-"`
+	SchemaEndpoint      *url.URL                 `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
+	Config              string                   `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
+	Secrets             string                   `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
+	RegistryConfig      artefacts.RegistryConfig `embed:"" prefix:"oci-"`
 }
 
 func main() {
@@ -61,6 +63,8 @@ func main() {
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "admin", schemaClient)
 
-	err = admin.Start(ctx, cli.AdminConfig, cm, sm, schemaClient, eventSource)
+	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
+	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
+	err = admin.Start(ctx, cli.AdminConfig, cm, sm, schemaClient, eventSource, storage)
 	kctx.FatalIfErrorf(err, "failed to start timeline service")
 }

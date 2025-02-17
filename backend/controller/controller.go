@@ -5,14 +5,11 @@ import (
 	sha "crypto/sha256"
 	"database/sql"
 	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"hash"
-	"io"
 	"net/url"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -25,10 +22,8 @@ import (
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/block/ftl"
-	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/controller/leases"
 	"github.com/block/ftl/backend/controller/observability"
 	"github.com/block/ftl/backend/controller/scheduledtask"
@@ -38,7 +33,6 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/eventstream"
@@ -67,7 +61,6 @@ type Config struct {
 	ControllerTimeout            time.Duration  `help:"Controller heartbeat timeout." default:"10s"`
 	DeploymentReservationTimeout time.Duration  `help:"Deployment reservation timeout." default:"120s"`
 	ModuleUpdateFrequency        time.Duration  `help:"Frequency to send module updates." default:"1s"` //TODO: FIX this, this should be based on streaming events, 1s is a temp workaround for the lack of dependencies within changesets
-	ArtefactChunkSize            int            `help:"Size of each chunk streamed to the client." default:"1048576"`
 	CommonConfig
 }
 
@@ -91,7 +84,6 @@ func (c *Config) OpenDBAndInstrument(dsn string) (*sql.DB, error) {
 func Start(
 	ctx context.Context,
 	config Config,
-	storage *artefacts.OCIArtefactService,
 	adminClient ftlv1connect.AdminServiceClient,
 	timelineClient *timelineclient.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
@@ -102,7 +94,7 @@ func Start(
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL controller")
 
-	svc, err := New(ctx, adminClient, timelineClient, schemaClient, storage, config, devel)
+	svc, err := New(ctx, adminClient, timelineClient, schemaClient, config, devel)
 	if err != nil {
 		return err
 	}
@@ -137,7 +129,6 @@ type Service struct {
 
 	tasks          *scheduledtask.Scheduler
 	timelineClient *timelineclient.Client
-	storage        *artefacts.OCIArtefactService
 
 	// Map from runnerKey.String() to client.
 	clients    *ttlcache.Cache[string, clients]
@@ -150,16 +141,11 @@ type Service struct {
 	runnerState  eventstream.EventStream[state.RunnerState, state.RunnerEvent]
 }
 
-func (s *Service) ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error) {
-	return connect.NewResponse(&ftlv1.ClusterInfoResponse{Os: runtime.GOOS, Arch: runtime.GOARCH}), nil
-}
-
 func New(
 	ctx context.Context,
 	adminClient ftlv1connect.AdminServiceClient,
 	timelineClient *timelineclient.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
-	storage *artefacts.OCIArtefactService,
 	config Config,
 	devel bool,
 ) (*Service, error) {
@@ -192,7 +178,6 @@ func New(
 		clients:        ttlcache.New(ttlcache.WithTTL[string, clients](time.Minute)),
 		config:         config,
 		routeTable:     routingTable,
-		storage:        storage,
 		schemaClient:   schemaClient,
 		runnerState:    state.NewInMemoryRunnerState(ctx),
 		adminClient:    adminClient,
@@ -435,59 +420,6 @@ func (s *Service) GetDeployment(ctx context.Context, req *connect.Request[ftlv1.
 	return connect.NewResponse(&ftlv1.GetDeploymentResponse{
 		Schema: deployment.ToProto(),
 	}), nil
-}
-
-func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentArtefactsRequest], resp *connect.ServerStream[ftlv1.GetDeploymentArtefactsResponse]) error {
-	dkey, err := key.ParseDeploymentKey(req.Msg.DeploymentKey)
-	if err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
-	}
-
-	deployment, err := s.getDeployment(ctx, dkey)
-	if err != nil {
-		return fmt.Errorf("could not get deployment: %w", err)
-	}
-
-	logger := s.getDeploymentLogger(ctx, dkey)
-	logger.Debugf("Get deployment artefacts for: %s", dkey.String())
-
-	chunk := make([]byte, s.config.ArtefactChunkSize)
-nextArtefact:
-	for artefact := range slices.FilterVariants[schema.MetadataArtefact](deployment.Metadata) {
-		deploymentArtefact := &state.DeploymentArtefact{
-			Digest:     artefact.Digest,
-			Path:       artefact.Path,
-			Executable: artefact.Executable,
-		}
-		for _, clientArtefact := range req.Msg.HaveArtefacts {
-			if proto.Equal(ftlv1.ArtefactToProto(deploymentArtefact), clientArtefact) {
-				continue nextArtefact
-			}
-		}
-		reader, err := s.storage.Download(ctx, artefact.Digest)
-		if err != nil {
-			return fmt.Errorf("could not download artefact: %w", err)
-		}
-		defer reader.Close()
-		for {
-
-			n, err := reader.Read(chunk)
-			if n != 0 {
-				if err := resp.Send(&ftlv1.GetDeploymentArtefactsResponse{
-					Artefact: ftlv1.ArtefactToProto(deploymentArtefact),
-					Chunk:    chunk[:n],
-				}); err != nil {
-					return fmt.Errorf("could not send artefact chunk: %w", err)
-				}
-			}
-			if errors.Is(err, io.EOF) {
-				break
-			} else if err != nil {
-				return fmt.Errorf("could not read artefact chunk: %w", err)
-			}
-		}
-	}
-	return nil
 }
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
@@ -787,80 +719,6 @@ func (s *Service) callWithRequest(
 	return resp, err
 }
 
-func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error) {
-	byteDigests, err := slices.MapErr(req.Msg.ClientDigests, sha256.ParseSHA256)
-	if err != nil {
-		return nil, err
-	}
-	_, need, err := s.storage.GetDigestsKeys(ctx, byteDigests)
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&ftlv1.GetArtefactDiffsResponse{
-		MissingDigests: slices.Map(need, func(s sha256.SHA256) string { return s.String() }),
-	}), nil
-}
-
-func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStream[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error) {
-	logger := log.FromContext(ctx).Scope("uploadArtefact")
-	firstMsg := NewOnceValue[*ftlv1.UploadArtefactRequest]()
-	wg, ctx := errgroup.WithContext(ctx)
-	logger.Debugf("Uploading artefact")
-	r, w := io.Pipe()
-	// Read bytes from client and upload to OCI
-	wg.Go(func() error {
-		defer r.Close()
-		logger.Tracef("Waiting for first message")
-		msg, ok := firstMsg.Get(ctx)
-		if !ok {
-			return nil
-		}
-		if msg.Size == 0 {
-			return fmt.Errorf("artefact size must be specified")
-		}
-		digest, err := sha256.ParseSHA256(hex.EncodeToString(msg.Digest))
-		if err != nil {
-			return fmt.Errorf("failed to parse digest: %w", err)
-		}
-		logger = logger.Scope("uploadArtefact:" + digest.String())
-		logger.Debugf("Starting upload to OCI")
-		err = s.storage.Upload(ctx, artefacts.ArtefactUpload{
-			Digest:  digest,
-			Size:    msg.Size,
-			Content: r,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to upload artefact: %w", err)
-		}
-		logger.Debugf("Created new artefact %s", digest)
-		return nil
-	})
-	// Stream bytes from client into the pipe
-	wg.Go(func() error {
-		defer w.Close()
-		logger.Debugf("Starting forwarder from client to OCI")
-		for stream.Receive() {
-			msg := stream.Msg()
-			if len(msg.Chunk) == 0 {
-				return fmt.Errorf("zero length chunk received")
-			}
-			firstMsg.Set(msg)
-			if _, err := w.Write(msg.Chunk); err != nil {
-				return fmt.Errorf("failed to write chunk: %w", err)
-			}
-		}
-		if err := stream.Err(); err != nil {
-			return fmt.Errorf("failed to upload artefact: %w", err)
-		}
-		return nil
-	})
-	err := wg.Wait()
-	if err != nil {
-		return nil, fmt.Errorf("failed to upload artefact: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.UploadArtefactResponse{}), nil
-}
-
 func (s *Service) getDeployment(ctx context.Context, dkey key.Deployment) (*schema.Module, error) {
 	deployments, err := s.schemaClient.GetDeployments(ctx, &connect.Request[ftlv1.GetDeploymentsRequest]{})
 	if err != nil {
@@ -956,33 +814,4 @@ func validateCallBody(body []byte, verb *schema.Verb, sch *schema.Schema) error 
 		return fmt.Errorf("could not validate call request body: %w", err)
 	}
 	return nil
-}
-
-type OnceValue[T any] struct {
-	value T
-	ready chan struct{}
-	once  sync.Once
-}
-
-func NewOnceValue[T any]() *OnceValue[T] {
-	return &OnceValue[T]{
-		ready: make(chan struct{}),
-	}
-}
-
-func (o *OnceValue[T]) Set(value T) {
-	o.once.Do(func() {
-		o.value = value
-		close(o.ready)
-	})
-}
-
-func (o *OnceValue[T]) Get(ctx context.Context) (T, bool) {
-	select {
-	case <-o.ready:
-		return o.value, true
-	case <-ctx.Done():
-		var zero T
-		return zero, false
-	}
 }

@@ -251,7 +251,7 @@ func (s *serveCommonConfig) run(
 	controllerCtx := log.ContextWithLogger(ctx, logger.Scope("controller"))
 
 	wg.Go(func() error {
-		if err := controller.Start(controllerCtx, config, storage, adminClient, timelineClient, schemaClient, true); err != nil {
+		if err := controller.Start(controllerCtx, config, adminClient, timelineClient, schemaClient, true); err != nil {
 			logger.Errorf(err, "controller failed: %v", err)
 			return fmt.Errorf("controller failed: %w", err)
 		}
@@ -355,7 +355,7 @@ func (s *serveCommonConfig) run(
 	})
 	// Start Admin
 	wg.Go(func() error {
-		err := admin.Start(ctx, s.Admin, cm, sm, schemaClient, schemaEventSource)
+		err := admin.Start(ctx, s.Admin, cm, sm, schemaClient, schemaEventSource, storage)
 		if err != nil {
 			return fmt.Errorf("lease failed: %w", err)
 		}

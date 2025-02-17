@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"connectrpc.com/connect"
 	"golang.org/x/exp/maps"
@@ -20,10 +19,10 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/sha256"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 type deploymentArtefact struct {
@@ -31,27 +30,22 @@ type deploymentArtefact struct {
 	localPath string
 }
 
-type DeployClient interface {
+type AdminClient interface {
+	ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error)
 	ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error)
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error)
 	UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[ftlv1.UploadArtefactRequest, ftlv1.UploadArtefactResponse]
-	Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error)
-	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
-}
-
-type AdminClient interface {
-	ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
 
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, deployClient DeployClient, adminClient AdminClient) error {
+func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, adminClient AdminClient) error {
 	logger := log.FromContext(ctx)
 	uploadGroup := errgroup.Group{}
 	moduleSchemas := make(chan *schemapb.Module, len(modules))
 	for _, module := range modules {
 		uploadGroup.Go(func() error {
-			sch, err := uploadArtefacts(ctx, projectConfig, module, deployClient)
+			sch, err := uploadArtefacts(ctx, projectConfig, module, adminClient)
 			if err != nil {
 				return err
 			}
@@ -85,7 +79,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 	return nil
 }
 
-func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, module Module, client DeployClient) (*schemapb.Module, error) {
+func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, module Module, client AdminClient) (*schemapb.Module, error) {
 	logger := log.FromContext(ctx).Module(module.Config.Module).Scope("deploy")
 	ctx = log.ContextWithLogger(ctx, logger)
 	logger.Debugf("Deploying module")
@@ -134,7 +128,7 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 	return moduleSchema, nil
 }
 
-func uploadDeploymentArtefact(ctx context.Context, client DeployClient, file deploymentArtefact) error {
+func uploadDeploymentArtefact(ctx context.Context, client AdminClient, file deploymentArtefact) error {
 	logger := log.FromContext(ctx).Scope("upload:" + hex.EncodeToString(file.Digest))
 	f, err := os.Open(file.localPath)
 	if err != nil {
@@ -178,29 +172,19 @@ func uploadDeploymentArtefact(ctx context.Context, client DeployClient, file dep
 	return nil
 }
 
-func terminateModuleDeployment(ctx context.Context, client DeployClient, adminClient AdminClient, module string) error {
+func terminateModuleDeployment(ctx context.Context, events *schemaeventsource.EventSource, client AdminClient, module string) error {
 	logger := log.FromContext(ctx).Module(module).Scope("terminate")
 
-	status, err := client.Status(ctx, connect.NewRequest(&ftlv1.StatusRequest{}))
-	if err != nil {
-		return err
-	}
+	mod, ok := events.CanonicalView().Module(module).Get()
 
-	var key string
-	for _, deployment := range status.Msg.Deployments {
-		if deployment.Name == module {
-			key = deployment.Key
-			continue
-		}
+	if !ok {
+		return fmt.Errorf("deployment for module %s not found", module)
 	}
-
-	if key == "" {
-		return fmt.Errorf("deployment for module %s not found: %v", module, status.Msg.Deployments)
-	}
+	key := mod.Runtime.Deployment.DeploymentKey
 
 	logger.Infof("Terminating deployment %s", key)
-	_, err = adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
-		ToRemove: []string{key},
+	_, err := client.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
+		ToRemove: []string{key.String()},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to kill deployment: %w", err)
@@ -317,42 +301,4 @@ func relToCWD(path string) string {
 		return path
 	}
 	return rel
-}
-
-func checkReadiness(ctx context.Context, client DeployClient, deploymentKey string, replicas int32, schema *schemapb.Module) error {
-	ticker := time.NewTicker(time.Millisecond * 100)
-	defer ticker.Stop()
-
-	hasVerbs := false
-	for _, dec := range schema.Decls {
-		if dec.GetVerb() != nil {
-			hasVerbs = true
-			break
-		}
-	}
-	for range channels.IterContext(ctx, ticker.C) {
-		status, err := client.Status(ctx, connect.NewRequest(&ftlv1.StatusRequest{}))
-		if err != nil {
-			return fmt.Errorf("failed to get status: %w", err)
-		}
-
-		for _, deployment := range status.Msg.Deployments {
-			if deployment.Key == deploymentKey {
-				if deployment.Replicas >= replicas {
-					if hasVerbs {
-						// Also verify the routing table is ready
-						for _, route := range status.Msg.Routes {
-							if route.Deployment == deploymentKey {
-								return nil
-							}
-						}
-
-					} else {
-						return nil
-					}
-				}
-			}
-		}
-	}
-	return nil
 }

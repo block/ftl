@@ -2,36 +2,50 @@ package admin
 
 import (
 	"context"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"net/url"
+	"runtime"
 	"slices"
+	"sync"
 
 	"connectrpc.com/connect"
 	"github.com/IBM/sarama"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/proto"
 
+	"github.com/block/ftl/backend/controller/artefacts"
+	"github.com/block/ftl/backend/controller/state"
 	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/sha256"
 	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 type Config struct {
-	Bind *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8896" env:"FTL_BIND"`
+	Bind              *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8896" env:"FTL_BIND"`
+	ArtefactChunkSize int      `help:"Size of each chunk streamed to the client." default:"1048576"`
 }
 
 type Service struct {
 	env          *EnvironmentManager
 	schemaClient ftlv1connect.SchemaServiceClient
 	source       *schemaeventsource.EventSource
+	storage      *artefacts.OCIArtefactService
+	config       Config
 }
 
 var _ ftlv1connect.AdminServiceHandler = (*Service)(nil)
@@ -53,11 +67,13 @@ func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, 
 
 // NewAdminService creates a new Service.
 // bindAllocator is optional and should be set if a local client is to be used that accesses schema from disk using language plugins.
-func NewAdminService(env *EnvironmentManager, schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource) *Service {
+func NewAdminService(config Config, env *EnvironmentManager, schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource, storage *artefacts.OCIArtefactService) *Service {
 	return &Service{
+		config:       config,
 		env:          env,
 		schemaClient: schr,
 		source:       source,
+		storage:      storage,
 	}
 }
 
@@ -67,11 +83,11 @@ func Start(
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource,
-) error {
+	storage *artefacts.OCIArtefactService) error {
 
 	logger := log.FromContext(ctx).Scope("admin")
 
-	svc := NewAdminService(&EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm}, schr, source)
+	svc := NewAdminService(config, &EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm}, schr, source, storage)
 
 	logger.Debugf("Admin service listening on: %s", config.Bind)
 	err := rpc.Serve(ctx, config.Bind,
@@ -362,4 +378,165 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 
 	}
 	return fmt.Errorf("context cancelled %w", ctx.Err())
+}
+
+func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error) {
+	byteDigests, err := islices.MapErr(req.Msg.ClientDigests, sha256.ParseSHA256)
+	if err != nil {
+		return nil, err
+	}
+	_, need, err := s.storage.GetDigestsKeys(ctx, byteDigests)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&ftlv1.GetArtefactDiffsResponse{
+		MissingDigests: islices.Map(need, func(s sha256.SHA256) string { return s.String() }),
+	}), nil
+}
+
+func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStream[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error) {
+	logger := log.FromContext(ctx).Scope("uploadArtefact")
+	firstMsg := NewOnceValue[*ftlv1.UploadArtefactRequest]()
+	wg, ctx := errgroup.WithContext(ctx)
+	logger.Debugf("Uploading artefact")
+	r, w := io.Pipe()
+	// Read bytes from client and upload to OCI
+	wg.Go(func() error {
+		defer r.Close()
+		logger.Tracef("Waiting for first message")
+		msg, ok := firstMsg.Get(ctx)
+		if !ok {
+			return nil
+		}
+		if msg.Size == 0 {
+			return fmt.Errorf("artefact size must be specified")
+		}
+		digest, err := sha256.ParseSHA256(hex.EncodeToString(msg.Digest))
+		if err != nil {
+			return fmt.Errorf("failed to parse digest: %w", err)
+		}
+		logger = logger.Scope("uploadArtefact:" + digest.String())
+		logger.Debugf("Starting upload to OCI")
+		err = s.storage.Upload(ctx, artefacts.ArtefactUpload{
+			Digest:  digest,
+			Size:    msg.Size,
+			Content: r,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upload artefact: %w", err)
+		}
+		logger.Debugf("Created new artefact %s", digest)
+		return nil
+	})
+	// Stream bytes from client into the pipe
+	wg.Go(func() error {
+		defer w.Close()
+		logger.Debugf("Starting forwarder from client to OCI")
+		for stream.Receive() {
+			msg := stream.Msg()
+			if len(msg.Chunk) == 0 {
+				return fmt.Errorf("zero length chunk received")
+			}
+			firstMsg.Set(msg)
+			if _, err := w.Write(msg.Chunk); err != nil {
+				return fmt.Errorf("failed to write chunk: %w", err)
+			}
+		}
+		if err := stream.Err(); err != nil {
+			return fmt.Errorf("failed to upload artefact: %w", err)
+		}
+		return nil
+	})
+	err := wg.Wait()
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload artefact: %w", err)
+	}
+	return connect.NewResponse(&ftlv1.UploadArtefactResponse{}), nil
+}
+
+func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentArtefactsRequest], resp *connect.ServerStream[ftlv1.GetDeploymentArtefactsResponse]) error {
+	dkey, err := key.ParseDeploymentKey(req.Msg.DeploymentKey)
+	if err != nil {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
+	}
+
+	deploymentOpt := s.source.CanonicalView().Deployment(dkey)
+	deployment, ok := deploymentOpt.Get()
+	if !ok {
+		return fmt.Errorf("could not get deployment: %s", req.Msg.DeploymentKey)
+	}
+
+	logger := log.FromContext(ctx)
+	logger.Debugf("Get deployment artefacts for: %s", dkey.String())
+
+	chunk := make([]byte, s.config.ArtefactChunkSize)
+nextArtefact:
+	for artefact := range islices.FilterVariants[schema.MetadataArtefact](deployment.Metadata) {
+		deploymentArtefact := &state.DeploymentArtefact{
+			Digest:     artefact.Digest,
+			Path:       artefact.Path,
+			Executable: artefact.Executable,
+		}
+		for _, clientArtefact := range req.Msg.HaveArtefacts {
+			if proto.Equal(ftlv1.ArtefactToProto(deploymentArtefact), clientArtefact) {
+				continue nextArtefact
+			}
+		}
+		reader, err := s.storage.Download(ctx, artefact.Digest)
+		if err != nil {
+			return fmt.Errorf("could not download artefact: %w", err)
+		}
+		defer reader.Close()
+		for {
+
+			n, err := reader.Read(chunk)
+			if n != 0 {
+				if err := resp.Send(&ftlv1.GetDeploymentArtefactsResponse{
+					Artefact: ftlv1.ArtefactToProto(deploymentArtefact),
+					Chunk:    chunk[:n],
+				}); err != nil {
+					return fmt.Errorf("could not send artefact chunk: %w", err)
+				}
+			}
+			if errors.Is(err, io.EOF) {
+				break
+			} else if err != nil {
+				return fmt.Errorf("could not read artefact chunk: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Service) ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error) {
+	return connect.NewResponse(&ftlv1.ClusterInfoResponse{Os: runtime.GOOS, Arch: runtime.GOARCH}), nil
+}
+
+type OnceValue[T any] struct {
+	value T
+	ready chan struct{}
+	once  sync.Once
+}
+
+func NewOnceValue[T any]() *OnceValue[T] {
+	return &OnceValue[T]{
+		ready: make(chan struct{}),
+	}
+}
+
+func (o *OnceValue[T]) Set(value T) {
+	o.once.Do(func() {
+		o.value = value
+		close(o.ready)
+	})
+}
+
+func (o *OnceValue[T]) Get(ctx context.Context) (T, bool) {
+	select {
+	case <-o.ready:
+		return o.value, true
+	case <-ctx.Done():
+		var zero T
+		return zero, false
+	}
 }

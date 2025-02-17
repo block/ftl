@@ -22,7 +22,6 @@ type buildCmd struct {
 
 func (b *buildCmd) Run(
 	ctx context.Context,
-	controllerClient ftlv1connect.ControllerServiceClient,
 	adminClient ftlv1connect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
 	projConfig projectconfig.Config,
@@ -40,7 +39,6 @@ func (b *buildCmd) Run(
 	defer cancel(fmt.Errorf("build stopped: %w", context.Canceled))
 	engine, err := buildengine.New(
 		ctx,
-		controllerClient,
 		adminClient,
 		schemaSource,
 		projConfig,

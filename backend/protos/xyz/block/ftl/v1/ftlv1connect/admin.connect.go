@@ -70,6 +70,18 @@ const (
 	AdminServiceGetSchemaProcedure = "/xyz.block.ftl.v1.AdminService/GetSchema"
 	// AdminServicePullSchemaProcedure is the fully-qualified name of the AdminService's PullSchema RPC.
 	AdminServicePullSchemaProcedure = "/xyz.block.ftl.v1.AdminService/PullSchema"
+	// AdminServiceClusterInfoProcedure is the fully-qualified name of the AdminService's ClusterInfo
+	// RPC.
+	AdminServiceClusterInfoProcedure = "/xyz.block.ftl.v1.AdminService/ClusterInfo"
+	// AdminServiceGetArtefactDiffsProcedure is the fully-qualified name of the AdminService's
+	// GetArtefactDiffs RPC.
+	AdminServiceGetArtefactDiffsProcedure = "/xyz.block.ftl.v1.AdminService/GetArtefactDiffs"
+	// AdminServiceGetDeploymentArtefactsProcedure is the fully-qualified name of the AdminService's
+	// GetDeploymentArtefacts RPC.
+	AdminServiceGetDeploymentArtefactsProcedure = "/xyz.block.ftl.v1.AdminService/GetDeploymentArtefacts"
+	// AdminServiceUploadArtefactProcedure is the fully-qualified name of the AdminService's
+	// UploadArtefact RPC.
+	AdminServiceUploadArtefactProcedure = "/xyz.block.ftl.v1.AdminService/UploadArtefact"
 )
 
 // AdminServiceClient is a client for the xyz.block.ftl.v1.AdminService service.
@@ -109,6 +121,16 @@ type AdminServiceClient interface {
 	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
 	// just retrieving the schema. Use GetSchema for that.
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest]) (*connect.ServerStreamForClient[v1.PullSchemaResponse], error)
+	ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error)
+	// Get list of artefacts that differ between the server and client.
+	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
+	// Stream deployment artefacts from the server.
+	//
+	// Each artefact is streamed one after the other as a sequence of max 1MB
+	// chunks.
+	GetDeploymentArtefacts(context.Context, *connect.Request[v1.GetDeploymentArtefactsRequest]) (*connect.ServerStreamForClient[v1.GetDeploymentArtefactsResponse], error)
+	// Upload an artefact to the server.
+	UploadArtefact(context.Context) *connect.ClientStreamForClient[v1.UploadArtefactRequest, v1.UploadArtefactResponse]
 }
 
 // NewAdminServiceClient constructs a client for the xyz.block.ftl.v1.AdminService service. By
@@ -199,26 +221,50 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		clusterInfo: connect.NewClient[v1.ClusterInfoRequest, v1.ClusterInfoResponse](
+			httpClient,
+			baseURL+AdminServiceClusterInfoProcedure,
+			opts...,
+		),
+		getArtefactDiffs: connect.NewClient[v1.GetArtefactDiffsRequest, v1.GetArtefactDiffsResponse](
+			httpClient,
+			baseURL+AdminServiceGetArtefactDiffsProcedure,
+			opts...,
+		),
+		getDeploymentArtefacts: connect.NewClient[v1.GetDeploymentArtefactsRequest, v1.GetDeploymentArtefactsResponse](
+			httpClient,
+			baseURL+AdminServiceGetDeploymentArtefactsProcedure,
+			opts...,
+		),
+		uploadArtefact: connect.NewClient[v1.UploadArtefactRequest, v1.UploadArtefactResponse](
+			httpClient,
+			baseURL+AdminServiceUploadArtefactProcedure,
+			opts...,
+		),
 	}
 }
 
 // adminServiceClient implements AdminServiceClient.
 type adminServiceClient struct {
-	ping                *connect.Client[v1.PingRequest, v1.PingResponse]
-	configList          *connect.Client[v1.ConfigListRequest, v1.ConfigListResponse]
-	configGet           *connect.Client[v1.ConfigGetRequest, v1.ConfigGetResponse]
-	configSet           *connect.Client[v1.ConfigSetRequest, v1.ConfigSetResponse]
-	configUnset         *connect.Client[v1.ConfigUnsetRequest, v1.ConfigUnsetResponse]
-	secretsList         *connect.Client[v1.SecretsListRequest, v1.SecretsListResponse]
-	secretGet           *connect.Client[v1.SecretGetRequest, v1.SecretGetResponse]
-	secretSet           *connect.Client[v1.SecretSetRequest, v1.SecretSetResponse]
-	secretUnset         *connect.Client[v1.SecretUnsetRequest, v1.SecretUnsetResponse]
-	mapConfigsForModule *connect.Client[v1.MapConfigsForModuleRequest, v1.MapConfigsForModuleResponse]
-	mapSecretsForModule *connect.Client[v1.MapSecretsForModuleRequest, v1.MapSecretsForModuleResponse]
-	resetSubscription   *connect.Client[v1.ResetSubscriptionRequest, v1.ResetSubscriptionResponse]
-	applyChangeset      *connect.Client[v1.ApplyChangesetRequest, v1.ApplyChangesetResponse]
-	getSchema           *connect.Client[v1.GetSchemaRequest, v1.GetSchemaResponse]
-	pullSchema          *connect.Client[v1.PullSchemaRequest, v1.PullSchemaResponse]
+	ping                   *connect.Client[v1.PingRequest, v1.PingResponse]
+	configList             *connect.Client[v1.ConfigListRequest, v1.ConfigListResponse]
+	configGet              *connect.Client[v1.ConfigGetRequest, v1.ConfigGetResponse]
+	configSet              *connect.Client[v1.ConfigSetRequest, v1.ConfigSetResponse]
+	configUnset            *connect.Client[v1.ConfigUnsetRequest, v1.ConfigUnsetResponse]
+	secretsList            *connect.Client[v1.SecretsListRequest, v1.SecretsListResponse]
+	secretGet              *connect.Client[v1.SecretGetRequest, v1.SecretGetResponse]
+	secretSet              *connect.Client[v1.SecretSetRequest, v1.SecretSetResponse]
+	secretUnset            *connect.Client[v1.SecretUnsetRequest, v1.SecretUnsetResponse]
+	mapConfigsForModule    *connect.Client[v1.MapConfigsForModuleRequest, v1.MapConfigsForModuleResponse]
+	mapSecretsForModule    *connect.Client[v1.MapSecretsForModuleRequest, v1.MapSecretsForModuleResponse]
+	resetSubscription      *connect.Client[v1.ResetSubscriptionRequest, v1.ResetSubscriptionResponse]
+	applyChangeset         *connect.Client[v1.ApplyChangesetRequest, v1.ApplyChangesetResponse]
+	getSchema              *connect.Client[v1.GetSchemaRequest, v1.GetSchemaResponse]
+	pullSchema             *connect.Client[v1.PullSchemaRequest, v1.PullSchemaResponse]
+	clusterInfo            *connect.Client[v1.ClusterInfoRequest, v1.ClusterInfoResponse]
+	getArtefactDiffs       *connect.Client[v1.GetArtefactDiffsRequest, v1.GetArtefactDiffsResponse]
+	getDeploymentArtefacts *connect.Client[v1.GetDeploymentArtefactsRequest, v1.GetDeploymentArtefactsResponse]
+	uploadArtefact         *connect.Client[v1.UploadArtefactRequest, v1.UploadArtefactResponse]
 }
 
 // Ping calls xyz.block.ftl.v1.AdminService.Ping.
@@ -296,6 +342,26 @@ func (c *adminServiceClient) PullSchema(ctx context.Context, req *connect.Reques
 	return c.pullSchema.CallServerStream(ctx, req)
 }
 
+// ClusterInfo calls xyz.block.ftl.v1.AdminService.ClusterInfo.
+func (c *adminServiceClient) ClusterInfo(ctx context.Context, req *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error) {
+	return c.clusterInfo.CallUnary(ctx, req)
+}
+
+// GetArtefactDiffs calls xyz.block.ftl.v1.AdminService.GetArtefactDiffs.
+func (c *adminServiceClient) GetArtefactDiffs(ctx context.Context, req *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error) {
+	return c.getArtefactDiffs.CallUnary(ctx, req)
+}
+
+// GetDeploymentArtefacts calls xyz.block.ftl.v1.AdminService.GetDeploymentArtefacts.
+func (c *adminServiceClient) GetDeploymentArtefacts(ctx context.Context, req *connect.Request[v1.GetDeploymentArtefactsRequest]) (*connect.ServerStreamForClient[v1.GetDeploymentArtefactsResponse], error) {
+	return c.getDeploymentArtefacts.CallServerStream(ctx, req)
+}
+
+// UploadArtefact calls xyz.block.ftl.v1.AdminService.UploadArtefact.
+func (c *adminServiceClient) UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[v1.UploadArtefactRequest, v1.UploadArtefactResponse] {
+	return c.uploadArtefact.CallClientStream(ctx)
+}
+
 // AdminServiceHandler is an implementation of the xyz.block.ftl.v1.AdminService service.
 type AdminServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -333,6 +399,16 @@ type AdminServiceHandler interface {
 	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
 	// just retrieving the schema. Use GetSchema for that.
 	PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error
+	ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error)
+	// Get list of artefacts that differ between the server and client.
+	GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error)
+	// Stream deployment artefacts from the server.
+	//
+	// Each artefact is streamed one after the other as a sequence of max 1MB
+	// chunks.
+	GetDeploymentArtefacts(context.Context, *connect.Request[v1.GetDeploymentArtefactsRequest], *connect.ServerStream[v1.GetDeploymentArtefactsResponse]) error
+	// Upload an artefact to the server.
+	UploadArtefact(context.Context, *connect.ClientStream[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error)
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -419,6 +495,26 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServiceClusterInfoHandler := connect.NewUnaryHandler(
+		AdminServiceClusterInfoProcedure,
+		svc.ClusterInfo,
+		opts...,
+	)
+	adminServiceGetArtefactDiffsHandler := connect.NewUnaryHandler(
+		AdminServiceGetArtefactDiffsProcedure,
+		svc.GetArtefactDiffs,
+		opts...,
+	)
+	adminServiceGetDeploymentArtefactsHandler := connect.NewServerStreamHandler(
+		AdminServiceGetDeploymentArtefactsProcedure,
+		svc.GetDeploymentArtefacts,
+		opts...,
+	)
+	adminServiceUploadArtefactHandler := connect.NewClientStreamHandler(
+		AdminServiceUploadArtefactProcedure,
+		svc.UploadArtefact,
+		opts...,
+	)
 	return "/xyz.block.ftl.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServicePingProcedure:
@@ -451,6 +547,14 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceGetSchemaHandler.ServeHTTP(w, r)
 		case AdminServicePullSchemaProcedure:
 			adminServicePullSchemaHandler.ServeHTTP(w, r)
+		case AdminServiceClusterInfoProcedure:
+			adminServiceClusterInfoHandler.ServeHTTP(w, r)
+		case AdminServiceGetArtefactDiffsProcedure:
+			adminServiceGetArtefactDiffsHandler.ServeHTTP(w, r)
+		case AdminServiceGetDeploymentArtefactsProcedure:
+			adminServiceGetDeploymentArtefactsHandler.ServeHTTP(w, r)
+		case AdminServiceUploadArtefactProcedure:
+			adminServiceUploadArtefactHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -518,4 +622,20 @@ func (UnimplementedAdminServiceHandler) GetSchema(context.Context, *connect.Requ
 
 func (UnimplementedAdminServiceHandler) PullSchema(context.Context, *connect.Request[v1.PullSchemaRequest], *connect.ServerStream[v1.PullSchemaResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.PullSchema is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) ClusterInfo(context.Context, *connect.Request[v1.ClusterInfoRequest]) (*connect.Response[v1.ClusterInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.ClusterInfo is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetArtefactDiffs(context.Context, *connect.Request[v1.GetArtefactDiffsRequest]) (*connect.Response[v1.GetArtefactDiffsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.GetArtefactDiffs is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetDeploymentArtefacts(context.Context, *connect.Request[v1.GetDeploymentArtefactsRequest], *connect.ServerStream[v1.GetDeploymentArtefactsResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.GetDeploymentArtefacts is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) UploadArtefact(context.Context, *connect.ClientStream[v1.UploadArtefactRequest]) (*connect.Response[v1.UploadArtefactResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.UploadArtefact is not implemented"))
 }

@@ -22,7 +22,6 @@ type deployCmd struct {
 func (d *deployCmd) Run(
 	ctx context.Context,
 	projConfig projectconfig.Config,
-	controllerClient ftlv1connect.ControllerServiceClient,
 	adminClient ftlv1connect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
 ) error {
@@ -38,7 +37,7 @@ func (d *deployCmd) Run(
 		defer cancel(fmt.Errorf("stopping deploy: %w", context.Canceled))
 	}
 	engine, err := buildengine.New(
-		ctx, controllerClient, adminClient, schemaSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint,
+		ctx, adminClient, schemaSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint,
 		buildengine.BuildEnv(d.Build.BuildEnv),
 		buildengine.Parallelism(d.Build.Parallelism),
 	)

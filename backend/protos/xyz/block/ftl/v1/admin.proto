@@ -150,6 +150,43 @@ message ApplyChangesetResponse {
   ftl.schema.v1.Changeset changeset = 2;
 }
 
+message GetArtefactDiffsRequest {
+  repeated string client_digests = 1;
+}
+message GetArtefactDiffsResponse {
+  repeated string missing_digests = 1;
+  // Artefacts that the client already has, and their path+executable status.
+  repeated DeploymentArtefact client_artefacts = 2;
+}
+
+message GetDeploymentArtefactsRequest {
+  string deployment_key = 1;
+  repeated DeploymentArtefact have_artefacts = 2;
+}
+message GetDeploymentArtefactsResponse {
+  DeploymentArtefact artefact = 1;
+  bytes chunk = 2;
+}
+message DeploymentArtefact {
+  bytes digest = 1;
+  string path = 2;
+  bool executable = 3;
+}
+message UploadArtefactRequest {
+  // Digest of the complete artefact.
+  bytes digest = 1;
+  // Size of the complete artefact.
+  int64 size = 2;
+  // Chunk of the artefact.
+  bytes chunk = 3;
+}
+message UploadArtefactResponse {}
+
+message ClusterInfoRequest {}
+message ClusterInfoResponse {
+  string os = 1;
+  string arch = 2;
+}
 // AdminService is the service that provides and updates admin data. For example,
 // it is used to encapsulate configuration and secrets.
 service AdminService {
@@ -208,4 +245,18 @@ service AdminService {
   rpc PullSchema(PullSchemaRequest) returns (stream PullSchemaResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+
+  rpc ClusterInfo(ClusterInfoRequest) returns (ClusterInfoResponse);
+
+  // Get list of artefacts that differ between the server and client.
+  rpc GetArtefactDiffs(GetArtefactDiffsRequest) returns (GetArtefactDiffsResponse);
+
+  // Stream deployment artefacts from the server.
+  //
+  // Each artefact is streamed one after the other as a sequence of max 1MB
+  // chunks.
+  rpc GetDeploymentArtefacts(GetDeploymentArtefactsRequest) returns (stream GetDeploymentArtefactsResponse);
+  // Upload an artefact to the server.
+  rpc UploadArtefact(stream UploadArtefactRequest) returns (UploadArtefactResponse);
 }
