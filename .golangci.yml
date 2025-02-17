@@ -10,7 +10,6 @@ linters:
   disable:
     - sqlclosecheck # This crashes
     - mnd # So annoying
-    - execinquery
     - lll
     - typecheck # `go build` catches this, and it doesn't currently work with Go 1.11 modules
     - goimports # horrendously slow with go modules :(
@@ -22,7 +21,6 @@ linters:
     - godox
     - wsl
     - dogsled
-    - gomnd
     - gocognit
     - gocyclo
     - godot
@@ -60,6 +58,7 @@ linters:
     - protogetter
     - thelper
     - perfsprint
+    - tenv
 
 linters-settings:
   exhaustive:
@@ -83,10 +82,10 @@ linters-settings:
     exclude-godoc-examples: true
     analyze-types: true
     forbid:
-      - p: '^context.WithCancel$'
-        msg: 'use context.WithCancelCause instead of context.WithCancel'
-      - p: '^context.CancelFunc$'
-        msg: 'use context.WithCancelCause instead of context.WithCancel'
+      - p: "^context.WithCancel$"
+        msg: "use context.WithCancelCause instead of context.WithCancel"
+      - p: "^context.CancelFunc$"
+        msg: "use context.WithCancelCause instead of context.WithCancel"
   depguard:
     rules:
       main:
