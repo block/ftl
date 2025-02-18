@@ -15,7 +15,6 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/rpc"
-	"github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
@@ -25,7 +24,6 @@ var cli struct {
 	ControllerConfig    controller.Config    `embed:""`
 	ConfigFlag          string               `name:"config" short:"C" help:"Path to FTL project cf file." env:"FTL_CONFIG" placeholder:"FILE"`
 	DisableIstio        bool                 `help:"Disable Istio integration. This will prevent the creation of Istio policies to limit network traffic." env:"FTL_DISABLE_ISTIO"`
-	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	LeaseEndpoint       *url.URL             `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	AdminEndpoint       *url.URL             `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
 	SchemaEndpoint      *url.URL             `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
@@ -54,7 +52,6 @@ func main() {
 	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 	ctx = rpc.ContextWithClient(ctx, adminClient)
 
-	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
-	err = controller.Start(ctx, cli.ControllerConfig, adminClient, timelineClient, schemaClient, false)
+	err = controller.Start(ctx, cli.ControllerConfig, adminClient, schemaClient, false)
 	kctx.FatalIfErrorf(err)
 }

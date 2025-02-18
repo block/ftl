@@ -43,8 +43,6 @@ spec:
             {{- if .Values.controller.env }}
             {{- toYaml .Values.controller.env | nindent 12 }}
             {{- end }}
-            - name: FTL_TIMELINE_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
             - name: FTL_LEASE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-lease:{{ .Values.lease.port }}"
             - name: FTL_ADMIN_ENDPOINT

@@ -4,7 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.regex.Pattern;
 
-import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
+import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public record DatasourceDetails(String connectionString, String username, String password) {
 

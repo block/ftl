@@ -256,3 +256,11 @@ func (s *EnvironmentManager) validateAgainstSchema(ctx context.Context, isSecret
 
 	return nil
 }
+
+func (s *EnvironmentManager) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
+	sch, err := s.schr.GetSchema(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get schema: %w", err)
+	}
+	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: sch.ToProto()}), nil
+}

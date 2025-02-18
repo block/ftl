@@ -15,8 +15,8 @@ import (
 	"github.com/hexops/gotextdiff/span"
 	"github.com/mattn/go-isatty"
 
+	"github.com/block/ftl/backend/admin"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/terminal"
@@ -32,7 +32,7 @@ func (d *schemaDiffCmd) Run(
 	ctx context.Context,
 	currentURL *url.URL,
 	projConfig projectconfig.Config,
-	schemaClient ftlv1connect.AdminServiceClient,
+	schemaClient admin.EnvironmentClient,
 ) error {
 	var other *schema.Schema
 	var err error
@@ -130,7 +130,7 @@ func localSchema(ctx context.Context, projectConfig projectconfig.Config) (*sche
 	}
 	return sch, nil
 }
-func schemaForURL(ctx context.Context, schemaClient ftlv1connect.AdminServiceClient, url url.URL) (*schema.Schema, error) {
+func schemaForURL(ctx context.Context, schemaClient admin.EnvironmentClient, url url.URL) (*schema.Schema, error) {
 	resp, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("url %s: failed to get schema: %w", url.String(), err)

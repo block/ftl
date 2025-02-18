@@ -36,7 +36,6 @@ import (
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
-	"github.com/block/ftl/internal/timelineclient"
 )
 
 // CommonConfig between the production controller and development server.
@@ -78,7 +77,6 @@ func Start(
 	ctx context.Context,
 	config Config,
 	adminClient ftlv1connect.AdminServiceClient,
-	timelineClient *timelineclient.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	devel bool,
 ) error {
@@ -87,7 +85,7 @@ func Start(
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL controller")
 
-	svc, err := New(ctx, adminClient, timelineClient, schemaClient, config, devel)
+	svc, err := New(ctx, adminClient, schemaClient, config, devel)
 	if err != nil {
 		return err
 	}
@@ -113,13 +111,11 @@ type clients struct {
 }
 
 type Service struct {
-	leaser             leases.Leaser
-	key                key.Controller
-	deploymentLogsSink *deploymentLogsSink
-	adminClient        ftlv1connect.AdminServiceClient
+	leaser      leases.Leaser
+	key         key.Controller
+	adminClient ftlv1connect.AdminServiceClient
 
-	tasks          *scheduledtask.Scheduler
-	timelineClient *timelineclient.Client
+	tasks *scheduledtask.Scheduler
 
 	// Map from runnerKey.String() to client.
 	clients    *ttlcache.Cache[string, clients]
@@ -135,7 +131,6 @@ type Service struct {
 func New(
 	ctx context.Context,
 	adminClient ftlv1connect.AdminServiceClient,
-	timelineClient *timelineclient.Client,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	config Config,
 	devel bool,
@@ -162,19 +157,16 @@ func New(
 	routingTable := routing.New(ctx, eventSource)
 
 	svc := &Service{
-		tasks:          scheduler,
-		timelineClient: timelineClient,
-		leaser:         ldb,
-		key:            controllerKey,
-		clients:        ttlcache.New(ttlcache.WithTTL[string, clients](time.Minute)),
-		config:         config,
-		routeTable:     routingTable,
-		schemaClient:   schemaClient,
-		runnerState:    state.NewInMemoryRunnerState(ctx),
-		adminClient:    adminClient,
+		tasks:        scheduler,
+		leaser:       ldb,
+		key:          controllerKey,
+		clients:      ttlcache.New(ttlcache.WithTTL[string, clients](time.Minute)),
+		config:       config,
+		routeTable:   routingTable,
+		schemaClient: schemaClient,
+		runnerState:  state.NewInMemoryRunnerState(ctx),
+		adminClient:  adminClient,
 	}
-
-	svc.deploymentLogsSink = newDeploymentLogsSink(ctx, timelineClient)
 
 	// Use min, max backoff if we are running in production, otherwise use
 	// (1s, 1s) (or develBackoff). Will also wrap the job such that it its next
@@ -396,7 +388,7 @@ func (s *Service) GetDeployment(ctx context.Context, req *connect.Request[ftlv1.
 		return nil, err
 	}
 
-	logger := s.getDeploymentLogger(ctx, dkey)
+	logger := log.FromContext(ctx)
 	logger.Debugf("Get deployment for: %s", dkey.String())
 
 	artefacts := []*ftlv1.DeploymentArtefact{}
@@ -620,15 +612,6 @@ func (s *Service) reapStaleRunners(ctx context.Context) (time.Duration, error) {
 		}
 	}
 	return s.config.RunnerTimeout, nil
-}
-
-func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey key.Deployment) *log.Logger {
-	attrs := map[string]string{"deployment": deploymentKey.String()}
-	if requestKey, _ := rpc.RequestKeyFromContext(ctx); requestKey.Ok() { //nolint:errcheck // best effort?
-		attrs["request"] = requestKey.MustGet().String()
-	}
-
-	return log.FromContext(ctx).AddSink(s.deploymentLogsSink).Attrs(attrs)
 }
 
 func makeBackoff(min, max time.Duration) backoff.Backoff {

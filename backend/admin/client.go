@@ -48,6 +48,8 @@ type EnvironmentClient interface {
 	// MapSecretsForModule combines all secrets visible to the module.
 	// Local values take precedence.
 	MapSecretsForModule(ctx context.Context, req *connect.Request[ftlv1.MapSecretsForModuleRequest]) (*connect.Response[ftlv1.MapSecretsForModuleResponse], error)
+	// Get the full schema.
+	GetSchema(ctx context.Context, req *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error)
 }
 
 // ShouldUseLocalClient returns whether a local admin client should be used based on the admin service client and the endpoint.

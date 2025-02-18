@@ -258,7 +258,7 @@ func (s *serveCommonConfig) run(
 	controllerCtx := log.ContextWithLogger(ctx, logger.Scope("controller"))
 
 	wg.Go(func() error {
-		if err := controller.Start(controllerCtx, config, adminClient, timelineClient, schemaClient, true); err != nil {
+		if err := controller.Start(controllerCtx, config, adminClient, schemaClient, true); err != nil {
 			logger.Errorf(err, "controller failed: %v", err)
 			return fmt.Errorf("controller failed: %w", err)
 		}

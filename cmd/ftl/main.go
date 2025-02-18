@@ -290,6 +290,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		kctx.Bind(bindContext)
 		kctx.BindTo(cancel, (*context.CancelCauseFunc)(nil))
 		kctx.Bind(languageplugin.InitializedPlugins{})
+		kctx.Bind(cli.AdminEndpoint)
 		return ctx
 	}
 	return bindContext

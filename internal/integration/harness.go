@@ -310,7 +310,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			defer done(fmt.Errorf("test complete"))
 			tmpDir := initWorkDir(t, cwd, opts)
 
-			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:8892", log.Debug)
+			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:8896", log.Debug)
 
 			var controller ftlv1connect.ControllerServiceClient
 			var console consolepbconnect.ConsoleServiceClient

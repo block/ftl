@@ -100,6 +100,7 @@ func Start(
 	logger.Debugf("Admin service listening on: %s", config.Bind)
 	err := rpc.Serve(ctx, config.Bind,
 		rpc.GRPC(ftlv1connect.NewAdminServiceHandler, svc),
+		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, svc),
 	)
 	if err != nil {
 		return fmt.Errorf("admin service stopped serving: %w", err)
@@ -391,11 +392,11 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error) {
 	byteDigests, err := islices.MapErr(req.Msg.ClientDigests, sha256.ParseSHA256)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse digests: %w", err)
 	}
 	_, need, err := s.storage.GetDigestsKeys(ctx, byteDigests)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get digests: %w", err)
 	}
 	return connect.NewResponse(&ftlv1.GetArtefactDiffsResponse{
 		MissingDigests: islices.Map(need, func(s sha256.SHA256) string { return s.String() }),
@@ -525,7 +526,7 @@ func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 	if err != nil {
 		return nil, fmt.Errorf("failed to call verb: %w", err)
 	}
-	return call, err
+	return call, nil
 }
 
 func (s *Service) RollbackChangeset(ctx context.Context, c *connect.Request[ftlv1.RollbackChangesetRequest]) (*connect.Response[ftlv1.RollbackChangesetResponse], error) {

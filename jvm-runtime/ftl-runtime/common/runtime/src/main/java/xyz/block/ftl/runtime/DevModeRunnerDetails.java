@@ -3,9 +3,9 @@ package xyz.block.ftl.runtime;
 import java.util.Map;
 import java.util.Optional;
 
-import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.hotreload.RunnerInfo;
 import xyz.block.ftl.hotreload.RunnerNotification;
+import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class DevModeRunnerDetails implements RunnerDetails {
 

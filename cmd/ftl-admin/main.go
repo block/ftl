@@ -22,6 +22,7 @@ import (
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
@@ -30,6 +31,7 @@ var cli struct {
 	LogConfig           log.Config               `embed:"" prefix:"log-"`
 	AdminConfig         admin.Config             `embed:"" prefix:"admin-"`
 	SchemaEndpoint      *url.URL                 `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
+	TimelineEndpoint    *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	Config              string                   `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
 	Secrets             string                   `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
 	RegistryConfig      artefacts.RegistryConfig `embed:"" prefix:"oci-"`
@@ -65,6 +67,6 @@ func main() {
 
 	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
-	err = admin.Start(ctx, cli.AdminConfig, cm, sm, schemaClient, eventSource, storage)
+	err = admin.Start(ctx, cli.AdminConfig, cm, sm, schemaClient, eventSource, timelineclient.NewClient(ctx, cli.TimelineEndpoint), storage)
 	kctx.FatalIfErrorf(err, "failed to start timeline service")
 }

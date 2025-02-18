@@ -11,10 +11,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.arc.Arc;
 import io.quarkus.runtime.annotations.Recorder;
-import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.runtime.http.FTLHttpHandler;
 import xyz.block.ftl.runtime.http.HTTPVerbInvoker;
 import xyz.block.ftl.v1.CallRequest;
+import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 @Recorder
 public class FTLRecorder {
