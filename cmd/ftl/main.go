@@ -46,7 +46,6 @@ type InteractiveCLI struct {
 	Trace            string           `help:"File to write golang runtime/trace output to." hidden:""`
 
 	Ping            pingCmd            `cmd:"" help:"Ping the FTL cluster."`
-	Status          statusCmd          `cmd:"" help:"Show FTL status."`
 	Init            initCmd            `cmd:"" help:"Initialize a new FTL project."`
 	Profile         profileCmd         `cmd:"" help:"Manage profiles."`
 	New             newCmd             `cmd:"" help:"Create a new FTL module. See language specific flags with 'ftl new <language> --help'."`
