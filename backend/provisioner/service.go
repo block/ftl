@@ -86,81 +86,84 @@ func Start(
 	}
 
 	for event := range channels.IterContext(ctx, svc.eventSource.Subscribe(ctx)) {
-		switch e := event.(type) {
-		case *schema.ChangesetCreatedNotification:
-			err := svc.HandleChangesetPreparing(ctx, e.Changeset)
-			if err != nil {
-				_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: e.Changeset.Key.String(), Error: err.Error()}))
-				logger.Errorf(err, "Error provisioning changeset")
-			}
-		case *schema.ChangesetPreparedNotification:
-			err := svc.HandleChangesetPrepared(ctx, e.Key)
-			if err != nil {
-				_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: e.Key.String(), Error: err.Error()}))
-				logger.Errorf(err, "Error provisioning changeset")
-			}
-		case *schema.ChangesetCommittedNotification:
-			err := svc.HandleChangesetCommitted(ctx, e.Changeset)
-			if err != nil {
-				logger.Errorf(err, "Error provisioning changeset")
-			}
-		case *schema.ChangesetDrainedNotification:
-			err := svc.HandleChangesetDrained(ctx, e.Key)
-			if err != nil {
-				logger.Errorf(err, "Error de-provisioning changeset")
-			}
-		case *schema.ChangesetRollingBackNotification:
-			err := svc.HandleChangesetRollingBack(ctx, e.Changeset)
-			if err != nil {
-				logger.Errorf(err, "Error de-provisioning changeset")
-			}
-		case *schema.DeploymentRuntimeNotification:
-			//TODO: scaling support
-		case *schema.FullSchemaNotification:
-			logger.Debugf("Provisioning changesets from full schema notification")
-			for _, cs := range e.Changesets {
-				if cs.State == schema.ChangesetStatePreparing {
-					err := svc.HandleChangesetPreparing(ctx, cs)
-					if err != nil {
-						logger.Errorf(err, "Error provisioning changeset")
-						_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+		go func() {
+			switch e := event.(type) {
+			case *schema.ChangesetCreatedNotification:
+				err := svc.HandleChangesetPreparing(ctx, e.Changeset)
+				if err != nil {
+					_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: e.Changeset.Key.String(), Error: err.Error()}))
+					logger.Errorf(err, "Error provisioning changeset")
+				}
+			case *schema.ChangesetPreparedNotification:
+				err := svc.HandleChangesetPrepared(ctx, e.Key)
+				if err != nil {
+					_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: e.Key.String(), Error: err.Error()}))
+					logger.Errorf(err, "Error provisioning changeset")
+				}
+			case *schema.ChangesetCommittedNotification:
+				err := svc.HandleChangesetCommitted(ctx, e.Changeset)
+				if err != nil {
+					logger.Errorf(err, "Error provisioning changeset")
+				}
+			case *schema.ChangesetDrainedNotification:
+				err := svc.HandleChangesetDrained(ctx, e.Key)
+				if err != nil {
+					logger.Errorf(err, "Error de-provisioning changeset")
+				}
+			case *schema.ChangesetRollingBackNotification:
+				err := svc.HandleChangesetRollingBack(ctx, e.Changeset)
+				if err != nil {
+					logger.Errorf(err, "Error de-provisioning changeset")
+				}
+			case *schema.DeploymentRuntimeNotification:
+				//TODO: scaling support
+			case *schema.FullSchemaNotification:
+				logger.Debugf("Provisioning changesets from full schema notification")
+				for _, cs := range e.Changesets {
+					if cs.State == schema.ChangesetStatePreparing {
+						err := svc.HandleChangesetPreparing(ctx, cs)
 						if err != nil {
-							return fmt.Errorf("error rolling back changeset: %w", err)
+							logger.Errorf(err, "Error provisioning changeset")
+							_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+							if err != nil {
+								logger.Errorf(err, "error rolling back changeset")
+							}
+							continue
 						}
-						continue
-					}
-				} else if cs.State == schema.ChangesetStatePrepared {
-					err := svc.HandleChangesetPrepared(ctx, cs.Key)
-					if err != nil {
-						logger.Errorf(err, "Error provisioning changeset")
-						_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+					} else if cs.State == schema.ChangesetStatePrepared {
+						err := svc.HandleChangesetPrepared(ctx, cs.Key)
 						if err != nil {
-							return fmt.Errorf("error rolling back changeset: %w", err)
+							logger.Errorf(err, "Error provisioning changeset")
+							_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+							if err != nil {
+								logger.Errorf(err, "error rolling back changeset")
+							}
+							continue
 						}
-						continue
-					}
-				} else if cs.State == schema.ChangesetStateCommitted {
-					err := svc.HandleChangesetCommitted(ctx, cs)
-					if err != nil {
-						logger.Errorf(err, "Error provisioning changeset")
-						continue
-					}
-				} else if cs.State == schema.ChangesetStateDrained {
-					err := svc.HandleChangesetDrained(ctx, cs.Key)
-					if err != nil {
-						logger.Errorf(err, "Error de-provsisiong changeset")
-						continue
-					}
-				} else if cs.State == schema.ChangesetStateRollingBack {
-					err := svc.HandleChangesetRollingBack(ctx, cs)
-					if err != nil {
-						logger.Errorf(err, "Error rolling back changeset")
-						continue
+					} else if cs.State == schema.ChangesetStateCommitted {
+						err := svc.HandleChangesetCommitted(ctx, cs)
+						if err != nil {
+							logger.Errorf(err, "Error provisioning changeset")
+							continue
+						}
+					} else if cs.State == schema.ChangesetStateDrained {
+						err := svc.HandleChangesetDrained(ctx, cs.Key)
+						if err != nil {
+							logger.Errorf(err, "Error de-provsisiong changeset")
+							continue
+						}
+					} else if cs.State == schema.ChangesetStateRollingBack {
+						err := svc.HandleChangesetRollingBack(ctx, cs)
+						if err != nil {
+							logger.Errorf(err, "Error rolling back changeset")
+							continue
+						}
 					}
 				}
+			case *schema.ChangesetFailedNotification, *schema.ChangesetFinalizedNotification:
 			}
-		case *schema.ChangesetFailedNotification, *schema.ChangesetFinalizedNotification:
-		}
+
+		}()
 	}
 	return nil
 }
