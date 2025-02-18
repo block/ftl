@@ -48,7 +48,7 @@ func (d *deployCmd) Run(
 		logger.Warnf("No modules were found to deploy")
 		return nil
 	}
-	err = engine.BuildAndDeploy(ctx, d.Replicas, !d.NoWait)
+	err = engine.BuildAndDeploy(ctx, d.Replicas, !d.NoWait, true)
 	if err != nil {
 		return fmt.Errorf("failed to deploy: %w", err)
 	}
