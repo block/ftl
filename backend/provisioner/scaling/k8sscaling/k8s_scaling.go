@@ -306,6 +306,10 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
 	adminDeployment, err := deploymentClient.Get(ctx, adminDeploymentName, v1.GetOptions{})
 	if err != nil {
+		return fmt.Errorf("failed to get deployment %s: %w", adminDeploymentName, err)
+	}
+	provisionerDeployment, err := deploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
+	if err != nil {
 		return fmt.Errorf("failed to get deployment %s: %w", provisionerDeploymentName, err)
 	}
 	// First create a Service, this will be the root owner of all the other resources
@@ -363,7 +367,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 
 	// Sync the istio policy if applicable
 	if sec, ok := r.istioSecurity.Get(); ok {
-		err = r.syncIstioPolicy(ctx, sec, module, name, service, adminDeployment, sch, cron, ingress)
+		err = r.syncIstioPolicy(ctx, sec, module, name, service, adminDeployment, provisionerDeployment, sch, cron, ingress)
 		if err != nil {
 			return err
 		}
@@ -553,7 +557,7 @@ func (r *k8sScaling) updateEnvVar(deployment *kubeapps.Deployment, envVerName st
 	return changes
 }
 
-func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, module string, name string, service *kubecore.Service, adminDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
+func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, module string, name string, service *kubecore.Service, adminDeployment *kubeapps.Deployment, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Creating new istio policy for %s", name)
 
@@ -587,6 +591,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 		policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 		principals := []string{
 			"cluster.local/ns/" + r.namespace + "/sa/" + adminDeployment.Spec.Template.Spec.ServiceAccountName,
+			"cluster.local/ns/" + r.namespace + "/sa/" + provisionerDeployment.Spec.Template.Spec.ServiceAccountName,
 		}
 		// TODO: fix hard coded service account names
 		if hasIngress {

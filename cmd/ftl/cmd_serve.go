@@ -362,7 +362,7 @@ func (s *serveCommonConfig) run(
 	})
 	// Start Admin
 	wg.Go(func() error {
-		err := admin.Start(ctx, s.Admin, cm, sm, schemaClient, schemaEventSource, timelineClient, storage)
+		err := admin.Start(ctx, s.Admin, cm, sm, schemaClient, schemaEventSource, timelineClient, storage, s.WaitFor)
 		if err != nil {
 			return fmt.Errorf("lease failed: %w", err)
 		}

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"runtime"
 	"slices"
+	"strings"
 	"sync"
 
 	"connectrpc.com/connect"
@@ -50,6 +51,7 @@ type Service struct {
 	storage      *artefacts.OCIArtefactService
 	config       Config
 	routeTable   *routing.VerbCallRouter
+	waitFor      []string
 }
 
 var _ ftlv1connect.AdminServiceHandler = (*Service)(nil)
@@ -72,7 +74,10 @@ func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, 
 
 // NewAdminService creates a new Service.
 // bindAllocator is optional and should be set if a local client is to be used that accesses schema from disk using language plugins.
-func NewAdminService(config Config, env *EnvironmentManager, schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource, storage *artefacts.OCIArtefactService, routes *routing.VerbCallRouter) *Service {
+func NewAdminService(config Config, env *EnvironmentManager,
+	schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource,
+	storage *artefacts.OCIArtefactService, routes *routing.VerbCallRouter,
+	waitFor []string) *Service {
 	return &Service{
 		config:       config,
 		env:          env,
@@ -80,6 +85,7 @@ func NewAdminService(config Config, env *EnvironmentManager, schr ftlv1connect.S
 		source:       source,
 		storage:      storage,
 		routeTable:   routes,
+		waitFor:      waitFor,
 	}
 }
 
@@ -91,11 +97,12 @@ func Start(
 	schr ftlv1connect.SchemaServiceClient,
 	source *schemaeventsource.EventSource,
 	timelineClient *timelineclient.Client,
-	storage *artefacts.OCIArtefactService) error {
+	storage *artefacts.OCIArtefactService,
+	waitFor []string) error {
 
 	logger := log.FromContext(ctx).Scope("admin")
 
-	svc := NewAdminService(config, &EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm}, schr, source, storage, routing.NewVerbRouter(ctx, source, timelineClient))
+	svc := NewAdminService(config, &EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm}, schr, source, storage, routing.NewVerbRouter(ctx, source, timelineClient), waitFor)
 
 	logger.Debugf("Admin service listening on: %s", config.Bind)
 	err := rpc.Serve(ctx, config.Bind,
@@ -109,7 +116,23 @@ func Start(
 }
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+	if len(s.waitFor) == 0 {
+		return connect.NewResponse(&ftlv1.PingResponse{}), nil
+	}
+
+	// It's not actually ready until it is in the routes table
+	var missing []string
+	for _, module := range s.waitFor {
+		if _, _, ok := s.routeTable.LookupClient(ctx, module); !ok {
+			missing = append(missing, module)
+		}
+	}
+	if len(missing) == 0 {
+		return connect.NewResponse(&ftlv1.PingResponse{}), nil
+	}
+
+	msg := fmt.Sprintf("waiting for deployments: %s", strings.Join(missing, ", "))
+	return connect.NewResponse(&ftlv1.PingResponse{NotReady: &msg}), nil
 }
 
 // ConfigList returns the list of configuration values, optionally filtered by module.

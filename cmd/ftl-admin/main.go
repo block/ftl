@@ -67,6 +67,6 @@ func main() {
 
 	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
-	err = admin.Start(ctx, cli.AdminConfig, cm, sm, schemaClient, eventSource, timelineclient.NewClient(ctx, cli.TimelineEndpoint), storage)
+	err = admin.Start(ctx, cli.AdminConfig, cm, sm, schemaClient, eventSource, timelineclient.NewClient(ctx, cli.TimelineEndpoint), storage, nil)
 	kctx.FatalIfErrorf(err, "failed to start timeline service")
 }
