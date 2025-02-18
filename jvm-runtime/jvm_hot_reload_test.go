@@ -10,7 +10,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/common/schema"
 	in "github.com/block/ftl/internal/integration"
 )
 
@@ -37,9 +37,13 @@ func TestLifecycleJVM(t *testing.T) {
 </dependencies>`, 1))
 		}, "pom.xml"),
 		in.WaitWithTimeout("echo", time.Minute),
-		in.VerifyControllerStatus(func(ctx context.Context, t testing.TB, status *ftlv1.StatusResponse) {
-			assert.Equal(t, 1, len(status.Deployments))
-			deployment = status.Deployments[0].Key
+		in.VerifySchema(func(ctx context.Context, t testing.TB, schema *schema.Schema) {
+			assert.Equal(t, 2, len(schema.Modules))
+			for _, m := range schema.Modules {
+				if !m.Builtin {
+					deployment = m.Runtime.Deployment.DeploymentKey.String()
+				}
+			}
 		}),
 		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Hello, Bob!", response)
@@ -55,11 +59,14 @@ func TestLifecycleJVM(t *testing.T) {
 		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bye, Bob!", response)
 		}),
-		in.VerifyControllerStatus(func(ctx context.Context, t testing.TB, status *ftlv1.StatusResponse) {
+		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
 			// Non structurally changing edits should not trigger a new deployment.
-			t.Logf("status %v", status)
-			assert.Equal(t, 1, len(status.Deployments))
-			assert.Equal(t, deployment, status.Deployments[0].Key)
+			assert.Equal(t, 2, len(sch.Modules))
+			for _, m := range sch.Modules {
+				if !m.Builtin {
+					assert.Equal(t, deployment, m.Runtime.Deployment.DeploymentKey.String())
+				}
+			}
 		}),
 		// Structural change should result in a new deployment
 		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
@@ -71,10 +78,14 @@ func TestLifecycleJVM(t *testing.T) {
 		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bye, Bob!", response)
 		}),
-		in.VerifyControllerStatus(func(ctx context.Context, t testing.TB, status *ftlv1.StatusResponse) {
-			t.Logf("status %v", status)
-			assert.Equal(t, 1, len(status.Deployments))
-			assert.NotEqual(t, deployment, status.Deployments[0].Key)
+		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
+			// Non structurally changing edits should not trigger a new deployment.
+			assert.Equal(t, 2, len(sch.Modules))
+			for _, m := range sch.Modules {
+				if !m.Builtin {
+					assert.NotEqual(t, deployment, m.Runtime.Deployment.DeploymentKey.String())
+				}
+			}
 		}),
 
 		// Now lets add a database, add the ftl config
