@@ -89,10 +89,21 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 
 	runner := &executor.ProvisionRunner{
 		CurrentState: inputStates,
-		Executors: []executor.Executor{
-			NewCloudFormationExecutor(stackID, c.client, c.secrets, c.confg),
-			NewPostgresSetupExecutor(c.secrets),
-			// TODO: PG and MySQL user / DB creation executor
+		Stages: []executor.RunnerStage{
+			{
+				Name: "cloudformation-update",
+				Executors: []executor.Handler{{
+					Executor: NewCloudFormationExecutor(stackID, c.client, c.secrets, c.confg),
+					Handles:  []executor.State{executor.PostgresInputState{}, executor.MySQLInputState{}},
+				}},
+			}, {
+				Name: "infrastructure-setup",
+				Executors: []executor.Handler{{
+					Executor: NewPostgresSetupExecutor(c.secrets),
+					Handles:  []executor.State{executor.PostgresInstanceReadyState{}},
+				}},
+				// TODO: MySQL user / DB creation executor
+			},
 		},
 	}
 

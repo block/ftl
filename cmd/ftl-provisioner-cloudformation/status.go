@@ -38,7 +38,10 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse deployment key: %w", err)
 		}
-		events := c.updateResources(deploymentKey, task.outputs.Load())
+		events, err := c.updateResources(deploymentKey, task.outputs.Load())
+		if err != nil {
+			return nil, fmt.Errorf("failed to update resources: %w", err)
+		}
 		return connect.NewResponse(&provisioner.StatusResponse{
 			Status: &provisioner.StatusResponse_Success{
 				Success: &provisioner.StatusResponse_ProvisioningSuccess{
@@ -69,7 +72,7 @@ func outputsByResourceID(outputs []types.Output) (map[string][]types.Output, err
 	return m, nil
 }
 
-func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, outputs []executor.State) []*schema.RuntimeElement {
+func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, outputs []executor.State) ([]*schema.RuntimeElement, error) {
 	var results []*schema.RuntimeElement
 
 	for _, output := range outputs {
@@ -97,17 +100,17 @@ func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, o
 				},
 			})
 		default:
-			panic(fmt.Sprintf("unknown output type: %T", o))
+			return nil, fmt.Errorf("unknown output type: %T", o)
 		}
 	}
 
-	return results
+	return results, nil
 }
 
-func endpointToDSN(endpoint *string, database string, port int, username, password string) string {
+func endpointToDSN(endpoint *string, database string, username, password string) string {
 	url := url.URL{
 		Scheme: "postgres",
-		Host:   fmt.Sprintf("%s:%d", *endpoint, port),
+		Host:   *endpoint,
 		Path:   database,
 	}
 

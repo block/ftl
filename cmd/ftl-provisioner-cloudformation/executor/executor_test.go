@@ -5,61 +5,59 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/ftl/internal/log"
 )
 
-type testState struct {
-	stage Stage
-	kind  ResourceKind
-}
+type testState struct{}
 
-func (s *testState) Stage() Stage        { return s.stage }
-func (s *testState) Kind() ResourceKind  { return s.kind }
-func (s *testState) DebugString() string { return string(s.kind) }
+func (s *testState) DebugString() string { return "" }
+
+type ignoredState struct{}
+
+func (s *ignoredState) DebugString() string { return "" }
 
 type testExecutor struct {
-	stage     Stage
-	resources []ResourceKind
-	prepared  bool
-	executed  bool
+	prepared int
+	executed int
 }
 
-func (e *testExecutor) Stage() Stage              { return e.stage }
-func (e *testExecutor) Resources() []ResourceKind { return e.resources }
-
 func (e *testExecutor) Prepare(ctx context.Context, input State) error {
-	e.prepared = true
+	e.prepared++
 	return nil
 }
 
 func (e *testExecutor) Execute(ctx context.Context) ([]State, error) {
-	e.executed = true
-	return []State{&testState{StageDone, ResourceKindPostgres}}, nil
+	e.executed++
+	if e.prepared > 0 {
+		return []State{&testState{}}, nil
+	}
+	return nil, nil
 }
 
-func TestExecutorPrecedence(t *testing.T) {
-	// Create a specific executor for postgres and a default executor
-	specificExecutor := &testExecutor{
-		stage:     StageProvisioning,
-		resources: []ResourceKind{ResourceKindPostgres},
-	}
-	defaultExecutor := &testExecutor{
-		stage:     StageProvisioning,
-		resources: AllResources,
-	}
+func TestExecutorSelection(t *testing.T) {
+	ctx := log.ContextWithNewDefaultLogger(context.Background())
+
+	postgresExecutor := &testExecutor{}
+	mysqlExecutor := &testExecutor{}
 
 	runner := &ProvisionRunner{
-		stage:        StageProvisioning,
-		CurrentState: []State{&testState{StageProvisioning, ResourceKindPostgres}},
-		Executors:    []Executor{defaultExecutor, specificExecutor},
+		CurrentState: []State{&testState{}, &testState{}, &ignoredState{}},
+		Stages: []RunnerStage{
+			{
+				Executors: []Handler{
+					{postgresExecutor, []State{&testState{}}},
+					{mysqlExecutor, []State{}},
+				},
+			},
+		},
 	}
 
-	states, err := runner.Run(context.Background())
+	states, err := runner.Run(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(states))
-	assert.Equal(t, StageDone, states[0].Stage())
+	assert.Equal(t, 2, len(states))
 
-	assert.True(t, specificExecutor.prepared)
-	assert.True(t, specificExecutor.executed)
-	assert.False(t, defaultExecutor.prepared)
-	assert.False(t, defaultExecutor.executed)
+	assert.Equal(t, 2, postgresExecutor.prepared)
+	assert.Equal(t, 1, postgresExecutor.executed)
+	assert.Equal(t, 0, mysqlExecutor.prepared)
+	assert.Equal(t, 1, mysqlExecutor.executed)
 }

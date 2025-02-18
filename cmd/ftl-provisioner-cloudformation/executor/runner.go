@@ -3,70 +3,78 @@ package executor
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/block/ftl/internal/log"
 	"golang.org/x/sync/errgroup"
 )
 
+type Handler struct {
+	Executor Executor
+	Handles  []State
+}
+
+type RunnerStage struct {
+	Name      string
+	Executors []Handler
+}
+
 type ProvisionRunner struct {
-	stage   Stage
 	skipped []State // states that did not have executors at the current stage
 
 	CurrentState []State
-	Executors    []Executor
+	Stages       []RunnerStage
 }
 
 func (r *ProvisionRunner) Run(ctx context.Context) ([]State, error) {
 	logger := log.FromContext(ctx)
 
-	for {
-		if r.stage >= StageDone {
-			logger.Debugf("runner finished")
-			return r.finalResult()
-		}
+	for _, stage := range r.Stages {
+		logger.Debugf("running stage %s", stage.Name)
 
-		logger.Debugf("running stage %s", r.stage)
-
-		executors, err := r.executorMap()
-		if err != nil {
+		if err := r.prepare(ctx, &stage); err != nil {
 			return nil, err
 		}
 
-		if err := r.prepare(ctx, executors); err != nil {
-			return nil, err
-		}
-
-		newStates, err := r.execute(ctx, executors)
+		newStates, err := r.execute(ctx, &stage)
 		if err != nil {
 			return nil, err
 		}
 
 		r.CurrentState = newStates
-		r.stage++
 	}
+	logger.Debugf("runner finished")
+	return r.CurrentState, nil
 }
 
-func (r *ProvisionRunner) prepare(ctx context.Context, executors map[ResourceKind]Executor) error {
+func (r *ProvisionRunner) prepare(ctx context.Context, stage *RunnerStage) error {
 	for _, state := range r.CurrentState {
-		executor, ok := executors[state.Kind()]
-		if !ok {
-			r.skipped = append(r.skipped, state)
-			continue
+		found := false
+	executorLoop:
+		for _, executor := range stage.Executors {
+			for _, resource := range executor.Handles {
+				if reflect.TypeOf(resource) == reflect.TypeOf(state) {
+					if err := executor.Executor.Prepare(ctx, state); err != nil {
+						return fmt.Errorf("failed to prepare executor: %w", err)
+					}
+					found = true
+					break executorLoop
+				}
+			}
 		}
-
-		if err := executor.Prepare(ctx, state); err != nil {
-			return fmt.Errorf("failed to prepare executor: %w", err)
+		if !found {
+			r.skipped = append(r.skipped, state)
 		}
 	}
 	return nil
 }
 
-func (r *ProvisionRunner) execute(ctx context.Context, executors map[ResourceKind]Executor) ([]State, error) {
-	reschan := make(chan []State, len(executors))
+func (r *ProvisionRunner) execute(ctx context.Context, stage *RunnerStage) ([]State, error) {
+	reschan := make(chan []State, len(stage.Executors))
 	eg := errgroup.Group{}
-	for _, executor := range executors {
+	for _, executor := range stage.Executors {
 		eg.Go(func() error {
-			outputs, err := executor.Execute(ctx)
+			outputs, err := executor.Executor.Execute(ctx)
 			if err != nil {
 				return fmt.Errorf("failed to execute executor: %w", err)
 			}
@@ -80,55 +88,9 @@ func (r *ProvisionRunner) execute(ctx context.Context, executors map[ResourceKin
 	}
 
 	result := r.skipped
-	for range len(executors) {
+	for range len(stage.Executors) {
 		states := <-reschan
 		result = append(result, states...)
-	}
-
-	return result, nil
-}
-
-func (r *ProvisionRunner) finalResult() ([]State, error) {
-	for _, state := range r.CurrentState {
-		if state.Stage() != StageDone {
-			// if the provisioner is misconfigured, not all states might be done
-			return nil, fmt.Errorf("state %s is not done", state.DebugString())
-		}
-	}
-
-	return r.CurrentState, nil
-}
-
-func (r *ProvisionRunner) executorMap() (map[ResourceKind]Executor, error) {
-	result := make(map[ResourceKind]Executor)
-
-	for _, state := range r.CurrentState {
-		var defaultExecutor Executor
-		found := false
-		for _, executor := range r.Executors {
-			if executor.Stage() != r.stage {
-				continue
-			}
-
-			if len(executor.Resources()) == 0 {
-				defaultExecutor = executor
-				continue
-			}
-
-			for _, resource := range executor.Resources() {
-				if resource == state.Kind() {
-					if found {
-						return nil, fmt.Errorf("multiple executors found for resource %s", state.Kind())
-					}
-					result[state.Kind()] = executor
-					found = true
-				}
-			}
-		}
-
-		if !found && defaultExecutor != nil {
-			result[state.Kind()] = defaultExecutor
-		}
 	}
 
 	return result, nil

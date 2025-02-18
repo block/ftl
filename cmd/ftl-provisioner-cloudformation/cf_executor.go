@@ -33,14 +33,6 @@ func NewCloudFormationExecutor(stack string, cfn *cloudformation.Client, secrets
 	}
 }
 
-func (e *CloudFormationExecutor) Stage() executor.Stage {
-	return executor.StageProvisioning
-}
-
-func (e *CloudFormationExecutor) Resources() []executor.ResourceKind {
-	return executor.AllResources
-}
-
 func (e *CloudFormationExecutor) Prepare(ctx context.Context, input executor.State) error {
 	e.inputs = append(e.inputs, input)
 
@@ -129,8 +121,8 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]executor.State,
 			outputs = append(outputs, executor.PostgresInstanceReadyState{
 				PostgresInputState:  r,
 				MasterUserSecretARN: findValue(ctx, res, PropertyPsqlMasterUserARN),
-				WriteEndpoint:       findValue(ctx, res, PropertyPsqlWriteEndpoint),
-				ReadEndpoint:        findValue(ctx, res, PropertyPsqlReadEndpoint),
+				WriteEndpoint:       fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyPsqlWriteEndpoint), 5432),
+				ReadEndpoint:        fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyPsqlReadEndpoint), 5432),
 			})
 		case executor.MySQLInputState:
 			logger.Debugf("finding outputs for mysql resource %s", r.ResourceID)
@@ -138,8 +130,8 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]executor.State,
 			outputs = append(outputs, executor.MySQLInstanceReadyState{
 				MySQLInputState:     r,
 				MasterUserSecretARN: findValue(ctx, res, PropertyMySQLMasterUserARN),
-				WriteEndpoint:       findValue(ctx, res, PropertyMySQLWriteEndpoint),
-				ReadEndpoint:        findValue(ctx, res, PropertyMySQLReadEndpoint),
+				WriteEndpoint:       fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLWriteEndpoint), 3306),
+				ReadEndpoint:        fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLReadEndpoint), 3306),
 			})
 		}
 	}

@@ -76,14 +76,6 @@ func NewPostgresSetupExecutor(secrets *secretsmanager.Client) *PostgresSetupExec
 
 var _ executor.Executor = &PostgresSetupExecutor{}
 
-func (e *PostgresSetupExecutor) Stage() executor.Stage {
-	return executor.StageSetup
-}
-
-func (e *PostgresSetupExecutor) Resources() []executor.ResourceKind {
-	return []executor.ResourceKind{executor.ResourceKindPostgres}
-}
-
 func (e *PostgresSetupExecutor) Prepare(_ context.Context, input executor.State) error {
 	e.inputs = append(e.inputs, input)
 	return nil
@@ -132,7 +124,7 @@ func postgresAdminDSN(ctx context.Context, secrets *secretsmanager.Client, secre
 		return "", fmt.Errorf("failed to get username and password from secret ARN: %w", err)
 	}
 
-	return endpointToDSN(&connector.Endpoint, connector.Database, 5432, adminUsername, adminPassword), nil
+	return endpointToDSN(&connector.Endpoint, connector.Database, adminUsername, adminPassword), nil
 }
 
 func postgresSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAuthDatabaseConnector) error {

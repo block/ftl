@@ -12,10 +12,6 @@ type PostgresInputState struct {
 	Module     string
 }
 
-func (s PostgresInputState) Stage() Stage {
-	return StageProvisioning
-}
-
 func (s PostgresInputState) Kind() ResourceKind {
 	return ResourceKindPostgres
 }
@@ -28,10 +24,6 @@ type MySQLInputState struct {
 	ResourceID string
 	Cluster    string
 	Module     string
-}
-
-func (s MySQLInputState) Stage() Stage {
-	return StageProvisioning
 }
 
 func (s MySQLInputState) Kind() ResourceKind {
@@ -54,20 +46,12 @@ func (s PostgresInstanceReadyState) DebugString() string {
 	return fmt.Sprintf("PostgresInstanceReadyState{%s}", s.PostgresInputState.DebugString())
 }
 
-func (s PostgresInstanceReadyState) Stage() Stage {
-	return StageSetup
-}
-
 type MySQLInstanceReadyState struct {
 	MySQLInputState
 
 	MasterUserSecretARN string
 	WriteEndpoint       string
 	ReadEndpoint        string
-}
-
-func (s MySQLInstanceReadyState) Stage() Stage {
-	return StageSetup
 }
 
 func (s MySQLInstanceReadyState) DebugString() string {
@@ -83,10 +67,6 @@ func (s PostgresDBDoneState) DebugString() string {
 	return fmt.Sprintf("PostgresDBDoneState{%s}", s.PostgresInstanceReadyState.DebugString())
 }
 
-func (s PostgresDBDoneState) Stage() Stage {
-	return StageDone
-}
-
 type MySQLDBDoneState struct {
 	MySQLInstanceReadyState
 	Connector schema.DatabaseConnector
@@ -94,8 +74,4 @@ type MySQLDBDoneState struct {
 
 func (s MySQLDBDoneState) DebugString() string {
 	return fmt.Sprintf("MySQLDBDoneState{%s}", s.MySQLInstanceReadyState.DebugString())
-}
-
-func (s MySQLDBDoneState) Stage() Stage {
-	return StageDone
 }
