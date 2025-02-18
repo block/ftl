@@ -11,8 +11,8 @@ import io.quarkus.runtime.LaunchMode;
 import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
-import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.hotreload.RunnerNotification;
+import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class FTLController implements LeaseClient {
     private static final Logger log = Logger.getLogger(FTLController.class);
@@ -20,6 +20,7 @@ public class FTLController implements LeaseClient {
     private volatile FTLRunnerConnection runnerConnection;
 
     private static volatile FTLController controller;
+
     private volatile boolean haveRunnerInfo = false;
     /**
      * The details of how to connect to the runners proxy. For dev mode this needs to be determined after startup,

@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ClusterInfoRequest, ClusterInfoResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse, UploadArtefactRequest, UploadArtefactResponse } from "./controller_pb.js";
+import { GetDeploymentContextRequest, GetDeploymentContextResponse, ProcessListRequest, ProcessListResponse, RegisterRunnerRequest, RegisterRunnerResponse, StatusRequest, StatusResponse } from "./controller_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.ControllerService
@@ -24,15 +24,6 @@ export const ControllerService = {
       O: PingResponse,
       kind: MethodKind.Unary,
       idempotency: MethodIdempotency.NoSideEffects,
-    },
-    /**
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.ClusterInfo
-     */
-    clusterInfo: {
-      name: "ClusterInfo",
-      I: ClusterInfoRequest,
-      O: ClusterInfoResponse,
-      kind: MethodKind.Unary,
     },
     /**
      * List "processes" running on the cluster.
@@ -55,39 +46,14 @@ export const ControllerService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get list of artefacts that differ between the server and client.
+     * Get configuration state for the deployment
      *
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.GetArtefactDiffs
+     * @generated from rpc xyz.block.ftl.v1.ControllerService.GetDeploymentContext
      */
-    getArtefactDiffs: {
-      name: "GetArtefactDiffs",
-      I: GetArtefactDiffsRequest,
-      O: GetArtefactDiffsResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Upload an artefact to the server.
-     *
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.UploadArtefact
-     */
-    uploadArtefact: {
-      name: "UploadArtefact",
-      I: UploadArtefactRequest,
-      O: UploadArtefactResponse,
-      kind: MethodKind.ClientStreaming,
-    },
-    /**
-     * Stream deployment artefacts from the server.
-     *
-     * Each artefact is streamed one after the other as a sequence of max 1MB
-     * chunks.
-     *
-     * @generated from rpc xyz.block.ftl.v1.ControllerService.GetDeploymentArtefacts
-     */
-    getDeploymentArtefacts: {
-      name: "GetDeploymentArtefacts",
-      I: GetDeploymentArtefactsRequest,
-      O: GetDeploymentArtefactsResponse,
+    getDeploymentContext: {
+      name: "GetDeploymentContext",
+      I: GetDeploymentContextRequest,
+      O: GetDeploymentContextResponse,
       kind: MethodKind.ServerStreaming,
     },
     /**

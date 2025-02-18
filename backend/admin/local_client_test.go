@@ -21,7 +21,7 @@ import (
 func getDiskSchema(t testing.TB, ctx context.Context) (*schema.Schema, error) {
 	t.Helper()
 	dsr := &diskSchemaRetriever{}
-	return dsr.GetLatestSchema(ctx)
+	return dsr.GetSchema(ctx)
 }
 
 func TestDiskSchemaRetrieverWithBuildArtefact(t *testing.T) {
@@ -66,10 +66,10 @@ func TestAdminNoValidationWithNoSchema(t *testing.T) {
 	assert.NoError(t, err)
 
 	dsr := &diskSchemaRetriever{deployRoot: optional.Some(string(t.TempDir()))}
-	_, err = dsr.GetLatestSchema(ctx)
+	_, err = dsr.GetSchema(ctx)
 	assert.Error(t, err)
 
-	admin := NewAdminService(cm, sm, dsr)
+	admin := NewEnvironmentClient(cm, sm, dsr)
 	testSetConfig(t, ctx, admin, "batmobile", "color", "Red", "")
 	testSetSecret(t, ctx, admin, "batmobile", "owner", 99, "")
 }

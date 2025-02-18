@@ -310,9 +310,9 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			defer done(fmt.Errorf("test complete"))
 			tmpDir := initWorkDir(t, cwd, opts)
 
-			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:8892", log.Debug)
+			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:8896", log.Debug)
 
-			var controller ftlv1connect.ControllerServiceClient
+			var admin ftlv1connect.AdminServiceClient
 			var console consolepbconnect.ConsoleServiceClient
 			var schema ftlv1connect.SchemaServiceClient
 			if opts.startController {
@@ -339,7 +339,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				ctx = startProcess(ctx, t, tmpDir, opts.devMode, args...)
 			}
 			if opts.startController || opts.kube {
-				controller = rpc.Dial(ftlv1connect.NewControllerServiceClient, "http://localhost:8892", log.Debug)
+				admin = rpc.Dial(ftlv1connect.NewAdminServiceClient, "http://localhost:8896", log.Debug)
 				console = rpc.Dial(consolepbconnect.NewConsoleServiceClient, "http://localhost:8899", log.Debug)
 				schema = rpc.Dial(ftlv1connect.NewSchemaServiceClient, "http://localhost:8897", log.Debug)
 			}
@@ -365,13 +365,13 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			defer dumpKubePods(ctx, ic.kubeClient, ic.kubeNamespace)
 
 			if opts.startController || opts.kube {
-				ic.Controller = controller
+				ic.Admin = admin
 				ic.Schema = schema
 				ic.Console = console
 
-				Infof("Waiting for controller to be ready")
+				Infof("Waiting for admin to be ready")
 				ic.AssertWithSpecificRetry(t, func(t testing.TB, ic TestContext) {
-					_, err := ic.Controller.Status(ic, connect.NewRequest(&ftlv1.StatusRequest{}))
+					_, err := ic.Admin.Ping(ic, connect.NewRequest(&ftlv1.PingRequest{}))
 					assert.NoError(t, err)
 				}, time.Minute*2)
 			}
@@ -499,11 +499,11 @@ type TestContext struct {
 	kubeNamespace string
 	devMode       bool
 
-	Controller ftlv1connect.ControllerServiceClient
-	Schema     ftlv1connect.SchemaServiceClient
-	Console    consolepbconnect.ConsoleServiceClient
-	Verbs      ftlv1connect.VerbServiceClient
-	Timeline   timelinepbconnect.TimelineServiceClient
+	Admin    ftlv1connect.AdminServiceClient
+	Schema   ftlv1connect.SchemaServiceClient
+	Console  consolepbconnect.ConsoleServiceClient
+	Verbs    ftlv1connect.VerbServiceClient
+	Timeline timelinepbconnect.TimelineServiceClient
 
 	realT *testing.T
 }

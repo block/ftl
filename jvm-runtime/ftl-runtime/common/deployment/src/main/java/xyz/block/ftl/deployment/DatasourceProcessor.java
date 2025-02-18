@@ -14,12 +14,12 @@ import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.GeneratedResourceBuildItem;
 import io.quarkus.deployment.builditem.HotDeploymentWatchedFileBuildItem;
 import io.quarkus.deployment.builditem.SystemPropertyBuildItem;
-import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.runtime.FTLDatasourceCredentials;
 import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.runtime.config.FTLConfigSource;
 import xyz.block.ftl.schema.v1.Database;
 import xyz.block.ftl.schema.v1.Decl;
+import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class DatasourceProcessor {
 

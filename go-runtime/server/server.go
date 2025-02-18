@@ -12,7 +12,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 
-	deploymentconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/deployment/v1/deploymentpbconnect"
 	leaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -41,7 +40,7 @@ type UserVerbConfig struct {
 // This function is intended to be used by the code generator.
 func NewUserVerbServer(projectName string, moduleName string, handlers ...Handler) plugin.Constructor[ftlv1connect.VerbServiceHandler, UserVerbConfig] {
 	return func(ctx context.Context, uc UserVerbConfig) (context.Context, ftlv1connect.VerbServiceHandler, error) {
-		moduleServiceClient := rpc.Dial(deploymentconnect.NewDeploymentServiceClient, uc.FTLEndpoint.String(), log.Error)
+		moduleServiceClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, uc.FTLEndpoint.String(), log.Error)
 		ctx = rpc.ContextWithClient(ctx, moduleServiceClient)
 		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, uc.FTLEndpoint.String(), log.Error)
 		ctx = rpc.ContextWithClient(ctx, verbServiceClient)

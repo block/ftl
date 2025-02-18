@@ -14,7 +14,7 @@ import (
 type listChangesetCmd struct {
 }
 
-func (g *listChangesetCmd) Run(ctx context.Context, client ftlv1connect.SchemaServiceClient) error {
+func (g *listChangesetCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient) error {
 	resp, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-changesets-list"}))
 	if err != nil {
 		return fmt.Errorf("failed to pull schema: %w", err)

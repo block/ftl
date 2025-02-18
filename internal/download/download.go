@@ -21,7 +21,7 @@ import (
 )
 
 // Artefacts downloads artefacts for a deployment from the Controller.
-func Artefacts(ctx context.Context, client ftlv1connect.ControllerServiceClient, key key.Deployment, dest string) error {
+func Artefacts(ctx context.Context, client ftlv1connect.AdminServiceClient, key key.Deployment, dest string) error {
 	logger := log.FromContext(ctx)
 	stream, err := client.GetDeploymentArtefacts(ctx, connect.NewRequest(&ftlv1.GetDeploymentArtefactsRequest{
 		DeploymentKey: key.String(),

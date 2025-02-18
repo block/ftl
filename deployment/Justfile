@@ -44,7 +44,7 @@ wait-for-kube:
   kubectl wait --for=condition=available deployment/ftl-http-ingress --timeout=5m
   kubectl wait --for=condition=available deployment/registry --timeout=5m
   sleep 1
-  ftl status || sleep 5 && ftl status
+  ftl schema get || sleep 5 && ftl schema get
 
 # Wait for FTL version upgrade to complete
 wait-for-version-upgrade oldversion:
@@ -64,7 +64,7 @@ setup-cluster: setup-registry
   #!/bin/bash
   bash -c "cd ../ && just chart dep-update"
   if [ -z "$(k3d cluster list | grep ftl)" ]; then
-  k3d cluster create ftl --api-port 6550 -p "8892:80@loadbalancer" -p "8891:80@loadbalancer" -p "8893:80@loadbalancer" -p "8897:80@loadbalancer" --agents 2 \
+  k3d cluster create ftl --api-port 6550 -p "8892:80@loadbalancer" -p "8891:80@loadbalancer" -p "8896:80@loadbalancer" -p "8897:80@loadbalancer" --agents 2 \
       --registry-use {{registry_full}} \
       --registry-config '{{mirrors}}'\
       --k3s-arg '--kubelet-arg=eviction-hard=imagefs.available<1%,nodefs.available<1%@agent:*' \

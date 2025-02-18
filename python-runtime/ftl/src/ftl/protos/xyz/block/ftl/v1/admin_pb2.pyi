@@ -1,5 +1,6 @@
 from xyz.block.ftl.schema.v1 import schema_pb2 as _schema_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
+from xyz.block.ftl.v1 import schemaservice_pb2 as _schemaservice_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -220,3 +221,83 @@ class ResetSubscriptionRequest(_message.Message):
 class ResetSubscriptionResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class ApplyChangesetRequest(_message.Message):
+    __slots__ = ("modules", "to_remove")
+    MODULES_FIELD_NUMBER: _ClassVar[int]
+    TO_REMOVE_FIELD_NUMBER: _ClassVar[int]
+    modules: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Module]
+    to_remove: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ..., to_remove: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class ApplyChangesetResponse(_message.Message):
+    __slots__ = ("changeset",)
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    changeset: _schema_pb2.Changeset
+    def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
+
+class GetArtefactDiffsRequest(_message.Message):
+    __slots__ = ("client_digests",)
+    CLIENT_DIGESTS_FIELD_NUMBER: _ClassVar[int]
+    client_digests: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, client_digests: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class GetArtefactDiffsResponse(_message.Message):
+    __slots__ = ("missing_digests", "client_artefacts")
+    MISSING_DIGESTS_FIELD_NUMBER: _ClassVar[int]
+    CLIENT_ARTEFACTS_FIELD_NUMBER: _ClassVar[int]
+    missing_digests: _containers.RepeatedScalarFieldContainer[str]
+    client_artefacts: _containers.RepeatedCompositeFieldContainer[DeploymentArtefact]
+    def __init__(self, missing_digests: _Optional[_Iterable[str]] = ..., client_artefacts: _Optional[_Iterable[_Union[DeploymentArtefact, _Mapping]]] = ...) -> None: ...
+
+class GetDeploymentArtefactsRequest(_message.Message):
+    __slots__ = ("deployment_key", "have_artefacts")
+    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
+    HAVE_ARTEFACTS_FIELD_NUMBER: _ClassVar[int]
+    deployment_key: str
+    have_artefacts: _containers.RepeatedCompositeFieldContainer[DeploymentArtefact]
+    def __init__(self, deployment_key: _Optional[str] = ..., have_artefacts: _Optional[_Iterable[_Union[DeploymentArtefact, _Mapping]]] = ...) -> None: ...
+
+class GetDeploymentArtefactsResponse(_message.Message):
+    __slots__ = ("artefact", "chunk")
+    ARTEFACT_FIELD_NUMBER: _ClassVar[int]
+    CHUNK_FIELD_NUMBER: _ClassVar[int]
+    artefact: DeploymentArtefact
+    chunk: bytes
+    def __init__(self, artefact: _Optional[_Union[DeploymentArtefact, _Mapping]] = ..., chunk: _Optional[bytes] = ...) -> None: ...
+
+class DeploymentArtefact(_message.Message):
+    __slots__ = ("digest", "path", "executable")
+    DIGEST_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    EXECUTABLE_FIELD_NUMBER: _ClassVar[int]
+    digest: bytes
+    path: str
+    executable: bool
+    def __init__(self, digest: _Optional[bytes] = ..., path: _Optional[str] = ..., executable: bool = ...) -> None: ...
+
+class UploadArtefactRequest(_message.Message):
+    __slots__ = ("digest", "size", "chunk")
+    DIGEST_FIELD_NUMBER: _ClassVar[int]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    CHUNK_FIELD_NUMBER: _ClassVar[int]
+    digest: bytes
+    size: int
+    chunk: bytes
+    def __init__(self, digest: _Optional[bytes] = ..., size: _Optional[int] = ..., chunk: _Optional[bytes] = ...) -> None: ...
+
+class UploadArtefactResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class ClusterInfoRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class ClusterInfoResponse(_message.Message):
+    __slots__ = ("os", "arch")
+    OS_FIELD_NUMBER: _ClassVar[int]
+    ARCH_FIELD_NUMBER: _ClassVar[int]
+    os: str
+    arch: str
+    def __init__(self, os: _Optional[str] = ..., arch: _Optional[str] = ...) -> None: ...

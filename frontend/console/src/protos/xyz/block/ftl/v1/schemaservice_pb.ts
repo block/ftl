@@ -311,9 +311,9 @@ export class CreateChangesetRequest extends Message<CreateChangesetRequest> {
   /**
    * The deployments to remove.
    *
-   * @generated from field: repeated string removed_deployments = 2;
+   * @generated from field: repeated string to_remove = 2;
    */
-  removedDeployments: string[] = [];
+  toRemove: string[] = [];
 
   constructor(data?: PartialMessage<CreateChangesetRequest>) {
     super();
@@ -324,7 +324,7 @@ export class CreateChangesetRequest extends Message<CreateChangesetRequest> {
   static readonly typeName = "xyz.block.ftl.v1.CreateChangesetRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
-    { no: 2, name: "removed_deployments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 2, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateChangesetRequest {

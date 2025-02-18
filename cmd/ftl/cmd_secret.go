@@ -48,7 +48,7 @@ type secretListCmd struct {
 	Module string `optional:"" arg:"" placeholder:"MODULE" help:"List secrets only in this module."`
 }
 
-func (s *secretListCmd) Run(ctx context.Context, adminClient admin.Client) error {
+func (s *secretListCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
 	resp, err := adminClient.SecretsList(ctx, connect.NewRequest(&ftlv1.SecretsListRequest{
 		Module:        &s.Module,
 		IncludeValues: &s.Values,
@@ -77,7 +77,7 @@ Returns a JSON-encoded secret value.
 `
 }
 
-func (s *secretGetCmd) Run(ctx context.Context, adminClient admin.Client) error {
+func (s *secretGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
 	resp, err := adminClient.SecretGet(ctx, connect.NewRequest(&ftlv1.SecretGetRequest{
 		Ref: configRefFromRef(s.Ref),
 	}))
@@ -94,7 +94,7 @@ type secretSetCmd struct {
 	Value string `arg:"" placeholder:"VALUE" help:"Secret value (read from stdin if omitted)." optional:""`
 }
 
-func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.Client) (err error) {
+func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
 	// We don't need the terminal status display, and it does not currently handle partial line writes
 	terminal.FromContext(ctx).Close()
 	// Prompt for a secret if stdin is a terminal, otherwise read from stdin.
@@ -142,7 +142,7 @@ type secretUnsetCmd struct {
 	Ref cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>."`
 }
 
-func (s *secretUnsetCmd) Run(ctx context.Context, adminClient admin.Client) (err error) {
+func (s *secretUnsetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
 	req := &ftlv1.SecretUnsetRequest{
 		Ref: configRefFromRef(s.Ref),
 	}
@@ -163,7 +163,7 @@ Imports secrets from a JSON object.
 `
 }
 
-func (s *secretImportCmd) Run(ctx context.Context, adminClient admin.Client) (err error) {
+func (s *secretImportCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
 	input, err := io.ReadAll(s.Input)
 	if err != nil {
 		return fmt.Errorf("failed to read input: %w", err)
@@ -203,7 +203,7 @@ Outputs secrets in a JSON object. A provider can be used to filter which secrets
 `
 }
 
-func (s *secretExportCmd) Run(ctx context.Context, adminClient admin.Client) (err error) {
+func (s *secretExportCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
 	req := &ftlv1.SecretsListRequest{
 		IncludeValues: optional.Some(true).Ptr(),
 	}

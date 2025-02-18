@@ -3,7 +3,7 @@ package xyz.block.ftl.runtime;
 import java.io.Closeable;
 import java.util.Optional;
 
-import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
+import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 /**
  * Details about the proxy endpoints provided by the runner

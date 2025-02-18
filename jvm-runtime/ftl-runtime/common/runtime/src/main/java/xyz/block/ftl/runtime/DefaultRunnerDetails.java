@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
+import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 /**
  * Default implementation of RunnerDetails, that uses the environment variables to get the proxy address and database

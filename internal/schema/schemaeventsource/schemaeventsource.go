@@ -14,7 +14,6 @@ import (
 	"golang.org/x/exp/maps"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	islices "github.com/block/ftl/common/slices"
@@ -22,6 +21,11 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 )
+
+type PullSchemaClient interface {
+	PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest]) (*connect.ServerStreamForClient[ftlv1.PullSchemaResponse], error)
+	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
+}
 
 // View is a read-only view of the schema.
 type View struct {
@@ -220,7 +224,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 // materialised view (ie. [schema.Schema]).
 //
 // The sync will terminate when the context is cancelled.
-func New(ctx context.Context, subscriptionID string, client ftlv1connect.SchemaServiceClient) *EventSource {
+func New(ctx context.Context, subscriptionID string, client PullSchemaClient) *EventSource {
 	logger := log.FromContext(ctx).Scope("schema-sync")
 	out := NewUnattached()
 	logger.Debugf("Starting schema pull")

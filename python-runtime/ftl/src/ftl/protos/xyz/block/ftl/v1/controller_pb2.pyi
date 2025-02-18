@@ -2,65 +2,12 @@ from google.protobuf import struct_pb2 as _struct_pb2
 from xyz.block.ftl.schema.v1 import schema_pb2 as _schema_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
-
-class GetArtefactDiffsRequest(_message.Message):
-    __slots__ = ("client_digests",)
-    CLIENT_DIGESTS_FIELD_NUMBER: _ClassVar[int]
-    client_digests: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, client_digests: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class GetArtefactDiffsResponse(_message.Message):
-    __slots__ = ("missing_digests", "client_artefacts")
-    MISSING_DIGESTS_FIELD_NUMBER: _ClassVar[int]
-    CLIENT_ARTEFACTS_FIELD_NUMBER: _ClassVar[int]
-    missing_digests: _containers.RepeatedScalarFieldContainer[str]
-    client_artefacts: _containers.RepeatedCompositeFieldContainer[DeploymentArtefact]
-    def __init__(self, missing_digests: _Optional[_Iterable[str]] = ..., client_artefacts: _Optional[_Iterable[_Union[DeploymentArtefact, _Mapping]]] = ...) -> None: ...
-
-class UploadArtefactRequest(_message.Message):
-    __slots__ = ("digest", "size", "chunk")
-    DIGEST_FIELD_NUMBER: _ClassVar[int]
-    SIZE_FIELD_NUMBER: _ClassVar[int]
-    CHUNK_FIELD_NUMBER: _ClassVar[int]
-    digest: bytes
-    size: int
-    chunk: bytes
-    def __init__(self, digest: _Optional[bytes] = ..., size: _Optional[int] = ..., chunk: _Optional[bytes] = ...) -> None: ...
-
-class UploadArtefactResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class DeploymentArtefact(_message.Message):
-    __slots__ = ("digest", "path", "executable")
-    DIGEST_FIELD_NUMBER: _ClassVar[int]
-    PATH_FIELD_NUMBER: _ClassVar[int]
-    EXECUTABLE_FIELD_NUMBER: _ClassVar[int]
-    digest: bytes
-    path: str
-    executable: bool
-    def __init__(self, digest: _Optional[bytes] = ..., path: _Optional[str] = ..., executable: bool = ...) -> None: ...
-
-class GetDeploymentArtefactsRequest(_message.Message):
-    __slots__ = ("deployment_key", "have_artefacts")
-    DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
-    HAVE_ARTEFACTS_FIELD_NUMBER: _ClassVar[int]
-    deployment_key: str
-    have_artefacts: _containers.RepeatedCompositeFieldContainer[DeploymentArtefact]
-    def __init__(self, deployment_key: _Optional[str] = ..., have_artefacts: _Optional[_Iterable[_Union[DeploymentArtefact, _Mapping]]] = ...) -> None: ...
-
-class GetDeploymentArtefactsResponse(_message.Message):
-    __slots__ = ("artefact", "chunk")
-    ARTEFACT_FIELD_NUMBER: _ClassVar[int]
-    CHUNK_FIELD_NUMBER: _ClassVar[int]
-    artefact: DeploymentArtefact
-    chunk: bytes
-    def __init__(self, artefact: _Optional[_Union[DeploymentArtefact, _Mapping]] = ..., chunk: _Optional[bytes] = ...) -> None: ...
 
 class RegisterRunnerRequest(_message.Message):
     __slots__ = ("key", "endpoint", "deployment", "labels")
@@ -77,18 +24,6 @@ class RegisterRunnerRequest(_message.Message):
 class RegisterRunnerResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
-
-class ClusterInfoRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
-class ClusterInfoResponse(_message.Message):
-    __slots__ = ("os", "arch")
-    OS_FIELD_NUMBER: _ClassVar[int]
-    ARCH_FIELD_NUMBER: _ClassVar[int]
-    os: str
-    arch: str
-    def __init__(self, os: _Optional[str] = ..., arch: _Optional[str] = ...) -> None: ...
 
 class StatusRequest(_message.Message):
     __slots__ = ()
@@ -181,3 +116,63 @@ class ProcessListResponse(_message.Message):
     PROCESSES_FIELD_NUMBER: _ClassVar[int]
     processes: _containers.RepeatedCompositeFieldContainer[ProcessListResponse.Process]
     def __init__(self, processes: _Optional[_Iterable[_Union[ProcessListResponse.Process, _Mapping]]] = ...) -> None: ...
+
+class GetDeploymentContextRequest(_message.Message):
+    __slots__ = ("deployment",)
+    DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
+    deployment: str
+    def __init__(self, deployment: _Optional[str] = ...) -> None: ...
+
+class GetDeploymentContextResponse(_message.Message):
+    __slots__ = ("module", "deployment", "configs", "secrets", "databases", "routes")
+    class DbType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        DB_TYPE_UNSPECIFIED: _ClassVar[GetDeploymentContextResponse.DbType]
+        DB_TYPE_POSTGRES: _ClassVar[GetDeploymentContextResponse.DbType]
+        DB_TYPE_MYSQL: _ClassVar[GetDeploymentContextResponse.DbType]
+    DB_TYPE_UNSPECIFIED: GetDeploymentContextResponse.DbType
+    DB_TYPE_POSTGRES: GetDeploymentContextResponse.DbType
+    DB_TYPE_MYSQL: GetDeploymentContextResponse.DbType
+    class DSN(_message.Message):
+        __slots__ = ("name", "type", "dsn")
+        NAME_FIELD_NUMBER: _ClassVar[int]
+        TYPE_FIELD_NUMBER: _ClassVar[int]
+        DSN_FIELD_NUMBER: _ClassVar[int]
+        name: str
+        type: GetDeploymentContextResponse.DbType
+        dsn: str
+        def __init__(self, name: _Optional[str] = ..., type: _Optional[_Union[GetDeploymentContextResponse.DbType, str]] = ..., dsn: _Optional[str] = ...) -> None: ...
+    class Route(_message.Message):
+        __slots__ = ("deployment", "uri")
+        DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
+        URI_FIELD_NUMBER: _ClassVar[int]
+        deployment: str
+        uri: str
+        def __init__(self, deployment: _Optional[str] = ..., uri: _Optional[str] = ...) -> None: ...
+    class ConfigsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: bytes
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[bytes] = ...) -> None: ...
+    class SecretsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: bytes
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[bytes] = ...) -> None: ...
+    MODULE_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
+    CONFIGS_FIELD_NUMBER: _ClassVar[int]
+    SECRETS_FIELD_NUMBER: _ClassVar[int]
+    DATABASES_FIELD_NUMBER: _ClassVar[int]
+    ROUTES_FIELD_NUMBER: _ClassVar[int]
+    module: str
+    deployment: str
+    configs: _containers.ScalarMap[str, bytes]
+    secrets: _containers.ScalarMap[str, bytes]
+    databases: _containers.RepeatedCompositeFieldContainer[GetDeploymentContextResponse.DSN]
+    routes: _containers.RepeatedCompositeFieldContainer[GetDeploymentContextResponse.Route]
+    def __init__(self, module: _Optional[str] = ..., deployment: _Optional[str] = ..., configs: _Optional[_Mapping[str, bytes]] = ..., secrets: _Optional[_Mapping[str, bytes]] = ..., databases: _Optional[_Iterable[_Union[GetDeploymentContextResponse.DSN, _Mapping]]] = ..., routes: _Optional[_Iterable[_Union[GetDeploymentContextResponse.Route, _Mapping]]] = ...) -> None: ...

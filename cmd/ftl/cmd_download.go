@@ -14,7 +14,7 @@ type downloadCmd struct {
 	Deployment key.Deployment `help:"Deployment to download." arg:""`
 }
 
-func (d *downloadCmd) Run(ctx context.Context, client ftlv1connect.ControllerServiceClient) error {
+func (d *downloadCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient) error {
 	err := download.Artefacts(ctx, client, d.Deployment, d.Dest)
 	if err != nil {
 		return fmt.Errorf("failed to download artefacts: %w", err)

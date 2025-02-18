@@ -48,7 +48,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     private volatile Module module;
     private volatile ErrorList errors;
     private volatile Server server;
-    private BiConsumer<Module, ErrorList> runningReload;
+    private volatile BiConsumer<Module, ErrorList> runningReload;
     private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
 
     public static HotReloadHandler getInstance() {
@@ -60,13 +60,16 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         this.module = module;
         this.errors = errors;
         if (runningReload != null) {
+            LOG.errorf("running reload with");
             runningReload.accept(module, errors);
         } else {
             List<StreamObserver<WatchResponse>> watches;
             synchronized (this.watches) {
                 watches = new ArrayList<>(this.watches);
             }
+            LOG.errorf("watected with");
             for (var watch : watches) {
+                LOG.errorf("watected insta");
                 try {
                     watch.onNext(WatchResponse.newBuilder()
                             .setState(buildState(module, errors)).build());
@@ -108,6 +111,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             }
             runningReload = (module, errors) -> {
                 synchronized (HotReloadHandler.this) {
+                    LOG.errorf("Restarting with %s errors", errors.getErrorsCount());
                     runningReload = null;
                     Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
                     Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();

@@ -164,7 +164,7 @@
                             <includes>
                                 <include>**/schema.proto</include>
                                 <include>**/verb.proto</include>
-                                <include>**/deployment.proto</include>
+                                <include>**/controller.proto</include>
                                 <include>**/lease.proto</include>
                                 <include>**/ftl.proto</include>
                                 <include>**/language.proto</include>
@@ -195,7 +195,7 @@
                             <includes>
                                 <include>**/schema.proto</include>
                                 <include>**/verb.proto</include>
-                                <include>**/deployment.proto</include>
+                                <include>**/controller.proto</include>
                                 <include>**/lease.proto</include>
                                 <include>**/ftl.proto</include>
                                 <include>**/language.proto</include>

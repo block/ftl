@@ -2,48 +2,62 @@ package admin
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"net/url"
+	"runtime"
 	"slices"
+	"strings"
+	"sync"
 
 	"connectrpc.com/connect"
 	"github.com/IBM/sarama"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/proto"
 
+	"github.com/block/ftl/backend/controller/artefacts"
+	"github.com/block/ftl/backend/controller/state"
 	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/common/encoding"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/sha256"
 	islices "github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/configuration/providers"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type Config struct {
-	Bind *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8896" env:"FTL_BIND"`
+	Bind              *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8896" env:"FTL_BIND"`
+	ArtefactChunkSize int      `help:"Size of each chunk streamed to the client." default:"1048576"`
 }
 
-type AdminService struct {
-	schr SchemaRetriever
-	cm   *manager.Manager[configuration.Configuration]
-	sm   *manager.Manager[configuration.Secrets]
+type Service struct {
+	env          *EnvironmentManager
+	schemaClient ftlv1connect.SchemaServiceClient
+	source       *schemaeventsource.EventSource
+	storage      *artefacts.OCIArtefactService
+	config       Config
+	routeTable   *routing.VerbCallRouter
+	waitFor      []string
 }
 
-var _ ftlv1connect.AdminServiceHandler = (*AdminService)(nil)
+var _ ftlv1connect.AdminServiceHandler = (*Service)(nil)
+var _ ftlv1connect.VerbServiceHandler = (*Service)(nil)
 
-type SchemaRetriever interface {
-	// TODO: docs
-	GetCanonicalSchema(ctx context.Context) (*schema.Schema, error)
-	GetLatestSchema(ctx context.Context) (*schema.Schema, error)
-}
-
-func NewSchemaRetreiver(source *schemaeventsource.EventSource) SchemaRetriever {
+func NewSchemaRetriever(source *schemaeventsource.EventSource) SchemaClient {
 	return &streamSchemaRetriever{
 		source: source,
 	}
@@ -53,23 +67,25 @@ type streamSchemaRetriever struct {
 	source *schemaeventsource.EventSource
 }
 
-func (c streamSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.Schema, error) {
+func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, error) {
 	view := c.source.CanonicalView()
 	return &schema.Schema{Modules: view.Modules}, nil
 }
 
-func (c streamSchemaRetriever) GetLatestSchema(ctx context.Context) (*schema.Schema, error) {
-	view := c.source.CanonicalView()
-	return &schema.Schema{Modules: view.Modules}, nil
-}
-
-// NewAdminService creates a new AdminService.
+// NewAdminService creates a new Service.
 // bindAllocator is optional and should be set if a local client is to be used that accesses schema from disk using language plugins.
-func NewAdminService(cm *manager.Manager[configuration.Configuration], sm *manager.Manager[configuration.Secrets], schr SchemaRetriever) *AdminService {
-	return &AdminService{
-		schr: schr,
-		cm:   cm,
-		sm:   sm,
+func NewAdminService(config Config, env *EnvironmentManager,
+	schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource,
+	storage *artefacts.OCIArtefactService, routes *routing.VerbCallRouter,
+	waitFor []string) *Service {
+	return &Service{
+		config:       config,
+		env:          env,
+		schemaClient: schr,
+		source:       source,
+		storage:      storage,
+		routeTable:   routes,
+		waitFor:      waitFor,
 	}
 }
 
@@ -78,15 +94,20 @@ func Start(
 	config Config,
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
-	schr SchemaRetriever,
-) error {
+	schr ftlv1connect.SchemaServiceClient,
+	source *schemaeventsource.EventSource,
+	timelineClient *timelineclient.Client,
+	storage *artefacts.OCIArtefactService,
+	waitFor []string) error {
 
 	logger := log.FromContext(ctx).Scope("admin")
-	svc := NewAdminService(cm, sm, schr)
+
+	svc := NewAdminService(config, &EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm}, schr, source, storage, routing.NewVerbRouter(ctx, source, timelineClient), waitFor)
 
 	logger.Debugf("Admin service listening on: %s", config.Bind)
 	err := rpc.Serve(ctx, config.Bind,
 		rpc.GRPC(ftlv1connect.NewAdminServiceHandler, svc),
+		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, svc),
 	)
 	if err != nil {
 		return fmt.Errorf("admin service stopped serving: %w", err)
@@ -94,253 +115,80 @@ func Start(
 	return nil
 }
 
-func (s *AdminService) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
+	if len(s.waitFor) == 0 {
+		return connect.NewResponse(&ftlv1.PingResponse{}), nil
+	}
+
+	// It's not actually ready until it is in the routes table
+	var missing []string
+	for _, module := range s.waitFor {
+		if _, _, ok := s.routeTable.LookupClient(ctx, module); !ok {
+			missing = append(missing, module)
+		}
+	}
+	if len(missing) == 0 {
+		return connect.NewResponse(&ftlv1.PingResponse{}), nil
+	}
+
+	msg := fmt.Sprintf("waiting for deployments: %s", strings.Join(missing, ", "))
+	return connect.NewResponse(&ftlv1.PingResponse{NotReady: &msg}), nil
 }
 
 // ConfigList returns the list of configuration values, optionally filtered by module.
-func (s *AdminService) ConfigList(ctx context.Context, req *connect.Request[ftlv1.ConfigListRequest]) (*connect.Response[ftlv1.ConfigListResponse], error) {
-	listing, err := s.cm.List(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list configs: %w", err)
-	}
-
-	configs := []*ftlv1.ConfigListResponse_Config{}
-	for _, config := range listing {
-		module, ok := config.Module.Get()
-		if req.Msg.Module != nil && *req.Msg.Module != "" && module != *req.Msg.Module {
-			continue
-		}
-
-		ref := config.Name
-		if ok {
-			ref = fmt.Sprintf("%s.%s", module, config.Name)
-		}
-
-		var cv []byte
-		if *req.Msg.IncludeValues {
-			var value any
-			err := s.cm.Get(ctx, config.Ref, &value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get value for %v: %w", ref, err)
-			}
-			cv, err = json.Marshal(value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal value for %s: %w", ref, err)
-			}
-		}
-
-		configs = append(configs, &ftlv1.ConfigListResponse_Config{
-			RefPath: ref,
-			Value:   cv,
-		})
-	}
-	return connect.NewResponse(&ftlv1.ConfigListResponse{Configs: configs}), nil
+func (s *Service) ConfigList(ctx context.Context, req *connect.Request[ftlv1.ConfigListRequest]) (*connect.Response[ftlv1.ConfigListResponse], error) {
+	return s.env.ConfigList(ctx, req)
 }
 
 // ConfigGet returns the configuration value for a given ref string.
-func (s *AdminService) ConfigGet(ctx context.Context, req *connect.Request[ftlv1.ConfigGetRequest]) (*connect.Response[ftlv1.ConfigGetResponse], error) {
-	var value any
-	err := s.cm.Get(ctx, refFromConfigRef(req.Msg.GetRef()), &value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get from config manager: %w", err)
-	}
-	vb, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal value: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.ConfigGetResponse{Value: vb}), nil
-}
-
-func configProviderKey(p *ftlv1.ConfigProvider) configuration.ProviderKey {
-	if p == nil {
-		return ""
-	}
-	switch *p {
-	case ftlv1.ConfigProvider_CONFIG_PROVIDER_INLINE:
-		return providers.InlineProviderKey
-	case ftlv1.ConfigProvider_CONFIG_PROVIDER_ENVAR:
-		return providers.EnvarProviderKey
-	}
-	return ""
+func (s *Service) ConfigGet(ctx context.Context, req *connect.Request[ftlv1.ConfigGetRequest]) (*connect.Response[ftlv1.ConfigGetResponse], error) {
+	return s.env.ConfigGet(ctx, req)
 }
 
 // ConfigSet sets the configuration at the given ref to the provided value.
-func (s *AdminService) ConfigSet(ctx context.Context, req *connect.Request[ftlv1.ConfigSetRequest]) (*connect.Response[ftlv1.ConfigSetResponse], error) {
-	err := s.validateAgainstSchema(ctx, false, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.cm.SetJSON(ctx, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set config: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.ConfigSetResponse{}), nil
+func (s *Service) ConfigSet(ctx context.Context, req *connect.Request[ftlv1.ConfigSetRequest]) (*connect.Response[ftlv1.ConfigSetResponse], error) {
+	return s.env.ConfigSet(ctx, req)
 }
 
 // ConfigUnset unsets the config value at the given ref.
-func (s *AdminService) ConfigUnset(ctx context.Context, req *connect.Request[ftlv1.ConfigUnsetRequest]) (*connect.Response[ftlv1.ConfigUnsetResponse], error) {
-	err := s.cm.Unset(ctx, refFromConfigRef(req.Msg.GetRef()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to unset config: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.ConfigUnsetResponse{}), nil
+func (s *Service) ConfigUnset(ctx context.Context, req *connect.Request[ftlv1.ConfigUnsetRequest]) (*connect.Response[ftlv1.ConfigUnsetResponse], error) {
+	return s.env.ConfigUnset(ctx, req)
 }
 
 // SecretsList returns the list of secrets, optionally filtered by module.
-func (s *AdminService) SecretsList(ctx context.Context, req *connect.Request[ftlv1.SecretsListRequest]) (*connect.Response[ftlv1.SecretsListResponse], error) {
-	listing, err := s.sm.List(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list secrets: %w", err)
-	}
-	secrets := []*ftlv1.SecretsListResponse_Secret{}
-	for _, secret := range listing {
-		module, ok := secret.Module.Get()
-		if req.Msg.Module != nil && *req.Msg.Module != "" && module != *req.Msg.Module {
-			continue
-		}
-		ref := secret.Name
-		if ok {
-			ref = fmt.Sprintf("%s.%s", module, secret.Name)
-		}
-		var sv []byte
-		if *req.Msg.IncludeValues {
-			var value any
-			err := s.sm.Get(ctx, secret.Ref, &value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get value for %v: %w", ref, err)
-			}
-			sv, err = json.Marshal(value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal value for %s: %w", ref, err)
-			}
-		}
-		secrets = append(secrets, &ftlv1.SecretsListResponse_Secret{
-			RefPath: ref,
-			Value:   sv,
-		})
-	}
-	return connect.NewResponse(&ftlv1.SecretsListResponse{Secrets: secrets}), nil
+func (s *Service) SecretsList(ctx context.Context, req *connect.Request[ftlv1.SecretsListRequest]) (*connect.Response[ftlv1.SecretsListResponse], error) {
+	return s.env.SecretsList(ctx, req)
 }
 
 // SecretGet returns the secret value for a given ref string.
-func (s *AdminService) SecretGet(ctx context.Context, req *connect.Request[ftlv1.SecretGetRequest]) (*connect.Response[ftlv1.SecretGetResponse], error) {
-	var value any
-	err := s.sm.Get(ctx, refFromConfigRef(req.Msg.GetRef()), &value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get from secret manager: %w", err)
-	}
-	vb, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal value: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.SecretGetResponse{Value: vb}), nil
+func (s *Service) SecretGet(ctx context.Context, req *connect.Request[ftlv1.SecretGetRequest]) (*connect.Response[ftlv1.SecretGetResponse], error) {
+	return s.env.SecretGet(ctx, req)
 }
 
 // SecretSet sets the secret at the given ref to the provided value.
-func (s *AdminService) SecretSet(ctx context.Context, req *connect.Request[ftlv1.SecretSetRequest]) (*connect.Response[ftlv1.SecretSetResponse], error) {
-	err := s.validateAgainstSchema(ctx, true, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.sm.SetJSON(ctx, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set secret: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.SecretSetResponse{}), nil
+func (s *Service) SecretSet(ctx context.Context, req *connect.Request[ftlv1.SecretSetRequest]) (*connect.Response[ftlv1.SecretSetResponse], error) {
+	return s.env.SecretSet(ctx, req)
 }
 
 // SecretUnset unsets the secret value at the given ref.
-func (s *AdminService) SecretUnset(ctx context.Context, req *connect.Request[ftlv1.SecretUnsetRequest]) (*connect.Response[ftlv1.SecretUnsetResponse], error) {
-	err := s.sm.Unset(ctx, refFromConfigRef(req.Msg.GetRef()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to unset secret: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.SecretUnsetResponse{}), nil
+func (s *Service) SecretUnset(ctx context.Context, req *connect.Request[ftlv1.SecretUnsetRequest]) (*connect.Response[ftlv1.SecretUnsetResponse], error) {
+	return s.env.SecretUnset(ctx, req)
 }
 
 // MapConfigsForModule combines all configuration values visible to the module.
-func (s *AdminService) MapConfigsForModule(ctx context.Context, req *connect.Request[ftlv1.MapConfigsForModuleRequest]) (*connect.Response[ftlv1.MapConfigsForModuleResponse], error) {
-	values, err := s.cm.MapForModule(ctx, req.Msg.Module)
-	if err != nil {
-		return nil, fmt.Errorf("failed to map configs for module: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.MapConfigsForModuleResponse{Values: values}), nil
+func (s *Service) MapConfigsForModule(ctx context.Context, req *connect.Request[ftlv1.MapConfigsForModuleRequest]) (*connect.Response[ftlv1.MapConfigsForModuleResponse], error) {
+	return s.env.MapConfigsForModule(ctx, req)
 }
 
 // MapSecretsForModule combines all secrets visible to the module.
-func (s *AdminService) MapSecretsForModule(ctx context.Context, req *connect.Request[ftlv1.MapSecretsForModuleRequest]) (*connect.Response[ftlv1.MapSecretsForModuleResponse], error) {
-	values, err := s.sm.MapForModule(ctx, req.Msg.Module)
-	if err != nil {
-		return nil, fmt.Errorf("failed to map secrets for module: %w", err)
-	}
-	return connect.NewResponse(&ftlv1.MapSecretsForModuleResponse{Values: values}), nil
+func (s *Service) MapSecretsForModule(ctx context.Context, req *connect.Request[ftlv1.MapSecretsForModuleRequest]) (*connect.Response[ftlv1.MapSecretsForModuleResponse], error) {
+	return s.env.MapSecretsForModule(ctx, req)
 }
 
-func refFromConfigRef(cr *ftlv1.ConfigRef) configuration.Ref {
-	return configuration.NewRef(cr.GetModule(), cr.GetName())
-}
-
-func (s *AdminService) validateAgainstSchema(ctx context.Context, isSecret bool, ref configuration.Ref, value json.RawMessage) error {
-	logger := log.FromContext(ctx)
-
-	// Globals aren't in the module schemas, so we have nothing to validate against.
-	if !ref.Module.Ok() {
-		return nil
-	}
-
-	// If we can't retrieve an active schema, skip validation.
-	sch, err := s.schr.GetLatestSchema(ctx)
-	if err != nil {
-		logger.Debugf("skipping validation; could not get the active schema: %v", err)
-		return nil
-	}
-
-	r := schema.RefKey{Module: ref.Module.Default(""), Name: ref.Name}.ToRef()
-	decl, ok := sch.Resolve(r).Get()
-	if !ok {
-		logger.Debugf("skipping validation; declaration %q not found", ref.Name)
-		return nil
-	}
-
-	var fieldType schema.Type
-	if isSecret {
-		decl, ok := decl.(*schema.Secret)
-		if !ok {
-			return fmt.Errorf("%q is not a secret declaration", ref.Name)
-		}
-		fieldType = decl.Type
-	} else {
-		decl, ok := decl.(*schema.Config)
-		if !ok {
-			return fmt.Errorf("%q is not a config declaration", ref.Name)
-		}
-		fieldType = decl.Type
-	}
-
-	var v any
-	err = encoding.Unmarshal(value, &v)
-	if err != nil {
-		return fmt.Errorf("could not unmarshal JSON value: %w", err)
-	}
-
-	err = schema.ValidateJSONValue(fieldType, []string{ref.Name}, v, sch)
-	if err != nil {
-		return fmt.Errorf("JSON validation failed: %w", err)
-	}
-
-	return nil
-}
-
-func (s *AdminService) ResetSubscription(ctx context.Context, req *connect.Request[ftlv1.ResetSubscriptionRequest]) (*connect.Response[ftlv1.ResetSubscriptionResponse], error) {
+func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ftlv1.ResetSubscriptionRequest]) (*connect.Response[ftlv1.ResetSubscriptionResponse], error) {
 	// Find nodes in schema
 	// TODO: we really want all deployments for a module... not just latest... Use canonical and check ActiveChangeset?
-	sch, err := s.schr.GetCanonicalSchema(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("could not get the active schema: %w", err)
-	}
+	sch := s.source.CanonicalView()
 	module, ok := islices.Find(sch.Modules, func(m *schema.Module) bool {
 		return m.Name == req.Msg.Subscription.Module
 	})
@@ -416,4 +264,335 @@ func kafkaPartitionCount(ctx context.Context, brokers []string, topicID string) 
 		return 0, fmt.Errorf("failed to describe topic %s: %w", topicID, topicMetas[0].Err)
 	}
 	return len(topicMetas[0].Partitions), nil
+}
+
+func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
+	sch, err := s.schemaClient.GetSchema(ctx, connect.NewRequest(c.Msg))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest schema: %w", err)
+	}
+	return connect.NewResponse(sch.Msg), nil
+}
+
+func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error) {
+	events := s.source.Subscribe(ctx)
+	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
+		Modules:  req.Msg.Modules,
+		ToRemove: req.Msg.ToRemove,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create changeset: %w", err)
+	}
+	changeset := &schemapb.Changeset{
+		Key:      cs.Msg.Changeset,
+		Modules:  req.Msg.Modules,
+		ToRemove: req.Msg.ToRemove,
+	}
+	for e := range channels.IterContext(ctx, events) {
+		switch event := e.(type) {
+		case *schema.ChangesetFinalizedNotification:
+			//
+			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
+				Changeset: changeset,
+			}), nil
+		case *schema.ChangesetFailedNotification:
+			return nil, fmt.Errorf("failed to apply changeset: %s", event.Error)
+		case *schema.ChangesetCommittedNotification:
+			changeset = event.Changeset.ToProto()
+			// We don't wait for cleanup, just return immediately
+			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
+				Changeset: changeset,
+			}), nil
+		case *schema.ChangesetRollingBackNotification:
+			changeset = event.Changeset.ToProto()
+		default:
+
+		}
+	}
+	return nil, fmt.Errorf("failed to apply changeset: context cancelled")
+}
+
+func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], resp *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
+	events := s.source.Subscribe(ctx)
+	for event := range channels.IterContext(ctx, events) {
+		switch e := event.(type) {
+		case *schema.FullSchemaNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_FullSchemaNotification{FullSchemaNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.DeploymentRuntimeNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_DeploymentRuntimeNotification{DeploymentRuntimeNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetCreatedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetCreatedNotification{ChangesetCreatedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetPreparedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetPreparedNotification{ChangesetPreparedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetCommittedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetDrainedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetDrainedNotification{ChangesetDrainedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetFinalizedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetFinalizedNotification{ChangesetFinalizedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetRollingBackNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetRollingBackNotification{ChangesetRollingBackNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		case *schema.ChangesetFailedNotification:
+			proto := e.ToProto()
+			err := resp.Send(&ftlv1.PullSchemaResponse{
+				Event: &schemapb.Notification{
+					Value: &schemapb.Notification_ChangesetFailedNotification{ChangesetFailedNotification: proto},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send: %w", err)
+			}
+		}
+
+	}
+	return fmt.Errorf("context cancelled %w", ctx.Err())
+}
+
+func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error) {
+	byteDigests, err := islices.MapErr(req.Msg.ClientDigests, sha256.ParseSHA256)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse digests: %w", err)
+	}
+	_, need, err := s.storage.GetDigestsKeys(ctx, byteDigests)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get digests: %w", err)
+	}
+	return connect.NewResponse(&ftlv1.GetArtefactDiffsResponse{
+		MissingDigests: islices.Map(need, func(s sha256.SHA256) string { return s.String() }),
+	}), nil
+}
+
+func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStream[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error) {
+	logger := log.FromContext(ctx).Scope("uploadArtefact")
+	firstMsg := NewOnceValue[*ftlv1.UploadArtefactRequest]()
+	wg, ctx := errgroup.WithContext(ctx)
+	logger.Debugf("Uploading artefact")
+	r, w := io.Pipe()
+	// Read bytes from client and upload to OCI
+	wg.Go(func() error {
+		defer r.Close()
+		logger.Tracef("Waiting for first message")
+		msg, ok := firstMsg.Get(ctx)
+		if !ok {
+			return nil
+		}
+		if msg.Size == 0 {
+			return fmt.Errorf("artefact size must be specified")
+		}
+		digest, err := sha256.ParseSHA256(hex.EncodeToString(msg.Digest))
+		if err != nil {
+			return fmt.Errorf("failed to parse digest: %w", err)
+		}
+		logger = logger.Scope("uploadArtefact:" + digest.String())
+		logger.Debugf("Starting upload to OCI")
+		err = s.storage.Upload(ctx, artefacts.ArtefactUpload{
+			Digest:  digest,
+			Size:    msg.Size,
+			Content: r,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upload artefact: %w", err)
+		}
+		logger.Debugf("Created new artefact %s", digest)
+		return nil
+	})
+	// Stream bytes from client into the pipe
+	wg.Go(func() error {
+		defer w.Close()
+		logger.Debugf("Starting forwarder from client to OCI")
+		for stream.Receive() {
+			msg := stream.Msg()
+			if len(msg.Chunk) == 0 {
+				return fmt.Errorf("zero length chunk received")
+			}
+			firstMsg.Set(msg)
+			if _, err := w.Write(msg.Chunk); err != nil {
+				return fmt.Errorf("failed to write chunk: %w", err)
+			}
+		}
+		if err := stream.Err(); err != nil {
+			return fmt.Errorf("failed to upload artefact: %w", err)
+		}
+		return nil
+	})
+	err := wg.Wait()
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload artefact: %w", err)
+	}
+	return connect.NewResponse(&ftlv1.UploadArtefactResponse{}), nil
+}
+
+func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentArtefactsRequest], resp *connect.ServerStream[ftlv1.GetDeploymentArtefactsResponse]) error {
+	dkey, err := key.ParseDeploymentKey(req.Msg.DeploymentKey)
+	if err != nil {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
+	}
+
+	deploymentOpt := s.source.CanonicalView().Deployment(dkey)
+	deployment, ok := deploymentOpt.Get()
+	if !ok {
+		return fmt.Errorf("could not get deployment: %s", req.Msg.DeploymentKey)
+	}
+
+	logger := log.FromContext(ctx)
+	logger.Debugf("Get deployment artefacts for: %s", dkey.String())
+
+	chunk := make([]byte, s.config.ArtefactChunkSize)
+nextArtefact:
+	for artefact := range islices.FilterVariants[schema.MetadataArtefact](deployment.Metadata) {
+		deploymentArtefact := &state.DeploymentArtefact{
+			Digest:     artefact.Digest,
+			Path:       artefact.Path,
+			Executable: artefact.Executable,
+		}
+		for _, clientArtefact := range req.Msg.HaveArtefacts {
+			if proto.Equal(ftlv1.ArtefactToProto(deploymentArtefact), clientArtefact) {
+				continue nextArtefact
+			}
+		}
+		reader, err := s.storage.Download(ctx, artefact.Digest)
+		if err != nil {
+			return fmt.Errorf("could not download artefact: %w", err)
+		}
+		defer reader.Close()
+		for {
+
+			n, err := reader.Read(chunk)
+			if n != 0 {
+				if err := resp.Send(&ftlv1.GetDeploymentArtefactsResponse{
+					Artefact: ftlv1.ArtefactToProto(deploymentArtefact),
+					Chunk:    chunk[:n],
+				}); err != nil {
+					return fmt.Errorf("could not send artefact chunk: %w", err)
+				}
+			}
+			if errors.Is(err, io.EOF) {
+				break
+			} else if err != nil {
+				return fmt.Errorf("could not read artefact chunk: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Service) ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error) {
+	return connect.NewResponse(&ftlv1.ClusterInfoResponse{Os: runtime.GOOS, Arch: runtime.GOARCH}), nil
+}
+
+func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
+	call, err := s.routeTable.Call(ctx, headers.CopyRequestForForwarding(req))
+	if err != nil {
+		return nil, fmt.Errorf("failed to call verb: %w", err)
+	}
+	return call, nil
+}
+
+func (s *Service) RollbackChangeset(ctx context.Context, c *connect.Request[ftlv1.RollbackChangesetRequest]) (*connect.Response[ftlv1.RollbackChangesetResponse], error) {
+	res, err := s.schemaClient.RollbackChangeset(ctx, connect.NewRequest(c.Msg))
+	if err != nil {
+		return nil, fmt.Errorf("failed to rollback changeset: %w", err)
+	}
+	return connect.NewResponse(res.Msg), nil
+}
+
+func (s *Service) FailChangeset(ctx context.Context, c *connect.Request[ftlv1.FailChangesetRequest]) (*connect.Response[ftlv1.FailChangesetResponse], error) {
+	res, err := s.schemaClient.FailChangeset(ctx, connect.NewRequest(c.Msg))
+	if err != nil {
+		return nil, fmt.Errorf("failed to fail changeset: %w", err)
+	}
+	return connect.NewResponse(res.Msg), nil
+}
+
+type OnceValue[T any] struct {
+	value T
+	ready chan struct{}
+	once  sync.Once
+}
+
+func NewOnceValue[T any]() *OnceValue[T] {
+	return &OnceValue[T]{
+		ready: make(chan struct{}),
+	}
+}
+
+func (o *OnceValue[T]) Set(value T) {
+	o.once.Do(func() {
+		o.value = value
+		close(o.ready)
+	})
+}
+
+func (o *OnceValue[T]) Get(ctx context.Context) (T, bool) {
+	select {
+	case <-o.ready:
+		return o.value, true
+	case <-ctx.Done():
+		var zero T
+		return zero, false
+	}
 }

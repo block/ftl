@@ -10,12 +10,11 @@ import (
 	"github.com/jpillora/backoff"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/reflection"
-	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 	status "github.com/block/ftl/internal/terminal"
 	"github.com/block/ftl/internal/timelineclient"
 )
@@ -28,7 +27,7 @@ type replayCmd struct {
 func (c *replayCmd) Run(
 	ctx context.Context,
 	verbClient ftlv1connect.VerbServiceClient,
-	schemaClient ftlv1connect.SchemaServiceClient,
+	eventSource *schemaeventsource.EventSource,
 	timelineClient *timelineclient.Client,
 ) error {
 	// Wait timeout is for both pings to complete, not each ping individually
@@ -46,17 +45,10 @@ func (c *replayCmd) Run(
 
 	// First check the verb is valid
 	// lookup the verbs
-	res, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
-	if err != nil {
-		return fmt.Errorf("failed to get schema: %w", err)
-	}
+	eventSource.WaitForInitialSync(ctx)
 
 	found := false
-	for _, pbmodule := range res.Msg.GetSchema().GetModules() {
-		module, err := schema.ValidatedModuleFromProto(pbmodule)
-		if err != nil {
-			return fmt.Errorf("invalid module: %w", err)
-		}
+	for _, module := range eventSource.CanonicalView().Modules {
 		if module.Name == c.Verb.Module {
 			for _, v := range module.Verbs() {
 				if v.Name == c.Verb.Name {
@@ -67,7 +59,7 @@ func (c *replayCmd) Run(
 		}
 	}
 	if !found {
-		suggestions, err := findSuggestions(ctx, schemaClient, c.Verb)
+		suggestions, err := findSuggestions(ctx, eventSource, c.Verb)
 		// if we have suggestions, return a helpful error message. otherwise continue to the original error
 		if err == nil {
 			return fmt.Errorf("verb not found: %s\n\nDid you mean one of these?\n%s", c.Verb, strings.Join(suggestions, "\n"))
@@ -106,5 +98,5 @@ func (c *replayCmd) Run(
 	logger.Infof("Calling %s with body:", c.Verb)
 	status.PrintJSON(ctx, []byte(requestJSON))
 	logger.Infof("Response:")
-	return callVerb(ctx, verbClient, schemaClient, c.Verb, []byte(requestJSON))
+	return callVerb(ctx, verbClient, eventSource, c.Verb, []byte(requestJSON))
 }

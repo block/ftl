@@ -40,15 +40,12 @@ import (
 
 type InteractiveCLI struct {
 	Version          kong.VersionFlag `help:"Show version."`
-	Endpoint         *url.URL         `default:"http://127.0.0.1:8892" help:"FTL endpoint to bind/connect to." env:"FTL_ENDPOINT"`
 	TimelineEndpoint *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	LeaseEndpoint    *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	AdminEndpoint    *url.URL         `help:"Admin endpoint." env:"FTL_ADMIN_ENDPOINT" default:"http://127.0.0.1:8896"`
-	SchemaEndpoint   *url.URL         `help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
 	Trace            string           `help:"File to write golang runtime/trace output to." hidden:""`
 
 	Ping            pingCmd            `cmd:"" help:"Ping the FTL cluster."`
-	Status          statusCmd          `cmd:"" help:"Show FTL status."`
 	Init            initCmd            `cmd:"" help:"Initialize a new FTL project."`
 	Profile         profileCmd         `cmd:"" help:"Manage profiles."`
 	New             newCmd             `cmd:"" help:"Create a new FTL module. See language specific flags with 'ftl new <language> --help'."`
@@ -241,14 +238,6 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		kctx.FatalIfErrorf(err)
 		kctx.Bind(logger)
 
-		schemaServiceClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, schemaServiceClient)
-		kctx.BindTo(schemaServiceClient, (*ftlv1connect.SchemaServiceClient)(nil))
-
-		controllerServiceClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.Endpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, controllerServiceClient)
-		kctx.BindTo(controllerServiceClient, (*ftlv1connect.ControllerServiceClient)(nil))
-
 		timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 		kctx.Bind(timelineClient)
 
@@ -274,11 +263,11 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		})
 		kctx.FatalIfErrorf(err)
 
-		source := schemaeventsource.New(ctx, "cli", schemaServiceClient)
+		source := schemaeventsource.New(ctx, "cli", adminClient)
 		kctx.BindTo(source, (**schemaeventsource.EventSource)(nil))
 		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(source.ViewOnly())))
 
-		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.Endpoint.String(), log.Error)
+		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.AdminEndpoint.String(), log.Error)
 		ctx = rpc.ContextWithClient(ctx, verbServiceClient)
 		kctx.BindTo(verbServiceClient, (*ftlv1connect.VerbServiceClient)(nil))
 
@@ -296,11 +285,11 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		err = kctx.BindToProvider(provideAdminClient)
 		kctx.FatalIfErrorf(err)
 
-		kctx.Bind(cli.Endpoint)
 		kctx.BindTo(ctx, (*context.Context)(nil))
 		kctx.Bind(bindContext)
 		kctx.BindTo(cancel, (*context.CancelCauseFunc)(nil))
 		kctx.Bind(languageplugin.InitializedPlugins{})
+		kctx.Bind(cli.AdminEndpoint)
 		return ctx
 	}
 	return bindContext
@@ -316,7 +305,7 @@ func provideAdminClient(
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	adminClient ftlv1connect.AdminServiceClient,
-) (client admin.Client, err error) {
+) (client admin.EnvironmentClient, err error) {
 	shouldUseLocalClient, err := admin.ShouldUseLocalClient(ctx, adminClient, cli.AdminEndpoint)
 	if err != nil {
 		return client, fmt.Errorf("could not create admin client: %w", err)

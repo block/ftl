@@ -15,29 +15,17 @@ import (
 	"github.com/block/ftl/internal/watch"
 )
 
-// localClient reads and writes to local projectconfig files without making any network
-// calls. It allows us to interface with local ftl-project.toml files without needing to
-// start a controller.
-type localClient struct {
-	*AdminService
-}
-
 type diskSchemaRetriever struct {
 	// Omit to use the project root as the deploy root (used in tests)
 	deployRoot optional.Option[string]
 }
 
 // NewLocalClient creates a admin client that reads and writes from the provided config and secret managers
-func NewLocalClient(cm *manager.Manager[cf.Configuration], sm *manager.Manager[cf.Secrets]) Client {
-	return &localClient{NewAdminService(cm, sm, &diskSchemaRetriever{})}
+func NewLocalClient(cm *manager.Manager[cf.Configuration], sm *manager.Manager[cf.Secrets]) EnvironmentClient {
+	return NewEnvironmentClient(cm, sm, &diskSchemaRetriever{})
 }
 
-func (s *diskSchemaRetriever) GetCanonicalSchema(ctx context.Context) (*schema.Schema, error) {
-	// disk schema can not tell canonical schema from latest schema
-	return s.GetLatestSchema(ctx)
-}
-
-func (s *diskSchemaRetriever) GetLatestSchema(ctx context.Context) (*schema.Schema, error) {
+func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, error) {
 	path, ok := projectconfig.DefaultConfigPath().Get()
 	if !ok {
 		return nil, fmt.Errorf("no project config path available")

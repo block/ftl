@@ -30,6 +30,7 @@ import (
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/dsn"
 	ftlexec "github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
@@ -274,9 +275,9 @@ func Wait(module string) Action {
 		// test harness, so in the error case we'll be waiting N^2 times. This
 		// is fine for now, but we should fix this in the future.
 		ic.AssertWithRetry(t, func(t testing.TB, ic TestContext) {
-			status, err := ic.Controller.Status(ic, connect.NewRequest(&ftlv1.StatusRequest{}))
+			status, err := ic.Admin.GetSchema(ic, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 			assert.NoError(t, err)
-			for _, deployment := range status.Msg.Deployments {
+			for _, deployment := range status.Msg.GetSchema().Modules {
 				if deployment.Name == module {
 					return
 				}
@@ -299,9 +300,9 @@ func WaitWithTimeout(module string, timeout time.Duration) Action {
 				t.Fatalf("deployment of module %q not found", module)
 				return
 			case <-tick.C:
-				status, err := ic.Controller.Status(ic, connect.NewRequest(&ftlv1.StatusRequest{}))
+				status, err := ic.Admin.GetSchema(ic, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 				assert.NoError(t, err)
-				for _, deployment := range status.Msg.Deployments {
+				for _, deployment := range status.Msg.GetSchema().Modules {
 					if deployment.Name == module {
 						return
 					}
@@ -465,26 +466,19 @@ func VerifyKubeState(check func(ctx context.Context, t testing.TB, namespace str
 }
 
 // VerifySchema lets you test the current schema
-func VerifySchema(check func(ctx context.Context, t testing.TB, sch *schemapb.Schema)) Action {
+func VerifySchema(check func(ctx context.Context, t testing.TB, sch *schema.Schema)) Action {
 	return func(t testing.TB, ic TestContext) {
-		sch, err := ic.Schema.GetSchema(ic, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
+		sch, err := ic.Admin.GetSchema(ic, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 		if err != nil {
 			t.Errorf("failed to get schema: %v", err)
 			return
 		}
-		check(ic.Context, t, sch.Msg.GetSchema())
-	}
-}
-
-// VerifyControllerStatus lets you test the current controller status
-func VerifyControllerStatus(check func(ctx context.Context, t testing.TB, status *ftlv1.StatusResponse)) Action {
-	return func(t testing.TB, ic TestContext) {
-		sch, err := ic.Controller.Status(ic, connect.NewRequest(&ftlv1.StatusRequest{}))
+		schema, err := schema.FromProto(sch.Msg.GetSchema())
 		if err != nil {
-			t.Errorf("failed to get schema: %v", err)
+			t.Errorf("failed to parse schema: %v", err)
 			return
 		}
-		check(ic.Context, t, sch.Msg)
+		check(ic.Context, t, schema)
 	}
 }
 

@@ -15,7 +15,7 @@ type rollbackChangesetCmd struct {
 	Force     bool   `help:"Force rollback without de-provisioning, can only be used if the changeset is all ready rolling back and has stalled."`
 }
 
-func (g *rollbackChangesetCmd) Run(ctx context.Context, client ftlv1connect.SchemaServiceClient) error {
+func (g *rollbackChangesetCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient) error {
 	if g.Force {
 		_, err := client.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: g.Changeset}))
 		if err != nil {

@@ -14,6 +14,6 @@ type pingCmd struct {
 	Wait time.Duration `short:"w" help:"Wait up to this elapsed time for the FTL cluster to become available." default:"1s"`
 }
 
-func (c *pingCmd) Run(ctx context.Context, controller ftlv1connect.ControllerServiceClient) error {
+func (c *pingCmd) Run(ctx context.Context, controller ftlv1connect.AdminServiceClient) error {
 	return rpc.Wait(ctx, backoff.Backoff{Max: time.Second}, c.Wait, controller) //nolint:wrapcheck
 }

@@ -21,9 +21,6 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
-import xyz.block.ftl.deployment.v1.DeploymentServiceGrpc;
-import xyz.block.ftl.deployment.v1.GetDeploymentContextRequest;
-import xyz.block.ftl.deployment.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.lease.v1.AcquireLeaseRequest;
 import xyz.block.ftl.lease.v1.AcquireLeaseResponse;
 import xyz.block.ftl.lease.v1.LeaseServiceGrpc;
@@ -33,6 +30,9 @@ import xyz.block.ftl.pubsub.v1.PublishServiceGrpc;
 import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.v1.CallRequest;
 import xyz.block.ftl.v1.CallResponse;
+import xyz.block.ftl.v1.ControllerServiceGrpc;
+import xyz.block.ftl.v1.GetDeploymentContextRequest;
+import xyz.block.ftl.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.v1.VerbServiceGrpc;
 
 class FTLRunnerConnection implements Closeable {
@@ -49,7 +49,7 @@ class FTLRunnerConnection implements Closeable {
     private final Runnable closeHandler;
 
     final VerbServiceGrpc.VerbServiceStub verbService;
-    final DeploymentServiceGrpc.DeploymentServiceStub deploymentService;
+    final ControllerServiceGrpc.ControllerServiceStub deploymentService;
     final LeaseServiceGrpc.LeaseServiceStub leaseService;
     final PublishServiceGrpc.PublishServiceStub publishService;
     final StreamObserver<GetDeploymentContextResponse> moduleObserver = new ModuleObserver();
@@ -74,7 +74,7 @@ class FTLRunnerConnection implements Closeable {
             }
         });
         this.deploymentName = deploymentName;
-        deploymentService = DeploymentServiceGrpc.newStub(channel);
+        deploymentService = ControllerServiceGrpc.newStub(channel);
         deploymentService.getDeploymentContext(GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
                 moduleObserver);
         verbService = VerbServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());

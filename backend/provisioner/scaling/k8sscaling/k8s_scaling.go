@@ -39,7 +39,7 @@ import (
 	"github.com/block/ftl/internal/rpc"
 )
 
-const controllerDeploymentName = "ftl-controller"
+const adminDeploymentName = "ftl-admin"
 const provisionerDeploymentName = "ftl-provisioner"
 const configMapName = "ftl-controller-deployment-config"
 const deploymentTemplate = "deploymentTemplate"
@@ -289,9 +289,9 @@ func (r *k8sScaling) updateDeployment(ctx context.Context, name string, mod func
 
 func (r *k8sScaling) thisContainerImage(ctx context.Context) (string, error) {
 	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
-	thisDeployment, err := deploymentClient.Get(ctx, controllerDeploymentName, v1.GetOptions{})
+	thisDeployment, err := deploymentClient.Get(ctx, adminDeploymentName, v1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get deployment %s: %w", controllerDeploymentName, err)
+		return "", fmt.Errorf("failed to get deployment %s: %w", adminDeploymentName, err)
 	}
 	return thisDeployment.Spec.Template.Spec.Containers[0].Image, nil
 }
@@ -304,9 +304,9 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		return fmt.Errorf("failed to get configMap %s: %w", configMapName, err)
 	}
 	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
-	controllerDeployment, err := deploymentClient.Get(ctx, controllerDeploymentName, v1.GetOptions{})
+	adminDeployment, err := deploymentClient.Get(ctx, adminDeploymentName, v1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get deployment %s: %w", controllerDeploymentName, err)
+		return fmt.Errorf("failed to get deployment %s: %w", adminDeploymentName, err)
 	}
 	provisionerDeployment, err := deploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
 	if err != nil {
@@ -326,7 +326,6 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 			return fmt.Errorf("failed to decode service from configMap %s: %w", configMapName, err)
 		}
 		service.Name = name
-		service.OwnerReferences = []v1.OwnerReference{{APIVersion: "apps/v1", Kind: "deployment", Name: controllerDeploymentName, UID: controllerDeployment.UID}}
 		service.Spec.Selector = map[string]string{"app": name}
 		addLabels(&service.ObjectMeta, module, name)
 		service, err = servicesClient.Create(ctx, service, v1.CreateOptions{})
@@ -368,7 +367,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 
 	// Sync the istio policy if applicable
 	if sec, ok := r.istioSecurity.Get(); ok {
-		err = r.syncIstioPolicy(ctx, sec, module, name, service, controllerDeployment, provisionerDeployment, sch, cron, ingress)
+		err = r.syncIstioPolicy(ctx, sec, module, name, service, adminDeployment, provisionerDeployment, sch, cron, ingress)
 		if err != nil {
 			return err
 		}
@@ -407,7 +406,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	}
 	if strings.HasPrefix(rawRunnerImage, "ftl0/") {
 		// Images in the ftl0 namespace should use the same tag as the controller and use the same namespace as ourImage
-		runnerImage = strings.ReplaceAll(ourImage, "ftl-controller", rawRunnerImage[len(`ftl0/`):])
+		runnerImage = strings.ReplaceAll(ourImage, "ftl-admin", rawRunnerImage[len(`ftl0/`):])
 	} else {
 		// Images outside of the ftl0 namespace should use the same tag as the controller
 		ourImageComponents := strings.Split(ourImage, ":")
@@ -558,7 +557,7 @@ func (r *k8sScaling) updateEnvVar(deployment *kubeapps.Deployment, envVerName st
 	return changes
 }
 
-func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, module string, name string, service *kubecore.Service, controllerDeployment *kubeapps.Deployment, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
+func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, module string, name string, service *kubecore.Service, adminDeployment *kubeapps.Deployment, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Creating new istio policy for %s", name)
 
@@ -591,7 +590,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{"app": name}}
 		policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 		principals := []string{
-			"cluster.local/ns/" + r.namespace + "/sa/" + controllerDeployment.Spec.Template.Spec.ServiceAccountName,
+			"cluster.local/ns/" + r.namespace + "/sa/" + adminDeployment.Spec.Template.Spec.ServiceAccountName,
 			"cluster.local/ns/" + r.namespace + "/sa/" + provisionerDeployment.Spec.Template.Spec.ServiceAccountName,
 		}
 		// TODO: fix hard coded service account names

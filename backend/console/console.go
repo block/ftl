@@ -38,14 +38,14 @@ type Config struct {
 type service struct {
 	schemaEventSource *schemaeventsource.EventSource
 	timelineClient    *timelineclient.Client
-	adminClient       admin.Client
+	adminClient       admin.EnvironmentClient
 	callClient        routing.CallClient
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient
 }
 
 var _ consolepbconnect.ConsoleServiceHandler = (*service)(nil)
 
-func Start(ctx context.Context, config Config, eventSource *schemaeventsource.EventSource, timelineClient *timelineclient.Client, adminClient admin.Client, client routing.CallClient, buildEngineClient buildenginepbconnect.BuildEngineServiceClient) error {
+func Start(ctx context.Context, config Config, eventSource *schemaeventsource.EventSource, timelineClient *timelineclient.Client, adminClient admin.EnvironmentClient, client routing.CallClient, buildEngineClient buildenginepbconnect.BuildEngineServiceClient) error {
 	logger := log.FromContext(ctx).Scope("console")
 	ctx = log.ContextWithLogger(ctx, logger)
 

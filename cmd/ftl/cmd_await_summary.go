@@ -24,7 +24,7 @@ import (
 type awaitSummaryCmd struct {
 }
 
-func (c *awaitSummaryCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, schemaClient ftlv1connect.SchemaServiceClient) error {
+func (c *awaitSummaryCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, schemaClient ftlv1connect.AdminServiceClient) error {
 	stream, err := buildEngineClient.StreamEngineEvents(ctx, connect.NewRequest(&buildenginepb.StreamEngineEventsRequest{
 		ReplayHistory: true,
 	}))

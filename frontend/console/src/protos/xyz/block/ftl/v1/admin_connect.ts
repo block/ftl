@@ -5,7 +5,8 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse } from "./admin_pb.js";
+import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
+import { FailChangesetRequest, FailChangesetResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, RollbackChangesetRequest, RollbackChangesetResponse } from "./schemaservice_pb.js";
 
 /**
  * AdminService is the service that provides and updates admin data. For example,
@@ -148,6 +149,112 @@ export const AdminService = {
       I: ResetSubscriptionRequest,
       O: ResetSubscriptionResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * Creates and applies a changeset, returning the result
+     * This blocks until the changeset has completed
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.ApplyChangeset
+     */
+    applyChangeset: {
+      name: "ApplyChangeset",
+      I: ApplyChangesetRequest,
+      O: ApplyChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get the full schema.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.GetSchema
+     */
+    getSchema: {
+      name: "GetSchema",
+      I: GetSchemaRequest,
+      O: GetSchemaResponse,
+      kind: MethodKind.Unary,
+      idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * Pull schema changes from the Schema Service.
+     *
+     * Note that if there are no deployments this will block indefinitely, making it unsuitable for
+     * just retrieving the schema. Use GetSchema for that.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.PullSchema
+     */
+    pullSchema: {
+      name: "PullSchema",
+      I: PullSchemaRequest,
+      O: PullSchemaResponse,
+      kind: MethodKind.ServerStreaming,
+      idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * RollbackChangeset Rolls back a failing changeset
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.RollbackChangeset
+     */
+    rollbackChangeset: {
+      name: "RollbackChangeset",
+      I: RollbackChangesetRequest,
+      O: RollbackChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * FailChangeset fails an active changeset.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.FailChangeset
+     */
+    failChangeset: {
+      name: "FailChangeset",
+      I: FailChangesetRequest,
+      O: FailChangesetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc xyz.block.ftl.v1.AdminService.ClusterInfo
+     */
+    clusterInfo: {
+      name: "ClusterInfo",
+      I: ClusterInfoRequest,
+      O: ClusterInfoResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get list of artefacts that differ between the server and client.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.GetArtefactDiffs
+     */
+    getArtefactDiffs: {
+      name: "GetArtefactDiffs",
+      I: GetArtefactDiffsRequest,
+      O: GetArtefactDiffsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Stream deployment artefacts from the server.
+     *
+     * Each artefact is streamed one after the other as a sequence of max 1MB
+     * chunks.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.GetDeploymentArtefacts
+     */
+    getDeploymentArtefacts: {
+      name: "GetDeploymentArtefacts",
+      I: GetDeploymentArtefactsRequest,
+      O: GetDeploymentArtefactsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Upload an artefact to the server.
+     *
+     * @generated from rpc xyz.block.ftl.v1.AdminService.UploadArtefact
+     */
+    uploadArtefact: {
+      name: "UploadArtefact",
+      I: UploadArtefactRequest,
+      O: UploadArtefactResponse,
+      kind: MethodKind.ClientStreaming,
     },
   }
 } as const;

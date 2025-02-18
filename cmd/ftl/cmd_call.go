@@ -16,9 +16,9 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/reflection"
-	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 	status "github.com/block/ftl/internal/terminal"
 )
 
@@ -31,7 +31,7 @@ type callCmd struct {
 func (c *callCmd) Run(
 	ctx context.Context,
 	verbClient ftlv1connect.VerbServiceClient,
-	schemaClient ftlv1connect.SchemaServiceClient,
+	schemaClient *schemaeventsource.EventSource,
 ) error {
 	if err := rpc.Wait(ctx, backoff.Backoff{Max: time.Second * 2}, c.Wait, verbClient); err != nil {
 		return err
@@ -56,7 +56,7 @@ func (c *callCmd) Run(
 func callVerb(
 	ctx context.Context,
 	verbClient ftlv1connect.VerbServiceClient,
-	schemaClient ftlv1connect.SchemaServiceClient,
+	schemaClient *schemaeventsource.EventSource,
 	verb reflection.Ref,
 	requestJSON []byte,
 ) error {
@@ -96,29 +96,18 @@ func callVerb(
 // it returns an error if no closely matching suggestions are found
 func findSuggestions(
 	ctx context.Context,
-	schemaClient ftlv1connect.SchemaServiceClient,
+	schemaClient *schemaeventsource.EventSource,
 	verb reflection.Ref,
 ) ([]string, error) {
 	logger := log.FromContext(ctx)
 
 	// lookup the verbs
-	res, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
-	if err != nil {
-		return nil, err
-	}
-
-	modules := make([]*schema.Module, 0, len(res.Msg.GetSchema().GetModules()))
-	for _, pbmodule := range res.Msg.GetSchema().GetModules() {
-		module, err := schema.ValidatedModuleFromProto(pbmodule)
-		if err != nil {
-			return nil, fmt.Errorf("invalid module: %w", err)
-		}
-		modules = append(modules, module)
-	}
+	schemaClient.WaitForInitialSync(ctx)
+	res := schemaClient.CanonicalView()
 	verbs := []string{}
 
 	// build a list of all the verbs
-	for _, module := range modules {
+	for _, module := range res.Modules {
 		for _, v := range module.Verbs() {
 			verbName := fmt.Sprintf("%s.%s", module.Name, v.Name)
 			if verbName == fmt.Sprintf("%s.%s", verb.Module, verb.Name) {
