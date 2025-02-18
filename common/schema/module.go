@@ -68,8 +68,9 @@ func (m *Module) ResourceID() string {
 func (m *Module) GetProvisioned() ResourceSet {
 	return ResourceSet{
 		{
-			Kind:   ResourceTypeRunner,
-			Config: struct{}{},
+			Kind:               ResourceTypeRunner,
+			Config:             struct{}{},
+			DeploymentSpecific: true,
 		},
 	}
 }

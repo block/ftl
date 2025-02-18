@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"time"
+
 	"github.com/alecthomas/assert/v2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -122,6 +124,21 @@ func TestKubeScaling(t *testing.T) {
 				}
 			}
 			assert.Equal(t, 1, depCount, "Expected 1 deployment, found %d", depCount)
+		}),
+		in.Exec("ftl", "kill", "proxy"),
+		in.Exec("ftl", "kill", "echo"),
+		in.Sleep(time.Second*6), // The drain delay
+		in.VerifyKubeState(func(ctx context.Context, t testing.TB, namespace string, client kubernetes.Clientset) {
+			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
+			assert.NoError(t, err)
+			depCount := 0
+			for _, dep := range deps.Items {
+				if strings.HasPrefix(dep.Name, "dpl-echo") {
+					t.Logf("Found deployment %s", dep.Name)
+					depCount++
+				}
+			}
+			assert.Equal(t, 0, depCount, "Expected 0 deployments, found %d", depCount)
 		}),
 	)
 }

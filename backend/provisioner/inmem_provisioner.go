@@ -110,7 +110,7 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 		previous, prevOk := previousNodes[id]
 
 		for _, resource := range desired.GetProvisioned() {
-			if !prevOk || !resource.IsEqual(previous.GetProvisioned().Get(resource.Kind)) || desiredModule.Runtime.Deployment.State == schema.DeploymentStateDeProvisioning {
+			if !prevOk || resource.DeploymentSpecific || !resource.IsEqual(previous.GetProvisioned().Get(resource.Kind)) {
 				if slices.Contains(kinds, resource.Kind) {
 					var handler InMemResourceProvisionerFn
 					var ok bool
