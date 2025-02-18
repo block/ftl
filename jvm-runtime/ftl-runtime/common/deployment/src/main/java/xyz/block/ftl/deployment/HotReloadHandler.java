@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
 import org.jboss.logging.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -47,9 +48,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     private volatile Module module;
     private volatile ErrorList errors;
     private volatile Server server;
-    private boolean explicitlyReloading = false;
-    private boolean sentResults = true;
-    private boolean first = true;
+    private BiConsumer<Module, ErrorList> runningReload;
     private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
 
     public static HotReloadHandler getInstance() {
@@ -60,7 +59,9 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     synchronized void setResults(Module module, ErrorList errors) {
         this.module = module;
         this.errors = errors;
-        if (!explicitlyReloading) {
+        if (runningReload != null) {
+            runningReload.accept(module, errors);
+        } else {
             List<StreamObserver<WatchResponse>> watches;
             synchronized (this.watches) {
                 watches = new ArrayList<>(this.watches);
@@ -76,13 +77,6 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                 }
             }
         }
-        if (first) {
-            first = false;
-        } else {
-            sentResults = false;
-        }
-        explicitlyReloading = false;
-        notifyAll();
     }
 
     private static @NotNull SchemaState buildState(Module module, ErrorList errors) {
@@ -106,65 +100,50 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         // We want to report on the results of the schema generations, so we can bring up a runner
         // Run the restart in a new thread, so we can report on the schema once it is ready
         synchronized (HotReloadHandler.this) {
-            if (explicitlyReloading) {
+            if (runningReload != null) {
                 responseObserver.onNext(ReloadResponse.newBuilder()
                         .setState(buildState(module, errors))
                         .build());
                 return;
             }
-            // If we have new results we don't want to re-scan, we want to send them back
-            if (sentResults) {
-                explicitlyReloading = true;
-                Thread t = new Thread(() -> {
-                    try {
-                        doScan(request.getForce());
-                    } finally {
-                        synchronized (HotReloadHandler.this) {
-                            explicitlyReloading = false;
-                            HotReloadHandler.this.notifyAll();
+            runningReload = (module, errors) -> {
+                synchronized (HotReloadHandler.this) {
+                    runningReload = null;
+                    Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
+                    Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();
+                    if (compileProblem != null || deploymentProblems != null) {
+                        ErrorList.Builder builder = ErrorList.newBuilder();
+                        if (compileProblem != null) {
+                            builder.addErrors(xyz.block.ftl.language.v1.Error.newBuilder()
+                                    .setLevel(xyz.block.ftl.language.v1.Error.ErrorLevel.ERROR_LEVEL_ERROR)
+                                    .setType(xyz.block.ftl.language.v1.Error.ErrorType.ERROR_TYPE_COMPILER)
+                                    .setMsg(compileProblem.getMessage())
+                                    .build());
                         }
+                        if (deploymentProblems != null) {
+                            builder.addErrors(xyz.block.ftl.language.v1.Error.newBuilder()
+                                    .setLevel(xyz.block.ftl.language.v1.Error.ErrorLevel.ERROR_LEVEL_ERROR)
+                                    .setType(Error.ErrorType.ERROR_TYPE_FTL)
+                                    .setMsg(deploymentProblems.getMessage())
+                                    .build());
+                        }
+                        errors = builder.build();
+                        responseObserver.onNext(ReloadResponse.newBuilder()
+                                .setState(buildState(null, errors))
+                                .setFailed(true).build());
+                        responseObserver.onCompleted();
+                    } else {
+                        responseObserver.onNext(ReloadResponse.newBuilder().setState(buildState(module, errors)).build());
+                        responseObserver.onCompleted();
                     }
-                }, "FTL Restart Thread");
-                t.start();
-                while (explicitlyReloading) {
-                    try {
-                        HotReloadHandler.this.wait();
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
                 }
-            }
-            sentResults = true;
-            Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
-            Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();
-            if (compileProblem != null || deploymentProblems != null) {
-                ErrorList.Builder builder = ErrorList.newBuilder();
-                if (compileProblem != null) {
-                    builder.addErrors(xyz.block.ftl.language.v1.Error.newBuilder()
-                            .setLevel(xyz.block.ftl.language.v1.Error.ErrorLevel.ERROR_LEVEL_ERROR)
-                            .setType(xyz.block.ftl.language.v1.Error.ErrorType.ERROR_TYPE_COMPILER)
-                            .setMsg(compileProblem.getMessage())
-                            .build());
-                }
-                if (deploymentProblems != null) {
-                    builder.addErrors(xyz.block.ftl.language.v1.Error.newBuilder()
-                            .setLevel(xyz.block.ftl.language.v1.Error.ErrorLevel.ERROR_LEVEL_ERROR)
-                            .setType(Error.ErrorType.ERROR_TYPE_FTL)
-                            .setMsg(deploymentProblems.getMessage())
-                            .build());
-                }
-                errors = builder.build();
-                responseObserver.onNext(ReloadResponse.newBuilder()
-                        .setState(buildState(module, errors))
-                        .setFailed(true).build());
-                responseObserver.onCompleted();
-            } else if (errors != null && errors.getErrorsCount() > 0 || module != null) {
-                responseObserver.onNext(ReloadResponse.newBuilder().setState(buildState(module, errors)).build());
-                responseObserver.onCompleted();
-            } else {
-                responseObserver.onError(new RuntimeException("schema not generated"));
-            }
+            };
         }
+        Thread t = new Thread(() -> {
+            doScan(request.getForce());
+        }, "FTL Restart Thread");
+        t.start();
+
     }
 
     @Override

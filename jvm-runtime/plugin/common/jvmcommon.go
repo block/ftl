@@ -330,6 +330,7 @@ type buildResult struct {
 	state               *hotreloadpb.SchemaState
 	forceReload         bool
 	buildContextUpdated bool
+	buildContext        buildContext
 }
 
 func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse], firstAttempt bool, fileEvents chan watch.WatchEventModuleChanged) error {
@@ -406,14 +407,9 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		}
 		return fmt.Errorf("failed to receive initial schema watch response")
 	}
-	reloadEvents <- &buildResult{state: schemaWatch.Msg().GetState()}
+	reloadEvents <- &buildResult{state: schemaWatch.Msg().GetState(), buildContext: buildCtx}
 	go func() {
-		for schemaWatch.Receive() {
-			reloadEvents <- &buildResult{state: schemaWatch.Msg().GetState()}
-		}
-	}()
-	go func() {
-		s.watchReloadEvents(ctx, reloadEvents, errorHash, schemaHash, firstAttempt, stream, buildCtx, devModeEndpoint, hotReloadEndpoint, debugPort32)
+		s.watchReloadEvents(ctx, reloadEvents, errorHash, schemaHash, firstAttempt, stream, devModeEndpoint, hotReloadEndpoint, debugPort32)
 	}()
 
 	for {
@@ -439,7 +435,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true}
+			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true, buildContext: buildCtx}
 		case <-fileEvents:
 			changed := false
 			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
@@ -456,13 +452,13 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					migrationHash = newMigrationHash
 				}
 			}
-			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: changed}
+			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: changed, buildContext: buildCtx}
 
 		}
 	}
 }
 
-func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, errorHash sha256.SHA256, schemaHash sha256.SHA256, firstAttempt bool, stream *connect.ServerStream[langpb.BuildResponse], buildCtx buildContext, devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32) {
+func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, errorHash sha256.SHA256, schemaHash sha256.SHA256, firstAttempt bool, stream *connect.ServerStream[langpb.BuildResponse], devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32) {
 	var module *schemapb.Module
 	logger := log.FromContext(ctx)
 	for event := range channels.IterContext(ctx, reloadEvents) {
@@ -499,7 +495,7 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 			auto := !firstAttempt && !event.buildContextUpdated
 			if auto {
 				logger.Debugf("sending auto build event")
-				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
+				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: event.buildContext.ID}}})
 				if err != nil {
 					logger.Errorf(err, "could not send build event")
 					continue
@@ -507,10 +503,11 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 			}
 			if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) {
 				// skip reading schema
+				logger.Warnf("Build failed, skipping schema, sending build failure")
 				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 					BuildFailure: &langpb.BuildFailure{
 						IsAutomaticRebuild: auto,
-						ContextId:          buildCtx.ID,
+						ContextId:          event.buildContext.ID,
 						Errors:             errorList,
 					}}})
 				if err != nil {
@@ -527,7 +524,7 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 			err := stream.Send(&langpb.BuildResponse{
 				Event: &langpb.BuildResponse_BuildSuccess{
 					BuildSuccess: &langpb.BuildSuccess{
-						ContextId:            buildCtx.ID,
+						ContextId:            event.buildContext.ID,
 						IsAutomaticRebuild:   auto,
 						Module:               module,
 						DevEndpoint:          ptr(devModeEndpoint),
