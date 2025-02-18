@@ -33,6 +33,9 @@ type ProvisionedResource struct {
 	// Config is the subset of the schema element's configuration that is used to create the resource.
 	// changes to this config are used to check if the resource needs to be updated.
 	Config any
+
+	// DeploymentSpecific is true if the resource is specific to a deployment, and cannot be re-used by a subsequent deployment of the same module
+	DeploymentSpecific bool
 }
 
 func (r *ProvisionedResource) IsEqual(other *ProvisionedResource) bool {
