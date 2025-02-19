@@ -60,16 +60,13 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         this.module = module;
         this.errors = errors;
         if (runningReload != null) {
-            LOG.errorf("running reload with");
             runningReload.accept(module, errors);
         } else {
             List<StreamObserver<WatchResponse>> watches;
             synchronized (this.watches) {
                 watches = new ArrayList<>(this.watches);
             }
-            LOG.errorf("watected with");
             for (var watch : watches) {
-                LOG.errorf("watected insta");
                 try {
                     watch.onNext(WatchResponse.newBuilder()
                             .setState(buildState(module, errors)).build());
