@@ -1370,7 +1370,12 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 
 		case deployment := <-e.deploymentQueue:
 			// Try and deploy, unless there are conflicting changesets this will happen immediately
-			if !e.tryDeployFromQueue(ctx, &deployment) {
+			graph, err := e.Graph()
+			if err != nil {
+				log.FromContext(ctx).Errorf(err, "could not build graph to order deployment")
+				continue
+			}
+			if !e.tryDeployFromQueue(ctx, &deployment, toDeploy, graph) {
 				// We could not deploy, add to the list of pending deployments
 				// But first check if there are older deployments that are superceded by this one
 				modules := map[string]bool{}
@@ -1395,8 +1400,16 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 			switch notification.(type) {
 			case *schema.ChangesetCommittedNotification, *schema.ChangesetRollingBackNotification:
 				tmp := []*pendingDeploy{}
+				if len(toDeploy) == 0 {
+					continue
+				}
+				graph, err := e.Graph()
+				if err != nil {
+					log.FromContext(ctx).Errorf(err, "could not build graph to order deployment")
+					continue
+				}
 				for _, mod := range toDeploy {
-					if e.tryDeployFromQueue(ctx, mod) {
+					if e.tryDeployFromQueue(ctx, mod, toDeploy, graph) {
 						continue
 					}
 					tmp = append(tmp, mod)
@@ -1409,18 +1422,31 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 	}
 }
 
-func (e *Engine) tryDeployFromQueue(ctx context.Context, deployment *pendingDeploy) bool {
+func (e *Engine) tryDeployFromQueue(ctx context.Context, deployment *pendingDeploy, toDeploy []*pendingDeploy, depGraph map[string][]string) bool {
 	sets := e.schemaSource.ActiveChangeset()
 	modules := map[string]bool{}
+	depModules := map[string]bool{}
 	for _, module := range deployment.modules {
 		modules[module.Config.Module] = true
+		for _, dep := range depGraph[module.Config.Module] {
+			depModules[dep] = true
+		}
 	}
 	for _, cs := range sets {
 		if cs.State >= schema.ChangesetStateCommitted {
 			continue
 		}
 		for _, mod := range cs.Modules {
-			if modules[mod.Name] {
+			if modules[mod.Name] || depModules[mod.Name] {
+				return false
+			}
+		}
+	}
+	for _, queued := range toDeploy {
+		for _, mod := range queued.modules {
+			// We only check for dependencies here, as we already have de-duped modules
+			// And we have not been removed from toDeploy at this point so we would find ourself
+			if depModules[mod.Config.Module] {
 				return false
 			}
 		}
