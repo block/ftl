@@ -11,10 +11,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.jboss.logging.Logger;
-import org.jetbrains.annotations.NotNull;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -33,7 +32,6 @@ import xyz.block.ftl.hotreload.v1.WatchRequest;
 import xyz.block.ftl.hotreload.v1.WatchResponse;
 import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
-import xyz.block.ftl.schema.v1.Module;
 import xyz.block.ftl.v1.PingRequest;
 import xyz.block.ftl.v1.PingResponse;
 
@@ -45,10 +43,9 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     private static volatile HotReloadHandler INSTANCE;
 
-    private volatile Module module;
-    private volatile ErrorList errors;
+    private volatile SchemaState lastState;
     private volatile Server server;
-    private volatile BiConsumer<Module, ErrorList> runningReload;
+    private volatile Consumer<SchemaState> runningReload;
     private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
 
     public static HotReloadHandler getInstance() {
@@ -56,11 +53,10 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         return INSTANCE;
     }
 
-    synchronized void setResults(Module module, ErrorList errors) {
-        this.module = module;
-        this.errors = errors;
+    synchronized void setResults(SchemaState state) {
+        lastState = state;
         if (runningReload != null) {
-            runningReload.accept(module, errors);
+            runningReload.accept(state);
         } else {
             List<StreamObserver<WatchResponse>> watches;
             synchronized (this.watches) {
@@ -69,21 +65,13 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             for (var watch : watches) {
                 try {
                     watch.onNext(WatchResponse.newBuilder()
-                            .setState(buildState(module, errors)).build());
+                            .setState(state).build());
 
                 } catch (Exception e) {
                     LOG.debugf("Failed to send watch response %s", e.toString());
                     this.watches.remove(watch);
                 }
             }
-        }
-    }
-
-    private static @NotNull SchemaState buildState(Module module, ErrorList errors) {
-        if (errors != null && errors.getErrorsCount() > 0) {
-            return SchemaState.newBuilder().setErrors(errors).build();
-        } else {
-            return SchemaState.newBuilder().setModule(module).build();
         }
     }
 
@@ -100,16 +88,17 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         // We want to report on the results of the schema generations, so we can bring up a runner
         // Run the restart in a new thread, so we can report on the schema once it is ready
         synchronized (HotReloadHandler.this) {
-            if (runningReload != null) {
-                responseObserver.onNext(ReloadResponse.newBuilder()
-                        .setState(buildState(module, errors))
-                        .build());
-                return;
+            while (runningReload != null) {
+                try {
+                    HotReloadHandler.this.wait();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
-            runningReload = (module, errors) -> {
+            runningReload = (state) -> {
                 synchronized (HotReloadHandler.this) {
-                    LOG.errorf("Restarting with %s errors", errors.getErrorsCount());
                     runningReload = null;
+                    HotReloadHandler.this.notifyAll();
                     Throwable compileProblem = RuntimeUpdatesProcessor.INSTANCE.getCompileProblem();
                     Throwable deploymentProblems = RuntimeUpdatesProcessor.INSTANCE.getDeploymentProblem();
                     if (compileProblem != null || deploymentProblems != null) {
@@ -128,13 +117,13 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                                     .setMsg(deploymentProblems.getMessage())
                                     .build());
                         }
-                        errors = builder.build();
+                        var errors = builder.build();
                         responseObserver.onNext(ReloadResponse.newBuilder()
-                                .setState(buildState(null, errors))
+                                .setState(SchemaState.newBuilder().setErrors(errors).build())
                                 .setFailed(true).build());
                         responseObserver.onCompleted();
                     } else {
-                        responseObserver.onNext(ReloadResponse.newBuilder().setState(buildState(module, errors)).build());
+                        responseObserver.onNext(ReloadResponse.newBuilder().setState(state).setFailed(false).build());
                         responseObserver.onCompleted();
                     }
                 }
@@ -144,7 +133,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             doScan(request.getForce());
             if (runningReload != null) {
                 // This generally happens on compile errors
-                runningReload.accept(module, errors);
+                runningReload.accept(lastState);
             }
         }, "FTL Restart Thread");
         t.start();
@@ -153,9 +142,9 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void watch(WatchRequest request, StreamObserver<WatchResponse> responseObserver) {
-        if (module != null || errors != null) {
+        if (lastState != null) {
             responseObserver.onNext(WatchResponse.newBuilder()
-                    .setState(buildState(module, errors)).build());
+                    .setState(lastState).build());
         }
         watches.add(responseObserver);
     }

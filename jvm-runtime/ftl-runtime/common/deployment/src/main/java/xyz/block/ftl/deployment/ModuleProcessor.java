@@ -44,6 +44,8 @@ import io.quarkus.runtime.util.HashUtil;
 import io.quarkus.vertx.http.deployment.RequireSocketHttpBuildItem;
 import io.quarkus.vertx.http.deployment.RequireVirtualHttpBuildItem;
 import xyz.block.ftl.hotreload.RunnerNotification;
+import xyz.block.ftl.hotreload.v1.SchemaState;
+import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
 import xyz.block.ftl.runtime.CurrentRequestServerInterceptor;
 import xyz.block.ftl.runtime.FTLDatasourceCredentials;
@@ -180,16 +182,38 @@ public class ModuleProcessor {
 
         var schBytes = sch.toByteArray();
         var errBytes = err.toByteArray();
-        recorder.loadModuleContextOnStartup();
-
+        Files.write(output, schBytes);
+        Files.write(errorOutput, errBytes);
         if (launchModeBuildItem.getLaunchMode() == LaunchMode.DEVELOPMENT) {
-            HotReloadHandler.getInstance().setResults(schRef.get(), errRef.get());
             // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
             // get updated runner information, although we don't actually get this until the runner has started.
+            boolean newRunnerRequired = false;
             var hash = HashUtil.sha256(schBytes);
             if (!Objects.equals(hash, schemaHash)) {
                 schemaHash = hash;
                 RunnerNotification.setRequiresNewRunnerDetails();
+                newRunnerRequired = true;
+            }
+
+            boolean fatal = false;
+            for (var e : errRef.get().getErrorsList()) {
+                if (e.getLevel() == Error.ErrorLevel.ERROR_LEVEL_ERROR) {
+                    schemaHash = null; // force a new runner on restart
+                    fatal = true;
+                }
+            }
+
+            if (fatal) {
+                HotReloadHandler.getInstance()
+                        .setResults(SchemaState.newBuilder().setErrors(errRef.get()).setNewRunnerRequired(true).build());
+                var message = "Schema validation failed: \n";
+                for (var i : errRef.get().getErrorsList()) {
+                    message += i.getMsg() + "\n";
+                }
+                recorder.failStartup(message);
+            } else {
+                HotReloadHandler.getInstance().setResults(SchemaState.newBuilder().setModule(schRef.get())
+                        .setNewRunnerRequired(newRunnerRequired).build());
             }
         } else {
             var launch = outputTargetBuildItem.getOutputDirectory().resolve("launch");
@@ -210,8 +234,7 @@ public class ModuleProcessor {
             Files.setPosixFilePermissions(launch, newPerms);
         }
 
-        Files.write(output, schBytes);
-        Files.write(errorOutput, errBytes);
+        recorder.loadModuleContextOnStartup();
 
     }
 

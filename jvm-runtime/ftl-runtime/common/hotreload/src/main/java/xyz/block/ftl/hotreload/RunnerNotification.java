@@ -3,14 +3,12 @@ package xyz.block.ftl.hotreload;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class RunnerNotification {
 
     private static volatile Consumer<RunnerInfo> callback;
     private static volatile RunnerInfo info;
-    private static final AtomicBoolean requiresNewRunnerDetails = new AtomicBoolean(false);
     private static final List<Runnable> runnerDetailsCallbacks = Collections.synchronizedList(new ArrayList<>());
 
     public static synchronized void setCallback(Consumer<RunnerInfo> callback) {
@@ -23,6 +21,10 @@ public class RunnerNotification {
         } else {
             RunnerNotification.callback = callback;
         }
+    }
+
+    public static synchronized void clearCallback() {
+        RunnerNotification.callback = null;
     }
 
     public static synchronized void setRunnerInfo(RunnerInfo info) {
