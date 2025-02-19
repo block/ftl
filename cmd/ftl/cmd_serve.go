@@ -55,7 +55,7 @@ type serveCmd struct {
 
 type serveCommonConfig struct {
 	Bind                *url.URL             `help:"Starting endpoint to bind to and advertise to. Each controller, ingress, runner and language plugin will increment the port by 1" default:"http://127.0.0.1:8891"`
-	Endpoint            *url.URL             `default:"http://127.0.0.1:8892" help:"FTL endpoint to bind/connect to." env:"FTL_ENDPOINT"`
+	ControllerEndpoint  *url.URL             `default:"http://127.0.0.1:8893" help:"FTL controller endpoint to bind/connect to." env:"FTL_CONTROLLER_ENDPOINT"`
 	SchemaEndpoint      *url.URL             `help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
 	DBPort              int                  `help:"Port to use for the database." env:"FTL_DB_PORT" default:"15432"`
 	MysqlPort           int                  `help:"Port to use for the MySQL database, if one is required." env:"FTL_MYSQL_PORT" default:"13306"`
@@ -117,7 +117,7 @@ func (s *serveCommonConfig) run(
 
 	logger := log.FromContext(ctx)
 
-	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.Endpoint.String(), log.Error)
+	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.ControllerEndpoint.String(), log.Error)
 	ctx = rpc.ContextWithClient(ctx, controllerClient)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.SchemaEndpoint.String(), log.Error)
 	ctx = rpc.ContextWithClient(ctx, schemaClient)
@@ -216,7 +216,7 @@ func (s *serveCommonConfig) run(
 
 	runnerScaling, err := localscaling.NewLocalScaling(
 		ctx,
-		s.Endpoint,
+		s.ControllerEndpoint,
 		schemaBind,
 		s.Lease.Bind,
 		projConfig.Path,
@@ -249,7 +249,7 @@ func (s *serveCommonConfig) run(
 
 	config := controller.Config{
 		CommonConfig: s.CommonConfig,
-		Bind:         s.Endpoint,
+		Bind:         s.ControllerEndpoint,
 		Key:          key.NewLocalControllerKey(1),
 	}
 	config.SetDefaults()

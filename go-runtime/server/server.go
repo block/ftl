@@ -30,7 +30,7 @@ import (
 )
 
 type UserVerbConfig struct {
-	FTLEndpoint         *url.URL             `help:"FTL endpoint." env:"FTL_ENDPOINT" required:""`
+	FTLEndpoint         *url.URL             `help:"FTL controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" required:""`
 	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
 	Config              []string             `name:"config" short:"C" help:"Paths to FTL project configuration files." env:"FTL_CONFIG" placeholder:"FILE[,FILE,...]" type:"existingfile"`
 }

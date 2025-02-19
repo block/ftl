@@ -62,7 +62,7 @@ type Config struct {
 	Config                []string                `name:"config" short:"C" help:"Paths to FTL project configuration files." env:"FTL_CONFIG" placeholder:"FILE[,FILE,...]" type:"existingfile"`
 	Bind                  *url.URL                `help:"Endpoint the Runner should bind to and advertise." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 	Key                   key.Runner              `help:"Runner key (auto)."`
-	ControllerEndpoint    *url.URL                `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
+	ControllerEndpoint    *url.URL                `name:"ftl-controller-endpoint" help:"Controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" default:"http://127.0.0.1:8893"`
 	SchemaEndpoint        *url.URL                `name:"schema-endpoint" help:"Schema server endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
 	LeaseEndpoint         *url.URL                `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	QueryEndpoint         *url.URL                `name:"ftl-query-endpoint" help:"Query endpoint." env:"FTL_QUERY_ENDPOINT" default:"http://127.0.0.1:8897"`
@@ -442,8 +442,8 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			return fmt.Errorf("failed to download artefacts: %w", err)
 		}
 
-		logger.Debugf("Setting FTL_ENDPOINT to %s", s.proxyBindAddress.String())
-		envVars := []string{"FTL_ENDPOINT=" + s.proxyBindAddress.String(),
+		logger.Debugf("Setting FTL_CONTROLLER_ENDPOINT to %s", s.proxyBindAddress.String())
+		envVars := []string{"FTL_CONTROLLER_ENDPOINT=" + s.proxyBindAddress.String(),
 			"FTL_CONFIG=" + strings.Join(s.config.Config, ","),
 			"FTL_DEPLOYMENT=" + s.config.Deployment.String(),
 			"FTL_OBSERVABILITY_ENDPOINT=" + s.config.ControllerEndpoint.String()}

@@ -44,9 +44,9 @@ spec:
               value: "http://0.0.0.0:8892"
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
-            - name: FTL_ENDPOINT
+            - name: FTL_CONTROLLER_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-controller:8892"
-            - name: FTL_ADMIN_ENDPOINT
+            - name: FTL_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-admin:8892"
             - name: FTL_VERB_SERVICE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-controller:8892"
