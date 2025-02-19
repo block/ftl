@@ -3,8 +3,9 @@ package main
 import (
 	goformation "github.com/awslabs/goformation/v7/cloudformation"
 	"github.com/awslabs/goformation/v7/cloudformation/rds"
-	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 	_ "github.com/go-sql-driver/mysql"
+
+	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 )
 
 type MySQLTemplater struct {

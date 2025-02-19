@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/block/ftl/internal/log"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/block/ftl/internal/log"
 )
 
 type Handler struct {
