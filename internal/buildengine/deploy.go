@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"golang.org/x/exp/maps"
@@ -19,6 +20,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/sha256"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
@@ -41,6 +43,8 @@ type AdminClient interface {
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
 func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, adminClient AdminClient) error {
 	logger := log.FromContext(ctx)
+	logger.Infof("Deploying %v", strings.Join(slices.Map(modules, func(m Module) string { return m.Config.Module }), ", "))
+	start := time.Now()
 	uploadGroup := errgroup.Group{}
 	moduleSchemas := make(chan *schemapb.Module, len(modules))
 	for _, module := range modules {
@@ -75,7 +79,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 	if err != nil {
 		return fmt.Errorf("failed to deploy changeset: %w", err)
 	}
-	logger.Debugf("Deployed changeset with %d modules", len(collectedSchemas))
+	logger.Infof("Deployed %s (%.2fs)", strings.Join(slices.Map(modules, func(m Module) string { return m.Config.Module }), ", "), time.Since(start).Seconds())
 	return nil
 }
 

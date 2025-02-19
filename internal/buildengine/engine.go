@@ -1355,7 +1355,6 @@ func (e *Engine) deploy(ctx context.Context, modules []Module, replicas int32) e
 	case err := <-errChan:
 		return err
 	}
-	return nil
 }
 
 // processDeploymentQueue handles the deployment queue and groups pending deployments into changesets
