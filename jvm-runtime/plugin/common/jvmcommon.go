@@ -374,7 +374,9 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 	if os.Getenv("FTL_SUSPEND") == "true" {
 		devModeBuild += " -Dsuspend "
 	}
-	output := &errorDetector{}
+	output := &errorDetector{
+		logger: logger,
+	}
 	launchQuarkusProcessAsync(ctx, devModeBuild, buildCtx, bind, output, cancel)
 
 	// Wait for the plugin to start.
@@ -631,14 +633,25 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 			logger.Warnf("unable to update ftl.version in %s: %s", config.Dir, err.Error())
 		}
 	}
+	output := &errorDetector{
+		logger: logger,
+	}
+
 	logger.Infof("Using build command '%s'", config.Build)
 	command := exec.Command(ctx, log.Debug, config.Dir, "bash", "-c", config.Build)
-	err = command.RunBuffered(ctx)
+	command.Stdout = output
+	command.Stderr = os.Stderr
+	err = command.Run()
+
 	if err != nil {
-		return &langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{&langpb.BuildFailure{
+		buildErrs := output.FinalizeCapture()
+		if len(buildErrs) == 0 {
+			buildErrs = []builderrors.Error{{Msg: "Compile process unexpectedly exited without reporting any errors", Level: builderrors.ERROR, Type: builderrors.COMPILER}}
+		}
+		return &langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{BuildFailure: &langpb.BuildFailure{
 			IsAutomaticRebuild: autoRebuild,
 			ContextId:          bctx.ID,
-			Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: err.Error(), Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
+			Errors:             langpb.ErrorsToProto(buildErrs),
 		}}}, nil
 	}
 
