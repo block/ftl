@@ -4,12 +4,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/block/ftl/internal/log"
-
 	"github.com/alecthomas/atomic"
 
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/log"
 )
 
 var _ io.Writer = &errorDetector{}
