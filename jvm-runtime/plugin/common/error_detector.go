@@ -1,7 +1,6 @@
 package common
 
 import (
-	"fmt"
 	"io"
 	"strings"
 
@@ -9,6 +8,7 @@ import (
 
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/log"
 )
 
 var _ io.Writer = &errorDetector{}
@@ -16,13 +16,31 @@ var _ io.Writer = &errorDetector{}
 // errorDetector is a writer that forwards output to stdout, while capturing output until a safe state is reached.
 // When safe state is reached, the output is then parsed for errors.
 type errorDetector struct {
+	logger *log.Logger
 	output string
 	ended  atomic.Value[bool]
 }
 
 func (o *errorDetector) Write(p []byte) (n int, err error) {
 	// Forward output to stdout
-	fmt.Printf("%s", string(p))
+	for _, line := range strings.Split(string(p), "\n") {
+		if len(line) == 0 {
+			continue
+		}
+		if cleanLine, ok := strings.CutPrefix(line, "[ERROR] "); ok {
+			o.logger.Logf(log.Error, "%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "[WARNING] "); ok {
+			o.logger.Warnf("%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "[DEBUG] "); ok {
+			o.logger.Debugf("%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "[TRACE] "); ok {
+			o.logger.Tracef("%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "[INFO] "); ok {
+			o.logger.Infof("%s", cleanLine)
+		} else {
+			o.logger.Infof("%s", line)
+		}
+	}
 	if !o.ended.Load() {
 		o.output += string(p)
 	}
