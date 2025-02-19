@@ -412,6 +412,9 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 		s.watchReloadEvents(ctx, reloadEvents, errorHash, schemaHash, firstResponseSent, stream, devModeEndpoint, hotReloadEndpoint, debugPort32)
 	}()
 
+	// Force an initial check to make sure no files changed while we were starting up
+	fileEvents <- watch.WatchEventModuleChanged{}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -438,9 +441,11 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true}
-		case <-fileEvents:
+		case ch := <-fileEvents:
 			changed := false
-			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
+			// Slightly hacky, but if we get this with no actual files we do a soft reload to just check
+			// This is used to check after startup
+			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: len(ch.Changes) > 0}))
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
