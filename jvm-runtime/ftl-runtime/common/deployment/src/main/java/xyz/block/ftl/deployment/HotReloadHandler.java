@@ -142,6 +142,10 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         }
         Thread t = new Thread(() -> {
             doScan(request.getForce());
+            if (runningReload != null) {
+                // This generally happens on compile errors
+                runningReload.accept(module, errors);
+            }
         }, "FTL Restart Thread");
         t.start();
 
