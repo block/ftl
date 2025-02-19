@@ -565,7 +565,7 @@ func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, buildCt
 func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint string, stream *connect.ServerStream[langpb.BuildResponse], output *errorDetector, buildCtx buildContext) (hotreloadpbconnect.HotReloadServiceClient, error) {
 	logger := log.FromContext(ctx)
 	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotReloadEndpoint, log.Trace)
-	err := rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
+	err := rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, client)
 	if err != nil {
 		logger.Infof("Dev mode process failed to start")
 		select {
