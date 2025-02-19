@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -14,7 +16,10 @@ import (
 	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/concurrency"
+	"github.com/block/ftl/internal/dsn"
 )
+
+const PostgresPort = 5432
 
 type PostgresTemplater struct {
 	input  executor.PostgresInputState
@@ -33,7 +38,7 @@ func (p *PostgresTemplater) AddToTemplate(template *goformation.Template) error 
 		DBSubnetGroupName:               ptr(p.config.DatabaseSubnetGroupARN),
 		VpcSecurityGroupIds:             []string{p.config.DatabaseSecurityGroup},
 		EngineMode:                      ptr("provisioned"),
-		Port:                            ptr(5432),
+		Port:                            ptr(PostgresPort),
 		EnableIAMDatabaseAuthentication: ptr(true),
 		ServerlessV2ScalingConfiguration: &rds.DBCluster_ServerlessV2ScalingConfiguration{
 			MinCapacity: ptr(0.5),
@@ -124,7 +129,16 @@ func postgresAdminDSN(ctx context.Context, secrets *secretsmanager.Client, secre
 		return "", fmt.Errorf("failed to get username and password from secret ARN: %w", err)
 	}
 
-	return endpointToDSN(&connector.Endpoint, connector.Database, adminUsername, adminPassword), nil
+	host, port, err := net.SplitHostPort(connector.Endpoint)
+	if err != nil {
+		return "", fmt.Errorf("failed to split host and port: %w", err)
+	}
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert port to int: %w", err)
+	}
+
+	return dsn.PostgresDSN(connector.Database, dsn.Host(host), dsn.Port(portInt), dsn.Username(adminUsername), dsn.Password(adminPassword)), nil
 }
 
 func postgresSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAuthDatabaseConnector) error {

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
@@ -105,19 +104,4 @@ func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, o
 	}
 
 	return results, nil
-}
-
-func endpointToDSN(endpoint *string, database string, username, password string) string {
-	url := url.URL{
-		Scheme: "postgres",
-		Host:   *endpoint,
-		Path:   database,
-	}
-
-	query := url.Query()
-	query.Add("user", username)
-	query.Add("password", password)
-	url.RawQuery = query.Encode()
-
-	return url.String()
 }

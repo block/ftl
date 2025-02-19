@@ -77,7 +77,7 @@ func (r *ProvisionRunner) execute(ctx context.Context, stage *RunnerStage) ([]St
 		eg.Go(func() error {
 			outputs, err := executor.Executor.Execute(ctx)
 			if err != nil {
-				return fmt.Errorf("failed to execute executor: %w", err)
+				return fmt.Errorf("failed to execute executor %T: %w", executor.Executor, err)
 			}
 			reschan <- outputs
 			return nil
@@ -85,7 +85,7 @@ func (r *ProvisionRunner) execute(ctx context.Context, stage *RunnerStage) ([]St
 	}
 
 	if err := eg.Wait(); err != nil {
-		return nil, fmt.Errorf("failed to execute executors: %w", err)
+		return nil, fmt.Errorf("%T execution failed: %w", r, err)
 	}
 
 	result := r.skipped

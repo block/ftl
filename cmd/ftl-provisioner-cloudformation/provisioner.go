@@ -38,6 +38,7 @@ type Config struct {
 	DatabaseSubnetGroupARN string `help:"ARN for the subnet group to be used to create Databases in" env:"FTL_PROVISIONER_CF_DB_SUBNET_GROUP"`
 	// TODO: remove this once we have module specific security groups
 	DatabaseSecurityGroup string `help:"SG for databases" env:"FTL_PROVISIONER_CF_DB_SECURITY_GROUP"`
+	MysqlSecurityGroup    string `help:"SG for mysql" env:"FTL_PROVISIONER_CF_MYSQL_SECURITY_GROUP"`
 }
 
 type CloudformationProvisioner struct {
@@ -101,8 +102,10 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 				Executors: []executor.Handler{{
 					Executor: NewPostgresSetupExecutor(c.secrets),
 					Handles:  []executor.State{executor.PostgresInstanceReadyState{}},
+				}, {
+					Executor: NewMySQLSetupExecutor(c.secrets),
+					Handles:  []executor.State{executor.MySQLInstanceReadyState{}},
 				}},
-				// TODO: MySQL user / DB creation executor
 			},
 		},
 	}

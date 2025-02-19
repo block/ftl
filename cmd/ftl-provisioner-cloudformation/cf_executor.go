@@ -111,7 +111,6 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]executor.State,
 	if err != nil {
 		return nil, fmt.Errorf("failed to group outputs by resource ID: %w", err)
 	}
-	logger.Debugf("grouped outputs by resource ID: %v", byResourceID)
 
 	outputs := make([]executor.State, 0, len(e.inputs))
 	for _, input := range e.inputs {
@@ -122,8 +121,8 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]executor.State,
 			outputs = append(outputs, executor.PostgresInstanceReadyState{
 				PostgresInputState:  r,
 				MasterUserSecretARN: findValue(ctx, res, PropertyPsqlMasterUserARN),
-				WriteEndpoint:       fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyPsqlWriteEndpoint), 5432),
-				ReadEndpoint:        fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyPsqlReadEndpoint), 5432),
+				WriteEndpoint:       fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyPsqlWriteEndpoint), PostgresPort),
+				ReadEndpoint:        fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyPsqlReadEndpoint), PostgresPort),
 			})
 		case executor.MySQLInputState:
 			logger.Debugf("finding outputs for mysql resource %s", r.ResourceID)
@@ -131,8 +130,8 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]executor.State,
 			outputs = append(outputs, executor.MySQLInstanceReadyState{
 				MySQLInputState:     r,
 				MasterUserSecretARN: findValue(ctx, res, PropertyMySQLMasterUserARN),
-				WriteEndpoint:       fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLWriteEndpoint), 3306),
-				ReadEndpoint:        fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLReadEndpoint), 3306),
+				WriteEndpoint:       fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLWriteEndpoint), MySQLPort),
+				ReadEndpoint:        fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLReadEndpoint), MySQLPort),
 			})
 		}
 	}

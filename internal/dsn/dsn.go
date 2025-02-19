@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -13,8 +14,10 @@ import (
 )
 
 type dsnOptions struct {
-	host string
-	port int
+	host     string
+	port     int
+	user     string
+	password string
 }
 
 type Option func(*dsnOptions)
@@ -31,22 +34,34 @@ func Host(host string) Option {
 	}
 }
 
-// PostgresDSN returns a PostgresDSN string for connecting to the FTL Controller PG database.
-func PostgresDSN(dbName string, options ...Option) string {
-	opts := &dsnOptions{port: 15432, host: "127.0.0.1"}
-	for _, opt := range options {
-		opt(opts)
+func Username(user string) Option {
+	return func(o *dsnOptions) {
+		o.user = user
 	}
-	return fmt.Sprintf("postgres://%s:%d/%s?sslmode=disable&user=postgres&password=secret", opts.host, opts.port, dbName)
 }
 
-// MySQLDSN returns a MySQLDSN string for connecting to the local MySQL database.
-func MySQLDSN(dbName string, options ...Option) string {
-	opts := &dsnOptions{port: 13306, host: "127.0.0.1"}
+func Password(password string) Option {
+	return func(o *dsnOptions) {
+		o.password = password
+	}
+}
+
+// PostgresDSN returns a PostgresDSN string for connecting to a PG database.
+func PostgresDSN(dbName string, options ...Option) string {
+	opts := &dsnOptions{port: 15432, host: "127.0.0.1", user: "postgres", password: "secret"}
 	for _, opt := range options {
 		opt(opts)
 	}
-	return fmt.Sprintf("root:secret@tcp(%s:%d)/%s?allowNativePasswords=True", opts.host, opts.port, dbName)
+	return fmt.Sprintf("postgres://%s:%d/%s?sslmode=disable&user=%s&password=%s", opts.host, opts.port, dbName, opts.user, opts.password)
+}
+
+// MySQLDSN returns a MySQLDSN string for connecting to the a MySQL database.
+func MySQLDSN(dbName string, options ...Option) string {
+	opts := &dsnOptions{port: 13306, host: "127.0.0.1", user: "root", password: "secret"}
+	for _, opt := range options {
+		opt(opts)
+	}
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?allowNativePasswords=True", opts.user, opts.password, opts.host, opts.port, dbName)
 }
 
 func ResolvePostgresDSN(ctx context.Context, connector schema.DatabaseConnector) (string, error) {
@@ -89,9 +104,35 @@ func parseRegionFromEndpoint(endpoint string) (string, error) {
 }
 
 func ResolveMySQLDSN(ctx context.Context, connector schema.DatabaseConnector) (string, error) {
-	dsnRuntime, ok := connector.(*schema.DSNDatabaseConnector)
-	if !ok {
+	switch c := connector.(type) {
+	case *schema.DSNDatabaseConnector:
+		return c.DSN, nil
+	case *schema.AWSIAMAuthDatabaseConnector:
+		cfg, err := config.LoadDefaultConfig(ctx)
+		if err != nil {
+			return "", fmt.Errorf("configuration error: %w", err)
+		}
+
+		region, err := parseRegionFromEndpoint(c.Endpoint)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse region from endpoint: %w", err)
+		}
+
+		authenticationToken, err := auth.BuildAuthToken(ctx, c.Endpoint, region, c.Username, cfg.Credentials)
+		if err != nil {
+			return "", fmt.Errorf("failed to create authentication token: %w", err)
+		}
+		host, port, err := net.SplitHostPort(c.Endpoint)
+		if err != nil {
+			return "", fmt.Errorf("failed to split host and port: %w", err)
+		}
+		portInt, err := strconv.Atoi(port)
+		if err != nil {
+			return "", fmt.Errorf("failed to convert port to int: %w", err)
+		}
+
+		return MySQLDSN(c.Database, Host(host), Port(portInt), Username(c.Username), Password(authenticationToken)), nil
+	default:
 		return "", fmt.Errorf("unexpected database connector type: %T", connector)
 	}
-	return dsnRuntime.DSN, nil
 }
