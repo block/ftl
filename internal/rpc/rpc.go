@@ -199,7 +199,10 @@ func Wait[Req any, Resp any, RespPtr PingResponse[Resp]](ctx context.Context, re
 			}
 			delay := retry.Duration()
 			logger.Tracef("Ping failed waiting %s for client: %+v", delay, err)
-			time.Sleep(delay)
+			select {
+			case <-ctx.Done():
+			case <-time.After(delay):
+			}
 		}
 	}()
 
