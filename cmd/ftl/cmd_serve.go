@@ -266,10 +266,10 @@ func (s *serveCommonConfig) run(
 	})
 
 	if !s.NoConsole {
-		if err := consolefrontend.PrepareServer(ctx); err != nil {
-			return fmt.Errorf("failed to prepare console server: %w", err)
-		}
 		wg.Go(func() error {
+			if err := consolefrontend.PrepareServer(ctx); err != nil {
+				return fmt.Errorf("failed to prepare console server: %w", err)
+			}
 			// Deliberately start Console in the foreground.
 			ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
 			err := console.Start(ctx, s.Console, schemaEventSource, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), buildEngineClient)

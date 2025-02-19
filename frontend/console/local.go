@@ -19,12 +19,19 @@ import (
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/terminal"
 )
 
 var proxyURL, _ = url.Parse("http://localhost:5173") //nolint:errcheck
 var proxy = httputil.NewSingleHostReverseProxy(proxyURL)
 
 func PrepareServer(ctx context.Context) error {
+	sm := terminal.FromContext(ctx)
+	const console = "FTL Console (dev)"
+	sm.SetModuleState(console, terminal.BuildStateBuilding)
+	defer func() {
+		sm.SetModuleState(console, terminal.BuildStateTerminated)
+	}()
 	gitRoot, ok := internal.GitRoot(os.Getenv("FTL_DIR")).Get()
 	if !ok {
 		return fmt.Errorf("failed to find Git root")
