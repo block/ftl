@@ -86,6 +86,7 @@ type Service struct {
 	updatesTopic          *pubsub.Topic[buildContextUpdatedEvent]
 	acceptsContextUpdates atomic.Value[bool]
 	scaffoldFiles         *zip.Reader
+	buildContext          atomic.Value[buildContext]
 }
 
 var _ langconnect.LanguageServiceHandler = &Service{}
@@ -201,18 +202,18 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	if err != nil {
 		return err
 	}
+	s.buildContext.Store(buildCtx)
 	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
 	if err != nil {
 		return fmt.Errorf("failed to write generic schema files: %w", err)
 	}
-	if req.Msg.RebuildAutomatically {
-		return s.runDevMode(ctx, req, buildCtx, stream)
-	}
-
 	if s.acceptsContextUpdates.Load() {
 		// Already running in dev mode, we don't need to rebuild
 		s.updatesTopic.Publish(buildContextUpdatedEvent{buildCtx: buildCtx})
 		return nil
+	}
+	if req.Msg.RebuildAutomatically {
+		return s.runDevMode(ctx, buildCtx, stream)
 	}
 
 	// Initial build
@@ -223,7 +224,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	return nil
 }
 
-func (s *Service) runDevMode(ctx context.Context, req *connect.Request[langpb.BuildRequest], buildCtx buildContext, stream *connect.ServerStream[langpb.BuildResponse]) error {
+func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream *connect.ServerStream[langpb.BuildResponse]) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(fmt.Errorf("stopping JVM language plugin (dev): %w", context.Canceled))
 
@@ -240,21 +241,21 @@ func (s *Service) runDevMode(ctx context.Context, req *connect.Request[langpb.Bu
 		return err
 	}
 
-	first := true
+	firstResponseSent := &atomic.Value[bool]{}
+	firstResponseSent.Store(false)
 	for {
-		if !first {
+		if firstResponseSent.Load() {
 			err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
 			if err != nil {
 				return fmt.Errorf("could not send build event: %w", err)
 			}
 		}
-		err := s.runQuarkusDev(ctx, req, stream, first, fileEvents)
-		first = false
+		err := s.runQuarkusDev(ctx, stream, firstResponseSent, fileEvents)
 		if err != nil {
 			log.FromContext(ctx).Errorf(err, "Dev mode process exited")
 			return err
 		}
-		if !waitForFileChanges(ctx, fileEvents) {
+		if !s.waitForFileChanges(ctx, fileEvents) {
 			return nil
 		}
 	}
@@ -274,7 +275,9 @@ func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, err
 
 // Waits for file changes or context cancellation.
 // If file changes are found, the chan is drained and true is returned.
-func waitForFileChanges(ctx context.Context, fileEvents chan watch.WatchEventModuleChanged) bool {
+func (s *Service) waitForFileChanges(ctx context.Context, fileEvents chan watch.WatchEventModuleChanged) bool {
+	updates := s.updatesTopic.Subscribe(nil)
+	defer s.updatesTopic.Unsubscribe(updates)
 	select {
 	case <-ctx.Done():
 		return false
@@ -287,6 +290,8 @@ func waitForFileChanges(ctx context.Context, fileEvents chan watch.WatchEventMod
 				return true
 			}
 		}
+	case <-updates:
+		return true
 	}
 }
 
@@ -330,10 +335,9 @@ type buildResult struct {
 	state               *hotreloadpb.SchemaState
 	forceReload         bool
 	buildContextUpdated bool
-	buildContext        buildContext
 }
 
-func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse], firstAttempt bool, fileEvents chan watch.WatchEventModuleChanged) error {
+func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
 	logger := log.FromContext(ctx)
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(fmt.Errorf("stopping JVM language plugin (Quarkus dev mode): %w", context.Canceled))
@@ -341,11 +345,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	events := make(chan buildContextUpdatedEvent, 32)
 	s.updatesTopic.Subscribe(events)
 	defer s.updatesTopic.Unsubscribe(events)
-	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
-	if err != nil {
-		return err
-	}
-	release, err := flock.Acquire(ctx, buildCtx.Config.BuildLock, BuildLockTimeout)
+	release, err := flock.Acquire(ctx, s.buildContext.Load().Config.BuildLock, BuildLockTimeout)
 	if err != nil {
 		return fmt.Errorf("could not acquire build lock: %w", err)
 	}
@@ -354,7 +354,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 	if err != nil {
 		return fmt.Errorf("could not allocate port: %w", err)
 	}
-
+	buildCtx := s.buildContext.Load()
 	ctx = log.ContextWithLogger(ctx, logger)
 	devModeEndpoint := fmt.Sprintf("http://localhost:%d", address.Port)
 	bind := devModeEndpoint
@@ -407,9 +407,9 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 		}
 		return fmt.Errorf("failed to receive initial schema watch response")
 	}
-	reloadEvents <- &buildResult{state: schemaWatch.Msg().GetState(), buildContext: buildCtx}
+	reloadEvents <- &buildResult{state: schemaWatch.Msg().GetState(), forceReload: true}
 	go func() {
-		s.watchReloadEvents(ctx, reloadEvents, errorHash, schemaHash, firstAttempt, stream, devModeEndpoint, hotReloadEndpoint, debugPort32)
+		s.watchReloadEvents(ctx, reloadEvents, errorHash, schemaHash, firstResponseSent, stream, devModeEndpoint, hotReloadEndpoint, debugPort32)
 	}()
 
 	for {
@@ -418,10 +418,12 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			logger.Infof("Context done")
 			// the context is done before we notified the build engine
 			// we need to send a build failure event
+			auto := firstResponseSent.Load()
+			firstResponseSent.Store(true)
 			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 				BuildFailure: &langpb.BuildFailure{
-					IsAutomaticRebuild: true,
-					ContextId:          buildCtx.ID,
+					IsAutomaticRebuild: auto,
+					ContextId:          s.buildContext.Load().ID,
 					Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
 				}}})
 			if err != nil {
@@ -435,7 +437,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true, buildContext: buildCtx}
+			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true}
 		case <-fileEvents:
 			changed := false
 			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
@@ -452,13 +454,13 @@ func (s *Service) runQuarkusDev(ctx context.Context, req *connect.Request[langpb
 					migrationHash = newMigrationHash
 				}
 			}
-			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: changed, buildContext: buildCtx}
+			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: changed}
 
 		}
 	}
 }
 
-func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, errorHash sha256.SHA256, schemaHash sha256.SHA256, firstAttempt bool, stream *connect.ServerStream[langpb.BuildResponse], devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32) {
+func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, errorHash sha256.SHA256, schemaHash sha256.SHA256, firstResponseSent *atomic.Value[bool], stream *connect.ServerStream[langpb.BuildResponse], devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32) {
 	var module *schemapb.Module
 	logger := log.FromContext(ctx)
 	for event := range channels.IterContext(ctx, reloadEvents) {
@@ -492,10 +494,10 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 		logger.Debugf("Checking for schema changes %v %v %v", changed, schemaHash, errorHash)
 
 		if changed || event.forceReload {
-			auto := !firstAttempt && !event.buildContextUpdated
+			auto := firstResponseSent.Load() && !event.buildContextUpdated
 			if auto {
 				logger.Debugf("sending auto build event")
-				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: event.buildContext.ID}}})
+				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: s.buildContext.Load().ID}}})
 				if err != nil {
 					logger.Errorf(err, "could not send build event")
 					continue
@@ -507,24 +509,24 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 					BuildFailure: &langpb.BuildFailure{
 						IsAutomaticRebuild: auto,
-						ContextId:          event.buildContext.ID,
+						ContextId:          s.buildContext.Load().ID,
 						Errors:             errorList,
 					}}})
 				if err != nil {
 					logger.Errorf(err, "Could not send build event")
 				}
-				firstAttempt = false
+				firstResponseSent.Store(true)
 				continue
 			}
-
-			if !firstAttempt {
+			if firstResponseSent.Load() {
 				logger.Debugf("Live reload schema changed, sending build success event")
 			}
-			firstAttempt = false
+
+			firstResponseSent.Store(true)
 			err := stream.Send(&langpb.BuildResponse{
 				Event: &langpb.BuildResponse_BuildSuccess{
 					BuildSuccess: &langpb.BuildSuccess{
-						ContextId:            event.buildContext.ID,
+						ContextId:            s.buildContext.Load().ID,
 						IsAutomaticRebuild:   auto,
 						Module:               module,
 						DevEndpoint:          ptr(devModeEndpoint),
@@ -705,7 +707,7 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, err
 	}
-
+	s.buildContext.Store(buildCtx)
 	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to write generic schema files: %w", err)

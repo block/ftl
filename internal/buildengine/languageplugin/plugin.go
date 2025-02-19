@@ -390,8 +390,6 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 		select {
 		// Process incoming commands
 		case c := <-p.commands:
-			// update state
-			contextCounter++
 			bctx = c.BuildContext
 			projectConfig = langpb.ProjectConfigToProto(c.projectConfig)
 			stubsRoot = c.stubsRoot
@@ -411,6 +409,8 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 
 			schemaProto := bctx.Schema.ToProto()
 
+			// update state
+			contextCounter++
 			if streamChan != nil {
 				// tell plugin about new build context so that it rebuilds in existing build stream
 				_, err = p.client.buildContextUpdated(ctx, connect.NewRequest(&langpb.BuildContextUpdatedRequest{

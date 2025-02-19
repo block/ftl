@@ -39,7 +39,7 @@ func New(ctx context.Context, changes *schemaeventsource.EventSource) *RouteTabl
 func (r *RouteTable) run(ctx context.Context, changes *schemaeventsource.EventSource) {
 	for event := range channels.IterContext(ctx, changes.Subscribe(ctx)) {
 		logger := log.FromContext(ctx)
-		logger.Debugf("Received schema event: %T", event)
+		logger.Tracef("Received schema event: %T", event)
 		old := r.routes.Load()
 		routes := extractRoutes(ctx, changes.CanonicalView())
 		for module, rd := range old.moduleToDeployment {
