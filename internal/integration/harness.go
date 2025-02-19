@@ -310,7 +310,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			defer done(fmt.Errorf("test complete"))
 			tmpDir := initWorkDir(t, cwd, opts)
 
-			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:8896", log.Debug)
+			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:8892", log.Debug)
 
 			var admin ftlv1connect.AdminServiceClient
 			var console consolepbconnect.ConsoleServiceClient
@@ -339,7 +339,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				ctx = startProcess(ctx, t, tmpDir, opts.devMode, args...)
 			}
 			if opts.startController || opts.kube {
-				admin = rpc.Dial(ftlv1connect.NewAdminServiceClient, "http://localhost:8896", log.Debug)
+				admin = rpc.Dial(ftlv1connect.NewAdminServiceClient, "http://localhost:8892", log.Debug)
 				console = rpc.Dial(consolepbconnect.NewConsoleServiceClient, "http://localhost:8899", log.Debug)
 				schema = rpc.Dial(ftlv1connect.NewSchemaServiceClient, "http://localhost:8897", log.Debug)
 			}

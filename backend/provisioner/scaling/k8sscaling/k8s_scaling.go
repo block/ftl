@@ -526,7 +526,7 @@ func (r *k8sScaling) syncDeployment(ctx context.Context, thisImage string, deplo
 		})
 	}
 	changes = r.updateEnvVar(deployment, "FTL_DEPLOYMENT", deployment.Name, changes)
-	changes = r.updateEnvVar(deployment, "FTL_ENDPOINT", r.controller, changes)
+	changes = r.updateEnvVar(deployment, "FTL_CONTROLLER_ENDPOINT", r.controller, changes)
 	return changes, nil
 }
 

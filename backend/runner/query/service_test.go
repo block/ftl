@@ -121,7 +121,7 @@ func TestQueryService(t *testing.T) {
 func TestServiceConfig(t *testing.T) {
 	t.Run("ValidConfig", func(t *testing.T) {
 		config := &Config{
-			Endpoint: &url.URL{Scheme: "http", Host: "localhost:8896"},
+			Endpoint: &url.URL{Scheme: "http", Host: "localhost:8892"},
 			Engine:   "mysql",
 			DSN:      "user:pass@tcp(localhost:3306)/db",
 		}
@@ -130,7 +130,7 @@ func TestServiceConfig(t *testing.T) {
 
 	t.Run("InvalidEngine", func(t *testing.T) {
 		config := &Config{
-			Endpoint: &url.URL{Scheme: "http", Host: "localhost:8896"},
+			Endpoint: &url.URL{Scheme: "http", Host: "localhost:8892"},
 			Engine:   "invalid",
 			DSN:      "user:pass@tcp(localhost:3306)/db",
 		}
@@ -147,7 +147,7 @@ func TestServiceConfig(t *testing.T) {
 
 	t.Run("MissingDSN", func(t *testing.T) {
 		config := &Config{
-			Endpoint: &url.URL{Scheme: "http", Host: "localhost:8896"},
+			Endpoint: &url.URL{Scheme: "http", Host: "localhost:8892"},
 			Engine:   "mysql",
 		}
 		assert.Error(t, config.Validate())

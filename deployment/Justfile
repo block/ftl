@@ -180,7 +180,7 @@ deploy path:
   kubectl cp ftl.tar ${POD}:/tmp/ftl/ftl.tar
   kubectl exec -it ${POD} -- tar --warning=no-unknown-keyword -tf /tmp/ftl/ftl.tar
   kubectl exec -it ${POD} -- tar -xf /tmp/ftl/ftl.tar -C /tmp/ftl/
-  kubectl exec -it ${POD} -- bash -c "cd /tmp/ftl && FTL_ENDPOINT=http://ftl-controller:8892 /root/ftl deploy {{path}}"
+  kubectl exec -it ${POD} -- bash -c "cd /tmp/ftl && FTL_ENDPOINT=http://ftl-admin:8892 /root/ftl deploy {{path}}"
   rm -f ftl.tar.gz
 
 # Execute FTL CLI commands in the controller pod
@@ -188,4 +188,4 @@ ftl *args:
   #!/usr/bin/env bash
   set -euxo pipefail
   export POD=$(kubectl get pods -l app=ftl-controller --no-headers | tail -1 | awk '{print $1}')
-  kubectl exec -it ${POD} -- bash -c "FTL_ENDPOINT=http://ftl-controller:8892 /root/ftl {{args}}"
+  kubectl exec -it ${POD} -- bash -c "FTL_ENDPOINT=http://ftl-admin:8892 /root/ftl {{args}}"

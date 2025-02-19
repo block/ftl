@@ -17,13 +17,13 @@ public class DefaultRunnerDetails implements RunnerDetails {
 
     @Override
     public String getProxyAddress() {
-        String endpoint = System.getenv("FTL_ENDPOINT");
+        String endpoint = System.getenv("FTL_CONTROLLER_ENDPOINT");
         String testEndpoint = System.getProperty("ftl.test.endpoint"); //set by the test framework
         if (testEndpoint != null) {
             endpoint = testEndpoint;
         }
         if (endpoint == null) {
-            endpoint = "http://localhost:8892";
+            endpoint = "http://localhost:8893";
         }
         return endpoint;
     }

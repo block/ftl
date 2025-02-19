@@ -64,7 +64,7 @@ data:
                 {{- if .Values.runner.env }}
                 {{- toYaml .Values.runner.env | nindent 16 }}
                 {{- end }}
-                - name: FTL_ENDPOINT
+                - name: FTL_CONTROLLER_ENDPOINT
                   value: "http://{{ include "ftl.fullname" . }}-controller:{{ .Values.controller.port }}"
                 - name: FTL_ARTEFACT_REGISTRY
                   value: "{{ .Values.registry.repository }}"
