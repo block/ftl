@@ -6,9 +6,11 @@ import (
 	"net/url"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
+	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -36,9 +38,9 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse deployment key: %w", err)
 		}
-		events, err := c.updateResources(ctx, deploymentKey, task.outputs.Load())
+		events, err := c.updateResources(deploymentKey, task.outputs.Load())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to update resources: %w", err)
 		}
 		return connect.NewResponse(&provisioner.StatusResponse{
 			Status: &provisioner.StatusResponse_Success{
@@ -70,63 +72,45 @@ func outputsByResourceID(outputs []types.Output) (map[string][]types.Output, err
 	return m, nil
 }
 
-func outputsByKind(outputs []types.Output) (map[string][]types.Output, error) {
-	m := make(map[string][]types.Output)
+func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, outputs []executor.State) ([]*schema.RuntimeElement, error) {
+	var results []*schema.RuntimeElement
+
 	for _, output := range outputs {
-		key, err := decodeOutputKey(output)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode output key: %w", err)
+		switch o := output.(type) {
+		case executor.PostgresDBDoneState:
+			results = append(results, &schema.RuntimeElement{
+				Deployment: deployment,
+				Name:       optional.Some(o.PostgresInputState.ResourceID),
+				Element: &schema.DatabaseRuntime{
+					Connections: &schema.DatabaseRuntimeConnections{
+						Write: o.Connector,
+						Read:  o.Connector,
+					},
+				},
+			})
+		case executor.MySQLDBDoneState:
+			results = append(results, &schema.RuntimeElement{
+				Deployment: deployment,
+				Name:       optional.Some(o.MySQLInputState.ResourceID),
+				Element: &schema.DatabaseRuntime{
+					Connections: &schema.DatabaseRuntimeConnections{
+						Write: o.Connector,
+						Read:  o.Connector,
+					},
+				},
+			})
+		default:
+			return nil, fmt.Errorf("unknown output type: %T", o)
 		}
-		m[key.ResourceKind] = append(m[key.ResourceKind], output)
 	}
-	return m, nil
+
+	return results, nil
 }
 
-func outputsByPropertyName(outputs []types.Output) (map[string]types.Output, error) {
-	m := make(map[string]types.Output)
-	for _, output := range outputs {
-		key, err := decodeOutputKey(output)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode output key: %w", err)
-		}
-		m[key.PropertyName] = output
-	}
-	return m, nil
-}
-
-func (c *CloudformationProvisioner) updateResources(ctx context.Context, deployment key.Deployment, outputs []types.Output) ([]*schema.RuntimeElement, error) {
-	byKind, err := outputsByKind(outputs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to group outputs by kind: %w", err)
-	}
-
-	var events []*schema.RuntimeElement
-
-	for kind, outputs := range byKind {
-		byResourceID, err := outputsByResourceID(outputs)
-		if err != nil {
-			return nil, fmt.Errorf("failed to group outputs by resource ID: %w", err)
-		}
-		for id, outputs := range byResourceID {
-			switch kind {
-			case ResourceKindPostgres:
-				e, err := updatePostgresOutputs(ctx, deployment, id, outputs)
-				if err != nil {
-					return nil, fmt.Errorf("failed to update postgres outputs: %w", err)
-				}
-				events = append(events, e...)
-			case ResourceKindMySQL:
-				panic("mysql not implemented")
-			}
-		}
-	}
-	return events, nil
-}
-
-func endpointToDSN(endpoint *string, database string, port int, username, password string) string {
+func endpointToDSN(endpoint *string, database string, username, password string) string {
 	url := url.URL{
 		Scheme: "postgres",
-		Host:   fmt.Sprintf("%s:%d", *endpoint, port),
+		Host:   *endpoint,
 		Path:   database,
 	}
 
