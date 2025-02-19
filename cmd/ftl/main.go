@@ -91,6 +91,13 @@ var cli CLI
 
 func main() {
 	ctx, cancel := context.WithCancelCause(context.Background())
+	// Huge hack for dev mode, set the current working directory to the first build dir
+	// This is to make ftl new in the interactive mode work as expected
+	if len(os.Args) > 2 {
+		if os.Args[1] == "dev" {
+			_ = os.Chdir(os.Args[2]) //nolint:errcheck // best effort
+		}
+	}
 	csm := &currentStatusManager{}
 
 	app := createKongApplication(&cli, csm)
