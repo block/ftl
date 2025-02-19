@@ -833,12 +833,13 @@ func (s *Service) startMySQLProxy(ctx context.Context, module *schema.Module, la
 		portC := make(chan int)
 		errorC := make(chan error)
 		databaseRuntime := decl.Runtime
-		var proxy *mysql.Proxy
-		dsn, err := dsn.ResolveMySQLDSN(ctx, databaseRuntime.Connections.Write)
-		if err != nil {
-			return fmt.Errorf("failed to resolve MySQL DSN: %w", err)
-		}
-		proxy = mysql.NewProxy("localhost", 0, dsn, &mysqlLogger{logger: logger}, portC)
+		proxy := mysql.NewProxy("localhost", 0, func(ctx context.Context) (string, error) {
+			dsn, err := dsn.ResolveMySQLDSN(ctx, databaseRuntime.Connections.Write)
+			if err != nil {
+				return "", fmt.Errorf("failed to resolve MySQL DSN: %w", err)
+			}
+			return dsn, nil
+		}, &mysqlLogger{logger: logger}, portC)
 		go func() {
 			err := proxy.ListenAndServe(ctx)
 			if err != nil {

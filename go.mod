@@ -26,7 +26,6 @@ require (
 	github.com/aws/smithy-go v1.22.2
 	github.com/beevik/etree v1.5.0
 	github.com/block/ftl-golang-tools v0.4.0
-	github.com/block/ftl-mysql-auth-proxy v0.0.0-20241126024735-7acb0031b469
 	github.com/block/scaffolder v1.3.0
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/deckarep/golang-set/v2 v2.7.0
@@ -110,6 +109,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.14 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.14 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250219060032-faef12e3dc6e // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f // indirect
