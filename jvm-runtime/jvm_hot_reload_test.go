@@ -49,11 +49,19 @@ func TestLifecycleJVM(t *testing.T) {
 			assert.Equal(t, "Hello, Bob!", response)
 		}),
 		// Now test hot reload
+		// Deliberate compile error, we need to check that we can recover from this
 		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
+			return []byte(strings.ReplaceAll(string(content), "\"Hello", "Bye"))
 		}, "src/main/java/ftl/echo/Echo.java")),
 		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
+			return []byte(strings.ReplaceAll(string(content), "\"Hello", "Bye"))
+		}, "src/main/kotlin/ftl/echo/Echo.kt")),
+		in.Sleep(time.Second*2),
+		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
+			return []byte(strings.ReplaceAll(string(content), "Bye", "\"Bye"))
+		}, "src/main/java/ftl/echo/Echo.java")),
+		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
+			return []byte(strings.ReplaceAll(string(content), "Bye", "\"Bye"))
 		}, "src/main/kotlin/ftl/echo/Echo.kt")),
 		in.Sleep(time.Second*2), // Annoyingly quarkus limits to one restart check every 2s, which is fine for normal dev, but a pain for these tests
 		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
