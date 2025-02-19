@@ -20,7 +20,7 @@ import (
 	"github.com/block/ftl/internal/rpc"
 )
 
-const pluginRetryDelay = time.Millisecond * 100
+const pluginRetryDelay = time.Millisecond * 50
 
 // PingableClient is a gRPC client that can be pinged.
 type PingableClient interface {

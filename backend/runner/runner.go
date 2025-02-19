@@ -30,6 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
+
 	"github.com/block/ftl/backend/controller/artefacts"
 	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect"
@@ -401,7 +402,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	if ep, ok := s.devEndpoint.Get(); ok {
 		if hotRelaodEp, ok := s.devHotReloadEndpoint.Get(); ok {
 			hotReloadClient := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotRelaodEp, log.Error)
-			err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, hotReloadClient)
+			err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, hotReloadClient)
 			if err != nil {
 				return fmt.Errorf("failed to ping hot reload endpoint: %w", err)
 			}
@@ -423,7 +424,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			}
 		}
 		client := rpc.Dial(ftlv1connect.NewVerbServiceClient, ep, log.Error)
-		err = rpc.Wait(ctx, backoff.Backoff{}, time.Minute, client)
+		err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, client)
 		dep = &deployment{
 			ctx:      ctx,
 			key:      key,
@@ -794,7 +795,7 @@ func (s *Service) startQueryServices(ctx context.Context, module *schema.Module,
 				return serverCtx.Err()
 			case endpoint := <-urls:
 				client := rpc.Dial(querypbconnect.NewQueryServiceClient, endpoint.String(), log.Error)
-				if err := rpc.Wait(serverCtx, backoff.Backoff{}, time.Second*5, client); err != nil {
+				if err := rpc.Wait(serverCtx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Second*5, client); err != nil {
 					return fmt.Errorf("query service for database %s failed health check: %w", dbName, err)
 				}
 				querySvc.SetEndpoint(endpoint)
