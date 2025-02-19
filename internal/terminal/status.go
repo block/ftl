@@ -463,6 +463,8 @@ func (r *terminalStatusManager) recalculateLines() {
 			msg = strings.TrimSpace(msg)
 		}
 		r.moduleLine.message = msg
+	} else if r.moduleLine != nil {
+		r.moduleLine.message = ""
 	}
 	for _, i := range r.lines {
 		if i.message != "" && i != r.moduleLine {
