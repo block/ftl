@@ -10,8 +10,8 @@ import (
 	goformation "github.com/awslabs/goformation/v7/cloudformation"
 	cf "github.com/awslabs/goformation/v7/cloudformation/cloudformation"
 
-	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/provisioner/state"
 )
 
 type CloudFormationExecutor struct {
@@ -21,7 +21,7 @@ type CloudFormationExecutor struct {
 	config   *Config
 	stack    string
 
-	inputs []executor.State
+	inputs []state.State
 }
 
 func NewCloudFormationExecutor(stack string, cfn *cloudformation.Client, secrets *secretsmanager.Client, config *Config) *CloudFormationExecutor {
@@ -34,17 +34,17 @@ func NewCloudFormationExecutor(stack string, cfn *cloudformation.Client, secrets
 	}
 }
 
-func (e *CloudFormationExecutor) Prepare(ctx context.Context, input executor.State) error {
+func (e *CloudFormationExecutor) Prepare(ctx context.Context, input state.State) error {
 	e.inputs = append(e.inputs, input)
 
 	for _, resource := range e.inputs {
 		switch r := resource.(type) {
-		case executor.PostgresInputState:
+		case state.InputPostgres:
 			tmpl := &PostgresTemplater{input: r, config: e.config}
 			if err := tmpl.AddToTemplate(e.template); err != nil {
 				return fmt.Errorf("failed to add postgres template: %w", err)
 			}
-		case executor.MySQLInputState:
+		case state.InputMySQL:
 			tmpl := &MySQLTemplater{input: r, config: e.config}
 			if err := tmpl.AddToTemplate(e.template); err != nil {
 				return fmt.Errorf("failed to add mysql template: %w", err)
@@ -61,7 +61,7 @@ func (e *CloudFormationExecutor) Prepare(ctx context.Context, input executor.Sta
 	return nil
 }
 
-func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]executor.State, error) {
+func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]state.State, error) {
 	logger := log.FromContext(ctx)
 
 	changeSet := generateChangeSetName(e.stack)
@@ -112,23 +112,27 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]executor.State,
 		return nil, fmt.Errorf("failed to group outputs by resource ID: %w", err)
 	}
 
-	outputs := make([]executor.State, 0, len(e.inputs))
+	outputs := make([]state.State, 0, len(e.inputs))
 	for _, input := range e.inputs {
 		switch r := input.(type) {
-		case executor.PostgresInputState:
+		case state.InputPostgres:
 			logger.Debugf("finding outputs for postgres resource %s", r.ResourceID)
 			res := byResourceID[r.ResourceID]
-			outputs = append(outputs, executor.PostgresInstanceReadyState{
-				PostgresInputState:  r,
+			outputs = append(outputs, state.RDSInstanceReadyPostgres{
+				Module:     r.Module,
+				ResourceID: r.ResourceID,
+
 				MasterUserSecretARN: findValue(ctx, res, PropertyPsqlMasterUserARN),
 				WriteEndpoint:       fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyPsqlWriteEndpoint), PostgresPort),
 				ReadEndpoint:        fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyPsqlReadEndpoint), PostgresPort),
 			})
-		case executor.MySQLInputState:
+		case state.InputMySQL:
 			logger.Debugf("finding outputs for mysql resource %s", r.ResourceID)
 			res := byResourceID[r.ResourceID]
-			outputs = append(outputs, executor.MySQLInstanceReadyState{
-				MySQLInputState:     r,
+			outputs = append(outputs, state.RDSInstanceReadyMySQL{
+				Module:     r.Module,
+				ResourceID: r.ResourceID,
+
 				MasterUserSecretARN: findValue(ctx, res, PropertyMySQLMasterUserARN),
 				WriteEndpoint:       fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLWriteEndpoint), MySQLPort),
 				ReadEndpoint:        fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLReadEndpoint), MySQLPort),

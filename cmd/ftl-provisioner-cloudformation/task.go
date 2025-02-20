@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -12,16 +11,16 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/jpillora/backoff"
 
-	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/provisioner"
+	"github.com/block/ftl/internal/provisioner/state"
 )
 
 type task struct {
-	stackID string
-	runner  *executor.ProvisionRunner
+	runner *provisioner.Runner
 
 	err     atomic.Value[error]
-	outputs atomic.Value[[]executor.State]
+	outputs atomic.Value[[]state.State]
 }
 
 func waitForStackReady(ctx context.Context, stackID string, client *cloudformation.Client) ([]types.Output, error) {
@@ -88,21 +87,4 @@ func (t *task) Start(oldCtx context.Context, client *cloudformation.Client, secr
 		}
 		t.outputs.Store(outputs)
 	}()
-}
-
-func secretARNToUsernamePassword(ctx context.Context, secrets *secretsmanager.Client, secretARN string) (string, string, error) {
-	secret, err := secrets.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
-		SecretId: &secretARN,
-	})
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get secret value: %w", err)
-	}
-	secretString := *secret.SecretString
-
-	var secretData map[string]string
-	if err := json.Unmarshal([]byte(secretString), &secretData); err != nil {
-		return "", "", fmt.Errorf("failed to unmarshal secret data: %w", err)
-	}
-
-	return secretData["username"], secretData["password"], nil
 }

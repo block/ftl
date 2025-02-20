@@ -8,19 +8,19 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
-	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
-	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
+	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/internal/provisioner/state"
 )
 
-func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Request[provisioner.StatusRequest]) (*connect.Response[provisioner.StatusResponse], error) {
+func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Request[provisionerpb.StatusRequest]) (*connect.Response[provisionerpb.StatusResponse], error) {
 	token := req.Msg.ProvisioningToken
 	// if the task is not in the map, it means that the provisioner has crashed since starting the task
 	// in that case, we start a new task to query the existing stack
-	task, loaded := c.running.LoadOrStore(token, &task{stackID: token})
+	task, loaded := c.running.LoadOrStore(token, &task{})
 	if !loaded {
 		task.Start(ctx, c.client, c.secrets, "")
 	}
@@ -41,9 +41,9 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 		if err != nil {
 			return nil, fmt.Errorf("failed to update resources: %w", err)
 		}
-		return connect.NewResponse(&provisioner.StatusResponse{
-			Status: &provisioner.StatusResponse_Success{
-				Success: &provisioner.StatusResponse_ProvisioningSuccess{
+		return connect.NewResponse(&provisionerpb.StatusResponse{
+			Status: &provisionerpb.StatusResponse_Success{
+				Success: &provisionerpb.StatusResponse_ProvisioningSuccess{
 					Outputs: slices.Map(events, func(t *schema.RuntimeElement) *schemapb.RuntimeElement {
 						return t.ToProto()
 					}),
@@ -52,9 +52,9 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 		}), nil
 	}
 
-	return connect.NewResponse(&provisioner.StatusResponse{
-		Status: &provisioner.StatusResponse_Running{
-			Running: &provisioner.StatusResponse_ProvisioningRunning{},
+	return connect.NewResponse(&provisionerpb.StatusResponse{
+		Status: &provisionerpb.StatusResponse_Running{
+			Running: &provisionerpb.StatusResponse_ProvisioningRunning{},
 		},
 	}), nil
 }
@@ -71,15 +71,15 @@ func outputsByResourceID(outputs []types.Output) (map[string][]types.Output, err
 	return m, nil
 }
 
-func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, outputs []executor.State) ([]*schema.RuntimeElement, error) {
+func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, outputs []state.State) ([]*schema.RuntimeElement, error) {
 	var results []*schema.RuntimeElement
 
 	for _, output := range outputs {
 		switch o := output.(type) {
-		case executor.PostgresDBDoneState:
+		case state.OutputPostgres:
 			results = append(results, &schema.RuntimeElement{
 				Deployment: deployment,
-				Name:       optional.Some(o.PostgresInputState.ResourceID),
+				Name:       optional.Some(o.ResourceID),
 				Element: &schema.DatabaseRuntime{
 					Connections: &schema.DatabaseRuntimeConnections{
 						Write: o.Connector,
@@ -87,10 +87,10 @@ func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, o
 					},
 				},
 			})
-		case executor.MySQLDBDoneState:
+		case state.OutputMySQL:
 			results = append(results, &schema.RuntimeElement{
 				Deployment: deployment,
-				Name:       optional.Some(o.MySQLInputState.ResourceID),
+				Name:       optional.Some(o.ResourceID),
 				Element: &schema.DatabaseRuntime{
 					Connections: &schema.DatabaseRuntimeConnections{
 						Write: o.Connector,
