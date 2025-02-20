@@ -7,7 +7,8 @@ metadata:
 data:
   config.toml: |
     plugins = [
-        { id = "cloudformation", resources = ["postgres", "sql-migration", "topic", "subscription"] },
-        { id = "sandbox", resources = ["mysql"] },
+    {{- range .Values.provisioner.config.plugins }}
+        { id = "{{ .id }}", resources = [{{ range $index, $resource := .resources }}{{ if $index }}, {{ end }}"{{ $resource }}"{{ end }}] },
+    {{- end }}
     ]
 {{- end}}

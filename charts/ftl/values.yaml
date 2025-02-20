@@ -78,7 +78,17 @@ provisioner:
     tag: null
     pullPolicy: null
     name: "ftl-provisioner"
-
+  config:
+    plugins:
+      - id: "cloudformation"
+        resources:
+          - "postgres"
+          - "sql-migration"
+          - "topic"
+          - "subscription"
+      - id: "sandbox"
+        resources:
+          - "mysql"
   envFrom: null
   serviceAccountName: ftl-provisioner
 
