@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -14,14 +13,14 @@ type dumpHelpCmd struct {
 	IgnoredFlags    []string `optional:"" help:"Flags to ignore"`
 }
 
-func (d *dumpHelpCmd) Run(ctx context.Context, k *kong.Kong) error {
+func (d *dumpHelpCmd) Run() error {
 	var cli CLI
 	innerK := createKongApplication(&cli, nil)
-	err := d.dumpHelp(ctx, innerK, []string{}, innerK.Model.Node)
+	err := d.dumpHelp(innerK, []string{}, innerK.Model.Node)
 	return err
 }
 
-func (d *dumpHelpCmd) dumpHelp(ctx context.Context, k *kong.Kong, parents []string, n *kong.Node) error {
+func (d *dumpHelpCmd) dumpHelp(k *kong.Kong, parents []string, n *kong.Node) error {
 	originalExit := k.Exit
 	defer func() {
 		k.Exit = originalExit
@@ -67,12 +66,12 @@ func (d *dumpHelpCmd) dumpHelp(ctx context.Context, k *kong.Kong, parents []stri
 	args = append(args, "--help")
 
 	fmt.Printf("---- RUNNING COMMAND: %v\n", strings.Join(args, " "))
-	_, _ = k.Parse(args)
+	_, _ = k.Parse(args) //nolint:errcheck
 	fmt.Printf("\n\n")
 
 	newParents = append(newParents, parents...)
 	for _, child := range n.Children {
-		err := d.dumpHelp(ctx, k, newParents, child)
+		err := d.dumpHelp(k, newParents, child)
 		if err != nil {
 			return err
 		}
