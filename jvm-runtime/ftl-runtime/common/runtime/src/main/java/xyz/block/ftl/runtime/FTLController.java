@@ -104,6 +104,7 @@ public class FTLController implements LeaseClient {
     public void devModeShutdown() {
         log.infof("Shutting down dev mode runner connection");
         synchronized (this) {
+
             if (runnerConnection != null) {
                 try {
                     runnerConnection.close();

@@ -89,7 +89,8 @@ public class DevModeRunnerDetails implements RunnerDetails {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         closed = true;
+        notifyAll();
     }
 }
