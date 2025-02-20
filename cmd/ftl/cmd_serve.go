@@ -271,7 +271,7 @@ func (s *serveCommonConfig) run(
 				return fmt.Errorf("failed to prepare console server: %w", err)
 			}
 			// Deliberately start Console in the foreground.
-			ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
+			ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
 			err := console.Start(ctx, s.Console, schemaEventSource, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), buildEngineClient)
 			if err != nil {
 				return fmt.Errorf("failed to start console server: %w", err)
@@ -336,7 +336,7 @@ func (s *serveCommonConfig) run(
 	})
 	// Start Cron
 	wg.Go(func() error {
-		ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("cron"))
+		ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("cron"))
 		err := cron.Start(ctx, s.Cron, schemaEventSource, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), timelineClient)
 		if err != nil {
 			return fmt.Errorf("cron failed: %w", err)
@@ -345,7 +345,7 @@ func (s *serveCommonConfig) run(
 	})
 	// Start Ingress
 	wg.Go(func() error {
-		ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("http-ingress"))
+		ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("http-ingress"))
 		err := ingress.Start(ctx, s.Ingress, schemaEventSource, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), timelineClient)
 		if err != nil {
 			return fmt.Errorf("ingress failed: %w", err)
