@@ -97,6 +97,10 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                     throw new RuntimeException(e);
                 }
             }
+            // There is a possible race here, if there are quick restarts the runner might have already been started
+            // And out 'close' notification will sit there as a trap for the next restart
+            // clearing here means we definitely don't have any stale data
+            RunnerNotification.clearClosedState();
             starting = true;
             runningReload = (state) -> {
                 synchronized (HotReloadHandler.this) {
