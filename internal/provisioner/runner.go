@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/alecthomas/atomic"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/alecthomas/atomic"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/provisioner/state"
 )
