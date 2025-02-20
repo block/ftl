@@ -350,7 +350,7 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	go func() {
 		for e := range channels.IterContext(ctx, watchEvents) {
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
-				// this event stream is built with different watch patterns than the plugin, so 
+				// this event stream is built with different watch patterns than the plugin, so
 				// it may include changes to files which are not watched by this plugin. we should
 				// exclude those.
 				changes := slices.Filter(change.Changes, func(c watch.FileChange) bool {
