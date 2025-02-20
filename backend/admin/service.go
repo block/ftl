@@ -283,6 +283,10 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1
 	if err != nil {
 		return nil, fmt.Errorf("failed to create changeset: %w", err)
 	}
+	key, err := key.ParseChangesetKey(cs.Msg.Changeset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse changeset key: %w", err)
+	}
 	changeset := &schemapb.Changeset{
 		Key:      cs.Msg.Changeset,
 		Modules:  req.Msg.Modules,
@@ -291,19 +295,30 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1
 	for e := range channels.IterContext(ctx, events) {
 		switch event := e.(type) {
 		case *schema.ChangesetFinalizedNotification:
-			//
+			if event.Key != key {
+				continue
+			}
 			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
 				Changeset: changeset,
 			}), nil
 		case *schema.ChangesetFailedNotification:
+			if event.Key != key {
+				continue
+			}
 			return nil, fmt.Errorf("failed to apply changeset: %s", event.Error)
 		case *schema.ChangesetCommittedNotification:
+			if event.Changeset.Key != key {
+				continue
+			}
 			changeset = event.Changeset.ToProto()
 			// We don't wait for cleanup, just return immediately
 			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
 				Changeset: changeset,
 			}), nil
 		case *schema.ChangesetRollingBackNotification:
+			if event.Changeset.Key != key {
+				continue
+			}
 			changeset = event.Changeset.ToProto()
 		default:
 
