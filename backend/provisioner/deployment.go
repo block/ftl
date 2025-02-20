@@ -108,10 +108,6 @@ func (t *Task) Progress(ctx context.Context) error {
 				if err != nil {
 					return fmt.Errorf("error updating runtime: %w", err)
 				}
-				if err != nil {
-					return err
-				}
-
 			}
 			return nil
 
