@@ -240,6 +240,7 @@ message BuildSuccess {
 
   // Dev mode hot reload endpoint, this is used to allow the runner to communicate info back to the running process
   optional string dev_hot_reload_endpoint = 9;
+  optional int64 dev_hot_reload_version = 10;
 }
 
 // BuildFailure should be sent when a build fails.

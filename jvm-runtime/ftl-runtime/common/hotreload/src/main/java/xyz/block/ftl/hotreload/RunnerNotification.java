@@ -1,56 +1,70 @@
 package xyz.block.ftl.hotreload;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Consumer;
-
 public class RunnerNotification {
 
-    private static volatile Consumer<RunnerInfo> callback;
+    private static volatile RunnerCallback callback;
     private static volatile RunnerInfo info;
-    private static final List<Runnable> runnerDetailsCallbacks = Collections.synchronizedList(new ArrayList<>());
+    private static volatile long runnerVersion = -1;
 
-    public static void setCallback(Consumer<RunnerInfo> callback) {
-        RunnerInfo existing = null;
+    public static void setCallback(RunnerCallback callback) {
+        RunnerInfo info;
+        long runnerVersion;
         synchronized (RunnerNotification.class) {
-            if (RunnerNotification.callback != null) {
-                throw new IllegalStateException("Callback already set");
-            }
-            if (info != null) {
-                existing = info;
-                info = null;
-            } else {
-                RunnerNotification.callback = callback;
-            }
+            RunnerNotification.callback = callback;
+            info = RunnerNotification.info;
+            RunnerNotification.info = null;
+            runnerVersion = RunnerNotification.runnerVersion;
         }
-        if (existing != null) {
-            callback.accept(existing);
+        if (runnerVersion != -1) {
+            callback.newRunnerVersion(runnerVersion);
+        }
+        if (info != null) {
+            callback.runnerDetails(info);
         }
     }
 
-    public static synchronized void clearCallback() {
-        RunnerNotification.callback = null;
+    public static void reloadStarted() {
+        RunnerCallback cb;
+        synchronized (RunnerNotification.class) {
+            cb = RunnerNotification.callback;
+        }
+        if (cb != null) {
+            cb.reloadStarted();
+        }
     }
 
-    public static synchronized void setRunnerInfo(RunnerInfo info) {
+    public static void setRunnerVersion(long version) {
+        RunnerCallback callback;
+        synchronized (RunnerNotification.class) {
+            runnerVersion = version;
+            callback = RunnerNotification.callback;
+        }
         if (callback != null) {
-            callback.accept(info);
-            callback = null;
-        } else {
-            RunnerNotification.info = info;
+            callback.newRunnerVersion(version);
         }
     }
 
-    public static synchronized void setRequiresNewRunnerDetails() {
-        for (Runnable callback : runnerDetailsCallbacks) {
-            callback.run();
+    public static boolean setRunnerInfo(RunnerInfo info) {
+        RunnerCallback callback;
+        boolean outdated;
+        synchronized (RunnerNotification.class) {
+            outdated = info.version() < runnerVersion;
+            callback = RunnerNotification.callback;
+            if (callback == null) {
+                RunnerNotification.info = info;
+            }
         }
+        if (callback != null) {
+            callback.runnerDetails(info);
+        }
+        return outdated;
     }
 
-    public static synchronized void clearClosedState() {
-        if (info != null && info.failed()) {
-            info = null;
-        }
+    public interface RunnerCallback {
+        void runnerDetails(RunnerInfo info);
+
+        void reloadStarted();
+
+        void newRunnerVersion(long version);
     }
 }

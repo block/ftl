@@ -76,6 +76,7 @@ type Config struct {
 	DebugPort             int                     `help:"The port to use for debugging." env:"FTL_DEBUG_PORT"`
 	DevEndpoint           optional.Option[string] `help:"An existing endpoint to connect to in development mode" hidden:""`
 	DevHotReloadEndpoint  optional.Option[string] `help:"The gRPC enpoint to send runner into to for hot reload." hidden:""`
+	DevHotReloadVersion   int64                   `help:"The gRPC enpoint to send runner into to for hot reload." hidden:"" default:"0"`
 }
 
 func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService) error {
@@ -399,6 +400,8 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	var dep *deployment
 	if ep, ok := s.devEndpoint.Get(); ok {
+		pingCtx, cancel := context.WithCancelCause(ctx)
+		defer cancel(fmt.Errorf("complete"))
 		if hotRelaodEp, ok := s.devHotReloadEndpoint.Get(); ok {
 			hotReloadClient := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotRelaodEp, log.Error)
 			err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, hotReloadClient)
@@ -413,17 +416,30 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 				})
 				return true
 			})
-			_, err := hotReloadClient.RunnerInfo(ctx, connect.NewRequest(&hotreloadpb.RunnerInfoRequest{
-				Deployment: s.config.Deployment.String(),
-				Address:    s.proxyBindAddress.String(),
-				Databases:  databases,
-			}))
-			if err != nil {
-				return fmt.Errorf("failed to send runner info: %w", err)
-			}
+			go func() {
+				for {
+					select {
+					case <-pingCtx.Done():
+						return
+					case <-time.After(time.Millisecond * 50):
+						info, err := hotReloadClient.RunnerInfo(pingCtx, connect.NewRequest(&hotreloadpb.RunnerInfoRequest{
+							Deployment: s.config.Deployment.String(),
+							Address:    s.proxyBindAddress.String(),
+							Databases:  databases,
+							Version:    s.config.DevHotReloadVersion,
+						}))
+						if err == nil {
+							if info.Msg.Outdated {
+								cancel(fmt.Errorf("runner is outdated, exiting"))
+							}
+						}
+					}
+				}
+			}()
+
 		}
 		client := rpc.Dial(ftlv1connect.NewVerbServiceClient, ep, log.Error)
-		err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, client)
+		err = rpc.Wait(pingCtx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, client)
 		dep = &deployment{
 			ctx:      ctx,
 			key:      key,

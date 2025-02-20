@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 import { Module } from "../../schema/v1/schema_pb.js";
 import { ErrorList } from "../../language/v1/language_pb.js";
 
@@ -175,6 +175,11 @@ export class RunnerInfoRequest extends Message<RunnerInfoRequest> {
    */
   databases: Database[] = [];
 
+  /**
+   * @generated from field: int64 version = 4;
+   */
+  version = protoInt64.zero;
+
   constructor(data?: PartialMessage<RunnerInfoRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -186,6 +191,7 @@ export class RunnerInfoRequest extends Message<RunnerInfoRequest> {
     { no: 1, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "deployment", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "databases", kind: "message", T: Database, repeated: true },
+    { no: 4, name: "version", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RunnerInfoRequest {
@@ -252,6 +258,11 @@ export class Database extends Message<Database> {
  * @generated from message xyz.block.ftl.hotreload.v1.RunnerInfoResponse
  */
 export class RunnerInfoResponse extends Message<RunnerInfoResponse> {
+  /**
+   * @generated from field: bool outdated = 1;
+   */
+  outdated = false;
+
   constructor(data?: PartialMessage<RunnerInfoResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -260,6 +271,7 @@ export class RunnerInfoResponse extends Message<RunnerInfoResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.hotreload.v1.RunnerInfoResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "outdated", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RunnerInfoResponse {
@@ -405,6 +417,11 @@ export class SchemaState extends Message<SchemaState> {
    */
   newRunnerRequired = false;
 
+  /**
+   * @generated from field: int64 version = 4;
+   */
+  version = protoInt64.zero;
+
   constructor(data?: PartialMessage<SchemaState>) {
     super();
     proto3.util.initPartial(data, this);
@@ -416,6 +433,7 @@ export class SchemaState extends Message<SchemaState> {
     { no: 1, name: "module", kind: "message", T: Module },
     { no: 2, name: "errors", kind: "message", T: ErrorList },
     { no: 3, name: "new_runner_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "version", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SchemaState {

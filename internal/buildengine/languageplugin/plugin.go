@@ -42,6 +42,7 @@ type BuildResult struct {
 
 	// File that the runner can use to pass info into the hot reload endpoint
 	HotReloadEndpoint optional.Option[string]
+	HotReloadVersion  optional.Option[int64]
 
 	DebugPort int
 }
@@ -589,6 +590,7 @@ func buildResultFromProto(result either.Either[*langpb.BuildResponse_BuildSucces
 			StartTime:         startTime,
 			DevEndpoint:       optional.Ptr(buildSuccess.DevEndpoint),
 			HotReloadEndpoint: optional.Ptr(buildSuccess.DevHotReloadEndpoint),
+			HotReloadVersion:  optional.Ptr(buildSuccess.DevHotReloadVersion),
 			DebugPort:         port,
 		}, nil
 	case either.Right[*langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure]:

@@ -271,6 +271,8 @@ func (s *Service) RollbackChangeset(ctx context.Context, req *connect.Request[ft
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
+	logger := log.FromContext(ctx)
+	logger.Infof("Rolling back changeset %s: %s", changesetKey, req.Msg.Error)
 	err = s.publishEvent(ctx, &schema.ChangesetRollingBackEvent{
 		Key:   changesetKey,
 		Error: req.Msg.Error,
@@ -287,6 +289,8 @@ func (s *Service) FailChangeset(ctx context.Context, req *connect.Request[ftlv1.
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid changeset key: %w", err))
 	}
+	logger := log.FromContext(ctx)
+	logger.Infof("Failing changeset %s", changesetKey)
 	err = s.publishEvent(ctx, &schema.ChangesetFailedEvent{Key: changesetKey})
 	if err != nil {
 		return nil, fmt.Errorf("could not fail changeset %w", err)

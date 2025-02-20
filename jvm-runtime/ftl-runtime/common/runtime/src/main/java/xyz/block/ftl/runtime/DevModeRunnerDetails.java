@@ -5,8 +5,6 @@ import java.util.Optional;
 
 import org.jboss.logging.Logger;
 
-import xyz.block.ftl.hotreload.RunnerInfo;
-import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class DevModeRunnerDetails implements RunnerDetails {
@@ -15,32 +13,19 @@ public class DevModeRunnerDetails implements RunnerDetails {
 
     private static RuntimeException CLOSED = new RuntimeException("FTL Runner is closed");
 
-    private volatile Map<String, String> databases;
-    private volatile String proxyAddress;
-    private volatile String deployment;
+    private final Map<String, String> databases;
+    private final String proxyAddress;
+    private final String deployment;
     private volatile boolean closed;
 
-    public DevModeRunnerDetails() {
-        RunnerNotification.setCallback(this::setRunnerInfo);
-    }
-
-    private void setRunnerInfo(RunnerInfo runnerInfo) {
-        synchronized (this) {
-            if (runnerInfo.failed()) {
-                closed = true;
-            } else {
-                proxyAddress = runnerInfo.address();
-                deployment = runnerInfo.deployment();
-                databases = runnerInfo.databases();
-                LOG.debugf("Runner details set: %s %s", runnerInfo.deployment(), runnerInfo.address());
-            }
-            notifyAll();
-        }
+    public DevModeRunnerDetails(Map<String, String> databases, String proxyAddress, String deployment) {
+        this.databases = databases;
+        this.proxyAddress = proxyAddress;
+        this.deployment = deployment;
     }
 
     @Override
     public String getProxyAddress() {
-        waitForLoad();
         if (closed) {
             return null;
         }

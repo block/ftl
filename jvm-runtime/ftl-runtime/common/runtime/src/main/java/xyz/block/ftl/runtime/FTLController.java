@@ -1,9 +1,11 @@
 package xyz.block.ftl.runtime;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.logging.Logger;
 
@@ -11,23 +13,28 @@ import io.quarkus.runtime.LaunchMode;
 import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
+import xyz.block.ftl.hotreload.RunnerInfo;
+import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
-public class FTLController implements LeaseClient {
+public class FTLController implements LeaseClient, RunnerNotification.RunnerCallback {
     private static final Logger log = Logger.getLogger(FTLController.class);
+    public static final RuntimeException RESTART_EXCEPTION = new RuntimeException(
+            "Failed to get runner details due to restart");
+    private final List<AtomicBoolean> waiters = new ArrayList<>();
     final String moduleName;
-    private volatile FTLRunnerConnection runnerConnection;
 
     private static volatile FTLController controller;
 
-    private volatile boolean haveRunnerInfo = false;
+    private volatile FTLRunnerConnection runnerConnection;
     /**
      * The details of how to connect to the runners proxy. For dev mode this needs to be determined after startup,
      * which is why this needs to be pluggable.
      */
-    private RunnerDetails runnerDetails = DefaultRunnerDetails.INSTANCE;
+    private volatile RunnerDetails runnerDetails;
 
     private final Map<String, GetDeploymentContextResponse.DbType> databases = new ConcurrentHashMap<>();
+    private long runnerVersion;
 
     public static FTLController instance() {
         if (controller == null) {
@@ -44,7 +51,9 @@ public class FTLController implements LeaseClient {
     FTLController() {
         this.moduleName = System.getProperty("ftl.module.name");
         if (LaunchMode.current() != LaunchMode.DEVELOPMENT) {
-            haveRunnerInfo = true;
+            runnerDetails = DefaultRunnerDetails.INSTANCE;
+        } else {
+            RunnerNotification.setCallback(this);
         }
     }
 
@@ -60,63 +69,28 @@ public class FTLController implements LeaseClient {
         var rc = runnerConnection;
         if (rc == null) {
             synchronized (this) {
-                if (!haveRunnerInfo) {
-                    readDevModeRunnerInfo();
-                }
-                rc = runnerConnection;
-                if (rc == null) {
-                    runnerConnection = new FTLRunnerConnection(runnerDetails.getProxyAddress(),
-                            runnerDetails.getDeploymentKey(), moduleName, new Runnable() {
-                                @Override
-                                public void run() {
-                                    synchronized (FTLController.this) {
-                                        runnerConnection = null;
-                                    }
-                                }
-                            });
+                if (runnerConnection != null) {
                     return runnerConnection;
                 }
+                if (runnerDetails == null) {
+                    waitForRunner();
+                    if (runnerDetails == null) {
+                        throw RESTART_EXCEPTION;
+                    }
+                }
+                runnerConnection = new FTLRunnerConnection(runnerDetails.getProxyAddress(),
+                        runnerDetails.getDeploymentKey(), moduleName, new Runnable() {
+                            @Override
+                            public void run() {
+                                synchronized (FTLController.this) {
+                                    runnerConnection = null;
+                                }
+                            }
+                        });
+                return runnerConnection;
             }
         }
         return rc;
-    }
-
-    public void readDevModeRunnerInfo() {
-        synchronized (this) {
-            if (haveRunnerInfo) {
-                return;
-            }
-            if (runnerConnection != null) {
-                try {
-                    runnerConnection.close();
-                } catch (Exception e) {
-                    log.error("Failed to close runner connection", e);
-                }
-                runnerConnection = null;
-            }
-            runnerDetails.close();
-            runnerDetails = new DevModeRunnerDetails();
-            haveRunnerInfo = true;
-            this.notifyAll();
-        }
-    }
-
-    public void devModeShutdown() {
-        log.infof("Shutting down dev mode runner connection");
-        synchronized (this) {
-
-            if (runnerConnection != null) {
-                try {
-                    runnerConnection.close();
-                } catch (Exception e) {
-                    log.error("Failed to close runner connection", e);
-                }
-                runnerConnection = null;
-            }
-            runnerDetails.close();
-            runnerDetails = DefaultRunnerDetails.INSTANCE;
-            haveRunnerInfo = false;
-        }
     }
 
     public byte[] getConfig(String config) {
@@ -154,5 +128,57 @@ public class FTLController implements LeaseClient {
 
     public void loadDeploymentContext() {
         getRunnerConnection().getDeploymentContext();
+    }
+
+    @Override
+    public synchronized void runnerDetails(RunnerInfo info) {
+        if (info.version() != runnerVersion) {
+            return;
+        }
+        if (this.runnerConnection != null) {
+            this.runnerConnection.close();
+            this.runnerConnection = null;
+        }
+        runnerDetails = new DevModeRunnerDetails(info.databases(), info.address(), info.deployment());
+        for (var waiter : waiters) {
+            waiter.set(true);
+        }
+        waiters.clear();
+        notifyAll();
+    }
+
+    @Override
+    public synchronized void reloadStarted() {
+        for (var waiter : waiters) {
+            waiter.set(true);
+        }
+        waiters.clear();
+        notifyAll();
+    }
+
+    @Override
+    public synchronized void newRunnerVersion(long version) {
+        this.runnerVersion = version;
+        if (this.runnerConnection != null) {
+            this.runnerConnection.close();
+            this.runnerConnection = null;
+        }
+        this.runnerDetails = null;
+    }
+
+    private synchronized void waitForRunner() {
+        if (runnerDetails != null) {
+            return;
+        }
+        AtomicBoolean gate = new AtomicBoolean();
+        waiters.add(gate);
+        while (!gate.get()) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

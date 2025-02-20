@@ -28,6 +28,7 @@ message RunnerInfoRequest {
   string address = 1;
   string deployment = 2;
   repeated Database databases = 3;
+  int64 version = 4;
 }
 
 message Database {
@@ -35,7 +36,9 @@ message Database {
   string address = 2;
 }
 
-message RunnerInfoResponse {}
+message RunnerInfoResponse {
+  bool outdated = 1;
+}
 
 message ReloadNotRequired {}
 
@@ -52,6 +55,7 @@ message SchemaState {
   ftl.schema.v1.Module module = 1;
   ftl.language.v1.ErrorList errors = 2;
   bool new_runner_required = 3;
+  int64 version = 4;
 }
 
 // HotReloadService is for communication between a language plugin a language runtime that can perform a hot reload
