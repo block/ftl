@@ -410,6 +410,9 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 	reloadEvents := make(chan *buildResult, 32)
 
 	schemaWatch, err := client.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
+	if err != nil {
+		return fmt.Errorf("failed to begin watching hotreload schema: %w", err)
+	}
 	if !schemaWatch.Receive() {
 		err := schemaWatch.Err()
 		if err != nil {
