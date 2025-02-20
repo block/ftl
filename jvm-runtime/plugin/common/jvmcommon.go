@@ -195,6 +195,7 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 // calls.
 func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse]) error {
 	logger := log.FromContext(ctx)
+	_ = os.Setenv("QUARKUS_ANALYTICS_DISABLED", "true") //nolint:errcheck
 	logger = logger.Module(req.Msg.BuildContext.ModuleConfig.Name)
 	ctx = log.ContextWithLogger(ctx, logger)
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
