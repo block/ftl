@@ -102,7 +102,7 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]state.State, er
 	}
 
 	logger.Debugf("waiting for stack %s to be ready", e.stack)
-	cfOutputs, err := waitForStackReady(ctx, e.stack, e.cfn)
+	cfOutputs, err := getStackOutputs(ctx, e.stack, e.cfn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to wait for stack to be ready: %w", err)
 	}

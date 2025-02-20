@@ -19,24 +19,25 @@ func (c *SandboxProvisioner) Status(ctx context.Context, req *connect.Request[pr
 	token := req.Msg.ProvisioningToken
 	// if the task is not in the map, it means that the provisioner has crashed since starting the task
 	// in that case, we start a new task to query the existing stack
-	task, loaded := c.running.LoadOrStore(token, &task{})
+	task, loaded := c.running.Load(token)
 	if !loaded {
 		return nil, connect.NewError(connect.CodeUnknown, fmt.Errorf("task %s not found", token))
 	}
 
-	if task.err.Load() != nil {
+	if task.Err() != nil {
 		c.running.Delete(token)
-		return nil, connect.NewError(connect.CodeUnknown, task.err.Load())
+		return nil, connect.NewError(connect.CodeUnknown, task.Err())
 	}
 
-	if task.outputs.Load() != nil {
+	outputs := task.Outputs()
+	if outputs != nil {
 		c.running.Delete(token)
 
 		deploymentKey, err := key.ParseDeploymentKey(req.Msg.DesiredModule.Runtime.Deployment.DeploymentKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse deployment key: %w", err)
 		}
-		events, err := c.updateResources(deploymentKey, task.outputs.Load())
+		events, err := c.updateResources(deploymentKey, outputs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update resources: %w", err)
 		}

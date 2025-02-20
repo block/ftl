@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 
@@ -42,7 +43,7 @@ func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error
 		if input, ok := input.(state.RDSInstanceReadyMySQL); ok {
 			rg.Go(func() (state.State, error) {
 				connector := &schema.AWSIAMAuthDatabaseConnector{
-					Database: input.ResourceID,
+					Database: createDatabaseName(input.Module, input.ResourceID),
 					Endpoint: input.WriteEndpoint,
 					Username: e.username,
 				}
@@ -72,6 +73,13 @@ func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error
 	}
 
 	return res, nil
+}
+
+func createDatabaseName(module string, resourceID string) string {
+	sanitisedModule := strings.ReplaceAll(module, "_", "")
+	sanitisedResourceID := strings.ReplaceAll(resourceID, "_", "")
+
+	return fmt.Sprintf("%s_%s", sanitisedModule, sanitisedResourceID)
 }
 
 func mysqlAdminDSN(ctx context.Context, secrets *secretsmanager.Client, secretARN string, connector *schema.AWSIAMAuthDatabaseConnector) (string, error) {

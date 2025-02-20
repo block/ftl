@@ -48,7 +48,7 @@ type CloudformationProvisioner struct {
 	secrets *secretsmanager.Client
 	confg   *Config
 
-	running *xsync.MapOf[string, *task]
+	running *xsync.MapOf[string, *provisioner.Task]
 }
 
 var _ provisionerconnect.ProvisionerPluginServiceHandler = (*CloudformationProvisioner)(nil)
@@ -67,7 +67,7 @@ func NewCloudformationProvisioner(ctx context.Context, config Config) (context.C
 		client:  client,
 		secrets: secrets,
 		confg:   &config,
-		running: xsync.NewMapOf[string, *task](),
+		running: xsync.NewMapOf[string, *provisioner.Task](),
 	}, nil
 }
 
@@ -112,7 +112,7 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 		},
 	}
 
-	task := &task{runner: runner}
+	task := runner.AsyncTask()
 	if _, ok := c.running.LoadOrStore(stackID, task); ok {
 		return nil, fmt.Errorf("provisioner already running: %s", stackID)
 	}
