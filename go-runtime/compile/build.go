@@ -1277,9 +1277,17 @@ func (b *mainDeploymentContextBuilder) getGoVerb(nativeName string, verb *schema
 }
 
 func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (goSchemaType, error) {
+	typeName, err := genTypeWithNativeNames(nil, typ, b.nativeNames)
+	if err != nil {
+		return goSchemaType{}, err
+	}
+	localTypeName, err := genTypeWithNativeNames(b.mainModule, typ, b.nativeNames)
+	if err != nil {
+		return goSchemaType{}, err
+	}
 	result := goSchemaType{
-		TypeName:      genTypeWithNativeNames(nil, typ, b.nativeNames),
-		LocalTypeName: genTypeWithNativeNames(b.mainModule, typ, b.nativeNames),
+		TypeName:      typeName,
+		LocalTypeName: localTypeName,
 		children:      []goSchemaType{},
 		nativeType:    optional.None[nativeType](),
 	}
@@ -1515,12 +1523,16 @@ func schemaType(t schema.Type) string {
 }
 
 func genType(module *schema.Module, t schema.Type) string {
-	return genTypeWithNativeNames(module, t, nil)
+	typ, err := genTypeWithNativeNames(module, t, nil)
+	if err != nil {
+		panic(err)
+	}
+	return typ
 }
 
 // TODO: this is a hack because we don't currently qualify schema refs. Using native names for now to ensure
 // even if the module is the same, we qualify the type with a package name when it's a subpackage.
-func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames extract.NativeNames) string {
+func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames extract.NativeNames) (string, error) {
 	switch t := t.(type) {
 	case *schema.Ref:
 		pkg := "ftl" + t.Module
@@ -1549,40 +1561,56 @@ func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames ex
 				if i != 0 {
 					desc += ", "
 				}
-				desc += genTypeWithNativeNames(module, tp, nativeNames)
+				tpDesc, err := genTypeWithNativeNames(module, tp, nativeNames)
+				if err != nil {
+					return "", err
+				}
+				desc += tpDesc
 			}
 			desc += "]"
 		}
-		return desc
+		return desc, nil
 
 	case *schema.Float:
-		return "float64"
+		return "float64", nil
 
 	case *schema.Time:
-		return "stdtime.Time"
+		return "stdtime.Time", nil
 
 	case *schema.Int, *schema.Bool, *schema.String:
-		return strings.ToLower(t.String())
+		return strings.ToLower(t.String()), nil
 
 	case *schema.Array:
-		return "[]" + genTypeWithNativeNames(module, t.Element, nativeNames)
+		element, err := genTypeWithNativeNames(module, t.Element, nativeNames)
+		if err != nil {
+			return "", err
+		}
+		return "[]" + element, nil
 
 	case *schema.Map:
-		return "map[" + genTypeWithNativeNames(module, t.Key, nativeNames) + "]" + genType(module, t.Value)
+		key, err := genTypeWithNativeNames(module, t.Key, nativeNames)
+		if err != nil {
+			return "", err
+		}
+		return "map[" + key + "]" + genType(module, t.Value), nil
 
 	case *schema.Optional:
-		return "ftl.Option[" + genTypeWithNativeNames(module, t.Type, nativeNames) + "]"
+		typ, err := genTypeWithNativeNames(module, t.Type, nativeNames)
+		if err != nil {
+			return "", err
+		}
+		return "ftl.Option[" + typ + "]", nil
 
 	case *schema.Unit:
-		return "ftl.Unit"
+		return "ftl.Unit", nil
 
 	case *schema.Any:
-		return "any"
+		return "any", nil
 
 	case *schema.Bytes:
-		return "[]byte"
+		return "[]byte", nil
 	}
-	panic(fmt.Sprintf("unsupported type %T", t))
+	return "", fmt.Errorf("unsupported type %T", t)
 }
 
 // Update go.mod file to include the FTL version and return the Go version and any replace directives.
