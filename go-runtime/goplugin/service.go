@@ -2,7 +2,6 @@ package goplugin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"runtime"
@@ -20,6 +19,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	goruntime "github.com/block/ftl/go-runtime"
 	"github.com/block/ftl/go-runtime/compile"
 	"github.com/block/ftl/internal"
@@ -418,24 +418,22 @@ func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	}
 	defer release() //nolint:errcheck
 
-	m, buildErrs, err := compile.Build(ctx, projectConfig, stubsRoot, buildCtx.Config, buildCtx.Schema, buildCtx.Dependencies, buildCtx.BuildEnv, transaction, ongoingState, devMode)
-	if err != nil {
-		if errors.Is(err, compile.ErrInvalidateDependencies) {
-			return &langpb.BuildResponse{
-				Event: &langpb.BuildResponse_BuildFailure{
-					BuildFailure: &langpb.BuildFailure{
-						ContextId:              buildCtx.ID,
-						IsAutomaticRebuild:     isAutomaticRebuild,
-						InvalidateDependencies: true,
-					},
+	m, invalidateDeps, buildErrs := compile.Build(ctx, projectConfig, stubsRoot, buildCtx.Config, buildCtx.Schema, buildCtx.Dependencies, buildCtx.BuildEnv, transaction, ongoingState, devMode)
+	if invalidateDeps {
+		return &langpb.BuildResponse{
+			Event: &langpb.BuildResponse_BuildFailure{
+				BuildFailure: &langpb.BuildFailure{
+					ContextId:              buildCtx.ID,
+					IsAutomaticRebuild:     isAutomaticRebuild,
+					InvalidateDependencies: true,
 				},
-			}, nil
-		}
-		return buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
-			Type:  builderrors.COMPILER,
-			Level: builderrors.ERROR,
-			Msg:   "compile: " + err.Error(),
-		}), nil
+			},
+		}, nil
+	}
+	if _, hasErrs := slices.Find(buildErrs, func(e builderrors.Error) bool { //nolint:errcheck
+		return e.Level == builderrors.ERROR
+	}); hasErrs {
+		return buildFailure(buildCtx, isAutomaticRebuild, buildErrs...), nil
 	}
 	module, ok := m.Get()
 	if !ok {
