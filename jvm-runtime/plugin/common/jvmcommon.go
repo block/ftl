@@ -250,6 +250,8 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 				return fmt.Errorf("could not send build event: %w", err)
 			}
 		}
+
+		ensureCorrectFTLVersion(ctx, buildCtx)
 		err := s.runQuarkusDev(ctx, stream, firstResponseSent, fileEvents)
 		if err != nil {
 			log.FromContext(ctx).Errorf(err, "Dev mode process exited")
@@ -588,22 +590,11 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 			},
 		}}, nil
 	}
-	config := bctx.Config
-	javaConfig, err := loadJavaConfig(config.LanguageConfig, config.Language)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build module %q: %w", config.Module, err)
-	}
-	if javaConfig.BuildTool == JavaBuildToolMaven {
-		if err := setPOMProperties(ctx, config.Dir); err != nil {
-			// This is not a critical error, things will probably work fine
-			// TBH updating the pom is maybe not the best idea anyway
-			logger.Warnf("unable to update ftl.version in %s: %s", config.Dir, err.Error())
-		}
-	}
+	ensureCorrectFTLVersion(ctx, bctx)
 	output := &errorDetector{
 		logger: logger,
 	}
-
+	config := bctx.Config
 	logger.Infof("Using build command '%s'", config.Build)
 	command := exec.Command(ctx, log.Debug, config.Dir, "bash", "-c", config.Build)
 	command.Stdout = output
@@ -651,6 +642,22 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 			},
 		},
 	}, nil
+}
+
+func ensureCorrectFTLVersion(ctx context.Context, bctx buildContext) {
+	logger := log.FromContext(ctx)
+	javaConfig, err := loadJavaConfig(bctx.Config.LanguageConfig, bctx.Config.Language)
+	if err != nil {
+		logger.Errorf(err, "unable to read JVM config %s", bctx.Config.Dir)
+		return
+	}
+	if javaConfig.BuildTool == JavaBuildToolMaven {
+		if err := setPOMProperties(ctx, bctx.Config.Dir); err != nil {
+			// This is not a critical error, things will probably work fine
+			// TBH updating the pom is maybe not the best idea anyway
+			logger.Errorf(err, "unable to update ftl.version in %s", bctx.Config.Dir)
+		}
+	}
 }
 
 func readSchema(bctx buildContext) (*schemapb.Module, error) {
