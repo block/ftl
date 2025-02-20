@@ -398,18 +398,12 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 	_ = output.FinalizeCapture()
 	reloadEvents := make(chan *buildResult, 32)
 
-	schemaWatch, err := client.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
-	if err != nil {
-		return fmt.Errorf("failed to begin watching hotreload schema: %w", err)
-	}
-	if !schemaWatch.Receive() {
-		err := schemaWatch.Err()
-		if err != nil {
-			return fmt.Errorf("failed to receive initial schema watch response: %w", err)
-		}
-		return fmt.Errorf("failed to receive initial schema watch response")
-	}
-	reloadEvents <- &buildResult{state: schemaWatch.Msg().GetState(), forceReload: true}
+	go rpc.RetryStreamingServerStream(ctx, "hot-reload", backoff.Backoff{Max: time.Millisecond * 100}, &hotreloadpb.WatchRequest{}, client.Watch, func(ctx context.Context, stream *hotreloadpb.WatchResponse) error { //nolint
+		reloadEvents <- &buildResult{state: stream.GetState()}
+		return nil
+	}, func(err error) bool {
+		return true
+	})
 	go func() {
 		s.watchReloadEvents(ctx, reloadEvents, firstResponseSent, stream, devModeEndpoint, hotReloadEndpoint, debugPort32)
 	}()
@@ -870,7 +864,7 @@ func extractKotlinFTLImports(self, dir string) ([]string, error) {
 func setPOMProperties(ctx context.Context, baseDir string) error {
 	logger := log.FromContext(ctx)
 	ftlVersion := ftl.BaseVersion(ftl.Version)
-	if !ftl.IsRelease(ftlVersion) {
+	if !ftl.IsRelease(ftlVersion) || ftlVersion != ftl.BaseVersion(ftl.Version) {
 		ftlVersion = "1.0-SNAPSHOT"
 	}
 

@@ -3,11 +3,15 @@ package xyz.block.ftl.runtime;
 import java.util.Map;
 import java.util.Optional;
 
+import org.jboss.logging.Logger;
+
 import xyz.block.ftl.hotreload.RunnerInfo;
 import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class DevModeRunnerDetails implements RunnerDetails {
+
+    private static final Logger LOG = Logger.getLogger(DevModeRunnerDetails.class);
 
     private static RuntimeException CLOSED = new RuntimeException("FTL Runner is closed");
 
@@ -28,6 +32,7 @@ public class DevModeRunnerDetails implements RunnerDetails {
                 proxyAddress = runnerInfo.address();
                 deployment = runnerInfo.deployment();
                 databases = runnerInfo.databases();
+                LOG.debugf("Runner details set: %s %s", runnerInfo.deployment(), runnerInfo.address());
             }
             notifyAll();
         }
@@ -43,19 +48,11 @@ public class DevModeRunnerDetails implements RunnerDetails {
     }
 
     private void waitForLoad() {
-        long end = System.currentTimeMillis() + 10000;
         while (proxyAddress == null && !closed) {
-            if (System.currentTimeMillis() > end) {
-                RunnerNotification.clearCallback();
-                IllegalStateException exception = new IllegalStateException(
-                        "Failed to start app, runner details not available within 10s");
-                exception.setStackTrace(new StackTraceElement[0]);
-                throw exception;
-            }
             synchronized (this) {
                 if (proxyAddress == null && !closed) {
                     try {
-                        wait(10000);
+                        wait();
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException(e);
@@ -92,7 +89,8 @@ public class DevModeRunnerDetails implements RunnerDetails {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         closed = true;
+        notifyAll();
     }
 }

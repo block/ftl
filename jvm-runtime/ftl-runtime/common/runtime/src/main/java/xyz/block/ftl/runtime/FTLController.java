@@ -11,7 +11,6 @@ import io.quarkus.runtime.LaunchMode;
 import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
-import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class FTLController implements LeaseClient {
@@ -46,8 +45,6 @@ public class FTLController implements LeaseClient {
         this.moduleName = System.getProperty("ftl.module.name");
         if (LaunchMode.current() != LaunchMode.DEVELOPMENT) {
             haveRunnerInfo = true;
-        } else {
-            RunnerNotification.onRunnerDetails(this::devModeShutdown);
         }
     }
 
@@ -107,6 +104,7 @@ public class FTLController implements LeaseClient {
     public void devModeShutdown() {
         log.infof("Shutting down dev mode runner connection");
         synchronized (this) {
+
             if (runnerConnection != null) {
                 try {
                     runnerConnection.close();
