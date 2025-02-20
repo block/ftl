@@ -68,11 +68,6 @@ func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconf
 	_, ok := internal.GitRoot(i.Dir).Get()
 	if !config.NoGit && ok {
 		logger.Debugf("Adding files to git")
-		if config.Hermit {
-			if err := maybeGitAdd(ctx, i.Dir, "bin/*"); err != nil {
-				return err
-			}
-		}
 		if err := maybeGitAdd(ctx, i.Dir, filepath.Join(i.Name, "*")); err != nil {
 			return err
 		}
