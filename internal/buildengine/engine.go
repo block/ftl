@@ -207,7 +207,6 @@ func New(
 	updateTerminalWithEngineEvents(ctx, e.EngineUpdates)
 
 	go e.watchForPluginEvents(ctx)
-	go e.watchForEventsToPublish(ctx)
 	go func() {
 		if err := e.startUpdatesService(ctx, updatesEndpoint); err != nil && !errors.Is(err, context.Canceled) {
 			log.FromContext(ctx).Errorf(err, "updates service failed")
@@ -221,6 +220,8 @@ func New(
 	if err != nil {
 		return nil, fmt.Errorf("could not find modules: %w", err)
 	}
+
+	go e.watchForEventsToPublish(ctx, len(configs) > 0)
 
 	wg := &errgroup.Group{}
 	for _, config := range configs {
@@ -665,7 +666,7 @@ func isIdle(moduleStates map[string]moduleState) bool {
 }
 
 // watchForEventsToPublish listens for raw build events, collects state, and publishes public events to BuildUpdates topic.
-func (e *Engine) watchForEventsToPublish(ctx context.Context) {
+func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules bool) {
 	moduleErrors := map[string]*langpb.ErrorList{}
 	moduleStates := map[string]moduleState{}
 
@@ -673,7 +674,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context) {
 	var endTime time.Time
 	var becomeIdleTimer <-chan time.Time
 
-	isFirstRound := true
+	isFirstRound := hasInitialModules
 
 	addTimestamp := func(evt *buildenginepb.EngineEvent) {
 		if evt.Timestamp == nil {
