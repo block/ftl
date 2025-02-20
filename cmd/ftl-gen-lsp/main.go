@@ -24,8 +24,8 @@ type CLI struct {
 var cli CLI
 
 type hover struct {
-	// Match this text for triggering this hover, e.g. "//ftl:typealias"
-	Match string `json:"match"`
+	// Match these texts for triggering this hover, e.g. ["//ftl:typealias", "@TypeAlias"]
+	Matches []string `json:"matches"`
 
 	// Source file to read from.
 	Source string `json:"source"`
@@ -50,8 +50,9 @@ func main() {
 	kctx.FatalIfErrorf(err)
 }
 
-func scrapeDocs(hovers []hover) (map[string]string, error) {
-	items := make(map[string]string, len(hovers))
+func scrapeDocs(hovers []hover) (map[string]map[string]string, error) {
+	// Map of hover string to language-specific content
+	items := make(map[string]map[string]string)
 	for _, hover := range hovers {
 		path := filepath.Join(cli.DocRoot, hover.Source)
 		file, err := os.Open(path)
@@ -64,8 +65,6 @@ func scrapeDocs(hovers []hover) (map[string]string, error) {
 			return nil, fmt.Errorf("failed to read %s: %w", path, err)
 		}
 
-		doc.Content = stripNonGoDocs(doc.Content)
-
 		var content string
 		if len(hover.Select) > 0 {
 			for _, sel := range hover.Select {
@@ -76,11 +75,16 @@ func scrapeDocs(hovers []hover) (map[string]string, error) {
 				content += chunk
 			}
 		} else {
-			// We need to inject a heading for the hover content because the full content doesn't always have a heading.
-			content = fmt.Sprintf("## %s%s", doc.Title, doc.Content)
+			content = doc.Content
 		}
 
-		items[hover.Match] = content
+		// Extract language-specific sections
+		langContent := extractLanguageSections(content)
+
+		// Add the same content for each match pattern
+		for _, match := range hover.Matches {
+			items[match] = langContent
+		}
 
 		// get term width or 80 if not available
 		width := 80
@@ -90,7 +94,7 @@ func scrapeDocs(hovers []hover) (map[string]string, error) {
 		line := strings.Repeat("-", width)
 		fmt.Print("\x1b[1;34m")
 		fmt.Println(line)
-		fmt.Println(hover.Match)
+		fmt.Printf("Matches: %v\n", hover.Matches)
 		fmt.Println(line)
 		fmt.Print("\x1b[0m")
 		fmt.Println(content)
@@ -114,7 +118,6 @@ func parseHoverConfig(path string) ([]hover, error) {
 }
 
 type Doc struct {
-	Title   string
 	Content string
 }
 
@@ -127,13 +130,12 @@ func getMarkdownWithTitle(file *os.File) (*Doc, error) {
 
 	// Find the frontmatter boundaries
 	lines := strings.Split(string(content), "\n")
-	var frontmatterStart, frontmatterEnd int
+	var frontmatterEnd int
 	foundStart := false
 
 	for i, line := range lines {
 		if line == "---" {
 			if !foundStart {
-				frontmatterStart = i
 				foundStart = true
 			} else {
 				frontmatterEnd = i
@@ -146,70 +148,12 @@ func getMarkdownWithTitle(file *os.File) (*Doc, error) {
 		return nil, fmt.Errorf("file %s does not contain frontmatter delimiters", file.Name())
 	}
 
-	// Extract frontmatter and look for title
-	title := ""
-	for _, line := range lines[frontmatterStart+1 : frontmatterEnd] {
-		if strings.HasPrefix(line, "title:") {
-			title = strings.TrimSpace(strings.TrimPrefix(line, "title:"))
-			break
-		}
-	}
-	if title == "" {
-		return nil, fmt.Errorf("file %s does not contain a title", file.Name())
-	}
-
 	// Join the content after frontmatter
 	contentLines := lines[frontmatterEnd+1:]
-	return &Doc{Title: title, Content: strings.Join(contentLines, "\n")}, nil
+	return &Doc{Content: strings.Join(contentLines, "\n")}, nil
 }
 
 var HTMLCommentRegex = regexp.MustCompile(`<!--\w*(.*?)\w*-->`)
-
-// stripNonGoDocs removes non-Go code blocks from the markdown content.
-func stripNonGoDocs(content string) string {
-	lines := strings.Split(content, "\n")
-	var currentLang string
-	var collected []string
-	for _, line := range lines {
-		// Keep Docusaurus imports and components
-		if strings.Contains(line, "import") || strings.Contains(line, "TabItem") || strings.Contains(line, "Tabs") {
-			collected = append(collected, line)
-			continue
-		}
-
-		// Keep all markdown content (headings, text, etc.)
-		if !strings.HasPrefix(line, "```") && currentLang == "" {
-			collected = append(collected, line)
-			continue
-		}
-
-		// Handle code blocks
-		if strings.HasPrefix(line, "```") {
-			if currentLang == "" {
-				// Starting a code block
-				lang := strings.TrimPrefix(line, "```")
-				currentLang = lang
-				if lang == "go" {
-					collected = append(collected, line)
-				}
-			} else {
-				// Ending a code block
-				if currentLang == "go" {
-					collected = append(collected, line)
-				}
-				currentLang = ""
-			}
-			continue
-		}
-
-		// If we're in a Go block, keep the line
-		if currentLang == "go" {
-			collected = append(collected, line)
-		}
-	}
-
-	return strings.Join(collected, "\n")
-}
 
 func selector(content, selector string) (string, error) {
 	// Split the content into lines.
@@ -252,7 +196,7 @@ func selector(content, selector string) (string, error) {
 	return strings.TrimSpace(strings.Join(collected, "\n")) + "\n", nil
 }
 
-func writeGoFile(path string, items map[string]string) error {
+func writeGoFile(path string, items map[string]map[string]string) error {
 	file, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %w", path, err)
@@ -262,9 +206,13 @@ func writeGoFile(path string, items map[string]string) error {
 	tmpl, err := template.New("").Parse(`// Code generated by 'just lsp-generate'. DO NOT EDIT.
 package lsp
 
-var hoverMap = map[string]string{
+var hoverMap = map[string]map[string]string{
 {{- range $match, $content := . }}
-	{{ printf "%q" $match }}: {{ printf "%q" $content }},
+	{{ printf "%q" $match }}: {
+		{{- range $lang, $content := $content }}
+			{{ printf "%q" $lang }}: {{ printf "%q" $content }},
+		{{- end }}
+	},
 {{- end }}
 }
 `)
@@ -279,4 +227,103 @@ var hoverMap = map[string]string{
 
 	fmt.Printf("Generated %s\n", path)
 	return nil
+}
+
+// extractLanguageSections extracts content for different languages from markdown tabs
+func extractLanguageSections(content string) map[string]string {
+	sections := make(map[string]string)
+
+	var currentLang string
+	var currentContent []string
+	inTabs := false
+
+	// Initialize sections with common content
+	sections["go"] = ""
+	sections["kotlin"] = ""
+	sections["java"] = ""
+
+	content = removeDocusaurusImports(content)
+	lines := strings.Split(content, "\n")
+
+	for i := range lines {
+		line := lines[i]
+
+		if strings.Contains(line, "<Tabs") {
+			inTabs = true
+			continue
+		}
+
+		if strings.Contains(line, "</Tabs>") {
+			inTabs = false
+			// When we exit a tab section, append any accumulated content for the current language
+			if currentLang != "" {
+				sections[currentLang] += strings.Join(currentContent, "\n") + "\n"
+				currentContent = nil
+				currentLang = ""
+			}
+			continue
+		}
+
+		// Look for language tab items
+		if strings.Contains(line, "<TabItem value=") {
+			// Store any accumulated content for the previous language
+			if currentLang != "" {
+				sections[currentLang] += strings.Join(currentContent, "\n") + "\n"
+				currentContent = nil
+			}
+
+			// Extract language from TabItem
+			if start := strings.Index(line, `value="`); start != -1 {
+				if end := strings.Index(line[start+7:], `"`); end != -1 {
+					currentLang = line[start+7 : start+7+end]
+				}
+			}
+			continue
+		}
+
+		if strings.Contains(line, "</TabItem>") {
+			if currentLang != "" {
+				// Store the current language's content when we reach the end of its tab
+				sections[currentLang] += strings.Join(currentContent, "\n") + "\n"
+				currentContent = nil
+				currentLang = ""
+			}
+			continue
+		}
+
+		if inTabs {
+			if currentLang != "" {
+				currentContent = append(currentContent, line)
+			}
+		} else {
+			// Content outside of any tabs is common to all languages
+			for lang := range sections {
+				sections[lang] += line + "\n"
+			}
+		}
+	}
+
+	// Handle the last language section if we haven't already
+	if currentLang != "" && len(currentContent) > 0 {
+		sections[currentLang] += strings.Join(currentContent, "\n") + "\n"
+	}
+
+	return sections
+}
+
+// removeDocusaurusImports removes docusaurus-specific import statements
+func removeDocusaurusImports(content string) string {
+	lines := strings.Split(content, "\n")
+	var result []string
+
+	for i := range lines {
+		line := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(line, "import Tabs from '@theme/Tabs'") ||
+			strings.HasPrefix(line, "import TabItem from '@theme/TabItem'") {
+			continue
+		}
+		result = append(result, lines[i])
+	}
+
+	return strings.Join(result, "\n")
 }
