@@ -18,18 +18,10 @@ import (
 	"github.com/block/ftl/internal/log"
 )
 
-func DatabaseHandle[T ftl.DatabaseConfig](dbtype string) reflection.VerbResource {
-	typ := reflect.TypeFor[T]()
-	var config T
-	if typ.Kind() == reflect.Ptr {
-		config = reflect.New(typ.Elem()).Interface().(T) //nolint:forcetypeassert
-	} else {
-		config = reflect.New(typ).Elem().Interface().(T) //nolint:forcetypeassert
-	}
-
+func DatabaseHandle[T any](name, dbtype string) reflection.VerbResource {
 	return func() reflect.Value {
 		reflectedDB := reflection.GetDatabase[T]()
-		db := ftl.NewDatabaseHandle(config, ftl.DatabaseType(dbtype), reflectedDB.DB)
+		db := ftl.NewDatabaseHandle[T](name, ftl.DatabaseType(dbtype), reflectedDB.DB)
 		return reflect.ValueOf(db)
 	}
 }

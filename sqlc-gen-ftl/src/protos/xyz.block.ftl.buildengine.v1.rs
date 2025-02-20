@@ -8,9 +8,20 @@ pub struct EngineStarted {
 /// If there are any remaining errors, they will be included in the ModuleErrors map.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EngineEnded {
-    /// module name -> error
-    #[prost(map="string, message", tag="1")]
-    pub module_errors: ::std::collections::HashMap<::prost::alloc::string::String, super::super::language::v1::ErrorList>,
+    #[prost(message, repeated, tag="1")]
+    pub modules: ::prost::alloc::vec::Vec<engine_ended::Module>,
+}
+/// Nested message and enum types in `EngineEnded`.
+pub mod engine_ended {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Module {
+        #[prost(string, tag="1")]
+        pub module: ::prost::alloc::string::String,
+        #[prost(string, tag="2")]
+        pub path: ::prost::alloc::string::String,
+        #[prost(message, optional, tag="3")]
+        pub errors: ::core::option::Option<super::super::super::language::v1::ErrorList>,
+    }
 }
 /// ModuleAdded is published when the engine discovers a module.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -56,6 +67,12 @@ pub struct ModuleBuildSuccess {
     #[prost(bool, tag="2")]
     pub is_auto_rebuild: bool,
 }
+/// ModuleDeployStarted is published when a deploy has been queued
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ModuleDeployWaiting {
+    #[prost(string, tag="1")]
+    pub module: ::prost::alloc::string::String,
+}
 /// ModuleDeployStarted is published when a deploy has begun for a module.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModuleDeployStarted {
@@ -79,39 +96,47 @@ pub struct ModuleDeploySuccess {
 /// EngineEvent is an event published by the engine as modules get built and deployed.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EngineEvent {
-    #[prost(oneof="engine_event::Event", tags="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11")]
+    #[prost(message, optional, tag="1")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(oneof="engine_event::Event", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13")]
     pub event: ::core::option::Option<engine_event::Event>,
 }
 /// Nested message and enum types in `EngineEvent`.
 pub mod engine_event {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Event {
-        #[prost(message, tag="1")]
-        EngineStarted(super::EngineStarted),
         #[prost(message, tag="2")]
-        EngineEnded(super::EngineEnded),
+        EngineStarted(super::EngineStarted),
         #[prost(message, tag="3")]
-        ModuleAdded(super::ModuleAdded),
+        EngineEnded(super::EngineEnded),
         #[prost(message, tag="4")]
-        ModuleRemoved(super::ModuleRemoved),
+        ModuleAdded(super::ModuleAdded),
         #[prost(message, tag="5")]
-        ModuleBuildWaiting(super::ModuleBuildWaiting),
+        ModuleRemoved(super::ModuleRemoved),
         #[prost(message, tag="6")]
-        ModuleBuildStarted(super::ModuleBuildStarted),
+        ModuleBuildWaiting(super::ModuleBuildWaiting),
         #[prost(message, tag="7")]
-        ModuleBuildFailed(super::ModuleBuildFailed),
+        ModuleBuildStarted(super::ModuleBuildStarted),
         #[prost(message, tag="8")]
-        ModuleBuildSuccess(super::ModuleBuildSuccess),
+        ModuleBuildFailed(super::ModuleBuildFailed),
         #[prost(message, tag="9")]
-        ModuleDeployStarted(super::ModuleDeployStarted),
+        ModuleBuildSuccess(super::ModuleBuildSuccess),
         #[prost(message, tag="10")]
-        ModuleDeployFailed(super::ModuleDeployFailed),
+        ModuleDeployWaiting(super::ModuleDeployWaiting),
         #[prost(message, tag="11")]
+        ModuleDeployStarted(super::ModuleDeployStarted),
+        #[prost(message, tag="12")]
+        ModuleDeployFailed(super::ModuleDeployFailed),
+        #[prost(message, tag="13")]
         ModuleDeploySuccess(super::ModuleDeploySuccess),
     }
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct StreamEngineEventsRequest {
+    /// If true, cached events will be replayed before streaming new events.
+    /// If false, only new events will be streamed.
+    #[prost(bool, tag="1")]
+    pub replay_history: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamEngineEventsResponse {

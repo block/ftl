@@ -136,6 +136,7 @@ func (c *mainDeploymentContext) generateTypesImports(mainModuleImport string) []
 	}
 	if len(c.Databases) > 0 {
 		imports.Add(`"github.com/block/ftl/go-runtime/server"`)
+		imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
 	}
 	for _, st := range c.TypesCtx.SumTypes {
 		imports.Add(st.importStatement())
@@ -226,9 +227,6 @@ type queriesFileContext struct {
 	Verbs   []queryVerb
 	Data    []*schema.Data
 	Imports []string
-
-	// temporarily using a global DB name/assuming 1 DB per module
-	DBName string
 }
 
 type queryVerb struct {
@@ -237,6 +235,7 @@ type queryVerb struct {
 	RawSQL         string
 	ParamFields    string
 	ColToFieldName string
+	DBName         string
 }
 
 type goType interface {
@@ -770,10 +769,6 @@ func (b *mainDeploymentContextBuilder) build(goModVersion, ftlVersion, projectNa
 	slices.SortFunc(ctx.QueriesCtx.Data, func(a, b *schema.Data) int {
 		return strings.Compare(a.Name, b.Name)
 	})
-	// temporarily assuming there is only one database per module
-	if len(ctx.Databases) > 0 {
-		ctx.QueriesCtx.DBName = ctx.Databases[0].Name
-	}
 
 	ctx.withImports(mainModuleImport)
 	return *ctx, nil
@@ -893,7 +888,11 @@ func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]queryV
 	err := schema.Visit(node, func(node schema.Node, next func() error) error {
 		switch n := node.(type) {
 		case *schema.Verb:
-			verbs = append(verbs, b.toQueryVerb(n))
+			verb, err := b.toQueryVerb(n)
+			if err != nil {
+				return err
+			}
+			verbs = append(verbs, verb)
 		case *schema.Data:
 			refName := b.mainModule.Name + "." + n.Name
 			if b.visited.Contains(refName) {
@@ -924,9 +923,19 @@ func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]queryV
 	return verbs, data, nil
 }
 
-func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) queryVerb {
+func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) (queryVerb, error) {
 	request := b.getQueryRequestResponseData(verb.Request)
 	response := b.getQueryRequestResponseData(verb.Response)
+
+	var dbName string
+	for _, md := range verb.Metadata {
+		if db, ok := md.(*schema.MetadataDatabases); ok {
+			dbName = db.Calls[0].Name
+		}
+	}
+	if dbName == "" {
+		return queryVerb{}, fmt.Errorf("missing database call for query verb %s", verb.Name)
+	}
 
 	var params []string
 	if request != nil {
@@ -955,7 +964,8 @@ func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) queryVerb 
 		RawSQL:         sqlQuery.Query,
 		ParamFields:    fmt.Sprintf("[]string{%s}", strings.Join(islices.Map(params, strconv.Quote), ",")),
 		ColToFieldName: fmt.Sprintf("[]tuple.Pair[string,string]{%s}", strings.Join(pairs, ",")),
-	}
+		DBName:         dbName,
+	}, nil
 }
 
 func (b *mainDeploymentContextBuilder) getQueryRequestResponseData(reqResp schema.Type) *schema.Data {
@@ -1005,11 +1015,11 @@ func (b *mainDeploymentContextBuilder) getGoType(module *schema.Module, node sch
 		if !isLocal {
 			return optional.None[goType](), false, nil
 		}
-		dbHandle, err := b.processDatabase(module.Name, n)
+		db, err := b.processDatabase(module.Name, n)
 		if err != nil {
 			return optional.None[goType](), isLocal, err
 		}
-		return optional.Some[goType](dbHandle), isLocal, nil
+		return optional.Some[goType](db), isLocal, nil
 
 	default:
 	}
@@ -1207,12 +1217,7 @@ func (b *mainDeploymentContextBuilder) processSecret(moduleName string, ref *sch
 }
 
 func (b *mainDeploymentContextBuilder) processDatabase(moduleName string, db *schema.Database) (goDBHandle, error) {
-	nn, ok := b.nativeNames[db]
-	if !ok {
-		return goDBHandle{}, fmt.Errorf("missing native name for database %s.%s", moduleName, db.Name)
-	}
-
-	nt, err := b.getNativeType(nn)
+	nt, err := b.getNativeType(fmt.Sprintf("ftl/%s.%s", b.mainModule.Name, fmt.Sprintf("%sConfig", strings.Title(db.Name))))
 	if err != nil {
 		return goDBHandle{}, err
 	}

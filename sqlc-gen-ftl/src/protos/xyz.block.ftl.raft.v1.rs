@@ -12,4 +12,14 @@ pub struct AddMemberRequest {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct AddMemberResponse {
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RemoveMemberRequest {
+    #[prost(uint64, tag="1")]
+    pub replica_id: u64,
+    #[prost(uint64, repeated, tag="2")]
+    pub shard_ids: ::prost::alloc::vec::Vec<u64>,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct RemoveMemberResponse {
+}
 // @@protoc_insertion_point(module)

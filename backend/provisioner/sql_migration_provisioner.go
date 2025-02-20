@@ -96,15 +96,15 @@ func RunMySQLMigration(ctx context.Context, dsn string, moduleDir string, name s
 	// strip the tcp part
 	exp := regexp.MustCompile(`tcp\((.*?)\)`)
 	dsn = exp.ReplaceAllString(dsn, "$1")
-	return runDBMateMigration(ctx, "mysql://"+dsn, moduleDir, name)
+	return runDBMateMigration(ctx, "mysql://"+dsn, moduleDir, name, "mysql")
 }
 
 func RunPostgresMigration(ctx context.Context, dsn string, moduleDir string, name string) error {
-	return runDBMateMigration(ctx, dsn, moduleDir, name)
+	return runDBMateMigration(ctx, dsn, moduleDir, name, "postgres")
 }
 
-func runDBMateMigration(ctx context.Context, dsn string, moduleDir string, name string) error {
-	migrationDir := filepath.Join(moduleDir, "db", "schema", name)
+func runDBMateMigration(ctx context.Context, dsn string, moduleDir string, name string, engine string) error {
+	migrationDir := filepath.Join(moduleDir, "db", engine, name, "schema")
 	_, err := os.Stat(migrationDir)
 	if err != nil {
 		return nil // No migration to run

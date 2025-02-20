@@ -34,6 +34,99 @@ pub struct Bytes {
     pub pos: ::core::option::Option<Position>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Changeset {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="2")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag="3")]
+    pub modules: ::prost::alloc::vec::Vec<Module>,
+    #[prost(string, repeated, tag="4")]
+    pub to_remove: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="5")]
+    pub removing_modules: ::prost::alloc::vec::Vec<Module>,
+    #[prost(enumeration="ChangesetState", tag="6")]
+    pub state: i32,
+    #[prost(string, optional, tag="7")]
+    pub error: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetCommittedEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetCommittedNotification {
+    #[prost(message, optional, tag="1")]
+    pub changeset: ::core::option::Option<Changeset>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetCreatedEvent {
+    #[prost(message, optional, tag="1")]
+    pub changeset: ::core::option::Option<Changeset>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetCreatedNotification {
+    #[prost(message, optional, tag="1")]
+    pub changeset: ::core::option::Option<Changeset>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetDrainedEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetDrainedNotification {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetFailedEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetFailedNotification {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub error: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetFinalizedEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetFinalizedNotification {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetPreparedEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetPreparedNotification {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetRollingBackEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub error: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetRollingBackNotification {
+    #[prost(message, optional, tag="1")]
+    pub changeset: ::core::option::Option<Changeset>,
+    #[prost(string, tag="2")]
+    pub error: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Config {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
@@ -111,31 +204,6 @@ pub struct DatabaseRuntimeConnections {
     #[prost(message, optional, tag="2")]
     pub write: ::core::option::Option<DatabaseConnector>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DatabaseRuntimeConnectionsEvent {
-    #[prost(message, optional, tag="1")]
-    pub connections: ::core::option::Option<DatabaseRuntimeConnections>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DatabaseRuntimeEvent {
-    #[prost(string, tag="1")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
-    pub payload: ::core::option::Option<DatabaseRuntimeEventPayload>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DatabaseRuntimeEventPayload {
-    #[prost(oneof="database_runtime_event_payload::Value", tags="1")]
-    pub value: ::core::option::Option<database_runtime_event_payload::Value>,
-}
-/// Nested message and enum types in `DatabaseRuntimeEventPayload`.
-pub mod database_runtime_event_payload {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Value {
-        #[prost(message, tag="1")]
-        DatabaseRuntimeConnectionsEvent(super::DatabaseRuntimeConnectionsEvent),
-    }
-}
 /// Decl represents user-defined data types in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Decl {
@@ -165,6 +233,29 @@ pub mod decl {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeploymentCreatedEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="2")]
+    pub schema: ::core::option::Option<Module>,
+    #[prost(string, tag="3")]
+    pub changeset: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeploymentRuntimeEvent {
+    #[prost(message, optional, tag="1")]
+    pub payload: ::core::option::Option<RuntimeElement>,
+    #[prost(string, tag="2")]
+    pub changeset: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeploymentRuntimeNotification {
+    #[prost(message, optional, tag="1")]
+    pub payload: ::core::option::Option<RuntimeElement>,
+    #[prost(string, tag="2")]
+    pub changeset: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Enum {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
@@ -191,6 +282,35 @@ pub struct EnumVariant {
     pub value: ::core::option::Option<Value>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Event {
+    #[prost(oneof="event::Value", tags="5, 3, 6, 9, 7, 4, 8, 1, 2")]
+    pub value: ::core::option::Option<event::Value>,
+}
+/// Nested message and enum types in `Event`.
+pub mod event {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Value {
+        #[prost(message, tag="5")]
+        ChangesetCommittedEvent(super::ChangesetCommittedEvent),
+        #[prost(message, tag="3")]
+        ChangesetCreatedEvent(super::ChangesetCreatedEvent),
+        #[prost(message, tag="6")]
+        ChangesetDrainedEvent(super::ChangesetDrainedEvent),
+        #[prost(message, tag="9")]
+        ChangesetFailedEvent(super::ChangesetFailedEvent),
+        #[prost(message, tag="7")]
+        ChangesetFinalizedEvent(super::ChangesetFinalizedEvent),
+        #[prost(message, tag="4")]
+        ChangesetPreparedEvent(super::ChangesetPreparedEvent),
+        #[prost(message, tag="8")]
+        ChangesetRollingBackEvent(super::ChangesetRollingBackEvent),
+        #[prost(message, tag="1")]
+        DeploymentCreatedEvent(super::DeploymentCreatedEvent),
+        #[prost(message, tag="2")]
+        DeploymentRuntimeEvent(super::DeploymentRuntimeEvent),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Field {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
@@ -207,6 +327,13 @@ pub struct Field {
 pub struct Float {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FullSchemaNotification {
+    #[prost(message, optional, tag="1")]
+    pub schema: ::core::option::Option<Schema>,
+    #[prost(message, repeated, tag="2")]
+    pub changesets: ::prost::alloc::vec::Vec<Changeset>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct IngressPathComponent {
@@ -482,6 +609,8 @@ pub struct ModuleRuntime {
     pub scaling: ::core::option::Option<ModuleRuntimeScaling>,
     #[prost(message, optional, tag="3")]
     pub deployment: ::core::option::Option<ModuleRuntimeDeployment>,
+    #[prost(message, optional, tag="4")]
+    pub runner: ::core::option::Option<ModuleRuntimeRunner>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModuleRuntimeBase {
@@ -498,36 +627,53 @@ pub struct ModuleRuntimeBase {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModuleRuntimeDeployment {
-    #[prost(string, tag="1")]
-    pub endpoint: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub deployment_key: ::prost::alloc::string::String,
     #[prost(message, optional, tag="3")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag="4")]
     pub activated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration="DeploymentState", tag="5")]
+    pub state: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ModuleRuntimeEvent {
-    #[prost(oneof="module_runtime_event::Value", tags="1, 3, 2")]
-    pub value: ::core::option::Option<module_runtime_event::Value>,
-}
-/// Nested message and enum types in `ModuleRuntimeEvent`.
-pub mod module_runtime_event {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Value {
-        #[prost(message, tag="1")]
-        ModuleRuntimeBase(super::ModuleRuntimeBase),
-        #[prost(message, tag="3")]
-        ModuleRuntimeDeployment(super::ModuleRuntimeDeployment),
-        #[prost(message, tag="2")]
-        ModuleRuntimeScaling(super::ModuleRuntimeScaling),
-    }
+pub struct ModuleRuntimeRunner {
+    #[prost(string, tag="1")]
+    pub endpoint: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ModuleRuntimeScaling {
     #[prost(int32, tag="1")]
     pub min_replicas: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Notification {
+    #[prost(oneof="notification::Value", tags="5, 3, 6, 9, 7, 4, 8, 2, 1")]
+    pub value: ::core::option::Option<notification::Value>,
+}
+/// Nested message and enum types in `Notification`.
+pub mod notification {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Value {
+        #[prost(message, tag="5")]
+        ChangesetCommittedNotification(super::ChangesetCommittedNotification),
+        #[prost(message, tag="3")]
+        ChangesetCreatedNotification(super::ChangesetCreatedNotification),
+        #[prost(message, tag="6")]
+        ChangesetDrainedNotification(super::ChangesetDrainedNotification),
+        #[prost(message, tag="9")]
+        ChangesetFailedNotification(super::ChangesetFailedNotification),
+        #[prost(message, tag="7")]
+        ChangesetFinalizedNotification(super::ChangesetFinalizedNotification),
+        #[prost(message, tag="4")]
+        ChangesetPreparedNotification(super::ChangesetPreparedNotification),
+        #[prost(message, tag="8")]
+        ChangesetRollingBackNotification(super::ChangesetRollingBackNotification),
+        #[prost(message, tag="2")]
+        DeploymentRuntimeNotification(super::DeploymentRuntimeNotification),
+        #[prost(message, tag="1")]
+        FullSchemaNotification(super::FullSchemaNotification),
+    }
 }
 /// Optional represents a Type whose value may be optional.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -558,29 +704,37 @@ pub struct Ref {
     #[prost(message, repeated, tag="4")]
     pub type_parameters: ::prost::alloc::vec::Vec<Type>,
 }
-/// RuntimeEvent is an event modifying a runtime part of the schema.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RuntimeEvent {
-    #[prost(oneof="runtime_event::Value", tags="5, 1, 3, 2, 6, 4")]
-    pub value: ::core::option::Option<runtime_event::Value>,
+pub struct Runtime {
+    #[prost(oneof="runtime::Value", tags="6, 1, 3, 2, 5, 4")]
+    pub value: ::core::option::Option<runtime::Value>,
 }
-/// Nested message and enum types in `RuntimeEvent`.
-pub mod runtime_event {
+/// Nested message and enum types in `Runtime`.
+pub mod runtime {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Value {
-        #[prost(message, tag="5")]
-        DatabaseRuntimeEvent(super::DatabaseRuntimeEvent),
+        #[prost(message, tag="6")]
+        DatabaseRuntime(super::DatabaseRuntime),
         #[prost(message, tag="1")]
-        ModuleRuntimeBase(super::ModuleRuntimeBase),
-        #[prost(message, tag="3")]
         ModuleRuntimeDeployment(super::ModuleRuntimeDeployment),
+        #[prost(message, tag="3")]
+        ModuleRuntimeRunner(super::ModuleRuntimeRunner),
         #[prost(message, tag="2")]
         ModuleRuntimeScaling(super::ModuleRuntimeScaling),
-        #[prost(message, tag="6")]
-        TopicRuntimeEvent(super::TopicRuntimeEvent),
+        #[prost(message, tag="5")]
+        TopicRuntime(super::TopicRuntime),
         #[prost(message, tag="4")]
-        VerbRuntimeEvent(super::VerbRuntimeEvent),
+        VerbRuntime(super::VerbRuntime),
     }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RuntimeElement {
+    #[prost(message, optional, tag="1")]
+    pub element: ::core::option::Option<Runtime>,
+    #[prost(string, tag="2")]
+    pub deployment: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="3")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Schema {
@@ -588,6 +742,18 @@ pub struct Schema {
     pub pos: ::core::option::Option<Position>,
     #[prost(message, repeated, tag="2")]
     pub modules: ::prost::alloc::vec::Vec<Module>,
+}
+/// SchemaState is the schema service state as persisted in Raft
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SchemaState {
+    #[prost(message, repeated, tag="1")]
+    pub modules: ::prost::alloc::vec::Vec<Module>,
+    #[prost(message, repeated, tag="2")]
+    pub changesets: ::prost::alloc::vec::Vec<Changeset>,
+    #[prost(message, repeated, tag="3")]
+    pub changeset_events: ::prost::alloc::vec::Vec<DeploymentRuntimeEvent>,
+    #[prost(message, repeated, tag="4")]
+    pub deployment_events: ::prost::alloc::vec::Vec<DeploymentRuntimeEvent>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Secret {
@@ -640,13 +806,6 @@ pub struct TopicRuntime {
     pub kafka_brokers: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag="2")]
     pub topic_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TopicRuntimeEvent {
-    #[prost(string, tag="1")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
-    pub payload: ::core::option::Option<TopicRuntime>,
 }
 /// Type represents a Type Node in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -758,38 +917,7 @@ pub struct Verb {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VerbRuntime {
     #[prost(message, optional, tag="1")]
-    pub base: ::core::option::Option<VerbRuntimeBase>,
-    #[prost(message, optional, tag="2")]
     pub subscription: ::core::option::Option<VerbRuntimeSubscription>,
-}
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct VerbRuntimeBase {
-    #[prost(message, optional, tag="1")]
-    pub create_time: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag="2")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct VerbRuntimeEvent {
-    #[prost(string, tag="1")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
-    pub payload: ::core::option::Option<VerbRuntimePayload>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct VerbRuntimePayload {
-    #[prost(oneof="verb_runtime_payload::Value", tags="1, 2")]
-    pub value: ::core::option::Option<verb_runtime_payload::Value>,
-}
-/// Nested message and enum types in `VerbRuntimePayload`.
-pub mod verb_runtime_payload {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Value {
-        #[prost(message, tag="1")]
-        VerbRuntimeBase(super::VerbRuntimeBase),
-        #[prost(message, tag="2")]
-        VerbRuntimeSubscription(super::VerbRuntimeSubscription),
-    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VerbRuntimeSubscription {
@@ -819,6 +947,97 @@ impl AliasKind {
         match value {
             "ALIAS_KIND_UNSPECIFIED" => Some(Self::Unspecified),
             "ALIAS_KIND_JSON" => Some(Self::Json),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ChangesetState {
+    Unspecified = 0,
+    Preparing = 1,
+    Prepared = 2,
+    Committed = 3,
+    Drained = 4,
+    Finalized = 5,
+    RollingBack = 6,
+    Failed = 7,
+}
+impl ChangesetState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "CHANGESET_STATE_UNSPECIFIED",
+            Self::Preparing => "CHANGESET_STATE_PREPARING",
+            Self::Prepared => "CHANGESET_STATE_PREPARED",
+            Self::Committed => "CHANGESET_STATE_COMMITTED",
+            Self::Drained => "CHANGESET_STATE_DRAINED",
+            Self::Finalized => "CHANGESET_STATE_FINALIZED",
+            Self::RollingBack => "CHANGESET_STATE_ROLLING_BACK",
+            Self::Failed => "CHANGESET_STATE_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CHANGESET_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "CHANGESET_STATE_PREPARING" => Some(Self::Preparing),
+            "CHANGESET_STATE_PREPARED" => Some(Self::Prepared),
+            "CHANGESET_STATE_COMMITTED" => Some(Self::Committed),
+            "CHANGESET_STATE_DRAINED" => Some(Self::Drained),
+            "CHANGESET_STATE_FINALIZED" => Some(Self::Finalized),
+            "CHANGESET_STATE_ROLLING_BACK" => Some(Self::RollingBack),
+            "CHANGESET_STATE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DeploymentState {
+    Unspecified = 0,
+    Provisioning = 1,
+    Ready = 2,
+    Canary = 3,
+    Canonical = 4,
+    Draining = 5,
+    DeProvisioning = 6,
+    Deleted = 7,
+    Failed = 8,
+}
+impl DeploymentState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DEPLOYMENT_STATE_UNSPECIFIED",
+            Self::Provisioning => "DEPLOYMENT_STATE_PROVISIONING",
+            Self::Ready => "DEPLOYMENT_STATE_READY",
+            Self::Canary => "DEPLOYMENT_STATE_CANARY",
+            Self::Canonical => "DEPLOYMENT_STATE_CANONICAL",
+            Self::Draining => "DEPLOYMENT_STATE_DRAINING",
+            Self::DeProvisioning => "DEPLOYMENT_STATE_DE_PROVISIONING",
+            Self::Deleted => "DEPLOYMENT_STATE_DELETED",
+            Self::Failed => "DEPLOYMENT_STATE_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DEPLOYMENT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "DEPLOYMENT_STATE_PROVISIONING" => Some(Self::Provisioning),
+            "DEPLOYMENT_STATE_READY" => Some(Self::Ready),
+            "DEPLOYMENT_STATE_CANARY" => Some(Self::Canary),
+            "DEPLOYMENT_STATE_CANONICAL" => Some(Self::Canonical),
+            "DEPLOYMENT_STATE_DRAINING" => Some(Self::Draining),
+            "DEPLOYMENT_STATE_DE_PROVISIONING" => Some(Self::DeProvisioning),
+            "DEPLOYMENT_STATE_DELETED" => Some(Self::Deleted),
+            "DEPLOYMENT_STATE_FAILED" => Some(Self::Failed),
             _ => None,
         }
     }

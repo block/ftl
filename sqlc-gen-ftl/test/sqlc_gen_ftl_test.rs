@@ -58,7 +58,8 @@ sql:
   - out: gen
     plugin: ftl
     options:
-      module: echo"#,
+      module: echo
+      database: testdb"#,
       sha256_hash,
       engine,
     ))
@@ -225,6 +226,16 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                             command: "exec".to_string(),
                             query: queries[1].clone(),
                         })),
+                    }, schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Databases(schemapb::MetadataDatabases {
+                            pos: None,
+                            calls: vec![schemapb::Ref {
+                                pos: None,
+                                module: "echo".to_string(),
+                                name: "testdb".to_string(),
+                                type_parameters: vec![],
+                            }],
+                        })),
                     }],
                 })),
             },
@@ -257,6 +268,16 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                             pos: None,
                             command: "one".to_string(),
                             query: queries[0].clone(),
+                        })),
+                    }, schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Databases(schemapb::MetadataDatabases {
+                            pos: None,
+                            calls: vec![schemapb::Ref {
+                                pos: None,
+                                module: "echo".to_string(),
+                                name: "testdb".to_string(),
+                                type_parameters: vec![],
+                            }],
                         })),
                     }],
                 })),
@@ -294,7 +315,7 @@ mod tests {
                 temp_dir.path().join("queries.sql")
             )?;
             std::fs::copy(
-                root_dir.join("../internal/sqlc/resources/sqlc-gen-ftl.wasm"),
+                root_dir.join("../internal/sql/resources/sqlc-gen-ftl.wasm"),
                 &wasm_path
             )?;
             

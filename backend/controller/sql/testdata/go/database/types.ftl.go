@@ -4,18 +4,24 @@ package database
 import (
 	"context"
 	"github.com/block/ftl/common/reflection"
+	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/server"
 )
 
 type InsertClient func(context.Context, InsertRequest) (InsertResponse, error)
 
+//ftl:database postgres testdb
+type TestdbConfig struct{}
+
+type TestdbHandle = ftl.DatabaseHandle[TestdbConfig]
+
 func init() {
 	reflection.Register(
-		reflection.Database[MyDbConfig]("testdb", server.InitPostgres),
+		reflection.Database[TestdbConfig]("testdb", server.InitPostgres),
 
 		reflection.ProvideResourcesForVerb(
 			Insert,
-			server.DatabaseHandle[MyDbConfig]("postgres"),
+			server.DatabaseHandle[TestdbConfig]("testdb", "postgres"),
 		),
 	)
 }

@@ -105,6 +105,8 @@ quarkus.hibernate-orm.datasource=testdb
 `)
 		}, "src/main/resources/application.properties"),
 
+		in.MkdirAll("echo", "src/main/resources/db/postgres/testdb/schema"),
+
 		// Create a migration
 		in.Exec("ftl", "new-sql-migration", "echo.testdb", "initdb"),
 
@@ -128,7 +130,7 @@ INSERT INTO StockPrice VALUES (0, 100.0, 'FOO');
 `)
 			}
 			return false, nil
-		}, "src/main/resources/db/"),
+		}, "src/main/resources/db/postgres/testdb/schema/"),
 		in.Sleep(time.Second*2),
 		in.QueryRow("echo_testdb", "SELECT stock from StockPrice", "FOO"),
 	)

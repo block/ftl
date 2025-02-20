@@ -43,8 +43,7 @@ func TestJavaConfigDefaults(t *testing.T) {
 					"target/generated-sources",
 					"src/main/resources/db",
 				},
-				SQLMigrationDir: "src/main/resources/db/schema",
-				SQLQueryDir:     "src/main/resources/db/queries",
+				SQLRootDir: "src/main/resources/db",
 			},
 		},
 		{
@@ -64,8 +63,7 @@ func TestJavaConfigDefaults(t *testing.T) {
 					"target/generated-sources",
 					"src/main/resources/db",
 				},
-				SQLMigrationDir: "src/main/resources/db/schema",
-				SQLQueryDir:     "src/main/resources/db/queries",
+				SQLRootDir: "src/main/resources/db",
 			},
 		},
 	} {

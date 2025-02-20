@@ -401,6 +401,24 @@ func (*DirectiveEncoding) MustAnnotate() []ast.Node {
 	return []ast.Node{&ast.FuncDecl{}}
 }
 
+type DirectiveDatabase struct {
+	Pos token.Pos
+
+	Engine string `parser:"'database' @('postgres' | 'mysql')"`
+	Name   string `parser:"@Ident"`
+}
+
+func (*DirectiveDatabase) directive() {}
+
+func (*DirectiveDatabase) GetTypeName() string { return "database" }
+func (d *DirectiveDatabase) SetPosition(pos token.Pos) {
+	d.Pos = pos
+}
+func (d *DirectiveDatabase) GetPosition() token.Pos {
+	return d.Pos
+}
+func (*DirectiveDatabase) MustAnnotate() []ast.Node { return []ast.Node{&ast.GenDecl{}} }
+
 var DirectiveParser = participle.MustBuild[directiveWrapper](
 	participle.Lexer(schema.Lexer),
 	participle.Elide("Whitespace"),
@@ -408,7 +426,7 @@ var DirectiveParser = participle.MustBuild[directiveWrapper](
 	participle.UseLookahead(2),
 	participle.Union[Directive](&DirectiveVerb{}, &DirectiveData{}, &DirectiveEnum{}, &DirectiveTypeAlias{},
 		&DirectiveIngress{}, &DirectiveCronJob{}, &DirectiveRetry{}, &DirectiveSubscriber{}, &DirectiveExport{},
-		&DirectiveTypeMap{}, &DirectiveEncoding{}, &DirectiveTopic{}),
+		&DirectiveTypeMap{}, &DirectiveEncoding{}, &DirectiveTopic{}, &DirectiveDatabase{}),
 	participle.Union[schema.IngressPathComponent](&schema.IngressPathLiteral{}, &schema.IngressPathParameter{}),
 )
 

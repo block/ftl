@@ -49,7 +49,7 @@ func init() {
             	{{- end -}}
                 {{- end }}
                 {{- with getDatabaseHandle . }}
-			server.DatabaseHandle[{{.TypeName}}]("{{.Type}}"),
+			server.DatabaseHandle[{{.TypeName}}]("{{.Name}}", "{{.Type}}"),
                 {{- end }}
                 {{- with getTopicHandle . }}
 			server.TopicHandle[{{.EventType.TypeName}}, {{ .MapperTypeName "" }}]("{{.Module}}", "{{.Name}}"),

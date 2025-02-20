@@ -12,7 +12,7 @@ import (
 func TestDatabase(t *testing.T) {
 	ctx := ftltest.Context(
 		ftltest.WithCallsAllowedWithinModule(),
-		ftltest.WithDatabase[MyDbConfig](),
+		ftltest.WithDatabase[TestdbConfig](),
 	)
 
 	_, err := ftltest.Call[InsertClient, InsertRequest, InsertResponse](ctx, InsertRequest{Data: "unit test 1"})
@@ -24,7 +24,7 @@ func TestDatabase(t *testing.T) {
 
 	ctx = ftltest.Context(
 		ftltest.WithCallsAllowedWithinModule(),
-		ftltest.WithDatabase[MyDbConfig](),
+		ftltest.WithDatabase[TestdbConfig](),
 	)
 
 	_, err = ftltest.Call[InsertClient, InsertRequest, InsertResponse](ctx, InsertRequest{Data: "unit test 2"})
@@ -38,7 +38,7 @@ func TestDatabase(t *testing.T) {
 func TestOptionOrdering(t *testing.T) {
 	ctx := ftltest.Context(
 		ftltest.WithCallsAllowedWithinModule(),
-		ftltest.WithDatabase[MyDbConfig](), // <--- consumes DSNs
+		ftltest.WithDatabase[TestdbConfig](), // <--- consumes DSNs
 	)
 
 	_, err := ftltest.Call[InsertClient, InsertRequest, InsertResponse](ctx, InsertRequest{Data: "unit test 1"})
@@ -50,7 +50,7 @@ func TestOptionOrdering(t *testing.T) {
 }
 
 func getAll(ctx context.Context) ([]string, error) {
-	db, err := ftltest.GetDatabaseHandle[MyDbConfig]()
+	db, err := ftltest.GetDatabaseHandle[TestdbConfig]()
 	if err != nil {
 		return nil, err
 	}

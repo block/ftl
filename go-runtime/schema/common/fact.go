@@ -140,24 +140,12 @@ type IncludeTopicMapper struct {
 
 func (*IncludeTopicMapper) schemaFactValue() {}
 
-type DatabaseConfigMethod int
-
-const (
-	DatabaseConfigMethodName DatabaseConfigMethod = iota
-)
-
-type DatabaseType string
-
-const (
-	DatabaseTypePostgres DatabaseType = "postgres"
-	DatabaseTypeMySQL    DatabaseType = "mysql"
-)
-
-// DatabaseConfig marks a database node with an extracted configuration value.
+// DatabaseConfig is a fact for marking database configurations.
 type DatabaseConfig struct {
-	Type   DatabaseType
-	Method DatabaseConfigMethod
-	Value  any
+	// The database name.
+	Name string
+	// The database engine.
+	Engine string
 }
 
 func (*DatabaseConfig) schemaFactValue() {}
@@ -242,14 +230,6 @@ func MarkIncludeNativeName(pass *analysis.Pass, obj types.Object, node schema.No
 	pass.ExportObjectFact(obj, fact)
 }
 
-// MarkDatabaseConfig marks the given database object with an extracted config value.
-func MarkDatabaseConfig(pass *analysis.Pass, obj types.Object, dbType DatabaseType,
-	method DatabaseConfigMethod, value any) {
-	fact := newFact(pass, obj)
-	fact.Add(&DatabaseConfig{Type: dbType, Method: method, Value: value})
-	pass.ExportObjectFact(obj, fact)
-}
-
 // MarkVerbResourceParamOrder marks the given verb object with the order of its parameters.
 func MarkVerbResourceParamOrder(pass *analysis.Pass, obj types.Object, resources []VerbResourceParam) {
 	fact := newFact(pass, obj)
@@ -266,6 +246,13 @@ func MarkTopicMapper(pass *analysis.Pass, mapperObj types.Object, associatedObj 
 		AssociatedObject: associatedObj,
 	})
 	pass.ExportObjectFact(mapperObj, fact)
+}
+
+// MarkDatabaseConfig marks the given object as having a database name.
+func MarkDatabaseConfig(pass *analysis.Pass, obj types.Object, name string, engine string) {
+	fact := newFact(pass, obj)
+	fact.Add(&DatabaseConfig{Name: name, Engine: engine})
+	pass.ExportObjectFact(obj, fact)
 }
 
 // GetAllFactsExtractionStatus merges schema facts inclusive of all available results and the present pass facts.

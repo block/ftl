@@ -250,8 +250,7 @@ func customDefaultsFromProto(proto *langpb.ModuleConfigDefaultsResponse) modulec
 		DevModeBuild:    optional.Ptr(proto.DevModeBuild),
 		BuildLock:       optional.Ptr(proto.BuildLock),
 		LanguageConfig:  proto.LanguageConfig.AsMap(),
-		SQLMigrationDir: proto.SqlMigrationDir,
-		SQLQueryDir:     proto.SqlQueryDir,
+		SQLRootDir:      proto.SqlRootDir,
 	}
 }
 

@@ -31,12 +31,9 @@ pub struct ModuleConfig {
     /// These are stored in the ftl.toml file under the same key as the language (eg: "go", "java")
     #[prost(message, optional, tag="10")]
     pub language_config: ::core::option::Option<::prost_types::Struct>,
-    /// The directory containing the SQL migration files
+    /// The root directory containing the SQL files, relative to the module directory.
     #[prost(string, tag="11")]
-    pub sql_migration_dir: ::prost::alloc::string::String,
-    /// The directory containing the SQL query files
-    #[prost(string, tag="12")]
-    pub sql_query_dir: ::prost::alloc::string::String,
+    pub sql_root_dir: ::prost::alloc::string::String,
 }
 /// ProjectConfig contains the configuration for a project, found in the ftl-project.toml file.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -132,12 +129,9 @@ pub struct ModuleConfigDefaultsResponse {
     /// These defaults are filled in by looking at each root key only. If the key is not present, the default is used.
     #[prost(message, optional, tag="7")]
     pub language_config: ::core::option::Option<::prost_types::Struct>,
-    /// Default directory containing the SQL migration files
+    /// Root directory containing SQL files.
     #[prost(string, tag="8")]
-    pub sql_migration_dir: ::prost::alloc::string::String,
-    /// Default directory containing the SQL query files
-    #[prost(string, tag="9")]
-    pub sql_query_dir: ::prost::alloc::string::String,
+    pub sql_root_dir: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetDependenciesRequest {
@@ -169,6 +163,10 @@ pub struct BuildContext {
     /// Build environment provides environment variables to be set for the build command
     #[prost(string, repeated, tag="5")]
     pub build_env: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag="6")]
+    pub os: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub arch: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BuildContextUpdatedRequest {
@@ -277,9 +275,8 @@ pub struct ErrorList {
 /// Request to build a module.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BuildRequest {
-    /// The root path for the FTL project
-    #[prost(string, tag="1")]
-    pub project_root: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="1")]
+    pub project_config: ::core::option::Option<ProjectConfig>,
     /// The path to the directory containing all module stubs. Each module stub is in a subdirectory.
     #[prost(string, tag="2")]
     pub stubs_root: ::prost::alloc::string::String,
@@ -332,9 +329,11 @@ pub struct BuildSuccess {
     /// Dev mode debug port
     #[prost(int32, optional, tag="8")]
     pub debug_port: ::core::option::Option<i32>,
-    /// Dev mode runner info file, this file is used to allow the runner to communicate provisioner info back to the plugin
+    /// Dev mode hot reload endpoint, this is used to allow the runner to communicate info back to the running process
     #[prost(string, optional, tag="9")]
-    pub dev_runner_info_file: ::core::option::Option<::prost::alloc::string::String>,
+    pub dev_hot_reload_endpoint: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int64, optional, tag="10")]
+    pub dev_hot_reload_version: ::core::option::Option<i64>,
 }
 /// BuildFailure should be sent when a build fails.
 ///

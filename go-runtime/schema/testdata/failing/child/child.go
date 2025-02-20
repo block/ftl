@@ -38,9 +38,3 @@ type FtlConfigEndpoint = ftl.Config[string]
 type FtlSecretEndpoint = ftl.Secret[string]
 
 type DifferentDeclDupl = ftl.Config[string]
-
-type DuplDbConfig struct {
-	ftl.DefaultPostgresDatabaseConfig
-}
-
-func (DuplDbConfig) Name() string { return "testdb" }

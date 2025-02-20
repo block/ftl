@@ -134,12 +134,6 @@ type ExportedData struct {
 type ConfigValue = ftl.Config[Config]
 type SecretValue = ftl.Secret[string]
 
-type MyDbConfig struct {
-	ftl.DefaultPostgresDatabaseConfig
-}
-
-func (MyDbConfig) Name() string { return "testDb" }
-
 //ftl:verb
 func Verb(ctx context.Context, req Req) (Resp, error) {
 	return Resp{}, nil

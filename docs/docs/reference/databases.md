@@ -16,57 +16,7 @@ import TabItem from '@theme/TabItem';
 <Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
-To use a database in go you must create a struct that implements either the `ftl.MySQLDatabaseConfig` or 
-`ftl.PostgresDatabaseConfig` interface. Generally this will involve creating a struct that embeds the
-`ftl.DefaultMySQLDatabaseConfig` or `ftl.DefaultPostgresDatabaseConfig` struct and then implementing the `Name() string` method.
-
-You can then use the `ftl.DatabaseHandle` type to access the database by injecting it into an FTL verb. 
-An example for MySQL is shown below:
-
-```go
-package mysql
-
-import (
-	"context"
-	"database/sql"
-
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
-)
-
-type TestDatasourceConfig struct {
-	ftl.DefaultMySQLDatabaseConfig
-}
-
-func (TestDatasourceConfig) Name() string { return "testdb" }
-
-//ftl:verb export
-func Query(ctx context.Context, db ftl.DatabaseHandle[TestDatasourceConfig]) ([]string, error) {
-	var database *sql.DB = db.Get(ctx) // Get the database connection.
-	// The following code is standard golang SQL code, it has nothing FTL specific.
-	rows, err := database.QueryContext(ctx, "SELECT data FROM requests")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var i string
-		if err := rows.Scan(
-			&i,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-```
+Your database is automatically declared by following a specific directory structure for your SQL files. No additional configuration is needed - just create the directory structure and FTL will handle the rest. See the [SQL File Structure](#sql-file-structure) section below for more details.
 
   </TabItem>
   <TabItem value="kotlin" label="Kotlin">
@@ -146,10 +96,67 @@ This will require adding one of the following dependencies:
 </dependency>
 ```
 
-Note that this will likely change significantly in future once FTL has SQL Verbs.
+Note that this will likely change significantly in future once JVM supports SQL verbs.
 
   </TabItem>
 </Tabs>
+
+## SQL File Structure
+
+In order to be discoverable by FTL, the SQL files in your project must follow a specific directory structure. FTL supports two database engines, and the corresponding directory must be named exactly `mysql` or `postgres`:
+
+<Tabs groupId="languages">
+  <TabItem value="go" label="Go" default>
+
+For Go projects, SQL files must be located in:
+```
+db/
+  ├── mysql/           # must be exactly "mysql" or "postgres"
+  │   └── mydb/        # database name
+  │       ├── schema/  # contains migration files
+  │       └── queries/ # contains query files
+```
+
+The presence of a `schema` directory under your database name automatically declares the database in FTL.
+
+  </TabItem>
+  <TabItem value="kotlin" label="Kotlin">
+
+For Kotlin projects, SQL files must be located in:
+```
+src/main/resources/
+  └── db/
+      ├── mysql/           # must be exactly "mysql" or "postgres"
+      │   └── mydb/        # database name
+      │       ├── schema/  # contains migration files
+      │       └── queries/ # contains query files
+```
+
+  </TabItem>
+  <TabItem value="java" label="Java">
+
+For Java projects, SQL files must be located in:
+```
+src/main/resources/
+  └── db/
+      ├── mysql/           # must be exactly "mysql" or "postgres"
+      │   └── mydb/        # database name
+      │       ├── schema/  # contains migration files
+      │       └── queries/ # contains query files
+```
+
+  </TabItem>
+</Tabs>
+
+### Schema Directory
+
+The `schema` directory contains all your database migration `.sql` files. These files are used to create and modify your database schema.
+
+### Queries Directory
+
+The `queries` directory contains `.sql` files with any SQL queries you would like to make available to your application. These queries must be annotated with [SQLC annotation syntax](https://docs.sqlc.dev/). FTL will automatically lift these queries into the module schema, making each query available as its own FTL verb.
+
+Find more information in the [Using Generated Query Clients](#using-generated-query-clients) section below.
 
 ## Provisioning
 
@@ -172,3 +179,88 @@ The module name can be omitted if the current working directory only contains a 
 E.g. to create a new migration called `init` for the `testdb` datasource in the `mysql` module you would run `ftl new-sql-migration mysql.testdb init`.
 
 When the modules are provisioned FTL will automatically run these migrations for you. 
+
+## Connecting with your DB
+
+There are two ways to interact with your database in FTL: using the database handle for raw queries, or using generated query clients.
+
+### Using the Database Handle
+
+<Tabs groupId="languages">
+  <TabItem value="go" label="Go" default>
+
+Once you have a database declared through the directory structure, FTL automatically generates a database handle that provides direct access to the underlying database connection. You can use this to execute raw SQL queries:
+
+```go
+//ftl:verb export
+func Query(ctx context.Context, db DatabaseHandle) ([]string, error) {
+	rows, err := db.QueryContext(ctx, "SELECT data FROM requests")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var i string
+		if err := rows.Scan(&i); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+```
+
+  </TabItem>
+</Tabs>
+
+### Using Generated Query Clients
+
+For better type safety and maintainability, FTL can automatically generate type-safe query clients from SQL files in your `queries` directory. Your SQL files must be annotated with [SQLC annotation syntax](https://docs.sqlc.dev/) to specify the type of query and its parameters. For example:
+
+```sql
+-- name: GetUser :one
+SELECT id, name, email
+FROM users
+WHERE id = $1;
+
+-- name: ListUsers :many
+SELECT id, name, email
+FROM users
+ORDER BY name;
+
+-- name: CreateUser :exec
+INSERT INTO users (name, email)
+VALUES ($1, $2);
+```
+
+These queries will be automatically converted into FTL verbs with corresponding generated clients that you can inject into your verbs just like any other verb client. For example:
+
+<Tabs groupId="languages">
+  <TabItem value="go" label="Go" default>
+
+```go
+//ftl:verb export
+func Query(ctx context.Context, query GetRequestDataClient) ([]string, error) {
+	rows, err := query(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []string
+	for _, row := range rows {
+		if d, ok := row.Data.Get(); ok {
+			items = append(items, d)
+		}
+	}
+	return items, nil
+}
+```
+
+  </TabItem>
+</Tabs>

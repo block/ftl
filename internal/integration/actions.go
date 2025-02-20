@@ -424,6 +424,14 @@ func MoveFile(module, from, to string) Action {
 	}
 }
 
+// MkdirAll creates the given directory under the working dir
+func MkdirAll(module string, dir string) Action {
+	return func(t testing.TB, ic TestContext) {
+		err := os.MkdirAll(filepath.Join(ic.WorkingDir(), module, dir), 0700)
+		assert.NoError(t, err)
+	}
+}
+
 // RemoveDir removes the given directory and all of its contents under the working dir
 func RemoveDir(dir string) Action {
 	return func(t testing.TB, ic TestContext) {

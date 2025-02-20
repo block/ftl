@@ -52,8 +52,12 @@ func (i newSQLMigrationCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("could not discover modules: %w", err)
 	}
-	migrationDir := module.SQLMigrationDirectory
-	if migrationDir == "" {
+	var migrationDir string
+	var found bool
+	if sqlDirs, ok := module.SQLDatabases[dsName]; ok {
+		migrationDir, found = sqlDirs.SchemaDir.Get()
+	}
+	if migrationDir == "" || !found {
 		language := module.Language
 		plugin, err := languageplugin.CreateLanguagePlugin(ctx, language)
 		if err != nil {
@@ -63,9 +67,21 @@ func (i newSQLMigrationCmd) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("could not get module config defaults for language %q: %w", language, err)
 		}
-		migrationDir = defaults.SQLMigrationDir
+		valid, databases, err := moduleconfig.ValidateSQLRoot(module.Dir, defaults.SQLRootDir)
+		if err != nil {
+			return fmt.Errorf("could not locate SQL migration directory for %q in %q: %w", dsName, defaults.SQLRootDir, err)
+		}
+		if !valid {
+			return fmt.Errorf("invalid SQL root directory %q", defaults.SQLRootDir)
+		}
+		if sqlDirs, ok := databases[dsName]; ok {
+			migrationDir, found = sqlDirs.SchemaDir.Get()
+		}
+		if migrationDir == "" || !found {
+			return fmt.Errorf("could not get SQL migration directory for datasource %q", dsName)
+		}
 	}
-	migrationDir = filepath.Join(module.Dir, migrationDir, dsName)
+	migrationDir = filepath.Join(module.Dir, migrationDir)
 
 	logger := log.FromContext(ctx)
 	logger.Debugf("Creating DBMate SQL migration %s in module %q in %s", i.Name, module.Module, migrationDir)

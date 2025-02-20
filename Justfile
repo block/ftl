@@ -17,11 +17,11 @@ ZIP_DIRS := "go-runtime/compile/build-template " + \
             "python-runtime/compile/build-template " + \
             "python-runtime/compile/external-module-template " + \
             "python-runtime/scaffolding " + \
-            "internal/sqlc/template"
+            "internal/sql/template"
 CONSOLE_ROOT := "frontend/console"
 FRONTEND_OUT := CONSOLE_ROOT + "/dist/index.html"
 EXTENSION_OUT := "frontend/vscode/dist/extension.js"
-SQLC_GEN_FTL_OUT := "internal/sqlc/resources/sqlc-gen-ftl.wasm"
+SQLC_GEN_FTL_OUT := "internal/sql/resources/sqlc-gen-ftl.wasm"
 PROTOS_IN := "common/protos backend/protos"
 PROTOS_OUT := "backend/protos/xyz/block/ftl/console/v1/console.pb.go " + \
               "backend/protos/xyz/block/ftl//v1/ftl.pb.go " + \
@@ -218,7 +218,7 @@ build-extension: pnpm-install
 build-sqlc-gen-ftl: build-rust-protos update-sqlc-plugin-codegen-proto
     @mk {{SQLC_GEN_FTL_OUT}} : sqlc-gen-ftl/src -- \
         "cargo build --manifest-path sqlc-gen-ftl/Cargo.toml --target wasm32-wasip1 --release && \
-        cp sqlc-gen-ftl/target/wasm32-wasip1/release/sqlc-gen-ftl.wasm internal/sqlc/resources/sqlc-gen-ftl.wasm"
+        cp sqlc-gen-ftl/target/wasm32-wasip1/release/sqlc-gen-ftl.wasm internal/sql/resources/sqlc-gen-ftl.wasm"
 
 test-sqlc-gen-ftl:
     @cargo test --manifest-path sqlc-gen-ftl/Cargo.toml --features ci --test sqlc_gen_ftl_test -- --nocapture

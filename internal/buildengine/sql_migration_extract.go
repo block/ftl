@@ -2,7 +2,6 @@ package buildengine
 
 import (
 	"archive/tar"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,39 +12,33 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/moduleconfig"
 )
 
 // ExtractSQLMigrations extracts all migrations from the given directory and returns the updated schema and a list of migration files to deploy.
-func extractSQLMigrations(migrationsDir string, targetDir string, sch *schema.Module) ([]string, error) {
-	paths, err := os.ReadDir(migrationsDir)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to read migrations directory: %w", err)
-	}
+func extractSQLMigrations(cfg moduleconfig.AbsModuleConfig, sch *schema.Module, targetDir string) ([]string, error) {
 	ret := []string{}
-	for _, dir := range paths {
-		path := filepath.Join(migrationsDir, dir.Name())
-		dbsDecls := slices.FilterVariants[*schema.Database](sch.Decls)
-		for db := range dbsDecls {
-			if db.Name != dir.Name() {
-				continue
-			}
-			fileName := db.Name + ".tar"
-			target := filepath.Join(targetDir, fileName)
-			err := createMigrationTarball(path, target)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create migration tar %s: %w", dir.Name(), err)
-			}
-			digest, err := sha256.SumFile(target)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read migration tar for sha256 %s: %w", dir.Name(), err)
-			}
-			db.Metadata = append(db.Metadata, &schema.MetadataSQLMigration{Digest: digest.String()})
-			ret = append(ret, fileName)
-			break
+	for db := range slices.FilterVariants[*schema.Database](sch.Decls) {
+		dbContent, ok := cfg.SQLDatabases[db.Name]
+		if !ok {
+			continue
 		}
+		schemaDir, ok := dbContent.SchemaDir.Get()
+		if !ok {
+			continue
+		}
+		fileName := db.Name + ".tar"
+		target := filepath.Join(targetDir, fileName)
+		err := createMigrationTarball(filepath.Join(cfg.Dir, schemaDir), target)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create migration tar %s: %w", schemaDir, err)
+		}
+		digest, err := sha256.SumFile(target)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read migration tar for sha256 %s: %w", schemaDir, err)
+		}
+		db.Metadata = append(db.Metadata, &schema.MetadataSQLMigration{Digest: digest.String()})
+		ret = append(ret, fileName)
 	}
 	return ret, nil
 }
@@ -116,13 +109,13 @@ func createMigrationTarball(migrationDir string, target string) error {
 	return nil
 }
 
-func handleDatabaseMigrations(deployDir string, dbDir string, module *schema.Module) ([]string, error) {
-	target := filepath.Join(deployDir, "migrations")
+func handleDatabaseMigrations(cfg moduleconfig.AbsModuleConfig, module *schema.Module) ([]string, error) {
+	target := filepath.Join(cfg.DeployDir, "migrations")
 	err := os.MkdirAll(target, 0770) // #nosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to create migration directory: %w", err)
 	}
-	migrations, err := extractSQLMigrations(dbDir, target, module)
+	migrations, err := extractSQLMigrations(cfg, module, target)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract migrations: %w", err)
 	}

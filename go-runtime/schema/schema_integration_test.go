@@ -70,8 +70,6 @@ func testExtractModuleSchema(t *testing.T) {
   config configValue one.Config
   secret secretValue String
 
-  database postgres testDb
-
   enum Animal {
     Dog one.Dog
     Lion one.Lion
@@ -228,8 +226,6 @@ func testExtractModuleSchemaTwo(t *testing.T) {
 	}
 	actual := schema.Normalise(r.Module)
 	expected := `module two {
-			database postgres foo
-
 			typealias BackoffAlias Any
         		+typemap go "github.com/jpillora/backoff.Backoff"
 			typealias ExplicitAliasAlias Any
@@ -319,7 +315,6 @@ func testExtractModuleSchemaTwo(t *testing.T) {
 			export verb three(two.Payload<String>) two.Payload<String>
 
 			export verb two(two.Payload<String>) two.Payload<String>
-				+database calls two.foo
 		  }
 	`
 	assert.Equal(t, normaliseString(expected), normaliseString(actual.String()))
@@ -554,44 +549,43 @@ func TestErrorReporting(t *testing.T) {
 		`12:6: duplicate config declaration for "failing.differentDeclDupl"; already declared at "40:6"`,
 		`15:6: duplicate config declaration for "failing.ftlConfigEndpoint"; already declared at "37:6"`,
 		`18:6: duplicate secret declaration for "failing.ftlSecretEndpoint"; already declared at "38:6"`,
-		`20:6: duplicate database declaration for "failing.testdb"; already declared at "42:6"`,
-		`27:2-10: unsupported type "error" for field "BadParam"`,
-		`30:2-17: unsupported type "uint64" for field "AnotherBadParam"`,
-		`33:3: unexpected directive "ftl:export" attached for verb, did you mean to use '//ftl:verb export' instead?`,
-		`39:45: unsupported request type "ftl/failing.Request"`,
-		`39:54-66: unsupported verb parameter type; verbs must have the signature func(Context, Request?, Resources...)`,
-		`39:69: unsupported response type "ftl/failing.Response"`,
-		`44:22-27: first parameter must be of type context.Context but is ftl/failing.Request`,
-		`44:53: unsupported response type "ftl/failing.Response"`,
-		`49:43-47: second parameter must not be ftl.Unit`,
-		`49:59: unsupported response type "ftl/failing.Response"`,
-		`54:1-2: first parameter must be context.Context`,
-		`54:18: unsupported response type "ftl/failing.Response"`,
-		`59:1-2: must have at most two results (<type>, error)`,
-		`59:45: unsupported request type "ftl/failing.Request"`,
-		`64:1-2: must at least return an error`,
-		`64:40: unsupported request type "ftl/failing.Request"`,
-		`68:39: unsupported request type "ftl/failing.Request"`,
-		`68:48: must return an error but is "ftl/failing.Response"`,
-		`73:45: unsupported request type "ftl/failing.Request"`,
-		`73:63: must return an error but is "string"`,
-		`73:63: second result must not be ftl.Unit`,
-		`84:3: unexpected directive "ftl:verb"`,
-		`93:6-18: "BadValueEnum" is a value enum and cannot be tagged as a variant of type enum "TypeEnum" directly`,
-		`102:6-35: "BadValueEnumOrderDoesntMatter" is a value enum and cannot be tagged as a variant of type enum "TypeEnum" directly`,
-		`124:1: schema declaration contains conflicting directives`,
-		`124:1-26: only one directive expected when directive "ftl:enum" is present, found multiple`,
-		`146:6-45: enum discriminator "TypeEnum3" cannot contain exported methods`,
-		`149:6-35: enum discriminator "NoMethodsTypeEnum" must define at least one method`,
-		`161:3-14: unexpected token "d"`,
-		`168:2-49: can not publish directly to topics in other modules`,
-		`174:2-12: struct field unexported must be exported by starting with an uppercase letter`,
-		`178:6: unsupported type "ftl/failing/child.BadChildStruct" for field "child"`,
-		`183:6: duplicate data declaration for "failing.Redeclared"; already declared at "27:6"`,
-		`197:2-43: Enum value must be exported by making the first letter capitalized`,
-		`198:2-41: Enum value must be exported by making the first letter capitalized`,
-		`208:9: direct verb calls are not allowed; use the provided EmptyClient instead. See https://block.github.io/ftl/docs/reference/verbs/#calling-verbs`,
-		`212:6-76: single partition map can not have more than one partition`,
+		`21:2-10: unsupported type "error" for field "BadParam"`,
+		`24:2-17: unsupported type "uint64" for field "AnotherBadParam"`,
+		`27:3: unexpected directive "ftl:export" attached for verb, did you mean to use '//ftl:verb export' instead?`,
+		`33:45: unsupported request type "ftl/failing.Request"`,
+		`33:54-66: unsupported verb parameter type; verbs must have the signature func(Context, Request?, Resources...)`,
+		`33:69: unsupported response type "ftl/failing.Response"`,
+		`38:22-27: first parameter must be of type context.Context but is ftl/failing.Request`,
+		`38:53: unsupported response type "ftl/failing.Response"`,
+		`43:43-47: second parameter must not be ftl.Unit`,
+		`43:59: unsupported response type "ftl/failing.Response"`,
+		`48:1-2: first parameter must be context.Context`,
+		`48:18: unsupported response type "ftl/failing.Response"`,
+		`53:1-2: must have at most two results (<type>, error)`,
+		`53:45: unsupported request type "ftl/failing.Request"`,
+		`58:1-2: must at least return an error`,
+		`58:40: unsupported request type "ftl/failing.Request"`,
+		`62:39: unsupported request type "ftl/failing.Request"`,
+		`62:48: must return an error but is "ftl/failing.Response"`,
+		`67:45: unsupported request type "ftl/failing.Request"`,
+		`67:63: must return an error but is "string"`,
+		`67:63: second result must not be ftl.Unit`,
+		`78:3: unexpected directive "ftl:verb"`,
+		`87:6-18: "BadValueEnum" is a value enum and cannot be tagged as a variant of type enum "TypeEnum" directly`,
+		`96:6-35: "BadValueEnumOrderDoesntMatter" is a value enum and cannot be tagged as a variant of type enum "TypeEnum" directly`,
+		`118:1: schema declaration contains conflicting directives`,
+		`118:1-26: only one directive expected when directive "ftl:enum" is present, found multiple`,
+		`140:6-45: enum discriminator "TypeEnum3" cannot contain exported methods`,
+		`143:6-35: enum discriminator "NoMethodsTypeEnum" must define at least one method`,
+		`155:3-14: unexpected token "d"`,
+		`162:2-49: can not publish directly to topics in other modules`,
+		`168:2-12: struct field unexported must be exported by starting with an uppercase letter`,
+		`172:6: unsupported type "ftl/failing/child.BadChildStruct" for field "child"`,
+		`177:6: duplicate data declaration for "failing.Redeclared"; already declared at "27:6"`,
+		`191:2-43: Enum value must be exported by making the first letter capitalized`,
+		`192:2-41: Enum value must be exported by making the first letter capitalized`,
+		`202:9: direct verb calls are not allowed; use the provided EmptyClient instead. See https://block.github.io/ftl/docs/reference/verbs/#calling-verbs`,
+		`206:6-76: single partition map can not have more than one partition`,
 	}
 
 	// failing/child/child.go
@@ -601,7 +595,7 @@ func TestErrorReporting(t *testing.T) {
 		`14:8: unsupported external type "github.com/block/ftl/go-runtime/schema/testdata.NonFTLType"; see FTL docs on using external types: block.github.io/ftl/docs/reference/externaltypes/`,
 		`19:6-41: declared type github.com/blah.lib.NonFTLType in typemap does not match native type github.com/block/ftl/go-runtime/schema/testdata.lib.NonFTLType`,
 		`24:6: multiple Go type mappings found for "ftl/failing/child.MultipleMappings"`,
-		`34:2-13: enum variant "SameVariant" conflicts with existing enum variant of "EnumVariantConflictParent" at "190:2"`,
+		`34:2-13: enum variant "SameVariant" conflicts with existing enum variant of "EnumVariantConflictParent" at "184:2"`,
 	}
 	assert.Equal(t, expectedParent, actualParent)
 	assert.Equal(t, expectedChild, actualChild)
