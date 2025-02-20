@@ -179,7 +179,7 @@ func New(
 		projectConfig:    projectConfig,
 		moduleDirs:       moduleDirs,
 		moduleMetas:      xsync.NewMapOf[string, moduleMeta](),
-		watcher:          watch.NewWatcher(optional.Some(projectConfig.WatchModulesLockPath()), "ftl.toml"),
+		watcher:          watch.NewWatcher(optional.Some(projectConfig.WatchModulesLockPath()), "ftl.toml", "**/*.sql"),
 		controllerSchema: xsync.NewMapOf[string, *schema.Module](),
 		schemaChanges:    pubsub.New[schema.Notification](),
 		pluginEvents:     make(chan languageplugin.PluginEvent, 128),

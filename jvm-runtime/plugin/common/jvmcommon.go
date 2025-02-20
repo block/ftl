@@ -10,7 +10,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"slices"
 	"sort"
@@ -397,16 +396,6 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 	}
 	logger.Debugf("Dev mode process started")
 	_ = output.FinalizeCapture()
-
-	migrationHash := watch.FileHashes{}
-
-	if fileExists(buildCtx.Config.SQLMigrationDirectory) {
-		migrationHash, err = watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"**/*.sql"})
-		if err != nil {
-			return fmt.Errorf("could not compute file hashes: %w", err)
-		}
-	}
-
 	reloadEvents := make(chan *buildResult, 32)
 
 	schemaWatch, err := client.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
@@ -457,24 +446,12 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			logger.Debugf("Checking for SQL schema changes")
-			if fileExists(buildCtx.Config.SQLMigrationDirectory) {
-				newMigrationHash, err := watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"**/*.sql"})
-				if err != nil {
-					logger.Errorf(err, "could not compute file hashes")
-				} else if !reflect.DeepEqual(newMigrationHash, migrationHash) {
-					changed = true
-					migrationHash = newMigrationHash
-				}
-			}
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: changed, failed: result.Msg.Failed}
-
 		}
 	}
 }
 
 func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, firstResponseSent *atomic.Value[bool], stream *connect.ServerStream[langpb.BuildResponse], devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32) {
-
 	logger := log.FromContext(ctx)
 	lastFailed := false
 	for event := range channels.IterContext(ctx, reloadEvents) {

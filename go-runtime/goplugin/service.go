@@ -29,7 +29,6 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
-	"github.com/block/ftl/internal/sqlc"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -177,7 +176,7 @@ func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.
 // ModuleConfigDefaults provides default values for ModuleConfig for values that are not configured in the ftl.toml file.
 func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
 	deployDir := ".ftl"
-	watch := []string{"**/*.go", "**/*.sql", "go.mod", "go.sum"}
+	watch := []string{"**/*.go", "go.mod", "go.sum"}
 	additionalWatch, err := replacementWatches(req.Msg.Dir, deployDir)
 	watch = append(watch, additionalWatch...)
 	if err != nil {
@@ -259,7 +258,6 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	if err != nil {
 		return err
 	}
-
 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 
 	ongoingState := &compile.OngoingState{}
@@ -295,18 +293,6 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 			})
 			if err != nil {
 				return fmt.Errorf("could not send auto rebuild started event: %w", err)
-			}
-			_, err := sqlc.AddQueriesToSchema(ctx, projectConfig.Root(), buildCtx.Config, buildCtx.Schema)
-			if err != nil {
-				buildEvent := buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
-					Type:  builderrors.FTL,
-					Level: builderrors.ERROR,
-					Msg:   fmt.Errorf("failed to add queries to schema: %w", err).Error(),
-				})
-				if err = stream.Send(buildEvent); err != nil {
-					return fmt.Errorf("could not send build event: %w", err)
-				}
-				continue
 			}
 		}
 		if err = buildAndSend(ctx, stream, projectConfig, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, true); err != nil {
@@ -363,7 +349,7 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 		for e := range channels.IterContext(ctx, watchEvents) {
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
 				log.FromContext(ctx).Infof("Found file changes: %s", change)
-				events <- filesUpdatedEvent{changes: change.Changes}
+				events <- updateEvent(filesUpdatedEvent{changes: change.Changes})
 			}
 		}
 	}()
