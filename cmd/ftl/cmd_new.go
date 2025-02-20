@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/flock"
@@ -22,15 +24,34 @@ type newCmd struct {
 	Language string `arg:"" help:"Language of the module to create."`
 	Name     string `arg:"" help:"Name of the FTL module to create underneath the base directory."`
 	Dir      string `arg:"" help:"Directory to initialize the module in." default:"${gitroot}"`
+
+	AllowedDirs []string `help:"Directory that modules are required to be in (unless --force is set)." env:"FTL_DEV_DIRS" hidden:""`
+	Force       bool     `help:"Force creation of module without checking allowed directories." short:"f"`
 }
 
 func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconfig.Config, pluginHolder languageplugin.InitializedPlugins) error {
+	logger := log.FromContext(ctx)
 	name, path, err := validateModule(i.Dir, i.Name)
 	if err != nil {
 		return err
 	}
 
-	logger := log.FromContext(ctx)
+	if !i.Force && len(i.AllowedDirs) > 0 {
+		allowedAbsDirs := make([]string, len(i.AllowedDirs))
+		for i, d := range i.AllowedDirs {
+			absDir, err := filepath.Abs(d)
+			if err != nil {
+				return fmt.Errorf("could not make %q an absolute path: %w", d, err)
+			}
+			allowedAbsDirs[i] = absDir
+		}
+		if _, ok := slices.Find(allowedAbsDirs, func(d string) bool {
+			return strings.HasPrefix(path, d)
+		}); !ok {
+			return fmt.Errorf("module directory %s is not within the expected module directories (%v). Please choose an appropriate path or force create the module outside of the expected directories by using the --force argument", path, strings.Join(allowedAbsDirs, ", "))
+		}
+	}
+
 	logger.Debugf("Creating FTL %s module %q in %s", i.Language, name, path)
 
 	moduleConfig := moduleconfig.ModuleConfig{
@@ -41,6 +62,9 @@ func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconf
 
 	flags := map[string]string{}
 	for _, f := range ktctx.Selected().Flags {
+		if f.Name == "allowed-dirs" || f.Name == "force" {
+			continue
+		}
 		flagValue, ok := f.Target.Interface().(string)
 		if !ok {
 			return fmt.Errorf("expected %v value to be a string but it was %T", f.Name, f.Target.Interface())
@@ -57,7 +81,6 @@ func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconf
 	if err != nil {
 		return fmt.Errorf("could not acquire file lock: %w", err)
 	}
-	logger.Infof("acquired file lock for %s", config.WatchModulesLockPath())
 	defer release() //nolint:errcheck
 
 	err = plugin.CreateModule(ctx, config, moduleConfig, flags)

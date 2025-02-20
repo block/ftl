@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -53,6 +56,18 @@ func (d *devCmd) Run(
 	if len(d.Build.Dirs) == 0 {
 		return errors.New("no directories specified")
 	}
+
+	// Set environment variable so child processes know where modules are expected to be
+	// such as via the interactive console or goose.
+	absDirs := make([]string, len(d.Build.Dirs))
+	for i, dir := range d.Build.Dirs {
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			return fmt.Errorf("could not create absolute path for %q: %w", dir, err)
+		}
+		absDirs[i] = absDir
+	}
+	os.Setenv("FTL_DEV_DIRS", strings.Join(absDirs, ","))
 
 	terminal.LaunchEmbeddedConsole(ctx, k, bindContext, schemaEventSource)
 	var deployClient buildengine.AdminClient = adminClient
