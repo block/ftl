@@ -85,7 +85,7 @@ DOCKER_IMAGES := '''
   "schema": {}
 }
 '''
-USER_HERMIT_PACKAGES := "openjdk maven"
+USER_HERMIT_PACKAGES := "openjdk maven go-1"
 
 _help:
   @just -l
@@ -123,7 +123,7 @@ capture-hermit-versions:
     set -euo pipefail
     rm cmd/ftl/dependency-versions.txt
     for dep in {{USER_HERMIT_PACKAGES}}; do
-        ls bin/.* | grep $dep | sed 's/.....\(.*\)....$/\1/' >> cmd/ftl/dependency-versions.txt
+        ls bin/.* | grep "/.$dep" | sed 's/.....\(.*\)....$/\1/' >> cmd/ftl/dependency-versions.txt
     done
 
 # Build everything
