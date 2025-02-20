@@ -68,7 +68,6 @@ func TestGoConfigDefaults(t *testing.T) {
 				DeployDir: ".ftl",
 				Watch: []string{
 					"**/*.go",
-					"**/*.sql",
 					"go.mod",
 					"go.sum",
 					"../../../../go-runtime/ftl/**/*.go",
@@ -83,7 +82,6 @@ func TestGoConfigDefaults(t *testing.T) {
 				DeployDir: ".ftl",
 				Watch: []string{
 					"**/*.go",
-					"**/*.sql",
 					"go.mod",
 					"go.sum",
 					"../../../../go-runtime/ftl/**/*.go",
