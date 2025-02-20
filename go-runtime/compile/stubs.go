@@ -32,6 +32,10 @@ type ExternalDeploymentContext struct {
 }
 
 func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, config moduleconfig.AbsModuleConfig, nativeConfig optional.Option[moduleconfig.AbsModuleConfig]) error {
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", dir, err)
+	}
+
 	var goModVersion string
 	var replacements []*modfile.Replace
 	var err error
