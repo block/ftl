@@ -104,7 +104,8 @@
                             <goal>extension-descriptor</goal>
                         </goals>
                         <configuration>
-                            <deployment>${project.groupId}:${project.artifactId}-deployment:${project.version}</deployment>
+                            <deployment>${project.groupId}:${project.artifactId}-deployment:${project.version}
+                            </deployment>
                             <parentFirstArtifacts>xyz.block.ftl:ftl-jvm-hot-reload</parentFirstArtifacts>
                         </configuration>
                     </execution>
@@ -154,13 +155,15 @@
                         </goals>
                         <configuration>
                             <clearOutputDirectory>false</clearOutputDirectory>
-                            <protocArtifact>com.google.protobuf:protoc:3.25.4:exe:${os.detected.classifier}</protocArtifact>
+                            <protocArtifact>com.google.protobuf:protoc:3.25.4:exe:${os.detected.classifier}
+                            </protocArtifact>
                             <protoSourceRoot>${rootDir}/backend/protos</protoSourceRoot>
                             <additionalProtoPathElements>
                                 <additionalProtoPathElement>${rootDir}/common/protos</additionalProtoPathElement>
                             </additionalProtoPathElements>
                             <pluginId>grpc-java</pluginId>
-                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.65.1:exe:${os.detected.classifier}</pluginArtifact>
+                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.65.1:exe:${os.detected.classifier}
+                            </pluginArtifact>
                             <includes>
                                 <include>**/schema.proto</include>
                                 <include>**/verb.proto</include>
@@ -185,13 +188,15 @@
                         </goals>
                         <configuration>
                             <clearOutputDirectory>false</clearOutputDirectory>
-                            <protocArtifact>com.google.protobuf:protoc:3.25.4:exe:${os.detected.classifier}</protocArtifact>
+                            <protocArtifact>com.google.protobuf:protoc:3.25.4:exe:${os.detected.classifier}
+                            </protocArtifact>
                             <protoSourceRoot>${rootDir}/common/protos</protoSourceRoot>
                             <additionalProtoPathElements>
                                 <additionalProtoPathElement>${rootDir}/backend/protos</additionalProtoPathElement>
                             </additionalProtoPathElements>
                             <pluginId>grpc-java</pluginId>
-                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.65.1:exe:${os.detected.classifier}</pluginArtifact>
+                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.65.1:exe:${os.detected.classifier}
+                            </pluginArtifact>
                             <includes>
                                 <include>**/schema.proto</include>
                                 <include>**/verb.proto</include>
@@ -205,6 +210,28 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                    <commitIdGenerationMode>full</commitIdGenerationMode>
+                    <includeOnlyProperties>
+                        <includeOnlyProperty>git.commit.id.abbrev</includeOnlyProperty>
+                        <includeOnlyProperty>git.dirty</includeOnlyProperty>
+                    </includeOnlyProperties>
+                </configuration>
             </plugin>
         </plugins>
     </build>

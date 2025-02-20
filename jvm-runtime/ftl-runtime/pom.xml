@@ -61,7 +61,8 @@
         <version.impsort.plugin>1.12.0</version.impsort.plugin>
         <kotlinpoet.version>2.0.0</kotlinpoet.version>
         <tomlj.version>1.1.1</tomlj.version>
-        <antlr4-runtime.version>4.13.2</antlr4-runtime.version>
+        <antlr4-runtime.version>4.11.1</antlr4-runtime.version>
+        <git-commit-id-plugin.version>5.0.0</git-commit-id-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -280,6 +281,11 @@
                             </goals>
                         </execution>
                     </executions>
+                </plugin>
+                <plugin>
+                    <groupId>io.github.git-commit-id</groupId>
+                    <artifactId>git-commit-id-maven-plugin</artifactId>
+                    <version>${git-commit-id-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

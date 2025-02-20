@@ -34,6 +34,7 @@ public class FTLController implements LeaseClient {
         if (controller == null) {
             synchronized (FTLController.class) {
                 if (controller == null) {
+                    GitVersion.logVersion();
                     controller = new FTLController();
                 }
             }
