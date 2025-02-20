@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/concurrency"
 	"github.com/block/ftl/internal/dsn"
