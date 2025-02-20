@@ -5,6 +5,7 @@ package xyz.block.ftl.query.v1;
 import "xyz/block/ftl/v1/ftl.proto";
 
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1;querypb";
+option java_multiple_files = true;
 
 message BeginTransactionRequest {}
 

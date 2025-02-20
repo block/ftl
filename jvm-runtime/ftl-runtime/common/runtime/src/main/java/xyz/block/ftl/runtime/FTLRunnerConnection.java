@@ -27,6 +27,9 @@ import xyz.block.ftl.lease.v1.LeaseServiceGrpc;
 import xyz.block.ftl.pubsub.v1.PublishEventRequest;
 import xyz.block.ftl.pubsub.v1.PublishEventResponse;
 import xyz.block.ftl.pubsub.v1.PublishServiceGrpc;
+import xyz.block.ftl.query.v1.ExecuteQueryRequest;
+import xyz.block.ftl.query.v1.ExecuteQueryResponse;
+import xyz.block.ftl.query.v1.QueryServiceGrpc;
 import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.v1.CallRequest;
 import xyz.block.ftl.v1.CallResponse;
@@ -53,6 +56,7 @@ class FTLRunnerConnection implements Closeable {
     final LeaseServiceGrpc.LeaseServiceStub leaseService;
     final PublishServiceGrpc.PublishServiceStub publishService;
     final StreamObserver<GetDeploymentContextResponse> moduleObserver = new ModuleObserver();
+    final QueryServiceGrpc.QueryServiceStub queryService;
 
     FTLRunnerConnection(final String endpoint, final String deploymentName, final String moduleName,
             final Runnable closeHandler) {
@@ -80,6 +84,7 @@ class FTLRunnerConnection implements Closeable {
         verbService = VerbServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         publishService = PublishServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         leaseService = LeaseServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
+        queryService = QueryServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         this.endpoint = endpoint;
     }
 
@@ -276,4 +281,31 @@ class FTLRunnerConnection implements Closeable {
         }
     }
 
+    public List<ExecuteQueryResponse> executeQuery(ExecuteQueryRequest request) {
+        CompletableFuture<List<ExecuteQueryResponse>> cf = new CompletableFuture<>();
+        List<ExecuteQueryResponse> responses = new ArrayList<>();
+
+        queryService.executeQuery(request, new StreamObserver<ExecuteQueryResponse>() {
+            @Override
+            public void onNext(ExecuteQueryResponse response) {
+                responses.add(response);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                cf.completeExceptionally(throwable);
+            }
+
+            @Override
+            public void onCompleted() {
+                cf.complete(responses);
+            }
+        });
+
+        try {
+            return cf.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

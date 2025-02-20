@@ -605,6 +605,15 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 	if err != nil {
 		return nil, err
 	}
+
+	for _, module := range bctx.Schema.Modules {
+		if bctx.Config.Module == module.Name {
+			proto := module.ToProto()
+			moduleProto.Decls = append(moduleProto.Decls, proto.Decls...)
+			break
+		}
+	}
+
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildSuccess{
 			BuildSuccess: &langpb.BuildSuccess{
@@ -956,9 +965,9 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 	changed := false
 
 	for _, mod := range v.Modules {
-		if mod.Name == config.Module {
-			continue
-		}
+		// if mod.Name == config.Module {
+		// 	repr.Print(mod)
+		// }
 		deps := v.ModuleDependencies(mod.Name)
 		if deps[config.Module] != nil {
 			continue

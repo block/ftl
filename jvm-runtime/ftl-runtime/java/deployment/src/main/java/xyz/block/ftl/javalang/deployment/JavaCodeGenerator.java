@@ -30,15 +30,20 @@ import com.squareup.javapoet.WildcardTypeName;
 import xyz.block.ftl.ConsumableTopic;
 import xyz.block.ftl.EnumHolder;
 import xyz.block.ftl.GeneratedRef;
+import xyz.block.ftl.QueryClient;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.VerbClient;
 import xyz.block.ftl.deployment.JVMCodeGenerator;
 import xyz.block.ftl.deployment.VerbType;
 import xyz.block.ftl.schema.v1.Data;
+import xyz.block.ftl.schema.v1.Decl;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.MetadataSQLQuery;
+import xyz.block.ftl.schema.v1.MetadataSQLColumn;
 import xyz.block.ftl.schema.v1.Module;
+import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.schema.v1.Topic;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.Value;
@@ -271,7 +276,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
     }
 
     protected void generateVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Path outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Path outputDir, boolean isLocal)
             throws IOException {
         String verbName = verb.getName();
         TypeSpec.Builder clientBuilder = TypeSpec.interfaceBuilder(className(verbName) + CLIENT)
@@ -282,22 +287,77 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
         if (JAVA_KEYWORDS.contains(verbName)) {
             methodName = verbName + "_";
         }
+
+        MetadataSQLQuery queryMetadata = getQueryMetadata(verb);
+        boolean isQuery = queryMetadata != null && isLocal;
+        AnnotationSpec.Builder annotationBuilder;
+        if (isQuery) {
+            annotationBuilder = AnnotationSpec.builder(QueryClient.class)
+                    .addMember("command", "\"" + queryMetadata.getCommand() + "\"")
+                    .addMember("rawSQL", "\"" + queryMetadata.getQuery() + "\"");
+        } else {
+            annotationBuilder = AnnotationSpec.builder(VerbClient.class);
+        }
+        annotationBuilder.addMember("module", "\"" + module.getName() + "\"");
+
         MethodSpec.Builder callMethod = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
-                .addAnnotation(AnnotationSpec.builder(VerbClient.class)
-                        .addMember("module", "\"" + module.getName() + "\"")
-                        .build())
                 .addJavadoc(String.join("\n", verb.getCommentsList()));
         VerbType verbType = VerbType.of(verb);
         if (verbType == VerbType.SOURCE || verbType == VerbType.VERB) {
-            callMethod.returns(toAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap));
+            Type request = verb.getRequest();
+            if (isQuery) {
+                List<MetadataSQLColumn> columnMetadata = getOrderedColumnMetadata(module, request);
+                String[] fields = columnMetadata.stream().map(m -> toJavaName(m.getName())).toArray(String[]::new);
+                annotationBuilder.addMember("fields", "{$S}", String.join("\", \"", fields));
+            }
+            callMethod.returns(toAnnotatedJavaTypeName(request, typeAliasMap, nativeTypeAliasMap));
         }
         if (verbType == VerbType.SINK || verbType == VerbType.VERB) {
-            callMethod.addParameter(toAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap), "value");
+            Type response = verb.getResponse();
+            if (isQuery) {
+                List<MetadataSQLColumn> columnMetadata = getOrderedColumnMetadata(module, response);
+                String[] fields = columnMetadata.stream().map(m -> m.getName() + "," + toJavaName(m.getName())).toArray(String[]::new);
+                annotationBuilder.addMember("colToFieldName", "{$S}", String.join("\", \"", fields));
+            }
+            callMethod.returns(toAnnotatedJavaTypeName(response, typeAliasMap, nativeTypeAliasMap));
         }
+        callMethod.addAnnotation(annotationBuilder.build());
+       
         clientBuilder.addMethod(callMethod.build());
         JavaFile javaFile = JavaFile.builder(packageName, clientBuilder.build()).build();
         javaFile.writeTo(outputDir);
+    }
+
+    private MetadataSQLQuery getQueryMetadata(Verb verb) {
+        return verb.getMetadataList().stream().findFirst().map(md -> md.getSqlQuery()).orElse(null);
+    }
+
+    private List<MetadataSQLColumn> getOrderedColumnMetadata(Module module, Type type) {
+        Ref ref = type.getRef();
+        if (ref == null) {
+            return null;
+        }
+        Data data = resolveDataDecl(module, ref);
+        if (data == null) {
+            return null;
+        }
+        List<MetadataSQLColumn> metadata = new ArrayList<>();
+        for (var field : data.getFieldsList()) {
+            MetadataSQLColumn fieldMd = field.getMetadataList().stream().findFirst().map(md -> md.getSqlColumn()).orElse(null);
+            if (fieldMd != null) {
+                metadata.add(fieldMd);
+            }
+        }
+        return metadata;
+    }
+
+    private Data resolveDataDecl(Module module, Ref ref) {
+        if (ref == null) {
+            return null;
+        }
+        return module.getDeclsList().stream().filter(d -> d.hasData() && d.getData().getName().equals(ref.getName()))   
+                .findFirst().map(d -> d.getData()).orElse(null);
     }
 
     private String toJavaName(String name) {
