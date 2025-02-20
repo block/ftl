@@ -165,4 +165,8 @@ public class FTLRecorder {
     public void loadModuleContextOnStartup() {
         FTLController.instance().loadDeploymentContext();
     }
+
+    public void failStartup(String message) {
+        throw new RuntimeException(message);
+    }
 }

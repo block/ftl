@@ -47,6 +47,10 @@ JVM_RUNTIME_IN :=  "jvm-runtime/ftl-runtime/pom.xml " + \
   "jvm-runtime/ftl-runtime/kotlin/runtime/pom.xml " + \
   "jvm-runtime/ftl-runtime/kotlin/deployment/src " + \
   "jvm-runtime/ftl-runtime/kotlin/deployment/pom.xml " + \
+  "jvm-runtime/ftl-runtime/common/hotreload/src " + \
+  "jvm-runtime/ftl-runtime/common/hotreload/pom.xml " + \
+  "jvm-runtime/ftl-runtime/common/bom/pom.xml " + \
+  "jvm-runtime/ftl-runtime/common/build-parent/pom.xml " + \
   "jvm-runtime/ftl-runtime/common/deployment/src " + \
   "jvm-runtime/ftl-runtime/common/deployment/pom.xml " + \
   "jvm-runtime/ftl-runtime/common/runtime/src " + \
@@ -55,6 +59,7 @@ JVM_RUNTIME_OUT := "jvm-runtime/ftl-runtime/java/runtime/target/ftl-java-runtime
   "jvm-runtime/ftl-runtime/java/deployment/target/ftl-java-runtime-deployment-1.0-SNAPSHOT.jar " + \
   "jvm-runtime/ftl-runtime/kotlin/runtime/target/ftl-kotlin-runtime-1.0-SNAPSHOT.jar " + \
   "jvm-runtime/ftl-runtime/kotlin/deployment/target/ftl-kotlin-runtime-deployment-1.0-SNAPSHOT.jar " + \
+  "jvm-runtime/ftl-runtime/common/hotreload/target/ftl-jvm-hot-reload-1.0-SNAPSHOT.jar " + \
   "jvm-runtime/ftl-runtime/common/deployment/target/ftl-jvm-runtime-deployment-1.0-SNAPSHOT.jar " + \
   "jvm-runtime/ftl-runtime/common/runtime/target/ftl-jvm-runtime-1.0-SNAPSHOT.jar"
 

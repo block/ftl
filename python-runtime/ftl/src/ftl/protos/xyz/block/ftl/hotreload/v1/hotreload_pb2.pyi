@@ -71,9 +71,11 @@ class ReloadFailed(_message.Message):
     def __init__(self, state: _Optional[_Union[SchemaState, _Mapping]] = ...) -> None: ...
 
 class SchemaState(_message.Message):
-    __slots__ = ("module", "errors")
+    __slots__ = ("module", "errors", "new_runner_required")
     MODULE_FIELD_NUMBER: _ClassVar[int]
     ERRORS_FIELD_NUMBER: _ClassVar[int]
+    NEW_RUNNER_REQUIRED_FIELD_NUMBER: _ClassVar[int]
     module: _schema_pb2.Module
     errors: _language_pb2.ErrorList
-    def __init__(self, module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., errors: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ...) -> None: ...
+    new_runner_required: bool
+    def __init__(self, module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., errors: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ..., new_runner_required: bool = ...) -> None: ...

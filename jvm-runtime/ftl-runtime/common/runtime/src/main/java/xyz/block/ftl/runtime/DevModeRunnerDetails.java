@@ -9,6 +9,8 @@ import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class DevModeRunnerDetails implements RunnerDetails {
 
+    private static RuntimeException CLOSED = new RuntimeException("FTL Runner is closed");
+
     private volatile Map<String, String> databases;
     private volatile String proxyAddress;
     private volatile String deployment;
@@ -20,9 +22,13 @@ public class DevModeRunnerDetails implements RunnerDetails {
 
     private void setRunnerInfo(RunnerInfo runnerInfo) {
         synchronized (this) {
-            proxyAddress = runnerInfo.address();
-            deployment = runnerInfo.deployment();
-            databases = runnerInfo.databases();
+            if (runnerInfo.failed()) {
+                closed = true;
+            } else {
+                proxyAddress = runnerInfo.address();
+                deployment = runnerInfo.deployment();
+                databases = runnerInfo.databases();
+            }
             notifyAll();
         }
     }
@@ -37,11 +43,19 @@ public class DevModeRunnerDetails implements RunnerDetails {
     }
 
     private void waitForLoad() {
+        long end = System.currentTimeMillis() + 10000;
         while (proxyAddress == null && !closed) {
+            if (System.currentTimeMillis() > end) {
+                RunnerNotification.clearCallback();
+                IllegalStateException exception = new IllegalStateException(
+                        "Failed to start app, runner details not available within 10s");
+                exception.setStackTrace(new StackTraceElement[0]);
+                throw exception;
+            }
             synchronized (this) {
                 if (proxyAddress == null && !closed) {
                     try {
-                        wait();
+                        wait(10000);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException(e);
@@ -49,14 +63,14 @@ public class DevModeRunnerDetails implements RunnerDetails {
                 }
             }
         }
+        if (closed) {
+            throw CLOSED;
+        }
     }
 
     @Override
     public Optional<DatasourceDetails> getDatabase(String database, GetDeploymentContextResponse.DbType type) {
         waitForLoad();
-        if (closed) {
-            return Optional.empty();
-        }
         String address = databases.get(database);
         if (address == null) {
             return Optional.empty();
@@ -74,9 +88,6 @@ public class DevModeRunnerDetails implements RunnerDetails {
     @Override
     public String getDeploymentKey() {
         waitForLoad();
-        if (closed) {
-            return null;
-        }
         return deployment;
     }
 
