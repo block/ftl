@@ -22,9 +22,13 @@ public class DevModeRunnerDetails implements RunnerDetails {
 
     private void setRunnerInfo(RunnerInfo runnerInfo) {
         synchronized (this) {
-            proxyAddress = runnerInfo.address();
-            deployment = runnerInfo.deployment();
-            databases = runnerInfo.databases();
+            if (runnerInfo.failed()) {
+                closed = true;
+            } else {
+                proxyAddress = runnerInfo.address();
+                deployment = runnerInfo.deployment();
+                databases = runnerInfo.databases();
+            }
             notifyAll();
         }
     }

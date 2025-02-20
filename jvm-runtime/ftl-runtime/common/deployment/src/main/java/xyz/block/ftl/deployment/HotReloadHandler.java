@@ -46,6 +46,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     private volatile SchemaState lastState;
     private volatile Server server;
     private volatile Consumer<SchemaState> runningReload;
+    private volatile boolean starting;
     private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
 
     public static HotReloadHandler getInstance() {
@@ -87,14 +88,16 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         // This is complex, as the restart can't happen until the runner is up
         // We want to report on the results of the schema generations, so we can bring up a runner
         // Run the restart in a new thread, so we can report on the schema once it is ready
-        synchronized (HotReloadHandler.this) {
-            while (runningReload != null) {
+        synchronized (this) {
+            while (starting) {
+                RunnerNotification.setRunnerInfo(new RunnerInfo(null, null, null, true));
                 try {
-                    HotReloadHandler.this.wait();
+                    this.wait();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
+            starting = true;
             runningReload = (state) -> {
                 synchronized (HotReloadHandler.this) {
                     runningReload = null;
@@ -130,7 +133,14 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             };
         }
         Thread t = new Thread(() -> {
-            doScan(request.getForce());
+            try {
+                doScan(request.getForce());
+            } finally {
+                synchronized (HotReloadHandler.this) {
+                    starting = false;
+                    HotReloadHandler.this.notifyAll();
+                }
+            }
             if (runningReload != null) {
                 // This generally happens on compile errors
                 runningReload.accept(lastState);
@@ -156,7 +166,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             databases.put(db.getName(), db.getAddress());
         }
         RunnerNotification
-                .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases));
+                .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases, false));
         responseObserver.onNext(RunnerInfoResponse.newBuilder().build());
         responseObserver.onCompleted();
     }
