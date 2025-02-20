@@ -11,15 +11,21 @@ public class RunnerNotification {
     private static volatile RunnerInfo info;
     private static final List<Runnable> runnerDetailsCallbacks = Collections.synchronizedList(new ArrayList<>());
 
-    public static synchronized void setCallback(Consumer<RunnerInfo> callback) {
-        if (RunnerNotification.callback != null) {
-            throw new IllegalStateException("Callback already set");
+    public static void setCallback(Consumer<RunnerInfo> callback) {
+        RunnerInfo existing = null;
+        synchronized (RunnerNotification.class) {
+            if (RunnerNotification.callback != null) {
+                throw new IllegalStateException("Callback already set");
+            }
+            if (info != null) {
+                existing = info;
+                info = null;
+            } else {
+                RunnerNotification.callback = callback;
+            }
         }
-        if (info != null) {
-            callback.accept(info);
-            info = null;
-        } else {
-            RunnerNotification.callback = callback;
+        if (existing != null) {
+            callback.accept(existing);
         }
     }
 
@@ -46,4 +52,9 @@ public class RunnerNotification {
         runnerDetailsCallbacks.add(callback);
     }
 
+    public static synchronized void clearClosedState() {
+        if (info != null && info.failed()) {
+            info = null;
+        }
+    }
 }
