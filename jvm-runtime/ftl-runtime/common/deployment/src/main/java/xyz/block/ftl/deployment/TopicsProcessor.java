@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.jboss.jandex.AnnotationValue;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Type;
 import org.jboss.logging.Logger;
@@ -79,7 +80,14 @@ public class TopicsProcessor {
                 throw new RuntimeException("SinglePartitionMapper can only be used with a single partition");
             }
 
-            String name = topicDefinition.value("name").asString();
+            AnnotationValue nameValue = topicDefinition.value("name");
+            String name = Character.toLowerCase(iface.name().toString().charAt(0)) + iface.name().toString().substring(1);
+            if (nameValue != null){
+                if (!nameValue.asString().isEmpty()) {
+                    name = nameValue.asString();
+                }
+            }
+
             if (names.contains(name)) {
                 throw new RuntimeException("Multiple topic definitions found for topic " + name);
             }

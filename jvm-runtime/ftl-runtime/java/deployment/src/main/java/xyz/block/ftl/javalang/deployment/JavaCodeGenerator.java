@@ -76,7 +76,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
 
     protected void generateTopicConsumer(Module module, Topic data, String packageName, Map<DeclRef, Type> typeAliasMap,
             Map<DeclRef, String> nativeTypeAliasMap, Path outputDir) throws IOException {
-        String thisType = className(data.getName() + "Topic");
+        String thisType = className(data.getName());
 
         TypeSpec.Builder dataBuilder = TypeSpec.interfaceBuilder(thisType)
                 .addModifiers(Modifier.PUBLIC);

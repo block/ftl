@@ -12,7 +12,7 @@ public @interface Topic {
      *
      * @return The name of the topic
      */
-    String name();
+    String name() default "";
 
     /**
      *

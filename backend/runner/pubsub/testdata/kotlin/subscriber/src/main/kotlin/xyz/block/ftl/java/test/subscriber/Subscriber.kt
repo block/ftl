@@ -9,7 +9,7 @@ import xyz.block.ftl.*
 import java.util.concurrent.atomic.AtomicInteger
 
 class Subscriber {
-    @Subscription(topic = TestTopicTopic::class, from = FromOffset.BEGINNING)
+    @Subscription(topic = TestTopic::class, from = FromOffset.BEGINNING)
     @Throws(
         Exception::class
     )
@@ -17,12 +17,12 @@ class Subscriber {
         Log.infof("Subscriber is consuming %s", event.time)
     }
 
-    @Subscription(topic = TestTopicTopic::class, from = FromOffset.LATEST)
+    @Subscription(topic = TestTopic::class, from = FromOffset.LATEST)
     fun consumeFromLatest(event: PubSubEvent) {
         Log.infof("Subscriber is consuming %s", event.time)
     }
 
-    @Subscription(topic = Topic2Topic::class, from = FromOffset.BEGINNING)
+    @Subscription(topic = Topic2::class, from = FromOffset.BEGINNING)
     @Retry(count = 2, minBackoff = "1s", maxBackoff = "1s", catchVerb = "catch")
     fun consumeButFailAndRetry(event: PubSubEvent) {
         throw RuntimeException("always error: event " + event.time)

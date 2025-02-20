@@ -12,14 +12,14 @@ class PartitionMapper : TopicPartitionMapper<PubSubEvent> {
 
 class Publisher {
     @Export
-    @Topic(name = "testTopic", partitions = 10)
+    @Topic(partitions = 10)
     interface TestTopic : WriteableTopic<PubSubEvent, PartitionMapper>
 
-    @Topic(name = "localTopic")
+    @Topic
     interface LocalTopic : WriteableTopic<PubSubEvent, PartitionMapper>
 
     @Export
-    @Topic(name = "topic2", partitions = 1)
+    @Topic(partitions = 1)
     interface Topic2 : WriteableTopic<PubSubEvent, SinglePartitionMapper>
 
     @Verb
