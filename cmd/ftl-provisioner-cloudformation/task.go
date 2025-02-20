@@ -8,7 +8,6 @@ import (
 	"github.com/alecthomas/atomic"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/jpillora/backoff"
 
 	"github.com/block/ftl/internal/log"
@@ -75,7 +74,7 @@ func waitForStackReady(ctx context.Context, stackID string, client *cloudformati
 	}
 }
 
-func (t *task) Start(oldCtx context.Context, client *cloudformation.Client, secrets *secretsmanager.Client, changeSetID string) {
+func (t *task) Start(oldCtx context.Context) {
 	ctx := context.WithoutCancel(oldCtx)
 	logger := log.FromContext(ctx)
 	go func() {

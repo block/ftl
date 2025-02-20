@@ -6,7 +6,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
 	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -16,13 +15,13 @@ import (
 	"github.com/block/ftl/internal/provisioner/state"
 )
 
-func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Request[provisionerpb.StatusRequest]) (*connect.Response[provisionerpb.StatusResponse], error) {
+func (c *SandboxProvisioner) Status(ctx context.Context, req *connect.Request[provisionerpb.StatusRequest]) (*connect.Response[provisionerpb.StatusResponse], error) {
 	token := req.Msg.ProvisioningToken
 	// if the task is not in the map, it means that the provisioner has crashed since starting the task
 	// in that case, we start a new task to query the existing stack
 	task, loaded := c.running.LoadOrStore(token, &task{})
 	if !loaded {
-		task.Start(ctx)
+		return nil, connect.NewError(connect.CodeUnknown, fmt.Errorf("task %s not found", token))
 	}
 
 	if task.err.Load() != nil {
@@ -59,19 +58,7 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 	}), nil
 }
 
-func outputsByResourceID(outputs []types.Output) (map[string][]types.Output, error) {
-	m := make(map[string][]types.Output)
-	for _, output := range outputs {
-		key, err := decodeOutputKey(output)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode output key: %w", err)
-		}
-		m[key.ResourceID] = append(m[key.ResourceID], output)
-	}
-	return m, nil
-}
-
-func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, outputs []state.State) ([]*schema.RuntimeElement, error) {
+func (c *SandboxProvisioner) updateResources(deployment key.Deployment, outputs []state.State) ([]*schema.RuntimeElement, error) {
 	var results []*schema.RuntimeElement
 
 	for _, output := range outputs {
