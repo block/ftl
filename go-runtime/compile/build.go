@@ -455,7 +455,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		}
 		if _, hasErrs := islices.Find(buildErrors, func(berr builderrors.Error) bool {
 			return berr.Level == builderrors.ERROR
-		}); hasErrs {
+		}); hasErrs { //nolint:errcheck
 			// If we failed, reset the state to ensure we don't skip steps on the next build.
 			// Example: If `go mod tidy` fails due to a network failure, we need to try again next time, even if nothing else has changed.
 			ongoingState.reset()
