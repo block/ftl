@@ -929,7 +929,11 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 	}
 	close(mustBuildChan)
 	mustBuild := map[string]bool{}
+	jvm := false
 	for config := range mustBuildChan {
+		if config.Language == "java" || config.Language == "kotlin" {
+			jvm = true
+		}
 		mustBuild[config.Module] = true
 		proto, err := langpb.ModuleConfigToProto(config.Abs())
 		if err != nil {
@@ -944,6 +948,12 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 				},
 			},
 		}
+	}
+	if jvm {
+		// Huge hack that is just for development
+		// In release builds this is a noop
+		// This makes sure the JVM jars are up to date when running from source
+		buildRequiredJARS(ctx)
 	}
 
 	graph, err := e.Graph(moduleNames...)
