@@ -13,34 +13,14 @@ import jakarta.ws.rs.QueryParam;
 import org.jboss.resteasy.reactive.RestPath;
 
 @Path("/")
-public class UserController {
+public class Users {
 	// Simple GET endpoint with path and query parameters
 	@GET
 	@Path("/http/users/{userId}/posts")
 	public Post getPost(@RestPath String userId, @QueryParam("postId") String postId) {
 		return new Post(userId, postId);
 	}
-
-	// POST endpoint with request body
-	@POST
-	@Path("/http/users/{userId}/posts")
-	public Post createPost(@RestPath String userId, PostBody body) {
-		return new Post(userId, body.title());
-	}
 }
-
-// Request body class
-record PostBody(
-	String title,
-	String content,
-	String tag
-) {}
-
-// Response class
-record Post(
-	String userId,
-	String title
-) {}
 ```
 
 See https://block.github.io/ftl/docs/reference/ingress/

@@ -1,32 +1,44 @@
 [
   {
-    "match": "//ftl:verb",
+    "matches": ["//ftl:verb", "@Verb"],
     "source": "reference/verbs.md"
   },
   {
-    "match": "//ftl:typealias",
+    "matches": ["export", "@Export"],
+    "source": "reference/visibility.md"
+  },
+  {
+    "matches": ["//ftl:typealias", "@TypeAlias"],
     "source": "reference/types.md",
     "select": ["## Type aliases"]
   },
   {
-    "match": "//ftl:enum",
+    "matches": ["//ftl:enum", "@Enum"],
     "source": "reference/types.md",
     "select": ["## Type enums (sum types)", "## Value enums"]
   },
   {
-    "match": "//ftl:cron",
+    "matches": ["//ftl:cron", "@Cron"],
     "source": "reference/cron.md"
   },
   {
-    "match": "//ftl:ingress",
+    "matches": ["//ftl:ingress", "@Path", "@GET", "@POST", "@PUT", "@DELETE", "@RestPath", "@QueryParam"],
     "source": "reference/ingress.md"
   },
   {
-    "match": "//ftl:subscribe",
+    "matches": ["//ftl:subscribe", "//ftl:topic", "@Subscription", "@Topic"],
     "source": "reference/pubsub.md"
   },
   {
-    "match": "//ftl:retry",
+    "matches": ["//ftl:retry", "@Retry"],
     "source": "reference/retries.md"
+  },
+  {
+    "matches": ["ftl.Config", "ftl.Secret", "@Config", "@Secret"],
+    "source": "reference/secretsconfig.md"
+  },
+  {
+    "matches": ["ftl.DefaultMySQLDatabaseConfig", "ftl.PostgresDatabaseConfig", "ftl.DatabaseHandle", "@SQLDatasource"],
+    "source": "reference/databases.md"
   }
 ]
