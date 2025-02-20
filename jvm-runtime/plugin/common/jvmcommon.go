@@ -298,6 +298,7 @@ func (s *Service) waitForFileChanges(ctx context.Context, fileEvents chan watch.
 // watchFiles begin watching files in the module directory
 // This is only used to restart quarkus:dev if it ends (such as when the initial build fails).
 func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan watch.WatchEventModuleChanged) error {
+	logger := log.FromContext(ctx)
 	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
 		return fmt.Errorf("could not watch for file changes: %w", err)
@@ -318,12 +319,18 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	case <-ctx.Done():
 		return fmt.Errorf("context done: %w", ctx.Err())
 	}
-
+	stubsDir := filepath.Join(buildCtx.Config.Dir, "src", "main", "ftl-module-schema")
 	go func() {
 		for e := range channels.IterContext(ctx, watchEvents) {
-			loger := log.FromContext(ctx)
-			loger.Infof("File change detected: %v", e)
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
+				// Ignore changes to external protos. If a depenency was updated, the plugin will receive a new build context.
+				change.Changes = islices.Filter(change.Changes, func(c watch.FileChange) bool {
+					return !strings.HasPrefix(c.Path, stubsDir)
+				})
+				if len(change.Changes) == 0 {
+					continue
+				}
+				logger.Infof("File change detected: %v", e)
 				events <- change
 			}
 		}
@@ -956,7 +963,6 @@ func ptr(s string) *string {
 }
 
 func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema, config moduleconfig.AbsModuleConfig) error {
-
 	if v == nil {
 		return nil
 	}
