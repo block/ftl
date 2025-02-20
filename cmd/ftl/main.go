@@ -207,6 +207,7 @@ func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
 			if sm, ok := csm.statusManager.Get(); ok {
 				sm.Close()
 			}
+			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
 			os.Exit(code)
 		},
 		))
@@ -219,6 +220,7 @@ func addToExit(k *kong.Kong, cleanup func(code int)) {
 		cleanup(code)
 		if originalExit == nil {
 			// Should not happen, but no harm being cautious
+			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
 			os.Exit(code)
 		}
 		originalExit(code)
