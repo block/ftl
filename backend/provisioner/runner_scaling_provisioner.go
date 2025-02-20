@@ -85,7 +85,7 @@ func deProvisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn
 		if deployment.IsZero() {
 			return nil, fmt.Errorf("failed to find deployment for runner")
 		}
-		logger.Infof("Removing runner: %s for deployment %s", module.Name, deployment)
+		logger.Debugf("Removing runner: %s for deployment %s", module.Name, deployment)
 		err := scaling.TerminateDeployment(ctx, deployment.String())
 		if err != nil {
 			return nil, fmt.Errorf("failed to start deployment: %w", err)
