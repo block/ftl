@@ -37,6 +37,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/errors"
+	"github.com/block/ftl/common/glob"
 	"github.com/block/ftl/common/plugin"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
@@ -237,7 +238,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 	}
 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 	fileEvents := make(chan watch.WatchEventModuleChanged, 32)
-	if err := watchFiles(ctx, watcher, buildCtx, fileEvents); err != nil {
+	if err := watchFiles(ctx, watcher, buildCtx, fileEvents, watchPatterns); err != nil {
 		return err
 	}
 
@@ -266,7 +267,14 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, error) {
 	relativePaths := make([]string, len(watchPaths))
 	for i, path := range watchPaths {
-		relative, err := filepath.Rel(moduleDir, path)
+		var relative string
+		var err error
+		if strings.HasPrefix(path, "!") {
+			relative, err = filepath.Rel(moduleDir, strings.TrimPrefix(path, "!"))
+			relative = "!" + relative
+		} else {
+			relative, err = filepath.Rel(moduleDir, path)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("could create relative path for watch pattern: %w", err)
 		}
@@ -299,7 +307,7 @@ func (s *Service) waitForFileChanges(ctx context.Context, fileEvents chan watch.
 
 // watchFiles begin watching files in the module directory
 // This is only used to restart quarkus:dev if it ends (such as when the initial build fails).
-func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan watch.WatchEventModuleChanged) error {
+func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan watch.WatchEventModuleChanged, watchPatterns []string) error {
 	logger := log.FromContext(ctx)
 	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
@@ -327,7 +335,16 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
 				// Ignore changes to external protos. If a depenency was updated, the plugin will receive a new build context.
 				change.Changes = islices.Filter(change.Changes, func(c watch.FileChange) bool {
-					return !strings.HasPrefix(c.Path, stubsDir)
+					if strings.HasPrefix(c.Path, stubsDir) {
+						return false
+					}
+					if !glob.MatchAny(watchPatterns, c.Path) {
+						// this event stream is built with different watch patterns than the plugin, so
+						// it may include changes to files which are not watched by this plugin. we should
+						// exclude those.
+						return false
+					}
+					return true
 				})
 				if len(change.Changes) == 0 {
 					continue

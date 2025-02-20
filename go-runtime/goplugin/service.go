@@ -19,7 +19,9 @@ import (
 	langconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
+	"github.com/block/ftl/common/glob"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	goruntime "github.com/block/ftl/go-runtime"
 	"github.com/block/ftl/go-runtime/compile"
 	"github.com/block/ftl/internal"
@@ -29,7 +31,6 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
-	"github.com/block/ftl/internal/sqlc"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -259,7 +260,6 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	if err != nil {
 		return err
 	}
-
 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 
 	ongoingState := &compile.OngoingState{}
@@ -268,7 +268,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		s.acceptsContextUpdates.Store(true)
 		defer s.acceptsContextUpdates.Store(false)
 
-		if err := watchFiles(ctx, watcher, buildCtx, events); err != nil {
+		if err := watchFiles(ctx, watcher, buildCtx, events, watchPatterns); err != nil {
 			return err
 		}
 	}
@@ -295,18 +295,6 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 			})
 			if err != nil {
 				return fmt.Errorf("could not send auto rebuild started event: %w", err)
-			}
-			_, err := sqlc.AddQueriesToSchema(ctx, projectConfig.Root(), buildCtx.Config, buildCtx.Schema)
-			if err != nil {
-				buildEvent := buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
-					Type:  builderrors.FTL,
-					Level: builderrors.ERROR,
-					Msg:   fmt.Errorf("failed to add queries to schema: %w", err).Error(),
-				})
-				if err = stream.Send(buildEvent); err != nil {
-					return fmt.Errorf("could not send build event: %w", err)
-				}
-				continue
 			}
 		}
 		if err = buildAndSend(ctx, stream, projectConfig, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, true); err != nil {
@@ -337,7 +325,7 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 	return connect.NewResponse(&langpb.BuildContextUpdatedResponse{}), nil
 }
 
-func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan updateEvent) error {
+func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan updateEvent, watchPatterns []string) error {
 	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
 		return fmt.Errorf("could not watch for file changes: %w", err)
@@ -362,8 +350,16 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	go func() {
 		for e := range channels.IterContext(ctx, watchEvents) {
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
-				log.FromContext(ctx).Infof("Found file changes: %s", change)
-				events <- filesUpdatedEvent{changes: change.Changes}
+				// this event stream is built with different watch patterns than the plugin, so 
+				// it may include changes to files which are not watched by this plugin. we should
+				// exclude those.
+				changes := slices.Filter(change.Changes, func(c watch.FileChange) bool {
+					return glob.MatchAny(watchPatterns, c.Path)
+				})
+				if len(changes) > 0 {
+					log.FromContext(ctx).Infof("Found file changes: %s", change)
+					events <- filesUpdatedEvent{changes: changes}
+				}
 			}
 		}
 	}()
@@ -488,7 +484,14 @@ func buildFailure(buildCtx buildContext, isAutomaticRebuild bool, errs ...builde
 func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, error) {
 	relativePaths := make([]string, len(watchPaths))
 	for i, path := range watchPaths {
-		relative, err := filepath.Rel(moduleDir, path)
+		var relative string
+		var err error
+		if strings.HasPrefix(path, "!") {
+			relative, err = filepath.Rel(moduleDir, strings.TrimPrefix(path, "!"))
+			relative = "!" + relative
+		} else {
+			relative, err = filepath.Rel(moduleDir, path)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("could create relative path for watch pattern: %w", err)
 		}
