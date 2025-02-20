@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/alecthomas/atomic"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/internal/log"
@@ -19,6 +20,14 @@ type Handler struct {
 type RunnerStage struct {
 	Name     string
 	Handlers []Handler
+}
+
+// Task is an async running provisioner task.
+type Task struct {
+	runner *Runner
+
+	err     atomic.Value[error]
+	outputs atomic.Value[[]state.State]
 }
 
 // Runner runs a set of provision handlers on a set of
@@ -51,6 +60,10 @@ func (r *Runner) Run(ctx context.Context) ([]state.State, error) {
 	}
 	logger.Debugf("runner finished")
 	return r.State, nil
+}
+
+func (r *Runner) AsyncTask() *Task {
+	return &Task{runner: r}
 }
 
 func (r *Runner) prepare(ctx context.Context, stage *RunnerStage) error {
@@ -100,4 +113,26 @@ func (r *Runner) execute(ctx context.Context, stage *RunnerStage) ([]state.State
 	}
 
 	return result, nil
+}
+
+func (t *Task) Start(oldCtx context.Context) {
+	ctx := context.WithoutCancel(oldCtx)
+	logger := log.FromContext(ctx)
+	go func() {
+		outputs, err := t.runner.Run(ctx)
+		if err != nil {
+			logger.Errorf(err, "failed to execute provisioner")
+			t.err.Store(err)
+			return
+		}
+		t.outputs.Store(outputs)
+	}()
+}
+
+func (t *Task) Err() error {
+	return fmt.Errorf("failed to execute provisioner: %w", t.err.Load())
+}
+
+func (t *Task) Outputs() []state.State {
+	return t.outputs.Load()
 }

@@ -30,7 +30,7 @@ type SandboxProvisioner struct {
 	secrets *secretsmanager.Client
 	confg   *Config
 
-	running *xsync.MapOf[string, *task]
+	running *xsync.MapOf[string, *provisioner.Task]
 }
 
 var _ provisionerconnect.ProvisionerPluginServiceHandler = (*SandboxProvisioner)(nil)
@@ -44,7 +44,7 @@ func NewSandboxProvisioner(ctx context.Context, config Config) (context.Context,
 	return ctx, &SandboxProvisioner{
 		secrets: secrets,
 		confg:   &config,
-		running: xsync.NewMapOf[string, *task](),
+		running: xsync.NewMapOf[string, *provisioner.Task](),
 	}, nil
 }
 
@@ -70,18 +70,16 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 
 	runner := &provisioner.Runner{
 		State: inputStates,
-		Stages: []provisioner.RunnerStage{
-			{
-				Name: "infrastructure-setup",
-				Handlers: []provisioner.Handler{{
-					Executor: executor.NewARNSecretMySQLSetup(c.secrets, req.Msg.DesiredModule.Name),
-					Handles:  []state.State{state.RDSInstanceReadyMySQL{}},
-				}},
-			},
-		},
+		Stages: []provisioner.RunnerStage{{
+			Name: "infrastructure-setup",
+			Handlers: []provisioner.Handler{{
+				Executor: executor.NewARNSecretMySQLSetup(c.secrets, req.Msg.DesiredModule.Name),
+				Handles:  []state.State{state.RDSInstanceReadyMySQL{}},
+			}},
+		}},
 	}
 
-	task := &task{runner: runner}
+	task := runner.AsyncTask()
 	if _, ok := c.running.LoadOrStore(token, task); ok {
 		return nil, fmt.Errorf("provisioner already running: %s", token)
 	}
