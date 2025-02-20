@@ -85,10 +85,6 @@ func generateStubsForEachLanguage(ctx context.Context, projectRoot string, modul
 			config := metas[module.Name].module.Config
 			wg.Go(func() error {
 				path := stubsModuleDir(projectRoot, language, module.Name)
-				err := os.MkdirAll(path, 0750)
-				if err != nil {
-					return fmt.Errorf("failed to create directory %s: %w", path, err)
-				}
 				var nativeConfig optional.Option[moduleconfig.ModuleConfig]
 				if config.Module == "builtin" || config.Language != language {
 					nativeConfig = optional.Some(assignedMeta.module.Config)
