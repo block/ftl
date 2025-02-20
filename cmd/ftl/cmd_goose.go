@@ -44,7 +44,7 @@ func (c *gooseCmd) Run(ctx context.Context) error {
 
 		// Run introduction instructions
 		// This is separate from the next command because goose may skip an instruction if it is part of a larger input.
-		docs, err := downloadDocs()
+		docs, err := downloadDocs(ctx)
 		if err != nil {
 			return err
 		}
@@ -84,11 +84,14 @@ func (c *gooseCmd) Run(ctx context.Context) error {
 	return nil
 }
 
-func downloadDocs() ([]string, error) {
-	base := "https://api.github.com/repos/block/ftl/contents/docs/docs/reference"
-	resp, err := http.Get(base)
+func downloadDocs(ctx context.Context) ([]string, error) {
+	baseReq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/repos/block/ftl/contents/docs/docs/reference", nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch docs: %v", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	resp, err := http.DefaultClient.Do(baseReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch docs: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -99,7 +102,7 @@ func downloadDocs() ([]string, error) {
 	var referenceList []map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&referenceList)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode response body: %v", err)
+		return nil, fmt.Errorf("failed to decode response body: %w", err)
 	}
 
 	errGroup := &errgroup.Group{}
@@ -110,9 +113,13 @@ func downloadDocs() ([]string, error) {
 			if !ok {
 				return fmt.Errorf("failed to parse response: %v", i)
 			}
-			contentResp, err := http.Get(urlPath)
+			contentReq, err := http.NewRequestWithContext(ctx, http.MethodGet, urlPath, nil)
 			if err != nil {
-				return fmt.Errorf("failed to fetch doc: %v", err)
+				return fmt.Errorf("failed to create request: %w", err)
+			}
+			contentResp, err := http.DefaultClient.Do(contentReq)
+			if err != nil {
+				return fmt.Errorf("failed to fetch doc: %w", err)
 			}
 			defer contentResp.Body.Close()
 
@@ -122,7 +129,7 @@ func downloadDocs() ([]string, error) {
 
 			body, err := io.ReadAll(contentResp.Body)
 			if err != nil {
-				return fmt.Errorf("failed to read doc body: %v", err)
+				return fmt.Errorf("failed to read doc body: %w", err)
 			}
 
 			pages <- string(body)
@@ -131,7 +138,7 @@ func downloadDocs() ([]string, error) {
 	}
 
 	if err := errGroup.Wait(); err != nil {
-		return nil, fmt.Errorf("failed to fetch docs: %v", err)
+		return nil, fmt.Errorf("failed to fetch docs: %w", err)
 	}
 	pagesSlice := make([]string, 0, len(referenceList))
 	close(pages)
@@ -143,7 +150,9 @@ func downloadDocs() ([]string, error) {
 		for _, line := range lines {
 			if strings.HasPrefix(line, "sidebar_position:") {
 				var pos int
-				fmt.Sscanf(line, "sidebar_position: %d", &pos)
+				if _, err := fmt.Sscanf(line, "sidebar_position: %d", &pos); err != nil {
+					return -1
+				}
 				return pos
 			}
 		}
