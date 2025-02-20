@@ -92,7 +92,7 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	}
 	if endpoint, ok := result.DevEndpoint.Get(); ok {
 		if devModeEndpoints != nil {
-			devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: endpoint, DebugPort: result.DebugPort, Language: config.Language, HotReloadEndpoint: result.HotReloadEndpoint.Default("")}
+			devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: endpoint, DebugPort: result.DebugPort, Language: config.Language, HotReloadEndpoint: result.HotReloadEndpoint.Default(""), HotReloadVersion: result.HotReloadVersion.Default(0)}
 		}
 	}
 	return result.Schema, result.Deploy, nil

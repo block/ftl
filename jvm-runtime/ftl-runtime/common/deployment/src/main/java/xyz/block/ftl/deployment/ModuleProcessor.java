@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -70,6 +71,8 @@ public class ModuleProcessor {
      * Persistent schema hash, used to detect runner restarts in dev mode.
      */
     static String schemaHash;
+
+    private static final AtomicLong versionCounter = new AtomicLong();
 
     @BuildStep
     BindableServiceBuildItem verbService() {
@@ -185,13 +188,13 @@ public class ModuleProcessor {
         Files.write(output, schBytes);
         Files.write(errorOutput, errBytes);
         if (launchModeBuildItem.getLaunchMode() == LaunchMode.DEVELOPMENT) {
+            var runnerVersion = versionCounter.incrementAndGet();
             // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
             // get updated runner information, although we don't actually get this until the runner has started.
             boolean newRunnerRequired = false;
             var hash = HashUtil.sha256(schBytes);
             if (!Objects.equals(hash, schemaHash)) {
                 schemaHash = hash;
-                RunnerNotification.setRequiresNewRunnerDetails();
                 newRunnerRequired = true;
             }
 
@@ -205,18 +208,18 @@ public class ModuleProcessor {
 
             if (fatal) {
                 HotReloadHandler.getInstance()
-                        .setResults(SchemaState.newBuilder().setErrors(errRef.get()).setNewRunnerRequired(true).build());
+                        .setResults(SchemaState.newBuilder().setVersion(runnerVersion).setErrors(errRef.get())
+                                .setNewRunnerRequired(true).build());
                 var message = "Schema validation failed: \n";
                 for (var i : errRef.get().getErrorsList()) {
                     message += i.getMsg() + "\n";
                 }
                 recorder.failStartup(message);
             } else {
-                if (newRunnerRequired) {
-                    recorder.requireNewRunnerDetails();
-                }
-                HotReloadHandler.getInstance().setResults(SchemaState.newBuilder().setModule(schRef.get())
-                        .setNewRunnerRequired(newRunnerRequired).build());
+                RunnerNotification.setRunnerVersion(runnerVersion);
+                HotReloadHandler.getInstance()
+                        .setResults(SchemaState.newBuilder().setVersion(runnerVersion).setModule(schRef.get())
+                                .setNewRunnerRequired(newRunnerRequired).build());
             }
         } else {
             var launch = outputTargetBuildItem.getOutputDirectory().resolve("launch");

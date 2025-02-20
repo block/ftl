@@ -1186,6 +1186,11 @@ export class BuildSuccess extends Message<BuildSuccess> {
    */
   devHotReloadEndpoint?: string;
 
+  /**
+   * @generated from field: optional int64 dev_hot_reload_version = 10;
+   */
+  devHotReloadVersion?: bigint;
+
   constructor(data?: PartialMessage<BuildSuccess>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1203,6 +1208,7 @@ export class BuildSuccess extends Message<BuildSuccess> {
     { no: 7, name: "dev_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 8, name: "debug_port", kind: "scalar", T: 5 /* ScalarType.INT32 */, opt: true },
     { no: 9, name: "dev_hot_reload_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 10, name: "dev_hot_reload_version", kind: "scalar", T: 3 /* ScalarType.INT64 */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildSuccess {

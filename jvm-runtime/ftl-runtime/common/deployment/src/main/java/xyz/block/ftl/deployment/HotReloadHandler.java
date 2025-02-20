@@ -67,7 +67,6 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                 try {
                     watch.onNext(WatchResponse.newBuilder()
                             .setState(state).build());
-
                 } catch (Exception e) {
                     LOG.debugf("Failed to send watch response %s", e.toString());
                     this.watches.remove(watch);
@@ -90,17 +89,13 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         // Run the restart in a new thread, so we can report on the schema once it is ready
         synchronized (this) {
             while (starting) {
-                RunnerNotification.setRunnerInfo(new RunnerInfo(null, null, null, true));
+                RunnerNotification.reloadStarted();
                 try {
                     this.wait();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
-            // There is a possible race here, if there are quick restarts the runner might have already been started
-            // And out 'close' notification will sit there as a trap for the next restart
-            // clearing here means we definitely don't have any stale data
-            RunnerNotification.clearClosedState();
             starting = true;
             runningReload = (state) -> {
                 synchronized (HotReloadHandler.this) {
@@ -169,9 +164,9 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         for (var db : request.getDatabasesList()) {
             databases.put(db.getName(), db.getAddress());
         }
-        RunnerNotification
-                .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases, false));
-        responseObserver.onNext(RunnerInfoResponse.newBuilder().build());
+        boolean outdated = RunnerNotification
+                .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases, request.getVersion()));
+        responseObserver.onNext(RunnerInfoResponse.newBuilder().setOutdated(outdated).build());
         responseObserver.onCompleted();
     }
 

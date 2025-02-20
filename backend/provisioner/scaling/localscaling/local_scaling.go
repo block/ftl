@@ -107,8 +107,9 @@ func (l *localScaling) TerminateDeployment(ctx context.Context, deployment strin
 }
 
 type devModeRunner struct {
-	uri          string
-	hotReloadURI string
+	uri              string
+	hotReloadURI     string
+	hotReloadVersion int64
 	// The deployment key of the deployment that is currently running
 	deploymentKey optional.Option[key.Deployment]
 	debugPort     int
@@ -129,9 +130,10 @@ func (l *localScaling) Start(ctx context.Context) error {
 // Must be called under lock
 func (l *localScaling) updateDevModeEndpoint(ctx context.Context, devEndpoints dev.LocalEndpoint) {
 	l.devModeEndpoints[devEndpoints.Module] = &devModeRunner{
-		uri:          devEndpoints.Endpoint,
-		debugPort:    devEndpoints.DebugPort,
-		hotReloadURI: devEndpoints.HotReloadEndpoint,
+		uri:              devEndpoints.Endpoint,
+		debugPort:        devEndpoints.DebugPort,
+		hotReloadURI:     devEndpoints.HotReloadEndpoint,
+		hotReloadVersion: devEndpoints.HotReloadVersion,
 	}
 	if ide, ok := l.ideSupport.Get(); ok {
 		if devEndpoints.DebugPort != 0 {
@@ -218,6 +220,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	devURI := optional.None[string]()
 	devHotReloadURI := optional.None[string]()
 	debugPort := 0
+	hotReloadVersion := int64(-1)
 	if devEndpoint != nil {
 		devURI = optional.Some(devEndpoint.uri)
 		devHotReloadURI = optional.Some(devEndpoint.hotReloadURI)
@@ -227,6 +230,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		}
 		devEndpoint.deploymentKey = optional.Some(deploymentKey)
 		debugPort = devEndpoint.debugPort
+		hotReloadVersion = devEndpoint.hotReloadVersion
 	} else if ide, ok := l.ideSupport.Get(); ok {
 		var debug *localdebug.DebugInfo
 		debugBind, err := plugin.AllocatePort()
@@ -266,6 +270,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		DebugPort:            debugPort,
 		DevEndpoint:          devURI,
 		DevHotReloadEndpoint: devHotReloadURI,
+		DevHotReloadVersion:  hotReloadVersion,
 	}
 
 	simpleName := fmt.Sprintf("runner%d", keySuffix)

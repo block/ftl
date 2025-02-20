@@ -237,6 +237,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 	ensureCorrectFTLVersion(ctx, buildCtx)
 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 	fileEvents := make(chan watch.WatchEventModuleChanged, 32)
+	ensureCorrectFTLVersion(ctx, buildCtx)
 	if err := watchFiles(ctx, watcher, buildCtx, fileEvents); err != nil {
 		return err
 	}
@@ -495,6 +496,7 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 						DevHotReloadEndpoint: ptr(hotReloadEndpoint),
 						DebugPort:            &debugPort32,
 						Deploy:               []string{SchemaFile},
+						DevHotReloadVersion:  &event.state.Version,
 					},
 				},
 			})

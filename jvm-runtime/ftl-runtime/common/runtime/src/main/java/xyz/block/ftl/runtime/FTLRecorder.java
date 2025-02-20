@@ -157,17 +157,6 @@ public class FTLRecorder {
         FTLController.instance().registerDatabase(dbKind, name);
     }
 
-    private static volatile boolean first = true;
-
-    public void requireNewRunnerDetails() {
-        if (first) {
-            first = false;
-        } else {
-            FTLController.instance().devModeShutdown();
-        }
-        FTLController.instance().readDevModeRunnerInfo();
-    }
-
     public void loadModuleContextOnStartup() {
         FTLController.instance().loadDeploymentContext();
     }

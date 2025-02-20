@@ -223,7 +223,7 @@ class AutoRebuildStarted(_message.Message):
     def __init__(self, context_id: _Optional[str] = ...) -> None: ...
 
 class BuildSuccess(_message.Message):
-    __slots__ = ("context_id", "is_automatic_rebuild", "module", "deploy", "docker_image", "errors", "dev_endpoint", "debug_port", "dev_hot_reload_endpoint")
+    __slots__ = ("context_id", "is_automatic_rebuild", "module", "deploy", "docker_image", "errors", "dev_endpoint", "debug_port", "dev_hot_reload_endpoint", "dev_hot_reload_version")
     CONTEXT_ID_FIELD_NUMBER: _ClassVar[int]
     IS_AUTOMATIC_REBUILD_FIELD_NUMBER: _ClassVar[int]
     MODULE_FIELD_NUMBER: _ClassVar[int]
@@ -233,6 +233,7 @@ class BuildSuccess(_message.Message):
     DEV_ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     DEBUG_PORT_FIELD_NUMBER: _ClassVar[int]
     DEV_HOT_RELOAD_ENDPOINT_FIELD_NUMBER: _ClassVar[int]
+    DEV_HOT_RELOAD_VERSION_FIELD_NUMBER: _ClassVar[int]
     context_id: str
     is_automatic_rebuild: bool
     module: _schema_pb2.Module
@@ -242,7 +243,8 @@ class BuildSuccess(_message.Message):
     dev_endpoint: str
     debug_port: int
     dev_hot_reload_endpoint: str
-    def __init__(self, context_id: _Optional[str] = ..., is_automatic_rebuild: bool = ..., module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., deploy: _Optional[_Iterable[str]] = ..., docker_image: _Optional[str] = ..., errors: _Optional[_Union[ErrorList, _Mapping]] = ..., dev_endpoint: _Optional[str] = ..., debug_port: _Optional[int] = ..., dev_hot_reload_endpoint: _Optional[str] = ...) -> None: ...
+    dev_hot_reload_version: int
+    def __init__(self, context_id: _Optional[str] = ..., is_automatic_rebuild: bool = ..., module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., deploy: _Optional[_Iterable[str]] = ..., docker_image: _Optional[str] = ..., errors: _Optional[_Union[ErrorList, _Mapping]] = ..., dev_endpoint: _Optional[str] = ..., debug_port: _Optional[int] = ..., dev_hot_reload_endpoint: _Optional[str] = ..., dev_hot_reload_version: _Optional[int] = ...) -> None: ...
 
 class BuildFailure(_message.Message):
     __slots__ = ("context_id", "is_automatic_rebuild", "errors", "invalidate_dependencies")
