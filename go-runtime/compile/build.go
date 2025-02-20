@@ -2,7 +2,6 @@ package compile
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -40,7 +39,6 @@ import (
 	"github.com/block/ftl/internal/watch"
 )
 
-var ErrInvalidateDependencies = errors.New("dependencies need to be updated")
 var ftlTypesFilename = "types.ftl.go"
 var ftlQueriesFilename = "queries.ftl.go"
 
@@ -435,18 +433,29 @@ func (s *OngoingState) reset() {
 	s.moduleCtx = mainDeploymentContext{}
 }
 
+func buildErrorFromError(err error) builderrors.Error {
+	return builderrors.Error{
+		Type:  builderrors.FTL,
+		Msg:   err.Error(),
+		Pos:   optional.None[builderrors.Position](),
+		Level: builderrors.ERROR,
+	}
+}
+
 // Build the given module.
 func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, config moduleconfig.AbsModuleConfig,
 	sch *schema.Schema, deps, buildEnv []string, filesTransaction watch.ModifyFilesTransaction, ongoingState *OngoingState,
-	devMode bool) (moduleSch optional.Option[*schema.Module], buildErrors []builderrors.Error, err error) {
+	devMode bool) (moduleSch optional.Option[*schema.Module], invalidateDeps bool, buildErrors []builderrors.Error) {
 	if err := filesTransaction.Begin(); err != nil {
-		return moduleSch, nil, fmt.Errorf("could not start a file transaction: %w", err)
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("could not start a file transaction: %w", err))}
 	}
 	defer func() {
 		if terr := filesTransaction.End(); terr != nil {
-			err = fmt.Errorf("failed to end file transaction: %w", terr)
+			buildErrors = append(buildErrors, buildErrorFromError(fmt.Errorf("failed to end file transaction: %w", terr)))
 		}
-		if err != nil {
+		if _, hasErrs := islices.Find(buildErrors, func(berr builderrors.Error) bool { //nolint:errcheck
+			return berr.Level == builderrors.ERROR
+		}); hasErrs {
 			// If we failed, reset the state to ensure we don't skip steps on the next build.
 			// Example: If `go mod tidy` fails due to a network failure, we need to try again next time, even if nothing else has changed.
 			ongoingState.reset()
@@ -456,22 +465,22 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	// Check dependencies
 	newDeps, imports, err := extractDependenciesAndImports(config)
 	if err != nil {
-		return moduleSch, nil, fmt.Errorf("could not extract dependencies: %w", err)
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("could not extract dependencies: %w", err))}
 	}
 	importsChanged := ongoingState.checkIfImportsChanged(imports)
 	if !slices.Equal(islices.Sort(newDeps), islices.Sort(deps)) {
 		// dependencies have changed
-		return moduleSch, nil, ErrInvalidateDependencies
+		return moduleSch, true, nil
 	}
 
 	replacements, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module)
 	if err != nil {
-		return moduleSch, nil, err
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(err)}
 	}
 
 	goVersion := runtime.Version()[2:]
 	if semver.Compare("v"+goVersion, "v"+goModVersion) < 0 {
-		return moduleSch, nil, fmt.Errorf("go version %q is not recent enough for this module, needs minimum version %q", goVersion, goModVersion)
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("go version %q is not recent enough for this module, needs minimum version %q", goVersion, goModVersion))}
 	}
 
 	logger := log.FromContext(ctx)
@@ -482,7 +491,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 
 	err = os.MkdirAll(buildDir, 0750)
 	if err != nil {
-		return moduleSch, nil, fmt.Errorf("failed to create build directory: %w", err)
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("failed to create build directory: %w", err))}
 	}
 
 	var sharedModulesPaths []string
@@ -498,7 +507,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		SharedModulesPaths: sharedModulesPaths,
 		IncludeMainPackage: mainPackageExists(config),
 	}, scaffolder.Exclude("^go.mod$"), scaffolder.Functions(funcs)); err != nil {
-		return moduleSch, nil, fmt.Errorf("failed to scaffold zip: %w", err)
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("failed to scaffold zip: %w", err))}
 	}
 
 	// In parallel, extract schema and optimistically compile.
@@ -511,7 +520,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		extractResultChan <- result.From(extract.Extract(config.Dir, sch))
 	}()
 	optimisticHashesChan := make(chan watch.FileHashes, 1)
-	optimisticCompileChan := make(chan error, 1)
+	optimisticCompileChan := make(chan []builderrors.Error, 1)
 	go func() {
 		hashes, err := fileHashesForOptimisticCompilation(config)
 		if err != nil {
@@ -527,7 +536,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	// wait for schema extraction to complete
 	extractResult, err := (<-extractResultChan).Result()
 	if err != nil {
-		return moduleSch, nil, fmt.Errorf("could not extract schema: %w", err)
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("could not extract schema: %w", err))}
 	}
 	// We do not fail yet if result has terminal errors. These errors may be due to missing templated files (queries.ftl.go).
 	// Instead we scaffold if needed and then re-extract the schema to see if the errors are resolved.
@@ -535,11 +544,14 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	projectName := projectConfig.Name
 	mctx, err := buildMainDeploymentContext(sch, extractResult, goModVersion, projectName, sharedModulesPaths, replacements)
 	if err != nil {
-		return moduleSch, nil, err
+		// Combine with compiler errors as they are likely the cause of why we would not build mctx.
+		buildErrs := <-optimisticCompileChan
+		buildErrs = append(buildErrs, buildErrorFromError(err))
+		return moduleSch, false, buildErrs
 	}
 	mainModuleCtxChanged := ongoingState.checkIfMainDeploymentContextChanged(mctx)
 	if err := scaffoldBuildTemplateAndTidy(ctx, config, mainDir, importsChanged, mainModuleCtxChanged, mctx, funcs, filesTransaction); err != nil {
-		return moduleSch, nil, err // nolint:wrapcheck
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(err)}
 	}
 
 	if mainModuleCtxChanged && builderrors.ContainsTerminalError(extractResult.Errors) {
@@ -547,18 +559,18 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		logger.Debugf("Re-extracting schema after scaffolding")
 		extractResult, err = extract.Extract(config.Dir, sch)
 		if err != nil {
-			return moduleSch, nil, fmt.Errorf("could not extract schema: %w", err)
+			return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("could not extract schema: %w", err))}
 		}
 	}
 	if builderrors.ContainsTerminalError(extractResult.Errors) {
 		// Only bail if schema errors contain elements at level ERROR.
 		// If errors are only at levels below ERROR (e.g. INFO, WARN), the schema can still be used.
-		return moduleSch, extractResult.Errors, nil
+		return moduleSch, false, extractResult.Errors
 	}
 
 	logger.Debugf("Writing launch script")
 	if err := writeLaunchScript(buildDir); err != nil {
-		return moduleSch, nil, err
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(err)}
 	}
 
 	// Compare main package hashes to when we optimistically compiled
@@ -569,7 +581,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 			// Wait for optimistic compile to complete if there has been no changes
 			if len(changes) == 0 && (<-optimisticCompileChan) == nil {
 				logger.Debugf("Accepting optimistic compilation")
-				return optional.Some(extractResult.Module), extractResult.Errors, nil
+				return optional.Some(extractResult.Module), false, extractResult.Errors
 			}
 			logger.Debugf("Discarding optimistic compilation due to file changes: %s", strings.Join(islices.Map(changes, func(change watch.FileChange) string {
 				p, err := filepath.Rel(config.Dir, change.Path)
@@ -582,11 +594,9 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	}
 
 	logger.Debugf("Compiling")
-	err = compile(ctx, mainDir, buildEnv, devMode)
-	if err != nil {
-		return moduleSch, nil, err
-	}
-	return optional.Some(extractResult.Module), extractResult.Errors, nil
+	buildErrors = compile(ctx, mainDir, buildEnv, devMode)
+	buildErrors = append(buildErrors, extractResult.Errors...)
+	return optional.Some(extractResult.Module), false, buildErrors
 }
 
 func fileHashesForOptimisticCompilation(config moduleconfig.AbsModuleConfig) (watch.FileHashes, error) {
@@ -601,7 +611,7 @@ func fileHashesForOptimisticCompilation(config moduleconfig.AbsModuleConfig) (wa
 	return hashes, nil
 }
 
-func compile(ctx context.Context, mainDir string, buildEnv []string, devMode bool) error {
+func compile(ctx context.Context, mainDir string, buildEnv []string, devMode bool) []builderrors.Error {
 	args := []string{"build", "-o", "../../main", "."}
 	if devMode {
 		args = []string{"build", "-gcflags=all=-N -l", "-o", "../../main", "."}
@@ -611,12 +621,59 @@ func compile(ctx context.Context, mainDir string, buildEnv []string, devMode boo
 	buildEnv = slices.Clone(buildEnv)
 	buildEnv = append(buildEnv, "GODEBUG=http2client=0")
 	err := exec.CommandWithEnv(ctx, log.Debug, mainDir, buildEnv, "go", args...).RunStderrError(ctx)
-	if err != nil {
-		// Clean up Go compiler error format to be single line
-		errStr := strings.ReplaceAll(err.Error(), "\n", " ")
-		return fmt.Errorf("failed to compile: %s", errStr)
+	if err == nil {
+		return nil
 	}
-	return nil
+	errs := []builderrors.Error{}
+	lines := strings.Split(err.Error(), "\n")
+	for i := 1; i < len(lines); {
+		if strings.HasPrefix(lines[i], "\t") {
+			lines[i-1] = lines[i-1] + " : " + lines[i]
+		} else {
+			i++
+		}
+	}
+	for _, line := range strings.Split(err.Error(), "\n") {
+		if strings.HasPrefix(line, "# ") {
+			continue
+		}
+		// ../../../example.go:11:59: undefined: lorem ipsum
+		components := strings.SplitN(line, ":", 4)
+		if len(components) != 4 {
+			errs = append(errs, builderrors.Error{
+				Type:  builderrors.COMPILER,
+				Msg:   line,
+				Level: builderrors.ERROR,
+			})
+			continue
+		}
+		path, _ := strings.CutPrefix(components[0], "../../../")
+		hasPos := true
+		line, err := strconv.Atoi(components[1])
+		if err != nil {
+			hasPos = false
+		}
+		startCol, err := strconv.Atoi(components[2])
+		if err != nil {
+			hasPos = false
+		}
+		pos := optional.None[builderrors.Position]()
+		if hasPos {
+			pos = optional.Some(builderrors.Position{
+				Filename:    path,
+				Line:        line,
+				StartColumn: startCol,
+				EndColumn:   startCol,
+			})
+		}
+		errs = append(errs, builderrors.Error{
+			Type:  builderrors.COMPILER,
+			Msg:   components[3],
+			Pos:   pos,
+			Level: builderrors.ERROR,
+		})
+	}
+	return errs
 }
 
 func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsModuleConfig, mainDir string, importsChanged,
