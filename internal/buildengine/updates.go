@@ -103,6 +103,17 @@ func (u *updatesService) StreamEngineEvents(ctx context.Context, req *connect.Re
 	u.subscribers.Store(subscriberKey, events)
 	defer u.subscribers.Delete(subscriberKey)
 
+	// Always send atleast one event so clients can start the stream (the first event contains the headers)
+	err := stream.Send(&buildenginepb.StreamEngineEventsResponse{
+		Event: &buildenginepb.EngineEvent{
+			Event: &buildenginepb.EngineEvent_EngineEnded{
+				EngineEnded: &buildenginepb.EngineEnded{},
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to send engine event: %w", err)
+	}
 	// Send cached events if replay_history is true
 	if req.Msg.ReplayHistory {
 		u.lock.RLock()
