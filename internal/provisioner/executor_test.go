@@ -1,4 +1,4 @@
-package executor
+package provisioner
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/provisioner/state"
 )
 
 type testState struct{}
@@ -21,15 +22,15 @@ type testExecutor struct {
 	executed int
 }
 
-func (e *testExecutor) Prepare(ctx context.Context, input State) error {
+func (e *testExecutor) Prepare(ctx context.Context, input state.State) error {
 	e.prepared++
 	return nil
 }
 
-func (e *testExecutor) Execute(ctx context.Context) ([]State, error) {
+func (e *testExecutor) Execute(ctx context.Context) ([]state.State, error) {
 	e.executed++
 	if e.prepared > 0 {
-		return []State{&testState{}}, nil
+		return []state.State{&testState{}}, nil
 	}
 	return nil, nil
 }
@@ -40,13 +41,13 @@ func TestExecutorSelection(t *testing.T) {
 	postgresExecutor := &testExecutor{}
 	mysqlExecutor := &testExecutor{}
 
-	runner := &ProvisionRunner{
-		CurrentState: []State{&testState{}, &testState{}, &ignoredState{}},
+	runner := &Runner{
+		State: []state.State{&testState{}, &testState{}, &ignoredState{}},
 		Stages: []RunnerStage{
 			{
-				Executors: []Handler{
-					{postgresExecutor, []State{&testState{}}},
-					{mysqlExecutor, []State{}},
+				Handlers: []Handler{
+					{postgresExecutor, []state.State{&testState{}}},
+					{mysqlExecutor, []state.State{}},
 				},
 			},
 		},

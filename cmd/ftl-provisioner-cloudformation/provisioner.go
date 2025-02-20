@@ -16,13 +16,15 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
+	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/cmd/ftl-provisioner-cloudformation/executor"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/provisioner"
+	"github.com/block/ftl/internal/provisioner/executor"
+	"github.com/block/ftl/internal/provisioner/state"
 )
 
 const (
@@ -73,7 +75,7 @@ func (c *CloudformationProvisioner) Ping(context.Context, *connect.Request[ftlv1
 	return &connect.Response[ftlv1.PingResponse]{}, nil
 }
 
-func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.Request[provisioner.ProvisionRequest]) (*connect.Response[provisioner.ProvisionResponse], error) {
+func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.Request[provisionerpb.ProvisionRequest]) (*connect.Response[provisionerpb.ProvisionResponse], error) {
 	logger := log.FromContext(ctx)
 
 	module, err := schema.ModuleFromProto(req.Msg.DesiredModule)
@@ -88,41 +90,41 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 	inputStates := inputsFromSchema(module, acceptedKinds, req.Msg.FtlClusterId, req.Msg.DesiredModule.Name)
 	stackID := stackName(req.Msg)
 
-	runner := &executor.ProvisionRunner{
-		CurrentState: inputStates,
-		Stages: []executor.RunnerStage{
+	runner := &provisioner.Runner{
+		State: inputStates,
+		Stages: []provisioner.RunnerStage{
 			{
 				Name: "cloudformation-update",
-				Executors: []executor.Handler{{
+				Handlers: []provisioner.Handler{{
 					Executor: NewCloudFormationExecutor(stackID, c.client, c.secrets, c.confg),
-					Handles:  []executor.State{executor.PostgresInputState{}, executor.MySQLInputState{}},
+					Handles:  []state.State{state.InputPostgres{}, state.InputMySQL{}},
 				}},
 			}, {
 				Name: "infrastructure-setup",
-				Executors: []executor.Handler{{
-					Executor: NewPostgresSetupExecutor(c.secrets),
-					Handles:  []executor.State{executor.PostgresInstanceReadyState{}},
+				Handlers: []provisioner.Handler{{
+					Executor: executor.NewPostgresSetup(c.secrets),
+					Handles:  []state.State{state.RDSInstanceReadyPostgres{}},
 				}, {
-					Executor: NewMySQLSetupExecutor(c.secrets),
-					Handles:  []executor.State{executor.MySQLInstanceReadyState{}},
+					Executor: executor.NewARNSecretMySQLSetup(c.secrets),
+					Handles:  []state.State{state.RDSInstanceReadyMySQL{}},
 				}},
 			},
 		},
 	}
 
-	task := &task{stackID: stackID, runner: runner}
+	task := &task{runner: runner}
 	if _, ok := c.running.LoadOrStore(stackID, task); ok {
 		return nil, fmt.Errorf("provisioner already running: %s", stackID)
 	}
 	logger.Debugf("Starting task for module %s: %s", req.Msg.DesiredModule.Name, stackID)
 	task.Start(ctx, c.client, c.secrets, stackID)
-	return connect.NewResponse(&provisioner.ProvisionResponse{
-		Status:            provisioner.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
+	return connect.NewResponse(&provisionerpb.ProvisionResponse{
+		Status:            provisionerpb.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
 		ProvisioningToken: stackID,
 	}), nil
 }
 
-func stackName(req *provisioner.ProvisionRequest) string {
+func stackName(req *provisionerpb.ProvisionRequest) string {
 	return sanitize(req.FtlClusterId) + "-" + sanitize(req.DesiredModule.Name)
 }
 
@@ -130,20 +132,20 @@ func generateChangeSetName(stack string) string {
 	return sanitize(stack) + strconv.FormatInt(time.Now().Unix(), 10)
 }
 
-func inputsFromSchema(module *schema.Module, acceptedKinds []schema.ResourceType, clusterID string, moduleName string) []executor.State {
-	var inputStates []executor.State
+func inputsFromSchema(module *schema.Module, acceptedKinds []schema.ResourceType, clusterID string, moduleName string) []state.State {
+	var inputStates []state.State
 	for _, provisioned := range schema.GetProvisioned(module) {
 		for _, resource := range provisioned.GetProvisioned().FilterByType(acceptedKinds...) {
 			switch resource.Kind {
 			case schema.ResourceTypePostgres:
-				input := executor.PostgresInputState{
+				input := state.InputPostgres{
 					ResourceID: provisioned.ResourceID(),
 					Cluster:    clusterID,
 					Module:     moduleName,
 				}
 				inputStates = append(inputStates, input)
 			case schema.ResourceTypeMysql:
-				input := executor.MySQLInputState{
+				input := state.InputMySQL{
 					ResourceID: provisioned.ResourceID(),
 					Cluster:    clusterID,
 					Module:     moduleName,
