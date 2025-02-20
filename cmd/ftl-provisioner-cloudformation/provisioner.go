@@ -105,7 +105,7 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 					Executor: executor.NewPostgresSetup(c.secrets),
 					Handles:  []state.State{state.RDSInstanceReadyPostgres{}},
 				}, {
-					Executor: executor.NewARNSecretMySQLSetup(c.secrets),
+					Executor: executor.NewARNSecretMySQLSetup(c.secrets, req.Msg.DesiredModule.Name),
 					Handles:  []state.State{state.RDSInstanceReadyMySQL{}},
 				}},
 			},

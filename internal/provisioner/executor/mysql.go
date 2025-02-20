@@ -19,12 +19,13 @@ import (
 // ARNSecretMySQLSetup is an executor that sets up a mysql database on an RDS instance.
 // It uses the secret ARN to get the admin username and password for the database.
 type ARNSecretMySQLSetup struct {
-	secrets *secretsmanager.Client
-	inputs  []state.State
+	secrets  *secretsmanager.Client
+	inputs   []state.State
+	username string
 }
 
-func NewARNSecretMySQLSetup(secrets *secretsmanager.Client) *ARNSecretMySQLSetup {
-	return &ARNSecretMySQLSetup{secrets: secrets}
+func NewARNSecretMySQLSetup(secrets *secretsmanager.Client, username string) *ARNSecretMySQLSetup {
+	return &ARNSecretMySQLSetup{secrets: secrets, username: username}
 }
 
 var _ provisioner.Executor = (*ARNSecretMySQLSetup)(nil)
@@ -43,7 +44,7 @@ func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error
 				connector := &schema.AWSIAMAuthDatabaseConnector{
 					Database: input.ResourceID,
 					Endpoint: input.WriteEndpoint,
-					Username: "ftluser",
+					Username: e.username,
 				}
 
 				adminDSN, err := mysqlAdminDSN(ctx, e.secrets, input.MasterUserSecretARN, connector)

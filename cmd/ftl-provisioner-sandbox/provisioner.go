@@ -64,7 +64,8 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 		acceptedKinds = append(acceptedKinds, schema.ResourceType(k))
 	}
 
-	inputStates := inputsFromSchema(module, acceptedKinds, req.Msg.FtlClusterId, req.Msg.DesiredModule.Name, c.confg)
+	inputStates := inputsFromSchema(module, acceptedKinds, req.Msg.DesiredModule.Name, c.confg)
+
 	token := uuid.New().String()
 
 	runner := &provisioner.Runner{
@@ -73,7 +74,7 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 			{
 				Name: "infrastructure-setup",
 				Handlers: []provisioner.Handler{{
-					Executor: executor.NewARNSecretMySQLSetup(c.secrets),
+					Executor: executor.NewARNSecretMySQLSetup(c.secrets, req.Msg.DesiredModule.Name),
 					Handles:  []state.State{state.RDSInstanceReadyMySQL{}},
 				}},
 			},
@@ -105,7 +106,7 @@ func createSecretsClient(ctx context.Context) (*secretsmanager.Client, error) {
 	), nil
 }
 
-func inputsFromSchema(module *schema.Module, acceptedKinds []schema.ResourceType, clusterID string, moduleName string, config *Config) []state.State {
+func inputsFromSchema(module *schema.Module, acceptedKinds []schema.ResourceType, moduleName string, config *Config) []state.State {
 	var inputStates []state.State
 	for _, provisioned := range schema.GetProvisioned(module) {
 		for _, resource := range provisioned.GetProvisioned().FilterByType(acceptedKinds...) {
