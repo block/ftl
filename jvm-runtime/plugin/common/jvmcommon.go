@@ -236,7 +236,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 	}
 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 	fileEvents := make(chan watch.WatchEventModuleChanged, 32)
-	if err := watchFiles(ctx, watcher, buildCtx, fileEvents, watchPatterns); err != nil {
+	if err := watchFiles(ctx, watcher, buildCtx, fileEvents); err != nil {
 		return err
 	}
 
@@ -265,14 +265,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, error) {
 	relativePaths := make([]string, len(watchPaths))
 	for i, path := range watchPaths {
-		var relative string
-		var err error
-		if strings.HasPrefix(path, "!") {
-			relative, err = filepath.Rel(moduleDir, strings.TrimPrefix(path, "!"))
-			relative = "!" + relative
-		} else {
-			relative, err = filepath.Rel(moduleDir, path)
-		}
+		relative, err := filepath.Rel(moduleDir, path)
 		if err != nil {
 			return nil, fmt.Errorf("could create relative path for watch pattern: %w", err)
 		}
@@ -305,7 +298,7 @@ func (s *Service) waitForFileChanges(ctx context.Context, fileEvents chan watch.
 
 // watchFiles begin watching files in the module directory
 // This is only used to restart quarkus:dev if it ends (such as when the initial build fails).
-func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan watch.WatchEventModuleChanged, watchPatterns []string) error {
+func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan watch.WatchEventModuleChanged) error {
 	logger := log.FromContext(ctx)
 	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
@@ -406,9 +399,6 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 	reloadEvents := make(chan *buildResult, 32)
 
 	schemaWatch, err := client.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
-	if err != nil {
-		return fmt.Errorf("failed to watch hotreload schema: %w", err)
-	}
 	if !schemaWatch.Receive() {
 		err := schemaWatch.Err()
 		if err != nil {

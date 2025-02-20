@@ -174,15 +174,8 @@ func (c UnvalidatedModuleConfig) FillDefaultsAndValidate(customDefaults CustomDe
 	if c.SQLQueryDirectory == "" {
 		c.SQLQueryDirectory = customDefaults.SQLQueryDir
 	}
-
 	if c.Watch == nil {
 		c.Watch = customDefaults.Watch
-	}
-	if c.SQLMigrationDirectory != "" {
-		c.Watch = append(c.Watch, "!"+c.SQLMigrationDirectory+"/**")
-	}
-	if c.SQLQueryDirectory != "" {
-		c.Watch = append(c.Watch, "!"+c.SQLQueryDirectory+"/**")
 	}
 
 	// Find any missing keys in LanguageConfig that can be defaulted

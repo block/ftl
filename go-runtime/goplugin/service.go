@@ -266,7 +266,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		s.acceptsContextUpdates.Store(true)
 		defer s.acceptsContextUpdates.Store(false)
 
-		if err := watchFiles(ctx, watcher, buildCtx, events, watchPatterns); err != nil {
+		if err := watchFiles(ctx, watcher, buildCtx, events); err != nil {
 			return err
 		}
 	}
@@ -323,7 +323,7 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 	return connect.NewResponse(&langpb.BuildContextUpdatedResponse{}), nil
 }
 
-func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan updateEvent, watchPatterns []string) error {
+func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan updateEvent) error {
 	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
 		return fmt.Errorf("could not watch for file changes: %w", err)
@@ -474,14 +474,7 @@ func buildFailure(buildCtx buildContext, isAutomaticRebuild bool, errs ...builde
 func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, error) {
 	relativePaths := make([]string, len(watchPaths))
 	for i, path := range watchPaths {
-		var relative string
-		var err error
-		if strings.HasPrefix(path, "!") {
-			relative, err = filepath.Rel(moduleDir, strings.TrimPrefix(path, "!"))
-			relative = "!" + relative
-		} else {
-			relative, err = filepath.Rel(moduleDir, path)
-		}
+		relative, err := filepath.Rel(moduleDir, path)
 		if err != nil {
 			return nil, fmt.Errorf("could create relative path for watch pattern: %w", err)
 		}
