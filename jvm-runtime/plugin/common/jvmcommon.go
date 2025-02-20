@@ -870,7 +870,7 @@ func extractKotlinFTLImports(self, dir string) ([]string, error) {
 func setPOMProperties(ctx context.Context, baseDir string) error {
 	logger := log.FromContext(ctx)
 	ftlVersion := ftl.BaseVersion(ftl.Version)
-	if !ftl.IsRelease(ftlVersion) {
+	if !ftl.IsRelease(ftlVersion) || ftlVersion != ftl.BaseVersion(ftl.Version) {
 		ftlVersion = "1.0-SNAPSHOT"
 	}
 

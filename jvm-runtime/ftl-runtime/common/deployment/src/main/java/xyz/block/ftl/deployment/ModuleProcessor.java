@@ -212,6 +212,9 @@ public class ModuleProcessor {
                 }
                 recorder.failStartup(message);
             } else {
+                if (newRunnerRequired) {
+                    recorder.requireNewRunnerDetails();
+                }
                 HotReloadHandler.getInstance().setResults(SchemaState.newBuilder().setModule(schRef.get())
                         .setNewRunnerRequired(newRunnerRequired).build());
             }

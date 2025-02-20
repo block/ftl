@@ -48,10 +48,6 @@ public class RunnerNotification {
         }
     }
 
-    public static synchronized void onRunnerDetails(Runnable callback) {
-        runnerDetailsCallbacks.add(callback);
-    }
-
     public static synchronized void clearClosedState() {
         if (info != null && info.failed()) {
             info = null;

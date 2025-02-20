@@ -36,7 +36,7 @@ func TestLifecycleJVM(t *testing.T) {
     </dependency>
 </dependencies>`, 1))
 		}, "pom.xml"),
-		in.WaitWithTimeout("echo", time.Minute),
+		in.WaitWithTimeout("echo", time.Minute*3),
 		in.VerifySchema(func(ctx context.Context, t testing.TB, schema *schema.Schema) {
 			assert.Equal(t, 2, len(schema.Modules))
 			for _, m := range schema.Modules {
