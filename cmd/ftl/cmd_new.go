@@ -23,7 +23,7 @@ import (
 type newCmd struct {
 	Language string `arg:"" help:"Language of the module to create."`
 	Name     string `arg:"" help:"Name of the FTL module to create underneath the base directory."`
-	Dir      string `arg:"" help:"Directory to initialize the module in." default:"${gitroot}"`
+	Dir      string `arg:"" help:"Directory to initialize the module in." default:"."`
 
 	AllowedDirs []string `help:"Directory that modules are required to be in (unless --force is set)." env:"FTL_DEV_DIRS" hidden:""`
 	Force       bool     `help:"Force creation of module without checking allowed directories." short:"f"`
