@@ -234,6 +234,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 	if err != nil {
 		return err
 	}
+	ensureCorrectFTLVersion(ctx, buildCtx)
 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 	fileEvents := make(chan watch.WatchEventModuleChanged, 32)
 	if err := watchFiles(ctx, watcher, buildCtx, fileEvents); err != nil {
@@ -250,7 +251,6 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 			}
 		}
 
-		ensureCorrectFTLVersion(ctx, buildCtx)
 		err := s.runQuarkusDev(ctx, stream, firstResponseSent, fileEvents)
 		if err != nil {
 			log.FromContext(ctx).Errorf(err, "Dev mode process exited")
