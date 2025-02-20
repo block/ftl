@@ -10,7 +10,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"slices"
 	"sort"
@@ -37,7 +36,6 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/errors"
-	"github.com/block/ftl/common/glob"
 	"github.com/block/ftl/common/plugin"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
@@ -335,16 +333,7 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
 				// Ignore changes to external protos. If a depenency was updated, the plugin will receive a new build context.
 				change.Changes = islices.Filter(change.Changes, func(c watch.FileChange) bool {
-					if strings.HasPrefix(c.Path, stubsDir) {
-						return false
-					}
-					if !glob.MatchAny(watchPatterns, c.Path) {
-						// this event stream is built with different watch patterns than the plugin, so
-						// it may include changes to files which are not watched by this plugin. we should
-						// exclude those.
-						return false
-					}
-					return true
+					return !strings.HasPrefix(c.Path, stubsDir)
 				})
 				if len(change.Changes) == 0 {
 					continue
@@ -414,19 +403,12 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 	}
 	logger.Debugf("Dev mode process started")
 	_ = output.FinalizeCapture()
-
-	migrationHash := watch.FileHashes{}
-
-	if fileExists(buildCtx.Config.SQLMigrationDirectory) {
-		migrationHash, err = watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"**/*.sql"})
-		if err != nil {
-			return fmt.Errorf("could not compute file hashes: %w", err)
-		}
-	}
-
 	reloadEvents := make(chan *buildResult, 32)
 
 	schemaWatch, err := client.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
+	if err != nil {
+		return fmt.Errorf("failed to watch hotreload schema: %w", err)
+	}
 	if !schemaWatch.Receive() {
 		err := schemaWatch.Err()
 		if err != nil {
@@ -471,24 +453,12 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			logger.Debugf("Checking for SQL schema changes")
-			if fileExists(buildCtx.Config.SQLMigrationDirectory) {
-				newMigrationHash, err := watch.ComputeFileHashes(buildCtx.Config.SQLMigrationDirectory, true, []string{"**/*.sql"})
-				if err != nil {
-					logger.Errorf(err, "could not compute file hashes")
-				} else if !reflect.DeepEqual(newMigrationHash, migrationHash) {
-					changed = true
-					migrationHash = newMigrationHash
-				}
-			}
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: changed, failed: result.Msg.Failed}
-
 		}
 	}
 }
 
 func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, firstResponseSent *atomic.Value[bool], stream *connect.ServerStream[langpb.BuildResponse], devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32) {
-
 	logger := log.FromContext(ctx)
 	lastFailed := false
 	for event := range channels.IterContext(ctx, reloadEvents) {

@@ -19,9 +19,7 @@ import (
 	langconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
-	"github.com/block/ftl/common/glob"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/slices"
 	goruntime "github.com/block/ftl/go-runtime"
 	"github.com/block/ftl/go-runtime/compile"
 	"github.com/block/ftl/internal"
@@ -178,7 +176,7 @@ func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.
 // ModuleConfigDefaults provides default values for ModuleConfig for values that are not configured in the ftl.toml file.
 func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
 	deployDir := ".ftl"
-	watch := []string{"**/*.go", "**/*.sql", "go.mod", "go.sum"}
+	watch := []string{"**/*.go", "go.mod", "go.sum"}
 	additionalWatch, err := replacementWatches(req.Msg.Dir, deployDir)
 	watch = append(watch, additionalWatch...)
 	if err != nil {
@@ -350,16 +348,8 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	go func() {
 		for e := range channels.IterContext(ctx, watchEvents) {
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
-				// this event stream is built with different watch patterns than the plugin, so
-				// it may include changes to files which are not watched by this plugin. we should
-				// exclude those.
-				changes := slices.Filter(change.Changes, func(c watch.FileChange) bool {
-					return glob.MatchAny(watchPatterns, c.Path)
-				})
-				if len(changes) > 0 {
-					log.FromContext(ctx).Infof("Found file changes: %s", change)
-					events <- filesUpdatedEvent{changes: changes}
-				}
+				log.FromContext(ctx).Infof("Found file changes: %s", change)
+				events <- updateEvent(filesUpdatedEvent{changes: change.Changes})
 			}
 		}
 	}()
