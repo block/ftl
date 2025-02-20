@@ -430,7 +430,7 @@ func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 			},
 		}, nil
 	}
-	if _, hasErrs := slices.Find(buildErrs, func(e builderrors.Error) bool {
+	if _, hasErrs := slices.Find(buildErrs, func(e builderrors.Error) bool { //nolint:errcheck
 		return e.Level == builderrors.ERROR
 	}); hasErrs {
 		return buildFailure(buildCtx, isAutomaticRebuild, buildErrs...), nil

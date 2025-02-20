@@ -453,9 +453,9 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		if terr := filesTransaction.End(); terr != nil {
 			buildErrors = append(buildErrors, buildErrorFromError(fmt.Errorf("failed to end file transaction: %w", terr)))
 		}
-		if _, hasErrs := islices.Find(buildErrors, func(berr builderrors.Error) bool {
+		if _, hasErrs := islices.Find(buildErrors, func(berr builderrors.Error) bool { //nolint:errcheck
 			return berr.Level == builderrors.ERROR
-		}); hasErrs { //nolint:errcheck
+		}); hasErrs {
 			// If we failed, reset the state to ensure we don't skip steps on the next build.
 			// Example: If `go mod tidy` fails due to a network failure, we need to try again next time, even if nothing else has changed.
 			ongoingState.reset()
