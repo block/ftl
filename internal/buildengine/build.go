@@ -77,6 +77,15 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	result.Deploy = append(result.Deploy, migrationFiles...)
 	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLMigrationDirectory)
 
+	if endpoint, ok := result.DevEndpoint.Get(); ok {
+		if devModeEndpoints != nil {
+			runnerVersion := result.HotReloadVersion.Default(0)
+			// Huge hack, we want to embed the runner version into the schema, but we don't want to change the schema proto just for this
+			// So we just use a comment
+			result.Schema.Comments = append(result.Schema.Comments, fmt.Sprintf(dev.RunnerVersionComment+"%d", runnerVersion))
+			devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: endpoint, DebugPort: result.DebugPort, Language: config.Language, HotReloadEndpoint: result.HotReloadEndpoint.Default("")}
+		}
+	}
 	// write schema proto to deploy directory
 	schemaBytes, err := proto.Marshal(result.Schema.ToProto())
 	if err != nil {
@@ -89,11 +98,6 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	}
 	if err := os.WriteFile(schemaPath, schemaBytes, 0600); err != nil {
 		return nil, nil, fmt.Errorf("failed to write schema: %w", err)
-	}
-	if endpoint, ok := result.DevEndpoint.Get(); ok {
-		if devModeEndpoints != nil {
-			devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: endpoint, DebugPort: result.DebugPort, Language: config.Language, HotReloadEndpoint: result.HotReloadEndpoint.Default(""), HotReloadVersion: result.HotReloadVersion.Default(0)}
-		}
 	}
 	return result.Schema, result.Deploy, nil
 }

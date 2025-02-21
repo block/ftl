@@ -4,7 +4,11 @@ public class RunnerNotification {
 
     private static volatile RunnerCallback callback;
     private static volatile RunnerInfo info;
-    private static volatile long runnerVersion = -1;
+    private static volatile long runnerVersion = 1;
+
+    public static long getRunnerVersion() {
+        return runnerVersion;
+    }
 
     public static void setCallback(RunnerCallback callback) {
         RunnerInfo info;

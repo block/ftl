@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	strconv2 "strconv"
 	"sync"
 	"time"
 
@@ -73,8 +75,19 @@ func (l *localScaling) StartDeployment(ctx context.Context, deployment string, s
 		}
 		break
 	}
+	runnerVersion := int64(0)
+	compile := regexp.MustCompile(dev.RunnerVersionComment + "(\\d+)")
+	for _, comment := range sch.Comments {
+		res := compile.FindStringSubmatch(comment)
+		if res != nil {
+			runnerVersion, err = strconv2.ParseInt(res[1], 10, 64)
+			if err != nil {
+				logger.Errorf(err, "Failed to parse runner version: %s", res[1])
+			}
+		}
+	}
 
-	if err := l.startRunner(ctx, dep.key, dep); err != nil {
+	if err := l.startRunner(ctx, dep.key, dep, runnerVersion); err != nil {
 		logger.Errorf(err, "Failed to start runner")
 		return url.URL{}, err
 	}
@@ -107,9 +120,8 @@ func (l *localScaling) TerminateDeployment(ctx context.Context, deployment strin
 }
 
 type devModeRunner struct {
-	uri              string
-	hotReloadURI     string
-	hotReloadVersion int64
+	uri          string
+	hotReloadURI string
 	// The deployment key of the deployment that is currently running
 	deploymentKey optional.Option[key.Deployment]
 	debugPort     int
@@ -130,10 +142,9 @@ func (l *localScaling) Start(ctx context.Context) error {
 // Must be called under lock
 func (l *localScaling) updateDevModeEndpoint(ctx context.Context, devEndpoints dev.LocalEndpoint) {
 	l.devModeEndpoints[devEndpoints.Module] = &devModeRunner{
-		uri:              devEndpoints.Endpoint,
-		debugPort:        devEndpoints.DebugPort,
-		hotReloadURI:     devEndpoints.HotReloadEndpoint,
-		hotReloadVersion: devEndpoints.HotReloadVersion,
+		uri:          devEndpoints.Endpoint,
+		debugPort:    devEndpoints.DebugPort,
+		hotReloadURI: devEndpoints.HotReloadEndpoint,
 	}
 	if ide, ok := l.ideSupport.Get(); ok {
 		if devEndpoints.DebugPort != 0 {
@@ -206,7 +217,7 @@ func NewLocalScaling(
 	return &local, nil
 }
 
-func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deployment, info *deploymentInfo) error {
+func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deployment, info *deploymentInfo, version int64) error {
 	select {
 	case <-ctx.Done():
 		// In some cases this gets called with an expired context, generally after the lease is released
@@ -220,7 +231,6 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	devURI := optional.None[string]()
 	devHotReloadURI := optional.None[string]()
 	debugPort := 0
-	hotReloadVersion := int64(-1)
 	if devEndpoint != nil {
 		devURI = optional.Some(devEndpoint.uri)
 		devHotReloadURI = optional.Some(devEndpoint.hotReloadURI)
@@ -230,7 +240,6 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		}
 		devEndpoint.deploymentKey = optional.Some(deploymentKey)
 		debugPort = devEndpoint.debugPort
-		hotReloadVersion = devEndpoint.hotReloadVersion
 	} else if ide, ok := l.ideSupport.Get(); ok {
 		var debug *localdebug.DebugInfo
 		debugBind, err := plugin.AllocatePort()
@@ -270,7 +279,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		DebugPort:            debugPort,
 		DevEndpoint:          devURI,
 		DevHotReloadEndpoint: devHotReloadURI,
-		DevHotReloadVersion:  hotReloadVersion,
+		DevHotReloadVersion:  version,
 	}
 
 	simpleName := fmt.Sprintf("runner%d", keySuffix)

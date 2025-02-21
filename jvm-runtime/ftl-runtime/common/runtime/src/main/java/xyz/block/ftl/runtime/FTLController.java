@@ -158,6 +158,9 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
 
     @Override
     public synchronized void newRunnerVersion(long version) {
+        if (this.runnerVersion == version) {
+            return;
+        }
         this.runnerVersion = version;
         if (this.runnerConnection != null) {
             this.runnerConnection.close();
