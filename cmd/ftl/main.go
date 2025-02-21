@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/kong"
 	kongtoml "github.com/alecthomas/kong-toml"
 	"github.com/alecthomas/types/optional"
@@ -90,7 +91,22 @@ type CLI struct {
 var cli CLI
 
 func main() {
+
 	ctx, cancel := context.WithCancelCause(context.Background())
+	// Handle signals.
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
+	var lg atomic.Value[*log.Logger]
+	go func() {
+		sig := <-sigch
+		cancel(fmt.Errorf("FTL terminating with signal %s: %w", sig, context.Canceled))
+		logger := lg.Load()
+		if logger != nil {
+			logger.Debugf("FTL terminating with signal %s", sig)
+		}
+		_ = syscall.Kill(-syscall.Getpid(), sig.(syscall.Signal)) //nolint:forcetypeassert,errcheck // best effort
+		os.Exit(0)
+	}()
 	csm := &currentStatusManager{}
 
 	app := createKongApplication(&cli, csm)
@@ -149,23 +165,13 @@ func main() {
 
 	logger := log.Configure(os.Stderr, cli.LogConfig)
 	ctx = log.ContextWithLogger(ctx, logger)
+	lg.Store(logger)
 
 	if cli.Insecure {
 		logger.Warnf("--insecure skips TLS certificate verification")
 	}
 
 	os.Setenv("FTL_CONFIG", configPath)
-
-	// Handle signals.
-	sigch := make(chan os.Signal, 1)
-	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		sig := <-sigch
-		logger.Debugf("FTL terminating with signal %s", sig)
-		cancel(fmt.Errorf("FTL terminating with signal %s: %w", sig, context.Canceled))
-		_ = syscall.Kill(-syscall.Getpid(), sig.(syscall.Signal)) //nolint:forcetypeassert,errcheck // best effort
-		os.Exit(0)
-	}()
 
 	bindContext := makeBindContext(logger, cancel)
 	ctx = bindContext(ctx, kctx)
@@ -208,7 +214,6 @@ func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
 				sm.Close()
 			}
 			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
-			os.Exit(code)
 		},
 		))
 	return app
