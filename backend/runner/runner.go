@@ -143,10 +143,6 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 		return fmt.Errorf("failed to get module: %w", err)
 	}
 
-	// Add a delay to allow schema state to fully converge
-	logger.Debugf("Waiting for schema state to stabilize...")
-	time.Sleep(2 * time.Second)
-
 	startedLatch := &sync.WaitGroup{}
 	startedLatch.Add(2)
 	g, ctx := errgroup.WithContext(ctx)
