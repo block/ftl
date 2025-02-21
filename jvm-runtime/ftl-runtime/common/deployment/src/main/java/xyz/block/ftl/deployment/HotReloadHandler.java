@@ -190,7 +190,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                 .addService(this)
                 .build();
         try {
-            LOG.info("Starting Hot Reload gRPC server on port " + port);
+            LOG.debugf("Starting Hot Reload gRPC server on port %s", port);
             server.start();
         } catch (IOException e) {
             throw new RuntimeException(e);
