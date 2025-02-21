@@ -47,6 +47,8 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 			o.logger.Tracef("%s", cleanLine)
 		} else if cleanLine, ok := strings.CutPrefix(line, "TRACE "); ok {
 			o.logger.Tracef("%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "FINE "); ok {
+			o.logger.Tracef("%s", cleanLine)
 		} else {
 			o.logger.Infof("%s", line)
 		}

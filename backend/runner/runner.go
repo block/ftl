@@ -30,6 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
+
 	"github.com/block/ftl/backend/controller/artefacts"
 	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect"
@@ -142,11 +143,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	if err != nil {
 		return fmt.Errorf("failed to get module: %w", err)
 	}
-
-	// Add a delay to allow schema state to fully converge
-	logger.Debugf("Waiting for schema state to stabilize...")
-	time.Sleep(2 * time.Second)
-
+	
 	startedLatch := &sync.WaitGroup{}
 	startedLatch.Add(2)
 	g, ctx := errgroup.WithContext(ctx)
@@ -430,6 +427,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 						}))
 						if err == nil {
 							if info.Msg.Outdated {
+								logger.Warnf("Runner is outdated, exiting")
 								cancel(fmt.Errorf("runner is outdated, exiting"))
 							}
 						}

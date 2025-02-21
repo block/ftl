@@ -125,6 +125,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                                 .setFailed(true).build());
                         responseObserver.onCompleted();
                     } else {
+                        RunnerNotification.setRunnerVersion(state.getVersion());
                         responseObserver.onNext(ReloadResponse.newBuilder().setState(state).setFailed(false).build());
                         responseObserver.onCompleted();
                     }
@@ -166,6 +167,10 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         }
         boolean outdated = RunnerNotification
                 .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases, request.getVersion()));
+        if (outdated) {
+            LOG.debugf("Runner is outdated, a reload is required, runner version %s, current %s", request.getVersion(),
+                    RunnerNotification.getRunnerVersion());
+        }
         responseObserver.onNext(RunnerInfoResponse.newBuilder().setOutdated(outdated).build());
         responseObserver.onCompleted();
     }

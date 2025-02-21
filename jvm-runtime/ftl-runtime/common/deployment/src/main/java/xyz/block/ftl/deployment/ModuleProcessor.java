@@ -45,7 +45,6 @@ import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.util.HashUtil;
 import io.quarkus.vertx.http.deployment.RequireSocketHttpBuildItem;
 import io.quarkus.vertx.http.deployment.RequireVirtualHttpBuildItem;
-import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.hotreload.v1.SchemaState;
 import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
@@ -189,7 +188,6 @@ public class ModuleProcessor {
         Files.write(output, schBytes);
         Files.write(errorOutput, errBytes);
         if (launchModeBuildItem.getLaunchMode() == LaunchMode.DEVELOPMENT) {
-            var runnerVersion = versionCounter.incrementAndGet();
             // Handle runner restarts in development mode. If this is the first launch, or the schema has changed, we need to
             // get updated runner information, although we don't actually get this until the runner has started.
             boolean newRunnerRequired = false;
@@ -208,6 +206,7 @@ public class ModuleProcessor {
             }
 
             if (fatal) {
+                var runnerVersion = versionCounter.incrementAndGet();
                 HotReloadHandler.getInstance()
                         .setResults(SchemaState.newBuilder().setVersion(runnerVersion).setErrors(errRef.get())
                                 .setNewRunnerRequired(true).build());
@@ -217,9 +216,11 @@ public class ModuleProcessor {
                 }
                 recorder.failStartup(message);
             } else {
-                RunnerNotification.setRunnerVersion(runnerVersion);
+                if (newRunnerRequired) {
+                    versionCounter.incrementAndGet();
+                }
                 HotReloadHandler.getInstance()
-                        .setResults(SchemaState.newBuilder().setVersion(runnerVersion).setModule(schRef.get())
+                        .setResults(SchemaState.newBuilder().setVersion(versionCounter.get()).setModule(schRef.get())
                                 .setNewRunnerRequired(newRunnerRequired).build());
             }
         } else {
