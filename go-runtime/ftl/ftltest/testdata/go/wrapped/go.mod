@@ -23,7 +23,7 @@ require (
 	github.com/alecthomas/kong v1.8.1 // indirect
 	github.com/alecthomas/participle/v2 v2.1.1 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
-	github.com/alecthomas/types v0.17.0 // indirect
+	github.com/alecthomas/types v0.18.0 // indirect
 	github.com/amacneil/dbmate/v2 v2.26.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.2 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.29.7 // indirect

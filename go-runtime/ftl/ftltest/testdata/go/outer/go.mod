@@ -12,7 +12,7 @@ require (
 require (
 	github.com/alecthomas/participle/v2 v2.1.1 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
-	github.com/alecthomas/types v0.17.0 // indirect
+	github.com/alecthomas/types v0.18.0 // indirect
 	github.com/deckarep/golang-set/v2 v2.7.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/cronexpr v1.1.2 // indirect

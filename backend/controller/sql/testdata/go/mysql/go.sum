@@ -30,8 +30,8 @@ github.com/alecthomas/participle/v2 v2.1.1 h1:hrjKESvSqGHzRb4yW1ciisFJ4p3MGYih6i
 github.com/alecthomas/participle/v2 v2.1.1/go.mod h1:Y1+hAs8DHPmc3YUFzqllV+eSQ9ljPTk0ZkPMtEdAx2c=
 github.com/alecthomas/repr v0.4.0 h1:GhI2A8MACjfegCPVq9f1FLvIBS+DrQ2KQBFZP1iFzXc=
 github.com/alecthomas/repr v0.4.0/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
-github.com/alecthomas/types v0.17.0 h1:7zMy/iEtxy5wyAD4UNTk60b4d6gad/3yldowx/DVQ0Y=
-github.com/alecthomas/types v0.17.0/go.mod h1:h+rA5USDGGu2tgggxsQgm4MmAp5Jk9opoSGetaRJ9sE=
+github.com/alecthomas/types v0.18.0 h1:47chAUBQdPJVQxElDLT/M1+sAodM0sauRscDPrhPbnY=
+github.com/alecthomas/types v0.18.0/go.mod h1:zGEr/iJAi+RoG7LaH0YfWBFcpHDROBkOdmmKcK+BiNg=
 github.com/amacneil/dbmate/v2 v2.26.0 h1:74ykEWh0V41BU3wesgmTowMn/2x9rUfIxIG+Q+vuUm0=
 github.com/amacneil/dbmate/v2 v2.26.0/go.mod h1:cnjZKm5x/gKMLPfExXbEDUUQi1Sv5UqY3AIgbnxql84=
 github.com/aws/aws-sdk-go-v2 v1.36.2 h1:Ub6I4lq/71+tPb/atswvToaLGVMxKZvjYDVOWEExOcU=

@@ -4,8 +4,8 @@ github.com/alecthomas/participle/v2 v2.1.1 h1:hrjKESvSqGHzRb4yW1ciisFJ4p3MGYih6i
 github.com/alecthomas/participle/v2 v2.1.1/go.mod h1:Y1+hAs8DHPmc3YUFzqllV+eSQ9ljPTk0ZkPMtEdAx2c=
 github.com/alecthomas/repr v0.4.0 h1:GhI2A8MACjfegCPVq9f1FLvIBS+DrQ2KQBFZP1iFzXc=
 github.com/alecthomas/repr v0.4.0/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
-github.com/alecthomas/types v0.17.0 h1:7zMy/iEtxy5wyAD4UNTk60b4d6gad/3yldowx/DVQ0Y=
-github.com/alecthomas/types v0.17.0/go.mod h1:h+rA5USDGGu2tgggxsQgm4MmAp5Jk9opoSGetaRJ9sE=
+github.com/alecthomas/types v0.18.0 h1:47chAUBQdPJVQxElDLT/M1+sAodM0sauRscDPrhPbnY=
+github.com/alecthomas/types v0.18.0/go.mod h1:zGEr/iJAi+RoG7LaH0YfWBFcpHDROBkOdmmKcK+BiNg=
 github.com/bool64/dev v0.2.38 h1:C5H9wkx/BhTYRfV14X90iIQKpSuhzsG+OHQvWdQ5YQ4=
 github.com/bool64/dev v0.2.38/go.mod h1:iJbh1y/HkunEPhgebWRNcs8wfGq7sjvJ6W5iabL8ACg=
 github.com/bool64/shared v0.1.5 h1:fp3eUhBsrSjNCQPcSdQqZxxh9bBwrYiZ+zOKFkM0/2E=

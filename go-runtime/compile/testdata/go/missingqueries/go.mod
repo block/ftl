@@ -3,7 +3,7 @@ module ftl/missingqueries
 go 1.23.4
 
 require (
-	github.com/alecthomas/types v0.17.0
+	github.com/alecthomas/types v0.18.0
 	github.com/block/ftl v0.433.2
 )
 
