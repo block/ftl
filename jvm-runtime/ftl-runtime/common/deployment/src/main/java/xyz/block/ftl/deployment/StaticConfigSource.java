@@ -9,6 +9,7 @@ public class StaticConfigSource implements ConfigSource {
     public static final String QUARKUS_BANNER_ENABLED = "quarkus.banner.enabled";
     final static String OTEL_METRICS_ENABLED = "quarkus.otel.metrics.enabled";
     final static String DEV_SERVICES_ENABLED = "quarkus.devservices.enabled";
+    final static String LOG_FORMAT = "quarkus.log.console.format";
 
     @Override
     public Set<String> getPropertyNames() {
@@ -26,6 +27,9 @@ public class StaticConfigSource implements ConfigSource {
             }
             case DEV_SERVICES_ENABLED -> {
                 return "false";
+            }
+            case LOG_FORMAT -> {
+                return "%p %m";
             }
         }
         return null;
