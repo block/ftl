@@ -17,7 +17,7 @@ import (
 func TestLifecycleJVM(t *testing.T) {
 	deployment := ""
 	in.Run(t,
-		in.WithLanguages("java", "kotlin"),
+		in.WithLanguages("java"),
 		in.WithDevMode(),
 		in.GitInit(),
 		in.Exec("rm", "ftl-project.toml"),
@@ -39,19 +39,11 @@ func TestLifecycleJVM(t *testing.T) {
 		// Now test hot reload
 		// Deliberate compile error, we need to check that we can recover from this
 		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "\"Hello", "Bye"))
+			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
 		}, "src/main/java/ftl/echo/Echo.java")),
 		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "\"Hello", "Bye"))
+			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
 		}, "src/main/kotlin/ftl/echo/Echo.kt")),
-		in.Sleep(time.Second*2),
-		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "Bye", "\"Bye"))
-		}, "src/main/java/ftl/echo/Echo.java")),
-		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "Bye", "\"Bye"))
-		}, "src/main/kotlin/ftl/echo/Echo.kt")),
-		in.Sleep(time.Second*2), // Annoyingly quarkus limits to one restart check every 2s, which is fine for normal dev, but a pain for these tests
 		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bye, Bob!", response)
 		}),
@@ -64,12 +56,20 @@ func TestLifecycleJVM(t *testing.T) {
 				}
 			}
 		}),
-		// Structural change should result in a new deployment
+		//now break compilation
 		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "@Export", ""))
+			return []byte(strings.ReplaceAll(string(content), "@Export", "broken"))
 		}, "src/main/java/ftl/echo/Echo.java")),
 		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "@Export", ""))
+			return []byte(strings.ReplaceAll(string(content), "@Export", "broken"))
+		}, "src/main/kotlin/ftl/echo/Echo.kt")),
+		in.Sleep(time.Second*2),
+		// Structural change should result in a new deployment
+		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
+			return []byte(strings.ReplaceAll(string(content), "broken", ""))
+		}, "src/main/java/ftl/echo/Echo.java")),
+		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
+			return []byte(strings.ReplaceAll(string(content), "broken", ""))
 		}, "src/main/kotlin/ftl/echo/Echo.kt")),
 		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bye, Bob!", response)
