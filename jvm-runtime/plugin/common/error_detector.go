@@ -29,14 +29,24 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 		}
 		if cleanLine, ok := strings.CutPrefix(line, "[ERROR] "); ok {
 			o.logger.Logf(log.Error, "%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "ERROR "); ok {
+			o.logger.Logf(log.Error, "%s", cleanLine)
 		} else if cleanLine, ok := strings.CutPrefix(line, "[WARNING] "); ok {
 			o.logger.Warnf("%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "WARN "); ok {
+			o.logger.Warnf("%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "[INFO] "); ok {
+			o.logger.Infof("%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "INFO "); ok {
+			o.logger.Infof("%s", cleanLine)
 		} else if cleanLine, ok := strings.CutPrefix(line, "[DEBUG] "); ok {
+			o.logger.Debugf("%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "DEBUG "); ok {
 			o.logger.Debugf("%s", cleanLine)
 		} else if cleanLine, ok := strings.CutPrefix(line, "[TRACE] "); ok {
 			o.logger.Tracef("%s", cleanLine)
-		} else if cleanLine, ok := strings.CutPrefix(line, "[INFO] "); ok {
-			o.logger.Infof("%s", cleanLine)
+		} else if cleanLine, ok := strings.CutPrefix(line, "TRACE "); ok {
+			o.logger.Tracef("%s", cleanLine)
 		} else {
 			o.logger.Infof("%s", line)
 		}
