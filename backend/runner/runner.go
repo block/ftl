@@ -398,6 +398,14 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	}()
 	s.proxyBindAddress = <-urls
 
+	// Make sure the proxy is up and running before we start the deployment
+	// We get the bind address slightly before the server is ready, so we ping to be sure
+	proxyPingClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.proxyBindAddress.String(), log.Error)
+	err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, proxyPingClient)
+	if err != nil {
+		observability.Deployment.Failure(ctx, optional.Some(key.String()))
+		return fmt.Errorf("failed to ping proxy: %w", err)
+	}
 	var dep *deployment
 	if ep, ok := s.devEndpoint.Get(); ok {
 		pingCtx, cancel := context.WithCancelCause(ctx)
