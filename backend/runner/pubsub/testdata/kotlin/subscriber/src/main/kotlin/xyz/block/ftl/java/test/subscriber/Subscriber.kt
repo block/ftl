@@ -2,8 +2,8 @@ package xyz.block.ftl.java.test.subscriber
 
 import ftl.builtin.CatchRequest
 import ftl.publisher.PubSubEvent
-import ftl.publisher.TestTopicTopic
-import ftl.publisher.Topic2Topic
+import ftl.publisher.TestTopic
+import ftl.publisher.Topic2
 import io.quarkus.logging.Log
 import xyz.block.ftl.*
 import java.util.concurrent.atomic.AtomicInteger

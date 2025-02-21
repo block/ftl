@@ -2,8 +2,8 @@ package xyz.block.ftl.java.test.subscriber;
 
 import ftl.builtin.FailedEvent;
 import ftl.publisher.PubSubEvent;
-import ftl.publisher.TestTopicTopic;
-import ftl.publisher.Topic2Topic;
+import ftl.publisher.TestTopic;
+import ftl.publisher.Topic2;
 import io.quarkus.logging.Log;
 import xyz.block.ftl.FromOffset;
 import xyz.block.ftl.Retry;
@@ -42,7 +42,7 @@ public class Subscriber {
         throw new RuntimeException("always error: event " + event.getTime());
     }
 
-    @Subscription(topic = ConsumeButFailAndRetryFailed.class, from = FromOffset.BEGINNING)
+    @Subscription(topic = ConsumeButFailAndRetryFailedTopic.class, from = FromOffset.BEGINNING)
     public void consumeFromDeadLetter(FailedEvent<PubSubEvent> event) {
         Log.infof("consumeFromDeadLetter: %s", event.getEvent().getTime());
     }

@@ -81,8 +81,8 @@ public class TopicsProcessor {
             }
 
             AnnotationValue nameValue = topicDefinition.value("name");
-            String name = Character.toLowerCase(iface.name().toString().charAt(0)) + iface.name().toString().substring(1);
-            if (nameValue != null){
+            String name = Character.toLowerCase(iface.simpleName().charAt(0)) + iface.simpleName().substring(1);
+            if (nameValue != null && nameValue.asString() != null) {
                 if (!nameValue.asString().isEmpty()) {
                     name = nameValue.asString();
                 }
