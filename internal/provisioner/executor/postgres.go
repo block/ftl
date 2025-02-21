@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/concurrency"

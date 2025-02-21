@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/concurrency"

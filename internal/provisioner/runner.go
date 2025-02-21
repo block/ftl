@@ -130,7 +130,10 @@ func (t *Task) Start(oldCtx context.Context) {
 }
 
 func (t *Task) Err() error {
-	return fmt.Errorf("failed to execute provisioner: %w", t.err.Load())
+	if err := t.err.Load(); err != nil {
+		return fmt.Errorf("failed to execute provisioner: %w", err)
+	}
+	return nil
 }
 
 func (t *Task) Outputs() []state.State {
