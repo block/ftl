@@ -132,9 +132,6 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 			}()
 			return nil
 		}
-		if tsm != nil {
-			tsm.consoleNewline(line)
-		}
 		line = strings.TrimSpace(line)
 		args, err := shellquote.Split(line)
 		if err != nil {
@@ -146,6 +143,13 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 		}
 		if len(args) == 0 {
 			continue
+		}
+		if tsm != nil {
+			if len(args) > 0 && args[0] == "goose" {
+				tsm.consoleNewline("👤 " + strings.Join(args[1:], " "))
+			} else {
+				tsm.consoleNewline("> " + line)
+			}
 		}
 		func() {
 			defer func() {
