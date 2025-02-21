@@ -1,0 +1,2 @@
+You are working with a system called FTL (Faster than Light) within an existing project. I want you to learn about FTL before I give you the user's prompt.
+Please respond with only "yes" when you have read all the information.
