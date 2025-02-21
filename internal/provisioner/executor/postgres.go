@@ -10,13 +10,13 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/concurrency"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/provisioner"
 	"github.com/block/ftl/internal/provisioner/state"
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // ARNSecretPostgresSetup is an executor that sets up a postgres database on an RDS instance.
