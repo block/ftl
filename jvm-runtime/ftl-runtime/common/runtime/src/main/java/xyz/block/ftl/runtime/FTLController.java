@@ -75,10 +75,11 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
                 if (runnerDetails == null) {
                     waitForRunner();
                     if (runnerDetails == null) {
-                        throw RESTART_EXCEPTION;
+                        log.error("Failed to get runner details");
+                        return new MockRunnerConnection();
                     }
                 }
-                runnerConnection = new FTLRunnerConnection(runnerDetails.getProxyAddress(),
+                runnerConnection = new FTLRunnerConnectionImpl(runnerDetails.getProxyAddress(),
                         runnerDetails.getDeploymentKey(), moduleName, new Runnable() {
                             @Override
                             public void run() {

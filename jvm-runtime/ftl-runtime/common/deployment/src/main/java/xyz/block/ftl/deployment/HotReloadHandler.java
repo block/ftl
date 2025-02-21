@@ -88,8 +88,8 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         // We want to report on the results of the schema generations, so we can bring up a runner
         // Run the restart in a new thread, so we can report on the schema once it is ready
         synchronized (this) {
+            RunnerNotification.reloadStarted();
             while (starting) {
-                RunnerNotification.reloadStarted();
                 try {
                     this.wait();
                 } catch (InterruptedException e) {
