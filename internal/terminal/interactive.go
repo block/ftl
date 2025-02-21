@@ -136,12 +136,15 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 			tsm.consoleNewline(line)
 		}
 		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
 		args, err := shellquote.Split(line)
 		if err != nil {
 			errorf("%s", err)
+			continue
+		}
+		if len(args) > 0 && args[0] == "ftl" {
+			args = args[1:]
+		}
+		if len(args) == 0 {
 			continue
 		}
 		func() {
