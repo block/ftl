@@ -351,6 +351,22 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 	logger := log.FromContext(ctx)
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(fmt.Errorf("stopping JVM language plugin (Quarkus dev mode): %w", context.Canceled))
+	go func() {
+		<-ctx.Done()
+		// the context is done before we notified the build engine
+		// we need to send a build failure event
+		auto := firstResponseSent.Load()
+		firstResponseSent.Store(true)
+		err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+			BuildFailure: &langpb.BuildFailure{
+				IsAutomaticRebuild: auto,
+				ContextId:          s.buildContext.Load().ID,
+				Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
+			}}})
+		if err != nil {
+			logger.Errorf(err, "could not send build event")
+		}
+	}()
 
 	events := make(chan buildContextUpdatedEvent, 32)
 	s.updatesTopic.Subscribe(events)
@@ -411,22 +427,6 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 
 	for {
 		select {
-		case <-ctx.Done():
-			logger.Infof("Context done")
-			// the context is done before we notified the build engine
-			// we need to send a build failure event
-			auto := firstResponseSent.Load()
-			firstResponseSent.Store(true)
-			err = stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-				BuildFailure: &langpb.BuildFailure{
-					IsAutomaticRebuild: auto,
-					ContextId:          s.buildContext.Load().ID,
-					Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
-				}}})
-			if err != nil {
-				return fmt.Errorf("could not send build event: %w", err)
-			}
-			return nil
 		case bc := <-events:
 			logger.Debugf("Build context updated")
 			buildCtx = bc.buildCtx
