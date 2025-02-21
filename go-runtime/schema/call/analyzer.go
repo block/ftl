@@ -108,6 +108,9 @@ func pkgPathFromType(typ types.Type) (pkgPath string, wasAliased bool) {
 	case *types.Alias:
 		return tt.Obj().Pkg().Path(), true
 	case *types.Named:
+		if tt.Obj().Pkg() == nil {
+			return "", false
+		}
 		return tt.Obj().Pkg().Path(), false
 	default:
 		return "", false
