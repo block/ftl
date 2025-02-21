@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/alecthomas/assert/v2 v2.11.0
-	github.com/alecthomas/types v0.17.0
+	github.com/alecthomas/types v0.18.0
 	github.com/block/ftl v0.189.0
 )
 
