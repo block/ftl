@@ -38,6 +38,7 @@ import io.quarkus.deployment.builditem.LaunchModeBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.ServiceStartBuildItem;
 import io.quarkus.deployment.builditem.SystemPropertyBuildItem;
+import io.quarkus.deployment.logging.LogCleanupFilterBuildItem;
 import io.quarkus.deployment.pkg.builditem.OutputTargetBuildItem;
 import io.quarkus.grpc.deployment.BindableServiceBuildItem;
 import io.quarkus.runtime.LaunchMode;
@@ -270,5 +271,12 @@ public class ModuleProcessor {
             BuildProducer<RequireSocketHttpBuildItem> socket) throws IOException {
         socket.produce(RequireSocketHttpBuildItem.MARKER);
         virtual.produce(RequireVirtualHttpBuildItem.MARKER);
+    }
+
+    @BuildStep
+    void setupLogFilters(BuildProducer<LogCleanupFilterBuildItem> filters) {
+        filters.produce(new LogCleanupFilterBuildItem("io.quarkus", "Profile%s %s activated. %s", "Installed features:"));
+        filters.produce(new LogCleanupFilterBuildItem("io.quarkus.grpc.runtime.GrpcServerRecorder",
+                "Starting new Quarkus gRPC server", "Registering gRPC reflection service"));
     }
 }
