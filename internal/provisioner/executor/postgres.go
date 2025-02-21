@@ -16,6 +16,7 @@ import (
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/provisioner"
 	"github.com/block/ftl/internal/provisioner/state"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // ARNSecretPostgresSetup is an executor that sets up a postgres database on an RDS instance.
