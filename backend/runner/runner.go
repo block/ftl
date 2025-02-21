@@ -30,7 +30,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
-
 	"github.com/block/ftl/backend/controller/artefacts"
 	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect"
@@ -143,7 +142,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	if err != nil {
 		return fmt.Errorf("failed to get module: %w", err)
 	}
-	
+
 	startedLatch := &sync.WaitGroup{}
 	startedLatch.Add(2)
 	g, ctx := errgroup.WithContext(ctx)
