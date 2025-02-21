@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/amacneil/dbmate/v2/pkg/dbmate"
+	"github.com/amacneil/dbmate/v2/pkg/dbutil"
 
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/log"
@@ -69,11 +69,45 @@ func (i newSQLMigrationCmd) Run(ctx context.Context) error {
 
 	logger := log.FromContext(ctx)
 	logger.Debugf("Creating DBMate SQL migration %s in module %q in %s", i.Name, module.Module, migrationDir)
-	db := dbmate.New(&url.URL{})
-	db.MigrationsDir = []string{migrationDir}
-	err = db.NewMigration(i.Name)
+	migrationPath, err := newMigration(migrationDir, i.Name)
 	if err != nil {
 		return fmt.Errorf("failed to create migration: %w", err)
 	}
+	fmt.Printf("Created migration at %s\n", migrationPath)
 	return nil
+}
+
+// Purposely use a template string which is invalid so that autorebuilds do not deploy the empty migration
+// before the user is able to enter their own migration
+const migrationTemplate = "-- migrate:up\nPut migration here\n\n-- migrate:down\n\n"
+
+// newMigration creates a new migration file and returns the path
+func newMigration(dir, name string) (string, error) {
+	// new migration name
+	timestamp := time.Now().UTC().Format("20060102150405")
+	if name == "" {
+		return "", fmt.Errorf("migration name required")
+	}
+	name = fmt.Sprintf("%s_%s.sql", timestamp, name)
+
+	// create migrations dir if missing
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+
+	// check file does not already exist
+	path := filepath.Join(dir, name)
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		return "", fmt.Errorf("migration file already exists: %s", path)
+	}
+
+	// write new migration
+	file, err := os.Create(path)
+	if err != nil {
+		return "", err
+	}
+
+	defer dbutil.MustClose(file)
+	_, err = file.WriteString(migrationTemplate)
+	return path, err
 }
