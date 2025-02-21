@@ -91,8 +91,8 @@ func newMigration(dir, name string) (string, error) {
 	name = fmt.Sprintf("%s_%s.sql", timestamp, name)
 
 	// create migrations dir if missing
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", err
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return "", fmt.Errorf("could not create migrations directory at %s: %w", dir, err)
 	}
 
 	// check file does not already exist
@@ -104,10 +104,12 @@ func newMigration(dir, name string) (string, error) {
 	// write new migration
 	file, err := os.Create(path)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not create migration file at %s: %w", path, err)
 	}
 
 	defer dbutil.MustClose(file)
-	_, err = file.WriteString(migrationTemplate)
-	return path, err
+	if _, err := file.WriteString(migrationTemplate); err != nil {
+		return "", fmt.Errorf("could not write to migration file at %s: %w", path, err)
+	}
+	return path, nil
 }
