@@ -289,10 +289,10 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	runnerCtx, cancel := context.WithCancelCause(runnerCtx)
 	info.runner = optional.Some(runnerInfo{cancelFunc: cancel, port: bind.Port, host: "127.0.0.1"})
 
-	exit := make(chan struct{})
+	exit := make(chan error)
 	go func() {
 		err := runner.Start(runnerCtx, config, l.storage)
-		close(exit)
+		exit <- err
 		cancel(fmt.Errorf("runner exited %w", err))
 		l.lock.Lock()
 		defer l.lock.Unlock()
@@ -310,8 +310,12 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 			return fmt.Errorf("context cancelled: %w", runnerCtx.Err())
 		case <-timeout:
 			return fmt.Errorf("timed out waiting for runner to be ready")
-		case <-exit:
-			return fmt.Errorf("runner exited")
+		case err := <-exit:
+			if err == nil {
+				return fmt.Errorf("runner exited")
+			} else {
+				return fmt.Errorf("runner exited: %w", err)
+			}
 		case <-time.After(time.Millisecond * 100):
 			_, err := client.Ping(runnerCtx, connect.NewRequest(&ftlv1.PingRequest{}))
 			if err == nil {
