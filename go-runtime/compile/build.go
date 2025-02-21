@@ -525,6 +525,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		hashes, err := fileHashesForOptimisticCompilation(config)
 		if err != nil {
 			optimisticHashesChan <- watch.FileHashes{}
+			optimisticCompileChan <- nil
 			return
 		}
 		optimisticHashesChan <- hashes
