@@ -2,8 +2,8 @@ package xyz.block.ftl.java.test.subscriber;
 
 import ftl.builtin.FailedEvent;
 import ftl.publisher.PubSubEvent;
-import ftl.publisher.TestTopicTopic;
-import ftl.publisher.Topic2Topic;
+import ftl.publisher.TestTopic;
+import ftl.publisher.Topic2;
 import io.quarkus.logging.Log;
 import xyz.block.ftl.FromOffset;
 import xyz.block.ftl.Retry;
@@ -20,12 +20,12 @@ class PartitionMapper implements TopicPartitionMapper<FailedEvent<PubSubEvent>> 
 
 public class Subscriber {
 
-    @Subscription(topic = TestTopicTopic.class, from = FromOffset.BEGINNING)
+    @Subscription(topic = TestTopic.class, from = FromOffset.BEGINNING)
     void consume(PubSubEvent event) throws Exception {
         Log.infof("consume: %s", event.getTime());
     }
 
-    @Subscription(topic = TestTopicTopic.class, from = FromOffset.LATEST)
+    @Subscription(topic = TestTopic.class, from = FromOffset.LATEST)
     void consumeFromLatest(PubSubEvent event) throws Exception {
         Log.infof("consumeFromLatest: %s", event.getTime());
     }
@@ -36,7 +36,7 @@ public class Subscriber {
 
     }
 
-    @Subscription(topic = Topic2Topic.class, from = FromOffset.BEGINNING, deadLetter = true)
+    @Subscription(topic = Topic2.class, from = FromOffset.BEGINNING, deadLetter = true)
     @Retry(count = 2, minBackoff = "1s", maxBackoff = "1s")
     public void consumeButFailAndRetry(PubSubEvent event) {
         throw new RuntimeException("always error: event " + event.getTime());

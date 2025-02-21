@@ -77,7 +77,6 @@ public class SubscriptionProcessor {
             String currentModuleName) {
 
         AnnotationValue topicClassValue = subscriptions.value("topic");
-        String topicName;
 
         var topicClass = indexView.getClassByName(topicClassValue.asClass().name());
         AnnotationInstance annotation = topicClass.annotation(FTLDotNames.TOPIC);
@@ -85,7 +84,15 @@ public class SubscriptionProcessor {
             throw new IllegalArgumentException(
                     "topicClass must be annotated with @TopicDefinition for subscription " + subscriptions);
         }
-        topicName = annotation.value("name").asString();
+        AnnotationValue nameValue = annotation.value("name");
+        String topicName = Character.toLowerCase(topicClass.simpleName().charAt(0))
+                + topicClass.simpleName().substring(1);
+        if (nameValue != null && nameValue.asString() != null) {
+            if (!nameValue.asString().isEmpty()) {
+                topicName = nameValue.asString();
+            }
+        }
+
         AnnotationValue moduleValue = annotation.value("module");
         AnnotationValue deadLetterValue = subscriptions.value("deadLetter");
         boolean deadLetter = deadLetterValue != null && !deadLetterValue.asString().isEmpty() && deadLetterValue.asBoolean();
