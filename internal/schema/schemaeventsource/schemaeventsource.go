@@ -3,6 +3,7 @@ package schemaeventsource
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"slices"
 	"sync"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	islices "github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
@@ -65,9 +67,11 @@ type EventSource struct {
 //
 // This method guarentes you will always receive a FullSchemaNotification as the first message
 func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification {
+	pc, file, line, _ := runtime.Caller(1)
 	e.subscribeLock.Lock()
 	defer e.subscribeLock.Unlock()
 	subscribe := e.events.Subscribe(nil)
+	proxyChan := make(chan schema.Notification)
 	context.AfterFunc(ctx, func() {
 		e.events.Unsubscribe(subscribe)
 	})
@@ -80,7 +84,16 @@ func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification 
 	default:
 
 	}
-	return subscribe
+	go func() {
+		for event := range channels.IterContext(ctx, subscribe) {
+			select {
+			case proxyChan <- event:
+			case <-time.After(1 * time.Second):
+				panic(fmt.Sprintf("Publishing event to proxyChan took longer than 1 second: %s:%d: %s", file, line, runtime.FuncForPC(pc).Name()))
+			}
+		}
+	}()
+	return proxyChan
 }
 
 // ViewOnly converts the EventSource into a read-only view of the schema.
