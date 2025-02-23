@@ -10,6 +10,7 @@ public class StaticConfigSource implements ConfigSource {
     final static String OTEL_METRICS_ENABLED = "quarkus.otel.metrics.enabled";
     final static String DEV_SERVICES_ENABLED = "quarkus.devservices.enabled";
     final static String LOG_FORMAT = "quarkus.log.console.format";
+    final static String LIVE_RELOAD_ENABLED = "quarkus.live-reload.enabled";
 
     @Override
     public Set<String> getPropertyNames() {
@@ -30,6 +31,9 @@ public class StaticConfigSource implements ConfigSource {
             }
             case LOG_FORMAT -> {
                 return "%p %m";
+            }
+            case LIVE_RELOAD_ENABLED -> {
+                return "false";
             }
         }
         return null;
