@@ -186,7 +186,8 @@ func NewLocalScaling(
 	schemaAddress *url.URL,
 	leaseAddress *url.URL,
 	configPath string,
-	enableIDEIntegration bool,
+	enableVSCodeIntegration bool,
+	enableIntellijIntegration bool,
 	storage *artefacts.OCIArtefactService,
 	enableOtel bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,
@@ -210,8 +211,8 @@ func NewLocalScaling(
 		devModeEndpointsUpdates: devModeEndpoints,
 		devModeEndpoints:        map[string]*devModeRunner{},
 	}
-	if enableIDEIntegration && configPath != "" {
-		local.ideSupport = optional.Ptr(localdebug.NewIDEIntegration(configPath))
+	if configPath != "" {
+		local.ideSupport = optional.Ptr(localdebug.NewIDEIntegration(configPath, enableVSCodeIntegration, enableIntellijIntegration))
 	}
 
 	return &local, nil
