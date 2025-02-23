@@ -189,6 +189,9 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     }
 
     private void init() {
+        // We are doing our own live reload
+        // Disable the normal Quarkus one
+        RuntimeUpdatesProcessor.INSTANCE.setLiveReloadEnabled(false);
         gatherMigrations();
         int port = Integer.getInteger("ftl.language.port");
         server = ServerBuilder.forPort(port)
