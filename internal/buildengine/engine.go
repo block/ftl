@@ -435,10 +435,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	}()
 
 	// Build and deploy all modules first.
-	err = e.BuildAndDeploy(ctx, 1, true, false)
-	if err != nil && !errors.Is(err, context.Canceled) {
-		logger.Errorf(err, "Initial deploy failed")
-	}
+	_ = e.BuildAndDeploy(ctx, 1, true, false) //nolint:errcheck
 
 	moduleHashes := map[string][]byte{}
 	e.controllerSchema.Range(func(name string, sch *schema.Module) bool {
