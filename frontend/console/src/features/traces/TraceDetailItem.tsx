@@ -1,4 +1,5 @@
 import { AsyncExecuteEvent, CallEvent, type Event, IngressEvent, PubSubConsumeEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
+import { HoverPopup } from '../../shared/components/HoverPopup'
 import { classNames } from '../../shared/utils'
 import { TimelineIcon } from '../timeline/TimelineIcon'
 import type { TraceEvent } from '../timeline/hooks/use-request-trace-events'
@@ -54,28 +55,31 @@ export const TraceDetailItem: React.FC<TraceDetailItemProps> = ({
 
   const isSelected = event.id === selectedEventId
   const listItemClass = classNames(
-    'flex items-center justify-between p-2 rounded cursor-pointer',
-    isSelected ? 'bg-indigo-100/50 dark:bg-indigo-700' : 'hover:bg-indigo-500/10',
+    'flex items-center w-full p-2 rounded cursor-pointer',
+    isSelected ? 'bg-indigo-100/50 dark:bg-indigo-700/50' : 'hover:bg-indigo-500/10',
   )
 
   return (
     <li key={event.id.toString()} className={listItemClass} onClick={() => handleEventClick(event.id)}>
-      <span className='flex items-center w-1/2 text-sm gap-x-2 font-medium'>
-        <span>{icon}</span>
-        <span>{action}</span>
-        <span>{eventName}</span>
-      </span>
+      <div className='w-1/3 flex-shrink-0 flex items-center gap-x-2 pr-2 font-medium text-sm overflow-hidden'>
+        <HoverPopup popupContent={<span>{action}</span>}>
+          <span className='flex-shrink-0'>{icon}</span>
+        </HoverPopup>
+        <span className='truncate'>{eventName}</span>
+      </div>
 
-      <div className='relative w-2/3 h-4 flex-grow'>
+      <div className='w-2/3 flex-grow relative h-5 pr-24'>
         <div
-          className={`absolute h-4 ${barColor} rounded-sm`}
+          className={`absolute h-5 ${barColor} rounded-sm`}
           style={{
             width: `${width}%`,
             left: `${leftOffsetPercentage}%`,
+            maxWidth: '100%',
           }}
         />
       </div>
-      <span className='text-xs font-medium ml-4 w-20 text-right'>{eventDurationMs.toFixed(2)} ms</span>
+
+      <div className='w-24 flex-shrink-0 text-xs font-medium text-right'>{eventDurationMs.toFixed(2)} ms</div>
     </li>
   )
 }
