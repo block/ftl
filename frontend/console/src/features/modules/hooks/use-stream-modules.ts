@@ -28,14 +28,10 @@ export const useStreamModules = () => {
         if (response.modules || response.topology) {
           hasModules = true
           queryClient.setQueryData<StreamModulesResult>(queryKey, (prev = { modules: [], topology: {} as Topology }) => {
-            const newModules = response.modules
-              ? [...response.modules, ...prev.modules.filter((m) => !response.modules.map((nm) => nm.name).includes(m.name))].sort((a, b) =>
-                  a.name.localeCompare(b.name),
-                )
-              : prev.modules
+            const newModules = response.modules || prev.modules
 
             return {
-              modules: newModules,
+              modules: newModules.sort((a, b) => a.name.localeCompare(b.name)),
               topology: response.topology || prev.topology,
             }
           })
