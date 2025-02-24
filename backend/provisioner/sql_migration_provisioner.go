@@ -63,11 +63,11 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 					return nil, fmt.Errorf("failed to resolve postgres DSN: %w", err)
 				}
 			case schema.MySQLDatabaseType:
-				d, err = dsn.ResolveMySQLDSN(ctx, db.Runtime.Connections.Write)
+				cfg, err := dsn.ResolveMySQLConfig(ctx, db.Runtime.Connections.Write)
 				if err != nil {
 					return nil, fmt.Errorf("failed to resolve mysql DSN: %w", err)
 				}
-				d = "mysql://" + d
+				d = "mysql://" + cfg.FormatDSN()
 				// strip the tcp part
 				exp := regexp.MustCompile(`tcp\((.*?)\)`)
 				d = exp.ReplaceAllString(d, "$1")
