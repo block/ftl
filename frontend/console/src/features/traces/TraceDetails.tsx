@@ -24,7 +24,7 @@ export const TraceDetails: React.FC<TraceDetailsProps> = ({ events, selectedEven
   }
 
   return (
-    <div>
+    <div className='flex flex-col'>
       <div className='mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow-sm'>
         <h2 className='font-semibold text-lg text-gray-800 dark:text-gray-100 mb-2'>
           Total Duration: <span className='font-bold text-indigo-600 dark:text-indigo-400'>{totalEventDuration.toFixed(2)} ms</span>
@@ -34,31 +34,33 @@ export const TraceDetails: React.FC<TraceDetailsProps> = ({ events, selectedEven
         </p>
       </div>
 
-      <ul>
-        <div className='mb-1'>
+      <div className='w-full'>
+        <div className='mb-4 px-2'>
           <TraceRulerItem duration={totalEventDuration} />
         </div>
 
-        {events
-          .sort((a, b) => requestStartTime([a]) - requestStartTime([b]))
-          .map((event, index) => {
-            const traceEvent = event.entry.value as TraceEvent
-            const eventDurationMs = (traceEvent.duration?.nanos ?? 0) / 1000000
+        <ul className='w-full space-y-2'>
+          {events
+            .sort((a, b) => requestStartTime([a]) - requestStartTime([b]))
+            .map((event, index) => {
+              const traceEvent = event.entry.value as TraceEvent
+              const eventDurationMs = (traceEvent.duration?.nanos ?? 0) / 1000000
 
-            return (
-              <TraceDetailItem
-                key={index}
-                event={event}
-                traceEvent={traceEvent}
-                eventDurationMs={eventDurationMs}
-                requestDurationMs={totalEventDuration}
-                requestStartTime={startTime}
-                selectedEventId={selectedEventId}
-                handleEventClick={handleEventClick}
-              />
-            )
-          })}
-      </ul>
+              return (
+                <TraceDetailItem
+                  key={index}
+                  event={event}
+                  traceEvent={traceEvent}
+                  eventDurationMs={eventDurationMs}
+                  requestDurationMs={totalEventDuration}
+                  requestStartTime={startTime}
+                  selectedEventId={selectedEventId}
+                  handleEventClick={handleEventClick}
+                />
+              )
+            })}
+        </ul>
+      </div>
     </div>
   )
 }
