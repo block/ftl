@@ -6,7 +6,7 @@
 !/.vscode/settings.json
 !/.vscode/launch.json
 .idea/*
-!.idea/runConfigurations/
+.idea/runConfigurations/
 *.iml
 target/
 build/
