@@ -28,38 +28,43 @@ public class PositionUtils {
 
     static Position getLineNumber(String className, MethodInfo method) {
         Position.Builder builder = Position.newBuilder();
+        try {
 
-        var cl = Thread.currentThread().getContextClassLoader();
-        var cls = cl.getResource(className.replace('.', '/') + ".class");
-        if (cls == null) {
-            return builder.build();
-        }
-
-        try (var in = cls.openStream()) {
-            ClassReader reader = new ClassReader(in);
-            ClassNode clNode = new ClassNode(Opcodes.ASM9);
-            reader.accept(clNode, Opcodes.ASM9);
-            if (clNode.sourceFile == null) {
+            var cl = Thread.currentThread().getContextClassLoader();
+            var cls = cl.getResource(className.replace('.', '/') + ".class");
+            if (cls == null) {
                 return builder.build();
             }
-            builder.setFilename(clNode.sourceFile);
-            if (method != null) {
-                var descriptor = DescriptorUtils.methodSignatureToDescriptor(method.returnType().descriptor(),
-                        method.parameters().stream().map(p -> p.type().descriptor()).toArray(String[]::new));
-                for (MethodNode mNode : clNode.methods) {
-                    if (mNode.name.equals(method.name()) && mNode.desc.equals(descriptor)) {
-                        for (AbstractInsnNode inNode : mNode.instructions) {
-                            if (inNode instanceof LineNumberNode) {
-                                builder.setLine(((LineNumberNode) inNode).line);
-                                return builder.build();
+
+            try (var in = cls.openStream()) {
+                ClassReader reader = new ClassReader(in);
+                ClassNode clNode = new ClassNode(Opcodes.ASM9);
+                reader.accept(clNode, Opcodes.ASM9);
+                if (clNode.sourceFile == null) {
+                    return builder.build();
+                }
+                builder.setFilename(clNode.sourceFile);
+                if (method != null) {
+                    var descriptor = DescriptorUtils.methodSignatureToDescriptor(method.returnType().descriptor(),
+                            method.parameters().stream().map(p -> p.type().descriptor()).toArray(String[]::new));
+                    for (MethodNode mNode : clNode.methods) {
+                        if (mNode.name.equals(method.name()) && mNode.desc.equals(descriptor)) {
+                            for (AbstractInsnNode inNode : mNode.instructions) {
+                                if (inNode instanceof LineNumberNode) {
+                                    builder.setLine(((LineNumberNode) inNode).line);
+                                    return builder.build();
+                                }
                             }
                         }
                     }
                 }
+                return builder.build();
+            } catch (IOException e) {
+                LOG.errorf(e, "Failed to read class %s", className);
+                return builder.build();
             }
-            return builder.build();
-        } catch (IOException e) {
-            LOG.errorf(e, "Failed to read class %s", className);
+        } catch (IllegalStateException e) {
+            // Ignore
             return builder.build();
         }
     }

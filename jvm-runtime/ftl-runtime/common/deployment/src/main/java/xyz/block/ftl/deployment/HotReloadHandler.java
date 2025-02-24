@@ -1,16 +1,11 @@
 package xyz.block.ftl.deployment;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.jboss.logging.Logger;
@@ -38,8 +33,6 @@ import xyz.block.ftl.v1.PingResponse;
 public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplBase {
 
     private static final Logger LOG = Logger.getLogger(HotReloadHandler.class);
-
-    static final Set<Path> existingMigrations = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private static volatile HotReloadHandler INSTANCE;
 
@@ -134,7 +127,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         }
         Thread t = new Thread(() -> {
             try {
-                doScan(request.getForce());
+                doScan();
             } finally {
                 synchronized (HotReloadHandler.this) {
                     starting = false;
@@ -192,7 +185,6 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         // We are doing our own live reload
         // Disable the normal Quarkus one
         RuntimeUpdatesProcessor.INSTANCE.setLiveReloadEnabled(false);
-        gatherMigrations();
         int port = Integer.getInteger("ftl.language.port");
         server = ServerBuilder.forPort(port)
                 .addService(this)
@@ -212,38 +204,10 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         });
     }
 
-    private static void gatherMigrations() {
-        for (var dir : RuntimeUpdatesProcessor.INSTANCE.getSourcesDir()) {
-            Path migrations = dir.resolve("db");
-            if (Files.isDirectory(migrations)) {
-                try (var stream = Files.walk(migrations)) {
-                    stream.forEach(existingMigrations::add);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-    }
-
-    void doScan(boolean force) {
+    void doScan() {
         if (RuntimeUpdatesProcessor.INSTANCE != null) {
             try {
-                AtomicBoolean newForce = new AtomicBoolean();
-                for (var dir : RuntimeUpdatesProcessor.INSTANCE.getSourcesDir()) {
-                    Path migrations = dir.resolve("db");
-                    if (Files.isDirectory(migrations)) {
-                        try (var stream = Files.walk(migrations)) {
-                            stream.forEach(p -> {
-                                if (p.getFileName().toString().endsWith(".sql")) {
-                                    if (existingMigrations.add(p)) {
-                                        newForce.set(true);
-                                    }
-                                }
-                            });
-                        }
-                    }
-                }
-                RuntimeUpdatesProcessor.INSTANCE.doScan(force || newForce.get());
+                RuntimeUpdatesProcessor.INSTANCE.doScan(true, true);
             } catch (Exception e) {
                 Logger.getLogger(HotReloadHandler.class).error("Failed to scan for changes", e);
             }
