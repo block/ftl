@@ -228,7 +228,7 @@ func checkSignature(
 		return optional.None[*types.Var](), optional.None[*types.Var]()
 	}
 	if !unicode.IsUpper(rune(node.Name.Name[0])) {
-		common.Errorf(pass, node, "verb name must be exported")
+		common.Errorf(pass, node, "verb function name must be exported (i.e. %s instead of %s)", strcase.ToUpperCamel(node.Name.Name), node.Name.Name)
 		return optional.None[*types.Var](), optional.None[*types.Var]()
 	}
 
