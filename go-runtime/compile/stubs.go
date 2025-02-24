@@ -22,6 +22,7 @@ import (
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/watch"
 )
 
 type ExternalDeploymentContext struct {
@@ -47,7 +48,7 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 			return fmt.Errorf("no native module config provided")
 		}
 		goModPath := filepath.Join(nativeConfig.Dir, "go.mod")
-		_, goModVersion, err = updateGoModule(goModPath, nativeConfig.Module)
+		_, goModVersion, err = updateGoModule(goModPath, nativeConfig.Module, optional.None[watch.ModifyFilesTransaction]())
 		if err != nil {
 			return fmt.Errorf("could not read go.mod %s", goModPath)
 		}
@@ -69,7 +70,7 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 			}
 		}
 	} else {
-		replacements, goModVersion, err = updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module)
+		replacements, goModVersion, err = updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module, optional.None[watch.ModifyFilesTransaction]())
 		if err != nil {
 			return err
 		}
@@ -113,7 +114,7 @@ func SyncGeneratedStubReferences(ctx context.Context, config moduleconfig.AbsMod
 		sharedModulePaths = append(sharedModulePaths, filepath.Join(stubsDir, mod))
 	}
 
-	_, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module)
+	_, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module, optional.None[watch.ModifyFilesTransaction]())
 	if err != nil {
 		return err
 	}
