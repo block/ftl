@@ -2,8 +2,14 @@ package dsn
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io"
+	"log"
 	"net"
+	"net/http"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -127,13 +133,52 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 			return nil, fmt.Errorf("failed to create authentication token: %w", err)
 		}
 
-		mcfg := &mysqlauthproxy.Config{
-			User:   c.Username,
-			Passwd: authenticationToken,
-			Net:    "tcp",
-			Addr:   c.Endpoint,
-			DBName: c.Database,
+		// if the file exists, skip the download
+		if _, err := os.Stat("/tmp/rds-bundle.pem"); os.IsNotExist(err) {
+			log.Printf("Downloading CA cert for region: %s", region)
+			// download the ca cert
+			caCertURL := fmt.Sprintf("https://truststore.pki.rds.amazonaws.com/%s/%s-bundle.pem", region, region)
+			caCertFile, err := os.Create("/tmp/rds-bundle.pem")
+			if err != nil {
+				return nil, fmt.Errorf("failed to create ca cert file: %w", err)
+			}
+			defer caCertFile.Close()
+			resp, err := http.Get(caCertURL)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get ca cert: %w", err)
+			}
+			defer resp.Body.Close()
+			_, err = io.Copy(caCertFile, resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to copy ca cert: %w", err)
+			}
 		}
+
+		log.Printf("Parsing CA cert for region: %s", region)
+		rootCertPool := x509.NewCertPool()
+		pem, err := os.ReadFile("/tmp/rds-bundle.pem")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
+			log.Fatal("Failed to append PEM.")
+		}
+		host, _, err := net.SplitHostPort(c.Endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to split host and port: %w", err)
+		}
+
+		mcfg := mysqlauthproxy.NewConfig()
+		mcfg.User = c.Username
+		mcfg.Passwd = authenticationToken
+		mcfg.Net = "tcp"
+		mcfg.Addr = c.Endpoint
+		mcfg.DBName = c.Database
+		mcfg.TLS = &tls.Config{
+			ServerName: host,
+			RootCAs:    rootCertPool,
+		}
+		mcfg.AllowCleartextPasswords = true
 
 		return mcfg, nil
 	default:

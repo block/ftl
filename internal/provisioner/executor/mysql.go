@@ -111,6 +111,11 @@ func mysqlSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAu
 	}
 	defer db.Close()
 
+	// drop the user if it exists
+	if _, err := db.ExecContext(ctx, "DROP USER IF EXISTS "+username+"@'%';"); err != nil {
+		return fmt.Errorf("failed to drop user: %w", err)
+	}
+
 	if _, err := db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS "+database); err != nil {
 		return fmt.Errorf("failed to create database: %w", err)
 	}
