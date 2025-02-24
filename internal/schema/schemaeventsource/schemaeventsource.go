@@ -67,7 +67,7 @@ type EventSource struct {
 func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification {
 	e.subscribeLock.Lock()
 	defer e.subscribeLock.Unlock()
-	subscribe := e.events.Subscribe(nil)
+	subscribe := e.events.Subscribe(make(chan schema.Notification, 1))
 	context.AfterFunc(ctx, func() {
 		e.events.Unsubscribe(subscribe)
 	})
