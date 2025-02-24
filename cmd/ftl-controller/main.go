@@ -11,9 +11,9 @@ import (
 	"github.com/block/ftl/backend/controller"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
+	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"
 )
 

@@ -10,9 +10,9 @@ import (
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/runner"
-	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
+	_ "github.com/block/ftl/internal/prodinit"
 )
 
 var cli struct {
