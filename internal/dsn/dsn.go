@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -127,20 +126,15 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create authentication token: %w", err)
 		}
-		host, port, err := net.SplitHostPort(c.Endpoint)
-		if err != nil {
-			return nil, fmt.Errorf("failed to split host and port: %w", err)
-		}
-		portInt, err := strconv.Atoi(port)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert port to int: %w", err)
+
+		mcfg := &mysqlauthproxy.Config{
+			User:   c.Username,
+			Passwd: authenticationToken,
+			Net:    "tcp",
+			Addr:   c.Endpoint,
+			DBName: c.Database,
 		}
 
-		dsn := MySQLDSN(c.Database, Host(host), Port(portInt), Username(c.Username), Password(authenticationToken))
-		mcfg, err := mysqlauthproxy.ParseDSN(dsn)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse DSN: %w", err)
-		}
 		return mcfg, nil
 	default:
 		return nil, fmt.Errorf("unexpected database connector type: %T", connector)
