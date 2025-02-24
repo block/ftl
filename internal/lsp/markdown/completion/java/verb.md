@@ -30,11 +30,11 @@ See https://block.github.io/ftl/docs/reference/verbs/
 ---
 
 // Define request/response types
-record ${1:Name}Request(String data) {}
-record ${1:Name}Response(String result) {}
+record ${1:Request}(String data) {}
+record ${2:Response}(String result) {}
 
 @Verb
-public ${1:Name}Response ${2:name}(${1:Name}Request request) {
-	${3:// TODO: Implement}
-	return new ${1:Name}Response("result");
+public ${2:Response} ${3:name}(${1:Request} req) {
+	${4:// TODO: Implement}
+	return new ${2:Response}("result");
 }
