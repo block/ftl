@@ -6,7 +6,10 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/watch"
 )
 
 func TestImportAliases(t *testing.T) {
@@ -89,7 +92,7 @@ go 1.23.0
 `), 0600)
 	assert.NoError(t, err)
 
-	_, _, err = updateGoModule(goModPath, "mymodule")
+	_, _, err = updateGoModule(goModPath, "mymodule", optional.None[watch.ModifyFilesTransaction]())
 	assert.NoError(t, err)
 
 	// Mismatched module name
@@ -99,6 +102,6 @@ go 1.23.0
 `), 0600)
 	assert.NoError(t, err)
 
-	_, _, err = updateGoModule(goModPath, "mymodule")
+	_, _, err = updateGoModule(goModPath, "mymodule", optional.None[watch.ModifyFilesTransaction]())
 	assert.Contains(t, err.Error(), "module name mismatch: expected 'ftl/mymodule' but got 'ftl/wrongname'")
 }

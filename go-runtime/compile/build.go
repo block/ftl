@@ -464,7 +464,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		return moduleSch, nil, ErrInvalidateDependencies
 	}
 
-	replacements, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module)
+	replacements, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module, optional.Some(filesTransaction))
 	if err != nil {
 		return moduleSch, nil, err
 	}
@@ -1615,7 +1615,7 @@ func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames ex
 }
 
 // Update go.mod file to include the FTL version and return the Go version and any replace directives.
-func updateGoModule(goModPath string, expectedModule string) (replacements []*modfile.Replace, goVersion string, err error) {
+func updateGoModule(goModPath string, expectedModule string, transaction optional.Option[watch.ModifyFilesTransaction]) (replacements []*modfile.Replace, goVersion string, err error) {
 	goModFile, replacements, err := goModFileWithReplacements(goModPath)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to update %s: %w", goModPath, err)
@@ -1630,6 +1630,12 @@ func updateGoModule(goModPath string, expectedModule string) (replacements []*mo
 	// Early return if we're not updating anything.
 	if !ftl.IsRelease(ftl.Version) || !shouldUpdateVersion(goModFile) {
 		return replacements, goModFile.Go.Version, nil
+	}
+	if tx, ok := transaction.Get(); ok {
+		err := tx.ModifiedFiles(goModPath)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to add go.mod to transaction %w", err)
+		}
 	}
 
 	if err := goModFile.AddRequire("github.com/block/ftl", "v"+ftl.Version); err != nil {
