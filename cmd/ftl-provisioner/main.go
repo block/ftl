@@ -12,9 +12,9 @@ import (
 	"github.com/block/ftl/backend/provisioner/scaling/k8sscaling"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
+	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"
 )
 

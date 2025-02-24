@@ -20,10 +20,10 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	_ "github.com/block/ftl/internal/automaxprocs" // Set GOMAXPROCS to match Linux container CPU quota.
 	ftlhttp "github.com/block/ftl/internal/http"
 	"github.com/block/ftl/internal/local"
 	"github.com/block/ftl/internal/log"
+	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"
 )
 

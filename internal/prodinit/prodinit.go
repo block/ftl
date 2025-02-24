@@ -1,9 +1,10 @@
-// Package automaxprocs sets GOMAXPROCS to match Linux container CPU quota.
-package automaxprocs
+// Package prodinit" initializes the runtime environment for production.
+package prodinit
 
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"go.uber.org/automaxprocs/maxprocs"
 )
@@ -13,4 +14,5 @@ func init() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ftl:warning: non-fatal error setting GOMAXPROCS: %v\n", err)
 	}
+	debug.SetTraceback("all")
 }
