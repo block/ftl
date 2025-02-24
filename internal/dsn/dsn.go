@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/rds/auth"
 
+	mysqlauthproxy "github.com/block/ftl-mysql-auth-proxy"
 	"github.com/block/ftl/common/schema"
 )
 
@@ -103,36 +104,45 @@ func parseRegionFromEndpoint(endpoint string) (string, error) {
 	return parts[len(parts)-1], nil
 }
 
-func ResolveMySQLDSN(ctx context.Context, connector schema.DatabaseConnector) (string, error) {
+func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector) (*mysqlauthproxy.Config, error) {
 	switch c := connector.(type) {
 	case *schema.DSNDatabaseConnector:
-		return c.DSN, nil
+		cfg, err := mysqlauthproxy.ParseDSN(c.DSN)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse DSN: %w", err)
+		}
+		return cfg, nil
 	case *schema.AWSIAMAuthDatabaseConnector:
 		cfg, err := config.LoadDefaultConfig(ctx)
 		if err != nil {
-			return "", fmt.Errorf("configuration error: %w", err)
+			return nil, fmt.Errorf("configuration error: %w", err)
 		}
 
 		region, err := parseRegionFromEndpoint(c.Endpoint)
 		if err != nil {
-			return "", fmt.Errorf("failed to parse region from endpoint: %w", err)
+			return nil, fmt.Errorf("failed to parse region from endpoint: %w", err)
 		}
 
 		authenticationToken, err := auth.BuildAuthToken(ctx, c.Endpoint, region, c.Username, cfg.Credentials)
 		if err != nil {
-			return "", fmt.Errorf("failed to create authentication token: %w", err)
+			return nil, fmt.Errorf("failed to create authentication token: %w", err)
 		}
 		host, port, err := net.SplitHostPort(c.Endpoint)
 		if err != nil {
-			return "", fmt.Errorf("failed to split host and port: %w", err)
+			return nil, fmt.Errorf("failed to split host and port: %w", err)
 		}
 		portInt, err := strconv.Atoi(port)
 		if err != nil {
-			return "", fmt.Errorf("failed to convert port to int: %w", err)
+			return nil, fmt.Errorf("failed to convert port to int: %w", err)
 		}
 
-		return MySQLDSN(c.Database, Host(host), Port(portInt), Username(c.Username), Password(authenticationToken)), nil
+		dsn := MySQLDSN(c.Database, Host(host), Port(portInt), Username(c.Username), Password(authenticationToken))
+		mcfg, err := mysqlauthproxy.ParseDSN(dsn)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse DSN: %w", err)
+		}
+		return mcfg, nil
 	default:
-		return "", fmt.Errorf("unexpected database connector type: %T", connector)
+		return nil, fmt.Errorf("unexpected database connector type: %T", connector)
 	}
 }

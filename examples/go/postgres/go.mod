@@ -42,6 +42,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.15 // indirect
 	github.com/aws/smithy-go v1.22.3 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
+	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250224050203-b7e2c3aebfd2 // indirect
 	github.com/block/scaffolder v1.3.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
