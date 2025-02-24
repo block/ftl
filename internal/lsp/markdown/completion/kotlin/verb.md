@@ -17,11 +17,11 @@ fun myVerb(request: MyRequest): MyResponse {
 See https://block.github.io/ftl/docs/reference/verbs/
 ---
 
-// Define request/response types
-data class ${1:Name}Request(val data: String)
-data class ${1:Name}Response(val result: String)
+data class ${1:Request}(val data: String)
+data class ${2:Response}(val result: String)
 
 @Verb
-fun ${1:name}(request: ${1:Name}Request): ${1:Name}Response {
-	${2:// TODO: Implement}
+fun ${3:name}(req: ${1:Request}): ${2:Response} {
+	${4:// TODO: Implement}
+	return ${2:Response}("result")
 }
