@@ -151,7 +151,11 @@ func (s *serveCommonConfig) run(
 	if s.Stop {
 		return KillBackgroundServe(logger)
 	}
-	_, err := controllerClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
+	err := writePidFile(os.Getpid())
+	if err != nil {
+		logger.Errorf(err, "Failed to write pid file")
+	}
+	_, err = controllerClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
 	if err == nil {
 		// The controller is already running, bail out.
 		return errors.New(ftlRunningErrorMsg)
@@ -423,6 +427,17 @@ func runInBackground(logger *log.Logger) error {
 		return fmt.Errorf("failed to start background process: %w", err)
 	}
 
+	pid := cmd.Process.Pid
+	err := writePidFile(pid)
+	if err != nil {
+		return err
+	}
+
+	logger.Infof("`ftl serve` running in background with pid: %d", pid)
+	return nil
+}
+
+func writePidFile(pid int) error {
 	pidFilePath, err := pidFilePath()
 	if err != nil {
 		return fmt.Errorf("failed to get pid file path: %w", err)
@@ -431,11 +446,9 @@ func runInBackground(logger *log.Logger) error {
 		return fmt.Errorf("failed to create directory for pid file: %w", err)
 	}
 
-	if err := os.WriteFile(pidFilePath, []byte(strconv.Itoa(cmd.Process.Pid)), 0600); err != nil {
+	if err := os.WriteFile(pidFilePath, []byte(strconv.Itoa(pid)), 0600); err != nil {
 		return fmt.Errorf("failed to write pid file: %w", err)
 	}
-
-	logger.Infof("`ftl serve` running in background with pid: %d", cmd.Process.Pid)
 	return nil
 }
 
