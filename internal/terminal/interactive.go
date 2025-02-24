@@ -132,7 +132,13 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 			}()
 			return nil
 		}
+		if tsm != nil {
+			tsm.consoleNewline(line)
+		}
 		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
 		args, err := shellquote.Split(line)
 		if err != nil {
 			errorf("%s", err)
