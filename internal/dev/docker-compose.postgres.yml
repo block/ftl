@@ -1,6 +1,6 @@
 services:
   db:
-    image: ${FTL_DATABASE_IMAGE:-postgres:15.10@sha256:d609c3005478af92bddad773423df829b7402ea0b356d5b72edd2fd54d1ad3ea}
+    image: ${FTL_DATABASE_IMAGE:-postgres:15.12@sha256:e897e4ad35012fb8baed1e5e8462f17b34d534d7fb52fd6b658e41f3fbaea32b}
     command: postgres
     user: postgres
     # For local debugging
