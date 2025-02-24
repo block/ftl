@@ -10,7 +10,7 @@ require (
 	github.com/alecthomas/participle/v2 v2.1.1 // indirect
 	github.com/alecthomas/types v0.18.0 // indirect
 	github.com/deckarep/golang-set/v2 v2.7.0 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/cronexpr v1.1.2 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
