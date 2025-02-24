@@ -19,8 +19,6 @@ import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class FTLController implements LeaseClient, RunnerNotification.RunnerCallback {
     private static final Logger log = Logger.getLogger(FTLController.class);
-    public static final RuntimeException RESTART_EXCEPTION = new RuntimeException(
-            "Failed to get runner details due to restart");
     private final List<AtomicBoolean> waiters = new ArrayList<>();
     final String moduleName;
 
