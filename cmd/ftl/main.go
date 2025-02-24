@@ -12,6 +12,7 @@ import (
 	"runtime/trace"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/kong"
@@ -216,6 +217,7 @@ func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
 				sm.Close()
 			}
 			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
+			<-time.After(time.Second)                           // Wait for the app to exit.
 		},
 		))
 	return app
