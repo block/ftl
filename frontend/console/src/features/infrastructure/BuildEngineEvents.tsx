@@ -53,6 +53,7 @@ const EventContent = ({ event }: { event: EngineEvent }) => {
       case 'moduleDeployStarted':
       case 'moduleDeployFailed':
       case 'moduleDeploySuccess':
+      case 'moduleDeployWaiting':
         return event.event.value.module
       default:
         return 'engine'
