@@ -15,6 +15,7 @@ export const getModuleName = (event: EngineEvent): string | undefined => {
     case 'moduleDeployStarted':
     case 'moduleDeployFailed':
     case 'moduleDeploySuccess':
+    case 'moduleDeployWaiting':
       return event.event.value.module
 
     default:
@@ -52,8 +53,10 @@ export const getEventText = (event: EngineEvent | undefined): string => {
       return 'Deploy failed'
     case 'moduleDeploySuccess':
       return 'Deploy succeeded'
+    case 'moduleDeployWaiting':
+      return 'Deploy waiting'
     default:
-      return 'Unknown event'
+      return `Unknown event ${event.event.case}`
   }
 }
 
@@ -73,6 +76,7 @@ export const getModuleStatus = (event: EngineEvent | undefined): ModuleStatus =>
     case 'moduleBuildStarted':
     case 'moduleBuildWaiting':
     case 'moduleDeployStarted':
+    case 'moduleDeployWaiting':
       return 'busy'
     default:
       return 'idle'
