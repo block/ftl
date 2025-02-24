@@ -86,7 +86,7 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 				return nil, fmt.Errorf("failed to create and migrate database: %w", err)
 			}
 			logger := log.FromContext(ctx)
-			logger.Infof("Provisioned SQL migration for: %s.%s", deployment.String(), db.Name)
+			logger.Debugf("Provisioned SQL migration for: %s.%s", deployment.String(), db.Name)
 		}
 		return nil, nil
 	}

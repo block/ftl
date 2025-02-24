@@ -43,7 +43,7 @@ type AdminClient interface {
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
 func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, adminClient AdminClient) error {
 	logger := log.FromContext(ctx)
-	logger.Infof("Deploying %v", strings.Join(slices.Map(modules, func(m Module) string { return m.Config.Module }), ", "))
+	logger.Debugf("Deploying %v", strings.Join(slices.Map(modules, func(m Module) string { return m.Config.Module }), ", "))
 	start := time.Now()
 	uploadGroup := errgroup.Group{}
 	moduleSchemas := make(chan *schemapb.Module, len(modules))
