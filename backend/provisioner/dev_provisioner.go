@@ -36,7 +36,7 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 
 		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(res.ResourceID())
 
-		logger.Infof("Provisioning mysql database: %s", dbName)
+		logger.Debugf("Provisioning mysql database: %s", dbName)
 
 		// We assume that the DB hsas already been started when running in dev mode
 		mysqlDSN, err := dev.SetupMySQL(ctx, mysqlPort)
@@ -127,7 +127,7 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 		logger := log.FromContext(ctx)
 
 		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(resource.ResourceID())
-		logger.Infof("Provisioning postgres database: %s", dbName)
+		logger.Debugf("Provisioning postgres database: %s", dbName)
 
 		// We assume that the DB has already been started when running in dev mode
 		postgresDSN := dsn.PostgresDSN("ftl", dsn.Port(postgresPort))
@@ -198,7 +198,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 		}
 
 		topicID := fmt.Sprintf("%s.%s", deployment.Payload.Module, topic.Name)
-		logger.Infof("Provisioning topic: %s", topicID)
+		logger.Debugf("Provisioning topic: %s", topicID)
 
 		config := sarama.NewConfig()
 		admin, err := sarama.NewClusterAdmin(redPandaBrokers, config)
@@ -262,7 +262,7 @@ func provisionSubscription() InMemResourceProvisionerFn {
 			panic(fmt.Errorf("unexpected resource type: %T", res))
 		}
 		for range slices.FilterVariants[*schema.MetadataSubscriber](verb.Metadata) {
-			logger.Infof("Provisioning subscription for verb: %s", verb.Name)
+			logger.Debugf("Provisioning subscription for verb: %s", verb.Name)
 			return &schema.RuntimeElement{
 				Name:       optional.Some(res.ResourceID()),
 				Deployment: deployment,

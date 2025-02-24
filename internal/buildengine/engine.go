@@ -664,6 +664,8 @@ func isIdle(moduleStates map[string]moduleState) bool {
 
 // watchForEventsToPublish listens for raw build events, collects state, and publishes public events to BuildUpdates topic.
 func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules bool) {
+	logger := log.FromContext(ctx)
+
 	moduleErrors := map[string]*langpb.ErrorList{}
 	moduleStates := map[string]moduleState{}
 
@@ -692,7 +694,6 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 			idle = true
 
 			if e.devMode && isFirstRound {
-				logger := log.FromContext(ctx)
 				if len(moduleErrors) > 0 {
 					var errs []error
 					for module, errList := range moduleErrors {
@@ -763,12 +764,12 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 					moduleStates[rawEvent.ModuleBuildStarted.Config.Name] = moduleStateExplicitlyBuilding
 				}
 				delete(moduleErrors, rawEvent.ModuleBuildStarted.Config.Name)
-				log.FromContext(ctx).Module(rawEvent.ModuleBuildStarted.Config.Name).Scope("build").Infof("Building module")
+				logger.Module(rawEvent.ModuleBuildStarted.Config.Name).Scope("build").Debugf("Building...")
 			case *buildenginepb.EngineEvent_ModuleBuildFailed:
 				moduleStates[rawEvent.ModuleBuildFailed.Config.Name] = moduleStateFailed
 				moduleErrors[rawEvent.ModuleBuildFailed.Config.Name] = rawEvent.ModuleBuildFailed.Errors
 				moduleErr := fmt.Errorf("%s: %s", rawEvent.ModuleBuildFailed.Config.Name, langpb.ErrorListString(rawEvent.ModuleBuildFailed.Errors))
-				log.FromContext(ctx).Module(rawEvent.ModuleBuildFailed.Config.Name).Scope("build").Errorf(moduleErr, "Build failed")
+				logger.Module(rawEvent.ModuleBuildFailed.Config.Name).Scope("build").Errorf(moduleErr, "Build failed")
 			case *buildenginepb.EngineEvent_ModuleBuildSuccess:
 				moduleStates[rawEvent.ModuleBuildSuccess.Config.Name] = moduleStateBuilt
 				delete(moduleErrors, rawEvent.ModuleBuildSuccess.Config.Name)
@@ -889,7 +890,6 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 		return e.deploy(ctx, modulesToDeploy, replicas)
 	}
 	return nil
-
 }
 
 type buildCallback func(ctx context.Context, module Module) error
