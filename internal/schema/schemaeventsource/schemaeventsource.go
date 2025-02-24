@@ -70,6 +70,9 @@ func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification 
 	subscribe := e.events.Subscribe(nil)
 	context.AfterFunc(ctx, func() {
 		e.events.Unsubscribe(subscribe)
+		// Drain the channel
+		for range subscribe {
+		}
 	})
 	// We always send a full schema event
 	select {
