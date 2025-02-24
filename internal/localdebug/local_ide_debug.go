@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/block/ftl/internal/log"
 )
@@ -34,6 +36,9 @@ const golangDebugConfig = `<component name="ProjectRunConfigurationManager">
 
 type IDEIntegration struct {
 	projectPath string
+	intellij    bool
+	vscode      bool
+	create      map[string]bool
 }
 
 type DebugInfo struct {
@@ -41,8 +46,16 @@ type DebugInfo struct {
 	Language string
 }
 
-func NewIDEIntegration(projectPath string) *IDEIntegration {
-	ret := &IDEIntegration{projectPath: projectPath}
+func NewIDEIntegration(projectPath string, enableVSCodeIntegration bool, enableIntellijIntegration bool) *IDEIntegration {
+	ret := &IDEIntegration{projectPath: projectPath, intellij: enableIntellijIntegration, vscode: enableVSCodeIntegration, create: map[string]bool{}}
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigch
+		for k := range ret.create {
+			_ = os.Remove(k) //nolint:errcheck
+		}
+	}()
 	return ret
 }
 
@@ -52,8 +65,12 @@ func (r *IDEIntegration) SyncIDEDebugIntegrations(ctx context.Context, ports map
 	if r.projectPath == "" {
 		return
 	}
-	r.handleIntellij(ctx, ports)
-	r.handleVSCode(ctx, ports)
+	if r.intellij {
+		r.handleIntellij(ctx, ports)
+	}
+	if r.vscode {
+		r.handleVSCode(ctx, ports)
+	}
 }
 
 func (r *IDEIntegration) handleIntellij(ctx context.Context, ports map[string]*DebugInfo) {
@@ -86,14 +103,16 @@ func (r *IDEIntegration) handleIntellij(ctx context.Context, ports map[string]*D
 	for k, v := range ports {
 		if v.Language == "java" || v.Language == "kotlin" {
 			name := filepath.Join(runConfig, "FTL."+k+".xml")
-			err := os.WriteFile(name, []byte(fmt.Sprintf(jvmDebugConfig, "FT𝝺 JVM - "+k, v.Port)), 0660) // #nosec
+			r.create[name] = true
+			err := os.WriteFile(name, []byte(fmt.Sprintf(jvmDebugConfig, "FTL JVM - "+k, v.Port)), 0660) // #nosec
 			if err != nil {
 				logger.Errorf(err, "could not create FTL Java Config")
 				return
 			}
 		} else if v.Language == "go" {
 			name := filepath.Join(runConfig, "FTL."+k+".xml")
-			err := os.WriteFile(name, []byte(fmt.Sprintf(golangDebugConfig, "FT𝝺 GO - "+k, v.Port)), 0660) // #nosec
+			r.create[name] = true
+			err := os.WriteFile(name, []byte(fmt.Sprintf(golangDebugConfig, "FTL GO - "+k, v.Port)), 0660) // #nosec
 			if err != nil {
 				logger.Errorf(err, "could not create FTL Go Config")
 				return
@@ -164,14 +183,14 @@ func (r *IDEIntegration) handleVSCode(ctx context.Context, ports map[string]*Deb
 	}
 	for i, config := range configurations {
 		name := config.(map[string]any)["name"].(string) //nolint:forcetypeassert
-		if strings.HasPrefix(name, "FT𝝺") {
+		if strings.HasPrefix(name, "FTL") {
 			existing[name] = i
 		}
 	}
 
 	for k, v := range ports {
 		if v.Language == "java" || v.Language == "kotlin" {
-			name := "FT𝝺 JVM - " + k
+			name := "FTL JVM - " + k
 			pos, ok := existing[name]
 			delete(existing, name)
 			if ok {
@@ -189,7 +208,7 @@ func (r *IDEIntegration) handleVSCode(ctx context.Context, ports map[string]*Deb
 			configurations = append(configurations, entry)
 
 		} else if v.Language == "go" {
-			name := "FT𝝺 GO - " + k
+			name := "FTL GO - " + k
 			pos, ok := existing[name]
 			if ok {
 				// Update the port

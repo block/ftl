@@ -2,7 +2,7 @@ name = "ftl"
 secrets-provider = "inline"
 config-provider = "inline"
 module-dirs = ["examples/go"]
-disable-ide-integration = true
+disable-vscode-integration = true
 
 [global]
   [global.configuration]
