@@ -3,6 +3,8 @@ package xyz.block.ftl.deployment;
 import static xyz.block.ftl.deployment.FTLDotNames.ENUM;
 import static xyz.block.ftl.deployment.FTLDotNames.EXPORT;
 import static xyz.block.ftl.deployment.FTLDotNames.GENERATED_REF;
+import static xyz.block.ftl.deployment.PositionUtils.forClass;
+import static xyz.block.ftl.deployment.PositionUtils.toError;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -373,7 +375,7 @@ public class ModuleBuilder {
                 var info = index.getClassByName(clazz.name());
                 if (info.enclosingClass() != null && !Modifier.isStatic(info.flags())) {
                     // proceed as normal, we fail at the end
-                    validationFailures.add(new ValidationFailure(clazz.name().toString(),
+                    validationFailures.add(new ValidationFailure(toError(forClass(clazz.name().toString())),
                             "Inner classes must be static"));
                 }
 
@@ -430,7 +432,7 @@ public class ModuleBuilder {
                         return ref;
                     }
                     Data.Builder data = Data.newBuilder()
-                            .setPos(PositionUtils.forClass(clazz.name().toString()))
+                            .setPos(forClass(clazz.name().toString()))
                             .setName(name)
                             .setExport(type.hasAnnotation(EXPORT) || export)
                             .addAllComments(comments.getComments(name));
@@ -553,16 +555,15 @@ public class ModuleBuilder {
         decls.values().stream().forEachOrdered(protoModuleBuilder::addDecls);
         ErrorList.Builder builder = ErrorList.newBuilder();
         if (!validationFailures.isEmpty()) {
-            List<String> errors = new ArrayList<>();
             for (var failure : validationFailures) {
-                errors.add("Validation failure: " + failure.className + ": " + failure.message);
+                builder.addErrors(Error.newBuilder()
+                        .setLevel(Error.ErrorLevel.ERROR_LEVEL_ERROR)
+                        .setType(Error.ErrorType.ERROR_TYPE_FTL)
+                        .setPos(failure.position)
+                        .setMsg(failure.message)
+                        .build());
+                log.error(failure.message);
             }
-            errors.forEach(error -> builder.addErrors(Error.newBuilder()
-                    .setLevel(Error.ErrorLevel.ERROR_LEVEL_ERROR)
-                    .setType(Error.ErrorType.ERROR_TYPE_FTL)
-                    .setMsg(error)
-                    .build()));
-            errors.forEach(log::error);
         }
         ErrorList errorList = builder.build();
         errorList.writeTo(errorOut);
@@ -660,7 +661,7 @@ public class ModuleBuilder {
     }
 
     private void duplicateNameValidationError(String name, Position pos) {
-        validationFailures.add(new ValidationFailure(name, String.format(
+        validationFailures.add(new ValidationFailure(toError(pos), String.format(
                 "schema declaration with name \"%s\" already exists for module \"%s\"; previously declared at \"%s\"",
                 name, moduleName, pos.getFilename() + ":" + pos.getLine())));
     }
@@ -671,24 +672,33 @@ public class ModuleBuilder {
         REQUIRED
     }
 
-    record ValidationFailure(String className, String message) {
+    record ValidationFailure(xyz.block.ftl.language.v1.Position position, String message) {
+
     }
 
     String validateName(Position position, String name) {
         //we group all validation failures together so we can report them all at once
         if (!NAME_PATTERN.matcher(name).matches()) {
             validationFailures.add(
-                    new ValidationFailure(position == null ? "<unknown>" : position.getFilename() + ":" + position.getLine(),
+                    new ValidationFailure(toError(position),
                             String.format("Invalid name %s, must match " + NAME_PATTERN, name)));
         }
         return name;
     }
 
     String validateName(String className, String name) {
+        return validateName(toError(forClass(className)), name);
+    }
+
+    String validateName(MethodInfo methodInfo, String name) {
+        return validateName(toError(PositionUtils.forMethod(methodInfo)), name);
+    }
+
+    String validateName(xyz.block.ftl.language.v1.Position position, String name) {
         //we group all validation failures together so we can report them all at once
         if (!NAME_PATTERN.matcher(name).matches()) {
             validationFailures
-                    .add(new ValidationFailure(className, String.format("Invalid name %s, must match " + NAME_PATTERN, name)));
+                    .add(new ValidationFailure(position, String.format("Invalid name %s, must match " + NAME_PATTERN, name)));
         }
         return name;
     }

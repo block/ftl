@@ -18,6 +18,12 @@ public class PositionUtils {
 
     private static final Logger LOG = Logger.getLogger(PositionUtils.class);
 
+    public static xyz.block.ftl.language.v1.Position toError(Position position) {
+        return xyz.block.ftl.language.v1.Position.newBuilder()
+                .setFilename(position.getFilename())
+                .setLine(position.getLine()).build();
+    }
+
     public static Position forMethod(MethodInfo method) {
         return getLineNumber(method.declaringClass().name().toString(), method);
     }
