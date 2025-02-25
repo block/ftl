@@ -245,6 +245,12 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 	firstResponseSent := &atomic.Value[bool]{}
 	firstResponseSent.Store(false)
 	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("context cancelled %w", ctx.Err())
+		default:
+
+		}
 		if firstResponseSent.Load() {
 			err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
 			if err != nil {
