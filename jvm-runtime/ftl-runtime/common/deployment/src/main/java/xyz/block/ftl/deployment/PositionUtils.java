@@ -1,6 +1,8 @@
 package xyz.block.ftl.deployment;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.jboss.jandex.MethodInfo;
 import org.jboss.logging.Logger;
@@ -11,6 +13,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import io.quarkus.deployment.dev.RuntimeUpdatesProcessor;
 import io.quarkus.gizmo.DescriptorUtils;
 import xyz.block.ftl.schema.v1.Position;
 
@@ -19,8 +22,19 @@ public class PositionUtils {
     private static final Logger LOG = Logger.getLogger(PositionUtils.class);
 
     public static xyz.block.ftl.language.v1.Position toError(Position position) {
+        var fileName = position.getFilename();
+
+        if (RuntimeUpdatesProcessor.INSTANCE != null) {
+            for (var updates : RuntimeUpdatesProcessor.INSTANCE.getSourcesDir()) {
+                Path resolved = updates.resolve(fileName);
+                if (Files.exists(resolved)) {
+                    fileName = resolved.toAbsolutePath().toString();
+                    break;
+                }
+            }
+        }
         return xyz.block.ftl.language.v1.Position.newBuilder()
-                .setFilename(position.getFilename())
+                .setFilename(fileName)
                 .setLine(position.getLine()).build();
     }
 
@@ -49,7 +63,13 @@ public class PositionUtils {
                 if (clNode.sourceFile == null) {
                     return builder.build();
                 }
-                builder.setFilename(clNode.sourceFile);
+
+                int idx = className.lastIndexOf(".");
+                String packagePart = "";
+                if (idx != -1) {
+                    packagePart = className.substring(0, idx).replaceAll("\\.", "/") + "/";
+                }
+                builder.setFilename(packagePart + clNode.sourceFile);
                 if (method != null) {
                     var descriptor = DescriptorUtils.methodSignatureToDescriptor(method.returnType().descriptor(),
                             method.parameters().stream().map(p -> p.type().descriptor()).toArray(String[]::new));
