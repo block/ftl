@@ -83,7 +83,6 @@ provisioner:
       - id: "cloudformation"
         resources:
           - "postgres"
-          - "sql-migration"
           - "topic"
           - "subscription"
       - id: "sandbox"
