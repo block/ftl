@@ -26,9 +26,9 @@ public class GitVersion {
                 String commit = properties.getProperty("git.commit.id.abbrev");
                 String dirty = properties.getProperty("git.dirty");
                 if ("true".equals(dirty)) {
-                    log.infof("FTL Git Commit: %s (dirty)", commit);
+                    log.debugf("FTL Git Commit: %s (dirty)", commit);
                 } else {
-                    log.infof("FTL Git Commit: %s", commit);
+                    log.debugf("FTL Git Commit: %s", commit);
                 }
             } catch (IOException e) {
                 log.errorf("Failed to load git.properties");
