@@ -134,7 +134,7 @@ class PartitionMapper : TopicPartitionMapper<Invoice> {
     }
 }
 
-// Add @Export if you want other modules to be able to consum from this topic
+// Add @Export if you want other modules to be able to consume from this topic
 @Topic(name = "invoices", partitions = 8)
 internal interface InvoicesTopic : WriteableTopic<Invoice, PartitionMapper>
 ```
