@@ -16,7 +16,7 @@ import TabItem from '@theme/TabItem';
 <Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
-Your database is automatically declared by following a specific directory structure for your SQL files. No additional configuration is needed - just create the directory structure and FTL will handle the rest. See the [SQL File Structure](#sql-file-structure) section below for more details.
+Your database is automatically declared by following a specific directory structure for your SQL files. No additional configuration is needed - just create the directory structure and FTL will handle the rest.
 
   </TabItem>
   <TabItem value="kotlin" label="Kotlin">
@@ -103,7 +103,7 @@ Note that this will likely change significantly in future once JVM supports SQL 
 
 ## SQL File Structure
 
-In order to be discoverable by FTL, the SQL files in your project must follow a specific directory structure. FTL supports two database engines, and the corresponding directory must be named exactly `mysql` or `postgres`:
+In order to be discoverable by FTL, the SQL files in your project must follow a specific directory structure. FTL supports two database engines, declared via the directory hierarchy as either `mysql` or `postgres`:
 
 <Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
@@ -154,7 +154,7 @@ The `schema` directory contains all your database migration `.sql` files. These 
 
 ### Queries Directory
 
-The `queries` directory contains `.sql` files with any SQL queries you would like to make available to your application. These queries must be annotated with [SQLC annotation syntax](https://docs.sqlc.dev/). FTL will automatically lift these queries into the module schema, making each query available as its own FTL verb.
+The `queries` directory contains `.sql` files with any SQL queries you would like generated as FTL verbs for use in your module. These queries must be annotated with [SQLC annotation syntax](https://docs.sqlc.dev/). FTL will automatically lift these queries into the module schema and provide a type-safe client to execute each query.
 
 Find more information in the [Using Generated Query Clients](#using-generated-query-clients) section below.
 
@@ -182,18 +182,18 @@ When the modules are provisioned FTL will automatically run these migrations for
 
 ## Connecting with your DB
 
-There are two ways to interact with your database in FTL: using the database handle for raw queries, or using generated query clients.
+There are two supported ways to interact with your database in FTL: using the generated database handle to perform raw queries, or using generated query clients.
 
-### Using the Database Handle
+### Using the Generated Database Handle
 
 <Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
-Once you have a database declared through the directory structure, FTL automatically generates a database handle that provides direct access to the underlying database connection. You can use this to execute raw SQL queries:
+Once you've declared a database, FTL automatically generates a database handle that provides direct access to the underlying connection. You can use this to execute raw SQL queries (where `MydbHandle` is the generated handle type for the `mydb` datasource):
 
 ```go
 //ftl:verb export
-func Query(ctx context.Context, db DatabaseHandle) ([]string, error) {
+func Query(ctx context.Context, db MydbHandle) ([]string, error) {
 	rows, err := db.QueryContext(ctx, "SELECT data FROM requests")
 	if err != nil {
 		return nil, err
@@ -216,6 +216,16 @@ func Query(ctx context.Context, db DatabaseHandle) ([]string, error) {
 	return items, nil
 }
 ```
+
+  </TabItem>
+  <TabItem value="kotlin" label="Kotlin">
+
+	TBD
+
+  </TabItem>
+  <TabItem value="java" label="Java">
+	
+	TBD
 
   </TabItem>
 </Tabs>
@@ -247,20 +257,24 @@ These queries will be automatically converted into FTL verbs with corresponding 
 
 ```go
 //ftl:verb export
-func Query(ctx context.Context, query GetRequestDataClient) ([]string, error) {
-	rows, err := query(ctx)
+func GetEmail(ctx context.Context, id int, query GetUserClient) (string, error) {
+	result, err := query(ctx, GetUserQuery{ID: id})
 	if err != nil {
 		return nil, err
 	}
-	var items []string
-	for _, row := range rows {
-		if d, ok := row.Data.Get(); ok {
-			items = append(items, d)
-		}
-	}
-	return items, nil
+	return result.Email, nil
 }
 ```
+
+  </TabItem>
+  <TabItem value="kotlin" label="Kotlin">
+
+	TBD
+
+  </TabItem>
+  <TabItem value="java" label="Java">
+	
+	TBD
 
   </TabItem>
 </Tabs>
