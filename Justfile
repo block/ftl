@@ -80,7 +80,9 @@ DOCKER_IMAGES := '''
   "console": {},
   "cron": {},
   "http-ingress": {},
-  "runner": {},
+  "runner": {
+    "extra_files": ["certs/rds/rds-us-west-2-bundle.pem"]
+  },
   "runner-jvm": {},
   "timeline": {},
   "lease": {},
