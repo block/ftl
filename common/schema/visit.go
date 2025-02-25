@@ -1,5 +1,7 @@
 package schema
 
+import "slices"
+
 // Visit all nodes in the schema.
 func Visit(n Node, visit func(n Node, next func() error) error) error {
 	return visit(n, func() error {
@@ -12,11 +14,13 @@ func Visit(n Node, visit func(n Node, next func() error) error) error {
 	})
 }
 
-// VisitWithParent all nodes in the schema providing the parent node when visiting its schema children.
-func VisitWithParent(n Node, parent Node, visit func(n Node, parent Node, next func() error) error) error {
-	return visit(n, parent, func() error {
+// VisitWithParents visits all nodes in the schema providing the parent nodes on each visit
+func VisitWithParents(n Node, parents []Node, visit func(n Node, parents []Node, next func() error) error) error {
+	return visit(n, parents, func() error {
 		for _, child := range n.schemaChildren() {
-			if err := VisitWithParent(child, n, visit); err != nil {
+			childParents := slices.Clone(parents)
+			childParents = append(childParents, n)
+			if err := VisitWithParents(child, childParents, visit); err != nil {
 				return err
 			}
 		}

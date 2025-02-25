@@ -745,7 +745,7 @@ func (b *mainDeploymentContextBuilder) build(goModVersion, ftlVersion, projectNa
 		},
 	}
 
-	err := b.visit(ctx, b.mainModule, b.mainModule)
+	err := b.visit(ctx, b.mainModule, b.mainModule, []schema.Node{})
 	if err != nil {
 		return mainDeploymentContext{}, err
 	}
@@ -797,8 +797,9 @@ func (b *mainDeploymentContextBuilder) visit(
 	ctx *mainDeploymentContext,
 	module *schema.Module,
 	node schema.Node,
+	parents []schema.Node,
 ) error {
-	err := schema.Visit(node, func(node schema.Node, next func() error) error {
+	err := schema.VisitWithParents(node, parents, func(node schema.Node, parents []schema.Node, next func() error) error {
 		switch n := node.(type) {
 		case *schema.Verb:
 			if _, isQuery := n.GetQuery(); isQuery {
@@ -833,7 +834,17 @@ func (b *mainDeploymentContextBuilder) visit(
 			if !ok {
 				return next()
 			}
-			err := b.visit(ctx, m, resolved)
+			// Check for infinite loop
+			for i, p := range parents {
+				if p == resolved {
+					named := slices.Collect(islices.FilterVariants[schema.Named](parents[i : len(parents)-1]))
+					return fmt.Errorf("cyclic references are not allowed: %s%s", strings.Join(islices.Map(named,
+						func(n schema.Named) string {
+							return module.Name + "." + n.GetName() + " refers to "
+						}), ""), n.String())
+				}
+			}
+			err := b.visit(ctx, m, resolved, parents)
 			if err != nil {
 				return fmt.Errorf("failed to visit children of %s: %w", n, err)
 			}
