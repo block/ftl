@@ -442,12 +442,6 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 			}
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true, failed: result.Msg.Failed}
 		case <-fileEvents:
-			logger.Debugf("sending auto build event")
-			err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: s.buildContext.Load().ID}}})
-			if err != nil {
-				logger.Errorf(err, "could not send build event")
-				continue
-			}
 			changed := false
 			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
 			if err != nil {
@@ -469,6 +463,14 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 		if changed || event.forceReload || event.failed || lastFailed {
 			lastFailed = false
 			auto := firstResponseSent.Load() && !event.buildContextUpdated
+			if auto {
+				logger.Debugf("sending auto build event")
+				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: s.buildContext.Load().ID}}})
+				if err != nil {
+					logger.Errorf(err, "could not send build event")
+					continue
+				}
+			}
 			if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) || event.failed {
 				lastFailed = true
 				// skip reading schema
