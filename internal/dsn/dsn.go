@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"embed"
+	"errors"
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -115,6 +115,7 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 			return nil, fmt.Errorf("failed to parse DSN: %w", err)
 		}
 		return cfg, nil
+
 	case *schema.AWSIAMAuthDatabaseConnector:
 		cfg, err := config.LoadDefaultConfig(ctx)
 		if err != nil {
@@ -151,17 +152,19 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 	}
 }
 
-func tlsForMySQLIAMAuth(endpoint string, region string) (*tls.Config, error) {
+//go:embed certs/rds
+var rdsCerts embed.FS
+
+func tlsForMySQLIAMAuth(endpoint, region string) (*tls.Config, error) {
 	// We need to use AWS CA certs for RDS MySQL connections when using IAM auth.
 	// We could also use RDS Proxy here to avoid the need for the CA certs in the future.
-	log.Printf("Parsing CA cert for region: %s", region)
 	rootCertPool := x509.NewCertPool()
-	pem, err := os.ReadFile(fmt.Sprintf("./rds-%s-bundle.pem", region))
+	rdsCert, err := rdsCerts.ReadFile("certs/rds/rds-" + region + "-bundle.pem")
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to read RDS certificate for region %s: %w", region, err)
 	}
-	if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
-		log.Fatal("Failed to append PEM.")
+	if ok := rootCertPool.AppendCertsFromPEM(rdsCert); !ok {
+		return nil, errors.New("failed to append PEM")
 	}
 	host, _, err := net.SplitHostPort(endpoint)
 	if err != nil {
