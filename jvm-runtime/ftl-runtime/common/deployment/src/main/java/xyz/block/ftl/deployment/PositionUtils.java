@@ -77,7 +77,9 @@ public class PositionUtils {
                         if (mNode.name.equals(method.name()) && mNode.desc.equals(descriptor)) {
                             for (AbstractInsnNode inNode : mNode.instructions) {
                                 if (inNode instanceof LineNumberNode) {
-                                    builder.setLine(((LineNumberNode) inNode).line);
+                                    // We know the method won't be on the very first line, we subtract 2 to 'guess' the correct line
+                                    // This should line up with either the declaration annotation or the method itself
+                                    builder.setLine(Math.max(1, ((LineNumberNode) inNode).line - 2));
                                     return builder.build();
                                 }
                             }
