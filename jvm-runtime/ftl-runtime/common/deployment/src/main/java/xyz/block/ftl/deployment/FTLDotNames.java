@@ -4,6 +4,7 @@ import org.jboss.jandex.DotName;
 
 import xyz.block.ftl.Config;
 import xyz.block.ftl.Cron;
+import xyz.block.ftl.Data;
 import xyz.block.ftl.Enum;
 import xyz.block.ftl.EnumHolder;
 import xyz.block.ftl.Export;
@@ -26,6 +27,7 @@ public class FTLDotNames {
     public static final DotName SECRET = DotName.createSimple(Secret.class);
     public static final DotName CONFIG = DotName.createSimple(Config.class);
     public static final DotName EXPORT = DotName.createSimple(Export.class);
+    public static final DotName DATA = DotName.createSimple(Data.class);
     public static final DotName ENUM = DotName.createSimple(Enum.class);
     public static final DotName ENUM_HOLDER = DotName.createSimple(EnumHolder.class);
     public static final DotName VERB = DotName.createSimple(Verb.class);
