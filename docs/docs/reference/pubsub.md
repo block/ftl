@@ -56,7 +56,7 @@ import xyz.block.ftl.WriteableTopic
 // Define the event type for the topic
 data class Invoice(val invoiceNo: String)
 
-// Add @Export if you want other modules to be able to consum from this topic
+// Add @Export if you want other modules to be able to consume from this topic
 @Topic(name = "invoices", partitions = 1)
 internal interface InvoicesTopic : WriteableTopic<Invoice, SinglePartitionMapper>
 ```
