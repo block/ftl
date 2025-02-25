@@ -107,11 +107,15 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 
 func SyncGeneratedStubReferences(ctx context.Context, config moduleconfig.AbsModuleConfig, stubsDir string, stubbedModules []string) error {
 	sharedModulePaths := []string{}
+	relativeStubsDir, err := filepath.Rel(config.Dir, stubsDir)
+	if err != nil {
+		return fmt.Errorf("failed to get relative path: %w", err)
+	}
 	for _, mod := range stubbedModules {
 		if mod == config.Module {
 			continue
 		}
-		sharedModulePaths = append(sharedModulePaths, filepath.Join(stubsDir, mod))
+		sharedModulePaths = append(sharedModulePaths, filepath.Join(relativeStubsDir, mod))
 	}
 
 	_, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module, optional.None[watch.ModifyFilesTransaction]())
