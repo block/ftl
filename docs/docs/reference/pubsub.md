@@ -74,7 +74,7 @@ import xyz.block.ftl.WriteableTopic;
 record Invoice(String invoiceNo) {
 }
 
-// Add @Export if you want other modules to be able to consum from this topic
+// Add @Export if you want other modules to be able to consume from this topic
 @Topic(name = "invoices", partitions = 1)
 interface InvoicesTopic extends WriteableTopic<Invoice, SinglePartitionMapper> {
 }
