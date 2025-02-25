@@ -293,10 +293,11 @@ func (cd *combinedData) updateDeclVisibility() {
 // propagateTypeErrors propagates type errors to referencing nodes. This improves error messaging for the LSP client by
 // surfacing errors all the way up the schema chain.
 func (cd *combinedData) propagateTypeErrors() {
-	_ = schema.VisitWithParent(cd.module, nil, func(n schema.Node, p schema.Node, next func() error) error { //nolint:errcheck
-		if p == nil {
+	_ = schema.VisitWithParents(cd.module, nil, func(n schema.Node, ps []schema.Node, next func() error) error { //nolint:errcheck
+		if len(ps) == 0 {
 			return next()
 		}
+		p := ps[len(ps)-1]
 		ref, ok := n.(*schema.Ref)
 		if !ok {
 			return next()
