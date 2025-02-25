@@ -4,6 +4,7 @@ import static xyz.block.ftl.deployment.FTLDotNames.ENUM;
 import static xyz.block.ftl.deployment.FTLDotNames.EXPORT;
 import static xyz.block.ftl.deployment.FTLDotNames.GENERATED_REF;
 import static xyz.block.ftl.deployment.PositionUtils.forClass;
+import static xyz.block.ftl.deployment.PositionUtils.forMethod;
 import static xyz.block.ftl.deployment.PositionUtils.toError;
 
 import java.io.IOException;
@@ -203,7 +204,7 @@ public class ModuleBuilder {
             Nullability bodyParamNullability = Nullability.MISSING;
 
             xyz.block.ftl.schema.v1.Verb.Builder verbBuilder = xyz.block.ftl.schema.v1.Verb.newBuilder();
-            String verbName = validateName(className, ModuleBuilder.methodToName(method));
+            String verbName = validateName(method, ModuleBuilder.methodToName(method));
             MetadataCalls.Builder callsMetadata = MetadataCalls.newBuilder();
             MetadataConfig.Builder configMetadata = MetadataConfig.newBuilder();
             MetadataSecrets.Builder secretMetadata = MetadataSecrets.newBuilder();
@@ -265,13 +266,16 @@ public class ModuleBuilder {
                     //TODO: map and list types
                     paramMappers.add(new VerbRegistry.BodySupplier(pos));
                 } else {
-                    throw new RuntimeException("Unknown parameter type " + param.type() + " on FTL method: "
-                            + method.declaringClass().name() + "." + method.name());
+                    this.validationFailures.add(new ValidationFailure(toError(forMethod(method)),
+                            "Invalid parameter " + param.name() + " in verb " + verbName));
+                    return;
                 }
             }
             if (bodyParamType == null) {
                 if (bodyType == BodyType.REQUIRED) {
-                    throw new RuntimeException("Missing required payload parameter");
+                    this.validationFailures.add(new ValidationFailure(toError(forMethod(method)),
+                            "Missing required payload parameter"));
+                    return;
                 }
                 bodyParamType = VoidType.VOID;
             }
@@ -306,8 +310,9 @@ public class ModuleBuilder {
                     .build());
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to process FTL method " + method.declaringClass().name() + "." + method.name(),
-                    e);
+            log.errorf(e, "Failed to process FTL method %s.%s", method.declaringClass().name(), method.name());
+            validationFailures.add(new ValidationFailure(toError(forMethod(method)),
+                    "Failed to process FTL method " + method.declaringClass().name() + "." + method.name()));
         }
     }
 
