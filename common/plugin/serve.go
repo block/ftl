@@ -111,6 +111,7 @@ func Start[Impl any, Iface any, Config any](
 	}
 
 	ctx, cancel := context.WithCancelCause(ctx)
+	go pollParentExistence(cancel)
 	defer cancel(fmt.Errorf("plugin %s stopped", name))
 
 	// Configure logging to JSON on stderr. This will be read by the parent process.
@@ -199,4 +200,27 @@ func cleanup(logger *log.Logger, pidFile string) error {
 		logger.Warnf("Failed to reap old plugin with pid %d: %s", pid, err)
 	}
 	return nil
+}
+
+func pollParentExistence(cancel context.CancelCauseFunc) {
+	// Get the parent process ID
+	ppid := os.Getppid()
+
+	for {
+		// Check if the parent process is still running
+		if !isProcessRunning(ppid) {
+			cancel(fmt.Errorf("parent process %d is no longer running", ppid))
+			break
+		}
+		// Sleep for a while before checking again
+		time.Sleep(1 * time.Second)
+	}
+}
+
+// isProcessRunning checks if a process with the given PID is running
+func isProcessRunning(pid int) bool {
+	// Sending signal 0 to a process does not actually send a signal,
+	// but it performs error checking and returns an error if the process does not exist.
+	err := syscall.Kill(pid, 0)
+	return err == nil
 }
