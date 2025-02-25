@@ -156,7 +156,7 @@ func tlsForMySQLIAMAuth(endpoint string, region string) (*tls.Config, error) {
 	// We could also use RDS Proxy here to avoid the need for the CA certs in the future.
 	log.Printf("Parsing CA cert for region: %s", region)
 	rootCertPool := x509.NewCertPool()
-	pem, err := os.ReadFile(fmt.Sprintf("/rds-%s-bundle.pem", region))
+	pem, err := os.ReadFile(fmt.Sprintf("./rds-%s-bundle.pem", region))
 	if err != nil {
 		log.Fatal(err)
 	}
