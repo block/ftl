@@ -55,7 +55,7 @@ changelog:
 brews:
   - name: ftl
     homepage: https://github.com/block/ftl
-    description: "FTL - Towards a 𝝺-calculus for large-scale systems"
+    description: "FTL is a platform for building distributed systems that are safe to operate, easy to reason about, and fast to iterate and develop on."
     repository:
       owner: block
       name: homebrew-ftl

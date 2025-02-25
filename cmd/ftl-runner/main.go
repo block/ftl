@@ -29,7 +29,7 @@ func main() {
 		panic(err)
 	}
 	kctx := kong.Parse(&cli, kong.Description(`
-FTL - Towards a 𝝺-calculus for large-scale systems
+FTL is a platform for building distributed systems that are safe to operate, easy to reason about, and fast to iterate and develop on.
 
 The Runner is the component of FTL that coordinates with the Controller to spawn
 and route to user code.

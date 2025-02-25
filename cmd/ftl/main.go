@@ -194,7 +194,7 @@ func main() {
 func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
 	gitRoot, _ := internal.GitRoot(".").Get()
 	app := kong.Must(cli,
-		kong.Description(`FTL - Towards a 𝝺-calculus for large-scale systems`),
+		kong.Description(`FTL is a platform for building distributed systems that are safe to operate, easy to reason about, and fast to iterate and develop on.`),
 		kong.Configuration(kongtoml.Loader, ".ftl.toml", "~/.ftl.toml"),
 		kong.ShortUsageOnError(),
 		kong.HelpOptions{Compact: true, WrapUpperBound: 80},

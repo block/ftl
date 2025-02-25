@@ -97,7 +97,7 @@ func Start[Impl any, Iface any, Config any](
 ) {
 	var config Config
 	cli := serveCli{Plugins: kong.Plugins{&config}}
-	kctx := kong.Parse(&cli, kong.Description(`FTL - Towards a 𝝺-calculus for large-scale systems`))
+	kctx := kong.Parse(&cli, kong.Description(`FTL is a platform for building distributed systems that are safe to operate, easy to reason about, and fast to iterate and develop on.`))
 
 	mux := http.NewServeMux()
 
