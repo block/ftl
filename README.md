@@ -45,7 +45,7 @@ diff -u <(
 # #region call
 # #endregion
 ) | tee /dev/stderr
-) <(hello '{"message":"Hello, Bob!"}')
+) <(echo '{"message":"Hello, Bob!"}')
 ```
 </script>-->
 
