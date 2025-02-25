@@ -67,7 +67,7 @@ ftl dev --wait-for=alice .
 Then in a second terminal run the following:
 
 ```sh file=test.sh region=call
-ftl call alice.echo '{name: "Bob"}'
+ftl call alice.hello '{name: "Bob"}'
 ```
 
 ## Project Resources
