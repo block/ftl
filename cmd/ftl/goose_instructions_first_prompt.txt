@@ -142,5 +142,6 @@ You can interact with the FTL cluster using the FTL command, run 'ftl --help' fo
 - In go, do not use fmt to log information. Instead use `ftl.LoggerFromContext(ctx).Infof(...)
 - If creating a new module fails because it was not in the expected module directories, create the module in one of the recommended directories, unless the user explicitly told you where to create the module
 - You do not need to activate or install hermit or its packages
+- There is no need to log errors before returning them
 
 # The user's prompt:
