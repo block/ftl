@@ -125,8 +125,8 @@ func (s *Server) post(err *langpb.ErrorList) {
 
 	// Associate by filename.
 	for _, e := range buildErrors {
-		if e.Type == builderrors.COMPILER {
-			// ignore compiler errors
+		if e.Type != builderrors.FTL {
+			// ignore non-FTL errors
 			continue
 		}
 		pos, ok := e.Pos.Get()
@@ -333,6 +333,11 @@ func (s *Server) textDocumentDidSave() protocol.TextDocumentDidSaveFunc {
 // If wholeLine is true, it returns the length of the entire line.
 // If wholeLine is false, it returns the length of the word starting at the column.
 func getLineOrWordLength(filePath string, lineNum, column int, wholeLine bool) (int, error) {
+	// Ensure line number and column are positive
+	if lineNum < 1 || column < 1 {
+		return 0, nil
+	}
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		return 0, err

@@ -191,26 +191,12 @@ func errorToLangError(err error) []*langpb.Error {
 			errs = append(errs, &langpb.Error{
 				Msg:   e.Error(),
 				Level: langpb.Error_ERROR_LEVEL_ERROR,
+				Type:  langpb.Error_ERROR_TYPE_UNSPECIFIED,
 			})
 			continue
 		}
 
-		pbError := &langpb.Error{
-			Msg:   berr.Msg,
-			Level: langpb.Error_ErrorLevel(berr.Level),
-		}
-
-		// Add position information if available
-		if pos, ok := berr.Pos.Get(); ok {
-			pbError.Pos = &langpb.Position{
-				Filename:    pos.Filename,
-				Line:        int64(pos.Line),
-				StartColumn: int64(pos.StartColumn),
-				EndColumn:   int64(pos.EndColumn),
-			}
-		}
-
-		errs = append(errs, pbError)
+		errs = append(errs, langpb.ErrorToProto(berr))
 	}
 
 	return errs
