@@ -2,8 +2,12 @@ package dsn
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"log"
 	"net"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -127,16 +131,47 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 			return nil, fmt.Errorf("failed to create authentication token: %w", err)
 		}
 
-		mcfg := &mysqlauthproxy.Config{
-			User:   c.Username,
-			Passwd: authenticationToken,
-			Net:    "tcp",
-			Addr:   c.Endpoint,
-			DBName: c.Database,
+		tls, err := tlsForMySQLIAMAuth(c.Endpoint, region)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create TLS config: %w", err)
 		}
+
+		mcfg := mysqlauthproxy.NewConfig()
+		mcfg.User = c.Username
+		mcfg.Passwd = authenticationToken
+		mcfg.Net = "tcp"
+		mcfg.Addr = c.Endpoint
+		mcfg.DBName = c.Database
+		mcfg.TLS = tls
+		mcfg.AllowCleartextPasswords = true
 
 		return mcfg, nil
 	default:
 		return nil, fmt.Errorf("unexpected database connector type: %T", connector)
 	}
+}
+
+func tlsForMySQLIAMAuth(endpoint string, region string) (*tls.Config, error) {
+	// We need to use AWS CA certs for RDS MySQL connections when using IAM auth.
+	// We could also use RDS Proxy here to avoid the need for the CA certs in the future.
+	log.Printf("Parsing CA cert for region: %s", region)
+	rootCertPool := x509.NewCertPool()
+	pem, err := os.ReadFile(fmt.Sprintf("/rds-%s-bundle.pem", region))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
+		log.Fatal("Failed to append PEM.")
+	}
+	host, _, err := net.SplitHostPort(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to split host and port: %w", err)
+	}
+
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		MaxVersion: tls.VersionTLS13,
+		ServerName: host,
+		RootCAs:    rootCertPool,
+	}, nil
 }
