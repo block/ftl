@@ -6,7 +6,7 @@ import { themes as prismThemes } from 'prism-react-renderer'
 
 const config: Config = {
   title: 'FTL',
-  tagline: 'Towards a 𝝺-calculus for large-scale systems',
+  tagline: 'FTL is a platform for building distributed systems that are safe to operate, easy to reason about, and fast to iterate and develop on.',
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
@@ -67,7 +67,7 @@ const config: Config = {
     metadata: [
       {
         name: 'description',
-        content: 'FTL - Towards a λ-calculus for large-scale systems. A modern approach to building and deploying distributed systems.',
+        content: 'FTL is a platform for building distributed systems that are safe to operate, easy to reason about, and fast to iterate and develop on.',
       },
       {
         name: 'og:title',
@@ -75,7 +75,7 @@ const config: Config = {
       },
       {
         name: 'og:description',
-        content: 'FTL - Towards a λ-calculus for large-scale systems. A modern approach to building and deploying distributed systems.',
+        content: 'FTL is a platform for building distributed systems that are safe to operate, easy to reason about, and fast to iterate and develop on.',
       },
       {
         property: 'og:image',

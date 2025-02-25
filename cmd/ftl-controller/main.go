@@ -31,7 +31,7 @@ var cli struct {
 
 func main() {
 	kctx := kong.Parse(&cli,
-		kong.Description(`FTL - Towards a 𝝺-calculus for large-scale systems`),
+		kong.Description(`FTL is a platform for building distributed systems that are safe to operate, easy to reason about, and fast to iterate and develop on.`),
 		kong.UsageOnError(),
 		kong.Vars{
 			"version": ftl.FormattedVersion,
