@@ -31,7 +31,7 @@ func extractDependenciesAndImports(config moduleconfig.AbsModuleConfig) (deps []
 		if strings.HasPrefix(d.Name(), "_") || d.Name() == "testdata" {
 			return watch.ErrSkip
 		}
-		pkgs, err := parser.ParseDir(fset, path, nil, parser.ImportsOnly)
+		pkgs, err := parser.ParseDir(fset, path, isNotGenerated, parser.ImportsOnly)
 		if pkgs == nil {
 			return fmt.Errorf("could parse directory in search of dependencies: %w", err)
 		}
@@ -64,4 +64,8 @@ func extractDependenciesAndImports(config moduleconfig.AbsModuleConfig) (deps []
 	imports = maps.Keys(importsMap)
 	sort.Strings(imports)
 	return modules, imports, nil
+}
+
+func isNotGenerated(fi fs.FileInfo) bool {
+	return fi.Name() != "types.ftl.go" && fi.Name() != "queries.ftl.go"
 }
