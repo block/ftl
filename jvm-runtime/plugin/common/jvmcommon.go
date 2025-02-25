@@ -738,9 +738,9 @@ func loadJavaConfig(languageConfig any, language string) (JavaConfig, error) {
 
 func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
 	defaults := langpb.ModuleConfigDefaultsResponse{
-		LanguageConfig:  &structpb.Struct{Fields: map[string]*structpb.Value{}},
-		Watch:           []string{"pom.xml", "src/**", "build/generated", "target/generated-sources", "src/main/resources/db"},
-		SqlRootDir:      "src/main/resources/db",
+		LanguageConfig: &structpb.Struct{Fields: map[string]*structpb.Value{}},
+		Watch:          []string{"pom.xml", "src/**", "build/generated", "target/generated-sources", "src/main/resources/db"},
+		SqlRootDir:     "src/main/resources/db",
 	}
 	dir := req.Msg.Dir
 	pom := filepath.Join(dir, "pom.xml")

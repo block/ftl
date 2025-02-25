@@ -10,8 +10,8 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/go-viper/mapstructure/v2"
 
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 )
 
 const (
