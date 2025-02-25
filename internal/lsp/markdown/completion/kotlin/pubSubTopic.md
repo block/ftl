@@ -24,5 +24,6 @@ data class ${1:Event}(
 	${2:// Event fields}
 )
 
+@Export
 @Topic(name = "${3:topicName}", partitions = 1)
 interface ${4:TopicName} : WriteableTopic<${1:Event}, SinglePartitionMapper> 
