@@ -2,15 +2,7 @@ package database
 
 import (
 	"context"
-
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
-
-type MyDbConfig struct {
-	ftl.DefaultPostgresDatabaseConfig
-}
-
-func (MyDbConfig) Name() string { return "testdb" }
 
 type InsertRequest struct {
 	Data string
@@ -20,7 +12,7 @@ type InsertRequest struct {
 type InsertResponse struct{}
 
 //ftl:verb
-func Insert(ctx context.Context, req InsertRequest, db ftl.DatabaseHandle[MyDbConfig]) (InsertResponse, error) {
+func Insert(ctx context.Context, req InsertRequest, db TestdbHandle) (InsertResponse, error) {
 	err := persistRequest(ctx, req, db)
 	if err != nil {
 		return InsertResponse{}, err
@@ -29,7 +21,7 @@ func Insert(ctx context.Context, req InsertRequest, db ftl.DatabaseHandle[MyDbCo
 	return InsertResponse{}, nil
 }
 
-func persistRequest(ctx context.Context, req InsertRequest, db ftl.DatabaseHandle[MyDbConfig]) error {
+func persistRequest(ctx context.Context, req InsertRequest, db TestdbHandle) error {
 	_, err := db.Get(ctx).Exec("INSERT INTO requests (id,data) VALUES ($1, $2);", req.Id, req.Data)
 	if err != nil {
 		return err

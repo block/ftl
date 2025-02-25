@@ -244,14 +244,13 @@ func (p *LanguagePlugin) ModuleConfigDefaults(ctx context.Context, dir string) (
 
 func customDefaultsFromProto(proto *langpb.ModuleConfigDefaultsResponse) moduleconfig.CustomDefaults {
 	return moduleconfig.CustomDefaults{
-		DeployDir:       proto.DeployDir,
-		Watch:           proto.Watch,
-		Build:           optional.Ptr(proto.Build),
-		DevModeBuild:    optional.Ptr(proto.DevModeBuild),
-		BuildLock:       optional.Ptr(proto.BuildLock),
-		LanguageConfig:  proto.LanguageConfig.AsMap(),
-		SQLMigrationDir: proto.SqlMigrationDir,
-		SQLQueryDir:     proto.SqlQueryDir,
+		DeployDir:      proto.DeployDir,
+		Watch:          proto.Watch,
+		Build:          optional.Ptr(proto.Build),
+		DevModeBuild:   optional.Ptr(proto.DevModeBuild),
+		BuildLock:      optional.Ptr(proto.BuildLock),
+		LanguageConfig: proto.LanguageConfig.AsMap(),
+		SQLRootDir:     proto.SqlRootDir,
 	}
 }
 

@@ -142,13 +142,6 @@ func DataFunc(ctx context.Context, req Data) (Data, error) {
     return Data{}, nil
 }
 
-
-type MyDbConfig struct {
-    ftl.DefaultPostgresDatabaseConfig
-}
-
-func (MyDbConfig) Name() string { return "testdb" }
-
 ` + (func() string {
 		if symbol == "int" || symbol == "string" {
 			return `
@@ -339,8 +332,6 @@ enum Color: String {
 module test {
   config cfg {{.TypeName}}
   secret secret {{.TypeName}}
-
-  database postgres testdb
 
   export topic exportedTopic {{.TypeName}}
   topic topic {{.TypeName}}

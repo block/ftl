@@ -25,6 +25,138 @@ pub mod metadata {
         pub value: ::prost::alloc::string::String,
     }
 }
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct GetSchemaRequest {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetSchemaResponse {
+    #[prost(message, optional, tag="1")]
+    pub schema: ::core::option::Option<super::schema::v1::Schema>,
+    #[prost(message, repeated, tag="2")]
+    pub changesets: ::prost::alloc::vec::Vec<super::schema::v1::Changeset>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PullSchemaRequest {
+    #[prost(string, tag="1")]
+    pub subscription_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PullSchemaResponse {
+    #[prost(message, optional, tag="1")]
+    pub event: ::core::option::Option<super::schema::v1::Notification>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateDeploymentRuntimeRequest {
+    #[prost(string, optional, tag="1")]
+    pub changeset: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag="2")]
+    pub update: ::core::option::Option<super::schema::v1::RuntimeElement>,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UpdateDeploymentRuntimeResponse {
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct GetDeploymentsRequest {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDeploymentsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub schema: ::prost::alloc::vec::Vec<DeployedSchema>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateChangesetRequest {
+    /// The modules to add or update.
+    #[prost(message, repeated, tag="1")]
+    pub modules: ::prost::alloc::vec::Vec<super::schema::v1::Module>,
+    /// The deployments to remove.
+    #[prost(string, repeated, tag="2")]
+    pub to_remove: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateChangesetResponse {
+    /// The changeset key of the newly created changeset.
+    #[prost(string, tag="1")]
+    pub changeset: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeployedSchema {
+    #[prost(string, tag="1")]
+    pub deployment_key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="2")]
+    pub schema: ::core::option::Option<super::schema::v1::Module>,
+    #[prost(bool, tag="3")]
+    pub is_active: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PrepareChangesetRequest {
+    /// The changeset key to prepare.
+    #[prost(string, tag="1")]
+    pub changeset: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct PrepareChangesetResponse {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CommitChangesetRequest {
+    /// The changeset key to commit.
+    #[prost(string, tag="1")]
+    pub changeset: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CommitChangesetResponse {
+    #[prost(message, optional, tag="1")]
+    pub changeset: ::core::option::Option<super::schema::v1::Changeset>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DrainChangesetRequest {
+    /// The changeset key to commit.
+    #[prost(string, tag="1")]
+    pub changeset: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DrainChangesetResponse {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FinalizeChangesetRequest {
+    /// The changeset key to commit.
+    #[prost(string, tag="1")]
+    pub changeset: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct FinalizeChangesetResponse {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FailChangesetRequest {
+    /// The changeset key to fail.
+    #[prost(string, tag="1")]
+    pub changeset: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct FailChangesetResponse {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RollbackChangesetRequest {
+    /// The changeset key to fail.
+    #[prost(string, tag="1")]
+    pub changeset: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub error: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RollbackChangesetResponse {
+    #[prost(message, optional, tag="1")]
+    pub changeset: ::core::option::Option<super::schema::v1::Changeset>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDeploymentRequest {
+    #[prost(string, tag="1")]
+    pub deployment_key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDeploymentResponse {
+    #[prost(message, optional, tag="1")]
+    pub schema: ::core::option::Option<super::schema::v1::Module>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ConfigRef {
     #[prost(string, optional, tag="1")]
@@ -174,6 +306,82 @@ pub struct ResetSubscriptionRequest {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ResetSubscriptionResponse {
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyChangesetRequest {
+    /// The modules to add or update.
+    #[prost(message, repeated, tag="1")]
+    pub modules: ::prost::alloc::vec::Vec<super::schema::v1::Module>,
+    /// The deployments to remove.
+    #[prost(string, repeated, tag="2")]
+    pub to_remove: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyChangesetResponse {
+    /// The changeset, the result can be determined by checking the state
+    #[prost(message, optional, tag="2")]
+    pub changeset: ::core::option::Option<super::schema::v1::Changeset>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetArtefactDiffsRequest {
+    #[prost(string, repeated, tag="1")]
+    pub client_digests: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetArtefactDiffsResponse {
+    #[prost(string, repeated, tag="1")]
+    pub missing_digests: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Artefacts that the client already has, and their path+executable status.
+    #[prost(message, repeated, tag="2")]
+    pub client_artefacts: ::prost::alloc::vec::Vec<DeploymentArtefact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDeploymentArtefactsRequest {
+    #[prost(string, tag="1")]
+    pub deployment_key: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="2")]
+    pub have_artefacts: ::prost::alloc::vec::Vec<DeploymentArtefact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDeploymentArtefactsResponse {
+    #[prost(message, optional, tag="1")]
+    pub artefact: ::core::option::Option<DeploymentArtefact>,
+    #[prost(bytes="bytes", tag="2")]
+    pub chunk: ::prost::bytes::Bytes,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeploymentArtefact {
+    #[prost(bytes="bytes", tag="1")]
+    pub digest: ::prost::bytes::Bytes,
+    #[prost(string, tag="2")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(bool, tag="3")]
+    pub executable: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UploadArtefactRequest {
+    /// Digest of the complete artefact.
+    #[prost(bytes="bytes", tag="1")]
+    pub digest: ::prost::bytes::Bytes,
+    /// Size of the complete artefact.
+    #[prost(int64, tag="2")]
+    pub size: i64,
+    /// Chunk of the artefact.
+    #[prost(bytes="bytes", tag="3")]
+    pub chunk: ::prost::bytes::Bytes,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UploadArtefactResponse {
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ClusterInfoRequest {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ClusterInfoResponse {
+    #[prost(string, tag="1")]
+    pub os: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub arch: ::prost::alloc::string::String,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ConfigProvider {
@@ -278,75 +486,6 @@ impl SubscriptionOffset {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetArtefactDiffsRequest {
-    #[prost(string, repeated, tag="1")]
-    pub client_digests: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetArtefactDiffsResponse {
-    #[prost(string, repeated, tag="1")]
-    pub missing_digests: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    /// Artefacts that the client already has, and their path+executable status.
-    #[prost(message, repeated, tag="2")]
-    pub client_artefacts: ::prost::alloc::vec::Vec<DeploymentArtefact>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UploadArtefactRequest {
-    #[prost(bytes="bytes", tag="1")]
-    pub content: ::prost::bytes::Bytes,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UploadArtefactResponse {
-    #[prost(bytes="bytes", tag="2")]
-    pub digest: ::prost::bytes::Bytes,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DeploymentArtefact {
-    #[prost(string, tag="1")]
-    pub digest: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
-    pub path: ::prost::alloc::string::String,
-    #[prost(bool, tag="3")]
-    pub executable: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CreateDeploymentRequest {
-    #[prost(message, optional, tag="1")]
-    pub schema: ::core::option::Option<super::schema::v1::Module>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CreateDeploymentResponse {
-    #[prost(string, tag="1")]
-    pub deployment_key: ::prost::alloc::string::String,
-    /// Currently active deployment for this module, if any.
-    #[prost(string, optional, tag="2")]
-    pub active_deployment_key: ::core::option::Option<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetDeploymentArtefactsRequest {
-    #[prost(string, tag="1")]
-    pub deployment_key: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag="2")]
-    pub have_artefacts: ::prost::alloc::vec::Vec<DeploymentArtefact>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetDeploymentArtefactsResponse {
-    #[prost(message, optional, tag="1")]
-    pub artefact: ::core::option::Option<DeploymentArtefact>,
-    #[prost(bytes="bytes", tag="2")]
-    pub chunk: ::prost::bytes::Bytes,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetDeploymentRequest {
-    #[prost(string, tag="1")]
-    pub deployment_key: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetDeploymentResponse {
-    #[prost(message, optional, tag="1")]
-    pub schema: ::core::option::Option<super::schema::v1::Module>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RegisterRunnerRequest {
     #[prost(string, tag="1")]
     pub key: ::prost::alloc::string::String,
@@ -359,26 +498,6 @@ pub struct RegisterRunnerRequest {
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct RegisterRunnerResponse {
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpdateDeployRequest {
-    #[prost(string, tag="1")]
-    pub deployment_key: ::prost::alloc::string::String,
-    #[prost(int32, optional, tag="2")]
-    pub min_replicas: ::core::option::Option<i32>,
-}
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct UpdateDeployResponse {
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ReplaceDeployRequest {
-    #[prost(string, tag="1")]
-    pub deployment_key: ::prost::alloc::string::String,
-    #[prost(int32, tag="2")]
-    pub min_replicas: i32,
-}
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct ReplaceDeployResponse {
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct StatusRequest {
@@ -474,76 +593,71 @@ pub mod process_list_response {
         pub runner: ::core::option::Option<ProcessRunner>,
     }
 }
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct GetSchemaRequest {
-}
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetSchemaResponse {
-    #[prost(message, optional, tag="1")]
-    pub schema: ::core::option::Option<super::schema::v1::Schema>,
-}
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct PullSchemaRequest {
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PullSchemaResponse {
-    /// Will not be set for builtin modules.
-    #[prost(string, optional, tag="1")]
-    pub deployment_key: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, tag="2")]
-    pub module_name: ::prost::alloc::string::String,
-    /// For deletes this will not be present.
-    #[prost(message, optional, tag="4")]
-    pub schema: ::core::option::Option<super::schema::v1::Module>,
-    /// If true there are more schema changes immediately following this one as part of the initial batch.
-    /// If false this is the last schema change in the initial batch, but others may follow later.
-    #[prost(bool, tag="3")]
-    pub more: bool,
-    #[prost(enumeration="DeploymentChangeType", tag="5")]
-    pub change_type: i32,
-    /// If this is true then the module was removed as well as the deployment. This is only set for DEPLOYMENT_REMOVED.
-    #[prost(bool, tag="6")]
-    pub module_removed: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpdateDeploymentRuntimeRequest {
+pub struct GetDeploymentContextRequest {
     #[prost(string, tag="1")]
     pub deployment: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
-    pub event: ::core::option::Option<super::schema::v1::ModuleRuntimeEvent>,
 }
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct UpdateDeploymentRuntimeResponse {
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDeploymentContextResponse {
+    #[prost(string, tag="1")]
+    pub module: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub deployment: ::prost::alloc::string::String,
+    #[prost(map="string, bytes", tag="3")]
+    pub configs: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::bytes::Bytes>,
+    #[prost(map="string, bytes", tag="4")]
+    pub secrets: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::bytes::Bytes>,
+    #[prost(message, repeated, tag="5")]
+    pub databases: ::prost::alloc::vec::Vec<get_deployment_context_response::Dsn>,
+    #[prost(message, repeated, tag="6")]
+    pub routes: ::prost::alloc::vec::Vec<get_deployment_context_response::Route>,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum DeploymentChangeType {
-    Unspecified = 0,
-    Added = 1,
-    Removed = 2,
-    Changed = 3,
-}
-impl DeploymentChangeType {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "DEPLOYMENT_CHANGE_TYPE_UNSPECIFIED",
-            Self::Added => "DEPLOYMENT_CHANGE_TYPE_ADDED",
-            Self::Removed => "DEPLOYMENT_CHANGE_TYPE_REMOVED",
-            Self::Changed => "DEPLOYMENT_CHANGE_TYPE_CHANGED",
-        }
+/// Nested message and enum types in `GetDeploymentContextResponse`.
+pub mod get_deployment_context_response {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Dsn {
+        #[prost(string, tag="1")]
+        pub name: ::prost::alloc::string::String,
+        #[prost(enumeration="DbType", tag="2")]
+        pub r#type: i32,
+        #[prost(string, tag="3")]
+        pub dsn: ::prost::alloc::string::String,
     }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "DEPLOYMENT_CHANGE_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "DEPLOYMENT_CHANGE_TYPE_ADDED" => Some(Self::Added),
-            "DEPLOYMENT_CHANGE_TYPE_REMOVED" => Some(Self::Removed),
-            "DEPLOYMENT_CHANGE_TYPE_CHANGED" => Some(Self::Changed),
-            _ => None,
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Route {
+        #[prost(string, tag="1")]
+        pub deployment: ::prost::alloc::string::String,
+        #[prost(string, tag="2")]
+        pub uri: ::prost::alloc::string::String,
+    }
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum DbType {
+        Unspecified = 0,
+        Postgres = 1,
+        Mysql = 2,
+    }
+    impl DbType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "DB_TYPE_UNSPECIFIED",
+                Self::Postgres => "DB_TYPE_POSTGRES",
+                Self::Mysql => "DB_TYPE_MYSQL",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "DB_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+                "DB_TYPE_POSTGRES" => Some(Self::Postgres),
+                "DB_TYPE_MYSQL" => Some(Self::Mysql),
+                _ => None,
+            }
         }
     }
 }

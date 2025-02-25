@@ -5,20 +5,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
-
-	"github.com/block/ftl/go-runtime/ftl"
 )
-
-type EchoDBConfig struct {
-	ftl.DefaultPostgresDatabaseConfig
-}
-
-func (EchoDBConfig) Name() string { return "echodb" }
 
 // Echo returns a greeting with the current time.
 //
 //ftl:verb export
-func Echo(ctx context.Context, req string, db ftl.DatabaseHandle[EchoDBConfig]) (string, error) {
+func Echo(ctx context.Context, req string, db EchodbHandle) (string, error) {
 	_, err := db.Get(ctx).Exec(`INSERT INTO messages (message) VALUES ($1);`, req)
 	if err != nil {
 		return "", err

@@ -78,18 +78,11 @@ export class ModuleConfig extends Message<ModuleConfig> {
   languageConfig?: Struct;
 
   /**
-   * The directory containing the SQL migration files
+   * The root directory containing the SQL files, relative to the module directory.
    *
-   * @generated from field: string sql_migration_dir = 11;
+   * @generated from field: string sql_root_dir = 11;
    */
-  sqlMigrationDir = "";
-
-  /**
-   * The directory containing the SQL query files
-   *
-   * @generated from field: string sql_query_dir = 12;
-   */
-  sqlQueryDir = "";
+  sqlRootDir = "";
 
   constructor(data?: PartialMessage<ModuleConfig>) {
     super();
@@ -108,8 +101,7 @@ export class ModuleConfig extends Message<ModuleConfig> {
     { no: 7, name: "build_lock", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 9, name: "watch", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 10, name: "language_config", kind: "message", T: Struct },
-    { no: 11, name: "sql_migration_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 12, name: "sql_query_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 11, name: "sql_root_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleConfig {
@@ -519,18 +511,11 @@ export class ModuleConfigDefaultsResponse extends Message<ModuleConfigDefaultsRe
   languageConfig?: Struct;
 
   /**
-   * Default directory containing the SQL migration files
+   * Root directory containing SQL files.
    *
-   * @generated from field: string sql_migration_dir = 8;
+   * @generated from field: string sql_root_dir = 8;
    */
-  sqlMigrationDir = "";
-
-  /**
-   * Default directory containing the SQL query files
-   *
-   * @generated from field: string sql_query_dir = 9;
-   */
-  sqlQueryDir = "";
+  sqlRootDir = "";
 
   constructor(data?: PartialMessage<ModuleConfigDefaultsResponse>) {
     super();
@@ -546,8 +531,7 @@ export class ModuleConfigDefaultsResponse extends Message<ModuleConfigDefaultsRe
     { no: 4, name: "build_lock", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 6, name: "watch", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 7, name: "language_config", kind: "message", T: Struct },
-    { no: 8, name: "sql_migration_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: "sql_query_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "sql_root_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleConfigDefaultsResponse {

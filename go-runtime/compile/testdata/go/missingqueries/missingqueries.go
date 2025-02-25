@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
-
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
+	// Import the FTL SDK.
 )
 
 type Price struct {
@@ -14,12 +13,6 @@ type Price struct {
 	Time     time.Time
 	Currency string
 }
-
-type PriceDatasource struct {
-	ftl.DefaultMySQLDatabaseConfig
-}
-
-func (PriceDatasource) Name() string { return "prices" }
 
 //ftl:verb export
 func SavePrice(ctx context.Context, price Price, client InsertPriceClient) error {

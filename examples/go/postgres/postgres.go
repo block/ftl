@@ -2,15 +2,7 @@ package postgres
 
 import (
 	"context"
-
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
-
-type MyDbConfig struct {
-	ftl.DefaultPostgresDatabaseConfig
-}
-
-func (MyDbConfig) Name() string { return "testdb" }
 
 type InsertRequest struct {
 	Data string
@@ -19,7 +11,7 @@ type InsertRequest struct {
 type InsertResponse struct{}
 
 //ftl:verb export
-func Insert(ctx context.Context, req InsertRequest, db ftl.DatabaseHandle[MyDbConfig]) (InsertResponse, error) {
+func Insert(ctx context.Context, req InsertRequest, db TestdbHandle) (InsertResponse, error) {
 	err := persistRequest(ctx, req, db)
 	if err != nil {
 		return InsertResponse{}, err
@@ -29,7 +21,7 @@ func Insert(ctx context.Context, req InsertRequest, db ftl.DatabaseHandle[MyDbCo
 }
 
 //ftl:verb export
-func Query(ctx context.Context, db ftl.DatabaseHandle[MyDbConfig]) ([]string, error) {
+func Query(ctx context.Context, db TestdbHandle) ([]string, error) {
 	rows, err := db.Get(ctx).QueryContext(ctx, "SELECT data FROM requests")
 	if err != nil {
 		return nil, err
@@ -54,7 +46,7 @@ func Query(ctx context.Context, db ftl.DatabaseHandle[MyDbConfig]) ([]string, er
 	return items, nil
 }
 
-func persistRequest(ctx context.Context, req InsertRequest, db ftl.DatabaseHandle[MyDbConfig]) error {
+func persistRequest(ctx context.Context, req InsertRequest, db TestdbHandle) error {
 	_, err := db.Get(ctx).Exec("INSERT INTO requests (data) VALUES (?);", req.Data)
 	if err != nil {
 		return err

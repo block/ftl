@@ -21,12 +21,10 @@ import (
 	"github.com/block/ftl/go-runtime/schema/common"
 	"github.com/block/ftl/go-runtime/schema/config"
 	"github.com/block/ftl/go-runtime/schema/data"
-	"github.com/block/ftl/go-runtime/schema/database"
 	"github.com/block/ftl/go-runtime/schema/enum"
 	"github.com/block/ftl/go-runtime/schema/finalize"
 	"github.com/block/ftl/go-runtime/schema/initialize"
 	"github.com/block/ftl/go-runtime/schema/metadata"
-	"github.com/block/ftl/go-runtime/schema/resourceconfig"
 	"github.com/block/ftl/go-runtime/schema/secret"
 	"github.com/block/ftl/go-runtime/schema/topic"
 	"github.com/block/ftl/go-runtime/schema/transitive"
@@ -51,7 +49,6 @@ var extractors = [][]*analysis.Analyzer{
 		metadata.Extractor,
 	},
 	{
-		resourceconfig.Extractor,
 		// must run before typeenumvariant.Extractor; typeenum.Extractor determines all possible discriminator
 		// interfaces and typeenumvariant.Extractor determines any types that implement these
 		typeenum.Extractor,
@@ -59,7 +56,6 @@ var extractors = [][]*analysis.Analyzer{
 	{
 		config.Extractor,
 		data.Extractor,
-		database.Extractor,
 		topic.Extractor,
 		typealias.Extractor,
 		typeenumvariant.Extractor,

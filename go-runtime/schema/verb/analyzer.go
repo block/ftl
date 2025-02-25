@@ -160,49 +160,51 @@ func resolveResource(pass *analysis.Pass, typ ast.Expr) (*resource, error) {
 		calleeRef.Name = strings.TrimSuffix(calleeRef.Name, "Client")
 		ref = calleeRef
 	case common.VerbResourceTypeDatabaseHandle:
-		// database parameter can either be supplied via an aliased type:
-		//
-		// type MyDB = ftl.DatabaseHandle[MyDatabaseConfig]
-		// func MyVerb(ctx context.Context, db MyDB, ...) (..., error)
-		//
-		// or directly:
-		// func MyVerb(ctx context.Context, db ftl.DatabaseHandle[MyDatabaseConfig], ...) (..., error)
-		if hasObj {
-			if _, ok := obj.Type().(*types.Alias); ok {
-				ident, ok := typ.(*ast.Ident)
-				if !ok || ident.Obj == nil || ident.Obj.Decl == nil {
-					return nil, fmt.Errorf("unsupported verb parameter type")
-				}
-				ts, ok := ident.Obj.Decl.(*ast.TypeSpec)
-				if !ok {
-					return nil, fmt.Errorf("unsupported verb parameter type")
-				}
-				return resolveResource(pass, ts.Type)
+		if !hasObj {
+			return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+		}
+		var dbObj types.Object
+		if alias, ok := obj.Type().(*types.Alias); ok {
+			named, ok := alias.Rhs().(*types.Named)
+			if !ok {
+				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+			}
+
+			typeArgs := named.TypeArgs()
+			if typeArgs.Len() == 0 {
+				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+			}
+			configType := typeArgs.At(0)
+			named, ok = configType.(*types.Named)
+			if !ok {
+				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+			}
+			dbObj = named.Obj()
+		} else {
+			idxExpr, ok := typ.(*ast.IndexExpr)
+			if !ok {
+				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+			}
+			ident, ok := idxExpr.Index.(*ast.Ident)
+			if !ok {
+				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+			}
+			dbObj, ok = common.GetObjectForNode(pass.TypesInfo, ident).Get()
+			if !ok {
+				return nil, fmt.Errorf("unsupported verb parameter type")
 			}
 		}
-		idxExpr, ok := typ.(*ast.IndexExpr)
+		dbName, ok := common.GetFactForObject[*common.DatabaseConfig](pass, dbObj).Get()
 		if !ok {
-			return nil, fmt.Errorf("unsupported verb parameter type; expected ftl.DatabaseHandle[Config]")
+			return nil, fmt.Errorf("no database name found for verb parameter")
 		}
-		idxObj, ok := common.GetObjectForNode(pass.TypesInfo, idxExpr.Index).Get()
-		if !ok {
-			return nil, fmt.Errorf("unsupported database verb parameter type")
-		}
-		decl, ok := common.GetFactForObject[*common.ExtractedDecl](pass, idxObj).Get()
-		if !ok {
-			return nil, fmt.Errorf("no database found for config provided to database handle")
-		}
-		db, ok := decl.Decl.(*schema.Database)
-		if !ok {
-			return nil, fmt.Errorf("no database found for config provided to database handle")
-		}
-		module, err := common.FtlModuleFromGoPackage(idxObj.Pkg().Path())
+		module, err := common.FtlModuleFromGoPackage(dbObj.Pkg().Path())
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve module for type: %w", err)
 		}
 		ref = &schema.Ref{
 			Module: module,
-			Name:   db.Name,
+			Name:   dbName.Name,
 		}
 	case common.VerbResourceTypeTopicHandle, common.VerbResourceTypeSecret, common.VerbResourceTypeConfig:
 		var ok bool

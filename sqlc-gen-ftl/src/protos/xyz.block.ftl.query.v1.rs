@@ -30,32 +30,14 @@ pub struct RollbackTransactionResponse {
     #[prost(enumeration="TransactionStatus", tag="1")]
     pub status: i32,
 }
-/// A value that can be used as a SQL parameter
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SqlValue {
-    #[prost(oneof="sql_value::Value", tags="1, 2, 3, 4, 5, 6, 7")]
-    pub value: ::core::option::Option<sql_value::Value>,
-}
-/// Nested message and enum types in `SQLValue`.
-pub mod sql_value {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Value {
-        #[prost(string, tag="1")]
-        StringValue(::prost::alloc::string::String),
-        #[prost(int64, tag="2")]
-        IntValue(i64),
-        #[prost(double, tag="3")]
-        FloatValue(f64),
-        #[prost(bool, tag="4")]
-        BoolValue(bool),
-        #[prost(bytes, tag="5")]
-        BytesValue(::prost::bytes::Bytes),
-        #[prost(message, tag="6")]
-        TimestampValue(::prost_types::Timestamp),
-        /// Set to true to represent NULL
-        #[prost(bool, tag="7")]
-        NullValue(bool),
-    }
+pub struct ResultColumn {
+    /// The name in the FTL-generated type
+    #[prost(string, tag="1")]
+    pub type_name: ::prost::alloc::string::String,
+    /// The database column name
+    #[prost(string, tag="2")]
+    pub sql_name: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecuteQueryRequest {
@@ -63,12 +45,12 @@ pub struct ExecuteQueryRequest {
     pub raw_sql: ::prost::alloc::string::String,
     #[prost(enumeration="CommandType", tag="2")]
     pub command_type: i32,
-    /// SQL parameter values in order
-    #[prost(message, repeated, tag="3")]
-    pub parameters: ::prost::alloc::vec::Vec<SqlValue>,
+    /// JSON array of parameter values in order
+    #[prost(string, tag="3")]
+    pub parameters_json: ::prost::alloc::string::String,
     /// Column names to scan for the result type
-    #[prost(string, repeated, tag="6")]
-    pub result_columns: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="6")]
+    pub result_columns: ::prost::alloc::vec::Vec<ResultColumn>,
     #[prost(string, optional, tag="4")]
     pub transaction_id: ::core::option::Option<::prost::alloc::string::String>,
     /// Default 100 if not set
@@ -102,9 +84,9 @@ pub struct ExecResult {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RowResults {
-    /// Each row is a map of column name to value
-    #[prost(map="string, message", tag="1")]
-    pub rows: ::std::collections::HashMap<::prost::alloc::string::String, SqlValue>,
+    /// JSON object mapping column names to values
+    #[prost(string, tag="1")]
+    pub json_rows: ::prost::alloc::string::String,
     /// Indicates if there are more rows to fetch
     #[prost(bool, tag="2")]
     pub has_more: bool,

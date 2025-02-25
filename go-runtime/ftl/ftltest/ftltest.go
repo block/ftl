@@ -214,14 +214,14 @@ func WithSecret[T ftl.SecretType](secret ftl.Secret[T], value T) Option {
 }
 
 // WithDatabase sets up a database for testing by appending "_test" to the DSN and emptying all tables
-func WithDatabase[T ftl.DatabaseConfig]() Option {
+func WithDatabase[T any]() Option {
 	return Option{
 		rank: other,
 		apply: func(ctx context.Context, state *OptionsState) error {
-			cfg := defaultDatabaseConfig[T]()
-			name := cfg.Name()
-			switch any(cfg).(type) {
-			case ftl.PostgresDatabaseConfig:
+			db := reflection.GetDatabase[T]()
+			name := db.Name
+			switch db.DBType {
+			case "postgres":
 				dsn, err := provisioner.ProvisionPostgresForTest(ctx, moduleGetter(), name)
 				if err != nil {
 					return fmt.Errorf("could not provision database %q: %w", name, err)
@@ -240,7 +240,7 @@ func WithDatabase[T ftl.DatabaseConfig]() Option {
 					return fmt.Errorf("could not create database %q with DSN %q: %w", name, dsn, err)
 				}
 				state.databases[name] = replacementDB
-			case ftl.MySQLDatabaseConfig:
+			case "mysql":
 				dsn, err := provisioner.ProvisionMySQLForTest(ctx, moduleGetter(), name)
 				if err != nil {
 					return fmt.Errorf("could not provision database %q: %w", name, err)
@@ -454,7 +454,7 @@ func CallEmpty[VerbClient any](ctx context.Context) error {
 }
 
 // GetDatabaseHandle returns a database handle using the given database config.
-func GetDatabaseHandle[T ftl.DatabaseConfig]() (ftl.DatabaseHandle[T], error) {
+func GetDatabaseHandle[T any]() (ftl.DatabaseHandle[T], error) {
 	reflectedDB := reflection.GetDatabase[T]()
 	if reflectedDB == nil {
 		return ftl.DatabaseHandle[T]{}, fmt.Errorf("could not find database for config")
@@ -469,7 +469,7 @@ func GetDatabaseHandle[T ftl.DatabaseConfig]() (ftl.DatabaseHandle[T], error) {
 	default:
 		return ftl.DatabaseHandle[T]{}, fmt.Errorf("unsupported database type %v", reflectedDB.DBType)
 	}
-	return ftl.NewDatabaseHandle[T](defaultDatabaseConfig[T](), dbType, reflectedDB.DB), nil
+	return ftl.NewDatabaseHandle[T](reflectedDB.Name, dbType, reflectedDB.DB), nil
 }
 
 func call[VerbClient, Req, Resp any](ctx context.Context, req Req) (resp Resp, err error) {
@@ -506,15 +506,4 @@ func widenVerb[Req, Resp any](verb ftl.Verb[Req, Resp]) ftl.Verb[any, any] {
 		}
 		return verb(ctx, req)
 	}
-}
-
-func defaultDatabaseConfig[T ftl.DatabaseConfig]() T {
-	typ := reflect.TypeFor[T]()
-	var cfg T
-	if typ.Kind() == reflect.Ptr {
-		cfg = reflect.New(typ.Elem()).Interface().(T) //nolint:forcetypeassert
-	} else {
-		cfg = reflect.New(typ).Elem().Interface().(T) //nolint:forcetypeassert
-	}
-	return cfg
 }

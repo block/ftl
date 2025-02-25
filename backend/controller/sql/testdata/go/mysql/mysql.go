@@ -2,15 +2,7 @@ package mysql
 
 import (
 	"context"
-
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
-
-type MyDbConfig struct {
-	ftl.DefaultMySQLDatabaseConfig
-}
-
-func (MyDbConfig) Name() string { return "testdb" }
 
 type InsertRequest struct {
 	Data string

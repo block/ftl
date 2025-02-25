@@ -154,6 +154,9 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 
 			case *Verb:
 				hasSubscribed := false
+				// if contains MetadataSQLQuery, must also contain MetadataDatabases
+				isSQLQuery := false
+				hasDatabase := false
 				for _, md := range n.Metadata {
 					switch md := md.(type) {
 					case *MetadataSubscriber:
@@ -185,10 +188,19 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 					case *MetadataRetry:
 						validateRetries(module, md, optional.Some(n.Request), scopes, optional.Some(schema))
 
-					case *MetadataCronJob, *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap,
+					case *MetadataSQLQuery:
+						isSQLQuery = true
+
+					case *MetadataDatabases:
+						hasDatabase = true
+
+					case *MetadataCronJob, *MetadataCalls, *MetadataConfig, *MetadataAlias, *MetadataTypeMap,
 						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact,
-						*MetadataPartitions, *MetadataSQLColumn, *MetadataSQLQuery, DatabaseConnector:
+						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector:
 					}
+				}
+				if isSQLQuery && !hasDatabase {
+					merr = append(merr, errorf(n, "query verb must specify a corresponding datasource"))
 				}
 			case *Database:
 				found := false

@@ -3,6 +3,7 @@ package metadata
 import (
 	"go/ast"
 	"go/token"
+	"go/types"
 	"reflect"
 
 	"github.com/alecthomas/types/optional"
@@ -49,23 +50,18 @@ func Extract(pass *analysis.Pass) (interface{}, error) {
 		case *ast.FuncDecl:
 			doc = n.Doc
 		}
-		if mdFact, ok := extractMetadata(pass, n, doc).Get(); ok {
-			// if prev, ok := getDuplicate(pass, name, mdFact).Get(); ok {
-			// 	common.Errorf(pass, n, "duplicate declaration of %q at %s", name,
-			// 		common.GoPosToSchemaPos(pass.Fset, prev.Pos()))
-			// }
-
-			obj, ok := common.GetObjectForNode(pass.TypesInfo, n).Get()
-			if !ok {
-				return
-			}
+		obj, ok := common.GetObjectForNode(pass.TypesInfo, n).Get()
+		if !ok {
+			return
+		}
+		if mdFact, ok := extractMetadata(pass, n, doc, obj).Get(); ok {
 			common.MarkMetadata(pass, obj, mdFact)
 		}
 	})
 	return common.NewExtractorResult(pass), nil
 }
 
-func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup) optional.Option[*common.ExtractedMetadata] {
+func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, obj types.Object) optional.Option[*common.ExtractedMetadata] {
 	if doc == nil {
 		return optional.None[*common.ExtractedMetadata]()
 	}
@@ -166,6 +162,8 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup) 
 			requireOnlyDirective(pass, node, directives, dt.GetTypeName())
 		case *common.DirectiveTypeAlias:
 			newSchType = &schema.TypeAlias{}
+		case *common.DirectiveDatabase:
+			common.MarkDatabaseConfig(pass, obj, dt.Name, dt.Engine)
 		}
 		declType = updateDeclType(pass, node.Pos(), declType, newSchType)
 	}

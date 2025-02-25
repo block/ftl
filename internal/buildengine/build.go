@@ -18,7 +18,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
-	"github.com/block/ftl/internal/sqlc"
+	"github.com/block/ftl/internal/sql"
 )
 
 var errInvalidateDependencies = errors.New("dependencies need to be updated")
@@ -32,7 +32,7 @@ func build(ctx context.Context, plugin *languageplugin.LanguagePlugin, projectCo
 	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	_, err = sqlc.AddQueriesToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
+	_, err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to add queries to schema: %w", err)
 	}
@@ -69,13 +69,12 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 
 	logger.Infof("Module built (%.2fs)", time.Since(result.StartTime).Seconds())
 
-	migrationFiles, err := handleDatabaseMigrations(config.DeployDir, config.SQLMigrationDirectory, result.Schema)
+	migrationFiles, err := handleDatabaseMigrations(config, result.Schema)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to extract migrations %w", err)
 	}
-	wireUpQueryDatasources(result.Schema)
 	result.Deploy = append(result.Deploy, migrationFiles...)
-	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLMigrationDirectory)
+	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLRootDir)
 
 	if endpoint, ok := result.DevEndpoint.Get(); ok {
 		if devModeEndpoints != nil {
@@ -100,30 +99,4 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 		return nil, nil, fmt.Errorf("failed to write schema: %w", err)
 	}
 	return result.Schema, result.Deploy, nil
-}
-
-// wireUpQueryDatasources sets up the query datasources for any SQL verbs in the schema
-// it is currently a hack
-func wireUpQueryDatasources(module *schema.Module) {
-	dsName := ""
-	for _, i := range module.Decls {
-		if ds, ok := i.(*schema.Database); ok {
-			dsName = ds.Name
-			break
-		}
-	}
-	if dsName == "" {
-		return
-	}
-	for _, i := range module.Decls {
-		if v, ok := i.(*schema.Verb); ok {
-			for _, ms := range v.Metadata {
-				if _, ok := ms.(*schema.MetadataSQLQuery); ok {
-					v.Metadata = append(v.Metadata, &schema.MetadataDatabases{Calls: []*schema.Ref{{Module: module.Name, Name: dsName}}})
-					break
-				}
-
-			}
-		}
-	}
 }

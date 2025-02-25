@@ -774,21 +774,6 @@ func CallExprFromVar(node *ast.GenDecl) optional.Option[*ast.CallExpr] {
 	return optional.Some(callExpr)
 }
 
-// IsDatabaseConfigType will return true if the provided type implements the `DatabaseConfig` type.
-func IsDatabaseConfigType(pass *analysis.Pass, typ types.Type) bool {
-	return implementsType(pass, typ, "github.com/block/ftl/go-runtime/ftl", "DatabaseConfig")
-}
-
-// IsPostgresDatabaseConfigType will return true if the provided type implements the `PostgresDatabaseConfig` type.
-func IsPostgresDatabaseConfigType(pass *analysis.Pass, typ types.Type) bool {
-	return implementsType(pass, typ, "github.com/block/ftl/go-runtime/ftl", "PostgresDatabaseConfig")
-}
-
-// IsMysqlDatabaseConfigType will return true if the provided type implements the `MysqlDatabaseConfig` type.
-func IsMysqlDatabaseConfigType(pass *analysis.Pass, typ types.Type) bool {
-	return implementsType(pass, typ, "github.com/block/ftl/go-runtime/ftl", "MySQLDatabaseConfig")
-}
-
 type VerbResourceType int
 
 const (
@@ -812,10 +797,7 @@ func GetVerbResourceType(pass *analysis.Pass, obj types.Object) VerbResourceType
 	case *types.Named:
 		switch t.Obj().Pkg().Path() + "." + t.Obj().Name() {
 		case FtlDatabaseHandlePath:
-			if isDatabaseHandleType(pass, t) {
-				return VerbResourceTypeDatabaseHandle
-			}
-			return VerbResourceTypeNone
+			return VerbResourceTypeDatabaseHandle
 		case FtlTopicHandlePath:
 			return VerbResourceTypeTopicHandle
 		case FtlConfigTypePath:
@@ -839,53 +821,6 @@ func GetVerbResourceType(pass *analysis.Pass, obj types.Object) VerbResourceType
 	default:
 		return VerbResourceTypeNone
 	}
-}
-
-func isDatabaseHandleType(pass *analysis.Pass, named *types.Named) bool {
-	if named.TypeParams().Len() != 1 {
-		return false
-	}
-	typeArg := named.TypeParams().At(0)
-
-	// type argument implements `DatabaseConfig`, e.g. DatabaseHandle[MyConfig] where MyConfig implements DatabaseConfig
-	return IsDatabaseConfigType(pass, typeArg)
-}
-
-func implementsType(pass *analysis.Pass, typ types.Type, pkg string, name string) bool {
-	if basic, ok := typ.(*types.Basic); ok && basic.Kind() == types.Invalid {
-		return false
-
-	}
-	if alias, ok := typ.(*types.Alias); ok {
-		return implementsType(pass, alias.Rhs(), pkg, name)
-	}
-	ityp, ok := loadRefFromImports(pass, pkg, name).Get()
-	if !ok {
-		return false
-	}
-	return types.Implements(typ, ityp) || types.Implements(types.NewPointer(typ), ityp)
-}
-
-// Lazy load the compile-time reference from a package if it is imported by the package in this pass.
-func loadRefFromImports(pass *analysis.Pass, pkg, name string) optional.Option[*types.Interface] {
-	var importedPkg *types.Package
-	for _, p := range pass.Pkg.Imports() {
-		if p.Path() == pkg {
-			importedPkg = p
-		}
-	}
-	if importedPkg == nil {
-		return optional.None[*types.Interface]()
-	}
-	obj := importedPkg.Scope().Lookup(name)
-	if obj == nil {
-		return optional.None[*types.Interface]()
-	}
-	ifaceType, ok := obj.Type().Underlying().(*types.Interface)
-	if !ok {
-		return optional.None[*types.Interface]()
-	}
-	return optional.Some(ifaceType)
 }
 
 // FuncPathEquals checks if the function call expression is a call to the given path.

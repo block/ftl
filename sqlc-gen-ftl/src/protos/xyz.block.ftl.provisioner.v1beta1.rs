@@ -8,7 +8,9 @@ pub struct ProvisionRequest {
     pub desired_module: ::core::option::Option<super::super::schema::v1::Module>,
     #[prost(message, optional, tag="3")]
     pub previous_module: ::core::option::Option<super::super::schema::v1::Module>,
-    #[prost(string, repeated, tag="4")]
+    #[prost(string, tag="4")]
+    pub changeset: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag="5")]
     pub kinds: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -56,25 +58,6 @@ pub struct StatusRequest {
     pub desired_module: ::core::option::Option<super::super::schema::v1::Module>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ProvisioningEvent {
-    #[prost(oneof="provisioning_event::Value", tags="1, 2, 3, 4")]
-    pub value: ::core::option::Option<provisioning_event::Value>,
-}
-/// Nested message and enum types in `ProvisioningEvent`.
-pub mod provisioning_event {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Value {
-        #[prost(message, tag="1")]
-        ModuleRuntimeEvent(super::super::super::schema::v1::ModuleRuntimeEvent),
-        #[prost(message, tag="2")]
-        DatabaseRuntimeEvent(super::super::super::schema::v1::DatabaseRuntimeEvent),
-        #[prost(message, tag="3")]
-        TopicRuntimeEvent(super::super::super::schema::v1::TopicRuntimeEvent),
-        #[prost(message, tag="4")]
-        VerbRuntimeEvent(super::super::super::schema::v1::VerbRuntimeEvent),
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StatusResponse {
     #[prost(oneof="status_response::Status", tags="1, 2")]
     pub status: ::core::option::Option<status_response::Status>,
@@ -92,7 +75,7 @@ pub mod status_response {
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct ProvisioningSuccess {
         #[prost(message, repeated, tag="1")]
-        pub events: ::prost::alloc::vec::Vec<super::ProvisioningEvent>,
+        pub outputs: ::prost::alloc::vec::Vec<super::super::super::schema::v1::RuntimeElement>,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Status {

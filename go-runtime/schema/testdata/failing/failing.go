@@ -17,12 +17,6 @@ type FtlConfigEndpoint = ftl.Config[string]
 // duplicated in child.go
 type FtlSecretEndpoint = ftl.Secret[string]
 
-type DuplDbConfig struct {
-	ftl.DefaultPostgresDatabaseConfig
-}
-
-func (DuplDbConfig) Name() string { return "testdb" }
-
 type Request struct {
 	BadParam error
 }

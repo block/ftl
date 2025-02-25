@@ -127,14 +127,13 @@ func PosFromProto(pos *Position) optional.Option[builderrors.Position] {
 // Absolute configs are used because relative paths may change resolve differently between parties.
 func ModuleConfigToProto(config moduleconfig.AbsModuleConfig) (*ModuleConfig, error) {
 	proto := &ModuleConfig{
-		Name:            config.Module,
-		Dir:             config.Dir,
-		DeployDir:       config.DeployDir,
-		BuildLock:       config.BuildLock,
-		Watch:           config.Watch,
-		Language:        config.Language,
-		SqlMigrationDir: config.SQLMigrationDirectory,
-		SqlQueryDir:     config.SQLQueryDirectory,
+		Name:       config.Module,
+		Dir:        config.Dir,
+		DeployDir:  config.DeployDir,
+		BuildLock:  config.BuildLock,
+		Watch:      config.Watch,
+		Language:   config.Language,
+		SqlRootDir: config.SQLRootDir,
 	}
 	if config.Build != "" {
 		proto.Build = &config.Build
@@ -155,16 +154,15 @@ func ModuleConfigToProto(config moduleconfig.AbsModuleConfig) (*ModuleConfig, er
 // ModuleConfigFromProto converts a protobuf ModuleConfig to a moduleconfig.AbsModuleConfig.
 func ModuleConfigFromProto(proto *ModuleConfig) moduleconfig.AbsModuleConfig {
 	config := moduleconfig.AbsModuleConfig{
-		Module:                proto.Name,
-		Dir:                   proto.Dir,
-		DeployDir:             proto.DeployDir,
-		Watch:                 proto.Watch,
-		Language:              proto.Language,
-		Build:                 proto.GetBuild(),
-		DevModeBuild:          proto.GetDevModeBuild(),
-		BuildLock:             proto.BuildLock,
-		SQLMigrationDirectory: proto.GetSqlMigrationDir(),
-		SQLQueryDirectory:     proto.GetSqlQueryDir(),
+		Module:       proto.Name,
+		Dir:          proto.Dir,
+		DeployDir:    proto.DeployDir,
+		Watch:        proto.Watch,
+		Language:     proto.Language,
+		Build:        proto.GetBuild(),
+		DevModeBuild: proto.GetDevModeBuild(),
+		BuildLock:    proto.BuildLock,
+		SQLRootDir:   proto.SqlRootDir,
 	}
 	if proto.LanguageConfig != nil {
 		config.LanguageConfig = proto.LanguageConfig.AsMap()
