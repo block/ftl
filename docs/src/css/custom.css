@@ -52,12 +52,13 @@
 
 /* Dark mode overrides */
 [data-theme="dark"] .hero .button.button--secondary {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background-color: white;
+  color: var(--ifm-color-primary);
+  border: 2px solid white;
 }
 
 [data-theme="dark"] .hero .button.button--secondary:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: transparent;
+  color: white;
   border-color: white;
 }
