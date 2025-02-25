@@ -18,11 +18,11 @@ func ErrorsFromProto(e *ErrorList) []builderrors.Error {
 	if e == nil {
 		return []builderrors.Error{}
 	}
-	return slices.Map(e.Errors, errorFromProto)
+	return slices.Map(e.Errors, ErrorFromProto)
 }
 
 func ErrorsToProto(errs []builderrors.Error) *ErrorList {
-	return &ErrorList{Errors: slices.Map(errs, errorToProto)}
+	return &ErrorList{Errors: slices.Map(errs, ErrorToProto)}
 }
 
 // ErrorString formats a languagepb.Error with its position (if available) and message
@@ -85,15 +85,29 @@ func levelToProto(level builderrors.ErrorLevel) Error_ErrorLevel {
 	panic(fmt.Sprintf("unhandled ErrorLevel %v", level))
 }
 
-func errorFromProto(e *Error) builderrors.Error {
+func ErrorFromProto(e *Error) builderrors.Error {
 	return builderrors.Error{
 		Pos:   PosFromProto(e.Pos),
 		Msg:   e.Msg,
 		Level: levelFromProto(e.Level),
+		Type:  builderrors.ErrorType(e.Type),
 	}
 }
 
-func errorToProto(e builderrors.Error) *Error {
+func typeToProto(errType builderrors.ErrorType) Error_ErrorType {
+	switch errType {
+	case builderrors.UNSPECIFIED:
+		return Error_ERROR_TYPE_UNSPECIFIED
+	case builderrors.FTL:
+		return Error_ERROR_TYPE_FTL
+	case builderrors.COMPILER:
+		return Error_ERROR_TYPE_COMPILER
+	default:
+		return Error_ERROR_TYPE_UNSPECIFIED
+	}
+}
+
+func ErrorToProto(e builderrors.Error) *Error {
 	var pos *Position
 	if bpos, ok := e.Pos.Get(); ok {
 		pos = &Position{
@@ -107,6 +121,7 @@ func errorToProto(e builderrors.Error) *Error {
 		Msg:   e.Msg,
 		Pos:   pos,
 		Level: levelToProto(e.Level),
+		Type:  typeToProto(e.Type),
 	}
 }
 
@@ -186,4 +201,13 @@ func ProjectConfigFromProto(proto *ProjectConfig) projectconfig.Config {
 		NoGit:  proto.NoGit,
 		Hermit: proto.Hermit,
 	}
+}
+
+// CompilerErrorsToProto converts a slice of builderrors.Error to a protobuf ErrorList with all errors marked as compiler errors.
+func CompilerErrorsToProto(errs []builderrors.Error) *ErrorList {
+	// Set all errors to compiler type
+	for i := range errs {
+		errs[i].Type = builderrors.COMPILER
+	}
+	return ErrorsToProto(errs)
 }
