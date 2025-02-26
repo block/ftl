@@ -299,9 +299,7 @@ func (r *terminalStatusManager) consoleNewline(line string) {
 		r.underlyingWrite(ansiUpOneLine + ansiClearLine)
 	}
 	r.underlyingWrite("\r" + line + "\n")
-	if line == "" {
-		r.redrawStatus()
-	}
+	r.redrawStatus()
 }
 
 func (r *terminalStatusManager) IntoContext(ctx context.Context) context.Context {
