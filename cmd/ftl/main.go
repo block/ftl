@@ -42,6 +42,7 @@ import (
 
 type SharedCLI struct {
 	Version          kong.VersionFlag `help:"Show version."`
+	ConfigFlag       string           `name:"config" short:"C" help:"Path to FTL project configuration file." env:"FTL_CONFIG" placeholder:"FILE"`
 	TimelineEndpoint *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	LeaseEndpoint    *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	AdminEndpoint    *url.URL         `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
@@ -72,8 +73,7 @@ type SharedCLI struct {
 
 type CLI struct {
 	SharedCLI
-	LogConfig  log.Config `embed:"" prefix:"log-" group:"Logging:"`
-	ConfigFlag string     `name:"config" short:"C" help:"Path to FTL project configuration file." env:"FTL_CONFIG" placeholder:"FILE"`
+	LogConfig log.Config `embed:"" prefix:"log-" group:"Logging:"`
 
 	Authenticators map[string]string `help:"Authenticators to use for FTL endpoints." mapsep:"," env:"FTL_AUTHENTICATORS" placeholder:"HOST=EXE,…"`
 	Insecure       bool              `help:"Skip TLS certificate verification. Caution: susceptible to machine-in-the-middle attacks."`
@@ -100,7 +100,6 @@ type DevModeCLI struct {
 var cli CLI
 
 func main() {
-
 	ctx, cancel := context.WithCancelCause(context.Background())
 	// Handle signals.
 	sigch := make(chan os.Signal, 1)
@@ -149,6 +148,7 @@ func main() {
 
 	// Plugins take time to launch, so we bind the "ftl new" plugin to the kong context.
 	kctx.Bind(languagePlugin)
+	kctx.Bind(&cli.SharedCLI)
 
 	if !cli.Plain {
 		sm := terminal.NewStatusManager(ctx)
@@ -245,7 +245,7 @@ func addToExit(k *kong.Kong, cleanup func(code int)) {
 func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *currentStatusManager) terminal.KongContextBinder {
 	var bindContext terminal.KongContextBinder
 	bindContext = func(ctx context.Context, kctx *kong.Context) context.Context {
-		err := kctx.BindToProvider(func(cli *CLI) (projectconfig.Config, error) {
+		err := kctx.BindToProvider(func(cli *SharedCLI) (projectconfig.Config, error) {
 			config, err := projectconfig.Load(ctx, cli.ConfigFlag)
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return config, fmt.Errorf("%w", err)
