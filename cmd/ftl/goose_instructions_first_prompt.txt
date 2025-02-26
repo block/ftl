@@ -28,8 +28,9 @@ When creating a database module, do so in this order:
 - Write database queries
 - Wait for the module to build to see the schema and if there any errors.
 - You MUST next read queries.ftl.go in the module directory to understand the go types to pass along to the generated db verbs
-- Write exported verbs and request/response types to expose the module's functionality
-- You MUST Check that the module builds successfully before continuing to any other needed changes.
+- Write exported verbs and request/response types to expose the module's functionality but do not call those verbs from other modules yet.
+- You MUST Check that the module builds successfully by calling `ftl await-summary` before continuing to any other needed changes.
+- It is IMPORTANT that you make sure the new module builds without errors before you proceed to change other modules.
 
 # Additional Documentation 
 
