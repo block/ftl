@@ -148,14 +148,14 @@ func newConfigContext(projectRoot string, mc moduleconfig.AbsModuleConfig, dbNam
 	}
 	schemaPaths, err := findSQLFiles(filepath.Join(mc.Dir, schemaDir), outDir)
 	if err != nil {
-		return optional.None[ConfigContext](), fmt.Errorf("failed to find SQL files: %w", err)
+		return optional.None[ConfigContext](), fmt.Errorf("no SQL migration files found in schema directory: %w", err)
 	}
 
 	var queryPaths []string
 	if queriesDir, ok := dbContent.QueriesDir.Get(); ok {
 		queryPaths, err = findSQLFiles(filepath.Join(mc.Dir, queriesDir), outDir)
 		if err != nil {
-			return optional.None[ConfigContext](), fmt.Errorf("failed to find SQL files: %w", err)
+			return optional.None[ConfigContext](), fmt.Errorf("no SQL query files found in queries directory: %w", err)
 		}
 	}
 
