@@ -112,11 +112,6 @@ func downloadDocs(ctx context.Context) ([]string, error) {
 		if !ok || !strings.HasSuffix(name, ".md") {
 			continue
 		}
-		if name == "databases.md" {
-			// TODO: remove this when databases.md has been updated to be accurate
-			// There is replacement db info given to goose directly
-			continue
-		}
 		errGroup.Go(func() error {
 			urlPath, ok := i["download_url"].(string)
 			if !ok {
