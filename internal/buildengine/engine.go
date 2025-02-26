@@ -1275,6 +1275,13 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 				case languageplugin.AutoRebuildEndedEvent:
 					moduleSch, deploy, err := handleBuildResult(ctx, e.projectConfig, meta.module.Config, event.Result, e.devModeEndpointUpdates)
 					if err != nil {
+						if errors.Is(err, errInvalidateDependencies) {
+							// Do not block this goroutine by building a module here.
+							// Instead we send to a chan so that it can be processed elsewhere.
+							e.rebuildEvents <- rebuildRequestEvent{module: event.ModuleName()}
+							// We don't update the state to failed, as it is going to be rebuilt
+							continue
+						}
 						e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 							Timestamp: timestamppb.Now(),
 							Event: &buildenginepb.EngineEvent_ModuleBuildFailed{
@@ -1286,11 +1293,6 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 									},
 								},
 							},
-						}
-						if errors.Is(err, errInvalidateDependencies) {
-							// Do not block this goroutine by building a module here.
-							// Instead we send to a chan so that it can be processed elsewhere.
-							e.rebuildEvents <- rebuildRequestEvent{module: event.ModuleName()}
 						}
 						continue
 					}
