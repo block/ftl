@@ -473,6 +473,7 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 					continue
 				}
 			}
+			buildCtx := s.buildContext.Load()
 			if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) || event.failed {
 				lastFailed = true
 				// skip reading schema
@@ -480,9 +481,35 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 					BuildFailure: &langpb.BuildFailure{
 						IsAutomaticRebuild: auto,
-						ContextId:          s.buildContext.Load().ID,
+						ContextId:          buildCtx.ID,
 						Errors:             errorList,
 					}}})
+				if err != nil {
+					logger.Errorf(err, "Could not send build event")
+				}
+				firstResponseSent.Store(true)
+				continue
+			}
+			moduleProto := event.state.GetModule()
+			moduleSch, err := schema.ModuleFromProto(moduleProto)
+			if err != nil {
+				err := stream.Send(buildFailure(buildCtx, auto, builderrors.Error{
+					Type:  builderrors.FTL,
+					Level: builderrors.ERROR,
+					Msg:   fmt.Sprintf("Could not parse schema from proto: %v", err),
+				}))
+				if err != nil {
+					logger.Errorf(err, "Could not send build event")
+				}
+				firstResponseSent.Store(true)
+				continue
+			}
+			if _, validationErr := schema.ValidateModuleInSchema(buildCtx.Schema, optional.Some(moduleSch)); validationErr != nil {
+				err := stream.Send(buildFailure(buildCtx, auto, builderrors.Error{
+					Type:  builderrors.FTL,
+					Level: builderrors.ERROR,
+					Msg:   validationErr.Error(),
+				}))
 				if err != nil {
 					logger.Errorf(err, "Could not send build event")
 				}
@@ -494,12 +521,12 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 			}
 
 			firstResponseSent.Store(true)
-			err := stream.Send(&langpb.BuildResponse{
+			err = stream.Send(&langpb.BuildResponse{
 				Event: &langpb.BuildResponse_BuildSuccess{
 					BuildSuccess: &langpb.BuildSuccess{
-						ContextId:            s.buildContext.Load().ID,
+						ContextId:            buildCtx.ID,
 						IsAutomaticRebuild:   auto,
-						Module:               event.state.GetModule(),
+						Module:               moduleSch.ToProto(),
 						DevEndpoint:          ptr(devModeEndpoint),
 						DevHotReloadEndpoint: ptr(hotReloadEndpoint),
 						DebugPort:            &debugPort32,
