@@ -367,11 +367,11 @@ func (r *terminalStatusManager) SetModuleState(module string, state BuildState) 
 
 func (r *terminalStatusManager) Close() {
 	r.statusLock.Lock()
-	r.closed.Store(true)
 	if r.closed.Load() {
 		r.statusLock.Unlock()
 		return
 	}
+	r.closed.Store(true)
 	if it, ok := r.interactiveConsole.Get(); ok {
 		it.Close()
 	}
