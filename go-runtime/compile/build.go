@@ -612,9 +612,7 @@ func compile(ctx context.Context, mainDir string, buildEnv []string, devMode boo
 	buildEnv = append(buildEnv, "GODEBUG=http2client=0")
 	err := exec.CommandWithEnv(ctx, log.Debug, mainDir, buildEnv, "go", args...).RunStderrError(ctx)
 	if err != nil {
-		// Clean up Go compiler error format to be single line
-		errStr := strings.ReplaceAll(err.Error(), "\n", " ")
-		return fmt.Errorf("failed to compile: %s", errStr)
+		return fmt.Errorf("failed to compile: %w", err)
 	}
 	return nil
 }
