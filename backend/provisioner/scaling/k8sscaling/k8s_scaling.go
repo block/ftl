@@ -386,39 +386,39 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	if err != nil {
 		return fmt.Errorf("failed to decode deployment from configMap %s: %w", configMapName, err)
 	}
-	// ourVersion, err := extractTag(thisImage)
-	// if err != nil {
-	// 	return err
-	// }
-	// ourImage, err := extractBase(thisImage)
-	// if err != nil {
-	// 	return err
-	// }
+	ourVersion, err := extractTag(thisImage)
+	if err != nil {
+		return err
+	}
+	ourImage, err := extractBase(thisImage)
+	if err != nil {
+		return err
+	}
 
-	// // runner images use the same tag as the controller
-	// rawRunnerImage := sch.Runtime.Base.Image
-	// if rawRunnerImage == "" {
-	// 	rawRunnerImage = "ftl0/ftl-runner"
-	// }
-	// var runnerImage string
-	// if len(strings.Split(rawRunnerImage, ":")) != 1 {
-	// 	return fmt.Errorf("module runtime's image should not contain a tag: %s", rawRunnerImage)
-	// }
-	// if strings.HasPrefix(rawRunnerImage, "ftl0/") {
-	// 	// Images in the ftl0 namespace should use the same tag as the controller and use the same namespace as ourImage
-	// 	runnerImage = strings.ReplaceAll(ourImage, "ftl-admin", rawRunnerImage[len(`ftl0/`):])
-	// } else {
-	// 	// Images outside of the ftl0 namespace should use the same tag as the controller
-	// 	ourImageComponents := strings.Split(ourImage, ":")
-	// 	if len(ourImageComponents) != 2 {
-	// 		return fmt.Errorf("expected <name>:<tag> for image name %q", ourImage)
-	// 	}
-	// 	runnerImage = rawRunnerImage + ":" + ourImageComponents[1]
-	// }
+	// runner images use the same tag as the controller
+	rawRunnerImage := sch.Runtime.Base.Image
+	if rawRunnerImage == "" {
+		rawRunnerImage = "ftl0/ftl-runner"
+	}
+	var runnerImage string
+	if len(strings.Split(rawRunnerImage, ":")) != 1 {
+		return fmt.Errorf("module runtime's image should not contain a tag: %s", rawRunnerImage)
+	}
+	if strings.HasPrefix(rawRunnerImage, "ftl0/") {
+		// Images in the ftl0 namespace should use the same tag as the controller and use the same namespace as ourImage
+		runnerImage = strings.ReplaceAll(ourImage, "ftl-admin", rawRunnerImage[len(`ftl0/`):])
+	} else {
+		// Images outside of the ftl0 namespace should use the same tag as the controller
+		ourImageComponents := strings.Split(ourImage, ":")
+		if len(ourImageComponents) != 2 {
+			return fmt.Errorf("expected <name>:<tag> for image name %q", ourImage)
+		}
+		runnerImage = rawRunnerImage + ":" + ourImageComponents[1]
+	}
 
 	deployment.Name = name
 	deployment.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
-	deployment.Spec.Template.Spec.Containers[0].Image = "343218181849.dkr.ecr.us-west-2.amazonaws.com/ftl-runner:latest" //fmt.Sprintf("%s:%s", runnerImage, ourVersion)
+	deployment.Spec.Template.Spec.Containers[0].Image = fmt.Sprintf("%s:%s", runnerImage, ourVersion)
 	deployment.Spec.Selector = &v1.LabelSelector{MatchLabels: map[string]string{"app": name}}
 	if deployment.Spec.Template.ObjectMeta.Labels == nil {
 		deployment.Spec.Template.ObjectMeta.Labels = map[string]string{}
@@ -494,31 +494,31 @@ func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *k
 }
 
 func (r *k8sScaling) syncDeployment(ctx context.Context, thisImage string, deployment *kubeapps.Deployment, replicas int32) ([]func(*kubeapps.Deployment), error) {
-	//logger := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 	changes := []func(*kubeapps.Deployment){}
-	// ourVersion, err := extractTag(thisImage)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// deploymentVersion, err := extractTag(deployment.Spec.Template.Spec.Containers[0].Image)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if ourVersion != deploymentVersion {
-	// 	// This means there has been an FTL upgrade
-	// 	// We are assuming the runner and provisioner run the same version
-	// 	// If they are different it means the provisioner has been upgraded and we need
-	// 	// to upgrade the deployments
+	ourVersion, err := extractTag(thisImage)
+	if err != nil {
+		return nil, err
+	}
+	deploymentVersion, err := extractTag(deployment.Spec.Template.Spec.Containers[0].Image)
+	if err != nil {
+		return nil, err
+	}
+	if ourVersion != deploymentVersion {
+		// This means there has been an FTL upgrade
+		// We are assuming the runner and provisioner run the same version
+		// If they are different it means the provisioner has been upgraded and we need
+		// to upgrade the deployments
 
-	// 	base, err := extractBase(deployment.Spec.Template.Spec.Containers[0].Image)
-	// 	if err != nil {
-	// 		logger.Errorf(err, "Could not determine base image for FTL deployment")
-	// 	} else {
-	// 		changes = append(changes, func(deployment *kubeapps.Deployment) {
-	// 			deployment.Spec.Template.Spec.Containers[0].Image = base + ":" + ourVersion
-	// 		})
-	// 	}
-	// }
+		base, err := extractBase(deployment.Spec.Template.Spec.Containers[0].Image)
+		if err != nil {
+			logger.Errorf(err, "Could not determine base image for FTL deployment")
+		} else {
+			changes = append(changes, func(deployment *kubeapps.Deployment) {
+				deployment.Spec.Template.Spec.Containers[0].Image = base + ":" + ourVersion
+			})
+		}
+	}
 
 	// For now we just make sure the number of replicas match
 	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas != replicas {

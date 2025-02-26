@@ -14,7 +14,6 @@ import (
 	"github.com/amacneil/dbmate/v2/pkg/dbmate"
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/mysql"
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"
-	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
 	"github.com/block/ftl/backend/controller/artefacts"
@@ -37,6 +36,8 @@ func NewSQLMigrationProvisioner(storage *artefacts.OCIArtefactService) *InMemPro
 
 func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (*schema.RuntimeElement, error) {
+		logger := log.FromContext(ctx)
+
 		db, ok := resource.(*schema.Database)
 		if !ok {
 			return nil, fmt.Errorf("expected database, got %T", resource)
@@ -63,15 +64,17 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 					return nil, fmt.Errorf("failed to resolve postgres DSN: %w", err)
 				}
 			case schema.MySQLDatabaseType:
-				cfg, err := dsn.ResolveMySQLConfig(ctx, db.Runtime.Connections.Write)
+				// run a local proxy for the mysql connection to support all connection types for the migration
+				dctx, cancel := context.WithCancelCause(ctx)
+				defer cancel(nil)
+				host, port, err := dsn.TempMySQLProxy(dctx, db.Runtime.Connections.Write)
 				if err != nil {
-					return nil, fmt.Errorf("failed to resolve mysql DSN: %w", err)
+					return nil, fmt.Errorf("failed to create mysql proxy: %w", err)
 				}
-				d = "mysql://" + cfg.FormatDSN()
-				// strip the tcp part
-				exp := regexp.MustCompile(`tcp\((.*?)\)`)
-				d = exp.ReplaceAllString(d, "$1")
+				d = fmt.Sprintf("mysql://%s:%d/%s", host, port, "migration")
+				logger.Debugf("Using mysql proxy for migration: %s", d)
 			}
+
 			u, err := url.Parse(d)
 			if err != nil {
 				return nil, fmt.Errorf("invalid DSN: %w", err)

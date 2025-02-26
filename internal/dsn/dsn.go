@@ -15,6 +15,7 @@ import (
 
 	mysqlauthproxy "github.com/block/ftl-mysql-auth-proxy"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/log"
 )
 
 type dsnOptions struct {
@@ -149,6 +150,50 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 		return mcfg, nil
 	default:
 		return nil, fmt.Errorf("unexpected database connector type: %T", connector)
+	}
+}
+
+// TempMySQLProxy creates a temporary MySQL proxy for the given connector.
+// It returns the local address of the proxy and an error if the proxy fails to start.
+// When connecting to the proxy, any db name can be used, and it will redirect to the given connector
+//
+// The proxy will be automatically cleaned up when the context is cancelled.
+func TempMySQLProxy(ctx context.Context, connector schema.DatabaseConnector) (host string, port int, err error) {
+	logger := log.FromContext(ctx)
+	portC := make(chan int)
+	proxy := mysqlauthproxy.NewProxy("localhost", 0, func(ctx context.Context) (*mysqlauthproxy.Config, error) {
+		cfg, err := ResolveMySQLConfig(ctx, connector)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve MySQL DSN: %w", err)
+		}
+		return cfg, nil
+	}, &mysqlLogger{logger: logger}, portC)
+
+	errC := make(chan error)
+	go func() {
+		err := proxy.ListenAndServe(ctx)
+		if err != nil {
+			logger.Errorf(err, "failed to listen and serve")
+			errC <- err
+		}
+	}()
+
+	select {
+	case err := <-errC:
+		return "", 0, err
+	case port := <-portC:
+		logger.Debugf("Started a temporary mysql proxy on port %d", port)
+		return "127.0.0.1", port, nil
+	}
+}
+
+type mysqlLogger struct {
+	logger *log.Logger
+}
+
+func (m *mysqlLogger) Print(v ...any) {
+	for _, s := range v {
+		m.logger.Infof("mysqlproxy: %v", s)
 	}
 }
 
