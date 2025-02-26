@@ -764,7 +764,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 					moduleStates[rawEvent.ModuleBuildStarted.Config.Name] = moduleStateExplicitlyBuilding
 				}
 				delete(moduleErrors, rawEvent.ModuleBuildStarted.Config.Name)
-				logger.Module(rawEvent.ModuleBuildStarted.Config.Name).Scope("build").Debugf("Building...")
+				logger.Module(rawEvent.ModuleBuildStarted.Config.Name).Scope("build").Infof("Building...")
 			case *buildenginepb.EngineEvent_ModuleBuildFailed:
 				moduleStates[rawEvent.ModuleBuildFailed.Config.Name] = moduleStateFailed
 				moduleErrors[rawEvent.ModuleBuildFailed.Config.Name] = rawEvent.ModuleBuildFailed.Errors
