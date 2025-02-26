@@ -31,7 +31,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   const groupPadding = 30
   const interGroupSpacing = 80
   const groupSpacing = 10
-  const verticalSpacing = 100
+  const verticalSpacing = 30
   const intraGroupSpacing = 25
   const titleHeight = 30
 
@@ -191,15 +191,17 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
       const previousGroup = groupBounds[j]
 
       // Check if groups overlap horizontally
-      const horizontalOverlap = !(currentGroup.x + currentGroup.width < previousGroup.x || currentGroup.x > previousGroup.x + previousGroup.width)
+      const horizontalOverlap = !(
+        currentGroup.x + currentGroup.width < previousGroup.x - interGroupSpacing || currentGroup.x > previousGroup.x + previousGroup.width + interGroupSpacing
+      )
 
-      // Check if groups overlap vertically
-      const verticalOverlap = !(currentGroup.y + currentGroup.height < previousGroup.y || currentGroup.y > previousGroup.y + previousGroup.height)
+      // Check if groups overlap vertically or are too close
+      const verticalOverlap = !(currentGroup.y > previousGroup.y + previousGroup.height + verticalSpacing)
 
-      // If there's both horizontal and vertical overlap
+      // If there's both horizontal proximity and vertical overlap/proximity
       if (horizontalOverlap && verticalOverlap) {
-        // Calculate the minimum shift needed to resolve overlap
-        const verticalShift = previousGroup.y + previousGroup.height - currentGroup.y + 20 // 20px extra padding
+        // Calculate the minimum shift needed to resolve overlap with extra spacing
+        const verticalShift = previousGroup.y + previousGroup.height - currentGroup.y + verticalSpacing
 
         // Shift current group and all its children down
         currentGroup.y += verticalShift

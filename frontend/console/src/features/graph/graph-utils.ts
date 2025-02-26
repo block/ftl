@@ -1,6 +1,7 @@
 import type { Edge, Node } from '@xyflow/react'
 import * as dagre from 'dagre'
 import { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
+import type { MetadataSubscriber } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import type { ExpandablePanelProps } from '../../shared/components/ExpandablePanel'
 import { configPanels } from '../modules/decls/config/ConfigRightPanels'
 import { dataPanels } from '../modules/decls/data/DataRightPanels'
@@ -154,6 +155,23 @@ export const getGraphData = (
         const sourceId = nodeId(ref.module, ref.name)
         const targetId = nodeId(module.name, itemName)
         if (!existingNodes.has(sourceId) || !existingNodes.has(targetId)) continue
+
+        // Special case: If this is a topic and the reference is a verb (subscriber),
+        // we'll reverse the edge direction in the visualization
+        if (item instanceof Topic) {
+          // Check if the source is a verb (potential subscriber)
+          const sourceModule = filteredModules.find((m) => m.name === ref.module)
+          const sourceVerb = sourceModule?.verbs.find((v) => (v.verb?.name || '') === ref.name)
+
+          // Check if the verb has subscriber metadata
+          const subscriber = (sourceVerb?.verb?.metadata?.find((meta) => meta.value.case === 'subscriber')?.value?.value as MetadataSubscriber) || null
+          if (subscriber && subscriber.topic?.module === module.name && subscriber.topic?.name === itemName) {
+            // Reverse the direction for topic->subscriber
+            const edge = createEdge(module.name, itemName, ref.module, ref.name, isDarkMode, selectedNodeId)
+            if (edge) edges.push(edge)
+            continue
+          }
+        }
 
         const edge = createEdge(ref.module, ref.name, module.name, itemName, isDarkMode, selectedNodeId)
         if (edge) edges.push(edge)
