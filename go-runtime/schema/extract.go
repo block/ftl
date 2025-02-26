@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"go/token"
 	"go/types"
+	"reflect"
+	"strings"
 
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/tuple"
@@ -207,7 +209,7 @@ func (cd *combinedData) error(err builderrors.Error) {
 
 func (cd *combinedData) update(fr finalize.Result) {
 	for decl, obj := range fr.Extracted {
-		cd.validateDecl(decl, obj)
+		cd.validateDecl(decl, obj, false)
 		cd.extractedDecls[decl] = obj
 	}
 	copyFailedRefs(cd.refResults, fr.Failed)
@@ -246,23 +248,27 @@ func (cd *combinedData) updateModule(fr finalize.Result) error {
 	return nil
 }
 
-func (cd *combinedData) validateDecl(decl schema.Decl, obj types.Object) bool {
+func (cd *combinedData) validateDecl(decl schema.Decl, obj types.Object, suppressErrors bool) bool {
 	valid := true
-	typename := common.GetDeclTypeName(decl)
-	typeKey := fmt.Sprintf("%s-%s", typename, decl.GetName())
+	typeKey := getTypeUniquenessKey(decl)
 	if value, ok := cd.typeUniqueness[typeKey]; ok && value.A != obj {
-		cd.error(builderrors.Errorf(decl.Position().ToErrorPos(),
-			"duplicate %s declaration for %q; already declared at %q", typename,
-			cd.module.Name+"."+decl.GetName(), value.B))
+		if !suppressErrors {
+			cd.error(builderrors.Errorf(decl.Position().ToErrorPos(),
+				"duplicate %s declaration for %q; already declared at %q", common.GetDeclTypeName(decl),
+				cd.module.Name+"."+decl.GetName(), value.B))
+		}
 		valid = false
 	} else if value, ok := cd.globalUniqueness[decl.GetName()]; ok && value.A != obj {
-		cd.error(builderrors.Errorf(decl.Position().ToErrorPos(),
-			"schema declaration with name %q already exists for module %q; previously declared at %q",
-			decl.GetName(), cd.module.Name, value.B))
+		if !suppressErrors {
+			cd.error(builderrors.Errorf(decl.Position().ToErrorPos(),
+				"schema declaration with name %q already exists for module %q; previously declared at %q",
+				decl.GetName(), cd.module.Name, value.B))
+		}
 		valid = false
+	} else {
+		cd.typeUniqueness[typeKey] = tuple.Pair[types.Object, schema.Position]{A: obj, B: decl.Position()}
+		cd.globalUniqueness[decl.GetName()] = tuple.Pair[types.Object, schema.Position]{A: obj, B: decl.Position()}
 	}
-	cd.typeUniqueness[typeKey] = tuple.Pair[types.Object, schema.Position]{A: obj, B: decl.Position()}
-	cd.globalUniqueness[decl.GetName()] = tuple.Pair[types.Object, schema.Position]{A: obj, B: decl.Position()}
 	return valid
 }
 
@@ -376,11 +382,29 @@ func combineAllPackageResults(sch *schema.Schema, finalizeResults []finalize.Res
 	}
 
 	// add existing schema decls to the result, validating that there are no conflicts
-	for _, module := range sch.Modules {
-		if module.Name == cd.module.Name {
-			for _, decl := range module.Decls {
-				if cd.validateDecl(decl, nil) {
+	for _, generatedModule := range sch.Modules {
+		if generatedModule.Name == cd.module.Name {
+			for _, decl := range generatedModule.Decls {
+				if cd.validateDecl(decl, nil, true) {
 					cd.extractedDecls[decl] = nil
+				} else {
+					var genType string
+					switch decl.(type) {
+					case *schema.Verb:
+						genType = "query verb"
+					case *schema.Database:
+						genType = "database"
+					default:
+						return Result{}, fmt.Errorf("%q is an unsupported generated type: %T", decl.GetName(), decl)
+					}
+
+					typeKey := getTypeUniquenessKey(decl)
+					if value, ok := cd.typeUniqueness[typeKey]; ok {
+						displayType := strings.ToLower(strings.Split(reflect.TypeOf(decl).String(), ".")[1])
+						cd.error(builderrors.Errorf(value.B.ToErrorPos(), "declared %s %q conflicts with FTL-generated %s of the same name", displayType, decl.GetName(), genType))
+					} else if value, ok := cd.globalUniqueness[decl.GetName()]; ok {
+						cd.error(builderrors.Errorf(value.B.ToErrorPos(), "declaration %q conflicts with FTL-generated %s of the same name", decl, genType))
+					}
 				}
 			}
 		}
@@ -462,4 +486,9 @@ func toErrorPos(pos token.Position, end token.Position) builderrors.Position {
 		StartColumn: pos.Column,
 		EndColumn:   end.Column,
 	}
+}
+
+func getTypeUniquenessKey(decl schema.Decl) string {
+	typename := common.GetDeclTypeName(decl)
+	return fmt.Sprintf("%s-%s", typename, decl.GetName())
 }
