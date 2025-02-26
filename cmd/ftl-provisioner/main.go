@@ -7,6 +7,7 @@ import (
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl"
+	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner"
 	"github.com/block/ftl/backend/provisioner/scaling/k8sscaling"
@@ -19,11 +20,12 @@ import (
 )
 
 var cli struct {
-	Version             kong.VersionFlag     `help:"Show version."`
-	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
-	LogConfig           log.Config           `embed:"" prefix:"log-"`
-	ProvisionerConfig   provisioner.Config   `embed:""`
-	ConfigFlag          string               `name:"config" short:"C" help:"Path to FTL project cf file." env:"FTL_CONFIG" placeholder:"FILE"`
+	Version             kong.VersionFlag         `help:"Show version."`
+	ObservabilityConfig observability.Config     `embed:"" prefix:"o11y-"`
+	LogConfig           log.Config               `embed:"" prefix:"log-"`
+	ProvisionerConfig   provisioner.Config       `embed:""`
+	ConfigFlag          string                   `name:"config" short:"C" help:"Path to FTL project cf file." env:"FTL_CONFIG" placeholder:"FILE"`
+	RegistryConfig      artefacts.RegistryConfig `prefix:"oci-" embed:""`
 }
 
 func main() {
@@ -49,6 +51,18 @@ func main() {
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling)
 	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
+
+	// Use in mem sql-migration provisioner as fallback for sql-migration provisioning if no other provisioner is registered
+	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
+		return slices.Contains(binding.Types, schema.ResourceTypeSQLMigration)
+	}); !ok {
+		storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
+		kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
+
+		sqlMigrationProvisioner := provisioner.NewSQLMigrationProvisioner(storage)
+		sqlMigrationBinding := registry.Register("in-mem-sql-migration", sqlMigrationProvisioner, schema.ResourceTypeSQLMigration)
+		logger.Debugf("Registered provisioner %s as fallback for sql-migration", sqlMigrationBinding)
+	}
 
 	// Use k8s scaling as fallback for runner provisioning if no other provisioner is registered
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
