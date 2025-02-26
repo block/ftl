@@ -16,18 +16,20 @@ import (
 	"github.com/block/ftl/internal/watch"
 )
 
-type newSQLMigrationCmd struct {
+type migrationSQLCmd struct {
 	Datasource string `arg:"" help:"The qualified name of the datasource in the form module.datasource to create the migration for. If the module is not specified FTL will attempt to infer it from the current working directory."`
 	Name       string `arg:"" help:"Name of the migration, this will be included in the migration file name."`
 }
 
-func (i newSQLMigrationCmd) Run(ctx context.Context) error {
-
+func (i migrationSQLCmd) Run(ctx context.Context) error {
 	dir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("could not get current working directory: %w", err)
 	}
 	modules, err := watch.DiscoverModules(ctx, []string{dir})
+	if err != nil {
+		return fmt.Errorf("could not discover modules: %w", err)
+	}
 	var module *moduleconfig.UnvalidatedModuleConfig
 	parts := strings.Split(i.Datasource, ".")
 	var dsName string
@@ -105,11 +107,6 @@ func newMigration(dir, name string) (string, error) {
 		return "", fmt.Errorf("migration name required")
 	}
 	name = fmt.Sprintf("%s_%s.sql", timestamp, name)
-
-	// create migrations dir if missing
-	if err := os.MkdirAll(dir, 0750); err != nil {
-		return "", fmt.Errorf("could not create migrations directory at %s: %w", dir, err)
-	}
 
 	// check file does not already exist
 	path := filepath.Join(dir, name)

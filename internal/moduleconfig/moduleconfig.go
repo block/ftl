@@ -283,7 +283,7 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 		}
 
 		engineName := engineDir.Name()
-		engine, err := toEngineType(engineName)
+		engine, err := ToEngineType(engineName)
 		if err != nil {
 			return false, databases, fmt.Errorf("invalid DB engine %q - subdirectory of %q must be either 'mysql' or 'postgres'", engineName, dir)
 		}
@@ -348,7 +348,8 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 	return true, databases, nil
 }
 
-func toEngineType(engine string) (string, error) {
+// ToEngineType validates and converts an engine type string to its internal representation
+func ToEngineType(engine string) (string, error) {
 	switch engine {
 	case schema.PostgresDatabaseType:
 		return EnginePostgres, nil

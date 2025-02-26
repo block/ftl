@@ -101,6 +101,28 @@ Note that this will likely change significantly in future once JVM supports SQL 
   </TabItem>
 </Tabs>
 
+## Creating a New Database
+
+To create a new database with the required directory structure, you can use the `ftl postgres new` or `ftl mysql new` command. The format of the command is:
+
+```bash
+ftl <engine> new <module>.<datasource>
+```
+
+Where:
+- `<engine>` is either `mysql` or `postgres`
+- `<module>.<datasource>` is the qualified name of the datasource (module name can be omitted if in a single module directory)
+
+For example:
+```bash
+ftl mysql new mymodule.mydb    # Create a MySQL database named "mydb" in module "mymodule"
+ftl postgres new mydb          # Create a PostgreSQL database named "mydb" in the current module
+```
+
+This command will:
+1. Create the appropriate directory structure
+2. Create an initial migration file in the `schema` directory
+
 ## SQL File Structure
 
 In order to be discoverable by FTL, the SQL files in your project must follow a specific directory structure. FTL supports two database engines, declared via the directory hierarchy as either `mysql` or `postgres`:
@@ -171,12 +193,11 @@ provisioning setup.
 
 FTL includes support for automatically running migrations on databases. This is provided by [dbmate](https://github.com/amacneil/dbmate). 
 
-To create migrations you can use the `ftl new-sql-migration` command. This will create new migration files, and initialize the required
-directory structure if it does not exist. The format of the command is `ftl new-sql-migration <module>.<datasource> <migration-name>`.
+To create additional migrations you can use the `ftl postgres new migration` or `ftl mysql new migration` command. The format of the command is `ftl <engine> new migration <module>.<datasource> <migration-name>`.
 
 The module name can be omitted if the current working directory only contains a single module.
 
-E.g. to create a new migration called `init` for the `testdb` datasource in the `mysql` module you would run `ftl new-sql-migration mysql.testdb init`.
+E.g. to create a new migration called `init` for the `testdb` datasource in the `mysql` module you would run `ftl mysql new migration mysql.testdb init`.
 
 When the modules are provisioned FTL will automatically run these migrations for you. 
 
