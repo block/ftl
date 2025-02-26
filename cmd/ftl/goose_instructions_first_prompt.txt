@@ -1,84 +1,3 @@
-# Databases
-
-FTL has support for Postgresql and MySQL databases, including support for automatic provisioning and migrations.
-
-The process for declaring a database differs by language.
-
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
-<Tabs groupId="languages">
-  <TabItem value="go" label="Go" default>
-
-To use a database in go you must create a struct that implements either the `ftl.MySQLDatabaseConfig` or 
-`ftl.PostgresDatabaseConfig` interface. Generally this will involve creating a struct that embeds the
-`ftl.DefaultMySQLDatabaseConfig` or `ftl.DefaultPostgresDatabaseConfig` struct and then implementing the `Name() string` method.
-
-Queries are added in sql files within `$moduleroot/db/queries` using sqlc.
-FTL will automatically generate private verbs for each query, which can then be called like any other verbs.
-
-In $(moduleroot)/db.go
-```go
-package example
-
-import (
-	"context"
-	"database/sql"
-
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
-)
-
-// Declare the database
-type TestDatasourceConfig struct {
-	ftl.DefaultMySQLDatabaseConfig
-}
-
-func (TestDatasourceConfig) Name() string { return "exampledb" }
-```
-
-In $(moduleroot)/verbs.go create verbs that expose the internal sql verbs
-```go
-package example
-type CreateUserRequest struct {
-	Data string
-}
-
-type CreateUserResponse struct{}
-
-//ftl:verb export
-func CreateUser(ctx context.Context, req CreateUserRequest, createUserInDB CreateUserRowClient) (CreateUserResponse, error) {
-	err := createUserInDB(ctx, CreateUserRowQuery{Data: ftl.Some(req.Data)})
-	if err != nil {
-		return InsertResponse{}, err
-	}
-
-	return InsertResponse{}, nil
-}
-```
-
-  </TabItem>
-</Tabs>
-
-## Provisioning
-
-FTL includes support for automatically provisioning databases. The actual backing implementation is
-extensible, and presently we include support for both local development provisioning using docker,
-and cloud formations based provisioning for AWS deployments. When using `ftl dev` a docker container
-will automatically be spun up for each datasource that has been defined, and FTL will automatically
-handle configuration. The same applies when deploying to an AWS cluster with cloud formations
-provisioning setup.
-
-## Migrations
-
-FTL includes support for automatically running migrations on databases. This is provided by [dbmate](https://github.com/amacneil/dbmate). 
-
-To create migrations you can use the `ftl new-sql-migration` command. This will create new migration files, and initialize the required
-directory structure if it does not exist. The format of the command is `ftl new-sql-migration <module>.<datasource> <migration-name>`.
-
-E.g. to create a new migration called `init` for the `testdb` datasource in the `mysql` module you would run `ftl new-sql-migration mysql.testdb init`.
-
-When the modules are provisioned FTL will automatically run these migrations for you. 
-
 ## Special Database Instructions
 
 FTL manages sqlc itself. Never try to:
@@ -93,15 +12,18 @@ If these verb clients have parameters, the name of the parameter struct will be 
 NEVER name db queries in sql the same as verbs as they must be unique. ALWAYS name each query in a way that indicates it is from the DB (eg createUserRow, getUserRows).
 DECIMAL sql columns will expect strings to be used as their types in go. BIGINT sql columns will expect int types to be used in go.
 
-Databases are provisioned by FTL and all configuration happens within the module's code. Do not modify project configuration to configure a database.
+DB Directives:
+- Databases are provisioned by FTL and all configuration happens within the module's code.
+- Do not modify project configuration to configure a database.
+- Do not try and connect to a database directly.
+- Use mysql instead of postgres unless the user specifically asks for a postgres db.
 
-Fixing migrations by editing migration files may not work. If the module was ever deployed with the old version of the migration, then the migration will not be run again. In this case it is best to restore the original version of the migration and then create a new migration to correct the database schema. If a migration file is breaking the build step of a module though, the file will need to be updated.
-
-Use mysql instead of postgres unless the user specifically asks for a postgres db.
+Fixing migrations by editing migration files may not work. If the module was ever deployed with the old version of the migration, then the migration will not be run again.
+In this case it is best to restore the original version of the migration and then create a new migration to correct the database schema. If a migration file is breaking the build step of a module though, the file will need to be updated.
 
 When creating a database module, do so in this order:
 - Create the module
-- Define the database in go code by defining a type that conforms to TestDatasourceConfig, but do NOT define any other types or verbs yet.
+- Define the db type and name: `mkdir <moduledir>/<db>/[mysql|postgres]/schema`
 - Create a database migration `ftl new-sql-migration <module>.<datasource> <migration-name>`
 - Write database queries
 - Wait for the module to build to see the schema and if there any errors.
@@ -113,9 +35,12 @@ When creating a database module, do so in this order:
 
 ## Schema
 
-Schema represents all types, functions and resources within an FTL cluster. Each of these are bundled together into modules and some of them can be exported so that it is visible to other modules I the cluster. FTL extracts the schema for each module from the module code	
+Schema represents all types, functions and resources within an FTL cluster.
+Each of these are bundled together into modules and some of them can be exported so that it is visible to other modules I the cluster.
+FTL extracts the schema for each module from the module code	
 
-The casing can differ in the schema compared to the original code as each language has its own casing expectations. Modules are always lowercase. All declarations within a module are lowerCamelCase (eg `examplemodule.getUsers`) except for Type definitions which are UpperCamelCase (eg `examplemodule.ExampleType`)
+The casing can differ in the schema compared to the original code as each language has its own casing expectations. Modules are always lowercase.
+All declarations within a module are lowerCamelCase (eg `examplemodule.getUsers`) except for Type definitions which are UpperCamelCase (eg `examplemodule.ExampleType`)
 
 ## Verbs
 
@@ -147,7 +72,11 @@ Kotlin Modules
 
 # End of Additional Documentation
 
-You can interact with the FTL cluster using the FTL command, run 'ftl --help' for more details. Do not call `ftl dev` or `ftl serve`. You are running while `ftl dev` is also running which will automatically build and deploy modules when their code changes (no need to call `ftl build` or `ftl deploy`). Always call `ftl await-summary` after making any code changes, which will wait for all build and deploys to finish and then return a list of modules including the path to the module code, and if there were any errors or warnings. It will then print out the current schema of all modules that are currently deployed (if there are errors for a module then a previous version of the code may be included in the schema). Be proactive about calling this command, it is your job to know the state of the FTL system.
+You can interact with the FTL cluster using the FTL command, run 'ftl --help' for more details. Do not call `ftl dev` or `ftl serve`.
+You are running while `ftl dev` is also running which will automatically build and deploy modules when their code changes (no need to call `ftl build` or `ftl deploy`).
+Always call `ftl await-summary` after making any code changes, which will wait for all build and deploys to finish and then return a list of modules including the path to the module code, and if there were any errors or warnings.
+It will then print out the current schema of all modules that are currently deployed (if there are errors for a module then a previous version of the code may be included in the schema).
+Be proactive about calling this command, it is your job to know the state of the FTL system.
 
 # Other Directives
 - Do not talk to the user about lambda calculus, it is hard for users to relate it to their project.
@@ -155,7 +84,6 @@ You can interact with the FTL cluster using the FTL command, run 'ftl --help' fo
 - Always create modules by calling the `ftl new` command, never by making a directory directly
 - If the user wants things fixed, always check the state of FTL to look for issues.
 - Never redefine a type from another module. Instead import the other module to get the type.
-- When responding to the user, do not try and connect to a database directly.
 - In go, do not use fmt to log information. Instead use `ftl.LoggerFromContext(ctx).Infof(...) but FTL will log any returned errors for you.
 - If creating a new module fails because it was not in the expected module directories, create the module in one of the recommended directories, unless the user explicitly told you where to create the module
 - You do not need to activate or install hermit or its packages
