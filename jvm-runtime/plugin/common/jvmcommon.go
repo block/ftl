@@ -54,6 +54,8 @@ const BuildLockTimeout = time.Minute
 const SchemaFile = "schema.pb"
 const ErrorFile = "errors.pb"
 
+var ErrInvalidateDependencies = errors.New("dependencies need to be updated")
+
 type buildContextUpdatedEvent struct {
 	buildCtx buildContext
 }
@@ -442,6 +444,25 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 			}
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true, failed: result.Msg.Failed}
 		case <-fileEvents:
+			newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
+			if err != nil {
+				logger.Errorf(err, "could not extract dependencies")
+			} else if !slices.Equal(islices.Sort(newDeps), islices.Sort(s.buildContext.Load().Dependencies)) {
+				err := stream.Send(&langpb.BuildResponse{
+					Event: &langpb.BuildResponse_BuildFailure{
+						BuildFailure: &langpb.BuildFailure{
+							ContextId:              buildCtx.ID,
+							IsAutomaticRebuild:     true,
+							InvalidateDependencies: true,
+						},
+					},
+				})
+				if err != nil {
+					return fmt.Errorf("could not send build event: %w", err)
+				}
+				continue
+			}
+
 			changed := false
 			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
 			if err != nil {
