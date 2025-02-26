@@ -16,6 +16,7 @@ import (
 	mysqlauthproxy "github.com/block/ftl-mysql-auth-proxy"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/pgproxy"
 )
 
 type dsnOptions struct {
@@ -172,12 +173,12 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 	}
 }
 
-// TempMySQLProxy creates a temporary MySQL proxy for the given connector.
+// ConnectorMySQLProxy creates a MySQL proxy for the given connector.
 // It returns the local address of the proxy and an error if the proxy fails to start.
-// When connecting to the proxy, any db name can be used, and it will redirect to the given connector
+// The databse name of the connection to this proxy needs to match the database name in the connector.
 //
-// The proxy will be automatically cleaned up when the context is cancelled.
-func TempMySQLProxy(ctx context.Context, connector schema.DatabaseConnector) (host string, port int, err error) {
+// The proxy will be automatically closed when the context is cancelled.
+func ConnectorMySQLProxy(ctx context.Context, connector schema.DatabaseConnector) (host string, port int, err error) {
 	logger := log.FromContext(ctx)
 	portC := make(chan int)
 	proxy := mysqlauthproxy.NewProxy("localhost", 0, func(ctx context.Context) (*mysqlauthproxy.Config, error) {
@@ -244,4 +245,38 @@ func tlsForMySQLIAMAuth(endpoint, region string) (*tls.Config, error) {
 		ServerName: host,
 		RootCAs:    rootCertPool,
 	}, nil
+}
+
+// ConnectorPGProxy creates a Postgres proxy for the given connector.
+// It returns the local address of the proxy and an error if the proxy fails to start.
+// The proxy redirects all database connections to the databse in the given connector.
+//
+// The proxy will be automatically closed when the context is cancelled.
+func ConnectorPGProxy(ctx context.Context, connector schema.DatabaseConnector) (host string, port int, err error) {
+	logger := log.FromContext(ctx)
+	proxy := pgproxy.New("127.0.0.1:0", func(ctx context.Context, params map[string]string) (string, error) {
+		dsn, err := ResolvePostgresDSN(ctx, connector)
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve Postgres DSN: %w", err)
+		}
+		return dsn, nil
+	})
+
+	started := make(chan pgproxy.Started)
+	errC := make(chan error)
+	go func() {
+		err := proxy.Start(ctx, started)
+		if err != nil {
+			logger.Errorf(err, "failed to start proxy")
+			errC <- err
+		}
+	}()
+
+	select {
+	case err := <-errC:
+		return "", 0, err
+	case started := <-started:
+		logger.Debugf("Started a temporary postgres proxy on port %d", started.Address.Port)
+		return "127.0.0.1", started.Address.Port, nil
+	}
 }
