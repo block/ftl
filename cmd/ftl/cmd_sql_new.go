@@ -109,8 +109,7 @@ func (i newSQLCmd) Run(ctx context.Context) error {
 	}
 	defer migrationFile.Close()
 
-	// Write initial migration template
-	if _, err := migrationFile.WriteString("-- migrate:up\n-- Add your initial schema here\n\n-- migrate:down\n-- Add rollback SQL here\n"); err != nil {
+	if _, err := migrationFile.WriteString(migrationTemplate); err != nil {
 		return fmt.Errorf("could not write to migration file at %s: %w", migrationPath, err)
 	}
 
