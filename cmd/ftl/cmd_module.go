@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
-
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal"
@@ -20,7 +19,11 @@ import (
 	"github.com/block/ftl/internal/projectconfig"
 )
 
-type newCmd struct {
+type moduleCmd struct {
+	New moduleNewCmd `cmd:"" help:"Create a new FTL module."`
+}
+
+type moduleNewCmd struct {
 	Language string `arg:"" help:"Language of the module to create."`
 	Name     string `arg:"" help:"Name of the FTL module to create underneath the base directory."`
 	Dir      string `arg:"" help:"Directory to initialize the module in." default:"."`
@@ -29,7 +32,7 @@ type newCmd struct {
 	Force       bool     `help:"Force creation of module without checking allowed directories." short:"f"`
 }
 
-func (i newCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconfig.Config, pluginHolder languageplugin.InitializedPlugins) error {
+func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconfig.Config, pluginHolder languageplugin.InitializedPlugins) error {
 	logger := log.FromContext(ctx)
 	name, path, err := validateModule(i.Dir, i.Name)
 	if err != nil {

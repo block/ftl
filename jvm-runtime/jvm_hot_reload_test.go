@@ -22,8 +22,8 @@ func TestLifecycleJVM(t *testing.T) {
 		in.GitInit(),
 		in.Exec("rm", "ftl-project.toml"),
 		in.Exec("ftl", "init", "test", "."),
-		in.IfLanguage("java", in.Exec("ftl", "new", "java", "echo")),
-		in.IfLanguage("kotlin", in.Exec("ftl", "new", "kotlin", "echo")),
+		in.IfLanguage("java", in.Exec("ftl", "module", "new", "java", "echo")),
+		in.IfLanguage("kotlin", in.Exec("ftl", "module", "new", "kotlin", "echo")),
 		in.WaitWithTimeout("echo", time.Minute*3),
 		in.VerifySchema(func(ctx context.Context, t testing.TB, schema *schema.Schema) {
 			assert.Equal(t, 2, len(schema.Modules))

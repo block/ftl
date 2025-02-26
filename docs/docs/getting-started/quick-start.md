@@ -72,7 +72,7 @@ Now that you have an FTL project, create a new module:
   <TabItem value="go" label="Go" default>
 
 ```bash
-ftl new go alice
+ftl module new go alice
 ```
 
 This will place the code for the new module `alice` in `myproject/alice/alice.go`:
@@ -107,7 +107,7 @@ Each module is its own Go module.
   <TabItem value="kotlin" label="Kotlin">
 
 ```bash
-ftl new kotlin alice
+ftl module new kotlin alice
 ```
 
 This will create a new Maven `pom.xml` based project in the directory `alice` and create new example code in `alice/src/main/kotlin/ftl/alice/Alice.kt`:
@@ -128,7 +128,7 @@ fun hello(req: String): String = "Hello, $req!"
   <TabItem value="java" label="Java">
 
 ```bash
-ftl new java alice
+ftl module new java alice
 ```
 
 This will create a new Maven `pom.xml` based project in the directory `alice` and create new example code in `alice/src/main/java/ftl/alice/Alice.java`:
