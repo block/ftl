@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -45,6 +44,7 @@ import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.util.HashUtil;
 import io.quarkus.vertx.http.deployment.RequireSocketHttpBuildItem;
 import io.quarkus.vertx.http.deployment.RequireVirtualHttpBuildItem;
+import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.hotreload.v1.SchemaState;
 import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
@@ -71,8 +71,6 @@ public class ModuleProcessor {
      * Persistent schema hash, used to detect runner restarts in dev mode.
      */
     static String schemaHash;
-
-    private static final AtomicLong versionCounter = new AtomicLong();
 
     @BuildStep
     BindableServiceBuildItem verbService() {
@@ -206,7 +204,7 @@ public class ModuleProcessor {
             }
 
             if (fatal) {
-                var runnerVersion = versionCounter.incrementAndGet();
+                var runnerVersion = RunnerNotification.incrementRunnerVersion();
                 HotReloadHandler.getInstance()
                         .setResults(SchemaState.newBuilder().setVersion(runnerVersion).setErrors(errRef.get())
                                 .setNewRunnerRequired(true).build());
@@ -217,10 +215,11 @@ public class ModuleProcessor {
                 recorder.failStartup(message);
             } else {
                 if (newRunnerRequired) {
-                    versionCounter.incrementAndGet();
+                    RunnerNotification.incrementRunnerVersion();
                 }
                 HotReloadHandler.getInstance()
-                        .setResults(SchemaState.newBuilder().setVersion(versionCounter.get()).setModule(schRef.get())
+                        .setResults(SchemaState.newBuilder().setVersion(RunnerNotification.getRunnerVersion())
+                                .setModule(schRef.get())
                                 .setNewRunnerRequired(newRunnerRequired).build());
             }
         } else {

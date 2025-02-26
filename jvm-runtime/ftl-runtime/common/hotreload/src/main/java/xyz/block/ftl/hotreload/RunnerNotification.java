@@ -1,13 +1,27 @@
 package xyz.block.ftl.hotreload;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class RunnerNotification {
 
     private static volatile RunnerCallback callback;
     private static volatile RunnerInfo info;
-    private static volatile long runnerVersion = 1;
+    private static final AtomicLong runnerVersion = new AtomicLong(0);
 
     public static long getRunnerVersion() {
-        return runnerVersion;
+        return runnerVersion.get();
+    }
+
+    public static long incrementRunnerVersion() {
+        long incremented = runnerVersion.incrementAndGet();
+        RunnerCallback callback;
+        synchronized (RunnerNotification.class) {
+            callback = RunnerNotification.callback;
+        }
+        if (callback != null) {
+            callback.newRunnerVersion(incremented);
+        }
+        return incremented;
     }
 
     public static void setCallback(RunnerCallback callback) {
@@ -17,7 +31,7 @@ public class RunnerNotification {
             RunnerNotification.callback = callback;
             info = RunnerNotification.info;
             RunnerNotification.info = null;
-            runnerVersion = RunnerNotification.runnerVersion;
+            runnerVersion = RunnerNotification.runnerVersion.get();
         }
         if (runnerVersion != -1) {
             callback.newRunnerVersion(runnerVersion);
@@ -37,22 +51,11 @@ public class RunnerNotification {
         }
     }
 
-    public static void setRunnerVersion(long version) {
-        RunnerCallback callback;
-        synchronized (RunnerNotification.class) {
-            runnerVersion = version;
-            callback = RunnerNotification.callback;
-        }
-        if (callback != null) {
-            callback.newRunnerVersion(version);
-        }
-    }
-
     public static boolean setRunnerInfo(RunnerInfo info) {
         RunnerCallback callback;
         boolean outdated;
         synchronized (RunnerNotification.class) {
-            outdated = info.version() < runnerVersion;
+            outdated = info.version() < runnerVersion.get();
             callback = RunnerNotification.callback;
             if (callback == null) {
                 RunnerNotification.info = info;
