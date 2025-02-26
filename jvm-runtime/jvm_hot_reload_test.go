@@ -105,14 +105,12 @@ quarkus.hibernate-orm.datasource=testdb
 `)
 		}, "src/main/resources/application.properties"),
 
-		in.MkdirAll("echo", "src/main/resources/db/postgres/testdb/schema"),
-
-		// Create a migration
-		in.Exec("ftl", "new-sql-migration", "echo.testdb", "initdb"),
+		// Create a new datasource
+		in.Exec("ftl", "postgres", "new", "echo.testdb"),
 
 		// Add contents to the migration
 		in.EditFiles("echo", func(file string, content []byte) (bool, []byte) {
-			if strings.Contains(file, "initdb") {
+			if strings.Contains(file, "init") {
 				return true, []byte(`
 -- migrate:up
 create sequence StockPrice_SEQ start with 1 increment by 50;

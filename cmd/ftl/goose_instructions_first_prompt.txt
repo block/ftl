@@ -23,8 +23,8 @@ In this case it is best to restore the original version of the migration and the
 
 When creating a database module, do so in this order:
 - Create the module
-- Define the db type and name: `mkdir <moduledir>/<db>/[mysql|postgres]/schema`
-- Create a database migration `ftl new-sql-migration <module>.<datasource> <migration-name>`
+- Create the database and initial migration: `ftl <engine> new <module>.<datasource>`
+- Edit the new migration file with the desired schemas
 - Write database queries
 - Wait for the module to build to see the schema and if there any errors.
 - You MUST next read queries.ftl.go in the module directory to understand the go types to pass along to the generated db verbs
