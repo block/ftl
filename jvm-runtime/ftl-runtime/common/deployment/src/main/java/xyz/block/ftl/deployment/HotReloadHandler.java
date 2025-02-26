@@ -114,11 +114,11 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                         }
                         var errors = builder.build();
                         responseObserver.onNext(ReloadResponse.newBuilder()
-                                .setState(SchemaState.newBuilder().setErrors(errors).build())
+                                .setState(SchemaState.newBuilder().setErrors(errors)
+                                        .setVersion(RunnerNotification.incrementRunnerVersion()).build())
                                 .setFailed(true).build());
                         responseObserver.onCompleted();
                     } else {
-                        RunnerNotification.setRunnerVersion(state.getVersion());
                         responseObserver.onNext(ReloadResponse.newBuilder().setState(state).setFailed(false).build());
                         responseObserver.onCompleted();
                     }
