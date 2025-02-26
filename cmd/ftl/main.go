@@ -148,7 +148,6 @@ func main() {
 
 	// Plugins take time to launch, so we bind the "ftl module new" plugin to the kong context.
 	kctx.Bind(languagePlugin)
-	kctx.Bind(&cli.SharedCLI)
 
 	if !cli.Plain {
 		sm := terminal.NewStatusManager(ctx)
@@ -255,6 +254,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		kctx.FatalIfErrorf(err)
 		kctx.Bind(logger)
 		kctx.Bind(csm)
+		kctx.Bind(&cli.SharedCLI)
 
 		timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 		kctx.Bind(timelineClient)
