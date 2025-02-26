@@ -40,7 +40,7 @@ import (
 	"github.com/block/ftl/internal/timelineclient"
 )
 
-type InteractiveCLI struct {
+type SharedCLI struct {
 	Version          kong.VersionFlag `help:"Show version."`
 	TimelineEndpoint *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	LeaseEndpoint    *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
@@ -66,12 +66,11 @@ type InteractiveCLI struct {
 	Config          configCmd          `cmd:"" help:"Manage configuration."`
 	Pubsub          pubsubCmd          `cmd:"" help:"Manage pub/sub."`
 	NewSQLMigration newSQLMigrationCmd `cmd:"" help:"Create a new SQL Database migration."`
-	LSP             lspCmd             `cmd:"" help:"Start the LSP server."`
 	Goose           gooseCmd           `cmd:"" help:"Run a goose command."`
 }
 
 type CLI struct {
-	InteractiveCLI
+	SharedCLI
 	LogConfig  log.Config `embed:"" prefix:"log-" group:"Logging:"`
 	ConfigFlag string     `name:"config" short:"C" help:"Path to FTL project configuration file." env:"FTL_CONFIG" placeholder:"FILE"`
 
@@ -89,6 +88,12 @@ type CLI struct {
 
 	AwaitSummary awaitSummaryCmd `cmd:"" help:"Get summary of discovered modules and schema from build engine, waiting for all build and deploys to finish." hidden:""`
 	DumpHelp     dumpHelpCmd     `cmd:"" help:"Dump help for all commands." hidden:""`
+	LSP          lspCmd          `cmd:"" help:"Start the LSP server."`
+}
+
+type DevModeCLI struct {
+	SharedCLI
+	Logs logsCmd `cmd:"" help:"Log commands."`
 }
 
 var cli CLI
@@ -176,7 +181,7 @@ func main() {
 
 	os.Setenv("FTL_CONFIG", configPath)
 
-	bindContext := makeBindContext(logger, cancel)
+	bindContext := makeBindContext(logger, cancel, csm)
 	ctx = bindContext(ctx, kctx)
 
 	err = kctx.Run(ctx)
@@ -236,7 +241,7 @@ func addToExit(k *kong.Kong, cleanup func(code int)) {
 	}
 }
 
-func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) terminal.KongContextBinder {
+func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *currentStatusManager) terminal.KongContextBinder {
 	var bindContext terminal.KongContextBinder
 	bindContext = func(ctx context.Context, kctx *kong.Context) context.Context {
 		err := kctx.BindToProvider(func(cli *CLI) (projectconfig.Config, error) {
@@ -248,6 +253,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc) termina
 		})
 		kctx.FatalIfErrorf(err)
 		kctx.Bind(logger)
+		kctx.Bind(csm)
 
 		timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 		kctx.Bind(timelineClient)

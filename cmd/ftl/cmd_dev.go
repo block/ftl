@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
@@ -37,7 +36,6 @@ type devCmd struct {
 
 func (d *devCmd) Run(
 	ctx context.Context,
-	k *kong.Kong,
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
@@ -46,6 +44,7 @@ func (d *devCmd) Run(
 	timelineClient *timelineclient.Client,
 	adminClient ftlv1connect.AdminServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+	csm *currentStatusManager,
 ) error {
 	startTime := time.Now()
 	ctx, cancel := context.WithCancelCause(ctx)
@@ -69,7 +68,7 @@ func (d *devCmd) Run(
 	}
 	os.Setenv("FTL_DEV_DIRS", strings.Join(absDirs, ","))
 
-	terminal.LaunchEmbeddedConsole(ctx, k, bindContext, schemaEventSource)
+	terminal.LaunchEmbeddedConsole(ctx, createKongApplication(&DevModeCLI{}, csm), bindContext, schemaEventSource)
 	var deployClient buildengine.AdminClient = adminClient
 
 	g, ctx := errgroup.WithContext(ctx)
