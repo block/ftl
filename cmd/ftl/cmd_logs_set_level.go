@@ -18,5 +18,6 @@ func (k *logsSetLevelCmd) Run(ctx context.Context) error {
 		return fmt.Errorf("invalid log level: %w", err)
 	}
 	log.SetCurrentLevel(logger, level)
+	log.ReplayLogs(ctx)
 	return nil
 }

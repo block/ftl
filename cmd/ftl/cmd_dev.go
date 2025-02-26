@@ -27,6 +27,8 @@ import (
 	"github.com/block/ftl/internal/timelineclient"
 )
 
+const maxLogs = 10
+
 type devCmd struct {
 	Watch    time.Duration     `help:"Watch template directory at this frequency and regenerate on change." default:"500ms"`
 	NoServe  bool              `help:"Do not start the FTL server." default:"false"`
@@ -55,6 +57,9 @@ func (d *devCmd) Run(
 	if len(d.Build.Dirs) == 0 {
 		return errors.New("no directories specified")
 	}
+
+	// Setup file based logging, which logs everything to a file
+	log.SetupDebugFileLogging(ctx, projConfig.Root(), maxLogs)
 
 	// Set environment variable so child processes know where modules are expected to be
 	// such as via the interactive console or goose.
