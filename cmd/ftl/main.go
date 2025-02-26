@@ -319,7 +319,7 @@ type currentStatusManager struct {
 
 func provideAdminClient(
 	ctx context.Context,
-	cli *CLI,
+	cli *SharedCLI,
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	adminClient ftlv1connect.AdminServiceClient,
