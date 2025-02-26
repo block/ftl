@@ -460,7 +460,7 @@ func testExtractModuleSubscriber(t *testing.T) {
 	actual := schema.Normalise(r.Module)
 	expected := `module subscriber {
         verb consumesSubscriptionFromExternalTopic(pubsub.PayinEvent) Unit
-		+subscribe publisher.publicBroadcast from=beginning
+		+subscribe pubsub.publicBroadcast from=beginning
 	}
 `
 	assert.Equal(t, normaliseString(expected), normaliseString(actual.String()))
