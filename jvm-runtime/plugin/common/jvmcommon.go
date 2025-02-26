@@ -448,6 +448,8 @@ func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStrea
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: changed, failed: result.Msg.Failed}
+		case <-ctx.Done():
+			return fmt.Errorf("context cancelled %w", ctx.Err())
 		}
 	}
 }
