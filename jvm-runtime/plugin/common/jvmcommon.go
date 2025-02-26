@@ -353,24 +353,33 @@ type buildResult struct {
 	failed              bool
 }
 
-func (s *Service) runQuarkusDev(ctx context.Context, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
-	logger := log.FromContext(ctx)
-	ctx, cancel := context.WithCancelCause(ctx)
+func (s *Service) runQuarkusDev(parentCtx context.Context, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
+	logger := log.FromContext(parentCtx)
+	ctx, cancel := context.WithCancelCause(parentCtx)
 	defer cancel(fmt.Errorf("stopping JVM language plugin (Quarkus dev mode): %w", context.Canceled))
 	go func() {
 		<-ctx.Done()
+		// If the parent context is done we just return
+		select {
+		case <-parentCtx.Done():
+			return
+		default:
+
+		}
 		// the context is done before we notified the build engine
 		// we need to send a build failure event
 		auto := firstResponseSent.Load()
-		firstResponseSent.Store(true)
-		err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-			BuildFailure: &langpb.BuildFailure{
-				IsAutomaticRebuild: auto,
-				ContextId:          s.buildContext.Load().ID,
-				Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
-			}}})
-		if err != nil {
-			logger.Errorf(err, "could not send build event")
+		if !auto {
+			firstResponseSent.Store(true)
+			err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+				BuildFailure: &langpb.BuildFailure{
+					IsAutomaticRebuild: auto,
+					ContextId:          s.buildContext.Load().ID,
+					Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
+				}}})
+			if err != nil {
+				logger.Errorf(err, "could not send build event")
+			}
 		}
 	}()
 
