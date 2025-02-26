@@ -162,6 +162,10 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 		mcfg.TLS = tls
 		mcfg.AllowCleartextPasswords = true
 
+		// TODO: the mysql proxy overwrites the client connection requests with this.
+		// We should use the config from the client to the proxy to avoid this.
+		mcfg.MultiStatements = true
+
 		return mcfg, nil
 	default:
 		return nil, fmt.Errorf("unexpected database connector type: %T", connector)
@@ -181,6 +185,9 @@ func TempMySQLProxy(ctx context.Context, connector schema.DatabaseConnector) (ho
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve MySQL DSN: %w", err)
 		}
+		// TODO: the mysql proxy overwrites the client connection requests with this.
+		// We should use the config from the client to the proxy to avoid this.
+		cfg.MultiStatements = true
 		return cfg, nil
 	}, &mysqlLogger{logger: logger}, portC)
 
