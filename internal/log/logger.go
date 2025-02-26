@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/alecthomas/atomic"
 	"github.com/benbjohnson/clock"
 	"golang.org/x/exp/maps"
 )
@@ -28,7 +29,7 @@ type Entry struct {
 
 // Logger is the concrete logger.
 type Logger struct {
-	level      Level
+	level      *atomic.Value[Level]
 	attributes map[string]string
 	sink       Sink
 	clock      clock.Clock
@@ -37,7 +38,7 @@ type Logger struct {
 // New returns a new logger.
 func New(level Level, sink Sink) *Logger {
 	return &Logger{
-		level:      level,
+		level:      atomic.New(level),
 		attributes: map[string]string{},
 		sink:       sink,
 		clock:      clock.New(),
@@ -67,16 +68,16 @@ func (l Logger) AddSink(sink Sink) *Logger {
 }
 
 func (l Logger) Level(level Level) *Logger {
-	l.level = level
+	l.level = atomic.New(level)
 	return &l
 }
 
 func (l Logger) GetLevel() Level {
-	return l.level
+	return l.level.Load()
 }
 
 func (l *Logger) Log(entry Entry) {
-	if entry.Level < l.level {
+	if entry.Level < l.level.Load() {
 		return
 	}
 	if entry.Time.IsZero() {
@@ -164,4 +165,9 @@ func (l *Logger) writerScanner(reader *io.PipeReader, printFunc func(format stri
 
 func writerFinalizer(writer *io.PipeWriter) {
 	writer.Close()
+}
+
+// SetCurrentLevel sets the current log level, it is a global operation, and will affect all contexts using this logger
+func SetCurrentLevel(l *Logger, level Level) {
+	l.level.Store(level)
 }

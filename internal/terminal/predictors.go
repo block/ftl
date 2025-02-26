@@ -4,6 +4,7 @@ import (
 	"github.com/posener/complete"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -11,6 +12,7 @@ func Predictors(view *schemaeventsource.View) map[string]complete.Predictor {
 	return map[string]complete.Predictor{
 		"verbs":       &verbPredictor{view: *view},
 		"deployments": &deploymentsPredictor{view: *view},
+		"log-level":   &logLevelPredictor{},
 	}
 }
 
@@ -46,4 +48,11 @@ func (v *deploymentsPredictor) Predict(args complete.Args) []string {
 		ret = append(ret, module.Runtime.Deployment.DeploymentKey.String())
 	}
 	return ret
+}
+
+type logLevelPredictor struct {
+}
+
+func (v *logLevelPredictor) Predict(args complete.Args) []string {
+	return log.LevelStrings()
 }
