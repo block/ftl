@@ -48,10 +48,13 @@ func CleanStubs(ctx context.Context, projectRoot string) error {
 func SyncStubReferences(ctx context.Context, projectRoot string, moduleNames []string, metas map[string]moduleMeta, view *schema.Schema) error {
 	wg, wgctx := errgroup.WithContext(ctx)
 	for _, meta := range metas {
-		stubsRoot := stubsLanguageDir(projectRoot, meta.module.Config.Language)
-		if err := meta.plugin.SyncStubReferences(wgctx, meta.module.Config, stubsRoot, moduleNames, view); err != nil {
-			return err //nolint:wrapcheck
-		}
+		wg.Go(func() error {
+			stubsRoot := stubsLanguageDir(projectRoot, meta.module.Config.Language)
+			if err := meta.plugin.SyncStubReferences(wgctx, meta.module.Config, stubsRoot, moduleNames, view); err != nil {
+				return err //nolint:wrapcheck
+			}
+			return nil
+		})
 	}
 	err := wg.Wait()
 	if err != nil {
