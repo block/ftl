@@ -71,7 +71,13 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 				if err != nil {
 					return nil, fmt.Errorf("failed to create mysql proxy: %w", err)
 				}
-				d = fmt.Sprintf("mysql://%s:%d/%s", host, port, "migration")
+
+				dbName, err := dsn.MySQLDBName(db.Runtime.Connections.Write)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve mysql config: %w", err)
+				}
+
+				d = fmt.Sprintf("mysql://%s:%d/%s", host, port, dbName)
 				logger.Debugf("Using mysql proxy for migration: %s", d)
 			}
 

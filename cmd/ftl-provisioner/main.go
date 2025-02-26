@@ -52,15 +52,6 @@ func main() {
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling)
 	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
 
-	// Use k8s scaling as fallback for runner provisioning if no other provisioner is registered
-	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
-		return slices.Contains(binding.Types, schema.ResourceTypeRunner)
-	}); !ok {
-		runnerProvisioner := provisioner.NewRunnerScalingProvisioner(scaling)
-		runnerBinding := registry.Register("kubernetes", runnerProvisioner, schema.ResourceTypeRunner)
-		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
-	}
-
 	// Use in mem sql-migration provisioner as fallback for sql-migration provisioning if no other provisioner is registered
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
 		return slices.Contains(binding.Types, schema.ResourceTypeSQLMigration)
@@ -71,6 +62,15 @@ func main() {
 		sqlMigrationProvisioner := provisioner.NewSQLMigrationProvisioner(storage)
 		sqlMigrationBinding := registry.Register("in-mem-sql-migration", sqlMigrationProvisioner, schema.ResourceTypeSQLMigration)
 		logger.Debugf("Registered provisioner %s as fallback for sql-migration", sqlMigrationBinding)
+	}
+
+	// Use k8s scaling as fallback for runner provisioning if no other provisioner is registered
+	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
+		return slices.Contains(binding.Types, schema.ResourceTypeRunner)
+	}); !ok {
+		runnerProvisioner := provisioner.NewRunnerScalingProvisioner(scaling)
+		runnerBinding := registry.Register("kubernetes", runnerProvisioner, schema.ResourceTypeRunner)
+		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
 	}
 
 	err = provisioner.Start(ctx, registry, schemaClient)

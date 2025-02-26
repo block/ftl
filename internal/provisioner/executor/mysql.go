@@ -127,7 +127,7 @@ func mysqlSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAu
 		return fmt.Errorf("failed to use database: %w", err)
 	}
 
-	if _, err := db.ExecContext(ctx, "GRANT ALL PRIVILEGES ON "+database+" TO "+username+"@'%';"); err != nil {
+	if _, err := db.ExecContext(ctx, "GRANT ALL PRIVILEGES ON "+database+".* TO "+username+"@'%';"); err != nil {
 		return fmt.Errorf("failed to grant privileges: %w", err)
 	}
 

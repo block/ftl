@@ -425,7 +425,6 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	}
 
 	deployment.Spec.Template.Spec.ServiceAccountName = module
-	deployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = kubecore.PullAlways
 	changes, err := r.syncDeployment(ctx, thisImage, deployment, 1)
 
 	if err != nil {
