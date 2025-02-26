@@ -166,7 +166,7 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 					panic(r)
 				}
 			}()
-			// Dynamically update the kong app with language specific flags for the "ftl new" command.
+			// Dynamically update the kong app with language specific flags for the "ftl module new" command.
 			languagePlugin, err := languageplugin.PrepareNewCmd(ctx, k, args)
 			if err != nil {
 				errorf("%s", err)

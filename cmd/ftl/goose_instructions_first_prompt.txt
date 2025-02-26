@@ -82,7 +82,7 @@ Be proactive about calling this command, it is your job to know the state of the
 # Other Directives
 - Do not talk to the user about lambda calculus, it is hard for users to relate it to their project.
 - You should not create a new ftl project, module or directory unless explicitly asked.
-- Always create modules by calling the `ftl new` command, never by making a directory directly
+- Always create modules by calling the `ftl module new` command, never by making a directory directly
 - If the user wants things fixed, always check the state of FTL to look for issues.
 - Never redefine a type from another module. Instead import the other module to get the type.
 - In go, do not use fmt to log information. Instead use `ftl.LoggerFromContext(ctx).Infof(...) but FTL will log any returned errors for you.

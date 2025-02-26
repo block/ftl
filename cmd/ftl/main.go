@@ -51,7 +51,7 @@ type SharedCLI struct {
 	Ping      pingCmd      `cmd:"" help:"Ping the FTL cluster."`
 	Init      initCmd      `cmd:"" help:"Initialize a new FTL project."`
 	Profile   profileCmd   `cmd:"" help:"Manage profiles."`
-	New       newCmd       `cmd:"" help:"Create a new FTL module. See language specific flags with 'ftl new <language> --help'."`
+	Module    moduleCmd    `cmd:"" help:"Manage modules."`
 	PS        psCmd        `cmd:"" help:"List deployments."`
 	Call      callCmd      `cmd:"" help:"Call an FTL function."`
 	Changeset changesetCmd `cmd:"" help:"Work with changesets."`
@@ -146,7 +146,7 @@ func main() {
 		defer trace.Stop()
 	}
 
-	// Plugins take time to launch, so we bind the "ftl new" plugin to the kong context.
+	// Plugins take time to launch, so we bind the "ftl module new" plugin to the kong context.
 	kctx.Bind(languagePlugin)
 	kctx.Bind(&cli.SharedCLI)
 

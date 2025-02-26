@@ -16,7 +16,7 @@ import (
 
 // PrepareNewCmd adds language specific flags to kong
 // This allows the new command to have good support for language specific flags like:
-// - help text (ftl new go --help)
+// - help text (ftl module new go --help)
 // - default values
 // - environment variable overrides
 //
