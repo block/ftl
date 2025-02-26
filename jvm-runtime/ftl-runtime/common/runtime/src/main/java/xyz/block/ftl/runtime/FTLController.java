@@ -134,11 +134,15 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         if (info.version() != runnerVersion) {
             return;
         }
+        if (this.runnerDetails instanceof DevModeRunnerDetails
+                && ((DevModeRunnerDetails) runnerDetails).getRunnerVersion() == info.version()) {
+            return;
+        }
         if (this.runnerConnection != null) {
             this.runnerConnection.close();
             this.runnerConnection = null;
         }
-        runnerDetails = new DevModeRunnerDetails(info.databases(), info.address(), info.deployment());
+        runnerDetails = new DevModeRunnerDetails(info.databases(), info.address(), info.deployment(), info.version());
         for (var waiter : waiters) {
             waiter.set(true);
         }
