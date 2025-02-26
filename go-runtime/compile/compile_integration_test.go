@@ -76,3 +76,16 @@ func TestBuildWithoutQueries(t *testing.T) {
 		in.FileExists("missingqueries/queries.ftl.go"),
 	)
 }
+
+// TestBuildCompileErrors tests that we parse gop compile errors correctly
+func TestBuildCompileErrors(t *testing.T) {
+	errMsg := `ftl: error: failed to deploy: build failed: cantcompile.go:20:2:  declared and not used: badTypes
+            cantcompile.go:20:14:  invalid operation: 1 + "helloworld" (mismatched types untyped int and untyped string)
+            cantcompile.go:21:2:  declared and not used: another
+            cantcompile.go:21:13:  invalid operation: 2 + "bad" (mismatched types untyped int and untyped string`
+
+	in.Run(t,
+		in.CopyModule("cantcompile"),
+		in.ExpectError(in.Deploy("cantcompile"), errMsg),
+	)
+}
