@@ -440,6 +440,13 @@ func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	if !ok {
 		return buildFailure(buildCtx, isAutomaticRebuild, buildErrs...), nil
 	}
+	if _, err := schema.ValidateModuleInSchema(buildCtx.Schema, optional.Some(module)); err != nil {
+		return buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
+			Type:  builderrors.FTL,
+			Level: builderrors.ERROR,
+			Msg:   err.Error(),
+		}), nil
+	}
 
 	moduleProto := module.ToProto()
 	deploy := []string{"main", "launch"}

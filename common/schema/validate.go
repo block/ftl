@@ -57,10 +57,26 @@ func (s *Schema) Validate() (*Schema, error) {
 
 // ValidateModuleInSchema clones and normalises a schema and semantically validates a single module within it.
 // If no module is provided, all modules in the schema are validated.
+// m can be a new or updated module that will be added to the schema before validation.
 //
 //nolint:maintidx
 func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema, error) {
 	schema = dc.DeepCopy(schema)
+
+	if m, ok := m.Get(); ok {
+		// Replace original version of module with new version in case they differ
+		var found bool
+		for i, module := range schema.Modules {
+			if module.Name == m.Name {
+				schema.Modules[i] = m
+				found = true
+			}
+		}
+		if !found {
+			schema.Modules = append(schema.Modules, m)
+		}
+	}
+
 	modules := map[string]bool{}
 	merr := []error{}
 	ingress := map[string]*Verb{}
