@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/atomic"
+	"github.com/alecthomas/types/optional"
 	"github.com/benbjohnson/clock"
 	"golang.org/x/exp/maps"
 )
@@ -29,10 +30,11 @@ type Entry struct {
 
 // Logger is the concrete logger.
 type Logger struct {
-	level      *atomic.Value[Level]
-	attributes map[string]string
-	sink       Sink
-	clock      clock.Clock
+	debugLogger optional.Option[devModeDebugLogger]
+	level       *atomic.Value[Level]
+	attributes  map[string]string
+	sink        Sink
+	clock       clock.Clock
 }
 
 // New returns a new logger.
@@ -77,6 +79,9 @@ func (l Logger) GetLevel() Level {
 }
 
 func (l *Logger) Log(entry Entry) {
+	if t, ok := l.debugLogger.Get(); ok {
+		t.delegate.Log(entry)
+	}
 	if entry.Level < l.level.Load() {
 		return
 	}

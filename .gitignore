@@ -38,6 +38,7 @@ go-runtime/schema/testdata/test/test.go
 **/examples/**/.ftl
 **/smoketest/**/.ftl
 /.ftl
+/.ftl-dev-logs
 
 buildengine/.gitignore
 go.work*
