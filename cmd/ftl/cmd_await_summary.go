@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -90,7 +92,7 @@ streamLoop:
 	if err != nil {
 		return fmt.Errorf("failed to get schema: %w", err)
 	}
-	schema, err := schema.FromProto(schemaResp.Msg.Schema)
+	sch, err := schema.FromProto(schemaResp.Msg.Schema)
 	if err != nil {
 		return fmt.Errorf("failed to parse schema: %w", err)
 	}
@@ -100,7 +102,9 @@ streamLoop:
 		fmt.Println("No modules found.")
 		return nil
 	}
+	modulesPaths := map[string]string{}
 	for _, module := range engineEndedEvent.Modules {
+		modulesPaths[module.Module] = module.Path
 		fmt.Printf("%s (%s)\n", module.Module, module.Path)
 		if module.Errors == nil || len(module.Errors.Errors) == 0 {
 			fmt.Println("  Success with no warnings.")
@@ -130,7 +134,92 @@ streamLoop:
 			return fmt.Sprintf("  [%s] %s%s", errorType, posStr, errorMsg)
 		}), "\n"), "\n")
 	}
-
-	fmt.Printf("\n\nSchema:\n%s", schema.String())
+	for _, module := range sch.Modules {
+		modulePath, ok := modulesPaths[module.Name]
+		if !ok {
+			continue
+		}
+		// TODO: add to decl interface to avoid this duplicated code
+		for _, decl := range module.Decls {
+			switch decl := decl.(type) {
+			case *schema.Topic:
+				c, err := commentForPath(decl.Pos, modulePath)
+				if err != nil {
+					return err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Verb:
+				c, err := commentForPath(decl.Pos, modulePath)
+				if err != nil {
+					return err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Config:
+				c, err := commentForPath(decl.Pos, modulePath)
+				if err != nil {
+					return err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Secret:
+				c, err := commentForPath(decl.Pos, modulePath)
+				if err != nil {
+					return err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Database:
+				c, err := commentForPath(decl.Pos, modulePath)
+				if err != nil {
+					return err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Data:
+				c, err := commentForPath(decl.Pos, modulePath)
+				if err != nil {
+					return err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Enum:
+				c, err := commentForPath(decl.Pos, modulePath)
+				if err != nil {
+					return err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.TypeAlias:
+				c, err := commentForPath(decl.Pos, modulePath)
+				if err != nil {
+					return err
+				}
+				decl.Comments = append(decl.Comments, c)
+			}
+		}
+	}
+	fmt.Printf("\n\nSchema:%s\n", sch.String())
+	// TODO: remove hack to ensure whole schema is printed
+	time.Sleep(100 * time.Millisecond)
 	return nil
+}
+
+func commentForPath(pos schema.Position, modulePath string) (string, error) {
+	if pos.Filename == "" {
+		return "", nil
+	}
+	// each position has a prefix of "ftl/modulename". We want to replace that with the module file path
+	parts := strings.SplitN(pos.Filename, string(filepath.Separator), 3)
+	if len(parts) > 2 {
+		parts = parts[1:]
+		parts[0] = modulePath
+	} else {
+		return "", fmt.Errorf("unexpected path format: %s", pos.Filename)
+	}
+	components := []string{
+		filepath.Join(parts...),
+	}
+
+	if pos.Line != 0 {
+		components = append(components, strconv.Itoa(pos.Line))
+		if pos.Column != 0 {
+			components = append(components, strconv.Itoa(pos.Column))
+		}
+	}
+	return "Code at " + strings.Join(components, ":"), nil
 }
