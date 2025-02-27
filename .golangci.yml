@@ -86,6 +86,8 @@ linters-settings:
         msg: "use context.WithCancelCause instead of context.WithCancel"
       - p: "^context.CancelFunc$"
         msg: "use context.WithCancelCause instead of context.WithCancel"
+      - p: "log.Logger.Infof"
+        msg: "Infof should only be used for user-facing messages, use //nolint to suppress"
   depguard:
     rules:
       main:
@@ -104,6 +106,7 @@ linters-settings:
             desc: "use github.com/block/ftl/common/reflect"
           - pkg: "github.com/reugn/go-quartz/logger"
             desc: "use github.com/block/ftl/internal/log"
+
   # wrapcheck:
   #   ignorePackageGlobs:
   #     - github.com/block/ftl/*
