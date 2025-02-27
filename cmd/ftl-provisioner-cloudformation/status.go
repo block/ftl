@@ -23,7 +23,7 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 	// in that case, we start a new task to query the existing stack
 	task, loaded := c.running.LoadOrStore(token, &provisioner.Task{})
 	if !loaded {
-		task.Start(ctx)
+		task.Start(ctx, req.Msg.DesiredModule.Name)
 	}
 
 	if task.Err() != nil {

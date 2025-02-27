@@ -53,8 +53,6 @@ func (c *SandboxProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingRe
 }
 
 func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request[provisionerpb.ProvisionRequest]) (*connect.Response[provisionerpb.ProvisionResponse], error) {
-	logger := log.FromContext(ctx)
-
 	module, err := schema.ModuleFromProto(req.Msg.DesiredModule)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert module from proto: %w", err)
@@ -63,6 +61,7 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 	for _, k := range req.Msg.Kinds {
 		acceptedKinds = append(acceptedKinds, schema.ResourceType(k))
 	}
+	logger := log.FromContext(ctx).Module(module.Name)
 
 	inputStates := inputsFromSchema(module, acceptedKinds, req.Msg.DesiredModule.Name, c.confg)
 
@@ -83,8 +82,8 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 	if _, ok := c.running.LoadOrStore(token, task); ok {
 		return nil, fmt.Errorf("provisioner already running: %s", token)
 	}
-	logger.Debugf("Starting task for module %s: %s", req.Msg.DesiredModule.Name, token)
-	task.Start(ctx)
+	logger.Debugf("Starting task %s", token)
+	task.Start(ctx, module.Name)
 	return connect.NewResponse(&provisionerpb.ProvisionResponse{
 		Status:            provisionerpb.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
 		ProvisioningToken: token,

@@ -60,15 +60,27 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 
 			switch db.Type {
 			case schema.PostgresDatabaseType:
-				d, err = dsn.ResolvePostgresDSN(ctx, db.Runtime.Connections.Write)
+				// run a local proxy for the pg connection to support all connection types for the migration
+				dctx, cancel := context.WithCancelCause(ctx)
+				defer cancel(nil)
+				host, port, err := dsn.ConnectorPGProxy(dctx, db.Runtime.Connections.Write)
 				if err != nil {
-					return nil, fmt.Errorf("failed to resolve postgres DSN: %w", err)
+					return nil, fmt.Errorf("failed to create postgres proxy: %w", err)
 				}
+
+				// the correct db name needs to be in dsn for dbmate to work correctly, even if the proxy does not need it.
+				dbName, err := dsn.PostgresDBName(db.Runtime.Connections.Write)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve postgres config: %w", err)
+				}
+
+				d = dsn.PostgresDSN(dbName, dsn.Host(host), dsn.Port(port))
+				logger.Debugf("Using postgres proxy for migration: %s", d)
 			case schema.MySQLDatabaseType:
 				// run a local proxy for the mysql connection to support all connection types for the migration
 				dctx, cancel := context.WithCancelCause(ctx)
 				defer cancel(nil)
-				host, port, err := dsn.TempMySQLProxy(dctx, db.Runtime.Connections.Write)
+				host, port, err := dsn.ConnectorMySQLProxy(dctx, db.Runtime.Connections.Write)
 				if err != nil {
 					return nil, fmt.Errorf("failed to create mysql proxy: %w", err)
 				}

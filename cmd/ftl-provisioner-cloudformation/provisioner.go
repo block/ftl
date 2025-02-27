@@ -102,7 +102,7 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 			}, {
 				Name: "infrastructure-setup",
 				Handlers: []provisioner.Handler{{
-					Executor: executor.NewPostgresSetup(c.secrets),
+					Executor: executor.NewPostgresSetup(c.secrets, req.Msg.DesiredModule.Name),
 					Handles:  []state.State{state.RDSInstanceReadyPostgres{}},
 				}, {
 					Executor: executor.NewARNSecretMySQLSetup(c.secrets, req.Msg.DesiredModule.Name),
@@ -117,7 +117,7 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 		return nil, fmt.Errorf("provisioner already running: %s", stackID)
 	}
 	logger.Debugf("Starting task for module %s: %s", req.Msg.DesiredModule.Name, stackID)
-	task.Start(ctx)
+	task.Start(ctx, module.Name)
 	return connect.NewResponse(&provisionerpb.ProvisionResponse{
 		Status:            provisionerpb.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
 		ProvisioningToken: stackID,

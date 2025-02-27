@@ -97,8 +97,8 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 	dsn := dsn.MySQLDSN(dbName, dsn.Port(mysqlPort))
 
 	return &schema.DatabaseRuntimeConnections{
-		Write: &schema.DSNDatabaseConnector{DSN: dsn},
-		Read:  &schema.DSNDatabaseConnector{DSN: dsn},
+		Write: &schema.DSNDatabaseConnector{DSN: dsn, Database: dbName},
+		Read:  &schema.DSNDatabaseConnector{DSN: dsn, Database: dbName},
 	}, nil
 }
 
@@ -178,8 +178,8 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 			Deployment: deployment,
 			Element: &schema.DatabaseRuntime{
 				Connections: &schema.DatabaseRuntimeConnections{
-					Write: &schema.DSNDatabaseConnector{DSN: dsn},
-					Read:  &schema.DSNDatabaseConnector{DSN: dsn},
+					Write: &schema.DSNDatabaseConnector{DSN: dsn, Database: dbName},
+					Read:  &schema.DSNDatabaseConnector{DSN: dsn, Database: dbName},
 				},
 			}}, nil
 	}

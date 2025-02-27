@@ -717,8 +717,9 @@ func (x *DSNDatabaseConnector) ToProto() *destpb.DSNDatabaseConnector {
 		return nil
 	}
 	return &destpb.DSNDatabaseConnector{
-		Pos: x.Pos.ToProto(),
-		Dsn: orZero(ptr(string(x.DSN))),
+		Pos:      x.Pos.ToProto(),
+		Database: orZero(ptr(string(x.Database))),
+		Dsn:      orZero(ptr(string(x.DSN))),
 	}
 }
 
@@ -730,6 +731,9 @@ func DSNDatabaseConnectorFromProto(v *destpb.DSNDatabaseConnector) (out *DSNData
 	out = &DSNDatabaseConnector{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
 		return nil, fmt.Errorf("Pos: %w", err)
+	}
+	if out.Database, err = orZeroR(result.From(ptr(string(v.Database)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Database: %w", err)
 	}
 	if out.DSN, err = orZeroR(result.From(ptr(string(v.Dsn)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("DSN: %w", err)
