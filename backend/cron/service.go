@@ -97,7 +97,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 
 	g.Go(func() error {
 		for {
-			next, ok := scheduleNext(ctx, cronQueue, timelineClient)
+			next, ok := scheduleNext(cronQueue)
 			var nextCh <-chan time.Time
 			if ok {
 				if next == 0 {
@@ -106,7 +106,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 					case <-ctx.Done():
 						return fmt.Errorf("cron service stopped: %w", ctx.Err())
 					default:
-						if err := executeJob(ctx, state, client, cronQueue[0]); err != nil {
+						if err := executeJob(ctx, state, client, cronQueue[0], timelineClient); err != nil {
 							logger.Errorf(err, "Failed to execute job")
 						}
 						orderQueue(cronQueue)
@@ -123,7 +123,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 				return fmt.Errorf("cron service stopped: %w", ctx.Err())
 
 			case change := <-events:
-				if err := updateCronJobs(ctx, cronJobs, change); err != nil {
+				if err := updateCronJobs(ctx, cronJobs, change, timelineClient); err != nil {
 					logger.Errorf(err, "Failed to update cron jobs")
 					continue
 				}
@@ -131,7 +131,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 
 			// Execute scheduled cron job
 			case <-nextCh:
-				if err := executeJob(ctx, state, client, cronQueue[0]); err != nil {
+				if err := executeJob(ctx, state, client, cronQueue[0], timelineClient); err != nil {
 					logger.Errorf(err, "Failed to execute job")
 					continue
 				}
@@ -153,7 +153,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 	return nil
 }
 
-func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struct{}, CronState, CronEvent], client routing.CallClient, job *cronJob) error {
+func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struct{}, CronState, CronEvent], client routing.CallClient, job *cronJob, timelineClient *timelineclient.Client) error {
 	logger := log.FromContext(ctx).Scope("cron")
 	logger.Debugf("Executing cron job %s", job)
 
@@ -191,6 +191,14 @@ func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struc
 		StartTime:     event.ExecutedAt,
 		NextExecution: job.next,
 	}
+
+	timelineClient.Publish(ctx, timelineclient.CronScheduled{
+		DeploymentKey: job.deployment,
+		Verb:          schema.Ref{Module: job.module, Name: job.verb.Name},
+		ScheduledAt:   job.next,
+		Schedule:      job.pattern.String(),
+	})
+
 	observability.Cron.JobStarted(ctx, cronModel)
 	if err := callCronVerb(ctx, client, job); err != nil {
 		observability.Cron.JobFailed(ctx, cronModel)
@@ -227,7 +235,7 @@ func callCronVerb(ctx context.Context, verbClient routing.CallClient, cronJob *c
 	}
 }
 
-func scheduleNext(ctx context.Context, cronQueue []*cronJob, timelineClient *timelineclient.Client) (time.Duration, bool) {
+func scheduleNext(cronQueue []*cronJob) (time.Duration, bool) {
 	if len(cronQueue) == 0 {
 		return 0, false
 	}
@@ -238,19 +246,21 @@ func scheduleNext(ctx context.Context, cronQueue []*cronJob, timelineClient *tim
 		next = 0
 	}
 
-	timelineClient.Publish(ctx, timelineclient.CronScheduled{
-		DeploymentKey: cronQueue[0].deployment,
-		Verb:          schema.Ref{Module: cronQueue[0].module, Name: cronQueue[0].verb.Name},
-		ScheduledAt:   cronQueue[0].next,
-		Schedule:      cronQueue[0].pattern.String(),
-	})
 	return next, true
 }
 
-func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change schema.Notification) error {
+func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change schema.Notification, timelineClient *timelineclient.Client) error {
 	logger := log.FromContext(ctx).Scope("cron")
-	switch change := change.(type) {
 
+	// Track jobs before the update to detect changes
+	oldJobs := make(map[string]*cronJob)
+	for _, jobs := range cronJobs {
+		for _, job := range jobs {
+			oldJobs[job.Key()] = job
+		}
+	}
+
+	switch change := change.(type) {
 	case *schema.FullSchemaNotification:
 		for _, module := range change.Schema.Modules {
 			logger.Debugf("Updated cron jobs for module %s", module.Name)
@@ -260,6 +270,9 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change 
 			}
 			logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), module.Name)
 			cronJobs[module.Name] = moduleJobs
+
+			// Publish timeline events for new or changed jobs
+			publishNewOrChangedJobs(ctx, moduleJobs, oldJobs, timelineClient)
 		}
 	case *schema.ChangesetCommittedNotification:
 		for _, removed := range change.Changeset.RemovingModules {
@@ -275,10 +288,28 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change 
 			}
 			logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), module)
 			cronJobs[module.Name] = moduleJobs
+
+			// Publish timeline events for new or changed jobs
+			publishNewOrChangedJobs(ctx, moduleJobs, oldJobs, timelineClient)
 		}
 	default:
 	}
 	return nil
+}
+
+func publishNewOrChangedJobs(ctx context.Context, newJobs []*cronJob, oldJobs map[string]*cronJob, timelineClient *timelineclient.Client) {
+	for _, job := range newJobs {
+		oldJob, exists := oldJobs[job.Key()]
+		// Publish event if job is new or if the schedule has changed
+		if !exists || oldJob.pattern.String() != job.pattern.String() {
+			timelineClient.Publish(ctx, timelineclient.CronScheduled{
+				DeploymentKey: job.deployment,
+				Verb:          schema.Ref{Module: job.module, Name: job.verb.Name},
+				ScheduledAt:   job.next,
+				Schedule:      job.pattern.String(),
+			})
+		}
+	}
 }
 
 func orderQueue(queue []*cronJob) {
