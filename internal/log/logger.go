@@ -4,10 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"maps"
 	"runtime"
 	"time"
-
-	"maps"
 
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/types/optional"
