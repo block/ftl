@@ -19,13 +19,13 @@ func (s *psCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient)
 		return err
 	}
 
+	// Format: deployment, N/M replicas running
+	format := "%-30s %d\n"
+	fmt.Printf("%-30s %s\n", "DEPLOYMENT", "REPLICAS")
 	for _, module := range status.Msg.Schema.Modules {
 		if module.Builtin {
 			continue
 		}
-		// Format: deployment, N/M replicas running
-		format := "%-30s %d\n"
-		fmt.Printf("%-30s %s\n", "DEPLOYMENT", "REPLICAS")
 		fmt.Printf(format, module.GetRuntime().GetDeployment().DeploymentKey, 1) //TODO: MinReplicas is broken at the moment
 	}
 	return nil
