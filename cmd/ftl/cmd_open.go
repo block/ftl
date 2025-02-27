@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/kong"
+
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/reflection"
