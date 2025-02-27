@@ -11,6 +11,7 @@ import (
 
 func Predictors(view *schemaeventsource.View) map[string]complete.Predictor {
 	return map[string]complete.Predictor{
+		"decls":         &declPredictor[schema.Decl]{view: *view},
 		"verbs":         &declPredictor[*schema.Verb]{view: *view},
 		"configs":       &declPredictor[*schema.Config]{view: *view},
 		"secrets":       &declPredictor[*schema.Secret]{view: *view},
