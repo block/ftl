@@ -2,11 +2,12 @@ import { Controls, type Edge, ReactFlow as Flow, type Node, ReactFlowProvider } 
 import dagre from 'dagre'
 import { useCallback, useMemo } from 'react'
 import type React from 'react'
-import type { Edges } from '../../../protos/xyz/block/ftl/console/v1/console_pb'
+import type { Edges, Module } from '../../../protos/xyz/block/ftl/console/v1/console_pb'
 import { useUserPreferences } from '../../../shared/providers/user-preferences-provider'
 import { DeclNode } from '../../graph/DeclNode'
 import { getNodeBackgroundColor } from '../../graph/graph-styles'
 import { useModules } from '../hooks/use-modules'
+import { getVerbType } from '../module.utils'
 import { declSchemaFromModules } from '../schema/schema.utils'
 import '@xyflow/react/dist/style.css'
 import '../../graph/graph.css'
@@ -21,6 +22,27 @@ interface DeclGraphPaneProps {
   declType: string
   moduleName: string
   height?: string
+}
+
+/**
+ * Helper function to find a verb in modules and get its type
+ */
+const getVerbNodeType = (modules: Module[], moduleName: string, verbName: string, defaultType: string): string => {
+  if (defaultType !== 'verb') {
+    return defaultType
+  }
+
+  const module = modules.find((m) => m.name === moduleName)
+  if (!module) {
+    return defaultType
+  }
+
+  const verb = module.verbs.find((v) => v.verb?.name === verbName)
+  if (!verb) {
+    return defaultType
+  }
+
+  return getVerbType(verb)
 }
 
 // Dagre layout function for decl graph
@@ -99,24 +121,32 @@ export const DeclGraphPane: React.FC<DeclGraphPaneProps> = ({ edges, declName, d
   const { nodes, graphEdges } = useMemo(() => {
     const nodes: Node[] = []
     const graphEdges: Edge[] = []
+    const modules = modulesData?.modules || []
 
     // Create center node (the current decl)
     const centerId = `${moduleName}.${declName}`
-    nodes.push(createNode(centerId, declName, declType, isDarkMode, true))
+
+    // Get the correct node type for verbs
+    const centerNodeType = getVerbNodeType(modules, moduleName, declName, declType)
+    nodes.push(createNode(centerId, declName, centerNodeType, isDarkMode, true))
 
     // Create nodes and edges for inbound references
     for (const ref of edges.in) {
       const id = `${ref.module}.${ref.name}`
-      const schema = declSchemaFromModules(ref.module, ref.name, modulesData?.modules || [])
-      nodes.push(createNode(id, ref.name, schema?.declType || declType, isDarkMode, false))
+      const schema = declSchemaFromModules(ref.module, ref.name, modules)
+      const nodeType = getVerbNodeType(modules, ref.module, ref.name, schema?.declType || declType)
+
+      nodes.push(createNode(id, ref.name, nodeType, isDarkMode, false))
       graphEdges.push(createEdge(id, centerId, isDarkMode))
     }
 
     // Create nodes and edges for outbound references
     for (const ref of edges.out) {
       const id = `${ref.module}.${ref.name}`
-      const schema = declSchemaFromModules(ref.module, ref.name, modulesData?.modules || [])
-      nodes.push(createNode(id, ref.name, schema?.declType || declType, isDarkMode, false))
+      const schema = declSchemaFromModules(ref.module, ref.name, modules)
+      const nodeType = getVerbNodeType(modules, ref.module, ref.name, schema?.declType || declType)
+
+      nodes.push(createNode(id, ref.name, nodeType, isDarkMode, false))
       graphEdges.push(createEdge(centerId, id, isDarkMode))
     }
 

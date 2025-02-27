@@ -1,4 +1,4 @@
-import { Call02Icon, CustomerServiceIcon, Download04Icon, PackageReceiveIcon, Rocket01Icon, TimeQuarterPassIcon, Upload04Icon } from 'hugeicons-react'
+import { Call02Icon, CustomerServiceIcon, Download04Icon, InternetIcon, Rocket01Icon, TimeQuarterPassIcon, Upload04Icon } from 'hugeicons-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { EventType, LogLevel } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
@@ -19,22 +19,38 @@ interface EventFilter {
 
 const EVENT_TYPES: Record<string, EventFilter> = {
   call: { label: 'Call', type: EventType.CALL, icon: <Call02Icon className='w-4 h-4 text-indigo-500 ml-1' /> },
-  asyncExecute: { label: 'Async Call', type: EventType.ASYNC_EXECUTE, icon: <CustomerServiceIcon className='w-4 h-4 text-indigo-500 ml-1' /> },
+  asyncExecute: {
+    label: 'Async Call',
+    type: EventType.ASYNC_EXECUTE,
+    icon: <CustomerServiceIcon className='w-4 h-4 text-indigo-500 ml-1' />,
+  },
   log: { label: 'Log', type: EventType.LOG, icon: <LogLevelBadgeSmall logLevel={LogLevel.INFO} /> },
   deploymentCreated: {
     label: 'Deployment Created',
     type: EventType.DEPLOYMENT_CREATED,
-    icon: <Rocket01Icon className='w-4 h-4 text-green-500 dark:text-green-300 ml-1' />,
+    icon: <Rocket01Icon className='w-4 h-4 text-purple-500 ml-1' />,
   },
   deploymentUpdated: {
     label: 'Deployment Updated',
     type: EventType.DEPLOYMENT_UPDATED,
-    icon: <Rocket01Icon className='w-4 h-4 text-green-500 dark:text-green-300 ml-1' />,
+    icon: <Rocket01Icon className='w-4 h-4 text-purple-500 ml-1' />,
   },
-  ingress: { label: 'Ingress', type: EventType.INGRESS, icon: <PackageReceiveIcon className='w-4 h-4 text-sky-400 ml-1' /> },
-  cronScheduled: { label: 'Cron Scheduled', type: EventType.CRON_SCHEDULED, icon: <TimeQuarterPassIcon className='w-4 h-4 text-blue-500 ml-1' /> },
-  pubsubPublish: { label: 'PubSub Publish', type: EventType.PUBSUB_PUBLISH, icon: <Upload04Icon className='w-4 h-4 text-violet-500 ml-1' /> },
-  pubsubConsume: { label: 'PubSub Consume', type: EventType.PUBSUB_CONSUME, icon: <Download04Icon className='w-4 h-4 text-violet-500 ml-1' /> },
+  ingress: { label: 'Ingress', type: EventType.INGRESS, icon: <InternetIcon className='w-4 h-4 text-green-500  ml-1' /> },
+  cronScheduled: {
+    label: 'Cron Scheduled',
+    type: EventType.CRON_SCHEDULED,
+    icon: <TimeQuarterPassIcon className='w-4 h-4 text-blue-500 ml-1' />,
+  },
+  pubsubPublish: {
+    label: 'PubSub Publish',
+    type: EventType.PUBSUB_PUBLISH,
+    icon: <Upload04Icon className='w-4 h-4 text-violet-500 ml-1' />,
+  },
+  pubsubConsume: {
+    label: 'PubSub Consume',
+    type: EventType.PUBSUB_CONSUME,
+    icon: <Download04Icon className='w-4 h-4 text-violet-500 ml-1' />,
+  },
 }
 
 const LOG_LEVELS: Record<number, string> = {

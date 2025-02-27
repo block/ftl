@@ -1,28 +1,30 @@
 import colors from 'tailwindcss/colors'
 
+// Define the base colors for each node type
+const nodeColorMap = {
+  verb: colors.indigo,
+  ingress: colors.green,
+  cronjob: colors.blue,
+  subscriber: colors.violet,
+  sqlquery: colors.teal,
+  config: colors.sky,
+  data: colors.green,
+  database: colors.teal,
+  secret: colors.sky,
+  subscription: colors.violet,
+  topic: colors.violet,
+  enum: colors.zinc,
+  default: colors.gray,
+}
+
+// Define the shade for light and dark modes
+const LIGHT_SHADE = '500'
+const DARK_SHADE = '600'
+
+// Generate the nodeColors object
 export const nodeColors = {
-  light: {
-    verb: colors.indigo[500],
-    config: colors.sky[400],
-    data: colors.green[500],
-    database: colors.blue[400],
-    secret: colors.blue[400],
-    subscription: colors.violet[400],
-    topic: colors.violet[400],
-    enum: colors.green[400],
-    default: colors.gray[400],
-  },
-  dark: {
-    verb: colors.indigo[600],
-    config: colors.sky[500],
-    data: colors.green[600],
-    database: colors.blue[600],
-    secret: colors.blue[500],
-    subscription: colors.violet[600],
-    topic: colors.violet[600],
-    enum: colors.green[600],
-    default: colors.gray[700],
-  },
+  light: Object.fromEntries(Object.entries(nodeColorMap).map(([key, colorObj]) => [key, colorObj[LIGHT_SHADE]])),
+  dark: Object.fromEntries(Object.entries(nodeColorMap).map(([key, colorObj]) => [key, colorObj[DARK_SHADE]])),
 }
 
 export const getNodeBackgroundColor = (isDarkMode: boolean, nodeType: string): string => {

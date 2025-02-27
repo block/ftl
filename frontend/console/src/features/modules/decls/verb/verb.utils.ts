@@ -1,7 +1,7 @@
 import { JSONSchemaFaker } from 'json-schema-faker'
 import type { JsonValue } from 'type-fest/source/basic'
 import type { Module, Verb } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { MetadataCronJob, MetadataIngress, MetadataSubscriber, Ref } from '../../../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import type { MetadataCronJob, MetadataIngress, MetadataSQLQuery, MetadataSubscriber, Ref } from '../../../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import { defaultForType } from '../../type.utils'
 
 const basePath = `${window.location.protocol}//${window.location.hostname}:8891/`
@@ -111,6 +111,10 @@ export const cron = (verb?: Verb) => {
   return (verb?.verb?.metadata?.find((meta) => meta.value.case === 'cronJob')?.value?.value as MetadataCronJob) || null
 }
 
+export const sqlquery = (verb?: Verb) => {
+  return (verb?.verb?.metadata?.find((meta) => meta.value.case === 'sqlQuery')?.value?.value as MetadataSQLQuery) || null
+}
+
 export const requestType = (verb?: Verb) => {
   const ingress = (verb?.verb?.metadata?.find((meta) => meta.value.case === 'ingress')?.value?.value as MetadataIngress) || null
   if (ingress) {
@@ -125,6 +129,11 @@ export const requestType = (verb?: Verb) => {
   const subscriber = (verb?.verb?.metadata?.find((meta) => meta.value.case === 'subscriber')?.value?.value as MetadataSubscriber) || null
   if (subscriber) {
     return 'SUB'
+  }
+
+  const sqlquery = (verb?.verb?.metadata?.find((meta) => meta.value.case === 'sqlQuery')?.value?.value as MetadataSQLQuery) || null
+  if (sqlquery) {
+    return 'SQL'
   }
 
   return 'CALL'

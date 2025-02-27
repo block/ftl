@@ -34,7 +34,7 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
   const bodyTextKey = `${module?.name}-${verb?.verb?.name}-body-text`
   const headersTextKey = `${module?.name}-${verb?.verb?.name}-headers-text`
   const queryParamsTextKey = `${module?.name}-${verb?.verb?.name}-query-params-text`
-  const methodsWithBody = ['POST', 'PUT', 'PATCH', 'CALL', 'CRON', 'SUB']
+  const methodsWithBody = ['POST', 'PUT', 'PATCH', 'CALL', 'CRON', 'SUB', 'SQL']
 
   const tabs = useMemo(() => {
     const method = requestType(verb)

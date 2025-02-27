@@ -11,6 +11,7 @@ import { secretPanels } from '../modules/decls/secret/SecretRightPanels'
 import { topicPanels } from '../modules/decls/topic/TopicRightPanels'
 import { verbPanels } from '../modules/decls/verb/VerbRightPanel'
 import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
+import { getVerbType } from '../modules/module.utils'
 import { modulePanels } from './ModulePanels'
 import { getNodeBackgroundColor } from './graph-styles'
 
@@ -116,7 +117,17 @@ export const getGraphData = (
         if (name) {
           const id = nodeId(module.name, name)
           existingNodes.add(id)
-          nodes.push(createNode(id, name, 'declNode', type, nodePositions[id], module.name, item, isDarkMode, id === selectedNodeId))
+
+          // For verbs, check if there's a specific sub-type
+          let nodeType = type
+          if (type === 'verb' && item instanceof Verb) {
+            const verbType = getVerbType(item)
+            if (verbType) {
+              nodeType = verbType
+            }
+          }
+
+          nodes.push(createNode(id, name, 'declNode', nodeType, nodePositions[id], module.name, item, isDarkMode, id === selectedNodeId))
         }
       }
     }
