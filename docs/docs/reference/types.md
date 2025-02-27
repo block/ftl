@@ -49,7 +49,7 @@ The following table shows how FTL types map to language-specific types:
 | `Bool`     | `Boolean`                   |
 | `Time`     | `ZonedDateTime`             |
 | `Any`      | [External](./externaltypes) |
-| `Unit`     | N/A                         |
+| `Unit`     | `Unit`                      |
 | `Map<K,V>` | `Map<K,V>`                  |
 | `Array<T>` | `List<T>`                   |
 
@@ -68,6 +68,39 @@ The following table shows how FTL types map to language-specific types:
 | `Unit`     | `void`                      | N/A                         |
 | `Map<K,V>` | `Map<K,V>`                  | `@Nullable Map<K,V>`        |
 | `Array<T>` | `List<T>`                   | `@Nullable List<T>`         |
+
+  </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, these are the primitive types that can be used directly:
+
+| FTL Type   | Description                                |
+| :--------- | :----------------------------------------- |
+| `Int`      | 64-bit signed integer                      |
+| `Float`    | 64-bit floating point number               |
+| `String`   | UTF-8 encoded string                       |
+| `Bytes`    | Byte array                                 |
+| `Bool`     | Boolean value (true/false)                 |
+| `Time`     | RFC3339 formatted timestamp                |
+| `Any`      | Dynamic type (schema-less)                 |
+| `Unit`     | Empty type (similar to void)               |
+| `Map<K,V>` | Key-value mapping                          |
+| `[T]`      | Array of type T                            |
+
+Example usage in schema:
+```
+module example {
+  data Person {
+    name String
+    age Int
+    height Float
+    isActive Bool
+    birthdate Time
+    metadata Map<String, Any>
+    tags [String]
+  }
+}
+```
 
   </TabItem>
 </Tabs>
@@ -112,6 +145,32 @@ public class Person {
 ```
 
   </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, data structures are defined using the `data` keyword:
+
+```
+module example {
+  data Person {
+    name String
+    age Int
+  }
+}
+```
+
+Fields can have optional values by adding a `?` suffix:
+
+```
+module example {
+  data Person {
+    name String
+    age Int
+    address String?
+  }
+}
+```
+
+  </TabItem>
 </Tabs>
 
 ## Generics
@@ -149,6 +208,35 @@ public class Pair<T, U> {
   public Pair(T first, U second) {
     this.first = first;
     this.second = second;
+  }
+}
+```
+
+  </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, generic types are defined with type parameters:
+
+```
+module example {
+  data Pair<T, U> {
+    first T
+    second U
+  }
+}
+```
+
+Generic types can be used in other type definitions:
+
+```
+module example {
+  data Pair<T, U> {
+    first T
+    second U
+  }
+  
+  data StringIntPair {
+    pair example.Pair<String, Int>
   }
 }
 ```
@@ -198,6 +286,32 @@ class Dog() : Animal
 > TODO
 
   </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, sum types (type enums) are represented as a union of types:
+
+```
+module example {
+  data Cat {}
+  
+  data Dog {}
+  
+  enum Animal {
+    Cat example.Cat
+    Dog example.Dog
+  }
+}
+```
+
+When used in other types or verbs, the sum type can be referenced directly:
+
+```
+module example {
+  verb processAnimal(example.Animal) Unit
+}
+```
+
+  </TabItem>
 </Tabs>
 
 ## Value enums
@@ -216,6 +330,15 @@ const (
   Green Colour = "green"
   Blue  Colour = "blue"
 )
+
+//ftl:enum
+type Status int
+
+const (
+  Active   Status = 1
+  Inactive Status = 0
+  Pending  Status = 2
+)
 ```
 
   </TabItem>
@@ -229,6 +352,16 @@ public enum class Colour(
   Red("red"),
   Green("green"),
   Blue("blue"),
+  ;
+}
+
+@Enum
+public enum class Status(
+  public final val `value`: Int,
+) {
+  Active(1),
+  Inactive(0),
+  Pending(2),
   ;
 }
 ```
@@ -247,6 +380,40 @@ public enum Colour {
 
   Colour(String value) {
     this.value = value;
+  }
+}
+
+@Enum
+public enum Status {
+  Active(1),
+  Inactive(0),
+  Pending(2);
+
+  private final int value;
+
+  Status(int value) {
+    this.value = value;
+  }
+}
+```
+
+  </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, value enums are represented as an enum with string or integer values:
+
+```
+module example {
+  enum Colour: String {
+    Red = "red"
+    Green = "green"
+    Blue = "blue"
+  }
+  
+  enum Status: Int {
+    Active = 1
+    Inactive = 0
+    Pending = 2
   }
 }
 ```
@@ -289,6 +456,32 @@ public class UserID {
     public String getValue() {
         return value;
     }
+}
+```
+
+  </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, type aliases are defined using the `typealias` keyword:
+
+```
+module example {
+  typealias UserID String
+}
+```
+
+Type aliases can be used in data structures:
+
+```
+module example {
+  typealias UserID String
+  
+  typealias UserMap Map<String, example.User>
+  
+  data User {
+    id example.UserID
+    name String
+  }
 }
 ```
 

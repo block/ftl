@@ -157,4 +157,28 @@ public void recoverPaymentProcessing(CatchRequest<Payment> req) {
 ```
 
 </TabItem>
+<TabItem value="schema" label="Schema">
+
+In the FTL schema, retry policies are represented by the `+retry` annotation on verbs:
+
+```
+module example {
+  data Invoice {}
+  
+  verb process(example.Invoice) Unit
+    +retry attempts=10 min=5s max=1m
+  
+  data Payment {}
+  
+  verb processPayment(example.Payment) Unit
+    +subscribe example.payments from=latest
+    +retry attempts=5 min=1s catch=example.recoverPaymentProcessing
+  
+  verb recoverPaymentProcessing(builtin.CatchRequest<example.Payment>) Unit
+}
+```
+
+The `+retry` annotation specifies the retry policy with parameters for attempts, minimum and maximum backoff, and an optional catch verb.
+
+</TabItem>
 </Tabs> 

@@ -14,6 +14,12 @@ by FTL. Instead, FTL relies on the runtime to handle serialization and deseriali
 In some cases this feature can also be used to provide custom serialization and deserialization logic for types that are not directly supported by FTL, even
 if they are defined in the same package as the FTL module.
 
+When using external types:
+- The external type is typically widened to `Any` in the FTL schema by default
+- You can map to specific FTL types (like `String`) for better schema clarity
+- For JVM languages, `java` is always used as the runtime name in the schema, regardless of whether Kotlin or Java is used
+- Multiple `+typemap` annotations can be used to support cross-runtime interoperability
+
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
@@ -30,12 +36,12 @@ type FtlType external.OtherType
 type FtlType2 = external.OtherType
 ```
 
-The external type is widened to `Any` in the FTL schema, and the corresponding type alias will include metadata
-for the runtime-specific type mapping:
+You can also specify mappings for other runtimes:
 
-```
-typealias FtlType Any
-  +typemap go "github.com/external.OtherType"
+```go
+//ftl:typealias
+//ftl:typemap java "com.external.other.OtherType"
+type FtlType external.OtherType
 ```
 
 </TabItem>
@@ -59,14 +65,6 @@ class OtherTypeTypeMapper : TypeAliasMapper<OtherType, JsonNode> {
 }
 ```
 
-In the example above the external type is widened to `Any` in the FTL schema, and the corresponding type alias will include metadata
-for the runtime-specific type mapping:
-
-```
-typealias FtlType Any
-  +typemap java "foo.bar.OtherType"
-```
-
 Note that for JVM languages `java` is always used as the runtime name, regardless of the actual language used.
 
 It is also possible to map to any other valid FTL type (e.g. `String`) by using this as the second type parameter:
@@ -84,11 +82,13 @@ class OtherTypeTypeMapper : TypeAliasMapper<OtherType, String> {
 }
 ```
 
-The corresponding type alias will be to a `String`, which makes the schema more useful:
+You can also specify mappings for other runtimes:
 
-```
-typealias FtlType String
-  +typemap kotlin "foo.bar.OtherType"
+```kotlin
+@TypeAlias(
+  name = "OtherType",
+  languageTypeMappings = [LanguageTypeMapping(language = "go", type = "github.com/external.OtherType")]
+)
 ```
 
 </TabItem>
@@ -114,14 +114,6 @@ public class OtherTypeTypeMapper implements TypeAliasMapper<OtherType, JsonNode>
 }
 ```
 
-In the example above the external type is widened to `Any` in the FTL schema, and the corresponding type alias will include metadata
-for the runtime-specific type mapping:
-
-```
-typealias FtlType Any
-  +typemap java "foo.bar.OtherType"
-```
-
 It is also possible to map to any other valid FTL type (e.g. `String`) by using this as the second type parameter:
 
 ```java
@@ -139,41 +131,7 @@ public class OtherTypeTypeMapper implements TypeAliasMapper<OtherType, String> {
 }
 ```
 
-The corresponding type alias will be to a `String`, which makes the schema more useful:
-
-```
-typealias FtlType String
-  +typemap java "com.external.other.OtherType"
-```
-
-</TabItem>
-</Tabs>
-
-## Cross-Runtime Type Mappings
-
-FTL also provides the capability to declare type mappings for other runtimes. Here's how to do it in each language:
-
-<Tabs groupId="languages">
-<TabItem value="go" label="Go" default>
-
-```go
-//ftl:typealias
-//ftl:typemap java "com.external.other.OtherType"
-type FtlType external.OtherType
-```
-
-</TabItem>
-<TabItem value="kotlin" label="Kotlin">
-
-```kotlin
-@TypeAlias(
-  name = "OtherType",
-  languageTypeMappings = [LanguageTypeMapping(language = "go", type = "github.com/external.OtherType")]
-)
-```
-
-</TabItem>
-<TabItem value="java" label="Java">
+You can also specify mappings for other runtimes:
 
 ```java
 @TypeAlias(name = "OtherType", languageTypeMappings = {
@@ -182,15 +140,38 @@ type FtlType external.OtherType
 ```
 
 </TabItem>
+<TabItem value="schema" label="Schema">
+
+In the FTL schema, external types are represented as type aliases with the `+typemap` annotation:
+
+```
+module example {
+  // External type widened to Any
+  typealias FtlType Any
+    +typemap go "github.com/external.OtherType"
+    +typemap java "foo.bar.OtherType"
+  
+  // External type mapped to a specific FTL type
+  typealias UserID String
+    +typemap go "github.com/myapp.UserID"
+    +typemap java "com.myapp.UserID"
+  
+  // Using external types in data structures
+  data User {
+    id example.UserID
+    preferences example.FtlType
+  }
+  
+  // Using external types in verbs
+  verb processUser(example.User) Unit
+}
+```
+
+The `+typemap` annotation specifies:
+1. The target runtime/language (go, java, etc.)
+2. The fully qualified type name in that runtime
+
+This allows FTL to decode the type properly in different languages, enabling seamless interoperability across different runtimes.
+
+</TabItem>
 </Tabs>
-
-In the FTL schema, cross-runtime mappings will appear as:
-
-```
-typealias FtlType Any
-  +typemap go "github.com/external.OtherType"
-  +typemap java "com.external.other.OtherType"
-```
-
-This allows FTL to decode the type properly in other languages, for seamless 
-interoperability across different runtimes.

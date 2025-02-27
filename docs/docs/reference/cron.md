@@ -54,6 +54,16 @@ class MyCron {
 ```
 
   </TabItem>
+  <TabItem value="schema" label="Schema">
+
+```
+module example {
+  verb hourly(Unit) Unit
+    +cron "0 * * * *"
+}
+```
+
+  </TabItem>
 </Tabs>
 
 Every 12 hours, starting at UTC midnight:
@@ -95,6 +105,16 @@ class MyCron {
 ```
 
   </TabItem>
+  <TabItem value="schema" label="Schema">
+
+```
+module example {
+  verb twiceADay(Unit) Unit
+    +cron "12h"
+}
+```
+
+  </TabItem>
 </Tabs>
 
 Every Monday at UTC midnight:
@@ -132,6 +152,16 @@ class MyCron {
     void mondays() {
         
     }
+}
+```
+
+  </TabItem>
+  <TabItem value="schema" label="Schema">
+
+```
+module example {
+  verb mondays(Unit) Unit
+    +cron "Mon"
 }
 ```
 

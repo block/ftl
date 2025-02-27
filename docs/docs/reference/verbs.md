@@ -84,6 +84,29 @@ public class EchoClass {
 ```
 
   </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, verbs are declared with their input and output types:
+
+```
+module example {
+  data EchoRequest {}
+  
+  data EchoResponse {}
+  
+  verb echo(example.EchoRequest) example.EchoResponse
+}
+```
+
+Verbs can be exported to make them callable from other modules:
+
+```
+module example {
+  export verb echo(example.EchoRequest) example.EchoResponse
+}
+```
+
+  </TabItem>
 </Tabs>
 
 By default verbs are only visible to other verbs in the same module (see [visibility](./visibility) for more information).
@@ -161,6 +184,34 @@ public interface TimeClient {
     TimeResponse call();
 }
 ```
+
+  </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, verb calls are represented by the `+calls` annotation:
+
+```
+module echo {
+  data EchoRequest {}
+  
+  data EchoResponse {}
+  
+  verb echo(example.EchoRequest) example.EchoResponse
+    +calls time.time
+}
+
+module time {
+  data TimeRequest {}
+  
+  data TimeResponse {
+    time Time
+  }
+  
+  export verb time(time.TimeRequest) time.TimeResponse
+}
+```
+
+The `+calls` annotation indicates that the verb calls another verb, in this case the `time` verb from the `time` module.
 
   </TabItem>
 </Tabs> 
