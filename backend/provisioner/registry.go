@@ -9,6 +9,7 @@ import (
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
@@ -119,6 +120,7 @@ func (reg *ProvisionerRegistry) Register(id string, handler provisionerconnect.P
 // CreateDeployment to take the system to the desired state
 func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, changeset key.Changeset, desiredModule, existingModule *schema.Module, updateHandler func(*schema.RuntimeElement) error) *Deployment {
 	logger := log.FromContext(ctx)
+
 	module := desiredModule.GetName()
 
 	deployment := &Deployment{
@@ -160,4 +162,20 @@ func (reg *ProvisionerRegistry) CreateDeployment(ctx context.Context, changeset 
 		}
 	}
 	return deployment
+}
+
+func (reg *ProvisionerRegistry) VerifyDeploymentSupported(ctx context.Context, module *schema.Module) error {
+	for _, r := range schema.GetProvisionedResources(module) {
+		supported := false
+		for _, binding := range reg.Bindings {
+			if slices.Contains(binding.Types, r.Kind) {
+				supported = true
+				break
+			}
+		}
+		if !supported {
+			return fmt.Errorf("resource type %s is not supported in this environment", r.Kind)
+		}
+	}
+	return nil
 }

@@ -290,6 +290,9 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 			syncExistingRuntimes(existingModule, module)
 		}
 		group.Go(func() error {
+			if err := s.registry.VerifyDeploymentSupported(ctx, module); err != nil {
+				return err
+			}
 			deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(element *schema.RuntimeElement) error {
 				cs := req.Key.String()
 				_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{

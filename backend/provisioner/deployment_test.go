@@ -98,7 +98,6 @@ func TestDeployment_Progress(t *testing.T) {
 				&schema.Database{Name: "b", Type: "postgres"},
 			},
 		}, nil, nil)
-
 		assert.Equal(t, 2, len(dpl.State().Pending))
 
 		_, err := dpl.Progress(ctx)
