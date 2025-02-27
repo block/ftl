@@ -137,6 +137,14 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	}
 	cmd.Env = append(cmd.Env, "FTL_BIND="+pluginEndpoint.String())
 	cmd.Env = append(cmd.Env, "FTL_WORKING_DIR="+workingDir)
+	// If the log level is lower than debug we just leave it at the default.
+	// Otherwise we set the log level to debug so we can replay it if needed
+	// These messages are streamed through this processes logger, so will respect the normal log level
+	if logger.GetLevel() >= log.Debug {
+		cmd.Env = append(cmd.Env, "LOG_LEVEL=DEBUG")
+	} else {
+		cmd.Env = append(cmd.Env, "LOG_LEVEL="+logger.GetLevel().String())
+	}
 	cmd.Env = append(cmd.Env, opts.envars...)
 	if err = cmd.Start(); err != nil {
 		return nil, nil, err

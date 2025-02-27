@@ -154,7 +154,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 }
 
 func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struct{}, CronState, CronEvent], client routing.CallClient, job *cronJob, timelineClient *timelineclient.Client) error {
-	logger := log.FromContext(ctx).Scope("cron")
+	logger := log.FromContext(ctx).Scope("cron").Module(job.module)
 	logger.Debugf("Executing cron job %s", job)
 
 	view, err := state.View(ctx)
@@ -209,7 +209,7 @@ func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struc
 }
 
 func callCronVerb(ctx context.Context, verbClient routing.CallClient, cronJob *cronJob) error {
-	logger := log.FromContext(ctx).Scope("cron")
+	logger := log.FromContext(ctx).Scope("cron").Module(cronJob.module)
 	ref := schema.Ref{Module: cronJob.module, Name: cronJob.verb.Name}
 	logger.Debugf("Calling cron job %s", cronJob)
 
