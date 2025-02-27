@@ -9,10 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"connectrpc.com/connect"
-	"golang.org/x/sync/errgroup"
 	"maps"
 	gslices "slices"
+
+	"connectrpc.com/connect"
+	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
