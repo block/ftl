@@ -89,14 +89,18 @@ func (r *Runner) prepare(ctx context.Context, stage *RunnerStage) error {
 }
 
 func (r *Runner) execute(ctx context.Context, stage *RunnerStage) ([]state.State, error) {
+	logger := log.FromContext(ctx).Module(stage.Name)
+
 	reschan := make(chan []state.State, len(stage.Handlers))
 	eg := errgroup.Group{}
 	for _, handler := range stage.Handlers {
 		eg.Go(func() error {
+			logger.Debugf("executing handler %T", handler.Executor)
 			outputs, err := handler.Executor.Execute(ctx)
 			if err != nil {
 				return fmt.Errorf("failed to execute handler %T: %w", handler.Executor, err)
 			}
+			logger.Debugf("handler %T executed with %d outputs", handler.Executor, len(outputs))
 			reschan <- outputs
 			return nil
 		})

@@ -1057,7 +1057,12 @@ export class DSNDatabaseConnector extends Message<DSNDatabaseConnector> {
   pos?: Position;
 
   /**
-   * @generated from field: string dsn = 2;
+   * @generated from field: string database = 2;
+   */
+  database = "";
+
+  /**
+   * @generated from field: string dsn = 3;
    */
   dsn = "";
 
@@ -1070,7 +1075,8 @@ export class DSNDatabaseConnector extends Message<DSNDatabaseConnector> {
   static readonly typeName = "xyz.block.ftl.schema.v1.DSNDatabaseConnector";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "pos", kind: "message", T: Position, opt: true },
-    { no: 2, name: "dsn", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "database", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "dsn", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DSNDatabaseConnector {

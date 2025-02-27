@@ -51,7 +51,8 @@ type DatabaseConnector interface {
 type DSNDatabaseConnector struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
-	DSN string `parser:"" protobuf:"2"`
+	Database string `parser:"" protobuf:"2"`
+	DSN      string `parser:"" protobuf:"3"`
 }
 
 var _ DatabaseConnector = (*DSNDatabaseConnector)(nil)

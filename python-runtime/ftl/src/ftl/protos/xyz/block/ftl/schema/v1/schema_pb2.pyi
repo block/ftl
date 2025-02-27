@@ -222,12 +222,14 @@ class Config(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., name: _Optional[str] = ..., type: _Optional[_Union[Type, _Mapping]] = ...) -> None: ...
 
 class DSNDatabaseConnector(_message.Message):
-    __slots__ = ("pos", "dsn")
+    __slots__ = ("pos", "database", "dsn")
     POS_FIELD_NUMBER: _ClassVar[int]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
     DSN_FIELD_NUMBER: _ClassVar[int]
     pos: Position
+    database: str
     dsn: str
-    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., dsn: _Optional[str] = ...) -> None: ...
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., database: _Optional[str] = ..., dsn: _Optional[str] = ...) -> None: ...
 
 class Data(_message.Message):
     __slots__ = ("pos", "comments", "export", "name", "type_parameters", "fields", "metadata")

@@ -112,11 +112,18 @@ func parseRegionFromEndpoint(endpoint string) (string, error) {
 func MySQLDBName(connector schema.DatabaseConnector) (string, error) {
 	switch c := connector.(type) {
 	case *schema.DSNDatabaseConnector:
-		cfg, err := mysqlauthproxy.ParseDSN(c.DSN)
-		if err != nil {
-			return "", fmt.Errorf("failed to parse DSN: %w", err)
-		}
-		return cfg.DBName, nil
+		return c.Database, nil
+	case *schema.AWSIAMAuthDatabaseConnector:
+		return c.Database, nil
+	default:
+		return "", fmt.Errorf("unexpected database connector type: %T", connector)
+	}
+}
+
+func PostgresDBName(connector schema.DatabaseConnector) (string, error) {
+	switch c := connector.(type) {
+	case *schema.DSNDatabaseConnector:
+		return c.Database, nil
 	case *schema.AWSIAMAuthDatabaseConnector:
 		return c.Database, nil
 	default:

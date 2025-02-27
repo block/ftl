@@ -127,7 +127,8 @@ message Config {
 
 message DSNDatabaseConnector {
   optional Position pos = 1;
-  string dsn = 2;
+  string database = 2;
+  string dsn = 3;
 }
 
 // A Data structure.

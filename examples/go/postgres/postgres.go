@@ -47,7 +47,7 @@ func Query(ctx context.Context, db TestdbHandle) ([]string, error) {
 }
 
 func persistRequest(ctx context.Context, req InsertRequest, db TestdbHandle) error {
-	_, err := db.Get(ctx).Exec("INSERT INTO requests (data) VALUES (?);", req.Data)
+	_, err := db.Get(ctx).Exec("INSERT INTO requests (data) VALUES ($1)", req.Data)
 	if err != nil {
 		return err
 	}
