@@ -33,7 +33,7 @@ func SetupDebugFileLogging(ctx context.Context, root string, maxLogs int) {
 		}
 	})
 	sink := newJSONSink(logFile)
-	logger.debugLogger = optional.Some(devModeDebugLogger{delegate: New(Trace, sink), file: logFile.Name()})
+	logger.debugLogger = optional.Some(devModeDebugLogger{delegate: New(Debug, sink), file: logFile.Name()})
 }
 
 func rotateLogs(workingDir string, maxLogs int) error {
