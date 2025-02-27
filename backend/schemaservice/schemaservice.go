@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
+	"maps"
+	gslices "slices"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -120,7 +121,8 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 		schema.Builtins().ToProto(),
 	}
 	modules = append(modules, slices.Map(schemas, func(d *schema.Module) *schemapb.Module { return d.ToProto() })...)
-	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Modules: modules}}), nil
+	changesets := slices.Map(gslices.Collect(maps.Values(view.GetChangesets())), func(c *schema.Changeset) *schemapb.Changeset { return c.ToProto() })
+	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Modules: modules}, Changesets: changesets}), nil
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], stream *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
@@ -329,11 +331,11 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 	}
 
 	modules := append([]*schema.Module{}, schema.Builtins())
-	modules = append(modules, maps.Values(view.GetCanonicalDeployments())...)
+	modules = append(modules, gslices.Collect(maps.Values(view.GetCanonicalDeployments()))...)
 
 	notification := &schema.FullSchemaNotification{
 		Schema:     &schema.Schema{Modules: modules},
-		Changesets: maps.Values(view.GetChangesets()),
+		Changesets: gslices.Collect(maps.Values(view.GetChangesets())),
 	}
 	err = sendChange(&ftlv1.PullSchemaResponse{
 		Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{notification.ToProto()}},
