@@ -690,8 +690,6 @@ func (s *Service) healthCheck(writer http.ResponseWriter, request *http.Request)
 }
 
 func (s *Service) startPgProxy(ctx context.Context, module *schema.Module, started *sync.WaitGroup, addresses *xsync.MapOf[string, string]) error {
-	logger := log.FromContext(ctx)
-
 	databases := map[string]*schema.Database{}
 	for db := range slices.FilterVariants[*schema.Database](module.Decls) {
 		if db.Type == "postgres" {
@@ -732,7 +730,6 @@ func (s *Service) startPgProxy(ctx context.Context, module *schema.Module, start
 			return "", fmt.Errorf("failed to resolve postgres DSN: %w", err)
 		}
 
-		logger.Debugf("Resolved DSN (%s): %s", params["database"], dsn)
 		return dsn, nil
 	}).Start(ctx, channel); err != nil {
 		started.Done()
