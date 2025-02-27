@@ -205,7 +205,7 @@ func (s *Service) HandleChangesetCommitted(ctx context.Context, req *schema.Chan
 }
 
 func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) error {
-	changeset := s.eventSource.ActiveChangeset()[cs]
+	changeset := s.eventSource.ActiveChangesets()[cs]
 	err := s.deProvision(ctx, cs, changeset.RemovingModules)
 	if err != nil {
 		return err
