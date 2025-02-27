@@ -3,8 +3,8 @@ import {
   CallIncoming04Icon,
   CustomerServiceIcon,
   Download04Icon,
+  InternetIcon,
   Menu01Icon,
-  PackageReceiveIcon,
   Rocket01Icon,
   TimeQuarterPassIcon,
   Upload04Icon,
@@ -29,7 +29,7 @@ export const TimelineIcon = ({ event }: { event: Event }) => {
       case 'log':
         return <LogLevelBadgeSmall logLevel={event.entry.value.logLevel} />
       case 'ingress':
-        return <PackageReceiveIcon className={`${style} ${textColor}`} />
+        return <InternetIcon className={`${style} ${textColor}`} />
       case 'cronScheduled':
         return <TimeQuarterPassIcon className={`${style} ${textColor}`} />
       case 'asyncExecute':

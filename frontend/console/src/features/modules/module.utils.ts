@@ -4,6 +4,7 @@ import {
   CodeIcon,
   CodeSquareIcon,
   DatabaseIcon,
+  DatabaseSync01Icon,
   Download04Icon,
   FunctionIcon,
   GasPipeIcon,
@@ -14,9 +15,10 @@ import {
   SquareLock02Icon,
 } from 'hugeicons-react'
 import type { Module } from '../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { Config, Data, Database, Decl, Enum, Secret, Topic, TypeAlias, Verb } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import type { Verb as ConsoleVerb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
+import type { Config, Data, Database, Decl, Enum, Verb as SchemaVerb, Secret, Topic, TypeAlias } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
 
-export type DeclSumType = Config | Data | Database | Enum | Topic | TypeAlias | Secret | Verb
+export type DeclSumType = Config | Data | Database | Enum | Topic | TypeAlias | Secret | SchemaVerb
 
 export interface DeclInfo {
   declType: string
@@ -128,7 +130,7 @@ export const collapseAllModulesInLocalStorage = () => localStorage.setItem('tree
 export const declTypeName = (declCase: string, decl: DeclSumType) => {
   const normalizedDeclCase = declCase?.toLowerCase()
   if (normalizedDeclCase === 'verb') {
-    const vt = verbTypeFromMetadata(decl as Verb)
+    const vt = verbTypeFromMetadata(decl as SchemaVerb | ConsoleVerb)
     if (vt) {
       return vt
     }
@@ -157,6 +159,11 @@ export const declIcon = (declCase: string, decl: DeclSumType) => {
     return maybeVerbIcon
   }
 
+  // Check if this is a verb sub-type
+  if (verbIcons[normalizedDeclCase]) {
+    return verbIcons[normalizedDeclCase]
+  }
+
   if (!normalizedDeclCase || !declIcons[normalizedDeclCase]) {
     console.warn(`No icon for decl case: ${declCase}`)
     return CodeIcon
@@ -169,13 +176,20 @@ const verbIcons: Record<string, React.FC<Omit<HugeiconsProps, 'ref'> & React.Ref
   cronjob: Clock01Icon,
   ingress: InternetIcon,
   subscriber: Download04Icon,
+  sqlquery: DatabaseSync01Icon,
 }
 
 const verbIcon = (declCase: string, decl: DeclSumType) => {
+  // If this is already a verb sub-type, return the icon directly
+  if (verbIcons[declCase]) {
+    return verbIcons[declCase]
+  }
+
+  // Otherwise, check if this is a verb and get its sub-type
   if (declCase !== 'verb') {
     return
   }
-  const vt = verbTypeFromMetadata(decl as Verb)
+  const vt = verbTypeFromMetadata(decl as SchemaVerb | ConsoleVerb)
   if (!vt || !verbIcons[vt]) {
     return declIcons.verb
   }
@@ -185,11 +199,26 @@ const verbIcon = (declCase: string, decl: DeclSumType) => {
 
 // Most metadata is not mutually exclusive, but schema validation guarantees
 // that the ones in this list are.
-const verbTypesFromMetadata = ['cronjob', 'ingress', 'subscriber']
+const verbTypesFromMetadata = ['cronjob', 'ingress', 'subscriber', 'sqlquery']
 
-export const verbTypeFromMetadata = (verb: Verb) => {
-  const found = verb.metadata?.find((m) => m.value.case && verbTypesFromMetadata.includes(m.value.case.toLowerCase()))
-  return found?.value.case?.toLowerCase()
+export const verbTypeFromMetadata = (verb: SchemaVerb | ConsoleVerb): string | undefined => {
+  // Handle schema.Verb (from schema/v1/schema_pb)
+  if ('metadata' in verb && verb.metadata) {
+    const found = verb.metadata.find((m) => m.value?.case && verbTypesFromMetadata.includes(m.value.case.toLowerCase()))
+    return found?.value.case?.toLowerCase()
+  }
+
+  // Handle console.Verb (from console/v1/console_pb)
+  if ('verb' in verb && verb.verb?.metadata) {
+    const found = verb.verb.metadata.find((m) => m.value?.case && verbTypesFromMetadata.includes(m.value.case.toLowerCase()))
+    return found?.value.case?.toLowerCase()
+  }
+
+  return undefined
+}
+
+export const getVerbType = (verb: SchemaVerb | ConsoleVerb, defaultType = 'verb'): string => {
+  return verbTypeFromMetadata(verb) || defaultType
 }
 
 export const declUrlFromInfo = (moduleName: string, decl: DeclInfo) => `/modules/${moduleName}/${decl.declType}/${decl.value.name}`

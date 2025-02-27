@@ -1,4 +1,4 @@
-import { Clock01Icon, Download04Icon, FunctionIcon, InternetIcon } from 'hugeicons-react'
+import { Clock01Icon, DatabaseSync01Icon, Download04Icon, FunctionIcon, InternetIcon } from 'hugeicons-react'
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Module, Verb } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
@@ -46,12 +46,13 @@ export const VerbPage = ({ moduleName, declName }: { moduleName: string; declNam
     )
   }
 
-  type VerbType = 'cronjob' | 'ingress' | 'subscriber' | 'default'
+  type VerbType = 'cronjob' | 'ingress' | 'subscriber' | 'sqlquery' | 'default'
 
   const verbTypeConfig = {
     cronjob: { Icon: Clock01Icon },
     ingress: { Icon: InternetIcon },
     subscriber: { Icon: Download04Icon },
+    sqlquery: { Icon: DatabaseSync01Icon },
     default: { Icon: FunctionIcon },
   } as const
 

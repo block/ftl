@@ -56,6 +56,11 @@ export const declTypeMultiselectOpts = [
   },
   {
     group: 'Verb',
+    key: 'sqlquery',
+    displayName: 'SQL Query',
+  },
+  {
+    group: 'Verb',
     key: 'verb',
     displayName: 'All Other Verbs',
   },
