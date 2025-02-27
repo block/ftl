@@ -81,6 +81,21 @@ interface InvoicesTopic extends WriteableTopic<Invoice, SinglePartitionMapper> {
 ```
 
 </TabItem>
+<TabItem value="schema" label="Schema">
+
+```
+module payments {
+  // The Invoice data type that will be published to the topic
+  data Invoice {
+    invoiceNo String
+  }
+
+  // A topic with a single partition
+  topic invoices payments.Invoice
+}
+```
+
+</TabItem>
 </Tabs>
 
 ## Multi-Partition Topics
@@ -166,6 +181,23 @@ interface InvoicesTopic extends WriteableTopic<Invoice, PartitionMapper> {
 ```
 
 </TabItem>
+<TabItem value="schema" label="Schema">
+
+```
+module payments {
+  // The Invoice data type that will be published to the topic
+  data Invoice {
+    invoiceNo String
+  }
+
+  // A topic with multiple partitions (8 or 10 depending on language)
+  // The partition key is determined by the mapper implementation
+  topic invoices payments.Invoice
+    +partitions 8
+}
+```
+
+</TabItem>
 </Tabs>
 
 ## Publishing Events
@@ -200,6 +232,27 @@ fun publishInvoice(request: InvoiceRequest, topic: InvoicesTopic) {
 @Verb
 void publishInvoice(InvoiceRequest request, InvoicesTopic topic) throws Exception {
     topic.publish(new Invoice(request.invoiceNo()));
+}
+```
+
+</TabItem>
+<TabItem value="schema" label="Schema">
+
+```
+module payments {
+  data InvoiceRequest {
+    invoiceNo String
+  }
+  
+  data Invoice {
+    invoiceNo String
+  }
+  
+  topic invoices payments.Invoice
+  
+  // A verb that publishes to the invoices topic
+  verb publishInvoice(payments.InvoiceRequest) Unit
+    +publish payments.invoices
 }
 ```
 
@@ -272,6 +325,31 @@ topic cannot be published to, only subscribed to:
 ```java
 @Topic(name="invoices", module="publisher")
 interface InvoicesTopic extends ConsumableTopic<Invoice> {}
+```
+
+</TabItem>
+<TabItem value="schema" label="Schema">
+
+```
+module payments {
+  data Invoice {
+    invoiceNo String
+  }
+  
+  // The topic that is being subscribed to
+  export topic invoices payments.Invoice
+  
+  // A verb that subscribes to the invoices topic
+  verb sendInvoiceEmail(payments.Invoice) Unit
+    +subscribe payments.invoices from=beginning
+}
+
+// In another module
+module emailer {
+  // A verb that subscribes to the invoices topic from another module
+  verb consumeInvoice(payments.Invoice) Unit
+    +subscribe payments.invoices from=latest
+}
 ```
 
 </TabItem>

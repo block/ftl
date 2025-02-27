@@ -65,6 +65,24 @@ HelloResponse hello(HelloRequest helloRequest, @Config("defaultUser") String def
 ```
 
 </TabItem>
+<TabItem value="schema" label="Schema">
+
+In the FTL schema, configuration values are declared as follows:
+
+```
+module example {
+  // Configuration declaration
+  config apiUrl String
+  config defaultUser example.Username
+  
+  // Using configuration in a verb
+  verb hello(example.HelloRequest) example.HelloResponse
+    +config defaultUser
+}
+```
+
+Configuration values have a name, a type, and can be injected into verbs using the `+config` annotation.
+</TabItem>
 </Tabs>
 
 ## Secrets
@@ -122,6 +140,24 @@ HelloResponse hello(HelloRequest helloRequest, @Secret("apiKey") String apiKey) 
 }
 ```
 
+</TabItem>
+<TabItem value="schema" label="Schema">
+
+In the FTL schema, secrets are declared as follows:
+
+```
+module example {
+  // Secret declaration
+  secret apiToken String
+  secret apiKey example.Credentials
+  
+  // Using a secret in a verb
+  verb callApi(example.Request) Unit
+    +secret apiKey
+}
+```
+
+Secrets have a name, a type, and can be injected into verbs using the `+secret` annotation.
 </TabItem>
 </Tabs>
 

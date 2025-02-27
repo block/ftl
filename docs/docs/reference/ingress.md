@@ -232,4 +232,40 @@ public class TestHTTP {
 Under the hood these HTTP invocations are being mapped to verbs that take a `builtin.HttpRequest` and return a `builtin.HttpResponse`. This is not exposed directly to the user, but is instead mapped directly to `JAX-RS` annotations.
 
 </TabItem>
+<TabItem value="schema" label="Schema">
+
+In the FTL schema, HTTP ingress is represented by the `+ingress` annotation on verbs:
+
+```
+module example {
+  data GetRequestPathParams {
+    userId String
+  }
+  
+  data GetRequestQueryParams {
+    postId String
+  }
+  
+  data GetResponse {
+    message String
+  }
+  
+  data ErrorResponse {
+    error String
+  }
+  
+  // HTTP GET endpoint
+  verb get(builtin.HttpRequest<Unit, example.GetRequestPathParams, example.GetRequestQueryParams>) builtin.HttpResponse<example.GetResponse, example.ErrorResponse>
+    +ingress http GET /http/users/{userId}/posts
+}
+```
+
+The `+ingress` annotation specifies:
+1. The ingress type (http)
+2. The HTTP method (GET, PUT, POST, DELETE, etc.)
+3. The path pattern with path parameters in curly braces
+
+HTTP ingress verbs always use the `builtin.HttpRequest` and `builtin.HttpResponse` types, which provide the necessary structure for HTTP requests and responses.
+
+</TabItem>
 </Tabs>

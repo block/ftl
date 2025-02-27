@@ -99,6 +99,56 @@ This will require adding one of the following dependencies:
 Note that this will likely change significantly in future once JVM supports SQL verbs.
 
   </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, databases are represented using the `database` keyword with the engine type and name:
+
+```
+module example {
+  // Database declaration
+  database postgres testdb  
+    +migration sha256:59b989063b6de57a1b6867e8ad7915109c9b8632616118c6ef23e4439cf17f8e
+  
+  // Data structures for database operations
+  data CreateUserParams {
+    name String
+    email String
+  }
+  
+  data UserResult {
+    id Int +sql column "users"."id"
+    name String +sql column "users"."name"
+    email String +sql column "users"."email"
+  }
+  
+  // Query that returns a single row
+  verb getUser(Int) example.UserResult
+    +database calls example.testdb
+    +sql query :one "SELECT id, name, email FROM users WHERE id = ?"
+  
+  // Query that returns multiple rows
+  verb listUsers(Unit) [example.UserResult]
+    +database calls example.testdb
+    +sql query :many "SELECT id, name, email FROM users ORDER BY name"
+  
+  // Query that performs an action but doesn't return data
+  verb createUser(example.CreateUserParams) Unit
+    +database calls example.testdb
+    +sql query :exec "INSERT INTO users (name, email) VALUES (?, ?)"
+  
+  // Custom verb that uses a database query
+  export verb getUserEmail(Int) String
+    +calls example.getUser
+}
+```
+
+The schema representation includes:
+1. A `database` declaration with the engine type (`postgres` or `mysql`) and database name
+2. The `+migration` annotation with a SHA256 hash of the migration files
+3. Data structures with `+sql column` annotations mapping to database columns
+4. Verb declarations with `+database calls` and `+sql query` annotations specifying the query type and SQL statement
+
+  </TabItem>
 </Tabs>
 
 ## Creating a New Database
@@ -249,6 +299,25 @@ func Query(ctx context.Context, db MydbHandle) ([]string, error) {
 	TBD
 
   </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, the database handle is represented by the `+database calls` annotation on verbs:
+
+```
+module example {
+  // Database declaration
+  database postgres mydb
+    +migration sha256:59b989063b6de57a1b6867e8ad7915109c9b8632616118c6ef23e4439cf17f8e
+  
+  // Verb that uses the database handle directly
+  export verb query(Unit) [String]
+    +database calls example.mydb
+}
+```
+
+When you use a database handle in your code, you're directly accessing the underlying database connection. The FTL compiler automatically generates the appropriate handle type based on the database declaration.
+
+  </TabItem>
 </Tabs>
 
 ### Using Generated Query Clients
@@ -279,7 +348,7 @@ These queries will be automatically converted into FTL verbs with corresponding 
 ```go
 //ftl:verb export
 func GetEmail(ctx context.Context, id int, query GetUserClient) (string, error) {
-	result, err := query(ctx, GetUserQuery{ID: id})
+	result, err := query(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -296,6 +365,52 @@ func GetEmail(ctx context.Context, id int, query GetUserClient) (string, error) 
   <TabItem value="java" label="Java">
 	
 	TBD
+
+  </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, the generated query clients are represented as verbs with the `+database calls` and `+sql query` annotations:
+
+```
+module example {
+  // Database declaration
+  database postgres testdb
+    +migration sha256:59b989063b6de57a1b6867e8ad7915109c9b8632616118c6ef23e4439cf17f8e
+  
+  // Data structures for query results and parameters
+  data UserResult {
+    id Int +sql column "users"."id"
+    name String +sql column "users"."name"
+    email String +sql column "users"."email"
+  }
+  
+  data CreateUserParams {
+    name String
+    email String
+  }
+  
+  // Query that returns a single row
+  verb getUser(Int) example.UserResult
+    +database calls example.testdb
+    +sql query :one "SELECT id, name, email FROM users WHERE id = ?"
+  
+  // Query that returns multiple rows
+  verb listUsers(Unit) [example.UserResult]
+    +database calls example.testdb
+    +sql query :many "SELECT id, name, email FROM users ORDER BY name"
+  
+  // Query that performs an action but doesn't return data
+  verb createUser(example.CreateUserParams) Unit
+    +database calls example.testdb
+    +sql query :exec "INSERT INTO users (name, email) VALUES (?, ?)"
+  
+  // Custom verb that uses the generated query client
+  export verb getUserEmail(Int) String
+    +calls example.getUser
+}
+```
+
+When you use a generated query client in your code, you're calling a verb that has been automatically generated from your SQL query. The FTL compiler handles the mapping between your SQL queries and the generated verbs.
 
   </TabItem>
 </Tabs>

@@ -67,4 +67,35 @@ TimeResponse time()  {
 ```
 
   </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, exported declarations are prefixed with the `export` keyword:
+
+```
+module example {
+  export data TimeResponse {
+    time Time
+  }
+  
+  export verb time(Unit) example.TimeResponse
+  
+  export topic events example.Event
+  
+  export typealias UserID String
+}
+```
+
+Non-exported declarations are visible only within their module:
+
+```
+module example {
+  data InternalConfig {
+    setting String
+  }
+  
+  verb internalProcess(example.InternalConfig) Unit
+}
+```
+
+  </TabItem>
 </Tabs> 
