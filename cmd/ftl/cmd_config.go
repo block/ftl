@@ -53,7 +53,7 @@ func (s *configCmd) provider() optional.Option[ftlv1.ConfigProvider] {
 
 type configListCmd struct {
 	Values bool   `help:"List configuration values."`
-	Module string `optional:"" arg:"" placeholder:"MODULE" help:"List configuration only in this module."`
+	Module string `optional:"" arg:"" placeholder:"MODULE" help:"List configuration only in this module." predictor:"modules"`
 }
 
 func (s *configListCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
@@ -77,7 +77,7 @@ func (s *configListCmd) Run(ctx context.Context, adminClient admin.EnvironmentCl
 }
 
 type configGetCmd struct {
-	Ref configuration.Ref `arg:"" help:"Configuration reference in the form [<module>.]<name>."`
+	Ref configuration.Ref `arg:"" help:"Configuration reference in the form [<module>.]<name>." predictor:"configs"`
 }
 
 func (s *configGetCmd) Help() string {
@@ -99,7 +99,7 @@ func (s *configGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 
 type configSetCmd struct {
 	JSON  bool              `help:"Assume input value is JSON. Note: For string configs, the JSON value itself must be a string (e.g., '\"hello\"' or '\"{'key': 'value'}\"')."`
-	Ref   configuration.Ref `arg:"" help:"Configuration reference in the form [<module>.]<name>."`
+	Ref   configuration.Ref `arg:"" help:"Configuration reference in the form [<module>.]<name>." predictor:"configs"`
 	Value *string           `arg:"" placeholder:"VALUE" help:"Configuration value (read from stdin if omitted)." optional:""`
 }
 
@@ -143,7 +143,7 @@ func (s *configSetCmd) Run(ctx context.Context, scmd *configCmd, adminClient adm
 }
 
 type configUnsetCmd struct {
-	Ref configuration.Ref `arg:"" help:"Configuration reference in the form [<module>.]<name>."`
+	Ref configuration.Ref `arg:"" help:"Configuration reference in the form [<module>.]<name>." predictor:"configs"`
 }
 
 func (s *configUnsetCmd) Run(ctx context.Context, scmd *configCmd, adminClient admin.EnvironmentClient) error {

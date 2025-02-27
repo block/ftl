@@ -14,7 +14,7 @@ import (
 
 type updateCmd struct {
 	Replicas   int32          `short:"n" help:"Number of replicas to deploy." default:"1"`
-	Deployment key.Deployment `arg:"" help:"Deployment to update."`
+	Deployment key.Deployment `arg:"" help:"Deployment to update." predictor:"deployments"`
 }
 
 func (u *updateCmd) Run(ctx context.Context, client ftlv1connect.SchemaServiceClient) error {
