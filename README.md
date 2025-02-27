@@ -50,21 +50,20 @@ diff -u <(
 </script>-->
 
 ```sh file=test.sh region=init
-mkdir myproject
+ftl init myproject
 cd myproject
-ftl init myproject .
 ftl module new go alice
 ```
 
 ### Build and deploy the module
 
-Start FTL in one terminal:
+Start FTL:
 
 ```sh file=test.sh region=start
-ftl dev --wait-for=alice .
+ftl dev --wait-for=alice
 ```
 
-Then in a second terminal run the following:
+Now let's call a verb:
 
 ```sh file=test.sh region=call
 ftl call alice.hello '{name: "Bob"}'
