@@ -4,14 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
+	"maps"
 	"runtime"
 	"time"
 
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/types/optional"
 	"github.com/benbjohnson/clock"
-	"golang.org/x/exp/maps"
 )
 
 var _ Interface = (*Logger)(nil)
@@ -79,7 +78,12 @@ func (l Logger) GetLevel() Level {
 }
 
 func (l *Logger) Log(entry Entry) {
+	var mergedAttributes map[string]string
 	if t, ok := l.debugLogger.Get(); ok {
+		mergedAttributes = make(map[string]string, len(l.attributes)+len(entry.Attributes))
+		maps.Copy(mergedAttributes, l.attributes)
+		maps.Copy(mergedAttributes, entry.Attributes)
+		entry.Attributes = mergedAttributes
 		t.delegate.Log(entry)
 	}
 	if entry.Level < l.level.Load() {
@@ -90,14 +94,13 @@ func (l *Logger) Log(entry Entry) {
 		entry.Time = l.clock.Now().UTC()
 	}
 
-	mergedAttributes := make(map[string]string, len(l.attributes)+len(entry.Attributes))
-	maps.Copy(mergedAttributes, l.attributes)
-	maps.Copy(mergedAttributes, entry.Attributes)
-	entry.Attributes = mergedAttributes
-
-	if err := l.sink.Log(entry); err != nil {
-		fmt.Fprintf(os.Stderr, "ftl:log: failed to log entry: %v", err)
+	if mergedAttributes == nil {
+		mergedAttributes = make(map[string]string, len(l.attributes)+len(entry.Attributes))
+		maps.Copy(mergedAttributes, l.attributes)
+		maps.Copy(mergedAttributes, entry.Attributes)
+		entry.Attributes = mergedAttributes
 	}
+	_ = l.sink.Log(entry) // nolint:errcheck
 }
 
 func (l *Logger) Logf(level Level, format string, args ...interface{}) {

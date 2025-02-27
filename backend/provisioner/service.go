@@ -278,10 +278,12 @@ func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*
 }
 
 func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Changeset) error {
-	logger := log.FromContext(ctx)
+	mLogger := log.FromContext(ctx)
 	group := errgroup.Group{}
 	// TODO: Block deployments to make sure only one module is modified at a time
 	for _, module := range req.Modules {
+		logger := mLogger.Module(module.Name)
+		ctx := log.ContextWithLogger(ctx, logger)
 		moduleName := module.Name
 
 		existingModule, _ := s.currentModules.Load(moduleName)

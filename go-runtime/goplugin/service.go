@@ -131,6 +131,8 @@ type scaffoldingContext struct {
 // CreateModule generates files for a new module with the requested name
 func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.CreateModuleRequest]) (*connect.Response[langpb.CreateModuleResponse], error) {
 	logger := log.FromContext(ctx)
+	logger = logger.Module(req.Msg.Name)
+	ctx = log.ContextWithLogger(ctx, logger)
 	flags := req.Msg.Flags.AsMap()
 	projConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
 
@@ -202,6 +204,9 @@ func (s *Service) GetDependencies(ctx context.Context, req *connect.Request[lang
 }
 
 func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb.GenerateStubsRequest]) (*connect.Response[langpb.GenerateStubsResponse], error) {
+	logger := log.FromContext(ctx)
+	logger = logger.Module(req.Msg.Module.Name)
+	ctx = log.ContextWithLogger(ctx, logger)
 	moduleSchema, err := schema.ValidatedModuleFromProto(req.Msg.Module)
 	if err != nil {
 		return nil, fmt.Errorf("invalid module: %w", err)
@@ -220,6 +225,9 @@ func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb
 }
 
 func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[langpb.SyncStubReferencesRequest]) (*connect.Response[langpb.SyncStubReferencesResponse], error) {
+	logger := log.FromContext(ctx)
+	logger = logger.Module(req.Msg.ModuleConfig.Name)
+	ctx = log.ContextWithLogger(ctx, logger)
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
 	err := compile.SyncGeneratedStubReferences(ctx, config, req.Msg.StubsRoot, req.Msg.Modules)
 	if err != nil {
@@ -238,6 +246,9 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 // rebuild must include the latest build context id provided by the request or subsequent BuildContextUpdated
 // calls.
 func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse]) error {
+	logger := log.FromContext(ctx)
+	logger = logger.Module(req.Msg.BuildContext.ModuleConfig.Name)
+	ctx = log.ContextWithLogger(ctx, logger)
 	events := make(chan updateEvent, 32)
 	s.updatesTopic.Subscribe(events)
 	defer s.updatesTopic.Unsubscribe(events)
