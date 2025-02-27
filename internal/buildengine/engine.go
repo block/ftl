@@ -1432,7 +1432,7 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 }
 
 func (e *Engine) tryDeployFromQueue(ctx context.Context, deployment *pendingDeploy, toDeploy []*pendingDeploy, depGraph map[string][]string) bool {
-	sets := e.schemaSource.ActiveChangeset()
+	sets := e.schemaSource.ActiveChangesets()
 	modules := map[string]bool{}
 	depModules := map[string]bool{}
 	for _, module := range deployment.modules {

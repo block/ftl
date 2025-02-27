@@ -108,7 +108,7 @@ func (e *EventSource) WaitForInitialSync(ctx context.Context) bool {
 // CanonicalView is the materialised view of the schema from "Events".
 func (e *EventSource) CanonicalView() *schema.Schema { return e.view.Load().schema }
 
-func (e *EventSource) ActiveChangeset() map[key.Changeset]*schema.Changeset {
+func (e *EventSource) ActiveChangesets() map[key.Changeset]*schema.Changeset {
 	return e.view.Load().activeChangesets
 }
 
