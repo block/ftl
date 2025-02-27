@@ -106,6 +106,11 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 }
 
 func validateModule(dir string, name string) (string, string, error) {
+	if strings.Contains(name, string(filepath.Separator)) && (dir == "." || dir == "") {
+		components := strings.Split(name, string(filepath.Separator))
+		suggestedDir := strings.Join(components[:len(components)-1], string(filepath.Separator))
+		return "", "", fmt.Errorf("module name %q cannot contain path separators. Did you mean 'ftl module new %s %s'", name, components[len(components)-1], suggestedDir)
+	}
 	if dir == "" {
 		return "", "", fmt.Errorf("directory is required")
 	}
