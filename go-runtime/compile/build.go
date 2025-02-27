@@ -441,10 +441,25 @@ func buildErrorFromError(err error) builderrors.Error {
 	}
 }
 
+// IsEmpty returns true if the OngoingState is in its initial/reset state
+func (s *OngoingState) IsEmpty() bool {
+	return s == nil || (s.imports == nil && stdreflect.DeepEqual(s.moduleCtx, mainDeploymentContext{}))
+}
+
 // Build the given module.
 func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, config moduleconfig.AbsModuleConfig,
 	sch *schema.Schema, deps, buildEnv []string, filesTransaction watch.ModifyFilesTransaction, ongoingState *OngoingState,
 	devMode bool) (moduleSch optional.Option[*schema.Module], invalidateDeps bool, buildErrors []builderrors.Error) {
+	logger := log.FromContext(ctx)
+
+	// Only clean the build directory if the ongoing state is empty (first build or reset)
+	if ongoingState.IsEmpty() {
+		buildDir := buildDir(config.Dir)
+		if err := os.RemoveAll(buildDir); err != nil {
+			return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("failed to clean build directory: %w", err))}
+		}
+	}
+
 	if err := filesTransaction.Begin(); err != nil {
 		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("could not start a file transaction: %w", err))}
 	}
@@ -482,13 +497,11 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("go version %q is not recent enough for this module, needs minimum version %q", goVersion, goModVersion))}
 	}
 
-	logger := log.FromContext(ctx)
 	funcs := maps.Clone(scaffoldFuncs)
 
-	buildDir := buildDir(config.Dir)
-	mainDir := filepath.Join(buildDir, "go", "main")
+	mainDir := filepath.Join(buildDir(config.Dir), "go", "main")
 
-	err = os.MkdirAll(buildDir, 0750)
+	err = os.MkdirAll(buildDir(config.Dir), 0750)
 	if err != nil {
 		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("failed to create build directory: %w", err))}
 	}
@@ -569,7 +582,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	}
 
 	logger.Debugf("Writing launch script")
-	if err := writeLaunchScript(buildDir); err != nil {
+	if err := writeLaunchScript(buildDir(config.Dir)); err != nil {
 		return moduleSch, false, []builderrors.Error{buildErrorFromError(err)}
 	}
 
@@ -1764,7 +1777,7 @@ func shouldUpdateVersion(goModfile *modfile.File) bool {
 	return true
 }
 
-// returns the import path and directory name for a Go type
+// returns the import path and the directory name for a Go type
 // package and directory names are the same (dir=bar, pkg=bar): "github.com/foo/bar.A" => "github.com/foo/bar", none
 // package and directory names differ (dir=bar, pkg=baz): "github.com/foo/bar.baz.A" => "github.com/foo/bar", "baz"
 func nativeTypeFromQualifiedName(qualifiedName string) (nativeType, error) {
