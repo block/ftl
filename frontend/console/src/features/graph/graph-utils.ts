@@ -204,6 +204,7 @@ export const getGraphData = (
     processReferences(module, module.secrets, (item: Secret) => item.secret?.name || '')
     processReferences(module, module.databases, (item: Database) => item.database?.name || '')
     processReferences(module, module.topics, (item: Topic) => item.topic?.name || '')
+    processReferences(module, module.enums, (item: Enum) => item.enum?.name || '')
   }
 
   // Deduplicate edges
