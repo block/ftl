@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alecthomas/types/optional"
@@ -22,8 +23,16 @@ import (
 //go:embed docker-compose.mysql.yml
 var mysqlDockerCompose string
 
+// use this lock while checking latestMysqlDSN status and running `docker compose up` if needed
+var mysqlLock = &sync.Mutex{}
+var latestMysqlDSN optional.Option[string]
+
 //go:embed docker-compose.postgres.yml
 var postgresDockerCompose string
+
+// use this lock while checking latestPostgresDSN status and running `docker compose up` if needed
+var postgresLock = &sync.Mutex{}
+var latestPostgresDSN optional.Option[string]
 
 // CreateForDevel creates and migrates a new database for development or testing.
 //
@@ -96,6 +105,14 @@ func PostgresDSN(ctx context.Context, port int) string {
 }
 
 func SetupPostgres(ctx context.Context, image optional.Option[string], port int, recreate bool) error {
+	postgresLock.Lock()
+	defer postgresLock.Unlock()
+
+	// check if already started with this port
+	dsn := PostgresDSN(ctx, port)
+	if latestDSN, ok := latestPostgresDSN.Get(); ok && latestDSN == dsn {
+		return nil
+	}
 	envars := []string{}
 	if port != 0 {
 		envars = append(envars, "POSTGRES_PORT="+strconv.Itoa(port))
@@ -107,15 +124,23 @@ func SetupPostgres(ctx context.Context, image optional.Option[string], port int,
 	if err != nil {
 		return fmt.Errorf("could not start postgres: %w", err)
 	}
-	dsn := PostgresDSN(ctx, port)
 	_, err = CreateForDevel(ctx, dsn, recreate)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %w", err)
 	}
+	latestPostgresDSN = optional.Some(dsn)
 	return nil
 }
 
 func SetupMySQL(ctx context.Context, port int) (string, error) {
+	mysqlLock.Lock()
+	defer mysqlLock.Unlock()
+
+	// check if already started with this port
+	dsn := dsn.MySQLDSN("ftl", dsn.Port(port))
+	if latestDSN, ok := latestMysqlDSN.Get(); ok && latestDSN == dsn {
+		return dsn, nil
+	}
 	envars := []string{}
 	if port != 0 {
 		envars = append(envars, "MYSQL_PORT="+strconv.Itoa(port))
@@ -124,7 +149,8 @@ func SetupMySQL(ctx context.Context, port int) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not start mysql: %w", err)
 	}
-	dsn := dsn.MySQLDSN("ftl", dsn.Port(port))
+
 	log.FromContext(ctx).Debugf("MySQL DSN: %s", dsn)
+	latestMysqlDSN = optional.Some(dsn)
 	return dsn, nil
 }
