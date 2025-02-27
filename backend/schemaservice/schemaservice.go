@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"os/signal"
+	gslices "slices"
 	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
 	"golang.org/x/sync/errgroup"
-	"maps"
-	gslices "slices"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
