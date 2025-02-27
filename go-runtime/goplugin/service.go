@@ -323,11 +323,12 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 }
 
 func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan updateEvent) error {
+	logger := log.FromContext(ctx)
 	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
 		return fmt.Errorf("could not watch for file changes: %w", err)
 	}
-	log.FromContext(ctx).Debugf("Watching for file changes: %s", buildCtx.Config.Dir)
+	logger.Debugf("Watching for file changes: %s", buildCtx.Config.Dir)
 	watchEvents := make(chan watch.WatchEvent, 32)
 	watchTopic.Subscribe(watchEvents)
 
@@ -347,7 +348,7 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	go func() {
 		for e := range channels.IterContext(ctx, watchEvents) {
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
-				log.FromContext(ctx).Infof("Found file changes: %s", change)
+				logger.Debugf("Found file changes: %s", change)
 				events <- updateEvent(filesUpdatedEvent{changes: change.Changes})
 			}
 		}
