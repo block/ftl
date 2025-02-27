@@ -53,7 +53,7 @@ func TestExecutorSelection(t *testing.T) {
 		},
 	}
 
-	states, err := runner.Run(ctx)
+	states, err := runner.Run(ctx, "test")
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(states))
 

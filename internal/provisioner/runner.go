@@ -41,8 +41,8 @@ type Runner struct {
 	Stages []RunnerStage
 }
 
-func (r *Runner) Run(ctx context.Context) ([]state.State, error) {
-	logger := log.FromContext(ctx)
+func (r *Runner) Run(ctx context.Context, module string) ([]state.State, error) {
+	logger := log.FromContext(ctx).Module(module)
 
 	for _, stage := range r.Stages {
 		logger.Debugf("running stage %s", stage.Name)
@@ -115,11 +115,11 @@ func (r *Runner) execute(ctx context.Context, stage *RunnerStage) ([]state.State
 	return result, nil
 }
 
-func (t *Task) Start(oldCtx context.Context) {
+func (t *Task) Start(oldCtx context.Context, module string) {
 	ctx := context.WithoutCancel(oldCtx)
-	logger := log.FromContext(ctx)
+	logger := log.FromContext(ctx).Module(module)
 	go func() {
-		outputs, err := t.runner.Run(ctx)
+		outputs, err := t.runner.Run(ctx, module)
 		if err != nil {
 			logger.Errorf(err, "failed to execute provisioner")
 			t.err.Store(err)
