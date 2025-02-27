@@ -11,7 +11,7 @@ import (
 
 type downloadCmd struct {
 	Dest       string         `short:"d" help:"Destination directory." default:"."`
-	Deployment key.Deployment `help:"Deployment to download." arg:""`
+	Deployment key.Deployment `help:"Deployment to download." arg:"" predictor:"deployments"`
 }
 
 func (d *downloadCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient) error {

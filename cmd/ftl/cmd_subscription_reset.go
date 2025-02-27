@@ -13,7 +13,7 @@ import (
 )
 
 type resetSubscriptionCmd struct {
-	Subscription reflection.Ref `arg:"" required:"" help:"Full path of subscription to reset."`
+	Subscription reflection.Ref `arg:"" required:"" help:"Full path of subscription to reset." predictor:"subscriptions"`
 	Latest       bool           `flag:"latest" help:"Reset subscription to latest offset." default:"true" negatable:"beginning"`
 }
 

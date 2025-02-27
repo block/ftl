@@ -17,7 +17,7 @@ import (
 )
 
 type migrationSQLCmd struct {
-	Datasource string `arg:"" help:"The qualified name of the datasource in the form module.datasource to create the migration for. If the module is not specified FTL will attempt to infer it from the current working directory."`
+	Datasource string `arg:"" help:"The qualified name of the datasource in the form module.datasource to create the migration for. If the module is not specified FTL will attempt to infer it from the current working directory." predictor:"databases"`
 	Name       string `arg:"" help:"Name of the migration, this will be included in the migration file name."`
 }
 
@@ -49,10 +49,6 @@ func (i migrationSQLCmd) Run(ctx context.Context) error {
 	}
 	if module == nil {
 		return fmt.Errorf("could not find module %q", parts[0])
-	}
-
-	if err != nil {
-		return fmt.Errorf("could not discover modules: %w", err)
 	}
 	var migrationDir string
 	var found bool

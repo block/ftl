@@ -45,7 +45,7 @@ variables, and so on.
 
 type secretListCmd struct {
 	Values bool   `help:"List secret values."`
-	Module string `optional:"" arg:"" placeholder:"MODULE" help:"List secrets only in this module."`
+	Module string `optional:"" arg:"" placeholder:"MODULE" help:"List secrets only in this module." predictor:"modules"`
 }
 
 func (s *secretListCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
@@ -68,7 +68,7 @@ func (s *secretListCmd) Run(ctx context.Context, adminClient admin.EnvironmentCl
 }
 
 type secretGetCmd struct {
-	Ref cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>."`
+	Ref cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
 }
 
 func (s *secretGetCmd) Help() string {
@@ -90,7 +90,7 @@ func (s *secretGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 
 type secretSetCmd struct {
 	JSON  bool   `help:"Assume input value is JSON. Note: For string secrets, the JSON value itself must be a string (e.g., '\"hello\"' or '\"{'key': 'value'}\"')."`
-	Ref   cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>."`
+	Ref   cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
 	Value string `arg:"" placeholder:"VALUE" help:"Secret value (read from stdin if omitted)." optional:""`
 }
 
@@ -139,7 +139,7 @@ func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 }
 
 type secretUnsetCmd struct {
-	Ref cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>."`
+	Ref cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
 }
 
 func (s *secretUnsetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
