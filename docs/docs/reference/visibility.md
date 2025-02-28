@@ -71,7 +71,7 @@ TimeResponse time()  {
 
 In the FTL schema, exported declarations are prefixed with the `export` keyword:
 
-```
+```schema
 module example {
   export data TimeResponse {
     time Time
@@ -87,7 +87,7 @@ module example {
 
 Non-exported declarations are visible only within their module:
 
-```
+```schema
 module example {
   data InternalConfig {
     setting String

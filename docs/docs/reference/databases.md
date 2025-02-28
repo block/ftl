@@ -103,7 +103,7 @@ Note that this will likely change significantly in future once JVM supports SQL 
 
 In the FTL schema, databases are represented using the `database` keyword with the engine type and name:
 
-```
+```schema
 module example {
   // Database declaration
   database postgres testdb  
@@ -138,7 +138,6 @@ module example {
   
   // Custom verb that uses a database query
   export verb getUserEmail(Int) String
-    +calls example.getUser
 }
 ```
 
@@ -303,7 +302,7 @@ func Query(ctx context.Context, db MydbHandle) ([]string, error) {
 
 In the FTL schema, the database handle is represented by the `+database calls` annotation on verbs:
 
-```
+```schema
 module example {
   // Database declaration
   database postgres mydb
@@ -371,7 +370,7 @@ func GetEmail(ctx context.Context, id int, query GetUserClient) (string, error) 
 
 In the FTL schema, the generated query clients are represented as verbs with the `+database calls` and `+sql query` annotations:
 
-```
+```schema
 module example {
   // Database declaration
   database postgres testdb

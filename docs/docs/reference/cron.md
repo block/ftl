@@ -56,7 +56,7 @@ class MyCron {
   </TabItem>
   <TabItem value="schema" label="Schema">
 
-```
+```schema
 module example {
   verb hourly(Unit) Unit
     +cron "0 * * * *"
@@ -107,7 +107,7 @@ class MyCron {
   </TabItem>
   <TabItem value="schema" label="Schema">
 
-```
+```schema
 module example {
   verb twiceADay(Unit) Unit
     +cron "12h"
@@ -158,7 +158,7 @@ class MyCron {
   </TabItem>
   <TabItem value="schema" label="Schema">
 
-```
+```schema
 module example {
   verb mondays(Unit) Unit
     +cron "Mon"

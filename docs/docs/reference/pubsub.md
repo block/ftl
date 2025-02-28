@@ -83,7 +83,7 @@ interface InvoicesTopic extends WriteableTopic<Invoice, SinglePartitionMapper> {
 </TabItem>
 <TabItem value="schema" label="Schema">
 
-```
+```schema
 module payments {
   // The Invoice data type that will be published to the topic
   data Invoice {
@@ -183,7 +183,7 @@ interface InvoicesTopic extends WriteableTopic<Invoice, PartitionMapper> {
 </TabItem>
 <TabItem value="schema" label="Schema">
 
-```
+```schema
 module payments {
   // The Invoice data type that will be published to the topic
   data Invoice {
@@ -238,7 +238,7 @@ void publishInvoice(InvoiceRequest request, InvoicesTopic topic) throws Exceptio
 </TabItem>
 <TabItem value="schema" label="Schema">
 
-```
+```schema
 module payments {
   data InvoiceRequest {
     invoiceNo String
@@ -330,14 +330,17 @@ interface InvoicesTopic extends ConsumableTopic<Invoice> {}
 </TabItem>
 <TabItem value="schema" label="Schema">
 
-```
+```schema
 module payments {
+  data InvoiceRequest {
+    invoiceNo String
+  }
+  
   data Invoice {
     invoiceNo String
   }
   
-  // The topic that is being subscribed to
-  export topic invoices payments.Invoice
+  topic invoices payments.Invoice
   
   // A verb that subscribes to the invoices topic
   verb sendInvoiceEmail(payments.Invoice) Unit

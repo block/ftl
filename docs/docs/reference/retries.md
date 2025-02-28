@@ -161,7 +161,7 @@ public void recoverPaymentProcessing(CatchRequest<Payment> req) {
 
 In the FTL schema, retry policies are represented by the `+retry` annotation on verbs:
 
-```
+```schema
 module example {
   data Invoice {}
   
