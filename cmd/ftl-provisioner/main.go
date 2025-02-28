@@ -60,7 +60,7 @@ func main() {
 		kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 
 		sqlMigrationProvisioner := provisioner.NewSQLMigrationProvisioner(storage)
-		sqlMigrationBinding := registry.Register("in-mem-sql-migration", sqlMigrationProvisioner, schema.ResourceTypeSQLMigration)
+		sqlMigrationBinding := registry.Register("in-mem-sql-migration", provisioner.NewPluginClient(sqlMigrationProvisioner), schema.ResourceTypeSQLMigration)
 		logger.Debugf("Registered provisioner %s as fallback for sql-migration", sqlMigrationBinding)
 	}
 
@@ -69,7 +69,7 @@ func main() {
 		return slices.Contains(binding.Types, schema.ResourceTypeRunner)
 	}); !ok {
 		runnerProvisioner := provisioner.NewRunnerScalingProvisioner(scaling)
-		runnerBinding := registry.Register("kubernetes", runnerProvisioner, schema.ResourceTypeRunner)
+		runnerBinding := registry.Register("kubernetes", provisioner.NewPluginClient(runnerProvisioner), schema.ResourceTypeRunner)
 		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
 	}
 

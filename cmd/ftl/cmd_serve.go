@@ -292,7 +292,7 @@ func (s *serveCommonConfig) run(
 	provisionerRegistry := &provisioner.ProvisionerRegistry{
 		Bindings: []*provisioner.ProvisionerBinding{
 			{
-				Provisioner: provisioner.NewDevProvisioner(s.DBPort, s.MysqlPort, s.Recreate),
+				Provisioner: provisioner.NewPluginClient(provisioner.NewDevProvisioner(s.DBPort, s.MysqlPort, s.Recreate)),
 				Types: []schema.ResourceType{
 					schema.ResourceTypeMysql,
 					schema.ResourceTypePostgres,
@@ -302,12 +302,12 @@ func (s *serveCommonConfig) run(
 				ID: "dev",
 			},
 			{
-				Provisioner: provisioner.NewSQLMigrationProvisioner(storage),
+				Provisioner: provisioner.NewPluginClient(provisioner.NewSQLMigrationProvisioner(storage)),
 				Types:       []schema.ResourceType{schema.ResourceTypeSQLMigration},
 				ID:          "migration",
 			},
 			{
-				Provisioner: provisioner.NewRunnerScalingProvisioner(runnerScaling),
+				Provisioner: provisioner.NewPluginClient(provisioner.NewRunnerScalingProvisioner(runnerScaling)),
 				Types:       []schema.ResourceType{schema.ResourceTypeRunner},
 				ID:          "runner",
 			},

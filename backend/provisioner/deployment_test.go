@@ -4,13 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 	"github.com/google/uuid"
 
 	proto "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
-	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/provisioner"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
@@ -26,49 +23,45 @@ type MockProvisioner struct {
 	stateCalls int
 }
 
-var _ provisionerconnect.ProvisionerPluginServiceClient = (*MockProvisioner)(nil)
+var _ provisioner.Plugin = (*MockProvisioner)(nil)
 
-func (m *MockProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return &connect.Response[ftlv1.PingResponse]{}, nil
-}
-
-func (m *MockProvisioner) Provision(ctx context.Context, req *connect.Request[proto.ProvisionRequest]) (*connect.Response[proto.ProvisionResponse], error) {
+func (m *MockProvisioner) Provision(ctx context.Context, req *proto.ProvisionRequest) (*proto.ProvisionResponse, error) {
 	if m.ProvisionFn != nil {
-		resp, err := m.ProvisionFn(ctx, req.Msg)
+		resp, err := m.ProvisionFn(ctx, req)
 		if err != nil {
 			return nil, err
 		}
-		return connect.NewResponse(resp), nil
+		return resp, nil
 	}
 
-	return connect.NewResponse(&proto.ProvisionResponse{
+	return &proto.ProvisionResponse{
 		ProvisioningToken: uuid.New().String(),
-	}), nil
+	}, nil
 }
 
-func (m *MockProvisioner) Status(ctx context.Context, req *connect.Request[proto.StatusRequest]) (*connect.Response[proto.StatusResponse], error) {
+func (m *MockProvisioner) Status(ctx context.Context, req *proto.StatusRequest) (*proto.StatusResponse, error) {
 	m.stateCalls++
 	if m.stateCalls <= 1 {
-		return connect.NewResponse(&proto.StatusResponse{
+		return &proto.StatusResponse{
 			Status: &proto.StatusResponse_Running{},
-		}), nil
+		}, nil
 	}
 
 	if m.StatusFn != nil {
-		rep, err := m.StatusFn(ctx, req.Msg)
+		rep, err := m.StatusFn(ctx, req)
 		if err != nil {
 			return nil, err
 		}
-		return connect.NewResponse(rep), nil
+		return rep, nil
 	}
 
-	return connect.NewResponse(&proto.StatusResponse{
+	return &proto.StatusResponse{
 		Status: &proto.StatusResponse_Success{
 			Success: &proto.StatusResponse_ProvisioningSuccess{
 				Outputs: []*schemapb.RuntimeElement{},
 			},
 		},
-	}), nil
+	}, nil
 }
 
 func TestDeployment_Progress(t *testing.T) {

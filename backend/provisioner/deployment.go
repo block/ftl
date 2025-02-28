@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/jpillora/backoff"
 
@@ -49,19 +48,19 @@ func (t *Task) Start(ctx context.Context) error {
 		previous = t.deployment.Previous.ToProto()
 	}
 
-	resp, err := t.binding.Provisioner.Provision(ctx, connect.NewRequest(&provisioner.ProvisionRequest{
+	resp, err := t.binding.Provisioner.Provision(ctx, &provisioner.ProvisionRequest{
 		DesiredModule: t.deployment.DeploymentState.ToProto(),
 		// TODO: We need a proper cluster specific ID here
 		FtlClusterId:   "ftl",
 		PreviousModule: previous,
 		Changeset:      t.deployment.Changeset.String(),
 		Kinds:          slices.Map(t.binding.Types, func(x schema.ResourceType) string { return string(x) }),
-	}))
+	})
 	if err != nil {
 		t.state = TaskStateFailed
 		return fmt.Errorf("error provisioning resources: %w", err)
 	}
-	t.runningToken = resp.Msg.ProvisioningToken
+	t.runningToken = resp.ProvisioningToken
 
 	return nil
 }
@@ -76,24 +75,25 @@ func (t *Task) Progress(ctx context.Context) error {
 		Min: 50 * time.Millisecond,
 		Max: 30 * time.Second,
 	}
-	if _, ok := t.binding.Provisioner.(*InMemProvisioner); ok {
-		retry = backoff.Backoff{
-			Min: 50 * time.Millisecond,
-			Max: 100 * time.Millisecond,
-		}
-	}
+	// TODO: remove by using channels
+	// if _, ok := t.binding.Provisioner.(*InMemProvisioner); ok {
+	// 	retry = backoff.Backoff{
+	// 		Min: 50 * time.Millisecond,
+	// 		Max: 100 * time.Millisecond,
+	// 	}
+	// }
 
 	for {
 
-		resp, err := t.binding.Provisioner.Status(ctx, connect.NewRequest(&provisioner.StatusRequest{
+		resp, err := t.binding.Provisioner.Status(ctx, &provisioner.StatusRequest{
 			ProvisioningToken: t.runningToken,
 			DesiredModule:     t.deployment.DeploymentState.ToProto(),
-		}))
+		})
 		if err != nil {
 			t.state = TaskStateFailed
 			return fmt.Errorf("error getting state: %w", err)
 		}
-		if succ, ok := resp.Msg.Status.(*provisioner.StatusResponse_Success); ok {
+		if succ, ok := resp.Status.(*provisioner.StatusResponse_Success); ok {
 			t.state = TaskStateDone
 			for _, r := range succ.Success.Outputs {
 				element, err := schema.RuntimeElementFromProto(r)
