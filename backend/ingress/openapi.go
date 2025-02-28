@@ -499,6 +499,12 @@ func schemaForType(t schema.Type) spec.Schema {
 				Type: []string{"object"},
 			},
 		}
+	case *schema.Any:
+		return spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+			},
+		}
 	default:
 		panic(fmt.Sprintf("unknown type: %T", t))
 	}

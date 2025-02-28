@@ -210,12 +210,11 @@ func createOutOfOrderEvents(count int, state *streamState) in.Action {
 		for i := range count {
 			entry := &timelinepb.CreateEventsRequest_EventEntry{
 				Timestamp: timestamppb.New(time.Now()),
-				Entry: &timelinepb.CreateEventsRequest_EventEntry_DeploymentCreated{
-					DeploymentCreated: &timelinepb.DeploymentCreatedEvent{
-						Key:         "fake",
-						Language:    "go",
-						ModuleName:  "fakemodule:" + strconv.Itoa(i),
-						MinReplicas: 1,
+				Entry: &timelinepb.CreateEventsRequest_EventEntry_ChangesetCreated{
+					ChangesetCreated: &timelinepb.ChangesetCreatedEvent{
+						Key:       "changeset-" + strconv.Itoa(i),
+						CreatedAt: timestamppb.New(time.Now()),
+						Modules:   []string{"fakemodule:" + strconv.Itoa(i)},
 					},
 				},
 			}
@@ -245,7 +244,7 @@ func checkEvents(state *streamState, asc bool, lock *sync.Mutex) in.Action {
 		assert.Equal(t, len(state.actualEntries), len(streamEvents), "expected all events to have been streamed")
 		for i, event := range streamEvents {
 			expectedEntry := state.actualEntries[i]
-			assert.Equal(t, expectedEntry.GetDeploymentCreated().ModuleName, event.GetDeploymentCreated().ModuleName, "expected streamed event to match publication order")
+			assert.Equal(t, expectedEntry.GetChangesetCreated().Key, event.GetChangesetCreated().Key, "expected streamed event to match publication order")
 		}
 	}
 }

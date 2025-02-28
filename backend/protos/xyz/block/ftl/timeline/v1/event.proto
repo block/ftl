@@ -13,13 +13,15 @@ enum EventType {
   EVENT_TYPE_UNSPECIFIED = 0;
   EVENT_TYPE_LOG = 1;
   EVENT_TYPE_CALL = 2;
-  EVENT_TYPE_DEPLOYMENT_CREATED = 3;
-  EVENT_TYPE_DEPLOYMENT_UPDATED = 4;
-  EVENT_TYPE_INGRESS = 5;
-  EVENT_TYPE_CRON_SCHEDULED = 6;
-  EVENT_TYPE_ASYNC_EXECUTE = 7;
-  EVENT_TYPE_PUBSUB_PUBLISH = 8;
-  EVENT_TYPE_PUBSUB_CONSUME = 9;
+  EVENT_TYPE_INGRESS = 3;
+  EVENT_TYPE_CRON_SCHEDULED = 4;
+  EVENT_TYPE_ASYNC_EXECUTE = 5;
+  EVENT_TYPE_PUBSUB_PUBLISH = 6;
+  EVENT_TYPE_PUBSUB_CONSUME = 7;
+  EVENT_TYPE_CHANGESET_CREATED = 8;
+  EVENT_TYPE_CHANGESET_STATE_CHANGED = 9;
+  EVENT_TYPE_DEPLOYMENT_CREATED = 10;
+  EVENT_TYPE_DEPLOYMENT_RUNTIME = 11;
 }
 
 enum AsyncExecuteEventType {
@@ -61,20 +63,6 @@ message CallEvent {
   optional string stack = 10;
 
   reserved 4, 5;
-}
-
-message DeploymentCreatedEvent {
-  string key = 1;
-  string language = 2;
-  string module_name = 3;
-  int32 min_replicas = 4;
-  optional string replaced = 5;
-}
-
-message DeploymentUpdatedEvent {
-  string key = 1;
-  int32 min_replicas = 2;
-  int32 prev_min_replicas = 3;
 }
 
 message IngressEvent {
@@ -139,6 +127,34 @@ message PubSubConsumeEvent {
   int64 offset = 10;
 }
 
+message ChangesetCreatedEvent {
+  string key = 1;
+  google.protobuf.Timestamp created_at = 2;
+  repeated string modules = 3;
+  repeated string to_remove = 4;
+}
+
+message ChangesetStateChangedEvent {
+  string key = 1;
+  ftl.schema.v1.ChangesetState state = 2;
+  optional string error = 3;
+}
+
+message DeploymentCreatedEvent {
+  string key = 1;
+  google.protobuf.Timestamp created_at = 2;
+  string module = 3;
+  optional string changeset = 4;
+}
+
+message DeploymentRuntimeEvent {
+  string key = 1;
+  google.protobuf.Timestamp updated_at = 2;
+  optional string element_name = 3;
+  string element_type = 4;
+  optional string changeset = 5;
+}
+
 message Event {
   google.protobuf.Timestamp timestamp = 1;
   // Unique ID for event.
@@ -146,12 +162,14 @@ message Event {
   oneof entry {
     LogEvent log = 3;
     CallEvent call = 4;
-    DeploymentCreatedEvent deployment_created = 5;
-    DeploymentUpdatedEvent deployment_updated = 6;
     IngressEvent ingress = 7;
     CronScheduledEvent cron_scheduled = 8;
     AsyncExecuteEvent async_execute = 9;
     PubSubPublishEvent pubsub_publish = 10;
     PubSubConsumeEvent pubsub_consume = 11;
+    ChangesetCreatedEvent changeset_created = 12;
+    ChangesetStateChangedEvent changeset_state_changed = 13;
+    DeploymentCreatedEvent deployment_created = 14;
+    DeploymentRuntimeEvent deployment_runtime = 15;
   }
 }
