@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/jpillora/backoff"
+
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
-	"github.com/jpillora/backoff"
 )
 
 // Plugin that can be used to provision resources
