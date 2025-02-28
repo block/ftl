@@ -13,9 +13,9 @@ import { ErrorList } from "../../language/v1/language_pb.js";
  */
 export class ReloadRequest extends Message<ReloadRequest> {
   /**
-   * @generated from field: bool force = 1;
+   * @generated from field: bool force_new_runner = 1;
    */
-  force = false;
+  forceNewRunner = false;
 
   /**
    * If the reload results in a new runner, this will be the new deployment key
@@ -32,7 +32,7 @@ export class ReloadRequest extends Message<ReloadRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.hotreload.v1.ReloadRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "force", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: "force_new_runner", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 2, name: "new_deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 

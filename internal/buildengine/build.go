@@ -69,7 +69,7 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 
 	logger.Infof("Module built (%.2fs)", time.Since(result.StartTime).Seconds())
 
-	migrationFiles, err := handleDatabaseMigrations(config, result.Schema)
+	migrationFiles, err := handleDatabaseMigrations(ctx, config, result.Schema)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to extract migrations %w", err)
 	}

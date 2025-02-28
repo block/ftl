@@ -40,6 +40,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     private volatile Server server;
     private volatile Consumer<SchemaState> runningReload;
     private volatile boolean starting;
+    private volatile boolean nextRequiresNewRunner;
     private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
 
     public static HotReloadHandler getInstance() {
@@ -76,7 +77,8 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
-
+        var forceNewRunner = request.getForceNewRunner() || nextRequiresNewRunner;
+        this.nextRequiresNewRunner = false;
         // This is complex, as the restart can't happen until the runner is up
         // We want to report on the results of the schema generations, so we can bring up a runner
         // Run the restart in a new thread, so we can report on the schema once it is ready
@@ -115,17 +117,18 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                         var errors = builder.build();
                         RunnerNotification.newDeploymentKey(request.getNewDeploymentKey());
                         responseObserver.onNext(ReloadResponse.newBuilder()
-                                .setState(SchemaState.newBuilder().setErrors(errors)
-                                        .setNewRunnerRequired(true).build())
-                                .setFailed(true).build());
-                        responseObserver.onCompleted();
+                                .setState(SchemaState.newBuilder().setNewRunnerRequired(true).setErrors(errors)).build());
+                        nextRequiresNewRunner = true;
                     } else {
+                        if (forceNewRunner) {
+                            state = state.toBuilder().setNewRunnerRequired(true).build();
+                        }
                         if (state.getNewRunnerRequired()) {
                             RunnerNotification.newDeploymentKey(request.getNewDeploymentKey());
                         }
-                        responseObserver.onNext(ReloadResponse.newBuilder().setState(state).setFailed(false).build());
-                        responseObserver.onCompleted();
+                        responseObserver.onNext(ReloadResponse.newBuilder().setState(state).build());
                     }
+                    responseObserver.onCompleted();
                 }
             };
         }

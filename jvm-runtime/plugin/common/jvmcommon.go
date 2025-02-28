@@ -450,10 +450,11 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 			buildCtx = bc.buildCtx
 			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
 			if err != nil {
-				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
+				logger.Errorf(err, "failed to invoke hot reload for build context update")
+				continue
 			}
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), buildContextUpdated: true, failed: result.Msg.Failed}
-		case <-fileEvents:
+		case e := <-fileEvents:
 			newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
 			if err != nil {
 				logger.Errorf(err, "could not extract dependencies")
@@ -472,10 +473,19 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 				}
 				continue
 			}
+			sqlChanges := false
+			for _, f := range e.Changes {
+				if strings.HasSuffix(f.Path, ".sql") {
+					sqlChanges = true
+					break
+				}
+			}
 
-			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
+			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), ForceNewRunner: sqlChanges}))
+
 			if err != nil {
-				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
+				logger.Errorf(err, "failed to invoke hot reload for file update")
+				continue
 			}
 			if result.Msg.State.Module != nil {
 				if result.Msg.State.Module.Runtime == nil {
