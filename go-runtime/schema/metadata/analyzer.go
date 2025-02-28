@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -12,6 +13,7 @@ import (
 	"github.com/block/ftl-golang-tools/go/analysis"
 	"github.com/block/ftl-golang-tools/go/analysis/passes/inspect"
 	"github.com/block/ftl-golang-tools/go/ast/inspector"
+	ireflect "github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/go-runtime/schema/common"
 )
@@ -115,12 +117,21 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 				Cron: dt.Cron.String(),
 			})
 		case *common.DirectiveRetry:
+			pos := common.GoPosToSchemaPos(pass.Fset, dt.Pos)
+			var catch *schema.Ref
+			if dt.Catch != nil {
+				catch = &schema.Ref{
+					Module: dt.Catch.Module,
+					Name:   dt.Catch.Name,
+					Pos:    posFromPosWithinDirective(dt.Catch.Pos, pos),
+				}
+			}
 			metadata = append(metadata, &schema.MetadataRetry{
-				Pos:        common.GoPosToSchemaPos(pass.Fset, dt.Pos),
+				Pos:        pos,
 				Count:      dt.Count,
 				MinBackoff: dt.MinBackoff,
 				MaxBackoff: dt.MaxBackoff,
-				Catch:      dt.Catch().Ptr(),
+				Catch:      catch,
 			})
 		case *common.DirectiveTopic:
 			newSchType = &schema.Topic{}
@@ -130,11 +141,13 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 			})
 		case *common.DirectiveSubscriber:
 			newSchType = &schema.Verb{}
+			pos := common.GoPosToSchemaPos(pass.Fset, dt.Pos)
 			metadata = append(metadata, &schema.MetadataSubscriber{
-				Pos: common.GoPosToSchemaPos(pass.Fset, dt.Pos),
+				Pos: pos,
 				Topic: &schema.Ref{
-					Module: dt.TopicModule,
-					Name:   dt.TopicName,
+					Module: dt.Topic.Module,
+					Name:   dt.Topic.Name,
+					Pos:    posFromPosWithinDirective(dt.Topic.Pos, pos),
 				},
 				FromOffset: *dt.FromOffset,
 				DeadLetter: dt.DeadLetter,
@@ -176,6 +189,13 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 	}
 	validateMetadata(pass, node, md)
 	return optional.Some(md)
+}
+
+func posFromPosWithinDirective(pos schema.Position, parentPos schema.Position) schema.Position {
+	out := ireflect.DeepCopy(parentPos)
+	out.Column += pos.Column - 1
+	fmt.Printf("pos: %v\ntopicPos: %v\nfinal: %v\n", pos, parentPos, out)
+	return out
 }
 
 func validateMetadata(pass *analysis.Pass, node ast.Node, extracted *common.ExtractedMetadata) {
