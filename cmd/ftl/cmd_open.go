@@ -32,6 +32,7 @@ func (i openCmd) Run(ctx context.Context, ktctx *kong.Context, client ftlv1conne
 	if err != nil {
 		return fmt.Errorf("could not get schema: %w", err)
 	}
+	// merge changesets into schema so we get the latest decl positions
 	sch, err := mergedSchemaFromResp(resp.Msg)
 	if err != nil {
 		return err
@@ -119,4 +120,8 @@ func openIntelliJ(ctx context.Context, pos schema.Position, projectRoot string) 
 		return fmt.Errorf("could not open IntelliJ IDEA: %w", err)
 	}
 	return nil
+}
+
+func filePathForPosition(pos schema.Position, modulePath string) string {
+	// TODO: implement
 }
