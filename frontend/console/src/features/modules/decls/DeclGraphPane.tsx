@@ -2,10 +2,11 @@ import { Controls, type Edge, ReactFlow as Flow, type Node, ReactFlowProvider } 
 import dagre from 'dagre'
 import { useCallback, useMemo } from 'react'
 import type React from 'react'
-import type { Edges, Module } from '../../../protos/xyz/block/ftl/console/v1/console_pb'
+import type { Data, Edges, Enum, Module, Topic, TypeAlias, Verb } from '../../../protos/xyz/block/ftl/console/v1/console_pb'
 import { useUserPreferences } from '../../../shared/providers/user-preferences-provider'
 import { DeclNode } from '../../graph/DeclNode'
 import { getNodeBackgroundColor } from '../../graph/graph-styles'
+import { getIsExported } from '../../graph/graph-utils'
 import { useModules } from '../hooks/use-modules'
 import { getVerbType } from '../module.utils'
 import { declSchemaFromModules } from '../schema/schema.utils'
@@ -43,6 +44,33 @@ const getVerbNodeType = (modules: Module[], moduleName: string, verbName: string
   }
 
   return getVerbType(verb)
+}
+
+/**
+ * Helper function to find a declaration in a module
+ */
+const findDeclaration = (module: Module | undefined, declType: string, declName: string): Verb | Data | Enum | TypeAlias | Topic | undefined => {
+  if (!module) return undefined
+
+  switch (declType) {
+    case 'verb': {
+      return module.verbs?.find((v) => v.verb?.name === declName)
+    }
+    case 'data': {
+      return module.data?.find((d) => d.data?.name === declName)
+    }
+    case 'enum': {
+      return module.enums?.find((e) => e.enum?.name === declName)
+    }
+    case 'typealias': {
+      return module.typealiases?.find((t) => t.typealias?.name === declName)
+    }
+    case 'topic': {
+      return module.topics?.find((t) => t.topic?.name === declName)
+    }
+    default:
+      return undefined
+  }
 }
 
 // Dagre layout function for decl graph
@@ -84,7 +112,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   return { nodes, edges }
 }
 
-const createNode = (id: string, label: string, nodeType: string, isDarkMode: boolean, isCenter: boolean): Node => ({
+const createNode = (id: string, label: string, nodeType: string, isDarkMode: boolean, isCenter: boolean, isExported?: boolean): Node => ({
   id,
   type: 'declNode',
   position: { x: 0, y: 0 },
@@ -97,6 +125,8 @@ const createNode = (id: string, label: string, nodeType: string, isDarkMode: boo
     style: {
       backgroundColor: getNodeBackgroundColor(isDarkMode, nodeType),
     },
+    id,
+    isExported,
   },
 })
 
@@ -128,7 +158,13 @@ export const DeclGraphPane: React.FC<DeclGraphPaneProps> = ({ edges, declName, d
 
     // Get the correct node type for verbs
     const centerNodeType = getVerbNodeType(modules, moduleName, declName, declType)
-    nodes.push(createNode(centerId, declName, centerNodeType, isDarkMode, true))
+
+    // Find the current declaration to get its exported status
+    const currentModule = modules.find((m) => m.name === moduleName)
+    const currentDecl = findDeclaration(currentModule, declType, declName)
+    const isExported = currentDecl ? getIsExported(currentDecl) : undefined
+
+    nodes.push(createNode(centerId, declName, centerNodeType, isDarkMode, true, isExported))
 
     // Create nodes and edges for inbound references
     for (const ref of edges.in) {
@@ -136,7 +172,12 @@ export const DeclGraphPane: React.FC<DeclGraphPaneProps> = ({ edges, declName, d
       const schema = declSchemaFromModules(ref.module, ref.name, modules)
       const nodeType = getVerbNodeType(modules, ref.module, ref.name, schema?.declType || declType)
 
-      nodes.push(createNode(id, ref.name, nodeType, isDarkMode, false))
+      // Find the referenced declaration to get its exported status
+      const refModule = modules.find((m) => m.name === ref.module)
+      const refDecl = schema?.declType ? findDeclaration(refModule, schema.declType, ref.name) : undefined
+      const refIsExported = refDecl ? getIsExported(refDecl) : undefined
+
+      nodes.push(createNode(id, ref.name, nodeType, isDarkMode, false, refIsExported))
       graphEdges.push(createEdge(id, centerId, isDarkMode))
     }
 
@@ -146,11 +187,17 @@ export const DeclGraphPane: React.FC<DeclGraphPaneProps> = ({ edges, declName, d
       const schema = declSchemaFromModules(ref.module, ref.name, modules)
       const nodeType = getVerbNodeType(modules, ref.module, ref.name, schema?.declType || declType)
 
-      nodes.push(createNode(id, ref.name, nodeType, isDarkMode, false))
+      // Find the referenced declaration to get its exported status
+      const refModule = modules.find((m) => m.name === ref.module)
+      const refDecl = schema?.declType ? findDeclaration(refModule, schema.declType, ref.name) : undefined
+      const refIsExported = refDecl ? getIsExported(refDecl) : undefined
+
+      nodes.push(createNode(id, ref.name, nodeType, isDarkMode, false, refIsExported))
       graphEdges.push(createEdge(centerId, id, isDarkMode))
     }
 
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, graphEdges)
+
     return { nodes: layoutedNodes, graphEdges: layoutedEdges }
   }, [edges, declName, declType, moduleName, isDarkMode, modulesData?.modules])
 

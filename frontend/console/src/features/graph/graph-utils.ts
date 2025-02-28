@@ -47,8 +47,35 @@ export const createNode = (
       backgroundColor: getNodeBackgroundColor(isDarkMode, nodeType),
     },
     zIndex: type === 'groupNode' ? -1 : 2,
+    isExported: type === 'declNode' ? getIsExported(item) : undefined,
   },
 })
+
+// Helper function to determine if a declaration is exported
+export const getIsExported = (item: FTLNode): boolean | undefined => {
+  if ('verb' in item && item.verb && typeof item.verb === 'object' && 'export' in item.verb) {
+    return !!item.verb.export
+  }
+  if ('data' in item && item.data && typeof item.data === 'object' && 'export' in item.data) {
+    return !!item.data.export
+  }
+  if ('enum' in item && item.enum && typeof item.enum === 'object' && 'export' in item.enum) {
+    return !!item.enum.export
+  }
+  if ('typealias' in item && item.typealias && typeof item.typealias === 'object' && 'export' in item.typealias) {
+    return !!item.typealias.export
+  }
+  if ('topic' in item && item.topic && typeof item.topic === 'object' && 'export' in item.topic) {
+    return !!item.topic.export
+  }
+  if ('config' in item && item.config && typeof item.config === 'object' && 'export' in item.config) {
+    return !!item.config.export
+  }
+  if ('database' in item && item.database && typeof item.database === 'object' && 'export' in item.database) {
+    return !!item.database.export
+  }
+  return undefined
+}
 
 export const createEdge = (
   sourceModule: string,
