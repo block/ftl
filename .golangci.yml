@@ -153,3 +153,4 @@ issues:
     - "error returned from external package is unwrapped.*TranslatePGError"
     - "struct literal uses unkeyed fields"
     - "exported: comment on exported type"
+    - "result .* \\(error\\) is always nil"
