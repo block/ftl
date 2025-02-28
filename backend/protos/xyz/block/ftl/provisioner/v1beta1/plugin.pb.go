@@ -256,6 +256,7 @@ type StatusResponse struct {
 	//
 	//	*StatusResponse_Running
 	//	*StatusResponse_Success
+	//	*StatusResponse_Failed
 	Status        isStatusResponse_Status `protobuf_oneof:"status"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -316,6 +317,15 @@ func (x *StatusResponse) GetSuccess() *StatusResponse_ProvisioningSuccess {
 	return nil
 }
 
+func (x *StatusResponse) GetFailed() *StatusResponse_ProvisioningFailed {
+	if x != nil {
+		if x, ok := x.Status.(*StatusResponse_Failed); ok {
+			return x.Failed
+		}
+	}
+	return nil
+}
+
 type isStatusResponse_Status interface {
 	isStatusResponse_Status()
 }
@@ -328,9 +338,15 @@ type StatusResponse_Success struct {
 	Success *StatusResponse_ProvisioningSuccess `protobuf:"bytes,2,opt,name=success,proto3,oneof"`
 }
 
+type StatusResponse_Failed struct {
+	Failed *StatusResponse_ProvisioningFailed `protobuf:"bytes,3,opt,name=failed,proto3,oneof"`
+}
+
 func (*StatusResponse_Running) isStatusResponse_Status() {}
 
 func (*StatusResponse_Success) isStatusResponse_Status() {}
+
+func (*StatusResponse_Failed) isStatusResponse_Status() {}
 
 type StatusResponse_ProvisioningRunning struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -510,7 +526,7 @@ var file_xyz_block_ftl_provisioner_v1beta1_plugin_proto_rawDesc = string([]byte{
 	0x75, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x78, 0x79, 0x7a, 0x2e,
 	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61,
 	0x2e, 0x76, 0x31, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x52, 0x0d, 0x64, 0x65, 0x73, 0x69,
-	0x72, 0x65, 0x64, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x22, 0x8c, 0x03, 0x0a, 0x0e, 0x53, 0x74,
+	0x72, 0x65, 0x64, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x22, 0xec, 0x03, 0x0a, 0x0e, 0x53, 0x74,
 	0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x61, 0x0a, 0x07,
 	0x72, 0x75, 0x6e, 0x6e, 0x69, 0x6e, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x45, 0x2e,
 	0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66, 0x74, 0x6c, 0x2e, 0x70, 0x72,
@@ -524,7 +540,13 @@ var file_xyz_block_ftl_provisioner_v1beta1_plugin_proto_rawDesc = string([]byte{
 	0x65, 0x74, 0x61, 0x31, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f,
 	0x6e, 0x73, 0x65, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x69, 0x6e, 0x67,
 	0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x48, 0x00, 0x52, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65,
-	0x73, 0x73, 0x1a, 0x15, 0x0a, 0x13, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x69,
+	0x73, 0x73, 0x12, 0x5e, 0x0a, 0x06, 0x66, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x44, 0x2e, 0x78, 0x79, 0x7a, 0x2e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x66,
+	0x74, 0x6c, 0x2e, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x65, 0x72, 0x2e, 0x76,
+	0x31, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x69,
+	0x6e, 0x67, 0x46, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x48, 0x00, 0x52, 0x06, 0x66, 0x61, 0x69, 0x6c,
+	0x65, 0x64, 0x1a, 0x15, 0x0a, 0x13, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x69,
 	0x6e, 0x67, 0x52, 0x75, 0x6e, 0x6e, 0x69, 0x6e, 0x67, 0x1a, 0x39, 0x0a, 0x12, 0x50, 0x72, 0x6f,
 	0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x69, 0x6e, 0x67, 0x46, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x12,
 	0x23, 0x0a, 0x0d, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x5f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
@@ -600,18 +622,19 @@ var file_xyz_block_ftl_provisioner_v1beta1_plugin_proto_depIdxs = []int32{
 	8,  // 3: xyz.block.ftl.provisioner.v1beta1.StatusRequest.desired_module:type_name -> xyz.block.ftl.schema.v1.Module
 	5,  // 4: xyz.block.ftl.provisioner.v1beta1.StatusResponse.running:type_name -> xyz.block.ftl.provisioner.v1beta1.StatusResponse.ProvisioningRunning
 	7,  // 5: xyz.block.ftl.provisioner.v1beta1.StatusResponse.success:type_name -> xyz.block.ftl.provisioner.v1beta1.StatusResponse.ProvisioningSuccess
-	9,  // 6: xyz.block.ftl.provisioner.v1beta1.StatusResponse.ProvisioningSuccess.outputs:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
-	10, // 7: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
-	1,  // 8: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Provision:input_type -> xyz.block.ftl.provisioner.v1beta1.ProvisionRequest
-	3,  // 9: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Status:input_type -> xyz.block.ftl.provisioner.v1beta1.StatusRequest
-	11, // 10: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	2,  // 11: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Provision:output_type -> xyz.block.ftl.provisioner.v1beta1.ProvisionResponse
-	4,  // 12: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Status:output_type -> xyz.block.ftl.provisioner.v1beta1.StatusResponse
-	10, // [10:13] is the sub-list for method output_type
-	7,  // [7:10] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	6,  // 6: xyz.block.ftl.provisioner.v1beta1.StatusResponse.failed:type_name -> xyz.block.ftl.provisioner.v1beta1.StatusResponse.ProvisioningFailed
+	9,  // 7: xyz.block.ftl.provisioner.v1beta1.StatusResponse.ProvisioningSuccess.outputs:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
+	10, // 8: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	1,  // 9: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Provision:input_type -> xyz.block.ftl.provisioner.v1beta1.ProvisionRequest
+	3,  // 10: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Status:input_type -> xyz.block.ftl.provisioner.v1beta1.StatusRequest
+	11, // 11: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	2,  // 12: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Provision:output_type -> xyz.block.ftl.provisioner.v1beta1.ProvisionResponse
+	4,  // 13: xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService.Status:output_type -> xyz.block.ftl.provisioner.v1beta1.StatusResponse
+	11, // [11:14] is the sub-list for method output_type
+	8,  // [8:11] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_provisioner_v1beta1_plugin_proto_init() }
@@ -622,6 +645,7 @@ func file_xyz_block_ftl_provisioner_v1beta1_plugin_proto_init() {
 	file_xyz_block_ftl_provisioner_v1beta1_plugin_proto_msgTypes[3].OneofWrappers = []any{
 		(*StatusResponse_Running)(nil),
 		(*StatusResponse_Success)(nil),
+		(*StatusResponse_Failed)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

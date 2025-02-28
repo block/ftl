@@ -39,7 +39,7 @@ func (cfg *provisionerPluginConfig) Validate() error {
 
 // ProvisionerBinding is a Provisioner and the types it supports
 type ProvisionerBinding struct {
-	Provisioner provisionerconnect.ProvisionerPluginServiceClient
+	Provisioner Plugin
 	ID          string
 	Types       []schema.ResourceType
 }
@@ -81,13 +81,13 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 	return result, nil
 }
 
-func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling) (provisionerconnect.ProvisionerPluginServiceClient, error) {
+func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling) (Plugin, error) {
 	switch id {
 	case "kubernetes":
 		// TODO: move this into a plugin
 		return NewRunnerScalingProvisioner(scaling), nil
 	case "noop":
-		return &NoopProvisioner{}, nil
+		return NewPluginClient(&NoopProvisioner{}), nil
 	default:
 		plugin, _, err := plugin.Spawn(
 			ctx,
@@ -102,12 +102,12 @@ func provisionerIDToProvisioner(ctx context.Context, id string, workingDir strin
 			return nil, fmt.Errorf("error spawning plugin: %w", err)
 		}
 
-		return plugin.Client, nil
+		return NewPluginClient(plugin.Client), nil
 	}
 }
 
 // Register to the registry, to be executed after all the previously added handlers
-func (reg *ProvisionerRegistry) Register(id string, handler provisionerconnect.ProvisionerPluginServiceClient, types ...schema.ResourceType) *ProvisionerBinding {
+func (reg *ProvisionerRegistry) Register(id string, handler Plugin, types ...schema.ResourceType) *ProvisionerBinding {
 	binding := &ProvisionerBinding{
 		Provisioner: handler,
 		Types:       types,

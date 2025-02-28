@@ -46,6 +46,7 @@ message StatusResponse {
   oneof status {
     ProvisioningRunning running = 1;
     ProvisioningSuccess success = 2;
+    ProvisioningFailed failed = 3;
   }
 }
 
