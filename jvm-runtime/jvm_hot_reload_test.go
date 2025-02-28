@@ -17,7 +17,7 @@ import (
 func TestLifecycleJVM(t *testing.T) {
 	deployment := ""
 	in.Run(t,
-		in.WithLanguages("java"),
+		in.WithLanguages("java", "kotlin"),
 		in.WithDevMode(),
 		in.GitInit(),
 		in.Exec("rm", "ftl-project.toml"),
@@ -33,19 +33,19 @@ func TestLifecycleJVM(t *testing.T) {
 				}
 			}
 		}),
-		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
-			assert.Equal(t, "Hello, Bob!", response)
+		in.Call("echo", "hello", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
+			assert.Equal(t, "Hello, Bob!", response["message"])
 		}),
 		// Now test hot reload
 		// Deliberate compile error, we need to check that we can recover from this
 		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
+			return []byte(strings.ReplaceAll(string(content), "\"Hello", "\"Bye"))
 		}, "src/main/java/ftl/echo/Echo.java")),
 		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
 			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
 		}, "src/main/kotlin/ftl/echo/Echo.kt")),
-		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
-			assert.Equal(t, "Bye, Bob!", response)
+		in.Call("echo", "hello", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
+			assert.Equal(t, "Bye, Bob!", response["message"])
 		}),
 		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
 			// Non structurally changing edits should not trigger a new deployment.
@@ -71,8 +71,8 @@ func TestLifecycleJVM(t *testing.T) {
 		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
 			return []byte(strings.ReplaceAll(string(content), "broken", ""))
 		}, "src/main/kotlin/ftl/echo/Echo.kt")),
-		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
-			assert.Equal(t, "Bye, Bob!", response)
+		in.Call("echo", "hello", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
+			assert.Equal(t, "Bye, Bob!", response["message"])
 		}),
 		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
 			// Non structurally changing edits should not trigger a new deployment.
@@ -94,8 +94,8 @@ func TestLifecycleJVM(t *testing.T) {
 </dependencies>`, 1))
 		}, "pom.xml"),
 
-		in.Call("echo", "hello", "Bob", func(t testing.TB, response string) {
-			assert.Equal(t, "Bye, Bob!", response)
+		in.Call("echo", "hello", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
+			assert.Equal(t, "Bye, Bob!", response["message"])
 		}),
 		// Now lets add a database, add the ftl config
 		in.EditFile("echo", func(content []byte) []byte {
