@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/block/ftl/common/schema"
 	"github.com/go-openapi/spec"
+
+	"github.com/block/ftl/common/schema"
 )
 
 // SchemaToOpenAPI converts an FTL schema to an OpenAPI specification.
