@@ -97,14 +97,13 @@ func TestLifecycleJVM(t *testing.T) {
 		in.Call("echo", "hello", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
 			assert.Equal(t, "Bye, Bob!", response["message"])
 		}),
-		// Now lets add a database, add the ftl config
-		in.EditFile("echo", func(content []byte) []byte {
-			return []byte(`
-quarkus.datasource.testdb.db-kind=postgresql
-quarkus.hibernate-orm.datasource=testdb
-`)
-		}, "src/main/resources/application.properties"),
-
+		// Now lets add the DB
+		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
+			return []byte(strings.ReplaceAll(string(content), "@Export", "@Export\n\n@SQLDatasource(name = \"testdb\", type = SQLDatabaseType.POSTGRESQL)"))
+		}, "src/main/java/ftl/echo/Echo.java")),
+		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
+			return []byte(strings.ReplaceAll(string(content), "@Export", "@Export\n\n@SQLDatasource(name = \"testdb\", type = SQLDatabaseType.POSTGRESQL)"))
+		}, "src/main/kotlin/ftl/echo/Echo.kt")),
 		// Create a new datasource
 		in.Exec("ftl", "postgres", "new", "echo.testdb"),
 
