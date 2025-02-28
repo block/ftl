@@ -45,7 +45,7 @@ class StatusRequest(_message.Message):
     def __init__(self, provisioning_token: _Optional[str] = ..., desired_module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ...) -> None: ...
 
 class StatusResponse(_message.Message):
-    __slots__ = ("running", "success")
+    __slots__ = ("running", "success", "failed")
     class ProvisioningRunning(_message.Message):
         __slots__ = ()
         def __init__(self) -> None: ...
@@ -61,6 +61,8 @@ class StatusResponse(_message.Message):
         def __init__(self, outputs: _Optional[_Iterable[_Union[_schema_pb2.RuntimeElement, _Mapping]]] = ...) -> None: ...
     RUNNING_FIELD_NUMBER: _ClassVar[int]
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    FAILED_FIELD_NUMBER: _ClassVar[int]
     running: StatusResponse.ProvisioningRunning
     success: StatusResponse.ProvisioningSuccess
-    def __init__(self, running: _Optional[_Union[StatusResponse.ProvisioningRunning, _Mapping]] = ..., success: _Optional[_Union[StatusResponse.ProvisioningSuccess, _Mapping]] = ...) -> None: ...
+    failed: StatusResponse.ProvisioningFailed
+    def __init__(self, running: _Optional[_Union[StatusResponse.ProvisioningRunning, _Mapping]] = ..., success: _Optional[_Union[StatusResponse.ProvisioningSuccess, _Mapping]] = ..., failed: _Optional[_Union[StatusResponse.ProvisioningFailed, _Mapping]] = ...) -> None: ...

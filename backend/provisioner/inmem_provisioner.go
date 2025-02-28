@@ -11,8 +11,6 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
-	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -65,40 +63,36 @@ func NewEmbeddedProvisioner(handlers map[schema.ResourceType]InMemResourceProvis
 	}
 }
 
-var _ provisionerconnect.ProvisionerPluginServiceClient = (*InMemProvisioner)(nil)
-
-func (d *InMemProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return &connect.Response[ftlv1.PingResponse]{}, nil
-}
+var _ Plugin = (*InMemProvisioner)(nil)
 
 type stepCompletedEvent struct {
 	step  *inMemProvisioningStep
 	event optional.Option[schema.RuntimeElement]
 }
 
-func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[provisioner.ProvisionRequest]) (*connect.Response[provisioner.ProvisionResponse], error) {
+func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.ProvisionRequest) (chan *provisioner.StatusResponse, error) {
 	logger := log.FromContext(ctx)
-	parsed, err := key.ParseChangesetKey(req.Msg.Changeset)
+	parsed, err := key.ParseChangesetKey(req.Changeset)
 	if err != nil {
 		err = fmt.Errorf("invalid changeset: %w", err)
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	var previousModule *schema.Module
-	if req.Msg.PreviousModule != nil {
-		pm, err := schema.ValidatedModuleFromProto(req.Msg.PreviousModule)
+	if req.PreviousModule != nil {
+		pm, err := schema.ValidatedModuleFromProto(req.PreviousModule)
 		if err != nil {
 			err = fmt.Errorf("invalid previous module: %w", err)
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 		previousModule = pm
 	}
-	desiredModule, err := schema.ValidatedModuleFromProto(req.Msg.DesiredModule)
+	desiredModule, err := schema.ValidatedModuleFromProto(req.DesiredModule)
 	if err != nil {
 		err = fmt.Errorf("invalid desired module: %w", err)
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	kinds := slices.Map(req.Msg.Kinds, func(k string) schema.ResourceType { return schema.ResourceType(k) })
+	kinds := slices.Map(req.Kinds, func(k string) schema.ResourceType { return schema.ResourceType(k) })
 	previousNodes := schema.GetProvisioned(previousModule)
 	desiredNodes := schema.GetProvisioned(desiredModule)
 
@@ -146,6 +140,7 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 		}
 	}
 
+	statusCh := make(chan *provisioner.StatusResponse, 64)
 	go func() {
 		for c := range channels.IterContext(ctx, completions) {
 			if e, ok := c.event.Get(); ok {
@@ -153,8 +148,24 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 			}
 			c.step.Done.Store(true)
 			done, err := task.Done()
-			if done || err != nil {
-				return
+			if err != nil {
+				statusCh <- &provisioner.StatusResponse{
+					Status: &provisioner.StatusResponse_Failed{
+						Failed: &provisioner.StatusResponse_ProvisioningFailed{
+							ErrorMessage: err.Error(),
+						},
+					},
+				}
+			} else if done {
+				statusCh <- &provisioner.StatusResponse{
+					Status: &provisioner.StatusResponse_Success{
+						Success: &provisioner.StatusResponse_ProvisioningSuccess{
+							Outputs: slices.Map(task.events, func(e *schema.RuntimeElement) *schemapb.RuntimeElement {
+								return e.ToProto()
+							}),
+						},
+					},
+				}
 			}
 		}
 	}()
@@ -163,42 +174,5 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *connect.Request[p
 	logger.Debugf("started a task with token %s", token)
 	d.running.Store(token, task)
 
-	return connect.NewResponse(&provisioner.ProvisionResponse{
-		ProvisioningToken: token,
-		Status:            provisioner.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
-	}), nil
-}
-
-func (d *InMemProvisioner) Status(ctx context.Context, req *connect.Request[provisioner.StatusRequest]) (*connect.Response[provisioner.StatusResponse], error) {
-	logger := log.FromContext(ctx)
-
-	token := req.Msg.ProvisioningToken
-	task, ok := d.running.Load(token)
-	if !ok {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("unknown token: %s", token))
-	}
-	done, err := task.Done()
-	if err != nil {
-		logger.Debugf("task with token %s failed with error: %s", token, err.Error())
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	if !done {
-		return connect.NewResponse(&provisioner.StatusResponse{
-			Status: &provisioner.StatusResponse_Running{},
-		}), nil
-	}
-	logger.Debugf("task with token %s is done", token)
-
-	d.running.Delete(token)
-
-	return connect.NewResponse(&provisioner.StatusResponse{
-		Status: &provisioner.StatusResponse_Success{
-			Success: &provisioner.StatusResponse_ProvisioningSuccess{
-				Outputs: slices.Map(task.events, func(e *schema.RuntimeElement) *schemapb.RuntimeElement {
-					return e.ToProto()
-				}),
-			},
-		},
-	}), nil
+	return statusCh, nil
 }

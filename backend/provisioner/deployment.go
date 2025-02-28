@@ -3,10 +3,8 @@ package provisioner
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/alecthomas/types/optional"
-	"github.com/jpillora/backoff"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -71,18 +69,6 @@ func (t *Task) Progress(ctx context.Context) error {
 		return fmt.Errorf("task state is not running: %s", t.state)
 	}
 
-	retry := backoff.Backoff{
-		Min: 50 * time.Millisecond,
-		Max: 30 * time.Second,
-	}
-	// TODO: remove by using channels
-	// if _, ok := t.binding.Provisioner.(*InMemProvisioner); ok {
-	// 	retry = backoff.Backoff{
-	// 		Min: 50 * time.Millisecond,
-	// 		Max: 100 * time.Millisecond,
-	// 	}
-	// }
-
 	for {
 		resp, ok := <-t.statusCh
 		if !ok {
@@ -112,7 +98,10 @@ func (t *Task) Progress(ctx context.Context) error {
 			return nil
 
 		}
-		time.Sleep(retry.Duration())
+		if failed, ok := resp.Status.(*provisioner.StatusResponse_Failed); ok {
+			t.state = TaskStateFailed
+			return fmt.Errorf("provisioning failed: %s", failed.Failed.ErrorMessage)
+		}
 	}
 }
 
