@@ -14,7 +14,7 @@ import (
 // Synchronise schema changes into a materialised view of the ingress routing table.
 func syncView(ctx context.Context, schemaEventSource *schemaeventsource.EventSource) *atomic.Value[materialisedView] {
 	logger := log.FromContext(ctx).Scope("http-ingress")
-	out := atomic.New[materialisedView](materialisedView{
+	out := atomic.New(materialisedView{
 		routes: map[string][]ingressRoute{},
 		schema: &schema.Schema{},
 	})
