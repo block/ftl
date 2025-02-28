@@ -38,7 +38,7 @@ func (c *callCmd) Run(
 	}
 
 	logger := log.FromContext(ctx)
-	request := map[string]any{}
+	var request any
 	err := json5.Unmarshal([]byte(c.Request), &request)
 	if err != nil {
 		return fmt.Errorf("invalid request: %w", err)
