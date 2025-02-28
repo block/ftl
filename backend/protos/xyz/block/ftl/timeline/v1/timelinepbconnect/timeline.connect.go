@@ -54,9 +54,9 @@ const (
 type TimelineServiceClient interface {
 	// Ping service for readiness
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
-	// Get timeline events with filters
+	// Get timeline events with optional filters
 	GetTimeline(context.Context, *connect.Request[v11.GetTimelineRequest]) (*connect.Response[v11.GetTimelineResponse], error)
-	// Stream timeline events with filters
+	// Stream timeline events with optional filters
 	StreamTimeline(context.Context, *connect.Request[v11.StreamTimelineRequest]) (*connect.ServerStreamForClient[v11.StreamTimelineResponse], error)
 	CreateEvents(context.Context, *connect.Request[v11.CreateEventsRequest]) (*connect.Response[v11.CreateEventsResponse], error)
 	// Delete old events of a specific type
@@ -142,9 +142,9 @@ func (c *timelineServiceClient) DeleteOldEvents(ctx context.Context, req *connec
 type TimelineServiceHandler interface {
 	// Ping service for readiness
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
-	// Get timeline events with filters
+	// Get timeline events with optional filters
 	GetTimeline(context.Context, *connect.Request[v11.GetTimelineRequest]) (*connect.Response[v11.GetTimelineResponse], error)
-	// Stream timeline events with filters
+	// Stream timeline events with optional filters
 	StreamTimeline(context.Context, *connect.Request[v11.StreamTimelineRequest], *connect.ServerStream[v11.StreamTimelineResponse]) error
 	CreateEvents(context.Context, *connect.Request[v11.CreateEventsRequest]) (*connect.Response[v11.CreateEventsResponse], error)
 	// Delete old events of a specific type

@@ -4,14 +4,16 @@ import { formatTimestampShort } from '../../shared/utils'
 import { deploymentTextColor } from '../deployments/deployment.utils'
 import { TimelineAsyncExecute } from './TimelineAsyncExecute'
 import { TimelineCall } from './TimelineCall'
+import { TimelineChangesetChanged } from './TimelineChangesetChanged'
+import { TimelineChangesetCreated } from './TimelineChangesetCreated'
 import { TimelineCronScheduled } from './TimelineCronScheduled'
 import { TimelineDeploymentCreated } from './TimelineDeploymentCreated'
-import { TimelineDeploymentUpdated } from './TimelineDeploymentUpdated'
 import { TimelineIcon } from './TimelineIcon'
 import { TimelineIngress } from './TimelineIngress'
 import { TimelineLog } from './TimelineLog'
 import { TimelinePubSubConsume } from './TimelinePubSubConsume'
 import { TimelinePubSubPublish } from './TimelinePubSubPublish'
+import { TimelineRuntime } from './TimelineRuntime'
 
 interface EventTimelineProps {
   events: Event[]
@@ -29,8 +31,11 @@ const deploymentKey = (event: Event) => {
     case 'pubsubConsume':
     case 'pubsubPublish':
       return event.entry.value.deploymentKey
+    case 'changesetCreated':
+    case 'changesetStateChanged':
+      return event.entry.value.key
     case 'deploymentCreated':
-    case 'deploymentUpdated':
+    case 'deploymentRuntime':
       return event.entry.value.key
     default:
       return ''
@@ -38,6 +43,9 @@ const deploymentKey = (event: Event) => {
 }
 
 const moduleName = (event: Event) => {
+  if (event.entry?.case === 'changesetCreated' || event.entry?.case === 'changesetStateChanged') {
+    return 'changeset'
+  }
   const key = deploymentKey(event)
   const parts = key.split('-')
   return parts.length >= 2 ? parts[1] : ''
@@ -84,10 +92,6 @@ export const TimelineEventList = ({ events, selectedEventId, handleEntryClicked 
                       return <TimelineCall call={entry.entry.value} />
                     case 'log':
                       return <TimelineLog log={entry.entry.value} />
-                    case 'deploymentCreated':
-                      return <TimelineDeploymentCreated deployment={entry.entry.value} />
-                    case 'deploymentUpdated':
-                      return <TimelineDeploymentUpdated deployment={entry.entry.value} />
                     case 'ingress':
                       return <TimelineIngress ingress={entry.entry.value} />
                     case 'cronScheduled':
@@ -98,6 +102,14 @@ export const TimelineEventList = ({ events, selectedEventId, handleEntryClicked 
                       return <TimelinePubSubPublish pubSubPublish={entry.entry.value} />
                     case 'pubsubConsume':
                       return <TimelinePubSubConsume pubSubConsume={entry.entry.value} />
+                    case 'changesetCreated':
+                      return <TimelineChangesetCreated changeset={entry.entry.value} />
+                    case 'changesetStateChanged':
+                      return <TimelineChangesetChanged changeset={entry.entry.value} />
+                    case 'deploymentCreated':
+                      return <TimelineDeploymentCreated deployment={entry.entry.value} />
+                    case 'deploymentRuntime':
+                      return <TimelineRuntime runtime={entry.entry.value} />
                     default:
                       return null
                   }

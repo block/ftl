@@ -57,24 +57,6 @@ const eventBadge = (event: Event) => {
           {logLevelText[event.entry.value.logLevel]}
         </span>
       )
-    case 'deploymentCreated':
-      return (
-        <span
-          className={
-            'text-green-500 bg-green-400/30 dark:text-green-300 dark:bg-green-700/10 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium'
-          }
-        >
-          Deployment Created
-        </span>
-      )
-    case 'deploymentUpdated':
-      return (
-        <span
-          className={'text-blue-500 bg-blue-300/30 dark:text-blue-300 dark:bg-blue-700/30 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium'}
-        >
-          Deployment Updated
-        </span>
-      )
     case 'ingress':
       return (
         <div className={'inline-block rounded-md bg-indigo-200 dark:bg-indigo-700 px-2 py-1 mr-1 text-sm font-medium text-gray-700 dark:text-gray-100'}>
@@ -93,6 +75,31 @@ const eventBadge = (event: Event) => {
           {event.entry.value.topic}
         </div>
       )
+    case 'changesetCreated':
+      return (
+        <div className={'inline-block rounded-md bg-indigo-200 dark:bg-indigo-700 px-2 py-1 mr-1 text-sm font-medium text-gray-700 dark:text-gray-100'}>
+          {event.entry.value.key}
+        </div>
+      )
+    case 'changesetStateChanged':
+      return (
+        <div className={'inline-block rounded-md bg-indigo-200 dark:bg-indigo-700 px-2 py-1 mr-1 text-sm font-medium text-gray-700 dark:text-gray-100'}>
+          {event.entry.value.key}
+        </div>
+      )
+    case 'deploymentCreated':
+      return (
+        <div className={'inline-block rounded-md bg-indigo-200 dark:bg-indigo-700 px-2 py-1 mr-1 text-sm font-medium text-gray-700 dark:text-gray-100'}>
+          {event.entry.value.key}
+        </div>
+      )
+    case 'deploymentRuntime':
+      return (
+        <div className={'inline-block rounded-md bg-indigo-200 dark:bg-indigo-700 px-2 py-1 mr-1 text-sm font-medium text-gray-700 dark:text-gray-100'}>
+          {event.entry.value.key}
+        </div>
+      )
+
     default:
       return ''
   }

@@ -97,14 +97,6 @@ func (s *service) CreateEvents(ctx context.Context, req *connect.Request[timelin
 			event.Entry = &timelinepb.Event_Call{
 				Call: entry.Call,
 			}
-		case *timelinepb.CreateEventsRequest_EventEntry_DeploymentCreated:
-			event.Entry = &timelinepb.Event_DeploymentCreated{
-				DeploymentCreated: entry.DeploymentCreated,
-			}
-		case *timelinepb.CreateEventsRequest_EventEntry_DeploymentUpdated:
-			event.Entry = &timelinepb.Event_DeploymentUpdated{
-				DeploymentUpdated: entry.DeploymentUpdated,
-			}
 		case *timelinepb.CreateEventsRequest_EventEntry_Ingress:
 			event.Entry = &timelinepb.Event_Ingress{
 				Ingress: entry.Ingress,
@@ -124,6 +116,22 @@ func (s *service) CreateEvents(ctx context.Context, req *connect.Request[timelin
 		case *timelinepb.CreateEventsRequest_EventEntry_PubsubConsume:
 			event.Entry = &timelinepb.Event_PubsubConsume{
 				PubsubConsume: entry.PubsubConsume,
+			}
+		case *timelinepb.CreateEventsRequest_EventEntry_ChangesetCreated:
+			event.Entry = &timelinepb.Event_ChangesetCreated{
+				ChangesetCreated: entry.ChangesetCreated,
+			}
+		case *timelinepb.CreateEventsRequest_EventEntry_ChangesetStateChanged:
+			event.Entry = &timelinepb.Event_ChangesetStateChanged{
+				ChangesetStateChanged: entry.ChangesetStateChanged,
+			}
+		case *timelinepb.CreateEventsRequest_EventEntry_DeploymentCreated:
+			event.Entry = &timelinepb.Event_DeploymentCreated{
+				DeploymentCreated: entry.DeploymentCreated,
+			}
+		case *timelinepb.CreateEventsRequest_EventEntry_DeploymentRuntime:
+			event.Entry = &timelinepb.Event_DeploymentRuntime{
+				DeploymentRuntime: entry.DeploymentRuntime,
 			}
 		}
 		s.events = append(s.events, event)

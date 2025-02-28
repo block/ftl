@@ -26,7 +26,7 @@ export const TimelineService = {
       idempotency: MethodIdempotency.NoSideEffects,
     },
     /**
-     * Get timeline events with filters
+     * Get timeline events with optional filters
      *
      * @generated from rpc xyz.block.ftl.timeline.v1.TimelineService.GetTimeline
      */
@@ -38,7 +38,7 @@ export const TimelineService = {
       idempotency: MethodIdempotency.NoSideEffects,
     },
     /**
-     * Stream timeline events with filters
+     * Stream timeline events with optional filters
      *
      * @generated from rpc xyz.block.ftl.timeline.v1.TimelineService.StreamTimeline
      */

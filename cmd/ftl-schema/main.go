@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/url"
 	"os"
 
 	"github.com/alecthomas/kong"
@@ -11,6 +12,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
@@ -18,6 +20,7 @@ var cli struct {
 	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
 	LogConfig           log.Config           `embed:"" prefix:"log-"`
 	SchemaServiceConfig schemaservice.Config `embed:""`
+	TimelineEndpoint    *url.URL             `help:"Timeline Service endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8898"`
 }
 
 func main() {
@@ -33,6 +36,8 @@ func main() {
 	err := observability.Init(ctx, false, "", "ftl-controller", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
-	err = schemaservice.Start(ctx, cli.SchemaServiceConfig)
+	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
+
+	err = schemaservice.Start(ctx, cli.SchemaServiceConfig, timelineClient)
 	kctx.FatalIfErrorf(err)
 }
