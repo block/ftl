@@ -9,6 +9,9 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/strcase"
+	goschema "github.com/block/ftl/go-runtime/schema"
+	"github.com/block/ftl/go-runtime/schema/common"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -104,4 +107,36 @@ go 1.23.0
 
 	_, _, err = updateGoModule(goModPath, "mymodule", optional.None[watch.ModifyFilesTransaction]())
 	assert.Contains(t, err.Error(), "module name mismatch: expected 'ftl/mymodule' but got 'ftl/wrongname'")
+}
+
+func TestCylicVerbs(t *testing.T) {
+	module, err := schema.ParseModuleString("", `
+module cyclic {
+  verb a(Unit) Unit
+    +calls cyclic.b
+
+  verb b(Unit) Unit
+    +calls cyclic.c
+
+  verb c(Unit) Unit
+    +calls cyclic.a
+}
+	`)
+	assert.NoError(t, err)
+	_, err = buildMainDeploymentContext(&schema.Schema{}, goschema.Result{
+		Module: module,
+		VerbResourceParamOrder: map[*schema.Verb][]common.VerbResourceParam{
+			module.Decls[0].(*schema.Verb): {},
+			module.Decls[1].(*schema.Verb): {},
+			module.Decls[2].(*schema.Verb): {},
+		},
+		NativeNames: goschema.NativeNames{
+			module.Decls[0].(*schema.Verb): "ftl/cyclic." + strcase.ToUpperCamel(module.Decls[0].GetName()),
+			module.Decls[1].(*schema.Verb): "ftl/cyclic." + strcase.ToUpperCamel(module.Decls[1].GetName()),
+			module.Decls[2].(*schema.Verb): "ftl/cyclic." + strcase.ToUpperCamel(module.Decls[2].GetName()),
+		},
+	},
+		"", "projectname", nil, nil)
+
+	assert.EqualError(t, err, "cyclic references are not allowed: cyclic.a refers to cyclic.b refers to cyclic.c refers to cyclic.a")
 }
