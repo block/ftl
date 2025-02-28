@@ -15,46 +15,35 @@ import (
 )
 
 // MockProvisioner is a mock implementation of the Provisioner interface
-type MockProvisioner struct{}
+type MockProvisioner struct {
+	calls int
+}
 
 var _ provisioner.Plugin = (*MockProvisioner)(nil)
 
-func (m *MockProvisioner) Provision(ctx context.Context, req *proto.ProvisionRequest) (chan *proto.StatusResponse, error) {
-	statusCh := make(chan *proto.StatusResponse, 64)
-
-	statusCh <- &proto.StatusResponse{
-		Status: &proto.StatusResponse_Running{},
-	}
-	statusCh <- &proto.StatusResponse{
-		Status: &proto.StatusResponse_Running{},
-	}
-	statusCh <- &proto.StatusResponse{
-		Status: &proto.StatusResponse_Success{Success: &proto.StatusResponse_ProvisioningSuccess{
-			Outputs: []*schemapb.RuntimeElement{},
-		}},
-	}
-
-	close(statusCh)
-
-	return statusCh, nil
+func (m *MockProvisioner) Provision(ctx context.Context, req *proto.ProvisionRequest) ([]*schemapb.RuntimeElement, error) {
+	m.calls++
+	return []*schemapb.RuntimeElement{}, nil
 }
 
 func TestDeployment_Progress(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 
-	t.Run("no tasks", func(t *testing.T) {
+	t.Run("no tasks, no errors", func(t *testing.T) {
 		deployment := &provisioner.Deployment{}
-		progress, err := deployment.Progress(ctx)
+		err := deployment.Run(ctx)
 		assert.NoError(t, err)
-		assert.False(t, progress)
 	})
 
-	t.Run("progresses each provisioner in order", func(t *testing.T) {
-		mock := &MockProvisioner{}
+	t.Run("runs all provisioners matching the resource type", func(t *testing.T) {
+		mock1 := &MockProvisioner{}
+		mock2 := &MockProvisioner{}
+		mock3 := &MockProvisioner{}
 
 		registry := provisioner.ProvisionerRegistry{}
-		registry.Register("mock", mock, schema.ResourceTypePostgres)
-		registry.Register("mock", mock, schema.ResourceTypeMysql)
+		registry.Register("mock1", mock1, schema.ResourceTypePostgres)
+		registry.Register("mock2", mock2, schema.ResourceTypeMysql)
+		registry.Register("mock3", mock3, schema.ResourceTypeSubscription)
 
 		dpl := registry.CreateDeployment(ctx, key.NewChangesetKey(), &schema.Module{
 			Name: "testModule",
@@ -66,20 +55,12 @@ func TestDeployment_Progress(t *testing.T) {
 				&schema.Database{Name: "b", Type: "postgres"},
 			},
 		}, nil, nil)
-		assert.Equal(t, 2, len(dpl.State().Pending))
 
-		_, err := dpl.Progress(ctx)
+		err := dpl.Run(ctx)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(dpl.State().Pending))
-		assert.NotEqual(t, 0, len(dpl.State().Done))
 
-		_, err = dpl.Progress(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, 2, len(dpl.State().Done))
-
-		running, err := dpl.Progress(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, 2, len(dpl.State().Done))
-		assert.False(t, running)
+		assert.Equal(t, 1, mock1.calls)
+		assert.Equal(t, 1, mock2.calls)
+		assert.Equal(t, 0, mock3.calls)
 	})
 }

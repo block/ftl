@@ -7,7 +7,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/types/optional"
-	"github.com/google/uuid"
 	"github.com/puzpuzpuz/xsync/v3"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
@@ -16,7 +15,6 @@ import (
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 )
 
 type inMemProvisioningTask struct {
@@ -70,8 +68,7 @@ type stepCompletedEvent struct {
 	event optional.Option[schema.RuntimeElement]
 }
 
-func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.ProvisionRequest) (chan *provisioner.StatusResponse, error) {
-	logger := log.FromContext(ctx)
+func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.ProvisionRequest) ([]*schemapb.RuntimeElement, error) {
 	parsed, err := key.ParseChangesetKey(req.Changeset)
 	if err != nil {
 		err = fmt.Errorf("invalid changeset: %w", err)
@@ -140,39 +137,20 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.Provi
 		}
 	}
 
-	statusCh := make(chan *provisioner.StatusResponse, 64)
-	go func() {
-		for c := range channels.IterContext(ctx, completions) {
-			if e, ok := c.event.Get(); ok {
-				task.events = append(task.events, &e)
-			}
-			c.step.Done.Store(true)
-			done, err := task.Done()
-			if err != nil {
-				statusCh <- &provisioner.StatusResponse{
-					Status: &provisioner.StatusResponse_Failed{
-						Failed: &provisioner.StatusResponse_ProvisioningFailed{
-							ErrorMessage: err.Error(),
-						},
-					},
-				}
-			} else if done {
-				statusCh <- &provisioner.StatusResponse{
-					Status: &provisioner.StatusResponse_Success{
-						Success: &provisioner.StatusResponse_ProvisioningSuccess{
-							Outputs: slices.Map(task.events, func(e *schema.RuntimeElement) *schemapb.RuntimeElement {
-								return e.ToProto()
-							}),
-						},
-					},
-				}
-			}
+	for c := range channels.IterContext(ctx, completions) {
+		if e, ok := c.event.Get(); ok {
+			task.events = append(task.events, &e)
 		}
-	}()
-
-	token := uuid.New().String()
-	logger.Debugf("started a task with token %s", token)
-	d.running.Store(token, task)
-
-	return statusCh, nil
+		c.step.Done.Store(true)
+		done, err := task.Done()
+		if err != nil {
+			return nil, fmt.Errorf("provisioning failed: %w", err)
+		}
+		if done {
+			break
+		}
+	}
+	return slices.Map(task.events, func(e *schema.RuntimeElement) *schemapb.RuntimeElement {
+		return e.ToProto()
+	}), nil
 }

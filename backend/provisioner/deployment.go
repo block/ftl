@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alecthomas/types/optional"
-
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
@@ -14,39 +12,21 @@ import (
 	"github.com/block/ftl/internal/log"
 )
 
-type TaskState string
-
-const (
-	TaskStatePending TaskState = ""
-	TaskStateRunning TaskState = "running"
-	TaskStateDone    TaskState = "done"
-	TaskStateFailed  TaskState = "failed"
-)
-
 // Task is a unit of work for a deployment
 type Task struct {
 	binding *ProvisionerBinding
 	module  string
-	state   TaskState
 
 	deployment *Deployment
-
-	// set if the task is currently running
-	statusCh chan *provisioner.StatusResponse
 }
 
-func (t *Task) Start(ctx context.Context) error {
-	if t.state != TaskStatePending {
-		return fmt.Errorf("task state is not pending: %s", t.state)
-	}
-	t.state = TaskStateRunning
-
+func (t *Task) Run(ctx context.Context) error {
 	var previous *schemapb.Module
 	if t.deployment.Previous != nil {
 		previous = t.deployment.Previous.ToProto()
 	}
 
-	statusCh, err := t.binding.Provisioner.Provision(ctx, &provisioner.ProvisionRequest{
+	result, err := t.binding.Provisioner.Provision(ctx, &provisioner.ProvisionRequest{
 		DesiredModule: t.deployment.DeploymentState.ToProto(),
 		// TODO: We need a proper cluster specific ID here
 		FtlClusterId:   "ftl",
@@ -55,54 +35,24 @@ func (t *Task) Start(ctx context.Context) error {
 		Kinds:          slices.Map(t.binding.Types, func(x schema.ResourceType) string { return string(x) }),
 	})
 	if err != nil {
-		t.state = TaskStateFailed
 		return fmt.Errorf("error provisioning resources: %w", err)
 	}
-	t.statusCh = statusCh
+	for _, r := range result {
+		element, err := schema.RuntimeElementFromProto(r)
+		if err != nil {
+			return fmt.Errorf("error converting runtime: %w", err)
+		}
+		err = element.ApplyToModule(t.deployment.DeploymentState)
+		if err != nil {
+			return fmt.Errorf("error applying runtime: %w", err)
+		}
+		err = t.deployment.UpdateHandler(element)
+		if err != nil {
+			return fmt.Errorf("error updating runtime: %w", err)
+		}
+	}
 
 	return nil
-}
-
-func (t *Task) Progress(ctx context.Context) error {
-
-	if t.state != TaskStateRunning {
-		return fmt.Errorf("task state is not running: %s", t.state)
-	}
-
-	for {
-		resp, ok := <-t.statusCh
-		if !ok {
-			t.state = TaskStateFailed
-			return fmt.Errorf("status channel closed")
-		}
-		if resp.Status == nil {
-			t.state = TaskStateFailed
-			return fmt.Errorf("status is nil")
-		}
-		if succ, ok := resp.Status.(*provisioner.StatusResponse_Success); ok {
-			t.state = TaskStateDone
-			for _, r := range succ.Success.Outputs {
-				element, err := schema.RuntimeElementFromProto(r)
-				if err != nil {
-					return fmt.Errorf("error converting runtime: %w", err)
-				}
-				err = element.ApplyToModule(t.deployment.DeploymentState)
-				if err != nil {
-					return fmt.Errorf("error applying runtime: %w", err)
-				}
-				err = t.deployment.UpdateHandler(element)
-				if err != nil {
-					return fmt.Errorf("error updating runtime: %w", err)
-				}
-			}
-			return nil
-
-		}
-		if failed, ok := resp.Status.(*provisioner.StatusResponse_Failed); ok {
-			t.state = TaskStateFailed
-			return fmt.Errorf("provisioning failed: %s", failed.Failed.ErrorMessage)
-		}
-	}
 }
 
 // Deployment is a single deployment of resources for a single module
@@ -116,41 +66,16 @@ type Deployment struct {
 	UpdateHandler   func(*schema.RuntimeElement) error
 }
 
-// next running or pending task. Nil if all tasks are done.
-func (d *Deployment) next() optional.Option[*Task] {
-	for _, t := range d.Tasks {
-		if t.state == TaskStatePending || t.state == TaskStateRunning || t.state == TaskStateFailed {
-			return optional.Some(t)
-		}
-	}
-	return optional.None[*Task]()
-}
-
 // Progress the deployment. Returns true if there are still tasks running or pending.
-func (d *Deployment) Progress(ctx context.Context) (bool, error) {
+func (d *Deployment) Run(ctx context.Context) error {
 	logger := log.FromContext(ctx)
-
-	next, ok := d.next().Get()
-	if !ok {
-		return false, nil
-	}
-
-	if next.state == TaskStatePending {
-		logger.Debugf("Starting task %s: %s", next.module, next.binding.ID)
-		err := next.Start(ctx)
-		if err != nil {
-			return true, err
+	for _, t := range d.Tasks {
+		logger.Tracef("Running task %s: %s", t.module, t.binding.ID)
+		if err := t.Run(ctx); err != nil {
+			return fmt.Errorf("error running task %s: %w", t.module, err)
 		}
 	}
-	if next.state != TaskStateDone {
-		logger.Tracef("Progressing task %s: %s", next.module, next.binding.ID)
-		err := next.Progress(ctx)
-		if err != nil {
-			return true, err
-		}
-	}
-	logger.Debugf("Finished task %s: %s", next.module, next.binding.ID)
-	return d.next().Ok(), nil
+	return nil
 }
 
 type DeploymentState struct {
@@ -158,21 +83,4 @@ type DeploymentState struct {
 	Running *Task
 	Failed  *Task
 	Done    []*Task
-}
-
-func (d *Deployment) State() *DeploymentState {
-	result := &DeploymentState{}
-	for _, t := range d.Tasks {
-		switch t.state {
-		case TaskStatePending:
-			result.Pending = append(result.Pending, t)
-		case TaskStateRunning:
-			result.Running = t
-		case TaskStateFailed:
-			result.Failed = t
-		case TaskStateDone:
-			result.Done = append(result.Done, t)
-		}
-	}
-	return result
 }

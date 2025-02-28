@@ -254,17 +254,9 @@ func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*
 				}
 				return nil
 			})
-			running := true
-			logger.Debugf("Running deployment for module %s", moduleName)
-			for running {
-				r, err := deployment.Progress(ctx)
-				if err != nil {
-					// TODO: Deal with failed deployments
-					return fmt.Errorf("error running a provisioner: %w", err)
-				}
-				running = r
+			if err := deployment.Run(ctx); err != nil {
+				return fmt.Errorf("error running deployment: %w", err)
 			}
-
 			logger.Debugf("Finished deployment for module %s", moduleName)
 			return nil
 		})
@@ -306,17 +298,9 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 				}
 				return nil
 			})
-			running := true
-			logger.Debugf("Running deployment for module %s", moduleName)
-			for running {
-				r, err := deployment.Progress(ctx)
-				if err != nil {
-					// TODO: Deal with failed deployments
-					return fmt.Errorf("error running a provisioner: %w", err)
-				}
-				running = r
+			if err := deployment.Run(ctx); err != nil {
+				return fmt.Errorf("error running deployment: %w", err)
 			}
-
 			logger.Debugf("Finished deployment for module %s", moduleName)
 			return nil
 		})
