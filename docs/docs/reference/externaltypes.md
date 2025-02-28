@@ -144,7 +144,7 @@ You can also specify mappings for other runtimes:
 
 In the FTL schema, external types are represented as type aliases with the `+typemap` annotation:
 
-```
+```schema
 module example {
   // External type widened to Any
   typealias FtlType Any

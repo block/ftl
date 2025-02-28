@@ -69,15 +69,12 @@ HelloResponse hello(HelloRequest helloRequest, @Config("defaultUser") String def
 
 In the FTL schema, configuration values are declared as follows:
 
-```
+```schema
 module example {
-  // Configuration declaration
-  config apiUrl String
-  config defaultUser example.Username
+  config defaultUser String
   
-  // Using configuration in a verb
-  verb hello(example.HelloRequest) example.HelloResponse
-    +config defaultUser
+  verb hello(Unit) String
+    +config example.defaultUser
 }
 ```
 
@@ -145,7 +142,7 @@ HelloResponse hello(HelloRequest helloRequest, @Secret("apiKey") String apiKey) 
 
 In the FTL schema, secrets are declared as follows:
 
-```
+```schema
 module example {
   // Secret declaration
   secret apiToken String
