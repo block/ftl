@@ -15,7 +15,6 @@ func Visit(n Node, visit func(n Node, next func() error) error) error {
 }
 
 // VisitWithParents visits all nodes in the schema providing the parent nodes on each visit
-// Root parent is the first element in the parents slice
 func VisitWithParents(n Node, parents []Node, visit func(n Node, parents []Node, next func() error) error) error {
 	return visit(n, parents, func() error {
 		for _, child := range n.schemaChildren() {

@@ -124,7 +124,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 		}
 
 		indent := 0
-		err := VisitWithParents(module, []Node{}, func(n Node, parents []Node, next func() error) error {
+		err := Visit(module, func(n Node, next func() error) error {
 			save := scopes
 			if scoped, ok := n.(Scoped); ok {
 				scopes = scopes.PushScope(scoped.Scope())
@@ -141,17 +141,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 			case *Ref:
 				mdecl := scopes.Resolve(*n)
 				if mdecl == nil {
-					// Ref nodes do not always have a position. If so, find the next best find a position in parents
-					posNode := Node(n)
-					emptyPosition := Position{}
-					for i := len(parents); i >= 0; i-- {
-						fmt.Printf("posNode %T: %v\n", posNode, posNode.Position())
-						if posNode.Position() != emptyPosition {
-							break
-						}
-						posNode = parents[i-1]
-					}
-					merr = append(merr, errorf(posNode, "unknown reference %q, is the type annotated and exported?", n))
+					merr = append(merr, errorf(n, "unknown reference %q, is the type annotated and exported?", n))
 					break
 				}
 
