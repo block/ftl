@@ -55,7 +55,7 @@ var (
 	}
 
 	// Parser options for every parser _except_ the type parser.
-	parserOptions = append(commonParserOptions, participle.ParseTypeWith(parseType))
+	parserOptions = append(commonParserOptions, participle.ParseTypeWith(ParseTypeWithLexer))
 
 	parser       = participle.MustBuild[Schema](parserOptions...)
 	moduleParser = participle.MustBuild[Module](parserOptions...)
@@ -175,7 +175,7 @@ func ParseType(filename, input string) (Type, error) {
 	return typ.Type, nil
 }
 
-func parseType(pl *lexer.PeekingLexer) (Type, error) {
+func ParseTypeWithLexer(pl *lexer.PeekingLexer) (Type, error) {
 	typ, err := typeParser.ParseFromLexer(pl, participle.AllowTrailing(true))
 	if err != nil {
 		return nil, err

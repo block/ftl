@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl-golang-tools/go/analysis"
 	"github.com/block/ftl/common/cron"
@@ -204,11 +203,10 @@ func (*DirectiveCronJob) MustAnnotate() []ast.Node {
 type DirectiveRetry struct {
 	Pos token.Pos
 
-	Count       *int    `parser:"'retry' (@Number Whitespace)?"`
-	MinBackoff  string  `parser:"@(Number (?! Whitespace) Ident)?"`
-	MaxBackoff  string  `parser:"@(Number (?! Whitespace) Ident)?"`
-	CatchModule *string `parser:"('catch' (@Ident '.')?"`
-	CatchVerb   *string `parser:"@Ident)?"`
+	Count      *int        `parser:"'retry' (@Number Whitespace)?"`
+	MinBackoff string      `parser:"@(Number (?! Whitespace) Ident)?"`
+	MaxBackoff string      `parser:"@(Number (?! Whitespace) Ident)?"`
+	Catch      *schema.Ref `parser:"('catch' @@)?"`
 }
 
 func (*DirectiveRetry) directive() {}
@@ -222,8 +220,8 @@ func (d *DirectiveRetry) String() string {
 	if len(d.MaxBackoff) > 0 {
 		components = append(components, d.MaxBackoff)
 	}
-	if catch, ok := d.Catch().Get(); ok {
-		components = append(components, fmt.Sprintf("catch %v", catch))
+	if d.Catch != nil {
+		components = append(components, fmt.Sprintf("catch %v", d.Catch))
 	}
 	return strings.Join(components, " ")
 }
@@ -236,20 +234,6 @@ func (d *DirectiveRetry) GetPosition() token.Pos {
 }
 func (*DirectiveRetry) MustAnnotate() []ast.Node {
 	return []ast.Node{&ast.FuncDecl{}, &ast.GenDecl{}}
-}
-
-func (d *DirectiveRetry) Catch() optional.Option[schema.Ref] {
-	if d.CatchVerb == nil {
-		return optional.None[schema.Ref]()
-	}
-	var module string
-	if d.CatchModule != nil {
-		module = *d.CatchModule
-	}
-	return optional.Some[schema.Ref](schema.Ref{
-		Module: module,
-		Name:   *d.CatchVerb,
-	})
 }
 
 // DirectiveTopic is used to configure options for a topic.
@@ -290,21 +274,15 @@ func (d *DirectiveTopic) IsExported() bool {
 type DirectiveSubscriber struct {
 	Pos token.Pos
 
-	TopicModule string             `parser:"'subscribe' (@Ident '.')?"`
-	TopicName   string             `parser:"@Ident"`
-	FromOffset  *schema.FromOffset `parser:"'from' '='@('beginning'|'latest')"`
-	DeadLetter  bool               `parser:"@'deadletter'?"`
+	Topic      *schema.Ref        `parser:"'subscribe' @@"`
+	FromOffset *schema.FromOffset `parser:"'from' '='@('beginning'|'latest')"`
+	DeadLetter bool               `parser:"@'deadletter'?"`
 }
 
 func (*DirectiveSubscriber) directive() {}
 
 func (d *DirectiveSubscriber) String() string {
-	components := []string{"subscribe"}
-	if d.TopicModule != "" {
-		components = append(components, d.TopicModule+"."+d.TopicName)
-	} else {
-		components = append(components, d.TopicName)
-	}
+	components := []string{"subscribe", d.Topic.String()}
 	components = append(components, "from="+d.FromOffset.String())
 	if d.DeadLetter {
 		components = append(components, "deadletter")
@@ -428,6 +406,7 @@ var DirectiveParser = participle.MustBuild[directiveWrapper](
 		&DirectiveIngress{}, &DirectiveCronJob{}, &DirectiveRetry{}, &DirectiveSubscriber{}, &DirectiveExport{},
 		&DirectiveTypeMap{}, &DirectiveEncoding{}, &DirectiveTopic{}, &DirectiveDatabase{}),
 	participle.Union[schema.IngressPathComponent](&schema.IngressPathLiteral{}, &schema.IngressPathParameter{}),
+	participle.ParseTypeWith(schema.ParseTypeWithLexer),
 )
 
 func ParseDirectives(pass *analysis.Pass, node ast.Node, docs *ast.CommentGroup) []Directive {
