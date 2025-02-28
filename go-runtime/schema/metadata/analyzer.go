@@ -1,7 +1,6 @@
 package metadata
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -194,7 +193,6 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 func posFromPosWithinDirective(pos schema.Position, parentPos schema.Position) schema.Position {
 	out := ireflect.DeepCopy(parentPos)
 	out.Column += pos.Column - 1
-	fmt.Printf("pos: %v\ntopicPos: %v\nfinal: %v\n", pos, parentPos, out)
 	return out
 }
 
