@@ -42,7 +42,7 @@ func TestLifecycleJVM(t *testing.T) {
 			return []byte(strings.ReplaceAll(string(content), "\"Hello", "\"Bye"))
 		}, "src/main/java/ftl/echo/Echo.java")),
 		in.IfLanguage("kotlin", in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.ReplaceAll(string(content), "Hello", "Bye"))
+			return []byte(strings.ReplaceAll(string(content), "\"Hello", "\"Bye"))
 		}, "src/main/kotlin/ftl/echo/Echo.kt")),
 		in.Call("echo", "hello", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
 			assert.Equal(t, "Bye, Bob!", response["message"])
