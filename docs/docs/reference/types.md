@@ -88,7 +88,7 @@ In the FTL schema, these are the primitive types that can be used directly:
 | `[T]`      | Array of type T                            |
 
 Example usage in schema:
-```
+```schema
 module example {
   data Person {
     name String
@@ -149,7 +149,7 @@ public class Person {
 
 In the FTL schema, data structures are defined using the `data` keyword:
 
-```
+```schema
 module example {
   data Person {
     name String
@@ -160,7 +160,7 @@ module example {
 
 Fields can have optional values by adding a `?` suffix:
 
-```
+```schema
 module example {
   data Person {
     name String
@@ -217,7 +217,7 @@ public class Pair<T, U> {
 
 In the FTL schema, generic types are defined with type parameters:
 
-```
+```schema
 module example {
   data Pair<T, U> {
     first T
@@ -228,7 +228,7 @@ module example {
 
 Generic types can be used in other type definitions:
 
-```
+```schema
 module example {
   data Pair<T, U> {
     first T
@@ -290,7 +290,7 @@ class Dog() : Animal
 
 In the FTL schema, sum types (type enums) are represented as a union of types:
 
-```
+```schema
 module example {
   data Cat {}
   
@@ -305,7 +305,7 @@ module example {
 
 When used in other types or verbs, the sum type can be referenced directly:
 
-```
+```schema
 module example {
   verb processAnimal(example.Animal) Unit
 }
@@ -402,7 +402,7 @@ public enum Status {
 
 In the FTL schema, value enums are represented as an enum with string or integer values:
 
-```
+```schema
 module example {
   enum Colour: String {
     Red = "red"
@@ -464,7 +464,7 @@ public class UserID {
 
 In the FTL schema, type aliases are defined using the `typealias` keyword:
 
-```
+```schema
 module example {
   typealias UserID String
 }
@@ -472,7 +472,7 @@ module example {
 
 Type aliases can be used in data structures:
 
-```
+```schema
 module example {
   typealias UserID String
   

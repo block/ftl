@@ -88,7 +88,7 @@ public class EchoClass {
 
 In the FTL schema, verbs are declared with their input and output types:
 
-```
+```schema
 module example {
   data EchoRequest {}
   
@@ -100,7 +100,7 @@ module example {
 
 Verbs can be exported to make them callable from other modules:
 
-```
+```schema
 module example {
   export verb echo(example.EchoRequest) example.EchoResponse
 }
@@ -190,7 +190,7 @@ public interface TimeClient {
 
 In the FTL schema, verb calls are represented by the `+calls` annotation:
 
-```
+```schema
 module echo {
   data EchoRequest {}
   

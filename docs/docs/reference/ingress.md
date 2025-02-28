@@ -236,7 +236,7 @@ Under the hood these HTTP invocations are being mapped to verbs that take a `bui
 
 In the FTL schema, HTTP ingress is represented by the `+ingress` annotation on verbs:
 
-```
+```schema
 module example {
   data GetRequestPathParams {
     userId String
