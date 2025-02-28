@@ -217,3 +217,8 @@ func ParseModule(filename string, r io.Reader) (*Module, error) {
 	}
 	return mod, mod.Validate()
 }
+
+// EBNF grammar for the FTL schema.
+func EBNF() string {
+	return parser.String()
+}
