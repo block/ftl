@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"connectrpc.com/connect"
 	"golang.org/x/exp/maps"
@@ -41,10 +40,14 @@ type AdminClient interface {
 }
 
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, adminClient AdminClient) error {
+func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, adminClient AdminClient) (err error) {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Deploying %v", strings.Join(slices.Map(modules, func(m Module) string { return m.Config.Module }), ", "))
-	start := time.Now()
+	defer func() {
+		if err != nil {
+			logger.Errorf(err, "Failed to deploy %s", strings.Join(slices.Map(modules, func(m Module) string { return m.Config.Module }), ", "))
+		}
+	}()
 	uploadGroup := errgroup.Group{}
 	moduleSchemas := make(chan *schemapb.Module, len(modules))
 	for _, module := range modules {
@@ -73,13 +76,12 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 	ctx, closeStream := context.WithCancelCause(ctx)
 	defer closeStream(fmt.Errorf("function is complete: %w", context.Canceled))
 
-	_, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
+	_, err = adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
 		Modules: collectedSchemas,
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to deploy changeset: %w", err)
 	}
-	logger.Infof("Deployed %s (%.2fs)", strings.Join(slices.Map(modules, func(m Module) string { return m.Config.Module }), ", "), time.Since(start).Seconds())
 	return nil
 }
 
