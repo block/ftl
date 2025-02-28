@@ -911,7 +911,7 @@ func (b *mainDeploymentContextBuilder) visit(
 			}
 			err := b.visit(ctx, m, resolved, parents)
 			if err != nil {
-				return fmt.Errorf("failed to visit children of %s: %w", n, err)
+				return err //nolint:wrapcheck
 			}
 			return next()
 		default:
@@ -947,7 +947,7 @@ func (b *mainDeploymentContextBuilder) visit(
 		return next()
 	})
 	if err != nil {
-		return fmt.Errorf("failed to build main module context: %w", err)
+		return err //nolint:wrapcheck
 	}
 	return nil
 }
