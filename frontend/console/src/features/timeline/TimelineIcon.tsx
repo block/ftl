@@ -1,9 +1,12 @@
 import {
   Call02Icon,
   CallIncoming04Icon,
+  ComputerIcon,
   CustomerServiceIcon,
   Download04Icon,
   InternetIcon,
+  KeyframesMultipleAddIcon,
+  KeyframesMultipleIcon,
   Menu01Icon,
   Rocket01Icon,
   TimeQuarterPassIcon,
@@ -22,10 +25,6 @@ export const TimelineIcon = ({ event }: { event: Event }) => {
       case 'call': {
         return event.entry.value.sourceVerbRef ? <Call02Icon className={`${style} ${textColor}`} /> : <CallIncoming04Icon className={`${style} ${textColor}`} />
       }
-      case 'deploymentCreated':
-        return <Rocket01Icon className={`${style} ${textColor}`} />
-      case 'deploymentUpdated':
-        return <Rocket01Icon className={`${style} ${textColor}`} />
       case 'log':
         return <LogLevelBadgeSmall logLevel={event.entry.value.logLevel} />
       case 'ingress':
@@ -38,6 +37,14 @@ export const TimelineIcon = ({ event }: { event: Event }) => {
         return <Upload04Icon className={`${style} ${textColor}`} />
       case 'pubsubConsume':
         return <Download04Icon className={`${style} ${textColor}`} />
+      case 'changesetCreated':
+        return <KeyframesMultipleAddIcon className={`${style} ${textColor}`} />
+      case 'changesetStateChanged':
+        return <KeyframesMultipleIcon className={`${style} ${textColor}`} />
+      case 'deploymentCreated':
+        return <Rocket01Icon className={`${style} ${textColor}`} />
+      case 'deploymentRuntime':
+        return <ComputerIcon className={`${style} ${textColor}`} />
       default:
         return <Menu01Icon className={`${style}`} />
     }

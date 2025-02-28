@@ -5,7 +5,7 @@ from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -14,13 +14,15 @@ class EventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EVENT_TYPE_UNSPECIFIED: _ClassVar[EventType]
     EVENT_TYPE_LOG: _ClassVar[EventType]
     EVENT_TYPE_CALL: _ClassVar[EventType]
-    EVENT_TYPE_DEPLOYMENT_CREATED: _ClassVar[EventType]
-    EVENT_TYPE_DEPLOYMENT_UPDATED: _ClassVar[EventType]
     EVENT_TYPE_INGRESS: _ClassVar[EventType]
     EVENT_TYPE_CRON_SCHEDULED: _ClassVar[EventType]
     EVENT_TYPE_ASYNC_EXECUTE: _ClassVar[EventType]
     EVENT_TYPE_PUBSUB_PUBLISH: _ClassVar[EventType]
     EVENT_TYPE_PUBSUB_CONSUME: _ClassVar[EventType]
+    EVENT_TYPE_CHANGESET_CREATED: _ClassVar[EventType]
+    EVENT_TYPE_CHANGESET_STATE_CHANGED: _ClassVar[EventType]
+    EVENT_TYPE_DEPLOYMENT_CREATED: _ClassVar[EventType]
+    EVENT_TYPE_DEPLOYMENT_RUNTIME: _ClassVar[EventType]
 
 class AsyncExecuteEventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -39,13 +41,15 @@ class LogLevel(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 EVENT_TYPE_UNSPECIFIED: EventType
 EVENT_TYPE_LOG: EventType
 EVENT_TYPE_CALL: EventType
-EVENT_TYPE_DEPLOYMENT_CREATED: EventType
-EVENT_TYPE_DEPLOYMENT_UPDATED: EventType
 EVENT_TYPE_INGRESS: EventType
 EVENT_TYPE_CRON_SCHEDULED: EventType
 EVENT_TYPE_ASYNC_EXECUTE: EventType
 EVENT_TYPE_PUBSUB_PUBLISH: EventType
 EVENT_TYPE_PUBSUB_CONSUME: EventType
+EVENT_TYPE_CHANGESET_CREATED: EventType
+EVENT_TYPE_CHANGESET_STATE_CHANGED: EventType
+EVENT_TYPE_DEPLOYMENT_CREATED: EventType
+EVENT_TYPE_DEPLOYMENT_RUNTIME: EventType
 ASYNC_EXECUTE_EVENT_TYPE_UNSPECIFIED: AsyncExecuteEventType
 ASYNC_EXECUTE_EVENT_TYPE_CRON: AsyncExecuteEventType
 ASYNC_EXECUTE_EVENT_TYPE_PUBSUB: AsyncExecuteEventType
@@ -106,30 +110,6 @@ class CallEvent(_message.Message):
     error: str
     stack: str
     def __init__(self, request_key: _Optional[str] = ..., deployment_key: _Optional[str] = ..., timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., source_verb_ref: _Optional[_Union[_schema_pb2.Ref, _Mapping]] = ..., destination_verb_ref: _Optional[_Union[_schema_pb2.Ref, _Mapping]] = ..., duration: _Optional[_Union[_duration_pb2.Duration, _Mapping]] = ..., request: _Optional[str] = ..., response: _Optional[str] = ..., error: _Optional[str] = ..., stack: _Optional[str] = ...) -> None: ...
-
-class DeploymentCreatedEvent(_message.Message):
-    __slots__ = ("key", "language", "module_name", "min_replicas", "replaced")
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    LANGUAGE_FIELD_NUMBER: _ClassVar[int]
-    MODULE_NAME_FIELD_NUMBER: _ClassVar[int]
-    MIN_REPLICAS_FIELD_NUMBER: _ClassVar[int]
-    REPLACED_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    language: str
-    module_name: str
-    min_replicas: int
-    replaced: str
-    def __init__(self, key: _Optional[str] = ..., language: _Optional[str] = ..., module_name: _Optional[str] = ..., min_replicas: _Optional[int] = ..., replaced: _Optional[str] = ...) -> None: ...
-
-class DeploymentUpdatedEvent(_message.Message):
-    __slots__ = ("key", "min_replicas", "prev_min_replicas")
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    MIN_REPLICAS_FIELD_NUMBER: _ClassVar[int]
-    PREV_MIN_REPLICAS_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    min_replicas: int
-    prev_min_replicas: int
-    def __init__(self, key: _Optional[str] = ..., min_replicas: _Optional[int] = ..., prev_min_replicas: _Optional[int] = ...) -> None: ...
 
 class IngressEvent(_message.Message):
     __slots__ = ("deployment_key", "request_key", "verb_ref", "method", "path", "status_code", "timestamp", "duration", "request", "request_header", "response", "response_header", "error")
@@ -245,28 +225,80 @@ class PubSubConsumeEvent(_message.Message):
     offset: int
     def __init__(self, deployment_key: _Optional[str] = ..., request_key: _Optional[str] = ..., dest_verb_module: _Optional[str] = ..., dest_verb_name: _Optional[str] = ..., timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., duration: _Optional[_Union[_duration_pb2.Duration, _Mapping]] = ..., topic: _Optional[str] = ..., error: _Optional[str] = ..., partition: _Optional[int] = ..., offset: _Optional[int] = ...) -> None: ...
 
+class ChangesetCreatedEvent(_message.Message):
+    __slots__ = ("key", "created_at", "modules", "to_remove")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    MODULES_FIELD_NUMBER: _ClassVar[int]
+    TO_REMOVE_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    created_at: _timestamp_pb2.Timestamp
+    modules: _containers.RepeatedScalarFieldContainer[str]
+    to_remove: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., modules: _Optional[_Iterable[str]] = ..., to_remove: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class ChangesetStateChangedEvent(_message.Message):
+    __slots__ = ("key", "state", "error")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    state: _schema_pb2.ChangesetState
+    error: str
+    def __init__(self, key: _Optional[str] = ..., state: _Optional[_Union[_schema_pb2.ChangesetState, str]] = ..., error: _Optional[str] = ...) -> None: ...
+
+class DeploymentCreatedEvent(_message.Message):
+    __slots__ = ("key", "created_at", "module", "changeset")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    MODULE_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    created_at: _timestamp_pb2.Timestamp
+    module: str
+    changeset: str
+    def __init__(self, key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., module: _Optional[str] = ..., changeset: _Optional[str] = ...) -> None: ...
+
+class DeploymentRuntimeEvent(_message.Message):
+    __slots__ = ("key", "updated_at", "element_name", "element_type", "changeset")
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
+    ELEMENT_NAME_FIELD_NUMBER: _ClassVar[int]
+    ELEMENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    updated_at: _timestamp_pb2.Timestamp
+    element_name: str
+    element_type: str
+    changeset: str
+    def __init__(self, key: _Optional[str] = ..., updated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., element_name: _Optional[str] = ..., element_type: _Optional[str] = ..., changeset: _Optional[str] = ...) -> None: ...
+
 class Event(_message.Message):
-    __slots__ = ("timestamp", "id", "log", "call", "deployment_created", "deployment_updated", "ingress", "cron_scheduled", "async_execute", "pubsub_publish", "pubsub_consume")
+    __slots__ = ("timestamp", "id", "log", "call", "ingress", "cron_scheduled", "async_execute", "pubsub_publish", "pubsub_consume", "changeset_created", "changeset_state_changed", "deployment_created", "deployment_runtime")
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     LOG_FIELD_NUMBER: _ClassVar[int]
     CALL_FIELD_NUMBER: _ClassVar[int]
-    DEPLOYMENT_CREATED_FIELD_NUMBER: _ClassVar[int]
-    DEPLOYMENT_UPDATED_FIELD_NUMBER: _ClassVar[int]
     INGRESS_FIELD_NUMBER: _ClassVar[int]
     CRON_SCHEDULED_FIELD_NUMBER: _ClassVar[int]
     ASYNC_EXECUTE_FIELD_NUMBER: _ClassVar[int]
     PUBSUB_PUBLISH_FIELD_NUMBER: _ClassVar[int]
     PUBSUB_CONSUME_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_CREATED_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_STATE_CHANGED_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_CREATED_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_RUNTIME_FIELD_NUMBER: _ClassVar[int]
     timestamp: _timestamp_pb2.Timestamp
     id: int
     log: LogEvent
     call: CallEvent
-    deployment_created: DeploymentCreatedEvent
-    deployment_updated: DeploymentUpdatedEvent
     ingress: IngressEvent
     cron_scheduled: CronScheduledEvent
     async_execute: AsyncExecuteEvent
     pubsub_publish: PubSubPublishEvent
     pubsub_consume: PubSubConsumeEvent
-    def __init__(self, timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., id: _Optional[int] = ..., log: _Optional[_Union[LogEvent, _Mapping]] = ..., call: _Optional[_Union[CallEvent, _Mapping]] = ..., deployment_created: _Optional[_Union[DeploymentCreatedEvent, _Mapping]] = ..., deployment_updated: _Optional[_Union[DeploymentUpdatedEvent, _Mapping]] = ..., ingress: _Optional[_Union[IngressEvent, _Mapping]] = ..., cron_scheduled: _Optional[_Union[CronScheduledEvent, _Mapping]] = ..., async_execute: _Optional[_Union[AsyncExecuteEvent, _Mapping]] = ..., pubsub_publish: _Optional[_Union[PubSubPublishEvent, _Mapping]] = ..., pubsub_consume: _Optional[_Union[PubSubConsumeEvent, _Mapping]] = ...) -> None: ...
+    changeset_created: ChangesetCreatedEvent
+    changeset_state_changed: ChangesetStateChangedEvent
+    deployment_created: DeploymentCreatedEvent
+    deployment_runtime: DeploymentRuntimeEvent
+    def __init__(self, timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., id: _Optional[int] = ..., log: _Optional[_Union[LogEvent, _Mapping]] = ..., call: _Optional[_Union[CallEvent, _Mapping]] = ..., ingress: _Optional[_Union[IngressEvent, _Mapping]] = ..., cron_scheduled: _Optional[_Union[CronScheduledEvent, _Mapping]] = ..., async_execute: _Optional[_Union[AsyncExecuteEvent, _Mapping]] = ..., pubsub_publish: _Optional[_Union[PubSubPublishEvent, _Mapping]] = ..., pubsub_consume: _Optional[_Union[PubSubConsumeEvent, _Mapping]] = ..., changeset_created: _Optional[_Union[ChangesetCreatedEvent, _Mapping]] = ..., changeset_state_changed: _Optional[_Union[ChangesetStateChangedEvent, _Mapping]] = ..., deployment_created: _Optional[_Union[DeploymentCreatedEvent, _Mapping]] = ..., deployment_runtime: _Optional[_Union[DeploymentRuntimeEvent, _Mapping]] = ...) -> None: ...

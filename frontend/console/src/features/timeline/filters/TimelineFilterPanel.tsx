@@ -1,4 +1,15 @@
-import { Call02Icon, CustomerServiceIcon, Download04Icon, InternetIcon, Rocket01Icon, TimeQuarterPassIcon, Upload04Icon } from 'hugeicons-react'
+import {
+  Call02Icon,
+  ComputerIcon,
+  CustomerServiceIcon,
+  Download04Icon,
+  InternetIcon,
+  KeyframesMultipleAddIcon,
+  KeyframesMultipleIcon,
+  Rocket01Icon,
+  TimeQuarterPassIcon,
+  Upload04Icon,
+} from 'hugeicons-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { EventType, LogLevel } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
@@ -25,16 +36,6 @@ const EVENT_TYPES: Record<string, EventFilter> = {
     icon: <CustomerServiceIcon className='w-4 h-4 text-indigo-500 ml-1' />,
   },
   log: { label: 'Log', type: EventType.LOG, icon: <LogLevelBadgeSmall logLevel={LogLevel.INFO} /> },
-  deploymentCreated: {
-    label: 'Deployment Created',
-    type: EventType.DEPLOYMENT_CREATED,
-    icon: <Rocket01Icon className='w-4 h-4 text-purple-500 ml-1' />,
-  },
-  deploymentUpdated: {
-    label: 'Deployment Updated',
-    type: EventType.DEPLOYMENT_UPDATED,
-    icon: <Rocket01Icon className='w-4 h-4 text-purple-500 ml-1' />,
-  },
   ingress: { label: 'Ingress', type: EventType.INGRESS, icon: <InternetIcon className='w-4 h-4 text-green-500  ml-1' /> },
   cronScheduled: {
     label: 'Cron Scheduled',
@@ -44,12 +45,32 @@ const EVENT_TYPES: Record<string, EventFilter> = {
   pubsubPublish: {
     label: 'PubSub Publish',
     type: EventType.PUBSUB_PUBLISH,
-    icon: <Upload04Icon className='w-4 h-4 text-violet-500 ml-1' />,
+    icon: <Upload04Icon className='w-4 h-4 text-teal-500 ml-1' />,
   },
   pubsubConsume: {
     label: 'PubSub Consume',
     type: EventType.PUBSUB_CONSUME,
-    icon: <Download04Icon className='w-4 h-4 text-violet-500 ml-1' />,
+    icon: <Download04Icon className='w-4 h-4 text-teal-500 ml-1' />,
+  },
+  changesetCreated: {
+    label: 'Changeset Created',
+    type: EventType.CHANGESET_CREATED,
+    icon: <KeyframesMultipleAddIcon className='w-4 h-4 text-purple-500 ml-1' />,
+  },
+  changesetStateChanged: {
+    label: 'Changeset Changed',
+    type: EventType.CHANGESET_STATE_CHANGED,
+    icon: <KeyframesMultipleIcon className='w-4 h-4 text-purple-500 ml-1' />,
+  },
+  deploymentRuntime: {
+    label: 'Changeset Runtime',
+    type: EventType.DEPLOYMENT_RUNTIME,
+    icon: <ComputerIcon className='w-4 h-4 text-purple-500 ml-1' />,
+  },
+  deploymentCreated: {
+    label: 'Deployment Created',
+    type: EventType.DEPLOYMENT_CREATED,
+    icon: <Rocket01Icon className='w-4 h-4 text-purple-500 ml-1' />,
   },
 }
 

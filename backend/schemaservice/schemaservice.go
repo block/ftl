@@ -14,6 +14,7 @@ import (
 	"connectrpc.com/connect"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/alecthomas/types/optional"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -25,6 +26,7 @@ import (
 	"github.com/block/ftl/internal/raft"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/statemachine"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 type CommonSchemaServiceConfig struct {
@@ -37,8 +39,9 @@ type Config struct {
 }
 
 type Service struct {
-	State  *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper]
-	Config Config
+	State          *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper]
+	Config         Config
+	timelineClient *timelineclient.Client
 }
 
 func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
@@ -60,9 +63,11 @@ func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.Ge
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 
-func New(ctx context.Context, handle statemachine.Handle[struct{}, SchemaState, EventWrapper], config Config) *Service {
+func New(ctx context.Context, handle statemachine.Handle[struct{}, SchemaState, EventWrapper], config Config, timelineClient *timelineclient.Client) *Service {
 	return &Service{
-		State: statemachine.NewSingleQueryHandle(handle, struct{}{}),
+		State:          statemachine.NewSingleQueryHandle(handle, struct{}{}),
+		Config:         config,
+		timelineClient: timelineClient,
 	}
 }
 
@@ -70,6 +75,7 @@ func New(ctx context.Context, handle statemachine.Handle[struct{}, SchemaState, 
 func Start(
 	ctx context.Context,
 	config Config,
+	timelineClient *timelineclient.Client,
 ) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL schema service")
@@ -93,7 +99,7 @@ func Start(
 		rpcOpts = append(rpcOpts, raft.RPCOption(cluster))
 	}
 
-	svc := New(ctx, shard, config)
+	svc := New(ctx, shard, config, timelineClient)
 	logger.Debugf("Listening on %s", config.Bind)
 
 	g.Go(func() error {
@@ -312,6 +318,78 @@ func (s *Service) publishEvent(ctx context.Context, event schema.Event) error {
 	if err := s.State.Publish(ctx, EventWrapper{Event: event}); err != nil {
 		return fmt.Errorf("failed to publish event: %w", err)
 	}
+
+	switch e := event.(type) {
+	case *schema.ChangesetCreatedEvent:
+		moduleNames := make([]string, 0, len(e.Changeset.Modules))
+		for _, module := range e.Changeset.Modules {
+			moduleNames = append(moduleNames, module.Name)
+		}
+		s.timelineClient.Publish(ctx, timelineclient.ChangesetCreated{
+			Key:       e.Changeset.Key,
+			CreatedAt: e.Changeset.CreatedAt,
+			Modules:   moduleNames,
+			ToRemove:  e.Changeset.ToRemove,
+		})
+	case *schema.ChangesetPreparedEvent:
+		s.timelineClient.Publish(ctx, timelineclient.ChangesetStateChanged{
+			Key:   e.Key,
+			State: schema.ChangesetStatePrepared,
+		})
+	case *schema.ChangesetCommittedEvent:
+		s.timelineClient.Publish(ctx, timelineclient.ChangesetStateChanged{
+			Key:   e.Key,
+			State: schema.ChangesetStateCommitted,
+		})
+	case *schema.ChangesetDrainedEvent:
+		s.timelineClient.Publish(ctx, timelineclient.ChangesetStateChanged{
+			Key:   e.Key,
+			State: schema.ChangesetStateDrained,
+		})
+	case *schema.ChangesetFinalizedEvent:
+		s.timelineClient.Publish(ctx, timelineclient.ChangesetStateChanged{
+			Key:   e.Key,
+			State: schema.ChangesetStateFinalized,
+		})
+	case *schema.ChangesetRollingBackEvent:
+		s.timelineClient.Publish(ctx, timelineclient.ChangesetStateChanged{
+			Key:   e.Key,
+			State: schema.ChangesetStateRollingBack,
+			Error: optional.Some(e.Error),
+		})
+	case *schema.ChangesetFailedEvent:
+		changeset, err := state.GetChangeset(e.Key)
+		if err == nil {
+			s.timelineClient.Publish(ctx, timelineclient.ChangesetStateChanged{
+				Key:   e.Key,
+				State: schema.ChangesetStateFailed,
+				Error: optional.Some(changeset.Error),
+			})
+		}
+	case *schema.DeploymentCreatedEvent:
+		var changeset optional.Option[key.Changeset]
+		if e.Changeset != nil {
+			changeset = optional.Some(*e.Changeset)
+		}
+		s.timelineClient.Publish(ctx, timelineclient.DeploymentCreated{
+			Key:       e.Key,
+			CreatedAt: e.Schema.Runtime.Base.CreateTime,
+			Schema:    e.Schema,
+			Changeset: changeset,
+		})
+	case *schema.DeploymentRuntimeEvent:
+		var changeset optional.Option[key.Changeset]
+		if e.Changeset != nil {
+			changeset = optional.Some(*e.Changeset)
+		}
+		s.timelineClient.Publish(ctx, timelineclient.DeploymentRuntime{
+			Deployment: e.Payload.Deployment,
+			Element:    e.Payload,
+			UpdatedAt:  time.Now(),
+			Changeset:  changeset,
+		})
+	}
+
 	return nil
 }
 

@@ -101,13 +101,15 @@ message CreateEventsRequest {
     oneof entry {
       LogEvent log = 2;
       CallEvent call = 3;
-      DeploymentCreatedEvent deployment_created = 4;
-      DeploymentUpdatedEvent deployment_updated = 5;
-      IngressEvent ingress = 6;
-      CronScheduledEvent cron_scheduled = 7;
-      AsyncExecuteEvent async_execute = 8;
-      PubSubPublishEvent pubsub_publish = 9;
-      PubSubConsumeEvent pubsub_consume = 10;
+      IngressEvent ingress = 4;
+      CronScheduledEvent cron_scheduled = 5;
+      AsyncExecuteEvent async_execute = 6;
+      PubSubPublishEvent pubsub_publish = 7;
+      PubSubConsumeEvent pubsub_consume = 8;
+      ChangesetCreatedEvent changeset_created = 9;
+      ChangesetStateChangedEvent changeset_state_changed = 10;
+      DeploymentCreatedEvent deployment_created = 11;
+      DeploymentRuntimeEvent deployment_runtime = 12;
     }
   }
 
@@ -131,12 +133,12 @@ service TimelineService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
-  // Get timeline events with filters
+  // Get timeline events with optional filters
   rpc GetTimeline(GetTimelineRequest) returns (GetTimelineResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
-  // Stream timeline events with filters
+  // Stream timeline events with optional filters
   rpc StreamTimeline(StreamTimelineRequest) returns (stream StreamTimelineResponse);
 
   rpc CreateEvents(CreateEventsRequest) returns (CreateEventsResponse) {}
