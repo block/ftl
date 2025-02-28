@@ -34,7 +34,7 @@ type Task struct {
 	deployment *Deployment
 
 	// set if the task is currently running
-	runningToken string
+	statusCh chan *provisioner.StatusResponse
 }
 
 func (t *Task) Start(ctx context.Context) error {
@@ -48,7 +48,7 @@ func (t *Task) Start(ctx context.Context) error {
 		previous = t.deployment.Previous.ToProto()
 	}
 
-	resp, err := t.binding.Provisioner.Provision(ctx, &provisioner.ProvisionRequest{
+	statusCh, err := t.binding.Provisioner.Provision(ctx, &provisioner.ProvisionRequest{
 		DesiredModule: t.deployment.DeploymentState.ToProto(),
 		// TODO: We need a proper cluster specific ID here
 		FtlClusterId:   "ftl",
@@ -60,7 +60,7 @@ func (t *Task) Start(ctx context.Context) error {
 		t.state = TaskStateFailed
 		return fmt.Errorf("error provisioning resources: %w", err)
 	}
-	t.runningToken = resp.ProvisioningToken
+	t.statusCh = statusCh
 
 	return nil
 }
@@ -84,14 +84,14 @@ func (t *Task) Progress(ctx context.Context) error {
 	// }
 
 	for {
-
-		resp, err := t.binding.Provisioner.Status(ctx, &provisioner.StatusRequest{
-			ProvisioningToken: t.runningToken,
-			DesiredModule:     t.deployment.DeploymentState.ToProto(),
-		})
-		if err != nil {
+		resp, ok := <-t.statusCh
+		if !ok {
 			t.state = TaskStateFailed
-			return fmt.Errorf("error getting state: %w", err)
+			return fmt.Errorf("status channel closed")
+		}
+		if resp.Status == nil {
+			t.state = TaskStateFailed
+			return fmt.Errorf("status is nil")
 		}
 		if succ, ok := resp.Status.(*provisioner.StatusResponse_Success); ok {
 			t.state = TaskStateDone

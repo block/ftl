@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
-	"github.com/google/uuid"
 
 	proto "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	"github.com/block/ftl/backend/provisioner"
@@ -16,52 +15,28 @@ import (
 )
 
 // MockProvisioner is a mock implementation of the Provisioner interface
-type MockProvisioner struct {
-	StatusFn    func(ctx context.Context, req *proto.StatusRequest) (*proto.StatusResponse, error)
-	ProvisionFn func(ctx context.Context, req *proto.ProvisionRequest) (*proto.ProvisionResponse, error)
-
-	stateCalls int
-}
+type MockProvisioner struct{}
 
 var _ provisioner.Plugin = (*MockProvisioner)(nil)
 
-func (m *MockProvisioner) Provision(ctx context.Context, req *proto.ProvisionRequest) (*proto.ProvisionResponse, error) {
-	if m.ProvisionFn != nil {
-		resp, err := m.ProvisionFn(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-		return resp, nil
+func (m *MockProvisioner) Provision(ctx context.Context, req *proto.ProvisionRequest) (chan *proto.StatusResponse, error) {
+	statusCh := make(chan *proto.StatusResponse, 64)
+
+	statusCh <- &proto.StatusResponse{
+		Status: &proto.StatusResponse_Running{},
+	}
+	statusCh <- &proto.StatusResponse{
+		Status: &proto.StatusResponse_Running{},
+	}
+	statusCh <- &proto.StatusResponse{
+		Status: &proto.StatusResponse_Success{Success: &proto.StatusResponse_ProvisioningSuccess{
+			Outputs: []*schemapb.RuntimeElement{},
+		}},
 	}
 
-	return &proto.ProvisionResponse{
-		ProvisioningToken: uuid.New().String(),
-	}, nil
-}
+	close(statusCh)
 
-func (m *MockProvisioner) Status(ctx context.Context, req *proto.StatusRequest) (*proto.StatusResponse, error) {
-	m.stateCalls++
-	if m.stateCalls <= 1 {
-		return &proto.StatusResponse{
-			Status: &proto.StatusResponse_Running{},
-		}, nil
-	}
-
-	if m.StatusFn != nil {
-		rep, err := m.StatusFn(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-		return rep, nil
-	}
-
-	return &proto.StatusResponse{
-		Status: &proto.StatusResponse_Success{
-			Success: &proto.StatusResponse_ProvisioningSuccess{
-				Outputs: []*schemapb.RuntimeElement{},
-			},
-		},
-	}, nil
+	return statusCh, nil
 }
 
 func TestDeployment_Progress(t *testing.T) {

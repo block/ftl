@@ -10,8 +10,7 @@ import (
 
 // Plugin
 type Plugin interface {
-	Provision(ctx context.Context, req *provisioner.ProvisionRequest) (*provisioner.ProvisionResponse, error)
-	Status(ctx context.Context, req *provisioner.StatusRequest) (*provisioner.StatusResponse, error)
+	Provision(ctx context.Context, req *provisioner.ProvisionRequest) (chan *provisioner.StatusResponse, error)
 }
 
 // PluginGrpcClient implements the Plugin interface by wrapping a ProvisionerPluginService client
@@ -25,19 +24,29 @@ func NewPluginClient(client provisionerconnect.ProvisionerPluginServiceClient) P
 }
 
 // Provision implements the Plugin interface
-func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.ProvisionRequest) (*provisioner.ProvisionResponse, error) {
+func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.ProvisionRequest) (chan *provisioner.StatusResponse, error) {
 	resp, err := p.client.Provision(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
-	return resp.Msg, nil
-}
 
-// Status implements the Plugin interface
-func (p *PluginGrpcClient) Status(ctx context.Context, req *provisioner.StatusRequest) (*provisioner.StatusResponse, error) {
-	resp, err := p.client.Status(ctx, connect.NewRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	return resp.Msg, nil
+	// call status endpoint in a loop until the status is not pending
+	statusCh := make(chan *provisioner.StatusResponse)
+	go func() {
+		for {
+			status, err := p.client.Status(ctx, connect.NewRequest(&provisioner.StatusRequest{ProvisioningToken: resp.Msg.ProvisioningToken}))
+			if err != nil {
+				return
+			}
+			statusCh <- status.Msg
+
+			// terminate the channel when the task is done
+			if status.Msg.GetRunning() == nil {
+				close(statusCh)
+				return
+			}
+		}
+	}()
+
+	return statusCh, nil
 }
