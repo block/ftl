@@ -3,7 +3,6 @@ package xyz.block.ftl.kotlin.deployment;
 import static com.squareup.kotlinpoet.TypeNames.BOOLEAN;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +34,7 @@ import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.VerbClient;
 import xyz.block.ftl.deployment.JVMCodeGenerator;
+import xyz.block.ftl.deployment.PackageOutput;
 import xyz.block.ftl.deployment.VerbType;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
@@ -52,8 +52,7 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
 
     @Override
     protected void generateTypeAliasMapper(String module, xyz.block.ftl.schema.v1.TypeAlias typeAlias, String packageName,
-            Optional<String> nativeTypeAlias,
-            Path outputDir) throws IOException {
+            Optional<String> nativeTypeAlias, PackageOutput outputDir) throws IOException {
         String thisType = className(typeAlias.getName()) + TYPE_MAPPER;
         TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(thisType)
                 .addAnnotation(AnnotationSpec.builder(TypeAlias.class)
@@ -72,14 +71,14 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
                     ClassName.bestGuess(nativeTypeAlias.get()), new ClassName("kotlin", "String")), CodeBlock.of(""));
         }
 
-        FileSpec javaFile = FileSpec.builder(packageName, thisType)
+        FileSpec kotlinFile = FileSpec.builder(packageName, thisType)
                 .addType(typeBuilder.build())
                 .build();
-        javaFile.writeTo(outputDir);
+        kotlinFile.writeTo(outputDir.writeKotlin(kotlinFile.getName()));
     }
 
     protected void generateTopicConsumer(Module module, Topic data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Path outputDir) throws IOException {
+            Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir) throws IOException {
         String thisType = className(data.getName());
 
         TypeSpec.Builder dataBuilder = TypeSpec.interfaceBuilder(ClassName.bestGuess(thisType));
@@ -106,11 +105,11 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
                 .addType(dataBuilder.build())
                 .build();
 
-        javaFile.writeTo(outputDir);
+        javaFile.writeTo(outputDir.writeKotlin(javaFile.getName()));
     }
 
     protected void generateEnum(Module module, Enum data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, Path outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
             throws IOException {
         String thisType = className(data.getName());
         if (data.hasType()) {
@@ -137,7 +136,7 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
             FileSpec kotlinFile = FileSpec.builder(packageName, thisType)
                     .addType(dataBuilder.build())
                     .build();
-            kotlinFile.writeTo(outputDir);
+            kotlinFile.writeTo(outputDir.writeKotlin(kotlinFile.getName()));
         } else {
             // Enums without a type are (confusingly) "type enums". Kotlin can't represent these directly, so we use a
             // sealed interface
@@ -187,18 +186,18 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
                     FileSpec wrapperFile = FileSpec.builder(packageName, name)
                             .addType(dataBuilder.build())
                             .build();
-                    wrapperFile.writeTo(outputDir);
+                    wrapperFile.writeTo(outputDir.writeKotlin(wrapperFile.getName()));
                 }
             }
             FileSpec interfaceFile = FileSpec.builder(packageName, thisType)
                     .addType(interfaceBuilder.build())
                     .build();
-            interfaceFile.writeTo(outputDir);
+            interfaceFile.writeTo(outputDir.writeKotlin(interfaceFile.getName()));
         }
     }
 
     protected void generateDataObject(Module module, Data data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, Path outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
             throws IOException {
         String thisType = className(data.getName());
         TypeSpec.Builder dataBuilder = TypeSpec.classBuilder(thisType)
@@ -241,11 +240,11 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         FileSpec kotlinClass = FileSpec.builder(packageName, thisType)
                 .addType(dataBuilder.build())
                 .build();
-        kotlinClass.writeTo(outputDir);
+        kotlinClass.writeTo(outputDir.writeKotlin(kotlinClass.getName()));
     }
 
     protected void generateVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Path outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir)
             throws IOException {
         String name = verb.getName();
         String thisType = className(name) + CLIENT;
@@ -270,7 +269,7 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         FileSpec javaFile = FileSpec.builder(packageName, thisType)
                 .addType(typeBuilder.build())
                 .build();
-        javaFile.writeTo(outputDir);
+        javaFile.writeTo(outputDir.writeKotlin(javaFile.getName()));
     }
 
     private String toJavaName(String name) {

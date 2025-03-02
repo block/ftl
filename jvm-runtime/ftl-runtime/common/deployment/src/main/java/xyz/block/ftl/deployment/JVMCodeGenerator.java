@@ -56,6 +56,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
         Map<DeclRef, Type> typeAliasMap = new HashMap<>();
         Map<DeclRef, String> nativeTypeAliasMap = new HashMap<>();
         Map<DeclRef, List<EnumInfo>> enumVariantInfoMap = new HashMap<>();
+        Map<String, PackageOutput> packageOutputMap = new HashMap<>();
         try (Stream<Path> pathStream = Files.list(context.inputDir())) {
             for (var file : pathStream.toList()) {
                 String fileName = file.getFileName().toString();
@@ -68,8 +69,10 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                 } catch (Exception e) {
                     throw new CodeGenException("Failed to parse " + file, e);
                 }
+                String packageName = PACKAGE_PREFIX + module.getName();
+                var output = packageOutputMap.computeIfAbsent(module.getName(),
+                        (k) -> new PackageOutput(context.outDir(), packageName));
                 for (var decl : module.getDeclsList()) {
-                    String packageName = PACKAGE_PREFIX + module.getName();
                     if (decl.hasTypeAlias()) {
                         var data = decl.getTypeAlias();
                         boolean handled = false;
@@ -85,7 +88,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                                                 nativeName);
                                         generateTypeAliasMapper(module.getName(), data, packageName,
                                                 Optional.of(nativeName),
-                                                context.outDir());
+                                                output);
                                         handled = true;
                                         break;
                                     }
@@ -94,7 +97,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                         }
                         if (!handled) {
                             generateTypeAliasMapper(module.getName(), data, packageName, Optional.empty(),
-                                    context.outDir());
+                                    output);
                             typeAliasMap.put(new DeclRef(module.getName(), data.getName()), data.getType());
                         }
 
@@ -108,20 +111,22 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
         try {
             for (var module : modules) {
                 String packageName = PACKAGE_PREFIX + module.getName();
+                var output = packageOutputMap.computeIfAbsent(module.getName(),
+                        (k) -> new PackageOutput(context.outDir(), packageName));
                 for (var decl : module.getDeclsList()) {
                     if (decl.hasVerb()) {
                         var verb = decl.getVerb();
                         if (!verb.getExport()) {
                             continue;
                         }
-                        generateVerb(module, verb, packageName, typeAliasMap, nativeTypeAliasMap, context.outDir());
+                        generateVerb(module, verb, packageName, typeAliasMap, nativeTypeAliasMap, output);
                     } else if (decl.hasData()) {
                         var data = decl.getData();
                         if (!data.getExport()) {
                             continue;
                         }
                         generateDataObject(module, data, packageName, typeAliasMap, nativeTypeAliasMap, enumVariantInfoMap,
-                                context.outDir());
+                                output);
 
                     } else if (decl.hasEnum()) {
                         var data = decl.getEnum();
@@ -129,14 +134,14 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                             continue;
                         }
                         generateEnum(module, data, packageName, typeAliasMap, nativeTypeAliasMap, enumVariantInfoMap,
-                                context.outDir());
+                                output);
                     } else if (decl.hasTopic()) {
                         var data = decl.getTopic();
                         if (!data.getExport()) {
                             continue;
                         }
                         generateTopicConsumer(module, data, packageName, typeAliasMap, nativeTypeAliasMap,
-                                context.outDir());
+                                output);
                     }
                 }
             }
@@ -144,25 +149,29 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
         } catch (Exception e) {
             throw new CodeGenException(e);
         }
+        for (var e : packageOutputMap.entrySet()) {
+            e.getValue().close();
+        }
         return true;
     }
 
     protected abstract void generateTypeAliasMapper(String module, TypeAlias typeAlias, String packageName,
-            Optional<String> nativeTypeAlias, Path outputDir) throws IOException;
+            Optional<String> nativeTypeAlias, PackageOutput outputDir) throws IOException;
 
     protected abstract void generateTopicConsumer(Module module, Topic data, String packageName,
-            Map<DeclRef, Type> typeAliasMap, Map<DeclRef, String> nativeTypeAliasMap, Path outputDir) throws IOException;
+            Map<DeclRef, Type> typeAliasMap, Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir)
+            throws IOException;
 
     protected abstract void generateEnum(Module module, Enum data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, Path outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
             throws IOException;
 
     protected abstract void generateDataObject(Module module, Data data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, Path outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
             throws IOException;
 
     protected abstract void generateVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Path outputDir) throws IOException;
+            Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir) throws IOException;
 
     @Override
     public boolean shouldRun(Path sourceDir, Config config) {

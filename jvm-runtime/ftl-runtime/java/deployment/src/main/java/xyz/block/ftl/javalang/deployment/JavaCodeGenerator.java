@@ -1,7 +1,6 @@
 package xyz.block.ftl.javalang.deployment;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +33,7 @@ import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.VerbClient;
 import xyz.block.ftl.deployment.JVMCodeGenerator;
+import xyz.block.ftl.deployment.PackageOutput;
 import xyz.block.ftl.deployment.VerbType;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
@@ -51,7 +51,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
 
     @Override
     protected void generateTypeAliasMapper(String module, xyz.block.ftl.schema.v1.TypeAlias typeAlias,
-            String packageName, Optional<String> nativeTypeAlias, Path outputDir) throws IOException {
+            String packageName, Optional<String> nativeTypeAlias, PackageOutput outputDir) throws IOException {
         TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(className(typeAlias.getName()) + TYPE_MAPPER)
                 .addAnnotation(AnnotationSpec.builder(TypeAlias.class)
                         .addMember("name", "\"" + typeAlias.getName() + "\"")
@@ -71,11 +71,11 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
         TypeSpec theType = typeBuilder.build();
         JavaFile javaFile = JavaFile.builder(packageName, theType)
                 .build();
-        javaFile.writeTo(outputDir);
+        javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
     }
 
     protected void generateTopicConsumer(Module module, Topic data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Path outputDir) throws IOException {
+            Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir) throws IOException {
         String thisType = className(data.getName());
 
         TypeSpec.Builder dataBuilder = TypeSpec.interfaceBuilder(thisType)
@@ -102,11 +102,11 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
         JavaFile javaFile = JavaFile.builder(packageName, dataBuilder.build())
                 .build();
 
-        javaFile.writeTo(outputDir);
+        javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
     }
 
     protected void generateEnum(Module module, Enum ennum, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, Path outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
             throws IOException {
         String interfaceType = className(ennum.getName());
         if (ennum.hasType()) {
@@ -131,7 +131,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                 dataBuilder.addEnumConstant(i.getName(), TypeSpec.anonymousClassBuilder(format, value).build());
             }
             JavaFile javaFile = JavaFile.builder(packageName, dataBuilder.build()).build();
-            javaFile.writeTo(outputDir);
+            javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
         } else {
             // Enums without a type are (confusingly) "type enums". Java can't represent these directly, so we use a
             // sealed class
@@ -187,16 +187,16 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                     addTypeEnumInterfaceMethods(packageName, interfaceType, dataBuilder, name, valueType,
                             variantValuesTypes, false);
                     JavaFile javaFile = JavaFile.builder(packageName, dataBuilder.build()).build();
-                    javaFile.writeTo(outputDir);
+                    javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
                 }
             }
             JavaFile javaFile = JavaFile.builder(packageName, interfaceBuilder.build()).build();
-            javaFile.writeTo(outputDir);
+            javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
         }
     }
 
     protected void generateDataObject(Module module, Data data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, Path outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
             throws IOException {
         String thisType = className(data.getName());
         TypeSpec.Builder dataBuilder = TypeSpec.classBuilder(thisType)
@@ -267,11 +267,11 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
         JavaFile javaFile = JavaFile.builder(packageName, dataBuilder.build())
                 .build();
 
-        javaFile.writeTo(outputDir);
+        javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
     }
 
     protected void generateVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Path outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir)
             throws IOException {
         String verbName = verb.getName();
         TypeSpec.Builder clientBuilder = TypeSpec.interfaceBuilder(className(verbName) + CLIENT)
@@ -297,7 +297,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
         }
         clientBuilder.addMethod(callMethod.build());
         JavaFile javaFile = JavaFile.builder(packageName, clientBuilder.build()).build();
-        javaFile.writeTo(outputDir);
+        javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
     }
 
     private String toJavaName(String name) {
