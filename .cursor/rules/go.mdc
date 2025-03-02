@@ -1,0 +1,14 @@
+---
+description: Rules for writing Go code
+globs: **/*.go
+alwaysApply: false
+---
+
+- Always handle errors.
+- Always wrap errors using `fmt.Errorf("...: %w", err)`
+- Never use pointers to represent optional values, always use `github.com/alecthomas/types/optional.Option[T]`
+- For tests, always use github.com/alecthomas/assert for assertions.
+- When using assert.Equal, the parameters are `assert.Equal(t, <expected>, <actual>)` in that order.
+- Always update or create tests for new changes to Go code.
+- After making changes to Go files, always run tests.
+- Never use `os.Getenv()` outside of `main()`
