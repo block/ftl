@@ -702,7 +702,13 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 							errs = append(errs, moduleErr)
 						}
 					}
-					logger.Errorf(errors.Join(errs...), "Initial build failed")
+					if len(errs) > 1 {
+						logger.Logf(log.Error, "Initial build failed:\n%s", strings.Join(slices.Map(errs, func(err error) string {
+							return fmt.Sprintf("  %s", err)
+						}), "\n"))
+					} else {
+						logger.Errorf(errors.Join(errs...), "Initial build failed")
+					}
 				} else if start, ok := e.startTime.Get(); ok {
 					e.startTime = optional.None[time.Time]()
 					logger.Infof("All modules deployed in %.2fs, watching for changes...", endTime.Sub(start).Seconds())
@@ -768,7 +774,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 			case *buildenginepb.EngineEvent_ModuleBuildFailed:
 				moduleStates[rawEvent.ModuleBuildFailed.Config.Name] = moduleStateFailed
 				moduleErrors[rawEvent.ModuleBuildFailed.Config.Name] = rawEvent.ModuleBuildFailed.Errors
-				moduleErr := fmt.Errorf("%s: %s", rawEvent.ModuleBuildFailed.Config.Name, langpb.ErrorListString(rawEvent.ModuleBuildFailed.Errors))
+				moduleErr := fmt.Errorf("%s", langpb.ErrorListString(rawEvent.ModuleBuildFailed.Errors))
 				logger.Module(rawEvent.ModuleBuildFailed.Config.Name).Scope("build").Errorf(moduleErr, "Build failed")
 			case *buildenginepb.EngineEvent_ModuleBuildSuccess:
 				moduleStates[rawEvent.ModuleBuildSuccess.Config.Name] = moduleStateBuilt
