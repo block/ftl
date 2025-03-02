@@ -10,7 +10,7 @@ import (
 )
 
 // SchemaToOpenAPI converts an FTL schema to an OpenAPI specification.
-func SchemaToOpenAPI(sch *schema.Schema) *spec.Swagger {
+func SchemaToOpenAPI(sch *schema.Schema) (*spec.Swagger, error) {
 	swagger := &spec.Swagger{
 		SwaggerProps: spec.SwaggerProps{
 			Swagger: "2.0",
@@ -48,18 +48,20 @@ func SchemaToOpenAPI(sch *schema.Schema) *spec.Swagger {
 			}
 
 			// Add path to OpenAPI spec
-			addPathFromVerb(swagger, sch, module.Name, verb, ingressMeta)
+			if err := addPathFromVerb(swagger, sch, module.Name, verb, ingressMeta); err != nil {
+				return nil, fmt.Errorf("failed to add path for verb %s.%s: %w", module.Name, verb.Name, err)
+			}
 		}
 	}
 
 	// Add all data types used in the API
 	addDefinitions(swagger, sch)
 
-	return swagger
+	return swagger, nil
 }
 
 // addPathFromVerb adds a path to the OpenAPI spec from an FTL verb with ingress metadata.
-func addPathFromVerb(swagger *spec.Swagger, sch *schema.Schema, moduleName string, verb *schema.Verb, ingressMeta *schema.MetadataIngress) {
+func addPathFromVerb(swagger *spec.Swagger, sch *schema.Schema, moduleName string, verb *schema.Verb, ingressMeta *schema.MetadataIngress) error {
 	// Get the path from the ingress metadata
 	path := ingressMeta.PathString()
 
@@ -88,10 +90,14 @@ func addPathFromVerb(swagger *spec.Swagger, sch *schema.Schema, moduleName strin
 	operation.ID = fmt.Sprintf("%s.%s", moduleName, verb.Name)
 
 	// Process request parameters
-	processRequestParameters(operation, sch, verb)
+	if err := processRequestParameters(operation, sch, verb); err != nil {
+		return fmt.Errorf("failed to process request parameters: %w", err)
+	}
 
 	// Process response
-	processResponse(operation, sch, verb)
+	if err := processResponse(operation, sch, verb); err != nil {
+		return fmt.Errorf("failed to process response: %w", err)
+	}
 
 	// Add the operation to the path item based on the HTTP method
 	switch strings.ToUpper(ingressMeta.Method) {
@@ -103,45 +109,49 @@ func addPathFromVerb(swagger *spec.Swagger, sch *schema.Schema, moduleName strin
 		pathItem.Put = operation
 	case "DELETE":
 		pathItem.Delete = operation
+	default:
+		return fmt.Errorf("unsupported HTTP method: %s", ingressMeta.Method)
 	}
 
 	// Update the path in the swagger spec
 	swagger.Paths.Paths[openAPIPath] = pathItem
+	return nil
 }
 
 // processRequestParameters processes the request parameters for an operation.
-func processRequestParameters(operation *spec.Operation, sch *schema.Schema, verb *schema.Verb) {
+func processRequestParameters(operation *spec.Operation, sch *schema.Schema, verb *schema.Verb) error {
 	// Get the request type
 	requestRef, ok := verb.Request.(*schema.Ref)
 	if !ok {
-		return
+		return fmt.Errorf("request type must be a reference")
 	}
 
 	// Resolve the request type
 	httpRequestData, err := sch.ResolveMonomorphised(requestRef)
 	if err != nil {
-		return
+		return fmt.Errorf("failed to resolve request type: %w", err)
 	}
 
 	// Process path parameters
 	pathParamsField := httpRequestData.FieldByName("pathParameters")
 	if pathParamsField != nil && !isUnitType(pathParamsField.Type) {
 		pathParamsType, err := resolveType(sch, pathParamsField.Type)
-		if err == nil {
-			if pathParamsData, ok := pathParamsType.(*schema.Data); ok {
-				for _, field := range pathParamsData.Fields {
-					schema := schemaForType(field.Type)
-					param := spec.Parameter{
-						ParamProps: spec.ParamProps{
-							Name:        field.Name,
-							In:          "path",
-							Description: strings.Join(field.Comments, "\n"),
-							Required:    true,
-							Schema:      &schema,
-						},
-					}
-					operation.Parameters = append(operation.Parameters, param)
+		if err != nil {
+			return fmt.Errorf("failed to resolve path parameters type: %w", err)
+		}
+		if pathParamsData, ok := pathParamsType.(*schema.Data); ok {
+			for _, field := range pathParamsData.Fields {
+				schema := schemaForType(field.Type)
+				param := spec.Parameter{
+					ParamProps: spec.ParamProps{
+						Name:        field.Name,
+						In:          "path",
+						Description: strings.Join(field.Comments, "\n"),
+						Required:    true,
+						Schema:      &schema,
+					},
 				}
+				operation.Parameters = append(operation.Parameters, param)
 			}
 		}
 	}
@@ -150,20 +160,21 @@ func processRequestParameters(operation *spec.Operation, sch *schema.Schema, ver
 	queryParamsField := httpRequestData.FieldByName("query")
 	if queryParamsField != nil && !isUnitType(queryParamsField.Type) {
 		queryParamsType, err := resolveType(sch, queryParamsField.Type)
-		if err == nil {
-			if queryParamsData, ok := queryParamsType.(*schema.Data); ok {
-				for _, field := range queryParamsData.Fields {
-					schema := schemaForType(field.Type)
-					param := spec.Parameter{
-						ParamProps: spec.ParamProps{
-							Name:        field.Name,
-							In:          "query",
-							Description: strings.Join(field.Comments, "\n"),
-							Schema:      &schema,
-						},
-					}
-					operation.Parameters = append(operation.Parameters, param)
+		if err != nil {
+			return fmt.Errorf("failed to resolve query parameters type: %w", err)
+		}
+		if queryParamsData, ok := queryParamsType.(*schema.Data); ok {
+			for _, field := range queryParamsData.Fields {
+				schema := schemaForType(field.Type)
+				param := spec.Parameter{
+					ParamProps: spec.ParamProps{
+						Name:        field.Name,
+						In:          "query",
+						Description: strings.Join(field.Comments, "\n"),
+						Schema:      &schema,
+					},
 				}
+				operation.Parameters = append(operation.Parameters, param)
 			}
 		}
 	}
@@ -176,27 +187,29 @@ func processRequestParameters(operation *spec.Operation, sch *schema.Schema, ver
 			ParamProps: spec.ParamProps{
 				Name:        "body",
 				In:          "body",
-				Description: "Request body",
+				Description: strings.Join(bodyField.Comments, "\n"),
 				Required:    true,
 				Schema:      &schema,
 			},
 		}
 		operation.Parameters = append(operation.Parameters, param)
 	}
+
+	return nil
 }
 
 // processResponse processes the response for an operation.
-func processResponse(operation *spec.Operation, sch *schema.Schema, verb *schema.Verb) {
+func processResponse(operation *spec.Operation, sch *schema.Schema, verb *schema.Verb) error {
 	// Get the response type
 	responseRef, ok := verb.Response.(*schema.Ref)
 	if !ok {
-		return
+		return fmt.Errorf("response type must be a reference")
 	}
 
 	// Resolve the response type
 	httpResponseData, err := sch.ResolveMonomorphised(responseRef)
 	if err != nil {
-		return
+		return fmt.Errorf("failed to resolve response type: %w", err)
 	}
 
 	// Process success response
@@ -224,6 +237,8 @@ func processResponse(operation *spec.Operation, sch *schema.Schema, verb *schema
 		}
 		operation.Responses.StatusCodeResponses[400] = errorResponse
 	}
+
+	return nil
 }
 
 // addDefinitions adds all data types used in the API to the OpenAPI spec.
@@ -498,6 +513,10 @@ func schemaForType(t schema.Type) spec.Schema {
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 			},
+		}
+	case *schema.Any:
+		return spec.Schema{
+			SchemaProps: spec.SchemaProps{},
 		}
 	default:
 		panic(fmt.Sprintf("unknown type: %T", t))

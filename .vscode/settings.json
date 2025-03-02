@@ -20,5 +20,5 @@
   "go.testFlags": [
     "-race"
   ],
-  "go.buildTags": "infrastructure"
+  // "go.buildTags": "infrastructure"
 }
