@@ -47,12 +47,17 @@ func TestOpenAPI(t *testing.T) {
 			// curl -X POST http://localhost:8891/post -d '{"name": "wicket", "age": 10}'
 			export verb post(builtin.HttpRequest<http.PostRequest, Unit, Unit>) builtin.HttpResponse<http.PostResponse, http.ApiError> 
 				+ingress http POST /post
+
+			// Posts a string and returns a string
+			export verb postStrings(builtin.HttpRequest<String, Unit, Unit>) builtin.HttpResponse<String, http.ApiError>
+				+ingress http POST /post/name
 		}
 	`)
 	assert.NoError(t, err)
 
 	// Convert the schema to OpenAPI
-	swagger := SchemaToOpenAPI(s)
+	swagger, err := SchemaToOpenAPI(s)
+	assert.NoError(t, err)
 
 	// Convert the OpenAPI spec to JSON
 	actualJSON, err := json.MarshalIndent(swagger, "", "  ")
@@ -123,7 +128,6 @@ func TestOpenAPI(t *testing.T) {
         "operationId": "http.post",
         "parameters": [
           {
-            "description": "Request body",
             "name": "body",
             "in": "body",
             "required": true,
@@ -137,6 +141,42 @@ func TestOpenAPI(t *testing.T) {
             "description": "Successful response",
             "schema": {
               "$ref": "#/definitions/http.PostResponse"
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "schema": {
+              "$ref": "#/definitions/http.ApiError"
+            }
+          }
+        }
+      }
+    },
+    "/post/name": {
+      "post": {
+        "description": "Posts a string and returns a string",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "http.postStrings",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "string"
             }
           },
           "400": {
@@ -211,5 +251,5 @@ func TestOpenAPI(t *testing.T) {
   }
 }`
 
-	assert.Equal(t, string(actualJSON), expectedJSON)
+	assert.Equal(t, expectedJSON, string(actualJSON))
 }
