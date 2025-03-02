@@ -641,12 +641,13 @@ func compile(ctx context.Context, mainDir string, buildEnv []string, devMode boo
 	lines := strings.Split(err.Error(), "\n")
 	for i := 1; i < len(lines); {
 		if strings.HasPrefix(lines[i], "\t") {
-			lines[i-1] = lines[i-1] + " : " + lines[i]
+			lines[i-1] = lines[i-1] + ": " + strings.TrimSpace(lines[i])
+			lines = append(lines[:i], lines[i+1:]...)
 		} else {
 			i++
 		}
 	}
-	for _, line := range strings.Split(err.Error(), "\n") {
+	for _, line := range lines {
 		if strings.HasPrefix(line, "# ") {
 			continue
 		}
