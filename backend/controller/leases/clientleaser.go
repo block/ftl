@@ -8,15 +8,14 @@ import (
 
 	leasepb "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
-	"github.com/block/ftl/internal/rpc"
 )
 
 var _ Leaser = (*clientLeaser)(nil)
 var _ Lease = (*clientLease)(nil)
 
-func NewClientLeaser(ctx context.Context) Leaser {
+func NewClientLeaser(ctx context.Context, client leasepbconnect.LeaseServiceClient) Leaser {
 	return &clientLeaser{
-		client: rpc.ClientFromContext[leasepbconnect.LeaseServiceClient](ctx),
+		client: client,
 	}
 }
 

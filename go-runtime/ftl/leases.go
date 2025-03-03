@@ -16,9 +16,9 @@ import (
 	leasepb "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1"
 	leaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	"github.com/block/ftl/common/reflection"
+	"github.com/block/ftl/go-runtime/server/rpccontext"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/rpc"
 )
 
 // ErrLeaseHeld is returned when an attempt is made to acquire a lease that is
@@ -161,7 +161,7 @@ type leaseClient struct {
 var _ deploymentcontext.LeaseClient = &leaseClient{}
 
 func (c *leaseClient) Acquire(ctx context.Context, module string, key []string, ttl time.Duration) error {
-	c.stream = rpc.ClientFromContext[leaseconnect.LeaseServiceClient](ctx).AcquireLease(ctx)
+	c.stream = rpccontext.ClientFromContext[leaseconnect.LeaseServiceClient](ctx).AcquireLease(ctx)
 	realKeys := []string{"module", module}
 	realKeys = append(realKeys, key...)
 	req := &leasepb.AcquireLeaseRequest{Key: realKeys, Ttl: durationpb.New(ttl)}

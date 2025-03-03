@@ -15,8 +15,8 @@ import (
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/go-runtime/server/rpccontext"
 	"github.com/block/ftl/internal/deploymentcontext"
-	"github.com/block/ftl/internal/rpc"
 )
 
 type mapCacheEntry struct {
@@ -54,7 +54,7 @@ func (r *RealFTL) PublishEvent(ctx context.Context, topic *schema.Ref, event any
 	if topic.Module != caller.Module {
 		return fmt.Errorf("can not publish to another module's topic: %s", topic)
 	}
-	client := rpc.ClientFromContext[pubsubpbconnect.PublishServiceClient](ctx)
+	client := rpccontext.ClientFromContext[pubsubpbconnect.PublishServiceClient](ctx)
 	body, err := encoding.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event: %w", err)
