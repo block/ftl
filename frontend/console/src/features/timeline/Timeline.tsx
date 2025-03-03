@@ -7,14 +7,16 @@ import { SidePanelContext } from '../../shared/providers/side-panel-provider.tsx
 import TimelineEventList from './TimelineEventList.tsx'
 import { TimelineAsyncExecuteDetails } from './details/TimelineAsyncExecuteDetails.tsx'
 import { TimelineCallDetails } from './details/TimelineCallDetails.tsx'
+import { TimelineChangesetChangedDetails } from './details/TimelineChangesetChangedDetails.tsx'
+import { TimelineChangesetCreatedDetails } from './details/TimelineChangesetCreatedDetails.tsx'
 import { TimelineCronScheduledDetails } from './details/TimelineCronScheduledDetails.tsx'
-import { TimelineDeploymentCreatedDetails } from './details/TimelineDeploymentCreatedDetails.tsx'
-import { TimelineDeploymentUpdatedDetails } from './details/TimelineDeploymentUpdatedDetails.tsx'
+import { TimelineDeploymentCreatedDetails } from './details/TimelineDeploymentCreated.tsx'
 import { TimelineDetailsHeader } from './details/TimelineDetailsHeader.tsx'
 import { TimelineIngressDetails } from './details/TimelineIngressDetails.tsx'
 import { TimelineLogDetails } from './details/TimelineLogDetails.tsx'
 import { TimelinePubSubConsumeDetails } from './details/TimelinePubSubConsumeDetails.tsx'
 import { TimelinePubSubPublishDetails } from './details/TimelinePubSubPublishDetails.tsx'
+import { TimelineRuntimeDetails } from './details/TimelineRuntimeDetails.tsx'
 import type { TimeSettings } from './filters/TimelineTimeControls.tsx'
 import { timeFilter } from './hooks/timeline-filters'
 import { useTimeline } from './hooks/use-timeline'
@@ -60,12 +62,6 @@ export const Timeline = ({ timeSettings, filters }: { timeSettings: TimeSettings
       case 'log':
         openPanel(<TimelineLogDetails event={entry} log={entry.entry.value} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
         break
-      case 'deploymentCreated':
-        openPanel(<TimelineDeploymentCreatedDetails event={entry} deployment={entry.entry.value} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
-        break
-      case 'deploymentUpdated':
-        openPanel(<TimelineDeploymentUpdatedDetails event={entry} deployment={entry.entry.value} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
-        break
       case 'ingress':
         openPanel(<TimelineIngressDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
         break
@@ -80,6 +76,18 @@ export const Timeline = ({ timeSettings, filters }: { timeSettings: TimeSettings
         break
       case 'pubsubConsume':
         openPanel(<TimelinePubSubConsumeDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
+        break
+      case 'changesetCreated':
+        openPanel(<TimelineChangesetCreatedDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
+        break
+      case 'changesetStateChanged':
+        openPanel(<TimelineChangesetChangedDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
+        break
+      case 'deploymentCreated':
+        openPanel(<TimelineDeploymentCreatedDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
+        break
+      case 'deploymentRuntime':
+        openPanel(<TimelineRuntimeDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
         break
       default:
         break

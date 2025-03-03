@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Duration, Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
-import { AsyncExecuteEvent, CallEvent, CronScheduledEvent, DeploymentCreatedEvent, DeploymentUpdatedEvent, Event, EventType, IngressEvent, LogEvent, LogLevel, PubSubConsumeEvent, PubSubPublishEvent } from "./event_pb.js";
+import { AsyncExecuteEvent, CallEvent, ChangesetCreatedEvent, ChangesetStateChangedEvent, CronScheduledEvent, DeploymentCreatedEvent, DeploymentRuntimeEvent, Event, EventType, IngressEvent, LogEvent, LogLevel, PubSubConsumeEvent, PubSubPublishEvent } from "./event_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.timeline.v1.GetTimelineRequest
@@ -711,46 +711,58 @@ export class CreateEventsRequest_EventEntry extends Message<CreateEventsRequest_
     case: "call";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentCreatedEvent deployment_created = 4;
-     */
-    value: DeploymentCreatedEvent;
-    case: "deploymentCreated";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentUpdatedEvent deployment_updated = 5;
-     */
-    value: DeploymentUpdatedEvent;
-    case: "deploymentUpdated";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.timeline.v1.IngressEvent ingress = 6;
+     * @generated from field: xyz.block.ftl.timeline.v1.IngressEvent ingress = 4;
      */
     value: IngressEvent;
     case: "ingress";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.CronScheduledEvent cron_scheduled = 7;
+     * @generated from field: xyz.block.ftl.timeline.v1.CronScheduledEvent cron_scheduled = 5;
      */
     value: CronScheduledEvent;
     case: "cronScheduled";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.AsyncExecuteEvent async_execute = 8;
+     * @generated from field: xyz.block.ftl.timeline.v1.AsyncExecuteEvent async_execute = 6;
      */
     value: AsyncExecuteEvent;
     case: "asyncExecute";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.PubSubPublishEvent pubsub_publish = 9;
+     * @generated from field: xyz.block.ftl.timeline.v1.PubSubPublishEvent pubsub_publish = 7;
      */
     value: PubSubPublishEvent;
     case: "pubsubPublish";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.PubSubConsumeEvent pubsub_consume = 10;
+     * @generated from field: xyz.block.ftl.timeline.v1.PubSubConsumeEvent pubsub_consume = 8;
      */
     value: PubSubConsumeEvent;
     case: "pubsubConsume";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetCreatedEvent changeset_created = 9;
+     */
+    value: ChangesetCreatedEvent;
+    case: "changesetCreated";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetStateChangedEvent changeset_state_changed = 10;
+     */
+    value: ChangesetStateChangedEvent;
+    case: "changesetStateChanged";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentCreatedEvent deployment_created = 11;
+     */
+    value: DeploymentCreatedEvent;
+    case: "deploymentCreated";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent deployment_runtime = 12;
+     */
+    value: DeploymentRuntimeEvent;
+    case: "deploymentRuntime";
   } | { case: undefined; value?: undefined } = { case: undefined };
 
   constructor(data?: PartialMessage<CreateEventsRequest_EventEntry>) {
@@ -764,13 +776,15 @@ export class CreateEventsRequest_EventEntry extends Message<CreateEventsRequest_
     { no: 1, name: "timestamp", kind: "message", T: Timestamp },
     { no: 2, name: "log", kind: "message", T: LogEvent, oneof: "entry" },
     { no: 3, name: "call", kind: "message", T: CallEvent, oneof: "entry" },
-    { no: 4, name: "deployment_created", kind: "message", T: DeploymentCreatedEvent, oneof: "entry" },
-    { no: 5, name: "deployment_updated", kind: "message", T: DeploymentUpdatedEvent, oneof: "entry" },
-    { no: 6, name: "ingress", kind: "message", T: IngressEvent, oneof: "entry" },
-    { no: 7, name: "cron_scheduled", kind: "message", T: CronScheduledEvent, oneof: "entry" },
-    { no: 8, name: "async_execute", kind: "message", T: AsyncExecuteEvent, oneof: "entry" },
-    { no: 9, name: "pubsub_publish", kind: "message", T: PubSubPublishEvent, oneof: "entry" },
-    { no: 10, name: "pubsub_consume", kind: "message", T: PubSubConsumeEvent, oneof: "entry" },
+    { no: 4, name: "ingress", kind: "message", T: IngressEvent, oneof: "entry" },
+    { no: 5, name: "cron_scheduled", kind: "message", T: CronScheduledEvent, oneof: "entry" },
+    { no: 6, name: "async_execute", kind: "message", T: AsyncExecuteEvent, oneof: "entry" },
+    { no: 7, name: "pubsub_publish", kind: "message", T: PubSubPublishEvent, oneof: "entry" },
+    { no: 8, name: "pubsub_consume", kind: "message", T: PubSubConsumeEvent, oneof: "entry" },
+    { no: 9, name: "changeset_created", kind: "message", T: ChangesetCreatedEvent, oneof: "entry" },
+    { no: 10, name: "changeset_state_changed", kind: "message", T: ChangesetStateChangedEvent, oneof: "entry" },
+    { no: 11, name: "deployment_created", kind: "message", T: DeploymentCreatedEvent, oneof: "entry" },
+    { no: 12, name: "deployment_runtime", kind: "message", T: DeploymentRuntimeEvent, oneof: "entry" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateEventsRequest_EventEntry {

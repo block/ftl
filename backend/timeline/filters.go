@@ -68,7 +68,7 @@ func FilterModule(filters []*timelinepb.GetTimelineRequest_ModuleFilter) Timelin
 		case *timelinepb.Event_PubsubConsume:
 			module = *entry.PubsubConsume.DestVerbModule
 			verb = *entry.PubsubConsume.DestVerbName
-		case *timelinepb.Event_Log, *timelinepb.Event_DeploymentCreated, *timelinepb.Event_DeploymentUpdated, *timelinepb.Event_CronScheduled:
+		case *timelinepb.Event_Log, *timelinepb.Event_CronScheduled, *timelinepb.Event_ChangesetCreated, *timelinepb.Event_ChangesetStateChanged, *timelinepb.Event_DeploymentCreated, *timelinepb.Event_DeploymentRuntime:
 			// Block all other event types.
 			return false
 		default:
@@ -93,16 +93,18 @@ func FilterDeployments(filters []*timelinepb.GetTimelineRequest_DeploymentFilter
 		return append(acc, f.Deployments...)
 	})
 	return func(event *timelinepb.Event) bool {
+		// Always allow changeset events to pass through
+		switch event.Entry.(type) {
+		case *timelinepb.Event_ChangesetCreated, *timelinepb.Event_ChangesetStateChanged:
+			return true
+		}
+
 		var deployment string
 		switch entry := event.Entry.(type) {
 		case *timelinepb.Event_Log:
 			deployment = entry.Log.DeploymentKey
 		case *timelinepb.Event_Call:
 			deployment = entry.Call.DeploymentKey
-		case *timelinepb.Event_DeploymentCreated:
-			deployment = entry.DeploymentCreated.Key
-		case *timelinepb.Event_DeploymentUpdated:
-			deployment = entry.DeploymentUpdated.Key
 		case *timelinepb.Event_Ingress:
 			deployment = entry.Ingress.DeploymentKey
 		case *timelinepb.Event_CronScheduled:
@@ -113,6 +115,10 @@ func FilterDeployments(filters []*timelinepb.GetTimelineRequest_DeploymentFilter
 			deployment = entry.PubsubPublish.DeploymentKey
 		case *timelinepb.Event_PubsubConsume:
 			deployment = entry.PubsubConsume.DeploymentKey
+		case *timelinepb.Event_DeploymentCreated:
+			deployment = entry.DeploymentCreated.Key
+		case *timelinepb.Event_DeploymentRuntime:
+			deployment = entry.DeploymentRuntime.Key
 		default:
 			panic(fmt.Sprintf("unexpected event type: %T", event.Entry))
 		}
@@ -125,6 +131,12 @@ func FilterRequests(filters []*timelinepb.GetTimelineRequest_RequestFilter) Time
 		return append(acc, f.Requests...)
 	})
 	return func(event *timelinepb.Event) bool {
+		// Always allow changeset events to pass through
+		switch event.Entry.(type) {
+		case *timelinepb.Event_ChangesetCreated, *timelinepb.Event_ChangesetStateChanged:
+			return true
+		}
+
 		var request *string
 		switch entry := event.Entry.(type) {
 		case *timelinepb.Event_Log:
@@ -139,7 +151,9 @@ func FilterRequests(filters []*timelinepb.GetTimelineRequest_RequestFilter) Time
 			request = entry.PubsubPublish.RequestKey
 		case *timelinepb.Event_PubsubConsume:
 			request = entry.PubsubConsume.RequestKey
-		case *timelinepb.Event_DeploymentCreated, *timelinepb.Event_DeploymentUpdated, *timelinepb.Event_CronScheduled:
+		case *timelinepb.Event_CronScheduled:
+			// These event types don't have request keys
+			return false
 		default:
 			panic(fmt.Sprintf("unexpected event type: %T", event.Entry))
 		}
@@ -165,10 +179,6 @@ func FilterTypes(filters ...*timelinepb.GetTimelineRequest_EventTypeFilter) Time
 			eventType = timelinepb.EventType_EVENT_TYPE_LOG
 		case *timelinepb.Event_Call:
 			eventType = timelinepb.EventType_EVENT_TYPE_CALL
-		case *timelinepb.Event_DeploymentCreated:
-			eventType = timelinepb.EventType_EVENT_TYPE_DEPLOYMENT_CREATED
-		case *timelinepb.Event_DeploymentUpdated:
-			eventType = timelinepb.EventType_EVENT_TYPE_DEPLOYMENT_UPDATED
 		case *timelinepb.Event_Ingress:
 			eventType = timelinepb.EventType_EVENT_TYPE_INGRESS
 		case *timelinepb.Event_CronScheduled:
@@ -179,6 +189,14 @@ func FilterTypes(filters ...*timelinepb.GetTimelineRequest_EventTypeFilter) Time
 			eventType = timelinepb.EventType_EVENT_TYPE_PUBSUB_PUBLISH
 		case *timelinepb.Event_PubsubConsume:
 			eventType = timelinepb.EventType_EVENT_TYPE_PUBSUB_CONSUME
+		case *timelinepb.Event_ChangesetCreated:
+			eventType = timelinepb.EventType_EVENT_TYPE_CHANGESET_CREATED
+		case *timelinepb.Event_ChangesetStateChanged:
+			eventType = timelinepb.EventType_EVENT_TYPE_CHANGESET_STATE_CHANGED
+		case *timelinepb.Event_DeploymentCreated:
+			eventType = timelinepb.EventType_EVENT_TYPE_DEPLOYMENT_CREATED
+		case *timelinepb.Event_DeploymentRuntime:
+			eventType = timelinepb.EventType_EVENT_TYPE_DEPLOYMENT_RUNTIME
 		default:
 			panic(fmt.Sprintf("unexpected event type: %T", event.Entry))
 		}
