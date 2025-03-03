@@ -44,14 +44,14 @@ export default function prismIncludeLanguages(
       pattern: /(["'])(?:\\(?:\r\n|[\s\S])|(?!\1)[^\\\r\n])*\1/,
       greedy: true
     },
-    'keyword': /\b(?:module|export|data|verb|topic|enum|typealias|builtin|config|database|Unit|Time|Int|String|Bool|from|calls|publish|subscribe|ingress|cron|migration|query|column|alias|json|sql|exec|many)\b/,
+    'keyword': /\b(?:postgres|mysql|module|export|data|verb|topic|enum|typealias|builtin|config|database|Unit|Time|Int|String|Bool|from|calls|publish|subscribe|ingress|cron|migration|query|column|alias|json|sql|exec|many)\b/,
     'operator': /[<>]=?|[!=]=?=?|--?|\+\+?|&&?|\|\|?|[?*/~^%]/,
     'punctuation': /[{}[\];(),.:]/,
     'boolean': /\b(?:true|false)\b/,
     'number': /\b0x[\da-f]+\b|(?:\b\d+(?:\.\d*)?|\B\.\d+)(?:e[+-]?\d+)?\b/i,
     'directive': {
       pattern: /\+[a-zA-Z][a-zA-Z0-9_]*/,
-      alias: 'function'
+      alias: 'keyword'
     },
     'type': {
       pattern: /\b(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\b/,
