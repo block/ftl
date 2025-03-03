@@ -1,0 +1,8 @@
+---
+description: Rules for documentation
+globs: docs/**/*
+alwaysApply: false
+---
+- This project uses Docusaurus (@https://docusaurus.io/docs) for documentation
+- There should be four tabs for every code example: Go, Kotlin, Java, and Schema
+- Run `./scripts/ftl schema example` to see an example of what the FTL schema likes.
