@@ -32,7 +32,6 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
-	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/watch"
 )
@@ -173,7 +172,6 @@ func New(
 	options ...Option,
 ) (*Engine, error) {
 	ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("build-engine"))
-	ctx = rpc.ContextWithClient(ctx, adminClient)
 	e := &Engine{
 		adminClient:      adminClient,
 		schemaSource:     schemaSource,
