@@ -30,3 +30,14 @@ type OutputMySQL struct {
 func (s OutputMySQL) DebugString() string {
 	return fmt.Sprintf("%T{Module: %s, ResourceID: %s}", s, s.Module, s.ResourceID)
 }
+
+type OutputTopic struct {
+	Module string
+	Topic  string
+
+	Runtime *schema.TopicRuntime
+}
+
+func (s OutputTopic) DebugString() string {
+	return fmt.Sprintf("%T{Module: %s, Topic: %s}", s, s.Module, s.Topic)
+}

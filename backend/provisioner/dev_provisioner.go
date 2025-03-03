@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/IBM/sarama"
 	"github.com/XSAM/otelsql"
 	"github.com/alecthomas/types/optional"
 	_ "github.com/go-sql-driver/mysql"
@@ -17,6 +16,8 @@ import (
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/provisioner/executor"
+	"github.com/block/ftl/internal/provisioner/state"
 )
 
 var redPandaBrokers = []string{"127.0.0.1:19092"}
@@ -188,69 +189,32 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 
 func provisionTopic() InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (*schema.RuntimeElement, error) {
-		logger := log.FromContext(ctx)
 		if err := dev.SetUpRedPanda(ctx); err != nil {
 			return nil, fmt.Errorf("could not set up redpanda: %w", err)
 		}
-		topic, ok := res.(*schema.Topic)
-		if !ok {
-			panic(fmt.Errorf("unexpected resource type: %T", res))
-		}
 
-		topicID := fmt.Sprintf("%s.%s", deployment.Payload.Module, topic.Name)
-		logger.Debugf("Provisioning topic: %s", topicID)
-
-		config := sarama.NewConfig()
-		admin, err := sarama.NewClusterAdmin(redPandaBrokers, config)
+		exec := executor.NewKafkaTopicSetup()
+		exec.Prepare(ctx, &state.KafkaClusterReady{
+			InputTopic: state.InputTopic{
+				Topic:      res.ResourceID(),
+				Module:     deployment.Payload.Module,
+				Partitions: 1,
+			},
+			Brokers: redPandaBrokers,
+		})
+		output, err := exec.Execute(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create kafka admin client: %w", err)
+			return nil, fmt.Errorf("failed to execute kafka topic setup: %w", err)
 		}
-		defer admin.Close()
-
-		topicMetas, err := admin.DescribeTopics([]string{topicID})
-		if err != nil {
-			return nil, fmt.Errorf("failed to describe topic: %w", err)
+		if len(output) != 1 {
+			return nil, fmt.Errorf("expected 1 output but got %d", len(output))
 		}
-		if len(topicMetas) != 1 {
-			return nil, fmt.Errorf("expected topic metadata from kafka but received none")
-		}
-		partitions := 1
-		if pm, ok := slices.FindVariant[*schema.MetadataPartitions](topic.Metadata); ok {
-			partitions = pm.Partitions
-		}
-		if topicMetas[0].Err == sarama.ErrUnknownTopicOrPartition {
-			// No topic exists yet. Create it
-			err = admin.CreateTopic(topicID, &sarama.TopicDetail{
-				NumPartitions:     int32(partitions),
-				ReplicationFactor: 1,
-				ReplicaAssignment: nil,
-			}, false)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create topic: %w", err)
-			}
-		} else if topicMetas[0].Err != sarama.ErrNoError {
-			return nil, fmt.Errorf("failed to describe topic %q: %w", topicID, topicMetas[0].Err)
-		} else if len(topicMetas[0].Partitions) > partitions {
-			var plural string
-			if len(topicMetas[0].Partitions) == 1 {
-				plural = "partition"
-			} else {
-				plural = "partitions"
-			}
-			logger.Warnf("Using existing topic %s with %d %s instead of %d", topicID, len(topicMetas[0].Partitions), plural, partitions)
-		} else if len(topicMetas[0].Partitions) < partitions {
-			if err := admin.CreatePartitions(topicID, int32(partitions), nil, false); err != nil {
-				return nil, fmt.Errorf("failed to increase partitions: %w", err)
-			}
-		}
-
+		outputTopic := output[0].(*state.OutputTopic)
 		return &schema.RuntimeElement{
 			Name:       optional.Some(res.ResourceID()),
 			Deployment: deployment,
-			Element: &schema.TopicRuntime{
-				KafkaBrokers: redPandaBrokers,
-				TopicID:      topicID,
-			}}, nil
+			Element:    outputTopic.Runtime,
+		}, nil
 	}
 }
 

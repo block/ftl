@@ -26,3 +26,13 @@ type InputMySQL struct {
 func (s InputMySQL) DebugString() string {
 	return fmt.Sprintf("%T{ResourceID: %s, Cluster: %s, Module: %s}", s, s.ResourceID, s.Cluster, s.Module)
 }
+
+type InputTopic struct {
+	Topic      string
+	Module     string
+	Partitions int
+}
+
+func (s InputTopic) DebugString() string {
+	return fmt.Sprintf("%T{Topic: %s, Module: %s}", s, s.Topic, s.Module)
+}
