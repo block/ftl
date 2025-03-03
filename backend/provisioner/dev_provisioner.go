@@ -194,7 +194,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 		}
 
 		exec := executor.NewKafkaTopicSetup()
-		exec.Prepare(ctx, state.KafkaClusterReady{
+		err := exec.Prepare(ctx, state.TopicClusterReady{
 			InputTopic: state.InputTopic{
 				Topic:      res.ResourceID(),
 				Module:     deployment.Payload.Module,
@@ -202,6 +202,9 @@ func provisionTopic() InMemResourceProvisionerFn {
 			},
 			Brokers: redPandaBrokers,
 		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to prepare kafka topic setup: %w", err)
+		}
 		output, err := exec.Execute(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to execute kafka topic setup: %w", err)
@@ -209,7 +212,10 @@ func provisionTopic() InMemResourceProvisionerFn {
 		if len(output) != 1 {
 			return nil, fmt.Errorf("expected 1 output but got %d", len(output))
 		}
-		outputTopic := output[0].(state.OutputTopic)
+		outputTopic, ok := output[0].(state.OutputTopic)
+		if !ok {
+			return nil, fmt.Errorf("expected output topic but got %T", output[0])
+		}
 		return &schema.RuntimeElement{
 			Name:       optional.Some(res.ResourceID()),
 			Deployment: deployment,

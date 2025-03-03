@@ -78,7 +78,7 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 				Handles:  []state.State{state.RDSInstanceReadyMySQL{}},
 			}, {
 				Executor: executor.NewKafkaTopicSetup(),
-				Handles:  []state.State{state.KafkaClusterReady{}},
+				Handles:  []state.State{state.TopicClusterReady{}},
 			}},
 		}},
 	}
@@ -133,18 +133,40 @@ func inputsFromSchema(
 				logger.Debugf("Adding %s", input.DebugString())
 				inputStates = append(inputStates, input)
 			case schema.ResourceTypeTopic:
-				topic := (provisioned).(*schema.Topic)
+				topic, ok := (provisioned).(*schema.Topic)
+				if !ok {
+					logger.Warnf("Skipping non-topic resource %s", provisioned.ResourceID())
+					continue
+				}
 				partitions := 1
 				if pm, ok := slices.FindVariant[*schema.MetadataPartitions](topic.Metadata); ok {
 					partitions = pm.Partitions
 				}
-				input := state.KafkaClusterReady{
+				input := state.TopicClusterReady{
 					InputTopic: state.InputTopic{
 						Topic:      topic.Name,
 						Module:     moduleName,
 						Partitions: partitions,
 					},
 					Brokers: config.KafkaBrokers,
+				}
+				logger.Debugf("Adding %s", input.DebugString())
+				inputStates = append(inputStates, input)
+			case schema.ResourceTypeSubscription:
+				verb, ok := (provisioned).(*schema.Verb)
+				if !ok {
+					logger.Warnf("Skipping non-verb resource %s", provisioned.ResourceID())
+					continue
+				}
+				// There is no work needed for subscriptions, so we just place the output state here
+				input := state.OutputSubscription{
+					Module: moduleName,
+					Verb:   verb.Name,
+					Runtime: &schema.VerbRuntime{
+						Subscription: &schema.VerbRuntimeSubscription{
+							KafkaBrokers: config.KafkaBrokers,
+						},
+					},
 				}
 				logger.Debugf("Adding %s", input.DebugString())
 				inputStates = append(inputStates, input)

@@ -41,3 +41,14 @@ type OutputTopic struct {
 func (s OutputTopic) DebugString() string {
 	return fmt.Sprintf("%T{Module: %s, Topic: %s}", s, s.Module, s.Topic)
 }
+
+type OutputSubscription struct {
+	Module string
+	Verb   string
+
+	Runtime *schema.VerbRuntime
+}
+
+func (s OutputSubscription) DebugString() string {
+	return fmt.Sprintf("%T{Module: %s, Verb: %s}", s, s.Module, s.Verb)
+}

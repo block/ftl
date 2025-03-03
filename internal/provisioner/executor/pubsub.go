@@ -32,7 +32,7 @@ func (e *KafkaTopicSetup) Execute(ctx context.Context) ([]state.State, error) {
 	logger := log.FromContext(ctx)
 	var result []state.State
 	for _, input := range e.inputs {
-		if input, ok := input.(state.KafkaClusterReady); ok {
+		if input, ok := input.(state.TopicClusterReady); ok {
 			topic := input.Topic
 
 			topicID := fmt.Sprintf("%s.%s", input.Module, topic)
@@ -57,7 +57,7 @@ func (e *KafkaTopicSetup) Execute(ctx context.Context) ([]state.State, error) {
 				logger.Debugf("Topic %s does not exist. Creating it.", topicID)
 				// No topic exists yet. Create it
 				err = admin.CreateTopic(topicID, &sarama.TopicDetail{
-					NumPartitions:     int32(input.Partitions),
+					NumPartitions:     int32(input.Partitions), //nolint:gosec
 					ReplicationFactor: 1,
 					ReplicaAssignment: nil,
 				}, false)
@@ -76,7 +76,7 @@ func (e *KafkaTopicSetup) Execute(ctx context.Context) ([]state.State, error) {
 				logger.Warnf("Using existing topic %s with %d %s instead of %d", topicID, len(topicMetas[0].Partitions), plural, input.Partitions)
 			} else if len(topicMetas[0].Partitions) < input.Partitions {
 				logger.Debugf("Increasing partitions for topic %s from %d to %d", topicID, len(topicMetas[0].Partitions), input.Partitions)
-				if err := admin.CreatePartitions(topicID, int32(input.Partitions), nil, false); err != nil {
+				if err := admin.CreatePartitions(topicID, int32(input.Partitions), nil, false); err != nil { //nolint:gosec
 					return nil, fmt.Errorf("failed to increase partitions: %w", err)
 				}
 			}
