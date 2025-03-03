@@ -14,7 +14,7 @@ type DependencyCycleError struct {
 var _ error = DependencyCycleError{}
 
 func (e DependencyCycleError) Error() string {
-	return fmt.Sprintf("detected a module dependency cycle that impacts these modules: %v", e.Modules)
+	return fmt.Sprintf("detected a module dependency cycle that impacts these modules: %q", e.Modules)
 }
 
 // TopologicalSort attempts to order the modules supplied in the graph based on

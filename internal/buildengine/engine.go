@@ -968,9 +968,9 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 
 	topology, topoErr := TopologicalSort(graph)
 	if topoErr != nil {
-		dependencyCycleErr, ok := topoErr.(DependencyCycleError)
-		if !ok {
-			return err
+		var dependencyCycleErr DependencyCycleError
+		if !errors.As(topoErr, &dependencyCycleErr) {
+			return topoErr
 		}
 		if err := e.handleDependencyCycleError(ctx, dependencyCycleErr, graph, callback); err != nil {
 			return errors.Join(err, topoErr)
@@ -1073,7 +1073,7 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 	}
 
 	// Build the remaining modules
-	remaining := slices.Filter(maps.Keys(graph), func(module string) bool {
+	remaining := slices.Filter(maps.Keys(graph), func(module string) bool { //nolint:exptostd
 		return !slices.Contains(depErr.Modules, module) && module != "builtin"
 	})
 	if len(remaining) == 0 {
@@ -1103,7 +1103,7 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 					Comments: []string{"Dependency not built yet due to dependency cycle"},
 				}
 			}
-			_ = e.build(ctx, module, fakeDeps, ignoredSchemas)
+			_ = e.build(ctx, module, fakeDeps, ignoredSchemas) //nolint:errcheck
 			close(ignoredSchemas)
 		}()
 	}
