@@ -22,6 +22,7 @@ import (
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/terminal"
 	"github.com/block/ftl/internal/timelineclient"
@@ -30,10 +31,11 @@ import (
 const maxLogs = 10
 
 type devCmd struct {
-	Watch    time.Duration     `help:"Watch template directory at this frequency and regenerate on change." default:"500ms"`
-	NoServe  bool              `help:"Do not start the FTL server." default:"false"`
-	ServeCmd serveCommonConfig `embed:""`
-	Build    buildCmd          `embed:""`
+	Watch       time.Duration     `help:"Watch template directory at this frequency and regenerate on change." default:"500ms"`
+	NoServe     bool              `help:"Do not start the FTL server." default:"false"`
+	ServeCmd    serveCommonConfig `embed:""`
+	Build       buildCmd          `embed:""`
+	DevEndpoint *url.URL          `help:"Admin endpoint." env:"FTL_DEV_ENDPOINT" default:"http://127.0.0.1:8892"`
 }
 
 func (d *devCmd) Run(
@@ -44,10 +46,12 @@ func (d *devCmd) Run(
 	bindContext terminal.KongContextBinder,
 	schemaEventSource *schemaeventsource.EventSource,
 	timelineClient *timelineclient.Client,
-	adminClient ftlv1connect.AdminServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	csm *currentStatusManager,
 ) error {
+	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, d.DevEndpoint.String(), log.Error)
+	ctx = rpc.ContextWithClient(ctx, adminClient)
+
 	startTime := time.Now()
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(fmt.Errorf("stopping dev server: %w", context.Canceled))
