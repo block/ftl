@@ -6,9 +6,9 @@ require github.com/block/ftl v0.0.0-00010101000000-000000000000
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
-	connectrpc.com/connect v1.16.2 // indirect
+	connectrpc.com/connect v1.17.0 // indirect
 	connectrpc.com/grpcreflect v1.3.0 // indirect
-	connectrpc.com/otelconnect v0.7.1 // indirect
+	connectrpc.com/otelconnect v0.7.2 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
 	github.com/alecthomas/concurrency v0.0.2 // indirect
