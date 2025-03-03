@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -864,29 +865,22 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 		}
 	}()
 
-	buildGroup := errgroup.Group{}
-
 	modulesToDeploy := []Module{}
-	buildGroup.Go(func() error {
-		return e.buildWithCallback(ctx, func(buildCtx context.Context, module Module) error {
-			e.modulesToBuild.Store(module.Config.Module, false)
-			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-				Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
-					ModuleDeployWaiting: &buildenginepb.ModuleDeployWaiting{
-						Module: module.Config.Module,
-					},
+	buildErr := e.buildWithCallback(ctx, func(buildCtx context.Context, module Module) error {
+		e.modulesToBuild.Store(module.Config.Module, false)
+		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+			Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
+				ModuleDeployWaiting: &buildenginepb.ModuleDeployWaiting{
+					Module: module.Config.Module,
 				},
-			}
-			if singleChangeset {
-				modulesToDeploy = append(modulesToDeploy, module)
-				return nil
-			}
-			return e.deploy(ctx, []Module{module}, replicas)
-		}, moduleNames...)
-	})
-
-	// Wait for all build attempts to complete
-	buildErr := buildGroup.Wait()
+			},
+		}
+		if singleChangeset {
+			modulesToDeploy = append(modulesToDeploy, module)
+			return nil
+		}
+		return e.deploy(ctx, []Module{module}, replicas)
+	}, moduleNames...)
 	if buildErr != nil {
 		return fmt.Errorf("build failed: %w", buildErr)
 	}
@@ -978,9 +972,16 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 		return err
 	}
 
-	topology, err := TopologicalSort(graph)
-	if err != nil {
-		return err
+	topology, topoErr := TopologicalSort(graph)
+	if topoErr != nil {
+		var dependencyCycleErr DependencyCycleError
+		if !errors.As(topoErr, &dependencyCycleErr) {
+			return topoErr
+		}
+		if err := e.handleDependencyCycleError(ctx, dependencyCycleErr, graph, callback); err != nil {
+			return errors.Join(err, topoErr)
+		}
+		return topoErr
 	}
 	errCh := make(chan error, 1024)
 	for _, group := range topology {
@@ -1045,6 +1046,75 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 	}
 
 	return nil
+}
+
+func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr DependencyCycleError, graph map[string][]string, callback buildCallback) error {
+	// Mark each cylic module as having an error
+	for _, module := range depErr.Modules {
+		meta, ok := e.moduleMetas.Load(module)
+		if !ok {
+			return fmt.Errorf("module %q not found in dependency cycle", module)
+		}
+		configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
+		if err != nil {
+			return fmt.Errorf("failed to marshal module config: %w", err)
+		}
+		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
+			Event: &buildenginepb.EngineEvent_ModuleBuildFailed{
+				ModuleBuildFailed: &buildenginepb.ModuleBuildFailed{
+					Config: configProto,
+					Errors: &langpb.ErrorList{
+						Errors: []*langpb.Error{
+							{
+								Msg:   depErr.Error(),
+								Level: langpb.Error_ERROR_LEVEL_ERROR,
+								Type:  langpb.Error_ERROR_TYPE_FTL,
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	// Build the remaining modules
+	remaining := slices.Filter(maps.Keys(graph), func(module string) bool { //nolint:exptostd
+		return !slices.Contains(depErr.Modules, module) && module != "builtin"
+	})
+	if len(remaining) == 0 {
+		return nil
+	}
+	remainingModulesErr := e.buildWithCallback(ctx, callback, remaining...)
+
+	wg := &sync.WaitGroup{}
+	for _, module := range depErr.Modules {
+		// Make sure each module in dependency cycle has an active build stream so changes to dependencies are detected
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			ignoredSchemas := make(chan *schema.Module, 1)
+			fakeDeps := map[string]*schema.Module{
+				"builtin": schema.Builtins(),
+			}
+			for _, dep := range graph[module] {
+				if sch, ok := e.controllerSchema.Load(dep); ok {
+					fakeDeps[dep] = sch
+					continue
+				}
+				// not build yet, probably due to dependency cycle
+				fakeDeps[dep] = &schema.Module{
+					Name:     dep,
+					Comments: []string{"Dependency not built yet due to dependency cycle"},
+				}
+			}
+			_ = e.build(ctx, module, fakeDeps, ignoredSchemas) //nolint:errcheck
+			close(ignoredSchemas)
+		}()
+	}
+	wg.Wait()
+	return remainingModulesErr
 }
 
 func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, moduleName string, builtModules map[string]*schema.Module, schemas chan *schema.Module, callback buildCallback) error {

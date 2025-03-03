@@ -7,6 +7,16 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+type DependencyCycleError struct {
+	Modules []string
+}
+
+var _ error = DependencyCycleError{}
+
+func (e DependencyCycleError) Error() string {
+	return fmt.Sprintf("detected a module dependency cycle that impacts these modules: %q", e.Modules)
+}
+
 // TopologicalSort attempts to order the modules supplied in the graph based on
 // their topologically sorted order. A cycle in the module dependency graph
 // will cause this sort to be incomplete. The sorted modules are returned as a
@@ -42,7 +52,7 @@ func TopologicalSort(graph map[string][]string) (groups [][]string, cycleError e
 			// a member of the cyclical dependency chain
 			modules := maps.Keys(modulesByName)
 			sort.Strings(modules)
-			cycleError = fmt.Errorf("detected a module dependency cycle that impacts these modules: %q", modules)
+			cycleError = DependencyCycleError{Modules: modules}
 			break
 		}
 		orderedGroup := maps.Keys(group)
