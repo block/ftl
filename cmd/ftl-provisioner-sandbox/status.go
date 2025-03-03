@@ -86,6 +86,12 @@ func (c *SandboxProvisioner) updateResources(deployment key.Deployment, outputs 
 					},
 				},
 			})
+		case state.OutputTopic:
+			results = append(results, &schema.RuntimeElement{
+				Deployment: deployment,
+				Name:       optional.Some(o.Topic),
+				Element:    o.Runtime,
+			})
 		default:
 			return nil, fmt.Errorf("unknown output type: %T", o)
 		}

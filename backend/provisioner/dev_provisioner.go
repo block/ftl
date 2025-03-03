@@ -194,7 +194,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 		}
 
 		exec := executor.NewKafkaTopicSetup()
-		exec.Prepare(ctx, &state.KafkaClusterReady{
+		exec.Prepare(ctx, state.KafkaClusterReady{
 			InputTopic: state.InputTopic{
 				Topic:      res.ResourceID(),
 				Module:     deployment.Payload.Module,
@@ -209,7 +209,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 		if len(output) != 1 {
 			return nil, fmt.Errorf("expected 1 output but got %d", len(output))
 		}
-		outputTopic := output[0].(*state.OutputTopic)
+		outputTopic := output[0].(state.OutputTopic)
 		return &schema.RuntimeElement{
 			Name:       optional.Some(res.ResourceID()),
 			Deployment: deployment,

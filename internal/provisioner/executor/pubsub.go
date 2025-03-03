@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/block/ftl/common/schema"
@@ -31,13 +32,14 @@ func (e *KafkaTopicSetup) Execute(ctx context.Context) ([]state.State, error) {
 	logger := log.FromContext(ctx)
 	var result []state.State
 	for _, input := range e.inputs {
-		if input, ok := input.(*state.KafkaClusterReady); ok {
+		if input, ok := input.(state.KafkaClusterReady); ok {
 			topic := input.Topic
 
 			topicID := fmt.Sprintf("%s.%s", input.Module, topic)
 			logger.Debugf("Provisioning topic: %s", topicID)
 
 			config := sarama.NewConfig()
+			config.Admin.Timeout = 30 * time.Second
 			admin, err := sarama.NewClusterAdmin(input.Brokers, config)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create kafka admin client: %w", err)
@@ -52,6 +54,7 @@ func (e *KafkaTopicSetup) Execute(ctx context.Context) ([]state.State, error) {
 				return nil, fmt.Errorf("expected topic metadata from kafka but received none")
 			}
 			if topicMetas[0].Err == sarama.ErrUnknownTopicOrPartition {
+				logger.Debugf("Topic %s does not exist. Creating it.", topicID)
 				// No topic exists yet. Create it
 				err = admin.CreateTopic(topicID, &sarama.TopicDetail{
 					NumPartitions:     int32(input.Partitions),
@@ -72,18 +75,21 @@ func (e *KafkaTopicSetup) Execute(ctx context.Context) ([]state.State, error) {
 				}
 				logger.Warnf("Using existing topic %s with %d %s instead of %d", topicID, len(topicMetas[0].Partitions), plural, input.Partitions)
 			} else if len(topicMetas[0].Partitions) < input.Partitions {
+				logger.Debugf("Increasing partitions for topic %s from %d to %d", topicID, len(topicMetas[0].Partitions), input.Partitions)
 				if err := admin.CreatePartitions(topicID, int32(input.Partitions), nil, false); err != nil {
 					return nil, fmt.Errorf("failed to increase partitions: %w", err)
 				}
 			}
-			result = append(result, &state.OutputTopic{
+			output := state.OutputTopic{
 				Module: input.Module,
 				Topic:  topic,
 				Runtime: &schema.TopicRuntime{
 					KafkaBrokers: input.Brokers,
 					TopicID:      topicID,
 				},
-			})
+			}
+			logger.Debugf("Output: %s", output.DebugString())
+			result = append(result, output)
 		}
 	}
 	return result, nil

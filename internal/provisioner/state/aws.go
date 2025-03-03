@@ -36,6 +36,6 @@ type KafkaClusterReady struct {
 	Brokers []string
 }
 
-func (s *KafkaClusterReady) DebugString() string {
+func (s KafkaClusterReady) DebugString() string {
 	return fmt.Sprintf("%T{Topic: %s, Module: %s, Partitions: %d}", s, s.Topic, s.Module, s.Partitions)
 }

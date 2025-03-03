@@ -89,7 +89,8 @@ func (r *Runner) prepare(ctx context.Context, stage *RunnerStage) error {
 }
 
 func (r *Runner) execute(ctx context.Context, stage *RunnerStage) ([]state.State, error) {
-	logger := log.FromContext(ctx).Module(stage.Name)
+	logger := log.FromContext(ctx)
+	logger.Debugf("Executing stage %s", stage.Name)
 
 	reschan := make(chan []state.State, len(stage.Handlers))
 	eg := errgroup.Group{}
