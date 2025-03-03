@@ -1463,55 +1463,6 @@ export class Decl extends Message<Decl> {
 }
 
 /**
- * @generated from message xyz.block.ftl.schema.v1.DeploymentCreatedEvent
- */
-export class DeploymentCreatedEvent extends Message<DeploymentCreatedEvent> {
-  /**
-   * @generated from field: string key = 1;
-   */
-  key = "";
-
-  /**
-   * @generated from field: xyz.block.ftl.schema.v1.Module schema = 2;
-   */
-  schema?: Module;
-
-  /**
-   * @generated from field: string changeset = 3;
-   */
-  changeset = "";
-
-  constructor(data?: PartialMessage<DeploymentCreatedEvent>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.schema.v1.DeploymentCreatedEvent";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "schema", kind: "message", T: Module },
-    { no: 3, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeploymentCreatedEvent {
-    return new DeploymentCreatedEvent().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeploymentCreatedEvent {
-    return new DeploymentCreatedEvent().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeploymentCreatedEvent {
-    return new DeploymentCreatedEvent().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: DeploymentCreatedEvent | PlainMessage<DeploymentCreatedEvent> | undefined, b: DeploymentCreatedEvent | PlainMessage<DeploymentCreatedEvent> | undefined): boolean {
-    return proto3.util.equals(DeploymentCreatedEvent, a, b);
-  }
-}
-
-/**
  * @generated from message xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
  */
 export class DeploymentRuntimeEvent extends Message<DeploymentRuntimeEvent> {
@@ -1770,12 +1721,6 @@ export class Event extends Message<Event> {
     case: "changesetRollingBackEvent";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.DeploymentCreatedEvent deployment_created_event = 1;
-     */
-    value: DeploymentCreatedEvent;
-    case: "deploymentCreatedEvent";
-  } | {
-    /**
      * @generated from field: xyz.block.ftl.schema.v1.DeploymentRuntimeEvent deployment_runtime_event = 2;
      */
     value: DeploymentRuntimeEvent;
@@ -1797,7 +1742,6 @@ export class Event extends Message<Event> {
     { no: 7, name: "changeset_finalized_event", kind: "message", T: ChangesetFinalizedEvent, oneof: "value" },
     { no: 4, name: "changeset_prepared_event", kind: "message", T: ChangesetPreparedEvent, oneof: "value" },
     { no: 8, name: "changeset_rolling_back_event", kind: "message", T: ChangesetRollingBackEvent, oneof: "value" },
-    { no: 1, name: "deployment_created_event", kind: "message", T: DeploymentCreatedEvent, oneof: "value" },
     { no: 2, name: "deployment_runtime_event", kind: "message", T: DeploymentRuntimeEvent, oneof: "value" },
   ]);
 

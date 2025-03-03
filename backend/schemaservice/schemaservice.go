@@ -366,17 +366,6 @@ func (s *Service) publishEvent(ctx context.Context, event schema.Event) error {
 				Error: optional.Some(changeset.Error),
 			})
 		}
-	case *schema.DeploymentCreatedEvent:
-		var changeset optional.Option[key.Changeset]
-		if e.Changeset != nil {
-			changeset = optional.Some(*e.Changeset)
-		}
-		s.timelineClient.Publish(ctx, timelineclient.DeploymentCreated{
-			Key:       e.Key,
-			CreatedAt: e.Schema.Runtime.Base.CreateTime,
-			Schema:    e.Schema,
-			Changeset: changeset,
-		})
 	case *schema.DeploymentRuntimeEvent:
 		var changeset optional.Option[key.Changeset]
 		if e.Changeset != nil {

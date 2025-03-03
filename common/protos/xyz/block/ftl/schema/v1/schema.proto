@@ -181,12 +181,6 @@ message Decl {
   }
 }
 
-message DeploymentCreatedEvent {
-  string key = 1;
-  Module schema = 2;
-  string changeset = 3;
-}
-
 message DeploymentRuntimeEvent {
   RuntimeElement payload = 1;
   string changeset = 2;
@@ -234,7 +228,6 @@ message Event {
     ChangesetFinalizedEvent changeset_finalized_event = 7;
     ChangesetPreparedEvent changeset_prepared_event = 4;
     ChangesetRollingBackEvent changeset_rolling_back_event = 8;
-    DeploymentCreatedEvent deployment_created_event = 1;
     DeploymentRuntimeEvent deployment_runtime_event = 2;
   }
 }

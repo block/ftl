@@ -979,38 +979,6 @@ func DeclFromProto(v *destpb.Decl) (Decl, error) {
 	}
 }
 
-func (x *DeploymentCreatedEvent) ToProto() *destpb.DeploymentCreatedEvent {
-	if x == nil {
-		return nil
-	}
-	return &destpb.DeploymentCreatedEvent{
-		Key:       orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		Schema:    x.Schema.ToProto(),
-		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
-	}
-}
-
-func DeploymentCreatedEventFromProto(v *destpb.DeploymentCreatedEvent) (out *DeploymentCreatedEvent, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &DeploymentCreatedEvent{}
-	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
-	}
-	if out.Schema, err = result.From(ModuleFromProto(v.Schema)).Result(); err != nil {
-		return nil, fmt.Errorf("Schema: %w", err)
-	}
-	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
-	}
-	if err := out.Validate(); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (x *DeploymentRuntimeEvent) ToProto() *destpb.DeploymentRuntimeEvent {
 	if x == nil {
 		return nil
@@ -1180,10 +1148,6 @@ func EventToProto(value Event) *destpb.Event {
 		return &destpb.Event{
 			Value: &destpb.Event_ChangesetRollingBackEvent{value.ToProto()},
 		}
-	case *DeploymentCreatedEvent:
-		return &destpb.Event{
-			Value: &destpb.Event_DeploymentCreatedEvent{value.ToProto()},
-		}
 	case *DeploymentRuntimeEvent:
 		return &destpb.Event{
 			Value: &destpb.Event_DeploymentRuntimeEvent{value.ToProto()},
@@ -1212,8 +1176,6 @@ func EventFromProto(v *destpb.Event) (Event, error) {
 		return ChangesetPreparedEventFromProto(v.GetChangesetPreparedEvent())
 	case *destpb.Event_ChangesetRollingBackEvent:
 		return ChangesetRollingBackEventFromProto(v.GetChangesetRollingBackEvent())
-	case *destpb.Event_DeploymentCreatedEvent:
-		return DeploymentCreatedEventFromProto(v.GetDeploymentCreatedEvent())
 	case *destpb.Event_DeploymentRuntimeEvent:
 		return DeploymentRuntimeEventFromProto(v.GetDeploymentRuntimeEvent())
 	default:
