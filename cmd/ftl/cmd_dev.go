@@ -50,7 +50,6 @@ func (d *devCmd) Run(
 	csm *currentStatusManager,
 ) error {
 	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, d.DevEndpoint.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, adminClient)
 
 	startTime := time.Now()
 	ctx, cancel := context.WithCancelCause(ctx)

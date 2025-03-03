@@ -41,11 +41,7 @@ func main() {
 	err := observability.Init(ctx, false, "", "ftl-provisioner", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
-	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.ProvisionerConfig.ControllerEndpoint.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, controllerClient)
-
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.ProvisionerConfig.SchemaEndpoint.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, schemaClient)
 	scaling := k8sscaling.NewK8sScaling(false, cli.ProvisionerConfig.ControllerEndpoint.String())
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")

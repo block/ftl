@@ -260,15 +260,12 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		kctx.Bind(timelineClient)
 
 		leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, cli.LeaseEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, leaseClient)
 		kctx.BindTo(leaseClient, (*leasepbconnect.LeaseServiceClient)(nil))
 
 		adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, adminClient)
 		kctx.BindTo(adminClient, (*ftlv1connect.AdminServiceClient)(nil))
 
 		buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.Build.UpdatesEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, buildEngineClient)
 		kctx.BindTo(buildEngineClient, (*buildenginepbconnect.BuildEngineServiceClient)(nil))
 
 		err = kctx.BindToProvider(func() (*providers.Registry[configuration.Configuration], error) {
@@ -286,7 +283,6 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(source.ViewOnly())))
 
 		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.AdminEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, verbServiceClient)
 		kctx.BindTo(verbServiceClient, (*ftlv1connect.VerbServiceClient)(nil))
 
 		err = kctx.BindToProvider(manager.NewDefaultConfigurationManagerFromConfig)

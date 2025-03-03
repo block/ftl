@@ -119,11 +119,8 @@ func (s *serveCommonConfig) run(
 	logger := log.FromContext(ctx)
 
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.ControllerEndpoint.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, controllerClient)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.SchemaEndpoint.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, schemaClient)
 	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, s.Lease.Bind.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, leaseClient)
 
 	// We must use our own event source here
 	// The injected one is connected to the admin client for CLI commands, we need this one to connect directly

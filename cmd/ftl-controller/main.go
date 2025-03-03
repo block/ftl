@@ -45,12 +45,9 @@ func main() {
 
 	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, cli.LeaseEndpoint.String(), log.Error)
 
-	ctx = rpc.ContextWithClient(ctx, leaseClient)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, schemaClient)
 
 	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
-	ctx = rpc.ContextWithClient(ctx, adminClient)
 
 	err = controller.Start(ctx, cli.ControllerConfig, adminClient, schemaClient, leaseClient, false)
 	kctx.FatalIfErrorf(err)
