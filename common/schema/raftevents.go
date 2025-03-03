@@ -21,33 +21,12 @@ type Event interface {
 }
 
 // deployment events
-var _ Event = (*DeploymentCreatedEvent)(nil)
 var _ Event = (*DeploymentRuntimeEvent)(nil)
 
 var _ Event = (*ChangesetCreatedEvent)(nil)
 var _ Event = (*ChangesetPreparedEvent)(nil)
 var _ Event = (*ChangesetCommittedEvent)(nil)
 var _ Event = (*ChangesetFailedEvent)(nil)
-
-//protobuf:1
-type DeploymentCreatedEvent struct {
-	Key       key.Deployment `protobuf:"1"`
-	Schema    *Module        `protobuf:"2"`
-	Changeset *key.Changeset `protobuf:"3"`
-}
-
-func (r *DeploymentCreatedEvent) DebugString() string {
-	return fmt.Sprintf("DeploymentCreatedEvent{key: %s, changeset: %s}", r.Key.String(), r.Changeset.String())
-}
-
-func (r *DeploymentCreatedEvent) event() {}
-
-func (r *DeploymentCreatedEvent) Validate() error {
-	if r.Schema.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
-		return fmt.Errorf("deployment key is required")
-	}
-	return nil
-}
 
 //protobuf:2
 type DeploymentRuntimeEvent struct {
