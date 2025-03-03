@@ -27,7 +27,7 @@ services:
       # Tells Seastar (the framework Redpanda uses under the hood) to use 1 core on the system.
       - --smp 1
       - --default-log-level=info
-    image: docker.redpanda.com/redpandadata/redpanda:v24.3.5@sha256:8b2802411074676c96a81eb65483b29e63a212673023869e91fd41d728aaa278
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.6@sha256:04baa40ed34edf86028396f762be802f3b6b0acaab65e9de696a3f15d54c550f
     # container_name: redpanda-0
     volumes:
       - redpanda:/var/lib/redpanda/data
@@ -46,7 +46,7 @@ services:
       start_period: 80s
   redpanda-console:
     # container_name: redpanda-console
-    image: docker.redpanda.com/redpandadata/console:v2.8.2@sha256:8d2e0258db826d5e10bf9e81a4e37ca2bf52b49af19b299c0359c5800b1225a5
+    image: docker.redpanda.com/redpandadata/console:v2.8.3@sha256:fc8006f22072293e9fa6a3aa8a0581ac502bc8262767c32c01ee019eca56bb38
     networks:
       - redpanda_network
     entrypoint: /bin/sh
