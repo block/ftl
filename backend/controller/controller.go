@@ -24,6 +24,7 @@ import (
 	"github.com/block/ftl/backend/controller/observability"
 	"github.com/block/ftl/backend/controller/scheduledtask"
 	"github.com/block/ftl/backend/controller/state"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/schema"
@@ -78,6 +79,7 @@ func Start(
 	config Config,
 	adminClient ftlv1connect.AdminServiceClient,
 	schemaClient ftlv1connect.SchemaServiceClient,
+	leaseClient leasepbconnect.LeaseServiceClient,
 	devel bool,
 ) error {
 	config.SetDefaults()
@@ -85,7 +87,7 @@ func Start(
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL controller")
 
-	svc, err := New(ctx, adminClient, schemaClient, config, devel)
+	svc, err := New(ctx, adminClient, schemaClient, leaseClient, config, devel)
 	if err != nil {
 		return err
 	}
@@ -132,6 +134,7 @@ func New(
 	ctx context.Context,
 	adminClient ftlv1connect.AdminServiceClient,
 	schemaClient ftlv1connect.SchemaServiceClient,
+	leaserClient leasepbconnect.LeaseServiceClient,
 	config Config,
 	devel bool,
 ) (*Service, error) {
@@ -150,10 +153,10 @@ func New(
 		config.ControllerTimeout = time.Second * 5
 	}
 
-	ldb := leases.NewClientLeaser(ctx)
+	ldb := leases.NewClientLeaser(ctx, leaserClient)
 	scheduler := scheduledtask.New(ctx, controllerKey, ldb)
 
-	eventSource := schemaeventsource.New(ctx, "controller", rpc.ClientFromContext[ftlv1connect.SchemaServiceClient](ctx))
+	eventSource := schemaeventsource.New(ctx, "controller", schemaClient)
 	routingTable := routing.New(ctx, eventSource)
 
 	svc := &Service{

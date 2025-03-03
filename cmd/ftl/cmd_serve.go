@@ -25,6 +25,7 @@ import (
 	"github.com/block/ftl/backend/ingress"
 	"github.com/block/ftl/backend/lease"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner"
@@ -121,6 +122,8 @@ func (s *serveCommonConfig) run(
 	ctx = rpc.ContextWithClient(ctx, controllerClient)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.SchemaEndpoint.String(), log.Error)
 	ctx = rpc.ContextWithClient(ctx, schemaClient)
+	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, s.Lease.Bind.String(), log.Error)
+	ctx = rpc.ContextWithClient(ctx, leaseClient)
 
 	// We must use our own event source here
 	// The injected one is connected to the admin client for CLI commands, we need this one to connect directly
@@ -263,7 +266,7 @@ func (s *serveCommonConfig) run(
 	controllerCtx := log.ContextWithLogger(ctx, logger.Scope("controller"))
 
 	wg.Go(func() error {
-		if err := controller.Start(controllerCtx, config, adminClient, schemaClient, true); err != nil {
+		if err := controller.Start(controllerCtx, config, adminClient, schemaClient, leaseClient, true); err != nil {
 			logger.Errorf(err, "controller failed: %v", err)
 			return fmt.Errorf("controller failed: %w", err)
 		}

@@ -22,6 +22,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/internal"
+	"github.com/block/ftl/go-runtime/server/rpccontext"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/maps"
@@ -41,13 +42,13 @@ type UserVerbConfig struct {
 func NewUserVerbServer(projectName string, moduleName string, handlers ...Handler) plugin.Constructor[ftlv1connect.VerbServiceHandler, UserVerbConfig] {
 	return func(ctx context.Context, uc UserVerbConfig) (context.Context, ftlv1connect.VerbServiceHandler, error) {
 		moduleServiceClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, uc.FTLEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, moduleServiceClient)
+		ctx = rpccontext.ContextWithClient(ctx, moduleServiceClient)
 		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, uc.FTLEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, verbServiceClient)
+		ctx = rpccontext.ContextWithClient(ctx, verbServiceClient)
 		pubClient := rpc.Dial(pubsubpbconnect.NewPublishServiceClient, uc.FTLEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, pubClient)
+		ctx = rpccontext.ContextWithClient(ctx, pubClient)
 		leaseClient := rpc.Dial(leaseconnect.NewLeaseServiceClient, uc.FTLEndpoint.String(), log.Error)
-		ctx = rpc.ContextWithClient(ctx, leaseClient)
+		ctx = rpccontext.ContextWithClient(ctx, leaseClient)
 
 		moduleContextSupplier := deploymentcontext.NewDeploymentContextSupplier(moduleServiceClient)
 		// FTL_DEPLOYMENT is set by the FTL runtime.
@@ -213,7 +214,7 @@ func call[Verb, Req, Resp any]() func(ctx context.Context, req Req) (resp Resp, 
 			return resp, fmt.Errorf("%s: failed to marshal request: %w", callee, err)
 		}
 
-		client := rpc.ClientFromContext[ftlv1connect.VerbServiceClient](ctx)
+		client := rpccontext.ClientFromContext[ftlv1connect.VerbServiceClient](ctx)
 		cresp, err := client.Call(ctx, connect.NewRequest(&ftlv1.CallRequest{Verb: callee.ToProto(), Body: reqData}))
 		if err != nil {
 			return resp, fmt.Errorf("%s: failed to call Verb: %w", callee, err)

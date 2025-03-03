@@ -52,6 +52,6 @@ func main() {
 	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 	ctx = rpc.ContextWithClient(ctx, adminClient)
 
-	err = controller.Start(ctx, cli.ControllerConfig, adminClient, schemaClient, false)
+	err = controller.Start(ctx, cli.ControllerConfig, adminClient, schemaClient, leaseClient, false)
 	kctx.FatalIfErrorf(err)
 }
