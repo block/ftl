@@ -1,6 +1,6 @@
 module ftl/plugintest
 
-go 1.23.2
+go 1.24.0
 
 require github.com/block/ftl v1.1.5
 

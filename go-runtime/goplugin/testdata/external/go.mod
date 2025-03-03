@@ -1,5 +1,5 @@
 module ftl/external
 
-go 1.23.0
+go 1.24.0
 
 replace github.com/block/ftl => ../../../..

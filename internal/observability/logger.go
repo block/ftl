@@ -81,7 +81,7 @@ func (l logSink) Info(level int, msg string, kvs ...interface{}) {
 		logMsg += fmt.Sprintf("%s: %+v  ", kvs[i], kvs[i+1])
 	}
 
-	l.logger.Logf(logLevel, logMsg)
+	l.logger.Logf(logLevel, "%s", logMsg)
 }
 
 func (l logSink) Error(err error, msg string, kvs ...interface{}) {

@@ -93,7 +93,7 @@ func TestUpdateGoModuleValidatesModuleName(t *testing.T) {
 	// Matching module name
 	err := os.WriteFile(goModPath, []byte(`module ftl/mymodule
 
-go 1.23.0
+go 1.24.0
 `), 0600)
 	assert.NoError(t, err)
 
@@ -103,7 +103,7 @@ go 1.23.0
 	// Mismatched module name
 	err = os.WriteFile(goModPath, []byte(`module ftl/wrongname
 
-go 1.23.0
+go 1.24.0
 `), 0600)
 	assert.NoError(t, err)
 

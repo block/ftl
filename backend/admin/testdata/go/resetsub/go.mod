@@ -1,6 +1,6 @@
 module ftl/resetsub
 
-go 1.23.4
+go 1.24.0
 
 require github.com/block/ftl v0.421.0
 
