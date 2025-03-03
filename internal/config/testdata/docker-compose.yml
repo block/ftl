@@ -1,0 +1,8 @@
+services:
+  localstack:
+    image: localstack/localstack@sha256:59f1aea1db85a3558a553062723d8fa84fb05716bf74bd5bd1caa53b1f93d501
+    ports:
+      - 4566:4566
+    environment:
+      SERVICES: secretsmanager
+      DEBUG: 1

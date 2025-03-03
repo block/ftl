@@ -7,10 +7,10 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/must"
+	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/providers"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/profiles"
 )
@@ -25,10 +25,12 @@ func TestProfile(t *testing.T) {
 		FTLMinVersion: ftl.Version,
 		ModuleRoots:   []string{"."},
 	}
-	sr := providers.NewRegistry[configuration.Secrets]()
-	sr.Register(providers.NewInlineFactory[configuration.Secrets]())
-	cr := providers.NewRegistry[configuration.Configuration]()
-	cr.Register(providers.NewInlineFactory[configuration.Configuration]())
+	sr := config.NewRegistry[config.Secrets]()
+	sr.Register(config.NewMemoryProviderFactory[config.Secrets]())
+	sr.Register(config.NewFileProviderFactory[config.Secrets]())
+	cr := config.NewRegistry[config.Configuration]()
+	cr.Register(config.NewMemoryProviderFactory[config.Configuration]())
+	cr.Register(config.NewFileProviderFactory[config.Configuration]())
 
 	_, err := profiles.Init(projectConfig, sr, cr)
 	assert.NoError(t, err)
@@ -51,12 +53,11 @@ func TestProfile(t *testing.T) {
 	}, profile.ProjectConfig())
 
 	cm := profile.ConfigurationManager()
-	passwordKey := configuration.NewRef("echo", "password")
-	err = cm.Set(ctx, passwordKey, "hello")
+	passwordKey := config.NewRef(optional.Some("echo"), "password")
+	err = config.Store(ctx, cm, passwordKey, "hello")
 	assert.NoError(t, err)
 
-	var passwordValue string
-	err = cm.Get(ctx, passwordKey, &passwordValue)
+	passwordValue, err := config.Load[string](ctx, cm, passwordKey)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "hello", passwordValue)

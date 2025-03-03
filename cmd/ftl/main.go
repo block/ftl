@@ -28,6 +28,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
@@ -43,6 +44,7 @@ import (
 
 type SharedCLI struct {
 	Version          kong.VersionFlag `help:"Show version."`
+	Project          string           `short:"P" name:"project" help:"Path to FTL project root directory. The git root will be used if not found in the current directory." env:"FTL_PROJECT" placeholder:"DIR" default:""`
 	ConfigFlag       string           `name:"config" short:"C" help:"Path to FTL project configuration file." env:"FTL_CONFIG" placeholder:"FILE"`
 	TimelineEndpoint *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	LeaseEndpoint    *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
@@ -293,7 +295,13 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		err = kctx.BindToProvider(manager.NewDefaultSecretsManagerFromConfig)
 		kctx.FatalIfErrorf(err)
 
-		err = kctx.BindToProvider(func(projectConfig projectconfig.Config, secretsRegistry *providers.Registry[configuration.Secrets], configRegistry *providers.Registry[configuration.Configuration]) (*profiles.Project, error) {
+		err = kctx.BindToProvider(config.NewConfigurationRegistry)
+		kctx.FatalIfErrorf(err)
+
+		err = kctx.BindToProvider(config.NewSecretsRegistry)
+		kctx.FatalIfErrorf(err)
+
+		err = kctx.BindToProvider(func(projectConfig projectconfig.Config, secretsRegistry *config.Registry[config.Secrets], configRegistry *config.Registry[config.Configuration]) (*profiles.Project, error) {
 			return profiles.Open(filepath.Dir(projectConfig.Path), secretsRegistry, configRegistry)
 		})
 		kctx.FatalIfErrorf(err)

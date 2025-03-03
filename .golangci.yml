@@ -59,6 +59,7 @@ linters:
     - thelper
     - perfsprint
     - tenv
+    - recvcheck
 
 linters-settings:
   exhaustive:

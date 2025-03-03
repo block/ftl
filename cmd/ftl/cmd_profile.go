@@ -6,8 +6,7 @@ import (
 	"strings"
 
 	"github.com/block/ftl"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/providers"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/profiles"
 )
 
@@ -27,8 +26,8 @@ type profileInitCmd struct {
 }
 
 func (p profileInitCmd) Run(
-	configRegistry *providers.Registry[configuration.Configuration],
-	secretsRegistry *providers.Registry[configuration.Secrets],
+	configRegistry *config.Registry[config.Configuration],
+	secretsRegistry *config.Registry[config.Secrets],
 ) error {
 	_, err := profiles.Init(profiles.ProjectConfig{
 		Realm:         p.Project,
@@ -69,7 +68,7 @@ func (profileListCmd) Run(project *profiles.Project) error {
 		if active == profile.Name {
 			attrs = append(attrs, "active")
 		}
-		fmt.Printf("%s (%s)\n", profile, strings.Join(attrs, ", "))
+		fmt.Printf("%s (%s)\n", profile, strings.Join(attrs, "+"))
 	}
 	return nil
 }
@@ -99,11 +98,11 @@ func (p profileSwitchCmd) Run(project *profiles.Project) error {
 }
 
 type profileNewCmd struct {
-	Local         bool                      `help:"Create a local profile." xor:"location" and:"providers"`
-	Remote        *url.URL                  `help:"Create a remote profile." xor:"location" placeholder:"ENDPOINT"`
-	Secrets       configuration.ProviderKey `help:"Secrets provider." default:"inline" and:"providers"`
-	Configuration configuration.ProviderKey `help:"Configuration provider." default:"inline" and:"providers"`
-	Name          string                    `arg:"" help:"Profile name."`
+	Local         bool               `help:"Create a local profile." xor:"location" and:"providers"`
+	Remote        *url.URL           `help:"Create a remote profile." xor:"location" placeholder:"ENDPOINT"`
+	Secrets       config.ProviderKey `help:"Secrets provider." default:"file" and:"providers"`
+	Configuration config.ProviderKey `help:"Configuration provider." default:"file" and:"providers"`
+	Name          string             `arg:"" help:"Profile name."`
 }
 
 func (profileNewCmd) Help() string {
