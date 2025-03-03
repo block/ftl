@@ -161,53 +161,59 @@ func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []
 				return config.Dir, config
 			})
 
-			w.mutex.Lock()
-			// Trigger events for removed modules.
-			for _, existingModule := range w.existingModules {
-				if transactions, ok := w.moduleTransactions[existingModule.Config.Dir]; ok && len(transactions) > 0 {
-					// Skip modules that currently have transactions
-					continue
-				}
-				existingConfig := existingModule.Config
-				if _, haveModule := modulesByDir[existingConfig.Dir]; !haveModule {
-					logger.Debugf("removed %q", existingModule.Config.Module)
-					topic.Publish(WatchEventModuleRemoved{Config: existingModule.Config})
-					delete(w.existingModules, existingConfig.Dir)
-				}
-			}
-
-			// Compare the modules to the existing modules.
-			for _, config := range modulesByDir {
-				if transactions, ok := w.moduleTransactions[config.Dir]; ok && len(transactions) > 0 {
-					// Skip modules that currently have transactions
-					continue
-				}
-				existingModule, haveExistingModule := w.existingModules[config.Dir]
-				hashes, err := ComputeFileHashes(config.Dir, true, w.patterns)
-				if err != nil {
-					logger.Tracef("error computing file hashes for %s: %v", config.Dir, err)
-					continue
-				}
-
-				if haveExistingModule {
-					changes := CompareFileHashes(existingModule.Hashes, hashes)
-					if len(changes) == 0 {
-						continue
-					}
-					event := WatchEventModuleChanged{Config: existingModule.Config, Changes: changes, Time: time.Now()}
-					logger.Debugf("changed %q: %s", config.Module, event)
-					topic.Publish(event)
-					w.existingModules[config.Dir] = moduleHashes{Hashes: hashes, Config: existingModule.Config}
-					continue
-				}
-				logger.Debugf("added %q", config.Module)
-				topic.Publish(WatchEventModuleAdded{Config: config})
-				w.existingModules[config.Dir] = moduleHashes{Hashes: hashes, Config: config}
-			}
-			w.mutex.Unlock()
+			w.detectChanges(ctx, topic, modulesByDir)
 		}
 	}()
 	return topic, nil
+}
+
+func (w *Watcher) detectChanges(ctx context.Context, topic *pubsub.Topic[WatchEvent], modulesByDir map[string]moduleconfig.UnvalidatedModuleConfig) {
+	logger := log.FromContext(ctx)
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	// Trigger events for removed modules.
+	for _, existingModule := range w.existingModules {
+		if transactions, ok := w.moduleTransactions[existingModule.Config.Dir]; ok && len(transactions) > 0 {
+			// Skip modules that currently have transactions
+			continue
+		}
+		existingConfig := existingModule.Config
+		if _, haveModule := modulesByDir[existingConfig.Dir]; !haveModule {
+			logger.Debugf("removed %q", existingModule.Config.Module)
+			topic.Publish(WatchEventModuleRemoved{Config: existingModule.Config})
+			delete(w.existingModules, existingConfig.Dir)
+		}
+	}
+
+	// Compare the modules to the existing modules.
+	for _, config := range modulesByDir {
+		if transactions, ok := w.moduleTransactions[config.Dir]; ok && len(transactions) > 0 {
+			// Skip modules that currently have transactions
+			continue
+		}
+		existingModule, haveExistingModule := w.existingModules[config.Dir]
+		hashes, err := ComputeFileHashes(config.Dir, true, w.patterns)
+		if err != nil {
+			logger.Tracef("error computing file hashes for %s: %v", config.Dir, err)
+			continue
+		}
+
+		if haveExistingModule {
+			changes := CompareFileHashes(existingModule.Hashes, hashes)
+			if len(changes) == 0 {
+				continue
+			}
+			event := WatchEventModuleChanged{Config: existingModule.Config, Changes: changes, Time: time.Now()}
+			logger.Debugf("changed %q: %s", config.Module, event)
+			topic.Publish(event)
+			w.existingModules[config.Dir] = moduleHashes{Hashes: hashes, Config: existingModule.Config}
+			continue
+		}
+		logger.Debugf("added %q", config.Module)
+		topic.Publish(WatchEventModuleAdded{Config: config})
+		w.existingModules[config.Dir] = moduleHashes{Hashes: hashes, Config: config}
+	}
 }
 
 // ModifyFilesTransaction allows builds to modify files in a module without triggering a watch event.
