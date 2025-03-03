@@ -28,12 +28,15 @@ import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 
 import xyz.block.ftl.Config;
+import xyz.block.ftl.Cron;
+import xyz.block.ftl.Data;
 import xyz.block.ftl.Enum;
 import xyz.block.ftl.Export;
 import xyz.block.ftl.SQLDatasource;
 import xyz.block.ftl.Secret;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.Verb;
+import xyz.block.ftl.VerbName;
 
 /**
  * POC annotation processor for capturing JavaDoc, this needs a lot more work.
@@ -77,17 +80,21 @@ public class AnnotationProcessor implements Processor {
                     SQLDatasource ds = element.getAnnotation(SQLDatasource.class);
                     databases.put(ds.name(), ds.type().name());
                 });
-        //TODO: @VerbName, HTTP, CRON etc
-        roundEnv.getElementsAnnotatedWithAny(Set.of(Verb.class, Enum.class, Export.class, TypeAlias.class))
+        //TODO: HTTP etc
+        roundEnv.getElementsAnnotatedWithAny(Set.of(Verb.class, Enum.class, Data.class, Cron.class, TypeAlias.class))
                 .forEach(element -> {
                     Optional<String> javadoc = getJavadoc(element);
                     javadoc.ifPresent(doc -> {
                         String strippedDownDoc = stripJavadocTags(doc);
+                        String name;
                         if (element.getAnnotation(TypeAlias.class) != null) {
-                            saved.put(element.getAnnotation(TypeAlias.class).name(), strippedDownDoc);
+                            name = element.getAnnotation(TypeAlias.class).name();
+                        } else if (element.getAnnotation(VerbName.class) != null) {
+                            name = element.getAnnotation(VerbName.class).value();
                         } else {
-                            saved.put(element.getSimpleName().toString(), strippedDownDoc);
+                            name = element.getSimpleName().toString();
                         }
+                        saved.put(name, strippedDownDoc);
                         if (element.getKind() == ElementKind.METHOD) {
                             var executableElement = (ExecutableElement) element;
                             executableElement.getParameters().forEach(param -> {
