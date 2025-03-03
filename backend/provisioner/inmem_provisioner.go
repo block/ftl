@@ -15,6 +15,7 @@ import (
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/internal/log"
 )
 
 type inMemProvisioningTask struct {
@@ -69,6 +70,7 @@ type stepCompletedEvent struct {
 }
 
 func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.ProvisionRequest) ([]*schemapb.RuntimeElement, error) {
+	logger := log.FromContext(ctx)
 	parsed, err := key.ParseChangesetKey(req.Changeset)
 	if err != nil {
 		err = fmt.Errorf("invalid changeset: %w", err)
@@ -97,8 +99,10 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.Provi
 	// use chans to safely collect all events before completing each task
 	completions := make(chan stepCompletedEvent, 16)
 
+	noop := true
 	for id, desired := range desiredNodes {
 		previous, prevOk := previousNodes[id]
+		logger.Tracef("Provisioning resource %s", id)
 
 		for _, resource := range desired.GetProvisioned() {
 			if !prevOk || resource.DeploymentSpecific || !resource.IsEqual(previous.GetProvisioned().Get(resource.Kind)) {
@@ -120,6 +124,7 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.Provi
 					}
 					step := &inMemProvisioningStep{Done: atomic.New(false)}
 					task.steps = append(task.steps, step)
+					noop = false
 					go func() {
 						event, err := handler(ctx, parsed, desiredModule.Runtime.Deployment.DeploymentKey, desired)
 						if err != nil {
@@ -137,17 +142,19 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.Provi
 		}
 	}
 
-	for c := range channels.IterContext(ctx, completions) {
-		if e, ok := c.event.Get(); ok {
-			task.events = append(task.events, &e)
-		}
-		c.step.Done.Store(true)
-		done, err := task.Done()
-		if err != nil {
-			return nil, fmt.Errorf("provisioning failed: %w", err)
-		}
-		if done {
-			break
+	if !noop {
+		for c := range channels.IterContext(ctx, completions) {
+			if e, ok := c.event.Get(); ok {
+				task.events = append(task.events, &e)
+			}
+			c.step.Done.Store(true)
+			done, err := task.Done()
+			if err != nil {
+				return nil, fmt.Errorf("provisioning failed: %w", err)
+			}
+			if done {
+				break
+			}
 		}
 	}
 	return slices.Map(task.events, func(e *schema.RuntimeElement) *schemapb.RuntimeElement {
