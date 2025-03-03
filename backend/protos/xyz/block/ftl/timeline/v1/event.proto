@@ -20,8 +20,7 @@ enum EventType {
   EVENT_TYPE_PUBSUB_CONSUME = 7;
   EVENT_TYPE_CHANGESET_CREATED = 8;
   EVENT_TYPE_CHANGESET_STATE_CHANGED = 9;
-  EVENT_TYPE_DEPLOYMENT_CREATED = 10;
-  EVENT_TYPE_DEPLOYMENT_RUNTIME = 11;
+  EVENT_TYPE_DEPLOYMENT_RUNTIME = 10;
 }
 
 enum AsyncExecuteEventType {
@@ -140,13 +139,6 @@ message ChangesetStateChangedEvent {
   optional string error = 3;
 }
 
-message DeploymentCreatedEvent {
-  string key = 1;
-  google.protobuf.Timestamp created_at = 2;
-  string module = 3;
-  optional string changeset = 4;
-}
-
 message DeploymentRuntimeEvent {
   string key = 1;
   google.protobuf.Timestamp updated_at = 2;
@@ -169,7 +161,6 @@ message Event {
     PubSubConsumeEvent pubsub_consume = 11;
     ChangesetCreatedEvent changeset_created = 12;
     ChangesetStateChangedEvent changeset_state_changed = 13;
-    DeploymentCreatedEvent deployment_created = 14;
-    DeploymentRuntimeEvent deployment_runtime = 15;
+    DeploymentRuntimeEvent deployment_runtime = 14;
   }
 }

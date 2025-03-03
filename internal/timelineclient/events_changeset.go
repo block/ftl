@@ -35,38 +35,6 @@ func (c ChangesetCreated) ToEntry() (*timelinepb.CreateEventsRequest_EventEntry,
 	}, nil
 }
 
-// DeploymentCreated represents a timeline event for when a deployment is created
-type DeploymentCreated struct {
-	Key       key.Deployment
-	CreatedAt time.Time
-	Schema    *schema.Module
-	Changeset optional.Option[key.Changeset]
-}
-
-var _ Event = DeploymentCreated{}
-
-func (DeploymentCreated) clientEvent() {}
-func (d DeploymentCreated) ToEntry() (*timelinepb.CreateEventsRequest_EventEntry, error) {
-	// Create a new DeploymentCreatedEvent for the timeline
-	event := &timelinepb.DeploymentCreatedEvent{
-		Key:       d.Key.String(),
-		CreatedAt: timestamppb.New(d.CreatedAt),
-		Module:    d.Schema.Name,
-	}
-
-	// Add changeset information if available
-	if val, ok := d.Changeset.Get(); ok {
-		str := val.String()
-		event.Changeset = &str
-	}
-
-	return &timelinepb.CreateEventsRequest_EventEntry{
-		Entry: &timelinepb.CreateEventsRequest_EventEntry_DeploymentCreated{
-			DeploymentCreated: event,
-		},
-	}, nil
-}
-
 // DeploymentRuntime represents a timeline event for deployment runtime changes
 type DeploymentRuntime struct {
 	Deployment key.Deployment

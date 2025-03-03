@@ -62,14 +62,9 @@ export enum EventType {
   CHANGESET_STATE_CHANGED = 9,
 
   /**
-   * @generated from enum value: EVENT_TYPE_DEPLOYMENT_CREATED = 10;
+   * @generated from enum value: EVENT_TYPE_DEPLOYMENT_RUNTIME = 10;
    */
-  DEPLOYMENT_CREATED = 10,
-
-  /**
-   * @generated from enum value: EVENT_TYPE_DEPLOYMENT_RUNTIME = 11;
-   */
-  DEPLOYMENT_RUNTIME = 11,
+  DEPLOYMENT_RUNTIME = 10,
 }
 // Retrieve enum metadata with: proto3.getEnumType(EventType)
 proto3.util.setEnumType(EventType, "xyz.block.ftl.timeline.v1.EventType", [
@@ -83,8 +78,7 @@ proto3.util.setEnumType(EventType, "xyz.block.ftl.timeline.v1.EventType", [
   { no: 7, name: "EVENT_TYPE_PUBSUB_CONSUME" },
   { no: 8, name: "EVENT_TYPE_CHANGESET_CREATED" },
   { no: 9, name: "EVENT_TYPE_CHANGESET_STATE_CHANGED" },
-  { no: 10, name: "EVENT_TYPE_DEPLOYMENT_CREATED" },
-  { no: 11, name: "EVENT_TYPE_DEPLOYMENT_RUNTIME" },
+  { no: 10, name: "EVENT_TYPE_DEPLOYMENT_RUNTIME" },
 ]);
 
 /**
@@ -869,61 +863,6 @@ export class ChangesetStateChangedEvent extends Message<ChangesetStateChangedEve
 }
 
 /**
- * @generated from message xyz.block.ftl.timeline.v1.DeploymentCreatedEvent
- */
-export class DeploymentCreatedEvent extends Message<DeploymentCreatedEvent> {
-  /**
-   * @generated from field: string key = 1;
-   */
-  key = "";
-
-  /**
-   * @generated from field: google.protobuf.Timestamp created_at = 2;
-   */
-  createdAt?: Timestamp;
-
-  /**
-   * @generated from field: string module = 3;
-   */
-  module = "";
-
-  /**
-   * @generated from field: optional string changeset = 4;
-   */
-  changeset?: string;
-
-  constructor(data?: PartialMessage<DeploymentCreatedEvent>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.timeline.v1.DeploymentCreatedEvent";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "created_at", kind: "message", T: Timestamp },
-    { no: 3, name: "module", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeploymentCreatedEvent {
-    return new DeploymentCreatedEvent().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeploymentCreatedEvent {
-    return new DeploymentCreatedEvent().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeploymentCreatedEvent {
-    return new DeploymentCreatedEvent().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: DeploymentCreatedEvent | PlainMessage<DeploymentCreatedEvent> | undefined, b: DeploymentCreatedEvent | PlainMessage<DeploymentCreatedEvent> | undefined): boolean {
-    return proto3.util.equals(DeploymentCreatedEvent, a, b);
-  }
-}
-
-/**
  * @generated from message xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent
  */
 export class DeploymentRuntimeEvent extends Message<DeploymentRuntimeEvent> {
@@ -1059,13 +998,7 @@ export class Event extends Message<Event> {
     case: "changesetStateChanged";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentCreatedEvent deployment_created = 14;
-     */
-    value: DeploymentCreatedEvent;
-    case: "deploymentCreated";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent deployment_runtime = 15;
+     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent deployment_runtime = 14;
      */
     value: DeploymentRuntimeEvent;
     case: "deploymentRuntime";
@@ -1090,8 +1023,7 @@ export class Event extends Message<Event> {
     { no: 11, name: "pubsub_consume", kind: "message", T: PubSubConsumeEvent, oneof: "entry" },
     { no: 12, name: "changeset_created", kind: "message", T: ChangesetCreatedEvent, oneof: "entry" },
     { no: 13, name: "changeset_state_changed", kind: "message", T: ChangesetStateChangedEvent, oneof: "entry" },
-    { no: 14, name: "deployment_created", kind: "message", T: DeploymentCreatedEvent, oneof: "entry" },
-    { no: 15, name: "deployment_runtime", kind: "message", T: DeploymentRuntimeEvent, oneof: "entry" },
+    { no: 14, name: "deployment_runtime", kind: "message", T: DeploymentRuntimeEvent, oneof: "entry" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Event {

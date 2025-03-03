@@ -68,7 +68,7 @@ func FilterModule(filters []*timelinepb.GetTimelineRequest_ModuleFilter) Timelin
 		case *timelinepb.Event_PubsubConsume:
 			module = *entry.PubsubConsume.DestVerbModule
 			verb = *entry.PubsubConsume.DestVerbName
-		case *timelinepb.Event_Log, *timelinepb.Event_CronScheduled, *timelinepb.Event_ChangesetCreated, *timelinepb.Event_ChangesetStateChanged, *timelinepb.Event_DeploymentCreated, *timelinepb.Event_DeploymentRuntime:
+		case *timelinepb.Event_Log, *timelinepb.Event_CronScheduled, *timelinepb.Event_ChangesetCreated, *timelinepb.Event_ChangesetStateChanged, *timelinepb.Event_DeploymentRuntime:
 			// Block all other event types.
 			return false
 		default:
@@ -115,8 +115,6 @@ func FilterDeployments(filters []*timelinepb.GetTimelineRequest_DeploymentFilter
 			deployment = entry.PubsubPublish.DeploymentKey
 		case *timelinepb.Event_PubsubConsume:
 			deployment = entry.PubsubConsume.DeploymentKey
-		case *timelinepb.Event_DeploymentCreated:
-			deployment = entry.DeploymentCreated.Key
 		case *timelinepb.Event_DeploymentRuntime:
 			deployment = entry.DeploymentRuntime.Key
 		default:
@@ -193,8 +191,6 @@ func FilterTypes(filters ...*timelinepb.GetTimelineRequest_EventTypeFilter) Time
 			eventType = timelinepb.EventType_EVENT_TYPE_CHANGESET_CREATED
 		case *timelinepb.Event_ChangesetStateChanged:
 			eventType = timelinepb.EventType_EVENT_TYPE_CHANGESET_STATE_CHANGED
-		case *timelinepb.Event_DeploymentCreated:
-			eventType = timelinepb.EventType_EVENT_TYPE_DEPLOYMENT_CREATED
 		case *timelinepb.Event_DeploymentRuntime:
 			eventType = timelinepb.EventType_EVENT_TYPE_DEPLOYMENT_RUNTIME
 		default:

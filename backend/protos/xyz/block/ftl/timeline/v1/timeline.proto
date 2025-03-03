@@ -108,8 +108,7 @@ message CreateEventsRequest {
       PubSubConsumeEvent pubsub_consume = 8;
       ChangesetCreatedEvent changeset_created = 9;
       ChangesetStateChangedEvent changeset_state_changed = 10;
-      DeploymentCreatedEvent deployment_created = 11;
-      DeploymentRuntimeEvent deployment_runtime = 12;
+      DeploymentRuntimeEvent deployment_runtime = 11;
     }
   }
 

@@ -7,7 +7,6 @@ import { TimelineCall } from './TimelineCall'
 import { TimelineChangesetChanged } from './TimelineChangesetChanged'
 import { TimelineChangesetCreated } from './TimelineChangesetCreated'
 import { TimelineCronScheduled } from './TimelineCronScheduled'
-import { TimelineDeploymentCreated } from './TimelineDeploymentCreated'
 import { TimelineIcon } from './TimelineIcon'
 import { TimelineIngress } from './TimelineIngress'
 import { TimelineLog } from './TimelineLog'
@@ -34,7 +33,6 @@ const deploymentKey = (event: Event) => {
     case 'changesetCreated':
     case 'changesetStateChanged':
       return event.entry.value.key
-    case 'deploymentCreated':
     case 'deploymentRuntime':
       return event.entry.value.key
     default:
@@ -106,8 +104,6 @@ export const TimelineEventList = ({ events, selectedEventId, handleEntryClicked 
                       return <TimelineChangesetCreated changeset={entry.entry.value} />
                     case 'changesetStateChanged':
                       return <TimelineChangesetChanged changeset={entry.entry.value} />
-                    case 'deploymentCreated':
-                      return <TimelineDeploymentCreated deployment={entry.entry.value} />
                     case 'deploymentRuntime':
                       return <TimelineRuntime runtime={entry.entry.value} />
                     default:

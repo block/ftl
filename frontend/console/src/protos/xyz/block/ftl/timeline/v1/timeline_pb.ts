@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Duration, Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
-import { AsyncExecuteEvent, CallEvent, ChangesetCreatedEvent, ChangesetStateChangedEvent, CronScheduledEvent, DeploymentCreatedEvent, DeploymentRuntimeEvent, Event, EventType, IngressEvent, LogEvent, LogLevel, PubSubConsumeEvent, PubSubPublishEvent } from "./event_pb.js";
+import { AsyncExecuteEvent, CallEvent, ChangesetCreatedEvent, ChangesetStateChangedEvent, CronScheduledEvent, DeploymentRuntimeEvent, Event, EventType, IngressEvent, LogEvent, LogLevel, PubSubConsumeEvent, PubSubPublishEvent } from "./event_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.timeline.v1.GetTimelineRequest
@@ -753,13 +753,7 @@ export class CreateEventsRequest_EventEntry extends Message<CreateEventsRequest_
     case: "changesetStateChanged";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentCreatedEvent deployment_created = 11;
-     */
-    value: DeploymentCreatedEvent;
-    case: "deploymentCreated";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent deployment_runtime = 12;
+     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent deployment_runtime = 11;
      */
     value: DeploymentRuntimeEvent;
     case: "deploymentRuntime";
@@ -783,8 +777,7 @@ export class CreateEventsRequest_EventEntry extends Message<CreateEventsRequest_
     { no: 8, name: "pubsub_consume", kind: "message", T: PubSubConsumeEvent, oneof: "entry" },
     { no: 9, name: "changeset_created", kind: "message", T: ChangesetCreatedEvent, oneof: "entry" },
     { no: 10, name: "changeset_state_changed", kind: "message", T: ChangesetStateChangedEvent, oneof: "entry" },
-    { no: 11, name: "deployment_created", kind: "message", T: DeploymentCreatedEvent, oneof: "entry" },
-    { no: 12, name: "deployment_runtime", kind: "message", T: DeploymentRuntimeEvent, oneof: "entry" },
+    { no: 11, name: "deployment_runtime", kind: "message", T: DeploymentRuntimeEvent, oneof: "entry" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateEventsRequest_EventEntry {

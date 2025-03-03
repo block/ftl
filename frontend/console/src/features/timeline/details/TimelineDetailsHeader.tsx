@@ -87,12 +87,6 @@ const eventBadge = (event: Event) => {
           {event.entry.value.key}
         </div>
       )
-    case 'deploymentCreated':
-      return (
-        <div className={'inline-block rounded-md bg-indigo-200 dark:bg-indigo-700 px-2 py-1 mr-1 text-sm font-medium text-gray-700 dark:text-gray-100'}>
-          {event.entry.value.key}
-        </div>
-      )
     case 'deploymentRuntime':
       return (
         <div className={'inline-block rounded-md bg-indigo-200 dark:bg-indigo-700 px-2 py-1 mr-1 text-sm font-medium text-gray-700 dark:text-gray-100'}>

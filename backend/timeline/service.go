@@ -125,10 +125,6 @@ func (s *service) CreateEvents(ctx context.Context, req *connect.Request[timelin
 			event.Entry = &timelinepb.Event_ChangesetStateChanged{
 				ChangesetStateChanged: entry.ChangesetStateChanged,
 			}
-		case *timelinepb.CreateEventsRequest_EventEntry_DeploymentCreated:
-			event.Entry = &timelinepb.Event_DeploymentCreated{
-				DeploymentCreated: entry.DeploymentCreated,
-			}
 		case *timelinepb.CreateEventsRequest_EventEntry_DeploymentRuntime:
 			event.Entry = &timelinepb.Event_DeploymentRuntime{
 				DeploymentRuntime: entry.DeploymentRuntime,
