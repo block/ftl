@@ -1,0 +1,29 @@
+---
+description: Rules for writing TypeScript code
+globs: *.tsx, *.ts
+alwaysApply: false
+---
+- Always use TypeScript strict mode (`"strict": true` in tsconfig.json)
+- Use explicit type annotations for function parameters and return types
+- Use interfaces for object types instead of type aliases when possible
+- Always handle Promise rejections and async/await errors with try/catch
+- Use optional chaining (?.) and nullish coalescing (??) operators instead of manual null checks
+- Never use `any` type - use `unknown` if type is truly unknown
+- Use readonly arrays and properties when data should be immutable
+- For React components:
+  - Use functional components with hooks
+  - Props interfaces should be named `{ComponentName}Props`
+  - Use type inference for useState hooks when type is obvious
+  - Always provide explicit types for useRef hooks
+- For tests:
+  - Use Jest and React Testing Library
+  - Test components with user interactions in mind
+  - Write descriptive test names using the pattern "should {expected behavior}"
+- Use Biomejs
+- Use meaningful variable and function names that describe their purpose
+- Keep components and functions small and focused
+- Extract reusable logic into custom hooks
+- Use TypeScript path aliases to avoid deep relative imports
+- Use pnpm
+- Use TailwindCSS
+- Use HugeIcons
