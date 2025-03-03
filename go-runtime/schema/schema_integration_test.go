@@ -513,9 +513,6 @@ func testParsedirectives(t *testing.T) {
 }
 
 func testErrorReporting(t *testing.T) {
-}
-
-func TestErrorReporting(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
