@@ -1081,30 +1081,6 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 	}
 
 	err = e.build(ctx, moduleName, builtModules, schemas)
-	if err != nil {
-		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-			Timestamp: timestamppb.Now(),
-			Event: &buildenginepb.EngineEvent_ModuleBuildFailed{
-				ModuleBuildFailed: &buildenginepb.ModuleBuildFailed{
-					Config:        configProto,
-					IsAutoRebuild: false,
-					Errors: &langpb.ErrorList{
-						Errors: errorToLangError(err),
-					},
-				},
-			},
-		}
-	} else {
-		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-			Timestamp: timestamppb.Now(),
-			Event: &buildenginepb.EngineEvent_ModuleBuildSuccess{
-				ModuleBuildSuccess: &buildenginepb.ModuleBuildSuccess{
-					Config:        configProto,
-					IsAutoRebuild: false,
-				},
-			},
-		}
-	}
 	if err == nil && callback != nil {
 		// load latest meta as it may have been updated
 		meta, ok = e.moduleMetas.Load(moduleName)
@@ -1137,6 +1113,11 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 
 	sch := &schema.Schema{Modules: maps.Values(builtModules)}
 
+	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
+	if err != nil {
+		return fmt.Errorf("failed to marshal module config: %w", err)
+	}
+
 	moduleSchema, deploy, err := build(ctx, meta.plugin, e.projectConfig, languageplugin.BuildContext{
 		Config:       meta.module.Config,
 		Schema:       sch,
@@ -1145,14 +1126,47 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 		Os:           e.os,
 		Arch:         e.arch,
 	}, e.devMode, e.devModeEndpointUpdates)
+
 	if err != nil {
 		if errors.Is(err, errInvalidateDependencies) {
+			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+				Timestamp: timestamppb.Now(),
+				Event: &buildenginepb.EngineEvent_ModuleBuildWaiting{
+					ModuleBuildWaiting: &buildenginepb.ModuleBuildWaiting{
+						Config: configProto,
+					},
+				},
+			}
 			// Do not start a build directly as we are already building out a graph of modules.
 			// Instead we send to a chan so that it can be processed after.
 			e.rebuildEvents <- rebuildRequestEvent{module: moduleName}
+			return err
+		}
+		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
+			Event: &buildenginepb.EngineEvent_ModuleBuildFailed{
+				ModuleBuildFailed: &buildenginepb.ModuleBuildFailed{
+					Config:        configProto,
+					IsAutoRebuild: false,
+					Errors: &langpb.ErrorList{
+						Errors: errorToLangError(err),
+					},
+				},
+			},
 		}
 		return err
 	}
+
+	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+		Timestamp: timestamppb.Now(),
+		Event: &buildenginepb.EngineEvent_ModuleBuildSuccess{
+			ModuleBuildSuccess: &buildenginepb.ModuleBuildSuccess{
+				Config:        configProto,
+				IsAutoRebuild: false,
+			},
+		},
+	}
+
 	// update files to deploy
 	e.moduleMetas.Compute(moduleName, func(meta moduleMeta, exists bool) (out moduleMeta, shouldDelete bool) {
 		if !exists {
@@ -1282,6 +1296,14 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 					moduleSch, deploy, err := handleBuildResult(ctx, e.projectConfig, meta.module.Config, event.Result, e.devModeEndpointUpdates)
 					if err != nil {
 						if errors.Is(err, errInvalidateDependencies) {
+							e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+								Timestamp: timestamppb.Now(),
+								Event: &buildenginepb.EngineEvent_ModuleBuildWaiting{
+									ModuleBuildWaiting: &buildenginepb.ModuleBuildWaiting{
+										Config: configProto,
+									},
+								},
+							}
 							// Do not block this goroutine by building a module here.
 							// Instead we send to a chan so that it can be processed elsewhere.
 							e.rebuildEvents <- rebuildRequestEvent{module: event.ModuleName()}
