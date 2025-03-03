@@ -3,7 +3,7 @@
   labels: [
     'run-all',
   ],
-  allowedPostUpgradeCommands: [
+  allowedCommands: [
     'pnpm install',
   ],
   extends: [
@@ -39,13 +39,13 @@
         'docker',
       ],
       additionalBranchPrefix: 'docker-',
-      pinDigests: true
+      pinDigests: true,
     },
     {
       matchUpdateTypes: [
         'minor',
         'patch',
-        'digest'
+        'digest',
       ],
       automerge: true,
     },
@@ -104,12 +104,12 @@
     },
     {
       matchCategories: [
-        'docker'
+        'docker',
       ],
       matchPackageNames: [
         'ftl0/ftl-runner',
       ],
-      pinDigests: false
-    }
+      pinDigests: false,
+    },
   ],
 }
