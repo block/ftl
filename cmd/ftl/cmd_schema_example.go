@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/alecthomas/types/must"
+
 	"github.com/block/ftl/common/schema"
 )
 
