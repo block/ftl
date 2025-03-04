@@ -28,7 +28,7 @@ func setUp(t *testing.T) (ctx context.Context, projectRoot, fakeGoModDir string)
 	assert.NoError(t, err)
 	err = os.WriteFile(filepath.Join(fakeDir, "go.mod"), []byte(fmt.Sprintf(`
 	module ftl/fake
-	go 1.23.0
+	go 1.24.0
 
 	replace github.com/block/ftl => %s
 	`, ftlPath)), 0600)

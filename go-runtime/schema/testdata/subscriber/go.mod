@@ -1,6 +1,6 @@
 module ftl/subscriber
 
-go 1.23.0
+go 1.24.0
 
 require github.com/block/ftl v0.430.1
 

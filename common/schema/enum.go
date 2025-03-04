@@ -86,7 +86,7 @@ func (e *EnumVariant) schemaChildren() []Node { return []Node{e.Value} }
 func (e *EnumVariant) String() string {
 	w := &strings.Builder{}
 	fmt.Fprint(w, EncodeComments(e.Comments))
-	fmt.Fprintf(w, e.Name)
+	fmt.Fprint(w, e.Name)
 	if e.Value != nil {
 		if _, ok := e.Value.(*TypeValue); ok {
 			fmt.Fprint(w, " ", e.Value)
