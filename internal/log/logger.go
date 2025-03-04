@@ -11,6 +11,7 @@ import (
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/types/optional"
 	"github.com/benbjohnson/clock"
+
 	"github.com/block/ftl/internal/key"
 )
 
