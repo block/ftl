@@ -36,7 +36,6 @@ import xyz.block.ftl.SQLDatasource;
 import xyz.block.ftl.Secret;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.Verb;
-import xyz.block.ftl.VerbName;
 
 /**
  * POC annotation processor for capturing JavaDoc, this needs a lot more work.
@@ -89,8 +88,6 @@ public class AnnotationProcessor implements Processor {
                         String name;
                         if (element.getAnnotation(TypeAlias.class) != null) {
                             name = element.getAnnotation(TypeAlias.class).name();
-                        } else if (element.getAnnotation(VerbName.class) != null) {
-                            name = element.getAnnotation(VerbName.class).value();
                         } else {
                             name = element.getSimpleName().toString();
                         }
