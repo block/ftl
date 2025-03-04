@@ -193,6 +193,7 @@ func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.Fil
 
 	return registry, nil
 }
+
 func (s *Service) HandleChangesetPrepared(ctx context.Context, req key.Changeset) error {
 
 	_, err := s.schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: req.String()}))
@@ -201,6 +202,7 @@ func (s *Service) HandleChangesetPrepared(ctx context.Context, req key.Changeset
 	}
 	return nil
 }
+
 func (s *Service) HandleChangesetCommitted(ctx context.Context, req *schema.Changeset) error {
 	go func() {
 		time.Sleep(time.Second * 5)

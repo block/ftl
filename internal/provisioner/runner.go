@@ -8,6 +8,7 @@ import (
 	"github.com/alecthomas/atomic"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/provisioner/state"
 )
@@ -41,8 +42,8 @@ type Runner struct {
 	Stages []RunnerStage
 }
 
-func (r *Runner) Run(ctx context.Context, module string) ([]state.State, error) {
-	logger := log.FromContext(ctx).Module(module)
+func (r *Runner) Run(ctx context.Context) ([]state.State, error) {
+	logger := log.FromContext(ctx)
 
 	for _, stage := range r.Stages {
 		logger.Debugf("running stage %s", stage.Name)
@@ -120,11 +121,12 @@ func (r *Runner) execute(ctx context.Context, stage *RunnerStage) ([]state.State
 	return result, nil
 }
 
-func (t *Task) Start(oldCtx context.Context, module string) {
+func (t *Task) Start(oldCtx context.Context, module string, deployment key.Deployment) {
 	ctx := context.WithoutCancel(oldCtx)
-	logger := log.FromContext(ctx).Module(module)
+	logger := log.FromContext(ctx).Module(module).Deployment(deployment)
+	ctx = log.ContextWithLogger(ctx, logger)
 	go func() {
-		outputs, err := t.runner.Run(ctx, module)
+		outputs, err := t.runner.Run(ctx)
 		if err != nil {
 			logger.Errorf(err, "failed to execute provisioner")
 			t.err.Store(err)
