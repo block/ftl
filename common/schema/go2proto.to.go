@@ -2333,6 +2333,27 @@ func OptionalFromProto(v *destpb.Optional) (out *Optional, err error) {
 	return out, nil
 }
 
+func (x *PlaintextKafkaSubscriptionConnector) ToProto() *destpb.PlaintextKafkaSubscriptionConnector {
+	if x == nil {
+		return nil
+	}
+	return &destpb.PlaintextKafkaSubscriptionConnector{
+		KafkaBrokers: sliceMap(x.KafkaBrokers, func(v string) string { return orZero(ptr(string(v))) }),
+	}
+}
+
+func PlaintextKafkaSubscriptionConnectorFromProto(v *destpb.PlaintextKafkaSubscriptionConnector) (out *PlaintextKafkaSubscriptionConnector, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &PlaintextKafkaSubscriptionConnector{}
+	if out.KafkaBrokers, err = sliceMapR(v.KafkaBrokers, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
+		return nil, fmt.Errorf("KafkaBrokers: %w", err)
+	}
+	return out, nil
+}
+
 func (x *Position) ToProto() *destpb.Position {
 	if x == nil {
 		return nil
@@ -2619,6 +2640,32 @@ func StringValueFromProto(v *destpb.StringValue) (out *StringValue, err error) {
 		return nil, fmt.Errorf("Value: %w", err)
 	}
 	return out, nil
+}
+
+// SubscriptionConnectorToProto converts a SubscriptionConnector sum type to a protobuf message.
+func SubscriptionConnectorToProto(value SubscriptionConnector) *destpb.SubscriptionConnector {
+	switch value := value.(type) {
+	case nil:
+		return nil
+	case *PlaintextKafkaSubscriptionConnector:
+		return &destpb.SubscriptionConnector{
+			Value: &destpb.SubscriptionConnector_PlaintextKafkaSubscriptionConnector{value.ToProto()},
+		}
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", value))
+	}
+}
+
+func SubscriptionConnectorFromProto(v *destpb.SubscriptionConnector) (SubscriptionConnector, error) {
+	if v == nil {
+		return nil, nil
+	}
+	switch v.Value.(type) {
+	case *destpb.SubscriptionConnector_PlaintextKafkaSubscriptionConnector:
+		return PlaintextKafkaSubscriptionConnectorFromProto(v.GetPlaintextKafkaSubscriptionConnector())
+	default:
+		panic(fmt.Sprintf("unknown variant: %T", v.Value))
+	}
 }
 
 func (x *Time) ToProto() *destpb.Time {
@@ -3014,7 +3061,7 @@ func (x *VerbRuntime) ToProto() *destpb.VerbRuntime {
 		return nil
 	}
 	return &destpb.VerbRuntime{
-		Subscription: x.Subscription.ToProto(),
+		SubscriptionConnector: SubscriptionConnectorToProto(x.SubscriptionConnector),
 	}
 }
 
@@ -3024,29 +3071,8 @@ func VerbRuntimeFromProto(v *destpb.VerbRuntime) (out *VerbRuntime, err error) {
 	}
 
 	out = &VerbRuntime{}
-	if out.Subscription, err = result.From(VerbRuntimeSubscriptionFromProto(v.Subscription)).Result(); err != nil {
-		return nil, fmt.Errorf("Subscription: %w", err)
-	}
-	return out, nil
-}
-
-func (x *VerbRuntimeSubscription) ToProto() *destpb.VerbRuntimeSubscription {
-	if x == nil {
-		return nil
-	}
-	return &destpb.VerbRuntimeSubscription{
-		KafkaBrokers: sliceMap(x.KafkaBrokers, func(v string) string { return orZero(ptr(string(v))) }),
-	}
-}
-
-func VerbRuntimeSubscriptionFromProto(v *destpb.VerbRuntimeSubscription) (out *VerbRuntimeSubscription, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &VerbRuntimeSubscription{}
-	if out.KafkaBrokers, err = sliceMapR(v.KafkaBrokers, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("KafkaBrokers: %w", err)
+	if out.SubscriptionConnector, err = orZeroR(ptrR(result.From(SubscriptionConnectorFromProto(v.SubscriptionConnector)))).Result(); err != nil {
+		return nil, fmt.Errorf("SubscriptionConnector: %w", err)
 	}
 	return out, nil
 }

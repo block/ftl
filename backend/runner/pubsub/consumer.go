@@ -83,7 +83,16 @@ func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.Metada
 	if verb.Runtime == nil {
 		return nil, fmt.Errorf("subscription %s has no runtime", verb.Name)
 	}
-	if len(verb.Runtime.Subscription.KafkaBrokers) == 0 {
+	if verb.Runtime.SubscriptionConnector == nil {
+		return nil, fmt.Errorf("subscription %s has no subscription connector", verb.Name)
+	}
+
+	connection, ok := verb.Runtime.SubscriptionConnector.(*schema.PlaintextKafkaSubscriptionConnector)
+	if !ok {
+		return nil, fmt.Errorf("only plaintext kafka subscription connector is supported, got %T", verb.Runtime.SubscriptionConnector)
+	}
+
+	if len(connection.KafkaBrokers) == 0 {
 		return nil, fmt.Errorf("subscription %s has no Kafka brokers", verb.Name)
 	}
 
@@ -98,7 +107,7 @@ func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.Metada
 	}
 
 	groupID := kafkaConsumerGroupID(moduleName, verb)
-	group, err := sarama.NewConsumerGroup(verb.Runtime.Subscription.KafkaBrokers, groupID, config)
+	group, err := sarama.NewConsumerGroup(connection.KafkaBrokers, groupID, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create consumer group for subscription %s: %w", verb.Name, err)
 	}
@@ -477,8 +486,13 @@ func (c *consumer) ResetOffsetsForClaimedPartitions(ctx context.Context, latest 
 }
 
 func (c *consumer) resetPartitionOffset(session sarama.ConsumerGroupSession, partition int, latest bool) error {
+	connection, ok := c.verb.Runtime.SubscriptionConnector.(*schema.PlaintextKafkaSubscriptionConnector)
+	if !ok {
+		return fmt.Errorf("only plaintext kafka subscription connector is supported, got %T", c.verb.Runtime.SubscriptionConnector)
+	}
+
 	config := sarama.NewConfig()
-	client, err := sarama.NewClient(c.verb.Runtime.Subscription.KafkaBrokers, config)
+	client, err := sarama.NewClient(connection.KafkaBrokers, config)
 	if err != nil {
 		return fmt.Errorf("failed to create client for subscription %s: %w", c.verb.Name, err)
 	}

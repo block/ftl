@@ -747,6 +747,12 @@ class Optional(_message.Message):
     type: Type
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., type: _Optional[_Union[Type, _Mapping]] = ...) -> None: ...
 
+class PlaintextKafkaSubscriptionConnector(_message.Message):
+    __slots__ = ("kafka_brokers",)
+    KAFKA_BROKERS_FIELD_NUMBER: _ClassVar[int]
+    kafka_brokers: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, kafka_brokers: _Optional[_Iterable[str]] = ...) -> None: ...
+
 class Position(_message.Message):
     __slots__ = ("filename", "line", "column")
     FILENAME_FIELD_NUMBER: _ClassVar[int]
@@ -840,6 +846,12 @@ class StringValue(_message.Message):
     pos: Position
     value: str
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., value: _Optional[str] = ...) -> None: ...
+
+class SubscriptionConnector(_message.Message):
+    __slots__ = ("plaintext_kafka_subscription_connector",)
+    PLAINTEXT_KAFKA_SUBSCRIPTION_CONNECTOR_FIELD_NUMBER: _ClassVar[int]
+    plaintext_kafka_subscription_connector: PlaintextKafkaSubscriptionConnector
+    def __init__(self, plaintext_kafka_subscription_connector: _Optional[_Union[PlaintextKafkaSubscriptionConnector, _Mapping]] = ...) -> None: ...
 
 class Time(_message.Message):
     __slots__ = ("pos",)
@@ -970,13 +982,7 @@ class Verb(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., export: bool = ..., name: _Optional[str] = ..., request: _Optional[_Union[Type, _Mapping]] = ..., response: _Optional[_Union[Type, _Mapping]] = ..., metadata: _Optional[_Iterable[_Union[Metadata, _Mapping]]] = ..., runtime: _Optional[_Union[VerbRuntime, _Mapping]] = ...) -> None: ...
 
 class VerbRuntime(_message.Message):
-    __slots__ = ("subscription",)
-    SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
-    subscription: VerbRuntimeSubscription
-    def __init__(self, subscription: _Optional[_Union[VerbRuntimeSubscription, _Mapping]] = ...) -> None: ...
-
-class VerbRuntimeSubscription(_message.Message):
-    __slots__ = ("kafka_brokers",)
-    KAFKA_BROKERS_FIELD_NUMBER: _ClassVar[int]
-    kafka_brokers: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, kafka_brokers: _Optional[_Iterable[str]] = ...) -> None: ...
+    __slots__ = ("subscription_connector",)
+    SUBSCRIPTION_CONNECTOR_FIELD_NUMBER: _ClassVar[int]
+    subscription_connector: SubscriptionConnector
+    def __init__(self, subscription_connector: _Optional[_Union[SubscriptionConnector, _Mapping]] = ...) -> None: ...

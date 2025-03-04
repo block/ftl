@@ -162,10 +162,8 @@ func inputsFromSchema(
 				input := state.OutputSubscription{
 					Module: moduleName,
 					Verb:   verb.Name,
-					Runtime: &schema.VerbRuntime{
-						Subscription: &schema.VerbRuntimeSubscription{
-							KafkaBrokers: config.KafkaBrokers,
-						},
+					Connector: &schema.PlaintextKafkaSubscriptionConnector{
+						KafkaBrokers: config.KafkaBrokers,
 					},
 				}
 				logger.Debugf("Adding %s", input.DebugString())
