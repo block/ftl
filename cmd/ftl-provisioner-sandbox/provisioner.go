@@ -15,6 +15,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/provisioner"
 	"github.com/block/ftl/internal/provisioner/executor"
@@ -22,8 +23,9 @@ import (
 )
 
 type Config struct {
-	MySQLCredentialsSecretARN string `help:"ARN for the secret containing mysql credentials" env:"FTL_SANDBOX_MYSQL_ARN"`
-	MySQLEndpoint             string `help:"Endpoint for the mysql database" env:"FTL_SANDBOX_MYSQL_ENDPOINT"`
+	MySQLCredentialsSecretARN string   `help:"ARN for the secret containing mysql credentials" env:"FTL_SANDBOX_MYSQL_ARN"`
+	MySQLEndpoint             string   `help:"Endpoint for the mysql database" env:"FTL_SANDBOX_MYSQL_ENDPOINT"`
+	KafkaBrokers              []string `help:"Brokers for the kafka cluster" env:"FTL_SANDBOX_KAFKA_BROKERS"`
 }
 
 type SandboxProvisioner struct {
@@ -63,7 +65,7 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 	}
 	logger := log.FromContext(ctx).Module(module.Name)
 
-	inputStates := inputsFromSchema(module, acceptedKinds, req.Msg.DesiredModule.Name, c.confg)
+	inputStates := inputsFromSchema(ctx, module, acceptedKinds, req.Msg.DesiredModule.Name, c.confg)
 
 	token := uuid.New().String()
 
@@ -74,6 +76,9 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 			Handlers: []provisioner.Handler{{
 				Executor: executor.NewARNSecretMySQLSetup(c.secrets, req.Msg.DesiredModule.Name),
 				Handles:  []state.State{state.RDSInstanceReadyMySQL{}},
+			}, {
+				Executor: executor.NewKafkaTopicSetup(),
+				Handles:  []state.State{state.TopicClusterReady{}},
 			}},
 		}},
 	}
@@ -103,7 +108,16 @@ func createSecretsClient(ctx context.Context) (*secretsmanager.Client, error) {
 	), nil
 }
 
-func inputsFromSchema(module *schema.Module, acceptedKinds []schema.ResourceType, moduleName string, config *Config) []state.State {
+func inputsFromSchema(
+	ctx context.Context,
+	module *schema.Module,
+	acceptedKinds []schema.ResourceType,
+	moduleName string,
+	config *Config,
+) []state.State {
+	logger := log.FromContext(ctx).Module(module.Name)
+	logger.Debugf("Reading inputs from schema for kinds: %v", acceptedKinds)
+
 	var inputStates []state.State
 	for _, provisioned := range schema.GetProvisioned(module) {
 		for _, resource := range provisioned.GetProvisioned().FilterByType(acceptedKinds...) {
@@ -116,6 +130,45 @@ func inputsFromSchema(module *schema.Module, acceptedKinds []schema.ResourceType
 					WriteEndpoint:       config.MySQLEndpoint,
 					ReadEndpoint:        config.MySQLEndpoint,
 				}
+				logger.Debugf("Adding %s", input.DebugString())
+				inputStates = append(inputStates, input)
+			case schema.ResourceTypeTopic:
+				topic, ok := (provisioned).(*schema.Topic)
+				if !ok {
+					logger.Warnf("Skipping non-topic resource %s", provisioned.ResourceID())
+					continue
+				}
+				partitions := 1
+				if pm, ok := slices.FindVariant[*schema.MetadataPartitions](topic.Metadata); ok {
+					partitions = pm.Partitions
+				}
+				input := state.TopicClusterReady{
+					InputTopic: state.InputTopic{
+						Topic:      topic.Name,
+						Module:     moduleName,
+						Partitions: partitions,
+					},
+					Brokers: config.KafkaBrokers,
+				}
+				logger.Debugf("Adding %s", input.DebugString())
+				inputStates = append(inputStates, input)
+			case schema.ResourceTypeSubscription:
+				verb, ok := (provisioned).(*schema.Verb)
+				if !ok {
+					logger.Warnf("Skipping non-verb resource %s", provisioned.ResourceID())
+					continue
+				}
+				// There is no work needed for subscriptions, so we just place the output state here
+				input := state.OutputSubscription{
+					Module: moduleName,
+					Verb:   verb.Name,
+					Runtime: &schema.VerbRuntime{
+						Subscription: &schema.VerbRuntimeSubscription{
+							KafkaBrokers: config.KafkaBrokers,
+						},
+					},
+				}
+				logger.Debugf("Adding %s", input.DebugString())
 				inputStates = append(inputStates, input)
 			default:
 				continue

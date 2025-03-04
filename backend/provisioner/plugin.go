@@ -42,7 +42,10 @@ func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.Provi
 		Max: 30 * time.Second,
 	}
 	for {
-		status, err := p.client.Status(ctx, connect.NewRequest(&provisioner.StatusRequest{ProvisioningToken: resp.Msg.ProvisioningToken}))
+		status, err := p.client.Status(ctx, connect.NewRequest(&provisioner.StatusRequest{
+			ProvisioningToken: resp.Msg.ProvisioningToken,
+			DesiredModule:     req.DesiredModule,
+		}))
 		if err != nil {
 			statusCh <- &provisioner.StatusResponse{
 				Status: &provisioner.StatusResponse_Failed{

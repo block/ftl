@@ -29,3 +29,13 @@ type RDSInstanceReadyMySQL struct {
 func (s RDSInstanceReadyMySQL) DebugString() string {
 	return fmt.Sprintf("%T{Module: %s, ResourceID: %s}", s, s.Module, s.ResourceID)
 }
+
+type TopicClusterReady struct {
+	InputTopic
+
+	Brokers []string
+}
+
+func (s TopicClusterReady) DebugString() string {
+	return fmt.Sprintf("%T{Topic: %s, Module: %s, Partitions: %d}", s, s.Topic, s.Module, s.Partitions)
+}
