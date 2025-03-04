@@ -56,15 +56,15 @@ const EVENT_TYPES: Record<string, EventFilter> = {
     type: EventType.CHANGESET_CREATED,
     icon: <KeyframesMultipleAddIcon className='w-4 h-4 text-purple-500 ml-1' />,
   },
-  changesetStateChanged: {
-    label: 'Changeset Changed',
-    type: EventType.CHANGESET_STATE_CHANGED,
-    icon: <KeyframesMultipleIcon className='w-4 h-4 text-purple-500 ml-1' />,
-  },
   deploymentRuntime: {
     label: 'Changeset Runtime',
     type: EventType.DEPLOYMENT_RUNTIME,
     icon: <ComputerIcon className='w-4 h-4 text-purple-500 ml-1' />,
+  },
+  changesetStateChanged: {
+    label: 'Changeset Changed',
+    type: EventType.CHANGESET_STATE_CHANGED,
+    icon: <KeyframesMultipleIcon className='w-4 h-4 text-purple-500 ml-1' />,
   },
 }
 
@@ -82,7 +82,7 @@ export const TimelineFilterPanel = ({
   onFiltersChanged: (filters: GetTimelineRequest_Filter[]) => void
 }) => {
   const modules = useModules()
-  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(Object.keys(EVENT_TYPES))
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(Object.keys(EVENT_TYPES).filter((key) => key !== 'changesetStateChanged'))
   const [selectedModules, setSelectedModules] = useState<string[]>([])
   const [previousModules, setPreviousModules] = useState<string[]>([])
   const [selectedLogLevel, setSelectedLogLevel] = useState<number>(1)
