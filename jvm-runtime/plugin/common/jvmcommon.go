@@ -44,6 +44,7 @@ import (
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/flock"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/rpc"
@@ -260,7 +261,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 			}
 		}
 
-		err := s.runQuarkusDev(ctx, stream, firstResponseSent, fileEvents)
+		err := s.runQuarkusDev(ctx, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
 		if err != nil {
 			log.FromContext(ctx).Errorf(err, "Dev mode process exited")
 			return err
@@ -350,12 +351,11 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 
 type buildResult struct {
 	state               *hotreloadpb.SchemaState
-	forceReload         bool
 	buildContextUpdated bool
 	failed              bool
 }
 
-func (s *Service) runQuarkusDev(parentCtx context.Context, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
+func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
 	logger := log.FromContext(parentCtx)
 	ctx, cancel := context.WithCancelCause(parentCtx)
 	defer cancel(fmt.Errorf("stopping JVM language plugin (Quarkus dev mode): %w", context.Canceled))
@@ -443,15 +443,16 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, stream *connect.Serve
 	}()
 
 	for {
+		newKey := key.NewDeploymentKey(module)
 		select {
 		case bc := <-events:
 			logger.Debugf("Build context updated")
 			buildCtx = bc.buildCtx
-			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
+			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: true, buildContextUpdated: true, failed: result.Msg.Failed}
+			reloadEvents <- &buildResult{state: result.Msg.GetState(), buildContextUpdated: true, failed: result.Msg.Failed}
 		case <-fileEvents:
 			newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
 			if err != nil {
@@ -472,12 +473,20 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, stream *connect.Serve
 				continue
 			}
 
-			changed := false
-			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{Force: true}))
+			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			reloadEvents <- &buildResult{state: result.Msg.GetState(), forceReload: changed, failed: result.Msg.Failed}
+			if result.Msg.State.Module != nil {
+				if result.Msg.State.Module.Runtime == nil {
+					result.Msg.State.Module.Runtime = &schemapb.ModuleRuntime{}
+				}
+				if result.Msg.State.Module.Runtime.Deployment == nil {
+					result.Msg.State.Module.Runtime.Deployment = &schemapb.ModuleRuntimeDeployment{}
+				}
+				result.Msg.State.Module.Runtime.Deployment.DeploymentKey = newKey.String()
+			}
+			reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed}
 		case <-ctx.Done():
 			return fmt.Errorf("context cancelled %w", ctx.Err())
 		}
@@ -492,7 +501,7 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 		errorList := event.state.GetErrors()
 		logger.Debugf("Checking for schema changes: changed: %v failed: %v", changed, event.failed)
 
-		if changed || event.forceReload || event.failed || lastFailed {
+		if changed || event.buildContextUpdated || event.failed || lastFailed {
 			lastFailed = false
 			auto := firstResponseSent.Load() && !event.buildContextUpdated
 			if auto {

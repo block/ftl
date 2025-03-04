@@ -9,10 +9,12 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ReloadRequest(_message.Message):
-    __slots__ = ("force",)
+    __slots__ = ("force", "new_deployment_key")
     FORCE_FIELD_NUMBER: _ClassVar[int]
+    NEW_DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
     force: bool
-    def __init__(self, force: bool = ...) -> None: ...
+    new_deployment_key: str
+    def __init__(self, force: bool = ..., new_deployment_key: _Optional[str] = ...) -> None: ...
 
 class ReloadResponse(_message.Message):
     __slots__ = ("state", "failed")
@@ -33,16 +35,14 @@ class WatchResponse(_message.Message):
     def __init__(self, state: _Optional[_Union[SchemaState, _Mapping]] = ...) -> None: ...
 
 class RunnerInfoRequest(_message.Message):
-    __slots__ = ("address", "deployment", "databases", "version")
+    __slots__ = ("address", "deployment", "databases")
     ADDRESS_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
     DATABASES_FIELD_NUMBER: _ClassVar[int]
-    VERSION_FIELD_NUMBER: _ClassVar[int]
     address: str
     deployment: str
     databases: _containers.RepeatedCompositeFieldContainer[Database]
-    version: int
-    def __init__(self, address: _Optional[str] = ..., deployment: _Optional[str] = ..., databases: _Optional[_Iterable[_Union[Database, _Mapping]]] = ..., version: _Optional[int] = ...) -> None: ...
+    def __init__(self, address: _Optional[str] = ..., deployment: _Optional[str] = ..., databases: _Optional[_Iterable[_Union[Database, _Mapping]]] = ...) -> None: ...
 
 class Database(_message.Message):
     __slots__ = ("name", "address")

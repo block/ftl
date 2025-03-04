@@ -17,13 +17,11 @@ public class DevModeRunnerDetails implements RunnerDetails {
     private final String proxyAddress;
     private final String deployment;
     private volatile boolean closed;
-    private final long runnerVersion;
 
-    public DevModeRunnerDetails(Map<String, String> databases, String proxyAddress, String deployment, long runnerVersion) {
+    public DevModeRunnerDetails(Map<String, String> databases, String proxyAddress, String deployment) {
         this.databases = databases;
         this.proxyAddress = proxyAddress;
         this.deployment = deployment;
-        this.runnerVersion = runnerVersion;
     }
 
     @Override
@@ -79,9 +77,5 @@ public class DevModeRunnerDetails implements RunnerDetails {
     public synchronized void close() {
         closed = true;
         notifyAll();
-    }
-
-    long getRunnerVersion() {
-        return runnerVersion;
     }
 }

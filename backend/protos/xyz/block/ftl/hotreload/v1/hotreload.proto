@@ -11,6 +11,8 @@ option java_multiple_files = true;
 
 message ReloadRequest {
   bool force = 1;
+  // If the reload results in a new runner, this will be the new deployment key
+  string new_deployment_key = 2;
 }
 
 message ReloadResponse {
@@ -28,7 +30,6 @@ message RunnerInfoRequest {
   string address = 1;
   string deployment = 2;
   repeated Database databases = 3;
-  int64 version = 4;
 }
 
 message Database {

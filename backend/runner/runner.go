@@ -76,7 +76,6 @@ type Config struct {
 	DebugPort             int                     `help:"The port to use for debugging." env:"FTL_DEBUG_PORT"`
 	DevEndpoint           optional.Option[string] `help:"An existing endpoint to connect to in development mode" hidden:""`
 	DevHotReloadEndpoint  optional.Option[string] `help:"The gRPC enpoint to send runner into to for hot reload." hidden:""`
-	DevHotReloadVersion   int64                   `help:"The gRPC enpoint to send runner into to for hot reload." hidden:"" default:"0"`
 }
 
 func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService) error {
@@ -427,7 +426,6 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 							Deployment: s.config.Deployment.String(),
 							Address:    s.proxyBindAddress.String(),
 							Databases:  databases,
-							Version:    s.config.DevHotReloadVersion,
 						}))
 						if err == nil {
 							if info.Msg.Outdated {

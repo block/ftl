@@ -17,6 +17,13 @@ export class ReloadRequest extends Message<ReloadRequest> {
    */
   force = false;
 
+  /**
+   * If the reload results in a new runner, this will be the new deployment key
+   *
+   * @generated from field: string new_deployment_key = 2;
+   */
+  newDeploymentKey = "";
+
   constructor(data?: PartialMessage<ReloadRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -26,6 +33,7 @@ export class ReloadRequest extends Message<ReloadRequest> {
   static readonly typeName = "xyz.block.ftl.hotreload.v1.ReloadRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "force", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "new_deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReloadRequest {
@@ -175,11 +183,6 @@ export class RunnerInfoRequest extends Message<RunnerInfoRequest> {
    */
   databases: Database[] = [];
 
-  /**
-   * @generated from field: int64 version = 4;
-   */
-  version = protoInt64.zero;
-
   constructor(data?: PartialMessage<RunnerInfoRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -191,7 +194,6 @@ export class RunnerInfoRequest extends Message<RunnerInfoRequest> {
     { no: 1, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "deployment", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "databases", kind: "message", T: Database, repeated: true },
-    { no: 4, name: "version", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RunnerInfoRequest {

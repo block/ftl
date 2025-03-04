@@ -78,10 +78,6 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 
 	if endpoint, ok := result.DevEndpoint.Get(); ok {
 		if devModeEndpoints != nil {
-			runnerVersion := result.HotReloadVersion.Default(0)
-			// Huge hack, we want to embed the runner version into the schema, but we don't want to change the schema proto just for this
-			// So we just use a comment
-			result.Schema.Comments = append(result.Schema.Comments, fmt.Sprintf(dev.RunnerVersionComment+"%d", runnerVersion))
 			devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: endpoint, DebugPort: result.DebugPort, Language: config.Language, HotReloadEndpoint: result.HotReloadEndpoint.Default("")}
 		}
 	}

@@ -38,6 +38,6 @@ func main() {
 
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 
-	err = schemaservice.Start(ctx, cli.SchemaServiceConfig, timelineClient)
+	err = schemaservice.Start(ctx, cli.SchemaServiceConfig, timelineClient, false)
 	kctx.FatalIfErrorf(err)
 }

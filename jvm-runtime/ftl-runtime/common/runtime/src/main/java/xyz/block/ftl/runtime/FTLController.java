@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -32,7 +33,7 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
     private volatile RunnerDetails runnerDetails;
 
     private final Map<String, GetDeploymentContextResponse.DbType> databases = new ConcurrentHashMap<>();
-    private long runnerVersion;
+    private String runnerDeploymentKey;
 
     public static FTLController instance() {
         if (controller == null) {
@@ -131,18 +132,17 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
 
     @Override
     public synchronized void runnerDetails(RunnerInfo info) {
-        if (info.version() != runnerVersion) {
+        if (runnerDeploymentKey != null && !Objects.equals(info.deployment(), runnerDeploymentKey)) {
             return;
         }
-        if (this.runnerDetails instanceof DevModeRunnerDetails
-                && ((DevModeRunnerDetails) runnerDetails).getRunnerVersion() == info.version()) {
+        if (runnerDetails != null && Objects.equals(runnerDetails.getDeploymentKey(), info.deployment())) {
             return;
         }
         if (this.runnerConnection != null) {
             this.runnerConnection.close();
             this.runnerConnection = null;
         }
-        runnerDetails = new DevModeRunnerDetails(info.databases(), info.address(), info.deployment(), info.version());
+        runnerDetails = new DevModeRunnerDetails(info.databases(), info.address(), info.deployment());
         for (var waiter : waiters) {
             waiter.set(true);
         }
@@ -160,11 +160,11 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
     }
 
     @Override
-    public synchronized void newRunnerVersion(long version) {
-        if (this.runnerVersion == version) {
+    public synchronized void newRunnerDeployment(String version) {
+        if (Objects.equals(this.runnerDeploymentKey, version)) {
             return;
         }
-        this.runnerVersion = version;
+        this.runnerDeploymentKey = version;
         if (this.runnerConnection != null) {
             this.runnerConnection.close();
             this.runnerConnection = null;
