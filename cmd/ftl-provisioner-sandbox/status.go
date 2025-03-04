@@ -96,7 +96,9 @@ func (c *SandboxProvisioner) updateResources(deployment key.Deployment, outputs 
 			results = append(results, &schema.RuntimeElement{
 				Deployment: deployment,
 				Name:       optional.Some(o.Verb),
-				Element:    o.Runtime,
+				Element: &schema.VerbRuntime{
+					SubscriptionConnector: o.Connector,
+				},
 			})
 		default:
 			return nil, fmt.Errorf("unknown output type: %T", o)

@@ -3615,6 +3615,45 @@ export class Optional extends Message<Optional> {
 }
 
 /**
+ * PlaintextKafkaSubscriptionConnector is a non TLS subscription connector to a kafka cluster.
+ *
+ * @generated from message xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
+ */
+export class PlaintextKafkaSubscriptionConnector extends Message<PlaintextKafkaSubscriptionConnector> {
+  /**
+   * @generated from field: repeated string kafka_brokers = 1;
+   */
+  kafkaBrokers: string[] = [];
+
+  constructor(data?: PartialMessage<PlaintextKafkaSubscriptionConnector>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "kafka_brokers", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PlaintextKafkaSubscriptionConnector {
+    return new PlaintextKafkaSubscriptionConnector().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PlaintextKafkaSubscriptionConnector {
+    return new PlaintextKafkaSubscriptionConnector().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PlaintextKafkaSubscriptionConnector {
+    return new PlaintextKafkaSubscriptionConnector().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: PlaintextKafkaSubscriptionConnector | PlainMessage<PlaintextKafkaSubscriptionConnector> | undefined, b: PlaintextKafkaSubscriptionConnector | PlainMessage<PlaintextKafkaSubscriptionConnector> | undefined): boolean {
+    return proto3.util.equals(PlaintextKafkaSubscriptionConnector, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.Position
  */
 export class Position extends Message<Position> {
@@ -4079,6 +4118,51 @@ export class StringValue extends Message<StringValue> {
 
   static equals(a: StringValue | PlainMessage<StringValue> | undefined, b: StringValue | PlainMessage<StringValue> | undefined): boolean {
     return proto3.util.equals(StringValue, a, b);
+  }
+}
+
+/**
+ * SubscriptionConnector is a connector to subscribe to a topic.
+ *
+ * @generated from message xyz.block.ftl.schema.v1.SubscriptionConnector
+ */
+export class SubscriptionConnector extends Message<SubscriptionConnector> {
+  /**
+   * @generated from oneof xyz.block.ftl.schema.v1.SubscriptionConnector.value
+   */
+  value: {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector plaintext_kafka_subscription_connector = 1;
+     */
+    value: PlaintextKafkaSubscriptionConnector;
+    case: "plaintextKafkaSubscriptionConnector";
+  } | { case: undefined; value?: undefined } = { case: undefined };
+
+  constructor(data?: PartialMessage<SubscriptionConnector>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.SubscriptionConnector";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "plaintext_kafka_subscription_connector", kind: "message", T: PlaintextKafkaSubscriptionConnector, oneof: "value" },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SubscriptionConnector {
+    return new SubscriptionConnector().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SubscriptionConnector {
+    return new SubscriptionConnector().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SubscriptionConnector {
+    return new SubscriptionConnector().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SubscriptionConnector | PlainMessage<SubscriptionConnector> | undefined, b: SubscriptionConnector | PlainMessage<SubscriptionConnector> | undefined): boolean {
+    return proto3.util.equals(SubscriptionConnector, a, b);
   }
 }
 
@@ -4690,9 +4774,9 @@ export class Verb extends Message<Verb> {
  */
 export class VerbRuntime extends Message<VerbRuntime> {
   /**
-   * @generated from field: optional xyz.block.ftl.schema.v1.VerbRuntimeSubscription subscription = 1;
+   * @generated from field: optional xyz.block.ftl.schema.v1.SubscriptionConnector subscription_connector = 1;
    */
-  subscription?: VerbRuntimeSubscription;
+  subscriptionConnector?: SubscriptionConnector;
 
   constructor(data?: PartialMessage<VerbRuntime>) {
     super();
@@ -4702,7 +4786,7 @@ export class VerbRuntime extends Message<VerbRuntime> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.schema.v1.VerbRuntime";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "subscription", kind: "message", T: VerbRuntimeSubscription, opt: true },
+    { no: 1, name: "subscription_connector", kind: "message", T: SubscriptionConnector, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): VerbRuntime {
@@ -4719,43 +4803,6 @@ export class VerbRuntime extends Message<VerbRuntime> {
 
   static equals(a: VerbRuntime | PlainMessage<VerbRuntime> | undefined, b: VerbRuntime | PlainMessage<VerbRuntime> | undefined): boolean {
     return proto3.util.equals(VerbRuntime, a, b);
-  }
-}
-
-/**
- * @generated from message xyz.block.ftl.schema.v1.VerbRuntimeSubscription
- */
-export class VerbRuntimeSubscription extends Message<VerbRuntimeSubscription> {
-  /**
-   * @generated from field: repeated string kafka_brokers = 1;
-   */
-  kafkaBrokers: string[] = [];
-
-  constructor(data?: PartialMessage<VerbRuntimeSubscription>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.schema.v1.VerbRuntimeSubscription";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "kafka_brokers", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): VerbRuntimeSubscription {
-    return new VerbRuntimeSubscription().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): VerbRuntimeSubscription {
-    return new VerbRuntimeSubscription().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): VerbRuntimeSubscription {
-    return new VerbRuntimeSubscription().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: VerbRuntimeSubscription | PlainMessage<VerbRuntimeSubscription> | undefined, b: VerbRuntimeSubscription | PlainMessage<VerbRuntimeSubscription> | undefined): boolean {
-    return proto3.util.equals(VerbRuntimeSubscription, a, b);
   }
 }
 

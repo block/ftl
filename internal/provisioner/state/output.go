@@ -46,7 +46,7 @@ type OutputSubscription struct {
 	Module string
 	Verb   string
 
-	Runtime *schema.VerbRuntime
+	Connector schema.SubscriptionConnector
 }
 
 func (s OutputSubscription) DebugString() string {

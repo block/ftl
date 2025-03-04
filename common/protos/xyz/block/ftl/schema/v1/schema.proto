@@ -475,6 +475,11 @@ message Optional {
   optional Type type = 2;
 }
 
+// PlaintextKafkaSubscriptionConnector is a non TLS subscription connector to a kafka cluster.
+message PlaintextKafkaSubscriptionConnector {
+  repeated string kafka_brokers = 1;
+}
+
 message Position {
   string filename = 1;
   int64 line = 2;
@@ -533,6 +538,13 @@ message String {
 message StringValue {
   optional Position pos = 1;
   string value = 2;
+}
+
+// SubscriptionConnector is a connector to subscribe to a topic.
+message SubscriptionConnector {
+  oneof value {
+    PlaintextKafkaSubscriptionConnector plaintext_kafka_subscription_connector = 1;
+  }
 }
 
 message Time {
@@ -616,9 +628,5 @@ message Verb {
 }
 
 message VerbRuntime {
-  optional VerbRuntimeSubscription subscription = 1;
-}
-
-message VerbRuntimeSubscription {
-  repeated string kafka_brokers = 1;
+  optional SubscriptionConnector subscription_connector = 1;
 }

@@ -205,14 +205,18 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ft
 	if !ok {
 		return nil, fmt.Errorf("%q is not a subscriber", req.Msg.Subscription)
 	}
-	if verb.Runtime == nil || verb.Runtime.Subscription == nil || len(verb.Runtime.Subscription.KafkaBrokers) == 0 {
+	connection, ok := verb.Runtime.SubscriptionConnector.(*schema.PlaintextKafkaSubscriptionConnector)
+	if !ok {
+		return nil, fmt.Errorf("only plaintext kafka subscription connector is supported, got %T", verb.Runtime.SubscriptionConnector)
+	}
+	if len(connection.KafkaBrokers) == 0 {
 		return nil, fmt.Errorf("no Kafka brokers for subscription %q", req.Msg.Subscription)
 	}
 	if module.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 		return nil, fmt.Errorf("no deployment for module %s", req.Msg.Subscription.Module)
 	}
 	topicID := subscriber.Topic.String()
-	totalPartitions, err := kafkaPartitionCount(ctx, verb.Runtime.Subscription.KafkaBrokers, topicID)
+	totalPartitions, err := kafkaPartitionCount(ctx, connection.KafkaBrokers, topicID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get partition count for topic %s: %w", topicID, err)
 	}
