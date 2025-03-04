@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/block/ftl/internal/provisioner"
 	"github.com/block/ftl/internal/provisioner/executor"
 	"github.com/block/ftl/internal/provisioner/state"
+	timeline "github.com/block/ftl/internal/timelineclient"
 )
 
 const (
@@ -41,6 +43,8 @@ type Config struct {
 	// TODO: remove this once we have module specific security groups
 	DatabaseSecurityGroup string `help:"SG for databases" env:"FTL_PROVISIONER_CF_DB_SECURITY_GROUP"`
 	MysqlSecurityGroup    string `help:"SG for mysql" env:"FTL_PROVISIONER_CF_MYSQL_SECURITY_GROUP"`
+
+	TimelineEndpoint *url.URL `help:"Endpoint for the timeline service" env:"FTL_TIMELINE_ENDPOINT"`
 }
 
 type CloudformationProvisioner struct {
@@ -54,6 +58,9 @@ type CloudformationProvisioner struct {
 var _ provisionerconnect.ProvisionerPluginServiceHandler = (*CloudformationProvisioner)(nil)
 
 func NewCloudformationProvisioner(ctx context.Context, config Config) (context.Context, *CloudformationProvisioner, error) {
+	logger := log.FromContext(ctx)
+	logger.Debugf("Creating cloudformation provisioner")
+
 	client, err := createClient(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create cloudformation client: %w", err)
@@ -62,6 +69,12 @@ func NewCloudformationProvisioner(ctx context.Context, config Config) (context.C
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create secretsmanager client: %w", err)
 	}
+
+	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
+	timelineLogSink := timeline.NewLogSink(timelineClient, log.Info)
+	go timelineLogSink.RunLogLoop(ctx)
+	logger = logger.AddSink(timelineLogSink)
+	ctx = log.ContextWithLogger(ctx, logger)
 
 	return ctx, &CloudformationProvisioner{
 		client:  client,
@@ -76,12 +89,14 @@ func (c *CloudformationProvisioner) Ping(context.Context, *connect.Request[ftlv1
 }
 
 func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.Request[provisionerpb.ProvisionRequest]) (*connect.Response[provisionerpb.ProvisionResponse], error) {
-	logger := log.FromContext(ctx)
-
 	module, err := schema.ModuleFromProto(req.Msg.DesiredModule)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert module from proto: %w", err)
 	}
+
+	logger := log.FromContext(ctx).Deployment(module.Runtime.Deployment.DeploymentKey).Module(module.Name)
+	ctx = log.ContextWithLogger(ctx, logger)
+
 	var acceptedKinds []schema.ResourceType
 	for _, k := range req.Msg.Kinds {
 		acceptedKinds = append(acceptedKinds, schema.ResourceType(k))

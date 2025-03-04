@@ -37,10 +37,9 @@ func main() {
 	)
 	cli.ProvisionerConfig.SetDefaults()
 
-	timelineClient := timeline.NewClient(context.Background(), cli.ProvisionerConfig.TimelineEndpoint)
-
 	logger := log.Configure(os.Stderr, cli.LogConfig)
 	ctx := log.ContextWithLogger(context.Background(), logger)
+	timelineClient := timeline.NewClient(ctx, cli.ProvisionerConfig.TimelineEndpoint)
 	err := observability.Init(ctx, false, "", "ftl-provisioner", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
