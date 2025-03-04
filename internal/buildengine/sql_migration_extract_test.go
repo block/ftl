@@ -1,6 +1,7 @@
 package buildengine
 
 import (
+	"github.com/block/ftl/internal/log"
 	"path/filepath"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestExtractMigrations(t *testing.T) {
 		sch := &schema.Module{Decls: []schema.Decl{db}}
 
 		// Test
-		files, err := extractSQLMigrations(getAbsModuleConfig(t, tmpDir, "db"), sch, targetDir)
+		files, err := extractSQLMigrations(log.ContextWithNewDefaultLogger(t.Context()), getAbsModuleConfig(t, tmpDir, "db"), sch, targetDir)
 		assert.NoError(t, err)
 
 		// Validate results
@@ -46,7 +47,7 @@ func TestExtractMigrations(t *testing.T) {
 		tmpDir := t.TempDir()
 		sch := &schema.Module{Decls: []schema.Decl{}}
 
-		files, err := extractSQLMigrations(getAbsModuleConfig(t, tmpDir, "db"), sch, t.TempDir())
+		files, err := extractSQLMigrations(log.ContextWithNewDefaultLogger(t.Context()), getAbsModuleConfig(t, tmpDir, "db"), sch, t.TempDir())
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(files))
 	})
@@ -55,7 +56,7 @@ func TestExtractMigrations(t *testing.T) {
 		tmpDir := t.TempDir()
 		sch := &schema.Module{Decls: []schema.Decl{}}
 
-		files, err := extractSQLMigrations(getAbsModuleConfig(t, tmpDir, "/non/existent/dir"), sch, t.TempDir())
+		files, err := extractSQLMigrations(log.ContextWithNewDefaultLogger(t.Context()), getAbsModuleConfig(t, tmpDir, "/non/existent/dir"), sch, t.TempDir())
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(files))
 	})
