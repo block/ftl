@@ -122,7 +122,7 @@ class StreamTimelineResponse(_message.Message):
 class CreateEventsRequest(_message.Message):
     __slots__ = ("entries",)
     class EventEntry(_message.Message):
-        __slots__ = ("timestamp", "log", "call", "ingress", "cron_scheduled", "async_execute", "pubsub_publish", "pubsub_consume", "changeset_created", "changeset_state_changed", "deployment_created", "deployment_runtime")
+        __slots__ = ("timestamp", "log", "call", "ingress", "cron_scheduled", "async_execute", "pubsub_publish", "pubsub_consume", "changeset_created", "changeset_state_changed", "deployment_runtime")
         TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
         LOG_FIELD_NUMBER: _ClassVar[int]
         CALL_FIELD_NUMBER: _ClassVar[int]
@@ -133,7 +133,6 @@ class CreateEventsRequest(_message.Message):
         PUBSUB_CONSUME_FIELD_NUMBER: _ClassVar[int]
         CHANGESET_CREATED_FIELD_NUMBER: _ClassVar[int]
         CHANGESET_STATE_CHANGED_FIELD_NUMBER: _ClassVar[int]
-        DEPLOYMENT_CREATED_FIELD_NUMBER: _ClassVar[int]
         DEPLOYMENT_RUNTIME_FIELD_NUMBER: _ClassVar[int]
         timestamp: _timestamp_pb2.Timestamp
         log: _event_pb2.LogEvent
@@ -145,9 +144,8 @@ class CreateEventsRequest(_message.Message):
         pubsub_consume: _event_pb2.PubSubConsumeEvent
         changeset_created: _event_pb2.ChangesetCreatedEvent
         changeset_state_changed: _event_pb2.ChangesetStateChangedEvent
-        deployment_created: _event_pb2.DeploymentCreatedEvent
         deployment_runtime: _event_pb2.DeploymentRuntimeEvent
-        def __init__(self, timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., log: _Optional[_Union[_event_pb2.LogEvent, _Mapping]] = ..., call: _Optional[_Union[_event_pb2.CallEvent, _Mapping]] = ..., ingress: _Optional[_Union[_event_pb2.IngressEvent, _Mapping]] = ..., cron_scheduled: _Optional[_Union[_event_pb2.CronScheduledEvent, _Mapping]] = ..., async_execute: _Optional[_Union[_event_pb2.AsyncExecuteEvent, _Mapping]] = ..., pubsub_publish: _Optional[_Union[_event_pb2.PubSubPublishEvent, _Mapping]] = ..., pubsub_consume: _Optional[_Union[_event_pb2.PubSubConsumeEvent, _Mapping]] = ..., changeset_created: _Optional[_Union[_event_pb2.ChangesetCreatedEvent, _Mapping]] = ..., changeset_state_changed: _Optional[_Union[_event_pb2.ChangesetStateChangedEvent, _Mapping]] = ..., deployment_created: _Optional[_Union[_event_pb2.DeploymentCreatedEvent, _Mapping]] = ..., deployment_runtime: _Optional[_Union[_event_pb2.DeploymentRuntimeEvent, _Mapping]] = ...) -> None: ...
+        def __init__(self, timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., log: _Optional[_Union[_event_pb2.LogEvent, _Mapping]] = ..., call: _Optional[_Union[_event_pb2.CallEvent, _Mapping]] = ..., ingress: _Optional[_Union[_event_pb2.IngressEvent, _Mapping]] = ..., cron_scheduled: _Optional[_Union[_event_pb2.CronScheduledEvent, _Mapping]] = ..., async_execute: _Optional[_Union[_event_pb2.AsyncExecuteEvent, _Mapping]] = ..., pubsub_publish: _Optional[_Union[_event_pb2.PubSubPublishEvent, _Mapping]] = ..., pubsub_consume: _Optional[_Union[_event_pb2.PubSubConsumeEvent, _Mapping]] = ..., changeset_created: _Optional[_Union[_event_pb2.ChangesetCreatedEvent, _Mapping]] = ..., changeset_state_changed: _Optional[_Union[_event_pb2.ChangesetStateChangedEvent, _Mapping]] = ..., deployment_runtime: _Optional[_Union[_event_pb2.DeploymentRuntimeEvent, _Mapping]] = ...) -> None: ...
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[CreateEventsRequest.EventEntry]
     def __init__(self, entries: _Optional[_Iterable[_Union[CreateEventsRequest.EventEntry, _Mapping]]] = ...) -> None: ...

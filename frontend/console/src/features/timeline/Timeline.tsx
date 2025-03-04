@@ -10,7 +10,6 @@ import { TimelineCallDetails } from './details/TimelineCallDetails.tsx'
 import { TimelineChangesetChangedDetails } from './details/TimelineChangesetChangedDetails.tsx'
 import { TimelineChangesetCreatedDetails } from './details/TimelineChangesetCreatedDetails.tsx'
 import { TimelineCronScheduledDetails } from './details/TimelineCronScheduledDetails.tsx'
-import { TimelineDeploymentCreatedDetails } from './details/TimelineDeploymentCreated.tsx'
 import { TimelineDetailsHeader } from './details/TimelineDetailsHeader.tsx'
 import { TimelineIngressDetails } from './details/TimelineIngressDetails.tsx'
 import { TimelineLogDetails } from './details/TimelineLogDetails.tsx'
@@ -82,9 +81,6 @@ export const Timeline = ({ timeSettings, filters }: { timeSettings: TimeSettings
         break
       case 'changesetStateChanged':
         openPanel(<TimelineChangesetChangedDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
-        break
-      case 'deploymentCreated':
-        openPanel(<TimelineDeploymentCreatedDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
         break
       case 'deploymentRuntime':
         openPanel(<TimelineRuntimeDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)

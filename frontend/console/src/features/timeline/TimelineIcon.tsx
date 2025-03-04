@@ -8,7 +8,6 @@ import {
   KeyframesMultipleAddIcon,
   KeyframesMultipleIcon,
   Menu01Icon,
-  Rocket01Icon,
   TimeQuarterPassIcon,
   Upload04Icon,
 } from 'hugeicons-react'
@@ -41,8 +40,6 @@ export const TimelineIcon = ({ event }: { event: Event }) => {
         return <KeyframesMultipleAddIcon className={`${style} ${textColor}`} />
       case 'changesetStateChanged':
         return <KeyframesMultipleIcon className={`${style} ${textColor}`} />
-      case 'deploymentCreated':
-        return <Rocket01Icon className={`${style} ${textColor}`} />
       case 'deploymentRuntime':
         return <ComputerIcon className={`${style} ${textColor}`} />
       default:

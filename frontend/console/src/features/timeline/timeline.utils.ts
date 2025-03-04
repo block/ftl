@@ -11,7 +11,6 @@ const eventBackgroundColorMap: Record<string, string> = {
   asyncExecute: 'bg-indigo-500',
   pubsubPublish: 'bg-teal-500',
   pubsubConsume: 'bg-teal-500',
-  deploymentCreated: 'bg-purple-500',
   deploymentRuntime: 'bg-purple-500',
   '': 'bg-gray-500',
 }
@@ -33,7 +32,6 @@ const eventTextColorMap: Record<string, string> = {
   asyncExecute: 'text-indigo-500',
   pubsubPublish: 'text-teal-500',
   pubsubConsume: 'text-teal-500',
-  deploymentCreated: 'text-purple-500',
   deploymentRuntime: 'text-purple-500',
   '': 'text-gray-500',
 }

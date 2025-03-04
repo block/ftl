@@ -6,7 +6,6 @@ import {
   InternetIcon,
   KeyframesMultipleAddIcon,
   KeyframesMultipleIcon,
-  Rocket01Icon,
   TimeQuarterPassIcon,
   Upload04Icon,
 } from 'hugeicons-react'
@@ -66,11 +65,6 @@ const EVENT_TYPES: Record<string, EventFilter> = {
     label: 'Changeset Runtime',
     type: EventType.DEPLOYMENT_RUNTIME,
     icon: <ComputerIcon className='w-4 h-4 text-purple-500 ml-1' />,
-  },
-  deploymentCreated: {
-    label: 'Deployment Created',
-    type: EventType.DEPLOYMENT_CREATED,
-    icon: <Rocket01Icon className='w-4 h-4 text-purple-500 ml-1' />,
   },
 }
 
