@@ -44,7 +44,6 @@ import io.quarkus.arc.processor.DotNames;
 import xyz.block.ftl.Config;
 import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.Secret;
-import xyz.block.ftl.VerbName;
 import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
 import xyz.block.ftl.runtime.FTLRecorder;
@@ -122,9 +121,6 @@ public class ModuleBuilder {
     }
 
     public static @NotNull String methodToName(MethodInfo method) {
-        if (method.hasAnnotation(VerbName.class)) {
-            return method.annotation(VerbName.class).value().asString();
-        }
         return method.name();
     }
 
