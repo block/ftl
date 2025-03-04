@@ -18,6 +18,7 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
@@ -39,45 +40,51 @@ type AdminClient interface {
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
 
-// Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, replicas int32, waitForDeployOnline bool, adminClient AdminClient) (err error) {
-	logger := log.FromContext(ctx)
-	logger.Debugf("Deploying %v", strings.Join(slices.Map(modules, func(m Module) string { return m.Config.Module }), ", "))
-	defer func() {
-		if err != nil {
-			logger.Errorf(err, "Failed to deploy %s", strings.Join(slices.Map(modules, func(m Module) string { return m.Config.Module }), ", "))
-		}
-	}()
+func PrepareForDeploy(ctx context.Context, projectConfig projectconfig.Config, modules []Module, adminClient AdminClient) (out map[string]*schema.Module, err error) {
 	uploadGroup := errgroup.Group{}
-	moduleSchemas := make(chan *schemapb.Module, len(modules))
+	schemas := make(chan *schema.Module, len(modules))
 	for _, module := range modules {
 		uploadGroup.Go(func() error {
 			sch, err := uploadArtefacts(ctx, projectConfig, module, adminClient)
 			if err != nil {
 				return err
 			}
-			moduleSchemas <- sch
+			schemas <- sch
 			return nil
 		})
 	}
 	if err := uploadGroup.Wait(); err != nil {
-		return fmt.Errorf("failed to upload artefacts: %w", err)
+		return nil, fmt.Errorf("failed to upload artefacts: %w", err)
 	}
-	close(moduleSchemas)
-	collectedSchemas := []*schemapb.Module{}
+	close(schemas)
+	collectedSchemas := map[string]*schema.Module{}
 	for {
-		sch, ok := <-moduleSchemas
+		sch, ok := <-schemas
 		if !ok {
 			break
 		}
-		collectedSchemas = append(collectedSchemas, sch)
+		collectedSchemas[sch.Name] = sch
 	}
+	return collectedSchemas, nil
+}
+
+// Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
+func Deploy(ctx context.Context, modules []*schema.Module, replicas int32, waitForDeployOnline bool, adminClient AdminClient) (err error) {
+	logger := log.FromContext(ctx)
+	logger.Debugf("Deploying %v", strings.Join(slices.Map(modules, func(m *schema.Module) string { return m.Name }), ", "))
+	defer func() {
+		if err != nil {
+			logger.Errorf(err, "Failed to deploy %s", strings.Join(slices.Map(modules, func(m *schema.Module) string { return m.Name }), ", "))
+		}
+	}()
 
 	ctx, closeStream := context.WithCancelCause(ctx)
 	defer closeStream(fmt.Errorf("function is complete: %w", context.Canceled))
 
 	_, err = adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
-		Modules: collectedSchemas,
+		Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
+			return m.ToProto()
+		}),
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to deploy changeset: %w", err)
@@ -85,7 +92,7 @@ func Deploy(ctx context.Context, projectConfig projectconfig.Config, modules []M
 	return nil
 }
 
-func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, module Module, client AdminClient) (*schemapb.Module, error) {
+func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, module Module, client AdminClient) (*schema.Module, error) {
 	logger := log.FromContext(ctx).Module(module.Config.Module).Scope("deploy")
 	ctx = log.ContextWithLogger(ctx, logger)
 	logger.Debugf("Deploying module")
@@ -131,7 +138,11 @@ func uploadArtefacts(ctx context.Context, projectConfig projectconfig.Config, mo
 			},
 		})
 	}
-	return moduleSchema, nil
+	parsedSchema, err := schema.ModuleFromProto(moduleSchema)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse schema to upload: %w", err)
+	}
+	return parsedSchema, nil
 }
 
 func uploadDeploymentArtefact(ctx context.Context, client AdminClient, file deploymentArtefact) error {

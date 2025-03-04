@@ -24,6 +24,7 @@ import (
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
@@ -81,8 +82,10 @@ type autoRebuildCompletedEvent struct {
 
 type pendingDeploy struct {
 	modules           []Module
+	schemas           map[string]*schema.Module
 	err               chan error
 	replicas          int32
+	waitingForModules map[string]bool
 	superseded        bool
 	supercededModules []*pendingDeploy
 }
@@ -474,7 +477,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 						},
 					}
 					logger.Debugf("calling build and deploy %q", event.Config.Module)
-					_ = e.BuildAndDeploy(ctx, 1, true, false, config.Module) //nolint:errcheck
+					_ = e.BuildAndDeploy(ctx, 1, false, false, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
 				err := terminateModuleDeployment(ctx, e.schemaSource, e.adminClient, event.Config.Module)
@@ -518,7 +521,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				meta.module.Config = validConfig
 				e.moduleMetas.Store(event.Config.Module, meta)
 
-				_ = e.BuildAndDeploy(ctx, 1, true, false, event.Config.Module) //nolint:errcheck
+				_ = e.BuildAndDeploy(ctx, 1, false, false, event.Config.Module) //nolint:errcheck
 			}
 		case event := <-schemaChanges:
 			switch event := event.(type) {
@@ -553,7 +556,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					})
 					if len(dependentModuleNames) > 0 {
 						logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", "))
-						_ = e.BuildAndDeploy(ctx, 1, true, false, dependentModuleNames...) //nolint:errcheck
+						_ = e.BuildAndDeploy(ctx, 1, false, false, dependentModuleNames...) //nolint:errcheck
 					}
 				}
 			default:
@@ -571,7 +574,6 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					break readLoop
 				}
 			}
-
 			// Batch generate stubs for all auto rebuilds
 			//
 			// This is normally part of each group in the build topology, but auto rebuilds do not go through that flow
@@ -608,7 +610,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 						modulesToDeploy = append(modulesToDeploy, moduleToDeploy.module)
 					}
 				}
-				_ = e.deploy(ctx, modulesToDeploy, 1) //nolint:errcheck
+				go func() {
+					_ = e.deploy(ctx, modulesToDeploy, 1) //nolint:errcheck
+				}()
 			}
 
 			// Batch together all new builds requested
@@ -621,7 +625,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				modulesToBuild[event.module] = true
 			}
 			if len(modulesToBuild) > 0 {
-				_ = e.BuildAndDeploy(ctx, 1, true, false, maps.Keys(modulesToBuild)...) //nolint
+				_ = e.BuildAndDeploy(ctx, 1, false, false, maps.Keys(modulesToBuild)...) //nolint
 			}
 		}
 	}
@@ -877,15 +881,31 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 			modulesToDeploy = append(modulesToDeploy, module)
 			return nil
 		}
-		return e.deploy(ctx, []Module{module}, replicas)
+		deployErr := make(chan error, 1)
+		go func() {
+			deployErr <- e.deploy(ctx, []Module{module}, replicas)
+		}()
+		if waitForDeployOnline {
+			return <-deployErr
+		}
+		return nil
 	}, moduleNames...)
 	if buildErr != nil {
-		return fmt.Errorf("build failed: %w", buildErr)
+		return buildErr
 	}
 
-	if singleChangeset {
-		// Queue the modules for deployment instead of deploying directly
-		return e.deploy(ctx, modulesToDeploy, replicas)
+	deployGroup := &errgroup.Group{}
+	deployGroup.Go(func() error {
+		// Wait for all build attempts to complete
+		if singleChangeset {
+			// Queue the modules for deployment instead of deploying directly
+			return e.deploy(ctx, modulesToDeploy, replicas)
+		}
+		return nil
+	})
+	if waitForDeployOnline {
+		err := deployGroup.Wait()
+		return err
 	}
 	return nil
 }
@@ -1474,32 +1494,68 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 			return
 
 		case deployment := <-e.deploymentQueue:
+			// Prepare by collecting module schemas and uploading artifacts
+			var err error
+			deployment.schemas, err = PrepareForDeploy(ctx, e.projectConfig, deployment.modules, e.adminClient)
+			if err != nil {
+				deployment.err <- err
+				continue
+			}
+
+			// Check if there are older deployments that are superceded by this one or can be joined with this one
+			for _, existing := range toDeploy {
+				for _, mod := range existing.modules {
+					if _, ok := deployment.schemas[mod.Config.Module]; ok {
+						existing.superseded = true
+					}
+				}
+				for mod := range existing.waitingForModules {
+					if _, ok := deployment.schemas[mod]; ok {
+						existing.superseded = true
+					}
+				}
+				if existing.superseded {
+					if deployment, err = e.mergePendingDeployment(deployment, existing); err != nil {
+						// Fail new deployment attempt as it is incompitable with a dependency that is already in the queue
+						fmt.Printf("Failed to merge deployments: %v\n", err)
+						deployment.err <- err
+						continue
+					}
+				}
+			}
+			toDeploy = slices.Filter(toDeploy, func(d *pendingDeploy) bool {
+				return !d.superseded
+			})
+
+			// Check for modules that need to be rebuilt for this change to be valid
 			// Try and deploy, unless there are conflicting changesets this will happen immediately
 			graph, err := e.Graph()
 			if err != nil {
 				log.FromContext(ctx).Errorf(err, "could not build graph to order deployment")
 				continue
 			}
+
+			modulesToValidate := []string{}
+			for module, dependencies := range graph {
+				if _, ok := slices.Find(dependencies, func(s string) bool {
+					_, ok := deployment.schemas[s]
+					return ok
+				}); !ok {
+					continue
+				}
+
+				modulesToValidate = append(modulesToValidate, module)
+			}
+			deployment.waitingForModules = e.invalidModulesForDeployment(deployment, modulesToValidate)
+
+			fmt.Printf("Processing deployment:\n%v\nPending deployments:\n%v\n", deployment, toDeploy)
+
 			if !e.tryDeployFromQueue(ctx, &deployment, toDeploy, graph) {
 				// We could not deploy, add to the list of pending deployments
-				// But first check if there are older deployments that are superceded by this one
-				modules := map[string]bool{}
-				for _, module := range deployment.modules {
-					modules[module.Config.Module] = true
-				}
-				for _, existing := range toDeploy {
-					for _, mod := range existing.modules {
-						if modules[mod.Config.Module] {
-							existing.superseded = true
-							deployment.supercededModules = append(deployment.supercededModules, existing)
-							deployment.supercededModules = append(deployment.supercededModules, existing.supercededModules...)
-						}
-					}
-				}
-				toDeploy = slices.Filter(toDeploy, func(d *pendingDeploy) bool {
-					return !d.superseded
-				})
 				toDeploy = append(toDeploy, &deployment)
+				for m := range deployment.waitingForModules {
+					e.rebuildEvents <- rebuildRequestEvent{module: m}
+				}
 			}
 		case notification := <-events:
 			switch notification.(type) {
@@ -1528,6 +1584,9 @@ func (e *Engine) processDeploymentQueue(ctx context.Context) {
 }
 
 func (e *Engine) tryDeployFromQueue(ctx context.Context, deployment *pendingDeploy, toDeploy []*pendingDeploy, depGraph map[string][]string) bool {
+	if len(deployment.waitingForModules) > 0 {
+		return false
+	}
 	sets := e.schemaSource.ActiveChangesets()
 	modules := map[string]bool{}
 	depModules := map[string]bool{}
@@ -1570,7 +1629,7 @@ func (e *Engine) tryDeployFromQueue(ctx context.Context, deployment *pendingDepl
 		}
 	}
 	go func() {
-		err := Deploy(ctx, e.projectConfig, deployment.modules, deployment.replicas, true, e.adminClient)
+		err := Deploy(ctx, maps.Values(deployment.schemas), deployment.replicas, true, e.adminClient)
 		if err != nil {
 			// Handle deployment failure
 			for _, module := range deployment.modules {
@@ -1603,4 +1662,53 @@ func (e *Engine) tryDeployFromQueue(ctx context.Context, deployment *pendingDepl
 		}
 	}()
 	return true
+}
+
+func (e *Engine) mergePendingDeployment(d pendingDeploy, old *pendingDeploy) (pendingDeploy, error) {
+	out := reflect.DeepCopy(d)
+	addedModules := []string{}
+	for _, module := range old.modules {
+		if _, exists := d.schemas[module.Config.Module]; exists {
+			continue
+		}
+		out.schemas[module.Config.Module] = old.schemas[module.Config.Module]
+		out.modules = append(out.modules, module)
+		addedModules = append(addedModules, module.Config.Module)
+	}
+	if len(addedModules) > 0 {
+		if invalid := e.invalidModulesForDeployment(out, addedModules); len(invalid) > 0 {
+			return pendingDeploy{}, fmt.Errorf("could not deploy %v with pending deployment of %v: modules were incompatible %v", maps.Keys(d.schemas), maps.Keys(old.schemas), maps.Keys(invalid))
+		}
+	}
+	out.supercededModules = append(d.supercededModules, old)
+	out.supercededModules = append(d.supercededModules, old.supercededModules...)
+	return out, nil
+}
+
+func (e *Engine) invalidModulesForDeployment(deployment pendingDeploy, modulesToCheck []string) map[string]bool {
+	out := map[string]bool{}
+	sch := &schema.Schema{}
+	e.controllerSchema.Range(func(name string, moduleSch *schema.Module) bool {
+		if _, ok := deployment.schemas[name]; ok {
+			return true
+		}
+		sch.Modules = append(sch.Modules, moduleSch)
+		return true
+	})
+	for _, m := range deployment.schemas {
+		sch.Modules = append(sch.Modules, m)
+	}
+	for _, mod := range modulesToCheck {
+		depSch, ok := slices.Find(sch.Modules, func(m *schema.Module) bool {
+			return m.Name == mod
+		})
+		if !ok {
+			// TODO: continue or add to out?
+			continue
+		}
+		if _, err := schema.ValidateModuleInSchema(sch, optional.Some(depSch)); err != nil {
+			out[mod] = true
+		}
+	}
+	return out
 }
