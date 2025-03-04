@@ -245,7 +245,7 @@ func (s *serveCommonConfig) run(
 			CommonSchemaServiceConfig: s.CommonSchemaServiceConfig,
 			Bind:                      schemaBind,
 		}
-		if err := schemaservice.Start(schemaCtx, config, timelineClient); err != nil {
+		if err := schemaservice.Start(schemaCtx, config, timelineClient, devMode); err != nil {
 			logger.Errorf(err, "schemaservice failed: %v", err)
 			return fmt.Errorf("schemaservice failed: %w", err)
 		}

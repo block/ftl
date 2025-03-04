@@ -44,7 +44,6 @@ import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.util.HashUtil;
 import io.quarkus.vertx.http.deployment.RequireSocketHttpBuildItem;
 import io.quarkus.vertx.http.deployment.RequireVirtualHttpBuildItem;
-import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.hotreload.v1.SchemaState;
 import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
@@ -204,9 +203,8 @@ public class ModuleProcessor {
             }
 
             if (fatal) {
-                var runnerVersion = RunnerNotification.incrementRunnerVersion();
                 HotReloadHandler.getInstance()
-                        .setResults(SchemaState.newBuilder().setVersion(runnerVersion).setErrors(errRef.get())
+                        .setResults(SchemaState.newBuilder().setErrors(errRef.get())
                                 .setNewRunnerRequired(true).build());
                 var message = "Schema validation failed: \n";
                 for (var i : errRef.get().getErrorsList()) {
@@ -214,11 +212,8 @@ public class ModuleProcessor {
                 }
                 recorder.failStartup(message);
             } else {
-                if (newRunnerRequired) {
-                    RunnerNotification.incrementRunnerVersion();
-                }
                 HotReloadHandler.getInstance()
-                        .setResults(SchemaState.newBuilder().setVersion(RunnerNotification.getRunnerVersion())
+                        .setResults(SchemaState.newBuilder()
                                 .setModule(schRef.get())
                                 .setNewRunnerRequired(newRunnerRequired).build());
             }

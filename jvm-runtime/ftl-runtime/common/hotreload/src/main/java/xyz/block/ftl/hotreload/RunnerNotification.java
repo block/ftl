@@ -1,40 +1,40 @@
 package xyz.block.ftl.hotreload;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class RunnerNotification {
 
     private static volatile RunnerCallback callback;
     private static volatile RunnerInfo info;
-    private static final AtomicLong runnerVersion = new AtomicLong(0);
+    private static final AtomicReference<String> currentDeploymentKey = new AtomicReference<>();
 
-    public static long getRunnerVersion() {
-        return runnerVersion.get();
+    public static String getDeploymentKey() {
+        return currentDeploymentKey.get();
     }
 
-    public static long incrementRunnerVersion() {
-        long incremented = runnerVersion.incrementAndGet();
+    public static void newDeploymentKey(String key) {
+
+        currentDeploymentKey.set(key);
         RunnerCallback callback;
         synchronized (RunnerNotification.class) {
             callback = RunnerNotification.callback;
         }
         if (callback != null) {
-            callback.newRunnerVersion(incremented);
+            callback.newRunnerDeployment(key);
         }
-        return incremented;
     }
 
     public static void setCallback(RunnerCallback callback) {
         RunnerInfo info;
-        long runnerVersion;
+        String runnerVersion;
         synchronized (RunnerNotification.class) {
             RunnerNotification.callback = callback;
             info = RunnerNotification.info;
             RunnerNotification.info = null;
-            runnerVersion = RunnerNotification.runnerVersion.get();
+            runnerVersion = RunnerNotification.currentDeploymentKey.get();
         }
-        if (runnerVersion != -1) {
-            callback.newRunnerVersion(runnerVersion);
+        if (runnerVersion != null) {
+            callback.newRunnerDeployment(runnerVersion);
         }
         if (info != null) {
             callback.runnerDetails(info);
@@ -55,7 +55,7 @@ public class RunnerNotification {
         RunnerCallback callback;
         boolean outdated;
         synchronized (RunnerNotification.class) {
-            outdated = info.version() < runnerVersion.get();
+            outdated = !info.deployment().equals(currentDeploymentKey.get()) && currentDeploymentKey.get() != null;
             callback = RunnerNotification.callback;
             if (callback == null) {
                 RunnerNotification.info = info;
@@ -72,6 +72,6 @@ public class RunnerNotification {
 
         void reloadStarted();
 
-        void newRunnerVersion(long version);
+        void newRunnerDeployment(String deploymentKey);
     }
 }

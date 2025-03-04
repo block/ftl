@@ -113,12 +113,16 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                                     .build());
                         }
                         var errors = builder.build();
+                        RunnerNotification.newDeploymentKey(request.getNewDeploymentKey());
                         responseObserver.onNext(ReloadResponse.newBuilder()
                                 .setState(SchemaState.newBuilder().setErrors(errors)
-                                        .setVersion(RunnerNotification.incrementRunnerVersion()).build())
+                                        .setNewRunnerRequired(true).build())
                                 .setFailed(true).build());
                         responseObserver.onCompleted();
                     } else {
+                        if (state.getNewRunnerRequired()) {
+                            RunnerNotification.newDeploymentKey(request.getNewDeploymentKey());
+                        }
                         responseObserver.onNext(ReloadResponse.newBuilder().setState(state).setFailed(false).build());
                         responseObserver.onCompleted();
                     }
@@ -159,10 +163,10 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             databases.put(db.getName(), db.getAddress());
         }
         boolean outdated = RunnerNotification
-                .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases, request.getVersion()));
+                .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases));
         if (outdated) {
-            LOG.debugf("Runner is outdated, a reload is required, runner version %s, current %s", request.getVersion(),
-                    RunnerNotification.getRunnerVersion());
+            LOG.debugf("Runner is outdated, a reload is required, runner version %s, current %s",
+                    request.getDeployment(), RunnerNotification.getDeploymentKey());
         }
         responseObserver.onNext(RunnerInfoResponse.newBuilder().setOutdated(outdated).build());
         responseObserver.onCompleted();

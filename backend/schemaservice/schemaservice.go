@@ -42,6 +42,7 @@ type Service struct {
 	State          *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper]
 	Config         Config
 	timelineClient *timelineclient.Client
+	devMode        bool
 }
 
 func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
@@ -76,6 +77,7 @@ func Start(
 	ctx context.Context,
 	config Config,
 	timelineClient *timelineclient.Client,
+	devMode bool,
 ) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL schema service")
@@ -100,6 +102,7 @@ func Start(
 	}
 
 	svc := New(ctx, shard, config, timelineClient)
+	svc.devMode = devMode
 	logger.Debugf("Listening on %s", config.Bind)
 
 	g.Go(func() error {
@@ -189,12 +192,14 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 		if err != nil {
 			return nil, fmt.Errorf("invalid module %s: %w", m.Name, err)
 		}
-		// Allocate a deployment key for the module.
-		if out.Runtime == nil {
-			out.Runtime = &schema.ModuleRuntime{}
-		}
-		out.Runtime.Deployment = &schema.ModuleRuntimeDeployment{
-			DeploymentKey: key.NewDeploymentKey(m.Name),
+		if !out.ModRuntime().ModDeployment().DeploymentKey.IsZero() {
+			// In dev mode we relax this restriction to allow for hot reload endpoints to allocate a deployment key.
+			if !s.devMode {
+				return nil, fmt.Errorf("deployment key cannot be set on changeset creation, it must be allocated by the schema service")
+			}
+		} else {
+			// Allocate a deployment key for the module.
+			out.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey(m.Name)
 		}
 		return out, nil
 	})
