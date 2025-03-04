@@ -91,6 +91,8 @@ func (e *KafkaTopicSetup) Execute(ctx context.Context) ([]state.State, error) {
 			}
 			logger.Debugf("Output: %s", output.DebugString())
 			result = append(result, output)
+
+			logger.Infof("Kafka topic created: %s", topicID) //nolint
 		}
 	}
 	return result, nil

@@ -79,10 +79,8 @@ func Start(
 	schemaClient schemaconnect.SchemaServiceClient,
 	timelineClient *timeline.Client,
 ) error {
-
 	timelineLogSink := timeline.NewLogSink(timelineClient, log.Trace)
 	go timelineLogSink.RunLogLoop(ctx)
-
 	logger := log.FromContext(ctx).AddSink(timelineLogSink)
 	ctx = log.ContextWithLogger(ctx, logger)
 
