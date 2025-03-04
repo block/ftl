@@ -59,7 +59,7 @@ func main() {
 	kctx.FatalIfErrorf(err)
 	asmSecretProvider := providers.NewASM(secretsmanager.NewFromConfig(awsConfig))
 	dbSecretResolver := routers.NewFileRouter[cf.Secrets](cli.Secrets)
-	sm, err := manager.New[cf.Secrets](ctx, dbSecretResolver, asmSecretProvider)
+	sm, err := manager.New(ctx, dbSecretResolver, asmSecretProvider)
 	kctx.FatalIfErrorf(err)
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
