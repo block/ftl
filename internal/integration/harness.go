@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jpillora/backoff"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,7 +19,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
@@ -32,7 +32,6 @@ import (
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1/consolepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling/k8sscaling"
 	"github.com/block/ftl/internal"
@@ -363,27 +362,20 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				kubeClient:    optional.Ptr(kubeClient),
 			}
 			defer dumpKubePods(ctx, ic.kubeClient, ic.kubeNamespace)
-
 			if opts.startController || opts.kube {
 				ic.Admin = admin
 				ic.Schema = schema
 				ic.Console = console
 
 				Infof("Waiting for admin to be ready")
-				ic.AssertWithSpecificRetry(t, func(t testing.TB, ic TestContext) {
-					_, err := ic.Admin.Ping(ic, connect.NewRequest(&ftlv1.PingRequest{}))
-					assert.NoError(t, err)
-				}, time.Minute*2)
+				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Admin))
 			}
 
 			if opts.startTimeline && !opts.kube {
 				ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:8894", log.Debug)
 
 				Infof("Waiting for timeline to be ready")
-				ic.AssertWithRetry(t, func(t testing.TB, ic TestContext) {
-					_, err := ic.Timeline.Ping(ic, connect.NewRequest(&ftlv1.PingRequest{}))
-					assert.NoError(t, err)
-				})
+				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Timeline))
 			}
 
 			if opts.resetPubSub {
