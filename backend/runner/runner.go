@@ -45,7 +45,6 @@ import (
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/download"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/exec"
@@ -130,8 +129,8 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 		controllerClient:     controllerClient,
 		schemaClient:         schemaClient,
 		timelineClient:       timelineClient,
+		timelineLogSink:      timeline.NewLogSink(timelineClient, log.Debug),
 		labels:               labels,
-		deploymentLogQueue:   make(chan log.Entry, 10000),
 		cancelFunc:           doneFunc,
 		devEndpoint:          config.DevEndpoint,
 		devHotReloadEndpoint: config.DevHotReloadEndpoint,
@@ -178,7 +177,7 @@ func (s *Service) startDeployment(ctx context.Context, key key.Deployment, modul
 		// It is managed externally by the scaling system
 		return err
 	}
-	go s.streamLogsLoop(ctx)
+	go s.timelineLogSink.RunLogLoop(ctx)
 	go func() {
 		go rpc.RetryStreamingClientStream(ctx, backoff.Backoff{}, s.controllerClient.RegisterRunner, s.registrationLoop)
 	}()
@@ -269,10 +268,10 @@ type Service struct {
 	controllerClient ftlv1connect.ControllerServiceClient
 	schemaClient     ftlv1connect.SchemaServiceClient
 	timelineClient   *timeline.Client
+	timelineLogSink  *timeline.LogSink
 	// Failed to register with the Controller
 	registrationFailure  atomic.Value[optional.Option[error]]
 	labels               *structpb.Struct
-	deploymentLogQueue   chan log.Entry
 	cancelFunc           context.CancelCauseFunc
 	devEndpoint          optional.Option[string]
 	devHotReloadEndpoint optional.Option[string]
@@ -627,42 +626,6 @@ func (s *Service) registrationLoop(ctx context.Context, send func(request *ftlv1
 	return nil
 }
 
-func (s *Service) streamLogsLoop(ctx context.Context) {
-	for entry := range channels.IterContext(ctx, s.deploymentLogQueue) {
-		dep, ok := entry.Attributes["deployment"]
-		var deploymentKey key.Deployment
-		var err error
-		if ok {
-			deploymentKey, err = key.ParseDeploymentKey(dep)
-			if err != nil {
-				continue
-			}
-		}
-
-		var errorString *string
-		if entry.Error != nil {
-			errStr := entry.Error.Error()
-			errorString = &errStr
-		}
-		var request optional.Option[key.Request]
-		if reqStr, ok := entry.Attributes["request"]; ok {
-			req, err := key.ParseRequestKey(reqStr) //nolint:errcheck // best effort
-			if err == nil {
-				request = optional.Some(req)
-			}
-		}
-		s.timelineClient.Publish(ctx, &timeline.Log{
-			DeploymentKey: deploymentKey,
-			RequestKey:    request,
-			Level:         int32(entry.Level),
-			Time:          entry.Time,
-			Attributes:    entry.Attributes,
-			Message:       entry.Message,
-			Error:         optional.Ptr(errorString),
-		})
-	}
-}
-
 func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey key.Deployment) *log.Logger {
 	attrs := map[string]string{"deployment": deploymentKey.String()}
 	if requestKey, _ := rpc.RequestKeyFromContext(ctx); requestKey.Ok() { //nolint:errcheck // best effort
@@ -670,8 +633,7 @@ func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey key.Dep
 	}
 	ctx = ftlobservability.AddSpanContextToLogger(ctx)
 
-	sink := newDeploymentLogsSink(s.deploymentLogQueue)
-	return log.FromContext(ctx).AddSink(sink).Attrs(attrs)
+	return log.FromContext(ctx).AddSink(s.timelineLogSink).Attrs(attrs)
 }
 
 func (s *Service) healthCheck(writer http.ResponseWriter, request *http.Request) {
