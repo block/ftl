@@ -327,6 +327,11 @@ jobs:
         uses: cashapp/activate-hermit@v1.1.3
       - name: Load Docker Images
         uses: ./.github/actions/load-docker-images
+      - name: Log in to DockerHub to avoid rate limiting
+        env:
+          DOCKER_HUB_PULL_TOKEN: ${{ secrets.DOCKER_HUB_PULL_TOKEN }}
+        run: |
+          echo "${DOCKER_HUB_PULL_TOKEN}" | docker login --username "blockossreleases" --password-stdin
       - name: Start Cluster
         run: just k8s setup-istio-cluster
       - name: Tag and Push Docker Images
