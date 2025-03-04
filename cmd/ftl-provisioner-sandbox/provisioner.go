@@ -88,7 +88,7 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 		return nil, fmt.Errorf("provisioner already running: %s", token)
 	}
 	logger.Debugf("Starting task %s", token)
-	task.Start(ctx, module.Name)
+	task.Start(ctx, module.Name, module.Runtime.Deployment.DeploymentKey)
 	return connect.NewResponse(&provisionerpb.ProvisionResponse{
 		Status:            provisionerpb.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
 		ProvisioningToken: token,
