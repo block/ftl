@@ -10,7 +10,7 @@ option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload
 option java_multiple_files = true;
 
 message ReloadRequest {
-  bool force = 1;
+  bool force_new_runner = 1;
   // If the reload results in a new runner, this will be the new deployment key
   string new_deployment_key = 2;
 }

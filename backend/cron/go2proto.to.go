@@ -12,7 +12,6 @@ import "github.com/alecthomas/types/result"
 
 import "time"
 
-
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
 var _ = durationpb.Duration{}
@@ -82,7 +81,7 @@ func orZero[T any](v *T) T {
 }
 
 func orZeroR[T any](v result.Result[*T]) result.Result[T] {
-		if v.Err() != nil {
+	if v.Err() != nil {
 		return result.Err[T](v.Err())
 	}
 	r, _ := v.Get()
@@ -171,7 +170,6 @@ func unmarshallText[T any, TPtr textUnmarshallable[T]](v []byte, f TPtr) result.
 	return result.Ok[*T](&to)
 }
 
-
 func (x *CronState) ToProto() *destpb.CronState {
 	if x == nil {
 		return nil
@@ -188,13 +186,15 @@ func CronStateFromProto(v *destpb.CronState) (out *CronState, err error) {
 	}
 
 	out = &CronState{}
-	if out.LastExecutions, err = mapValuesR(v.LastExecutions, func(v *timestamppb.Timestamp) result.Result[time.Time] { return orZeroR(result.From(setNil(ptr(v.AsTime()), v), nil)) }).Result(); err != nil {
+	if out.LastExecutions, err = mapValuesR(v.LastExecutions, func(v *timestamppb.Timestamp) result.Result[time.Time] {
+		return orZeroR(result.From(setNil(ptr(v.AsTime()), v), nil))
+	}).Result(); err != nil {
 		return nil, fmt.Errorf("LastExecutions: %w", err)
 	}
-	if out.NextExecutions, err = mapValuesR(v.NextExecutions, func(v *timestamppb.Timestamp) result.Result[time.Time] { return orZeroR(result.From(setNil(ptr(v.AsTime()), v), nil)) }).Result(); err != nil {
+	if out.NextExecutions, err = mapValuesR(v.NextExecutions, func(v *timestamppb.Timestamp) result.Result[time.Time] {
+		return orZeroR(result.From(setNil(ptr(v.AsTime()), v), nil))
+	}).Result(); err != nil {
 		return nil, fmt.Errorf("NextExecutions: %w", err)
 	}
 	return out, nil
 }
-
-		
