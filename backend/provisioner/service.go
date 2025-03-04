@@ -24,6 +24,7 @@ import (
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	timeline "github.com/block/ftl/internal/timelineclient"
 )
 
 // CommonProvisionerConfig is shared config between the production controller and development server.
@@ -35,6 +36,7 @@ type CommonProvisionerConfig struct {
 type Config struct {
 	ControllerEndpoint *url.URL `name:"ftl-controller-endpoint" help:"Controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" default:"http://127.0.0.1:8893"`
 	SchemaEndpoint     *url.URL `help:"Schema service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
+	TimelineEndpoint   *url.URL `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	CommonProvisionerConfig
 }
 
@@ -75,9 +77,15 @@ func Start(
 	ctx context.Context,
 	registry *ProvisionerRegistry,
 	schemaClient schemaconnect.SchemaServiceClient,
+	timelineClient *timeline.Client,
 ) error {
 
-	logger := log.FromContext(ctx)
+	timelineLogSink := timeline.NewLogSink(timelineClient, log.Trace)
+	go timelineLogSink.RunLogLoop(ctx)
+
+	logger := log.FromContext(ctx).AddSink(timelineLogSink)
+	ctx = log.ContextWithLogger(ctx, logger)
+
 	logger.Debugf("Starting FTL provisioner")
 
 	svc, err := New(ctx, registry, schemaClient)

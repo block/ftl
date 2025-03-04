@@ -324,7 +324,7 @@ func (s *serveCommonConfig) run(
 	}
 
 	wg.Go(func() error {
-		if err := provisioner.Start(provisionerCtx, provisionerRegistry, schemaClient); err != nil {
+		if err := provisioner.Start(provisionerCtx, provisionerRegistry, schemaClient, timelineClient); err != nil {
 			logger.Errorf(err, "provisionerfailed: %v", err)
 			return fmt.Errorf("provisionerfailed: %w", err)
 		}

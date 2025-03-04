@@ -17,6 +17,7 @@ import (
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"
+	timeline "github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
@@ -35,6 +36,8 @@ func main() {
 		kong.Vars{"version": ftl.FormattedVersion},
 	)
 	cli.ProvisionerConfig.SetDefaults()
+
+	timelineClient := timeline.NewClient(context.Background(), cli.ProvisionerConfig.TimelineEndpoint)
 
 	logger := log.Configure(os.Stderr, cli.LogConfig)
 	ctx := log.ContextWithLogger(context.Background(), logger)
@@ -69,6 +72,6 @@ func main() {
 		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
 	}
 
-	err = provisioner.Start(ctx, registry, schemaClient)
+	err = provisioner.Start(ctx, registry, schemaClient, timelineClient)
 	kctx.FatalIfErrorf(err, "failed to start provisioner")
 }
