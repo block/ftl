@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"connectrpc.com/connect"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -20,12 +21,15 @@ import (
 	"github.com/block/ftl/internal/provisioner"
 	"github.com/block/ftl/internal/provisioner/executor"
 	"github.com/block/ftl/internal/provisioner/state"
+	timeline "github.com/block/ftl/internal/timelineclient"
 )
 
 type Config struct {
 	MySQLCredentialsSecretARN string   `help:"ARN for the secret containing mysql credentials" env:"FTL_SANDBOX_MYSQL_ARN"`
 	MySQLEndpoint             string   `help:"Endpoint for the mysql database" env:"FTL_SANDBOX_MYSQL_ENDPOINT"`
 	KafkaBrokers              []string `help:"Brokers for the kafka cluster" env:"FTL_SANDBOX_KAFKA_BROKERS"`
+
+	TimelineEndpoint *url.URL `help:"Endpoint for the timeline service" env:"FTL_TIMELINE_ENDPOINT"`
 }
 
 type SandboxProvisioner struct {
@@ -38,10 +42,19 @@ type SandboxProvisioner struct {
 var _ provisionerconnect.ProvisionerPluginServiceHandler = (*SandboxProvisioner)(nil)
 
 func NewSandboxProvisioner(ctx context.Context, config Config) (context.Context, *SandboxProvisioner, error) {
+	logger := log.FromContext(ctx)
+	logger.Debugf("Creating sandbox provisioner")
+
 	secrets, err := createSecretsClient(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create secretsmanager client: %w", err)
 	}
+
+	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
+	timelineLogSink := timeline.NewLogSink(timelineClient, log.Info)
+	go timelineLogSink.RunLogLoop(ctx)
+	logger = logger.AddSink(timelineLogSink)
+	ctx = log.ContextWithLogger(ctx, logger)
 
 	return ctx, &SandboxProvisioner{
 		secrets: secrets,
@@ -59,11 +72,14 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert module from proto: %w", err)
 	}
+
+	logger := log.FromContext(ctx).Deployment(module.Runtime.Deployment.DeploymentKey).Module(module.Name)
+	ctx = log.ContextWithLogger(ctx, logger)
+
 	var acceptedKinds []schema.ResourceType
 	for _, k := range req.Msg.Kinds {
 		acceptedKinds = append(acceptedKinds, schema.ResourceType(k))
 	}
-	logger := log.FromContext(ctx).Module(module.Name)
 
 	inputStates := inputsFromSchema(ctx, module, acceptedKinds, req.Msg.DesiredModule.Name, c.confg)
 
@@ -88,7 +104,7 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 		return nil, fmt.Errorf("provisioner already running: %s", token)
 	}
 	logger.Debugf("Starting task %s", token)
-	task.Start(ctx, module.Name)
+	task.Start(ctx, module.Name, module.Runtime.Deployment.DeploymentKey)
 	return connect.NewResponse(&provisionerpb.ProvisionResponse{
 		Status:            provisionerpb.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
 		ProvisioningToken: token,
