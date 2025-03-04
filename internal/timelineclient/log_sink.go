@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
