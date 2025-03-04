@@ -33,11 +33,11 @@ func NewDevProvisioner(postgresPort int, mysqlPort int, recreate bool) *InMemPro
 }
 func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (*schema.RuntimeElement, error) {
-		logger := log.FromContext(ctx)
+		logger := log.FromContext(ctx).Deployment(deployment)
 
 		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(res.ResourceID())
 
-		logger.Debugf("Provisioning mysql database: %s", dbName)
+		logger.Infof("Provisioning mysql database: %s", dbName) //nolint
 
 		// We assume that the DB hsas already been started when running in dev mode
 		mysqlDSN, err := dev.SetupMySQL(ctx, mysqlPort)
@@ -125,10 +125,10 @@ func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (s
 
 func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (*schema.RuntimeElement, error) {
-		logger := log.FromContext(ctx)
+		logger := log.FromContext(ctx).Deployment(deployment)
 
 		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(resource.ResourceID())
-		logger.Debugf("Provisioning postgres database: %s", dbName)
+		logger.Infof("Provisioning postgres database: %s", dbName) //nolint
 
 		// We assume that the DB has already been started when running in dev mode
 		postgresDSN := dsn.PostgresDSN("ftl", dsn.Port(postgresPort))
