@@ -44,6 +44,8 @@ spec:
               value: "/working"
             - name: FTL_CONTROLLER_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-controller:{{ .Values.controller.port }}"
+            - name: FTL_TIMELINE_ENDPOINT
+              value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
             - name: FTL_SCHEMA_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
             - name: LOG_LEVEL
