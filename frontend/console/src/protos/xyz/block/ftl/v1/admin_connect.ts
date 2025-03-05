@@ -160,7 +160,7 @@ export const AdminService = {
       name: "ApplyChangeset",
       I: ApplyChangesetRequest,
       O: ApplyChangesetResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.ServerStreaming,
     },
     /**
      * Get the full schema.

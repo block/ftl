@@ -278,23 +278,28 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 	return connect.NewResponse(sch.Msg), nil
 }
 
-func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.Response[ftlv1.ApplyChangesetResponse], error) {
+func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest], stream *connect.ServerStream[ftlv1.ApplyChangesetResponse]) error {
 	events := s.source.Subscribe(ctx)
 	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
 		Modules:  req.Msg.Modules,
 		ToRemove: req.Msg.ToRemove,
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create changeset: %w", err)
+		return fmt.Errorf("failed to create changeset: %w", err)
 	}
 	key, err := key.ParseChangesetKey(cs.Msg.Changeset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse changeset key: %w", err)
+		return fmt.Errorf("failed to parse changeset key: %w", err)
 	}
 	changeset := &schemapb.Changeset{
 		Key:      cs.Msg.Changeset,
 		Modules:  req.Msg.Modules,
 		ToRemove: req.Msg.ToRemove,
+	}
+	if err := stream.Send(&ftlv1.ApplyChangesetResponse{
+		Changeset: changeset,
+	}); err != nil {
+		return fmt.Errorf("failed to send changeset: %w", err)
 	}
 	for e := range channels.IterContext(ctx, events) {
 		switch event := e.(type) {
@@ -302,23 +307,29 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1
 			if event.Key != key {
 				continue
 			}
-			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
+			if err := stream.Send(&ftlv1.ApplyChangesetResponse{
 				Changeset: changeset,
-			}), nil
+			}); err != nil {
+				return fmt.Errorf("failed to send changeset: %w", err)
+			}
+			return nil
 		case *schema.ChangesetFailedNotification:
 			if event.Key != key {
 				continue
 			}
-			return nil, fmt.Errorf("failed to apply changeset: %s", event.Error)
+			return fmt.Errorf("failed to apply changeset: %s", event.Error)
 		case *schema.ChangesetCommittedNotification:
 			if event.Changeset.Key != key {
 				continue
 			}
 			changeset = event.Changeset.ToProto()
 			// We don't wait for cleanup, just return immediately
-			return connect.NewResponse(&ftlv1.ApplyChangesetResponse{
+			if err := stream.Send(&ftlv1.ApplyChangesetResponse{
 				Changeset: changeset,
-			}), nil
+			}); err != nil {
+				return fmt.Errorf("failed to send changeset: %w", err)
+			}
+			return nil
 		case *schema.ChangesetRollingBackNotification:
 			if event.Changeset.Key != key {
 				continue
@@ -328,7 +339,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1
 
 		}
 	}
-	return nil, fmt.Errorf("failed to apply changeset: context cancelled")
+	return fmt.Errorf("failed to apply changeset: context cancelled")
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], resp *connect.ServerStream[ftlv1.PullSchemaResponse]) error {

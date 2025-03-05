@@ -232,7 +232,7 @@ service AdminService {
 
   // Creates and applies a changeset, returning the result
   // This blocks until the changeset has completed
-  rpc ApplyChangeset(ApplyChangesetRequest) returns (ApplyChangesetResponse);
+  rpc ApplyChangeset(ApplyChangesetRequest) returns (stream ApplyChangesetResponse);
 
   // Get the full schema.
   rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse) {

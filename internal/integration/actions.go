@@ -312,6 +312,18 @@ func WaitWithTimeout(module string, timeout time.Duration) Action {
 	}
 }
 
+func WaitForDev(noErrors bool, msgAndArgs ...any) Action {
+	return func(t testing.TB, ic TestContext) {
+		ExecWithOutput("ftl", []string{"await-summary"}, func(output string) {
+			if noErrors {
+				assert.NotContains(t, output, "[Error]", msgAndArgs...)
+			} else {
+				assert.Contains(t, output, "[Error]", msgAndArgs...)
+			}
+		})(t, ic)
+	}
+}
+
 func Sleep(duration time.Duration) Action {
 	return func(t testing.TB, ic TestContext) {
 		Infof("Sleeping for %s", duration)
