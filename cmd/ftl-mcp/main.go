@@ -5,8 +5,6 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/block/ftl/internal/rpc"
-
 	"github.com/alecthomas/kong"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -16,6 +14,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal/log"
 	_ "github.com/block/ftl/internal/prodinit"
+	"github.com/block/ftl/internal/rpc"
 )
 
 var cli struct {
