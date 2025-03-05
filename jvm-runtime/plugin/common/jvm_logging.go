@@ -56,10 +56,10 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 			if err := json.Unmarshal([]byte(line), &record); err == nil {
 				o.logger.Log(record.ToEntry())
 			} else {
-				o.logger.Infof("Log Parse Failure: %s", line)
+				o.logger.Infof("Log Parse Failure: %s", line) //nolint
 			}
 		} else {
-			o.logger.Infof("%s", line)
+			o.logger.Infof("%s", line) //nolint
 		}
 	}
 	if !o.ended.Load() {
@@ -113,12 +113,12 @@ type JvmLogRecord struct {
 	Level           string    `json:"level"`
 	Message         string    `json:"message"`
 	ThreadName      string    `json:"threadName"`
-	ThreadId        int       `json:"threadId"`
+	ThreadID        int       `json:"threadId"`
 	Mdc             any       `json:"mdc"`
 	Ndc             string    `json:"ndc"`
 	HostName        string    `json:"hostName"`
 	ProcessName     string    `json:"processName"`
-	ProcessId       int       `json:"processId"`
+	ProcessID       int       `json:"processId"`
 }
 
 func (r *JvmLogRecord) ToEntry() log.Entry {
