@@ -45,7 +45,7 @@ func main() {
 		"Status",
 		mcp.WithDescription("Get the current status of each FTL module and the current schema"),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return statusTool(ctx, request, buildEngineClient, adminClient)
+		return statusTool(ctx, buildEngineClient, adminClient)
 	})
 
 	// Start the server

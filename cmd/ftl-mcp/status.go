@@ -23,7 +23,7 @@ type statusOutput struct {
 	Schema  string
 }
 
-func statusTool(ctx context.Context, request mcp.CallToolRequest, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient ftlv1connect.AdminServiceClient) (*mcp.CallToolResult, error) {
+func statusTool(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient ftlv1connect.AdminServiceClient) (*mcp.CallToolResult, error) {
 	ctx = contextFromServerContext(ctx)
 	result, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient)
 	if err != nil {
