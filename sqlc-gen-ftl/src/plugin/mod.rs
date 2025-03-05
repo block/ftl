@@ -124,7 +124,7 @@ fn to_verb(query: &pluginpb::Query, module_name: &str, database_name: &str) -> s
                 response: response_type,
                 pos: None,
                 comments: Vec::new(),
-                metadata: vec![sql_query_metadata, db_call_metadata],
+                metadata: vec![sql_query_metadata, db_call_metadata, generated_metadata()],
             })
         ),
     }
@@ -153,7 +153,7 @@ fn to_verb_request(query: &pluginpb::Query, req: &pluginpb::GenerateRequest) -> 
                     .collect(),
                 pos: None,
                 comments: Vec::new(),
-                metadata: Vec::new(),
+                metadata: vec![generated_metadata()],
             })
         ),
     }
@@ -175,7 +175,7 @@ fn to_verb_response(query: &pluginpb::Query, req: &pluginpb::GenerateRequest) ->
                     .collect(),
                 pos: None,
                 comments: Vec::new(),
-                metadata: Vec::new(),
+                metadata: vec![generated_metadata()],
             })
         ),
     }
@@ -695,5 +695,13 @@ fn postgresql_to_schema_type(col: &pluginpb::Column) -> schemapb::Type {
 
     schemapb::Type {
         value: Some(value),
+    }
+}
+
+fn generated_metadata() -> schemapb::Metadata {
+    schemapb::Metadata {
+        value: Some(
+            schemapb::metadata::Value::Generated(schemapb::MetadataGenerated { pos: None })
+        ),
     }
 }

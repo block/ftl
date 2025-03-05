@@ -212,7 +212,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 
 					case *MetadataCronJob, *MetadataCalls, *MetadataConfig, *MetadataAlias, *MetadataTypeMap,
 						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact,
-						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector:
+						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated:
 					}
 				}
 				if isSQLQuery && !hasDatabase {
@@ -507,6 +507,8 @@ func sortMetadataType(md Metadata) {
 		return
 	case *MetadataPartitions:
 		return
+	case *MetadataGenerated:
+		return
 	}
 }
 
@@ -547,7 +549,8 @@ func getMetadataSortingPriority(metadata Metadata) int {
 		priority = 16
 	case *MetadataPartitions:
 		priority = 17
-
+	case *MetadataGenerated:
+		priority = 18
 	}
 	return priority
 }
@@ -749,7 +752,7 @@ func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error)
 			merr = append(merr, errorf(md, "metadata %q is not valid on verbs", strings.TrimSpace(md.String())))
 
 		case *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap, *MetadataEncoding,
-			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery, *MetadataPartitions:
+			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery, *MetadataPartitions, *MetadataGenerated:
 		}
 	}
 	return

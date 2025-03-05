@@ -62,6 +62,9 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 						},
 					},
 				},
+				Metadata: []schema.Metadata{
+					&schema.MetadataGenerated{},
+				},
 			},
 			&schema.Data{
 				Name: "CreateRequestPsqlQuery",
@@ -76,6 +79,9 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 							},
 						},
 					},
+				},
+				Metadata: []schema.Metadata{
+					&schema.MetadataGenerated{},
 				},
 			},
 			&schema.Data{
@@ -92,6 +98,9 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 						},
 					},
 				},
+				Metadata: []schema.Metadata{
+					&schema.MetadataGenerated{},
+				},
 			},
 			&schema.Data{
 				Name: "GetRequestDataPsqlResult",
@@ -106,6 +115,9 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 							},
 						},
 					},
+				},
+				Metadata: []schema.Metadata{
+					&schema.MetadataGenerated{},
 				},
 			},
 			&schema.Verb{
@@ -125,6 +137,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 						Query:   "INSERT INTO requests (data) VALUES (?)",
 						Command: "exec",
 					},
+					&schema.MetadataGenerated{},
 				},
 			},
 			&schema.Verb{
@@ -144,6 +157,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 						Query:   "INSERT INTO requests (data) VALUES ($1)",
 						Command: "exec",
 					},
+					&schema.MetadataGenerated{},
 				},
 			},
 			&schema.Verb{
@@ -166,6 +180,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 						Query:   "SELECT data FROM requests",
 						Command: "many",
 					},
+					&schema.MetadataGenerated{},
 				},
 			},
 			&schema.Verb{
@@ -188,6 +203,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 						Query:   "SELECT data FROM requests",
 						Command: "many",
 					},
+					&schema.MetadataGenerated{},
 				},
 			},
 		},

@@ -36,7 +36,7 @@ module todo {
   }
 
   export data CreateResponse {
-    name [String] +alias json "rsn" +sql column "requests"."name"
+    name [String] +alias json "rsn"
   }
 
   data DestroyRequest {
@@ -49,15 +49,28 @@ module todo {
     when Time
   }
 
+  data InsertRequest {
+    name String +sql column "requests"."name"
+  }
+	+generated
+
+  data InsertResponse {
+    name [String] +sql column "requests"."name_list"
+  }
+	+generated
+
   export verb create(todo.CreateRequest) todo.CreateResponse
       +calls todo.destroy
-      +database calls todo.testdb
       +secrets todo.secretValue
       +config todo.configValue
-      +sql query :exec "INSERT INTO requests (name) VALUES (?)"
 
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
       +ingress http GET /todo/destroy/{name}
+
+  verb insert(todo.InsertRequest) todo.InsertResponse
+      +database calls todo.testdb
+      +sql query :exec "INSERT INTO requests (name) VALUES (?)"
+	  +generated
 
   verb mondays(Unit) Unit
       +cron Mon
@@ -174,7 +187,6 @@ Module
       Array
         String
       MetadataAlias
-      MetadataSQLColumn
   Data
     Field
       String
@@ -183,18 +195,26 @@ Module
       String
     Field
       Time
+  Data
+    Field
+      String
+      MetadataSQLColumn
+    MetadataGenerated
+  Data
+    Field
+      Array
+        String
+      MetadataSQLColumn
+    MetadataGenerated
   Verb
     Ref
     Ref
     MetadataCalls
       Ref
-    MetadataDatabases
-      Ref
     MetadataSecrets
       Ref
     MetadataConfig
       Ref
-    MetadataSQLQuery
   Verb
     Ref
       Unit
@@ -207,6 +227,13 @@ Module
       IngressPathLiteral
       IngressPathLiteral
       IngressPathParameter
+  Verb
+    Ref
+    Ref
+    MetadataDatabases
+      Ref
+    MetadataSQLQuery
+    MetadataGenerated
   Verb
     Unit
     Unit
@@ -777,8 +804,16 @@ module todo {
     name {String: String}? +alias json "rqn"
   }
   export data CreateResponse {
-    name [String] +alias json "rsn" +sql column "requests"."name"
+    name [String] +alias json "rsn"
   }
+  data InsertRequest {
+    name String +sql column "requests"."name"
+  }
+  	+generated
+  data InsertResponse {
+    name [String] +sql column "requests"."name_list"
+  }
+  	+generated
   data DestroyRequest {
     // A comment
     name String
@@ -788,9 +823,11 @@ module todo {
 	when Time
   }
   export verb create(todo.CreateRequest) todo.CreateResponse
-  	+calls todo.destroy +database calls todo.testdb +secrets todo.secretValue +config todo.configValue +sql query :exec "INSERT INTO requests (name) VALUES (?)"
+  	+calls todo.destroy +secrets todo.secretValue +config todo.configValue
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
   	+ingress http GET /todo/destroy/{name}
+  verb insert(todo.InsertRequest) todo.InsertResponse
+  	+database calls todo.testdb +sql query :exec "INSERT INTO requests (name) VALUES (?)" +generated
   verb scheduled(Unit) Unit
     +cron */10 * * 1-10,11-31 * * *
   verb twiceADay(Unit) Unit
@@ -865,6 +902,20 @@ var testSchema = MustValidate(&Schema{
 					Metadata: []Metadata{&MetadataSQLMigration{Digest: "8cc04c75ab7967eb2ec82e11e886831e00b7cb00507e9a8ecf400bdc599eccfd"}},
 				},
 				&Data{
+					Name: "InsertRequest",
+					Fields: []*Field{
+						{Name: "name", Type: &String{}, Metadata: []Metadata{&MetadataSQLColumn{Table: "requests", Name: "name"}}},
+					},
+					Metadata: []Metadata{&MetadataGenerated{}},
+				},
+				&Data{
+					Name: "InsertResponse",
+					Fields: []*Field{
+						{Name: "name", Type: &Array{Element: &String{}}, Metadata: []Metadata{&MetadataSQLColumn{Table: "requests", Name: "name_list"}}},
+					},
+					Metadata: []Metadata{&MetadataGenerated{}},
+				},
+				&Data{
 					Name:   "CreateRequest",
 					Export: true,
 					Fields: []*Field{
@@ -875,7 +926,7 @@ var testSchema = MustValidate(&Schema{
 					Name:   "CreateResponse",
 					Export: true,
 					Fields: []*Field{
-						{Name: "name", Type: &Array{Element: &String{}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rsn"}, &MetadataSQLColumn{Table: "requests", Name: "name"}}},
+						{Name: "name", Type: &Array{Element: &String{}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rsn"}}},
 					},
 				},
 				&Data{
@@ -891,17 +942,25 @@ var testSchema = MustValidate(&Schema{
 						{Name: "when", Type: &Time{}},
 					},
 				},
+				&Verb{Name: "insert",
+					Request:  &Ref{Module: "todo", Name: "InsertRequest"},
+					Response: &Ref{Module: "todo", Name: "InsertResponse"},
+					Metadata: []Metadata{
+						&MetadataDatabases{Calls: []*Ref{{Module: "todo", Name: "testdb"}}},
+						&MetadataSQLQuery{Command: "exec", Query: "INSERT INTO requests (name) VALUES (?)"},
+						&MetadataGenerated{},
+					},
+				},
 				&Verb{Name: "create",
 					Export:   true,
 					Request:  &Ref{Module: "todo", Name: "CreateRequest"},
 					Response: &Ref{Module: "todo", Name: "CreateResponse"},
 					Metadata: []Metadata{
 						&MetadataCalls{Calls: []*Ref{{Module: "todo", Name: "destroy"}}},
-						&MetadataDatabases{Calls: []*Ref{{Module: "todo", Name: "testdb"}}},
 						&MetadataSecrets{Secrets: []*Ref{{Module: "todo", Name: "secretValue"}}},
 						&MetadataConfig{Config: []*Ref{{Module: "todo", Name: "configValue"}}},
-						&MetadataSQLQuery{Command: "exec", Query: "INSERT INTO requests (name) VALUES (?)"},
-					}},
+					},
+				},
 				&Verb{Name: "destroy",
 					Export:   true,
 					Request:  &Ref{Module: "builtin", Name: "HttpRequest", TypeParameters: []Type{&Unit{}, &Ref{Module: "todo", Name: "DestroyRequest"}, &Unit{}}},
