@@ -43,28 +43,6 @@ pub struct CallEvent {
     pub stack: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DeploymentCreatedEvent {
-    #[prost(string, tag="1")]
-    pub key: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
-    pub language: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
-    pub module_name: ::prost::alloc::string::String,
-    #[prost(int32, tag="4")]
-    pub min_replicas: i32,
-    #[prost(string, optional, tag="5")]
-    pub replaced: ::core::option::Option<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DeploymentUpdatedEvent {
-    #[prost(string, tag="1")]
-    pub key: ::prost::alloc::string::String,
-    #[prost(int32, tag="2")]
-    pub min_replicas: i32,
-    #[prost(int32, tag="3")]
-    pub prev_min_replicas: i32,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct IngressEvent {
     #[prost(string, tag="1")]
     pub deployment_key: ::prost::alloc::string::String,
@@ -174,13 +152,46 @@ pub struct PubSubConsumeEvent {
     pub offset: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetCreatedEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="2")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, repeated, tag="3")]
+    pub modules: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="4")]
+    pub to_remove: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangesetStateChangedEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(enumeration="super::super::schema::v1::ChangesetState", tag="2")]
+    pub state: i32,
+    #[prost(string, optional, tag="3")]
+    pub error: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeploymentRuntimeEvent {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="2")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, optional, tag="3")]
+    pub element_name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag="4")]
+    pub element_type: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="5")]
+    pub changeset: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Event {
     #[prost(message, optional, tag="1")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
     /// Unique ID for event.
     #[prost(int64, tag="2")]
     pub id: i64,
-    #[prost(oneof="event::Entry", tags="3, 4, 5, 6, 7, 8, 9, 10, 11")]
+    #[prost(oneof="event::Entry", tags="3, 4, 7, 8, 9, 10, 11, 12, 13, 14")]
     pub entry: ::core::option::Option<event::Entry>,
 }
 /// Nested message and enum types in `Event`.
@@ -191,10 +202,6 @@ pub mod event {
         Log(super::LogEvent),
         #[prost(message, tag="4")]
         Call(super::CallEvent),
-        #[prost(message, tag="5")]
-        DeploymentCreated(super::DeploymentCreatedEvent),
-        #[prost(message, tag="6")]
-        DeploymentUpdated(super::DeploymentUpdatedEvent),
         #[prost(message, tag="7")]
         Ingress(super::IngressEvent),
         #[prost(message, tag="8")]
@@ -205,6 +212,12 @@ pub mod event {
         PubsubPublish(super::PubSubPublishEvent),
         #[prost(message, tag="11")]
         PubsubConsume(super::PubSubConsumeEvent),
+        #[prost(message, tag="12")]
+        ChangesetCreated(super::ChangesetCreatedEvent),
+        #[prost(message, tag="13")]
+        ChangesetStateChanged(super::ChangesetStateChangedEvent),
+        #[prost(message, tag="14")]
+        DeploymentRuntime(super::DeploymentRuntimeEvent),
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -213,13 +226,14 @@ pub enum EventType {
     Unspecified = 0,
     Log = 1,
     Call = 2,
-    DeploymentCreated = 3,
-    DeploymentUpdated = 4,
-    Ingress = 5,
-    CronScheduled = 6,
-    AsyncExecute = 7,
-    PubsubPublish = 8,
-    PubsubConsume = 9,
+    Ingress = 3,
+    CronScheduled = 4,
+    AsyncExecute = 5,
+    PubsubPublish = 6,
+    PubsubConsume = 7,
+    ChangesetCreated = 8,
+    ChangesetStateChanged = 9,
+    DeploymentRuntime = 10,
 }
 impl EventType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -231,13 +245,14 @@ impl EventType {
             Self::Unspecified => "EVENT_TYPE_UNSPECIFIED",
             Self::Log => "EVENT_TYPE_LOG",
             Self::Call => "EVENT_TYPE_CALL",
-            Self::DeploymentCreated => "EVENT_TYPE_DEPLOYMENT_CREATED",
-            Self::DeploymentUpdated => "EVENT_TYPE_DEPLOYMENT_UPDATED",
             Self::Ingress => "EVENT_TYPE_INGRESS",
             Self::CronScheduled => "EVENT_TYPE_CRON_SCHEDULED",
             Self::AsyncExecute => "EVENT_TYPE_ASYNC_EXECUTE",
             Self::PubsubPublish => "EVENT_TYPE_PUBSUB_PUBLISH",
             Self::PubsubConsume => "EVENT_TYPE_PUBSUB_CONSUME",
+            Self::ChangesetCreated => "EVENT_TYPE_CHANGESET_CREATED",
+            Self::ChangesetStateChanged => "EVENT_TYPE_CHANGESET_STATE_CHANGED",
+            Self::DeploymentRuntime => "EVENT_TYPE_DEPLOYMENT_RUNTIME",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -246,13 +261,14 @@ impl EventType {
             "EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
             "EVENT_TYPE_LOG" => Some(Self::Log),
             "EVENT_TYPE_CALL" => Some(Self::Call),
-            "EVENT_TYPE_DEPLOYMENT_CREATED" => Some(Self::DeploymentCreated),
-            "EVENT_TYPE_DEPLOYMENT_UPDATED" => Some(Self::DeploymentUpdated),
             "EVENT_TYPE_INGRESS" => Some(Self::Ingress),
             "EVENT_TYPE_CRON_SCHEDULED" => Some(Self::CronScheduled),
             "EVENT_TYPE_ASYNC_EXECUTE" => Some(Self::AsyncExecute),
             "EVENT_TYPE_PUBSUB_PUBLISH" => Some(Self::PubsubPublish),
             "EVENT_TYPE_PUBSUB_CONSUME" => Some(Self::PubsubConsume),
+            "EVENT_TYPE_CHANGESET_CREATED" => Some(Self::ChangesetCreated),
+            "EVENT_TYPE_CHANGESET_STATE_CHANGED" => Some(Self::ChangesetStateChanged),
+            "EVENT_TYPE_DEPLOYMENT_RUNTIME" => Some(Self::DeploymentRuntime),
             _ => None,
         }
     }
@@ -488,7 +504,7 @@ pub mod create_events_request {
     pub struct EventEntry {
         #[prost(message, optional, tag="1")]
         pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-        #[prost(oneof="event_entry::Entry", tags="2, 3, 4, 5, 6, 7, 8, 9, 10")]
+        #[prost(oneof="event_entry::Entry", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11")]
         pub entry: ::core::option::Option<event_entry::Entry>,
     }
     /// Nested message and enum types in `EventEntry`.
@@ -500,19 +516,21 @@ pub mod create_events_request {
             #[prost(message, tag="3")]
             Call(super::super::CallEvent),
             #[prost(message, tag="4")]
-            DeploymentCreated(super::super::DeploymentCreatedEvent),
-            #[prost(message, tag="5")]
-            DeploymentUpdated(super::super::DeploymentUpdatedEvent),
-            #[prost(message, tag="6")]
             Ingress(super::super::IngressEvent),
-            #[prost(message, tag="7")]
+            #[prost(message, tag="5")]
             CronScheduled(super::super::CronScheduledEvent),
-            #[prost(message, tag="8")]
+            #[prost(message, tag="6")]
             AsyncExecute(super::super::AsyncExecuteEvent),
-            #[prost(message, tag="9")]
+            #[prost(message, tag="7")]
             PubsubPublish(super::super::PubSubPublishEvent),
-            #[prost(message, tag="10")]
+            #[prost(message, tag="8")]
             PubsubConsume(super::super::PubSubConsumeEvent),
+            #[prost(message, tag="9")]
+            ChangesetCreated(super::super::ChangesetCreatedEvent),
+            #[prost(message, tag="10")]
+            ChangesetStateChanged(super::super::ChangesetStateChangedEvent),
+            #[prost(message, tag="11")]
+            DeploymentRuntime(super::super::DeploymentRuntimeEvent),
         }
     }
 }

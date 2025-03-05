@@ -59,7 +59,7 @@ pub struct StatusRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StatusResponse {
-    #[prost(oneof="status_response::Status", tags="1, 2")]
+    #[prost(oneof="status_response::Status", tags="1, 2, 3")]
     pub status: ::core::option::Option<status_response::Status>,
 }
 /// Nested message and enum types in `StatusResponse`.
@@ -83,6 +83,8 @@ pub mod status_response {
         Running(ProvisioningRunning),
         #[prost(message, tag="2")]
         Success(ProvisioningSuccess),
+        #[prost(message, tag="3")]
+        Failed(ProvisioningFailed),
     }
 }
 // @@protoc_insertion_point(module)

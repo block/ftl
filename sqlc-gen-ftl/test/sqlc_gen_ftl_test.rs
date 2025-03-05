@@ -138,7 +138,9 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                     fields: create_fields(&fields),
                     pos: None,
                     comments: vec![],
-                    metadata: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Generated(schemapb::MetadataGenerated { pos: None })),
+                    }],
                 })),
             },
             // GetAllTypesQuery
@@ -166,7 +168,9 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                     ],
                     pos: None,
                     comments: vec![],
-                    metadata: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Generated(schemapb::MetadataGenerated { pos: None })),
+                    }],
                 })),
             },
             // GetAllTypesResult
@@ -198,7 +202,9 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                     },
                     pos: None,
                     comments: vec![],
-                    metadata: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Generated(schemapb::MetadataGenerated { pos: None })),
+                    }],
                 })),
             },
             // CreateAllTypes verb
@@ -236,6 +242,8 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                                 type_parameters: vec![],
                             }],
                         })),
+                    }, schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Generated(schemapb::MetadataGenerated { pos: None })),
                     }],
                 })),
             },
@@ -279,6 +287,8 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                                 type_parameters: vec![],
                             }],
                         })),
+                    }, schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Generated(schemapb::MetadataGenerated { pos: None })),
                     }],
                 })),
             },
