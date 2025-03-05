@@ -474,6 +474,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 			}
 
 			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
+
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
