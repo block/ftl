@@ -14,6 +14,7 @@ import (
 	languagepb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 )
@@ -26,7 +27,7 @@ type DevState struct {
 type ModuleState struct {
 	Name   string
 	Path   string
-	Errors []*languagepb.Error
+	Errors []builderrors.Error
 }
 
 // WaitForDevState waits for the engine to finish and prints a summary of the current module (paths and errors) and schema.
@@ -105,19 +106,12 @@ streamLoop:
 	for _, module := range engineEndedEvent.Modules {
 		modulesPaths[module.Module] = module.Path
 	}
-	if err != nil {
-		return DevState{}, fmt.Errorf("failed to visit schema: %w", err)
-	}
 	out := DevState{}
 	out.Modules = slices.Map(engineEndedEvent.Modules, func(m *buildenginepb.EngineEnded_Module) ModuleState {
-		var errs []*languagepb.Error
-		if m.Errors != nil {
-			errs = m.Errors.Errors
-		}
 		return ModuleState{
 			Name:   m.Module,
 			Path:   m.Path,
-			Errors: errs,
+			Errors: languagepb.ErrorsFromProto(m.Errors),
 		}
 	})
 	out.Schema = sch

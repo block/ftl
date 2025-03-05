@@ -27,9 +27,9 @@ import (
 
 	"github.com/block/scaffolder"
 
-	languagepb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/common/builderrors"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/devstate"
@@ -324,7 +324,7 @@ func WaitForDev(noErrors bool, msgAndArgs ...any) Action {
 		result, err := devstate.WaitForDevState(ic.Context, ic.BuildEngine, ic.Admin)
 		assert.NoError(t, err)
 
-		var errs []*languagepb.Error
+		var errs []builderrors.Error
 		for _, m := range result.Modules {
 			if m.Errors != nil {
 				errs = append(errs, m.Errors...)
