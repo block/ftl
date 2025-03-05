@@ -14,6 +14,7 @@ import (
 	in "github.com/block/ftl/internal/integration"
 )
 
+// TestLifecycleJVM tests the lifecycle of creating a JVM module and editing it
 func TestLifecycleJVM(t *testing.T) {
 	deployment := ""
 	in.Run(t,
@@ -132,4 +133,61 @@ INSERT INTO StockPrice VALUES (0, 100.0, 'FOO');
 		in.Sleep(time.Second*2),
 		in.QueryRow("echo_testdb", "SELECT stock from StockPrice", "FOO"),
 	)
+}
+
+func TestMultiModuleJVMHotReload(t *testing.T) {
+	in.Run(t,
+		in.WithLanguages("kotlin"),
+		in.WithDevMode(),
+		in.GitInit(),
+		in.Exec("rm", "ftl-project.toml"),
+		in.Exec("ftl", "init", "test", "."),
+		in.Exec("ftl", "module", "new", "kotlin", "echo"),
+		in.Exec("ftl", "module", "new", "kotlin", "greeter"),
+		in.WaitWithTimeout("echo", time.Minute*3),
+		in.WaitWithTimeout("greeter", time.Minute*3),
+		in.Call("echo", "hello", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
+			assert.Equal(t, "Hello, Bob!", response["message"])
+		}),
+		in.EditNamedFile("echo", "Echo", func(content []byte) []byte {
+			return []byte(`
+package ftl.echo
+
+import xyz.block.ftl.Export
+import xyz.block.ftl.Verb
+
+data class EchoResponse(val message: String)
+
+@Export
+@Verb
+fun echo(req: String): EchoResponse {
+  return EchoResponse(message = "${req}!")
+}
+`)
+		}),
+		in.Call("echo", "echo", "Bob", func(t testing.TB, response map[string]string) {
+			assert.Equal(t, "Bob!", response["message"])
+		}),
+		in.EditNamedFile("greeter", "Greeter", func(content []byte) []byte {
+			return []byte(`
+package ftl.greeter
+
+import ftl.echo.*
+import xyz.block.ftl.Export
+import xyz.block.ftl.Verb
+
+data class GreetingRequest(val name: String)
+data class GreetingResponse(val message: String)
+
+@Export
+@Verb
+fun greet(req: GreetingRequest, echo: EchoClient): GreetingResponse {
+  val response = echo.echo(req.name)
+  return GreetingResponse(message = "Greetings, ${response.message}")
+}
+`)
+		}),
+		in.Call("greeter", "greet", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
+			assert.Equal(t, "Greetings, Bob!", response["message"])
+		}))
 }
