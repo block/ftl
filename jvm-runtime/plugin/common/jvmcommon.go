@@ -824,7 +824,7 @@ func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request
 		defaults.DeployDir = "target"
 	} else if fileExists(buildGradle) || fileExists(buildGradleKts) {
 		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolGradle)
-		defaults.DevModeBuild = ptr("gradle clean quarkusDev")
+		defaults.DevModeBuild = ptr("gradle clean quarkusDev -Dquarkus.console.enabled=false")
 		defaults.Build = ptr("gradle clean build")
 		defaults.DeployDir = "build"
 	} else {
