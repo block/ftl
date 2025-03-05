@@ -118,7 +118,7 @@ func updateSchema(out *schema.Schema, queries *schema.Module, cfg ConfigContext)
 	found := false
 	for i, m := range out.Modules {
 		if m.Name == queries.Name {
-			out.Modules[i].Decls = append(out.Modules[i].Decls, queries.Decls...)
+			out.Modules[i] = queries
 			found = true
 			break
 		}

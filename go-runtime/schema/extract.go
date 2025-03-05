@@ -220,7 +220,7 @@ func (cd *combinedData) update(fr finalize.Result) {
 }
 
 func (cd *combinedData) toResult() Result {
-	cd.module.AddDecls(maps.Keys(cd.extractedDecls))
+	cd.module.AddDecls(maps.Keys(cd.extractedDecls), true)
 	cd.updateDeclVisibility()
 	cd.propagateTypeErrors()
 	cd.errorDirectVerbInvocations()

@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/alecthomas/repr"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
@@ -156,36 +157,36 @@ func (m *Module) String() string {
 // AddDecls appends decls to the module.
 //
 // Decls are only added if they are not already present in the module or if they change the visibility of an existing
-// Decl.
-func (m *Module) AddDecls(decls []Decl) {
+// Decl and overrideIfExported is true.
+//
+// Returns list of decls that were ignored due to conflicts.
+func (m *Module) AddDecls(decls []Decl, overrideIfExported bool) []RefKey {
 	// decls are namespaced by their type.
-	typeQualifiedName := func(d Decl) string {
-		return reflect.TypeOf(d).Name() + "." + d.GetName()
-	}
 
 	existingDecls := map[string]Decl{}
 	for _, d := range m.Decls {
-		existingDecls[typeQualifiedName(d)] = d
+		existingDecls[d.GetName()] = d
 	}
+	ignoredDecls := make([]RefKey, 0, len(decls))
 	for _, newDecl := range decls {
-		tqName := typeQualifiedName(newDecl)
-		if existingDecl, ok := existingDecls[tqName]; ok {
-			if newDecl.IsExported() && !existingDecl.IsExported() {
-				existingDecls[tqName] = newDecl
+		newDeclName := newDecl.GetName()
+		if existingDecl, ok := existingDecls[newDeclName]; ok {
+			if overrideIfExported && newDecl.IsExported() && !existingDecl.IsExported() {
+				existingDecls[newDeclName] = newDecl
+			} else {
+				ignoredDecls = append(ignoredDecls, RefKey{
+					Module: m.Name,
+					Name:   newDeclName,
+				})
+				repr.Println("ignoredDecls", ignoredDecls)
 			}
 			continue
 		}
 
-		existingDecls[tqName] = newDecl
+		existingDecls[newDeclName] = newDecl
 	}
 	m.Decls = maps.Values(existingDecls)
-}
-
-// AddDecl adds a single decl to the module.
-//
-// It is only added if not already present or if it changes the visibility of the existing Decl.
-func (m *Module) AddDecl(decl Decl) {
-	m.AddDecls([]Decl{decl})
+	return ignoredDecls
 }
 
 // AddData and return its index.

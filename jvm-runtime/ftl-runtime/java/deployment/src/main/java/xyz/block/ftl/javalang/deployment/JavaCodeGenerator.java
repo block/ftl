@@ -30,6 +30,7 @@ import com.squareup.javapoet.WildcardTypeName;
 import xyz.block.ftl.ConsumableTopic;
 import xyz.block.ftl.EnumHolder;
 import xyz.block.ftl.GeneratedRef;
+import xyz.block.ftl.SQLQueryClient;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.VerbClient;
@@ -38,7 +39,10 @@ import xyz.block.ftl.deployment.VerbType;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.MetadataSQLColumn;
+import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
+import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.schema.v1.Topic;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.Value;
@@ -76,7 +80,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
 
     protected void generateTopicConsumer(Module module, Topic data, String packageName, Map<DeclRef, Type> typeAliasMap,
             Map<DeclRef, String> nativeTypeAliasMap, Path outputDir) throws IOException {
-        String thisType = className(data.getName());
+        String thisType = className(data.getName() + "Topic");
 
         TypeSpec.Builder dataBuilder = TypeSpec.interfaceBuilder(thisType)
                 .addModifiers(Modifier.PUBLIC);
@@ -110,7 +114,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
             throws IOException {
         String interfaceType = className(ennum.getName());
         if (ennum.hasType()) {
-            //Enums with a type are "value enums" - Java natively supports these
+            // Enums with a type are "value enums" - Java natively supports these
             TypeSpec.Builder dataBuilder = TypeSpec.enumBuilder(interfaceType)
                     .addAnnotation(getGeneratedRefAnnotation(module.getName(), ennum.getName()))
                     .addAnnotation(AnnotationSpec.builder(xyz.block.ftl.Enum.class).build())
@@ -133,10 +137,12 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
             JavaFile javaFile = JavaFile.builder(packageName, dataBuilder.build()).build();
             javaFile.writeTo(outputDir);
         } else {
-            // Enums without a type are (confusingly) "type enums". Java can't represent these directly, so we use a
+            // Enums without a type are (confusingly) "type enums". Java can't represent
+            // these directly, so we use a
             // sealed class
 
-            // TODO JavaPoet doesn't support 'sealed' or 'permits' syntax yet, so we can't seal the interface
+            // TODO JavaPoet doesn't support 'sealed' or 'permits' syntax yet, so we can't
+            // seal the interface
             // https://github.com/square/javapoet/issues/823
             TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(interfaceType)
                     .addAnnotation(getGeneratedRefAnnotation(module.getName(), ennum.getName()))
@@ -145,8 +151,9 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                     .addJavadoc(String.join("\n", ennum.getCommentsList()));
 
             Map<String, TypeName> variantValuesTypes = ennum.getVariantsList().stream().collect(
-                    Collectors.toMap(EnumVariant::getName, v -> toAnnotatedJavaTypeName(v.getValue().getTypeValue().getValue(),
-                            typeAliasMap, nativeTypeAliasMap)));
+                    Collectors.toMap(EnumVariant::getName,
+                            v -> toAnnotatedJavaTypeName(v.getValue().getTypeValue().getValue(),
+                                    typeAliasMap, nativeTypeAliasMap)));
             for (var variant : ennum.getVariantsList()) {
                 // Interface has isX and getX methods for each variant
                 String name = variant.getName();
@@ -169,7 +176,8 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                     List<EnumInfo> variantInfos = enumVariantInfoMap.computeIfAbsent(key, k -> new ArrayList<>());
                     variantInfos.add(new EnumInfo(interfaceType, variant, ennum.getVariantsList()));
                 } else {
-                    // Value type isn't a Ref, so we make a wrapper class that implements our interface
+                    // Value type isn't a Ref, so we make a wrapper class that implements our
+                    // interface
                     TypeSpec.Builder dataBuilder = TypeSpec.classBuilder(className(name))
                             .addAnnotation(getGeneratedRefAnnotation(module.getName(), name))
                             .addAnnotation(AnnotationSpec.builder(EnumHolder.class).build())
@@ -204,7 +212,8 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc(String.join("\n", data.getCommentsList()));
 
-        // if data is part of a type enum, generate the interface methods for each variant
+        // if data is part of a type enum, generate the interface methods for each
+        // variant
         DeclRef key = new DeclRef(module.getName(), data.getName());
         if (enumVariantInfoMap.containsKey(key)) {
             for (var enumVariantInfo : enumVariantInfoMap.get(key)) {
@@ -271,6 +280,16 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
     }
 
     protected void generateVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
+            Map<DeclRef, String> nativeTypeAliasMap, Path outputDir, boolean isSQLQuery)
+            throws IOException {
+        if (isSQLQuery) {
+            generateSQLQueryVerb(module, verb, packageName, typeAliasMap, nativeTypeAliasMap, outputDir);
+        } else {
+            generateVerb(module, verb, packageName, typeAliasMap, nativeTypeAliasMap, outputDir);
+        }
+    }
+
+    protected void generateVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
             Map<DeclRef, String> nativeTypeAliasMap, Path outputDir)
             throws IOException {
         String verbName = verb.getName();
@@ -293,11 +312,86 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
             callMethod.returns(toAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap));
         }
         if (verbType == VerbType.SINK || verbType == VerbType.VERB) {
-            callMethod.addParameter(toAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap), "value");
+            callMethod.addParameter(toAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap),
+                    "value");
         }
         clientBuilder.addMethod(callMethod.build());
         JavaFile javaFile = JavaFile.builder(packageName, clientBuilder.build()).build();
         javaFile.writeTo(outputDir);
+    }
+
+    protected void generateSQLQueryVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
+            Map<DeclRef, String> nativeTypeAliasMap, Path outputDir)
+            throws IOException {
+        String verbName = verb.getName();
+        TypeSpec.Builder clientBuilder = TypeSpec.interfaceBuilder(className(verbName) + CLIENT)
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("A client for the $L.$L SQL query verb", module.getName(), verbName);
+
+        var methodName = verbName;
+        if (JAVA_KEYWORDS.contains(verbName)) {
+            methodName = verbName + "_";
+        }
+
+        MetadataSQLQuery queryMetadata = getQueryMetadata(verb);
+        AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(SQLQueryClient.class)
+                .addMember("command", "\"" + queryMetadata.getCommand() + "\"")
+                .addMember("rawSQL", "\"" + queryMetadata.getQuery() + "\"")
+                .addMember("module", "\"" + module.getName() + "\"");
+        MethodSpec.Builder callMethod = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                .addJavadoc(String.join("\n", verb.getCommentsList()));
+        VerbType verbType = VerbType.of(verb);
+        if (verbType == VerbType.SOURCE || verbType == VerbType.VERB) {
+            List<MetadataSQLColumn> columnMetadata = getOrderedColumnMetadata(module, verb.getRequest());
+            String[] fields = columnMetadata.stream().map(m -> toJavaName(m.getName())).toArray(String[]::new);
+            annotationBuilder.addMember("fields", "{$S}", String.join("\", \"", fields));
+            callMethod.returns(toAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap));
+        }
+        if (verbType == VerbType.SINK || verbType == VerbType.VERB) {
+            List<MetadataSQLColumn> columnMetadata = getOrderedColumnMetadata(module, verb.getResponse());
+            String[] fields = columnMetadata.stream().map(m -> m.getName() + "," + toJavaName(m.getName()))
+                    .toArray(String[]::new);
+            annotationBuilder.addMember("colToFieldName", "{$S}", String.join("\", \"", fields));
+            callMethod.addParameter(toAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap),
+                    "value");
+        }
+        callMethod.addAnnotation(annotationBuilder.build());
+        clientBuilder.addMethod(callMethod.build());
+        JavaFile javaFile = JavaFile.builder(packageName, clientBuilder.build()).build();
+        javaFile.writeTo(outputDir);
+    }
+
+    private MetadataSQLQuery getQueryMetadata(Verb verb) {
+        return verb.getMetadataList().stream().findFirst().map(md -> md.getSqlQuery()).orElse(null);
+    }
+
+    private List<MetadataSQLColumn> getOrderedColumnMetadata(Module module, Type type) {
+        Ref ref = type.getRef();
+        if (ref == null) {
+            return List.of();
+        }
+        Data data = resolveDataDecl(module, ref);
+        if (data == null) {
+            return List.of();
+        }
+        List<MetadataSQLColumn> metadata = new ArrayList<>();
+        for (var field : data.getFieldsList()) {
+            MetadataSQLColumn fieldMd = field.getMetadataList().stream().findFirst().map(md -> md.getSqlColumn())
+                    .orElse(null);
+            if (fieldMd != null) {
+                metadata.add(fieldMd);
+            }
+        }
+        return metadata;
+    }
+
+    private Data resolveDataDecl(Module module, Ref ref) {
+        if (ref == null) {
+            return null;
+        }
+        return module.getDeclsList().stream().filter(d -> d.hasData() && d.getData().getName().equals(ref.getName()))
+                .findFirst().map(d -> d.getData()).orElse(null);
     }
 
     private String toJavaName(String name) {
@@ -310,7 +404,8 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
     private TypeName toAnnotatedJavaTypeName(Type type, Map<DeclRef, Type> typeAliasMap,
             Map<DeclRef, String> nativeTypeAliasMap) {
         var results = toJavaTypeName(type, typeAliasMap, nativeTypeAliasMap, false);
-        if (type.hasRef() || type.hasArray() || type.hasBytes() || type.hasString() || type.hasMap() || type.hasTime()) {
+        if (type.hasRef() || type.hasArray() || type.hasBytes() || type.hasString() || type.hasMap()
+                || type.hasTime()) {
             return results.annotated(AnnotationSpec.builder(NotNull.class).build());
         }
         return results;
@@ -379,21 +474,26 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
         } else if (value.hasStringValue()) {
             return value.getStringValue().getValue();
         } else if (value.hasTypeValue()) {
-            // Can't instantiate a TypeValue now. Cannot happen because it's only used in type enums
+            // Can't instantiate a TypeValue now. Cannot happen because it's only used in
+            // type enums
             throw new RuntimeException("Cannot generate TypeValue: " + value);
         }
         throw new RuntimeException("Cannot generate Java value: " + value);
     }
 
     /**
-     * Adds the super interface and isX, getX methods to the <code>dataBuilder</code> for a type enum variant
+     * Adds the super interface and isX, getX methods to the
+     * <code>dataBuilder</code> for a type enum variant
      */
-    private static void addTypeEnumInterfaceMethods(String packageName, String interfaceType, TypeSpec.Builder dataBuilder,
-            String enumVariantName, TypeName variantTypeName, Map<String, TypeName> variantValuesTypes, boolean returnSelf) {
+    private static void addTypeEnumInterfaceMethods(String packageName, String interfaceType,
+            TypeSpec.Builder dataBuilder,
+            String enumVariantName, TypeName variantTypeName, Map<String, TypeName> variantValuesTypes,
+            boolean returnSelf) {
         dataBuilder.addSuperinterface(ClassName.get(packageName, interfaceType));
         // Positive implementation of isX, getX for its type
         dataBuilder.addMethod(makeIsMethod(enumVariantName, true));
-        dataBuilder.addMethod(makeGetMethod(enumVariantName, variantTypeName, "return " + (returnSelf ? "this" : "value")));
+        dataBuilder.addMethod(
+                makeGetMethod(enumVariantName, variantTypeName, "return " + (returnSelf ? "this" : "value")));
 
         for (var variant : variantValuesTypes.entrySet()) {
             if (variant.getKey().equals(enumVariantName)) {
@@ -432,7 +532,9 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
 
     protected static final Set<String> JAVA_KEYWORDS = Set.of("abstract", "continue", "for", "new", "switch", "assert",
             "default", "goto", "package", "synchronized", "boolean", "do", "if", "private", "this", "break", "double",
-            "implements", "protected", "throw", "byte", "else", "import", "public", "throws", "case", "enum", "instanceof",
-            "return", "transient", "catch", "extends", "int", "short", "try", "char", "final", "interface", "static", "void",
+            "implements", "protected", "throw", "byte", "else", "import", "public", "throws", "case", "enum",
+            "instanceof",
+            "return", "transient", "catch", "extends", "int", "short", "try", "char", "final", "interface", "static",
+            "void",
             "class", "finally", "long", "strictfp", "volatile", "const", "float", "native", "super", "while");
 }

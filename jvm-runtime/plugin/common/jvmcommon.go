@@ -658,8 +658,30 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 	if err != nil {
 		return nil, fmt.Errorf("failed to load build errors: %w", err)
 	}
+	moduleProto, err := readSchema(bctx)
+	if err != nil {
+		return nil, err
+	}
+	module, err := schema.ModuleFromProto(moduleProto)
+	if err != nil {
+		return nil, err
+	}
+	var generatedModule *schema.Module
+	for _, m := range bctx.Schema.Modules {
+		if m.Name == bctx.Config.Module {
+			generatedModule = m
+			break
+		}
+	}
+	ignoredDecls := module.AddDecls(generatedModule.Decls, false)
+	for _, decl := range ignoredDecls {
+		buildErrs.Errors = append(buildErrs.Errors, &langpb.Error{
+			Type:  langpb.Error_ERROR_TYPE_FTL,
+			Level: langpb.Error_ERROR_LEVEL_ERROR,
+			Msg:   fmt.Sprintf("declaration %q conflicts with FTL-generated type of the same name", decl),
+		})
+	}
 	if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(buildErrs)) {
-		// skip reading schema
 		return &langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 			BuildFailure: &langpb.BuildFailure{
 				IsAutomaticRebuild: autoRebuild,
@@ -668,17 +690,13 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 			}}}, nil
 	}
 
-	moduleProto, err := readSchema(bctx)
-	if err != nil {
-		return nil, err
-	}
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildSuccess{
 			BuildSuccess: &langpb.BuildSuccess{
 				IsAutomaticRebuild: autoRebuild,
 				ContextId:          bctx.ID,
 				Errors:             buildErrs,
-				Module:             moduleProto,
+				Module:             module.ToProto(),
 				Deploy:             []string{"launch", "quarkus-app"},
 			},
 		},
@@ -736,6 +754,15 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 	s.buildContext.Store(buildCtx)
+	for _, m := range buildCtx.Schema.Modules {
+		if m.Name == buildCtx.Config.Module {	
+			err = s.writeGeneratedSchemaFile(ctx, m, buildCtx.Config)
+			if err != nil {
+				return nil, fmt.Errorf("failed to write generated schema file for module %s %w", m.Name, err)
+			}
+		}
+	}
+
 	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to write generic schema files: %w", err)
@@ -1007,6 +1034,40 @@ func loadProtoErrors(config moduleconfig.AbsModuleConfig) (*langpb.ErrorList, er
 
 func ptr(s string) *string {
 	return &s
+}
+
+func (s *Service) writeGeneratedSchemaFile(ctx context.Context, v *schema.Module, config moduleconfig.AbsModuleConfig) error {
+	if v == nil {
+		return nil
+	}
+	logger := log.FromContext(ctx)
+	modPath := filepath.Join(config.Dir, "src", "main", "ftl-generated-schema")
+	err := os.MkdirAll(modPath, 0750)
+	if err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", modPath, err)
+	}
+
+	data, err := schema.ModuleToBytes(v)
+	if err != nil {
+		return fmt.Errorf("failed to export module schema for module %s %w", v.Name, err)
+	}
+	schemaFile := filepath.Join(modPath, v.Name+".pb")
+	if fileExists(schemaFile) {
+		existing, err := os.ReadFile(schemaFile)
+		if err == nil {
+			// file has not changed, no need to write
+			if bytes.Equal(existing, data) {
+				return nil
+			}
+		}
+
+		err = os.WriteFile(schemaFile, data, 0644) // #nosec
+		logger.Debugf("writing generated schema file for %s to %s", v.Name, schemaFile)
+		if err != nil {
+			return fmt.Errorf("failed to write generated schema file for module %s %w", v.Name, err)
+		}
+	}
+	return nil
 }
 
 func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema, config moduleconfig.AbsModuleConfig) error {
