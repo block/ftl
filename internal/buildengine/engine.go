@@ -244,6 +244,9 @@ func New(
 			e.arch = info.Msg.Arch
 		}
 	}
+	// Save initial schema
+	initialEvent := <-e.deployCoordinator.SchemaUpdates
+	e.targetSchema.Store(initialEvent.schema)
 	if adminClient == nil {
 		return e, nil
 	}
@@ -379,10 +382,6 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 		// Cancel will close the topic and channel
 		cancel(fmt.Errorf("watch stopped: %w", context.Canceled))
 	}()
-
-	// Save initial schema
-	initialEvent := <-e.deployCoordinator.SchemaUpdates
-	e.targetSchema.Store(initialEvent.schema)
 
 	// Build and deploy all modules first.
 	_ = e.BuildAndDeploy(ctx, 1, true, false) //nolint:errcheck
