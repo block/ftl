@@ -45,10 +45,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.tomlj</groupId>
-            <artifactId>tomlj</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5-internal</artifactId>
             <scope>test</scope>
