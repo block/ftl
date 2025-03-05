@@ -2227,6 +2227,12 @@ export class Metadata extends Message<Metadata> {
     case: "generated";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 19;
+     */
+    value: MetadataGit;
+    case: "git";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.MetadataIngress ingress = 2;
      */
     value: MetadataIngress;
@@ -2303,6 +2309,7 @@ export class Metadata extends Message<Metadata> {
     { no: 4, name: "databases", kind: "message", T: MetadataDatabases, oneof: "value" },
     { no: 9, name: "encoding", kind: "message", T: MetadataEncoding, oneof: "value" },
     { no: 18, name: "generated", kind: "message", T: MetadataGenerated, oneof: "value" },
+    { no: 19, name: "git", kind: "message", T: MetadataGit, oneof: "value" },
     { no: 2, name: "ingress", kind: "message", T: MetadataIngress, oneof: "value" },
     { no: 15, name: "partitions", kind: "message", T: MetadataPartitions, oneof: "value" },
     { no: 12, name: "publisher", kind: "message", T: MetadataPublisher, oneof: "value" },
@@ -2697,6 +2704,61 @@ export class MetadataGenerated extends Message<MetadataGenerated> {
 
   static equals(a: MetadataGenerated | PlainMessage<MetadataGenerated> | undefined, b: MetadataGenerated | PlainMessage<MetadataGenerated> | undefined): boolean {
     return proto3.util.equals(MetadataGenerated, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.MetadataGit
+ */
+export class MetadataGit extends Message<MetadataGit> {
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  /**
+   * @generated from field: string repository = 2;
+   */
+  repository = "";
+
+  /**
+   * @generated from field: string commit = 3;
+   */
+  commit = "";
+
+  /**
+   * @generated from field: bool dirty = 4;
+   */
+  dirty = false;
+
+  constructor(data?: PartialMessage<MetadataGit>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.MetadataGit";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position, opt: true },
+    { no: 2, name: "repository", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "commit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "dirty", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetadataGit {
+    return new MetadataGit().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetadataGit {
+    return new MetadataGit().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetadataGit {
+    return new MetadataGit().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetadataGit | PlainMessage<MetadataGit> | undefined, b: MetadataGit | PlainMessage<MetadataGit> | undefined): boolean {
+    return proto3.util.equals(MetadataGit, a, b);
   }
 }
 

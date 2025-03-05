@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	slices2 "github.com/block/ftl/common/slices"
 	"os"
 	"reflect"
 	"slices"
@@ -128,6 +129,10 @@ func (m *Module) String() string {
 		reflect.TypeOf(&Database{}):  {gapWithinType: false},
 		reflect.TypeOf(&Topic{}):     {gapWithinType: false},
 		reflect.TypeOf(&TypeAlias{}): {gapWithinType: false},
+	}
+
+	for commit := range slices2.FilterVariants[*MetadataGit, Metadata](m.Metadata) {
+		fmt.Fprintln(w, indent(commit.String()))
 	}
 
 	lastTypePrinted := optional.None[reflect.Type]()

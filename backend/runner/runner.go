@@ -137,6 +137,11 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	}
 
 	module, err := svc.getModule(ctx, config.Deployment)
+	for git := range slices.FilterVariants[*schema.MetadataGit, schema.Metadata](module.Metadata) {
+		logger = logger.Attrs(map[string]string{"git-commit": git.Commit})
+		ctx = log.ContextWithLogger(ctx, logger)
+		break
+	}
 	if err != nil {
 		return fmt.Errorf("failed to get module: %w", err)
 	}

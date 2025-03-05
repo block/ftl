@@ -448,7 +448,7 @@ class Map(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., key: _Optional[_Union[Type, _Mapping]] = ..., value: _Optional[_Union[Type, _Mapping]] = ...) -> None: ...
 
 class Metadata(_message.Message):
-    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "databases", "encoding", "generated", "ingress", "partitions", "publisher", "retry", "sql_column", "sql_migration", "sql_query", "secrets", "subscriber", "type_map")
+    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "databases", "encoding", "generated", "git", "ingress", "partitions", "publisher", "retry", "sql_column", "sql_migration", "sql_query", "secrets", "subscriber", "type_map")
     ALIAS_FIELD_NUMBER: _ClassVar[int]
     ARTEFACT_FIELD_NUMBER: _ClassVar[int]
     CALLS_FIELD_NUMBER: _ClassVar[int]
@@ -457,6 +457,7 @@ class Metadata(_message.Message):
     DATABASES_FIELD_NUMBER: _ClassVar[int]
     ENCODING_FIELD_NUMBER: _ClassVar[int]
     GENERATED_FIELD_NUMBER: _ClassVar[int]
+    GIT_FIELD_NUMBER: _ClassVar[int]
     INGRESS_FIELD_NUMBER: _ClassVar[int]
     PARTITIONS_FIELD_NUMBER: _ClassVar[int]
     PUBLISHER_FIELD_NUMBER: _ClassVar[int]
@@ -475,6 +476,7 @@ class Metadata(_message.Message):
     databases: MetadataDatabases
     encoding: MetadataEncoding
     generated: MetadataGenerated
+    git: MetadataGit
     ingress: MetadataIngress
     partitions: MetadataPartitions
     publisher: MetadataPublisher
@@ -485,7 +487,7 @@ class Metadata(_message.Message):
     secrets: MetadataSecrets
     subscriber: MetadataSubscriber
     type_map: MetadataTypeMap
-    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., generated: _Optional[_Union[MetadataGenerated, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., partitions: _Optional[_Union[MetadataPartitions, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_column: _Optional[_Union[MetadataSQLColumn, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., sql_query: _Optional[_Union[MetadataSQLQuery, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
+    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., generated: _Optional[_Union[MetadataGenerated, _Mapping]] = ..., git: _Optional[_Union[MetadataGit, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., partitions: _Optional[_Union[MetadataPartitions, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_column: _Optional[_Union[MetadataSQLColumn, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., sql_query: _Optional[_Union[MetadataSQLQuery, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
 
 class MetadataAlias(_message.Message):
     __slots__ = ("pos", "kind", "alias")
@@ -556,6 +558,18 @@ class MetadataGenerated(_message.Message):
     POS_FIELD_NUMBER: _ClassVar[int]
     pos: Position
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ...) -> None: ...
+
+class MetadataGit(_message.Message):
+    __slots__ = ("pos", "repository", "commit", "dirty")
+    POS_FIELD_NUMBER: _ClassVar[int]
+    REPOSITORY_FIELD_NUMBER: _ClassVar[int]
+    COMMIT_FIELD_NUMBER: _ClassVar[int]
+    DIRTY_FIELD_NUMBER: _ClassVar[int]
+    pos: Position
+    repository: str
+    commit: str
+    dirty: bool
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., repository: _Optional[str] = ..., commit: _Optional[str] = ..., dirty: bool = ...) -> None: ...
 
 class MetadataIngress(_message.Message):
     __slots__ = ("pos", "type", "method", "path")
