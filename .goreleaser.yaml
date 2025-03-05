@@ -18,7 +18,7 @@ builds:
     main: ./cmd/ftl-sqlc
     binary: ftl-sqlc
     <<: *settings
-  - id: ftl-language-mcp
+  - id: ftl-mcp
     main: ./cmd/ftl-mcp
     binary: ftl-mcp
     <<: *settings
