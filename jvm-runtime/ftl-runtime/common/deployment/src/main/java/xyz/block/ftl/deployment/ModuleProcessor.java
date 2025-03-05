@@ -16,12 +16,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 import org.jboss.jandex.DotName;
 import org.jboss.logging.Logger;
-import org.tomlj.Toml;
-import org.tomlj.TomlParseResult;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildProducer;
@@ -29,7 +26,6 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Produce;
 import io.quarkus.deployment.annotations.Record;
-import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
 import io.quarkus.deployment.builditem.ApplicationInfoBuildItem;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
@@ -88,35 +84,12 @@ public class ModuleProcessor {
     }
 
     @BuildStep
-    ModuleNameBuildItem moduleName(ApplicationInfoBuildItem applicationInfoBuildItem,
-            ApplicationArchivesBuildItem archivesBuildItem) throws IOException {
-        for (var root : archivesBuildItem.getRootArchive().getRootDirectories()) {
-            Path source = root;
-            for (;;) {
-                var toml = source.resolve("ftl.toml");
-                if (Files.exists(toml)) {
-                    TomlParseResult result = Toml.parse(toml);
-                    if (result.hasErrors()) {
-                        throw new RuntimeException("Failed to parse " + toml + " "
-                                + result.errors().stream().map(Objects::toString).collect(Collectors.joining(", ")));
-                    }
-
-                    String value = result.getString("module");
-                    if (value != null) {
-                        return new ModuleNameBuildItem(value);
-                    } else {
-                        log.errorf("module name not found in %s", toml);
-                    }
-                }
-                if (source.getParent() == null) {
-                    break;
-                } else {
-                    source = source.getParent();
-                }
-            }
+    ModuleNameBuildItem moduleName(ApplicationInfoBuildItem applicationInfoBuildItem) throws IOException {
+        String ftlModuleName = System.getenv("FTL_MODULE_NAME");
+        if (ftlModuleName == null || ftlModuleName.isEmpty()) {
+            return new ModuleNameBuildItem(applicationInfoBuildItem.getName());
         }
-
-        return new ModuleNameBuildItem(applicationInfoBuildItem.getName());
+        return new ModuleNameBuildItem(ftlModuleName);
     }
 
     /**
