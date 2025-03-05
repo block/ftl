@@ -14,6 +14,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/concurrency"
 	"github.com/block/ftl/internal/dsn"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/provisioner"
 	"github.com/block/ftl/internal/provisioner/state"
 )
@@ -40,6 +41,8 @@ func (e *ARNSecretMySQLSetup) Prepare(_ context.Context, input state.State) erro
 func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error) {
 	rg := concurrency.ResourceGroup[state.State]{}
 
+	logger := log.FromContext(ctx)
+
 	for _, input := range e.inputs {
 		if input, ok := input.(state.RDSInstanceReadyMySQL); ok {
 			rg.Go(func() (state.State, error) {
@@ -57,6 +60,8 @@ func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error
 				if err := mysqlSetup(ctx, adminDSN, connector); err != nil {
 					return nil, err
 				}
+
+				logger.Infof("MySQL database created: %s", input.ResourceID) //nolint
 
 				return state.OutputMySQL{
 					Module:     input.Module,

@@ -41,6 +41,7 @@ func (e *ARNSecretPostgresSetup) Prepare(_ context.Context, input state.State) e
 
 func (e *ARNSecretPostgresSetup) Execute(ctx context.Context) ([]state.State, error) {
 	rg := concurrency.ResourceGroup[state.State]{}
+	logger := log.FromContext(ctx)
 
 	for _, input := range e.inputs {
 		if input, ok := input.(state.RDSInstanceReadyPostgres); ok {
@@ -65,6 +66,8 @@ func (e *ARNSecretPostgresSetup) Execute(ctx context.Context) ([]state.State, er
 				if err := postgresSetup(ctx, adminDSN, connector); err != nil {
 					return nil, err
 				}
+
+				logger.Infof("Postgres database created: %s", input.ResourceID) //nolint
 
 				return state.OutputPostgres{
 					Module:     input.Module,

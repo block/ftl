@@ -23,7 +23,11 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 	// in that case, we start a new task to query the existing stack
 	task, loaded := c.running.LoadOrStore(token, &provisioner.Task{})
 	if !loaded {
-		task.Start(ctx, req.Msg.DesiredModule.Name)
+		dk, err := key.ParseDeploymentKey(token)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse deployment key: %w", err)
+		}
+		task.Start(ctx, req.Msg.DesiredModule.Name, dk)
 	}
 
 	if task.Err() != nil {

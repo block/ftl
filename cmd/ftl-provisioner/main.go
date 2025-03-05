@@ -17,6 +17,7 @@ import (
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"
+	timeline "github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
@@ -38,6 +39,7 @@ func main() {
 
 	logger := log.Configure(os.Stderr, cli.LogConfig)
 	ctx := log.ContextWithLogger(context.Background(), logger)
+	timelineClient := timeline.NewClient(ctx, cli.ProvisionerConfig.TimelineEndpoint)
 	err := observability.Init(ctx, false, "", "ftl-provisioner", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
@@ -69,6 +71,6 @@ func main() {
 		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
 	}
 
-	err = provisioner.Start(ctx, registry, schemaClient)
+	err = provisioner.Start(ctx, registry, schemaClient, timelineClient)
 	kctx.FatalIfErrorf(err, "failed to start provisioner")
 }

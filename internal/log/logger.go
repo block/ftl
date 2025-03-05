@@ -11,12 +11,15 @@ import (
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/types/optional"
 	"github.com/benbjohnson/clock"
+
+	"github.com/block/ftl/internal/key"
 )
 
 var _ Interface = (*Logger)(nil)
 
 const scopeKey = "scope"
 const moduleKey = "module"
+const deploymentKey = "deployment"
 
 type Entry struct {
 	Time       time.Time         `json:"-"`
@@ -52,6 +55,10 @@ func (l Logger) Scope(scope string) *Logger {
 
 func (l Logger) Module(module string) *Logger {
 	return l.Attrs(map[string]string{moduleKey: module})
+}
+
+func (l Logger) Deployment(deployment key.Deployment) *Logger {
+	return l.Attrs(map[string]string{deploymentKey: deployment.String()})
 }
 
 // Attrs creates a new logger with the given attributes.
