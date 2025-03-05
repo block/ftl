@@ -258,6 +258,9 @@ func (e *Engine) Close() error {
 
 func (e *Engine) GetModuleSchema(moduleName string) (*schema.Module, bool) {
 	sch := e.targetSchema.Load()
+	if sch == nil {
+		return nil, false
+	}
 	module, ok := slices.Find(sch.Modules, func(m *schema.Module) bool {
 		return m.Name == moduleName
 	})
