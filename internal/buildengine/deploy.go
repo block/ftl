@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/types/optional"
+	"github.com/alecthomas/types/result"
 	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/alecthomas/types/optional"
-	"github.com/alecthomas/types/result"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
