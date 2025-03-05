@@ -452,6 +452,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
+			handleReloadResponse(result, newKey)
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), buildContextUpdated: true, failed: result.Msg.Failed}
 		case <-fileEvents:
 			newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
@@ -478,19 +479,23 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 			if err != nil {
 				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
 			}
-			if result.Msg.State.Module != nil {
-				if result.Msg.State.Module.Runtime == nil {
-					result.Msg.State.Module.Runtime = &schemapb.ModuleRuntime{}
-				}
-				if result.Msg.State.Module.Runtime.Deployment == nil {
-					result.Msg.State.Module.Runtime.Deployment = &schemapb.ModuleRuntimeDeployment{}
-				}
-				result.Msg.State.Module.Runtime.Deployment.DeploymentKey = newKey.String()
-			}
+			handleReloadResponse(result, newKey)
 			reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed}
 		case <-ctx.Done():
 			return fmt.Errorf("context cancelled %w", ctx.Err())
 		}
+	}
+}
+
+func handleReloadResponse(result *connect.Response[hotreloadpb.ReloadResponse], newKey key.Deployment) {
+	if result.Msg.State.Module != nil {
+		if result.Msg.State.Module.Runtime == nil {
+			result.Msg.State.Module.Runtime = &schemapb.ModuleRuntime{}
+		}
+		if result.Msg.State.Module.Runtime.Deployment == nil {
+			result.Msg.State.Module.Runtime.Deployment = &schemapb.ModuleRuntimeDeployment{}
+		}
+		result.Msg.State.Module.Runtime.Deployment.DeploymentKey = newKey.String()
 	}
 }
 

@@ -391,6 +391,27 @@ func EditFile(module string, editFunc func([]byte) []byte, path ...string) Actio
 	}
 }
 
+// EditNamedFile edits a file in a based on the name without an extension. This allows for similar edits for Kotlin and Java files for example
+func EditNamedFile(module string, fileName string, editFunc func([]byte) []byte) Action {
+	return func(t testing.TB, ic TestContext) {
+		EditFiles(module, func(path string, contents []byte) (bool, []byte) {
+			_, file := filepath.Split(path)
+			ext := filepath.Ext(file)
+			if ext == ".class" {
+				return false, nil
+			}
+			if ext != "" {
+				file = file[0 : len(file)-len(ext)]
+			}
+			if fileName == file {
+				Infof("Editing %s %s", path, fileName)
+				return true, editFunc(contents)
+			}
+			return false, nil
+		}, "")(t, ic)
+	}
+}
+
 // EditFile edits a files in a modules directory
 func EditFiles(module string, editFunc func(path string, contents []byte) (bool, []byte), path ...string) Action {
 	return func(t testing.TB, ic TestContext) {
@@ -402,11 +423,11 @@ func EditFiles(module string, editFunc func(path string, contents []byte) (bool,
 			if info.IsDir() {
 				return nil
 			}
-			Infof("Editing %s", path)
 			contents, err := os.ReadFile(path)
 			assert.NoError(t, err)
 			ok, contents := editFunc(path, contents)
 			if ok {
+				Infof("Editing %s", path)
 				err = os.WriteFile(path, contents, os.FileMode(0))
 				assert.NoError(t, err)
 			}

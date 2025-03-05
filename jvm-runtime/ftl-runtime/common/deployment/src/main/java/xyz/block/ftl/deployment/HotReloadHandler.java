@@ -77,6 +77,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
+        LOG.debugf("Reload request: %s", request.getNewDeploymentKey());
         var forceNewRunner = request.getForceNewRunner() || nextRequiresNewRunner;
         this.nextRequiresNewRunner = false;
         // This is complex, as the restart can't happen until the runner is up
@@ -124,6 +125,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                             state = state.toBuilder().setNewRunnerRequired(true).build();
                         }
                         if (state.getNewRunnerRequired()) {
+                            LOG.debugf("Update required deployment key: %s", request.getNewDeploymentKey());
                             RunnerNotification.newDeploymentKey(request.getNewDeploymentKey());
                         }
                         responseObserver.onNext(ReloadResponse.newBuilder().setState(state).build());
@@ -161,6 +163,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void runnerInfo(RunnerInfoRequest request, StreamObserver<RunnerInfoResponse> responseObserver) {
+        LOG.debugf("Received runner info for: %s", request.getDeployment());
         Map<String, String> databases = new HashMap<>();
         for (var db : request.getDatabasesList()) {
             databases.put(db.getName(), db.getAddress());
@@ -168,7 +171,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         boolean outdated = RunnerNotification
                 .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases));
         if (outdated) {
-            LOG.debugf("Runner is outdated, a reload is required, runner version %s, current %s",
+            LOG.infof("Runner is outdated, a reload is required, runner version %s, current %s",
                     request.getDeployment(), RunnerNotification.getDeploymentKey());
         }
         responseObserver.onNext(RunnerInfoResponse.newBuilder().setOutdated(outdated).build());
