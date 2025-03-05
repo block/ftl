@@ -26,6 +26,7 @@ public class FTLConfigSource implements ConfigSource {
 
     final static String FTL_BIND = "FTL_BIND";
     private static final String OTEL_ENV_VAR = "OTEL_EXPORTER_OTLP_ENDPOINT";
+    public static final String QUARKUS_LOG_LEVEL = "quarkus.log.level";
 
     final FTLController controller;
 
@@ -41,7 +42,7 @@ public class FTLConfigSource implements ConfigSource {
 
     public FTLConfigSource(FTLController controller) {
         this.controller = controller;
-        this.propertyNames = new HashSet<>(List.of(SEPARATE_SERVER, PORT, HOST));
+        this.propertyNames = new HashSet<>(List.of(SEPARATE_SERVER, PORT, HOST, QUARKUS_LOG_LEVEL));
         try (var in = Thread.currentThread().getContextClassLoader().getResourceAsStream(DATASOURCE_NAMES)) {
             String s = new String(in.readAllBytes(), StandardCharsets.UTF_8);
             for (String name : s.split("\n")) {
@@ -71,6 +72,9 @@ public class FTLConfigSource implements ConfigSource {
     @Override
     public String getValue(String s) {
         switch (s) {
+            case QUARKUS_LOG_LEVEL -> {
+                return "DEBUG";
+            }
             case OTEL_METRICS_DISABLED -> {
                 var v = System.getenv(OTEL_ENV_VAR);
                 return Boolean

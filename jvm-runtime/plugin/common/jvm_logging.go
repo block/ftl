@@ -1,8 +1,10 @@
 package common
 
 import (
+	"encoding/json"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/alecthomas/atomic"
 
@@ -49,6 +51,13 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 			o.logger.Tracef("%s", cleanLine)
 		} else if cleanLine, ok := strings.CutPrefix(line, "FINE "); ok {
 			o.logger.Tracef("%s", cleanLine)
+		} else if line[0] == '{' {
+			record := JvmLogRecord{}
+			if err := json.Unmarshal([]byte(line), &record); err == nil {
+				o.logger.Log(record.ToEntry())
+			} else {
+				o.logger.Infof("Log Parse Failure: %s", line)
+			}
 		} else {
 			o.logger.Infof("%s", line)
 		}
@@ -94,4 +103,47 @@ func (o *errorDetector) FinalizeCapture() []builderrors.Error {
 		})
 	}
 	return errs
+}
+
+type JvmLogRecord struct {
+	Timestamp       time.Time `json:"timestamp"`
+	Sequence        int       `json:"sequence"`
+	LoggerClassName string    `json:"loggerClassName"`
+	LoggerName      string    `json:"loggerName"`
+	Level           string    `json:"level"`
+	Message         string    `json:"message"`
+	ThreadName      string    `json:"threadName"`
+	ThreadId        int       `json:"threadId"`
+	Mdc             any       `json:"mdc"`
+	Ndc             string    `json:"ndc"`
+	HostName        string    `json:"hostName"`
+	ProcessName     string    `json:"processName"`
+	ProcessId       int       `json:"processId"`
+}
+
+func (r *JvmLogRecord) ToEntry() log.Entry {
+	level := log.Info
+	switch r.Level {
+	case "DEBUG":
+		level = log.Debug
+	case "INFO":
+		level = log.Info
+	case "WARN", "WARNING":
+		level = log.Warn
+	case "ERROR", "SEVERE":
+		level = log.Error
+	case "FINE", "FINER":
+		level = log.Debug
+	case "FINEST", "TRACE":
+		level = log.Trace
+	default:
+		r.Message = r.Level + ": " + r.Message
+	}
+
+	ret := log.Entry{
+		Time:    r.Timestamp,
+		Level:   level,
+		Message: r.Message,
+	}
+	return ret
 }
