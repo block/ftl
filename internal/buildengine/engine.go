@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/puzpuzpuz/xsync/v3"
@@ -24,10 +25,10 @@ import (
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
@@ -79,31 +80,22 @@ type autoRebuildCompletedEvent struct {
 	schema *schema.Module
 }
 
-type pendingDeploy struct {
-	modules           []Module
-	err               chan error
-	replicas          int32
-	superseded        bool
-	supercededModules []*pendingDeploy
-}
-
 func (autoRebuildCompletedEvent) rebuildEvent() {}
 
 // Engine for building a set of modules.
 type Engine struct {
-	adminClient      AdminClient
-	schemaSource     *schemaeventsource.EventSource
-	moduleMetas      *xsync.MapOf[string, moduleMeta]
-	projectConfig    projectconfig.Config
-	moduleDirs       []string
-	watcher          *watch.Watcher // only watches for module toml changes
-	controllerSchema *xsync.MapOf[string, *schema.Module]
-	schemaChanges    *pubsub.Topic[schema.Notification]
-	cancel           context.CancelCauseFunc
-	parallelism      int
-	modulesToBuild   *xsync.MapOf[string, bool]
-	buildEnv         []string
-	startTime        optional.Option[time.Time]
+	adminClient       AdminClient
+	deployCoordinator *DeployCoordinator
+	moduleMetas       *xsync.MapOf[string, moduleMeta]
+	projectConfig     projectconfig.Config
+	moduleDirs        []string
+	watcher           *watch.Watcher // only watches for module toml changes
+	targetSchema      atomic.Value[*schema.Schema]
+	cancel            context.CancelCauseFunc
+	parallelism       int
+	modulesToBuild    *xsync.MapOf[string, bool]
+	buildEnv          []string
+	startTime         optional.Option[time.Time]
 
 	// events coming in from plugins
 	pluginEvents chan languageplugin.PluginEvent
@@ -120,10 +112,8 @@ type Engine struct {
 	devModeEndpointUpdates chan dev.LocalEndpoint
 	devMode                bool
 
-	// deployment queue and state tracking
-	deploymentQueue chan pendingDeploy
-	os              string
-	arch            string
+	os   string
+	arch string
 }
 
 type Option func(o *Engine)
@@ -172,29 +162,28 @@ func New(
 	options ...Option,
 ) (*Engine, error) {
 	ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("build-engine"))
+	rawEngineUpdates := make(chan *buildenginepb.EngineEvent, 128)
+
 	e := &Engine{
 		adminClient:      adminClient,
-		schemaSource:     schemaSource,
 		projectConfig:    projectConfig,
 		moduleDirs:       moduleDirs,
 		moduleMetas:      xsync.NewMapOf[string, moduleMeta](),
 		watcher:          watch.NewWatcher(optional.Some(projectConfig.WatchModulesLockPath()), "ftl.toml", "**/*.sql"),
-		controllerSchema: xsync.NewMapOf[string, *schema.Module](),
-		schemaChanges:    pubsub.New[schema.Notification](),
 		pluginEvents:     make(chan languageplugin.PluginEvent, 128),
 		parallelism:      runtime.NumCPU(),
 		modulesToBuild:   xsync.NewMapOf[string, bool](),
 		rebuildEvents:    make(chan rebuildEvent, 128),
-		rawEngineUpdates: make(chan *buildenginepb.EngineEvent, 128),
-		deploymentQueue:  make(chan pendingDeploy, 128),
+		rawEngineUpdates: rawEngineUpdates,
 		EngineUpdates:    pubsub.New[*buildenginepb.EngineEvent](),
 		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
 		os:               runtime.GOOS,
 	}
+	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates)
 	for _, option := range options {
 		option(e)
 	}
-	e.controllerSchema.Store("builtin", schema.Builtins())
+
 	ctx, cancel := context.WithCancelCause(ctx)
 	e.cancel = cancel
 
@@ -211,9 +200,6 @@ func New(
 			log.FromContext(ctx).Errorf(err, "updates service failed")
 		}
 	}()
-
-	// Start the deployment queue processor
-	go e.processDeploymentQueue(ctx)
 
 	configs, err := watch.DiscoverModules(ctx, moduleDirs)
 	if err != nil {
@@ -258,68 +244,33 @@ func New(
 			e.arch = info.Msg.Arch
 		}
 	}
+	// Save initial schema
+	initialEvent := <-e.deployCoordinator.SchemaUpdates
+	e.targetSchema.Store(initialEvent.schema)
 	if adminClient == nil {
 		return e, nil
 	}
-	e.startSchemaSync(ctx)
 	return e, nil
-}
-
-// Sync module schema changes from the FTL controller, as well as from manual
-// updates, and merge them into a single schema map.
-func (e *Engine) startSchemaSync(ctx context.Context) {
-	logger := log.FromContext(ctx)
-	if !e.schemaSource.Live() {
-		logger.Debugf("Schema source is not live, skipping initial sync.")
-	} else {
-		e.schemaSource.WaitForInitialSync(ctx)
-		for _, module := range e.schemaSource.CanonicalView().Modules {
-			e.controllerSchema.Store(module.Name, module)
-		}
-	}
-
-	go func() {
-		events := e.schemaSource.Subscribe(ctx)
-		for event := range channels.IterContext(ctx, events) {
-			e.processEvent(event)
-		}
-	}()
-}
-
-func (e *Engine) processEvent(event schema.Notification) {
-	switch event := event.(type) {
-	case *schema.ChangesetCommittedNotification:
-		adding := map[string]bool{}
-		for _, a := range event.Changeset.Modules {
-			adding[a.Name] = true
-		}
-		for _, removed := range event.Changeset.RemovingModules {
-			// If a module has been explicitly killed we only find out about it here
-			e.controllerSchema.Delete(removed.Name)
-			if !adding[removed.Name] {
-				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-					Timestamp: timestamppb.Now(),
-					Event: &buildenginepb.EngineEvent_ModuleRemoved{
-						ModuleRemoved: &buildenginepb.ModuleRemoved{
-							Module: removed.Name,
-						},
-					},
-				}
-			}
-		}
-		for _, module := range event.Changeset.Modules {
-			e.controllerSchema.Store(module.Name, module)
-		}
-	default:
-
-	}
-	e.schemaChanges.Publish(event)
 }
 
 // Close stops the Engine's schema sync.
 func (e *Engine) Close() error {
 	e.cancel(fmt.Errorf("build engine stopped: %w", context.Canceled))
 	return nil
+}
+
+func (e *Engine) GetModuleSchema(moduleName string) (*schema.Module, bool) {
+	sch := e.targetSchema.Load()
+	if sch == nil {
+		return nil, false
+	}
+	module, ok := slices.Find(sch.Modules, func(m *schema.Module) bool {
+		return m.Name == moduleName
+	})
+	if !ok {
+		return nil, false
+	}
+	return module, true
 }
 
 // Graph returns the dependency graph for the given modules.
@@ -354,7 +305,7 @@ func (e *Engine) buildGraph(moduleName string, out map[string][]string) error {
 		deps = meta.module.Dependencies(AlwaysIncludeBuiltin)
 	}
 	if !foundModule {
-		if sch, ok := e.controllerSchema.Load(moduleName); ok {
+		if sch, ok := e.GetModuleSchema(moduleName); ok {
 			foundModule = true
 			deps = append(deps, sch.Imports()...)
 		}
@@ -374,8 +325,13 @@ func (e *Engine) buildGraph(moduleName string, out map[string][]string) error {
 
 // Import manually imports a schema for a module as if it were retrieved from
 // the FTL controller.
-func (e *Engine) Import(ctx context.Context, schema *schema.Module) {
-	e.controllerSchema.Store(schema.Name, schema)
+func (e *Engine) Import(ctx context.Context, moduleSch *schema.Module) {
+	sch := reflect.DeepCopy(e.targetSchema.Load())
+	sch.Modules = slices.Filter(sch.Modules, func(m *schema.Module) bool {
+		return m.Name != moduleSch.Name
+	})
+	sch.Modules = append(sch.Modules, moduleSch)
+	e.targetSchema.Store(sch)
 }
 
 // Build attempts to build all local modules.
@@ -414,12 +370,6 @@ func (e *Engine) Dev(ctx context.Context, period time.Duration) error {
 func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration) error {
 	logger := log.FromContext(ctx)
 
-	schemaChanges := make(chan schema.Notification, 128)
-	e.schemaChanges.Subscribe(schemaChanges)
-	defer func() {
-		e.schemaChanges.Unsubscribe(schemaChanges)
-	}()
-
 	watchEvents := make(chan watch.WatchEvent, 128)
 	ctx, cancel := context.WithCancelCause(ctx)
 	topic, err := e.watcher.Watch(ctx, period, e.moduleDirs)
@@ -436,16 +386,24 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	// Build and deploy all modules first.
 	_ = e.BuildAndDeploy(ctx, 1, true, false) //nolint:errcheck
 
+	// Update schema and set initial module hashes
+	for {
+		select {
+		case event := <-e.deployCoordinator.SchemaUpdates:
+			e.targetSchema.Store(event.schema)
+			continue
+		default:
+		}
+		break
+	}
 	moduleHashes := map[string][]byte{}
-	e.controllerSchema.Range(func(name string, sch *schema.Module) bool {
+	for _, sch := range e.targetSchema.Load().Modules {
 		hash, err := computeModuleHash(sch)
 		if err != nil {
-			logger.Errorf(err, "compute hash for %s failed", name)
-			return false
+			return fmt.Errorf("compute hash for %s failed: %w", sch.Name, err)
 		}
-		moduleHashes[name] = hash
-		return true
-	})
+		moduleHashes[sch.Name] = hash
+	}
 
 	for {
 		select {
@@ -474,10 +432,10 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 						},
 					}
 					logger.Debugf("calling build and deploy %q", event.Config.Module)
-					_ = e.BuildAndDeploy(ctx, 1, true, false, config.Module) //nolint:errcheck
+					_ = e.BuildAndDeploy(ctx, 1, false, false, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
-				err := terminateModuleDeployment(ctx, e.schemaSource, e.adminClient, event.Config.Module)
+				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module)
 				if err != nil {
 					logger.Errorf(err, "terminate %s failed", event.Config.Module)
 				}
@@ -518,46 +476,41 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				meta.module.Config = validConfig
 				e.moduleMetas.Store(event.Config.Module, meta)
 
-				_ = e.BuildAndDeploy(ctx, 1, true, false, event.Config.Module) //nolint:errcheck
+				_ = e.BuildAndDeploy(ctx, 1, false, false, event.Config.Module) //nolint:errcheck
 			}
-		case event := <-schemaChanges:
-			switch event := event.(type) {
-			case *schema.ChangesetCommittedNotification:
-				inCs := map[string]bool{}
-				for _, module := range event.Changeset.Modules {
-					inCs[module.Name] = true
+		case event := <-e.deployCoordinator.SchemaUpdates:
+			e.targetSchema.Store(event.schema)
+			for _, module := range event.schema.Modules {
+				if !event.updatedModules[module.Name] {
+					continue
 				}
-				for _, module := range event.Changeset.Modules {
-					existingHash, ok := moduleHashes[module.Name]
-					if !ok {
-						existingHash = []byte{}
-					}
-
-					hash, err := computeModuleHash(module)
-					if err != nil {
-						logger.Errorf(err, "compute hash for %s failed", module.Name)
-						continue
-					}
-
-					if bytes.Equal(hash, existingHash) {
-						logger.Tracef("schema for %s has not changed", module.Name)
-						continue
-					}
-
-					moduleHashes[module.Name] = hash
-
-					dependentModuleNames := e.getDependentModuleNames(module.Name)
-					dependentModuleNames = slices.Filter(dependentModuleNames, func(name string) bool {
-						// We don't update if this was already part of the same changeset
-						return !inCs[name]
-					})
-					if len(dependentModuleNames) > 0 {
-						logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", "))
-						_ = e.BuildAndDeploy(ctx, 1, true, false, dependentModuleNames...) //nolint:errcheck
-					}
+				existingHash, ok := moduleHashes[module.Name]
+				if !ok {
+					existingHash = []byte{}
 				}
-			default:
 
+				hash, err := computeModuleHash(module)
+				if err != nil {
+					logger.Errorf(err, "compute hash for %s failed", module.Name)
+					continue
+				}
+
+				if bytes.Equal(hash, existingHash) {
+					logger.Tracef("schema for %s has not changed", module.Name)
+					continue
+				}
+
+				moduleHashes[module.Name] = hash
+
+				dependentModuleNames := e.getDependentModuleNames(module.Name)
+				dependentModuleNames = slices.Filter(dependentModuleNames, func(name string) bool {
+					// We don't update if this was already part of the same changeset
+					return !event.updatedModules[name]
+				})
+				if len(dependentModuleNames) > 0 {
+					logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", ")) //nolint:forbidigo
+					_ = e.BuildAndDeploy(ctx, 1, false, false, dependentModuleNames...)                                       //nolint:errcheck
+				}
 			}
 
 		case event := <-e.rebuildEvents:
@@ -571,7 +524,6 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					break readLoop
 				}
 			}
-
 			// Batch generate stubs for all auto rebuilds
 			//
 			// This is normally part of each group in the build topology, but auto rebuilds do not go through that flow
@@ -608,7 +560,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 						modulesToDeploy = append(modulesToDeploy, moduleToDeploy.module)
 					}
 				}
-				_ = e.deploy(ctx, modulesToDeploy, 1) //nolint:errcheck
+				go func() {
+					_ = e.deployCoordinator.deploy(ctx, e.projectConfig, modulesToDeploy, 1) //nolint:errcheck
+				}()
 			}
 
 			// Batch together all new builds requested
@@ -621,7 +575,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				modulesToBuild[event.module] = true
 			}
 			if len(modulesToBuild) > 0 {
-				_ = e.BuildAndDeploy(ctx, 1, true, false, maps.Keys(modulesToBuild)...) //nolint
+				_ = e.BuildAndDeploy(ctx, 1, false, false, maps.Keys(modulesToBuild)...) //nolint
 			}
 		}
 	}
@@ -818,7 +772,6 @@ func computeModuleHash(module *schema.Module) ([]byte, error) {
 	if _, err := hasher.Write(data); err != nil {
 		return nil, err // Handle errors that might occur during the write
 	}
-
 	return hasher.Sum(nil), nil
 }
 
@@ -877,15 +830,31 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 			modulesToDeploy = append(modulesToDeploy, module)
 			return nil
 		}
-		return e.deploy(ctx, []Module{module}, replicas)
+		deployErr := make(chan error, 1)
+		go func() {
+			deployErr <- e.deployCoordinator.deploy(ctx, e.projectConfig, []Module{module}, replicas)
+		}()
+		if waitForDeployOnline {
+			return <-deployErr
+		}
+		return nil
 	}, moduleNames...)
 	if buildErr != nil {
-		return fmt.Errorf("build failed: %w", buildErr)
+		return buildErr
 	}
 
-	if singleChangeset {
-		// Queue the modules for deployment instead of deploying directly
-		return e.deploy(ctx, modulesToDeploy, replicas)
+	deployGroup := &errgroup.Group{}
+	deployGroup.Go(func() error {
+		// Wait for all build attempts to complete
+		if singleChangeset {
+			// Queue the modules for deployment instead of deploying directly
+			return e.deployCoordinator.deploy(ctx, e.projectConfig, modulesToDeploy, replicas)
+		}
+		return nil
+	})
+	if waitForDeployOnline {
+		err := deployGroup.Wait()
+		return err //nolint:wrapcheck
 	}
 	return nil
 }
@@ -1097,7 +1066,7 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 				"builtin": schema.Builtins(),
 			}
 			for _, dep := range graph[module] {
-				if sch, ok := e.controllerSchema.Load(dep); ok {
+				if sch, ok := e.GetModuleSchema(dep); ok {
 					fakeDeps[dep] = sch
 					continue
 				}
@@ -1163,7 +1132,7 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 
 // Publish either the schema from the FTL controller, or from a local build.
 func (e *Engine) mustSchema(ctx context.Context, moduleName string, builtModules map[string]*schema.Module, schemas chan<- *schema.Module) error {
-	if sch, ok := e.controllerSchema.Load(moduleName); ok {
+	if sch, ok := e.GetModuleSchema(moduleName); ok {
 		schemas <- sch
 		return nil
 	}
@@ -1252,10 +1221,9 @@ func (e *Engine) gatherSchemas(
 	moduleSchemas map[string]*schema.Module,
 	out map[string]*schema.Module,
 ) error {
-	e.controllerSchema.Range(func(name string, sch *schema.Module) bool {
-		out[name] = sch
-		return true
-	})
+	for _, sch := range e.targetSchema.Load().Modules {
+		out[sch.Name] = sch
+	}
 
 	e.moduleMetas.Range(func(name string, meta moduleMeta) bool {
 		if _, ok := moduleSchemas[name]; ok {
@@ -1272,7 +1240,7 @@ func (e *Engine) gatherSchemas(
 
 func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[string]*schema.Module, metasMap map[string]moduleMeta) error {
 	fullSchema := &schema.Schema{Modules: maps.Values(newModules)}
-	for _, module := range e.schemaSource.CanonicalView().Modules {
+	for _, module := range e.targetSchema.Load().Modules {
 		if _, ok := newModules[module.Name]; !ok {
 			fullSchema.Modules = append(fullSchema.Modules, module)
 		}
@@ -1441,166 +1409,4 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 			return
 		}
 	}
-}
-
-func (e *Engine) deploy(ctx context.Context, modules []Module, replicas int32) error {
-	for _, module := range modules {
-		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-			Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
-				ModuleDeployWaiting: &buildenginepb.ModuleDeployWaiting{
-					Module: module.Config.Module,
-				},
-			},
-		}
-	}
-	errChan := make(chan error, 1)
-	e.deploymentQueue <- pendingDeploy{modules: modules, replicas: replicas, err: errChan}
-	select {
-	case <-ctx.Done():
-		return ctx.Err() //nolint:wrapcheck
-	case err := <-errChan:
-		return err
-	}
-}
-
-// processDeploymentQueue handles the deployment queue and groups pending deployments into changesets
-func (e *Engine) processDeploymentQueue(ctx context.Context) {
-	events := e.schemaSource.Subscribe(ctx)
-
-	toDeploy := []*pendingDeploy{}
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case deployment := <-e.deploymentQueue:
-			// Try and deploy, unless there are conflicting changesets this will happen immediately
-			graph, err := e.Graph()
-			if err != nil {
-				log.FromContext(ctx).Errorf(err, "could not build graph to order deployment")
-				continue
-			}
-			if !e.tryDeployFromQueue(ctx, &deployment, toDeploy, graph) {
-				// We could not deploy, add to the list of pending deployments
-				// But first check if there are older deployments that are superceded by this one
-				modules := map[string]bool{}
-				for _, module := range deployment.modules {
-					modules[module.Config.Module] = true
-				}
-				for _, existing := range toDeploy {
-					for _, mod := range existing.modules {
-						if modules[mod.Config.Module] {
-							existing.superseded = true
-							deployment.supercededModules = append(deployment.supercededModules, existing)
-							deployment.supercededModules = append(deployment.supercededModules, existing.supercededModules...)
-						}
-					}
-				}
-				toDeploy = slices.Filter(toDeploy, func(d *pendingDeploy) bool {
-					return !d.superseded
-				})
-				toDeploy = append(toDeploy, &deployment)
-			}
-		case notification := <-events:
-			switch notification.(type) {
-			case *schema.ChangesetCommittedNotification, *schema.ChangesetRollingBackNotification:
-				tmp := []*pendingDeploy{}
-				if len(toDeploy) == 0 {
-					continue
-				}
-				graph, err := e.Graph()
-				if err != nil {
-					log.FromContext(ctx).Errorf(err, "could not build graph to order deployment")
-					continue
-				}
-				for _, mod := range toDeploy {
-					if e.tryDeployFromQueue(ctx, mod, toDeploy, graph) {
-						continue
-					}
-					tmp = append(tmp, mod)
-				}
-				toDeploy = tmp
-			default:
-
-			}
-		}
-	}
-}
-
-func (e *Engine) tryDeployFromQueue(ctx context.Context, deployment *pendingDeploy, toDeploy []*pendingDeploy, depGraph map[string][]string) bool {
-	sets := e.schemaSource.ActiveChangesets()
-	modules := map[string]bool{}
-	depModules := map[string]bool{}
-	for _, module := range deployment.modules {
-		modules[module.Config.Module] = true
-		for _, dep := range depGraph[module.Config.Module] {
-			depModules[dep] = true
-		}
-	}
-	for _, cs := range sets {
-		if cs.State >= schema.ChangesetStateCommitted {
-			continue
-		}
-		for _, mod := range cs.Modules {
-			if modules[mod.Name] || depModules[mod.Name] {
-				return false
-			}
-		}
-	}
-	for _, queued := range toDeploy {
-		for _, mod := range queued.modules {
-			// We only check for dependencies here, as we already have de-duped modules
-			// And we have not been removed from toDeploy at this point so we would find ourself
-			if depModules[mod.Config.Module] {
-				return false
-			}
-		}
-	}
-
-	// No conflicts, lets deploy
-
-	// Deploy all collected modules
-	for _, module := range deployment.modules {
-		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-			Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
-				ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
-					Module: module.Config.Module,
-				},
-			},
-		}
-	}
-	go func() {
-		err := Deploy(ctx, e.projectConfig, deployment.modules, deployment.replicas, true, e.adminClient)
-		if err != nil {
-			// Handle deployment failure
-			for _, module := range deployment.modules {
-				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-					Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
-						ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
-							Module: module.Config.Module,
-							Errors: &langpb.ErrorList{
-								Errors: errorToLangError(err),
-							},
-						},
-					},
-				}
-			}
-		} else {
-			// Handle deployment success
-			for _, module := range deployment.modules {
-				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-					Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
-						ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
-							Module: module.Config.Module,
-						},
-					},
-				}
-			}
-		}
-		deployment.err <- err
-		for _, sup := range deployment.supercededModules {
-			sup.err <- err
-		}
-	}()
-	return true
 }

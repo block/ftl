@@ -119,7 +119,7 @@ type AdminServiceClient interface {
 	ResetSubscription(context.Context, *connect.Request[v1.ResetSubscriptionRequest]) (*connect.Response[v1.ResetSubscriptionResponse], error)
 	// Creates and applies a changeset, returning the result
 	// This blocks until the changeset has completed
-	ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error)
+	ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest]) (*connect.ServerStreamForClient[v1.ApplyChangesetResponse], error)
 	// Get the full schema.
 	GetSchema(context.Context, *connect.Request[v1.GetSchemaRequest]) (*connect.Response[v1.GetSchemaResponse], error)
 	// Pull schema changes from the Schema Service.
@@ -350,8 +350,8 @@ func (c *adminServiceClient) ResetSubscription(ctx context.Context, req *connect
 }
 
 // ApplyChangeset calls xyz.block.ftl.v1.AdminService.ApplyChangeset.
-func (c *adminServiceClient) ApplyChangeset(ctx context.Context, req *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error) {
-	return c.applyChangeset.CallUnary(ctx, req)
+func (c *adminServiceClient) ApplyChangeset(ctx context.Context, req *connect.Request[v1.ApplyChangesetRequest]) (*connect.ServerStreamForClient[v1.ApplyChangesetResponse], error) {
+	return c.applyChangeset.CallServerStream(ctx, req)
 }
 
 // GetSchema calls xyz.block.ftl.v1.AdminService.GetSchema.
@@ -423,7 +423,7 @@ type AdminServiceHandler interface {
 	ResetSubscription(context.Context, *connect.Request[v1.ResetSubscriptionRequest]) (*connect.Response[v1.ResetSubscriptionResponse], error)
 	// Creates and applies a changeset, returning the result
 	// This blocks until the changeset has completed
-	ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error)
+	ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest], *connect.ServerStream[v1.ApplyChangesetResponse]) error
 	// Get the full schema.
 	GetSchema(context.Context, *connect.Request[v1.GetSchemaRequest]) (*connect.Response[v1.GetSchemaResponse], error)
 	// Pull schema changes from the Schema Service.
@@ -514,7 +514,7 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		svc.ResetSubscription,
 		opts...,
 	)
-	adminServiceApplyChangesetHandler := connect.NewUnaryHandler(
+	adminServiceApplyChangesetHandler := connect.NewServerStreamHandler(
 		AdminServiceApplyChangesetProcedure,
 		svc.ApplyChangeset,
 		opts...,
@@ -662,8 +662,8 @@ func (UnimplementedAdminServiceHandler) ResetSubscription(context.Context, *conn
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.ResetSubscription is not implemented"))
 }
 
-func (UnimplementedAdminServiceHandler) ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest]) (*connect.Response[v1.ApplyChangesetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.ApplyChangeset is not implemented"))
+func (UnimplementedAdminServiceHandler) ApplyChangeset(context.Context, *connect.Request[v1.ApplyChangesetRequest], *connect.ServerStream[v1.ApplyChangesetResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.AdminService.ApplyChangeset is not implemented"))
 }
 
 func (UnimplementedAdminServiceHandler) GetSchema(context.Context, *connect.Request[v1.GetSchemaRequest]) (*connect.Response[v1.GetSchemaResponse], error) {
