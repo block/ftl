@@ -29,8 +29,10 @@ import (
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/common/builderrors"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/devstate"
 	"github.com/block/ftl/internal/dsn"
 	ftlexec "github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
@@ -314,13 +316,25 @@ func WaitWithTimeout(module string, timeout time.Duration) Action {
 
 func WaitForDev(noErrors bool, msgAndArgs ...any) Action {
 	return func(t testing.TB, ic TestContext) {
-		ExecWithOutput("ftl", []string{"await-summary"}, func(output string) {
-			if noErrors {
-				assert.NotContains(t, output, "[Error]", msgAndArgs...)
-			} else {
-				assert.Contains(t, output, "[Error]", msgAndArgs...)
+		if noErrors {
+			Infof("Waiting for FTL Dev state with no errors")
+		} else {
+			Infof("Waiting for FTL Dev state with errors")
+		}
+		result, err := devstate.WaitForDevState(ic.Context, ic.BuildEngine, ic.Admin)
+		assert.NoError(t, err)
+
+		var errs []builderrors.Error
+		for _, m := range result.Modules {
+			if m.Errors != nil {
+				errs = append(errs, m.Errors...)
 			}
-		})(t, ic)
+		}
+		if noErrors {
+			assert.Zero(t, errs, msgAndArgs...)
+		} else {
+			assert.NotZero(t, errs, msgAndArgs...)
+		}
 	}
 }
 

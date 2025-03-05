@@ -29,7 +29,7 @@ When creating a database module, do so in this order:
 - Wait for the module to build to see the schema and if there any errors.
 - You MUST next read queries.ftl.go in the module directory to understand the go types to pass along to the generated db verbs
 - Write exported verbs and request/response types to expose the module's functionality but do not call those verbs from other modules yet.
-- You MUST Check that the module builds successfully by calling `ftl await-summary` before continuing to any other needed changes.
+- You MUST Check that the module builds successfully by getting FTL status from the FTL extension before continuing to any other needed changes.
 - It is IMPORTANT that you make sure the new module builds without errors before you proceed to change other modules.
 
 # Additional Documentation 
@@ -75,7 +75,7 @@ Kotlin Modules
 
 You can interact with the FTL cluster using the FTL command, run 'ftl --help' for more details. Do not call `ftl dev` or `ftl serve`.
 You are running while `ftl dev` is also running which will automatically build and deploy modules when their code changes (no need to call `ftl build` or `ftl deploy`).
-Always call `ftl await-summary` after making any code changes, which will wait for all build and deploys to finish and then return a list of modules including the path to the module code, and if there were any errors or warnings.
+Always ask for FTL status from the FTL extension after making any code changes, which will wait for all build and deploys to finish and then return a list of modules including the path to the module code, and if there were any errors or warnings.
 It will then print out the current schema of all modules that are currently deployed (if there are errors for a module then a previous version of the code may be included in the schema).
 Be proactive about calling this command, it is your job to know the state of the FTL system.
 

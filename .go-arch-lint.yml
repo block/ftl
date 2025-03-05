@@ -43,6 +43,7 @@ components:
   ftl-proxy-pg-cmd: { in: cmd/ftl-proxy-pg/** }
   ftl-raft-tester-cmd: { in: cmd/raft-tester/** }
   ftl-sqlc-cmd: { in: cmd/ftl-sqlc/** }
+  ftl-mcp-cmd: { in: cmd/ftl-mcp/** }
 
   go2proto: { in: cmd/go2proto/** }
 

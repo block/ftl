@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jpillora/backoff"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,6 +17,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/jpillora/backoff"
 
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/assert/v2"
@@ -30,6 +31,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1/consolepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -378,6 +380,13 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Timeline))
 			}
 
+			if opts.devMode {
+				ic.BuildEngine = rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, "http://localhost:8900", log.Debug)
+
+				Infof("Waiting for build engine client to be ready")
+				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Timeline))
+			}
+
 			if opts.resetPubSub {
 				Infof("Resetting pubsub")
 				envars := []string{"COMPOSE_IGNORE_ORPHANS=True"}
@@ -491,11 +500,12 @@ type TestContext struct {
 	kubeNamespace string
 	devMode       bool
 
-	Admin    ftlv1connect.AdminServiceClient
-	Schema   ftlv1connect.SchemaServiceClient
-	Console  consolepbconnect.ConsoleServiceClient
-	Verbs    ftlv1connect.VerbServiceClient
-	Timeline timelinepbconnect.TimelineServiceClient
+	Admin       ftlv1connect.AdminServiceClient
+	Schema      ftlv1connect.SchemaServiceClient
+	Console     consolepbconnect.ConsoleServiceClient
+	Verbs       ftlv1connect.VerbServiceClient
+	Timeline    timelinepbconnect.TimelineServiceClient
+	BuildEngine buildenginepbconnect.BuildEngineServiceClient
 
 	realT *testing.T
 }

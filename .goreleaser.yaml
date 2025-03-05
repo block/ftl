@@ -18,6 +18,10 @@ builds:
     main: ./cmd/ftl-sqlc
     binary: ftl-sqlc
     <<: *settings
+  - id: ftl-mcp
+    main: ./cmd/ftl-mcp
+    binary: ftl-mcp
+    <<: *settings
   - id: ftl-language-go
     main: ./go-runtime/cmd/ftl-language-go
     binary: ftl-language-go
