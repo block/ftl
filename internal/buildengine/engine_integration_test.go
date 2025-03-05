@@ -75,7 +75,7 @@ func updateVerb(module, old, new string) in.Action {
 		}
 		assert.NotEqual(t, "", file, "unsupported language: %s", ic.Language)
 
-		in.Exec("sed", "-i", "", "s/"+old+"/"+new+"/g", file)(t, ic)
-		in.Exec("sed", "-i", "", "s/"+strcase.ToUpperCamel(old)+"/"+strcase.ToUpperCamel(new)+"/g", file)(t, ic)
+		in.Exec("sed", "-i.bak", "s/"+old+"/"+new+"/g", file)(t, ic)
+		in.Exec("sed", "-i.bak", "s/"+strcase.ToUpperCamel(old)+"/"+strcase.ToUpperCamel(new)+"/g", file)(t, ic)
 	}
 }

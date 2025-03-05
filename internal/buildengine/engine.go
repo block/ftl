@@ -508,8 +508,8 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					return !event.updatedModules[name]
 				})
 				if len(dependentModuleNames) > 0 {
-					logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", "))
-					_ = e.BuildAndDeploy(ctx, 1, false, false, dependentModuleNames...) //nolint:errcheck
+					logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", ")) //nolint:forbidigo
+					_ = e.BuildAndDeploy(ctx, 1, false, false, dependentModuleNames...)                                       //nolint:errcheck
 				}
 			}
 
@@ -854,7 +854,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDepl
 	})
 	if waitForDeployOnline {
 		err := deployGroup.Wait()
-		return err
+		return err //nolint:wrapcheck
 	}
 	return nil
 }

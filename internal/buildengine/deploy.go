@@ -34,7 +34,7 @@ import (
 )
 
 type AdminClient interface {
-	ApplyChangeset(context.Context, *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.ServerStreamForClient[ftlv1.ApplyChangesetResponse], error)
+	ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.ServerStreamForClient[ftlv1.ApplyChangesetResponse], error)
 	ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error)
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error)
 	UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[ftlv1.UploadArtefactRequest, ftlv1.UploadArtefactResponse]
@@ -42,7 +42,7 @@ type AdminClient interface {
 }
 
 type DependencyGrapher interface {
-	Graph(...string) (map[string][]string, error)
+	Graph(moduleNames ...string) (map[string][]string, error)
 }
 
 type pendingModule struct {
@@ -194,7 +194,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 				}
 				if existing.superseded {
 					if deployment, err = c.mergePendingDeployment(deployment, existing); err != nil {
-						// Fail new deployment attempt as it is incompitable with a dependency that is already in the queue
+						// Fail new deployment attempt as it is incompatible with a dependency that is already in the queue
 						deployment.err <- err
 						continue
 					}
@@ -237,7 +237,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 				toDeploy = append(toDeploy, deployment)
 			}
 			if deployment.publishInSchema {
-				c.publishUpdatedSchema(ctx, maps.Keys(deployment.modules), toDeploy, deploying)
+				c.publishUpdatedSchema(ctx, maps.Keys(deployment.modules), toDeploy, deploying) //nolint:exptostd
 			}
 		case notification := <-events:
 			var key key.Changeset
@@ -346,7 +346,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 	keyChan := make(chan result.Result[key.Changeset], 1)
 	go func() {
-		err := deploy(ctx, slices.Map(maps.Values(deployment.modules), func(m *pendingModule) *schema.Module { return m.schema }), deployment.replicas, c.adminClient, keyChan)
+		err := deploy(ctx, slices.Map(maps.Values(deployment.modules), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan) //nolint:exptostd
 		if err != nil {
 			// Handle deployment failure
 			for _, module := range deployment.modules {
@@ -386,7 +386,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendingDeploy) (*pendingDeploy, error) {
 	if d.replicas != old.replicas {
-		return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: replicas were different %d != %d", maps.Keys(d.modules), maps.Keys(old.modules), d.replicas, old.replicas)
+		return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: replicas were different %d != %d", maps.Keys(d.modules), maps.Keys(old.modules), d.replicas, old.replicas) //nolint:exptostd
 	}
 	out := reflect.DeepCopy(d)
 	addedModules := []string{}
@@ -399,12 +399,12 @@ func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendin
 	}
 	if len(addedModules) > 0 {
 		if invalid := c.invalidModulesForDeployment(c.schemaSource.CanonicalView(), out, addedModules); len(invalid) > 0 {
-			return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: modules were incompatible %v", maps.Keys(d.modules), maps.Keys(old.modules), maps.Keys(invalid))
+			return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: modules were incompatible %v", maps.Keys(d.modules), maps.Keys(old.modules), maps.Keys(invalid)) //nolint:exptostd
 		}
 	}
 	out.publishInSchema = out.publishInSchema || old.publishInSchema
-	out.supercededModules = append(d.supercededModules, old)
-	out.supercededModules = append(d.supercededModules, old.supercededModules...)
+	out.supercededModules = append(d.supercededModules, old)                      //nolint:gocritic
+	out.supercededModules = append(d.supercededModules, old.supercededModules...) //nolint:gocritic
 	return out, nil
 }
 
@@ -498,18 +498,18 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	}
 }
 
-func (d *DeployCoordinator) terminateModuleDeployment(ctx context.Context, module string) error {
+func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, module string) error {
 	logger := log.FromContext(ctx).Module(module).Scope("terminate")
 
-	mod, ok := d.schemaSource.CanonicalView().Module(module).Get()
+	mod, ok := c.schemaSource.CanonicalView().Module(module).Get()
 
 	if !ok {
 		return fmt.Errorf("deployment for module %s not found", module)
 	}
 	key := mod.Runtime.Deployment.DeploymentKey
 
-	logger.Infof("Terminating deployment %s", key)
-	stream, err := d.adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
+	logger.Infof("Terminating deployment %s", key) //nolint:forbidigo
+	stream, err := c.adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
 		ToRemove: []string{key.String()},
 	}))
 	if err != nil {
@@ -543,7 +543,7 @@ func prepareForDeploy(ctx context.Context, modules map[string]*pendingModule, ad
 }
 
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func deploy(ctx context.Context, modules []*schema.Module, replicas int32, adminClient AdminClient, receivedKey chan result.Result[key.Changeset]) (err error) {
+func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClient, receivedKey chan result.Result[key.Changeset]) (err error) {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Deploying %v", strings.Join(slices.Map(modules, func(m *schema.Module) string { return m.Name }), ", "))
 	changesetKey := optional.Option[key.Changeset]{}
@@ -579,7 +579,10 @@ func deploy(ctx context.Context, modules []*schema.Module, replicas int32, admin
 		}
 	}
 
-	return stream.Err()
+	if err := stream.Err(); err != nil {
+		return fmt.Errorf("failed to deploy changeset: %w", err)
+	}
+	return nil
 }
 
 type deploymentArtefact struct {
