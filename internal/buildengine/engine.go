@@ -29,7 +29,6 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
@@ -92,7 +91,6 @@ type Engine struct {
 	moduleDirs        []string
 	watcher           *watch.Watcher // only watches for module toml changes
 	targetSchema      atomic.Value[*schema.Schema]
-	schemaChanges     chan SchemaUpdatedEvent
 	cancel            context.CancelCauseFunc
 	parallelism       int
 	modulesToBuild    *xsync.MapOf[string, bool]
@@ -167,13 +165,11 @@ func New(
 	rawEngineUpdates := make(chan *buildenginepb.EngineEvent, 128)
 
 	e := &Engine{
-		adminClient:   adminClient,
-		projectConfig: projectConfig,
-		moduleDirs:    moduleDirs,
-		moduleMetas:   xsync.NewMapOf[string, moduleMeta](),
-		watcher:       watch.NewWatcher(optional.Some(projectConfig.WatchModulesLockPath()), "ftl.toml", "**/*.sql"),
-		// controllerSchema:  xsync.NewMapOf[string, *schema.Module](),
-		schemaChanges:    make(chan SchemaUpdatedEvent, 128),
+		adminClient:      adminClient,
+		projectConfig:    projectConfig,
+		moduleDirs:       moduleDirs,
+		moduleMetas:      xsync.NewMapOf[string, moduleMeta](),
+		watcher:          watch.NewWatcher(optional.Some(projectConfig.WatchModulesLockPath()), "ftl.toml", "**/*.sql"),
 		pluginEvents:     make(chan languageplugin.PluginEvent, 128),
 		parallelism:      runtime.NumCPU(),
 		modulesToBuild:   xsync.NewMapOf[string, bool](),
@@ -251,27 +247,7 @@ func New(
 	if adminClient == nil {
 		return e, nil
 	}
-	e.startSchemaSync(ctx)
 	return e, nil
-}
-
-// Sync module schema changes from the FTL controller, as well as from manual
-// updates, and merge them into a single schema map.
-func (e *Engine) startSchemaSync(ctx context.Context) {
-	initialEvent := <-e.deployCoordinator.SchemaUpdates
-	e.targetSchema.Store(initialEvent.schema)
-
-	go func() {
-		// Handle each event and then publish into e.schemaChanges
-		for event := range channels.IterContext(ctx, e.deployCoordinator.SchemaUpdates) {
-			// TODO:
-			//
-
-			// oldSchema := e.targetSchema.Load()
-			e.targetSchema.Store(event.schema)
-			e.schemaChanges <- event
-		}
-	}()
 }
 
 // Close stops the Engine's schema sync.
@@ -401,9 +377,23 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 		cancel(fmt.Errorf("watch stopped: %w", context.Canceled))
 	}()
 
+	// Save initial schema
+	initialEvent := <-e.deployCoordinator.SchemaUpdates
+	e.targetSchema.Store(initialEvent.schema)
+
 	// Build and deploy all modules first.
 	_ = e.BuildAndDeploy(ctx, 1, true, false) //nolint:errcheck
 
+	// Update schema and set initial module hashes
+	for {
+		select {
+		case event := <-e.deployCoordinator.SchemaUpdates:
+			e.targetSchema.Store(event.schema)
+			continue
+		default:
+		}
+		break
+	}
 	moduleHashes := map[string][]byte{}
 	for _, sch := range e.targetSchema.Load().Modules {
 		hash, err := computeModuleHash(sch)
@@ -486,7 +476,8 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 
 				_ = e.BuildAndDeploy(ctx, 1, false, false, event.Config.Module) //nolint:errcheck
 			}
-		case event := <-e.schemaChanges:
+		case event := <-e.deployCoordinator.SchemaUpdates:
+			e.targetSchema.Store(event.schema)
 			for _, module := range event.schema.Modules {
 				if !event.updatedModules[module.Name] {
 					continue
