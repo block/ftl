@@ -21,6 +21,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -531,10 +532,10 @@ func (r *terminalStatusLine) SetMessage(message string) {
 	r.manager.recalculateLines()
 }
 
-func LaunchEmbeddedConsole(ctx context.Context, k *kong.Kong, binder KongContextBinder, eventSource *schemaeventsource.EventSource) {
+func LaunchEmbeddedConsole(ctx context.Context, k *kong.Kong, binder KongContextBinder, projectConfig projectconfig.Config, eventSource *schemaeventsource.EventSource) {
 	sm := FromContext(ctx)
 	if tsm, ok := sm.(*terminalStatusManager); ok {
-		it, err := newInteractiveConsole(k, binder, eventSource)
+		it, err := newInteractiveConsole(k, binder, projectConfig, eventSource)
 		if err != nil {
 			fmt.Printf("\033[31mError: %s\033[0m\n", err)
 			return

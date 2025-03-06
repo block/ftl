@@ -3,8 +3,6 @@ package languageplugin
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -21,7 +19,7 @@ import (
 // - environment variable overrides
 //
 // Language plugins take time to launch, so we return the one we created so it can be reused in Run().
-func PrepareNewCmd(ctx context.Context, k *kong.Kong, args []string) (optionalPlugin InitializedPlugins, err error) {
+func PrepareNewCmd(ctx context.Context, projectConfig projectconfig.Config, k *kong.Kong, args []string) (optionalPlugin InitializedPlugins, err error) {
 	if len(args) < 2 {
 		return optionalPlugin, nil
 	} else if args[0] != "new" {
@@ -41,7 +39,7 @@ func PrepareNewCmd(ctx context.Context, k *kong.Kong, args []string) (optionalPl
 		return optionalPlugin, fmt.Errorf("could not find new command")
 	}
 
-	plugin, err := CreateLanguagePlugin(ctx, language)
+	plugin, err := CreateLanguagePlugin(ctx, projectConfig, language)
 	if err != nil {
 		return optionalPlugin, fmt.Errorf("could not create plugin for %v: %w", language, err)
 	}
@@ -65,20 +63,8 @@ func PrepareNewCmd(ctx context.Context, k *kong.Kong, args []string) (optionalPl
 	return InitializedPlugins{plugin: map[string]*LanguagePlugin{language: plugin}}, nil
 }
 
-func CreateLanguagePlugin(ctx context.Context, language string) (plugin *LanguagePlugin, err error) {
-	projConfigPath, ok := projectconfig.DefaultConfigPath().Get()
-	if !ok {
-		return plugin, fmt.Errorf("could not find project config path")
-	}
-	_, err = projectconfig.Load(ctx, projConfigPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return plugin, fmt.Errorf(`could not find FTL project config: try running "ftl init"`)
-		}
-		return plugin, fmt.Errorf("could not load project config: %w", err)
-	}
-
-	plugin, err = New(ctx, filepath.Dir(projConfigPath), language, "new")
+func CreateLanguagePlugin(ctx context.Context, projectConfig projectconfig.Config, language string) (plugin *LanguagePlugin, err error) {
+	plugin, err = New(ctx, projectConfig.Root(), language, "new")
 
 	if err != nil {
 		return plugin, fmt.Errorf("could not create plugin for %v: %w", language, err)
@@ -91,7 +77,7 @@ type InitializedPlugins struct {
 	plugin map[string]*LanguagePlugin
 }
 
-func (r *InitializedPlugins) Plugin(ctx context.Context, language string) (*LanguagePlugin, error) {
+func (r *InitializedPlugins) Plugin(ctx context.Context, projectConfig projectconfig.Config, language string) (*LanguagePlugin, error) {
 	if r.plugin == nil {
 		r.plugin = map[string]*LanguagePlugin{}
 	}
@@ -99,7 +85,7 @@ func (r *InitializedPlugins) Plugin(ctx context.Context, language string) (*Lang
 	if pl != nil {
 		return pl, nil
 	}
-	p, err := CreateLanguagePlugin(ctx, language)
+	p, err := CreateLanguagePlugin(ctx, projectConfig, language)
 	if err != nil {
 		return nil, err
 	}

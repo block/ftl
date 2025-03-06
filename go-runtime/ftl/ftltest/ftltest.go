@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/backend/provisioner"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/common/schema"
@@ -126,7 +128,7 @@ func WithProjectFile(path string) Option {
 			if _, err := os.Stat(path); err != nil {
 				return fmt.Errorf("error accessing project file: %w", err)
 			}
-			projectConfig, err := pc.Load(ctx, path)
+			projectConfig, err := pc.Load(ctx, optional.Some(path))
 			if err != nil {
 				return fmt.Errorf("project: %w", err)
 			}

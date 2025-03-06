@@ -26,7 +26,7 @@ var _ configuration.Router[configuration.Secrets] = ProjectConfig[configuration.
 func (p ProjectConfig[R]) Role() R { var r R; return r }
 
 func (p ProjectConfig[R]) Get(ctx context.Context, ref configuration.Ref) (*url.URL, error) {
-	config, err := pc.Load(ctx, p.Config)
+	config, err := pc.Load(ctx, optional.Zero(p.Config))
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (p ProjectConfig[R]) Get(ctx context.Context, ref configuration.Ref) (*url.
 }
 
 func (p ProjectConfig[R]) List(ctx context.Context) ([]configuration.Entry, error) {
-	config, err := pc.Load(ctx, p.Config)
+	config, err := pc.Load(ctx, optional.Zero(p.Config))
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (p ProjectConfig[R]) List(ctx context.Context) ([]configuration.Entry, erro
 }
 
 func (p ProjectConfig[R]) Set(ctx context.Context, ref configuration.Ref, key *url.URL) error {
-	config, err := pc.Load(ctx, p.Config)
+	config, err := pc.Load(ctx, optional.Zero(p.Config))
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (p ProjectConfig[R]) Set(ctx context.Context, ref configuration.Ref, key *u
 }
 
 func (p ProjectConfig[From]) Unset(ctx context.Context, ref configuration.Ref) error {
-	config, err := pc.Load(ctx, p.Config)
+	config, err := pc.Load(ctx, optional.Zero(p.Config))
 	if err != nil {
 		return err
 	}

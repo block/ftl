@@ -16,11 +16,14 @@ import (
 	"github.com/block/ftl/internal/configuration/routers"
 	in "github.com/block/ftl/internal/integration"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 func getDiskSchema(t testing.TB, ctx context.Context) (*schema.Schema, error) {
 	t.Helper()
-	dsr := &diskSchemaRetriever{}
+	projConfig, err := projectconfig.Load(ctx, optional.None[string]())
+	assert.NoError(t, err)
+	dsr := newDiskSchemaRetriever(projConfig)
 	return dsr.GetSchema(ctx)
 }
 
@@ -65,7 +68,10 @@ func TestAdminNoValidationWithNoSchema(t *testing.T) {
 	sm, err := manager.New(ctx, routers.ProjectConfig[cf.Secrets]{Config: config}, providers.NewInline[cf.Secrets]())
 	assert.NoError(t, err)
 
-	dsr := &diskSchemaRetriever{deployRoot: optional.Some(string(t.TempDir()))}
+	projConfig, err := projectconfig.Load(ctx, optional.None[string]())
+	assert.NoError(t, err)
+
+	dsr := newDiskSchemaRetriever(projConfig)
 	_, err = dsr.GetSchema(ctx)
 	assert.Error(t, err)
 

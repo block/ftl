@@ -76,7 +76,7 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 		flags[f.Name] = flagValue
 	}
 
-	plugin, err := pluginHolder.Plugin(ctx, i.Language)
+	plugin, err := pluginHolder.Plugin(ctx, config, i.Language)
 	if err != nil {
 		return err
 	}
