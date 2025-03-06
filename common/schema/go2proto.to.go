@@ -1471,6 +1471,10 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Generated{value.ToProto()},
 		}
+	case *MetadataGit:
+		return &destpb.Metadata{
+			Value: &destpb.Metadata_Git{value.ToProto()},
+		}
 	case *MetadataIngress:
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Ingress{value.ToProto()},
@@ -1537,6 +1541,8 @@ func MetadataFromProto(v *destpb.Metadata) (Metadata, error) {
 		return MetadataEncodingFromProto(v.GetEncoding())
 	case *destpb.Metadata_Generated:
 		return MetadataGeneratedFromProto(v.GetGenerated())
+	case *destpb.Metadata_Git:
+		return MetadataGitFromProto(v.GetGit())
 	case *destpb.Metadata_Ingress:
 		return MetadataIngressFromProto(v.GetIngress())
 	case *destpb.Metadata_Partitions:
@@ -1770,6 +1776,39 @@ func MetadataGeneratedFromProto(v *destpb.MetadataGenerated) (out *MetadataGener
 	out = &MetadataGenerated{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
 		return nil, fmt.Errorf("Pos: %w", err)
+	}
+	return out, nil
+}
+
+func (x *MetadataGit) ToProto() *destpb.MetadataGit {
+	if x == nil {
+		return nil
+	}
+	return &destpb.MetadataGit{
+		Pos:        x.Pos.ToProto(),
+		Repository: orZero(ptr(string(x.Repository))),
+		Commit:     orZero(ptr(string(x.Commit))),
+		Dirty:      orZero(ptr(bool(x.Dirty))),
+	}
+}
+
+func MetadataGitFromProto(v *destpb.MetadataGit) (out *MetadataGit, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &MetadataGit{}
+	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	}
+	if out.Repository, err = orZeroR(result.From(ptr(string(v.Repository)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Repository: %w", err)
+	}
+	if out.Commit, err = orZeroR(result.From(ptr(string(v.Commit)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Commit: %w", err)
+	}
+	if out.Dirty, err = orZeroR(result.From(ptr(bool(v.Dirty)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Dirty: %w", err)
 	}
 	return out, nil
 }

@@ -140,6 +140,15 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	if err != nil {
 		return fmt.Errorf("failed to get module: %w", err)
 	}
+	var git *schema.MetadataGit
+	for m := range slices.FilterVariants[*schema.MetadataGit, schema.Metadata](module.Metadata) {
+		git = m
+		break
+	}
+	if git != nil {
+		logger = logger.Attrs(map[string]string{"git-commit": git.Commit})
+		ctx = log.ContextWithLogger(ctx, logger)
+	}
 
 	startedLatch := &sync.WaitGroup{}
 	startedLatch.Add(2)

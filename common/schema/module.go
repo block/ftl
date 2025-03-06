@@ -16,6 +16,7 @@ import (
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/sha256"
+	slices2 "github.com/block/ftl/common/slices"
 )
 
 type Module struct {
@@ -128,6 +129,10 @@ func (m *Module) String() string {
 		reflect.TypeOf(&Database{}):  {gapWithinType: false},
 		reflect.TypeOf(&Topic{}):     {gapWithinType: false},
 		reflect.TypeOf(&TypeAlias{}): {gapWithinType: false},
+	}
+
+	for commit := range slices2.FilterVariants[*MetadataGit, Metadata](m.Metadata) {
+		fmt.Fprintln(w, indent(commit.String()))
 	}
 
 	lastTypePrinted := optional.None[reflect.Type]()

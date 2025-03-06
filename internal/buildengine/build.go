@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/types/result"
@@ -15,6 +16,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/dev"
+	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
@@ -76,6 +78,11 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	result.Deploy = append(result.Deploy, migrationFiles...)
 	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLRootDir)
 
+	err = handleGitCommit(ctx, c.Abs().Dir, result.Schema)
+	if err != nil {
+		logger.Errorf(err, "Failed to save current git commit to schema")
+	}
+
 	if endpoint, ok := result.DevEndpoint.Get(); ok {
 		if devModeEndpoints != nil {
 			devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: endpoint, DebugPort: result.DebugPort, Language: config.Language, HotReloadEndpoint: result.HotReloadEndpoint.Default("")}
@@ -95,4 +102,21 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 		return nil, nil, fmt.Errorf("failed to write schema: %w", err)
 	}
 	return result.Schema, result.Deploy, nil
+}
+
+func handleGitCommit(ctx context.Context, dir string, module *schema.Module) error {
+	commit, err := exec.Capture(ctx, dir, "git", "rev-parse", "HEAD")
+	if err != nil {
+		return fmt.Errorf("failed to get git commit: %w", err)
+	}
+	status, err := exec.Capture(ctx, dir, "git", "status", "--porcelain")
+	if err != nil {
+		return fmt.Errorf("failed to get git status: %w", err)
+	}
+	origin, err := exec.Capture(ctx, dir, "git", "remote", "get-url", "origin")
+	if err != nil {
+		return fmt.Errorf("failed to get git origin url: %w", err)
+	}
+	module.Metadata = append(module.Metadata, &schema.MetadataGit{Repository: strings.TrimSpace(string(origin)), Commit: strings.TrimSpace(string(commit)), Dirty: strings.TrimSpace(string(status)) != ""})
+	return nil
 }

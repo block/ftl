@@ -22,6 +22,7 @@ func TestSchemaString(t *testing.T) {
 	expected := Builtins().String() + `
 // A comment
 module todo {
+  +git "https://github/com/fake" "1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167"
   // A config value
   config configValue String
   // Shhh
@@ -352,6 +353,7 @@ func TestParsing(t *testing.T) {
 			input: `
 				module echo {
 					+artefact "echo" "1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167"
+					+git "https://github.com/foo/bar" "ea32388e08498e94cfcb9d567e8a2a07296a4fd4" dirty
 
 					data EchoRequest {
 						name String?
@@ -384,6 +386,7 @@ func TestParsing(t *testing.T) {
 					Name: "echo",
 					Metadata: []Metadata{
 						&MetadataArtefact{Path: "echo", Digest: sha256.MustParseSHA256("1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167"), Executable: false},
+						&MetadataGit{Repository: "https://github.com/foo/bar", Commit: "ea32388e08498e94cfcb9d567e8a2a07296a4fd4", Dirty: true},
 					},
 					Decls: []Decl{
 						&Data{Name: "EchoRequest", Fields: []*Field{{Name: "name", Type: &Optional{Type: &String{}}}}},
@@ -792,6 +795,7 @@ func TestParseModule(t *testing.T) {
 	input := `
 // A comment
 module todo {
+  +git "https://github/com/fake" "1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167"
   // A config value
   config configValue String
   // Shhh
@@ -884,6 +888,9 @@ var testSchema = MustValidate(&Schema{
 		{
 			Name:     "todo",
 			Comments: []string{"A comment"},
+			Metadata: []Metadata{
+				&MetadataGit{Repository: "https://github/com/fake", Commit: "1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167", Dirty: false},
+			},
 			Decls: []Decl{
 				&Secret{
 					Comments: []string{"Shhh"},
