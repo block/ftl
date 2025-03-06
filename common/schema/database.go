@@ -60,8 +60,9 @@ func (d *Database) GetProvisioned() ResourceSet {
 	migration, ok := slices.FindVariant[*MetadataSQLMigration](d.Metadata)
 	if ok {
 		result = append(result, &ProvisionedResource{
-			Kind:   ResourceTypeSQLMigration,
-			Config: &Database{Type: d.Type, Metadata: []Metadata{migration}},
+			Kind:               ResourceTypeSQLMigration,
+			Config:             &Database{Type: d.Type, Metadata: []Metadata{migration}},
+			DeploymentSpecific: true,
 		})
 	}
 

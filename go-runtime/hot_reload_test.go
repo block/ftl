@@ -14,6 +14,102 @@ import (
 	in "github.com/block/ftl/internal/integration"
 )
 
+func TestHotReloadDatabaseGo(t *testing.T) {
+	in.Run(t,
+		in.WithLanguages("go"),
+		in.WithDevMode(),
+		in.GitInit(),
+		in.Exec("rm", "ftl-project.toml"),
+		in.Exec("ftl", "init", "test", "."),
+		// Create module with database
+		in.Exec("ftl", "module", "new", "go", "users"),
+		in.WaitWithTimeout("users", time.Minute),
+		// Initialize MySQL database
+		in.Exec("ftl", "mysql", "new", "users.userdb"),
+		in.Sleep(time.Second*5),
+		// Edit initial migration
+		in.EditFiles("users", func(file string, content []byte) (bool, []byte) {
+			in.Infof("users.userdb: %s", file)
+			if !strings.Contains(file, "init") {
+				return false, nil
+			}
+			return true, []byte(`-- migrate:up
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+-- migrate:down
+DROP TABLE users;`)
+		}, "db/mysql/userdb/schema/"),
+		in.Sleep(time.Second*5),
+
+		// Add query file
+		in.CreateFile("users", `-- name: CreateUser :exec
+INSERT INTO users (name) VALUES (?);
+`, "db/mysql/userdb/queries/queries.sql"),
+		in.Sleep(time.Second*5),
+		// Test initial schema works
+		in.Call("users", "createUser", map[string]string{"name": "Alice"}, func(t testing.TB, response map[string]interface{}) {
+
+		}),
+		in.Call("users", "createUser", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]interface{}) {
+
+		}),
+		// Edit the query file, verify we keep our state
+		in.EditFile("users", func(content []byte) []byte {
+			return []byte(`-- name: CreateUser :exec
+INSERT INTO users (name) VALUES (?);
+
+-- name: GetUsers :many
+SELECT id, name FROM users ORDER BY id;`)
+		}, "db/mysql/userdb/queries/queries.sql"),
+		in.Sleep(time.Second*5),
+		in.Call("users", "getUsers", struct{}{}, func(t testing.TB, response []map[string]interface{}) {
+			assert.Equal(t, 2, len(response))
+			assert.Equal(t, "Alice", response[0]["name"])
+			assert.Equal(t, "Bob", response[1]["name"])
+		}),
+		in.EditFiles("users", func(file string, content []byte) (bool, []byte) {
+			if !strings.Contains(file, "init") {
+				return false, nil
+			}
+			return true, []byte(`-- migrate:up
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+	email VARCHAR(255) NOT NULL
+);
+
+-- migrate:down
+DROP TABLE users;`)
+		}, "db/mysql/userdb/schema/"),
+
+		// Update queries
+		in.EditFile("users", func(content []byte) []byte {
+			return []byte(`-- name: CreateUserNew :exec
+INSERT INTO users (name, email) VALUES (?, ?);
+
+-- name: GetUsers :many
+SELECT id, name, email FROM users ORDER BY id;`)
+		}, "db/mysql/userdb/queries/queries.sql"),
+		in.Sleep(time.Second*5),
+
+		// Test updated schema
+		// We change the verb name so we can't accidentally call the old verb before the new one is ready
+		in.Call("users", "createUserNew", map[string]interface{}{
+			"name":  "Charlie",
+			"email": "charlie@example.com",
+		}, func(t testing.TB, response map[string]interface{}) {
+
+		}),
+		in.Call("users", "getUsers", struct{}{}, func(t testing.TB, response []map[string]interface{}) {
+			assert.Equal(t, "Charlie", response[0]["name"])
+			assert.Equal(t, "charlie@example.com", response[0]["email"])
+		}),
+	)
+}
+
 func TestHotReloadMultiModuleGo(t *testing.T) {
 	var serviceDeployment, clientDeployment string
 	in.Run(t,

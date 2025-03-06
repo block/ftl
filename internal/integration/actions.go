@@ -402,6 +402,18 @@ func WriteFile(path string, content []byte) Action {
 	}
 }
 
+// CreateFile creates a file in a module
+func CreateFile(module string, contents string, path ...string) Action {
+	return func(t testing.TB, ic TestContext) {
+		parts := []string{ic.workDir, module}
+		parts = append(parts, path...)
+		file := filepath.Join(parts...)
+		Infof("Creating %s", file)
+		err := os.WriteFile(file, []byte(contents), os.FileMode(0644)) //nolint:gosec
+		assert.NoError(t, err)
+	}
+}
+
 // EditFile edits a file in a module
 func EditFile(module string, editFunc func([]byte) []byte, path ...string) Action {
 	return func(t testing.TB, ic TestContext) {

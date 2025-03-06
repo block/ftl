@@ -2,6 +2,8 @@ package provisioner
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -38,6 +40,15 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(res.ResourceID())
 
 		logger.Infof("Provisioning mysql database: %s", dbName) //nolint
+		db, ok := res.(*schema.Database)
+		if !ok {
+			return nil, fmt.Errorf("expected database, got %T", res)
+		}
+		migrationHash := ""
+		for migration := range slices.FilterVariants[*schema.MetadataSQLMigration](db.Metadata) {
+			migrationHash = migration.Digest
+			break
+		}
 
 		// We assume that the DB hsas already been started when running in dev mode
 		mysqlDSN, err := dev.SetupMySQL(ctx, mysqlPort)
@@ -52,7 +63,7 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 			case <-timeout:
 				return nil, fmt.Errorf("failed to query database: %w", err)
 			case <-retry.C:
-				event, err := establishMySQLDB(ctx, mysqlDSN, dbName, mysqlPort, recreate)
+				event, err := establishMySQLDB(ctx, mysqlDSN, dbName, mysqlPort, recreate, migrationHash)
 				if err != nil {
 					logger.Debugf("failed to establish mysql database: %s", err.Error())
 					continue
@@ -68,8 +79,9 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 	}
 }
 
-func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysqlPort int, recreate bool) (*schema.DatabaseRuntimeConnections, error) {
+func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysqlPort int, recreate bool, migrationHash string) (*schema.DatabaseRuntimeConnections, error) {
 	conn, err := otelsql.Open("mysql", mysqlDSN)
+	logger := log.FromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to mysql: %w", err)
 	}
@@ -82,6 +94,31 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 	defer res.Close()
 
 	exists := res.Next()
+
+	if migrationHash != "" {
+		_, err := conn.Exec("CREATE TABLE IF NOT EXISTS migrations (db VARCHAR(255) PRIMARY KEY NOT NULL, migration VARCHAR(255) NOT NULL)")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create migrations tracking table: %w", err)
+		}
+		if exists && !recreate {
+			// We might still need to recreate the database if the schema has changed
+			existing := ""
+			err := conn.QueryRow("SELECT migration FROM migrations WHERE db=?", dbName).Scan(&existing)
+			if err != nil {
+				if !errors.Is(err, sql.ErrNoRows) {
+					return nil, fmt.Errorf("failed to query migrations table: %w", err)
+				}
+				logger.Debugf("No existing migration found")
+			} else {
+				logger.Debugf("existing migration: %s , current migration %s", existing, migrationHash)
+				if existing != migrationHash {
+					logger.Infof("Recreating database %q due to schema change", dbName) //nolint
+					recreate = true
+				}
+			}
+		}
+	}
+
 	if exists && recreate {
 		_, err = conn.ExecContext(ctx, "DROP DATABASE "+dbName)
 		if err != nil {
@@ -96,6 +133,13 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 	}
 
 	dsn := dsn.MySQLDSN(dbName, dsn.Port(mysqlPort))
+
+	if migrationHash != "" {
+		_, err := conn.Exec("INSERT INTO migrations (db, migration) VALUES (?, ?) ON DUPLICATE KEY UPDATE migration = ?", dbName, migrationHash, migrationHash)
+		if err != nil {
+			return nil, fmt.Errorf("failed to insert migration hash: %w", err)
+		}
+	}
 
 	return &schema.DatabaseRuntimeConnections{
 		Write: &schema.DSNDatabaseConnector{DSN: dsn, Database: dbName},
@@ -123,9 +167,14 @@ func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (s
 
 }
 
-func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisionerFn {
+func provisionPostgres(postgresPort int, alwaysRecreate bool) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (*schema.RuntimeElement, error) {
+		recreate := alwaysRecreate
 		logger := log.FromContext(ctx).Deployment(deployment)
+		db, ok := resource.(*schema.Database)
+		if !ok {
+			return nil, fmt.Errorf("expected database, got %T", resource)
+		}
 
 		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(resource.ResourceID())
 		logger.Infof("Provisioning postgres database: %s", dbName) //nolint
@@ -150,6 +199,30 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 		defer res.Close()
 
 		exists := res.Next()
+		migrationHash := ""
+		for migration := range slices.FilterVariants[*schema.MetadataSQLMigration](db.Metadata) {
+			_, err := conn.Exec("CREATE TABLE IF NOT EXISTS migrations (db VARCHAR PRIMARY KEY NOT NULL, migration VARCHAR NOT NULL)")
+			if err != nil {
+				return nil, fmt.Errorf("failed to create migrations tracking table: %w", err)
+			}
+			migrationHash = migration.Digest
+			if exists && !recreate {
+				// We might still need to recreate the database if the schema has changed
+				existing := ""
+				err := conn.QueryRow("SELECT migration FROM migrations WHERE db=$1", dbName).Scan(&existing)
+				if err != nil {
+					if !errors.Is(err, sql.ErrNoRows) {
+						return nil, fmt.Errorf("failed to query migrations table: %w", err)
+					}
+				} else {
+					if existing != migrationHash {
+						logger.Infof("Recreating database %q due to schema change", dbName) //nolint
+						recreate = true
+					}
+				}
+			}
+		}
+
 		if exists && recreate {
 			// Terminate any dangling connections.
 			_, err = conn.ExecContext(ctx, `
@@ -172,6 +245,12 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 			}
 		}
 
+		if migrationHash != "" {
+			_, err := conn.Exec("INSERT INTO migrations (db, migration) VALUES ($1, $2)ON CONFLICT (db) DO UPDATE SET migration = EXCLUDED.migration;", dbName, migrationHash)
+			if err != nil {
+				return nil, fmt.Errorf("failed to insert migration hash: %w", err)
+			}
+		}
 		dsn := dsn.PostgresDSN(dbName, dsn.Port(postgresPort))
 
 		return &schema.RuntimeElement{
