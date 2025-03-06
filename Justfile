@@ -164,7 +164,7 @@ build-without-frontend +tools: build-protos build-zips capture-hermit-versions
 
 # Build all backend binaries
 build-backend:
-  just build ftl ftl-controller ftl-runner ftl-sqlc ftl-admin ftl-cron ftl-http-ingress ftl-lease ftl-provisioner ftl-schema ftl-timeline ftl-mcp
+  just build ftl ftl-controller ftl-runner ftl-sqlc ftl-admin ftl-cron ftl-http-ingress ftl-lease ftl-provisioner ftl-schema ftl-timeline
 
 # Build all backend tests
 build-backend-tests:

@@ -71,7 +71,7 @@ func (c *gooseCmd) Run(ctx context.Context) error {
 		// Second command includes final instructions and the user's input
 		data = gooseFirstPromptInstructions + data
 	}
-	args = append(args, "--resume", "--with-extension", "ftl-mcp", "--text", data)
+	args = append(args, "--resume", "--with-extension", "ftl mcp", "--text", data)
 
 	cmd := exec.Command(ctx, log.Debug, ".", "goose", args...)
 	out := &output{}

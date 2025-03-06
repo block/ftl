@@ -4,19 +4,51 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/alecthomas/kong"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/block/ftl"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	devstate "github.com/block/ftl/internal/devstate"
+	"github.com/block/ftl/internal/devstate"
+	"github.com/block/ftl/internal/log"
 )
+
+type mcpCmd struct{}
+
+func (m mcpCmd) Run(ctx context.Context, k *kong.Kong, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient ftlv1connect.AdminServiceClient) error {
+	s := server.NewMCPServer(
+		"FTL",
+		ftl.Version,
+		server.WithResourceCapabilities(true, true),
+		server.WithLogging(),
+	)
+
+	s.AddTool(mcp.NewTool(
+		"Status",
+		mcp.WithDescription("Get the current status of each FTL module and the current schema"),
+	), func(serverCtx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		return statusTool(ctx, buildEngineClient, adminClient)
+	})
+
+	// Start the server
+	err := server.ServeStdio(s)
+	k.FatalIfErrorf(err, "failed to start mcp")
+	return nil
+}
+
+func contextFromServerContext(ctx context.Context) context.Context {
+	return log.ContextWithLogger(ctx, log.Configure(os.Stderr, cli.LogConfig).Scope("mcp"))
+}
 
 type statusOutput struct {
 	Modules []devstate.ModuleState
