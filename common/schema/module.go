@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	slices2 "github.com/block/ftl/common/slices"
 	"os"
 	"reflect"
 	"slices"
@@ -17,6 +16,7 @@ import (
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/sha256"
+	slices2 "github.com/block/ftl/common/slices"
 )
 
 type Module struct {
