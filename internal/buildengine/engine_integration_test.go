@@ -41,8 +41,7 @@ func TestInt64BuildError(t *testing.T) {
 func TestModuleInterfaceChanges(t *testing.T) {
 	in.Run(t,
 		in.WithDevMode(),
-		// TODO: resolve issue blocking kotlin support in test
-		in.WithLanguages("go"),
+		in.WithLanguages("go", "kotlin"),
 
 		in.CopyModule("parent"),
 		in.CopyModule("child"),
@@ -71,7 +70,7 @@ func updateVerb(module, old, new string) in.Action {
 		case "go":
 			file = filepath.Join(".", module, module+".go")
 		case "kotlin":
-			file = filepath.Join(".", module, "src", "main", "kotlin", "ftl", module, module+".kt")
+			file = filepath.Join(".", module, "src", "main", "kotlin", "ftl", module, strcase.ToUpperCamel(module)+".kt")
 		}
 		assert.NotEqual(t, "", file, "unsupported language: %s", ic.Language)
 
