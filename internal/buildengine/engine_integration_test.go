@@ -41,8 +41,7 @@ func TestInt64BuildError(t *testing.T) {
 func TestModuleInterfaceChanges(t *testing.T) {
 	in.Run(t,
 		in.WithDevMode(),
-		// TODO: resolve issue blocking kotlin support in test
-		in.WithLanguages("go"),
+		in.WithLanguages("go", "kotlin"),
 
 		in.CopyModule("parent"),
 		in.CopyModule("child"),
