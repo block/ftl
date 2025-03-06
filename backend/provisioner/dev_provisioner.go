@@ -108,12 +108,11 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 				if !errors.Is(err, sql.ErrNoRows) {
 					return nil, fmt.Errorf("failed to query migrations table: %w", err)
 				}
-				logger.Infof("existing migration: %s", existing)
+				logger.Debugf("No existing migration found")
 			} else {
-				logger.Infof("existing migration: %s", existing)
-				logger.Infof("existing current: %s", migrationHash)
+				logger.Debugf("existing migration: %s , current migration %s", existing, migrationHash)
 				if existing != migrationHash {
-					logger.Infof("Recreating database %q due to schema change", dbName)
+					logger.Infof("Recreating database %q due to schema change", dbName) //nolint
 					recreate = true
 				}
 			}
@@ -168,8 +167,9 @@ func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (s
 
 }
 
-func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisionerFn {
+func provisionPostgres(postgresPort int, alwaysRecreate bool) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (*schema.RuntimeElement, error) {
+		recreate := alwaysRecreate
 		logger := log.FromContext(ctx).Deployment(deployment)
 		db, ok := resource.(*schema.Database)
 		if !ok {
@@ -214,12 +214,9 @@ func provisionPostgres(postgresPort int, recreate bool) InMemResourceProvisioner
 					if !errors.Is(err, sql.ErrNoRows) {
 						return nil, fmt.Errorf("failed to query migrations table: %w", err)
 					}
-					logger.Infof("existing migration: %s", existing)
 				} else {
-					logger.Infof("existing migration: %s", existing)
-					logger.Infof("existing current: %s", migrationHash)
 					if existing != migrationHash {
-						logger.Infof("Recreating database %q due to schema change", dbName)
+						logger.Infof("Recreating database %q due to schema change", dbName) //nolint
 						recreate = true
 					}
 				}
