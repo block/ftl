@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/alecthomas/types/either"
-	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/schema"
@@ -16,25 +15,20 @@ import (
 )
 
 type diskSchemaRetriever struct {
-	// Omit to use the project root as the deploy root (used in tests)
-	deployRoot optional.Option[string]
+	projConfig projectconfig.Config
+}
+
+func newDiskSchemaRetriever(projConfig projectconfig.Config) *diskSchemaRetriever {
+	return &diskSchemaRetriever{projConfig: projConfig}
 }
 
 // NewLocalClient creates a admin client that reads and writes from the provided config and secret managers
-func NewLocalClient(cm *manager.Manager[cf.Configuration], sm *manager.Manager[cf.Secrets]) EnvironmentClient {
-	return NewEnvironmentClient(cm, sm, &diskSchemaRetriever{})
+func NewLocalClient(projConfig projectconfig.Config, cm *manager.Manager[cf.Configuration], sm *manager.Manager[cf.Secrets]) EnvironmentClient {
+	return NewEnvironmentClient(cm, sm, newDiskSchemaRetriever(projConfig))
 }
 
 func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, error) {
-	path, ok := projectconfig.DefaultConfigPath().Get()
-	if !ok {
-		return nil, fmt.Errorf("no project config path available")
-	}
-	projConfig, err := projectconfig.Load(ctx, path)
-	if err != nil {
-		return nil, fmt.Errorf("could not load project config: %w", err)
-	}
-	modules, err := watch.DiscoverModules(ctx, projConfig.AbsModuleDirs())
+	modules, err := watch.DiscoverModules(ctx, s.projConfig.AbsModuleDirs())
 	if err != nil {
 		return nil, fmt.Errorf("could not discover modules: %w", err)
 	}
@@ -44,7 +38,7 @@ func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, er
 
 	for _, m := range modules {
 		go func() {
-			module, err := schema.ModuleFromProtoFile(projConfig.SchemaPath(m.Module))
+			module, err := schema.ModuleFromProtoFile(s.projConfig.SchemaPath(m.Module))
 			if err != nil {
 				moduleSchemas <- either.RightOf[*schema.Module](fmt.Errorf("could not load module schema: %w", err))
 				return

@@ -13,6 +13,7 @@ import (
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -21,7 +22,7 @@ type migrationSQLCmd struct {
 	Name       string `arg:"" help:"Name of the migration, this will be included in the migration file name."`
 }
 
-func (i migrationSQLCmd) Run(ctx context.Context) error {
+func (i migrationSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) error {
 	dir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("could not get current working directory: %w", err)
@@ -57,7 +58,7 @@ func (i migrationSQLCmd) Run(ctx context.Context) error {
 	}
 	if migrationDir == "" || !found {
 		language := module.Language
-		plugin, err := languageplugin.CreateLanguagePlugin(ctx, language)
+		plugin, err := languageplugin.CreateLanguagePlugin(ctx, projectConfig, language)
 		if err != nil {
 			return fmt.Errorf("could not create plugin for language %q: %w", language, err)
 		}

@@ -11,6 +11,7 @@ import (
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -23,7 +24,7 @@ func newNewSQLCmd(engine string) newSQLCmd {
 	return newSQLCmd{engine: engine}
 }
 
-func (i newSQLCmd) Run(ctx context.Context) error {
+func (i newSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) error {
 	dir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("could not get current working directory: %w", err)
@@ -60,7 +61,7 @@ func (i newSQLCmd) Run(ctx context.Context) error {
 	}
 
 	language := module.Language
-	plugin, err := languageplugin.CreateLanguagePlugin(ctx, language)
+	plugin, err := languageplugin.CreateLanguagePlugin(ctx, projectConfig, language)
 	if err != nil {
 		return fmt.Errorf("could not create plugin for language %q: %w", language, err)
 	}

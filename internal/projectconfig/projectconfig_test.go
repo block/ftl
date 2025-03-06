@@ -1,17 +1,17 @@
 package projectconfig
 
 import (
-	"context"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/internal/log"
 )
 
 func TestProjectConfig(t *testing.T) {
-	actual, err := Load(context.Background(), "testdata/ftl-project.toml")
+	actual, err := Load(t.Context(), optional.Some("testdata/ftl-project.toml"))
 	assert.NoError(t, err)
 	expected := Config{
 		Name:            "testdata",
@@ -50,7 +50,7 @@ func TestProjectLoadConfig(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := Load(log.ContextWithNewDefaultLogger(context.Background()), test.paths)
+			_, err := Load(log.ContextWithNewDefaultLogger(t.Context()), optional.Some(test.paths))
 			if test.err != "" {
 				assert.Contains(t, err.Error(), test.err)
 			} else {
@@ -81,7 +81,7 @@ func TestProjectConfigChecksMinVersion(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ftl.Version = test.v
-			_, err := Load(log.ContextWithNewDefaultLogger(context.Background()), test.path)
+			_, err := Load(log.ContextWithNewDefaultLogger(t.Context()), optional.Some(test.path))
 			if !test.wantErr {
 				assert.NoError(t, err)
 			} else {

@@ -157,8 +157,10 @@ func Create(ctx context.Context, config Config, dir string) error {
 }
 
 // Load project config from a file.
-func Load(ctx context.Context, path string) (Config, error) {
-	if path == "" {
+func Load(ctx context.Context, configPath optional.Option[string]) (Config, error) {
+	var path string
+	var ok bool
+	if path, ok = configPath.Get(); !ok {
 		maybePath, ok := DefaultConfigPath().Get()
 		if !ok {
 			return Config{}, nil

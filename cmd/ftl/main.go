@@ -124,7 +124,9 @@ func main() {
 	app.FatalIfErrorf(err)
 
 	pluginCtx := log.ContextWithLogger(ctx, log.Configure(os.Stdout, cli.LogConfig))
-	languagePlugin, err := languageplugin.PrepareNewCmd(pluginCtx, app, os.Args[1:])
+	// TODO: don't do this
+	projectConfig, _ := projectconfig.Load(ctx, optional.None[string]()) //nolint:errcheck
+	languagePlugin, err := languageplugin.PrepareNewCmd(pluginCtx, projectConfig, app, os.Args[1:])
 	app.FatalIfErrorf(err)
 	addToExit(app, func(code int) {
 		// Kill the plugin when the app exits due to an error, or after showing help.
@@ -246,7 +248,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 	var bindContext terminal.KongContextBinder
 	bindContext = func(ctx context.Context, kctx *kong.Context) context.Context {
 		err := kctx.BindToProvider(func(cli *SharedCLI) (projectconfig.Config, error) {
-			config, err := projectconfig.Load(ctx, cli.ConfigFlag)
+			config, err := projectconfig.Load(ctx, optional.Zero(cli.ConfigFlag))
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return config, fmt.Errorf("%w", err)
 			}
@@ -319,6 +321,7 @@ func provideAdminClient(
 	cli *SharedCLI,
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
+	projectConfig projectconfig.Config,
 	adminClient adminpbconnect.AdminServiceClient,
 ) (client admin.EnvironmentClient, err error) {
 	shouldUseLocalClient, err := admin.ShouldUseLocalClient(ctx, adminClient, cli.AdminEndpoint)
@@ -326,7 +329,7 @@ func provideAdminClient(
 		return client, fmt.Errorf("could not create admin client: %w", err)
 	}
 	if shouldUseLocalClient {
-		return admin.NewLocalClient(cm, sm), nil
+		return admin.NewLocalClient(projectConfig, cm, sm), nil
 	}
 	return adminClient, nil
 }

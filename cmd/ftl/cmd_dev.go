@@ -76,7 +76,7 @@ func (d *devCmd) Run(
 	}
 	os.Setenv("FTL_DEV_DIRS", strings.Join(absDirs, ","))
 
-	terminal.LaunchEmbeddedConsole(ctx, createKongApplication(&DevModeCLI{}, csm), bindContext, schemaEventSource)
+	terminal.LaunchEmbeddedConsole(ctx, createKongApplication(&DevModeCLI{}, csm), bindContext, projConfig, schemaEventSource)
 	var deployClient buildengine.AdminClient = adminClient
 
 	g, ctx := errgroup.WithContext(ctx)
