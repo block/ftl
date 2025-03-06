@@ -9,11 +9,11 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	languagepb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -32,7 +32,7 @@ type ModuleState struct {
 
 // WaitForDevState waits for the engine to finish and prints a summary of the current module (paths and errors) and schema.
 // It is useful for synchronizing with FTL dev as it accommodates delays in detecting code changes, building and deploying.
-func WaitForDevState(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, schemaClient ftlv1connect.AdminServiceClient) (DevState, error) {
+func WaitForDevState(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, schemaClient adminpbconnect.AdminServiceClient) (DevState, error) {
 	stream, err := buildEngineClient.StreamEngineEvents(ctx, connect.NewRequest(&buildenginepb.StreamEngineEventsRequest{
 		ReplayHistory: true,
 	}))

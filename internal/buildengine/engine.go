@@ -22,9 +22,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -236,7 +236,7 @@ func New(
 		return nil, err //nolint:wrapcheck
 	}
 	if adminClient != nil {
-		info, err := adminClient.ClusterInfo(ctx, connect.NewRequest(&ftlv1.ClusterInfoRequest{}))
+		info, err := adminClient.ClusterInfo(ctx, connect.NewRequest(&adminpb.ClusterInfoRequest{}))
 		if err != nil {
 			log.FromContext(ctx).Debugf("failed to get cluster info: %s", err)
 		} else {

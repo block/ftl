@@ -13,7 +13,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/block/ftl/backend/admin"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	cf "github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/terminal"
 )
@@ -49,7 +49,7 @@ type secretListCmd struct {
 }
 
 func (s *secretListCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
-	resp, err := adminClient.SecretsList(ctx, connect.NewRequest(&ftlv1.SecretsListRequest{
+	resp, err := adminClient.SecretsList(ctx, connect.NewRequest(&adminpb.SecretsListRequest{
 		Module:        &s.Module,
 		IncludeValues: &s.Values,
 	}))
@@ -78,7 +78,7 @@ Returns a JSON-encoded secret value.
 }
 
 func (s *secretGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
-	resp, err := adminClient.SecretGet(ctx, connect.NewRequest(&ftlv1.SecretGetRequest{
+	resp, err := adminClient.SecretGet(ctx, connect.NewRequest(&adminpb.SecretGetRequest{
 		Ref: configRefFromRef(s.Ref),
 	}))
 	if err != nil {
@@ -127,7 +127,7 @@ func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 		}
 	}
 
-	req := &ftlv1.SecretSetRequest{
+	req := &adminpb.SecretSetRequest{
 		Ref:   configRefFromRef(s.Ref),
 		Value: secretJSON,
 	}
@@ -143,7 +143,7 @@ type secretUnsetCmd struct {
 }
 
 func (s *secretUnsetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
-	req := &ftlv1.SecretUnsetRequest{
+	req := &adminpb.SecretUnsetRequest{
 		Ref: configRefFromRef(s.Ref),
 	}
 	_, err = adminClient.SecretUnset(ctx, connect.NewRequest(req))
@@ -182,7 +182,7 @@ func (s *secretImportCmd) Run(ctx context.Context, adminClient admin.Environment
 		if err != nil {
 			return fmt.Errorf("could not marshal value for %q: %w", refPath, err)
 		}
-		req := &ftlv1.SecretSetRequest{
+		req := &adminpb.SecretSetRequest{
 			Ref:   configRefFromRef(ref),
 			Value: bytes,
 		}
@@ -204,7 +204,7 @@ Outputs secrets in a JSON object. A provider can be used to filter which secrets
 }
 
 func (s *secretExportCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
-	req := &ftlv1.SecretsListRequest{
+	req := &adminpb.SecretsListRequest{
 		IncludeValues: optional.Some(true).Ptr(),
 	}
 	listResponse, err := adminClient.SecretsList(ctx, connect.NewRequest(req))

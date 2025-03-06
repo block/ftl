@@ -12,7 +12,7 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
 
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
@@ -84,7 +84,7 @@ func testAdminConfigs(
 
 	module := ""
 	includeValues := true
-	resp, err := admin.ConfigList(ctx, connect.NewRequest(&ftlv1.ConfigListRequest{
+	resp, err := admin.ConfigList(ctx, connect.NewRequest(&adminpb.ConfigListRequest{
 		Module:        &module,
 		IncludeValues: &includeValues,
 	}))
@@ -96,11 +96,11 @@ func testAdminConfigs(
 
 	for _, entry := range entries {
 		module := entry.Ref.Module.Default("")
-		ref := &ftlv1.ConfigRef{
+		ref := &adminpb.ConfigRef{
 			Module: &module,
 			Name:   entry.Ref.Name,
 		}
-		resp, err := admin.ConfigGet(ctx, connect.NewRequest(&ftlv1.ConfigGetRequest{Ref: ref}))
+		resp, err := admin.ConfigGet(ctx, connect.NewRequest(&adminpb.ConfigGetRequest{Ref: ref}))
 		assert.NoError(t, err)
 		assert.Equal(t, entry.Value, string(resp.Msg.Value))
 	}
@@ -119,7 +119,7 @@ func testAdminSecrets(
 
 	module := ""
 	includeValues := true
-	resp, err := admin.SecretsList(ctx, connect.NewRequest(&ftlv1.SecretsListRequest{
+	resp, err := admin.SecretsList(ctx, connect.NewRequest(&adminpb.SecretsListRequest{
 		Module:        &module,
 		IncludeValues: &includeValues,
 	}))
@@ -131,11 +131,11 @@ func testAdminSecrets(
 
 	for _, entry := range entries {
 		module := entry.Ref.Module.Default("")
-		ref := &ftlv1.ConfigRef{
+		ref := &adminpb.ConfigRef{
 			Module: &module,
 			Name:   entry.Ref.Name,
 		}
-		resp, err := admin.SecretGet(ctx, connect.NewRequest(&ftlv1.SecretGetRequest{Ref: ref}))
+		resp, err := admin.SecretGet(ctx, connect.NewRequest(&adminpb.SecretGetRequest{Ref: ref}))
 		assert.NoError(t, err)
 		assert.Equal(t, entry.Value, string(resp.Msg.Value))
 	}
@@ -230,13 +230,13 @@ func testSetConfig(t testing.TB, ctx context.Context, admin EnvironmentClient, m
 	buffer, err := json.Marshal(jsonVal)
 	assert.NoError(t, err)
 
-	configRef := &ftlv1.ConfigRef{Name: name}
+	configRef := &adminpb.ConfigRef{Name: name}
 	if module != "" {
 		configRef.Module = &module
 	}
 
-	_, err = admin.ConfigSet(ctx, connect.NewRequest(&ftlv1.ConfigSetRequest{
-		Provider: ftlv1.ConfigProvider_CONFIG_PROVIDER_INLINE.Enum(),
+	_, err = admin.ConfigSet(ctx, connect.NewRequest(&adminpb.ConfigSetRequest{
+		Provider: adminpb.ConfigProvider_CONFIG_PROVIDER_INLINE.Enum(),
 		Ref:      configRef,
 		Value:    buffer,
 	}))
@@ -249,13 +249,13 @@ func testSetSecret(t testing.TB, ctx context.Context, admin EnvironmentClient, m
 	buffer, err := json.Marshal(jsonVal)
 	assert.NoError(t, err)
 
-	configRef := &ftlv1.ConfigRef{Name: name}
+	configRef := &adminpb.ConfigRef{Name: name}
 	if module != "" {
 		configRef.Module = &module
 	}
 
-	_, err = admin.SecretSet(ctx, connect.NewRequest(&ftlv1.SecretSetRequest{
-		Provider: ftlv1.SecretProvider_SECRET_PROVIDER_INLINE.Enum(),
+	_, err = admin.SecretSet(ctx, connect.NewRequest(&adminpb.SecretSetRequest{
+		Provider: adminpb.SecretProvider_SECRET_PROVIDER_INLINE.Enum(),
 		Ref:      configRef,
 		Value:    buffer,
 	}))

@@ -24,6 +24,7 @@ import (
 	"github.com/block/ftl/backend/cron"
 	"github.com/block/ftl/backend/ingress"
 	"github.com/block/ftl/backend/lease"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -90,7 +91,7 @@ func (s *serveCmd) Run(
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
 	timelineClient *timelineclient.Client,
-	adminClient ftlv1connect.AdminServiceClient,
+	adminClient adminpbconnect.AdminServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	bindAllocator, err := bind.NewBindAllocator(s.Bind, 2)
@@ -110,7 +111,7 @@ func (s *serveCommonConfig) run(
 	devMode bool,
 	bindAllocator *bind.BindAllocator,
 	timelineClient *timelineclient.Client,
-	adminClient ftlv1connect.AdminServiceClient,
+	adminClient adminpbconnect.AdminServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	recreate bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,

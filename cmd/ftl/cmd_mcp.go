@@ -14,8 +14,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/block/ftl"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -25,7 +25,7 @@ import (
 
 type mcpCmd struct{}
 
-func (m mcpCmd) Run(ctx context.Context, k *kong.Kong, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient ftlv1connect.AdminServiceClient) error {
+func (m mcpCmd) Run(ctx context.Context, k *kong.Kong, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) error {
 	s := server.NewMCPServer(
 		"FTL",
 		ftl.Version,
@@ -55,7 +55,7 @@ type statusOutput struct {
 	Schema  string
 }
 
-func statusTool(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient ftlv1connect.AdminServiceClient) (*mcp.CallToolResult, error) {
+func statusTool(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) (*mcp.CallToolResult, error) {
 	ctx = contextFromServerContext(ctx)
 	result, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient)
 	if err != nil {

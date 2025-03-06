@@ -6,14 +6,14 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 )
 
 type psCmd struct {
 }
 
-func (s *psCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient) error {
+func (s *psCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	status, err := client.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
 		return err

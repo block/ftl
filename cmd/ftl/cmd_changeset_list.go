@@ -6,15 +6,15 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )
 
 type listChangesetCmd struct {
 }
 
-func (g *listChangesetCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient) error {
+func (g *listChangesetCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	resp, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-changesets-list"}))
 	if err != nil {
 		return fmt.Errorf("failed to pull schema: %w", err)

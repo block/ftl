@@ -13,8 +13,8 @@ import (
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/configuration"
@@ -49,7 +49,7 @@ func (d *devCmd) Run(
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	csm *currentStatusManager,
 ) error {
-	adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, d.DevEndpoint.String(), log.Error)
+	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, d.DevEndpoint.String(), log.Error)
 
 	startTime := time.Now()
 	ctx, cancel := context.WithCancelCause(ctx)

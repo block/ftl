@@ -4,17 +4,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/types/optional"
-
-	"github.com/block/ftl/backend/controller/state"
 )
-
-func ArtefactToProto(artefact *state.DeploymentArtefact) *DeploymentArtefact {
-	return &DeploymentArtefact{
-		Path:       artefact.Path,
-		Executable: artefact.Executable,
-		Digest:     artefact.Digest[:],
-	}
-}
 
 func (m *Metadata) Set(key, value string) {
 	out := make([]*Metadata_Pair, 0, len(m.Values))

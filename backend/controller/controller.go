@@ -24,6 +24,8 @@ import (
 	"github.com/block/ftl/backend/controller/observability"
 	"github.com/block/ftl/backend/controller/scheduledtask"
 	"github.com/block/ftl/backend/controller/state"
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -77,7 +79,7 @@ func (c *Config) OpenDBAndInstrument(dsn string) (*sql.DB, error) {
 func Start(
 	ctx context.Context,
 	config Config,
-	adminClient ftlv1connect.AdminServiceClient,
+	adminClient adminpbconnect.AdminServiceClient,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	leaseClient leasepbconnect.LeaseServiceClient,
 	devel bool,
@@ -115,7 +117,7 @@ type clients struct {
 type Service struct {
 	leaser      leases.Leaser
 	key         key.Controller
-	adminClient ftlv1connect.AdminServiceClient
+	adminClient adminpbconnect.AdminServiceClient
 
 	tasks *scheduledtask.Scheduler
 
@@ -132,7 +134,7 @@ type Service struct {
 
 func New(
 	ctx context.Context,
-	adminClient ftlv1connect.AdminServiceClient,
+	adminClient adminpbconnect.AdminServiceClient,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	leaserClient leasepbconnect.LeaseServiceClient,
 	config Config,
@@ -394,9 +396,9 @@ func (s *Service) GetDeployment(ctx context.Context, req *connect.Request[ftlv1.
 	logger := log.FromContext(ctx)
 	logger.Debugf("Get deployment for: %s", dkey.String())
 
-	artefacts := []*ftlv1.DeploymentArtefact{}
+	artefacts := []*adminpb.DeploymentArtefact{}
 	for artefact := range slices.FilterVariants[schema.MetadataArtefact](deployment.Metadata) {
-		artefacts = append(artefacts, &ftlv1.DeploymentArtefact{
+		artefacts = append(artefacts, &adminpb.DeploymentArtefact{
 			Digest:     artefact.Digest[:],
 			Path:       artefact.Path,
 			Executable: artefact.Executable,
@@ -471,7 +473,7 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 		h := sha.New()
 
 		routeView := s.routeTable.Current()
-		configsResp, err := s.adminClient.MapConfigsForModule(ctx, &connect.Request[ftlv1.MapConfigsForModuleRequest]{Msg: &ftlv1.MapConfigsForModuleRequest{Module: module}})
+		configsResp, err := s.adminClient.MapConfigsForModule(ctx, &connect.Request[adminpb.MapConfigsForModuleRequest]{Msg: &adminpb.MapConfigsForModuleRequest{Module: module}})
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("could not get configs: %w", err))
 		}
@@ -490,7 +492,7 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 			}
 		}
 
-		secretsResp, err := s.adminClient.MapSecretsForModule(ctx, &connect.Request[ftlv1.MapSecretsForModuleRequest]{Msg: &ftlv1.MapSecretsForModuleRequest{Module: module}})
+		secretsResp, err := s.adminClient.MapSecretsForModule(ctx, &connect.Request[adminpb.MapSecretsForModuleRequest]{Msg: &adminpb.MapSecretsForModuleRequest{Module: module}})
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("could not get secrets: %w", err))
 		}
