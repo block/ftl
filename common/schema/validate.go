@@ -212,7 +212,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 
 					case *MetadataCronJob, *MetadataCalls, *MetadataConfig, *MetadataAlias, *MetadataTypeMap,
 						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact,
-						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated:
+						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit:
 					}
 				}
 				if isSQLQuery && !hasDatabase {
@@ -252,10 +252,10 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 				return next()
 
 			case
-				IngressPathComponent, Metadata, Value, Type, DatabaseConnector,
-				*Module, *Optional, *Schema, *TypeAlias, *String, *Time, *Unit, *Any, *TypeParameter,
-				*EnumVariant, *Config, *Secret, *Topic, *DatabaseRuntime, *DatabaseRuntimeConnections,
-				*Data, *Field, *MetadataPartitions, *MetadataSQLQuery, *MetadataSQLColumn:
+					IngressPathComponent, Metadata, Value, Type, DatabaseConnector,
+					*Module, *Optional, *Schema, *TypeAlias, *String, *Time, *Unit, *Any, *TypeParameter,
+					*EnumVariant, *Config, *Secret, *Topic, *DatabaseRuntime, *DatabaseRuntimeConnections,
+					*Data, *Field, *MetadataPartitions, *MetadataSQLQuery, *MetadataSQLColumn:
 			}
 			return nil
 		})
@@ -509,6 +509,8 @@ func sortMetadataType(md Metadata) {
 		return
 	case *MetadataGenerated:
 		return
+	case *MetadataGit:
+		return
 	}
 }
 
@@ -551,6 +553,8 @@ func getMetadataSortingPriority(metadata Metadata) int {
 		priority = 17
 	case *MetadataGenerated:
 		priority = 18
+	case *MetadataGit:
+		priority = 19
 	}
 	return priority
 }
@@ -752,7 +756,8 @@ func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error)
 			merr = append(merr, errorf(md, "metadata %q is not valid on verbs", strings.TrimSpace(md.String())))
 
 		case *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap, *MetadataEncoding,
-			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery, *MetadataPartitions, *MetadataGenerated:
+			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery, *MetadataPartitions, *MetadataGenerated,
+			*MetadataGit:
 		}
 	}
 	return
