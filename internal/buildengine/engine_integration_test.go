@@ -70,7 +70,7 @@ func updateVerb(module, old, new string) in.Action {
 		case "go":
 			file = filepath.Join(".", module, module+".go")
 		case "kotlin":
-			file = filepath.Join(".", module, "src", "main", "kotlin", "ftl", module, module+".kt")
+			file = filepath.Join(".", module, "src", "main", "kotlin", "ftl", module, strcase.ToLowerCamel(module)+".kt")
 		}
 		assert.NotEqual(t, "", file, "unsupported language: %s", ic.Language)
 
