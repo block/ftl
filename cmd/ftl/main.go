@@ -89,6 +89,7 @@ type CLI struct {
 
 	DumpHelp dumpHelpCmd `cmd:"" help:"Dump help for all commands." hidden:""`
 	LSP      lspCmd      `cmd:"" help:"Start the LSP server."`
+	MCP      mcpCmd      `cmd:"" help:"Start the MCP server."`
 }
 
 type DevModeCLI struct {
