@@ -1,11 +1,8 @@
 package xyz.block.ftl.deployment;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.Consumer;
 
 import org.jboss.logging.Logger;
@@ -41,6 +38,11 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     private volatile Consumer<SchemaState> runningReload;
     private volatile boolean starting;
     private volatile boolean nextRequiresNewRunner;
+    // Ordered list of the possible deployment keys
+    // If we get a runner when we are not expecting one, we need to check if it is in this list
+    // This allows us to only move forward with the new runner
+    // So we can't accidentally accept a connection from an old runner
+    private final Deque<String> possibleNewDeploymentKeys = new LinkedBlockingDeque<>();
     private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
 
     public static HotReloadHandler getInstance() {
@@ -54,6 +56,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             runningReload.accept(state);
         } else {
             if (state.getNewRunnerRequired()) {
+                // We are going to need a new runner, but we don't know what it is yet
                 RunnerNotification.newDeploymentKey(null);
             }
             List<StreamObserver<WatchResponse>> watches;
@@ -81,6 +84,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
         LOG.debugf("Reload request: %s", request.getNewDeploymentKey());
+        possibleNewDeploymentKeys.add(request.getNewDeploymentKey());
         var forceNewRunner = request.getForceNewRunner() || nextRequiresNewRunner;
         this.nextRequiresNewRunner = false;
         // This is complex, as the restart can't happen until the runner is up
@@ -119,7 +123,6 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                                     .build());
                         }
                         var errors = builder.build();
-                        RunnerNotification.newDeploymentKey(request.getNewDeploymentKey());
                         responseObserver.onNext(ReloadResponse.newBuilder()
                                 .setState(SchemaState.newBuilder().setNewRunnerRequired(true).setErrors(errors)).build());
                         nextRequiresNewRunner = true;
@@ -166,6 +169,22 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void runnerInfo(RunnerInfoRequest request, StreamObserver<RunnerInfoResponse> responseObserver) {
+        if (!Objects.equals(request.getDeployment(), RunnerNotification.getDeploymentKey())) {
+            // This might be a stale request
+            // We need to check if key is in the possible new deployment keys
+            if (possibleNewDeploymentKeys.contains(request.getDeployment())) {
+                // We ended up getting a new runner, even though we did not explicitly request one
+                // This can happen when validation fails in the build engine
+                // Set the new key
+                RunnerNotification.newDeploymentKey(request.getDeployment());
+            }
+        }
+        while (!possibleNewDeploymentKeys.isEmpty()) {
+            var queueKey = possibleNewDeploymentKeys.poll();
+            if (queueKey == null || Objects.equals(queueKey, request.getDeployment())) {
+                break;
+            }
+        }
         LOG.debugf("Received runner info for: %s", request.getDeployment());
         Map<String, String> databases = new HashMap<>();
         for (var db : request.getDatabasesList()) {
