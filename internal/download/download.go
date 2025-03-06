@@ -13,6 +13,8 @@ import (
 	"connectrpc.com/connect"
 
 	"github.com/block/ftl/backend/controller/artefacts"
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/sha256"
@@ -21,9 +23,9 @@ import (
 )
 
 // Artefacts downloads artefacts for a deployment from the Controller.
-func Artefacts(ctx context.Context, client ftlv1connect.AdminServiceClient, key key.Deployment, dest string) error {
+func Artefacts(ctx context.Context, client adminpbconnect.AdminServiceClient, key key.Deployment, dest string) error {
 	logger := log.FromContext(ctx)
-	stream, err := client.GetDeploymentArtefacts(ctx, connect.NewRequest(&ftlv1.GetDeploymentArtefactsRequest{
+	stream, err := client.GetDeploymentArtefacts(ctx, connect.NewRequest(&adminpb.GetDeploymentArtefactsRequest{
 		DeploymentKey: key.String(),
 	}))
 	if err != nil {

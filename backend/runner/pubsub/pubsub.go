@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -102,7 +103,7 @@ func (s *Service) ResetOffsetsOfSubscription(ctx context.Context, req *connect.R
 	if !ok {
 		return connect.NewResponse(&pubsubpb.ResetOffsetsOfSubscriptionResponse{}), nil
 	}
-	partitions, err := consumer.ResetOffsetsForClaimedPartitions(ctx, req.Msg.Offset != ftlv1.SubscriptionOffset_SUBSCRIPTION_OFFSET_EARLIEST)
+	partitions, err := consumer.ResetOffsetsForClaimedPartitions(ctx, req.Msg.Offset != adminpb.SubscriptionOffset_SUBSCRIPTION_OFFSET_EARLIEST)
 	if err != nil {
 		return nil, err
 	}

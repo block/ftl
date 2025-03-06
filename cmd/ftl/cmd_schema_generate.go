@@ -15,8 +15,8 @@ import (
 	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -30,14 +30,14 @@ type schemaGenerateCmd struct {
 	ReconnectDelay time.Duration `help:"Delay before attempting to reconnect to FTL." default:"5s"`
 }
 
-func (s *schemaGenerateCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient) error {
+func (s *schemaGenerateCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	if s.Watch == 0 {
 		return s.oneOffGenerate(ctx, client)
 	}
 	return s.hotReload(ctx, client)
 }
 
-func (s *schemaGenerateCmd) oneOffGenerate(ctx context.Context, schemaClient ftlv1connect.AdminServiceClient) error {
+func (s *schemaGenerateCmd) oneOffGenerate(ctx context.Context, schemaClient adminpbconnect.AdminServiceClient) error {
 	response, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
 		return fmt.Errorf("failed to get schema: %w", err)
@@ -49,7 +49,7 @@ func (s *schemaGenerateCmd) oneOffGenerate(ctx context.Context, schemaClient ftl
 	return s.regenerateModules(log.FromContext(ctx), modules)
 }
 
-func (s *schemaGenerateCmd) hotReload(ctx context.Context, client ftlv1connect.AdminServiceClient) error {
+func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	watch := watcher.New()
 	defer watch.Close()
 

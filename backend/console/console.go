@@ -11,6 +11,7 @@ import (
 
 	ftlversion "github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	consolepb "github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1"
@@ -489,8 +490,8 @@ func buildGraph(sch *schema.Schema, module *schema.Module, out map[string][]stri
 }
 
 func (s *service) GetConfig(ctx context.Context, req *connect.Request[consolepb.GetConfigRequest]) (*connect.Response[consolepb.GetConfigResponse], error) {
-	resp, err := s.adminClient.ConfigGet(ctx, connect.NewRequest(&ftlv1.ConfigGetRequest{
-		Ref: &ftlv1.ConfigRef{
+	resp, err := s.adminClient.ConfigGet(ctx, connect.NewRequest(&adminpb.ConfigGetRequest{
+		Ref: &adminpb.ConfigRef{
 			Module: req.Msg.Module,
 			Name:   req.Msg.Name,
 		},
@@ -504,8 +505,8 @@ func (s *service) GetConfig(ctx context.Context, req *connect.Request[consolepb.
 }
 
 func (s *service) SetConfig(ctx context.Context, req *connect.Request[consolepb.SetConfigRequest]) (*connect.Response[consolepb.SetConfigResponse], error) {
-	_, err := s.adminClient.ConfigSet(ctx, connect.NewRequest(&ftlv1.ConfigSetRequest{
-		Ref: &ftlv1.ConfigRef{
+	_, err := s.adminClient.ConfigSet(ctx, connect.NewRequest(&adminpb.ConfigSetRequest{
+		Ref: &adminpb.ConfigRef{
 			Module: req.Msg.Module,
 			Name:   req.Msg.Name,
 		},
@@ -518,8 +519,8 @@ func (s *service) SetConfig(ctx context.Context, req *connect.Request[consolepb.
 }
 
 func (s *service) GetSecret(ctx context.Context, req *connect.Request[consolepb.GetSecretRequest]) (*connect.Response[consolepb.GetSecretResponse], error) {
-	resp, err := s.adminClient.SecretGet(ctx, connect.NewRequest(&ftlv1.SecretGetRequest{
-		Ref: &ftlv1.ConfigRef{
+	resp, err := s.adminClient.SecretGet(ctx, connect.NewRequest(&adminpb.SecretGetRequest{
+		Ref: &adminpb.ConfigRef{
 			Name:   req.Msg.Name,
 			Module: req.Msg.Module,
 		},
@@ -533,8 +534,8 @@ func (s *service) GetSecret(ctx context.Context, req *connect.Request[consolepb.
 }
 
 func (s *service) SetSecret(ctx context.Context, req *connect.Request[consolepb.SetSecretRequest]) (*connect.Response[consolepb.SetSecretResponse], error) {
-	_, err := s.adminClient.SecretSet(ctx, connect.NewRequest(&ftlv1.SecretSetRequest{
-		Ref: &ftlv1.ConfigRef{
+	_, err := s.adminClient.SecretSet(ctx, connect.NewRequest(&adminpb.SecretSetRequest{
+		Ref: &adminpb.ConfigRef{
 			Name:   req.Msg.Name,
 			Module: req.Msg.Module,
 		},

@@ -6,8 +6,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/internal/log"
 )
@@ -17,14 +17,14 @@ type resetSubscriptionCmd struct {
 	Latest       bool           `flag:"latest" help:"Reset subscription to latest offset." default:"true" negatable:"beginning"`
 }
 
-func (s *resetSubscriptionCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient) error {
-	var offset ftlv1.SubscriptionOffset
+func (s *resetSubscriptionCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
+	var offset adminpb.SubscriptionOffset
 	if s.Latest {
-		offset = ftlv1.SubscriptionOffset_SUBSCRIPTION_OFFSET_LATEST
+		offset = adminpb.SubscriptionOffset_SUBSCRIPTION_OFFSET_LATEST
 	} else {
-		offset = ftlv1.SubscriptionOffset_SUBSCRIPTION_OFFSET_EARLIEST
+		offset = adminpb.SubscriptionOffset_SUBSCRIPTION_OFFSET_EARLIEST
 	}
-	_, err := client.ResetSubscription(ctx, connect.NewRequest(&ftlv1.ResetSubscriptionRequest{
+	_, err := client.ResetSubscription(ctx, connect.NewRequest(&adminpb.ResetSubscriptionRequest{
 		Subscription: s.Subscription.ToProto(),
 		Offset:       offset,
 	}))

@@ -31,6 +31,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1/consolepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
@@ -313,7 +314,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 
 			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:8892", log.Debug)
 
-			var admin ftlv1connect.AdminServiceClient
+			var admin adminpbconnect.AdminServiceClient
 			var console consolepbconnect.ConsoleServiceClient
 			var schema ftlv1connect.SchemaServiceClient
 			if opts.startController {
@@ -340,7 +341,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				ctx = startProcess(ctx, t, tmpDir, opts.devMode, args...)
 			}
 			if opts.startController || opts.kube {
-				admin = rpc.Dial(ftlv1connect.NewAdminServiceClient, "http://localhost:8892", log.Debug)
+				admin = rpc.Dial(adminpbconnect.NewAdminServiceClient, "http://localhost:8892", log.Debug)
 				console = rpc.Dial(consolepbconnect.NewConsoleServiceClient, "http://localhost:8899", log.Debug)
 				schema = rpc.Dial(ftlv1connect.NewSchemaServiceClient, "http://localhost:8897", log.Debug)
 			}
@@ -500,7 +501,7 @@ type TestContext struct {
 	kubeNamespace string
 	devMode       bool
 
-	Admin       ftlv1connect.AdminServiceClient
+	Admin       adminpbconnect.AdminServiceClient
 	Schema      ftlv1connect.SchemaServiceClient
 	Console     consolepbconnect.ConsoleServiceClient
 	Verbs       ftlv1connect.VerbServiceClient

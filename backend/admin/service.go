@@ -19,6 +19,8 @@ import (
 
 	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/controller/state"
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -54,7 +56,7 @@ type Service struct {
 	waitFor      []string
 }
 
-var _ ftlv1connect.AdminServiceHandler = (*Service)(nil)
+var _ adminpbconnect.AdminServiceHandler = (*Service)(nil)
 var _ ftlv1connect.VerbServiceHandler = (*Service)(nil)
 
 func NewSchemaRetriever(source *schemaeventsource.EventSource) SchemaClient {
@@ -106,7 +108,7 @@ func Start(
 
 	logger.Debugf("Admin service listening on: %s", config.Bind)
 	err := rpc.Serve(ctx, config.Bind,
-		rpc.GRPC(ftlv1connect.NewAdminServiceHandler, svc),
+		rpc.GRPC(adminpbconnect.NewAdminServiceHandler, svc),
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, svc),
 	)
 	if err != nil {
@@ -136,56 +138,56 @@ func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 }
 
 // ConfigList returns the list of configuration values, optionally filtered by module.
-func (s *Service) ConfigList(ctx context.Context, req *connect.Request[ftlv1.ConfigListRequest]) (*connect.Response[ftlv1.ConfigListResponse], error) {
+func (s *Service) ConfigList(ctx context.Context, req *connect.Request[adminpb.ConfigListRequest]) (*connect.Response[adminpb.ConfigListResponse], error) {
 	return s.env.ConfigList(ctx, req)
 }
 
 // ConfigGet returns the configuration value for a given ref string.
-func (s *Service) ConfigGet(ctx context.Context, req *connect.Request[ftlv1.ConfigGetRequest]) (*connect.Response[ftlv1.ConfigGetResponse], error) {
+func (s *Service) ConfigGet(ctx context.Context, req *connect.Request[adminpb.ConfigGetRequest]) (*connect.Response[adminpb.ConfigGetResponse], error) {
 	return s.env.ConfigGet(ctx, req)
 }
 
 // ConfigSet sets the configuration at the given ref to the provided value.
-func (s *Service) ConfigSet(ctx context.Context, req *connect.Request[ftlv1.ConfigSetRequest]) (*connect.Response[ftlv1.ConfigSetResponse], error) {
+func (s *Service) ConfigSet(ctx context.Context, req *connect.Request[adminpb.ConfigSetRequest]) (*connect.Response[adminpb.ConfigSetResponse], error) {
 	return s.env.ConfigSet(ctx, req)
 }
 
 // ConfigUnset unsets the config value at the given ref.
-func (s *Service) ConfigUnset(ctx context.Context, req *connect.Request[ftlv1.ConfigUnsetRequest]) (*connect.Response[ftlv1.ConfigUnsetResponse], error) {
+func (s *Service) ConfigUnset(ctx context.Context, req *connect.Request[adminpb.ConfigUnsetRequest]) (*connect.Response[adminpb.ConfigUnsetResponse], error) {
 	return s.env.ConfigUnset(ctx, req)
 }
 
 // SecretsList returns the list of secrets, optionally filtered by module.
-func (s *Service) SecretsList(ctx context.Context, req *connect.Request[ftlv1.SecretsListRequest]) (*connect.Response[ftlv1.SecretsListResponse], error) {
+func (s *Service) SecretsList(ctx context.Context, req *connect.Request[adminpb.SecretsListRequest]) (*connect.Response[adminpb.SecretsListResponse], error) {
 	return s.env.SecretsList(ctx, req)
 }
 
 // SecretGet returns the secret value for a given ref string.
-func (s *Service) SecretGet(ctx context.Context, req *connect.Request[ftlv1.SecretGetRequest]) (*connect.Response[ftlv1.SecretGetResponse], error) {
+func (s *Service) SecretGet(ctx context.Context, req *connect.Request[adminpb.SecretGetRequest]) (*connect.Response[adminpb.SecretGetResponse], error) {
 	return s.env.SecretGet(ctx, req)
 }
 
 // SecretSet sets the secret at the given ref to the provided value.
-func (s *Service) SecretSet(ctx context.Context, req *connect.Request[ftlv1.SecretSetRequest]) (*connect.Response[ftlv1.SecretSetResponse], error) {
+func (s *Service) SecretSet(ctx context.Context, req *connect.Request[adminpb.SecretSetRequest]) (*connect.Response[adminpb.SecretSetResponse], error) {
 	return s.env.SecretSet(ctx, req)
 }
 
 // SecretUnset unsets the secret value at the given ref.
-func (s *Service) SecretUnset(ctx context.Context, req *connect.Request[ftlv1.SecretUnsetRequest]) (*connect.Response[ftlv1.SecretUnsetResponse], error) {
+func (s *Service) SecretUnset(ctx context.Context, req *connect.Request[adminpb.SecretUnsetRequest]) (*connect.Response[adminpb.SecretUnsetResponse], error) {
 	return s.env.SecretUnset(ctx, req)
 }
 
 // MapConfigsForModule combines all configuration values visible to the module.
-func (s *Service) MapConfigsForModule(ctx context.Context, req *connect.Request[ftlv1.MapConfigsForModuleRequest]) (*connect.Response[ftlv1.MapConfigsForModuleResponse], error) {
+func (s *Service) MapConfigsForModule(ctx context.Context, req *connect.Request[adminpb.MapConfigsForModuleRequest]) (*connect.Response[adminpb.MapConfigsForModuleResponse], error) {
 	return s.env.MapConfigsForModule(ctx, req)
 }
 
 // MapSecretsForModule combines all secrets visible to the module.
-func (s *Service) MapSecretsForModule(ctx context.Context, req *connect.Request[ftlv1.MapSecretsForModuleRequest]) (*connect.Response[ftlv1.MapSecretsForModuleResponse], error) {
+func (s *Service) MapSecretsForModule(ctx context.Context, req *connect.Request[adminpb.MapSecretsForModuleRequest]) (*connect.Response[adminpb.MapSecretsForModuleResponse], error) {
 	return s.env.MapSecretsForModule(ctx, req)
 }
 
-func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ftlv1.ResetSubscriptionRequest]) (*connect.Response[ftlv1.ResetSubscriptionResponse], error) {
+func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[adminpb.ResetSubscriptionRequest]) (*connect.Response[adminpb.ResetSubscriptionResponse], error) {
 	// Find nodes in schema
 	// TODO: we really want all deployments for a module... not just latest... Use canonical and check ActiveChangeset?
 	sch := s.source.CanonicalView()
@@ -241,7 +243,7 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ft
 	if len(failedPartitions) > 0 {
 		return nil, fmt.Errorf("failed to reset partitions %v: no runner had partition claim", failedPartitions)
 	}
-	return connect.NewResponse(&ftlv1.ResetSubscriptionResponse{}), nil
+	return connect.NewResponse(&adminpb.ResetSubscriptionResponse{}), nil
 }
 
 // kafkaPartitionCount returns the number of partitions for a given topic in kafka. This may differ from the number
@@ -278,7 +280,7 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 	return connect.NewResponse(sch.Msg), nil
 }
 
-func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest], stream *connect.ServerStream[ftlv1.ApplyChangesetResponse]) error {
+func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[adminpb.ApplyChangesetRequest], stream *connect.ServerStream[adminpb.ApplyChangesetResponse]) error {
 	events := s.source.Subscribe(ctx)
 	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
 		Modules:  req.Msg.Modules,
@@ -296,7 +298,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1
 		Modules:  req.Msg.Modules,
 		ToRemove: req.Msg.ToRemove,
 	}
-	if err := stream.Send(&ftlv1.ApplyChangesetResponse{
+	if err := stream.Send(&adminpb.ApplyChangesetResponse{
 		Changeset: changeset,
 	}); err != nil {
 		return fmt.Errorf("failed to send changeset: %w", err)
@@ -307,7 +309,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1
 			if event.Key != key {
 				continue
 			}
-			if err := stream.Send(&ftlv1.ApplyChangesetResponse{
+			if err := stream.Send(&adminpb.ApplyChangesetResponse{
 				Changeset: changeset,
 			}); err != nil {
 				return fmt.Errorf("failed to send changeset: %w", err)
@@ -324,7 +326,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1
 			}
 			changeset = event.Changeset.ToProto()
 			// We don't wait for cleanup, just return immediately
-			if err := stream.Send(&ftlv1.ApplyChangesetResponse{
+			if err := stream.Send(&adminpb.ApplyChangesetResponse{
 				Changeset: changeset,
 			}); err != nil {
 				return fmt.Errorf("failed to send changeset: %w", err)
@@ -442,7 +444,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 	return fmt.Errorf("context cancelled %w", ctx.Err())
 }
 
-func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error) {
+func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[adminpb.GetArtefactDiffsRequest]) (*connect.Response[adminpb.GetArtefactDiffsResponse], error) {
 	byteDigests, err := islices.MapErr(req.Msg.ClientDigests, sha256.ParseSHA256)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse digests: %w", err)
@@ -451,14 +453,14 @@ func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[ftl
 	if err != nil {
 		return nil, fmt.Errorf("failed to get digests: %w", err)
 	}
-	return connect.NewResponse(&ftlv1.GetArtefactDiffsResponse{
+	return connect.NewResponse(&adminpb.GetArtefactDiffsResponse{
 		MissingDigests: islices.Map(need, func(s sha256.SHA256) string { return s.String() }),
 	}), nil
 }
 
-func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStream[ftlv1.UploadArtefactRequest]) (*connect.Response[ftlv1.UploadArtefactResponse], error) {
+func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStream[adminpb.UploadArtefactRequest]) (*connect.Response[adminpb.UploadArtefactResponse], error) {
 	logger := log.FromContext(ctx).Scope("uploadArtefact")
-	firstMsg := NewOnceValue[*ftlv1.UploadArtefactRequest]()
+	firstMsg := NewOnceValue[*adminpb.UploadArtefactRequest]()
 	wg, ctx := errgroup.WithContext(ctx)
 	logger.Debugf("Uploading artefact")
 	r, w := io.Pipe()
@@ -513,10 +515,10 @@ func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStre
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload artefact: %w", err)
 	}
-	return connect.NewResponse(&ftlv1.UploadArtefactResponse{}), nil
+	return connect.NewResponse(&adminpb.UploadArtefactResponse{}), nil
 }
 
-func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentArtefactsRequest], resp *connect.ServerStream[ftlv1.GetDeploymentArtefactsResponse]) error {
+func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Request[adminpb.GetDeploymentArtefactsRequest], resp *connect.ServerStream[adminpb.GetDeploymentArtefactsResponse]) error {
 	dkey, err := key.ParseDeploymentKey(req.Msg.DeploymentKey)
 	if err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
@@ -540,7 +542,7 @@ nextArtefact:
 			Executable: artefact.Executable,
 		}
 		for _, clientArtefact := range req.Msg.HaveArtefacts {
-			if proto.Equal(ftlv1.ArtefactToProto(deploymentArtefact), clientArtefact) {
+			if proto.Equal(adminpb.ArtefactToProto(deploymentArtefact), clientArtefact) {
 				continue nextArtefact
 			}
 		}
@@ -553,8 +555,8 @@ nextArtefact:
 
 			n, err := reader.Read(chunk)
 			if n != 0 {
-				if err := resp.Send(&ftlv1.GetDeploymentArtefactsResponse{
-					Artefact: ftlv1.ArtefactToProto(deploymentArtefact),
+				if err := resp.Send(&adminpb.GetDeploymentArtefactsResponse{
+					Artefact: adminpb.ArtefactToProto(deploymentArtefact),
 					Chunk:    chunk[:n],
 				}); err != nil {
 					return fmt.Errorf("could not send artefact chunk: %w", err)
@@ -570,8 +572,8 @@ nextArtefact:
 	return nil
 }
 
-func (s *Service) ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error) {
-	return connect.NewResponse(&ftlv1.ClusterInfoResponse{Os: runtime.GOOS, Arch: runtime.GOARCH}), nil
+func (s *Service) ClusterInfo(ctx context.Context, req *connect.Request[adminpb.ClusterInfoRequest]) (*connect.Response[adminpb.ClusterInfoResponse], error) {
+	return connect.NewResponse(&adminpb.ClusterInfoResponse{Os: runtime.GOOS, Arch: runtime.GOARCH}), nil
 }
 
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {

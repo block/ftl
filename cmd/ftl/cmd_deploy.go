@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
@@ -22,7 +22,7 @@ type deployCmd struct {
 func (d *deployCmd) Run(
 	ctx context.Context,
 	projConfig projectconfig.Config,
-	adminClient ftlv1connect.AdminServiceClient,
+	adminClient adminpbconnect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
 ) error {
 	logger := log.FromContext(ctx)

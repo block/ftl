@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -34,10 +35,10 @@ import (
 )
 
 type AdminClient interface {
-	ApplyChangeset(ctx context.Context, req *connect.Request[ftlv1.ApplyChangesetRequest]) (*connect.ServerStreamForClient[ftlv1.ApplyChangesetResponse], error)
-	ClusterInfo(ctx context.Context, req *connect.Request[ftlv1.ClusterInfoRequest]) (*connect.Response[ftlv1.ClusterInfoResponse], error)
-	GetArtefactDiffs(ctx context.Context, req *connect.Request[ftlv1.GetArtefactDiffsRequest]) (*connect.Response[ftlv1.GetArtefactDiffsResponse], error)
-	UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[ftlv1.UploadArtefactRequest, ftlv1.UploadArtefactResponse]
+	ApplyChangeset(ctx context.Context, req *connect.Request[adminpb.ApplyChangesetRequest]) (*connect.ServerStreamForClient[adminpb.ApplyChangesetResponse], error)
+	ClusterInfo(ctx context.Context, req *connect.Request[adminpb.ClusterInfoRequest]) (*connect.Response[adminpb.ClusterInfoResponse], error)
+	GetArtefactDiffs(ctx context.Context, req *connect.Request[adminpb.GetArtefactDiffsRequest]) (*connect.Response[adminpb.GetArtefactDiffsResponse], error)
+	UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[adminpb.UploadArtefactRequest, adminpb.UploadArtefactResponse]
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
 
@@ -509,7 +510,7 @@ func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, modul
 	key := mod.Runtime.Deployment.DeploymentKey
 
 	logger.Infof("Terminating deployment %s", key) //nolint:forbidigo
-	stream, err := c.adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
+	stream, err := c.adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
 		ToRemove: []string{key.String()},
 	}))
 	if err != nil {
@@ -559,7 +560,7 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 	ctx, closeStream := context.WithCancelCause(ctx)
 	defer closeStream(fmt.Errorf("function is complete: %w", context.Canceled))
 
-	stream, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&ftlv1.ApplyChangesetRequest{
+	stream, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
 		Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
 			return m.ToProto()
 		}),
@@ -586,7 +587,7 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 }
 
 type deploymentArtefact struct {
-	*ftlv1.DeploymentArtefact
+	*adminpb.DeploymentArtefact
 	localPath string
 }
 
@@ -607,7 +608,7 @@ func uploadArtefacts(ctx context.Context, module *pendingModule, client AdminCli
 		return nil, err
 	}
 
-	gadResp, err := client.GetArtefactDiffs(ctx, connect.NewRequest(&ftlv1.GetArtefactDiffsRequest{ClientDigests: maps.Keys(filesByHash)}))
+	gadResp, err := client.GetArtefactDiffs(ctx, connect.NewRequest(&adminpb.GetArtefactDiffsRequest{ClientDigests: maps.Keys(filesByHash)})) //nolint:exptostd
 	if err != nil {
 		return nil, fmt.Errorf("failed to get artefact diffs: %w", err)
 	}
@@ -670,7 +671,7 @@ func uploadDeploymentArtefact(ctx context.Context, client AdminClient, file depl
 		} else if err != nil {
 			return fmt.Errorf("failed to read file %w", err)
 		}
-		err = stream.Send(&ftlv1.UploadArtefactRequest{
+		err = stream.Send(&adminpb.UploadArtefactRequest{
 			Chunk:  data[:n],
 			Digest: digest[:],
 			Size:   info.Size(),
@@ -774,7 +775,7 @@ func hashFiles(base string, files []string) (filesByHash map[string]deploymentAr
 			return nil, err
 		}
 		filesByHash[hash.String()] = deploymentArtefact{
-			DeploymentArtefact: &ftlv1.DeploymentArtefact{
+			DeploymentArtefact: &adminpb.DeploymentArtefact{
 				Digest:     hash[:],
 				Path:       path,
 				Executable: isExecutable,

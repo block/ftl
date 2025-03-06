@@ -31,7 +31,7 @@ spec:
               name: ftl-admin
               port:
                 number: 8892
-        - path: /xyz.block.ftl.v1.AdminService/
+        - path: /xyz.block.ftl.admin.v1.AdminService/
           pathType: Prefix
           backend:
             service:

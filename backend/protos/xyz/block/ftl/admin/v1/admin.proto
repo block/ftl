@@ -1,12 +1,12 @@
 syntax = "proto3";
 
-package xyz.block.ftl.v1;
+package xyz.block.ftl.admin.v1;
 
 import "xyz/block/ftl/schema/v1/schema.proto";
 import "xyz/block/ftl/v1/ftl.proto";
 import "xyz/block/ftl/v1/schemaservice.proto";
 
-option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1";
+option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1;adminpb";
 option java_multiple_files = true;
 
 message ConfigRef {
@@ -191,7 +191,7 @@ message ClusterInfoResponse {
 // AdminService is the service that provides and updates admin data. For example,
 // it is used to encapsulate configuration and secrets.
 service AdminService {
-  rpc Ping(PingRequest) returns (PingResponse) {
+  rpc Ping(ftl.v1.PingRequest) returns (ftl.v1.PingResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
@@ -235,7 +235,7 @@ service AdminService {
   rpc ApplyChangeset(ApplyChangesetRequest) returns (stream ApplyChangesetResponse);
 
   // Get the full schema.
-  rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse) {
+  rpc GetSchema(ftl.v1.GetSchemaRequest) returns (ftl.v1.GetSchemaResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
@@ -243,13 +243,13 @@ service AdminService {
   //
   // Note that if there are no deployments this will block indefinitely, making it unsuitable for
   // just retrieving the schema. Use GetSchema for that.
-  rpc PullSchema(PullSchemaRequest) returns (stream PullSchemaResponse) {
+  rpc PullSchema(ftl.v1.PullSchemaRequest) returns (stream ftl.v1.PullSchemaResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
   // RollbackChangeset Rolls back a failing changeset
-  rpc RollbackChangeset(RollbackChangesetRequest) returns (RollbackChangesetResponse);
+  rpc RollbackChangeset(ftl.v1.RollbackChangesetRequest) returns (ftl.v1.RollbackChangesetResponse);
   // FailChangeset fails an active changeset.
-  rpc FailChangeset(FailChangesetRequest) returns (FailChangesetResponse);
+  rpc FailChangeset(ftl.v1.FailChangesetRequest) returns (ftl.v1.FailChangesetResponse);
 
   rpc ClusterInfo(ClusterInfoRequest) returns (ClusterInfoResponse);
 

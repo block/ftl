@@ -6,7 +6,7 @@
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
 import { Ref } from "../../schema/v1/schema_pb.js";
-import { SubscriptionOffset } from "../../v1/admin_pb.js";
+import { SubscriptionOffset } from "../../admin/v1/admin_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.pubsub.v1.ResetOffsetsOfSubscriptionRequest
@@ -18,7 +18,7 @@ export class ResetOffsetsOfSubscriptionRequest extends Message<ResetOffsetsOfSub
   subscription?: Ref;
 
   /**
-   * @generated from field: xyz.block.ftl.v1.SubscriptionOffset offset = 2;
+   * @generated from field: xyz.block.ftl.admin.v1.SubscriptionOffset offset = 2;
    */
   offset = SubscriptionOffset.UNSPECIFIED;
 

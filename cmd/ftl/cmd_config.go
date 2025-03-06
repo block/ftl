@@ -11,7 +11,7 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/admin"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/internal/configuration"
 )
 
@@ -34,21 +34,21 @@ etc.
 `
 }
 
-func configRefFromRef(ref configuration.Ref) *ftlv1.ConfigRef {
+func configRefFromRef(ref configuration.Ref) *adminpb.ConfigRef {
 	module := ref.Module.Default("")
-	return &ftlv1.ConfigRef{
+	return &adminpb.ConfigRef{
 		Module: &module,
 		Name:   ref.Name,
 	}
 }
 
-func (s *configCmd) provider() optional.Option[ftlv1.ConfigProvider] {
+func (s *configCmd) provider() optional.Option[adminpb.ConfigProvider] {
 	if s.Envar {
-		return optional.Some(ftlv1.ConfigProvider_CONFIG_PROVIDER_ENVAR)
+		return optional.Some(adminpb.ConfigProvider_CONFIG_PROVIDER_ENVAR)
 	} else if s.Inline {
-		return optional.Some(ftlv1.ConfigProvider_CONFIG_PROVIDER_INLINE)
+		return optional.Some(adminpb.ConfigProvider_CONFIG_PROVIDER_INLINE)
 	}
-	return optional.None[ftlv1.ConfigProvider]()
+	return optional.None[adminpb.ConfigProvider]()
 }
 
 type configListCmd struct {
@@ -57,7 +57,7 @@ type configListCmd struct {
 }
 
 func (s *configListCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
-	resp, err := adminClient.ConfigList(ctx, connect.NewRequest(&ftlv1.ConfigListRequest{
+	resp, err := adminClient.ConfigList(ctx, connect.NewRequest(&adminpb.ConfigListRequest{
 		Module:        &s.Module,
 		IncludeValues: &s.Values,
 	}))
@@ -87,7 +87,7 @@ Returns a JSON-encoded configuration value.
 }
 
 func (s *configGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) error {
-	resp, err := adminClient.ConfigGet(ctx, connect.NewRequest(&ftlv1.ConfigGetRequest{
+	resp, err := adminClient.ConfigGet(ctx, connect.NewRequest(&adminpb.ConfigGetRequest{
 		Ref: configRefFromRef(s.Ref),
 	}))
 	if err != nil {
@@ -128,7 +128,7 @@ func (s *configSetCmd) Run(ctx context.Context, scmd *configCmd, adminClient adm
 		}
 	}
 
-	req := &ftlv1.ConfigSetRequest{
+	req := &adminpb.ConfigSetRequest{
 		Ref:   configRefFromRef(s.Ref),
 		Value: configJSON,
 	}
@@ -147,7 +147,7 @@ type configUnsetCmd struct {
 }
 
 func (s *configUnsetCmd) Run(ctx context.Context, scmd *configCmd, adminClient admin.EnvironmentClient) error {
-	req := &ftlv1.ConfigUnsetRequest{
+	req := &adminpb.ConfigUnsetRequest{
 		Ref: configRefFromRef(s.Ref),
 	}
 	if provider, ok := scmd.provider().Get(); ok {
@@ -189,7 +189,7 @@ func (s *configImportCmd) Run(ctx context.Context, cmd *configCmd, adminClient a
 		if err != nil {
 			return fmt.Errorf("could not marshal value for %q: %w", refPath, err)
 		}
-		req := &ftlv1.ConfigSetRequest{
+		req := &adminpb.ConfigSetRequest{
 			Ref:   configRefFromRef(ref),
 			Value: bytes,
 		}
@@ -214,7 +214,7 @@ Outputs configuration values in a JSON object. A provider can be used to filter 
 }
 
 func (s *configExportCmd) Run(ctx context.Context, cmd *configCmd, adminClient admin.EnvironmentClient) error {
-	req := &ftlv1.ConfigListRequest{
+	req := &adminpb.ConfigListRequest{
 		IncludeValues: optional.Some(true).Ptr(),
 	}
 	if provider, ok := cmd.provider().Get(); ok {

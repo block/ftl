@@ -22,6 +22,7 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -262,8 +263,8 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, cli.LeaseEndpoint.String(), log.Error)
 		kctx.BindTo(leaseClient, (*leasepbconnect.LeaseServiceClient)(nil))
 
-		adminClient := rpc.Dial(ftlv1connect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
-		kctx.BindTo(adminClient, (*ftlv1connect.AdminServiceClient)(nil))
+		adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
+		kctx.BindTo(adminClient, (*adminpbconnect.AdminServiceClient)(nil))
 
 		buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.Build.UpdatesEndpoint.String(), log.Error)
 		kctx.BindTo(buildEngineClient, (*buildenginepbconnect.BuildEngineServiceClient)(nil))
@@ -318,7 +319,7 @@ func provideAdminClient(
 	cli *SharedCLI,
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
-	adminClient ftlv1connect.AdminServiceClient,
+	adminClient adminpbconnect.AdminServiceClient,
 ) (client admin.EnvironmentClient, err error) {
 	shouldUseLocalClient, err := admin.ShouldUseLocalClient(ctx, adminClient, cli.AdminEndpoint)
 	if err != nil {

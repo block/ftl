@@ -11,8 +11,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 )
@@ -24,7 +24,7 @@ type getSchemaCmd struct {
 	Modules  []string `help:"Modules to include" type:"string" optional:""`
 }
 
-func (g *getSchemaCmd) Run(ctx context.Context, client ftlv1connect.AdminServiceClient) error {
+func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	resp, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-schema-get"}))
 	if err != nil {
 		return err
