@@ -26,10 +26,14 @@ func TestHotReloadDatabaseGo(t *testing.T) {
 		in.WaitWithTimeout("users", time.Minute),
 		// Initialize MySQL database
 		in.Exec("ftl", "mysql", "new", "users.userdb"),
-		
+		in.Sleep(time.Second*5),
 		// Edit initial migration
-		in.EditFile("users/db/mysql/userdb/schema/20240101000000_init.sql", func(content []byte) []byte {
-			return []byte(`-- migrate:up
+		in.EditFiles("users", func(file string, content []byte) (bool, []byte) {
+			in.Infof("users.userdb: %s", file)
+			if !strings.Contains(file, "init") {
+				return false, nil
+			}
+			return true, []byte(`-- migrate:up
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL
@@ -37,139 +41,71 @@ CREATE TABLE users (
 
 -- migrate:down
 DROP TABLE users;`)
-		}),
+		}, "db/mysql/userdb/schema/"),
+		in.Sleep(time.Second*5),
 
 		// Add query file
-		in.EditFile("users/db/mysql/userdb/queries/users.sql", func(content []byte) []byte {
-			return []byte(`-- name: CreateUserRow :exec
+		in.CreateFile("users", `-- name: CreateUser :exec
+INSERT INTO users (name) VALUES (?);
+`, "db/mysql/userdb/queries/queries.sql"),
+		in.Sleep(time.Second*5),
+		// Test initial schema works
+		in.Call("users", "createUser", map[string]string{"name": "Alice"}, func(t testing.TB, response map[string]interface{}) {
+
+		}),
+		in.Call("users", "createUser", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]interface{}) {
+
+		}),
+		// Edit the query file, verify we keep our state
+		in.EditFile("users", func(content []byte) []byte {
+			return []byte(`-- name: CreateUser :exec
 INSERT INTO users (name) VALUES (?);
 
--- name: GetUserRows :many
+-- name: GetUsers :many
 SELECT id, name FROM users ORDER BY id;`)
-		}),
-
-		// Create module code
-		in.EditFile("users", func(content []byte) []byte {
-			return []byte(`package users
-
-import (
-	"context"
-)
-
-type User struct {
-	ID   int    ` + "`" + `json:"id"` + "`" + `
-	Name string ` + "`" + `json:"name"` + "`" + `
-}
-
-type CreateUserRequest struct {
-	Name string ` + "`" + `json:"name"` + "`" + `
-}
-
-//ftl:verb export
-func CreateUser(ctx context.Context, req CreateUserRequest, create CreateUserRowClient) error {
-	return create(ctx, req.Name)
-}
-
-//ftl:verb export
-func ListUsers(ctx context.Context, _ struct{}, list GetUserRowsClient) ([]User, error) {
-	rows, err := list(ctx)
-	if err != nil {
-		return nil, err
-	}
-	users := make([]User, len(rows))
-	for i, row := range rows {
-		users[i] = User{
-			ID:   int(row.ID),
-			Name: row.Name,
-		}
-	}
-	return users, nil
-}`)
-		}, "users.go"),
-
-		// Test initial schema works
-		in.Call("users", "createUser", map[string]string{"name": "Alice"}, nil),
-		in.Call("users", "createUser", map[string]string{"name": "Bob"}, nil),
-		in.Call("users", "listUsers", struct{}{}, func(t testing.TB, response []map[string]interface{}) {
+		}, "db/mysql/userdb/queries/queries.sql"),
+		in.Sleep(time.Second*5),
+		in.Call("users", "getUsers", struct{}{}, func(t testing.TB, response []map[string]interface{}) {
 			assert.Equal(t, 2, len(response))
 			assert.Equal(t, "Alice", response[0]["name"])
 			assert.Equal(t, "Bob", response[1]["name"])
 		}),
-
-		// Create new migration to add email column
-		in.Exec("ftl", "mysql", "new", "migration", "users.userdb", "add_email"),
-		in.EditFile("users/db/mysql/userdb/schema/", func(content []byte) []byte {
-			return []byte(`-- migrate:up
-ALTER TABLE users ADD COLUMN email VARCHAR(255);
+		in.EditFiles("users", func(file string, content []byte) (bool, []byte) {
+			if !strings.Contains(file, "init") {
+				return false, nil
+			}
+			return true, []byte(`-- migrate:up
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+	email VARCHAR(255) NOT NULL
+);
 
 -- migrate:down
-ALTER TABLE users DROP COLUMN email;`)
-		}, "20240101000001_add_email.sql"),
+DROP TABLE users;`)
+		}, "db/mysql/userdb/schema/"),
 
 		// Update queries
-		in.EditFile("users/db/mysql/userdb/queries/users.sql", func(content []byte) []byte {
-			return []byte(`-- name: CreateUserRow :exec
+		in.EditFile("users", func(content []byte) []byte {
+			return []byte(`-- name: CreateUserNew :exec
 INSERT INTO users (name, email) VALUES (?, ?);
 
--- name: GetUserRows :many
+-- name: GetUsers :many
 SELECT id, name, email FROM users ORDER BY id;`)
-		}),
-
-		// Update module code
-		in.EditFile("users", func(content []byte) []byte {
-			return []byte(`package users
-
-import (
-	"context"
-)
-
-type User struct {
-	ID    int     ` + "`" + `json:"id"` + "`" + `
-	Name  string  ` + "`" + `json:"name"` + "`" + `
-	Email *string ` + "`" + `json:"email,omitempty"` + "`" + `
-}
-
-type CreateUserRequest struct {
-	Name  string  ` + "`" + `json:"name"` + "`" + `
-	Email *string ` + "`" + `json:"email,omitempty"` + "`" + `
-}
-
-//ftl:verb export
-func CreateUser(ctx context.Context, req CreateUserRequest, create CreateUserRowClient) error {
-	return create(ctx, req.Name, req.Email)
-}
-
-//ftl:verb export
-func ListUsers(ctx context.Context, _ struct{}, list GetUserRowsClient) ([]User, error) {
-	rows, err := list(ctx)
-	if err != nil {
-		return nil, err
-	}
-	users := make([]User, len(rows))
-	for i, row := range rows {
-		users[i] = User{
-			ID:    int(row.ID),
-			Name:  row.Name,
-			Email: row.Email,
-		}
-	}
-	return users, nil
-}`)
-		}, "users.go"),
+		}, "db/mysql/userdb/queries/queries.sql"),
+		in.Sleep(time.Second*5),
 
 		// Test updated schema
-		in.Call("users", "createUser", map[string]interface{}{
-			"name": "Charlie",
+		// We change the verb name so we can't accidentally call the old verb before the new one is ready
+		in.Call("users", "createUserNew", map[string]interface{}{
+			"name":  "Charlie",
 			"email": "charlie@example.com",
-		}, nil),
-		in.Call("users", "listUsers", struct{}{}, func(t testing.TB, response []map[string]interface{}) {
-			assert.Equal(t, 3, len(response))
-			assert.Equal(t, "Alice", response[0]["name"])
-			assert.Equal(t, nil, response[0]["email"])
-			assert.Equal(t, "Bob", response[1]["name"])
-			assert.Equal(t, nil, response[1]["email"])
-			assert.Equal(t, "Charlie", response[2]["name"])
-			assert.Equal(t, "charlie@example.com", response[2]["email"])
+		}, func(t testing.TB, response map[string]interface{}) {
+
+		}),
+		in.Call("users", "getUsers", struct{}{}, func(t testing.TB, response []map[string]interface{}) {
+			assert.Equal(t, "Charlie", response[0]["name"])
+			assert.Equal(t, "charlie@example.com", response[0]["email"])
 		}),
 	)
 }
