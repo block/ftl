@@ -149,11 +149,12 @@ func FilterRequests(filters []*timelinepb.GetTimelineRequest_RequestFilter) Time
 			request = entry.PubsubPublish.RequestKey
 		case *timelinepb.Event_PubsubConsume:
 			request = entry.PubsubConsume.RequestKey
-		case *timelinepb.Event_CronScheduled:
+		case *timelinepb.Event_CronScheduled,
+			*timelinepb.Event_DeploymentRuntime,
+			*timelinepb.Event_ChangesetCreated,
+			*timelinepb.Event_ChangesetStateChanged:
 			// These event types don't have request keys
 			return false
-		default:
-			panic(fmt.Sprintf("unexpected event type: %T", event.Entry))
 		}
 		if request == nil {
 			return false
