@@ -1,0 +1,20 @@
+postgresql:
+  enabled: false
+  architecture: standalone
+  primary:
+    resources:
+      requests:
+        memory: 1024Mi
+      limits:
+        memory: 1024Mi
+  global:
+    postgresql:
+      auth:
+        username: ftl
+        password: ftl
+        database: ftl
+
+ftl:
+  registry:
+    repository: "ftl-registry:5000/ftl-artefacts"
+    allowInsecure: "true"

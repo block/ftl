@@ -1,11 +1,10 @@
-{{- if .Values.ingress.enabled }}
-{{ $fullName := include "ftl.fullname" . -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "ftl.fullname" . }}-ingress
+  name: ftl-ingress
   annotations:
-    {{- toYaml .Values.ingress.ingressAnnotations | nindent 4 }}
+    ingress.kubernetes.io/ssl-redirect: "false"
+    kubernetes.io/ingress.class: traefik
 spec:
   rules:
   - http:
@@ -38,21 +37,3 @@ spec:
               name: ftl-admin
               port:
                 number: 8892
-  {{- range $host := .Values.ingress.hosts }}
-  - host: "{{ $host.host }}"
-    http:
-      paths:
-      {{- range $host.paths }}
-      - path: {{ .path }}
-        pathType: {{ .pathType }}
-        backend:
-          service:
-            name: {{ $host.service.name }}
-            port:
-              number: {{ $host.service.port }}
-      {{- end }}
-  {{- end }}
-  {{- if .Values.ingress.tls }}
-  tls: {{- toYaml .Values.ingress.tls | nindent 4 }}
-  {{- end }}
-{{- end }}

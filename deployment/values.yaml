@@ -1,25 +1,12 @@
-fullnameOverride: "ftl"
 
-image:
-  tag: "latest"
-  pullPolicy: Always
-  base: "ftl:5000"
+ftl:
+  runner:
+    podAnnotations:
+      sidecar.istio.io/logLevel: "debug"
+  image:
+    tag: "latest"
+    pullPolicy: Always
+    base: "ftl:5000"
 
-ingress:
-  enabled: true
-  ingressAnnotations:
-    ingress.kubernetes.io/ssl-redirect: "false"
-    kubernetes.io/ingress.class: traefik
 
-runner:
-  podAnnotations:
-    sidecar.istio.io/logLevel: "debug"
-
-istio:
-  enabled: true
-
-registry:
-    repository: "ftl-registry:5000/ftl-artefacts"
-    allowInsecure: "true"
-    create: true
 
