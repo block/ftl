@@ -53,6 +53,9 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         if (runningReload != null) {
             runningReload.accept(state);
         } else {
+            if (state.getNewRunnerRequired()) {
+                RunnerNotification.newDeploymentKey(null);
+            }
             List<StreamObserver<WatchResponse>> watches;
             synchronized (this.watches) {
                 watches = new ArrayList<>(this.watches);
