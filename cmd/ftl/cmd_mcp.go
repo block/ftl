@@ -80,9 +80,9 @@ func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig projectconfig
 	// all config commands, with xor group of bools for providers
 	addTool(toolFromCLI(ctx, k, projectConfig, bindContext, "ResetSubscription", []string{"pubsub", "subscription", "reset"}))
 	addTool(toolFromCLI(ctx, k, projectConfig, bindContext, "NewMySQLDatabase", []string{"mysql", "new"}, Pattern("datasource", optional.Some(refRegex))))
-	addTool(toolFromCLI(ctx, k, projectConfig, bindContext, "NewMySQLMigration", []string{"mysql", "new", "migration"}))
+	addTool(toolFromCLI(ctx, k, projectConfig, bindContext, "NewMySQLMigration", []string{"mysql", "new", "migration"}, Ignore(newSQLCmd{}, "datasource")))
 	addTool(toolFromCLI(ctx, k, projectConfig, bindContext, "NewPostgresDatabase", []string{"postgres", "new"}))
-	addTool(toolFromCLI(ctx, k, projectConfig, bindContext, "NewPostgresMigration", []string{"postgres", "new", "migration"}))
+	addTool(toolFromCLI(ctx, k, projectConfig, bindContext, "NewPostgresMigration", []string{"postgres", "new", "migration"}, Ignore(newSQLCmd{}, "datasource")))
 	return s
 }
 
@@ -224,7 +224,19 @@ func Pattern(name string, pattern optional.Option[string]) cliToolOption {
 	}
 }
 
+func Ignore(model any, name string) cliToolOption {
+	return func(inputOptions *cliConfig) {
+		o, ok := inputOptions.InputOptions[name]
+		if !ok {
+			o = &optionConfig{}
+			inputOptions.InputOptions[name] = o
+		}
+		o.IgnoreInModel = optional.Some(model)
+	}
+}
+
 type optionConfig struct {
+	IgnoreInModel   optional.Option[any]
 	IncludeOptional bool
 	Pattern         optional.Option[string]
 }
@@ -274,17 +286,19 @@ func toolFromCLI(ctx context.Context, k *kong.Kong, projectConfig projectconfig.
 	parsers := []inputReader{}
 	included := map[string]bool{}
 	all := map[string]bool{}
-	for _, n := range nodes {
+	for i, n := range nodes {
 		for _, child := range n.Children {
 			if child.Type != kong.ArgumentNode {
 				continue
 			}
 			all[child.Name] = true
 			c := config.Option(child.Name)
-			if (!child.Argument.Required || child.Argument.HasDefault) && !c.IncludeOptional {
+			cmdNodes := append([]*kong.Node{}, nodes[:i+1]...)
+			cmdNodes = append(cmdNodes, child)
+			if !shouldIncludeInput(cmdNodes, child.Argument, c) {
 				continue
 			}
-			opt, parser := optionForInput(child.Name, child.Help, child.Argument, false, c)
+			opt, parser := optionForInput(child.Argument, child.Help, false, c)
 			opts = append(opts, opt)
 			parsers = append(parsers, parser)
 			included[child.Name] = true
@@ -292,10 +306,10 @@ func toolFromCLI(ctx context.Context, k *kong.Kong, projectConfig projectconfig.
 		for _, child := range n.Positional {
 			all[child.Name] = true
 			c := config.Option(child.Name)
-			if (!child.Required || child.HasDefault) && !c.IncludeOptional {
+			if !shouldIncludeInput(nodes[:i+1], child, c) {
 				continue
 			}
-			opt, parser := optionForInput(child.Name, child.Help, child, false, c)
+			opt, parser := optionForInput(child, child.Help, false, c)
 			opts = append(opts, opt)
 			parsers = append(parsers, parser)
 			included[child.Name] = true
@@ -303,10 +317,10 @@ func toolFromCLI(ctx context.Context, k *kong.Kong, projectConfig projectconfig.
 		for _, flag := range n.Flags {
 			all[flag.Name] = true
 			c := config.Option(flag.Name)
-			if (!flag.Required || flag.HasDefault) && !c.IncludeOptional {
+			if !shouldIncludeInput(nodes[:i+1], flag.Value, c) {
 				continue
 			}
-			opt, parser := optionForInput(flag.Name, flag.Help, flag.Value, true, c)
+			opt, parser := optionForInput(flag.Value, flag.Help, true, c)
 			opts = append(opts, opt)
 			parsers = append(parsers, parser)
 			included[flag.Name] = true
@@ -362,8 +376,19 @@ func toolFromCLI(ctx context.Context, k *kong.Kong, projectConfig projectconfig.
 // inputReader converts mcp request arguments into command line args
 type inputReader func(map[string]any) ([]string, error)
 
-func optionForInput(name string, description string, value *kong.Value, flag bool, config *optionConfig) (mcp.ToolOption, inputReader) {
-	if name == "" {
+func shouldIncludeInput(cmdNodes []*kong.Node, value *kong.Value, config *optionConfig) bool {
+	if (!value.Required || value.HasDefault) && !config.IncludeOptional {
+		return false
+	}
+	if ignoreInModel, ok := config.IgnoreInModel.Get(); ok && cmdNodes[len(cmdNodes)-1].Target.Type() == reflect.TypeOf(ignoreInModel) {
+		return false
+	}
+	return true
+}
+
+func optionForInput(value *kong.Value, description string, flag bool, config *optionConfig) (mcp.ToolOption, inputReader) {
+	name := value.Name
+	if value.Name == "" {
 		panic("name is required")
 	}
 	opts := []mcp.PropertyOption{}
