@@ -14,6 +14,7 @@ import (
 
 	leaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/encoding"
@@ -49,6 +50,8 @@ func NewUserVerbServer(projectName string, moduleName string, handlers ...Handle
 		ctx = rpccontext.ContextWithClient(ctx, pubClient)
 		leaseClient := rpc.Dial(leaseconnect.NewLeaseServiceClient, uc.FTLEndpoint.String(), log.Error)
 		ctx = rpccontext.ContextWithClient(ctx, leaseClient)
+		queryClient := rpc.Dial(querypbconnect.NewQueryServiceClient, uc.FTLEndpoint.String(), log.Error)
+		ctx = rpccontext.ContextWithClient(ctx, queryClient)
 
 		moduleContextSupplier := deploymentcontext.NewDeploymentContextSupplier(moduleServiceClient)
 		// FTL_DEPLOYMENT is set by the FTL runtime.

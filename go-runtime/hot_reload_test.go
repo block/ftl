@@ -23,6 +23,7 @@ func TestHotReloadDatabaseGo(t *testing.T) {
 		in.Exec("ftl", "init", "test", "."),
 		// Create module with database
 		in.Exec("ftl", "module", "new", "go", "users"),
+		in.EditGoMod("users"),
 		in.WaitWithTimeout("users", time.Minute),
 		// Initialize MySQL database
 		in.Exec("ftl", "mysql", "new", "users.userdb"),

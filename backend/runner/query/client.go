@@ -3,8 +3,6 @@ package query
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/tuple"
@@ -12,8 +10,7 @@ import (
 	querypb "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1"
 	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
 	"github.com/block/ftl/common/encoding"
-	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/go-runtime/server/rpccontext"
 )
 
 func One[Req, Resp any](ctx context.Context, dbName string, rawSQL string, params []any, colFieldNames []tuple.Pair[string, string]) (resp Resp, err error) {
@@ -36,26 +33,11 @@ func Exec[Req any](ctx context.Context, dbName string, rawSQL string, params []a
 	return err
 }
 
-type client struct {
-	queryconnect.QueryServiceClient
-}
-
-func newClient(dbName string) (*client, error) {
-	address := os.Getenv(strings.ToUpper("FTL_QUERY_ADDRESS_" + dbName))
-	if address == "" {
-		return nil, fmt.Errorf("query address for %s not found", dbName)
-	}
-	return &client{QueryServiceClient: rpc.Dial(queryconnect.NewQueryServiceClient, address, log.Error)}, nil
-}
-
 // performQuery performs a SQL query and returns the results.
 //
 // note: accepts colFieldNames as []tuple.Pair[string, string] rather than map[string]string to preserve column order
 func performQuery[T any](ctx context.Context, dbName string, commandType querypb.CommandType, rawSQL string, params []any, colFieldNames []tuple.Pair[string, string]) ([]T, error) {
-	client, err := newClient(dbName)
-	if err != nil {
-		return nil, err
-	}
+	client := rpccontext.ClientFromContext[queryconnect.QueryServiceClient](ctx)
 
 	paramsJSON, err := encoding.Marshal(params)
 	if err != nil {
@@ -70,7 +52,8 @@ func performQuery[T any](ctx context.Context, dbName string, commandType querypb
 		})
 	}
 
-	stream, err := client.QueryServiceClient.ExecuteQuery(ctx, connect.NewRequest(&querypb.ExecuteQueryRequest{
+	stream, err := client.ExecuteQuery(ctx, connect.NewRequest(&querypb.ExecuteQueryRequest{
+		DatabaseName:   dbName,
 		RawSql:         rawSQL,
 		CommandType:    commandType,
 		ParametersJson: string(paramsJSON),

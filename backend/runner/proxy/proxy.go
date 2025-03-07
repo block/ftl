@@ -15,7 +15,6 @@ import (
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
@@ -38,7 +37,6 @@ type Service struct {
 	controllerLeaseService      ftlleaseconnect.LeaseServiceClient
 	moduleVerbService           *xsync.MapOf[string, moduleVerbService]
 	timelineClient              *timelineclient.Client
-	queryService                *query.MultiService
 	localModuleName             string
 	bindAddress                 string
 	localDeployment             key.Deployment
@@ -47,7 +45,6 @@ type Service struct {
 func New(controllerModuleService ftlv1connect.ControllerServiceClient,
 	leaseClient ftlleaseconnect.LeaseServiceClient,
 	timelineClient *timelineclient.Client,
-	queryService *query.MultiService,
 	bindAddress string,
 	localDeployment key.Deployment) *Service {
 	proxy := &Service{
@@ -55,7 +52,6 @@ func New(controllerModuleService ftlv1connect.ControllerServiceClient,
 		controllerLeaseService:      leaseClient,
 		moduleVerbService:           xsync.NewMapOf[string, moduleVerbService](),
 		timelineClient:              timelineClient,
-		queryService:                queryService,
 		localModuleName:             localDeployment.Payload.Module,
 		bindAddress:                 bindAddress,
 		localDeployment:             localDeployment,

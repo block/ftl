@@ -5,9 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/url"
-	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -23,40 +22,42 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/log"
 )
 
-// MultiService handles multiple database instances
-type MultiService struct {
-	services *xsync.MapOf[schema.RefKey, *Service]
+var _ queryconnect.QueryServiceHandler = (*Service)(nil)
+
+// Service proxies query requests to multiple database instances
+type Service struct {
+	// Maps database name to connection
+	conns *xsync.MapOf[string, *queryConn]
+	// Mutex for service operations
+	mu sync.Mutex
 }
 
-func NewMultiService() *MultiService {
-	return &MultiService{services: xsync.NewMapOf[schema.RefKey, *Service]()}
-}
+func New(ctx context.Context, module *schema.Module, addresses *xsync.MapOf[string, string]) (*Service, error) {
+	logger := log.FromContext(ctx)
+	logger.Debugf("Initializing query service for module %s", module.Name)
 
-func (m *MultiService) AddService(module string, name string, svc *Service) error {
-	refKey := schema.RefKey{Module: module, Name: name}
-	m.services.Store(refKey, svc)
-	envVar := strings.ToUpper("FTL_QUERY_ADDRESS_" + name)
-	if err := os.Setenv(envVar, svc.endpoint.String()); err != nil {
-		return fmt.Errorf("failed to set query address for %s: %w", name, err)
+	s := &Service{
+		conns: xsync.NewMapOf[string, *queryConn](),
 	}
-	return nil
+
+	// Initialize connections for all databases in the module
+	if err := s.UpdateConnections(ctx, module, addresses); err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
-func (m *MultiService) GetServices() map[schema.RefKey]*Service {
-	result := make(map[schema.RefKey]*Service)
-	m.services.Range(func(key schema.RefKey, value *Service) bool {
-		result[key] = value
-		return true
-	})
-	return result
-}
+func (s *Service) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-func (m *MultiService) Close() error {
 	var lastErr error
-	m.services.Range(func(key schema.RefKey, svc *Service) bool {
+	s.conns.Range(func(key string, svc *queryConn) bool {
 		if err := svc.Close(); err != nil {
 			lastErr = err
 		}
@@ -65,33 +66,141 @@ func (m *MultiService) Close() error {
 	return lastErr
 }
 
-func (m *MultiService) GetService(ref schema.RefKey) (*Service, bool) {
-	return m.services.Load(ref)
+func (s *Service) BeginTransaction(ctx context.Context, req *connect.Request[querypb.BeginTransactionRequest]) (*connect.Response[querypb.BeginTransactionResponse], error) {
+	conn, err := s.getConnOrError(req.Msg.DatabaseName)
+	if err != nil {
+		return nil, err
+	}
+	return conn.BeginTransaction(ctx, req)
 }
 
-type Config struct {
-	DSN      string
-	Engine   string
-	Endpoint *url.URL
+func (s *Service) CommitTransaction(ctx context.Context, req *connect.Request[querypb.CommitTransactionRequest]) (*connect.Response[querypb.CommitTransactionResponse], error) {
+	conn, err := s.getConnOrError(req.Msg.DatabaseName)
+	if err != nil {
+		return nil, err
+	}
+	return conn.CommitTransaction(ctx, req)
 }
 
-func (c *Config) Validate() error {
-	if c.DSN == "" {
-		return fmt.Errorf("database connection string is required")
+func (s *Service) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
+	conn, err := s.getConnOrError(req.Msg.DatabaseName)
+	if err != nil {
+		return err
 	}
-	if c.Endpoint == nil {
-		return fmt.Errorf("service endpoint is required")
-	}
-	switch c.Engine {
-	case "mysql", "postgres":
-		return nil
-	default:
-		return fmt.Errorf("unsupported database engine: %s (supported: mysql, postgres)", c.Engine)
-	}
+	return conn.ExecuteQuery(ctx, req, stream)
 }
 
-type Service struct {
-	endpoint     *url.URL
+func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
+	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+}
+
+func (s *Service) RollbackTransaction(ctx context.Context, req *connect.Request[querypb.RollbackTransactionRequest]) (*connect.Response[querypb.RollbackTransactionResponse], error) {
+	conn, err := s.getConnOrError(req.Msg.DatabaseName)
+	if err != nil {
+		return nil, err
+	}
+	return conn.RollbackTransaction(ctx, req)
+}
+
+func (s *Service) getConn(name string) (*queryConn, bool) {
+	return s.conns.Load(name)
+}
+
+func (s *Service) getConnOrError(name string) (*queryConn, error) {
+	if name == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("database name is required"))
+	}
+	conn, ok := s.getConn(name)
+	if !ok {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("database connection for %s not found", name))
+	}
+	return conn, nil
+}
+
+// UpdateConnections updates the connections based on a new module and addresses during hot reloading.
+// It fails if any database has configuration or connection issues.
+func (s *Service) UpdateConnections(ctx context.Context, module *schema.Module, addresses *xsync.MapOf[string, string]) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	logger := log.FromContext(ctx)
+	logger.Debugf("Updating database connections for module %s", module.Name)
+
+	newDatabases := make(map[string]bool)
+
+	// Initialize new connections and update existing ones
+	for _, decl := range module.Decls {
+		db, ok := decl.(*schema.Database)
+		if !ok {
+			continue
+		}
+
+		newDatabases[db.Name] = true
+
+		dbadr, ok := addresses.Load(db.Name)
+		if !ok {
+			return fmt.Errorf("could not find DSN for database %s", db.Name)
+		}
+
+		// If we already have a connection for this database, reuse it
+		if _, exists := s.conns.Load(db.Name); exists {
+			logger.Debugf("Reusing existing connection for database %s", db.Name)
+			continue
+		}
+
+		logger.Debugf("Creating new connection for database %s", db.Name)
+		parts := strings.Split(dbadr, ":")
+		port, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return fmt.Errorf("failed to parse port for database %s: %w", db.Name, err)
+		}
+		host := parts[0]
+		var sdsn string
+
+		switch db.Type {
+		case schema.MySQLDatabaseType:
+			sdsn = dsn.MySQLDSN(db.Name, dsn.Host(host), dsn.Port(port))
+		case schema.PostgresDatabaseType:
+			sdsn = dsn.PostgresDSN(db.Name, dsn.Host(host), dsn.Port(port))
+		default:
+			logger.Debugf("Unsupported database type: %T", db.Type)
+			return fmt.Errorf("unsupported database type for %s: %s", db.Name, db.Type)
+		}
+
+		querySvc, err := newQueryConn(ctx, sdsn, db.Type)
+		if err != nil {
+			logger.Debugf("Failed to create query service for database %s: %v", db.Name, err)
+			return fmt.Errorf("failed to create query service for database %s: %w", db.Name, err)
+		}
+
+		s.conns.Store(db.Name, querySvc)
+		logger.Debugf("Successfully stored query connection for database %s", db.Name)
+	}
+
+	// Close connections for databases that no longer exist in the module
+	var databasesToRemove []string
+	s.conns.Range(func(dbName string, conn *queryConn) bool {
+		if !newDatabases[dbName] {
+			databasesToRemove = append(databasesToRemove, dbName)
+		}
+		return true
+	})
+
+	for _, dbName := range databasesToRemove {
+		if conn, exists := s.conns.Load(dbName); exists {
+			logger.Debugf("Closing connection for removed database %s", dbName)
+			if err := conn.Close(); err != nil {
+				logger.Debugf("Error closing connection for database %s: %v", dbName, err)
+				// don't error so we can continue closing other connections
+			}
+			s.conns.Delete(dbName)
+		}
+	}
+
+	return nil
+}
+
+type queryConn struct {
 	lock         sync.RWMutex
 	transactions map[string]*sql.Tx
 	db           *sql.DB
@@ -105,45 +214,63 @@ type DB interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-func New(ctx context.Context, config Config) (*Service, error) {
-	if err := config.Validate(); err != nil {
-		return nil, err
+func newQueryConn(ctx context.Context, dsn string, engine string) (*queryConn, error) {
+	if dsn == "" {
+		return nil, fmt.Errorf("database connection string is required")
+	}
+
+	switch engine {
+	case "mysql", "postgres":
+	default:
+		return nil, fmt.Errorf("unsupported database engine: %s (supported: mysql, postgres)", engine)
 	}
 
 	logger := log.FromContext(ctx).Scope("query")
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	db, err := sql.Open(getDriverName(config.Engine), config.DSN)
+	db, err := sql.Open(getDriverName(engine), dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	if err := db.PingContext(ctx); err != nil {
+		db.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return &Service{
-		endpoint:     config.Endpoint,
+	return &queryConn{
 		transactions: make(map[string]*sql.Tx),
 		db:           db,
-		engine:       config.Engine,
+		engine:       engine,
 	}, nil
 }
 
-func (s *Service) Close() error {
+func (s *queryConn) Close() error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// Rollback any open transactions
+	for id, tx := range s.transactions {
+		_ = tx.Rollback() //nolint:errcheck
+		delete(s.transactions, id)
+	}
+
 	if s.db != nil {
-		s.db.Close()
+		err := s.db.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close database: %w", err)
+		}
 	}
 	return nil
 }
 
-var _ queryconnect.QueryServiceHandler = (*Service)(nil)
+var _ queryconnect.QueryServiceHandler = (*queryConn)(nil)
 
-func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+func (s *queryConn) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
+	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("query connection should not be pinged directly"))
 }
 
-func (s *Service) BeginTransaction(ctx context.Context, req *connect.Request[querypb.BeginTransactionRequest]) (*connect.Response[querypb.BeginTransactionResponse], error) {
+func (s *queryConn) BeginTransaction(ctx context.Context, req *connect.Request[querypb.BeginTransactionRequest]) (*connect.Response[querypb.BeginTransactionResponse], error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to begin transaction: %w", err))
@@ -161,7 +288,7 @@ func (s *Service) BeginTransaction(ctx context.Context, req *connect.Request[que
 	}), nil
 }
 
-func (s *Service) CommitTransaction(ctx context.Context, req *connect.Request[querypb.CommitTransactionRequest]) (*connect.Response[querypb.CommitTransactionResponse], error) {
+func (s *queryConn) CommitTransaction(ctx context.Context, req *connect.Request[querypb.CommitTransactionRequest]) (*connect.Response[querypb.CommitTransactionResponse], error) {
 	s.lock.Lock()
 	tx, exists := s.transactions[req.Msg.TransactionId]
 	if !exists {
@@ -182,7 +309,7 @@ func (s *Service) CommitTransaction(ctx context.Context, req *connect.Request[qu
 	}), nil
 }
 
-func (s *Service) RollbackTransaction(ctx context.Context, req *connect.Request[querypb.RollbackTransactionRequest]) (*connect.Response[querypb.RollbackTransactionResponse], error) {
+func (s *queryConn) RollbackTransaction(ctx context.Context, req *connect.Request[querypb.RollbackTransactionRequest]) (*connect.Response[querypb.RollbackTransactionResponse], error) {
 	s.lock.Lock()
 	tx, exists := s.transactions[req.Msg.TransactionId]
 	if !exists {
@@ -203,7 +330,7 @@ func (s *Service) RollbackTransaction(ctx context.Context, req *connect.Request[
 	}), nil
 }
 
-func (s *Service) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
+func (s *queryConn) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
 	if req.Msg.TransactionId != nil && *req.Msg.TransactionId != "" {
 		s.lock.RLock()
 		tx, ok := s.transactions[*req.Msg.TransactionId]
@@ -216,12 +343,7 @@ func (s *Service) ExecuteQuery(ctx context.Context, req *connect.Request[querypb
 	return s.executeQuery(ctx, s.db, req.Msg, stream)
 }
 
-// SetEndpoint sets the endpoint after the server is confirmed ready
-func (s *Service) SetEndpoint(endpoint *url.URL) {
-	s.endpoint = endpoint
-}
-
-func (s *Service) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQueryRequest, stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
+func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQueryRequest, stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
 	params, err := parseJSONParameters(req.GetParametersJson())
 	if err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to parse parameters: %w", err))

@@ -68,6 +68,11 @@ proto3.util.setEnumType(CommandType, "xyz.block.ftl.query.v1.CommandType", [
  * @generated from message xyz.block.ftl.query.v1.BeginTransactionRequest
  */
 export class BeginTransactionRequest extends Message<BeginTransactionRequest> {
+  /**
+   * @generated from field: string database_name = 1;
+   */
+  databaseName = "";
+
   constructor(data?: PartialMessage<BeginTransactionRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -76,6 +81,7 @@ export class BeginTransactionRequest extends Message<BeginTransactionRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.query.v1.BeginTransactionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "database_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BeginTransactionRequest {
@@ -143,7 +149,12 @@ export class BeginTransactionResponse extends Message<BeginTransactionResponse> 
  */
 export class CommitTransactionRequest extends Message<CommitTransactionRequest> {
   /**
-   * @generated from field: string transaction_id = 1;
+   * @generated from field: string database_name = 1;
+   */
+  databaseName = "";
+
+  /**
+   * @generated from field: string transaction_id = 2;
    */
   transactionId = "";
 
@@ -155,7 +166,8 @@ export class CommitTransactionRequest extends Message<CommitTransactionRequest> 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.query.v1.CommitTransactionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "transaction_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "database_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "transaction_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitTransactionRequest {
@@ -217,7 +229,12 @@ export class CommitTransactionResponse extends Message<CommitTransactionResponse
  */
 export class RollbackTransactionRequest extends Message<RollbackTransactionRequest> {
   /**
-   * @generated from field: string transaction_id = 1;
+   * @generated from field: string database_name = 1;
+   */
+  databaseName = "";
+
+  /**
+   * @generated from field: string transaction_id = 2;
    */
   transactionId = "";
 
@@ -229,7 +246,8 @@ export class RollbackTransactionRequest extends Message<RollbackTransactionReque
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.query.v1.RollbackTransactionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "transaction_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "database_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "transaction_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RollbackTransactionRequest {
@@ -338,38 +356,45 @@ export class ResultColumn extends Message<ResultColumn> {
  */
 export class ExecuteQueryRequest extends Message<ExecuteQueryRequest> {
   /**
-   * @generated from field: string raw_sql = 1;
+   * Name of the database to query
+   *
+   * @generated from field: string database_name = 1;
+   */
+  databaseName = "";
+
+  /**
+   * @generated from field: string raw_sql = 2;
    */
   rawSql = "";
 
   /**
-   * @generated from field: xyz.block.ftl.query.v1.CommandType command_type = 2;
+   * @generated from field: xyz.block.ftl.query.v1.CommandType command_type = 3;
    */
   commandType = CommandType.UNSPECIFIED;
 
   /**
    * JSON array of parameter values in order
    *
-   * @generated from field: string parameters_json = 3;
+   * @generated from field: string parameters_json = 4;
    */
   parametersJson = "";
 
   /**
    * Column names to scan for the result type
    *
-   * @generated from field: repeated xyz.block.ftl.query.v1.ResultColumn result_columns = 6;
+   * @generated from field: repeated xyz.block.ftl.query.v1.ResultColumn result_columns = 5;
    */
   resultColumns: ResultColumn[] = [];
 
   /**
-   * @generated from field: optional string transaction_id = 4;
+   * @generated from field: optional string transaction_id = 6;
    */
   transactionId?: string;
 
   /**
    * Default 100 if not set
    *
-   * @generated from field: optional int32 batch_size = 5;
+   * @generated from field: optional int32 batch_size = 7;
    */
   batchSize?: number;
 
@@ -381,12 +406,13 @@ export class ExecuteQueryRequest extends Message<ExecuteQueryRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.query.v1.ExecuteQueryRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "raw_sql", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "command_type", kind: "enum", T: proto3.getEnumType(CommandType) },
-    { no: 3, name: "parameters_json", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "result_columns", kind: "message", T: ResultColumn, repeated: true },
-    { no: 4, name: "transaction_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 5, name: "batch_size", kind: "scalar", T: 5 /* ScalarType.INT32 */, opt: true },
+    { no: 1, name: "database_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "raw_sql", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "command_type", kind: "enum", T: proto3.getEnumType(CommandType) },
+    { no: 4, name: "parameters_json", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "result_columns", kind: "message", T: ResultColumn, repeated: true },
+    { no: 6, name: "transaction_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 7, name: "batch_size", kind: "scalar", T: 5 /* ScalarType.INT32 */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteQueryRequest {

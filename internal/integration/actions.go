@@ -63,7 +63,7 @@ func GitInit() Action {
 func CopyModule(module string) Action {
 	return Chain(
 		CopyDir(module, module),
-		editGoMod(module),
+		EditGoMod(module),
 	)
 }
 
@@ -75,11 +75,11 @@ func CopyModule(module string) Action {
 func CopyModuleWithLanguage(module string, language string) Action {
 	return Chain(
 		CopyDir(filepath.Join("..", language, module), module),
-		editGoMod(module),
+		EditGoMod(module),
 	)
 }
 
-func editGoMod(module string) func(t testing.TB, ic TestContext) {
+func EditGoMod(module string) func(t testing.TB, ic TestContext) {
 	return func(t testing.TB, ic TestContext) {
 		root := filepath.Join(ic.workDir, module)
 		// TODO: Load the module configuration from the module itself and use that to determine the language-specific stuff.
