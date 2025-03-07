@@ -11,6 +11,13 @@ import org.jetbrains.annotations.NotNull;
 import xyz.block.ftl.TopicPartitionMapper;
 import xyz.block.ftl.WriteableTopic;
 
+/**
+ * An interface that can be used to mock out a topic for unit testing.
+ *
+ * @param <T> The topic type
+ * @param <P> The topic payload type
+ * @param <M> The partition mapper type
+ */
 public interface FakeTopic<T extends WriteableTopic<P, M>, P, M extends TopicPartitionMapper<? super P>>
         extends WriteableTopic<P, M> {
 
