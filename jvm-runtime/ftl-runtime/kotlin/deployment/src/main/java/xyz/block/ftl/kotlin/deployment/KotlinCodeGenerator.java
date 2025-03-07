@@ -250,6 +250,7 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         String thisType = className(name) + CLIENT;
         TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(thisType)
                 .addModifiers(KModifier.PUBLIC)
+                .addModifiers(KModifier.FUN)
                 .addKdoc("A client for the %L.%L verb", module.getName(), name);
 
         FunSpec.Builder callFunc = FunSpec.builder(name)
