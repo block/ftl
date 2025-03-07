@@ -1,9 +1,6 @@
 dependencies:
-- name: postgresql
-  repository: oci://registry-1.docker.io/bitnamicharts
-  version: 15.5.38
 - name: ftl
   repository: file://../ftl
   version: 0.0.1
-digest: sha256:2363f84fe0a4a43b5cb3d48325f3db617d60b32b7488a09aa874364f56fc4233
-generated: "2025-03-07T09:50:45.346116+11:00"
+digest: sha256:c1db1cd9b05146c2404cae0a8cabe17ceb8f91a852948fe8f7a0312ea24d82dd
+generated: "2025-03-07T12:05:56.43938+11:00"
