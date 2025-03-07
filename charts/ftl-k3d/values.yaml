@@ -1,0 +1,5 @@
+
+ftl:
+  registry:
+    repository: "ftl-registry:5000/ftl-artefacts"
+    allowInsecure: "true"

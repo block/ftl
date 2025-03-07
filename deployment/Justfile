@@ -102,7 +102,8 @@ teardown: teardown-cluster teardown-registry
 # Apply Helm chart for FTL deployment
 apply:
   kubectl delete job --ignore-not-found=true ftl-dbmig-latest
-  helm upgrade --install ftl ../charts/ftl -f values.yaml
+  helm dependency build ../charts/ftl-k3d
+  helm upgrade --install ftl-k3d ../charts/ftl-k3d -f values.yaml
 
 # Deploy specific version of FTL from Helm repository
 deploy-version version: setup-istio-cluster
