@@ -6,7 +6,9 @@ import "xyz/block/ftl/v1/ftl.proto";
 
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1;querypb";
 
-message BeginTransactionRequest {}
+message BeginTransactionRequest {
+  string database_name = 1;
+}
 
 message BeginTransactionResponse {
   string transaction_id = 1;
@@ -14,7 +16,8 @@ message BeginTransactionResponse {
 }
 
 message CommitTransactionRequest {
-  string transaction_id = 1;
+  string database_name = 1;
+  string transaction_id = 2;
 }
 
 message CommitTransactionResponse {
@@ -22,7 +25,8 @@ message CommitTransactionResponse {
 }
 
 message RollbackTransactionRequest {
-  string transaction_id = 1;
+  string database_name = 1;
+  string transaction_id = 2;
 }
 
 message RollbackTransactionResponse {
@@ -35,12 +39,13 @@ message ResultColumn {
 }
 
 message ExecuteQueryRequest {
-  string raw_sql = 1;
-  CommandType command_type = 2;
-  string parameters_json = 3; // JSON array of parameter values in order
-  repeated ResultColumn result_columns = 6; // Column names to scan for the result type
-  optional string transaction_id = 4;
-  optional int32 batch_size = 5; // Default 100 if not set
+  string database_name = 1; // Name of the database to query
+  string raw_sql = 2;
+  CommandType command_type = 3;
+  string parameters_json = 4; // JSON array of parameter values in order
+  repeated ResultColumn result_columns = 5; // Column names to scan for the result type
+  optional string transaction_id = 6;
+  optional int32 batch_size = 7; // Default 100 if not set
 }
 
 message ExecuteQueryResponse {

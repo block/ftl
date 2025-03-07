@@ -4,7 +4,7 @@
 pub struct ResetOffsetsOfSubscriptionRequest {
     #[prost(message, optional, tag="1")]
     pub subscription: ::core::option::Option<super::super::schema::v1::Ref>,
-    #[prost(enumeration="super::super::v1::SubscriptionOffset", tag="2")]
+    #[prost(enumeration="super::super::admin::v1::SubscriptionOffset", tag="2")]
     pub offset: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
