@@ -190,7 +190,7 @@ message ClusterInfoResponse {
 }
 
 message StreamChangesetLogsRequest {
-  string changeset_id = 1;
+  string changeset_key = 1;
 }
 
 message StreamChangesetLogsResponse {

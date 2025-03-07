@@ -621,10 +621,11 @@ func (s *Service) FailChangeset(ctx context.Context, c *connect.Request[ftlv1.Fa
 func (s *Service) StreamChangesetLogs(ctx context.Context, req *connect.Request[adminpb.StreamChangesetLogsRequest], resp *connect.ServerStream[adminpb.StreamChangesetLogsResponse]) error {
 	timeline, err := s.timelineClient.StreamTimeline(ctx, connect.NewRequest(&timelinepb.StreamTimelineRequest{
 		Query: &timelinepb.GetTimelineRequest{
+			Limit: 100000,
 			Filters: []*timelinepb.GetTimelineRequest_Filter{{
 				Filter: &timelinepb.GetTimelineRequest_Filter_Changesets{
 					Changesets: &timelinepb.GetTimelineRequest_ChangesetFilter{
-						Changesets: []string{req.Msg.ChangesetId},
+						Changesets: []string{req.Msg.ChangesetKey},
 					},
 				},
 			}},
@@ -642,9 +643,11 @@ func (s *Service) StreamChangesetLogs(ctx context.Context, req *connect.Request[
 				logs = append(logs, log)
 			}
 		}
-		resp.Send(&adminpb.StreamChangesetLogsResponse{
+		if err := resp.Send(&adminpb.StreamChangesetLogsResponse{
 			Logs: logs,
-		})
+		}); err != nil {
+			return fmt.Errorf("failed to send logs: %w", err)
+		}
 	}
 	return nil
 }

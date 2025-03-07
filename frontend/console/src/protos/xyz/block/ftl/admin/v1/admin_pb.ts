@@ -1565,9 +1565,9 @@ export class ClusterInfoResponse extends Message<ClusterInfoResponse> {
  */
 export class StreamChangesetLogsRequest extends Message<StreamChangesetLogsRequest> {
   /**
-   * @generated from field: string changeset_id = 1;
+   * @generated from field: string changeset_key = 1;
    */
-  changesetId = "";
+  changesetKey = "";
 
   constructor(data?: PartialMessage<StreamChangesetLogsRequest>) {
     super();
@@ -1577,7 +1577,7 @@ export class StreamChangesetLogsRequest extends Message<StreamChangesetLogsReque
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.admin.v1.StreamChangesetLogsRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "changeset_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "changeset_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StreamChangesetLogsRequest {

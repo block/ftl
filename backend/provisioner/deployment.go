@@ -26,6 +26,12 @@ func (t *Task) Run(ctx context.Context) error {
 		previous = t.deployment.Previous.ToProto()
 	}
 
+	logger := log.FromContext(ctx).
+		Deployment(t.deployment.DeploymentState.Runtime.Deployment.DeploymentKey).
+		Changeset(t.deployment.Changeset)
+
+	ctx = log.ContextWithLogger(ctx, logger)
+
 	result, err := t.binding.Provisioner.Provision(ctx, &provisioner.ProvisionRequest{
 		DesiredModule: t.deployment.DeploymentState.ToProto(),
 		// TODO: We need a proper cluster specific ID here

@@ -304,10 +304,10 @@ class ClusterInfoResponse(_message.Message):
     def __init__(self, os: _Optional[str] = ..., arch: _Optional[str] = ...) -> None: ...
 
 class StreamChangesetLogsRequest(_message.Message):
-    __slots__ = ("changeset_id",)
-    CHANGESET_ID_FIELD_NUMBER: _ClassVar[int]
-    changeset_id: str
-    def __init__(self, changeset_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("changeset_key",)
+    CHANGESET_KEY_FIELD_NUMBER: _ClassVar[int]
+    changeset_key: str
+    def __init__(self, changeset_key: _Optional[str] = ...) -> None: ...
 
 class StreamChangesetLogsResponse(_message.Message):
     __slots__ = ("logs",)
