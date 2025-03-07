@@ -23,6 +23,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
+	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -47,13 +48,14 @@ type Config struct {
 }
 
 type Service struct {
-	env          *EnvironmentManager
-	schemaClient ftlv1connect.SchemaServiceClient
-	source       *schemaeventsource.EventSource
-	storage      *artefacts.OCIArtefactService
-	config       Config
-	routeTable   *routing.VerbCallRouter
-	waitFor      []string
+	env            *EnvironmentManager
+	timelineClient *timelineclient.Client
+	schemaClient   ftlv1connect.SchemaServiceClient
+	source         *schemaeventsource.EventSource
+	storage        *artefacts.OCIArtefactService
+	config         Config
+	routeTable     *routing.VerbCallRouter
+	waitFor        []string
 }
 
 var _ adminpbconnect.AdminServiceHandler = (*Service)(nil)
@@ -76,18 +78,25 @@ func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, 
 
 // NewAdminService creates a new Service.
 // bindAllocator is optional and should be set if a local client is to be used that accesses schema from disk using language plugins.
-func NewAdminService(config Config, env *EnvironmentManager,
-	schr ftlv1connect.SchemaServiceClient, source *schemaeventsource.EventSource,
-	storage *artefacts.OCIArtefactService, routes *routing.VerbCallRouter,
-	waitFor []string) *Service {
+func NewAdminService(
+	config Config,
+	env *EnvironmentManager,
+	schr ftlv1connect.SchemaServiceClient,
+	source *schemaeventsource.EventSource,
+	storage *artefacts.OCIArtefactService,
+	routes *routing.VerbCallRouter,
+	timelineClient *timelineclient.Client,
+	waitFor []string,
+) *Service {
 	return &Service{
-		config:       config,
-		env:          env,
-		schemaClient: schr,
-		source:       source,
-		storage:      storage,
-		routeTable:   routes,
-		waitFor:      waitFor,
+		config:         config,
+		env:            env,
+		schemaClient:   schr,
+		source:         source,
+		storage:        storage,
+		timelineClient: timelineClient,
+		routeTable:     routes,
+		waitFor:        waitFor,
 	}
 }
 
@@ -104,7 +113,16 @@ func Start(
 
 	logger := log.FromContext(ctx).Scope("admin")
 
-	svc := NewAdminService(config, &EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm}, schr, source, storage, routing.NewVerbRouter(ctx, source, timelineClient), waitFor)
+	svc := NewAdminService(
+		config,
+		&EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm},
+		schr,
+		source,
+		storage,
+		routing.NewVerbRouter(ctx, source, timelineClient),
+		timelineClient,
+		waitFor,
+	)
 
 	logger.Debugf("Admin service listening on: %s", config.Bind)
 	err := rpc.Serve(ctx, config.Bind,
@@ -598,6 +616,37 @@ func (s *Service) FailChangeset(ctx context.Context, c *connect.Request[ftlv1.Fa
 		return nil, fmt.Errorf("failed to fail changeset: %w", err)
 	}
 	return connect.NewResponse(res.Msg), nil
+}
+
+func (s *Service) StreamChangesetLogs(ctx context.Context, req *connect.Request[adminpb.StreamChangesetLogsRequest], resp *connect.ServerStream[adminpb.StreamChangesetLogsResponse]) error {
+	timeline, err := s.timelineClient.StreamTimeline(ctx, connect.NewRequest(&timelinepb.StreamTimelineRequest{
+		Query: &timelinepb.GetTimelineRequest{
+			Filters: []*timelinepb.GetTimelineRequest_Filter{{
+				Filter: &timelinepb.GetTimelineRequest_Filter_Changesets{
+					Changesets: &timelinepb.GetTimelineRequest_ChangesetFilter{
+						Changesets: []string{req.Msg.ChangesetId},
+					},
+				},
+			}},
+		},
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to get timeline: %w", err)
+	}
+
+	for timeline.Receive() {
+		msg := timeline.Msg()
+		logs := make([]*timelinepb.LogEvent, 0, len(msg.Events))
+		for _, event := range msg.Events {
+			if log := event.GetLog(); log != nil {
+				logs = append(logs, log)
+			}
+		}
+		resp.Send(&adminpb.StreamChangesetLogsResponse{
+			Logs: logs,
+		})
+	}
+	return nil
 }
 
 type OnceValue[T any] struct {

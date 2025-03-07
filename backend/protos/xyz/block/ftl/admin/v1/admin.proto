@@ -3,6 +3,7 @@ syntax = "proto3";
 package xyz.block.ftl.admin.v1;
 
 import "xyz/block/ftl/schema/v1/schema.proto";
+import "xyz/block/ftl/timeline/v1/event.proto";
 import "xyz/block/ftl/v1/ftl.proto";
 import "xyz/block/ftl/v1/schemaservice.proto";
 
@@ -188,6 +189,14 @@ message ClusterInfoResponse {
   string arch = 2;
 }
 
+message StreamChangesetLogsRequest {
+  string changeset_id = 1;
+}
+
+message StreamChangesetLogsResponse {
+  repeated timeline.v1.LogEvent logs = 1;
+}
+
 // AdminService is the service that provides and updates admin data. For example,
 // it is used to encapsulate configuration and secrets.
 service AdminService {
@@ -263,4 +272,6 @@ service AdminService {
   rpc GetDeploymentArtefacts(GetDeploymentArtefactsRequest) returns (stream GetDeploymentArtefactsResponse);
   // Upload an artefact to the server.
   rpc UploadArtefact(stream UploadArtefactRequest) returns (UploadArtefactResponse);
+
+  rpc StreamChangesetLogs(StreamChangesetLogsRequest) returns (stream StreamChangesetLogsResponse);
 }

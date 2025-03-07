@@ -12,6 +12,7 @@ import (
 
 type Log struct {
 	DeploymentKey key.Deployment
+	ChangesetKey  optional.Option[key.Changeset]
 	RequestKey    optional.Option[key.Request]
 	Time          time.Time
 	Level         int32
@@ -29,11 +30,17 @@ func (l Log) ToEntry() (*timelinepb.CreateEventsRequest_EventEntry, error) {
 		key := r.String()
 		requestKey = &key
 	}
+	var changesetKey *string
+	if c, ok := l.ChangesetKey.Get(); ok {
+		key := c.String()
+		changesetKey = &key
+	}
 	return &timelinepb.CreateEventsRequest_EventEntry{
 		Entry: &timelinepb.CreateEventsRequest_EventEntry_Log{
 			Log: &timelinepb.LogEvent{
 				DeploymentKey: l.DeploymentKey.String(),
 				RequestKey:    requestKey,
+				ChangesetKey:  changesetKey,
 				Timestamp:     timestamppb.New(l.Time),
 				LogLevel:      l.Level,
 				Attributes:    l.Attributes,

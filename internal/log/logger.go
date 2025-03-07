@@ -20,6 +20,7 @@ var _ Interface = (*Logger)(nil)
 const scopeKey = "scope"
 const moduleKey = "module"
 const deploymentKey = "deployment"
+const changesetKey = "changeset"
 
 type Entry struct {
 	Time       time.Time         `json:"-"`
@@ -59,6 +60,10 @@ func (l Logger) Module(module string) *Logger {
 
 func (l Logger) Deployment(deployment key.Deployment) *Logger {
 	return l.Attrs(map[string]string{deploymentKey: deployment.String()})
+}
+
+func (l Logger) Changeset(changeset key.Changeset) *Logger {
+	return l.Attrs(map[string]string{changesetKey: changeset.String()})
 }
 
 // Attrs creates a new logger with the given attributes.

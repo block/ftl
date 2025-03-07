@@ -124,6 +124,23 @@ func FilterDeployments(filters []*timelinepb.GetTimelineRequest_DeploymentFilter
 	}
 }
 
+func FilterChangesets(filters []*timelinepb.GetTimelineRequest_ChangesetFilter) TimelineFilter {
+	changesets := islices.Reduce(filters, []string{}, func(acc []string, f *timelinepb.GetTimelineRequest_ChangesetFilter) []string {
+		return append(acc, f.Changesets...)
+	})
+	return func(event *timelinepb.Event) bool {
+		switch entry := event.Entry.(type) {
+		case *timelinepb.Event_Log:
+			if entry.Log.ChangesetKey == nil {
+				return false
+			}
+			return slices.Contains(changesets, *entry.Log.ChangesetKey)
+		default:
+			return false
+		}
+	}
+}
+
 func FilterRequests(filters []*timelinepb.GetTimelineRequest_RequestFilter) TimelineFilter {
 	requests := islices.Reduce(filters, []string{}, func(acc []string, f *timelinepb.GetTimelineRequest_RequestFilter) []string {
 		return append(acc, f.Requests...)
@@ -274,6 +291,10 @@ func filtersFromRequest(req *timelinepb.GetTimelineRequest) (outFilters []Timeli
 		case *timelinepb.GetTimelineRequest_Filter_Module:
 			outFilters = append(outFilters, FilterModule(islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) *timelinepb.GetTimelineRequest_ModuleFilter {
 				return f.GetModule()
+			})))
+		case *timelinepb.GetTimelineRequest_Filter_Changesets:
+			outFilters = append(outFilters, FilterChangesets(islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) *timelinepb.GetTimelineRequest_ChangesetFilter {
+				return f.GetChangesets()
 			})))
 		default:
 			panic(fmt.Sprintf("unexpected filter type: %T", filters[0].Filter))

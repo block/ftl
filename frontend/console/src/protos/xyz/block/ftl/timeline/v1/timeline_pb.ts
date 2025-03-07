@@ -164,6 +164,45 @@ export class GetTimelineRequest_DeploymentFilter extends Message<GetTimelineRequ
 }
 
 /**
+ * Filters events by changeset key.
+ *
+ * @generated from message xyz.block.ftl.timeline.v1.GetTimelineRequest.ChangesetFilter
+ */
+export class GetTimelineRequest_ChangesetFilter extends Message<GetTimelineRequest_ChangesetFilter> {
+  /**
+   * @generated from field: repeated string changesets = 1;
+   */
+  changesets: string[] = [];
+
+  constructor(data?: PartialMessage<GetTimelineRequest_ChangesetFilter>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.timeline.v1.GetTimelineRequest.ChangesetFilter";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changesets", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTimelineRequest_ChangesetFilter {
+    return new GetTimelineRequest_ChangesetFilter().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetTimelineRequest_ChangesetFilter {
+    return new GetTimelineRequest_ChangesetFilter().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetTimelineRequest_ChangesetFilter {
+    return new GetTimelineRequest_ChangesetFilter().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetTimelineRequest_ChangesetFilter | PlainMessage<GetTimelineRequest_ChangesetFilter> | undefined, b: GetTimelineRequest_ChangesetFilter | PlainMessage<GetTimelineRequest_ChangesetFilter> | undefined): boolean {
+    return proto3.util.equals(GetTimelineRequest_ChangesetFilter, a, b);
+  }
+}
+
+/**
  * Filters events by request key.
  *
  * @generated from message xyz.block.ftl.timeline.v1.GetTimelineRequest.RequestFilter
@@ -486,6 +525,12 @@ export class GetTimelineRequest_Filter extends Message<GetTimelineRequest_Filter
      */
     value: GetTimelineRequest_ModuleFilter;
     case: "module";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.timeline.v1.GetTimelineRequest.ChangesetFilter changesets = 9;
+     */
+    value: GetTimelineRequest_ChangesetFilter;
+    case: "changesets";
   } | { case: undefined; value?: undefined } = { case: undefined };
 
   constructor(data?: PartialMessage<GetTimelineRequest_Filter>) {
@@ -504,6 +549,7 @@ export class GetTimelineRequest_Filter extends Message<GetTimelineRequest_Filter
     { no: 6, name: "id", kind: "message", T: GetTimelineRequest_IDFilter, oneof: "filter" },
     { no: 7, name: "call", kind: "message", T: GetTimelineRequest_CallFilter, oneof: "filter" },
     { no: 8, name: "module", kind: "message", T: GetTimelineRequest_ModuleFilter, oneof: "filter" },
+    { no: 9, name: "changesets", kind: "message", T: GetTimelineRequest_ChangesetFilter, oneof: "filter" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTimelineRequest_Filter {

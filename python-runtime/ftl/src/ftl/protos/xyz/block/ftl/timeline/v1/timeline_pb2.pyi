@@ -30,6 +30,11 @@ class GetTimelineRequest(_message.Message):
         DEPLOYMENTS_FIELD_NUMBER: _ClassVar[int]
         deployments: _containers.RepeatedScalarFieldContainer[str]
         def __init__(self, deployments: _Optional[_Iterable[str]] = ...) -> None: ...
+    class ChangesetFilter(_message.Message):
+        __slots__ = ("changesets",)
+        CHANGESETS_FIELD_NUMBER: _ClassVar[int]
+        changesets: _containers.RepeatedScalarFieldContainer[str]
+        def __init__(self, changesets: _Optional[_Iterable[str]] = ...) -> None: ...
     class RequestFilter(_message.Message):
         __slots__ = ("requests",)
         REQUESTS_FIELD_NUMBER: _ClassVar[int]
@@ -71,7 +76,7 @@ class GetTimelineRequest(_message.Message):
         verb: str
         def __init__(self, module: _Optional[str] = ..., verb: _Optional[str] = ...) -> None: ...
     class Filter(_message.Message):
-        __slots__ = ("log_level", "deployments", "requests", "event_types", "time", "id", "call", "module")
+        __slots__ = ("log_level", "deployments", "requests", "event_types", "time", "id", "call", "module", "changesets")
         LOG_LEVEL_FIELD_NUMBER: _ClassVar[int]
         DEPLOYMENTS_FIELD_NUMBER: _ClassVar[int]
         REQUESTS_FIELD_NUMBER: _ClassVar[int]
@@ -80,6 +85,7 @@ class GetTimelineRequest(_message.Message):
         ID_FIELD_NUMBER: _ClassVar[int]
         CALL_FIELD_NUMBER: _ClassVar[int]
         MODULE_FIELD_NUMBER: _ClassVar[int]
+        CHANGESETS_FIELD_NUMBER: _ClassVar[int]
         log_level: GetTimelineRequest.LogLevelFilter
         deployments: GetTimelineRequest.DeploymentFilter
         requests: GetTimelineRequest.RequestFilter
@@ -88,7 +94,8 @@ class GetTimelineRequest(_message.Message):
         id: GetTimelineRequest.IDFilter
         call: GetTimelineRequest.CallFilter
         module: GetTimelineRequest.ModuleFilter
-        def __init__(self, log_level: _Optional[_Union[GetTimelineRequest.LogLevelFilter, _Mapping]] = ..., deployments: _Optional[_Union[GetTimelineRequest.DeploymentFilter, _Mapping]] = ..., requests: _Optional[_Union[GetTimelineRequest.RequestFilter, _Mapping]] = ..., event_types: _Optional[_Union[GetTimelineRequest.EventTypeFilter, _Mapping]] = ..., time: _Optional[_Union[GetTimelineRequest.TimeFilter, _Mapping]] = ..., id: _Optional[_Union[GetTimelineRequest.IDFilter, _Mapping]] = ..., call: _Optional[_Union[GetTimelineRequest.CallFilter, _Mapping]] = ..., module: _Optional[_Union[GetTimelineRequest.ModuleFilter, _Mapping]] = ...) -> None: ...
+        changesets: GetTimelineRequest.ChangesetFilter
+        def __init__(self, log_level: _Optional[_Union[GetTimelineRequest.LogLevelFilter, _Mapping]] = ..., deployments: _Optional[_Union[GetTimelineRequest.DeploymentFilter, _Mapping]] = ..., requests: _Optional[_Union[GetTimelineRequest.RequestFilter, _Mapping]] = ..., event_types: _Optional[_Union[GetTimelineRequest.EventTypeFilter, _Mapping]] = ..., time: _Optional[_Union[GetTimelineRequest.TimeFilter, _Mapping]] = ..., id: _Optional[_Union[GetTimelineRequest.IDFilter, _Mapping]] = ..., call: _Optional[_Union[GetTimelineRequest.CallFilter, _Mapping]] = ..., module: _Optional[_Union[GetTimelineRequest.ModuleFilter, _Mapping]] = ..., changesets: _Optional[_Union[GetTimelineRequest.ChangesetFilter, _Mapping]] = ...) -> None: ...
     FILTERS_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     ORDER_FIELD_NUMBER: _ClassVar[int]

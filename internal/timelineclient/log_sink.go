@@ -60,6 +60,16 @@ func (l *LogSink) RunLogLoop(ctx context.Context) {
 			}
 		}
 
+		cs, ok := entry.Attributes["changeset"]
+		var changesetKey optional.Option[key.Changeset]
+		if ok {
+			k, err := key.ParseChangesetKey(cs)
+			if err != nil {
+				continue
+			}
+			changesetKey = optional.Some(k)
+		}
+
 		var errorString *string
 		if entry.Error != nil {
 			errStr := entry.Error.Error()
@@ -80,6 +90,7 @@ func (l *LogSink) RunLogLoop(ctx context.Context) {
 			Attributes:    entry.Attributes,
 			Message:       entry.Message,
 			Error:         optional.Ptr(errorString),
+			ChangesetKey:  changesetKey,
 		})
 	}
 }

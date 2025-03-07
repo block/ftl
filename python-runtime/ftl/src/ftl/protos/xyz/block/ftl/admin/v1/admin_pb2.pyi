@@ -1,4 +1,5 @@
 from xyz.block.ftl.schema.v1 import schema_pb2 as _schema_pb2
+from xyz.block.ftl.timeline.v1 import event_pb2 as _event_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
 from xyz.block.ftl.v1 import schemaservice_pb2 as _schemaservice_pb2
 from google.protobuf.internal import containers as _containers
@@ -301,3 +302,15 @@ class ClusterInfoResponse(_message.Message):
     os: str
     arch: str
     def __init__(self, os: _Optional[str] = ..., arch: _Optional[str] = ...) -> None: ...
+
+class StreamChangesetLogsRequest(_message.Message):
+    __slots__ = ("changeset_id",)
+    CHANGESET_ID_FIELD_NUMBER: _ClassVar[int]
+    changeset_id: str
+    def __init__(self, changeset_id: _Optional[str] = ...) -> None: ...
+
+class StreamChangesetLogsResponse(_message.Message):
+    __slots__ = ("logs",)
+    LOGS_FIELD_NUMBER: _ClassVar[int]
+    logs: _containers.RepeatedCompositeFieldContainer[_event_pb2.LogEvent]
+    def __init__(self, logs: _Optional[_Iterable[_Union[_event_pb2.LogEvent, _Mapping]]] = ...) -> None: ...
