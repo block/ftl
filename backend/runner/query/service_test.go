@@ -3,7 +3,6 @@ package query
 import (
 	"context"
 	"database/sql"
-	"net/url"
 	"sync"
 	"testing"
 
@@ -47,7 +46,7 @@ func TestQueryService(t *testing.T) {
 		db.Close()
 	})
 
-	svc := &Service{
+	svc := &queryConn{
 		transactions: make(map[string]*sql.Tx),
 		db:           db,
 		lock:         sync.RWMutex{},
@@ -119,37 +118,13 @@ func TestQueryService(t *testing.T) {
 }
 
 func TestServiceConfig(t *testing.T) {
-	t.Run("ValidConfig", func(t *testing.T) {
-		config := &Config{
-			Endpoint: &url.URL{Scheme: "http", Host: "localhost:8892"},
-			Engine:   "mysql",
-			DSN:      "user:pass@tcp(localhost:3306)/db",
-		}
-		assert.NoError(t, config.Validate())
-	})
-
 	t.Run("InvalidEngine", func(t *testing.T) {
-		config := &Config{
-			Endpoint: &url.URL{Scheme: "http", Host: "localhost:8892"},
-			Engine:   "invalid",
-			DSN:      "user:pass@tcp(localhost:3306)/db",
-		}
-		assert.Error(t, config.Validate())
-	})
-
-	t.Run("MissingBind", func(t *testing.T) {
-		config := &Config{
-			Engine: "mysql",
-			DSN:    "user:pass@tcp(localhost:3306)/db",
-		}
-		assert.Error(t, config.Validate())
+		_, err := newQueryConn(t.Context(), "user:pass@tcp(localhost:3306)/db", "invalid")
+		assert.Error(t, err)
 	})
 
 	t.Run("MissingDSN", func(t *testing.T) {
-		config := &Config{
-			Endpoint: &url.URL{Scheme: "http", Host: "localhost:8892"},
-			Engine:   "mysql",
-		}
-		assert.Error(t, config.Validate())
+		_, err := newQueryConn(t.Context(), "", "mysql")
+		assert.Error(t, err)
 	})
 }

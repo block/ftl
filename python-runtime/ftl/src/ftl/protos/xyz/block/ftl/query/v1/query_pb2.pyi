@@ -28,8 +28,10 @@ COMMAND_TYPE_ONE: CommandType
 COMMAND_TYPE_MANY: CommandType
 
 class BeginTransactionRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+    __slots__ = ("database_name",)
+    DATABASE_NAME_FIELD_NUMBER: _ClassVar[int]
+    database_name: str
+    def __init__(self, database_name: _Optional[str] = ...) -> None: ...
 
 class BeginTransactionResponse(_message.Message):
     __slots__ = ("transaction_id", "status")
@@ -40,10 +42,12 @@ class BeginTransactionResponse(_message.Message):
     def __init__(self, transaction_id: _Optional[str] = ..., status: _Optional[_Union[TransactionStatus, str]] = ...) -> None: ...
 
 class CommitTransactionRequest(_message.Message):
-    __slots__ = ("transaction_id",)
+    __slots__ = ("database_name", "transaction_id")
+    DATABASE_NAME_FIELD_NUMBER: _ClassVar[int]
     TRANSACTION_ID_FIELD_NUMBER: _ClassVar[int]
+    database_name: str
     transaction_id: str
-    def __init__(self, transaction_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, database_name: _Optional[str] = ..., transaction_id: _Optional[str] = ...) -> None: ...
 
 class CommitTransactionResponse(_message.Message):
     __slots__ = ("status",)
@@ -52,10 +56,12 @@ class CommitTransactionResponse(_message.Message):
     def __init__(self, status: _Optional[_Union[TransactionStatus, str]] = ...) -> None: ...
 
 class RollbackTransactionRequest(_message.Message):
-    __slots__ = ("transaction_id",)
+    __slots__ = ("database_name", "transaction_id")
+    DATABASE_NAME_FIELD_NUMBER: _ClassVar[int]
     TRANSACTION_ID_FIELD_NUMBER: _ClassVar[int]
+    database_name: str
     transaction_id: str
-    def __init__(self, transaction_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, database_name: _Optional[str] = ..., transaction_id: _Optional[str] = ...) -> None: ...
 
 class RollbackTransactionResponse(_message.Message):
     __slots__ = ("status",)
@@ -72,20 +78,22 @@ class ResultColumn(_message.Message):
     def __init__(self, type_name: _Optional[str] = ..., sql_name: _Optional[str] = ...) -> None: ...
 
 class ExecuteQueryRequest(_message.Message):
-    __slots__ = ("raw_sql", "command_type", "parameters_json", "result_columns", "transaction_id", "batch_size")
+    __slots__ = ("database_name", "raw_sql", "command_type", "parameters_json", "result_columns", "transaction_id", "batch_size")
+    DATABASE_NAME_FIELD_NUMBER: _ClassVar[int]
     RAW_SQL_FIELD_NUMBER: _ClassVar[int]
     COMMAND_TYPE_FIELD_NUMBER: _ClassVar[int]
     PARAMETERS_JSON_FIELD_NUMBER: _ClassVar[int]
     RESULT_COLUMNS_FIELD_NUMBER: _ClassVar[int]
     TRANSACTION_ID_FIELD_NUMBER: _ClassVar[int]
     BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
+    database_name: str
     raw_sql: str
     command_type: CommandType
     parameters_json: str
     result_columns: _containers.RepeatedCompositeFieldContainer[ResultColumn]
     transaction_id: str
     batch_size: int
-    def __init__(self, raw_sql: _Optional[str] = ..., command_type: _Optional[_Union[CommandType, str]] = ..., parameters_json: _Optional[str] = ..., result_columns: _Optional[_Iterable[_Union[ResultColumn, _Mapping]]] = ..., transaction_id: _Optional[str] = ..., batch_size: _Optional[int] = ...) -> None: ...
+    def __init__(self, database_name: _Optional[str] = ..., raw_sql: _Optional[str] = ..., command_type: _Optional[_Union[CommandType, str]] = ..., parameters_json: _Optional[str] = ..., result_columns: _Optional[_Iterable[_Union[ResultColumn, _Mapping]]] = ..., transaction_id: _Optional[str] = ..., batch_size: _Optional[int] = ...) -> None: ...
 
 class ExecuteQueryResponse(_message.Message):
     __slots__ = ("exec_result", "row_results")
