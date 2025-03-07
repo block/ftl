@@ -404,8 +404,10 @@ func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendin
 		}
 	}
 	out.publishInSchema = out.publishInSchema || old.publishInSchema
-	out.supercededModules = append(d.supercededModules, old)                      //nolint:gocritic
-	out.supercededModules = append(d.supercededModules, old.supercededModules...) //nolint:gocritic
+	out.supercededModules = append([]*pendingDeploy{}, d.supercededModules...)
+	out.supercededModules = append(out.supercededModules, old)
+	out.supercededModules = append(out.supercededModules, old.supercededModules...)
+
 	return out, nil
 }
 
