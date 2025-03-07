@@ -72,8 +72,6 @@ github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f h1:sxtp
 github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f/go.mod h1:h5p2p8WGPrwRk3CzvbbIN+uL0LJomz6mZwE97f6UaZw=
 github.com/block/scaffolder v1.3.0 h1:6oMegz48abf6CehW0NF9V0irKPTZoJNsSUTFslvuftw=
 github.com/block/scaffolder v1.3.0/go.mod h1:qEzIKpqg42/Xz5vrK5UPtDiYV+M2E5s9Cs/ekoNUFD4=
-github.com/bmatcuk/doublestar/v4 v4.8.1 h1:54Bopc5c2cAvhLRAzqOGCYHYyhcDHsFF4wWIR5wKP38=
-github.com/bmatcuk/doublestar/v4 v4.8.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/bool64/dev v0.2.38 h1:C5H9wkx/BhTYRfV14X90iIQKpSuhzsG+OHQvWdQ5YQ4=
 github.com/bool64/dev v0.2.38/go.mod h1:iJbh1y/HkunEPhgebWRNcs8wfGq7sjvJ6W5iabL8ACg=
 github.com/bool64/shared v0.1.5 h1:fp3eUhBsrSjNCQPcSdQqZxxh9bBwrYiZ+zOKFkM0/2E=
