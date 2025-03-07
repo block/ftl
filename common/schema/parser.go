@@ -153,6 +153,7 @@ type Decl interface {
 	Symbol
 	GetName() string
 	IsExported() bool
+	IsGenerated() bool
 	schemaDecl()
 }
 

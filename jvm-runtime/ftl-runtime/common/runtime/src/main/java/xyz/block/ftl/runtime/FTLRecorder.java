@@ -2,8 +2,10 @@ package xyz.block.ftl.runtime;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
 
@@ -19,18 +21,60 @@ import xyz.block.ftl.v1.GetDeploymentContextResponse;
 @Recorder
 public class FTLRecorder {
 
+    private static final Logger log = Logger.getLogger(FTLRecorder.class);
+
     public static final String X_FTL_VERB = "X-ftl-verb";
 
     public void registerVerb(String module, String verbName, String methodName, List<Class<?>> parameterTypes,
             Class<?> verbHandlerClass, List<VerbRegistry.ParameterSupplier> paramMappers,
             boolean allowNullReturn) {
-        //TODO: this sucks
+        // TODO: this sucks
         try {
             var method = verbHandlerClass.getDeclaredMethod(methodName, parameterTypes.toArray(new Class[0]));
             method.setAccessible(true);
             var handlerInstance = Arc.container().instance(verbHandlerClass);
             Arc.container().instance(VerbRegistry.class).get().register(module, verbName, handlerInstance, method,
                     paramMappers, allowNullReturn);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void registerSqlQueryVerb(String module, String verbName, String methodName, List<Class<?>> parameterTypes,
+            Class<?> sqlQueryClientClass, List<VerbRegistry.ParameterSupplier> paramMappers,
+            boolean allowNullReturn, String dbName, String command, String rawSQL,
+            String[] fields, String[] colToFieldName) {
+        try {
+            VerbRegistry verbRegistry = Arc.container().instance(VerbRegistry.class).get();
+
+            // Determine return type and parameter type
+            Class<?> returnType = null;
+            Class<?> paramType = null;
+
+            // If the client class is provided, use it to determine return type and parameter type
+            if (sqlQueryClientClass != null) {
+                // Find the method in the SQL query client interface
+                for (Method method : sqlQueryClientClass.getMethods()) {
+                    if (method.getName().equals(methodName)) {
+                        returnType = method.getReturnType();
+                        if (method.getParameterCount() > 0) {
+                            paramType = method.getParameterTypes()[0];
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // If parameterTypes is provided, use it to determine parameter type
+            if (parameterTypes != null && !parameterTypes.isEmpty()) {
+                paramType = parameterTypes.get(0);
+            }
+
+            // Create and register the SQLQueryVerbInvoker
+            SQLQueryVerbInvoker invoker = new SQLQueryVerbInvoker(
+                    dbName, command, rawSQL, fields, colToFieldName, returnType, paramType);
+
+            verbRegistry.register(module, verbName, invoker);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

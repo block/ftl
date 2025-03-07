@@ -21,13 +21,18 @@ import io.quarkus.arc.deployment.GeneratedBeanGizmoAdaptor;
 import io.quarkus.deployment.GeneratedClassGizmoAdaptor;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.annotations.ExecutionTime;
+import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.GeneratedClassBuildItem;
 import io.quarkus.deployment.builditem.LaunchModeBuildItem;
 import io.quarkus.gizmo.ClassCreator;
 import io.quarkus.gizmo.ClassOutput;
 import io.quarkus.gizmo.MethodDescriptor;
+import io.quarkus.gizmo.ResultHandle;
+import xyz.block.ftl.SQLQueryClient;
 import xyz.block.ftl.VerbClient;
+import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.runtime.VerbClientHelper;
 import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataCronJob;
@@ -86,10 +91,9 @@ public class VerbProcessor {
                                     MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
                             var results = publish.invokeVirtualMethod(
                                     MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
-                                            String.class, Object.class, Class.class, boolean.class, boolean.class),
+                                            String.class, Object.class, Class.class),
                                     helper, publish.load(name), publish.load(module), publish.getMethodParam(0),
-                                    publish.loadClass(returnType.name().toString()), publish.load(false),
-                                    publish.load(false));
+                                    publish.loadClass(returnType.name().toString()));
                             publish.returnValue(results);
                         }
                         break;
@@ -148,11 +152,137 @@ public class VerbProcessor {
     }
 
     @BuildStep
+    @Record(ExecutionTime.RUNTIME_INIT)
+    SQLQueryClientBuildItem handleSQLQueryClients(CombinedIndexBuildItem index,
+            BuildProducer<GeneratedClassBuildItem> generatedClients,
+            BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
+            ModuleNameBuildItem moduleNameBuildItem,
+            LaunchModeBuildItem launchModeBuildItem,
+            FTLRecorder recorder) {
+        var clientDefinitions = index.getComputingIndex().getAnnotations(SQLQueryClient.class);
+        log.debugf("Processing %d SQL query clients", clientDefinitions.size());
+
+        if (clientDefinitions.isEmpty()) {
+            return new SQLQueryClientBuildItem(Map.of());
+        }
+
+        Map<DotName, SQLQueryClientBuildItem.DiscoveredClients> clients = new HashMap<>();
+
+        for (var clientDefinition : clientDefinitions) {
+            var callMethod = clientDefinition.target().asMethod();
+            ClassInfo iface = callMethod.declaringClass();
+            if (!iface.isInterface()) {
+                throw new RuntimeException(
+                        "@SQLQueryClient can only be applied to methods in interfaces and " + callMethod + " is in class "
+                                + iface.name());
+            }
+            String name = callMethod.name();
+
+            AnnotationValue moduleValue = clientDefinition.value("module");
+            String module = moduleValue == null || moduleValue.asString().isEmpty() ? moduleNameBuildItem.getModuleName()
+                    : moduleValue.asString();
+
+            AnnotationValue dbNameValue = clientDefinition.value("dbName");
+            String dbName = dbNameValue == null ? "" : dbNameValue.asString();
+
+            AnnotationValue rawSQLValue = clientDefinition.value("rawSQL");
+            String rawSQL = rawSQLValue == null ? "" : rawSQLValue.asString();
+
+            AnnotationValue commandValue = clientDefinition.value("command");
+            String command = commandValue == null ? "" : commandValue.asString();
+
+            AnnotationValue fieldsValue = clientDefinition.value("fields");
+            String[] fields = fieldsValue == null ? new String[0] : fieldsValue.asStringArray();
+
+            AnnotationValue colToFieldNameValue = clientDefinition.value("colToFieldName");
+            String[] colToFieldName = colToFieldNameValue == null ? new String[0] : colToFieldNameValue.asStringArray();
+
+            ClassOutput classOutput;
+            if (launchModeBuildItem.isTest()) {
+                // For test mode, use GeneratedBeanGizmoAdaptor which automatically registers the class as a bean
+                classOutput = new GeneratedBeanGizmoAdaptor(generatedBeanBuildItemBuildProducer);
+            } else {
+                // For non-test mode, use GeneratedClassGizmoAdaptor
+                classOutput = new GeneratedClassGizmoAdaptor(generatedClients, true);
+            }
+
+            Type returnType = callMethod.returnType();
+            Type paramType = callMethod.parametersCount() > 0 ? callMethod.parameterType(0) : null;
+            boolean listReturnType = returnType.name().toString().startsWith("java.util.List");
+            boolean mapReturnType = returnType.name().toString().startsWith("java.util.Map");
+
+            String className = iface.name().toString() + "_fit_sqlqueryclient";
+            try (ClassCreator cc = new ClassCreator(classOutput, className, null,
+                    Object.class.getName(), iface.name().toString())) {
+
+                if (launchModeBuildItem.isTest()) {
+                    cc.addAnnotation(TEST_ANNOTATION);
+                    cc.addAnnotation(Singleton.class);
+                }
+
+                String actualReturnType = returnType.name().toString();
+                if (listReturnType && returnType.kind() == Type.Kind.PARAMETERIZED_TYPE) {
+                    actualReturnType = returnType.asParameterizedType().arguments().get(0).name().toString();
+                } else if (mapReturnType && returnType.kind() == Type.Kind.PARAMETERIZED_TYPE) {
+                    actualReturnType = returnType.asParameterizedType().arguments().get(1).name().toString();
+                }
+
+                LinkedHashSet<Map.Entry<String, String>> signatures = new LinkedHashSet<>();
+                if (paramType != null) {
+                    signatures.add(Map.entry(returnType.name().toString(), paramType.name().toString()));
+                } else {
+                    signatures.add(Map.entry(returnType.name().toString(), "java.lang.Void"));
+                }
+
+                for (var sig : signatures) {
+                    var methodCreator = paramType != null ? cc.getMethodCreator(name, sig.getKey(), sig.getValue())
+                            : cc.getMethodCreator(name, sig.getKey());
+
+                    ResultHandle helper = methodCreator.invokeStaticMethod(
+                            MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
+
+                    ResultHandle fieldsArray = methodCreator.newArray(String.class, fields.length);
+                    for (int i = 0; i < fields.length; i++) {
+                        methodCreator.writeArrayValue(fieldsArray, i, methodCreator.load(fields[i]));
+                    }
+
+                    ResultHandle colToFieldNameArray = methodCreator.newArray(String.class, colToFieldName.length);
+                    for (int i = 0; i < colToFieldName.length; i++) {
+                        methodCreator.writeArrayValue(colToFieldNameArray, i, methodCreator.load(colToFieldName[i]));
+                    }
+
+                    ResultHandle param = paramType != null ? methodCreator.getMethodParam(0) : methodCreator.loadNull();
+                    ResultHandle results = methodCreator.invokeVirtualMethod(
+                            MethodDescriptor.ofMethod(VerbClientHelper.class, "executeQuery", Object.class,
+                                    String.class, Object.class, Class.class,
+                                    String.class, String.class, String[].class, String[].class),
+                            helper,
+                            methodCreator.load(dbName),
+                            param,
+                            methodCreator.loadClass(actualReturnType),
+                            methodCreator.load(command),
+                            methodCreator.load(rawSQL),
+                            fieldsArray,
+                            colToFieldNameArray);
+
+                    methodCreator.returnValue(results);
+                }
+
+                // Store the client information
+                clients.put(iface.name(), new SQLQueryClientBuildItem.DiscoveredClients(name, module, cc.getClassName()));
+            }
+        }
+
+        return new SQLQueryClientBuildItem(clients);
+    }
+
+    @BuildStep
+    @Record(ExecutionTime.RUNTIME_INIT)
     public void verbsAndCron(CombinedIndexBuildItem index,
             BuildProducer<AdditionalBeanBuildItem> additionalBeanBuildItem,
             BuildProducer<SchemaContributorBuildItem> schemaContributorBuildItemBuildProducer,
-            List<TypeAliasBuildItem> typeAliasBuildItems // included to force typealias processing before this
-    ) {
+            List<TypeAliasBuildItem> typeAliasBuildItems, // included to force typealias processing before this
+            FTLRecorder recorder) {
         Collection<AnnotationInstance> verbAnnotations = index.getIndex().getAnnotations(FTLDotNames.VERB);
         log.debugf("Processing %d verb annotations into decls", verbAnnotations.size());
         var beans = AdditionalBeanBuildItem.builder().setUnremovable();
@@ -186,6 +316,67 @@ public class VerbProcessor {
                                             .setCronJob(MetadataCronJob.newBuilder().setCron(cron.value().asString()))
                                             .build())))));
         }
+
+        // Register SQL query verbs at runtime
+        var sqlQueryClientDefinitions = index.getComputingIndex().getAnnotations(SQLQueryClient.class);
+        for (var clientDefinition : sqlQueryClientDefinitions) {
+            var callMethod = clientDefinition.target().asMethod();
+
+            String name = callMethod.name();
+
+            AnnotationValue moduleValue = clientDefinition.value("module");
+            String module = moduleValue == null || moduleValue.asString().isEmpty() ? null : moduleValue.asString();
+            if (module == null) {
+                continue; // Skip if no module is specified
+            }
+
+            // Get SQL query parameters
+            AnnotationValue dbNameValue = clientDefinition.value("dbName");
+            log.infof("dbNameValue: %s", dbNameValue);
+            String dbName = dbNameValue == null ? "" : dbNameValue.asString();
+
+            AnnotationValue rawSQLValue = clientDefinition.value("rawSQL");
+            log.infof("rawSQLValue: %s", rawSQLValue);
+            String rawSQL = rawSQLValue == null ? "" : rawSQLValue.asString();
+
+            AnnotationValue commandValue = clientDefinition.value("command");
+            log.infof("commandValue: %s", commandValue);
+            String command = commandValue == null ? "" : commandValue.asString();
+
+            AnnotationValue fieldsValue = clientDefinition.value("fields");
+            log.infof("fieldsValue: %s", fieldsValue);
+            String[] fields = fieldsValue == null ? new String[0] : fieldsValue.asStringArray();
+
+            AnnotationValue colToFieldNameValue = clientDefinition.value("colToFieldName");
+            log.infof("colToFieldNameValue: %s", colToFieldNameValue);
+            String[] colToFieldName = colToFieldNameValue == null ? new String[0] : colToFieldNameValue.asStringArray();
+
+            // We're not adding SQL query verbs to the schema here
+            // They're already in the schema from the .pb file
+            // But we need to register them for runtime invocation
+            log.debugf("Registering runtime invoker for SQL query verb %s.%s", module, name);
+
+            try {
+                // We don't have access to the client class here, but we can register the verb
+                // with the necessary information for the SQLQueryVerbInvoker to be created at runtime
+                recorder.registerSqlQueryVerb(
+                        module,
+                        name,
+                        name,
+                        List.of(), // parameterTypes will be determined at runtime
+                        null, // sqlQueryClientClass will be determined at runtime
+                        List.of(), // paramMappers will be determined at runtime
+                        false,
+                        dbName,
+                        command,
+                        rawSQL,
+                        fields,
+                        colToFieldName);
+            } catch (Exception e) {
+                log.errorf(e, "Failed to register runtime invoker for SQL query verb %s.%s", module, name);
+            }
+        }
+
         additionalBeanBuildItem.produce(beans.build());
     }
 }

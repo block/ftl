@@ -122,6 +122,18 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         getRunnerConnection().publishEvent(topic, callingVerbName, event, key);
     }
 
+    public String executeQueryOne(String dbName, String sql, String paramsJson, Map<String, String> resultColumns) {
+        return getRunnerConnection().executeQueryOne(dbName, sql, paramsJson, resultColumns);
+    }
+
+    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, Map<String, String> resultColumns) {
+        return getRunnerConnection().executeQueryMany(dbName, sql, paramsJson, resultColumns);
+    }
+
+    public long executeQueryExec(String dbName, String sql, String paramsJson) {
+        return getRunnerConnection().executeQueryExec(dbName, sql, paramsJson);
+    }
+
     public LeaseHandle acquireLease(Duration duration, String... keys) throws LeaseFailedException {
         return getRunnerConnection().acquireLease(duration, keys);
     }

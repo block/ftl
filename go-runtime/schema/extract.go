@@ -385,6 +385,9 @@ func combineAllPackageResults(sch *schema.Schema, finalizeResults []finalize.Res
 	for _, generatedModule := range sch.Modules {
 		if generatedModule.Name == cd.module.Name {
 			for _, decl := range generatedModule.Decls {
+				if !decl.IsGenerated() {
+					continue
+				}
 				if cd.validateDecl(decl, nil, true) {
 					cd.extractedDecls[decl] = nil
 				} else {

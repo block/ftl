@@ -179,7 +179,7 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 		return nil, fmt.Errorf("failed to parse schema from proto: %w", err)
 	}
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
-	err = s.writeGenericSchemaFiles(ctx, sch, config)
+	err = s.writeGenericSchemaFiles(ctx, sch, config, false)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		return err
 	}
 	s.buildContext.Store(buildCtx)
-	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
+	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
 	if err != nil {
 		return fmt.Errorf("failed to write generic schema files: %w", err)
 	}
@@ -752,7 +752,7 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 	s.buildContext.Store(buildCtx)
-	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config)
+	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to write generic schema files: %w", err)
 	}
@@ -1025,7 +1025,7 @@ func ptr(s string) *string {
 	return &s
 }
 
-func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema, config moduleconfig.AbsModuleConfig) error {
+func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema, config moduleconfig.AbsModuleConfig, containsGeneratedSchema bool) error {
 	if v == nil {
 		return nil
 	}
@@ -1039,6 +1039,12 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 
 	for _, mod := range v.Modules {
 		if mod.Name == config.Module {
+			if containsGeneratedSchema {
+				err = s.writeGeneratedSchemaFiles(ctx, mod, modPath)
+				if err != nil {
+					return err
+				}
+			}
 			continue
 		}
 		deps := v.ModuleDependencies(mod.Name)
@@ -1068,6 +1074,50 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 	}
 	if !changed {
 		return nil
+	}
+	return nil
+}
+
+func (s *Service) writeGeneratedSchemaFiles(ctx context.Context, m *schema.Module, schemaDir string) error {
+	if m == nil {
+		return nil
+	}
+	generatedDir := filepath.Join(schemaDir, "generated")
+	err := os.MkdirAll(generatedDir, 0750)
+	if err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", generatedDir, err)
+	}
+	schemaFile := filepath.Join(generatedDir, m.Name+".pb")
+
+	generatedModule := m.ToGeneratedModule()
+	if len(generatedModule.Decls) == 0 {
+		if fileExists(schemaFile) {
+			err := os.Remove(schemaFile)
+			if err != nil {
+				return fmt.Errorf("failed to remove generated schema file for module %s %w", m.Name, err)
+			}
+		}
+		return nil
+	}
+
+	data, err := schema.ModuleToBytes(generatedModule)
+	if err != nil {
+		return fmt.Errorf("failed to export generated module schema for module %s %w", m.Name, err)
+	}
+
+	if fileExists(schemaFile) {
+		existing, err := os.ReadFile(schemaFile)
+		if err == nil {
+			// file has not changed, no need to write
+			if bytes.Equal(existing, data) {
+				return nil
+			}
+		}
+	}
+
+	err = os.WriteFile(schemaFile, data, 0644) // #nosec
+	if err != nil {
+		return fmt.Errorf("failed to write generated schema file for module %s %w", m.Name, err)
 	}
 	return nil
 }

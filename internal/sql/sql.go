@@ -118,7 +118,7 @@ func updateSchema(out *schema.Schema, queries *schema.Module, cfg ConfigContext)
 	found := false
 	for i, m := range out.Modules {
 		if m.Name == queries.Name {
-			out.Modules[i].Decls = append(out.Modules[i].Decls, queries.Decls...)
+			out.Modules[i] = queries
 			found = true
 			break
 		}
@@ -142,6 +142,11 @@ func toDatabaseType(engine string) (string, error) {
 
 func newConfigContext(projectRoot string, mc moduleconfig.AbsModuleConfig, dbName string, dbContent moduleconfig.DatabaseContent) (optional.Option[ConfigContext], error) {
 	outDir := filepath.Join(mc.DeployDir, dbName)
+	err := os.MkdirAll(outDir, 0750)
+	if err != nil {
+		return optional.None[ConfigContext](), fmt.Errorf("failed to create output directory %s: %w", outDir, err)
+	}
+
 	schemaDir, ok := dbContent.SchemaDir.Get()
 	if !ok {
 		return optional.None[ConfigContext](), nil

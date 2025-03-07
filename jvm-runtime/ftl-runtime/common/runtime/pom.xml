@@ -178,6 +178,7 @@
                                 <include>**/hotreload.proto</include>
                                 <include>**/publish.proto</include>
                                 <include>**/pubsub.proto</include>
+                                <include>**/query.proto</include>
                             </includes>
                         </configuration>
                     </execution>
@@ -210,6 +211,7 @@
                                 <include>**/language.proto</include>
                                 <include>**/publish.proto</include>
                                 <include>**/pubsub.proto</include>
+                                <include>**/query.proto</include>
                             </includes>
                         </configuration>
                     </execution>

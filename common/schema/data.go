@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/block/ftl/common/reflect"
+	"github.com/block/ftl/common/slices"
 )
 
 // A Data structure.
@@ -147,6 +148,11 @@ func (d *Data) schemaChildren() []Node {
 
 func (d *Data) GetName() string  { return d.Name }
 func (d *Data) IsExported() bool { return d.Export }
+
+func (d *Data) IsGenerated() bool {
+	_, found := slices.FindVariant[*MetadataGenerated](d.Metadata)
+	return found
+}
 
 func (d *Data) String() string {
 	w := &strings.Builder{}

@@ -82,6 +82,11 @@ func (v *Verb) schemaChildren() []Node {
 func (v *Verb) GetName() string  { return v.Name }
 func (v *Verb) IsExported() bool { return v.Export }
 
+func (v *Verb) IsGenerated() bool {
+	_, found := slices.FindVariant[*MetadataGenerated](v.Metadata)
+	return found
+}
+
 func (v *Verb) String() string {
 	w := &strings.Builder{}
 	fmt.Fprint(w, EncodeComments(v.Comments))
@@ -177,12 +182,6 @@ func (v *Verb) GetProvisioned() ResourceSet {
 
 func (v *Verb) ResourceID() string {
 	return v.Name
-}
-
-// IsGenerated returns true if the Verb is in the schema but not in the source code.
-func (v *Verb) IsGenerated() bool {
-	_, ok := v.GetQuery()
-	return ok
 }
 
 // GetQuery returns the query metadata for the Verb if it exists. If present, the Verb was generated from SQL.

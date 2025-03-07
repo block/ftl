@@ -3,6 +3,7 @@ package xyz.block.ftl.javalang.deployment;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 
 import javax.lang.model.element.Modifier;
 
+import org.jboss.logging.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -29,6 +31,7 @@ import com.squareup.javapoet.WildcardTypeName;
 import xyz.block.ftl.ConsumableTopic;
 import xyz.block.ftl.EnumHolder;
 import xyz.block.ftl.GeneratedRef;
+import xyz.block.ftl.SQLQueryClient;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.VerbClient;
@@ -38,7 +41,10 @@ import xyz.block.ftl.deployment.VerbType;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.MetadataSQLColumn;
+import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
+import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.schema.v1.Topic;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.Value;
@@ -48,6 +54,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
 
     public static final String CLIENT = "Client";
     public static final String PACKAGE_PREFIX = "ftl.";
+    private static final Logger log = Logger.getLogger(JVMCodeGenerator.class);
 
     @Override
     protected void generateTypeAliasMapper(String module, xyz.block.ftl.schema.v1.TypeAlias typeAlias,
@@ -298,6 +305,90 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
         clientBuilder.addMethod(callMethod.build());
         JavaFile javaFile = JavaFile.builder(packageName, clientBuilder.build()).build();
         javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
+    }
+
+    protected void generateSQLQueryVerb(Module module, Verb verb, String dbName, MetadataSQLQuery queryMetadata,
+            String packageName,
+            PackageOutput outputDir)
+            throws IOException {
+        String verbName = verb.getName();
+        TypeSpec.Builder clientBuilder = TypeSpec.interfaceBuilder(className(verbName) + CLIENT)
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("A client for the $L.$L SQL query verb", module.getName(), verbName);
+
+        var methodName = verbName;
+        if (JAVA_KEYWORDS.contains(verbName)) {
+            methodName = verbName + "_";
+        }
+
+        AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(SQLQueryClient.class)
+                .addMember("command", "\"" + queryMetadata.getCommand() + "\"")
+                .addMember("rawSQL", "\"" + queryMetadata.getQuery() + "\"")
+                .addMember("module", "\"" + module.getName() + "\"")
+                .addMember("dbName", "\"" + dbName + "\"");
+        MethodSpec.Builder callMethod = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                .addJavadoc(String.join("\n", verb.getCommentsList()));
+        VerbType verbType = VerbType.of(verb);
+        if (verbType == VerbType.SOURCE || verbType == VerbType.VERB) {
+            List<MetadataSQLColumn> columnMetadata = getOrderedColumnMetadata(module, verb.getResponse());
+            String[] fields = columnMetadata.stream().map(m -> toJavaName(m.getName())).toArray(String[]::new);
+            annotationBuilder.addMember("fields", "{$S}", String.join("\", \"", fields));
+            callMethod.returns(toAnnotatedJavaTypeName(verb.getResponse(), new HashMap<>(), new HashMap<>()));
+        }
+        if (verbType == VerbType.SINK || verbType == VerbType.VERB) {
+            List<MetadataSQLColumn> columnMetadata = getOrderedColumnMetadata(module, verb.getRequest());
+            String[] fields = columnMetadata.stream().map(m -> m.getName() + "," + toJavaName(m.getName()))
+                    .toArray(String[]::new);
+            annotationBuilder.addMember("colToFieldName", "{$S}", String.join("\", \"", fields));
+            callMethod.addParameter(toAnnotatedJavaTypeName(verb.getRequest(), new HashMap<>(), new HashMap<>()),
+                    "value");
+        }
+        callMethod.addAnnotation(annotationBuilder.build());
+        clientBuilder.addMethod(callMethod.build());
+        JavaFile javaFile = JavaFile.builder(packageName, clientBuilder.build()).build();
+        javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
+    }
+
+    private List<MetadataSQLColumn> getOrderedColumnMetadata(Module module, Type type) {
+        log.info("getOrderedColumnMetadata: " + type);
+        if (type.hasArray()) {
+            log.info("getOrderedColumnMetadata: array");
+            return getOrderedColumnMetadata(module, type.getArray().getElement());
+        } else if (type.hasMap()) {
+            log.info("getOrderedColumnMetadata: map");
+            return getOrderedColumnMetadata(module, type.getMap().getValue());
+        } else if (type.hasOptional()) {
+            log.info("getOrderedColumnMetadata: optional");
+            return getOrderedColumnMetadata(module, type.getOptional().getType());
+        }
+
+        Ref ref = type.getRef();
+        log.info("getOrderedColumnMetadata: ref");
+        if (ref == null) {
+            return List.of();
+        }
+        Data data = resolveDataDecl(module, ref);
+        if (data == null) {
+            return List.of();
+        }
+        List<MetadataSQLColumn> metadata = new ArrayList<>();
+        for (var field : data.getFieldsList()) {
+            MetadataSQLColumn fieldMd = field.getMetadataList().stream().findFirst().map(md -> md.getSqlColumn())
+                    .orElse(null);
+            if (fieldMd != null) {
+                metadata.add(fieldMd);
+            }
+        }
+        return metadata;
+    }
+
+    private Data resolveDataDecl(Module module, Ref ref) {
+        if (ref == null) {
+            return null;
+        }
+        return module.getDeclsList().stream().filter(d -> d.hasData() && d.getData().getName().equals(ref.getName()))
+                .findFirst().map(d -> d.getData()).orElse(null);
     }
 
     private String toJavaName(String name) {
