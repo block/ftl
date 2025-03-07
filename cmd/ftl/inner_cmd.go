@@ -5,6 +5,7 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kong"
+
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/projectconfig"
 )
