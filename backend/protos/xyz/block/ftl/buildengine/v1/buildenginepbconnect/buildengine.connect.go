@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// BuildEngineServiceName is the fully-qualified name of the BuildEngineService service.
@@ -59,17 +59,20 @@ type BuildEngineServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewBuildEngineServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BuildEngineServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	buildEngineServiceMethods := v11.File_xyz_block_ftl_buildengine_v1_buildengine_proto.Services().ByName("BuildEngineService").Methods()
 	return &buildEngineServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+BuildEngineServicePingProcedure,
+			connect.WithSchema(buildEngineServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		streamEngineEvents: connect.NewClient[v11.StreamEngineEventsRequest, v11.StreamEngineEventsResponse](
 			httpClient,
 			baseURL+BuildEngineServiceStreamEngineEventsProcedure,
-			opts...,
+			connect.WithSchema(buildEngineServiceMethods.ByName("StreamEngineEvents")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -104,16 +107,19 @@ type BuildEngineServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewBuildEngineServiceHandler(svc BuildEngineServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	buildEngineServiceMethods := v11.File_xyz_block_ftl_buildengine_v1_buildengine_proto.Services().ByName("BuildEngineService").Methods()
 	buildEngineServicePingHandler := connect.NewUnaryHandler(
 		BuildEngineServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(buildEngineServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	buildEngineServiceStreamEngineEventsHandler := connect.NewServerStreamHandler(
 		BuildEngineServiceStreamEngineEventsProcedure,
 		svc.StreamEngineEvents,
-		opts...,
+		connect.WithSchema(buildEngineServiceMethods.ByName("StreamEngineEvents")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.buildengine.v1.BuildEngineService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

@@ -21,7 +21,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ConsoleServiceName is the fully-qualified name of the ConsoleService service.
@@ -97,67 +97,80 @@ type ConsoleServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewConsoleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ConsoleServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	consoleServiceMethods := v11.File_xyz_block_ftl_console_v1_console_proto.Services().ByName("ConsoleService").Methods()
 	return &consoleServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+ConsoleServicePingProcedure,
+			connect.WithSchema(consoleServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getModules: connect.NewClient[v11.GetModulesRequest, v11.GetModulesResponse](
 			httpClient,
 			baseURL+ConsoleServiceGetModulesProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("GetModules")),
+			connect.WithClientOptions(opts...),
 		),
 		streamModules: connect.NewClient[v11.StreamModulesRequest, v11.StreamModulesResponse](
 			httpClient,
 			baseURL+ConsoleServiceStreamModulesProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("StreamModules")),
+			connect.WithClientOptions(opts...),
 		),
 		getTimeline: connect.NewClient[v12.GetTimelineRequest, v12.GetTimelineResponse](
 			httpClient,
 			baseURL+ConsoleServiceGetTimelineProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("GetTimeline")),
+			connect.WithClientOptions(opts...),
 		),
 		streamTimeline: connect.NewClient[v12.StreamTimelineRequest, v12.StreamTimelineResponse](
 			httpClient,
 			baseURL+ConsoleServiceStreamTimelineProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("StreamTimeline")),
+			connect.WithClientOptions(opts...),
 		),
 		getConfig: connect.NewClient[v11.GetConfigRequest, v11.GetConfigResponse](
 			httpClient,
 			baseURL+ConsoleServiceGetConfigProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("GetConfig")),
+			connect.WithClientOptions(opts...),
 		),
 		setConfig: connect.NewClient[v11.SetConfigRequest, v11.SetConfigResponse](
 			httpClient,
 			baseURL+ConsoleServiceSetConfigProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("SetConfig")),
+			connect.WithClientOptions(opts...),
 		),
 		getSecret: connect.NewClient[v11.GetSecretRequest, v11.GetSecretResponse](
 			httpClient,
 			baseURL+ConsoleServiceGetSecretProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("GetSecret")),
+			connect.WithClientOptions(opts...),
 		),
 		setSecret: connect.NewClient[v11.SetSecretRequest, v11.SetSecretResponse](
 			httpClient,
 			baseURL+ConsoleServiceSetSecretProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("SetSecret")),
+			connect.WithClientOptions(opts...),
 		),
 		call: connect.NewClient[v1.CallRequest, v1.CallResponse](
 			httpClient,
 			baseURL+ConsoleServiceCallProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("Call")),
+			connect.WithClientOptions(opts...),
 		),
 		streamEngineEvents: connect.NewClient[v13.StreamEngineEventsRequest, v13.StreamEngineEventsResponse](
 			httpClient,
 			baseURL+ConsoleServiceStreamEngineEventsProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("StreamEngineEvents")),
+			connect.WithClientOptions(opts...),
 		),
 		getInfo: connect.NewClient[v11.GetInfoRequest, v11.GetInfoResponse](
 			httpClient,
 			baseURL+ConsoleServiceGetInfoProcedure,
-			opts...,
+			connect.WithSchema(consoleServiceMethods.ByName("GetInfo")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -262,66 +275,79 @@ type ConsoleServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewConsoleServiceHandler(svc ConsoleServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	consoleServiceMethods := v11.File_xyz_block_ftl_console_v1_console_proto.Services().ByName("ConsoleService").Methods()
 	consoleServicePingHandler := connect.NewUnaryHandler(
 		ConsoleServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(consoleServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceGetModulesHandler := connect.NewUnaryHandler(
 		ConsoleServiceGetModulesProcedure,
 		svc.GetModules,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("GetModules")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceStreamModulesHandler := connect.NewServerStreamHandler(
 		ConsoleServiceStreamModulesProcedure,
 		svc.StreamModules,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("StreamModules")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceGetTimelineHandler := connect.NewUnaryHandler(
 		ConsoleServiceGetTimelineProcedure,
 		svc.GetTimeline,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("GetTimeline")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceStreamTimelineHandler := connect.NewServerStreamHandler(
 		ConsoleServiceStreamTimelineProcedure,
 		svc.StreamTimeline,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("StreamTimeline")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceGetConfigHandler := connect.NewUnaryHandler(
 		ConsoleServiceGetConfigProcedure,
 		svc.GetConfig,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("GetConfig")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceSetConfigHandler := connect.NewUnaryHandler(
 		ConsoleServiceSetConfigProcedure,
 		svc.SetConfig,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("SetConfig")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceGetSecretHandler := connect.NewUnaryHandler(
 		ConsoleServiceGetSecretProcedure,
 		svc.GetSecret,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("GetSecret")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceSetSecretHandler := connect.NewUnaryHandler(
 		ConsoleServiceSetSecretProcedure,
 		svc.SetSecret,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("SetSecret")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceCallHandler := connect.NewUnaryHandler(
 		ConsoleServiceCallProcedure,
 		svc.Call,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("Call")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceStreamEngineEventsHandler := connect.NewServerStreamHandler(
 		ConsoleServiceStreamEngineEventsProcedure,
 		svc.StreamEngineEvents,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("StreamEngineEvents")),
+		connect.WithHandlerOptions(opts...),
 	)
 	consoleServiceGetInfoHandler := connect.NewUnaryHandler(
 		ConsoleServiceGetInfoProcedure,
 		svc.GetInfo,
-		opts...,
+		connect.WithSchema(consoleServiceMethods.ByName("GetInfo")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.console.v1.ConsoleService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
