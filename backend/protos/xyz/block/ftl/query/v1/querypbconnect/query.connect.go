@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// QueryServiceName is the fully-qualified name of the QueryService service.
@@ -73,32 +73,38 @@ type QueryServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewQueryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) QueryServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	queryServiceMethods := v11.File_xyz_block_ftl_query_v1_query_proto.Services().ByName("QueryService").Methods()
 	return &queryServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+QueryServicePingProcedure,
+			connect.WithSchema(queryServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		beginTransaction: connect.NewClient[v11.BeginTransactionRequest, v11.BeginTransactionResponse](
 			httpClient,
 			baseURL+QueryServiceBeginTransactionProcedure,
-			opts...,
+			connect.WithSchema(queryServiceMethods.ByName("BeginTransaction")),
+			connect.WithClientOptions(opts...),
 		),
 		commitTransaction: connect.NewClient[v11.CommitTransactionRequest, v11.CommitTransactionResponse](
 			httpClient,
 			baseURL+QueryServiceCommitTransactionProcedure,
-			opts...,
+			connect.WithSchema(queryServiceMethods.ByName("CommitTransaction")),
+			connect.WithClientOptions(opts...),
 		),
 		rollbackTransaction: connect.NewClient[v11.RollbackTransactionRequest, v11.RollbackTransactionResponse](
 			httpClient,
 			baseURL+QueryServiceRollbackTransactionProcedure,
-			opts...,
+			connect.WithSchema(queryServiceMethods.ByName("RollbackTransaction")),
+			connect.WithClientOptions(opts...),
 		),
 		executeQuery: connect.NewClient[v11.ExecuteQueryRequest, v11.ExecuteQueryResponse](
 			httpClient,
 			baseURL+QueryServiceExecuteQueryProcedure,
-			opts...,
+			connect.WithSchema(queryServiceMethods.ByName("ExecuteQuery")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -157,31 +163,37 @@ type QueryServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewQueryServiceHandler(svc QueryServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	queryServiceMethods := v11.File_xyz_block_ftl_query_v1_query_proto.Services().ByName("QueryService").Methods()
 	queryServicePingHandler := connect.NewUnaryHandler(
 		QueryServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(queryServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	queryServiceBeginTransactionHandler := connect.NewUnaryHandler(
 		QueryServiceBeginTransactionProcedure,
 		svc.BeginTransaction,
-		opts...,
+		connect.WithSchema(queryServiceMethods.ByName("BeginTransaction")),
+		connect.WithHandlerOptions(opts...),
 	)
 	queryServiceCommitTransactionHandler := connect.NewUnaryHandler(
 		QueryServiceCommitTransactionProcedure,
 		svc.CommitTransaction,
-		opts...,
+		connect.WithSchema(queryServiceMethods.ByName("CommitTransaction")),
+		connect.WithHandlerOptions(opts...),
 	)
 	queryServiceRollbackTransactionHandler := connect.NewUnaryHandler(
 		QueryServiceRollbackTransactionProcedure,
 		svc.RollbackTransaction,
-		opts...,
+		connect.WithSchema(queryServiceMethods.ByName("RollbackTransaction")),
+		connect.WithHandlerOptions(opts...),
 	)
 	queryServiceExecuteQueryHandler := connect.NewServerStreamHandler(
 		QueryServiceExecuteQueryProcedure,
 		svc.ExecuteQuery,
-		opts...,
+		connect.WithSchema(queryServiceMethods.ByName("ExecuteQuery")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.query.v1.QueryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
