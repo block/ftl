@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
@@ -43,7 +44,7 @@ func (d *devCmd) Run(
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
-	bindContext terminal.KongContextBinder,
+	bindContext KongContextBinder,
 	schemaEventSource *schemaeventsource.EventSource,
 	timelineClient *timelineclient.Client,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
@@ -76,7 +77,9 @@ func (d *devCmd) Run(
 	}
 	os.Setenv("FTL_DEV_DIRS", strings.Join(absDirs, ","))
 
-	terminal.LaunchEmbeddedConsole(ctx, createKongApplication(&DevModeCLI{}, csm), bindContext, projConfig, schemaEventSource)
+	terminal.LaunchEmbeddedConsole(ctx, createKongApplication(&DevModeCLI{}, csm), schemaEventSource, func(ctx context.Context, k *kong.Kong, args []string, additionalExit func(int)) error {
+		return runInnerCmd(ctx, k, projConfig, bindContext, args, additionalExit)
+	})
 	var deployClient buildengine.AdminClient = adminClient
 
 	g, ctx := errgroup.WithContext(ctx)
