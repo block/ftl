@@ -1,4 +1,4 @@
-fullnameOverride: ""
+fullnameOverride: "ftl"
 nameOverride: ""
 
 logLevel: debug
@@ -172,22 +172,6 @@ cron:
       memory: 128Mi
       cpu: 2
 
-postgresql:
-  enabled: false
-  architecture: standalone
-  primary:
-    resources:
-      requests:
-        memory: 1024Mi
-      limits:
-        memory: 1024Mi
-  global:
-    postgresql:
-      auth:
-        username: ftl
-        password: ftl
-        database: ftl
-
 istio:
   enabled: false # set to true to have this chart install the grpc config to enable trailers
   holdApplicationUntilProxyStarts: true
@@ -200,7 +184,6 @@ registry:
     annotations: null
 
 ingress:
-  enabled: false
   allowOrigin: "*"
   env: null
 

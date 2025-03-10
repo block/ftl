@@ -1,0 +1,11 @@
+apiVersion: v2
+name: ftl-k3d
+description: |
+  A Helm chart for Kubernetes that deploys supplimental dependencies for k3d
+home: https://github.com/block/ftl
+version: 0.0.1
+appVersion: 0.0.1
+dependencies:
+  - name: ftl
+    version: 0.0.1
+    repository: file://../ftl
