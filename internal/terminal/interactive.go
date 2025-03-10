@@ -116,7 +116,6 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 	}
 
 	for {
-		l.Operation.String()
 		line, err := l.Readline()
 		if errors.Is(err, readline.ErrInterrupt) {
 
@@ -193,7 +192,7 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 	return nil
 }
 
-func (e *interactiveConsole) OnChange(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
+func (r *interactiveConsole) OnChange(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
 	if key == readline.CharInterrupt {
 		_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
 	}
