@@ -20,6 +20,9 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
@@ -122,55 +125,20 @@ public class AnnotationProcessor implements Processor {
                                 .className("client." + className + "Client")
                                 .build()) {
                             List<? extends VariableElement> parameters = executableElement.getParameters();
-                            String[] paramNames;
-                            if (parameters.isEmpty()) {
-                                paramNames = new String[0];
-                            } else {
-                                paramNames = new String[1];
+                            String[] paramNames = new String[0];
+                            if (!parameters.isEmpty()) {
                                 for (var i = 0; i < parameters.size(); i++) {
                                     var elem = parameters.get(i);
                                     if (elem.getAnnotation(Config.class) != null || elem.getAnnotation(Secret.class) != null) {
                                         continue;
                                     }
-                                    switch (elem.asType().getKind()) {
-                                        case BOOLEAN:
-                                            paramNames[0] = "boolean";
-                                            break;
-                                        case BYTE:
-                                            paramNames[0] = "byte";
-                                            break;
-                                        case SHORT:
-                                            paramNames[0] = "short";
-                                            break;
-                                        case INT:
-                                            paramNames[0] = "int";
-                                            break;
-                                        case LONG:
-                                            paramNames[0] = "long";
-                                            break;
-                                        case FLOAT:
-                                            paramNames[0] = "float";
-                                            break;
-                                        case DOUBLE:
-                                            paramNames[0] = "double";
-                                            break;
-                                        case CHAR:
-                                            paramNames[0] = "char";
-                                            break;
-                                        case ARRAY:
-                                            paramNames[0] = "byte[]";
-                                            break;
-                                        case DECLARED:
-                                            paramNames[0] = elem.asType().toString();
-                                            break;
-                                        default:
-                                            throw new IllegalArgumentException("Unsupported type: " + elem.asType().getKind());
-                                    }
-                                    break;
+                                    paramNames = new String[1];
+                                    paramNames[0] = typeMirrorToString(elem.asType());
                                 }
                             }
+                            TypeMirror returnType = executableElement.getReturnType();
                             try (MethodCreator mc = creator.getMethodCreator(executableElement.getSimpleName().toString(),
-                                    executableElement.getReturnType().toString(), paramNames)) {
+                                    typeMirrorToString(returnType), paramNames)) {
                                 mc.setModifiers(Modifier.ABSTRACT | Modifier.PUBLIC);
                                 mc.addAnnotation(VerbClient.class);
 
@@ -186,6 +154,37 @@ public class AnnotationProcessor implements Processor {
                     .collect(Collectors.toSet()));
         }
         return false;
+    }
+
+    private static String typeMirrorToString(TypeMirror typeMirror) {
+        switch (typeMirror.getKind()) {
+            case BOOLEAN:
+                return "boolean";
+            case BYTE:
+                return "byte";
+            case SHORT:
+                return "short";
+            case INT:
+                return "int";
+            case LONG:
+                return "long";
+            case FLOAT:
+                return "float";
+            case DOUBLE:
+                return "double";
+            case CHAR:
+                return "char";
+            case ARRAY:
+                ArrayType arrayType = (ArrayType) typeMirror;
+                return typeMirrorToString(arrayType.getComponentType()) + "[]";
+            case DECLARED:
+                DeclaredType type = (DeclaredType) typeMirror;
+                return type.asElement().getSimpleName().toString();
+            case VOID:
+                return "void";
+            default:
+                throw new IllegalArgumentException("Unsupported type: " + typeMirror.getKind());
+        }
     }
 
     /**
