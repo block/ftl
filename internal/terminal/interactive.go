@@ -29,28 +29,28 @@ type KongContextBinder func(ctx context.Context, kctx *kong.Context) context.Con
 type exitPanic struct{}
 
 type interactiveConsole struct {
-	projectConfig projectconfig.Config
-	l             *readline.Instance
-	binder        KongContextBinder
-	k             *kong.Kong
-	closeWait     sync.WaitGroup
-	closed        bool
+	projectConfig       projectconfig.Config
+	l                   *readline.Instance
+	binder              KongContextBinder
+	k                   *kong.Kong
+	closeWait           sync.WaitGroup
+	closed              bool
+	currentLineCallback func(string)
 }
 
 func newInteractiveConsole(k *kong.Kong, binder KongContextBinder, projectConfig projectconfig.Config, eventSource *schemaeventsource.EventSource) (*interactiveConsole, error) {
+	it := &interactiveConsole{k: k, binder: binder, projectConfig: projectConfig}
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          interactivePrompt,
 		InterruptPrompt: "^C",
 		AutoComplete:    &FTLCompletion{app: k, view: eventSource.ViewOnly()},
-		Listener: &ExitListener{cancel: func() {
-			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
-		}},
+		Listener:        it,
 	})
+	it.l = l
 	if err != nil {
 		return nil, fmt.Errorf("init readline: %w", err)
 	}
 
-	it := &interactiveConsole{k: k, binder: binder, l: l, projectConfig: projectConfig}
 	it.closeWait.Add(1)
 	return it, nil
 }
@@ -98,7 +98,6 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 	if tsm, ok = sm.(*terminalStatusManager); ok {
 		tsm.statusLock.Lock()
 		tsm.clearStatusMessages()
-		tsm.console = true
 		tsm.consoleRefresh = r.l.Refresh
 		tsm.recalculateLines()
 		tsm.statusLock.Unlock()
@@ -117,6 +116,7 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 	}
 
 	for {
+		l.Operation.String()
 		line, err := l.Readline()
 		if errors.Is(err, readline.ErrInterrupt) {
 
@@ -193,15 +193,12 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 	return nil
 }
 
-var _ readline.Listener = &ExitListener{}
-
-type ExitListener struct {
-	cancel func()
-}
-
-func (e ExitListener) OnChange(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
+func (e *interactiveConsole) OnChange(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
 	if key == readline.CharInterrupt {
-		e.cancel()
+		_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
+	}
+	if e.currentLineCallback != nil {
+		e.currentLineCallback(string(line))
 	}
 	return line, pos, true
 }
