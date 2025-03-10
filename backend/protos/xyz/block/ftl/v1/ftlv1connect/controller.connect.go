@@ -18,7 +18,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ControllerServiceName is the fully-qualified name of the ControllerService service.
@@ -74,32 +74,38 @@ type ControllerServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewControllerServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ControllerServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	controllerServiceMethods := v1.File_xyz_block_ftl_v1_controller_proto.Services().ByName("ControllerService").Methods()
 	return &controllerServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+ControllerServicePingProcedure,
+			connect.WithSchema(controllerServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		processList: connect.NewClient[v1.ProcessListRequest, v1.ProcessListResponse](
 			httpClient,
 			baseURL+ControllerServiceProcessListProcedure,
-			opts...,
+			connect.WithSchema(controllerServiceMethods.ByName("ProcessList")),
+			connect.WithClientOptions(opts...),
 		),
 		status: connect.NewClient[v1.StatusRequest, v1.StatusResponse](
 			httpClient,
 			baseURL+ControllerServiceStatusProcedure,
-			opts...,
+			connect.WithSchema(controllerServiceMethods.ByName("Status")),
+			connect.WithClientOptions(opts...),
 		),
 		getDeploymentContext: connect.NewClient[v1.GetDeploymentContextRequest, v1.GetDeploymentContextResponse](
 			httpClient,
 			baseURL+ControllerServiceGetDeploymentContextProcedure,
-			opts...,
+			connect.WithSchema(controllerServiceMethods.ByName("GetDeploymentContext")),
+			connect.WithClientOptions(opts...),
 		),
 		registerRunner: connect.NewClient[v1.RegisterRunnerRequest, v1.RegisterRunnerResponse](
 			httpClient,
 			baseURL+ControllerServiceRegisterRunnerProcedure,
-			opts...,
+			connect.WithSchema(controllerServiceMethods.ByName("RegisterRunner")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -160,31 +166,37 @@ type ControllerServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewControllerServiceHandler(svc ControllerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	controllerServiceMethods := v1.File_xyz_block_ftl_v1_controller_proto.Services().ByName("ControllerService").Methods()
 	controllerServicePingHandler := connect.NewUnaryHandler(
 		ControllerServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(controllerServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	controllerServiceProcessListHandler := connect.NewUnaryHandler(
 		ControllerServiceProcessListProcedure,
 		svc.ProcessList,
-		opts...,
+		connect.WithSchema(controllerServiceMethods.ByName("ProcessList")),
+		connect.WithHandlerOptions(opts...),
 	)
 	controllerServiceStatusHandler := connect.NewUnaryHandler(
 		ControllerServiceStatusProcedure,
 		svc.Status,
-		opts...,
+		connect.WithSchema(controllerServiceMethods.ByName("Status")),
+		connect.WithHandlerOptions(opts...),
 	)
 	controllerServiceGetDeploymentContextHandler := connect.NewServerStreamHandler(
 		ControllerServiceGetDeploymentContextProcedure,
 		svc.GetDeploymentContext,
-		opts...,
+		connect.WithSchema(controllerServiceMethods.ByName("GetDeploymentContext")),
+		connect.WithHandlerOptions(opts...),
 	)
 	controllerServiceRegisterRunnerHandler := connect.NewClientStreamHandler(
 		ControllerServiceRegisterRunnerProcedure,
 		svc.RegisterRunner,
-		opts...,
+		connect.WithSchema(controllerServiceMethods.ByName("RegisterRunner")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.v1.ControllerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
