@@ -379,7 +379,7 @@ pub struct Map {
 /// Metadata represents a metadata Node in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Metadata {
-    #[prost(oneof="metadata::Value", tags="5, 14, 1, 10, 3, 4, 9, 18, 2, 15, 12, 6, 17, 13, 16, 11, 7, 8")]
+    #[prost(oneof="metadata::Value", tags="5, 14, 1, 10, 3, 4, 9, 18, 19, 2, 15, 12, 6, 17, 13, 16, 11, 7, 8")]
     pub value: ::core::option::Option<metadata::Value>,
 }
 /// Nested message and enum types in `Metadata`.
@@ -402,6 +402,8 @@ pub mod metadata {
         Encoding(super::MetadataEncoding),
         #[prost(message, tag="18")]
         Generated(super::MetadataGenerated),
+        #[prost(message, tag="19")]
+        Git(super::MetadataGit),
         #[prost(message, tag="2")]
         Ingress(super::MetadataIngress),
         #[prost(message, tag="15")]
@@ -488,6 +490,17 @@ pub struct MetadataEncoding {
 pub struct MetadataGenerated {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetadataGit {
+    #[prost(message, optional, tag="1")]
+    pub pos: ::core::option::Option<Position>,
+    #[prost(string, tag="2")]
+    pub repository: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub commit: ::prost::alloc::string::String,
+    #[prost(bool, tag="4")]
+    pub dirty: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataIngress {

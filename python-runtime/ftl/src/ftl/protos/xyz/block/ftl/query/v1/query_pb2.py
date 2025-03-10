@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from xyz.block.ftl.v1 import ftl_pb2 as xyz_dot_block_dot_ftl_dot_v1_dot_ftl__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\"xyz/block/ftl/query/v1/query.proto\x12\x16xyz.block.ftl.query.v1\x1a\x1axyz/block/ftl/v1/ftl.proto\"\x19\n\x17\x42\x65ginTransactionRequest\"\x84\x01\n\x18\x42\x65ginTransactionResponse\x12%\n\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x12\x41\n\x06status\x18\x02 \x01(\x0e\x32).xyz.block.ftl.query.v1.TransactionStatusR\x06status\"A\n\x18\x43ommitTransactionRequest\x12%\n\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\"^\n\x19\x43ommitTransactionResponse\x12\x41\n\x06status\x18\x01 \x01(\x0e\x32).xyz.block.ftl.query.v1.TransactionStatusR\x06status\"C\n\x1aRollbackTransactionRequest\x12%\n\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\"`\n\x1bRollbackTransactionResponse\x12\x41\n\x06status\x18\x01 \x01(\x0e\x32).xyz.block.ftl.query.v1.TransactionStatusR\x06status\"F\n\x0cResultColumn\x12\x1b\n\ttype_name\x18\x01 \x01(\tR\x08typeName\x12\x19\n\x08sql_name\x18\x02 \x01(\tR\x07sqlName\"\xde\x02\n\x13\x45xecuteQueryRequest\x12\x17\n\x07raw_sql\x18\x01 \x01(\tR\x06rawSql\x12\x46\n\x0c\x63ommand_type\x18\x02 \x01(\x0e\x32#.xyz.block.ftl.query.v1.CommandTypeR\x0b\x63ommandType\x12\'\n\x0fparameters_json\x18\x03 \x01(\tR\x0eparametersJson\x12K\n\x0eresult_columns\x18\x06 \x03(\x0b\x32$.xyz.block.ftl.query.v1.ResultColumnR\rresultColumns\x12*\n\x0etransaction_id\x18\x04 \x01(\tH\x00R\rtransactionId\x88\x01\x01\x12\"\n\nbatch_size\x18\x05 \x01(\x05H\x01R\tbatchSize\x88\x01\x01\x42\x11\n\x0f_transaction_idB\r\n\x0b_batch_size\"\xae\x01\n\x14\x45xecuteQueryResponse\x12\x45\n\x0b\x65xec_result\x18\x01 \x01(\x0b\x32\".xyz.block.ftl.query.v1.ExecResultH\x00R\nexecResult\x12\x45\n\x0brow_results\x18\x02 \x01(\x0b\x32\".xyz.block.ftl.query.v1.RowResultsH\x00R\nrowResultsB\x08\n\x06result\"o\n\nExecResult\x12#\n\rrows_affected\x18\x01 \x01(\x03R\x0crowsAffected\x12)\n\x0elast_insert_id\x18\x02 \x01(\x03H\x00R\x0clastInsertId\x88\x01\x01\x42\x11\n\x0f_last_insert_id\"D\n\nRowResults\x12\x1b\n\tjson_rows\x18\x01 \x01(\tR\x08jsonRows\x12\x19\n\x08has_more\x18\x02 \x01(\x08R\x07hasMore*v\n\x11TransactionStatus\x12\"\n\x1eTRANSACTION_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n\x1aTRANSACTION_STATUS_SUCCESS\x10\x01\x12\x1d\n\x19TRANSACTION_STATUS_FAILED\x10\x02*o\n\x0b\x43ommandType\x12\x1c\n\x18\x43OMMAND_TYPE_UNSPECIFIED\x10\x00\x12\x15\n\x11\x43OMMAND_TYPE_EXEC\x10\x01\x12\x14\n\x10\x43OMMAND_TYPE_ONE\x10\x02\x12\x15\n\x11\x43OMMAND_TYPE_MANY\x10\x03\x32\xb8\x04\n\x0cQueryService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12u\n\x10\x42\x65ginTransaction\x12/.xyz.block.ftl.query.v1.BeginTransactionRequest\x1a\x30.xyz.block.ftl.query.v1.BeginTransactionResponse\x12x\n\x11\x43ommitTransaction\x12\x30.xyz.block.ftl.query.v1.CommitTransactionRequest\x1a\x31.xyz.block.ftl.query.v1.CommitTransactionResponse\x12~\n\x13RollbackTransaction\x12\x32.xyz.block.ftl.query.v1.RollbackTransactionRequest\x1a\x33.xyz.block.ftl.query.v1.RollbackTransactionResponse\x12k\n\x0c\x45xecuteQuery\x12+.xyz.block.ftl.query.v1.ExecuteQueryRequest\x1a,.xyz.block.ftl.query.v1.ExecuteQueryResponse0\x01\x42\x44ZBgithub.com/block/ftl/backend/protos/xyz/block/ftl/query/v1;querypbb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\"xyz/block/ftl/query/v1/query.proto\x12\x16xyz.block.ftl.query.v1\x1a\x1axyz/block/ftl/v1/ftl.proto\">\n\x17\x42\x65ginTransactionRequest\x12#\n\rdatabase_name\x18\x01 \x01(\tR\x0c\x64\x61tabaseName\"\x84\x01\n\x18\x42\x65ginTransactionResponse\x12%\n\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x12\x41\n\x06status\x18\x02 \x01(\x0e\x32).xyz.block.ftl.query.v1.TransactionStatusR\x06status\"f\n\x18\x43ommitTransactionRequest\x12#\n\rdatabase_name\x18\x01 \x01(\tR\x0c\x64\x61tabaseName\x12%\n\x0etransaction_id\x18\x02 \x01(\tR\rtransactionId\"^\n\x19\x43ommitTransactionResponse\x12\x41\n\x06status\x18\x01 \x01(\x0e\x32).xyz.block.ftl.query.v1.TransactionStatusR\x06status\"h\n\x1aRollbackTransactionRequest\x12#\n\rdatabase_name\x18\x01 \x01(\tR\x0c\x64\x61tabaseName\x12%\n\x0etransaction_id\x18\x02 \x01(\tR\rtransactionId\"`\n\x1bRollbackTransactionResponse\x12\x41\n\x06status\x18\x01 \x01(\x0e\x32).xyz.block.ftl.query.v1.TransactionStatusR\x06status\"F\n\x0cResultColumn\x12\x1b\n\ttype_name\x18\x01 \x01(\tR\x08typeName\x12\x19\n\x08sql_name\x18\x02 \x01(\tR\x07sqlName\"\x83\x03\n\x13\x45xecuteQueryRequest\x12#\n\rdatabase_name\x18\x01 \x01(\tR\x0c\x64\x61tabaseName\x12\x17\n\x07raw_sql\x18\x02 \x01(\tR\x06rawSql\x12\x46\n\x0c\x63ommand_type\x18\x03 \x01(\x0e\x32#.xyz.block.ftl.query.v1.CommandTypeR\x0b\x63ommandType\x12\'\n\x0fparameters_json\x18\x04 \x01(\tR\x0eparametersJson\x12K\n\x0eresult_columns\x18\x05 \x03(\x0b\x32$.xyz.block.ftl.query.v1.ResultColumnR\rresultColumns\x12*\n\x0etransaction_id\x18\x06 \x01(\tH\x00R\rtransactionId\x88\x01\x01\x12\"\n\nbatch_size\x18\x07 \x01(\x05H\x01R\tbatchSize\x88\x01\x01\x42\x11\n\x0f_transaction_idB\r\n\x0b_batch_size\"\xae\x01\n\x14\x45xecuteQueryResponse\x12\x45\n\x0b\x65xec_result\x18\x01 \x01(\x0b\x32\".xyz.block.ftl.query.v1.ExecResultH\x00R\nexecResult\x12\x45\n\x0brow_results\x18\x02 \x01(\x0b\x32\".xyz.block.ftl.query.v1.RowResultsH\x00R\nrowResultsB\x08\n\x06result\"o\n\nExecResult\x12#\n\rrows_affected\x18\x01 \x01(\x03R\x0crowsAffected\x12)\n\x0elast_insert_id\x18\x02 \x01(\x03H\x00R\x0clastInsertId\x88\x01\x01\x42\x11\n\x0f_last_insert_id\"D\n\nRowResults\x12\x1b\n\tjson_rows\x18\x01 \x01(\tR\x08jsonRows\x12\x19\n\x08has_more\x18\x02 \x01(\x08R\x07hasMore*v\n\x11TransactionStatus\x12\"\n\x1eTRANSACTION_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n\x1aTRANSACTION_STATUS_SUCCESS\x10\x01\x12\x1d\n\x19TRANSACTION_STATUS_FAILED\x10\x02*o\n\x0b\x43ommandType\x12\x1c\n\x18\x43OMMAND_TYPE_UNSPECIFIED\x10\x00\x12\x15\n\x11\x43OMMAND_TYPE_EXEC\x10\x01\x12\x14\n\x10\x43OMMAND_TYPE_ONE\x10\x02\x12\x15\n\x11\x43OMMAND_TYPE_MANY\x10\x03\x32\xb8\x04\n\x0cQueryService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12u\n\x10\x42\x65ginTransaction\x12/.xyz.block.ftl.query.v1.BeginTransactionRequest\x1a\x30.xyz.block.ftl.query.v1.BeginTransactionResponse\x12x\n\x11\x43ommitTransaction\x12\x30.xyz.block.ftl.query.v1.CommitTransactionRequest\x1a\x31.xyz.block.ftl.query.v1.CommitTransactionResponse\x12~\n\x13RollbackTransaction\x12\x32.xyz.block.ftl.query.v1.RollbackTransactionRequest\x1a\x33.xyz.block.ftl.query.v1.RollbackTransactionResponse\x12k\n\x0c\x45xecuteQuery\x12+.xyz.block.ftl.query.v1.ExecuteQueryRequest\x1a,.xyz.block.ftl.query.v1.ExecuteQueryResponse0\x01\x42\x44ZBgithub.com/block/ftl/backend/protos/xyz/block/ftl/query/v1;querypbb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,32 +35,32 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'ZBgithub.com/block/ftl/backend/protos/xyz/block/ftl/query/v1;querypb'
   _globals['_QUERYSERVICE'].methods_by_name['Ping']._loaded_options = None
   _globals['_QUERYSERVICE'].methods_by_name['Ping']._serialized_options = b'\220\002\001'
-  _globals['_TRANSACTIONSTATUS']._serialized_start=1367
-  _globals['_TRANSACTIONSTATUS']._serialized_end=1485
-  _globals['_COMMANDTYPE']._serialized_start=1487
-  _globals['_COMMANDTYPE']._serialized_end=1598
+  _globals['_TRANSACTIONSTATUS']._serialized_start=1515
+  _globals['_TRANSACTIONSTATUS']._serialized_end=1633
+  _globals['_COMMANDTYPE']._serialized_start=1635
+  _globals['_COMMANDTYPE']._serialized_end=1746
   _globals['_BEGINTRANSACTIONREQUEST']._serialized_start=90
-  _globals['_BEGINTRANSACTIONREQUEST']._serialized_end=115
-  _globals['_BEGINTRANSACTIONRESPONSE']._serialized_start=118
-  _globals['_BEGINTRANSACTIONRESPONSE']._serialized_end=250
-  _globals['_COMMITTRANSACTIONREQUEST']._serialized_start=252
-  _globals['_COMMITTRANSACTIONREQUEST']._serialized_end=317
-  _globals['_COMMITTRANSACTIONRESPONSE']._serialized_start=319
-  _globals['_COMMITTRANSACTIONRESPONSE']._serialized_end=413
-  _globals['_ROLLBACKTRANSACTIONREQUEST']._serialized_start=415
-  _globals['_ROLLBACKTRANSACTIONREQUEST']._serialized_end=482
-  _globals['_ROLLBACKTRANSACTIONRESPONSE']._serialized_start=484
-  _globals['_ROLLBACKTRANSACTIONRESPONSE']._serialized_end=580
-  _globals['_RESULTCOLUMN']._serialized_start=582
-  _globals['_RESULTCOLUMN']._serialized_end=652
-  _globals['_EXECUTEQUERYREQUEST']._serialized_start=655
-  _globals['_EXECUTEQUERYREQUEST']._serialized_end=1005
-  _globals['_EXECUTEQUERYRESPONSE']._serialized_start=1008
-  _globals['_EXECUTEQUERYRESPONSE']._serialized_end=1182
-  _globals['_EXECRESULT']._serialized_start=1184
-  _globals['_EXECRESULT']._serialized_end=1295
-  _globals['_ROWRESULTS']._serialized_start=1297
-  _globals['_ROWRESULTS']._serialized_end=1365
-  _globals['_QUERYSERVICE']._serialized_start=1601
-  _globals['_QUERYSERVICE']._serialized_end=2169
+  _globals['_BEGINTRANSACTIONREQUEST']._serialized_end=152
+  _globals['_BEGINTRANSACTIONRESPONSE']._serialized_start=155
+  _globals['_BEGINTRANSACTIONRESPONSE']._serialized_end=287
+  _globals['_COMMITTRANSACTIONREQUEST']._serialized_start=289
+  _globals['_COMMITTRANSACTIONREQUEST']._serialized_end=391
+  _globals['_COMMITTRANSACTIONRESPONSE']._serialized_start=393
+  _globals['_COMMITTRANSACTIONRESPONSE']._serialized_end=487
+  _globals['_ROLLBACKTRANSACTIONREQUEST']._serialized_start=489
+  _globals['_ROLLBACKTRANSACTIONREQUEST']._serialized_end=593
+  _globals['_ROLLBACKTRANSACTIONRESPONSE']._serialized_start=595
+  _globals['_ROLLBACKTRANSACTIONRESPONSE']._serialized_end=691
+  _globals['_RESULTCOLUMN']._serialized_start=693
+  _globals['_RESULTCOLUMN']._serialized_end=763
+  _globals['_EXECUTEQUERYREQUEST']._serialized_start=766
+  _globals['_EXECUTEQUERYREQUEST']._serialized_end=1153
+  _globals['_EXECUTEQUERYRESPONSE']._serialized_start=1156
+  _globals['_EXECUTEQUERYRESPONSE']._serialized_end=1330
+  _globals['_EXECRESULT']._serialized_start=1332
+  _globals['_EXECRESULT']._serialized_end=1443
+  _globals['_ROWRESULTS']._serialized_start=1445
+  _globals['_ROWRESULTS']._serialized_end=1513
+  _globals['_QUERYSERVICE']._serialized_start=1749
+  _globals['_QUERYSERVICE']._serialized_end=2317
 # @@protoc_insertion_point(module_scope)
