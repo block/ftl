@@ -127,7 +127,47 @@ public class AnnotationProcessor implements Processor {
                                 paramNames = new String[0];
                             } else {
                                 paramNames = new String[1];
-                                paramNames[0] = parameters.getFirst().toString();
+                                for (var i = 0; i < parameters.size(); i++) {
+                                    var elem = parameters.get(i);
+                                    if (elem.getAnnotation(Config.class) != null || elem.getAnnotation(Secret.class) != null) {
+                                        continue;
+                                    }
+                                    switch (elem.asType().getKind()) {
+                                        case BOOLEAN:
+                                            paramNames[0] = "boolean";
+                                            break;
+                                        case BYTE:
+                                            paramNames[0] = "byte";
+                                            break;
+                                        case SHORT:
+                                            paramNames[0] = "short";
+                                            break;
+                                        case INT:
+                                            paramNames[0] = "int";
+                                            break;
+                                        case LONG:
+                                            paramNames[0] = "long";
+                                            break;
+                                        case FLOAT:
+                                            paramNames[0] = "float";
+                                            break;
+                                        case DOUBLE:
+                                            paramNames[0] = "double";
+                                            break;
+                                        case CHAR:
+                                            paramNames[0] = "char";
+                                            break;
+                                        case ARRAY:
+                                            paramNames[0] = "byte[]";
+                                            break;
+                                        case DECLARED:
+                                            paramNames[0] = elem.asType().toString();
+                                            break;
+                                        default:
+                                            throw new IllegalArgumentException("Unsupported type: " + elem.asType().getKind());
+                                    }
+                                    break;
+                                }
                             }
                             try (MethodCreator mc = creator.getMethodCreator(executableElement.getSimpleName().toString(),
                                     executableElement.getReturnType().toString(), paramNames)) {
