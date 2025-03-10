@@ -3,12 +3,9 @@ package xyz.block.ftl.runtime.processor;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -27,20 +24,17 @@ import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 
-import xyz.block.ftl.Config;
-import xyz.block.ftl.Cron;
-import xyz.block.ftl.Data;
+import io.quarkus.gizmo.ClassCreator;
+import io.quarkus.gizmo.ClassOutput;
+import io.quarkus.gizmo.MethodCreator;
+import xyz.block.ftl.*;
 import xyz.block.ftl.Enum;
-import xyz.block.ftl.Export;
-import xyz.block.ftl.SQLDatasource;
-import xyz.block.ftl.Secret;
-import xyz.block.ftl.TypeAlias;
-import xyz.block.ftl.Verb;
 
 /**
  * POC annotation processor for capturing JavaDoc, this needs a lot more work.
  */
 public class AnnotationProcessor implements Processor {
+
     private static final Pattern REMOVE_LEADING_SPACE = Pattern.compile("^ ", Pattern.MULTILINE);
     private static final Pattern REMOVE_JAVADOC_TAGS = Pattern.compile(
             "^\\s*@(param|return|throws|exception|see|author)\\b[^\\n]*$\\n*",
@@ -106,6 +100,88 @@ public class AnnotationProcessor implements Processor {
                             });
                         }
                     });
+                });
+
+        roundEnv.getElementsAnnotatedWithAny(Set.of(Verb.class))
+                .forEach(element -> {
+                    if (element.getKind() == ElementKind.METHOD) {
+                        var executableElement = (ExecutableElement) element;
+                        String className = executableElement.getSimpleName().toString();
+                        className = Character.toUpperCase(className.charAt(0)) + className.substring(1);
+                        ClassOutput output = new ClassOutput() {
+                            @Override
+                            public void write(String name, byte[] data) {
+                                try {
+                                    var file = processingEnv.getFiler().createClassFile(name.replace('/', '.'));
+                                    try (var out = file.openOutputStream()) {
+                                        out.write(data);
+                                    }
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        };
+                        try (ClassCreator creator = ClassCreator.interfaceBuilder()
+                                .classOutput(output)
+                                .className("client." + className + "Client")
+                                .build()) {
+                            List<? extends VariableElement> parameters = executableElement.getParameters();
+                            String[] paramNames;
+                            if (parameters.isEmpty()) {
+                                paramNames = new String[0];
+                            } else {
+                                paramNames = new String[1];
+                                for (var i = 0; i < parameters.size(); i++) {
+                                    var elem = parameters.get(i);
+                                    if (elem.getAnnotation(Config.class) != null || elem.getAnnotation(Secret.class) != null) {
+                                        continue;
+                                    }
+                                    switch (elem.asType().getKind()) {
+                                        case BOOLEAN:
+                                            paramNames[0] = "boolean";
+                                            break;
+                                        case BYTE:
+                                            paramNames[0] = "byte";
+                                            break;
+                                        case SHORT:
+                                            paramNames[0] = "short";
+                                            break;
+                                        case INT:
+                                            paramNames[0] = "int";
+                                            break;
+                                        case LONG:
+                                            paramNames[0] = "long";
+                                            break;
+                                        case FLOAT:
+                                            paramNames[0] = "float";
+                                            break;
+                                        case DOUBLE:
+                                            paramNames[0] = "double";
+                                            break;
+                                        case CHAR:
+                                            paramNames[0] = "char";
+                                            break;
+                                        case ARRAY:
+                                            paramNames[0] = "byte[]";
+                                            break;
+                                        case DECLARED:
+                                            paramNames[0] = elem.asType().toString();
+                                            break;
+                                        default:
+                                            throw new IllegalArgumentException("Unsupported type: " + elem.asType().getKind());
+                                    }
+                                    break;
+                                }
+                            }
+                            try (MethodCreator mc = creator.getMethodCreator(executableElement.getSimpleName().toString(),
+                                    executableElement.getReturnType().toString(), paramNames)) {
+                                mc.setModifiers(Modifier.ABSTRACT | Modifier.PUBLIC);
+                                mc.addAnnotation(VerbClient.class);
+
+                            }
+                        }
+
+                    }
                 });
 
         if (roundEnv.processingOver()) {

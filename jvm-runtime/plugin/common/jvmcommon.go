@@ -825,8 +825,8 @@ func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request
 	buildGradleKts := filepath.Join(dir, "build.gradle.kts")
 	if fileExists(pom) {
 		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolMaven)
-		defaults.DevModeBuild = ptr("mvn -Dquarkus.console.enabled=false -q clean quarkus:dev")
-		defaults.Build = ptr("mvn -B clean package")
+		defaults.DevModeBuild = ptr("mvn -Dquarkus.console.enabled=false -q clean quarkus:dev -e")
+		defaults.Build = ptr("mvn -B clean package -e")
 		defaults.DeployDir = "target"
 	} else if fileExists(buildGradle) || fileExists(buildGradleKts) {
 		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolGradle)
