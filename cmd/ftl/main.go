@@ -54,10 +54,10 @@ type SharedCLI struct {
 	Profile   profileCmd   `cmd:"" help:"Manage profiles."`
 	Module    moduleCmd    `cmd:"" help:"Manage modules."`
 	PS        psCmd        `cmd:"" help:"List deployments."`
-	Call      callCmd      `cmd:"" help:"Call an FTL function."`
+	Call      callCmd      `cmd:"" help:"Call an FTL verb."`
 	Changeset changesetCmd `cmd:"" help:"Work with changesets."`
-	Bench     benchCmd     `cmd:"" help:"Benchmark an FTL function."`
-	Replay    replayCmd    `cmd:"" help:"Call an FTL function with the same request body as the last invocation."`
+	Bench     benchCmd     `cmd:"" help:"Benchmark an FTL verb."`
+	Replay    replayCmd    `cmd:"" help:"Call an FTL verb with the same request body as the last invocation."`
 	Update    updateCmd    `cmd:"" help:"Update a deployment."`
 	Kill      killCmd      `cmd:"" help:"Kill a deployment."`
 	Schema    schemaCmd    `cmd:"" help:"FTL schema commands."`
@@ -88,9 +88,8 @@ type CLI struct {
 	// Specify the 1Password vault to access secrets from.
 	Vault string `name:"opvault" help:"1Password vault to be used for secrets. The name of the 1Password item will be the <ref> and the secret will be stored in the password field." placeholder:"VAULT"`
 
-	DumpHelp dumpHelpCmd `cmd:"" help:"Dump help for all commands." hidden:""`
-	LSP      lspCmd      `cmd:"" help:"Start the LSP server."`
-	MCP      mcpCmd      `cmd:"" help:"Start the MCP server."`
+	LSP lspCmd `cmd:"" help:"Start the LSP server."`
+	MCP mcpCmd `cmd:"" help:"Start the MCP server."`
 }
 
 type DevModeCLI struct {
@@ -244,8 +243,8 @@ func addToExit(k *kong.Kong, cleanup func(code int)) {
 	}
 }
 
-func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *currentStatusManager) terminal.KongContextBinder {
-	var bindContext terminal.KongContextBinder
+func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *currentStatusManager) KongContextBinder {
+	var bindContext KongContextBinder
 	bindContext = func(ctx context.Context, kctx *kong.Context) context.Context {
 		err := kctx.BindToProvider(func(cli *SharedCLI) (projectconfig.Config, error) {
 			config, err := projectconfig.Load(ctx, optional.Zero(cli.ConfigFlag))
