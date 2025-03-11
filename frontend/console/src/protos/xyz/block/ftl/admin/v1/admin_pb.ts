@@ -6,6 +6,7 @@
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 import { Changeset, Module, Ref } from "../../schema/v1/schema_pb.js";
+import { LogEvent } from "../../timeline/v1/event_pb.js";
 
 /**
  * @generated from enum xyz.block.ftl.admin.v1.ConfigProvider
@@ -1556,6 +1557,80 @@ export class ClusterInfoResponse extends Message<ClusterInfoResponse> {
 
   static equals(a: ClusterInfoResponse | PlainMessage<ClusterInfoResponse> | undefined, b: ClusterInfoResponse | PlainMessage<ClusterInfoResponse> | undefined): boolean {
     return proto3.util.equals(ClusterInfoResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.StreamChangesetLogsRequest
+ */
+export class StreamChangesetLogsRequest extends Message<StreamChangesetLogsRequest> {
+  /**
+   * @generated from field: string changeset_key = 1;
+   */
+  changesetKey = "";
+
+  constructor(data?: PartialMessage<StreamChangesetLogsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.StreamChangesetLogsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StreamChangesetLogsRequest {
+    return new StreamChangesetLogsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): StreamChangesetLogsRequest {
+    return new StreamChangesetLogsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): StreamChangesetLogsRequest {
+    return new StreamChangesetLogsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: StreamChangesetLogsRequest | PlainMessage<StreamChangesetLogsRequest> | undefined, b: StreamChangesetLogsRequest | PlainMessage<StreamChangesetLogsRequest> | undefined): boolean {
+    return proto3.util.equals(StreamChangesetLogsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.StreamChangesetLogsResponse
+ */
+export class StreamChangesetLogsResponse extends Message<StreamChangesetLogsResponse> {
+  /**
+   * @generated from field: repeated xyz.block.ftl.timeline.v1.LogEvent logs = 1;
+   */
+  logs: LogEvent[] = [];
+
+  constructor(data?: PartialMessage<StreamChangesetLogsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.StreamChangesetLogsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "logs", kind: "message", T: LogEvent, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StreamChangesetLogsResponse {
+    return new StreamChangesetLogsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): StreamChangesetLogsResponse {
+    return new StreamChangesetLogsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): StreamChangesetLogsResponse {
+    return new StreamChangesetLogsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: StreamChangesetLogsResponse | PlainMessage<StreamChangesetLogsResponse> | undefined, b: StreamChangesetLogsResponse | PlainMessage<StreamChangesetLogsResponse> | undefined): boolean {
+    return proto3.util.equals(StreamChangesetLogsResponse, a, b);
   }
 }
 

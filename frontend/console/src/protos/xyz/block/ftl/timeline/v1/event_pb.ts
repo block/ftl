@@ -195,6 +195,11 @@ export class LogEvent extends Message<LogEvent> {
    */
   stack?: string;
 
+  /**
+   * @generated from field: optional string changeset_key = 9;
+   */
+  changesetKey?: string;
+
   constructor(data?: PartialMessage<LogEvent>) {
     super();
     proto3.util.initPartial(data, this);
@@ -211,6 +216,7 @@ export class LogEvent extends Message<LogEvent> {
     { no: 6, name: "message", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 8, name: "stack", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 9, name: "changeset_key", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LogEvent {

@@ -47,6 +47,7 @@ message LogEvent {
   string message = 6;
   optional string error = 7;
   optional string stack = 8;
+  optional string changeset_key = 9;
 }
 
 message CallEvent {

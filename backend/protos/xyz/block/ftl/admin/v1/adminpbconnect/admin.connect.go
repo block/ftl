@@ -89,6 +89,9 @@ const (
 	// AdminServiceUploadArtefactProcedure is the fully-qualified name of the AdminService's
 	// UploadArtefact RPC.
 	AdminServiceUploadArtefactProcedure = "/xyz.block.ftl.admin.v1.AdminService/UploadArtefact"
+	// AdminServiceStreamChangesetLogsProcedure is the fully-qualified name of the AdminService's
+	// StreamChangesetLogs RPC.
+	AdminServiceStreamChangesetLogsProcedure = "/xyz.block.ftl.admin.v1.AdminService/StreamChangesetLogs"
 )
 
 // AdminServiceClient is a client for the xyz.block.ftl.admin.v1.AdminService service.
@@ -142,6 +145,7 @@ type AdminServiceClient interface {
 	GetDeploymentArtefacts(context.Context, *connect.Request[v11.GetDeploymentArtefactsRequest]) (*connect.ServerStreamForClient[v11.GetDeploymentArtefactsResponse], error)
 	// Upload an artefact to the server.
 	UploadArtefact(context.Context) *connect.ClientStreamForClient[v11.UploadArtefactRequest, v11.UploadArtefactResponse]
+	StreamChangesetLogs(context.Context, *connect.Request[v11.StreamChangesetLogsRequest]) (*connect.ServerStreamForClient[v11.StreamChangesetLogsResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the xyz.block.ftl.admin.v1.AdminService service. By
@@ -262,6 +266,11 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			baseURL+AdminServiceUploadArtefactProcedure,
 			opts...,
 		),
+		streamChangesetLogs: connect.NewClient[v11.StreamChangesetLogsRequest, v11.StreamChangesetLogsResponse](
+			httpClient,
+			baseURL+AdminServiceStreamChangesetLogsProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -288,6 +297,7 @@ type adminServiceClient struct {
 	getArtefactDiffs       *connect.Client[v11.GetArtefactDiffsRequest, v11.GetArtefactDiffsResponse]
 	getDeploymentArtefacts *connect.Client[v11.GetDeploymentArtefactsRequest, v11.GetDeploymentArtefactsResponse]
 	uploadArtefact         *connect.Client[v11.UploadArtefactRequest, v11.UploadArtefactResponse]
+	streamChangesetLogs    *connect.Client[v11.StreamChangesetLogsRequest, v11.StreamChangesetLogsResponse]
 }
 
 // Ping calls xyz.block.ftl.admin.v1.AdminService.Ping.
@@ -395,6 +405,11 @@ func (c *adminServiceClient) UploadArtefact(ctx context.Context) *connect.Client
 	return c.uploadArtefact.CallClientStream(ctx)
 }
 
+// StreamChangesetLogs calls xyz.block.ftl.admin.v1.AdminService.StreamChangesetLogs.
+func (c *adminServiceClient) StreamChangesetLogs(ctx context.Context, req *connect.Request[v11.StreamChangesetLogsRequest]) (*connect.ServerStreamForClient[v11.StreamChangesetLogsResponse], error) {
+	return c.streamChangesetLogs.CallServerStream(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the xyz.block.ftl.admin.v1.AdminService service.
 type AdminServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -446,6 +461,7 @@ type AdminServiceHandler interface {
 	GetDeploymentArtefacts(context.Context, *connect.Request[v11.GetDeploymentArtefactsRequest], *connect.ServerStream[v11.GetDeploymentArtefactsResponse]) error
 	// Upload an artefact to the server.
 	UploadArtefact(context.Context, *connect.ClientStream[v11.UploadArtefactRequest]) (*connect.Response[v11.UploadArtefactResponse], error)
+	StreamChangesetLogs(context.Context, *connect.Request[v11.StreamChangesetLogsRequest], *connect.ServerStream[v11.StreamChangesetLogsResponse]) error
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -562,6 +578,11 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		svc.UploadArtefact,
 		opts...,
 	)
+	adminServiceStreamChangesetLogsHandler := connect.NewServerStreamHandler(
+		AdminServiceStreamChangesetLogsProcedure,
+		svc.StreamChangesetLogs,
+		opts...,
+	)
 	return "/xyz.block.ftl.admin.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServicePingProcedure:
@@ -606,6 +627,8 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceGetDeploymentArtefactsHandler.ServeHTTP(w, r)
 		case AdminServiceUploadArtefactProcedure:
 			adminServiceUploadArtefactHandler.ServeHTTP(w, r)
+		case AdminServiceStreamChangesetLogsProcedure:
+			adminServiceStreamChangesetLogsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -697,4 +720,8 @@ func (UnimplementedAdminServiceHandler) GetDeploymentArtefacts(context.Context, 
 
 func (UnimplementedAdminServiceHandler) UploadArtefact(context.Context, *connect.ClientStream[v11.UploadArtefactRequest]) (*connect.Response[v11.UploadArtefactResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.admin.v1.AdminService.UploadArtefact is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) StreamChangesetLogs(context.Context, *connect.Request[v11.StreamChangesetLogsRequest], *connect.ServerStream[v11.StreamChangesetLogsResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.admin.v1.AdminService.StreamChangesetLogs is not implemented"))
 }

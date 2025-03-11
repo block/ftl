@@ -39,6 +39,7 @@ type AdminClient interface {
 	ClusterInfo(ctx context.Context, req *connect.Request[adminpb.ClusterInfoRequest]) (*connect.Response[adminpb.ClusterInfoResponse], error)
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[adminpb.GetArtefactDiffsRequest]) (*connect.Response[adminpb.GetArtefactDiffsResponse], error)
 	UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[adminpb.UploadArtefactRequest, adminpb.UploadArtefactResponse]
+	StreamChangesetLogs(ctx context.Context, req *connect.Request[adminpb.StreamChangesetLogsRequest]) (*connect.ServerStreamForClient[adminpb.StreamChangesetLogsResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
 
@@ -380,7 +381,27 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 		}
 	}()
 	if key, ok := (<-keyChan).Get(); ok {
+		logger := log.FromContext(ctx)
 		deployment.changeset = optional.Some(key)
+		logger.Infof("Created changeset %s", key) //nolint:forbidigo
+		go func() {
+			stream, err := c.adminClient.StreamChangesetLogs(ctx, connect.NewRequest(&adminpb.StreamChangesetLogsRequest{
+				ChangesetKey: key.String(),
+			}))
+			if err != nil {
+				logger.Errorf(err, "failed to stream changeset logs")
+				return
+			}
+			for stream.Receive() {
+				for _, logpb := range stream.Msg().Logs {
+					logger.Log(log.Entry{
+						Attributes: logpb.Attributes,
+						Level:      log.Level(logpb.LogLevel),
+						Message:    logpb.Message,
+					})
+				}
+			}
+		}()
 	}
 	return true
 }

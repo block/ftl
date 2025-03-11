@@ -19,6 +19,10 @@ message GetTimelineRequest {
   message DeploymentFilter {
     repeated string deployments = 1;
   }
+  // Filters events by changeset key.
+  message ChangesetFilter {
+    repeated string changesets = 1;
+  }
   // Filters events by request key.
   message RequestFilter {
     repeated string requests = 1;
@@ -69,6 +73,7 @@ message GetTimelineRequest {
       IDFilter id = 6;
       CallFilter call = 7;
       ModuleFilter module = 8;
+      ChangesetFilter changesets = 9;
     }
   }
 

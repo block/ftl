@@ -59,7 +59,7 @@ LOG_LEVEL_WARN: LogLevel
 LOG_LEVEL_ERROR: LogLevel
 
 class LogEvent(_message.Message):
-    __slots__ = ("deployment_key", "request_key", "timestamp", "log_level", "attributes", "message", "error", "stack")
+    __slots__ = ("deployment_key", "request_key", "timestamp", "log_level", "attributes", "message", "error", "stack", "changeset_key")
     class AttributesEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -75,6 +75,7 @@ class LogEvent(_message.Message):
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     STACK_FIELD_NUMBER: _ClassVar[int]
+    CHANGESET_KEY_FIELD_NUMBER: _ClassVar[int]
     deployment_key: str
     request_key: str
     timestamp: _timestamp_pb2.Timestamp
@@ -83,7 +84,8 @@ class LogEvent(_message.Message):
     message: str
     error: str
     stack: str
-    def __init__(self, deployment_key: _Optional[str] = ..., request_key: _Optional[str] = ..., timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., log_level: _Optional[int] = ..., attributes: _Optional[_Mapping[str, str]] = ..., message: _Optional[str] = ..., error: _Optional[str] = ..., stack: _Optional[str] = ...) -> None: ...
+    changeset_key: str
+    def __init__(self, deployment_key: _Optional[str] = ..., request_key: _Optional[str] = ..., timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., log_level: _Optional[int] = ..., attributes: _Optional[_Mapping[str, str]] = ..., message: _Optional[str] = ..., error: _Optional[str] = ..., stack: _Optional[str] = ..., changeset_key: _Optional[str] = ...) -> None: ...
 
 class CallEvent(_message.Message):
     __slots__ = ("request_key", "deployment_key", "timestamp", "source_verb_ref", "destination_verb_ref", "duration", "request", "response", "error", "stack")
