@@ -1,4 +1,3 @@
-import { AsyncExecuteEventType } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import type { Event } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
 
 const eventBackgroundColorMap: Record<string, string> = {
@@ -8,7 +7,6 @@ const eventBackgroundColorMap: Record<string, string> = {
   changesetCreated: 'bg-purple-500',
   changesetStateChanged: 'bg-purple-500',
   cronScheduled: 'bg-blue-500',
-  asyncExecute: 'bg-indigo-500',
   pubsubPublish: 'bg-teal-500',
   pubsubConsume: 'bg-teal-500',
   deploymentRuntime: 'bg-purple-500',
@@ -36,17 +34,6 @@ const eventTextColorMap: Record<string, string> = {
   '': 'text-gray-500',
 }
 
-export const asyncEventTypeString = (type: AsyncExecuteEventType) => {
-  switch (type) {
-    case AsyncExecuteEventType.CRON:
-      return 'cron'
-    case AsyncExecuteEventType.PUBSUB:
-      return 'pubsub'
-    default:
-      return 'unknown'
-  }
-}
-
 export const eventTextColor = (event: Event) => {
   if (isError(event)) {
     return 'text-red-500'
@@ -59,9 +46,6 @@ const isError = (event: Event) => {
     return true
   }
   if (event.entry.case === 'ingress' && event.entry.value.error) {
-    return true
-  }
-  if (event.entry.case === 'asyncExecute' && event.entry.value.error) {
     return true
   }
   return false

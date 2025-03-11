@@ -2,7 +2,6 @@ import type { Event } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { HoverPopup } from '../../shared/components/HoverPopup'
 import { formatTimestampShort } from '../../shared/utils'
 import { deploymentTextColor } from '../deployments/deployment.utils'
-import { TimelineAsyncExecute } from './TimelineAsyncExecute'
 import { TimelineCall } from './TimelineCall'
 import { TimelineChangesetChanged } from './TimelineChangesetChanged'
 import { TimelineChangesetCreated } from './TimelineChangesetCreated'
@@ -26,7 +25,6 @@ const deploymentKey = (event: Event) => {
     case 'log':
     case 'ingress':
     case 'cronScheduled':
-    case 'asyncExecute':
     case 'pubsubConsume':
     case 'pubsubPublish':
       return event.entry.value.deploymentKey
@@ -94,8 +92,6 @@ export const TimelineEventList = ({ events, selectedEventId, handleEntryClicked 
                       return <TimelineIngress ingress={entry.entry.value} />
                     case 'cronScheduled':
                       return <TimelineCronScheduled cron={entry.entry.value} />
-                    case 'asyncExecute':
-                      return <TimelineAsyncExecute asyncExecute={entry.entry.value} />
                     case 'pubsubPublish':
                       return <TimelinePubSubPublish pubSubPublish={entry.entry.value} />
                     case 'pubsubConsume':

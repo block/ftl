@@ -59,9 +59,6 @@ func FilterModule(filters []*timelinepb.GetTimelineRequest_ModuleFilter) Timelin
 		case *timelinepb.Event_Ingress:
 			module = entry.Ingress.VerbRef.Module
 			verb = entry.Ingress.VerbRef.Name
-		case *timelinepb.Event_AsyncExecute:
-			module = entry.AsyncExecute.VerbRef.Module
-			verb = entry.AsyncExecute.VerbRef.Name
 		case *timelinepb.Event_PubsubPublish:
 			module = entry.PubsubPublish.VerbRef.Module
 			verb = entry.PubsubPublish.VerbRef.Name
@@ -109,8 +106,6 @@ func FilterDeployments(filters []*timelinepb.GetTimelineRequest_DeploymentFilter
 			deployment = entry.Ingress.DeploymentKey
 		case *timelinepb.Event_CronScheduled:
 			deployment = entry.CronScheduled.DeploymentKey
-		case *timelinepb.Event_AsyncExecute:
-			deployment = entry.AsyncExecute.DeploymentKey
 		case *timelinepb.Event_PubsubPublish:
 			deployment = entry.PubsubPublish.DeploymentKey
 		case *timelinepb.Event_PubsubConsume:
@@ -160,8 +155,6 @@ func FilterRequests(filters []*timelinepb.GetTimelineRequest_RequestFilter) Time
 			request = entry.Call.RequestKey
 		case *timelinepb.Event_Ingress:
 			request = entry.Ingress.RequestKey
-		case *timelinepb.Event_AsyncExecute:
-			request = entry.AsyncExecute.RequestKey
 		case *timelinepb.Event_PubsubPublish:
 			request = entry.PubsubPublish.RequestKey
 		case *timelinepb.Event_PubsubConsume:
@@ -199,8 +192,6 @@ func FilterTypes(filters ...*timelinepb.GetTimelineRequest_EventTypeFilter) Time
 			eventType = timelinepb.EventType_EVENT_TYPE_INGRESS
 		case *timelinepb.Event_CronScheduled:
 			eventType = timelinepb.EventType_EVENT_TYPE_CRON_SCHEDULED
-		case *timelinepb.Event_AsyncExecute:
-			eventType = timelinepb.EventType_EVENT_TYPE_ASYNC_EXECUTE
 		case *timelinepb.Event_PubsubPublish:
 			eventType = timelinepb.EventType_EVENT_TYPE_PUBSUB_PUBLISH
 		case *timelinepb.Event_PubsubConsume:

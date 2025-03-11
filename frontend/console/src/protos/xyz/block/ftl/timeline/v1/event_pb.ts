@@ -37,11 +37,6 @@ export enum EventType {
   CRON_SCHEDULED = 4,
 
   /**
-   * @generated from enum value: EVENT_TYPE_ASYNC_EXECUTE = 5;
-   */
-  ASYNC_EXECUTE = 5,
-
-  /**
    * @generated from enum value: EVENT_TYPE_PUBSUB_PUBLISH = 6;
    */
   PUBSUB_PUBLISH = 6,
@@ -73,38 +68,11 @@ proto3.util.setEnumType(EventType, "xyz.block.ftl.timeline.v1.EventType", [
   { no: 2, name: "EVENT_TYPE_CALL" },
   { no: 3, name: "EVENT_TYPE_INGRESS" },
   { no: 4, name: "EVENT_TYPE_CRON_SCHEDULED" },
-  { no: 5, name: "EVENT_TYPE_ASYNC_EXECUTE" },
   { no: 6, name: "EVENT_TYPE_PUBSUB_PUBLISH" },
   { no: 7, name: "EVENT_TYPE_PUBSUB_CONSUME" },
   { no: 8, name: "EVENT_TYPE_CHANGESET_CREATED" },
   { no: 9, name: "EVENT_TYPE_CHANGESET_STATE_CHANGED" },
   { no: 10, name: "EVENT_TYPE_DEPLOYMENT_RUNTIME" },
-]);
-
-/**
- * @generated from enum xyz.block.ftl.timeline.v1.AsyncExecuteEventType
- */
-export enum AsyncExecuteEventType {
-  /**
-   * @generated from enum value: ASYNC_EXECUTE_EVENT_TYPE_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: ASYNC_EXECUTE_EVENT_TYPE_CRON = 1;
-   */
-  CRON = 1,
-
-  /**
-   * @generated from enum value: ASYNC_EXECUTE_EVENT_TYPE_PUBSUB = 2;
-   */
-  PUBSUB = 2,
-}
-// Retrieve enum metadata with: proto3.getEnumType(AsyncExecuteEventType)
-proto3.util.setEnumType(AsyncExecuteEventType, "xyz.block.ftl.timeline.v1.AsyncExecuteEventType", [
-  { no: 0, name: "ASYNC_EXECUTE_EVENT_TYPE_UNSPECIFIED" },
-  { no: 1, name: "ASYNC_EXECUTE_EVENT_TYPE_CRON" },
-  { no: 2, name: "ASYNC_EXECUTE_EVENT_TYPE_PUBSUB" },
 ]);
 
 /**
@@ -510,79 +478,6 @@ export class CronScheduledEvent extends Message<CronScheduledEvent> {
 }
 
 /**
- * @generated from message xyz.block.ftl.timeline.v1.AsyncExecuteEvent
- */
-export class AsyncExecuteEvent extends Message<AsyncExecuteEvent> {
-  /**
-   * @generated from field: string deployment_key = 1;
-   */
-  deploymentKey = "";
-
-  /**
-   * @generated from field: optional string request_key = 2;
-   */
-  requestKey?: string;
-
-  /**
-   * @generated from field: xyz.block.ftl.schema.v1.Ref verb_ref = 3;
-   */
-  verbRef?: Ref;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp timestamp = 4;
-   */
-  timestamp?: Timestamp;
-
-  /**
-   * @generated from field: google.protobuf.Duration duration = 5;
-   */
-  duration?: Duration;
-
-  /**
-   * @generated from field: xyz.block.ftl.timeline.v1.AsyncExecuteEventType async_event_type = 6;
-   */
-  asyncEventType = AsyncExecuteEventType.UNSPECIFIED;
-
-  /**
-   * @generated from field: optional string error = 7;
-   */
-  error?: string;
-
-  constructor(data?: PartialMessage<AsyncExecuteEvent>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.timeline.v1.AsyncExecuteEvent";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "request_key", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 3, name: "verb_ref", kind: "message", T: Ref },
-    { no: 4, name: "timestamp", kind: "message", T: Timestamp },
-    { no: 5, name: "duration", kind: "message", T: Duration },
-    { no: 6, name: "async_event_type", kind: "enum", T: proto3.getEnumType(AsyncExecuteEventType) },
-    { no: 7, name: "error", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AsyncExecuteEvent {
-    return new AsyncExecuteEvent().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AsyncExecuteEvent {
-    return new AsyncExecuteEvent().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AsyncExecuteEvent {
-    return new AsyncExecuteEvent().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: AsyncExecuteEvent | PlainMessage<AsyncExecuteEvent> | undefined, b: AsyncExecuteEvent | PlainMessage<AsyncExecuteEvent> | undefined): boolean {
-    return proto3.util.equals(AsyncExecuteEvent, a, b);
-  }
-}
-
-/**
  * @generated from message xyz.block.ftl.timeline.v1.PubSubPublishEvent
  */
 export class PubSubPublishEvent extends Message<PubSubPublishEvent> {
@@ -974,37 +869,31 @@ export class Event extends Message<Event> {
     case: "cronScheduled";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.AsyncExecuteEvent async_execute = 9;
-     */
-    value: AsyncExecuteEvent;
-    case: "asyncExecute";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.timeline.v1.PubSubPublishEvent pubsub_publish = 10;
+     * @generated from field: xyz.block.ftl.timeline.v1.PubSubPublishEvent pubsub_publish = 9;
      */
     value: PubSubPublishEvent;
     case: "pubsubPublish";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.PubSubConsumeEvent pubsub_consume = 11;
+     * @generated from field: xyz.block.ftl.timeline.v1.PubSubConsumeEvent pubsub_consume = 10;
      */
     value: PubSubConsumeEvent;
     case: "pubsubConsume";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetCreatedEvent changeset_created = 12;
+     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetCreatedEvent changeset_created = 11;
      */
     value: ChangesetCreatedEvent;
     case: "changesetCreated";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetStateChangedEvent changeset_state_changed = 13;
+     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetStateChangedEvent changeset_state_changed = 12;
      */
     value: ChangesetStateChangedEvent;
     case: "changesetStateChanged";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent deployment_runtime = 14;
+     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent deployment_runtime = 13;
      */
     value: DeploymentRuntimeEvent;
     case: "deploymentRuntime";
@@ -1024,12 +913,11 @@ export class Event extends Message<Event> {
     { no: 4, name: "call", kind: "message", T: CallEvent, oneof: "entry" },
     { no: 7, name: "ingress", kind: "message", T: IngressEvent, oneof: "entry" },
     { no: 8, name: "cron_scheduled", kind: "message", T: CronScheduledEvent, oneof: "entry" },
-    { no: 9, name: "async_execute", kind: "message", T: AsyncExecuteEvent, oneof: "entry" },
-    { no: 10, name: "pubsub_publish", kind: "message", T: PubSubPublishEvent, oneof: "entry" },
-    { no: 11, name: "pubsub_consume", kind: "message", T: PubSubConsumeEvent, oneof: "entry" },
-    { no: 12, name: "changeset_created", kind: "message", T: ChangesetCreatedEvent, oneof: "entry" },
-    { no: 13, name: "changeset_state_changed", kind: "message", T: ChangesetStateChangedEvent, oneof: "entry" },
-    { no: 14, name: "deployment_runtime", kind: "message", T: DeploymentRuntimeEvent, oneof: "entry" },
+    { no: 9, name: "pubsub_publish", kind: "message", T: PubSubPublishEvent, oneof: "entry" },
+    { no: 10, name: "pubsub_consume", kind: "message", T: PubSubConsumeEvent, oneof: "entry" },
+    { no: 11, name: "changeset_created", kind: "message", T: ChangesetCreatedEvent, oneof: "entry" },
+    { no: 12, name: "changeset_state_changed", kind: "message", T: ChangesetStateChangedEvent, oneof: "entry" },
+    { no: 13, name: "deployment_runtime", kind: "message", T: DeploymentRuntimeEvent, oneof: "entry" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Event {

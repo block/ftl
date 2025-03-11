@@ -108,12 +108,11 @@ message CreateEventsRequest {
       CallEvent call = 3;
       IngressEvent ingress = 4;
       CronScheduledEvent cron_scheduled = 5;
-      AsyncExecuteEvent async_execute = 6;
-      PubSubPublishEvent pubsub_publish = 7;
-      PubSubConsumeEvent pubsub_consume = 8;
-      ChangesetCreatedEvent changeset_created = 9;
-      ChangesetStateChangedEvent changeset_state_changed = 10;
-      DeploymentRuntimeEvent deployment_runtime = 11;
+      PubSubPublishEvent pubsub_publish = 6;
+      PubSubConsumeEvent pubsub_consume = 7;
+      ChangesetCreatedEvent changeset_created = 8;
+      ChangesetStateChangedEvent changeset_state_changed = 9;
+      DeploymentRuntimeEvent deployment_runtime = 10;
     }
   }
 

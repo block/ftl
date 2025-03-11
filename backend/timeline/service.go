@@ -105,10 +105,6 @@ func (s *service) CreateEvents(ctx context.Context, req *connect.Request[timelin
 			event.Entry = &timelinepb.Event_CronScheduled{
 				CronScheduled: entry.CronScheduled,
 			}
-		case *timelinepb.CreateEventsRequest_EventEntry_AsyncExecute:
-			event.Entry = &timelinepb.Event_AsyncExecute{
-				AsyncExecute: entry.AsyncExecute,
-			}
 		case *timelinepb.CreateEventsRequest_EventEntry_PubsubPublish:
 			event.Entry = &timelinepb.Event_PubsubPublish{
 				PubsubPublish: entry.PubsubPublish,

@@ -2,7 +2,6 @@ import {
   Call02Icon,
   CallIncoming04Icon,
   ComputerIcon,
-  CustomerServiceIcon,
   Download04Icon,
   InternetIcon,
   KeyframesMultipleAddIcon,
@@ -30,8 +29,6 @@ export const TimelineIcon = ({ event }: { event: Event }) => {
         return <InternetIcon className={`${style} ${textColor}`} />
       case 'cronScheduled':
         return <TimeQuarterPassIcon className={`${style} ${textColor}`} />
-      case 'asyncExecute':
-        return <CustomerServiceIcon className={`${style} ${textColor}`} />
       case 'pubsubPublish':
         return <Upload04Icon className={`${style} ${textColor}`} />
       case 'pubsubConsume':

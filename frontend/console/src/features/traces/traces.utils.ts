@@ -19,7 +19,6 @@ export const groupEventsByRequestKey = (events: Event[]): Record<string, Event[]
         case 'ingress':
         case 'pubsubConsume':
         case 'pubsubPublish':
-        case 'asyncExecute':
           return event.entry.value.requestKey
         default:
           return undefined
