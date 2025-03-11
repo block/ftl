@@ -49,16 +49,7 @@ func (c *gooseCmd) Run(ctx context.Context) error {
 			return err
 		}
 
-		help, err := exec.Capture(ctx, ".", "ftl", "dump-help",
-			"--ignored-commands",
-			"ping,status,init,profile,ps,bench,replay,update,kill,schema diff,schema generate,build,deploy,download,release,lsp,goose,interactive,dev,serve,completion",
-			"--ignored-flags",
-			"help,endpoint,provisioner-endpoint,timeline-endpoint,lease-endpoint,admin-endpoint,schema-endpoint,authenticators,log-level,log-json,log-timestamps,log-color,plain,opvault,insecure,version,config")
-		if err != nil {
-			return fmt.Errorf("failed to dump help: %w", err)
-		}
-
-		fullIntroInstructions := gooseIntroInstructions + "\n\nOutput of all FTL commands with --help\n\n" + string(help) + "\n\nAll FTL Docs:\n\n" + strings.Join(docs, "\n\n")
+		fullIntroInstructions := gooseIntroInstructions + "\n\nAll FTL Docs:\n\n" + strings.Join(docs, "\n\n")
 
 		cmd := exec.Command(ctx, log.Debug, ".", "goose", "run", "--text", fullIntroInstructions)
 		out := &output{}

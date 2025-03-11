@@ -15,8 +15,6 @@ import (
 	"github.com/kballard/go-shellquote"
 	"github.com/posener/complete"
 
-	"github.com/block/ftl/internal/buildengine/languageplugin"
-	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -24,22 +22,17 @@ const interactivePrompt = "\033[32m>\033[0m "
 
 var _ readline.AutoCompleter = &FTLCompletion{}
 
-type KongContextBinder func(ctx context.Context, kctx *kong.Context) context.Context
-
-type exitPanic struct{}
-
 type interactiveConsole struct {
-	projectConfig       projectconfig.Config
 	l                   *readline.Instance
-	binder              KongContextBinder
 	k                   *kong.Kong
 	closeWait           sync.WaitGroup
 	closed              bool
 	currentLineCallback func(string)
 }
+type CommandExecutor func(ctx context.Context, k *kong.Kong, args []string, additionalExit func(int)) error
 
-func newInteractiveConsole(k *kong.Kong, binder KongContextBinder, projectConfig projectconfig.Config, eventSource *schemaeventsource.EventSource) (*interactiveConsole, error) {
-	it := &interactiveConsole{k: k, binder: binder, projectConfig: projectConfig}
+func newInteractiveConsole(k *kong.Kong, eventSource *schemaeventsource.EventSource) (*interactiveConsole, error) {
+	it := &interactiveConsole{k: k}
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          interactivePrompt,
 		InterruptPrompt: "^C",
@@ -67,24 +60,23 @@ func (r *interactiveConsole) Close() {
 	r.closeWait.Wait()
 }
 
-func RunInteractiveConsole(ctx context.Context, k *kong.Kong, binder KongContextBinder, projectConfig projectconfig.Config, eventSource *schemaeventsource.EventSource) error {
+func RunInteractiveConsole(ctx context.Context, k *kong.Kong, eventSource *schemaeventsource.EventSource, executor CommandExecutor) error {
 	if !readline.DefaultIsTerminal() {
 		return nil
 	}
-	ic, err := newInteractiveConsole(k, binder, projectConfig, eventSource)
+	ic, err := newInteractiveConsole(k, eventSource)
 	if err != nil {
 		return err
 	}
 	defer ic.Close()
-	err = ic.run(ctx)
+	err = ic.run(ctx, executor)
 	if err != nil {
 		return err
 	}
 	return nil
-
 }
 
-func (r *interactiveConsole) run(ctx context.Context) error {
+func (r *interactiveConsole) run(ctx context.Context, executor CommandExecutor) error {
 	if !readline.DefaultIsTerminal() {
 		return nil
 	}
@@ -104,16 +96,6 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 	}
 	context.AfterFunc(ctx, r.Close)
 	l.CaptureExitSignal()
-	// Overload the exit function to avoid exiting the process
-	k.Exit = func(i int) {
-		if i != 0 {
-			_ = l.Close()
-			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck
-		}
-		// For a normal exit from an interactive command we need a special panic
-		// we recover from this and continue the loop
-		panic(exitPanic{})
-	}
 
 	for {
 		line, err := l.Readline()
@@ -157,35 +139,12 @@ func (r *interactiveConsole) run(ctx context.Context) error {
 				tsm.consoleNewline("> " + line)
 			}
 		}
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					if _, ok := r.(exitPanic); ok {
-						return
-					}
-					panic(r)
-				}
-			}()
-			// Dynamically update the kong app with language specific flags for the "ftl module new" command.
-			languagePlugin, err := languageplugin.PrepareNewCmd(ctx, r.projectConfig, k, args)
-			if err != nil {
-				errorf("%s", err)
-				return
-			}
-			kctx, err := k.Parse(args)
-			if err != nil {
-				errorf("%s", err)
-				return
-			}
-			kctx.Bind(languagePlugin)
-			subctx := r.binder(ctx, kctx)
-
-			err = kctx.Run(subctx)
-			if err != nil {
-				errorf("error: %s", err)
-				return
-			}
-		}()
+		if err := executor(ctx, k, args, func(i int) {
+			_ = l.Close()
+		}); err != nil {
+			errorf("%s", err)
+			continue
+		}
 	}
 	_ = l.Close() //nolint:errcheck // best effort
 
