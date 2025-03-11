@@ -26,10 +26,7 @@ export const useRequestTraceEvents = (requestKey?: string, filters: GetTimelineR
         event.entry &&
         typeof event.entry === 'object' &&
         'case' in event.entry &&
-        (event.entry.case === 'call' ||
-          event.entry.case === 'ingress' ||
-          event.entry.case === 'pubsubPublish' ||
-          event.entry.case === 'pubsubConsume'),
+        (event.entry.case === 'call' || event.entry.case === 'ingress' || event.entry.case === 'pubsubPublish' || event.entry.case === 'pubsubConsume'),
     )
 
   return {
