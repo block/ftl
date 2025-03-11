@@ -32,7 +32,6 @@ import xyz.block.ftl.Cron;
 import xyz.block.ftl.Data;
 import xyz.block.ftl.Enum;
 import xyz.block.ftl.Export;
-import xyz.block.ftl.SQLDatasource;
 import xyz.block.ftl.Secret;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.Verb;
@@ -75,11 +74,6 @@ public class AnnotationProcessor implements Processor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        roundEnv.getElementsAnnotatedWithAny(Set.of(SQLDatasource.class))
-                .forEach(element -> {
-                    SQLDatasource ds = element.getAnnotation(SQLDatasource.class);
-                    databases.put(ds.name(), ds.type().name());
-                });
         //TODO: HTTP etc
         roundEnv.getElementsAnnotatedWithAny(Set.of(Verb.class, Enum.class, Data.class, Cron.class, TypeAlias.class))
                 .forEach(element -> {

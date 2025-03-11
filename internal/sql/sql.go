@@ -51,12 +51,12 @@ type WASMPlugin struct {
 // it is overwritten.
 //
 // Returns true if the schema was updated, false otherwise.
-func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc moduleconfig.AbsModuleConfig, out *schema.Schema) (bool, error) {
+func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc moduleconfig.AbsModuleConfig, out *schema.Schema) error {
 	var cfgs []ConfigContext
 	for dbName, content := range mc.SQLDatabases {
 		maybeCfg, err := newConfigContext(projectRoot, mc, dbName, content)
 		if err != nil {
-			return false, fmt.Errorf("failed to extract database %s from the file system: %w", dbName, err)
+			return fmt.Errorf("failed to extract database %s from the file system: %w", dbName, err)
 		}
 		cfg, ok := maybeCfg.Get()
 		if !ok {
@@ -64,7 +64,7 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 		}
 		if len(cfg.SchemaPaths) > 0 && len(cfg.QueryPaths) > 0 {
 			if err := cfg.scaffoldFile(); err != nil {
-				return false, fmt.Errorf("failed to scaffold SQLC config file: %w", err)
+				return fmt.Errorf("failed to scaffold SQLC config file: %w", err)
 			}
 		}
 		cfgs = append(cfgs, cfg)
@@ -72,31 +72,35 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 
 	// directories do not exist or contain no SQL files
 	if len(cfgs) == 0 {
-		return false, nil
+		return nil
 	}
 
 	// Generate queries for each database (one config per database)
-	updated := false
+	sch := &schema.Module{
+		Name: mc.Module,
+	}
+	for i, m := range out.Modules {
+		if m.Name == mc.Module {
+			out.Modules[i] = sch
+			break
+		}
+	}
 	for _, cfg := range cfgs {
 		var err error
-		sch := &schema.Module{
-			Name: cfg.Module,
-		}
 		if len(cfg.QueryPaths) > 0 {
 			if err = exec.Command(ctx, log.Debug, ".", "ftl-sqlc", "generate", "--file", cfg.getSQLCConfigPath()).RunStderrError(ctx); err != nil {
-				return updated, fmt.Errorf("sqlc generate failed for database %s: %w", cfg.Engine, err)
+				return fmt.Errorf("sqlc generate failed for database %s: %w", cfg.Engine, err)
 			}
 			sch, err = schema.ModuleFromProtoFile(filepath.Join(cfg.OutDir, "queries.pb"))
 			if err != nil {
-				return updated, fmt.Errorf("failed to parse generated schema: %w", err)
+				return fmt.Errorf("failed to parse generated schema: %w", err)
 			}
 		}
 		if err = updateSchema(out, sch, cfg); err != nil {
-			return updated, fmt.Errorf("failed to add queries to schema: %w", err)
+			return fmt.Errorf("failed to add queries to schema: %w", err)
 		}
-		updated = true
 	}
-	return updated, nil
+	return nil
 }
 
 // updateSchema updates the schema with the new database decls (databases and queries).
@@ -142,6 +146,11 @@ func toDatabaseType(engine string) (string, error) {
 
 func newConfigContext(projectRoot string, mc moduleconfig.AbsModuleConfig, dbName string, dbContent moduleconfig.DatabaseContent) (optional.Option[ConfigContext], error) {
 	outDir := filepath.Join(mc.DeployDir, dbName)
+	err := os.MkdirAll(outDir, 0750)
+	if err != nil {
+		return optional.None[ConfigContext](), fmt.Errorf("failed to create output directory %s: %w", outDir, err)
+	}
+
 	schemaDir, ok := dbContent.SchemaDir.Get()
 	if !ok {
 		return optional.None[ConfigContext](), nil

@@ -26,6 +26,11 @@ import xyz.block.ftl.lease.v1.LeaseServiceGrpc;
 import xyz.block.ftl.pubsub.v1.PublishEventRequest;
 import xyz.block.ftl.pubsub.v1.PublishEventResponse;
 import xyz.block.ftl.pubsub.v1.PublishServiceGrpc;
+import xyz.block.ftl.query.v1.CommandType;
+import xyz.block.ftl.query.v1.ExecuteQueryRequest;
+import xyz.block.ftl.query.v1.ExecuteQueryResponse;
+import xyz.block.ftl.query.v1.QueryServiceGrpc;
+import xyz.block.ftl.query.v1.ResultColumn;
 import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.v1.CallRequest;
 import xyz.block.ftl.v1.CallResponse;
@@ -50,6 +55,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     final ControllerServiceGrpc.ControllerServiceStub deploymentService;
     final LeaseServiceGrpc.LeaseServiceStub leaseService;
     final PublishServiceGrpc.PublishServiceStub publishService;
+    final QueryServiceGrpc.QueryServiceStub queryService;
     final StreamObserver<GetDeploymentContextResponse> moduleObserver = new ModuleObserver();
 
     FTLRunnerConnectionImpl(final String endpoint, final String deploymentName, final String moduleName,
@@ -72,11 +78,13 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
         });
         this.deploymentName = deploymentName;
         deploymentService = ControllerServiceGrpc.newStub(channel);
-        deploymentService.getDeploymentContext(GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
+        deploymentService.getDeploymentContext(
+                GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
                 moduleObserver);
         verbService = VerbServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         publishService = PublishServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         leaseService = LeaseServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
+        queryService = QueryServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         this.endpoint = endpoint;
     }
 
@@ -238,6 +246,104 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     @Override
     public void close() {
         channel.shutdown();
+    }
+
+    @Override
+    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName) {
+        var request = createQueryRequest(dbName, sql, paramsJson, colToFieldName)
+                .setCommandType(CommandType.COMMAND_TYPE_ONE)
+                .build();
+        List<ExecuteQueryResponse> responses = executeQuery(request);
+        if (responses.isEmpty()) {
+            return null;
+        }
+        if (responses.size() > 1) {
+            throw new RuntimeException("expected 1 response, got " + responses.size());
+        }
+        var response = responses.get(0);
+        if (!response.hasRowResults() || response.getRowResults().getJsonRows() == null
+                || response.getRowResults().getJsonRows().isEmpty()) {
+            return null;
+        }
+        return response.getRowResults().getJsonRows();
+    }
+
+    @Override
+    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName) {
+        var request = createQueryRequest(dbName, sql, paramsJson, colToFieldName)
+                .setCommandType(CommandType.COMMAND_TYPE_MANY)
+                .build();
+
+        List<ExecuteQueryResponse> responses = executeQuery(request);
+        List<String> results = new ArrayList<>();
+        for (ExecuteQueryResponse response : responses) {
+            if (response.hasRowResults() && response.getRowResults().getJsonRows() != null
+                    && !response.getRowResults().getJsonRows().isEmpty()) {
+                results.add(response.getRowResults().getJsonRows());
+            }
+        }
+        return results;
+    }
+
+    @Override
+    public void executeQueryExec(String dbName, String sql, String paramsJson) {
+        var request = createQueryRequest(dbName, sql, paramsJson, null)
+                .setCommandType(CommandType.COMMAND_TYPE_EXEC)
+                .build();
+        executeQuery(request);
+    }
+
+    private List<ExecuteQueryResponse> executeQuery(ExecuteQueryRequest request) {
+        CompletableFuture<List<ExecuteQueryResponse>> cf = new CompletableFuture<>();
+        List<ExecuteQueryResponse> responses = new ArrayList<>();
+        queryService.executeQuery(request, new StreamObserver<ExecuteQueryResponse>() {
+            @Override
+            public void onNext(ExecuteQueryResponse response) {
+                responses.add(response);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                cf.completeExceptionally(throwable);
+            }
+
+            @Override
+            public void onCompleted() {
+                cf.complete(responses);
+            }
+        });
+
+        try {
+            return cf.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private ExecuteQueryRequest.Builder createQueryRequest(String dbName, String sql, String paramsJson,
+            String[] colToFieldName) {
+        ExecuteQueryRequest.Builder requestBuilder = ExecuteQueryRequest.newBuilder()
+                .setRawSql(sql)
+                .setDatabaseName(dbName);
+
+        if (paramsJson != null && !paramsJson.isEmpty()) {
+            requestBuilder.setParametersJson(paramsJson);
+        }
+
+        if (colToFieldName != null && colToFieldName.length > 0) {
+            for (String mapping : colToFieldName) {
+                String[] parts = mapping.split(",", 2);
+                if (parts.length == 2) {
+                    ResultColumn column = ResultColumn.newBuilder()
+                            .setSqlName(parts[0])
+                            .setTypeName(parts[1])
+                            .build();
+                    requestBuilder.addResultColumns(column);
+                }
+            }
+        }
+
+        return requestBuilder;
     }
 
     private class ModuleObserver implements StreamObserver<GetDeploymentContextResponse> {

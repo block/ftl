@@ -44,7 +44,7 @@ func TestMySQL(t *testing.T) {
 		in.Call[in.Obj, in.Obj]("mysql", "query", map[string]any{}, func(t testing.TB, response in.Obj) {
 			assert.Equal(t, "hello", response["data"])
 		}),
-		in.IfLanguage("go", in.VerifySchemaVerb("mysql", "createRequest", func(ctx context.Context, t testing.TB, sch *schemapb.Schema, verb *schemapb.Verb) {
+		in.VerifySchemaVerb("mysql", "createRequest", func(ctx context.Context, t testing.TB, sch *schemapb.Schema, verb *schemapb.Verb) {
 			assert.True(t, verb.Response.GetUnit() != nil, "response was not a unit")
 			assert.True(t, verb.Request.GetRef() != nil, "request was not a ref")
 			fullSchema, err := schema.FromProto(sch)
@@ -59,8 +59,8 @@ func TestMySQL(t *testing.T) {
 			} else {
 				assert.False(t, true, "request not data")
 			}
-		})),
-		in.IfLanguage("go", in.VerifySchemaVerb("mysql", "getRequestData", func(ctx context.Context, t testing.TB, sch *schemapb.Schema, verb *schemapb.Verb) {
+		}),
+		in.VerifySchemaVerb("mysql", "getRequestData", func(ctx context.Context, t testing.TB, sch *schemapb.Schema, verb *schemapb.Verb) {
 			assert.True(t, verb.Response.GetArray() != nil, "response was not an array")
 			assert.True(t, verb.Response.GetArray().Element.GetRef() != nil, "array element was not a ref")
 			assert.True(t, verb.Request.GetUnit() != nil, "request was not a unit")
@@ -77,13 +77,13 @@ func TestMySQL(t *testing.T) {
 			} else {
 				assert.False(t, true, "response not data")
 			}
-		})),
+		}),
 	)
 }
 
 func TestSQLVerbs(t *testing.T) {
 	in.Run(t,
-		in.WithLanguages("go"),
+		in.WithLanguages("go", "java"),
 		in.CopyModule("mysql"),
 		in.Deploy("mysql"),
 

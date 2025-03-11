@@ -186,6 +186,22 @@ func (m *Module) AddDecls(decls []Decl) {
 	m.Decls = maps.Values(existingDecls)
 }
 
+// ToGeneratedModule returns a new module with only the generated decls.
+func (m *Module) ToGeneratedModule() *Module {
+	generatedDecls := []Decl{}
+	for _, d := range m.Decls {
+		if !d.IsGenerated() {
+			continue
+		}
+		generatedDecls = append(generatedDecls, d)
+	}
+	generatedModule := &Module{
+		Name:  m.Name,
+		Decls: generatedDecls,
+	}
+	return generatedModule
+}
+
 // AddDecl adds a single decl to the module.
 //
 // It is only added if not already present or if it changes the visibility of the existing Decl.

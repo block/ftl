@@ -38,6 +38,7 @@ func (t *Topic) schemaChildren() []Node {
 
 func (t *Topic) GetName() string  { return t.Name }
 func (t *Topic) IsExported() bool { return t.Export }
+func (t *Topic) IsGenerated() bool { return false }
 
 func (t *Topic) String() string {
 	w := &strings.Builder{}

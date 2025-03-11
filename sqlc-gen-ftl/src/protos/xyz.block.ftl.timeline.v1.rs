@@ -18,6 +18,8 @@ pub struct LogEvent {
     pub error: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag="8")]
     pub stack: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="9")]
+    pub changeset_key: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CallEvent {
@@ -365,6 +367,12 @@ pub mod get_timeline_request {
         #[prost(string, repeated, tag="1")]
         pub deployments: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     }
+    /// Filters events by changeset key.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct ChangesetFilter {
+        #[prost(string, repeated, tag="1")]
+        pub changesets: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    }
     /// Filters events by request key.
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct RequestFilter {
@@ -417,7 +425,7 @@ pub mod get_timeline_request {
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Filter {
         /// These map 1:1 with filters in backend/timeline/filters.go
-        #[prost(oneof="filter::Filter", tags="1, 2, 3, 4, 5, 6, 7, 8")]
+        #[prost(oneof="filter::Filter", tags="1, 2, 3, 4, 5, 6, 7, 8, 9")]
         pub filter: ::core::option::Option<filter::Filter>,
     }
     /// Nested message and enum types in `Filter`.
@@ -441,6 +449,8 @@ pub mod get_timeline_request {
             Call(super::CallFilter),
             #[prost(message, tag="8")]
             Module(super::ModuleFilter),
+            #[prost(message, tag="9")]
+            Changesets(super::ChangesetFilter),
         }
     }
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

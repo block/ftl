@@ -540,12 +540,17 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 		return "", fmt.Errorf("failed to scan row: %w", err)
 	}
 
+	exportName := func(name string) string {
+		return strings.ToUpper(name[:1]) + name[1:]
+	}
+
 	// create a result struct which will be encoded to JSON
 	structFields := make([]reflect.StructField, len(resultColumns))
 	for i, col := range resultColumns {
 		structFields[i] = reflect.StructField{
-			Name: col.TypeName,
+			Name: exportName(col.TypeName),
 			Type: reflect.TypeFor[any](),
+			Tag:  reflect.StructTag(`json:"` + col.TypeName + `"`),
 		}
 	}
 
@@ -576,7 +581,7 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 			fieldValue = v
 		}
 
-		field := structValue.FieldByName(typeName)
+		field := structValue.FieldByName(exportName(typeName))
 		if field.IsValid() {
 			field.Set(reflect.ValueOf(fieldValue))
 		}

@@ -225,6 +225,16 @@ pub struct ClusterInfoResponse {
     #[prost(string, tag="2")]
     pub arch: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StreamChangesetLogsRequest {
+    #[prost(string, tag="1")]
+    pub changeset_key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StreamChangesetLogsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub logs: ::prost::alloc::vec::Vec<super::super::timeline::v1::LogEvent>,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ConfigProvider {

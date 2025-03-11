@@ -2,6 +2,7 @@ package xyz.block.ftl.runtime;
 
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.List;
 
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
@@ -17,6 +18,12 @@ public interface FTLRunnerConnection extends Closeable {
     byte[] callVerb(String name, String module, byte[] payload);
 
     void publishEvent(String topic, String callingVerbName, byte[] event, String key);
+
+    String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName);
+
+    List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName);
+
+    void executeQueryExec(String dbName, String sql, String paramsJson);
 
     LeaseHandle acquireLease(Duration duration, String... keys) throws LeaseFailedException;
 

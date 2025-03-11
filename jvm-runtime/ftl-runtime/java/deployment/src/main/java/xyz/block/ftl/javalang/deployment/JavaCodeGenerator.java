@@ -3,6 +3,7 @@ package xyz.block.ftl.javalang.deployment;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import com.squareup.javapoet.WildcardTypeName;
 import xyz.block.ftl.ConsumableTopic;
 import xyz.block.ftl.EnumHolder;
 import xyz.block.ftl.GeneratedRef;
+import xyz.block.ftl.SQLQueryClient;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.VerbClient;
@@ -38,7 +40,10 @@ import xyz.block.ftl.deployment.VerbType;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.MetadataSQLColumn;
+import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
+import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.schema.v1.Topic;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.Value;
@@ -300,6 +305,85 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
         javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
     }
 
+    protected void generateSQLQueryVerb(Module module, Verb verb, String dbName, MetadataSQLQuery queryMetadata,
+            String packageName,
+            PackageOutput outputDir)
+            throws IOException {
+        String verbName = verb.getName();
+        TypeSpec.Builder clientBuilder = TypeSpec.interfaceBuilder(className(verbName) + CLIENT)
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("A client for the $L.$L SQL query verb", module.getName(), verbName);
+
+        var methodName = verbName;
+        if (JAVA_KEYWORDS.contains(verbName)) {
+            methodName = verbName + "_";
+        }
+
+        AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(SQLQueryClient.class)
+                .addMember("command", "$S", queryMetadata.getCommand())
+                .addMember("rawSQL", "\"$L\"", queryMetadata.getQuery())
+                .addMember("module", "$S", module.getName())
+                .addMember("dbName", "$S", dbName);
+        MethodSpec.Builder callMethod = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                .addJavadoc(String.join("\n", verb.getCommentsList()));
+        VerbType verbType = VerbType.of(verb);
+        if (verbType == VerbType.SOURCE || verbType == VerbType.VERB) {
+            List<SQLColumnField> sqlFields = getOrderedSQLFields(module, verb.getResponse());
+            String[] fields = sqlFields.stream().map(m -> "\"" + m.metadata.getName() + "," + m.name + "\"")
+                    .toArray(String[]::new);
+            annotationBuilder.addMember("colToFieldName", "{$L}", String.join(",", fields));
+            callMethod.returns(toAnnotatedJavaTypeName(verb.getResponse(), new HashMap<>(), new HashMap<>()));
+        }
+        if (verbType == VerbType.SINK || verbType == VerbType.VERB) {
+            List<SQLColumnField> sqlFields = getOrderedSQLFields(module, verb.getRequest());
+            String[] fields = sqlFields.stream().map(m -> "\"" + m.name + "\"").toArray(String[]::new);
+            annotationBuilder.addMember("fields", "{$L}", String.join(",", fields));
+            callMethod.addParameter(toAnnotatedJavaTypeName(verb.getRequest(), new HashMap<>(), new HashMap<>()),
+                    "value");
+        }
+        callMethod.addAnnotation(annotationBuilder.build());
+        clientBuilder.addMethod(callMethod.build());
+        JavaFile javaFile = JavaFile.builder(packageName, clientBuilder.build()).build();
+        javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
+    }
+
+    private List<SQLColumnField> getOrderedSQLFields(Module module, Type type) {
+        if (type.hasArray()) {
+            return getOrderedSQLFields(module, type.getArray().getElement());
+        } else if (type.hasMap()) {
+            return getOrderedSQLFields(module, type.getMap().getValue());
+        } else if (type.hasOptional()) {
+            return getOrderedSQLFields(module, type.getOptional().getType());
+        }
+
+        Ref ref = type.getRef();
+        if (ref == null) {
+            return List.of();
+        }
+        Data data = resolveDataDecl(module, ref);
+        if (data == null) {
+            return List.of();
+        }
+        List<SQLColumnField> fields = new ArrayList<>();
+        for (var field : data.getFieldsList()) {
+            MetadataSQLColumn fieldMd = field.getMetadataList().stream().findFirst().map(md -> md.getSqlColumn())
+                    .orElse(null);
+            if (fieldMd != null) {
+                fields.add(new SQLColumnField(toJavaName(field.getName()), fieldMd));
+            }
+        }
+        return fields;
+    }
+
+    private Data resolveDataDecl(Module module, Ref ref) {
+        if (ref == null) {
+            return null;
+        }
+        return module.getDeclsList().stream().filter(d -> d.hasData() && d.getData().getName().equals(ref.getName()))
+                .findFirst().map(d -> d.getData()).orElse(null);
+    }
+
     private String toJavaName(String name) {
         if (JAVA_KEYWORDS.contains(name)) {
             return name + "_";
@@ -310,7 +394,8 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
     private TypeName toAnnotatedJavaTypeName(Type type, Map<DeclRef, Type> typeAliasMap,
             Map<DeclRef, String> nativeTypeAliasMap) {
         var results = toJavaTypeName(type, typeAliasMap, nativeTypeAliasMap, false);
-        if (type.hasRef() || type.hasArray() || type.hasBytes() || type.hasString() || type.hasMap() || type.hasTime()) {
+        if (type.hasRef() || type.hasArray() || type.hasBytes() || type.hasString() || type.hasMap()
+                || type.hasTime()) {
             return results.annotated(AnnotationSpec.builder(NotNull.class).build());
         }
         return results;
@@ -435,4 +520,14 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
             "implements", "protected", "throw", "byte", "else", "import", "public", "throws", "case", "enum", "instanceof",
             "return", "transient", "catch", "extends", "int", "short", "try", "char", "final", "interface", "static", "void",
             "class", "finally", "long", "strictfp", "volatile", "const", "float", "native", "super", "while");
+
+    private class SQLColumnField {
+        private final String name;
+        private final MetadataSQLColumn metadata;
+
+        public SQLColumnField(String name, MetadataSQLColumn metadata) {
+            this.name = name;
+            this.metadata = metadata;
+        }
+    }
 }
