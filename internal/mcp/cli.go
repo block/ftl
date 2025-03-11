@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"reflect"
 	"slices"
 	"strings"
-
-	"maps"
 
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
