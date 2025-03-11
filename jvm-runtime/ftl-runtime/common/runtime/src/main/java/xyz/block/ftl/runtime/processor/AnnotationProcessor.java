@@ -14,14 +14,10 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
@@ -48,6 +44,7 @@ public class AnnotationProcessor implements Processor {
 
     final Map<String, String> saved = new HashMap<>();
     final Map<String, String> databases = new HashMap<>();
+    final Set<String> processedLocalVerbs = new HashSet<>();
 
     @Override
     public Set<String> getSupportedOptions() {
@@ -109,7 +106,11 @@ public class AnnotationProcessor implements Processor {
                 .forEach(element -> {
                     if (element.getKind() == ElementKind.METHOD) {
                         var executableElement = (ExecutableElement) element;
-                        String className = executableElement.getSimpleName().toString();
+                        String verbName = executableElement.getSimpleName().toString();
+                        if (processedLocalVerbs.contains(verbName)) {
+                            return;
+                        }
+                        String className = verbName;
                         className = Character.toUpperCase(className.charAt(0)) + className.substring(1);
                         ClassOutput output = new ClassOutput() {
                             @Override
@@ -124,10 +125,7 @@ public class AnnotationProcessor implements Processor {
                                 }
                             }
                         };
-                        try (ClassCreator creator = ClassCreator.interfaceBuilder()
-                                .classOutput(output)
-                                .className("client." + className + "Client")
-                                .build()) {
+                        try {
                             List<? extends VariableElement> parameters = executableElement.getParameters();
                             String[] paramNames = new String[0];
                             if (!parameters.isEmpty()) {
@@ -136,17 +134,44 @@ public class AnnotationProcessor implements Processor {
                                     if (elem.getAnnotation(Config.class) != null || elem.getAnnotation(Secret.class) != null) {
                                         continue;
                                     }
+                                    boolean ok = true;
+                                    if (elem.asType().getKind() == TypeKind.DECLARED) {
+                                        DeclaredType declaredType = (DeclaredType) elem.asType();
+                                        if (declaredType.asElement().getAnnotation(Topic.class) != null) {
+                                            ok = false;
+                                        }
+                                        if (ok) {
+                                            for (var meth : declaredType.asElement().getEnclosedElements()) {
+                                                if (meth.getAnnotation(VerbClient.class) != null) {
+                                                    ok = false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (!ok) {
+                                        continue;
+                                    }
                                     paramNames = new String[1];
                                     paramNames[0] = typeMirrorToString(elem.asType());
                                 }
                             }
-                            TypeMirror returnType = executableElement.getReturnType();
-                            try (MethodCreator mc = creator.getMethodCreator(executableElement.getSimpleName().toString(),
-                                    typeMirrorToString(returnType), paramNames)) {
-                                mc.setModifiers(Modifier.ABSTRACT | Modifier.PUBLIC);
-                                mc.addAnnotation(VerbClient.class);
+                            var returnType = typeMirrorToString(executableElement.getReturnType());
 
+                            try (ClassCreator creator = ClassCreator.interfaceBuilder()
+                                    .classOutput(output)
+                                    .className("client." + className + "Client")
+                                    .build()) {
+
+                                try (MethodCreator mc = creator.getMethodCreator(verbName,
+                                        returnType, paramNames)) {
+                                    mc.setModifiers(Modifier.ABSTRACT | Modifier.PUBLIC);
+                                    mc.addAnnotation(VerbClient.class);
+                                }
                             }
+                            processedLocalVerbs.add(verbName);
+                        } catch (IgnoreException e) {
+                            this.processingEnv.getMessager().printWarning(e.getMessage(), element);
                         }
 
                     }
@@ -164,7 +189,7 @@ public class AnnotationProcessor implements Processor {
         return false;
     }
 
-    private static String typeMirrorToString(TypeMirror typeMirror) {
+    private static String typeMirrorToString(TypeMirror typeMirror) throws IgnoreException {
         switch (typeMirror.getKind()) {
             case BOOLEAN:
                 return "boolean";
@@ -187,11 +212,19 @@ public class AnnotationProcessor implements Processor {
                 return typeMirrorToString(arrayType.getComponentType()) + "[]";
             case DECLARED:
                 DeclaredType type = (DeclaredType) typeMirror;
-                return type.asElement().getSimpleName().toString();
+                Element element = type.asElement();
+                Element enclosing = element;
+                while (enclosing.getKind() != ElementKind.PACKAGE) {
+                    enclosing = enclosing.getEnclosingElement();
+                }
+                PackageElement packageElement = (PackageElement) enclosing;
+                return packageElement.getQualifiedName().toString() + "." + element.getSimpleName().toString();
             case VOID:
                 return "void";
+            case ERROR:
+                throw new IgnoreException("Unknown type " + typeMirror.toString());
             default:
-                throw new IllegalArgumentException("Unsupported type: " + typeMirror.getKind());
+                throw new IllegalArgumentException("Unsupported type: " + typeMirror.toString());
         }
     }
 
@@ -260,4 +293,10 @@ public class AnnotationProcessor implements Processor {
         return null;
     }
 
+    private static class IgnoreException extends Exception {
+        public IgnoreException(String message) {
+            super(message);
+        }
+
+    }
 }

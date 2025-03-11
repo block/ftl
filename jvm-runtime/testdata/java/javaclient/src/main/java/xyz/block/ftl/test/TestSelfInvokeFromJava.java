@@ -1,0 +1,256 @@
+package xyz.block.ftl.test;
+
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import client.*;
+import ftl.builtin.FailedEvent;
+import ftl.gomodule.AnimalWrapper;
+import ftl.gomodule.ColorWrapper;
+import ftl.gomodule.ParameterizedType;
+import ftl.gomodule.ShapeWrapper;
+import ftl.gomodule.StringList;
+import ftl.gomodule.TestObject;
+import ftl.gomodule.Scalar;
+import ftl.gomodule.TestObjectOptionalFields;
+import ftl.gomodule.TypeEnumWrapper;
+import web5.sdk.dids.didcore.Did;
+import xyz.block.ftl.Export;
+import xyz.block.ftl.Verb;
+
+public class TestSelfInvokeFromJava {
+
+    @Export
+    @Verb
+    public void emptySelfVerb(EmptyVerbClient client) {
+        client.emptyVerb();
+    }
+
+    @Export
+    @Verb
+    public void sinkSelfVerb(String input, SinkVerbClient client) {
+        client.sinkVerb(input);
+    }
+
+    @Export
+    @Verb
+    public String sourceSelfVerb(SourceVerbClient client) {
+        return client.sourceVerb();
+    }
+
+    @Export
+    @Verb
+    public void errorEmptySelfVerb(ErrorEmptyVerbClient client) {
+        client.errorEmptyVerb();
+    }
+
+    @Export
+    @Verb
+    public long intSelfVerb(long val, IntVerbClient client) {
+        return client.intVerb(val);
+    }
+
+    @Export
+    @Verb
+    public double floatSelfVerb(double val, FloatVerbClient client) {
+        return client.floatVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull String stringSelfVerb(@NotNull String val, StringVerbClient client) {
+        return client.stringVerb(val);
+    }
+
+    @Export
+    @Verb
+    public byte[] bytesSelfVerb(byte[] val, BytesVerbClient client) {
+        return client.bytesVerb(val);
+    }
+
+    @Export
+    @Verb
+    public boolean boolSelfVerb(boolean val, BoolVerbClient client) {
+        return client.boolVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull List<String> stringArraySelfVerb(@NotNull List<String> val, StringArrayVerbClient client) {
+        return client.stringArrayVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull Map<String, String> stringMapSelfVerb(@NotNull Map<String, String> val, StringMapVerbClient client) {
+        return client.stringMapVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull Map<String, TestObject> objectMapSelfVerb(@NotNull Map<String, TestObject> val,
+            ObjectMapVerbClient client) {
+        return client.objectMapVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull List<TestObject> objectArraySelfVerb(@NotNull List<TestObject> val, ObjectArrayVerbClient client) {
+        return client.objectArrayVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull ParameterizedType<String> parameterizedObjectSelfVerb(@NotNull ParameterizedType<String> val,
+            ParameterizedObjectVerbClient client) {
+        return client.parameterizedObjectVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull ZonedDateTime timeSelfVerb(@NotNull ZonedDateTime instant, TimeVerbClient client) {
+        return client.timeVerb(instant);
+    }
+
+    @Export
+    @Verb
+    public @NotNull TestObject testObjectSelfVerb(@NotNull TestObject val, TestObjectVerbClient client) {
+        return client.testObjectVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull FailedEvent<TestObject> testGenericType(@NotNull FailedEvent<TestObject> val,
+            TestGenericTypeClient client) {
+        return client.testGenericType(val);
+    }
+
+    @Export
+    @Verb
+    public @NotNull TestObjectOptionalFields testObjectOptionalFieldsSelfVerb(@NotNull TestObjectOptionalFields val,
+            TestObjectOptionalFieldsVerbClient client) {
+        return client.testObjectOptionalFieldsVerb(val);
+    }
+
+    // now the same again but with option return / input types
+
+    @Export
+    @Verb
+    public Long optionalIntSelfVerb(Long val, OptionalIntVerbClient client) {
+        return client.optionalIntVerb(val);
+    }
+
+    @Export
+    @Verb
+    public Double optionalFloatSelfVerb(Double val, OptionalFloatVerbClient client) {
+        return client.optionalFloatVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @Nullable String optionalStringSelfVerb(@Nullable String val, OptionalStringVerbClient client) {
+        return client.optionalStringVerb(val);
+    }
+
+    @Export
+    @Verb
+    public byte @Nullable [] optionalBytesSelfVerb(byte @Nullable [] val, OptionalBytesVerbClient client) {
+        return client.optionalBytesVerb(val);
+    }
+
+    @Export
+    @Verb
+    public Boolean optionalBoolSelfVerb(Boolean val, OptionalBoolVerbClient client) {
+        return client.optionalBoolVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @Nullable List<String> optionalStringArraySelfVerb(@Nullable List<String> val,
+            OptionalStringArrayVerbClient client) {
+        return client.optionalStringArrayVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @Nullable Map<String, String> optionalStringMapSelfVerb(@Nullable Map<String, String> val,
+            OptionalStringMapVerbClient client) {
+        return client.optionalStringMapVerb(val);
+    }
+
+    @Export
+    @Verb
+    public @Nullable ZonedDateTime optionalTimeSelfVerb(@Nullable ZonedDateTime instant, OptionalTimeVerbClient client) {
+        return client.optionalTimeVerb(instant);
+    }
+
+    @Export
+    @Verb
+    public @Nullable TestObject optionalTestObjectSelfVerb(@Nullable TestObject val, OptionalTestObjectVerbClient client) {
+        return client.optionalTestObjectVerb(val);
+    }
+
+    @Export
+    @Verb
+    public TestObjectOptionalFields optionalTestObjectOptionalFieldsSelfVerb(TestObjectOptionalFields val,
+            OptionalTestObjectOptionalFieldsVerbClient client) {
+        return client.optionalTestObjectOptionalFieldsVerb(val);
+    }
+
+    @Export
+    @Verb
+    public Did externalTypeSelfVerb(Did val, ExternalTypeVerbClient client) {
+        return client.externalTypeVerb(val);
+    }
+
+    @Export
+    @Verb
+    public CustomSerializedType stringAliasedType(CustomSerializedType type) {
+        return type;
+    }
+
+    @Export
+    @Verb
+    public AnySerializedType anyAliasedType(AnySerializedType type) {
+        return type;
+    }
+
+    @Export
+    @Verb
+    public AnimalWrapper typeEnumSelfVerb(AnimalWrapper animal, TypeEnumVerbClient client) {
+        if (animal.getAnimal().isCat()) {
+            return client.typeEnumVerb(new AnimalWrapper(animal.getAnimal().getCat()));
+        } else {
+            return client.typeEnumVerb(new AnimalWrapper(animal.getAnimal().getDog()));
+        }
+    }
+
+    @Export
+    @Verb
+    public ColorWrapper valueEnumSelfVerb(ColorWrapper color, ValueEnumVerbClient client) {
+        return client.valueEnumVerb(color);
+    }
+
+    @Export
+    @Verb
+    public ShapeWrapper stringEnumSelfVerb(ShapeWrapper shape, StringEnumVerbClient client) {
+        return client.stringEnumVerb(shape);
+    }
+
+    @Export
+    @Verb
+    public TypeEnumWrapper typeWrapperEnumSelfVerb(TypeEnumWrapper value, TypeWrapperEnumVerbClient client) {
+        if (value.getType().isScalar()) {
+            return client.typeWrapperEnumVerb(new TypeEnumWrapper(new StringList(List.of("a", "b", "c"))));
+        } else if (value.getType().isStringList()) {
+            return client.typeWrapperEnumVerb(new TypeEnumWrapper(new Scalar("scalar")));
+        } else {
+            throw new IllegalArgumentException("unexpected value");
+        }
+    }
+
+}
