@@ -20,8 +20,9 @@ import (
 )
 
 type replayCmd struct {
-	Wait time.Duration  `short:"w" help:"Wait up to this elapsed time for the FTL cluster to become available." default:"1m"`
-	Verb reflection.Ref `arg:"" required:"" help:"Full path of Verb to call." predictor:"verbs"`
+	Wait    time.Duration  `short:"w" help:"Wait up to this elapsed time for the FTL cluster to become available." default:"1m"`
+	Verb    reflection.Ref `arg:"" required:"" help:"Full path of Verb to call." predictor:"verbs"`
+	Verbose bool           `flag:"" short:"v" help:"Print verbose information."`
 }
 
 func (c *replayCmd) Run(
@@ -98,5 +99,5 @@ func (c *replayCmd) Run(
 	logger.Infof("Calling %s with body:", c.Verb)
 	status.PrintJSON(ctx, []byte(requestJSON))
 	logger.Infof("Response:")
-	return callVerb(ctx, verbClient, eventSource, c.Verb, []byte(requestJSON))
+	return callVerb(ctx, verbClient, eventSource, c.Verb, []byte(requestJSON), c.Verbose)
 }
