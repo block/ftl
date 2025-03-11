@@ -271,7 +271,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 			return nil
 		}
 		if id != s.buildContext.Load().ID {
-			// The build context was updated, we need to explicitly mark this as an explict build
+			// The build context was updated, we need to mark this as an explicit build
 			firstResponseSent.Store(false)
 		}
 	}
