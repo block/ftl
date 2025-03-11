@@ -41,8 +41,6 @@ func (e *ARNSecretMySQLSetup) Prepare(_ context.Context, input state.State) erro
 func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error) {
 	rg := concurrency.ResourceGroup[state.State]{}
 
-	logger := log.FromContext(ctx)
-
 	for _, input := range e.inputs {
 		if input, ok := input.(state.RDSInstanceReadyMySQL); ok {
 			rg.Go(func() (state.State, error) {
@@ -60,8 +58,6 @@ func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error
 				if err := mysqlSetup(ctx, adminDSN, connector); err != nil {
 					return nil, err
 				}
-
-				logger.Infof("MySQL database created: %s", input.ResourceID) //nolint
 
 				return state.OutputMySQL{
 					Module:     input.Module,
@@ -107,6 +103,8 @@ func mysqlAdminDSN(ctx context.Context, secrets *secretsmanager.Client, secretAR
 }
 
 func mysqlSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAuthDatabaseConnector) error {
+	logger := log.FromContext(ctx)
+
 	database := connector.Database
 	username := connector.Username
 
@@ -116,12 +114,32 @@ func mysqlSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAu
 	}
 	defer db.Close()
 
-	if _, err := db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS "+database); err != nil {
+	res, err := db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS "+database)
+	if err != nil {
 		return fmt.Errorf("failed to create database: %w", err)
 	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows > 0 {
+		logger.Infof("MySQL database created: %s", database) //nolint:forbidigo
+	} else {
+		logger.Debugf("MySQL database already exists: %s", database)
+	}
 
-	if _, err := db.ExecContext(ctx, "CREATE USER IF NOT EXISTS "+username+"@'%' IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS';"); err != nil {
+	res, err = db.ExecContext(ctx, "CREATE USER IF NOT EXISTS "+username+"@'%' IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS';")
+	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
+	}
+	rows, err = res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows > 0 {
+		logger.Debugf("MySQL user created: %s", username)
+	} else {
+		logger.Debugf("MySQL user already exists: %s", username)
 	}
 
 	if _, err := db.ExecContext(ctx, "ALTER USER "+username+"@'%' REQUIRE SSL;"); err != nil {

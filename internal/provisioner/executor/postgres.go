@@ -41,8 +41,6 @@ func (e *ARNSecretPostgresSetup) Prepare(_ context.Context, input state.State) e
 
 func (e *ARNSecretPostgresSetup) Execute(ctx context.Context) ([]state.State, error) {
 	rg := concurrency.ResourceGroup[state.State]{}
-	logger := log.FromContext(ctx)
-
 	for _, input := range e.inputs {
 		if input, ok := input.(state.RDSInstanceReadyPostgres); ok {
 			rg.Go(func() (state.State, error) {
@@ -66,8 +64,6 @@ func (e *ARNSecretPostgresSetup) Execute(ctx context.Context) ([]state.State, er
 				if err := postgresSetup(ctx, adminDSN, connector); err != nil {
 					return nil, err
 				}
-
-				logger.Infof("Postgres database created: %s", input.ResourceID) //nolint
 
 				return state.OutputPostgres{
 					Module:     input.Module,
@@ -109,7 +105,7 @@ func postgresAdminDSN(ctx context.Context, secrets *secretsmanager.Client, secre
 }
 
 func postgresSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAuthDatabaseConnector) error {
-	logger := log.FromContext(ctx).Scope("postgres-setup")
+	logger := log.FromContext(ctx)
 
 	database := connector.Database
 	username := connector.Username
@@ -121,12 +117,23 @@ func postgresSetup(ctx context.Context, adminDSN string, connector *schema.AWSIA
 	defer db.Close()
 
 	logger.Debugf("ensuring user %s exists", username)
-	if _, err := db.ExecContext(ctx, "CREATE USER "+username+" WITH LOGIN; GRANT rds_iam TO "+username+";"); err != nil {
+	res, err := db.ExecContext(ctx, "CREATE USER "+username+" WITH LOGIN; GRANT rds_iam TO "+username+";")
+	if err != nil {
 		// Ignore if user already exists
 		if !strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
 	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows > 0 {
+		logger.Debugf("postgres user created: %s", username)
+	} else {
+		logger.Debugf("postgres user already exists: %s", username)
+	}
+
 	logger.Debugf("granting privileges to user %s", username)
 	if _, err := db.ExecContext(ctx, fmt.Sprintf(`
 				GRANT CONNECT ON DATABASE %s TO %s;
@@ -154,11 +161,21 @@ func postgresEnsureDB(ctx context.Context, rootDSN string, connector *schema.AWS
 
 	logger.Debugf("ensuring database %s exists", database)
 	// Create the database if it doesn't exist
-	if _, err := db.ExecContext(ctx, "CREATE DATABASE "+database); err != nil {
+	res, err := db.ExecContext(ctx, "CREATE DATABASE "+database)
+	if err != nil {
 		// Ignore if database already exists
 		if !strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows > 0 {
+		logger.Infof("Database created: %s", database) //nolint:forbidigo
+	} else {
+		logger.Debugf("Database already exists: %s", database)
 	}
 	return nil
 }
