@@ -85,6 +85,7 @@ func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.Ca
 	callEvent.Response = result.Ok(resp.Msg)
 	s.timelineClient.Publish(ctx, callEvent)
 	observability.Calls.Request(ctx, req.Msg.Verb, start, optional.None[string]())
+	headers.SetRequestKey(resp.Header(), requestKey)
 	return resp, nil
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	status "github.com/block/ftl/internal/terminal"
 )
@@ -26,6 +27,7 @@ type callCmd struct {
 	Wait    time.Duration  `short:"w" help:"Wait up to this elapsed time for the FTL cluster to become available." default:"1m"`
 	Verb    reflection.Ref `arg:"" required:"" help:"Full path of Verb to call." predictor:"verbs"`
 	Request string         `arg:"" optional:"" help:"JSON5 request payload." default:"{}"`
+	Info    bool           `flag:"info" short:"i" help:"Print extra information."`
 }
 
 func (c *callCmd) Run(
@@ -50,7 +52,7 @@ func (c *callCmd) Run(
 
 	logger.Debugf("Calling %s", c.Verb)
 
-	return callVerb(ctx, verbClient, schemaClient, c.Verb, requestJSON)
+	return callVerb(ctx, verbClient, schemaClient, c.Verb, requestJSON, c.Info)
 }
 
 func callVerb(
@@ -59,6 +61,7 @@ func callVerb(
 	schemaClient *schemaeventsource.EventSource,
 	verb reflection.Ref,
 	requestJSON []byte,
+	printInfo bool,
 ) error {
 	logger := log.FromContext(ctx)
 	// otherwise, we have a match so call the verb
@@ -78,6 +81,17 @@ func callVerb(
 	if err != nil {
 		return err
 	}
+
+	if printInfo {
+		requestKey, ok, err := headers.GetRequestKey(resp.Header())
+		if err != nil {
+			return fmt.Errorf("could not get request key: %w", err)
+		}
+		if ok {
+			fmt.Printf("RequestKey: %s\n", requestKey)
+		}
+	}
+
 	switch resp := resp.Msg.Response.(type) {
 	case *ftlv1.CallResponse_Error_:
 		if resp.Error.Stack != nil && logger.GetLevel() <= log.Debug {
