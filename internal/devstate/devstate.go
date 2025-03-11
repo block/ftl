@@ -100,7 +100,7 @@ streamLoop:
 	}
 	sch, err := schema.FromProto(schemaResp.Msg.Schema)
 	if err != nil {
-		return DevState{}, fmt.Errorf("failed to parse schema: %w", err)
+		return DevState{}, fmt.Errorf("failed to parse schema when waiting for dev state: %w", err)
 	}
 	modulesPaths := map[string]string{}
 	for _, module := range engineEndedEvent.Modules {

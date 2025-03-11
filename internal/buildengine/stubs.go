@@ -51,7 +51,7 @@ func SyncStubReferences(ctx context.Context, projectRoot string, moduleNames []s
 		wg.Go(func() error {
 			stubsRoot := stubsLanguageDir(projectRoot, meta.module.Config.Language)
 			if err := meta.plugin.SyncStubReferences(wgctx, meta.module.Config, stubsRoot, moduleNames, view); err != nil {
-				return err //nolint:wrapcheck
+				return fmt.Errorf("failed to sync go stub references for %s: %w", meta.module.Config.Module, err)
 			}
 			return nil
 		})
