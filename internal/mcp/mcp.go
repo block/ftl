@@ -29,7 +29,7 @@ func New() *Server {
 	return s
 }
 
-// Adds a tool to the server
+// AddTool adds a tool to the MCP server
 // Panics if the tool is not able to marshal to json
 func (s *Server) AddTool(tool mcp.Tool, handler server.ToolHandlerFunc) {
 	_, err := tool.MarshalJSON()
@@ -39,6 +39,10 @@ func (s *Server) AddTool(tool mcp.Tool, handler server.ToolHandlerFunc) {
 	s.mcpServer.AddTool(tool, handler)
 }
 
+// Serve starts the mcp server
 func (s *Server) Serve() error {
-	return server.ServeStdio(s.mcpServer)
+	if err := server.ServeStdio(s.mcpServer); err != nil {
+		return fmt.Errorf("could not serve: %w", err)
+	}
+	return nil
 }
