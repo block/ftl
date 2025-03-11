@@ -112,10 +112,10 @@ type terminalStatusManager struct {
 	height             int
 	width              int
 	exitWait           sync.WaitGroup
-	console            bool
 	consoleRefresh     func()
 	spinnerCount       int
 	interactiveConsole optional.Option[*interactiveConsole]
+	interactiveLines   int
 }
 
 type statusKey struct{}
@@ -283,11 +283,14 @@ func (r *terminalStatusManager) clearStatusMessages() {
 		return
 	}
 	count := r.totalStatusLines
-	if r.console {
-		count--
+	if r.interactiveConsole.Ok() {
+		// With the interactive console the cursor sits on the last line, so we just clear, we don't move up
+		r.underlyingWrite(ansiClearLine)
+	} else {
+		// Without the interactive console the cursor sits on an empty line by itself
+		r.underlyingWrite(ansiUpOneLine + ansiClearLine)
 	}
-	r.underlyingWrite(ansiClearLine)
-	for range count {
+	for range count - 1 {
 		r.underlyingWrite(ansiUpOneLine + ansiClearLine)
 	}
 }
@@ -421,6 +424,10 @@ func (r *terminalStatusManager) redrawStatus() {
 		}
 	}
 	if r.consoleRefresh != nil {
+		// If there is more than one line we need to actually make space for it to render
+		for range r.interactiveLines - 1 {
+			r.underlyingWrite("\n")
+		}
 		r.consoleRefresh()
 	}
 }
@@ -471,9 +478,7 @@ func (r *terminalStatusManager) recalculateLines() {
 			total += countLines(i.prefix+i.message+i.suffix, r.width)
 		}
 	}
-	if r.console {
-		total++
-	}
+	total += r.interactiveLines
 	r.totalStatusLines = total
 	r.redrawStatus()
 }
@@ -540,6 +545,21 @@ func LaunchEmbeddedConsole(ctx context.Context, k *kong.Kong, binder KongContext
 			fmt.Printf("\033[31mError: %s\033[0m\n", err)
 			return
 		}
+		it.currentLineCallback = func(s string) {
+			lines := countLines("> "+s, tsm.width) + 1
+			if lines != tsm.interactiveLines {
+				tsm.statusLock.Lock()
+				defer tsm.statusLock.Unlock()
+				if lines > tsm.interactiveLines {
+					// The newline has already rendered so we need to add the lines to the total
+					// This is so that it actually gets cleared
+					tsm.totalStatusLines += lines - tsm.interactiveLines
+				}
+				tsm.interactiveLines = lines
+				tsm.recalculateLines()
+			}
+		}
+		tsm.interactiveLines = 1
 		tsm.interactiveConsole = optional.Some(it)
 		go func() {
 			err := it.run(ctx)
