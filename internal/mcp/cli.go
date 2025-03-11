@@ -6,16 +6,18 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
+
+	"maps"
 
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/reflection"
-	"github.com/block/ftl/common/slices"
+	islices "github.com/block/ftl/common/slices"
 )
 
 const (
@@ -100,7 +102,7 @@ func ToolFromCLI(ctx context.Context, k *kong.Kong, executor CLIExecutor, title 
 			}
 		}
 		if !found {
-			panic(fmt.Sprintf("could not find command %s in %v", strings.Join(cmdPath[:i+1], " "), slices.Map(nodes[len(nodes)-1].Children, func(n *kong.Node) string {
+			panic(fmt.Sprintf("could not find command %s in %v", strings.Join(cmdPath[:i+1], " "), islices.Map(nodes[len(nodes)-1].Children, func(n *kong.Node) string {
 				return n.Name
 			})))
 		}
@@ -154,7 +156,7 @@ func ToolFromCLI(ctx context.Context, k *kong.Kong, executor CLIExecutor, title 
 	// validate that all configured options were found
 	for name := range config.InputOptions {
 		if !included[name] {
-			panic(fmt.Sprintf("ftl %v: could not find option %q in:\n%v", strings.Join(cmdPath, " "), name, strings.Join(slices.Map(maps.Keys(all), func(name string) string { //nolint: exptostd
+			panic(fmt.Sprintf("ftl %v: could not find option %q in:\n%v", strings.Join(cmdPath, " "), name, strings.Join(islices.Map(slices.Collect(maps.Keys(all)), func(name string) string { //nolint: exptostd
 				if included[name] {
 					return name
 				}
