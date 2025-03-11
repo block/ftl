@@ -5,7 +5,6 @@ import type { GetTimelineRequest_Filter } from '../../protos/xyz/block/ftl/timel
 import { Loader } from '../../shared/components/Loader'
 import { SidePanelContext } from '../../shared/providers/side-panel-provider.tsx'
 import TimelineEventList from './TimelineEventList.tsx'
-import { TimelineAsyncExecuteDetails } from './details/TimelineAsyncExecuteDetails.tsx'
 import { TimelineCallDetails } from './details/TimelineCallDetails.tsx'
 import { TimelineChangesetChangedDetails } from './details/TimelineChangesetChangedDetails.tsx'
 import { TimelineChangesetCreatedDetails } from './details/TimelineChangesetCreatedDetails.tsx'
@@ -66,9 +65,6 @@ export const Timeline = ({ timeSettings, filters }: { timeSettings: TimeSettings
         break
       case 'cronScheduled':
         openPanel(<TimelineCronScheduledDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
-        break
-      case 'asyncExecute':
-        openPanel(<TimelineAsyncExecuteDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)
         break
       case 'pubsubPublish':
         openPanel(<TimelinePubSubPublishDetails event={entry} />, <TimelineDetailsHeader event={entry} />, handlePanelClosed)

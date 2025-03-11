@@ -1,7 +1,6 @@
 import {
   Call02Icon,
   ComputerIcon,
-  CustomerServiceIcon,
   Download04Icon,
   InternetIcon,
   KeyframesMultipleAddIcon,
@@ -29,11 +28,6 @@ interface EventFilter {
 
 const EVENT_TYPES: Record<string, EventFilter> = {
   call: { label: 'Call', type: EventType.CALL, icon: <Call02Icon className='w-4 h-4 text-indigo-500 ml-1' /> },
-  asyncExecute: {
-    label: 'Async Call',
-    type: EventType.ASYNC_EXECUTE,
-    icon: <CustomerServiceIcon className='w-4 h-4 text-indigo-500 ml-1' />,
-  },
   log: { label: 'Log', type: EventType.LOG, icon: <LogLevelBadgeSmall logLevel={LogLevel.INFO} /> },
   ingress: { label: 'Ingress', type: EventType.INGRESS, icon: <InternetIcon className='w-4 h-4 text-green-500  ml-1' /> },
   cronScheduled: {

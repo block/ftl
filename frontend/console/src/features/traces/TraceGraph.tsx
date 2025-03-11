@@ -1,4 +1,4 @@
-import { AsyncExecuteEvent, CallEvent, type Event, IngressEvent, PubSubConsumeEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
+import { CallEvent, type Event, IngressEvent, PubSubConsumeEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { HoverPopup } from '../../shared/components/HoverPopup'
 import { classNames, durationToMillis } from '../../shared/utils'
 import { type TraceEvent, useRequestTraceEvents } from '../timeline/hooks/use-request-trace-events'
@@ -34,9 +34,6 @@ const EventBlock = ({
   } else if (traceEvent instanceof IngressEvent) {
     eventType = 'ingress'
     eventTarget = traceEvent.path
-  } else if (traceEvent instanceof AsyncExecuteEvent) {
-    eventType = 'async'
-    eventTarget = `${traceEvent.verbRef?.module}.${traceEvent.verbRef?.name}`
   } else if (traceEvent instanceof PubSubPublishEvent) {
     eventType = 'publish'
     eventTarget = traceEvent.topic

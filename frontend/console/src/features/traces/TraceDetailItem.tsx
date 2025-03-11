@@ -1,4 +1,4 @@
-import { AsyncExecuteEvent, CallEvent, type Event, IngressEvent, PubSubConsumeEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
+import { CallEvent, type Event, IngressEvent, PubSubConsumeEvent, PubSubPublishEvent } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
 import { HoverPopup } from '../../shared/components/HoverPopup'
 import { classNames } from '../../shared/utils'
 import { TimelineIcon } from '../timeline/TimelineIcon'
@@ -40,9 +40,6 @@ export const TraceDetailItem: React.FC<TraceDetailItemProps> = ({
   } else if (traceEvent instanceof IngressEvent) {
     action = `HTTP ${traceEvent.method}`
     eventName = `${traceEvent.path}`
-  } else if (traceEvent instanceof AsyncExecuteEvent) {
-    action = 'Async'
-    eventName = `${traceEvent.verbRef?.module}.${traceEvent.verbRef?.name}`
   } else if (traceEvent instanceof PubSubPublishEvent) {
     action = 'Publish'
     eventName = `${traceEvent.topic}`

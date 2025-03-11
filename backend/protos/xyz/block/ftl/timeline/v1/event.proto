@@ -15,18 +15,11 @@ enum EventType {
   EVENT_TYPE_CALL = 2;
   EVENT_TYPE_INGRESS = 3;
   EVENT_TYPE_CRON_SCHEDULED = 4;
-  EVENT_TYPE_ASYNC_EXECUTE = 5;
   EVENT_TYPE_PUBSUB_PUBLISH = 6;
   EVENT_TYPE_PUBSUB_CONSUME = 7;
   EVENT_TYPE_CHANGESET_CREATED = 8;
   EVENT_TYPE_CHANGESET_STATE_CHANGED = 9;
   EVENT_TYPE_DEPLOYMENT_RUNTIME = 10;
-}
-
-enum AsyncExecuteEventType {
-  ASYNC_EXECUTE_EVENT_TYPE_UNSPECIFIED = 0;
-  ASYNC_EXECUTE_EVENT_TYPE_CRON = 1;
-  ASYNC_EXECUTE_EVENT_TYPE_PUBSUB = 2;
 }
 
 enum LogLevel {
@@ -91,16 +84,6 @@ message CronScheduledEvent {
   optional string error = 7;
 }
 
-message AsyncExecuteEvent {
-  string deployment_key = 1;
-  optional string request_key = 2;
-  ftl.schema.v1.Ref verb_ref = 3;
-  google.protobuf.Timestamp timestamp = 4;
-  google.protobuf.Duration duration = 5;
-  AsyncExecuteEventType async_event_type = 6;
-  optional string error = 7;
-}
-
 message PubSubPublishEvent {
   string deployment_key = 1;
   optional string request_key = 2;
@@ -157,11 +140,10 @@ message Event {
     CallEvent call = 4;
     IngressEvent ingress = 7;
     CronScheduledEvent cron_scheduled = 8;
-    AsyncExecuteEvent async_execute = 9;
-    PubSubPublishEvent pubsub_publish = 10;
-    PubSubConsumeEvent pubsub_consume = 11;
-    ChangesetCreatedEvent changeset_created = 12;
-    ChangesetStateChangedEvent changeset_state_changed = 13;
-    DeploymentRuntimeEvent deployment_runtime = 14;
+    PubSubPublishEvent pubsub_publish = 9;
+    PubSubConsumeEvent pubsub_consume = 10;
+    ChangesetCreatedEvent changeset_created = 11;
+    ChangesetStateChangedEvent changeset_state_changed = 12;
+    DeploymentRuntimeEvent deployment_runtime = 13;
   }
 }

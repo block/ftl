@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Duration, Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
-import { AsyncExecuteEvent, CallEvent, ChangesetCreatedEvent, ChangesetStateChangedEvent, CronScheduledEvent, DeploymentRuntimeEvent, Event, EventType, IngressEvent, LogEvent, LogLevel, PubSubConsumeEvent, PubSubPublishEvent } from "./event_pb.js";
+import { CallEvent, ChangesetCreatedEvent, ChangesetStateChangedEvent, CronScheduledEvent, DeploymentRuntimeEvent, Event, EventType, IngressEvent, LogEvent, LogLevel, PubSubConsumeEvent, PubSubPublishEvent } from "./event_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.timeline.v1.GetTimelineRequest
@@ -769,37 +769,31 @@ export class CreateEventsRequest_EventEntry extends Message<CreateEventsRequest_
     case: "cronScheduled";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.AsyncExecuteEvent async_execute = 6;
-     */
-    value: AsyncExecuteEvent;
-    case: "asyncExecute";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.timeline.v1.PubSubPublishEvent pubsub_publish = 7;
+     * @generated from field: xyz.block.ftl.timeline.v1.PubSubPublishEvent pubsub_publish = 6;
      */
     value: PubSubPublishEvent;
     case: "pubsubPublish";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.PubSubConsumeEvent pubsub_consume = 8;
+     * @generated from field: xyz.block.ftl.timeline.v1.PubSubConsumeEvent pubsub_consume = 7;
      */
     value: PubSubConsumeEvent;
     case: "pubsubConsume";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetCreatedEvent changeset_created = 9;
+     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetCreatedEvent changeset_created = 8;
      */
     value: ChangesetCreatedEvent;
     case: "changesetCreated";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetStateChangedEvent changeset_state_changed = 10;
+     * @generated from field: xyz.block.ftl.timeline.v1.ChangesetStateChangedEvent changeset_state_changed = 9;
      */
     value: ChangesetStateChangedEvent;
     case: "changesetStateChanged";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent deployment_runtime = 11;
+     * @generated from field: xyz.block.ftl.timeline.v1.DeploymentRuntimeEvent deployment_runtime = 10;
      */
     value: DeploymentRuntimeEvent;
     case: "deploymentRuntime";
@@ -818,12 +812,11 @@ export class CreateEventsRequest_EventEntry extends Message<CreateEventsRequest_
     { no: 3, name: "call", kind: "message", T: CallEvent, oneof: "entry" },
     { no: 4, name: "ingress", kind: "message", T: IngressEvent, oneof: "entry" },
     { no: 5, name: "cron_scheduled", kind: "message", T: CronScheduledEvent, oneof: "entry" },
-    { no: 6, name: "async_execute", kind: "message", T: AsyncExecuteEvent, oneof: "entry" },
-    { no: 7, name: "pubsub_publish", kind: "message", T: PubSubPublishEvent, oneof: "entry" },
-    { no: 8, name: "pubsub_consume", kind: "message", T: PubSubConsumeEvent, oneof: "entry" },
-    { no: 9, name: "changeset_created", kind: "message", T: ChangesetCreatedEvent, oneof: "entry" },
-    { no: 10, name: "changeset_state_changed", kind: "message", T: ChangesetStateChangedEvent, oneof: "entry" },
-    { no: 11, name: "deployment_runtime", kind: "message", T: DeploymentRuntimeEvent, oneof: "entry" },
+    { no: 6, name: "pubsub_publish", kind: "message", T: PubSubPublishEvent, oneof: "entry" },
+    { no: 7, name: "pubsub_consume", kind: "message", T: PubSubConsumeEvent, oneof: "entry" },
+    { no: 8, name: "changeset_created", kind: "message", T: ChangesetCreatedEvent, oneof: "entry" },
+    { no: 9, name: "changeset_state_changed", kind: "message", T: ChangesetStateChangedEvent, oneof: "entry" },
+    { no: 10, name: "deployment_runtime", kind: "message", T: DeploymentRuntimeEvent, oneof: "entry" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateEventsRequest_EventEntry {

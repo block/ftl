@@ -5,7 +5,6 @@ import { Divider } from '../../shared/components/Divider'
 import { Loader } from '../../shared/components/Loader'
 import { useRequestTraceEvents } from '../timeline/hooks/use-request-trace-events'
 import { TraceDetails } from './TraceDetails'
-import { TraceDetailsAsyncCall } from './details/TraceDetailsAsyncCall'
 import { TraceDetailsCall } from './details/TraceDetailsCall'
 import { TraceDetailsIngress } from './details/TraceDetailsIngress'
 import { TraceDetailsPubsubConsume } from './details/TraceDetailsPubsubConsume'
@@ -54,9 +53,6 @@ export const TracesPage = () => {
       break
     case 'ingress':
       eventDetailsComponent = <TraceDetailsIngress event={selectedEvent} />
-      break
-    case 'asyncExecute':
-      eventDetailsComponent = <TraceDetailsAsyncCall event={selectedEvent} />
       break
     case 'pubsubPublish':
       eventDetailsComponent = <TraceDetailsPubsubPublish event={selectedEvent} />
