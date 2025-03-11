@@ -3,7 +3,6 @@ package xyz.block.ftl.runtime.processor;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -23,9 +22,6 @@ import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 
-import io.quarkus.gizmo.ClassCreator;
-import io.quarkus.gizmo.ClassOutput;
-import io.quarkus.gizmo.MethodCreator;
 import xyz.block.ftl.*;
 import xyz.block.ftl.Enum;
 import xyz.block.ftl.Export;
@@ -108,22 +104,10 @@ public class AnnotationProcessor implements Processor {
                         }
                         String className = verbName;
                         className = Character.toUpperCase(className.charAt(0)) + className.substring(1);
-                        ClassOutput output = new ClassOutput() {
-                            @Override
-                            public void write(String name, byte[] data) {
-                                try {
-                                    var file = processingEnv.getFiler().createClassFile(name.replace('/', '.'));
-                                    try (var out = file.openOutputStream()) {
-                                        out.write(data);
-                                    }
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-                        };
+
                         try {
                             List<? extends VariableElement> parameters = executableElement.getParameters();
-                            String[] paramNames = new String[0];
+                            String paramName = "";
                             if (!parameters.isEmpty()) {
                                 for (var i = 0; i < parameters.size(); i++) {
                                     var elem = parameters.get(i);
@@ -148,26 +132,34 @@ public class AnnotationProcessor implements Processor {
                                     if (!ok) {
                                         continue;
                                     }
-                                    paramNames = new String[1];
-                                    paramNames[0] = typeMirrorToString(elem.asType());
+                                    paramName = typeMirrorToString(elem.asType()) + " val";
                                 }
                             }
                             var returnType = typeMirrorToString(executableElement.getReturnType());
 
-                            try (ClassCreator creator = ClassCreator.interfaceBuilder()
-                                    .classOutput(output)
-                                    .className("client." + className + "Client")
-                                    .build()) {
+                            var file = processingEnv.getFiler().createSourceFile("client." + className + "Client");
+                            var template = """
+                                    package client;
 
-                                try (MethodCreator mc = creator.getMethodCreator(verbName,
-                                        returnType, paramNames)) {
-                                    mc.setModifiers(Modifier.ABSTRACT | Modifier.PUBLIC);
-                                    mc.addAnnotation(VerbClient.class);
-                                }
+                                    import xyz.block.ftl.VerbClient;
+
+                                    public interface $CLASSNAMEClient {
+                                        @VerbClient
+                                        $RETURN $VERBNAME ($PARAM);
+                                    }
+                                    """;
+                            template = template.replace("$CLASSNAME", className);
+                            template = template.replace("$RETURN", returnType);
+                            template = template.replace("$VERBNAME", verbName);
+                            template = template.replace("$PARAM", paramName);
+                            try (var writer = file.openWriter()) {
+                                writer.append(template);
                             }
                             processedLocalVerbs.add(verbName);
                         } catch (IgnoreException e) {
                             this.processingEnv.getMessager().printWarning(e.getMessage(), element);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
 
                     }
