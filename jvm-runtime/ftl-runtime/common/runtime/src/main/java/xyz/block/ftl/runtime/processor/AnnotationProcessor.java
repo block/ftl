@@ -41,6 +41,7 @@ import xyz.block.ftl.Verb;
  * POC annotation processor for capturing JavaDoc, this needs a lot more work.
  */
 public class AnnotationProcessor implements Processor {
+
     private static final Pattern REMOVE_LEADING_SPACE = Pattern.compile("^ ", Pattern.MULTILINE);
     private static final Pattern REMOVE_JAVADOC_TAGS = Pattern.compile(
             "^\\s*@(param|return|throws|exception|see|author)\\b[^\\n]*$\\n*",

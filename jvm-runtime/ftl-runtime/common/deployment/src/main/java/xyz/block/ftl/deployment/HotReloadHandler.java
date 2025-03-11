@@ -12,6 +12,7 @@ import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.quarkus.bootstrap.classloading.QuarkusClassLoader;
 import io.quarkus.deployment.dev.RuntimeUpdatesProcessor;
+import xyz.block.ftl.hotreload.CodeGenNotification;
 import xyz.block.ftl.hotreload.RunnerInfo;
 import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.hotreload.v1.HotReloadServiceGrpc;
@@ -84,6 +85,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
         LOG.debugf("Reload request: %s", request.getNewDeploymentKey());
+        CodeGenNotification.waitForCodeGen();
         possibleNewDeploymentKeys.add(request.getNewDeploymentKey());
         var forceNewRunner = request.getForceNewRunner() || nextRequiresNewRunner;
         this.nextRequiresNewRunner = false;
@@ -126,6 +128,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                         responseObserver.onNext(ReloadResponse.newBuilder()
                                 .setState(SchemaState.newBuilder().setNewRunnerRequired(true).setErrors(errors)).build());
                         nextRequiresNewRunner = true;
+                        LOG.debugf("Reload %s failed with compile/deployment errors", request.getNewDeploymentKey());
                     } else {
                         if (forceNewRunner) {
                             state = state.toBuilder().setNewRunnerRequired(true).build();
@@ -134,6 +137,8 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                             LOG.debugf("Update required deployment key: %s", request.getNewDeploymentKey());
                             RunnerNotification.newDeploymentKey(request.getNewDeploymentKey());
                         }
+                        LOG.debugf("Reload %s completed successfully, new runner required %s", request.getNewDeploymentKey(),
+                                state.getNewRunnerRequired());
                         responseObserver.onNext(ReloadResponse.newBuilder().setState(state).build());
                     }
                     responseObserver.onCompleted();

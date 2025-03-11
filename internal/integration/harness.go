@@ -45,6 +45,7 @@ import (
 )
 
 const dumpPath = "/tmp/ftl-kube-report"
+const dumpContentsPath = "/tmp/ftl-test-content"
 
 var RedPandaBrokers = []string{"127.0.0.1:19092"}
 
@@ -325,7 +326,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 					command = []string{"dev"}
 				}
 				if os.Getenv("DEBUG") != "" {
-					command = append(command, "--log-level=DEBUG")
+					command = append(command, "--log-level=DEBUG", "--log-timestamps")
 				}
 
 				args := append([]string{filepath.Join(binDir, "ftl")}, command...)
@@ -364,6 +365,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				devMode:       opts.devMode,
 				kubeClient:    optional.Ptr(kubeClient),
 			}
+			defer dumpTestContents(ctx, ic)
 			defer dumpKubePods(ctx, ic.kubeClient, ic.kubeNamespace)
 			if opts.startController || opts.kube {
 				ic.Admin = admin
@@ -424,7 +426,6 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 		})
 	}
 }
-
 func attemptToResetPubSub(admin sarama.ClusterAdmin) error {
 	groups, err := admin.ListConsumerGroups()
 	if err != nil {
@@ -619,6 +620,12 @@ func startProcess(ctx context.Context, t testing.TB, tempDir string, devMode boo
 		cancel(fmt.Errorf("test complete"))
 	})
 	return ctx
+}
+
+func dumpTestContents(ctx context.Context, ic TestContext) {
+	_ = os.RemoveAll(dumpContentsPath)               // nolint
+	_ = copy.Copy(ic.WorkingDir(), dumpContentsPath) // nolint
+
 }
 
 func dumpKubePods(ctx context.Context, kubeClient optional.Option[kubernetes.Clientset], kubeNamespace string) {

@@ -266,8 +266,13 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 			log.FromContext(ctx).Errorf(err, "Dev mode process exited")
 			return err
 		}
+		id := s.buildContext.Load().ID
 		if !s.waitForFileChanges(ctx, fileEvents) {
 			return nil
+		}
+		if id != s.buildContext.Load().ID {
+			// The build context was updated, we need to explicitly mark this as an explict build
+			firstResponseSent.Store(false)
 		}
 	}
 }
@@ -289,6 +294,7 @@ func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, err
 func (s *Service) waitForFileChanges(ctx context.Context, fileEvents chan watch.WatchEventModuleChanged) bool {
 	updates := s.updatesTopic.Subscribe(nil)
 	defer s.updatesTopic.Unsubscribe(updates)
+
 	select {
 	case <-ctx.Done():
 		return false
