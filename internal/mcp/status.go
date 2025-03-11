@@ -8,14 +8,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
+
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	ireflect "github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/devstate"
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
 )
 
 type statusOutput struct {
