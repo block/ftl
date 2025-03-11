@@ -71,7 +71,7 @@ func NewCloudformationProvisioner(ctx context.Context, config Config) (context.C
 	}
 
 	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
-	timelineLogSink := timeline.NewLogSink(timelineClient, log.Info)
+	timelineLogSink := timeline.NewLogSink(timelineClient, log.Debug)
 	go timelineLogSink.RunLogLoop(ctx)
 	logger = logger.AddSink(timelineLogSink)
 	ctx = log.ContextWithLogger(ctx, logger)
