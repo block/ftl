@@ -198,9 +198,10 @@ func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	}
 	for _, dep := range e.Changeset.Modules {
 		if dep.Runtime.Scaling == nil {
-			dep.Runtime.Scaling = &schema.ModuleRuntimeScaling{MinReplicas: 1}
 			if existing, ok := t.deployments[dep.Name]; ok {
-				dep.Runtime.Scaling.MinReplicas = existing.Runtime.Scaling.MinReplicas
+				dep.Runtime.ModScaling().MinReplicas = existing.Runtime.Scaling.MinReplicas
+			} else {
+				dep.Runtime.Scaling = &schema.ModuleRuntimeScaling{MinReplicas: 1}
 			}
 		}
 	}

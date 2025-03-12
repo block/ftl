@@ -57,7 +57,7 @@ type pendingModule struct {
 
 type pendingDeploy struct {
 	modules  map[string]*pendingModule
-	replicas int32
+	replicas optional.Option[int32]
 
 	publishInSchema bool
 	changeset       optional.Option[key.Changeset]
@@ -112,7 +112,7 @@ func NewDeployCoordinator(ctx context.Context, adminClient AdminClient, schemaSo
 	return c
 }
 
-func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig.Config, modules []Module, replicas int32) error {
+func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig.Config, modules []Module, replicas optional.Option[int32]) error {
 	for _, module := range modules {
 		c.engineUpdates <- &buildenginepb.EngineEvent{
 			Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
@@ -343,6 +343,10 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 					Module: module.name,
 				},
 			},
+		}
+		if repo, ok := deployment.replicas.Get(); ok {
+			log.FromContext(ctx).Infof("Deploying %s with %d replicas", module.name, repo) //nolint:forbidigo
+			module.schema.ModRuntime().ModScaling().MinReplicas = repo
 		}
 	}
 

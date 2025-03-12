@@ -424,7 +424,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	}
 
 	deployment.Spec.Template.Spec.ServiceAccountName = module
-	changes, err := r.syncDeployment(ctx, thisImage, deployment, 1)
+	changes, err := r.syncDeployment(ctx, thisImage, deployment, sch.Runtime.Scaling.MinReplicas)
 
 	if err != nil {
 		return err
