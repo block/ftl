@@ -290,7 +290,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure() # Upload the report only on failure
         with:
-          name: failure-report-${{ matrix.test }}
+          name: failure-report-${{ github.run_id }}
           path: /tmp/ftl-test-content/
   infrastructure-shard:
     name: Shard Infrastructure Tests
