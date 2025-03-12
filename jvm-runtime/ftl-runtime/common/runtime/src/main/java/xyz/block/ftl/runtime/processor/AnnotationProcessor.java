@@ -4,11 +4,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -17,25 +13,17 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
+import javax.lang.model.element.*;
+import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 
-import xyz.block.ftl.Config;
-import xyz.block.ftl.Cron;
-import xyz.block.ftl.Data;
+import xyz.block.ftl.*;
 import xyz.block.ftl.Enum;
-import xyz.block.ftl.Export;
-import xyz.block.ftl.SQLDatasource;
-import xyz.block.ftl.Secret;
-import xyz.block.ftl.TypeAlias;
-import xyz.block.ftl.Verb;
 
 /**
  * POC annotation processor for capturing JavaDoc, this needs a lot more work.
@@ -52,6 +40,7 @@ public class AnnotationProcessor implements Processor {
 
     final Map<String, String> saved = new HashMap<>();
     final Map<String, String> databases = new HashMap<>();
+    final Set<String> processedLocalVerbs = new HashSet<>();
 
     @Override
     public Set<String> getSupportedOptions() {
@@ -109,6 +98,77 @@ public class AnnotationProcessor implements Processor {
                     });
                 });
 
+        roundEnv.getElementsAnnotatedWithAny(Set.of(Verb.class))
+                .forEach(element -> {
+                    if (element.getKind() == ElementKind.METHOD) {
+                        var executableElement = (ExecutableElement) element;
+                        String verbName = executableElement.getSimpleName().toString();
+                        if (processedLocalVerbs.contains(verbName)) {
+                            return;
+                        }
+                        String className = verbName;
+                        className = Character.toUpperCase(className.charAt(0)) + className.substring(1);
+
+                        try {
+                            List<? extends VariableElement> parameters = executableElement.getParameters();
+                            String paramName = "";
+                            if (!parameters.isEmpty()) {
+                                for (var i = 0; i < parameters.size(); i++) {
+                                    var elem = parameters.get(i);
+                                    if (elem.getAnnotation(Config.class) != null || elem.getAnnotation(Secret.class) != null) {
+                                        continue;
+                                    }
+                                    boolean ok = true;
+                                    if (elem.asType().getKind() == TypeKind.DECLARED) {
+                                        DeclaredType declaredType = (DeclaredType) elem.asType();
+                                        if (declaredType.asElement().getAnnotation(Topic.class) != null) {
+                                            ok = false;
+                                        }
+                                        if (ok) {
+                                            for (var meth : declaredType.asElement().getEnclosedElements()) {
+                                                if (meth.getAnnotation(VerbClient.class) != null) {
+                                                    ok = false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (!ok) {
+                                        continue;
+                                    }
+                                    paramName = typeMirrorToString(elem.asType()) + " val";
+                                }
+                            }
+                            var returnType = typeMirrorToString(executableElement.getReturnType());
+
+                            var file = processingEnv.getFiler().createSourceFile("client." + className + "Client");
+                            var template = """
+                                    package client;
+
+                                    import xyz.block.ftl.VerbClient;
+
+                                    public interface $CLASSNAMEClient {
+                                        @VerbClient
+                                        $RETURN $VERBNAME ($PARAM);
+                                    }
+                                    """;
+                            template = template.replace("$CLASSNAME", className);
+                            template = template.replace("$RETURN", returnType);
+                            template = template.replace("$VERBNAME", verbName);
+                            template = template.replace("$PARAM", paramName);
+                            try (var writer = file.openWriter()) {
+                                writer.append(template);
+                            }
+                            processedLocalVerbs.add(verbName);
+                        } catch (IgnoreException e) {
+                            this.processingEnv.getMessager().printWarning(e.getMessage(), element);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                    }
+                });
+
         if (roundEnv.processingOver()) {
             write("META-INF/ftl-verbs.txt", saved.entrySet().stream().map(
                     e -> e.getKey() + "=" + Base64.getEncoder().encodeToString(e.getValue().getBytes(StandardCharsets.UTF_8)))
@@ -119,6 +179,45 @@ public class AnnotationProcessor implements Processor {
                     .collect(Collectors.toSet()));
         }
         return false;
+    }
+
+    private static String typeMirrorToString(TypeMirror typeMirror) throws IgnoreException {
+        switch (typeMirror.getKind()) {
+            case BOOLEAN:
+                return "boolean";
+            case BYTE:
+                return "byte";
+            case SHORT:
+                return "short";
+            case INT:
+                return "int";
+            case LONG:
+                return "long";
+            case FLOAT:
+                return "float";
+            case DOUBLE:
+                return "double";
+            case CHAR:
+                return "char";
+            case ARRAY:
+                ArrayType arrayType = (ArrayType) typeMirror;
+                return typeMirrorToString(arrayType.getComponentType()) + "[]";
+            case DECLARED:
+                DeclaredType type = (DeclaredType) typeMirror;
+                Element element = type.asElement();
+                Element enclosing = element;
+                while (enclosing.getKind() != ElementKind.PACKAGE) {
+                    enclosing = enclosing.getEnclosingElement();
+                }
+                PackageElement packageElement = (PackageElement) enclosing;
+                return packageElement.getQualifiedName().toString() + "." + element.getSimpleName().toString();
+            case VOID:
+                return "void";
+            case ERROR:
+                throw new IgnoreException("Unknown type " + typeMirror.toString());
+            default:
+                throw new IllegalArgumentException("Unsupported type: " + typeMirror.toString());
+        }
     }
 
     /**
@@ -186,4 +285,10 @@ public class AnnotationProcessor implements Processor {
         return null;
     }
 
+    private static class IgnoreException extends Exception {
+        public IgnoreException(String message) {
+            super(message);
+        }
+
+    }
 }
