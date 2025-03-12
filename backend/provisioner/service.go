@@ -241,7 +241,7 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 	if err != nil {
 		return fmt.Errorf("error finalizing changeset: %w", err)
 	}
-	logger.Infof("Successfully completed deployment for changeset %s [%s]", cs, strings.Join(moduleNames, ",")) //nolint:forbidigo
+	logger.Debugf("Successfully completed deployment for changeset %s [%s]", cs, strings.Join(moduleNames, ","))
 	return nil
 }
 
@@ -255,7 +255,7 @@ func (s *Service) HandleChangesetRollingBack(ctx context.Context, changeset *sch
 	if err != nil {
 		return fmt.Errorf("error finalizing changeset: %w", err)
 	}
-	logger.Infof("Completed rollback for changeset %s", changeset.Key) //nolint:forbidigo
+	logger.Debugf("Completed rollback for changeset %s", changeset.Key)
 	return nil
 }
 
@@ -303,7 +303,7 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 	moduleNames := slices.Map(req.Modules, func(m *schema.Module) string {
 		return m.Name
 	})
-	mLogger.Infof("Starting deployment for changeset %s [%s]", req.Key, strings.Join(moduleNames, ",")) //nolint:forbidigo
+	mLogger.Debugf("Starting deployment for changeset %s [%s]", req.Key, strings.Join(moduleNames, ","))
 	group := errgroup.Group{}
 	// TODO: Block deployments to make sure only one module is modified at a time
 	for _, module := range req.Modules {
