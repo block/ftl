@@ -26,6 +26,12 @@ const (
 
 type CLIToolOption func(inputOptions *CLIConfig)
 
+func AddHelp(help string) CLIToolOption {
+	return func(inputOptions *CLIConfig) {
+		inputOptions.ExtraHelp = append(inputOptions.ExtraHelp, help)
+	}
+}
+
 func IncludeOptional(name string) CLIToolOption {
 	return func(inputOptions *CLIConfig) {
 		o, ok := inputOptions.InputOptions[name]
@@ -59,6 +65,12 @@ func Ignore(model any, name string) CLIToolOption {
 	}
 }
 
+func Args(args ...string) CLIToolOption {
+	return func(inputOptions *CLIConfig) {
+		inputOptions.ExtraArgs = append(inputOptions.ExtraArgs, args...)
+	}
+}
+
 type CLIOptionConfig struct {
 	IgnoreInModel   optional.Option[any]
 	IncludeOptional bool
@@ -67,6 +79,8 @@ type CLIOptionConfig struct {
 
 type CLIConfig struct {
 	InputOptions map[string]*CLIOptionConfig
+	ExtraHelp    []string
+	ExtraArgs    []string
 }
 
 func (c CLIConfig) Option(name string) *CLIOptionConfig {
@@ -106,8 +120,9 @@ func ToolFromCLI(ctx context.Context, k *kong.Kong, executor CLIExecutor, title 
 			})))
 		}
 	}
+	helps := append([]string{nodes[len(nodes)-1].Help}, config.ExtraHelp...)
 	opts := []mcp.ToolOption{
-		mcp.WithDescription(nodes[len(nodes)-1].Help),
+		mcp.WithDescription(strings.Join(helps, "\n")),
 	}
 	parsers := []inputReader{}
 	included := map[string]bool{}
@@ -173,6 +188,7 @@ func ToolFromCLI(ctx context.Context, k *kong.Kong, executor CLIExecutor, title 
 			}
 			args = append(args, newArgs...)
 		}
+		args = append(args, config.ExtraArgs...)
 		oldOut := os.Stdout
 		oldErr := os.Stderr
 		defer func() {
