@@ -100,13 +100,16 @@ public class ModuleBuilder {
     private final Set<String> knownConfig = new HashSet<>();
     private final Map<DotName, TopicsBuildItem.DiscoveredTopic> knownTopics;
     private final Map<DotName, VerbClientBuildItem.DiscoveredClients> verbClients;
+    private final Map<DotName, SQLQueryClientBuildItem.DiscoveredClients> sqlQueryClients;
     private final FTLRecorder recorder;
     private final CommentsBuildItem comments;
     private final List<ValidationFailure> validationFailures = new ArrayList<>();
     private final boolean defaultToOptional;
 
     public ModuleBuilder(IndexView index, String moduleName, Map<DotName, TopicsBuildItem.DiscoveredTopic> knownTopics,
-            Map<DotName, VerbClientBuildItem.DiscoveredClients> verbClients, FTLRecorder recorder,
+            Map<DotName, VerbClientBuildItem.DiscoveredClients> verbClients,
+            Map<DotName, SQLQueryClientBuildItem.DiscoveredClients> sqlQueryClients,
+            FTLRecorder recorder,
             CommentsBuildItem comments, boolean defaultToOptional) {
         this.index = index;
         this.moduleName = moduleName;
@@ -115,6 +118,7 @@ public class ModuleBuilder {
                 .setBuiltin(false);
         this.knownTopics = knownTopics;
         this.verbClients = verbClients;
+        this.sqlQueryClients = sqlQueryClients;
         this.recorder = recorder;
         this.comments = comments;
         this.defaultToOptional = defaultToOptional;
@@ -217,7 +221,8 @@ public class ModuleBuilder {
                     String name = param.annotation(Secret.class).value().asString();
                     paramMappers.add(new VerbRegistry.SecretSupplier(name, paramType));
                     if (!knownSecrets.contains(name)) {
-                        xyz.block.ftl.schema.v1.Secret.Builder secretBuilder = xyz.block.ftl.schema.v1.Secret.newBuilder()
+                        xyz.block.ftl.schema.v1.Secret.Builder secretBuilder = xyz.block.ftl.schema.v1.Secret
+                                .newBuilder()
                                 .setType(buildType(param.type(), false, param))
                                 .setName(name)
                                 .addAllComments(comments.getComments(name));
@@ -231,7 +236,8 @@ public class ModuleBuilder {
                     String name = param.annotation(Config.class).value().asString();
                     paramMappers.add(new VerbRegistry.ConfigSupplier(name, paramType));
                     if (!knownConfig.contains(name)) {
-                        xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config.newBuilder()
+                        xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
+                                .newBuilder()
                                 .setType(buildType(param.type(), false, param))
                                 .setName(name)
                                 .addAllComments(comments.getComments(name));
@@ -244,9 +250,16 @@ public class ModuleBuilder {
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
                     parameterTypes.add(paramType);
                     paramMappers.add(recorder.topicSupplier(topic.generatedProducer(), verbName));
-                    publisherMetadata.addTopics(Ref.newBuilder().setName(topic.topicName()).setModule(moduleName).build());
+                    publisherMetadata
+                            .addTopics(Ref.newBuilder().setName(topic.topicName()).setModule(moduleName).build());
                 } else if (verbClients.containsKey(param.type().name())) {
                     var client = verbClients.get(param.type().name());
+                    Class<?> paramType = ModuleBuilder.loadClass(param.type());
+                    parameterTypes.add(paramType);
+                    paramMappers.add(recorder.verbClientSupplier(client.generatedClient()));
+                    callsMetadata.addCalls(Ref.newBuilder().setName(client.name()).setModule(client.module()).build());
+                } else if (sqlQueryClients.containsKey(param.type().name())) {
+                    var client = sqlQueryClients.get(param.type().name());
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
                     parameterTypes.add(paramType);
                     paramMappers.add(recorder.verbClientSupplier(client.generatedClient()));
@@ -296,7 +309,8 @@ public class ModuleBuilder {
             verbBuilder.setName(verbName)
                     .setExport(exported)
                     .setPos(PositionUtils.forMethod(method))
-                    .setRequest(customization.requestType.apply(buildType(bodyParamType, exported, bodyParamNullability)))
+                    .setRequest(
+                            customization.requestType.apply(buildType(bodyParamType, exported, bodyParamNullability)))
                     .setResponse(customization.responseType.apply(buildType(method.returnType(), exported, method)))
                     .addAllComments(comments.getComments(verbName));
             if (customization.metadataCallback != null) {
@@ -306,6 +320,32 @@ public class ModuleBuilder {
                     .build());
 
         } catch (Exception e) {
+            log.errorf(e, "Failed to process FTL method %s.%s", method.declaringClass().name(), method.name());
+            validationFailures.add(new ValidationFailure(toError(forMethod(method)),
+                    "Failed to process FTL method " + method.declaringClass().name() + "." + method.name()));
+        }
+    }
+
+    public void registerSQLQueryMethod(MethodInfo method, String className, String returnType, String dbName,
+            String command, String rawSQL, String[] fields, String[] colToFieldName) {
+        try {
+            Class<?> returnClass;
+            if (returnType.equals("void")) {
+                returnClass = Void.class;
+            } else {
+                returnClass = Class.forName(returnType, false, Thread.currentThread().getContextClassLoader());
+            }
+            recorder.registerSqlQueryVerb(
+                    moduleName,
+                    method.name(),
+                    Class.forName(className, false, Thread.currentThread().getContextClassLoader()),
+                    returnClass,
+                    dbName,
+                    command,
+                    rawSQL,
+                    fields,
+                    colToFieldName);
+        } catch (ClassNotFoundException e) {
             log.errorf(e, "Failed to process FTL method %s.%s", method.declaringClass().name(), method.name());
             validationFailures.add(new ValidationFailure(toError(forMethod(method)),
                     "Failed to process FTL method " + method.declaringClass().name() + "." + method.name()));
@@ -374,7 +414,7 @@ public class ModuleBuilder {
             case CLASS -> {
                 var clazz = type.asClassType();
                 var info = index.getClassByName(clazz.name());
-                if (info.enclosingClass() != null && !Modifier.isStatic(info.flags())) {
+                if (info != null && info.enclosingClass() != null && !Modifier.isStatic(info.flags())) {
                     // proceed as normal, we fail at the end
                     validationFailures.add(new ValidationFailure(toError(forClass(clazz.name().toString())),
                             "Inner classes must be static"));
@@ -390,7 +430,7 @@ public class ModuleBuilder {
                             .setType(primitive))
                             .build();
                 }
-                if (info.hasDeclaredAnnotation(GENERATED_REF)) {
+                if (info != null && info.hasDeclaredAnnotation(GENERATED_REF)) {
                     var ref = info.declaredAnnotation(GENERATED_REF);
                     return handleNullabilityAnnotations(Type.newBuilder()
                             .setRef(Ref.newBuilder().setName(ref.value("name").asString())
@@ -450,24 +490,27 @@ public class ModuleBuilder {
                                     .setElement(buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL)))
                             .build(), nullability);
                 } else if (paramType.name().equals(DotName.createSimple(Map.class))) {
-                    return handleNullabilityAnnotations(Type.newBuilder().setMap(xyz.block.ftl.schema.v1.Map.newBuilder()
-                            .setKey(buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL))
-                            .setValue(buildType(paramType.arguments().get(1), export, Nullability.NOT_NULL)))
+                    return handleNullabilityAnnotations(Type.newBuilder()
+                            .setMap(xyz.block.ftl.schema.v1.Map.newBuilder()
+                                    .setKey(buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL))
+                                    .setValue(buildType(paramType.arguments().get(1), export, Nullability.NOT_NULL)))
                             .build(), nullability);
                 } else if (paramType.name().equals(DotNames.OPTIONAL)) {
-                    //TODO: optional kinda sucks
+                    // TODO: optional kinda sucks
                     return Type.newBuilder().setOptional(xyz.block.ftl.schema.v1.Optional.newBuilder()
                             .setType(buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL)))
                             .build();
                 } else if (paramType.name().equals(DotName.createSimple(HttpRequest.class))) {
                     return Type.newBuilder()
                             .setRef(Ref.newBuilder().setModule(BUILTIN).setName(HttpRequest.class.getSimpleName())
-                                    .addTypeParameters(buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL)))
+                                    .addTypeParameters(
+                                            buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL)))
                             .build();
                 } else if (paramType.name().equals(DotName.createSimple(HttpResponse.class))) {
                     return Type.newBuilder()
                             .setRef(Ref.newBuilder().setModule(BUILTIN).setName(HttpResponse.class.getSimpleName())
-                                    .addTypeParameters(buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL))
+                                    .addTypeParameters(
+                                            buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL))
                                     .addTypeParameters(Type.newBuilder().setUnit(Unit.newBuilder().build())))
                             .build();
                 } else {
@@ -499,7 +542,7 @@ public class ModuleBuilder {
         if (clazz == null) {
             return;
         }
-        //TODO: handle getters and setters properly, also Jackson annotations etc
+        // TODO: handle getters and setters properly, also Jackson annotations etc
         for (var field : clazz.fields()) {
             if (!Modifier.isStatic(field.flags())) {
                 Field.Builder builder = Field.newBuilder().setName(field.name())
@@ -510,7 +553,8 @@ public class ModuleBuilder {
                         for (var alias : aliases.value().asStringArray()) {
                             builder.addMetadata(
                                     Metadata.newBuilder().setAlias(
-                                            MetadataAlias.newBuilder().setKind(AliasKind.ALIAS_KIND_JSON).setAlias(alias)));
+                                            MetadataAlias.newBuilder().setKind(AliasKind.ALIAS_KIND_JSON)
+                                                    .setAlias(alias)));
                         }
                     }
                 }
@@ -552,7 +596,8 @@ public class ModuleBuilder {
         return decls.size();
     }
 
-    public void writeTo(OutputStream out, OutputStream errorOut, BiConsumer<Module, ErrorList> consumer) throws IOException {
+    public void writeTo(OutputStream out, OutputStream errorOut, BiConsumer<Module, ErrorList> consumer)
+            throws IOException {
         decls.values().stream().forEachOrdered(protoModuleBuilder::addDecls);
         ErrorList.Builder builder = ErrorList.newBuilder();
         if (!validationFailures.isEmpty()) {
@@ -575,7 +620,8 @@ public class ModuleBuilder {
         }
     }
 
-    public void registerTypeAlias(String name, org.jboss.jandex.Type finalT, org.jboss.jandex.Type finalS, boolean exported,
+    public void registerTypeAlias(String name, org.jboss.jandex.Type finalT, org.jboss.jandex.Type finalS,
+            boolean exported,
             Map<String, String> languageMappings) {
         validateName(finalT.name().toString(), name);
         TypeAlias.Builder typeAlias = TypeAlias.newBuilder()
@@ -587,14 +633,16 @@ public class ModuleBuilder {
                                 .build())
                         .build());
         for (var entry : languageMappings.entrySet()) {
-            typeAlias.addMetadata(Metadata.newBuilder().setTypeMap(MetadataTypeMap.newBuilder().setRuntime(entry.getKey())
-                    .setNativeName(entry.getValue()).build()).build());
+            typeAlias.addMetadata(
+                    Metadata.newBuilder().setTypeMap(MetadataTypeMap.newBuilder().setRuntime(entry.getKey())
+                            .setNativeName(entry.getValue()).build()).build());
         }
         addDecls(Decl.newBuilder().setTypeAlias(typeAlias).build());
     }
 
     /**
-     * Types from other modules don't need a Decl. We store Ref for it, and prevent a Decl being created next
+     * Types from other modules don't need a Decl. We store Ref for it, and prevent
+     * a Decl being created next
      * time we see this name
      */
     public void registerExternalType(String module, String name) {
@@ -607,20 +655,22 @@ public class ModuleBuilder {
 
     private void addDecl(Decl decl, Position pos, String name) {
         validateName(pos, name);
-        if (decls.containsKey(name)) {
-            duplicateNameValidationError(name, pos);
+        var existing = decls.get(name);
+        if (existing != null) {
+            duplicateNameValidationError(name, pos, existing);
         }
         decls.put(name, decl);
     }
 
     /**
-     * Check if an enum with the given name already exists in the module. If it does, merge fields from both into one
+     * Check if an enum with the given name already exists in the module. If it
+     * does, merge fields from both into one
      */
     private boolean updateEnum(String name, Decl decl) {
         if (decls.containsKey(name)) {
             var existing = decls.get(name);
             if (!existing.hasEnum()) {
-                duplicateNameValidationError(name, decl.getEnum().getPos());
+                duplicateNameValidationError(name, decl.getEnum().getPos(), existing);
             }
             var moreComplete = decl.getEnum().getVariantsCount() > 0 ? decl : existing;
             var lessComplete = decl.getEnum().getVariantsCount() > 0 ? existing : decl;
@@ -632,7 +682,8 @@ public class ModuleBuilder {
             if (export) {
                 // Need to update export on variants too
                 for (var childDecl : merged.getVariantsList()) {
-                    if (childDecl.getValue().hasTypeValue() && childDecl.getValue().getTypeValue().getValue().hasRef()) {
+                    if (childDecl.getValue().hasTypeValue()
+                            && childDecl.getValue().getTypeValue().getValue().hasRef()) {
                         var ref = childDecl.getValue().getTypeValue().getValue().getRef();
                         setDeclExport(ref.getName(), true);
                     }
@@ -644,7 +695,8 @@ public class ModuleBuilder {
     }
 
     /**
-     * Set a Decl's export field to <code>export</code>. Return true iff the Decl exists
+     * Set a Decl's export field to <code>export</code>. Return true iff the Decl
+     * exists
      */
     private boolean setDeclExport(String name, boolean export) {
         var existing = decls.get(name);
@@ -653,7 +705,8 @@ public class ModuleBuilder {
                 var merged = existing.getData().toBuilder().setExport(export || existing.getData().getExport()).build();
                 decls.put(name, Decl.newBuilder().setData(merged).build());
             } else if (existing.hasTypeAlias()) {
-                var merged = existing.getTypeAlias().toBuilder().setExport(export || existing.getData().getExport()).build();
+                var merged = existing.getTypeAlias().toBuilder().setExport(export || existing.getData().getExport())
+                        .build();
                 decls.put(name, Decl.newBuilder().setTypeAlias(merged).build());
             }
 
@@ -661,10 +714,28 @@ public class ModuleBuilder {
         return existing != null;
     }
 
-    private void duplicateNameValidationError(String name, Position pos) {
-        validationFailures.add(new ValidationFailure(toError(pos), String.format(
-                "schema declaration with name \"%s\" already exists for module \"%s\"; previously declared at \"%s\"",
-                name, moduleName, pos.getFilename() + ":" + pos.getLine())));
+    private void duplicateNameValidationError(String name, Position pos, Decl existingDecl) {
+        if (isGenerated(existingDecl)) {
+            validationFailures.add(new ValidationFailure(toError(pos), String.format(
+                    "schema declaration with name \"%s\" conflicts with FTL-generated type",
+                    name, moduleName, pos.getFilename() + ":" + pos.getLine())));
+        } else {
+            validationFailures.add(new ValidationFailure(toError(pos), String.format(
+                    "schema declaration with name \"%s\" already exists for module \"%s\"; previously declared at \"%s\"",
+                    name, moduleName, pos.getFilename() + ":" + pos.getLine())));
+        }
+    }
+
+    private boolean isGenerated(Decl decl) {
+        List<Metadata> metadata;
+        if (decl.hasData()) {
+            metadata = decl.getData().getMetadataList();
+        } else if (decl.hasVerb()) {
+            metadata = decl.getVerb().getMetadataList();
+        } else {
+            return false;
+        }
+        return metadata.stream().filter(m -> m.hasGenerated()).findFirst().isPresent();
     }
 
     public enum BodyType {
@@ -678,7 +749,7 @@ public class ModuleBuilder {
     }
 
     String validateName(Position position, String name) {
-        //we group all validation failures together so we can report them all at once
+        // we group all validation failures together so we can report them all at once
         if (!NAME_PATTERN.matcher(name).matches()) {
             validationFailures.add(
                     new ValidationFailure(toError(position),
@@ -696,10 +767,11 @@ public class ModuleBuilder {
     }
 
     String validateName(xyz.block.ftl.language.v1.Position position, String name) {
-        //we group all validation failures together so we can report them all at once
+        // we group all validation failures together so we can report them all at once
         if (!NAME_PATTERN.matcher(name).matches()) {
             validationFailures
-                    .add(new ValidationFailure(position, String.format("Invalid name %s, must match " + NAME_PATTERN, name)));
+                    .add(new ValidationFailure(position,
+                            String.format("Invalid name %s, must match " + NAME_PATTERN, name)));
         }
         return name;
     }

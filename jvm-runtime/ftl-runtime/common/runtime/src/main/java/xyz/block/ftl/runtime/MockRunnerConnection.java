@@ -1,6 +1,8 @@
 package xyz.block.ftl.runtime;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
@@ -30,6 +32,20 @@ public class MockRunnerConnection implements FTLRunnerConnection {
     @Override
     public void publishEvent(String topic, String callingVerbName, byte[] event, String key) {
 
+    }
+
+    @Override
+    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName) {
+        return null;
+    }
+
+    @Override
+    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName) {
+        return new ArrayList<>();
+    }
+
+    @Override
+    public void executeQueryExec(String dbName, String sql, String paramsJson) {
     }
 
     @Override

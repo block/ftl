@@ -29,6 +29,8 @@ func (d *Database) Position() Position { return d.Pos }
 func (*Database) schemaDecl()          {}
 func (*Database) schemaSymbol()        {}
 func (d *Database) provisioned()       {}
+func (d *Database) IsGenerated() bool  { return true }
+
 func (d *Database) schemaChildren() []Node {
 	children := []Node{}
 	for _, c := range d.Metadata {

@@ -30,9 +30,8 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 	out := &schema.Schema{}
-	updated, err := AddDatabaseDeclsToSchema(ctx, tmpDir, mc.Abs(), out)
+	err = AddDatabaseDeclsToSchema(ctx, tmpDir, mc.Abs(), out)
 	assert.NoError(t, err)
-	assert.True(t, updated)
 
 	var actual *schema.Module
 	for _, d := range out.Modules {

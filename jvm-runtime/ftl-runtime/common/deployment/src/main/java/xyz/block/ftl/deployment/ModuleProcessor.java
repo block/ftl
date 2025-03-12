@@ -124,15 +124,17 @@ public class ModuleProcessor {
             ModuleNameBuildItem moduleNameBuildItem,
             TopicsBuildItem topicsBuildItem,
             VerbClientBuildItem verbClientBuildItem,
+            SQLQueryClientBuildItem sqlQueryClientBuildItem,
             DefaultOptionalBuildItem defaultOptionalBuildItem,
             List<SchemaContributorBuildItem> schemaContributorBuildItems,
             LaunchModeBuildItem launchModeBuildItem,
             CommentsBuildItem comments) throws Exception {
         String moduleName = moduleNameBuildItem.getModuleName();
 
-        ModuleBuilder moduleBuilder = new ModuleBuilder(index.getComputingIndex(), moduleName, topicsBuildItem.getTopics(),
-                verbClientBuildItem.getVerbClients(), recorder, comments,
-                defaultOptionalBuildItem.isDefaultToOptional());
+        ModuleBuilder moduleBuilder = new ModuleBuilder(index.getIndex(), moduleName,
+                topicsBuildItem.getTopics(), verbClientBuildItem.getVerbClients(),
+                sqlQueryClientBuildItem.getSQLQueryClients(),
+                recorder, comments, defaultOptionalBuildItem.isDefaultToOptional());
 
         for (var i : schemaContributorBuildItems) {
             i.getSchemaContributor().accept(moduleBuilder);

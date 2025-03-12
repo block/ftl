@@ -52,8 +52,9 @@ func (e *Enum) schemaChildren() []Node {
 	}
 	return children
 }
-func (e *Enum) GetName() string  { return e.Name }
-func (e *Enum) IsExported() bool { return e.Export }
+func (e *Enum) GetName() string   { return e.Name }
+func (e *Enum) IsExported() bool  { return e.Export }
+func (e *Enum) IsGenerated() bool { return false }
 
 // IsValueEnum determines whether this is a type or value enum using `e.Type` alone
 // because value enums must always have a unified type across all variants, whereas type

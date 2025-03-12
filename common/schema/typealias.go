@@ -44,5 +44,6 @@ func (t *TypeAlias) schemaChildren() []Node {
 	return children
 }
 
-func (t *TypeAlias) GetName() string  { return t.Name }
-func (t *TypeAlias) IsExported() bool { return t.Export }
+func (t *TypeAlias) GetName() string   { return t.Name }
+func (t *TypeAlias) IsExported() bool  { return t.Export }
+func (t *TypeAlias) IsGenerated() bool { return false }

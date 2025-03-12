@@ -39,6 +39,7 @@ import xyz.block.ftl.deployment.VerbType;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
 import xyz.block.ftl.schema.v1.Topic;
 import xyz.block.ftl.schema.v1.Type;
@@ -271,6 +272,12 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
                 .addType(typeBuilder.build())
                 .build();
         javaFile.writeTo(outputDir.writeKotlin(javaFile.getName()));
+    }
+
+    protected void generateSQLQueryVerb(Module module, Verb verb, String dbName, MetadataSQLQuery queryMetadata,
+            String packageName,
+            PackageOutput outputDir)
+            throws IOException {
     }
 
     private String toJavaName(String name) {

@@ -1,6 +1,6 @@
 -- migrate:up
 CREATE TABLE requests (
-     id bigint NOT NULL,
+     id bigint NOT NULL AUTO_INCREMENT,
      created_at datetime(6),
      data VARCHAR(255),
      updated_at datetime(6),

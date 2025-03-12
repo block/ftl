@@ -5,26 +5,26 @@ import java.util.Map;
 
 import jakarta.transaction.Transactional;
 
-import xyz.block.ftl.SQLDatabaseType;
-import xyz.block.ftl.SQLDatasource;
+import ftl.mysql.CreateRequestClient;
+import ftl.mysql.CreateRequestQuery;
+import ftl.mysql.GetRequestDataClient;
+import ftl.mysql.GetRequestDataResult;
 import xyz.block.ftl.Verb;
 
-@SQLDatasource(name = "testdb", type = SQLDatabaseType.MYSQL)
 public class Database {
 
     @Verb
     @Transactional
-    public InsertResponse insert(InsertRequest insertRequest) {
-        Request request = new Request();
-        request.data = insertRequest.getData();
-        request.persist();
+    public InsertResponse insert(InsertRequest insertRequest, CreateRequestClient c) {
+        CreateRequestQuery request = new CreateRequestQuery(insertRequest.getData());
+        c.createRequest(request);
         return new InsertResponse();
     }
 
     @Verb
     @Transactional
-    public Map<String, String> query() {
-        List<Request> requests = Request.listAll();
-        return Map.of("data", requests.get(0).data);
+    public Map<String, String> query(GetRequestDataClient query) {
+        List<GetRequestDataResult> results = query.getRequestData();
+        return Map.of("data", results.get(0).getData());
     }
 }

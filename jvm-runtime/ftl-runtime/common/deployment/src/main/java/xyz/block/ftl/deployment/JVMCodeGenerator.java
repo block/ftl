@@ -16,6 +16,7 @@ import xyz.block.ftl.hotreload.CodeGenNotification;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
 import xyz.block.ftl.schema.v1.Topic;
 import xyz.block.ftl.schema.v1.Type;
@@ -151,6 +152,8 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                     }
                 }
 
+                writeGeneratedClients(context, packageOutputMap);
+
             } catch (Exception e) {
                 throw new CodeGenException(e);
             }
@@ -180,6 +183,64 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
 
     protected abstract void generateVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
             Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir) throws IOException;
+
+    protected abstract void generateSQLQueryVerb(Module module, Verb verb, String dbName, MetadataSQLQuery queryMetadata,
+            String packageName, PackageOutput outputDir)
+            throws IOException;
+
+    private void writeGeneratedClients(CodeGenContext context, Map<String, PackageOutput> packageOutputMap)
+            throws CodeGenException {
+        Path generatedDir = context.inputDir().resolve("generated");
+        if (!Files.exists(generatedDir)) {
+            log.info("No generated clients found");
+            return;
+        }
+        try (Stream<Path> pathStream = Files.list(generatedDir)) {
+            for (var file : pathStream.toList()) {
+                String fileName = file.getFileName().toString();
+                if (!fileName.endsWith(".pb")) {
+                    continue;
+                }
+                Module module;
+                try {
+                    module = Module.parseFrom(Files.readAllBytes(file));
+                } catch (Exception e) {
+                    throw new CodeGenException("Failed to parse generated schema file " + file, e);
+                }
+
+                String packageName = PACKAGE_PREFIX + module.getName();
+                var output = packageOutputMap.computeIfAbsent(module.getName(),
+                        (k) -> new PackageOutput(context.outDir(), packageName));
+                for (var decl : module.getDeclsList()) {
+                    if (decl.hasVerb()) {
+                        var verb = decl.getVerb();
+                        var queryMetadata = verb.getMetadataList().stream().filter(md -> md.hasSqlQuery()).findFirst()
+                                .map(md -> md.getSqlQuery()).orElse(null);
+                        var dbCallMetadata = verb.getMetadataList().stream().filter(md -> md.hasDatabases()).findFirst()
+                                .map(md -> md.getDatabases()).orElse(null);
+                        var dbCalls = dbCallMetadata != null ? dbCallMetadata.getCallsList() : null;
+                        if (queryMetadata != null) {
+                            if (dbCalls == null) {
+                                throw new CodeGenException("SQL query verb " + verb.getName() + " has no database calls");
+                            }
+                            if (dbCalls.size() != 1) {
+                                throw new CodeGenException("SQL query verb " + verb.getName() + " has " + dbCalls.size()
+                                        + " database calls, but must have exactly one");
+                            }
+                            var dbName = dbCalls.get(0).getName();
+                            generateSQLQueryVerb(module, verb, dbName, queryMetadata, packageName, output);
+                        }
+                    } else if (decl.hasData()) {
+                        var data = decl.getData();
+                        generateDataObject(module, data, packageName, new HashMap<>(), new HashMap<>(), new HashMap<>(),
+                                output);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new CodeGenException(e);
+        }
+    }
 
     @Override
     public boolean shouldRun(Path sourceDir, Config config) {

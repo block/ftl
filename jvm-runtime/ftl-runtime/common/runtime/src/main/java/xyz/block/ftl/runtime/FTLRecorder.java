@@ -4,6 +4,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
 
@@ -19,6 +20,7 @@ import xyz.block.ftl.v1.GetDeploymentContextResponse;
 @Recorder
 public class FTLRecorder {
 
+    private static final Logger log = Logger.getLogger(FTLRecorder.class);
     public static final String X_FTL_VERB = "X-ftl-verb";
 
     public void registerVerb(String module, String verbName, String methodName, List<Class<?>> parameterTypes,
@@ -31,6 +33,17 @@ public class FTLRecorder {
             var handlerInstance = Arc.container().instance(verbHandlerClass);
             Arc.container().instance(VerbRegistry.class).get().register(module, verbName, handlerInstance, method,
                     paramMappers, allowNullReturn);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void registerSqlQueryVerb(String module, String verbName, Class<?> sqlQueryClientClass, Class<?> returnType,
+            String dbName, String command, String rawSQL, String[] fields, String[] colToFieldName) {
+        try {
+            VerbRegistry verbRegistry = Arc.container().instance(VerbRegistry.class).get();
+            SQLQueryVerbInvoker invoker = new SQLQueryVerbInvoker(dbName, command, rawSQL, fields, colToFieldName, returnType);
+            verbRegistry.register(module, verbName, invoker);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
