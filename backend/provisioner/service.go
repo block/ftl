@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -20,6 +21,7 @@ import (
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
@@ -215,6 +217,11 @@ func (s *Service) HandleChangesetCommitted(ctx context.Context, req *schema.Chan
 func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) error {
 	logger := log.FromContext(ctx).Changeset(cs)
 	changeset := s.eventSource.ActiveChangesets()[cs]
+
+	moduleNames := slices.Map(changeset.Modules, func(m *schema.Module) string {
+		return m.Name
+	})
+
 	err := s.deProvision(ctx, cs, changeset.RemovingModules)
 	if err != nil {
 		return err
@@ -223,7 +230,7 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 	if err != nil {
 		return fmt.Errorf("error finalizing changeset: %w", err)
 	}
-	logger.Infof("Successfully completed deployment for changeset %s", cs) //nolint:forbidigo
+	logger.Infof("Successfully completed deployment for changeset %s [%s]", cs, strings.Join(moduleNames, ",")) //nolint:forbidigo
 	return nil
 }
 
@@ -282,7 +289,10 @@ func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*
 
 func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Changeset) error {
 	mLogger := log.FromContext(ctx).Changeset(req.Key)
-	mLogger.Infof("Starting deployment for changeset %s", req.Key) //nolint:forbidigo
+	moduleNames := slices.Map(req.Modules, func(m *schema.Module) string {
+		return m.Name
+	})
+	mLogger.Infof("Starting deployment for changeset %s [%s]", req.Key, strings.Join(moduleNames, ",")) //nolint:forbidigo
 	group := errgroup.Group{}
 	// TODO: Block deployments to make sure only one module is modified at a time
 	for _, module := range req.Modules {

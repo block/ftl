@@ -106,8 +106,14 @@ func (d *devCmd) Run(
 	// cmdServe will notify this channel when startup commands are complete and the controller is ready
 	controllerReady := make(chan bool, 1)
 	if !d.NoServe {
+		// We don't want to log the server messages directly. We will log them via the timeline
+		// to make sure the experience is consistent with remote deployments.
+		//
+		// The underlying systems will attach a timeline sink to this logger to log events to the timeline.
+		sctx := log.ContextWithLogger(ctx, log.New(log.Trace, log.NewNoopSink()))
+
 		if d.ServeCmd.Stop {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(sctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
 				return fmt.Errorf("failed to stop server: %w", err)
 			}
@@ -115,7 +121,7 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(sctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, true, devModeEndpointUpdates)
 			if err != nil {
 				cancel(fmt.Errorf("dev server failed: %w: %w", context.Canceled, err))
 			} else {
