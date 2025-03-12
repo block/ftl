@@ -7,10 +7,11 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
-	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
 )
 
 type timelineOutput struct {
