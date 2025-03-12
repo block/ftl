@@ -151,6 +151,9 @@ func (e *EventSource) Publish(event schema.Notification) error {
 			}
 		} else {
 			for _, m := range clone.schema.Modules {
+				if m.Runtime == nil {
+					continue
+				}
 				if m.Runtime.Deployment.DeploymentKey == event.Payload.Deployment {
 					err := event.Payload.ApplyToModule(m)
 					if err != nil {

@@ -151,6 +151,13 @@ message ApplyChangesetResponse {
   ftl.schema.v1.Changeset changeset = 2;
 }
 
+message UpdateDeploymentRuntimeRequest {
+  // The modules to add or update.
+  ftl.schema.v1.RuntimeElement element = 1;
+}
+
+message UpdateDeploymentRuntimeResponse {}
+
 message GetArtefactDiffsRequest {
   repeated string client_digests = 1;
 }
@@ -242,6 +249,9 @@ service AdminService {
   // Creates and applies a changeset, returning the result
   // This blocks until the changeset has completed
   rpc ApplyChangeset(ApplyChangesetRequest) returns (stream ApplyChangesetResponse);
+
+  // Updates a runtime deployment
+  rpc UpdateDeploymentRuntime(UpdateDeploymentRuntimeRequest) returns (UpdateDeploymentRuntimeResponse);
 
   // Get the full schema.
   rpc GetSchema(ftl.v1.GetSchemaRequest) returns (ftl.v1.GetSchemaResponse) {

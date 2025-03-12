@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, StreamChangesetLogsRequest, StreamChangesetLogsResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
+import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, StreamChangesetLogsRequest, StreamChangesetLogsResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
 import { FailChangesetRequest, FailChangesetResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, RollbackChangesetRequest, RollbackChangesetResponse } from "../../v1/schemaservice_pb.js";
 
 /**
@@ -161,6 +161,17 @@ export const AdminService = {
       I: ApplyChangesetRequest,
       O: ApplyChangesetResponse,
       kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Updates a runtime deployment
+     *
+     * @generated from rpc xyz.block.ftl.admin.v1.AdminService.UpdateDeploymentRuntime
+     */
+    updateDeploymentRuntime: {
+      name: "UpdateDeploymentRuntime",
+      I: UpdateDeploymentRuntimeRequest,
+      O: UpdateDeploymentRuntimeResponse,
+      kind: MethodKind.Unary,
     },
     /**
      * Get the full schema.

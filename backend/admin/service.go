@@ -680,3 +680,11 @@ func (o *OnceValue[T]) Get(ctx context.Context) (T, bool) {
 		return zero, false
 	}
 }
+
+func (s *Service) UpdateDeploymentRuntime(ctx context.Context, c *connect.Request[adminpb.UpdateDeploymentRuntimeRequest]) (*connect.Response[adminpb.UpdateDeploymentRuntimeResponse], error) {
+	_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Update: c.Msg.Element}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to update deployment runtime: %w", err)
+	}
+	return connect.NewResponse(&adminpb.UpdateDeploymentRuntimeResponse{}), nil
+}

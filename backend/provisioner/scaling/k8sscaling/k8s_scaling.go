@@ -77,7 +77,7 @@ func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string,
 	if err != nil {
 		return fmt.Errorf("failed to get deployment %s: %w", deploymentKey, err)
 	}
-	return r.handleExistingDeployment(ctx, deployment)
+	return r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
 }
 
 func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
@@ -99,9 +99,8 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 
 	r.knownDeployments.Store(deploymentKey, true)
 	if deploymentExists {
-		// This should never really happen, but if it does we need to handle it
 		logger.Debugf("Updating deployment %s", deploymentKey)
-		err = r.handleExistingDeployment(ctx, deployment)
+		err = r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
 		return r.GetEndpointForDeployment(deploymentKey), err
 
 	}
@@ -466,13 +465,13 @@ func decodeBytesToObject(bytes []byte, deployment runtime.Object) error {
 	return nil
 }
 
-func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *kubeapps.Deployment) error {
+func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *kubeapps.Deployment, replicas int32) error {
 
 	thisContainerImage, err := r.thisContainerImage(ctx)
 	if err != nil {
 		return err
 	}
-	changes, err := r.syncDeployment(ctx, thisContainerImage, deployment, 1)
+	changes, err := r.syncDeployment(ctx, thisContainerImage, deployment, replicas)
 	if err != nil {
 		return err
 	}

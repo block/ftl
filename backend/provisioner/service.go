@@ -122,7 +122,18 @@ func Start(
 					logger.Errorf(err, "Error de-provisioning changeset")
 				}
 			case *schema.DeploymentRuntimeNotification:
-				//TODO: scaling support
+				if e.Changeset == nil || e.Changeset.IsZero() {
+					// This is updated outside of a changeset, so we need to handle it
+					switch element := e.Payload.Element.(type) {
+					case *schema.ModuleRuntimeScaling:
+						err := svc.handleScalingUpdate(ctx, e.Payload.Deployment, element)
+						if err != nil {
+							logger.Errorf(err, "Error scaling runtime")
+						}
+					default:
+
+					}
+				}
 			case *schema.FullSchemaNotification:
 				logger.Debugf("Provisioning changesets from full schema notification")
 				for _, cs := range e.Changesets {
@@ -336,6 +347,34 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 		return fmt.Errorf("error preparing changeset: %w", err)
 	}
 	return nil
+}
+
+func (s *Service) handleScalingUpdate(ctx context.Context, dk key.Deployment, element *schema.ModuleRuntimeScaling) error {
+	mLogger := log.FromContext(ctx)
+	logger := mLogger.Module(dk.Payload.Module)
+	logger.Debugf("Updating replicas %s to %d", dk.Payload.Module, element.MinReplicas)
+	ctx = log.ContextWithLogger(ctx, logger)
+	moduleName := dk.Payload.Module
+
+	existingModule := s.eventSource.CanonicalView().Deployment(dk)
+	if !existingModule.Ok() {
+		return fmt.Errorf("deployment %s not found", dk.String())
+	}
+	module := reflect.DeepCopy(existingModule.MustGet())
+	module.Runtime.Scaling = element
+	if err := s.registry.VerifyDeploymentSupported(ctx, module); err != nil {
+		return err
+	}
+	// TODO: fake changeset key
+	deployment := s.registry.CreateDeployment(ctx, key.NewChangesetKey(), module, existingModule.MustGet(), func(element *schema.RuntimeElement) error {
+		return nil
+	})
+	if err := deployment.Run(ctx); err != nil {
+		return fmt.Errorf("error running deployment: %w", err)
+	}
+	logger.Debugf("Finished deployment for module %s", moduleName)
+	return nil
+
 }
 
 func syncExistingRuntimes(existingModule, desiredModule *schema.Module) {

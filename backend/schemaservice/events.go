@@ -75,7 +75,7 @@ func (r *SchemaState) VerifyEvent(ctx context.Context, event schema.Event) error
 }
 
 func verifyDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEvent) error {
-	if cs, ok := e.ChangesetKey().Get(); ok {
+	if cs, ok := e.ChangesetKey().Get(); ok && !cs.IsZero() {
 		_, ok := t.changesets[cs]
 		if !ok {
 			return fmt.Errorf("changeset %s not found", cs.String())
@@ -98,7 +98,7 @@ func handleDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEve
 	if err := verifyDeploymentRuntimeEvent(t, e); err != nil {
 		return err
 	}
-	if cs, ok := e.ChangesetKey().Get(); ok {
+	if cs, ok := e.ChangesetKey().Get(); ok && !cs.IsZero() {
 		module := e.DeploymentKey().Payload.Module
 		c := t.changesets[cs]
 		for _, m := range c.Modules {
@@ -195,6 +195,14 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent) error {
 	if err := verifyChangesetCreatedEvent(t, e); err != nil {
 		return err
+	}
+	for _, dep := range e.Changeset.Modules {
+		if dep.Runtime.Scaling == nil {
+			dep.Runtime.Scaling = &schema.ModuleRuntimeScaling{MinReplicas: 1}
+			if existing, ok := t.deployments[dep.Name]; ok {
+				dep.Runtime.Scaling.MinReplicas = existing.Runtime.Scaling.MinReplicas
+			}
+		}
 	}
 	t.changesets[e.Changeset.Key] = e.Changeset
 	return nil

@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
-import { Changeset, Module, Ref } from "../../schema/v1/schema_pb.js";
+import { Changeset, Module, Ref, RuntimeElement } from "../../schema/v1/schema_pb.js";
 import { LogEvent } from "../../timeline/v1/event_pb.js";
 
 /**
@@ -1180,6 +1180,76 @@ export class ApplyChangesetResponse extends Message<ApplyChangesetResponse> {
 
   static equals(a: ApplyChangesetResponse | PlainMessage<ApplyChangesetResponse> | undefined, b: ApplyChangesetResponse | PlainMessage<ApplyChangesetResponse> | undefined): boolean {
     return proto3.util.equals(ApplyChangesetResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest
+ */
+export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRuntimeRequest> {
+  /**
+   * The modules to add or update.
+   *
+   * @generated from field: xyz.block.ftl.schema.v1.RuntimeElement element = 1;
+   */
+  element?: RuntimeElement;
+
+  constructor(data?: PartialMessage<UpdateDeploymentRuntimeRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "element", kind: "message", T: RuntimeElement },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateDeploymentRuntimeRequest {
+    return new UpdateDeploymentRuntimeRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateDeploymentRuntimeRequest {
+    return new UpdateDeploymentRuntimeRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateDeploymentRuntimeRequest {
+    return new UpdateDeploymentRuntimeRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateDeploymentRuntimeRequest | PlainMessage<UpdateDeploymentRuntimeRequest> | undefined, b: UpdateDeploymentRuntimeRequest | PlainMessage<UpdateDeploymentRuntimeRequest> | undefined): boolean {
+    return proto3.util.equals(UpdateDeploymentRuntimeRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeResponse
+ */
+export class UpdateDeploymentRuntimeResponse extends Message<UpdateDeploymentRuntimeResponse> {
+  constructor(data?: PartialMessage<UpdateDeploymentRuntimeResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateDeploymentRuntimeResponse {
+    return new UpdateDeploymentRuntimeResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateDeploymentRuntimeResponse {
+    return new UpdateDeploymentRuntimeResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateDeploymentRuntimeResponse {
+    return new UpdateDeploymentRuntimeResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateDeploymentRuntimeResponse | PlainMessage<UpdateDeploymentRuntimeResponse> | undefined, b: UpdateDeploymentRuntimeResponse | PlainMessage<UpdateDeploymentRuntimeResponse> | undefined): boolean {
+    return proto3.util.equals(UpdateDeploymentRuntimeResponse, a, b);
   }
 }
 
