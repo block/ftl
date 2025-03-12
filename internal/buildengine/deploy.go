@@ -415,7 +415,7 @@ func (c *DeployCoordinator) runChangeLogger(ctx context.Context, key key.Changes
 		Query: &timelinepb.TimelineQuery{
 			Limit: 100,
 			Filters: []*timelinepb.TimelineQuery_Filter{
-				&timelinepb.TimelineQuery_Filter{
+				{
 					Filter: &timelinepb.TimelineQuery_Filter_Changesets{
 						Changesets: &timelinepb.TimelineQuery_ChangesetFilter{
 							Changesets: []string{key.String()},

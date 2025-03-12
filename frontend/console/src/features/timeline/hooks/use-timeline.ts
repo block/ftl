@@ -22,7 +22,7 @@ export const useTimeline = (isStreaming: boolean, filters: TimelineQuery_Filter[
   const fetchTimeline = async ({ signal }: { signal: AbortSignal }) => {
     try {
       console.debug('fetching timeline')
-      const response = await client.getTimeline({query: { filters, limit, order }}, { signal })
+      const response = await client.getTimeline({ query: { filters, limit, order } }, { signal })
       return response.events
     } catch (error) {
       if (error instanceof ConnectError) {
