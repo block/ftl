@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/log"
@@ -13,10 +15,10 @@ import (
 )
 
 type deployCmd struct {
-	Replicas int32         `short:"n" help:"Number of replicas to deploy." default:"1"`
-	NoWait   bool          `help:"Do not wait for deployment to complete." default:"false"`
-	Build    buildCmd      `embed:""`
-	Timeout  time.Duration `short:"t" help:"Timeout for the deployment."`
+	Replicas optional.Option[int32] `short:"n" help:"Number of replicas to deploy."`
+	NoWait   bool                   `help:"Do not wait for deployment to complete." default:"false"`
+	Build    buildCmd               `embed:""`
+	Timeout  time.Duration          `short:"t" help:"Timeout for the deployment."`
 }
 
 func (d *deployCmd) Run(

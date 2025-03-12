@@ -6,14 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
+	stdslices "slices"
 	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
-	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -57,7 +58,7 @@ type pendingModule struct {
 
 type pendingDeploy struct {
 	modules  map[string]*pendingModule
-	replicas int32
+	replicas optional.Option[int32]
 
 	publishInSchema bool
 	changeset       optional.Option[key.Changeset]
@@ -121,7 +122,7 @@ func NewDeployCoordinator(
 	return c
 }
 
-func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig.Config, modules []Module, replicas int32) error {
+func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig.Config, modules []Module, replicas optional.Option[int32]) error {
 	for _, module := range modules {
 		c.engineUpdates <- &buildenginepb.EngineEvent{
 			Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
@@ -248,7 +249,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 				toDeploy = append(toDeploy, deployment)
 			}
 			if deployment.publishInSchema {
-				c.publishUpdatedSchema(ctx, maps.Keys(deployment.modules), toDeploy, deploying) //nolint:exptostd
+				c.publishUpdatedSchema(ctx, stdslices.Collect(maps.Keys(deployment.modules)), toDeploy, deploying) //nolint:exptostd
 			}
 		case notification := <-events:
 			var key key.Changeset
@@ -356,11 +357,15 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 				},
 			},
 		}
+		if repo, ok := deployment.replicas.Get(); ok {
+			log.FromContext(ctx).Infof("Deploying %s with %d replicas", module.name, repo) //nolint:forbidigo
+			module.schema.ModRuntime().ModScaling().MinReplicas = repo
+		}
 	}
 
 	keyChan := make(chan result.Result[key.Changeset], 1)
 	go func() {
-		err := deploy(ctx, slices.Map(maps.Values(deployment.modules), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan) //nolint:exptostd
+		err := deploy(ctx, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan) //nolint:exptostd
 		if err != nil {
 			// Handle deployment failure
 			for _, module := range deployment.modules {
@@ -425,7 +430,7 @@ func (c *DeployCoordinator) runChangeLogger(ctx context.Context, key key.Changes
 
 func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendingDeploy) (*pendingDeploy, error) {
 	if d.replicas != old.replicas {
-		return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: replicas were different %d != %d", maps.Keys(d.modules), maps.Keys(old.modules), d.replicas, old.replicas) //nolint:exptostd
+		return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: replicas were different %d != %d", maps.Keys(d.modules), maps.Keys(old.modules), d.replicas.Default(-1), old.replicas.Default(-1))
 	}
 	out := reflect.DeepCopy(d)
 	addedModules := []string{}
@@ -648,7 +653,7 @@ func uploadArtefacts(ctx context.Context, module *pendingModule, client AdminCli
 		return nil, err
 	}
 
-	gadResp, err := client.GetArtefactDiffs(ctx, connect.NewRequest(&adminpb.GetArtefactDiffsRequest{ClientDigests: maps.Keys(filesByHash)})) //nolint:exptostd
+	gadResp, err := client.GetArtefactDiffs(ctx, connect.NewRequest(&adminpb.GetArtefactDiffsRequest{ClientDigests: stdslices.Collect(maps.Keys(filesByHash))})) //nolint:exptostd
 	if err != nil {
 		return nil, fmt.Errorf("failed to get artefact diffs: %w", err)
 	}

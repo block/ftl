@@ -26,7 +26,7 @@ func (s *psCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClien
 		if module.Builtin {
 			continue
 		}
-		fmt.Printf(format, module.GetRuntime().GetDeployment().DeploymentKey, 1) //TODO: MinReplicas is broken at the moment
+		fmt.Printf(format, module.GetRuntime().GetDeployment().DeploymentKey, module.GetRuntime().GetScaling().MinReplicas)
 	}
 	return nil
 }

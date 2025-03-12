@@ -237,6 +237,16 @@ class ApplyChangesetResponse(_message.Message):
     changeset: _schema_pb2.Changeset
     def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
 
+class UpdateDeploymentRuntimeRequest(_message.Message):
+    __slots__ = ("element",)
+    ELEMENT_FIELD_NUMBER: _ClassVar[int]
+    element: _schema_pb2.RuntimeElement
+    def __init__(self, element: _Optional[_Union[_schema_pb2.RuntimeElement, _Mapping]] = ...) -> None: ...
+
+class UpdateDeploymentRuntimeResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
 class GetArtefactDiffsRequest(_message.Message):
     __slots__ = ("client_digests",)
     CLIENT_DIGESTS_FIELD_NUMBER: _ClassVar[int]

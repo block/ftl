@@ -46,8 +46,19 @@ func TestKubeScaling(t *testing.T) {
 				if strings.HasPrefix(dep.Name, "dpl-echo") {
 					echoDeployment["name"] = dep.Name
 				}
+				assert.Equal(t, 1, *dep.Spec.Replicas)
 			}
 			assert.NotEqual(t, "", echoDeployment["name"])
+		}),
+		in.Exec("ftl", "update", "echo", "-n", "2"),
+		in.VerifyKubeState(func(ctx context.Context, t testing.TB, namespace string, client kubernetes.Clientset) {
+			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
+			assert.NoError(t, err)
+			for _, dep := range deps.Items {
+				if strings.HasPrefix(dep.Name, "dpl-echo") {
+					assert.Equal(t, 2, *dep.Spec.Replicas)
+				}
+			}
 		}),
 		in.Call("naughty", "beNaughty", echoDeployment, func(t testing.TB, response string) {
 			// If istio is not present we should be able to ping the echo service directly.
@@ -79,6 +90,16 @@ func TestKubeScaling(t *testing.T) {
 		in.Deploy("echo"),
 		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bye, Bob!!!", response)
+		}),
+		in.VerifyKubeState(func(ctx context.Context, t testing.TB, namespace string, client kubernetes.Clientset) {
+			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
+			assert.NoError(t, err)
+			for _, dep := range deps.Items {
+				if strings.HasPrefix(dep.Name, "dpl-echo") {
+					// We should have inherited the scaling from the previous deployment
+					assert.Equal(t, 2, *dep.Spec.Replicas)
+				}
+			}
 		}),
 		func(t testing.TB, ic in.TestContext) {
 			//err := failure.Load()

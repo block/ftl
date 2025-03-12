@@ -385,7 +385,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	}()
 
 	// Build and deploy all modules first.
-	_ = e.BuildAndDeploy(ctx, 1, true, false) //nolint:errcheck
+	_ = e.BuildAndDeploy(ctx, optional.None[int32](), true, false) //nolint:errcheck
 
 	// Update schema and set initial module hashes
 	for {
@@ -433,7 +433,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 						},
 					}
 					logger.Debugf("calling build and deploy %q", event.Config.Module)
-					_ = e.BuildAndDeploy(ctx, 1, false, false, config.Module) //nolint:errcheck
+					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
 				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module)
@@ -477,7 +477,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				meta.module.Config = validConfig
 				e.moduleMetas.Store(event.Config.Module, meta)
 
-				_ = e.BuildAndDeploy(ctx, 1, false, false, event.Config.Module) //nolint:errcheck
+				_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, event.Config.Module) //nolint:errcheck
 			}
 		case event := <-e.deployCoordinator.SchemaUpdates:
 			e.targetSchema.Store(event.schema)
@@ -510,7 +510,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				})
 				if len(dependentModuleNames) > 0 {
 					logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", ")) //nolint:forbidigo
-					_ = e.BuildAndDeploy(ctx, 1, false, false, dependentModuleNames...)                                       //nolint:errcheck
+					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, dependentModuleNames...)                  //nolint:errcheck
 				}
 			}
 
@@ -562,7 +562,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					}
 				}
 				go func() {
-					_ = e.deployCoordinator.deploy(ctx, e.projectConfig, modulesToDeploy, 1) //nolint:errcheck
+					_ = e.deployCoordinator.deploy(ctx, e.projectConfig, modulesToDeploy, optional.None[int32]()) //nolint:errcheck
 				}()
 			}
 
@@ -576,7 +576,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				modulesToBuild[event.module] = true
 			}
 			if len(modulesToBuild) > 0 {
-				_ = e.BuildAndDeploy(ctx, 1, false, false, maps.Keys(modulesToBuild)...) //nolint
+				_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, maps.Keys(modulesToBuild)...) //nolint
 			}
 		}
 	}
@@ -790,7 +790,7 @@ func (e *Engine) getDependentModuleNames(moduleName string) []string {
 }
 
 // BuildAndDeploy attempts to build and deploy all local modules.
-func (e *Engine) BuildAndDeploy(ctx context.Context, replicas int32, waitForDeployOnline bool, singleChangeset bool, moduleNames ...string) (err error) {
+func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[int32], waitForDeployOnline bool, singleChangeset bool, moduleNames ...string) (err error) {
 	logger := log.FromContext(ctx)
 	if len(moduleNames) == 0 {
 		moduleNames = e.Modules()
