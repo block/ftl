@@ -2,19 +2,19 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { type InfiniteData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { ConsoleService } from '../../../protos/xyz/block/ftl/console/v1/console_connect'
 import type { Event } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import { type GetTimelineRequest_Filter, GetTimelineRequest_Order } from '../../../protos/xyz/block/ftl/timeline/v1/timeline_pb'
+import { type TimelineQuery_Filter, TimelineQuery_Order } from '../../../protos/xyz/block/ftl/timeline/v1/timeline_pb'
 import { useClient } from '../../../shared/hooks/use-client'
 import { useVisibility } from '../../../shared/hooks/use-visibility'
 
 const timelineKey = 'timeline'
 const maxTimelineEntries = 1000
 
-export const useTimeline = (isStreaming: boolean, filters: GetTimelineRequest_Filter[], updateIntervalMs = 1000, enabled = true) => {
+export const useTimeline = (isStreaming: boolean, filters: TimelineQuery_Filter[], updateIntervalMs = 1000, enabled = true) => {
   const client = useClient(ConsoleService)
   const queryClient = useQueryClient()
   const isVisible = useVisibility()
 
-  const order = GetTimelineRequest_Order.DESC
+  const order = TimelineQuery_Order.DESC
   const limit = isStreaming ? 200 : 1000
 
   const queryKey = [timelineKey, isStreaming, filters, order, limit]
@@ -22,7 +22,7 @@ export const useTimeline = (isStreaming: boolean, filters: GetTimelineRequest_Fi
   const fetchTimeline = async ({ signal }: { signal: AbortSignal }) => {
     try {
       console.debug('fetching timeline')
-      const response = await client.getTimeline({ filters, limit, order }, { signal })
+      const response = await client.getTimeline({query: { filters, limit, order }}, { signal })
       return response.events
     } catch (error) {
       if (error instanceof ConnectError) {

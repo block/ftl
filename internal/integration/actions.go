@@ -572,12 +572,13 @@ func VerifySchemaVerb(module string, verb string, check func(ctx context.Context
 }
 
 // VerifyTimeline lets you test the current timeline
-func VerifyTimeline(limit int, filters []*timelinepb.GetTimelineRequest_Filter, check func(ctx context.Context, t testing.TB, events []*timelinepb.Event)) Action {
+func VerifyTimeline(limit int, filters []*timelinepb.TimelineQuery_Filter, check func(ctx context.Context, t testing.TB, events []*timelinepb.Event)) Action {
 	return func(t testing.TB, ic TestContext) {
 		resp, err := ic.Timeline.GetTimeline(ic, connect.NewRequest(&timelinepb.GetTimelineRequest{
-			Filters: filters,
-			Limit:   int32(limit),
-		}))
+			Query: &timelinepb.TimelineQuery{
+				Filters: filters,
+				Limit:   int32(limit),
+			}}))
 		if err != nil {
 			t.Errorf("failed to get timeline: %v", err)
 			return
@@ -598,7 +599,9 @@ func DeleteOldTimelineEvents(ageSeconds int, _type timelinepb.EventType, check f
 			return
 		}
 		remaining, err := ic.Timeline.GetTimeline(ic, connect.NewRequest(&timelinepb.GetTimelineRequest{
-			Limit: 1000,
+			Query: &timelinepb.TimelineQuery{
+				Limit: 1000,
+			},
 		}))
 		if err != nil {
 			t.Errorf("failed to get timeline: %v", err)

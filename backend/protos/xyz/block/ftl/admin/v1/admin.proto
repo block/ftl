@@ -4,6 +4,7 @@ package xyz.block.ftl.admin.v1;
 
 import "xyz/block/ftl/schema/v1/schema.proto";
 import "xyz/block/ftl/timeline/v1/event.proto";
+import "xyz/block/ftl/timeline/v1/timeline.proto";
 import "xyz/block/ftl/v1/ftl.proto";
 import "xyz/block/ftl/v1/schemaservice.proto";
 
@@ -196,11 +197,11 @@ message ClusterInfoResponse {
   string arch = 2;
 }
 
-message StreamChangesetLogsRequest {
-  string changeset_key = 1;
+message StreamLogsRequest {
+  timeline.v1.TimelineQuery query = 1;
 }
 
-message StreamChangesetLogsResponse {
+message StreamLogsResponse {
   repeated timeline.v1.LogEvent logs = 1;
 }
 
@@ -283,5 +284,5 @@ service AdminService {
   // Upload an artefact to the server.
   rpc UploadArtefact(stream UploadArtefactRequest) returns (UploadArtefactResponse);
 
-  rpc StreamChangesetLogs(StreamChangesetLogsRequest) returns (stream StreamChangesetLogsResponse);
+  rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
 }

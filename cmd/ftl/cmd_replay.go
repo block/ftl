@@ -69,20 +69,22 @@ func (c *replayCmd) Run(
 	}
 
 	events, err := timelineClient.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{
-		Order: timelinepb.GetTimelineRequest_ORDER_DESC,
-		Filters: []*timelinepb.GetTimelineRequest_Filter{
-			{
-				Filter: &timelinepb.GetTimelineRequest_Filter_Call{
-					Call: &timelinepb.GetTimelineRequest_CallFilter{
-						DestModule: c.Verb.Module,
-						DestVerb:   &c.Verb.Name,
+		Query: &timelinepb.TimelineQuery{
+			Order: timelinepb.TimelineQuery_ORDER_DESC,
+			Filters: []*timelinepb.TimelineQuery_Filter{
+				{
+					Filter: &timelinepb.TimelineQuery_Filter_Call{
+						Call: &timelinepb.TimelineQuery_CallFilter{
+							DestModule: c.Verb.Module,
+							DestVerb:   &c.Verb.Name,
+						},
 					},
 				},
-			},
-			{
-				Filter: &timelinepb.GetTimelineRequest_Filter_EventTypes{
-					EventTypes: &timelinepb.GetTimelineRequest_EventTypeFilter{
-						EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_CALL},
+				{
+					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+						EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
+							EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_CALL},
+						},
 					},
 				},
 			},

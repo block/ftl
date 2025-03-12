@@ -42,18 +42,20 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 		),
 		func(serverCtx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			timelineReq := &timelinepb.GetTimelineRequest{
-				Limit: 50,
-				Order: timelinepb.GetTimelineRequest_ORDER_DESC,
-				Filters: []*timelinepb.GetTimelineRequest_Filter{
-					{
-						Filter: &timelinepb.GetTimelineRequest_Filter_EventTypes{
-							EventTypes: &timelinepb.GetTimelineRequest_EventTypeFilter{
-								EventTypes: []timelinepb.EventType{
-									timelinepb.EventType_EVENT_TYPE_LOG,
-									timelinepb.EventType_EVENT_TYPE_CALL,
-									timelinepb.EventType_EVENT_TYPE_INGRESS,
-									timelinepb.EventType_EVENT_TYPE_PUBSUB_PUBLISH,
-									timelinepb.EventType_EVENT_TYPE_PUBSUB_CONSUME,
+				Query: &timelinepb.TimelineQuery{
+					Limit: 50,
+					Order: timelinepb.TimelineQuery_ORDER_DESC,
+					Filters: []*timelinepb.TimelineQuery_Filter{
+						{
+							Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+								EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
+									EventTypes: []timelinepb.EventType{
+										timelinepb.EventType_EVENT_TYPE_LOG,
+										timelinepb.EventType_EVENT_TYPE_CALL,
+										timelinepb.EventType_EVENT_TYPE_INGRESS,
+										timelinepb.EventType_EVENT_TYPE_PUBSUB_PUBLISH,
+										timelinepb.EventType_EVENT_TYPE_PUBSUB_CONSUME,
+									},
 								},
 							},
 						},
@@ -61,9 +63,9 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 				},
 			}
 			if module, ok := request.Params.Arguments["module"].(string); ok && module != "" {
-				timelineReq.Filters = append(timelineReq.Filters, &timelinepb.GetTimelineRequest_Filter{
-					Filter: &timelinepb.GetTimelineRequest_Filter_Module{
-						Module: &timelinepb.GetTimelineRequest_ModuleFilter{
+				timelineReq.Query.Filters = append(timelineReq.Query.Filters, &timelinepb.TimelineQuery_Filter{
+					Filter: &timelinepb.TimelineQuery_Filter_Module{
+						Module: &timelinepb.TimelineQuery_ModuleFilter{
 							Module: module,
 						},
 					},
@@ -83,9 +85,9 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 				default:
 					return nil, fmt.Errorf("invalid log level: %s", levelStr)
 				}
-				timelineReq.Filters = append(timelineReq.Filters, &timelinepb.GetTimelineRequest_Filter{
-					Filter: &timelinepb.GetTimelineRequest_Filter_LogLevel{
-						LogLevel: &timelinepb.GetTimelineRequest_LogLevelFilter{
+				timelineReq.Query.Filters = append(timelineReq.Query.Filters, &timelinepb.TimelineQuery_Filter{
+					Filter: &timelinepb.TimelineQuery_Filter_LogLevel{
+						LogLevel: &timelinepb.TimelineQuery_LogLevelFilter{
 							LogLevel: level,
 						},
 					},
@@ -93,9 +95,9 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 			}
 			if cursor, ok := request.Params.Arguments["cursor"].(int); ok {
 				cursor64 := int64(cursor)
-				timelineReq.Filters = append(timelineReq.Filters, &timelinepb.GetTimelineRequest_Filter{
-					Filter: &timelinepb.GetTimelineRequest_Filter_Id{
-						Id: &timelinepb.GetTimelineRequest_IDFilter{
+				timelineReq.Query.Filters = append(timelineReq.Query.Filters, &timelinepb.TimelineQuery_Filter{
+					Filter: &timelinepb.TimelineQuery_Filter_Id{
+						Id: &timelinepb.TimelineQuery_IDFilter{
 							LowerThan: &cursor64,
 						},
 					},

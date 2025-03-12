@@ -10,16 +10,16 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class GetTimelineRequest(_message.Message):
+class TimelineQuery(_message.Message):
     __slots__ = ("filters", "limit", "order")
     class Order(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = ()
-        ORDER_UNSPECIFIED: _ClassVar[GetTimelineRequest.Order]
-        ORDER_ASC: _ClassVar[GetTimelineRequest.Order]
-        ORDER_DESC: _ClassVar[GetTimelineRequest.Order]
-    ORDER_UNSPECIFIED: GetTimelineRequest.Order
-    ORDER_ASC: GetTimelineRequest.Order
-    ORDER_DESC: GetTimelineRequest.Order
+        ORDER_UNSPECIFIED: _ClassVar[TimelineQuery.Order]
+        ORDER_ASC: _ClassVar[TimelineQuery.Order]
+        ORDER_DESC: _ClassVar[TimelineQuery.Order]
+    ORDER_UNSPECIFIED: TimelineQuery.Order
+    ORDER_ASC: TimelineQuery.Order
+    ORDER_DESC: TimelineQuery.Order
     class LogLevelFilter(_message.Message):
         __slots__ = ("log_level",)
         LOG_LEVEL_FIELD_NUMBER: _ClassVar[int]
@@ -86,23 +86,29 @@ class GetTimelineRequest(_message.Message):
         CALL_FIELD_NUMBER: _ClassVar[int]
         MODULE_FIELD_NUMBER: _ClassVar[int]
         CHANGESETS_FIELD_NUMBER: _ClassVar[int]
-        log_level: GetTimelineRequest.LogLevelFilter
-        deployments: GetTimelineRequest.DeploymentFilter
-        requests: GetTimelineRequest.RequestFilter
-        event_types: GetTimelineRequest.EventTypeFilter
-        time: GetTimelineRequest.TimeFilter
-        id: GetTimelineRequest.IDFilter
-        call: GetTimelineRequest.CallFilter
-        module: GetTimelineRequest.ModuleFilter
-        changesets: GetTimelineRequest.ChangesetFilter
-        def __init__(self, log_level: _Optional[_Union[GetTimelineRequest.LogLevelFilter, _Mapping]] = ..., deployments: _Optional[_Union[GetTimelineRequest.DeploymentFilter, _Mapping]] = ..., requests: _Optional[_Union[GetTimelineRequest.RequestFilter, _Mapping]] = ..., event_types: _Optional[_Union[GetTimelineRequest.EventTypeFilter, _Mapping]] = ..., time: _Optional[_Union[GetTimelineRequest.TimeFilter, _Mapping]] = ..., id: _Optional[_Union[GetTimelineRequest.IDFilter, _Mapping]] = ..., call: _Optional[_Union[GetTimelineRequest.CallFilter, _Mapping]] = ..., module: _Optional[_Union[GetTimelineRequest.ModuleFilter, _Mapping]] = ..., changesets: _Optional[_Union[GetTimelineRequest.ChangesetFilter, _Mapping]] = ...) -> None: ...
+        log_level: TimelineQuery.LogLevelFilter
+        deployments: TimelineQuery.DeploymentFilter
+        requests: TimelineQuery.RequestFilter
+        event_types: TimelineQuery.EventTypeFilter
+        time: TimelineQuery.TimeFilter
+        id: TimelineQuery.IDFilter
+        call: TimelineQuery.CallFilter
+        module: TimelineQuery.ModuleFilter
+        changesets: TimelineQuery.ChangesetFilter
+        def __init__(self, log_level: _Optional[_Union[TimelineQuery.LogLevelFilter, _Mapping]] = ..., deployments: _Optional[_Union[TimelineQuery.DeploymentFilter, _Mapping]] = ..., requests: _Optional[_Union[TimelineQuery.RequestFilter, _Mapping]] = ..., event_types: _Optional[_Union[TimelineQuery.EventTypeFilter, _Mapping]] = ..., time: _Optional[_Union[TimelineQuery.TimeFilter, _Mapping]] = ..., id: _Optional[_Union[TimelineQuery.IDFilter, _Mapping]] = ..., call: _Optional[_Union[TimelineQuery.CallFilter, _Mapping]] = ..., module: _Optional[_Union[TimelineQuery.ModuleFilter, _Mapping]] = ..., changesets: _Optional[_Union[TimelineQuery.ChangesetFilter, _Mapping]] = ...) -> None: ...
     FILTERS_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     ORDER_FIELD_NUMBER: _ClassVar[int]
-    filters: _containers.RepeatedCompositeFieldContainer[GetTimelineRequest.Filter]
+    filters: _containers.RepeatedCompositeFieldContainer[TimelineQuery.Filter]
     limit: int
-    order: GetTimelineRequest.Order
-    def __init__(self, filters: _Optional[_Iterable[_Union[GetTimelineRequest.Filter, _Mapping]]] = ..., limit: _Optional[int] = ..., order: _Optional[_Union[GetTimelineRequest.Order, str]] = ...) -> None: ...
+    order: TimelineQuery.Order
+    def __init__(self, filters: _Optional[_Iterable[_Union[TimelineQuery.Filter, _Mapping]]] = ..., limit: _Optional[int] = ..., order: _Optional[_Union[TimelineQuery.Order, str]] = ...) -> None: ...
+
+class GetTimelineRequest(_message.Message):
+    __slots__ = ("query",)
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    query: TimelineQuery
+    def __init__(self, query: _Optional[_Union[TimelineQuery, _Mapping]] = ...) -> None: ...
 
 class GetTimelineResponse(_message.Message):
     __slots__ = ("events", "cursor")
@@ -117,8 +123,8 @@ class StreamTimelineRequest(_message.Message):
     UPDATE_INTERVAL_FIELD_NUMBER: _ClassVar[int]
     QUERY_FIELD_NUMBER: _ClassVar[int]
     update_interval: _duration_pb2.Duration
-    query: GetTimelineRequest
-    def __init__(self, update_interval: _Optional[_Union[_duration_pb2.Duration, _Mapping]] = ..., query: _Optional[_Union[GetTimelineRequest, _Mapping]] = ...) -> None: ...
+    query: TimelineQuery
+    def __init__(self, update_interval: _Optional[_Union[_duration_pb2.Duration, _Mapping]] = ..., query: _Optional[_Union[TimelineQuery, _Mapping]] = ...) -> None: ...
 
 class StreamTimelineResponse(_message.Message):
     __slots__ = ("events",)

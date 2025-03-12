@@ -42,13 +42,13 @@ func TestTimeline(t *testing.T) {
 		in.Call("publisher", "publish", in.Obj{}, func(t testing.TB, resp in.Obj) {}),
 
 		in.SubTests(
-			in.SubTest{Name: "Limit", Action: in.VerifyTimeline(1, []*timelinepb.GetTimelineRequest_Filter{}, func(ctx context.Context, t testing.TB, events []*timelinepb.Event) {
+			in.SubTest{Name: "Limit", Action: in.VerifyTimeline(1, []*timelinepb.TimelineQuery_Filter{}, func(ctx context.Context, t testing.TB, events []*timelinepb.Event) {
 				assert.Equal(t, 1, len(events))
 			})},
-			in.SubTest{Name: "IngressEvent", Action: in.VerifyTimeline(1000, []*timelinepb.GetTimelineRequest_Filter{
+			in.SubTest{Name: "IngressEvent", Action: in.VerifyTimeline(1000, []*timelinepb.TimelineQuery_Filter{
 				{
-					Filter: &timelinepb.GetTimelineRequest_Filter_EventTypes{
-						EventTypes: &timelinepb.GetTimelineRequest_EventTypeFilter{
+					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+						EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
 							EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_INGRESS},
 						},
 					},
@@ -61,17 +61,17 @@ func TestTimeline(t *testing.T) {
 				assert.Equal(t, ingress.Ingress.VerbRef.Module, "ingress")
 				assert.Equal(t, ingress.Ingress.VerbRef.Name, "get")
 			})},
-			in.SubTest{Name: "CallEvent", Action: in.VerifyTimeline(1000, []*timelinepb.GetTimelineRequest_Filter{
+			in.SubTest{Name: "CallEvent", Action: in.VerifyTimeline(1000, []*timelinepb.TimelineQuery_Filter{
 				{
-					Filter: &timelinepb.GetTimelineRequest_Filter_EventTypes{
-						EventTypes: &timelinepb.GetTimelineRequest_EventTypeFilter{
+					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+						EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
 							EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_CALL},
 						},
 					},
 				},
 				{
-					Filter: &timelinepb.GetTimelineRequest_Filter_Call{
-						Call: &timelinepb.GetTimelineRequest_CallFilter{
+					Filter: &timelinepb.TimelineQuery_Filter_Call{
+						Call: &timelinepb.TimelineQuery_CallFilter{
 							DestModule: "echo",
 						},
 					},
@@ -85,10 +85,10 @@ func TestTimeline(t *testing.T) {
 				assert.Equal(t, call.Call.DestinationVerbRef.Name, "echo")
 				assert.Contains(t, call.Call.Response, "Hello, world!!!")
 			})},
-			in.SubTest{Name: "CronEvent", Action: in.VerifyTimeline(1, []*timelinepb.GetTimelineRequest_Filter{
+			in.SubTest{Name: "CronEvent", Action: in.VerifyTimeline(1, []*timelinepb.TimelineQuery_Filter{
 				{
-					Filter: &timelinepb.GetTimelineRequest_Filter_EventTypes{
-						EventTypes: &timelinepb.GetTimelineRequest_EventTypeFilter{
+					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+						EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
 							EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_CRON_SCHEDULED},
 						},
 					},
@@ -101,10 +101,10 @@ func TestTimeline(t *testing.T) {
 				assert.Equal(t, scheduled.CronScheduled.VerbRef.Module, "cron")
 				assert.Equal(t, scheduled.CronScheduled.VerbRef.Name, "job")
 			})},
-			in.SubTest{Name: "PublishEvent", Action: in.VerifyTimeline(1000, []*timelinepb.GetTimelineRequest_Filter{
+			in.SubTest{Name: "PublishEvent", Action: in.VerifyTimeline(1000, []*timelinepb.TimelineQuery_Filter{
 				{
-					Filter: &timelinepb.GetTimelineRequest_Filter_EventTypes{
-						EventTypes: &timelinepb.GetTimelineRequest_EventTypeFilter{
+					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+						EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
 							EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_PUBSUB_PUBLISH},
 						},
 					},
@@ -118,10 +118,10 @@ func TestTimeline(t *testing.T) {
 				assert.Equal(t, publish.PubsubPublish.VerbRef.Module, "publisher")
 				assert.Equal(t, publish.PubsubPublish.VerbRef.Name, "publish")
 			})},
-			in.SubTest{Name: "ConsumeEvent", Action: in.VerifyTimeline(1000, []*timelinepb.GetTimelineRequest_Filter{
+			in.SubTest{Name: "ConsumeEvent", Action: in.VerifyTimeline(1000, []*timelinepb.TimelineQuery_Filter{
 				{
-					Filter: &timelinepb.GetTimelineRequest_Filter_EventTypes{
-						EventTypes: &timelinepb.GetTimelineRequest_EventTypeFilter{
+					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+						EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
 							EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_PUBSUB_CONSUME},
 						},
 					},
@@ -160,8 +160,8 @@ func TestStreamTimeline(t *testing.T) {
 	state := &streamState{}
 	in.Run(t,
 		// stream events into two slices, one in ascending order and one in descending order
-		streamEvents(60, timelinepb.GetTimelineRequest_ORDER_ASC, state, lock),
-		streamEvents(60, timelinepb.GetTimelineRequest_ORDER_DESC, state, lock),
+		streamEvents(60, timelinepb.TimelineQuery_ORDER_ASC, state, lock),
+		streamEvents(60, timelinepb.TimelineQuery_ORDER_DESC, state, lock),
 
 		// create events with timestamps out of order, simulating different services publishing events at different times
 		createOutOfOrderEvents(100, state),
@@ -175,12 +175,12 @@ func TestStreamTimeline(t *testing.T) {
 	)
 }
 
-func streamEvents(pageSize int32, order timelinepb.GetTimelineRequest_Order, state *streamState, lock *sync.Mutex) in.Action {
+func streamEvents(pageSize int32, order timelinepb.TimelineQuery_Order, state *streamState, lock *sync.Mutex) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Steaming events (order = %v)", order)
 		go func() {
 			stream, err := ic.Timeline.StreamTimeline(ic.Context, connect.NewRequest(&timelinepb.StreamTimelineRequest{
-				Query: &timelinepb.GetTimelineRequest{
+				Query: &timelinepb.TimelineQuery{
 					Limit: pageSize,
 					Order: order,
 				},
@@ -190,7 +190,7 @@ func streamEvents(pageSize int32, order timelinepb.GetTimelineRequest_Order, sta
 			for stream.Receive() {
 				lock.Lock()
 				log.FromContext(ic.Context).Infof("streamed %d events", len(stream.Msg().Events))
-				if order == timelinepb.GetTimelineRequest_ORDER_ASC {
+				if order == timelinepb.TimelineQuery_ORDER_ASC {
 					state.ascEvents = append(state.ascEvents, stream.Msg().Events...)
 				} else {
 					reverseEvents := make([]*timelinepb.Event, 0, len(stream.Msg().Events))

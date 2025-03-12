@@ -181,22 +181,24 @@ func checkConsumed(module, verb string, success bool, count int, needle optional
 			in.Infof("Checking for %v call(s) to %s.%s", count, module, verb)
 		}
 		resp, err := ic.Timeline.GetTimeline(ic.Context, connect.NewRequest(&timelinepb.GetTimelineRequest{
-			Limit: 100000,
-			Filters: []*timelinepb.GetTimelineRequest_Filter{
-				{
-					Filter: &timelinepb.GetTimelineRequest_Filter_EventTypes{
-						EventTypes: &timelinepb.GetTimelineRequest_EventTypeFilter{
-							EventTypes: []timelinepb.EventType{
-								timelinepb.EventType_EVENT_TYPE_CALL,
+			Query: &timelinepb.TimelineQuery{
+				Limit: 100000,
+				Filters: []*timelinepb.TimelineQuery_Filter{
+					{
+						Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+							EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
+								EventTypes: []timelinepb.EventType{
+									timelinepb.EventType_EVENT_TYPE_CALL,
+								},
 							},
 						},
 					},
-				},
-				{
-					Filter: &timelinepb.GetTimelineRequest_Filter_Module{
-						Module: &timelinepb.GetTimelineRequest_ModuleFilter{
-							Module: module,
-							Verb:   &verb,
+					{
+						Filter: &timelinepb.TimelineQuery_Filter_Module{
+							Module: &timelinepb.TimelineQuery_ModuleFilter{
+								Module: module,
+								Verb:   &verb,
+							},
 						},
 					},
 				},
@@ -234,13 +236,15 @@ func checkPublished(module, topic string, count int) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Checking for %v published events for %s.%s", count, module, topic)
 		resp, err := ic.Timeline.GetTimeline(ic.Context, connect.NewRequest(&timelinepb.GetTimelineRequest{
-			Limit: 100000,
-			Filters: []*timelinepb.GetTimelineRequest_Filter{
-				{
-					Filter: &timelinepb.GetTimelineRequest_Filter_EventTypes{
-						EventTypes: &timelinepb.GetTimelineRequest_EventTypeFilter{
-							EventTypes: []timelinepb.EventType{
-								timelinepb.EventType_EVENT_TYPE_PUBSUB_PUBLISH,
+			Query: &timelinepb.TimelineQuery{
+				Limit: 100000,
+				Filters: []*timelinepb.TimelineQuery_Filter{
+					{
+						Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+							EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
+								EventTypes: []timelinepb.EventType{
+									timelinepb.EventType_EVENT_TYPE_PUBSUB_PUBLISH,
+								},
 							},
 						},
 					},

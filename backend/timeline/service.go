@@ -136,12 +136,12 @@ func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	filters, ascending := filtersFromRequest(req.Msg)
-	if req.Msg.Limit == 0 {
+	filters, ascending := filtersFromQuery(req.Msg.Query)
+	if req.Msg.Query.Limit == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
 	}
 	// Get 1 more than the requested limit to determine if there are more results.
-	limit := int(req.Msg.Limit)
+	limit := int(req.Msg.Query.Limit)
 	fetchLimit := limit + 1
 
 	results := []*timelinepb.Event{}
@@ -195,7 +195,7 @@ func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timel
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
 	}
 
-	_, ascending := filtersFromRequest(req.Msg.Query)
+	_, ascending := filtersFromQuery(req.Msg.Query)
 
 	timelineReq := req.Msg.Query
 	// Default to last 1 day of events
@@ -203,18 +203,18 @@ func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timel
 	for {
 		newQuery := timelineReq
 		// We always want ascending order for the underlying query.
-		newQuery.Order = timelinepb.GetTimelineRequest_ORDER_ASC
+		newQuery.Order = timelinepb.TimelineQuery_ORDER_ASC
 		if _, ok := lastEventID.Get(); ok {
-			newQuery.Filters = append(newQuery.Filters, &timelinepb.GetTimelineRequest_Filter{
-				Filter: &timelinepb.GetTimelineRequest_Filter_Id{
-					Id: &timelinepb.GetTimelineRequest_IDFilter{
+			newQuery.Filters = append(newQuery.Filters, &timelinepb.TimelineQuery_Filter{
+				Filter: &timelinepb.TimelineQuery_Filter_Id{
+					Id: &timelinepb.TimelineQuery_IDFilter{
 						HigherThan: lastEventID.Ptr(),
 					},
 				},
 			})
 		}
 
-		resp, err := s.GetTimeline(ctx, connect.NewRequest(newQuery))
+		resp, err := s.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{Query: newQuery}))
 		if err != nil {
 			return fmt.Errorf("failed to get timeline: %w", err)
 		}
@@ -255,10 +255,10 @@ func (s *service) DeleteOldEvents(ctx context.Context, req *connect.Request[time
 	// Events that match all these filters will be deleted
 	cutoff := time.Now().Add(-1 * time.Duration(req.Msg.AgeSeconds) * time.Second)
 	deletionFilters := []TimelineFilter{
-		FilterTypes(&timelinepb.GetTimelineRequest_EventTypeFilter{
+		FilterTypes(&timelinepb.TimelineQuery_EventTypeFilter{
 			EventTypes: []timelinepb.EventType{req.Msg.EventType},
 		}),
-		FilterTimeRange(&timelinepb.GetTimelineRequest_TimeFilter{
+		FilterTimeRange(&timelinepb.TimelineQuery_TimeFilter{
 			OlderThan: timestamppb.New(cutoff),
 		}),
 	}
