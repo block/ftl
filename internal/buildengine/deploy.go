@@ -400,7 +400,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 	if key, ok := (<-keyChan).Get(); ok {
 		logger := log.FromContext(ctx)
 		deployment.changeset = optional.Some(key)
-		logger.Infof("Created changeset %s [%s]", key, strings.Join(moduleNames, ",")) //nolint:forbidigo
+		logger.Debugf("Created changeset %s [%s]", key, strings.Join(moduleNames, ","))
 		if c.logChanges {
 			go c.runChangeLogger(ctx, key)
 		}
