@@ -59,7 +59,7 @@ A module has a `ftl.toml` file at the root of module directory. It defines the n
 
 Go modules
 - Usuaully the package name for a module matches the name of the module, rather than `main`
-- Can import other modules by importing "ftl/<module_name>"
+- Can import other modules by importing "ftl/<module_name>". eg: "ftl/builtin"
 - Stubs for modules can be found at `$ProjectRoot/.ftl/go/modules` which contains all exported declarations that other modules can use once they have imported that module.
 - Each time FTL builds a go module, these files are regenerated, and so they should not be modified directly:
     - types.ftl.go: declares types used for injection of local resources (eg a client to call a verb within the module
