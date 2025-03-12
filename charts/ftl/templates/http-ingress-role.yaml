@@ -4,5 +4,8 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.ingress.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
-
+  {{- if .Values.ingress.ingressRoleArn }}
+  annotations:
+    eks.amazonaws.com/role-arn: {{ .Values.ingress.ingressRoleArn }}
+  {{- end }}
 {{- end }}
