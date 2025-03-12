@@ -3,4 +3,7 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.admin.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
-
+  {{- if .Values.admin.adminRoleArn }}
+  annotations:
+    eks.amazonaws.com/role-arn: {{ .Values.admin.adminRoleArn }}
+  {{- end }}

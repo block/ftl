@@ -4,5 +4,8 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.schema.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
-
+  {{- if .Values.schema.schemaRoleArn }}
+  annotations:
+    eks.amazonaws.com/role-arn: {{ .Values.schema.schemaRoleArn }}
+  {{- end }}
 {{- end }}

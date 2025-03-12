@@ -4,5 +4,8 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.console.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
-
+  {{- if .Values.console.consoleRoleArn }}
+  annotations:
+    eks.amazonaws.com/role-arn: {{ .Values.console.consoleRoleArn }}
+  {{- end }}
 {{- end }}

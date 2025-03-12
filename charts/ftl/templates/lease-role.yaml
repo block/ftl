@@ -3,3 +3,7 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.lease.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
+  {{- if .Values.lease.leaseRoleArn }}
+  annotations:
+    eks.amazonaws.com/role-arn: {{ .Values.lease.leaseRoleArn }}
+  {{- end }}
