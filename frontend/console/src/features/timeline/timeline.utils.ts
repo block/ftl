@@ -27,7 +27,6 @@ const eventTextColorMap: Record<string, string> = {
   changesetCreated: 'text-purple-500',
   changesetStateChanged: 'text-purple-500',
   cronScheduled: 'text-blue-500',
-  asyncExecute: 'text-indigo-500',
   pubsubPublish: 'text-teal-500',
   pubsubConsume: 'text-teal-500',
   deploymentRuntime: 'text-purple-500',
