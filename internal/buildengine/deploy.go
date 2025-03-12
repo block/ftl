@@ -412,7 +412,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendingDeploy) (*pendingDeploy, error) {
 	if d.replicas != old.replicas {
-		return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: replicas were different %d != %d", maps.Keys(d.modules), maps.Keys(old.modules), d.replicas, old.replicas) //nolint:exptostd
+		return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: replicas were different %d != %d", maps.Keys(d.modules), maps.Keys(old.modules), d.replicas.Default(-1), old.replicas.Default(-1))
 	}
 	out := reflect.DeepCopy(d)
 	addedModules := []string{}
