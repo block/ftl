@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, StreamChangesetLogsRequest, StreamChangesetLogsResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
+import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, StreamLogsRequest, StreamLogsResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
 import { FailChangesetRequest, FailChangesetResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, RollbackChangesetRequest, RollbackChangesetResponse } from "../../v1/schemaservice_pb.js";
 
 /**
@@ -268,12 +268,12 @@ export const AdminService = {
       kind: MethodKind.ClientStreaming,
     },
     /**
-     * @generated from rpc xyz.block.ftl.admin.v1.AdminService.StreamChangesetLogs
+     * @generated from rpc xyz.block.ftl.admin.v1.AdminService.StreamLogs
      */
-    streamChangesetLogs: {
-      name: "StreamChangesetLogs",
-      I: StreamChangesetLogsRequest,
-      O: StreamChangesetLogsResponse,
+    streamLogs: {
+      name: "StreamLogs",
+      I: StreamLogsRequest,
+      O: StreamLogsResponse,
       kind: MethodKind.ServerStreaming,
     },
   }

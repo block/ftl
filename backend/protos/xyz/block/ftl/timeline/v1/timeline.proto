@@ -10,7 +10,7 @@ import "xyz/block/ftl/v1/ftl.proto";
 option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1;timelinepb";
 option java_multiple_files = true;
 
-message GetTimelineRequest {
+message TimelineQuery {
   // Filters events by log level.
   message LogLevelFilter {
     timeline.v1.LogLevel log_level = 1;
@@ -84,6 +84,10 @@ message GetTimelineRequest {
   Order order = 3;
 }
 
+message GetTimelineRequest {
+  TimelineQuery query = 1;
+}
+
 message GetTimelineResponse {
   repeated timeline.v1.Event events = 1;
   // For pagination, this cursor is where we should start our next query
@@ -92,7 +96,7 @@ message GetTimelineResponse {
 
 message StreamTimelineRequest {
   optional google.protobuf.Duration update_interval = 1;
-  GetTimelineRequest query = 2;
+  TimelineQuery query = 2;
 }
 
 message StreamTimelineResponse {

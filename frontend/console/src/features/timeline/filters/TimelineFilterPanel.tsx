@@ -11,7 +11,7 @@ import {
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { EventType, LogLevel } from '../../../protos/xyz/block/ftl/timeline/v1/event_pb'
-import type { GetTimelineRequest_Filter } from '../../../protos/xyz/block/ftl/timeline/v1/timeline_pb'
+import type { TimelineQuery_Filter } from '../../../protos/xyz/block/ftl/timeline/v1/timeline_pb'
 import { Checkbox } from '../../../shared/components/Checkbox'
 import { textColor } from '../../../shared/utils'
 import { LogLevelBadgeSmall } from '../../logs/LogLevelBadgeSmall'
@@ -73,7 +73,7 @@ const LOG_LEVELS: Record<number, string> = {
 export const TimelineFilterPanel = ({
   onFiltersChanged,
 }: {
-  onFiltersChanged: (filters: GetTimelineRequest_Filter[]) => void
+  onFiltersChanged: (filters: TimelineQuery_Filter[]) => void
 }) => {
   const modules = useModules()
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(Object.keys(EVENT_TYPES).filter((key) => key !== 'changesetStateChanged'))
@@ -95,7 +95,7 @@ export const TimelineFilterPanel = ({
   }, [modules.data])
 
   useEffect(() => {
-    const filter: GetTimelineRequest_Filter[] = []
+    const filter: TimelineQuery_Filter[] = []
     if (selectedEventTypes.length !== Object.keys(EVENT_TYPES).length) {
       const selectedTypes = selectedEventTypes.map((key) => EVENT_TYPES[key].type)
 

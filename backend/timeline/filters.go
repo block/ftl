@@ -11,7 +11,7 @@ import (
 
 type TimelineFilter func(event *timelinepb.Event) bool
 
-func FilterLogLevel(f *timelinepb.GetTimelineRequest_LogLevelFilter) TimelineFilter {
+func FilterLogLevel(f *timelinepb.TimelineQuery_LogLevelFilter) TimelineFilter {
 	return func(event *timelinepb.Event) bool {
 		log, ok := event.Entry.(*timelinepb.Event_Log)
 		if !ok {
@@ -25,7 +25,7 @@ func FilterLogLevel(f *timelinepb.GetTimelineRequest_LogLevelFilter) TimelineFil
 // FilterCall filters call events between the given modules.
 //
 // Takes a list of filters, with each call event needing to match at least one filter.
-func FilterCall(filters []*timelinepb.GetTimelineRequest_CallFilter) TimelineFilter {
+func FilterCall(filters []*timelinepb.TimelineQuery_CallFilter) TimelineFilter {
 	return func(event *timelinepb.Event) bool {
 		call, ok := event.Entry.(*timelinepb.Event_Call)
 		if !ok {
@@ -33,7 +33,7 @@ func FilterCall(filters []*timelinepb.GetTimelineRequest_CallFilter) TimelineFil
 			return true
 		}
 		// Allow event if any event filter matches.
-		_, ok = islices.Find(filters, func(f *timelinepb.GetTimelineRequest_CallFilter) bool {
+		_, ok = islices.Find(filters, func(f *timelinepb.TimelineQuery_CallFilter) bool {
 			if call.Call.DestinationVerbRef.Module != f.DestModule {
 				return false
 			}
@@ -49,7 +49,7 @@ func FilterCall(filters []*timelinepb.GetTimelineRequest_CallFilter) TimelineFil
 	}
 }
 
-func FilterModule(filters []*timelinepb.GetTimelineRequest_ModuleFilter) TimelineFilter {
+func FilterModule(filters []*timelinepb.TimelineQuery_ModuleFilter) TimelineFilter {
 	return func(event *timelinepb.Event) bool {
 		var module, verb string
 		switch entry := event.Entry.(type) {
@@ -72,7 +72,7 @@ func FilterModule(filters []*timelinepb.GetTimelineRequest_ModuleFilter) Timelin
 			panic(fmt.Sprintf("unexpected event type: %T", event.Entry))
 		}
 		// Allow event if any module filter matches.
-		_, ok := islices.Find(filters, func(f *timelinepb.GetTimelineRequest_ModuleFilter) bool {
+		_, ok := islices.Find(filters, func(f *timelinepb.TimelineQuery_ModuleFilter) bool {
 			if f.Module != module {
 				return false
 			}
@@ -85,8 +85,8 @@ func FilterModule(filters []*timelinepb.GetTimelineRequest_ModuleFilter) Timelin
 	}
 }
 
-func FilterDeployments(filters []*timelinepb.GetTimelineRequest_DeploymentFilter) TimelineFilter {
-	deployments := islices.Reduce(filters, []string{}, func(acc []string, f *timelinepb.GetTimelineRequest_DeploymentFilter) []string {
+func FilterDeployments(filters []*timelinepb.TimelineQuery_DeploymentFilter) TimelineFilter {
+	deployments := islices.Reduce(filters, []string{}, func(acc []string, f *timelinepb.TimelineQuery_DeploymentFilter) []string {
 		return append(acc, f.Deployments...)
 	})
 	return func(event *timelinepb.Event) bool {
@@ -119,8 +119,8 @@ func FilterDeployments(filters []*timelinepb.GetTimelineRequest_DeploymentFilter
 	}
 }
 
-func FilterChangesets(filters []*timelinepb.GetTimelineRequest_ChangesetFilter) TimelineFilter {
-	changesets := islices.Reduce(filters, []string{}, func(acc []string, f *timelinepb.GetTimelineRequest_ChangesetFilter) []string {
+func FilterChangesets(filters []*timelinepb.TimelineQuery_ChangesetFilter) TimelineFilter {
+	changesets := islices.Reduce(filters, []string{}, func(acc []string, f *timelinepb.TimelineQuery_ChangesetFilter) []string {
 		return append(acc, f.Changesets...)
 	})
 	return func(event *timelinepb.Event) bool {
@@ -136,8 +136,8 @@ func FilterChangesets(filters []*timelinepb.GetTimelineRequest_ChangesetFilter) 
 	}
 }
 
-func FilterRequests(filters []*timelinepb.GetTimelineRequest_RequestFilter) TimelineFilter {
-	requests := islices.Reduce(filters, []string{}, func(acc []string, f *timelinepb.GetTimelineRequest_RequestFilter) []string {
+func FilterRequests(filters []*timelinepb.TimelineQuery_RequestFilter) TimelineFilter {
+	requests := islices.Reduce(filters, []string{}, func(acc []string, f *timelinepb.TimelineQuery_RequestFilter) []string {
 		return append(acc, f.Requests...)
 	})
 	return func(event *timelinepb.Event) bool {
@@ -173,8 +173,8 @@ func FilterRequests(filters []*timelinepb.GetTimelineRequest_RequestFilter) Time
 	}
 }
 
-func FilterTypes(filters ...*timelinepb.GetTimelineRequest_EventTypeFilter) TimelineFilter {
-	types := islices.Reduce(filters, []timelinepb.EventType{}, func(acc []timelinepb.EventType, f *timelinepb.GetTimelineRequest_EventTypeFilter) []timelinepb.EventType {
+func FilterTypes(filters ...*timelinepb.TimelineQuery_EventTypeFilter) TimelineFilter {
+	types := islices.Reduce(filters, []timelinepb.EventType{}, func(acc []timelinepb.EventType, f *timelinepb.TimelineQuery_EventTypeFilter) []timelinepb.EventType {
 		return append(acc, f.EventTypes...)
 	})
 	allowsAll := slices.Contains(types, timelinepb.EventType_EVENT_TYPE_UNSPECIFIED)
@@ -210,7 +210,7 @@ func FilterTypes(filters ...*timelinepb.GetTimelineRequest_EventTypeFilter) Time
 }
 
 // FilterTimeRange filters events between the given times, inclusive.
-func FilterTimeRange(filter *timelinepb.GetTimelineRequest_TimeFilter) TimelineFilter {
+func FilterTimeRange(filter *timelinepb.TimelineQuery_TimeFilter) TimelineFilter {
 	return func(event *timelinepb.Event) bool {
 		if filter.NewerThan != nil && event.Timestamp.AsTime().Before(filter.NewerThan.AsTime()) {
 			return false
@@ -223,7 +223,7 @@ func FilterTimeRange(filter *timelinepb.GetTimelineRequest_TimeFilter) TimelineF
 }
 
 // FilterIDRange filters events between the given IDs, inclusive.
-func FilterIDRange(filter *timelinepb.GetTimelineRequest_IDFilter) TimelineFilter {
+func FilterIDRange(filter *timelinepb.TimelineQuery_IDFilter) TimelineFilter {
 	return func(event *timelinepb.Event) bool {
 		if filter.HigherThan != nil && event.Id < *filter.HigherThan {
 			return false
@@ -236,14 +236,14 @@ func FilterIDRange(filter *timelinepb.GetTimelineRequest_IDFilter) TimelineFilte
 }
 
 //nolint:maintidx
-func filtersFromRequest(req *timelinepb.GetTimelineRequest) (outFilters []TimelineFilter, ascending bool) {
-	if req.Order != timelinepb.GetTimelineRequest_ORDER_DESC {
+func filtersFromQuery(query *timelinepb.TimelineQuery) (outFilters []TimelineFilter, ascending bool) {
+	if query.Order != timelinepb.TimelineQuery_ORDER_DESC {
 		ascending = true
 	}
 
 	// Some filters need to be combined (for OR logic), so we group them by type first.
-	reqFiltersByType := map[reflect.Type][]*timelinepb.GetTimelineRequest_Filter{}
-	for _, filter := range req.Filters {
+	reqFiltersByType := map[reflect.Type][]*timelinepb.TimelineQuery_Filter{}
+	for _, filter := range query.Filters {
 		reqFiltersByType[reflect.TypeOf(filter.Filter)] = append(reqFiltersByType[reflect.TypeOf(filter.Filter)], filter)
 	}
 	if len(reqFiltersByType) == 0 {
@@ -251,40 +251,40 @@ func filtersFromRequest(req *timelinepb.GetTimelineRequest) (outFilters []Timeli
 	}
 	for _, filters := range reqFiltersByType {
 		switch filters[0].Filter.(type) {
-		case *timelinepb.GetTimelineRequest_Filter_LogLevel:
-			outFilters = append(outFilters, islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) TimelineFilter {
+		case *timelinepb.TimelineQuery_Filter_LogLevel:
+			outFilters = append(outFilters, islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) TimelineFilter {
 				return FilterLogLevel(f.GetLogLevel())
 			})...)
-		case *timelinepb.GetTimelineRequest_Filter_Deployments:
-			outFilters = append(outFilters, FilterDeployments(islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) *timelinepb.GetTimelineRequest_DeploymentFilter {
+		case *timelinepb.TimelineQuery_Filter_Deployments:
+			outFilters = append(outFilters, FilterDeployments(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_DeploymentFilter {
 				return f.GetDeployments()
 			})))
-		case *timelinepb.GetTimelineRequest_Filter_Requests:
-			outFilters = append(outFilters, FilterRequests(islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) *timelinepb.GetTimelineRequest_RequestFilter {
+		case *timelinepb.TimelineQuery_Filter_Requests:
+			outFilters = append(outFilters, FilterRequests(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_RequestFilter {
 				return f.GetRequests()
 			})))
-		case *timelinepb.GetTimelineRequest_Filter_EventTypes:
-			outFilters = append(outFilters, FilterTypes(islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) *timelinepb.GetTimelineRequest_EventTypeFilter {
+		case *timelinepb.TimelineQuery_Filter_EventTypes:
+			outFilters = append(outFilters, FilterTypes(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_EventTypeFilter {
 				return f.GetEventTypes()
 			})...))
-		case *timelinepb.GetTimelineRequest_Filter_Time:
-			outFilters = append(outFilters, islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) TimelineFilter {
+		case *timelinepb.TimelineQuery_Filter_Time:
+			outFilters = append(outFilters, islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) TimelineFilter {
 				return FilterTimeRange(f.GetTime())
 			})...)
-		case *timelinepb.GetTimelineRequest_Filter_Id:
-			outFilters = append(outFilters, islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) TimelineFilter {
+		case *timelinepb.TimelineQuery_Filter_Id:
+			outFilters = append(outFilters, islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) TimelineFilter {
 				return FilterIDRange(f.GetId())
 			})...)
-		case *timelinepb.GetTimelineRequest_Filter_Call:
-			outFilters = append(outFilters, FilterCall(islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) *timelinepb.GetTimelineRequest_CallFilter {
+		case *timelinepb.TimelineQuery_Filter_Call:
+			outFilters = append(outFilters, FilterCall(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_CallFilter {
 				return f.GetCall()
 			})))
-		case *timelinepb.GetTimelineRequest_Filter_Module:
-			outFilters = append(outFilters, FilterModule(islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) *timelinepb.GetTimelineRequest_ModuleFilter {
+		case *timelinepb.TimelineQuery_Filter_Module:
+			outFilters = append(outFilters, FilterModule(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_ModuleFilter {
 				return f.GetModule()
 			})))
-		case *timelinepb.GetTimelineRequest_Filter_Changesets:
-			outFilters = append(outFilters, FilterChangesets(islices.Map(filters, func(f *timelinepb.GetTimelineRequest_Filter) *timelinepb.GetTimelineRequest_ChangesetFilter {
+		case *timelinepb.TimelineQuery_Filter_Changesets:
+			outFilters = append(outFilters, FilterChangesets(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_ChangesetFilter {
 				return f.GetChangesets()
 			})))
 		default:

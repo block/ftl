@@ -22,6 +22,7 @@ import (
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
+	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/reflect"
@@ -40,7 +41,7 @@ type AdminClient interface {
 	ClusterInfo(ctx context.Context, req *connect.Request[adminpb.ClusterInfoRequest]) (*connect.Response[adminpb.ClusterInfoResponse], error)
 	GetArtefactDiffs(ctx context.Context, req *connect.Request[adminpb.GetArtefactDiffsRequest]) (*connect.Response[adminpb.GetArtefactDiffsResponse], error)
 	UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[adminpb.UploadArtefactRequest, adminpb.UploadArtefactResponse]
-	StreamChangesetLogs(ctx context.Context, req *connect.Request[adminpb.StreamChangesetLogsRequest]) (*connect.ServerStreamForClient[adminpb.StreamChangesetLogsResponse], error)
+	StreamLogs(ctx context.Context, req *connect.Request[adminpb.StreamLogsRequest]) (*connect.ServerStreamForClient[adminpb.StreamLogsResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
 }
 
@@ -410,8 +411,19 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 func (c *DeployCoordinator) runChangeLogger(ctx context.Context, key key.Changeset) {
 	logger := log.FromContext(ctx)
-	stream, err := c.adminClient.StreamChangesetLogs(ctx, connect.NewRequest(&adminpb.StreamChangesetLogsRequest{
-		ChangesetKey: key.String(),
+	stream, err := c.adminClient.StreamLogs(ctx, connect.NewRequest(&adminpb.StreamLogsRequest{
+		Query: &timelinepb.TimelineQuery{
+			Limit: 100,
+			Filters: []*timelinepb.TimelineQuery_Filter{
+				{
+					Filter: &timelinepb.TimelineQuery_Filter_Changesets{
+						Changesets: &timelinepb.TimelineQuery_ChangesetFilter{
+							Changesets: []string{key.String()},
+						},
+					},
+				},
+			},
+		},
 	}))
 	if err != nil {
 		logger.Errorf(err, "failed to stream changeset logs")
