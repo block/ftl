@@ -94,10 +94,18 @@ type DeployCoordinator struct {
 	deploymentQueue chan pendingDeploy
 
 	SchemaUpdates chan SchemaUpdatedEvent
+
+	logChanges bool // log changes from timeline
 }
 
-func NewDeployCoordinator(ctx context.Context, adminClient AdminClient, schemaSource *schemaeventsource.EventSource,
-	dependencyGrapher DependencyGrapher, engineUpdates chan *buildenginepb.EngineEvent) *DeployCoordinator {
+func NewDeployCoordinator(
+	ctx context.Context,
+	adminClient AdminClient,
+	schemaSource *schemaeventsource.EventSource,
+	dependencyGrapher DependencyGrapher,
+	engineUpdates chan *buildenginepb.EngineEvent,
+	logChanges bool,
+) *DeployCoordinator {
 	c := &DeployCoordinator{
 		adminClient:       adminClient,
 		schemaSource:      schemaSource,
@@ -105,6 +113,7 @@ func NewDeployCoordinator(ctx context.Context, adminClient AdminClient, schemaSo
 		engineUpdates:     engineUpdates,
 		deploymentQueue:   make(chan pendingDeploy, 128),
 		SchemaUpdates:     make(chan SchemaUpdatedEvent, 128),
+		logChanges:        logChanges,
 	}
 	// Start the deployment queue processor
 	go c.processEvents(ctx)
@@ -387,26 +396,31 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 		logger := log.FromContext(ctx)
 		deployment.changeset = optional.Some(key)
 		logger.Infof("Created changeset %s [%s]", key, strings.Join(moduleNames, ",")) //nolint:forbidigo
-		go func() {
-			stream, err := c.adminClient.StreamChangesetLogs(ctx, connect.NewRequest(&adminpb.StreamChangesetLogsRequest{
-				ChangesetKey: key.String(),
-			}))
-			if err != nil {
-				logger.Errorf(err, "failed to stream changeset logs")
-				return
-			}
-			for stream.Receive() {
-				for _, logpb := range stream.Msg().Logs {
-					logger.Log(log.Entry{
-						Attributes: logpb.Attributes,
-						Level:      log.Level(logpb.LogLevel),
-						Message:    logpb.Message,
-					})
-				}
-			}
-		}()
+		if c.logChanges {
+			go c.runChangeLogger(ctx, key)
+		}
 	}
 	return true
+}
+
+func (c *DeployCoordinator) runChangeLogger(ctx context.Context, key key.Changeset) {
+	logger := log.FromContext(ctx)
+	stream, err := c.adminClient.StreamChangesetLogs(ctx, connect.NewRequest(&adminpb.StreamChangesetLogsRequest{
+		ChangesetKey: key.String(),
+	}))
+	if err != nil {
+		logger.Errorf(err, "failed to stream changeset logs")
+		return
+	}
+	for stream.Receive() {
+		for _, logpb := range stream.Msg().Logs {
+			logger.Log(log.Entry{
+				Attributes: logpb.Attributes,
+				Level:      log.Level(logpb.LogLevel),
+				Message:    logpb.Message,
+			})
+		}
+	}
 }
 
 func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendingDeploy) (*pendingDeploy, error) {

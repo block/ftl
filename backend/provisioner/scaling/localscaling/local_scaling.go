@@ -31,7 +31,8 @@ import (
 var _ scaling.RunnerScaling = &localScaling{}
 
 type localScaling struct {
-	ctx      context.Context
+	runnerContext context.Context
+
 	lock     sync.Mutex
 	cacheDir string
 	// Deployments -> info
@@ -49,6 +50,8 @@ type localScaling struct {
 
 	devModeEndpointsUpdates <-chan dev.LocalEndpoint
 	devModeEndpoints        map[string]*devModeRunner
+
+	LogConfig log.Config
 }
 
 func (l *localScaling) StartDeployment(ctx context.Context, deployment string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
@@ -58,7 +61,8 @@ func (l *localScaling) StartDeployment(ctx context.Context, deployment string, s
 	if err != nil {
 		return url.URL{}, fmt.Errorf("failed to parse deployment key: %w", err)
 	}
-	logger := log.FromContext(ctx).Scope("localScaling").Module(deploymentKey.Payload.Module)
+
+	logger := log.FromContext(l.runnerContext).Scope("localScaling").Module(deploymentKey.Payload.Module)
 	ctx = log.ContextWithLogger(ctx, logger)
 	logger.Debugf("Starting deployment for %s", deployment)
 	dep := &deploymentInfo{runner: optional.None[runnerInfo](), key: deploymentKey, language: sch.Runtime.Base.Language}
@@ -184,7 +188,7 @@ func NewLocalScaling(
 		return nil, err
 	}
 	local := localScaling{
-		ctx:                     ctx,
+		runnerContext:           ctx,
 		lock:                    sync.Mutex{},
 		cacheDir:                cacheDir,
 		runners:                 map[string]*deploymentInfo{},

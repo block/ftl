@@ -44,6 +44,7 @@ func (b *buildCmd) Run(
 		projConfig,
 		b.Dirs,
 		b.UpdatesEndpoint,
+		false,
 		buildengine.BuildEnv(b.BuildEnv),
 		buildengine.Parallelism(b.Parallelism),
 	)

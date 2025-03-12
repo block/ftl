@@ -159,6 +159,7 @@ func New(
 	projectConfig projectconfig.Config,
 	moduleDirs []string,
 	updatesEndpoint *url.URL,
+	logChanges bool,
 	options ...Option,
 ) (*Engine, error) {
 	ctx = log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("build-engine"))
@@ -179,7 +180,7 @@ func New(
 		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
 		os:               runtime.GOOS,
 	}
-	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates)
+	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges)
 	for _, option := range options {
 		option(e)
 	}
