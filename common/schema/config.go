@@ -19,7 +19,7 @@ var _ Symbol = (*Config)(nil)
 
 func (s *Config) GetName() string    { return s.Name }
 func (s *Config) IsExported() bool   { return false }
-func (s *Config) IsGenerated() bool { return false }
+func (s *Config) IsGenerated() bool  { return false }
 func (s *Config) Position() Position { return s.Pos }
 func (s *Config) String() string {
 	w := &strings.Builder{}
