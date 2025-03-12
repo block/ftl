@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/block/ftl/internal/schema/schemaeventsource"
 
 	"connectrpc.com/connect"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 type updateCmd struct {

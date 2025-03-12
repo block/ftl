@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/alecthomas/types/optional"
 	"time"
+
+	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/internal/buildengine"
