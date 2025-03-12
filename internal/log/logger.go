@@ -191,3 +191,12 @@ func writerFinalizer(writer *io.PipeWriter) {
 func SetCurrentLevel(l *Logger, level Level) {
 	l.level.Store(level)
 }
+
+// NewNoopSink returns a sink that does nothing.
+func NewNoopSink() Sink {
+	return noopSink{}
+}
+
+type noopSink struct{}
+
+func (noopSink) Log(entry Entry) error { return nil }

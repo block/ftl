@@ -335,8 +335,11 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 	// No conflicts, lets deploy
 
+	var moduleNames []string
+
 	// Deploy all collected modules
 	for _, module := range deployment.modules {
+		moduleNames = append(moduleNames, module.name)
 		c.engineUpdates <- &buildenginepb.EngineEvent{
 			Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
 				ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
@@ -383,7 +386,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 	if key, ok := (<-keyChan).Get(); ok {
 		logger := log.FromContext(ctx)
 		deployment.changeset = optional.Some(key)
-		logger.Infof("Created changeset %s", key) //nolint:forbidigo
+		logger.Infof("Created changeset %s [%s]", key, strings.Join(moduleNames, ",")) //nolint:forbidigo
 		go func() {
 			stream, err := c.adminClient.StreamChangesetLogs(ctx, connect.NewRequest(&adminpb.StreamChangesetLogsRequest{
 				ChangesetKey: key.String(),

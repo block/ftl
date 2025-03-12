@@ -217,6 +217,11 @@ func (s *Service) HandleChangesetCommitted(ctx context.Context, req *schema.Chan
 func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) error {
 	logger := log.FromContext(ctx).Changeset(cs)
 	changeset := s.eventSource.ActiveChangesets()[cs]
+
+	moduleNames := slices.Map(changeset.Modules, func(m *schema.Module) string {
+		return m.Name
+	})
+
 	err := s.deProvision(ctx, cs, changeset.RemovingModules)
 	if err != nil {
 		return err
@@ -225,7 +230,7 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 	if err != nil {
 		return fmt.Errorf("error finalizing changeset: %w", err)
 	}
-	logger.Infof("Successfully completed deployment for changeset %s", cs) //nolint:forbidigo
+	logger.Infof("Successfully completed deployment for changeset %s [%s]", cs, strings.Join(moduleNames, ",")) //nolint:forbidigo
 	return nil
 }
 
