@@ -44,7 +44,8 @@ func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig projectconfig
 	// TODO: all secret commands, with xor group of bools for providers
 	// TODO: all config commands, with xor group of bools for providers
 	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "ResetSubscription", []string{"pubsub", "subscription", "reset"},
-		mcp.AddHelp("This does not return any info about the state of the subscription.")))
+		mcp.AddHelp("This does not return any info about the state of the subscription."),
+		mcp.AddHelp("The user MUST explicitly ask for the subscription to be reset.")))
 	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "NewMySQLDatabase", []string{"mysql", "new"},
 		mcp.Pattern("datasource", optional.Some(mcp.RefRegex))))
 	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "NewMySQLMigration", []string{"mysql", "new", "migration"},
