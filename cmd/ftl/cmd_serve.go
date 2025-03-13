@@ -152,19 +152,17 @@ func (s *serveCommonConfig) run(
 	if s.Stop {
 		return KillBackgroundServe(logger)
 	}
-	err := writePidFile(os.Getpid())
-	if err != nil {
+	if err := writePidFile(os.Getpid()); err != nil {
 		logger.Errorf(err, "Failed to write pid file")
 	}
-	_, err = controllerClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
+	_, err := controllerClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
 	if err == nil {
 		// The controller is already running, bail out.
 		return errors.New(ftlRunningErrorMsg)
 	}
 
 	if s.EnableGrafana && !bool(s.ObservabilityConfig.ExportOTEL) {
-		err := dev.SetupGrafana(ctx, s.GrafanaImage)
-		if err != nil {
+		if err := dev.SetupGrafana(ctx, s.GrafanaImage); err != nil {
 			logger.Errorf(err, "Failed to setup grafana image")
 		} else {
 			logger.Infof("Grafana started at http://localhost:3000")
@@ -173,13 +171,11 @@ func (s *serveCommonConfig) run(
 			s.ObservabilityConfig.ExportOTEL = true
 		}
 	}
-	err = observability.Init(ctx, false, "", "ftl-serve", ftl.Version, s.ObservabilityConfig)
-	if err != nil {
+	if err := observability.Init(ctx, false, "", "ftl-serve", ftl.Version, s.ObservabilityConfig); err != nil {
 		return fmt.Errorf("observability init failed: %w", err)
 	}
 	// Bring up the image registry we use to store deployment content
-	err = dev.SetupRegistry(ctx, s.RegistryImage, s.RegistryPort)
-	if err != nil {
+	if err := dev.SetupRegistry(ctx, s.RegistryImage, s.RegistryPort); err != nil {
 		return fmt.Errorf("registry init failed: %w", err)
 	}
 	storage, err := artefacts.NewOCIRegistryStorage(ctx, artefacts.RegistryConfig{
@@ -192,26 +188,11 @@ func (s *serveCommonConfig) run(
 
 	wg, ctx := errgroup.WithContext(ctx)
 
-	_, err = bindAllocator.Next() // skip the first port, which is used by ingress
-	if err != nil {
+	if _, err := bindAllocator.Next(); err != nil { // skip the first port, which is used by ingress
 		return fmt.Errorf("could not allocate port for ingress: %w", err)
 	}
-	_, err = bindAllocator.Next()
-	if err != nil {
+	if _, err := bindAllocator.Next(); err != nil {
 		return fmt.Errorf("could not allocate port for controller: %w", err)
-	}
-
-	// Add console addresses to allow origins for console requests
-	consoleURLs := []string{
-		"http://localhost:8899",
-		"http://127.0.0.1:8899",
-	}
-	for _, urlStr := range consoleURLs {
-		consoleURL, err := url.Parse(urlStr)
-		if err != nil {
-			return fmt.Errorf("could not parse console URL %q: %w", urlStr, err)
-		}
-		s.Ingress.AllowOrigins = append(s.Ingress.AllowOrigins, consoleURL)
 	}
 
 	schemaBind, err := url.Parse("http://localhost:8897")

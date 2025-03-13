@@ -99,7 +99,7 @@ func (d *devCmd) Run(
 	}
 
 	// Default to allowing all origins and headers for console requests in local dev mode.
-	d.ServeCmd.Ingress.AllowOrigins = []*url.URL{{Scheme: "*", Host: "*"}}
+	d.ServeCmd.Ingress.AllowOrigins = []string{"*"}
 	d.ServeCmd.Ingress.AllowHeaders = []string{"*"}
 
 	devModeEndpointUpdates := make(chan dev.LocalEndpoint, 1)
