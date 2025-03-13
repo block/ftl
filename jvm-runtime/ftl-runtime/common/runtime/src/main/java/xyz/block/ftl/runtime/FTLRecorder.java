@@ -4,7 +4,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
-import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
 
@@ -20,7 +19,6 @@ import xyz.block.ftl.v1.GetDeploymentContextResponse;
 @Recorder
 public class FTLRecorder {
 
-    private static final Logger log = Logger.getLogger(FTLRecorder.class);
     public static final String X_FTL_VERB = "X-ftl-verb";
 
     public void registerVerb(String module, String verbName, String methodName, List<Class<?>> parameterTypes,

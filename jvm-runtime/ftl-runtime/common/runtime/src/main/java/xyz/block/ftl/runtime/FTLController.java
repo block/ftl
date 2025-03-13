@@ -98,6 +98,13 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
     }
 
     public DatasourceDetails getDatasource(String name) {
+        if (runnerDetails == null) {
+            waitForRunner();
+            if (runnerDetails == null) {
+                log.error("Failed to get runner details");
+                return null;
+            }
+        }
         GetDeploymentContextResponse.DbType type = databases.get(name);
         if (type != null) {
             var address = runnerDetails.getDatabase(name, type);
