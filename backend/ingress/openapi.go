@@ -1,13 +1,30 @@
 package ingress
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/go-openapi/spec"
 
 	"github.com/block/ftl/common/schema"
 )
+
+func ServeOpenAPI(sch *schema.Schema, w http.ResponseWriter, r *http.Request) bool {
+	if r.URL.Path != "/.well-known/service-desc" || r.Method != http.MethodGet {
+		return false
+	}
+	swagger, err := SchemaToOpenAPI(sch)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return true
+	}
+	w.Header().Add("Content-Type", "application/vnd.oai.openapi+json; version=2.0")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(swagger) //nolint
+	return true
+}
 
 // SchemaToOpenAPI converts an FTL schema to an OpenAPI specification.
 func SchemaToOpenAPI(sch *schema.Schema) (*spec.Swagger, error) {
