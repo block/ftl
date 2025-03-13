@@ -70,7 +70,7 @@ module todo {
 
   verb insert(todo.InsertRequest) todo.InsertResponse
       +database calls todo.testdb
-      +sql query :exec "INSERT INTO requests (name) VALUES (?)"
+      +sql query exec "INSERT INTO requests (name) VALUES (?)"
 	  +generated
 
   verb mondays(Unit) Unit
@@ -831,7 +831,7 @@ module todo {
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
   	+ingress http GET /todo/destroy/{name}
   verb insert(todo.InsertRequest) todo.InsertResponse
-  	+database calls todo.testdb +sql query :exec "INSERT INTO requests (name) VALUES (?)" +generated
+  	+database calls todo.testdb +sql query exec "INSERT INTO requests (name) VALUES (?)" +generated
   verb scheduled(Unit) Unit
     +cron */10 * * 1-10,11-31 * * *
   verb twiceADay(Unit) Unit

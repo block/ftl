@@ -10,7 +10,7 @@ import (
 type MetadataSQLQuery struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
-	Command string `parser:"'+' 'sql' Whitespace 'query' Whitespace ':' @Ident" protobuf:"2"`
+	Command string `parser:"'+' 'sql' Whitespace 'query' Whitespace @Ident" protobuf:"2"`
 	Query   string `parser:"Whitespace @String" protobuf:"3"`
 }
 
@@ -20,5 +20,5 @@ func (*MetadataSQLQuery) schemaMetadata()          {}
 func (m *MetadataSQLQuery) schemaChildren() []Node { return nil }
 func (m *MetadataSQLQuery) Position() Position     { return m.Pos }
 func (m *MetadataSQLQuery) String() string {
-	return fmt.Sprintf("+sql query :%s %q", m.Command, m.Query)
+	return fmt.Sprintf("+sql query %s %q", m.Command, m.Query)
 }
