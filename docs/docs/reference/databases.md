@@ -6,9 +6,7 @@ description: Working with databases in FTL
 
 # Databases
 
-FTL has support for Postgresql and MySQL databases, including support for automatic provisioning and migrations.
-
-The process for declaring a database differs by language.
+FTL has support for Postgresql and MySQL databases, including support for automatic provisioning and migrations. 
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
@@ -16,87 +14,17 @@ import TabItem from '@theme/TabItem';
 <Tabs groupId="languages">
   <TabItem value="go" label="Go" default>
 
-Your database is automatically declared by following a specific directory structure for your SQL files. No additional configuration is needed - just create the directory structure and FTL will handle the rest.
+Your database is automatically declared by following a specific directory structure for your SQL files. No additional configuration is needed - just create the directory structure and FTL will handle the rest. See the [Creating a New Database](#creating-a-new-database) section for CLI shortcuts.
 
   </TabItem>
   <TabItem value="kotlin" label="Kotlin">
 
-To declare a datasource in Kotlin you must use the `@SQLDatasource` annotation. This annotations is used to define
-the database name and type.
-
-```kotlin
-@SQLDatasource(name = "testdb", type = SQLDatabaseType.POSTGRESQL)
-```
-
-You must also include the appropriate depdencies in your `pom.xml` for the database you are using:
-
-```xml
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-jdbc-postgresql</artifactId>
-</dependency>
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-jdbc-mysql</artifactId>
-</dependency>
-```
-
-You can also use [Hibernate directly](https://quarkus.io/guides/hibernate-orm) or using [Panache](https://quarkus.io/guides/hibernate-orm-panache).
-
-This will require adding one of the following dependencies:
-
-```xml
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-hibernate-orm</artifactId>
-</dependency>
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-hibernate-orm-panache</artifactId>
-</dependency>
-```
-
-Note that this will likely change significantly in future once FTL has SQL Verbs.
+Your database is automatically declared by following a specific directory structure for your SQL files. No additional configuration is needed - just create the directory structure and FTL will handle the rest. See the [Creating a New Database](#creating-a-new-database) section for CLI shortcuts.
 
   </TabItem>
   <TabItem value="java" label="Java">
 
-To declare a datasource in Java you must use the `@SQLDatasource` annotation. This annotations is used to define
-the database name and type.
-
-```java
-@SQLDatasource(name = "testdb", type = SQLDatabaseType.POSTGRESQL)
-```
-
-You must also include the appropriate depdencies in your `pom.xml` for the database you are using:
-
-```xml
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-jdbc-postgresql</artifactId>
-</dependency>
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-jdbc-mysql</artifactId>
-</dependency>
-```
-
-You can also use [Hibernate directly](https://quarkus.io/guides/hibernate-orm) or using [Panache](https://quarkus.io/guides/hibernate-orm-panache).
-
-This will require adding one of the following dependencies:
-
-```xml
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-hibernate-orm</artifactId>
-</dependency>
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-hibernate-orm-panache</artifactId>
-</dependency>
-```
-
-Note that this will likely change significantly in future once JVM supports SQL verbs.
+Your database is automatically declared by following a specific directory structure for your SQL files. No additional configuration is needed - just create the directory structure and FTL will handle the rest. See the [Creating a New Database](#creating-a-new-database) section for CLI shortcuts.
 
   </TabItem>
   <TabItem value="schema" label="Schema">
@@ -203,6 +131,8 @@ src/main/resources/
       │       └── queries/ # contains query files
 ```
 
+The presence of a `schema` directory under your database name automatically declares the database in FTL.
+
   </TabItem>
   <TabItem value="java" label="Java">
 
@@ -215,6 +145,8 @@ src/main/resources/
       │       ├── schema/  # contains migration files
       │       └── queries/ # contains query files
 ```
+
+The presence of a `schema` directory under your database name automatically declares the database in FTL.
 
   </TabItem>
 </Tabs>
@@ -349,7 +281,7 @@ These queries will be automatically converted into FTL verbs with corresponding 
 func GetEmail(ctx context.Context, id int, query GetUserClient) (string, error) {
 	result, err := query(ctx, id)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	return result.Email, nil
 }
@@ -358,12 +290,24 @@ func GetEmail(ctx context.Context, id int, query GetUserClient) (string, error) 
   </TabItem>
   <TabItem value="kotlin" label="Kotlin">
 
-	TBD
+```kotlin
+@Verb
+fun getEmail(id: Int, query: GetUserClient): String {
+    val result = query.getUser(id)
+    return result.email
+}
+```
 
   </TabItem>
   <TabItem value="java" label="Java">
 	
-	TBD
+```java
+@Verb
+public String getEmail(int id, GetUserClient query) {
+    UserResult result = query.getUser(id);
+    return result.getEmail();
+}
+```
 
   </TabItem>
   <TabItem value="schema" label="Schema">
@@ -409,7 +353,7 @@ module example {
 }
 ```
 
-When you use a generated query client in your code, you're calling a verb that has been automatically generated from your SQL query. The FTL compiler handles the mapping between your SQL queries and the generated verbs.
+When you use a generated query client in your code, you're calling a verb that has been automatically generated from your SQL query. FTL handles the mapping between your SQL queries and the generated verbs.
 
   </TabItem>
 </Tabs>
