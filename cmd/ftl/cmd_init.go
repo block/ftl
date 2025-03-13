@@ -14,8 +14,7 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/internal"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/providers"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/profiles"
@@ -47,8 +46,8 @@ Examples:
 func (i initCmd) Run(
 	ctx context.Context,
 	logger *log.Logger,
-	configRegistry *providers.Registry[configuration.Configuration],
-	secretsRegistry *providers.Registry[configuration.Secrets],
+	configRegistry *config.Registry[config.Configuration],
+	secretsRegistry *config.Registry[config.Secrets],
 ) error {
 	// If the directory is not specified, use the project name as the directory name.
 	if i.Dir == "" {

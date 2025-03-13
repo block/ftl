@@ -31,7 +31,7 @@ func SetUpRedPanda(ctx context.Context) error {
 		// include console except in CI
 		profile = optional.Some[string]("console")
 	}
-	err := container.ComposeUp(ctx, "redpanda", redpandaDockerCompose, profile)
+	_, err := container.ComposeUp(ctx, "redpanda", redpandaDockerCompose, profile)
 	if err != nil {
 		return fmt.Errorf("could not start redpanda: %w", err)
 	}

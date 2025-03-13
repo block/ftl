@@ -357,7 +357,9 @@ func PollContainerHealth(ctx context.Context, containerName string, timeout time
 //
 // Make sure you obtain the compose yaml from a string literal or an embedded file, rather than
 // reading from disk. The project file will not be included in the release build.
-func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.Option[string], envars ...string) error {
+//
+// The "down" function can be optionally called to stop the containers.
+func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.Option[string], envars ...string) (down func() error, err error) {
 	logger := log.FromContext(ctx).Scope(name)
 	ctx = log.ContextWithLogger(ctx, logger)
 
@@ -365,16 +367,16 @@ func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.O
 	// multiple times simultaneously for the same services.
 	projCfg, ok := projectconfig.DefaultConfigPath().Get()
 	if !ok {
-		return fmt.Errorf("failed to get project config path")
+		return nil, fmt.Errorf("failed to get project config path")
 	}
 	dir := filepath.Join(filepath.Dir(projCfg), ".ftl")
-	err := os.MkdirAll(dir, 0700)
+	err = os.MkdirAll(dir, 0700)
 	if err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
+		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 	release, err := flock.Acquire(ctx, filepath.Join(dir, fmt.Sprintf(".docker.%v.lock", name)), 1*time.Minute)
 	if err != nil {
-		return fmt.Errorf("failed to acquire lock: %w", err)
+		return nil, fmt.Errorf("failed to acquire lock: %w", err)
 	}
 	defer release() //nolint:errcheck
 
@@ -395,8 +397,23 @@ func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.O
 	writer := terminal.StatusLineAsWriter(statusLine)
 	cmd.Stdout = writer
 	cmd.Stderr = writer
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to run docker compose up: %w", err)
+	if err := cmd.RunBuffered(ctx); err != nil {
+		return nil, fmt.Errorf("failed to run docker compose up: %w", err)
 	}
-	return nil
+	return func() error {
+		logger.Debugf("Running docker compose down")
+		args := []string{"compose", "-f", "-", "-p", "ftl", "down"}
+		if profile, ok := profile.Get(); ok {
+			args = append(args, "--profile", profile)
+		}
+		cmd := exec.CommandWithEnv(ctx, log.Debug, ".", envars, "docker", args...)
+		cmd.Stdin = bytes.NewReader([]byte(composeYAML))
+		writer := terminal.StatusLineAsWriter(statusLine)
+		cmd.Stdout = writer
+		cmd.Stderr = writer
+		if err := cmd.RunBuffered(ctx); err != nil {
+			return fmt.Errorf("failed to run docker compose down: %w", err)
+		}
+		return nil
+	}, nil
 }

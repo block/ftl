@@ -10,10 +10,7 @@ import (
 	"strings"
 
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/configuration/providers"
-	"github.com/block/ftl/internal/configuration/routers"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/profiles/internal"
 )
 
@@ -53,8 +50,8 @@ type Profile struct {
 	shared   ProjectConfig
 	name     string
 	endpoint *url.URL
-	sm       *manager.Manager[configuration.Secrets]
-	cm       *manager.Manager[configuration.Configuration]
+	sm       config.Provider[config.Secrets]
+	cm       config.Provider[config.Configuration]
 }
 
 // ProjectConfig is the static project-wide configuration shared by all profiles.
@@ -64,17 +61,17 @@ func (p *Profile) Name() string       { return p.name }
 func (p *Profile) Endpoint() *url.URL { return p.endpoint }
 
 // SecretsManager returns the secrets manager for this profile.
-func (p *Profile) SecretsManager() *manager.Manager[configuration.Secrets] { return p.sm }
+func (p *Profile) SecretsManager() config.Provider[config.Secrets] { return p.sm }
 
 // ConfigurationManager returns the configuration manager for this profile.
-func (p *Profile) ConfigurationManager() *manager.Manager[configuration.Configuration] { return p.cm }
+func (p *Profile) ConfigurationManager() config.Provider[config.Configuration] { return p.cm }
 
 //sumtype:decl
 type ProfileConfigKind interface{ profileKind() }
 
 type LocalProfileConfig struct {
-	SecretsProvider configuration.ProviderKey
-	ConfigProvider  configuration.ProviderKey
+	SecretsProvider config.ProviderKey
+	ConfigProvider  config.ProviderKey
 }
 
 func (LocalProfileConfig) profileKind() {}
@@ -94,15 +91,15 @@ func (p ProfileConfig) String() string { return p.Name }
 
 type Project struct {
 	project         internal.Project
-	secretsRegistry *providers.Registry[configuration.Secrets]
-	configRegistry  *providers.Registry[configuration.Configuration]
+	secretsRegistry *config.Registry[config.Secrets]
+	configRegistry  *config.Registry[config.Configuration]
 }
 
 // Open a project.
 func Open(
 	root string,
-	secretsRegistry *providers.Registry[configuration.Secrets],
-	configRegistry *providers.Registry[configuration.Configuration],
+	secretsRegistry *config.Registry[config.Secrets],
+	configRegistry *config.Registry[config.Configuration],
 ) (*Project, error) {
 	project, err := internal.Load(root)
 	if err != nil {
@@ -117,11 +114,13 @@ func Open(
 
 // Init a new project with a default local profile.
 //
+// "project.Root" must be a valid directory path.
+//
 // If "project.Default" is empty a new project will be created with a default "local" profile.
 func Init(
 	project ProjectConfig,
-	secretsRegistry *providers.Registry[configuration.Secrets],
-	configRegistry *providers.Registry[configuration.Configuration],
+	secretsRegistry *config.Registry[config.Secrets],
+	configRegistry *config.Registry[config.Configuration],
 ) (*Project, error) {
 	err := internal.Init(internal.Project(project))
 	if err != nil {
@@ -178,9 +177,17 @@ func (p *Project) ActiveProfile() (string, error) {
 	return profile, nil
 }
 
-// DefaultProfile returns the name of the default profile.
-func (p *Project) DefaultProfile() string {
-	return p.project.DefaultProfile
+func (p *Project) DefaultProfile() string { return p.project.DefaultProfile }
+
+func (p *Project) Realm() string { return p.project.Realm }
+
+// ProfileRoot returns the root directory for the currently active profile.
+func (p *Project) ProfileRoot() (string, error) {
+	root, err := p.project.ProfileRoot()
+	if err != nil {
+		return "", fmt.Errorf("profile root: %w", err)
+	}
+	return root, nil
 }
 
 // List all profiles in the project.
@@ -265,28 +272,19 @@ func (p *Project) Load(ctx context.Context, profile string) (Profile, error) {
 		return Profile{}, fmt.Errorf("profile endpoint: %w", err)
 	}
 
-	var sm *manager.Manager[configuration.Secrets]
-	var cm *manager.Manager[configuration.Configuration]
+	var sm config.Provider[config.Secrets]
+	var cm config.Provider[config.Configuration]
 	switch prof.Type {
 	case internal.ProfileTypeLocal:
-		sp, err := p.secretsRegistry.Get(ctx, prof.SecretsProvider)
+		var err error
+		sm, err = p.secretsRegistry.Get(ctx, p.project.Root, prof.SecretsProvider)
 		if err != nil {
 			return Profile{}, fmt.Errorf("get secrets provider: %w", err)
 		}
-		secretsRouter := routers.NewFileRouter[configuration.Secrets](p.project.LocalSecretsPath(profile))
-		sm, err = manager.New[configuration.Secrets](ctx, secretsRouter, sp)
-		if err != nil {
-			return Profile{}, fmt.Errorf("create secrets manager: %w", err)
-		}
 
-		cp, err := p.configRegistry.Get(ctx, prof.ConfigProvider)
+		cm, err = p.configRegistry.Get(ctx, p.project.Root, prof.ConfigProvider)
 		if err != nil {
 			return Profile{}, fmt.Errorf("get config provider: %w", err)
-		}
-		configRouter := routers.NewFileRouter[configuration.Configuration](p.project.LocalConfigPath(profile))
-		cm, err = manager.New[configuration.Configuration](ctx, configRouter, cp)
-		if err != nil {
-			return Profile{}, fmt.Errorf("create configuration manager: %w", err)
 		}
 
 	case internal.ProfileTypeRemote:

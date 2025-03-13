@@ -26,7 +26,7 @@ import (
 	"strings"
 
 	"github.com/block/ftl/common/sha256"
-	"github.com/block/ftl/internal/configuration"
+	"github.com/block/ftl/internal/config"
 )
 
 type ProfileType string
@@ -37,11 +37,11 @@ const (
 )
 
 type Profile struct {
-	Name            string                    `json:"name"`
-	Endpoint        string                    `json:"endpoint"`
-	Type            ProfileType               `json:"type"`
-	SecretsProvider configuration.ProviderKey `json:"secrets-provider"`
-	ConfigProvider  configuration.ProviderKey `json:"config-provider"`
+	Name            string             `json:"name"`
+	Endpoint        string             `json:"endpoint"`
+	Type            ProfileType        `json:"type"`
+	SecretsProvider config.ProviderKey `json:"secrets-provider"`
+	ConfigProvider  config.ProviderKey `json:"config-provider"`
 }
 
 func (p *Profile) EndpointURL() (*url.URL, error) {
@@ -63,6 +63,15 @@ type Project struct {
 	Root string `json:"-"`
 }
 
+// ProfileRoot returns the root directory for the project's profiles.
+func (p Project) ProfileRoot() (string, error) {
+	profile, err := p.ActiveProfile()
+	if err != nil {
+		return "", fmt.Errorf("profile root: %w", err)
+	}
+	return filepath.Join(p.Root, ".ftl-project", "profiles", profile), nil
+}
+
 // ActiveProfile returns the name of the active profile.
 //
 // If no profile is active, it returns the default.
@@ -74,7 +83,7 @@ func (p Project) ActiveProfile() (string, error) {
 	profile, err := os.ReadFile(filepath.Join(cacheDir, "active-profile"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return "", nil
+			return p.DefaultProfile, nil
 		}
 		return "", fmt.Errorf("read active profile: %w", err)
 	}
@@ -184,16 +193,6 @@ func (p Project) Save() error {
 	return nil
 }
 
-// LocalSecretsPath returns the path to the secrets file for the given local profile.
-func (p Project) LocalSecretsPath(profile string) string {
-	return filepath.Join(p.Root, ".ftl-project", "profiles", profile, "secrets.json")
-}
-
-// LocalConfigPath returns the path to the config file for the given local profile.
-func (p Project) LocalConfigPath(profile string) string {
-	return filepath.Join(p.Root, ".ftl-project", "profiles", profile, "config.json")
-}
-
 func Init(project Project) error {
 	if project.Root == "" {
 		return errors.New("project root is empty")
@@ -222,8 +221,8 @@ func Init(project Project) error {
 		Name:            project.DefaultProfile,
 		Endpoint:        "http://localhost:8892",
 		Type:            ProfileTypeLocal,
-		SecretsProvider: "inline",
-		ConfigProvider:  "inline",
+		SecretsProvider: config.NewProviderKey(config.FileProviderKind, "local"),
+		ConfigProvider:  config.NewProviderKey(config.FileProviderKind, "local"),
 	}); err != nil {
 		return fmt.Errorf("save profile: %w", err)
 	}
