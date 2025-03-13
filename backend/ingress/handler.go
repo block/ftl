@@ -25,6 +25,10 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 	logger := log.FromContext(r.Context()).Scope(fmt.Sprintf("ingress:%s:%s", r.Method, r.URL.Path))
 	logger.Debugf("Start ingress request")
 
+	if ServeOpenAPI(sch, w, r) {
+		return
+	}
+
 	routeOpt := getIngressRoute(routesForMethod, r.URL.Path)
 	var route *ingressRoute
 	var ok bool
