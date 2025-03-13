@@ -52,17 +52,17 @@ module example {
   // Query that returns a single row
   verb getUser(Int) example.UserResult
     +database calls example.testdb
-    +sql query :one "SELECT id, name, email FROM users WHERE id = ?"
+    +sql query one "SELECT id, name, email FROM users WHERE id = ?"
   
   // Query that returns multiple rows
   verb listUsers(Unit) [example.UserResult]
     +database calls example.testdb
-    +sql query :many "SELECT id, name, email FROM users ORDER BY name"
+    +sql query many "SELECT id, name, email FROM users ORDER BY name"
   
   // Query that performs an action but doesn't return data
   verb createUser(example.CreateUserParams) Unit
     +database calls example.testdb
-    +sql query :exec "INSERT INTO users (name, email) VALUES (?, ?)"
+    +sql query exec "INSERT INTO users (name, email) VALUES (?, ?)"
   
   // Custom verb that uses a database query
   export verb getUserEmail(Int) String
@@ -335,17 +335,17 @@ module example {
   // Query that returns a single row
   verb getUser(Int) example.UserResult
     +database calls example.testdb
-    +sql query :one "SELECT id, name, email FROM users WHERE id = ?"
+    +sql query one "SELECT id, name, email FROM users WHERE id = ?"
   
   // Query that returns multiple rows
   verb listUsers(Unit) [example.UserResult]
     +database calls example.testdb
-    +sql query :many "SELECT id, name, email FROM users ORDER BY name"
+    +sql query many "SELECT id, name, email FROM users ORDER BY name"
   
   // Query that performs an action but doesn't return data
   verb createUser(example.CreateUserParams) Unit
     +database calls example.testdb
-    +sql query :exec "INSERT INTO users (name, email) VALUES (?, ?)"
+    +sql query exec "INSERT INTO users (name, email) VALUES (?, ?)"
   
   // Custom verb that uses the generated query client
   export verb getUserEmail(Int) String
