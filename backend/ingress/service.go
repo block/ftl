@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/cors"
 	ftlhttp "github.com/block/ftl/internal/http"
 	"github.com/block/ftl/internal/key"
@@ -24,9 +23,9 @@ import (
 )
 
 type Config struct {
-	Bind         *url.URL   `help:"Socket to bind to for ingress." default:"http://127.0.0.1:8891" env:"FTL_BIND"`
-	AllowOrigins []*url.URL `help:"Allow CORS requests to ingress endpoints from these origins." env:"FTL_INGRESS_ALLOW_ORIGIN"`
-	AllowHeaders []string   `help:"Allow these headers in CORS requests. (Requires AllowOrigins)" env:"FTL_INGRESS_ALLOW_HEADERS"`
+	Bind         *url.URL `help:"Socket to bind to for ingress." default:"http://127.0.0.1:8891" env:"FTL_BIND"`
+	AllowOrigins []string `help:"Allow CORS requests to ingress endpoints from these origins." env:"FTL_INGRESS_ALLOW_ORIGIN"`
+	AllowHeaders []string `help:"Allow these headers in CORS requests. (Requires AllowOrigins)" env:"FTL_INGRESS_ALLOW_HEADERS"`
 }
 
 func (c *Config) Validate() error {
@@ -58,7 +57,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 	ingressHandler := otelhttp.NewHandler(http.Handler(svc), "ftl.ingress")
 	if len(config.AllowOrigins) > 0 {
 		ingressHandler = cors.Middleware(
-			slices.Map(config.AllowOrigins, func(u *url.URL) string { return u.String() }),
+			config.AllowOrigins,
 			config.AllowHeaders,
 			ingressHandler,
 		)
