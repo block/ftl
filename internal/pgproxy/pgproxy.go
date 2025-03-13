@@ -121,7 +121,9 @@ func HandleConnection(ctx context.Context, conn net.Conn, connectionFn DSNConstr
 	}
 
 	if err := proxy(ctx, backend, hijacked.Frontend); err != nil {
-		logger.Warnf("disconnecting %s due to: %s", conn.RemoteAddr(), err)
+		if !errors.Is(err, context.Canceled) {
+			logger.Warnf("disconnecting %s due to: %s", conn.RemoteAddr(), err)
+		}
 		return
 	}
 	logger.Infof("terminating connection to %s", conn.RemoteAddr())
@@ -197,7 +199,7 @@ func connectFrontend(ctx context.Context, connectionFn DSNConstructor, startup *
 
 func proxy(ctx context.Context, backend *pgproto3.Backend, frontend *pgproto3.Frontend) error {
 	logger := log.FromContext(ctx)
-	errors := make(chan error, 2)
+	errorsChan := make(chan error, 2)
 
 	go func() {
 		for {
@@ -208,14 +210,14 @@ func proxy(ctx context.Context, backend *pgproto3.Backend, frontend *pgproto3.Fr
 			default:
 			}
 			if err != nil {
-				errors <- fmt.Errorf("failed to receive backend message: %w", err)
+				errorsChan <- fmt.Errorf("failed to receive backend message: %w", err)
 				return
 			}
 			logger.Tracef("backend message: %T", msg)
 			frontend.Send(msg)
 			err = frontend.Flush()
 			if err != nil {
-				errors <- fmt.Errorf("failed to receive backend message: %w", err)
+				errorsChan <- fmt.Errorf("failed to receive backend message: %w", err)
 				return
 			}
 			if _, ok := msg.(*pgproto3.Terminate); ok {
@@ -233,14 +235,19 @@ func proxy(ctx context.Context, backend *pgproto3.Backend, frontend *pgproto3.Fr
 			default:
 			}
 			if err != nil {
-				errors <- fmt.Errorf("failed to receive frontend message: %w", err)
+				if errors.Is(err, io.ErrUnexpectedEOF) {
+					// if the frontend just closes the connection, we don't need to log an error
+					errorsChan <- nil
+					return
+				}
+				errorsChan <- fmt.Errorf("failed to receive frontend message: %w", err)
 				return
 			}
 			logger.Tracef("frontend message: %T", msg)
 			backend.Send(msg)
 			err = backend.Flush()
 			if err != nil {
-				errors <- fmt.Errorf("failed to receive backend message: %w", err)
+				errorsChan <- fmt.Errorf("failed to receive backend message: %w", err)
 				return
 			}
 		}
@@ -250,7 +257,7 @@ func proxy(ctx context.Context, backend *pgproto3.Backend, frontend *pgproto3.Fr
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("context done: %w", ctx.Err())
-		case err := <-errors:
+		case err := <-errorsChan:
 			return err
 		}
 	}
