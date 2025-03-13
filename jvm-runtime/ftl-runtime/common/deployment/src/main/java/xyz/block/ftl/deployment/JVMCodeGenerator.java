@@ -16,8 +16,10 @@ import xyz.block.ftl.hotreload.CodeGenNotification;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.MetadataSQLColumn;
 import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
+import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.schema.v1.Topic;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.TypeAlias;
@@ -242,9 +244,48 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
         }
     }
 
+    protected List<SQLColumnField> getOrderedSQLFields(Module module, Type type) {
+        if (type.hasArray()) {
+            return getOrderedSQLFields(module, type.getArray().getElement());
+        } else if (type.hasMap()) {
+            return getOrderedSQLFields(module, type.getMap().getValue());
+        } else if (type.hasOptional()) {
+            return getOrderedSQLFields(module, type.getOptional().getType());
+        }
+
+        Ref ref = type.getRef();
+        if (ref == null) {
+            return List.of();
+        }
+        Data data = resolveDataDecl(module, ref);
+        if (data == null) {
+            return List.of();
+        }
+        List<SQLColumnField> fields = new ArrayList<>();
+        for (var field : data.getFieldsList()) {
+            MetadataSQLColumn fieldMd = field.getMetadataList().stream().findFirst().map(md -> md.getSqlColumn())
+                    .orElse(null);
+            if (fieldMd != null) {
+                fields.add(new SQLColumnField(field.getName(), fieldMd));
+            }
+        }
+        return fields;
+    }
+
+    private Data resolveDataDecl(Module module, Ref ref) {
+        if (ref == null) {
+            return null;
+        }
+        return module.getDeclsList().stream().filter(d -> d.hasData() && d.getData().getName().equals(ref.getName()))
+                .findFirst().map(d -> d.getData()).orElse(null);
+    }
+
     @Override
     public boolean shouldRun(Path sourceDir, Config config) {
         return true;
+    }
+
+    public record SQLColumnField(String name, MetadataSQLColumn metadata) {
     }
 
     public record DeclRef(String module, String name) {

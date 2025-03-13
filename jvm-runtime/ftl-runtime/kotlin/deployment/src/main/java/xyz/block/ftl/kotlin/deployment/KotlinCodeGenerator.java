@@ -5,6 +5,7 @@ import static com.squareup.kotlinpoet.TypeNames.BOOLEAN;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +31,7 @@ import com.squareup.kotlinpoet.WildcardTypeName;
 import xyz.block.ftl.ConsumableTopic;
 import xyz.block.ftl.EnumHolder;
 import xyz.block.ftl.GeneratedRef;
+import xyz.block.ftl.SQLQueryClient;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.VerbClient;
@@ -52,7 +54,8 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
     public static final String PACKAGE_PREFIX = "ftl.";
 
     @Override
-    protected void generateTypeAliasMapper(String module, xyz.block.ftl.schema.v1.TypeAlias typeAlias, String packageName,
+    protected void generateTypeAliasMapper(String module, xyz.block.ftl.schema.v1.TypeAlias typeAlias,
+            String packageName,
             Optional<String> nativeTypeAlias, PackageOutput outputDir) throws IOException {
         String thisType = className(typeAlias.getName()) + TYPE_MAPPER;
         TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(thisType)
@@ -65,11 +68,14 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         if (nativeTypeAlias.isEmpty()) {
             TypeVariableName finalType = TypeVariableName.get("T");
             typeBuilder.addTypeVariable(finalType);
-            typeBuilder.addSuperinterface(ParameterizedTypeName.get(ClassName.bestGuess(TypeAliasMapper.class.getName()),
-                    finalType, new ClassName("kotlin", "String")), CodeBlock.of(""));
+            typeBuilder
+                    .addSuperinterface(ParameterizedTypeName.get(ClassName.bestGuess(TypeAliasMapper.class.getName()),
+                            finalType, new ClassName("kotlin", "String")), CodeBlock.of(""));
         } else {
-            typeBuilder.addSuperinterface(ParameterizedTypeName.get(ClassName.bestGuess(TypeAliasMapper.class.getName()),
-                    ClassName.bestGuess(nativeTypeAlias.get()), new ClassName("kotlin", "String")), CodeBlock.of(""));
+            typeBuilder.addSuperinterface(
+                    ParameterizedTypeName.get(ClassName.bestGuess(TypeAliasMapper.class.getName()),
+                            ClassName.bestGuess(nativeTypeAlias.get()), new ClassName("kotlin", "String")),
+                    CodeBlock.of(""));
         }
 
         FileSpec kotlinFile = FileSpec.builder(packageName, thisType)
@@ -110,11 +116,12 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
     }
 
     protected void generateEnum(Module module, Enum data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap,
+            PackageOutput outputDir)
             throws IOException {
         String thisType = className(data.getName());
         if (data.hasType()) {
-            //Enums with a type are "value enums" - Java natively supports these
+            // Enums with a type are "value enums" - Java natively supports these
             TypeSpec.Builder dataBuilder = TypeSpec.enumBuilder(thisType)
                     .addAnnotation(getGeneratedRefAnnotation(module.getName(), data.getName()))
                     .addAnnotation(AnnotationSpec.builder(xyz.block.ftl.Enum.class).build())
@@ -139,7 +146,8 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
                     .build();
             kotlinFile.writeTo(outputDir.writeKotlin(kotlinFile.getName()));
         } else {
-            // Enums without a type are (confusingly) "type enums". Kotlin can't represent these directly, so we use a
+            // Enums without a type are (confusingly) "type enums". Kotlin can't represent
+            // these directly, so we use a
             // sealed interface
             TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(thisType)
                     .addAnnotation(getGeneratedRefAnnotation(module.getName(), data.getName()))
@@ -172,12 +180,15 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
                     List<EnumInfo> variantInfos = enumVariantInfoMap.computeIfAbsent(key, k -> new ArrayList<>());
                     variantInfos.add(new EnumInfo(thisType, variant, data.getVariantsList()));
                 } else {
-                    // Value type isn't a Ref, so we make a wrapper class that implements our interface
+                    // Value type isn't a Ref, so we make a wrapper class that implements our
+                    // interface
                     TypeSpec.Builder dataBuilder = TypeSpec.classBuilder(className(name))
                             .addAnnotation(getGeneratedRefAnnotation(module.getName(), name))
                             .addAnnotation(AnnotationSpec.builder(EnumHolder.class).build())
                             .addModifiers(KModifier.PUBLIC, KModifier.FINAL);
-                    dataBuilder.primaryConstructor(FunSpec.constructorBuilder().addParameter("value", valueTypeName).build())
+                    dataBuilder
+                            .primaryConstructor(
+                                    FunSpec.constructorBuilder().addParameter("value", valueTypeName).build())
                             .addProperty(PropertySpec.builder("value", valueTypeName, KModifier.FINAL)
                                     .initializer("value")
                                     .build())
@@ -198,7 +209,8 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
     }
 
     protected void generateDataObject(Module module, Data data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap,
+            PackageOutput outputDir)
             throws IOException {
         String thisType = className(data.getName());
         TypeSpec.Builder dataBuilder = TypeSpec.classBuilder(thisType)
@@ -214,7 +226,8 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         }
         FunSpec.Builder constructorBuilder = FunSpec.constructorBuilder();
 
-        // if data is part of a type enum, generate the interface methods for each variant
+        // if data is part of a type enum, generate the interface methods for each
+        // variant
         DeclRef key = new DeclRef(module.getName(), data.getName());
         if (enumVariantInfoMap.containsKey(key)) {
             for (var enumVariantInfo : enumVariantInfoMap.get(key)) {
@@ -278,6 +291,43 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
             String packageName,
             PackageOutput outputDir)
             throws IOException {
+        String name = verb.getName();
+        String thisType = className(name) + CLIENT;
+        TypeSpec.Builder clientBuilder = TypeSpec.interfaceBuilder(className(name) + CLIENT)
+                .addModifiers(KModifier.PUBLIC)
+                .addModifiers(KModifier.FUN)
+                .addKdoc("A client for the " + module.getName() + "." + name + " SQL query verb");
+
+        AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(SQLQueryClient.class)
+                .addMember("module=\"" + module.getName() + "\"")
+                .addMember("command=\"" + queryMetadata.getCommand() + "\"")
+                .addMember("rawSQL=\"" + queryMetadata.getQuery() + "\"")
+                .addMember("dbName=\"" + dbName + "\"");
+
+        FunSpec.Builder callFunc = FunSpec.builder(name)
+                .addModifiers(KModifier.ABSTRACT, KModifier.PUBLIC)
+                .addKdoc(String.join("\n", verb.getCommentsList()));
+        VerbType verbType = VerbType.of(verb);
+        if (verbType == VerbType.SOURCE || verbType == VerbType.VERB) {
+            List<SQLColumnField> sqlFields = getOrderedSQLFields(module, verb.getResponse());
+            String[] fields = sqlFields.stream().map(m -> "\"" + m.metadata().getName() + "," + toJavaName(m.name()) + "\"")
+                    .toArray(String[]::new);
+            annotationBuilder.addMember("colToFieldName=[" + String.join(",", fields) + "]");
+            callFunc.returns(toKotlinTypeName(verb.getResponse(), new HashMap<>(), new HashMap<>()));
+        }
+        if (verbType == VerbType.SINK || verbType == VerbType.VERB) {
+            List<SQLColumnField> sqlFields = getOrderedSQLFields(module, verb.getRequest());
+            String[] fields = sqlFields.stream().map(m -> "\"" + toJavaName(m.name()) + "\"").toArray(String[]::new);
+            annotationBuilder.addMember("fields=[" + String.join(",", fields) + "]");
+            callFunc.addParameter("value", toKotlinTypeName(verb.getRequest(), new HashMap<>(), new HashMap<>()));
+        }
+
+        callFunc.addAnnotation(annotationBuilder.build());
+        clientBuilder.addFunction(callFunc.build());
+        FileSpec javaFile = FileSpec.builder(packageName, thisType)
+                .addType(clientBuilder.build())
+                .build();
+        javaFile.writeTo(outputDir.writeKotlin(javaFile.getName()));
     }
 
     private String toJavaName(String name) {
@@ -294,14 +344,16 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         return new ClassName(clazz.getPackage().getName(), clazz.getSimpleName());
     }
 
-    private TypeName toKotlinTypeName(Type type, Map<DeclRef, Type> typeAliasMap, Map<DeclRef, String> nativeTypeAliasMap) {
+    private TypeName toKotlinTypeName(Type type, Map<DeclRef, Type> typeAliasMap,
+            Map<DeclRef, String> nativeTypeAliasMap) {
         if (type.hasArray()) {
             return ParameterizedTypeName.get(new ClassName("kotlin.collections", "List"),
                     toKotlinTypeName(type.getArray().getElement(), typeAliasMap, nativeTypeAliasMap));
         } else if (type.hasString()) {
             return new ClassName("kotlin", "String");
         } else if (type.hasOptional()) {
-            return toKotlinTypeName(type.getOptional().getType(), typeAliasMap, nativeTypeAliasMap).copy(true, List.of());
+            return toKotlinTypeName(type.getOptional().getType(), typeAliasMap, nativeTypeAliasMap).copy(true,
+                    List.of());
         } else if (type.hasRef()) {
             if (type.getRef().getModule().isEmpty()) {
                 return TypeVariableName.get(type.getRef().getName());
@@ -354,22 +406,28 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
     // TODO: fix keywords
     protected static final Set<String> JAVA_KEYWORDS = Set.of("abstract", "continue", "for", "new", "switch", "assert",
             "default", "goto", "package", "synchronized", "boolean", "do", "if", "private", "this", "break", "double",
-            "implements", "protected", "throw", "byte", "else", "import", "public", "throws", "case", "enum", "instanceof",
-            "return", "transient", "catch", "extends", "int", "short", "try", "char", "final", "interface", "static", "void",
+            "implements", "protected", "throw", "byte", "else", "import", "public", "throws", "case", "enum",
+            "instanceof",
+            "return", "transient", "catch", "extends", "int", "short", "try", "char", "final", "interface", "static",
+            "void",
             "class", "finally", "long", "strictfp", "volatile", "const", "float", "native", "super", "while");
 
     /**
-     * Adds the super interface and isX, getX methods to the <code>dataBuilder</code> for a type enum variant
+     * Adds the super interface and isX, getX methods to the
+     * <code>dataBuilder</code> for a type enum variant
      */
-    private static void addTypeEnumInterfaceMethods(String packageName, String interfaceType, TypeSpec.Builder dataBuilder,
-            String enumVariantName, TypeName variantTypeName, Map<String, TypeName> variantValuesTypes, boolean returnSelf) {
+    private static void addTypeEnumInterfaceMethods(String packageName, String interfaceType,
+            TypeSpec.Builder dataBuilder,
+            String enumVariantName, TypeName variantTypeName, Map<String, TypeName> variantValuesTypes,
+            boolean returnSelf) {
 
         dataBuilder.addSuperinterface(new ClassName(packageName, interfaceType), CodeBlock.of(""));
         // Positive implementation of isX, getX for its type
         dataBuilder.addFunction(makeIsFunc(enumVariantName, true));
-        dataBuilder.addFunction(makeGetFunc(enumVariantName, variantTypeName, "return " + (returnSelf ? "this" : "value"))
-                .addModifiers(KModifier.OVERRIDE)
-                .build());
+        dataBuilder
+                .addFunction(makeGetFunc(enumVariantName, variantTypeName, "return " + (returnSelf ? "this" : "value"))
+                        .addModifiers(KModifier.OVERRIDE)
+                        .build());
 
         for (var variant : variantValuesTypes.entrySet()) {
             if (variant.getKey().equals(enumVariantName)) {
@@ -416,7 +474,8 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         } else if (value.hasStringValue()) {
             return value.getStringValue().getValue();
         } else if (value.hasTypeValue()) {
-            // Can't instantiate a TypeValue now. Cannot happen because it's only used in type enums
+            // Can't instantiate a TypeValue now. Cannot happen because it's only used in
+            // type enums
             throw new RuntimeException("Cannot generate TypeValue: " + value);
         }
         throw new RuntimeException("Cannot generate Java value: " + value);

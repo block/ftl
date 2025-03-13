@@ -16,7 +16,7 @@ import (
 
 func TestDatabase(t *testing.T) {
 	in.Run(t,
-		in.WithLanguages("go", "java"),
+		in.WithLanguages("go", "java", "kotlin"),
 		// deploy real module against "testdb"
 		in.CopyModule("database"),
 		in.Deploy("database"),
@@ -31,7 +31,7 @@ func TestDatabase(t *testing.T) {
 
 func TestMySQL(t *testing.T) {
 	in.Run(t,
-		in.WithLanguages("go", "java"),
+		in.WithLanguages("go", "java", "kotlin"),
 		// deploy real module against "testdb"
 		in.CopyModule("mysql"),
 		in.Deploy("mysql"),
@@ -83,7 +83,7 @@ func TestMySQL(t *testing.T) {
 
 func TestSQLVerbs(t *testing.T) {
 	in.Run(t,
-		in.WithLanguages("go", "java"),
+		in.WithLanguages("go", "java", "kotlin"),
 		in.CopyModule("mysql"),
 		in.Deploy("mysql"),
 
