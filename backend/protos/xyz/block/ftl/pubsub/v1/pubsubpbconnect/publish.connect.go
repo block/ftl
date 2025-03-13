@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// PublishServiceName is the fully-qualified name of the PublishService service.
@@ -58,17 +58,20 @@ type PublishServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewPublishServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PublishServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	publishServiceMethods := v11.File_xyz_block_ftl_pubsub_v1_publish_proto.Services().ByName("PublishService").Methods()
 	return &publishServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+PublishServicePingProcedure,
+			connect.WithSchema(publishServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		publishEvent: connect.NewClient[v11.PublishEventRequest, v11.PublishEventResponse](
 			httpClient,
 			baseURL+PublishServicePublishEventProcedure,
-			opts...,
+			connect.WithSchema(publishServiceMethods.ByName("PublishEvent")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -103,16 +106,19 @@ type PublishServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewPublishServiceHandler(svc PublishServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	publishServiceMethods := v11.File_xyz_block_ftl_pubsub_v1_publish_proto.Services().ByName("PublishService").Methods()
 	publishServicePingHandler := connect.NewUnaryHandler(
 		PublishServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(publishServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	publishServicePublishEventHandler := connect.NewUnaryHandler(
 		PublishServicePublishEventProcedure,
 		svc.PublishEvent,
-		opts...,
+		connect.WithSchema(publishServiceMethods.ByName("PublishEvent")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.pubsub.v1.PublishService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

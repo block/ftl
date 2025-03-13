@@ -18,7 +18,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// SchemaServiceName is the fully-qualified name of the SchemaService service.
@@ -112,74 +112,88 @@ type SchemaServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewSchemaServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) SchemaServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	schemaServiceMethods := v1.File_xyz_block_ftl_v1_schemaservice_proto.Services().ByName("SchemaService").Methods()
 	return &schemaServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+SchemaServicePingProcedure,
+			connect.WithSchema(schemaServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getSchema: connect.NewClient[v1.GetSchemaRequest, v1.GetSchemaResponse](
 			httpClient,
 			baseURL+SchemaServiceGetSchemaProcedure,
+			connect.WithSchema(schemaServiceMethods.ByName("GetSchema")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		pullSchema: connect.NewClient[v1.PullSchemaRequest, v1.PullSchemaResponse](
 			httpClient,
 			baseURL+SchemaServicePullSchemaProcedure,
+			connect.WithSchema(schemaServiceMethods.ByName("PullSchema")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		updateDeploymentRuntime: connect.NewClient[v1.UpdateDeploymentRuntimeRequest, v1.UpdateDeploymentRuntimeResponse](
 			httpClient,
 			baseURL+SchemaServiceUpdateDeploymentRuntimeProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("UpdateDeploymentRuntime")),
+			connect.WithClientOptions(opts...),
 		),
 		getDeployments: connect.NewClient[v1.GetDeploymentsRequest, v1.GetDeploymentsResponse](
 			httpClient,
 			baseURL+SchemaServiceGetDeploymentsProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("GetDeployments")),
+			connect.WithClientOptions(opts...),
 		),
 		createChangeset: connect.NewClient[v1.CreateChangesetRequest, v1.CreateChangesetResponse](
 			httpClient,
 			baseURL+SchemaServiceCreateChangesetProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("CreateChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		prepareChangeset: connect.NewClient[v1.PrepareChangesetRequest, v1.PrepareChangesetResponse](
 			httpClient,
 			baseURL+SchemaServicePrepareChangesetProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("PrepareChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		commitChangeset: connect.NewClient[v1.CommitChangesetRequest, v1.CommitChangesetResponse](
 			httpClient,
 			baseURL+SchemaServiceCommitChangesetProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("CommitChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		drainChangeset: connect.NewClient[v1.DrainChangesetRequest, v1.DrainChangesetResponse](
 			httpClient,
 			baseURL+SchemaServiceDrainChangesetProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("DrainChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		finalizeChangeset: connect.NewClient[v1.FinalizeChangesetRequest, v1.FinalizeChangesetResponse](
 			httpClient,
 			baseURL+SchemaServiceFinalizeChangesetProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("FinalizeChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		rollbackChangeset: connect.NewClient[v1.RollbackChangesetRequest, v1.RollbackChangesetResponse](
 			httpClient,
 			baseURL+SchemaServiceRollbackChangesetProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("RollbackChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		failChangeset: connect.NewClient[v1.FailChangesetRequest, v1.FailChangesetResponse](
 			httpClient,
 			baseURL+SchemaServiceFailChangesetProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("FailChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		getDeployment: connect.NewClient[v1.GetDeploymentRequest, v1.GetDeploymentResponse](
 			httpClient,
 			baseURL+SchemaServiceGetDeploymentProcedure,
-			opts...,
+			connect.WithSchema(schemaServiceMethods.ByName("GetDeployment")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -303,73 +317,87 @@ type SchemaServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewSchemaServiceHandler(svc SchemaServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	schemaServiceMethods := v1.File_xyz_block_ftl_v1_schemaservice_proto.Services().ByName("SchemaService").Methods()
 	schemaServicePingHandler := connect.NewUnaryHandler(
 		SchemaServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(schemaServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceGetSchemaHandler := connect.NewUnaryHandler(
 		SchemaServiceGetSchemaProcedure,
 		svc.GetSchema,
+		connect.WithSchema(schemaServiceMethods.ByName("GetSchema")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	schemaServicePullSchemaHandler := connect.NewServerStreamHandler(
 		SchemaServicePullSchemaProcedure,
 		svc.PullSchema,
+		connect.WithSchema(schemaServiceMethods.ByName("PullSchema")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceUpdateDeploymentRuntimeHandler := connect.NewUnaryHandler(
 		SchemaServiceUpdateDeploymentRuntimeProcedure,
 		svc.UpdateDeploymentRuntime,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("UpdateDeploymentRuntime")),
+		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceGetDeploymentsHandler := connect.NewUnaryHandler(
 		SchemaServiceGetDeploymentsProcedure,
 		svc.GetDeployments,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("GetDeployments")),
+		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceCreateChangesetHandler := connect.NewUnaryHandler(
 		SchemaServiceCreateChangesetProcedure,
 		svc.CreateChangeset,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("CreateChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	schemaServicePrepareChangesetHandler := connect.NewUnaryHandler(
 		SchemaServicePrepareChangesetProcedure,
 		svc.PrepareChangeset,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("PrepareChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceCommitChangesetHandler := connect.NewUnaryHandler(
 		SchemaServiceCommitChangesetProcedure,
 		svc.CommitChangeset,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("CommitChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceDrainChangesetHandler := connect.NewUnaryHandler(
 		SchemaServiceDrainChangesetProcedure,
 		svc.DrainChangeset,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("DrainChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceFinalizeChangesetHandler := connect.NewUnaryHandler(
 		SchemaServiceFinalizeChangesetProcedure,
 		svc.FinalizeChangeset,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("FinalizeChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceRollbackChangesetHandler := connect.NewUnaryHandler(
 		SchemaServiceRollbackChangesetProcedure,
 		svc.RollbackChangeset,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("RollbackChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceFailChangesetHandler := connect.NewUnaryHandler(
 		SchemaServiceFailChangesetProcedure,
 		svc.FailChangeset,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("FailChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	schemaServiceGetDeploymentHandler := connect.NewUnaryHandler(
 		SchemaServiceGetDeploymentProcedure,
 		svc.GetDeployment,
-		opts...,
+		connect.WithSchema(schemaServiceMethods.ByName("GetDeployment")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.v1.SchemaService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

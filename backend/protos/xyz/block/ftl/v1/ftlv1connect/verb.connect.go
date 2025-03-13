@@ -18,7 +18,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// VerbServiceName is the fully-qualified name of the VerbService service.
@@ -56,17 +56,20 @@ type VerbServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewVerbServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) VerbServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	verbServiceMethods := v1.File_xyz_block_ftl_v1_verb_proto.Services().ByName("VerbService").Methods()
 	return &verbServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+VerbServicePingProcedure,
+			connect.WithSchema(verbServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		call: connect.NewClient[v1.CallRequest, v1.CallResponse](
 			httpClient,
 			baseURL+VerbServiceCallProcedure,
-			opts...,
+			connect.WithSchema(verbServiceMethods.ByName("Call")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -101,16 +104,19 @@ type VerbServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewVerbServiceHandler(svc VerbServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	verbServiceMethods := v1.File_xyz_block_ftl_v1_verb_proto.Services().ByName("VerbService").Methods()
 	verbServicePingHandler := connect.NewUnaryHandler(
 		VerbServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(verbServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	verbServiceCallHandler := connect.NewUnaryHandler(
 		VerbServiceCallProcedure,
 		svc.Call,
-		opts...,
+		connect.WithSchema(verbServiceMethods.ByName("Call")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.v1.VerbService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

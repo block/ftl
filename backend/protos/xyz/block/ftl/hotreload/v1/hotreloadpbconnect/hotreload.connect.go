@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// HotReloadServiceName is the fully-qualified name of the HotReloadService service.
@@ -67,27 +67,32 @@ type HotReloadServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewHotReloadServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) HotReloadServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	hotReloadServiceMethods := v11.File_xyz_block_ftl_hotreload_v1_hotreload_proto.Services().ByName("HotReloadService").Methods()
 	return &hotReloadServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+HotReloadServicePingProcedure,
+			connect.WithSchema(hotReloadServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		reload: connect.NewClient[v11.ReloadRequest, v11.ReloadResponse](
 			httpClient,
 			baseURL+HotReloadServiceReloadProcedure,
-			opts...,
+			connect.WithSchema(hotReloadServiceMethods.ByName("Reload")),
+			connect.WithClientOptions(opts...),
 		),
 		watch: connect.NewClient[v11.WatchRequest, v11.WatchResponse](
 			httpClient,
 			baseURL+HotReloadServiceWatchProcedure,
-			opts...,
+			connect.WithSchema(hotReloadServiceMethods.ByName("Watch")),
+			connect.WithClientOptions(opts...),
 		),
 		runnerInfo: connect.NewClient[v11.RunnerInfoRequest, v11.RunnerInfoResponse](
 			httpClient,
 			baseURL+HotReloadServiceRunnerInfoProcedure,
-			opts...,
+			connect.WithSchema(hotReloadServiceMethods.ByName("RunnerInfo")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -140,26 +145,31 @@ type HotReloadServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewHotReloadServiceHandler(svc HotReloadServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	hotReloadServiceMethods := v11.File_xyz_block_ftl_hotreload_v1_hotreload_proto.Services().ByName("HotReloadService").Methods()
 	hotReloadServicePingHandler := connect.NewUnaryHandler(
 		HotReloadServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(hotReloadServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	hotReloadServiceReloadHandler := connect.NewUnaryHandler(
 		HotReloadServiceReloadProcedure,
 		svc.Reload,
-		opts...,
+		connect.WithSchema(hotReloadServiceMethods.ByName("Reload")),
+		connect.WithHandlerOptions(opts...),
 	)
 	hotReloadServiceWatchHandler := connect.NewServerStreamHandler(
 		HotReloadServiceWatchProcedure,
 		svc.Watch,
-		opts...,
+		connect.WithSchema(hotReloadServiceMethods.ByName("Watch")),
+		connect.WithHandlerOptions(opts...),
 	)
 	hotReloadServiceRunnerInfoHandler := connect.NewUnaryHandler(
 		HotReloadServiceRunnerInfoProcedure,
 		svc.RunnerInfo,
-		opts...,
+		connect.WithSchema(hotReloadServiceMethods.ByName("RunnerInfo")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.hotreload.v1.HotReloadService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

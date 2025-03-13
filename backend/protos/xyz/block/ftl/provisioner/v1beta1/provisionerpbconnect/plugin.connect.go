@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion0_1_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ProvisionerPluginServiceName is the fully-qualified name of the ProvisionerPluginService service.
@@ -63,21 +63,25 @@ type ProvisionerPluginServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewProvisionerPluginServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ProvisionerPluginServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	provisionerPluginServiceMethods := v1beta1.File_xyz_block_ftl_provisioner_v1beta1_plugin_proto.Services().ByName("ProvisionerPluginService").Methods()
 	return &provisionerPluginServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+ProvisionerPluginServicePingProcedure,
-			opts...,
+			connect.WithSchema(provisionerPluginServiceMethods.ByName("Ping")),
+			connect.WithClientOptions(opts...),
 		),
 		provision: connect.NewClient[v1beta1.ProvisionRequest, v1beta1.ProvisionResponse](
 			httpClient,
 			baseURL+ProvisionerPluginServiceProvisionProcedure,
-			opts...,
+			connect.WithSchema(provisionerPluginServiceMethods.ByName("Provision")),
+			connect.WithClientOptions(opts...),
 		),
 		status: connect.NewClient[v1beta1.StatusRequest, v1beta1.StatusResponse](
 			httpClient,
 			baseURL+ProvisionerPluginServiceStatusProcedure,
-			opts...,
+			connect.WithSchema(provisionerPluginServiceMethods.ByName("Status")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -118,20 +122,24 @@ type ProvisionerPluginServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewProvisionerPluginServiceHandler(svc ProvisionerPluginServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	provisionerPluginServiceMethods := v1beta1.File_xyz_block_ftl_provisioner_v1beta1_plugin_proto.Services().ByName("ProvisionerPluginService").Methods()
 	provisionerPluginServicePingHandler := connect.NewUnaryHandler(
 		ProvisionerPluginServicePingProcedure,
 		svc.Ping,
-		opts...,
+		connect.WithSchema(provisionerPluginServiceMethods.ByName("Ping")),
+		connect.WithHandlerOptions(opts...),
 	)
 	provisionerPluginServiceProvisionHandler := connect.NewUnaryHandler(
 		ProvisionerPluginServiceProvisionProcedure,
 		svc.Provision,
-		opts...,
+		connect.WithSchema(provisionerPluginServiceMethods.ByName("Provision")),
+		connect.WithHandlerOptions(opts...),
 	)
 	provisionerPluginServiceStatusHandler := connect.NewUnaryHandler(
 		ProvisionerPluginServiceStatusProcedure,
 		svc.Status,
-		opts...,
+		connect.WithSchema(provisionerPluginServiceMethods.ByName("Status")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.provisioner.v1beta1.ProvisionerPluginService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

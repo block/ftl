@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// LeaseServiceName is the fully-qualified name of the LeaseService service.
@@ -60,17 +60,20 @@ type LeaseServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewLeaseServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) LeaseServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	leaseServiceMethods := v11.File_xyz_block_ftl_lease_v1_lease_proto.Services().ByName("LeaseService").Methods()
 	return &leaseServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+LeaseServicePingProcedure,
+			connect.WithSchema(leaseServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		acquireLease: connect.NewClient[v11.AcquireLeaseRequest, v11.AcquireLeaseResponse](
 			httpClient,
 			baseURL+LeaseServiceAcquireLeaseProcedure,
-			opts...,
+			connect.WithSchema(leaseServiceMethods.ByName("AcquireLease")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -107,16 +110,19 @@ type LeaseServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewLeaseServiceHandler(svc LeaseServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	leaseServiceMethods := v11.File_xyz_block_ftl_lease_v1_lease_proto.Services().ByName("LeaseService").Methods()
 	leaseServicePingHandler := connect.NewUnaryHandler(
 		LeaseServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(leaseServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	leaseServiceAcquireLeaseHandler := connect.NewBidiStreamHandler(
 		LeaseServiceAcquireLeaseProcedure,
 		svc.AcquireLease,
-		opts...,
+		connect.WithSchema(leaseServiceMethods.ByName("AcquireLease")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.lease.v1.LeaseService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

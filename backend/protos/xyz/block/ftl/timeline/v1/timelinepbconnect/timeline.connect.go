@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// TimelineServiceName is the fully-qualified name of the TimelineService service.
@@ -72,33 +72,39 @@ type TimelineServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewTimelineServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TimelineServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	timelineServiceMethods := v11.File_xyz_block_ftl_timeline_v1_timeline_proto.Services().ByName("TimelineService").Methods()
 	return &timelineServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+TimelineServicePingProcedure,
+			connect.WithSchema(timelineServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getTimeline: connect.NewClient[v11.GetTimelineRequest, v11.GetTimelineResponse](
 			httpClient,
 			baseURL+TimelineServiceGetTimelineProcedure,
+			connect.WithSchema(timelineServiceMethods.ByName("GetTimeline")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		streamTimeline: connect.NewClient[v11.StreamTimelineRequest, v11.StreamTimelineResponse](
 			httpClient,
 			baseURL+TimelineServiceStreamTimelineProcedure,
-			opts...,
+			connect.WithSchema(timelineServiceMethods.ByName("StreamTimeline")),
+			connect.WithClientOptions(opts...),
 		),
 		createEvents: connect.NewClient[v11.CreateEventsRequest, v11.CreateEventsResponse](
 			httpClient,
 			baseURL+TimelineServiceCreateEventsProcedure,
-			opts...,
+			connect.WithSchema(timelineServiceMethods.ByName("CreateEvents")),
+			connect.WithClientOptions(opts...),
 		),
 		deleteOldEvents: connect.NewClient[v11.DeleteOldEventsRequest, v11.DeleteOldEventsResponse](
 			httpClient,
 			baseURL+TimelineServiceDeleteOldEventsProcedure,
-			opts...,
+			connect.WithSchema(timelineServiceMethods.ByName("DeleteOldEvents")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -157,32 +163,38 @@ type TimelineServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewTimelineServiceHandler(svc TimelineServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	timelineServiceMethods := v11.File_xyz_block_ftl_timeline_v1_timeline_proto.Services().ByName("TimelineService").Methods()
 	timelineServicePingHandler := connect.NewUnaryHandler(
 		TimelineServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(timelineServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	timelineServiceGetTimelineHandler := connect.NewUnaryHandler(
 		TimelineServiceGetTimelineProcedure,
 		svc.GetTimeline,
+		connect.WithSchema(timelineServiceMethods.ByName("GetTimeline")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	timelineServiceStreamTimelineHandler := connect.NewServerStreamHandler(
 		TimelineServiceStreamTimelineProcedure,
 		svc.StreamTimeline,
-		opts...,
+		connect.WithSchema(timelineServiceMethods.ByName("StreamTimeline")),
+		connect.WithHandlerOptions(opts...),
 	)
 	timelineServiceCreateEventsHandler := connect.NewUnaryHandler(
 		TimelineServiceCreateEventsProcedure,
 		svc.CreateEvents,
-		opts...,
+		connect.WithSchema(timelineServiceMethods.ByName("CreateEvents")),
+		connect.WithHandlerOptions(opts...),
 	)
 	timelineServiceDeleteOldEventsHandler := connect.NewUnaryHandler(
 		TimelineServiceDeleteOldEventsProcedure,
 		svc.DeleteOldEvents,
-		opts...,
+		connect.WithSchema(timelineServiceMethods.ByName("DeleteOldEvents")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.timeline.v1.TimelineService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
