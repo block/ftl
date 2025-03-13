@@ -2,7 +2,7 @@ module ftl/relay
 
 go 1.24.0
 
-require github.com/block/ftl v0.459.0
+require github.com/block/ftl v0.465.0
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect

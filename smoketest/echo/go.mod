@@ -4,11 +4,11 @@ go 1.24.0
 
 replace github.com/block/ftl => ../..
 
-require github.com/block/ftl v0.459.0
+require github.com/block/ftl v0.465.0
 
 require (
 	github.com/alecthomas/participle/v2 v2.1.1 // indirect
-	github.com/alecthomas/types v0.18.0 // indirect
+	github.com/alecthomas/types v0.19.0 // indirect
 	github.com/deckarep/golang-set/v2 v2.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/cronexpr v1.1.2 // indirect
