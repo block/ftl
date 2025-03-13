@@ -42,6 +42,8 @@ spec:
           env:
             - name: FTL_WORKING_DIR
               value: "/working"
+            - name: TMPDIR
+              value: "/working"
             - name: FTL_CONTROLLER_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-controller:{{ .Values.controller.port }}"
             - name: FTL_TIMELINE_ENDPOINT
