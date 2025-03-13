@@ -425,6 +425,9 @@ func (c *DeployCoordinator) runChangeLogger(ctx context.Context, key key.Changes
 			},
 		},
 	}))
+	if errors.Is(err, context.Canceled) {
+		return
+	}
 	if err != nil {
 		logger.Errorf(err, "failed to stream changeset logs")
 		return
