@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// PubSubAdminServiceName is the fully-qualified name of the PubSubAdminService service.
@@ -59,17 +59,20 @@ type PubSubAdminServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewPubSubAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PubSubAdminServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	pubSubAdminServiceMethods := v11.File_xyz_block_ftl_pubsub_v1_admin_proto.Services().ByName("PubSubAdminService").Methods()
 	return &pubSubAdminServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+PubSubAdminServicePingProcedure,
+			connect.WithSchema(pubSubAdminServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		resetOffsetsOfSubscription: connect.NewClient[v11.ResetOffsetsOfSubscriptionRequest, v11.ResetOffsetsOfSubscriptionResponse](
 			httpClient,
 			baseURL+PubSubAdminServiceResetOffsetsOfSubscriptionProcedure,
-			opts...,
+			connect.WithSchema(pubSubAdminServiceMethods.ByName("ResetOffsetsOfSubscription")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -107,16 +110,19 @@ type PubSubAdminServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewPubSubAdminServiceHandler(svc PubSubAdminServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	pubSubAdminServiceMethods := v11.File_xyz_block_ftl_pubsub_v1_admin_proto.Services().ByName("PubSubAdminService").Methods()
 	pubSubAdminServicePingHandler := connect.NewUnaryHandler(
 		PubSubAdminServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(pubSubAdminServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	pubSubAdminServiceResetOffsetsOfSubscriptionHandler := connect.NewUnaryHandler(
 		PubSubAdminServiceResetOffsetsOfSubscriptionProcedure,
 		svc.ResetOffsetsOfSubscription,
-		opts...,
+		connect.WithSchema(pubSubAdminServiceMethods.ByName("ResetOffsetsOfSubscription")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.pubsub.v1.PubSubAdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

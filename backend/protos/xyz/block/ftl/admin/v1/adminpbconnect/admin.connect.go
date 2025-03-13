@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// AdminServiceName is the fully-qualified name of the AdminService service.
@@ -161,124 +161,148 @@ type AdminServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) AdminServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	adminServiceMethods := v11.File_xyz_block_ftl_admin_v1_admin_proto.Services().ByName("AdminService").Methods()
 	return &adminServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+AdminServicePingProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		configList: connect.NewClient[v11.ConfigListRequest, v11.ConfigListResponse](
 			httpClient,
 			baseURL+AdminServiceConfigListProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("ConfigList")),
+			connect.WithClientOptions(opts...),
 		),
 		configGet: connect.NewClient[v11.ConfigGetRequest, v11.ConfigGetResponse](
 			httpClient,
 			baseURL+AdminServiceConfigGetProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("ConfigGet")),
+			connect.WithClientOptions(opts...),
 		),
 		configSet: connect.NewClient[v11.ConfigSetRequest, v11.ConfigSetResponse](
 			httpClient,
 			baseURL+AdminServiceConfigSetProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("ConfigSet")),
+			connect.WithClientOptions(opts...),
 		),
 		configUnset: connect.NewClient[v11.ConfigUnsetRequest, v11.ConfigUnsetResponse](
 			httpClient,
 			baseURL+AdminServiceConfigUnsetProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("ConfigUnset")),
+			connect.WithClientOptions(opts...),
 		),
 		secretsList: connect.NewClient[v11.SecretsListRequest, v11.SecretsListResponse](
 			httpClient,
 			baseURL+AdminServiceSecretsListProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("SecretsList")),
+			connect.WithClientOptions(opts...),
 		),
 		secretGet: connect.NewClient[v11.SecretGetRequest, v11.SecretGetResponse](
 			httpClient,
 			baseURL+AdminServiceSecretGetProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("SecretGet")),
+			connect.WithClientOptions(opts...),
 		),
 		secretSet: connect.NewClient[v11.SecretSetRequest, v11.SecretSetResponse](
 			httpClient,
 			baseURL+AdminServiceSecretSetProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("SecretSet")),
+			connect.WithClientOptions(opts...),
 		),
 		secretUnset: connect.NewClient[v11.SecretUnsetRequest, v11.SecretUnsetResponse](
 			httpClient,
 			baseURL+AdminServiceSecretUnsetProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("SecretUnset")),
+			connect.WithClientOptions(opts...),
 		),
 		mapConfigsForModule: connect.NewClient[v11.MapConfigsForModuleRequest, v11.MapConfigsForModuleResponse](
 			httpClient,
 			baseURL+AdminServiceMapConfigsForModuleProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("MapConfigsForModule")),
+			connect.WithClientOptions(opts...),
 		),
 		mapSecretsForModule: connect.NewClient[v11.MapSecretsForModuleRequest, v11.MapSecretsForModuleResponse](
 			httpClient,
 			baseURL+AdminServiceMapSecretsForModuleProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("MapSecretsForModule")),
+			connect.WithClientOptions(opts...),
 		),
 		resetSubscription: connect.NewClient[v11.ResetSubscriptionRequest, v11.ResetSubscriptionResponse](
 			httpClient,
 			baseURL+AdminServiceResetSubscriptionProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("ResetSubscription")),
+			connect.WithClientOptions(opts...),
 		),
 		applyChangeset: connect.NewClient[v11.ApplyChangesetRequest, v11.ApplyChangesetResponse](
 			httpClient,
 			baseURL+AdminServiceApplyChangesetProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("ApplyChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		updateDeploymentRuntime: connect.NewClient[v11.UpdateDeploymentRuntimeRequest, v11.UpdateDeploymentRuntimeResponse](
 			httpClient,
 			baseURL+AdminServiceUpdateDeploymentRuntimeProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("UpdateDeploymentRuntime")),
+			connect.WithClientOptions(opts...),
 		),
 		getSchema: connect.NewClient[v1.GetSchemaRequest, v1.GetSchemaResponse](
 			httpClient,
 			baseURL+AdminServiceGetSchemaProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetSchema")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		pullSchema: connect.NewClient[v1.PullSchemaRequest, v1.PullSchemaResponse](
 			httpClient,
 			baseURL+AdminServicePullSchemaProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("PullSchema")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		rollbackChangeset: connect.NewClient[v1.RollbackChangesetRequest, v1.RollbackChangesetResponse](
 			httpClient,
 			baseURL+AdminServiceRollbackChangesetProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("RollbackChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		failChangeset: connect.NewClient[v1.FailChangesetRequest, v1.FailChangesetResponse](
 			httpClient,
 			baseURL+AdminServiceFailChangesetProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("FailChangeset")),
+			connect.WithClientOptions(opts...),
 		),
 		clusterInfo: connect.NewClient[v11.ClusterInfoRequest, v11.ClusterInfoResponse](
 			httpClient,
 			baseURL+AdminServiceClusterInfoProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("ClusterInfo")),
+			connect.WithClientOptions(opts...),
 		),
 		getArtefactDiffs: connect.NewClient[v11.GetArtefactDiffsRequest, v11.GetArtefactDiffsResponse](
 			httpClient,
 			baseURL+AdminServiceGetArtefactDiffsProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("GetArtefactDiffs")),
+			connect.WithClientOptions(opts...),
 		),
 		getDeploymentArtefacts: connect.NewClient[v11.GetDeploymentArtefactsRequest, v11.GetDeploymentArtefactsResponse](
 			httpClient,
 			baseURL+AdminServiceGetDeploymentArtefactsProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("GetDeploymentArtefacts")),
+			connect.WithClientOptions(opts...),
 		),
 		uploadArtefact: connect.NewClient[v11.UploadArtefactRequest, v11.UploadArtefactResponse](
 			httpClient,
 			baseURL+AdminServiceUploadArtefactProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("UploadArtefact")),
+			connect.WithClientOptions(opts...),
 		),
 		streamLogs: connect.NewClient[v11.StreamLogsRequest, v11.StreamLogsResponse](
 			httpClient,
 			baseURL+AdminServiceStreamLogsProcedure,
-			opts...,
+			connect.WithSchema(adminServiceMethods.ByName("StreamLogs")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -487,123 +511,147 @@ type AdminServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	adminServiceMethods := v11.File_xyz_block_ftl_admin_v1_admin_proto.Services().ByName("AdminService").Methods()
 	adminServicePingHandler := connect.NewUnaryHandler(
 		AdminServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(adminServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceConfigListHandler := connect.NewUnaryHandler(
 		AdminServiceConfigListProcedure,
 		svc.ConfigList,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("ConfigList")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceConfigGetHandler := connect.NewUnaryHandler(
 		AdminServiceConfigGetProcedure,
 		svc.ConfigGet,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("ConfigGet")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceConfigSetHandler := connect.NewUnaryHandler(
 		AdminServiceConfigSetProcedure,
 		svc.ConfigSet,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("ConfigSet")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceConfigUnsetHandler := connect.NewUnaryHandler(
 		AdminServiceConfigUnsetProcedure,
 		svc.ConfigUnset,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("ConfigUnset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceSecretsListHandler := connect.NewUnaryHandler(
 		AdminServiceSecretsListProcedure,
 		svc.SecretsList,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("SecretsList")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceSecretGetHandler := connect.NewUnaryHandler(
 		AdminServiceSecretGetProcedure,
 		svc.SecretGet,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("SecretGet")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceSecretSetHandler := connect.NewUnaryHandler(
 		AdminServiceSecretSetProcedure,
 		svc.SecretSet,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("SecretSet")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceSecretUnsetHandler := connect.NewUnaryHandler(
 		AdminServiceSecretUnsetProcedure,
 		svc.SecretUnset,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("SecretUnset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceMapConfigsForModuleHandler := connect.NewUnaryHandler(
 		AdminServiceMapConfigsForModuleProcedure,
 		svc.MapConfigsForModule,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("MapConfigsForModule")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceMapSecretsForModuleHandler := connect.NewUnaryHandler(
 		AdminServiceMapSecretsForModuleProcedure,
 		svc.MapSecretsForModule,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("MapSecretsForModule")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceResetSubscriptionHandler := connect.NewUnaryHandler(
 		AdminServiceResetSubscriptionProcedure,
 		svc.ResetSubscription,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("ResetSubscription")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceApplyChangesetHandler := connect.NewServerStreamHandler(
 		AdminServiceApplyChangesetProcedure,
 		svc.ApplyChangeset,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("ApplyChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceUpdateDeploymentRuntimeHandler := connect.NewUnaryHandler(
 		AdminServiceUpdateDeploymentRuntimeProcedure,
 		svc.UpdateDeploymentRuntime,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("UpdateDeploymentRuntime")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceGetSchemaHandler := connect.NewUnaryHandler(
 		AdminServiceGetSchemaProcedure,
 		svc.GetSchema,
+		connect.WithSchema(adminServiceMethods.ByName("GetSchema")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	adminServicePullSchemaHandler := connect.NewServerStreamHandler(
 		AdminServicePullSchemaProcedure,
 		svc.PullSchema,
+		connect.WithSchema(adminServiceMethods.ByName("PullSchema")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceRollbackChangesetHandler := connect.NewUnaryHandler(
 		AdminServiceRollbackChangesetProcedure,
 		svc.RollbackChangeset,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("RollbackChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceFailChangesetHandler := connect.NewUnaryHandler(
 		AdminServiceFailChangesetProcedure,
 		svc.FailChangeset,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("FailChangeset")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceClusterInfoHandler := connect.NewUnaryHandler(
 		AdminServiceClusterInfoProcedure,
 		svc.ClusterInfo,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("ClusterInfo")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceGetArtefactDiffsHandler := connect.NewUnaryHandler(
 		AdminServiceGetArtefactDiffsProcedure,
 		svc.GetArtefactDiffs,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("GetArtefactDiffs")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceGetDeploymentArtefactsHandler := connect.NewServerStreamHandler(
 		AdminServiceGetDeploymentArtefactsProcedure,
 		svc.GetDeploymentArtefacts,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("GetDeploymentArtefacts")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceUploadArtefactHandler := connect.NewClientStreamHandler(
 		AdminServiceUploadArtefactProcedure,
 		svc.UploadArtefact,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("UploadArtefact")),
+		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceStreamLogsHandler := connect.NewServerStreamHandler(
 		AdminServiceStreamLogsProcedure,
 		svc.StreamLogs,
-		opts...,
+		connect.WithSchema(adminServiceMethods.ByName("StreamLogs")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.admin.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

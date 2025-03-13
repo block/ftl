@@ -19,7 +19,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_7_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// LanguageServiceName is the fully-qualified name of the LanguageService service.
@@ -120,52 +120,62 @@ type LanguageServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewLanguageServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) LanguageServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	languageServiceMethods := v11.File_xyz_block_ftl_language_v1_language_proto.Services().ByName("LanguageService").Methods()
 	return &languageServiceClient{
 		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
 			httpClient,
 			baseURL+LanguageServicePingProcedure,
+			connect.WithSchema(languageServiceMethods.ByName("Ping")),
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getCreateModuleFlags: connect.NewClient[v11.GetCreateModuleFlagsRequest, v11.GetCreateModuleFlagsResponse](
 			httpClient,
 			baseURL+LanguageServiceGetCreateModuleFlagsProcedure,
-			opts...,
+			connect.WithSchema(languageServiceMethods.ByName("GetCreateModuleFlags")),
+			connect.WithClientOptions(opts...),
 		),
 		createModule: connect.NewClient[v11.CreateModuleRequest, v11.CreateModuleResponse](
 			httpClient,
 			baseURL+LanguageServiceCreateModuleProcedure,
-			opts...,
+			connect.WithSchema(languageServiceMethods.ByName("CreateModule")),
+			connect.WithClientOptions(opts...),
 		),
 		moduleConfigDefaults: connect.NewClient[v11.ModuleConfigDefaultsRequest, v11.ModuleConfigDefaultsResponse](
 			httpClient,
 			baseURL+LanguageServiceModuleConfigDefaultsProcedure,
-			opts...,
+			connect.WithSchema(languageServiceMethods.ByName("ModuleConfigDefaults")),
+			connect.WithClientOptions(opts...),
 		),
 		getDependencies: connect.NewClient[v11.GetDependenciesRequest, v11.GetDependenciesResponse](
 			httpClient,
 			baseURL+LanguageServiceGetDependenciesProcedure,
-			opts...,
+			connect.WithSchema(languageServiceMethods.ByName("GetDependencies")),
+			connect.WithClientOptions(opts...),
 		),
 		build: connect.NewClient[v11.BuildRequest, v11.BuildResponse](
 			httpClient,
 			baseURL+LanguageServiceBuildProcedure,
-			opts...,
+			connect.WithSchema(languageServiceMethods.ByName("Build")),
+			connect.WithClientOptions(opts...),
 		),
 		buildContextUpdated: connect.NewClient[v11.BuildContextUpdatedRequest, v11.BuildContextUpdatedResponse](
 			httpClient,
 			baseURL+LanguageServiceBuildContextUpdatedProcedure,
-			opts...,
+			connect.WithSchema(languageServiceMethods.ByName("BuildContextUpdated")),
+			connect.WithClientOptions(opts...),
 		),
 		generateStubs: connect.NewClient[v11.GenerateStubsRequest, v11.GenerateStubsResponse](
 			httpClient,
 			baseURL+LanguageServiceGenerateStubsProcedure,
-			opts...,
+			connect.WithSchema(languageServiceMethods.ByName("GenerateStubs")),
+			connect.WithClientOptions(opts...),
 		),
 		syncStubReferences: connect.NewClient[v11.SyncStubReferencesRequest, v11.SyncStubReferencesResponse](
 			httpClient,
 			baseURL+LanguageServiceSyncStubReferencesProcedure,
-			opts...,
+			connect.WithSchema(languageServiceMethods.ByName("SyncStubReferences")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -285,51 +295,61 @@ type LanguageServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewLanguageServiceHandler(svc LanguageServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	languageServiceMethods := v11.File_xyz_block_ftl_language_v1_language_proto.Services().ByName("LanguageService").Methods()
 	languageServicePingHandler := connect.NewUnaryHandler(
 		LanguageServicePingProcedure,
 		svc.Ping,
+		connect.WithSchema(languageServiceMethods.ByName("Ping")),
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	languageServiceGetCreateModuleFlagsHandler := connect.NewUnaryHandler(
 		LanguageServiceGetCreateModuleFlagsProcedure,
 		svc.GetCreateModuleFlags,
-		opts...,
+		connect.WithSchema(languageServiceMethods.ByName("GetCreateModuleFlags")),
+		connect.WithHandlerOptions(opts...),
 	)
 	languageServiceCreateModuleHandler := connect.NewUnaryHandler(
 		LanguageServiceCreateModuleProcedure,
 		svc.CreateModule,
-		opts...,
+		connect.WithSchema(languageServiceMethods.ByName("CreateModule")),
+		connect.WithHandlerOptions(opts...),
 	)
 	languageServiceModuleConfigDefaultsHandler := connect.NewUnaryHandler(
 		LanguageServiceModuleConfigDefaultsProcedure,
 		svc.ModuleConfigDefaults,
-		opts...,
+		connect.WithSchema(languageServiceMethods.ByName("ModuleConfigDefaults")),
+		connect.WithHandlerOptions(opts...),
 	)
 	languageServiceGetDependenciesHandler := connect.NewUnaryHandler(
 		LanguageServiceGetDependenciesProcedure,
 		svc.GetDependencies,
-		opts...,
+		connect.WithSchema(languageServiceMethods.ByName("GetDependencies")),
+		connect.WithHandlerOptions(opts...),
 	)
 	languageServiceBuildHandler := connect.NewServerStreamHandler(
 		LanguageServiceBuildProcedure,
 		svc.Build,
-		opts...,
+		connect.WithSchema(languageServiceMethods.ByName("Build")),
+		connect.WithHandlerOptions(opts...),
 	)
 	languageServiceBuildContextUpdatedHandler := connect.NewUnaryHandler(
 		LanguageServiceBuildContextUpdatedProcedure,
 		svc.BuildContextUpdated,
-		opts...,
+		connect.WithSchema(languageServiceMethods.ByName("BuildContextUpdated")),
+		connect.WithHandlerOptions(opts...),
 	)
 	languageServiceGenerateStubsHandler := connect.NewUnaryHandler(
 		LanguageServiceGenerateStubsProcedure,
 		svc.GenerateStubs,
-		opts...,
+		connect.WithSchema(languageServiceMethods.ByName("GenerateStubs")),
+		connect.WithHandlerOptions(opts...),
 	)
 	languageServiceSyncStubReferencesHandler := connect.NewUnaryHandler(
 		LanguageServiceSyncStubReferencesProcedure,
 		svc.SyncStubReferences,
-		opts...,
+		connect.WithSchema(languageServiceMethods.ByName("SyncStubReferences")),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/xyz.block.ftl.language.v1.LanguageService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
