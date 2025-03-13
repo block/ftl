@@ -126,7 +126,7 @@ func HandleConnection(ctx context.Context, conn net.Conn, connectionFn DSNConstr
 		}
 		return
 	}
-	logger.Infof("terminating connection to %s", conn.RemoteAddr())
+	logger.Debugf("terminating connection to %s", conn.RemoteAddr())
 }
 
 func handleBackendError(ctx context.Context, backend *pgproto3.Backend, err error) {
