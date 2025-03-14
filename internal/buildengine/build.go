@@ -80,7 +80,7 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 
 	err = handleGitCommit(ctx, c.Abs().Dir, result.Schema)
 	if err != nil {
-		logger.Errorf(err, "Failed to save current git commit to schema")
+		logger.Debugf("Failed to save current git commit to schema: %s", err.Error())
 	}
 
 	if endpoint, ok := result.DevEndpoint.Get(); ok {
