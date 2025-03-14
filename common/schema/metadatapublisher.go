@@ -14,6 +14,7 @@ type MetadataPublisher struct {
 
 var _ Metadata = (*MetadataPublisher)(nil)
 
+func (m *MetadataPublisher) Append(topic *Ref)  { m.Topics = append(m.Topics, topic) }
 func (m *MetadataPublisher) Position() Position { return m.Pos }
 func (m *MetadataPublisher) String() string {
 	out := &strings.Builder{}

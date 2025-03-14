@@ -14,6 +14,7 @@ type MetadataDatabases struct {
 
 var _ Metadata = (*MetadataDatabases)(nil)
 
+func (m *MetadataDatabases) Append(call *Ref)   { m.Calls = append(m.Calls, call) }
 func (m *MetadataDatabases) Position() Position { return m.Pos }
 func (m *MetadataDatabases) String() string {
 	out := &strings.Builder{}

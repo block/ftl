@@ -16,6 +16,7 @@ type MetadataCalls struct {
 
 var _ Metadata = (*MetadataCalls)(nil)
 
+func (m *MetadataCalls) Append(ref *Ref)    { m.Calls = append(m.Calls, ref) }
 func (m *MetadataCalls) Position() Position { return m.Pos }
 func (m *MetadataCalls) String() string {
 	out := &strings.Builder{}
