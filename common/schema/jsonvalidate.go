@@ -418,8 +418,8 @@ func TransformToAliasedFields(ref *Ref, sch *Schema, request map[string]any) (ma
 
 // ValidateJSONCall validates a given JSON request against the provided schema when calling a verb.
 func ValidateJSONCall(jsonBytes []byte, verbRef *Ref, sch *Schema) error {
-	var requestMap map[string]any
-	err := json.Unmarshal(jsonBytes, &requestMap)
+	var request any
+	err := json.Unmarshal(jsonBytes, &request)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal request body: %w", err)
 	}
@@ -433,8 +433,8 @@ func ValidateJSONCall(jsonBytes []byte, verbRef *Ref, sch *Schema) error {
 		return fmt.Errorf("%s is not a verb", verbRef.String())
 	}
 
-	if err := ValidateJSONValue(verb.Request, nil, requestMap, sch); err != nil {
-		return fmt.Errorf("failed to validate request: %w", err)
+	if err := ValidateJSONValue(verb.Request, nil, request, sch); err != nil {
+		return err
 	}
 	return nil
 }

@@ -601,7 +601,7 @@ func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 	}
 
 	if err := schema.ValidateJSONCall(req.Msg.Body, ref, s.source.CanonicalView()); err != nil {
-		return nil, fmt.Errorf("failed to validate request: %w", err)
+		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
 	call, err := s.routeTable.Call(ctx, headers.CopyRequestForForwarding(req))

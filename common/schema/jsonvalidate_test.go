@@ -191,7 +191,7 @@ module echo {
 			name:    "invalid input",
 			ref:     &Ref{Module: "echo", Name: "echo"},
 			input:   `{"name": "juho", "age": 123, "weight": "too much"}`,
-			wantErr: "failed to validate request: weight has wrong type, expected Float found string",
+			wantErr: "weight has wrong type, expected Float found string",
 		},
 	}
 
