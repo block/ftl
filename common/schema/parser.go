@@ -84,7 +84,6 @@ func (p Position) ToErrorPos() builderrors.Position {
 func (p Position) ToErrorPosWithEnd(endColumn int) builderrors.Position {
 	return builderrors.Position{
 		Filename:    p.Filename,
-		Offset:      p.Offset,
 		Line:        p.Line,
 		StartColumn: p.Column,
 		EndColumn:   endColumn,
