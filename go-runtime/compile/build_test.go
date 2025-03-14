@@ -4,11 +4,13 @@ import (
 	"os"
 	"path/filepath"
 	stdslices "slices"
+	"strconv"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/common/strcase"
@@ -142,4 +144,62 @@ module cyclic {
 		"", "projectname", nil, nil)
 
 	assert.EqualError(t, err, "cyclic references are not allowed: cyclic.a refers to cyclic.b refers to cyclic.c refers to cyclic.a")
+}
+
+func TestParseCompilerErrs(t *testing.T) {
+	t.Parallel()
+
+	for i, tt := range []struct {
+		input    string
+		expected []builderrors.Error
+	}{
+		{
+			input: "random text which is just an error",
+			expected: []builderrors.Error{
+				{
+					Msg: "random text which is just an error",
+				},
+			},
+		},
+		{
+			input: `
+# ftl/time
+../../../time.go:30:6: Internal redeclared in this block
+	../../../time.go:25:6: other declaration of Internal
+../../../../../../example.go:1:2: An error I made up which refers to ../../../../../../another.go and another/../../../path.go
+`,
+			expected: []builderrors.Error{
+				{
+					Msg: "Internal redeclared in this block: time.go:25:6: other declaration of Internal",
+					Pos: optional.Some(builderrors.Position{
+						Filename:    "time.go",
+						Line:        30,
+						StartColumn: 6,
+						EndColumn:   6,
+					}),
+				},
+				{
+					Msg: "An error I made up which refers to ../../../another.go and another/../../../path.go",
+					Pos: optional.Some(builderrors.Position{
+						Filename:    "../../../example.go",
+						Line:        1,
+						StartColumn: 2,
+						EndColumn:   2,
+					}),
+				},
+			},
+		},
+	} {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Parallel()
+			// Add standard params to expected errs for convenience
+			expected := slices.Map(tt.expected, func(e builderrors.Error) builderrors.Error {
+				e.Type = builderrors.COMPILER
+				e.Level = builderrors.ERROR
+				return e
+			})
+			actual := buildErrsFromCompilerErr(tt.input)
+			assert.Equal(t, expected, actual)
+		})
+	}
 }

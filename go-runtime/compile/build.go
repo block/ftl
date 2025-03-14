@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	stdreflect "reflect"
+	"regexp"
 	"runtime"
 	"slices"
 	"strconv"
@@ -39,8 +40,14 @@ import (
 	"github.com/block/ftl/internal/watch"
 )
 
-var ftlTypesFilename = "types.ftl.go"
-var ftlQueriesFilename = "queries.ftl.go"
+var (
+	ftlTypesFilename   = "types.ftl.go"
+	ftlQueriesFilename = "queries.ftl.go"
+	// Searches for paths beginning with ../../../
+	// Matches the previous character as well to avoid matching the middle deeper backtrack paths, and because
+	// regex package does not support negative lookbehind assertions
+	pathFromMainToModuleRegex = regexp.MustCompile(`(^|[^/])\.\./\.\./\.\./`)
+)
 
 type MainWorkContext struct {
 	GoVersion          string
@@ -634,16 +641,27 @@ func compile(ctx context.Context, mainDir string, buildEnv []string, devMode boo
 	buildEnv = slices.Clone(buildEnv)
 	buildEnv = append(buildEnv, "GODEBUG=http2client=0")
 	err := exec.CommandWithEnv(ctx, log.Debug, mainDir, buildEnv, "go", args...).RunStderrError(ctx)
-	if err == nil {
-		return nil
+	if err != nil {
+		return buildErrsFromCompilerErr(err.Error())
 	}
+	return nil
+}
+
+// buildErrsFromCompilerErr converts a compiler error to a list of builderrors by trying to parse
+// the error text and extract multiple errors with file, line and column information
+func buildErrsFromCompilerErr(input string) []builderrors.Error {
 	errs := []builderrors.Error{}
-	lines := strings.Split(err.Error(), "\n")
-	for i := 1; i < len(lines); {
-		if strings.HasPrefix(lines[i], "\t") {
+	lines := strings.Split(input, "\n")
+	for i := 0; i < len(lines); {
+		if i > 0 && strings.HasPrefix(lines[i], "\t") {
 			lines[i-1] = lines[i-1] + ": " + strings.TrimSpace(lines[i])
 			lines = append(lines[:i], lines[i+1:]...)
 		} else {
+			lines[i] = strings.TrimSpace(lines[i])
+			if len(lines[i]) == 0 {
+				lines = append(lines[:i], lines[i+1:]...)
+				continue
+			}
 			i++
 		}
 	}
@@ -652,7 +670,8 @@ func compile(ctx context.Context, mainDir string, buildEnv []string, devMode boo
 			continue
 		}
 		// ../../../example.go:11:59: undefined: lorem ipsum
-		components := strings.SplitN(line, ":", 4)
+		line = pathFromMainToModuleRegex.ReplaceAllString(line, "$1")
+		components := islices.Map(strings.SplitN(line, ":", 4), strings.TrimSpace)
 		if len(components) != 4 {
 			errs = append(errs, builderrors.Error{
 				Type:  builderrors.COMPILER,
@@ -661,7 +680,8 @@ func compile(ctx context.Context, mainDir string, buildEnv []string, devMode boo
 			})
 			continue
 		}
-		path, _ := strings.CutPrefix(components[0], "../../../")
+
+		path := components[0]
 		hasPos := true
 		line, err := strconv.Atoi(components[1])
 		if err != nil {
