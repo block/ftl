@@ -1977,7 +1977,7 @@ func addImports(existingImports map[string]string, newTypes ...nativeType) map[s
 	return imports
 }
 
-func wrapErrWithPos(err error, pos schema.Position, format string, args ...any) error {
+func wrapErrWithPos(err error, pos schema.Position, format string) error {
 	if err == nil {
 		return nil
 	}
@@ -1985,5 +1985,5 @@ func wrapErrWithPos(err error, pos schema.Position, format string, args ...any) 
 	if pos == zero {
 		return err
 	}
-	return builderrors.Wrapf(err, pos.ToErrorPos(), format, args...)
+	return builderrors.Wrapf(err, pos.ToErrorPos(), format)
 }
