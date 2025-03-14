@@ -167,15 +167,16 @@ func postgresEnsureDB(ctx context.Context, rootDSN string, connector *schema.AWS
 		if !strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-	if rows > 0 {
-		logger.Infof("Database created: %s", database) //nolint:forbidigo
 	} else {
-		logger.Debugf("Database already exists: %s", database)
+		rows, err := res.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to get rows affected: %w", err)
+		}
+		if rows > 0 {
+			logger.Infof("Database created: %s", database) //nolint:forbidigo
+		} else {
+			logger.Debugf("Database already exists: %s", database)
+		}
 	}
 	return nil
 }
