@@ -131,10 +131,12 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	}
 	activeCount := 0
 	existingModules := map[string]key.Changeset{}
+	updatingModules := map[string]*schema.Module{}
 	for _, cs := range t.changesets {
 		if cs.ModulesAreCanonical() {
 			for _, mod := range cs.Modules {
 				existingModules[mod.Name] = cs.Key
+				updatingModules[mod.Name] = mod
 			}
 			activeCount++
 		}
@@ -163,7 +165,11 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	for _, mod := range e.Changeset.ToRemove {
 		rem[mod] = true
 	}
-	sch := &schema.Schema{Modules: maps.Values(t.deployments)}
+	updatedDep := reflect.DeepCopy(t.deployments)
+	for _, mod := range updatingModules {
+		updatedDep[mod.Name] = mod
+	}
+	sch := &schema.Schema{Modules: maps.Values(updatedDep)} //nolint
 	merged := latestSchema(sch, e.Changeset)
 	merged.Modules = slices.Filter(merged.Modules, func(m *schema.Module) bool {
 		if m.Builtin {

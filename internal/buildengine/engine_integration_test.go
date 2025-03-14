@@ -45,6 +45,8 @@ func TestModuleInterfaceChanges(t *testing.T) {
 
 		in.CopyModule("parent"),
 		in.CopyModule("child"),
+		in.Wait("parent"),
+		in.Wait("child"),
 
 		in.WaitForDev(true, "should have no errors at the start"),
 
