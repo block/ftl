@@ -434,7 +434,7 @@ func ValidateJSONCall(jsonBytes []byte, verbRef *Ref, sch *Schema) error {
 	}
 
 	if err := ValidateJSONValue(verb.Request, nil, request, sch); err != nil {
-		return err
+		return fmt.Errorf("invalid verb %s request in schema %s: %w", verbRef.String(), sch.String(), err)
 	}
 	return nil
 }
