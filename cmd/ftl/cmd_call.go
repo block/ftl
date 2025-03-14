@@ -64,7 +64,7 @@ func callVerb(
 	verbose bool,
 ) error {
 	logger := log.FromContext(ctx)
-	// otherwise, we have a match so call the verb
+
 	resp, err := verbClient.Call(ctx, connect.NewRequest(&ftlv1.CallRequest{
 		Verb: verb.ToProto(),
 		Body: requestJSON,

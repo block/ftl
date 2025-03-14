@@ -157,7 +157,7 @@ func TestTransformToAliasedFields(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func TestValidateRequestMap(t *testing.T) {
+func TestValidateJSONCall(t *testing.T) {
 	schemaText := `
 module echo {
   export data EchoRequest {
@@ -184,14 +184,14 @@ module echo {
 	}{
 		{
 			name:  "valid input",
-			ref:   &Ref{Module: "echo", Name: "EchoRequest"},
+			ref:   &Ref{Module: "echo", Name: "echo"},
 			input: `{"name": "juho", "age": 123, "weight": 0.045}`,
 		},
 		{
 			name:    "invalid input",
-			ref:     &Ref{Module: "echo", Name: "EchoRequest"},
+			ref:     &Ref{Module: "echo", Name: "echo"},
 			input:   `{"name": "juho", "age": 123, "weight": "too much"}`,
-			wantErr: "weight has wrong type, expected Float found string",
+			wantErr: "failed to validate request: weight has wrong type, expected Float found string",
 		},
 	}
 
@@ -201,7 +201,7 @@ module echo {
 			err := json.Unmarshal([]byte(tt.input), &input)
 			assert.NoError(t, err)
 
-			err = ValidateRequestMap(tt.ref, nil, input, sch)
+			err = ValidateJSONCall([]byte(tt.input), tt.ref, sch)
 			if tt.wantErr != "" {
 				assert.EqualError(t, err, tt.wantErr)
 			} else {
