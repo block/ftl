@@ -100,38 +100,22 @@ func (v *Verb) String() string {
 
 // AddCall adds a call reference to the Verb.
 func (v *Verb) AddCall(verb *Ref) {
-	if c, ok := slices.FindVariant[*MetadataCalls](v.Metadata); ok {
-		c.Calls = append(c.Calls, verb)
-		return
-	}
-	v.Metadata = append(v.Metadata, &MetadataCalls{Calls: []*Ref{verb}})
+	v.Metadata = upsert[MetadataCalls](v.Metadata, verb)
 }
 
 // AddConfig adds a config reference to the Verb.
 func (v *Verb) AddConfig(config *Ref) {
-	if c, ok := slices.FindVariant[*MetadataConfig](v.Metadata); ok {
-		c.Config = append(c.Config, config)
-		return
-	}
-	v.Metadata = append(v.Metadata, &MetadataConfig{Config: []*Ref{config}})
+	v.Metadata = upsert[MetadataConfig](v.Metadata, config)
 }
 
 // AddSecret adds a config reference to the Verb.
 func (v *Verb) AddSecret(secret *Ref) {
-	if c, ok := slices.FindVariant[*MetadataSecrets](v.Metadata); ok {
-		c.Secrets = append(c.Secrets, secret)
-		return
-	}
-	v.Metadata = append(v.Metadata, &MetadataSecrets{Secrets: []*Ref{secret}})
+	v.Metadata = upsert[MetadataSecrets](v.Metadata, secret)
 }
 
 // AddDatabase adds a DB reference to the Verb.
 func (v *Verb) AddDatabase(db *Ref) {
-	if c, ok := slices.FindVariant[*MetadataDatabases](v.Metadata); ok {
-		c.Calls = append(c.Calls, db)
-		return
-	}
-	v.Metadata = append(v.Metadata, &MetadataDatabases{Calls: []*Ref{db}})
+	v.Metadata = upsert[MetadataDatabases](v.Metadata, db)
 }
 
 func (v *Verb) AddSubscription(sub *MetadataSubscriber) {
@@ -140,11 +124,7 @@ func (v *Verb) AddSubscription(sub *MetadataSubscriber) {
 
 // AddTopicPublish adds a topic that this Verb publishes to.
 func (v *Verb) AddTopicPublish(topic *Ref) {
-	if c, ok := slices.FindVariant[*MetadataPublisher](v.Metadata); ok {
-		c.Topics = append(c.Topics, topic)
-		return
-	}
-	v.Metadata = append(v.Metadata, &MetadataPublisher{Topics: []*Ref{topic}})
+	v.Metadata = upsert[MetadataPublisher](v.Metadata, topic)
 }
 
 func (v *Verb) SortMetadata() {
@@ -152,17 +132,11 @@ func (v *Verb) SortMetadata() {
 }
 
 func (v *Verb) GetMetadataIngress() optional.Option[*MetadataIngress] {
-	if m, ok := slices.FindVariant[*MetadataIngress](v.Metadata); ok {
-		return optional.Some(m)
-	}
-	return optional.None[*MetadataIngress]()
+	return optional.From(slices.FindVariant[*MetadataIngress](v.Metadata))
 }
 
 func (v *Verb) GetMetadataCronJob() optional.Option[*MetadataCronJob] {
-	if m, ok := slices.FindVariant[*MetadataCronJob](v.Metadata); ok {
-		return optional.Some(m)
-	}
-	return optional.None[*MetadataCronJob]()
+	return optional.From(slices.FindVariant[*MetadataCronJob](v.Metadata))
 }
 
 func (v *Verb) GetProvisioned() ResourceSet {
@@ -191,4 +165,19 @@ func (v *Verb) GetQuery() (*MetadataSQLQuery, bool) {
 		return nil, false
 	}
 	return md, true
+}
+
+// Helper function to insert or update a value in a slice of interfaces
+func upsert[V any, W interface {
+	*V
+	Append(u U)
+}, T any, U any](slice []T, u U) (out []T) {
+	if c, ok := slices.FindVariant[W](slice); ok {
+		c.Append(u)
+		return slice
+	}
+	insert := any(new(V)).(W) //nolint
+	insert.Append(u)
+	slice = append(slice, any(insert).(T)) //nolint
+	return slice
 }

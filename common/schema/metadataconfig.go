@@ -16,6 +16,7 @@ type MetadataConfig struct {
 
 var _ Metadata = (*MetadataConfig)(nil)
 
+func (m *MetadataConfig) Append(ref *Ref)    { m.Config = append(m.Config, ref) }
 func (m *MetadataConfig) Position() Position { return m.Pos }
 func (m *MetadataConfig) String() string {
 	out := &strings.Builder{}

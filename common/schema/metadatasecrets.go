@@ -16,6 +16,7 @@ type MetadataSecrets struct {
 
 var _ Metadata = (*MetadataSecrets)(nil)
 
+func (m *MetadataSecrets) Append(secret *Ref) { m.Secrets = append(m.Secrets, secret) }
 func (m *MetadataSecrets) Position() Position { return m.Pos }
 func (m *MetadataSecrets) String() string {
 	out := &strings.Builder{}
