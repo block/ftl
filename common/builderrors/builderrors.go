@@ -10,7 +10,6 @@ import (
 
 type Position struct {
 	Filename    string
-	Offset      int
 	StartColumn int
 	EndColumn   int
 	Line        int
@@ -77,21 +76,21 @@ func Errorf(pos Position, format string, args ...any) Error {
 	return makeError(ERROR, pos, format, args...)
 }
 
-func Wrapf(pos Position, endColumn int, err error, format string, args ...any) Error {
+// Wrapf wraps an error with a new message and adds position if no existing position exists.
+func Wrapf(err error, pos Position, format string, args ...any) Error {
 	if format == "" {
 		format = "%s"
 	} else {
 		format += ": %s"
 	}
 	// Propagate existing error position if available
-	var newPos Position
+	newPos := pos
 	if perr := (Error{}); errors.As(err, &perr) {
 		if existingPos, ok := perr.Pos.Get(); ok {
 			newPos = existingPos
 		}
 		args = append(args, perr.Msg)
 	} else {
-		newPos = pos
 		args = append(args, err)
 	}
 	return makeError(ERROR, newPos, format, args...)
