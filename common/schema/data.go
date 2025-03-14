@@ -17,9 +17,9 @@ type Data struct {
 	Comments       []string         `parser:"@Comment*" protobuf:"2"`
 	Export         bool             `parser:"@'export'?" protobuf:"3"`
 	Name           string           `parser:"'data' @Ident" protobuf:"4"`
-	TypeParameters []*TypeParameter `parser:"( '<' @@ (',' @@)* '>' )?" protobuf:"5"`
-	Fields         []*Field         `parser:"'{' @@* '}'" protobuf:"6"`
+	TypeParameters []*TypeParameter `parser:"( '<' @@ (',' @@)* '>' )? '{'" protobuf:"5"`
 	Metadata       []Metadata       `parser:"@@*" protobuf:"7"`
+	Fields         []*Field         `parser:"@@* '}'" protobuf:"6"`
 }
 
 var _ Decl = (*Data)(nil)
@@ -172,11 +172,13 @@ func (d *Data) String() string {
 		fmt.Fprint(w, "export ")
 	}
 	fmt.Fprintf(w, "data %s%s {\n", d.Name, typeParameters)
+	for _, metadata := range d.Metadata {
+		fmt.Fprintln(w, indent(metadata.String()))
+	}
 	for _, f := range d.Fields {
 		fmt.Fprintln(w, indent(f.String()))
 	}
 	fmt.Fprintf(w, "}")
-	fmt.Fprint(w, indent(encodeMetadata(d.Metadata)))
 	return w.String()
 }
 

@@ -51,14 +51,14 @@ module todo {
   }
 
   data InsertRequest {
+    +generated
     name String +sql column "requests"."name"
   }
-	+generated
 
   data InsertResponse {
+    +generated
     name [String] +sql column "requests"."name_list"
   }
-	+generated
 
   export verb create(todo.CreateRequest) todo.CreateResponse
       +calls todo.destroy
@@ -326,10 +326,10 @@ func TestParsing(t *testing.T) {
 			},
 		},
 		{name: "InvalidDataMetadata",
-			input: `module test { data Data {} +calls verb }`,
+			input: `module test { data Data {+calls verb} }`,
 			errors: []string{
-				"1:28: metadata \"+calls verb\" is not valid on data structures",
-				"1:35: unknown reference \"verb\", is the type annotated and exported?",
+				"1:26: metadata \"+calls verb\" is not valid on data structures",
+				"1:33: unknown reference \"verb\", is the type annotated and exported?",
 			}},
 		{name: "KeywordAsName",
 			input:  `module int { data String { name String } verb verb(String) String }`,
@@ -811,13 +811,13 @@ module todo {
     name [String] +alias json "rsn"
   }
   data InsertRequest {
+    +generated
     name String +sql column "requests"."name"
   }
-  	+generated
   data InsertResponse {
+ 	+generated
     name [String] +sql column "requests"."name_list"
   }
-  	+generated
   data DestroyRequest {
     // A comment
     name String
