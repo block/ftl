@@ -595,6 +595,15 @@ func (s *Service) ClusterInfo(ctx context.Context, req *connect.Request[adminpb.
 }
 
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
+	ref, err := schema.RefFromProto(req.Msg.Verb)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse verb: %w", err)
+	}
+
+	if err := schema.ValidateJSONCall(req.Msg.Body, ref, s.source.CanonicalView()); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+
 	call, err := s.routeTable.Call(ctx, headers.CopyRequestForForwarding(req))
 	if err != nil {
 		return nil, fmt.Errorf("failed to call verb: %w", err)
