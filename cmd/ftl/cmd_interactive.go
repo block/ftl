@@ -15,7 +15,7 @@ type interactiveCmd struct {
 }
 
 func (i *interactiveCmd) Run(ctx context.Context, binder KongContextBinder, projectConfig projectconfig.Config, eventSource *schemaeventsource.EventSource, manager *currentStatusManager) error {
-	err := terminal.RunInteractiveConsole(ctx, createKongApplication(&SharedCLI{}, manager), eventSource, func(ctx context.Context, k *kong.Kong, args []string, additionalExit func(int)) error {
+	err := terminal.RunInteractiveConsole(ctx, createKongApplication(&InteractiveCLI{}, manager), eventSource, func(ctx context.Context, k *kong.Kong, args []string, additionalExit func(int)) error {
 		return runInnerCmd(ctx, k, projectConfig, binder, args, additionalExit)
 	})
 	if err != nil {
