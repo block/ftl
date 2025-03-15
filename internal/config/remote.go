@@ -99,9 +99,67 @@ func (s *RemoteProvider[R]) List(ctx context.Context, withValues bool) ([]Value,
 }
 
 func (s *RemoteProvider[R]) Load(ctx context.Context, ref Ref) ([]byte, error) {
-	panic("unimplemented")
+	var r R
+	switch any(r).(type) {
+	case Configuration:
+		resp, err := s.client.ConfigGet(ctx, connect.NewRequest(&adminpb.ConfigGetRequest{
+			Ref: &adminpb.ConfigRef{
+				Module: ref.Module.Ptr(),
+				Name:   ref.Name,
+			},
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("%s load: %w", r, err)
+		}
+		return resp.Msg.Value, nil
+
+	case Secrets:
+		resp, err := s.client.SecretGet(ctx, connect.NewRequest(&adminpb.SecretGetRequest{
+			Ref: &adminpb.ConfigRef{
+				Module: ref.Module.Ptr(),
+				Name:   ref.Name,
+			},
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("%s load: %w", r, err)
+		}
+		return resp.Msg.Value, nil
+
+	default:
+		panic(fmt.Sprintf("unsupported role %T", r))
+	}
 }
 
 func (s *RemoteProvider[R]) Store(ctx context.Context, ref Ref, value []byte) error {
-	panic("unimplemented")
+	var r R
+	switch any(r).(type) {
+	case Configuration:
+		_, err := s.client.ConfigSet(ctx, connect.NewRequest(&adminpb.ConfigSetRequest{
+			Ref: &adminpb.ConfigRef{
+				Module: ref.Module.Ptr(),
+				Name:   ref.Name,
+			},
+			Value: value,
+		}))
+		if err != nil {
+			return fmt.Errorf("%s store: %w", r, err)
+		}
+		return nil
+
+	case Secrets:
+		_, err := s.client.SecretSet(ctx, connect.NewRequest(&adminpb.SecretSetRequest{
+			Ref: &adminpb.ConfigRef{
+				Module: ref.Module.Ptr(),
+				Name:   ref.Name,
+			},
+			Value: value,
+		}))
+		if err != nil {
+			return fmt.Errorf("%s store: %w", r, err)
+		}
+		return nil
+
+	default:
+		panic(fmt.Sprintf("unsupported role %T", r))
+	}
 }
