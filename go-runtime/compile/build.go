@@ -2,6 +2,7 @@ package compile
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -440,6 +441,10 @@ func (s *OngoingState) reset() {
 }
 
 func buildErrorFromError(err error) builderrors.Error {
+	var buildErr builderrors.Error
+	if errors.As(err, &buildErr) {
+		return buildErr
+	}
 	return builderrors.Error{
 		Type:  builderrors.FTL,
 		Msg:   err.Error(),
