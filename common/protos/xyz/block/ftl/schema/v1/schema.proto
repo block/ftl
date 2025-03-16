@@ -138,8 +138,8 @@ message Data {
   bool export = 3;
   string name = 4;
   repeated TypeParameter type_parameters = 5;
-  repeated Field fields = 6;
   repeated Metadata metadata = 7;
+  repeated Field fields = 6;
 }
 
 message Database {

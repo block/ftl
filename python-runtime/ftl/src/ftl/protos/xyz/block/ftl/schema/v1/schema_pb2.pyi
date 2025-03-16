@@ -232,22 +232,22 @@ class DSNDatabaseConnector(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., database: _Optional[str] = ..., dsn: _Optional[str] = ...) -> None: ...
 
 class Data(_message.Message):
-    __slots__ = ("pos", "comments", "export", "name", "type_parameters", "fields", "metadata")
+    __slots__ = ("pos", "comments", "export", "name", "type_parameters", "metadata", "fields")
     POS_FIELD_NUMBER: _ClassVar[int]
     COMMENTS_FIELD_NUMBER: _ClassVar[int]
     EXPORT_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     TYPE_PARAMETERS_FIELD_NUMBER: _ClassVar[int]
-    FIELDS_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
+    FIELDS_FIELD_NUMBER: _ClassVar[int]
     pos: Position
     comments: _containers.RepeatedScalarFieldContainer[str]
     export: bool
     name: str
     type_parameters: _containers.RepeatedCompositeFieldContainer[TypeParameter]
-    fields: _containers.RepeatedCompositeFieldContainer[Field]
     metadata: _containers.RepeatedCompositeFieldContainer[Metadata]
-    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., export: bool = ..., name: _Optional[str] = ..., type_parameters: _Optional[_Iterable[_Union[TypeParameter, _Mapping]]] = ..., fields: _Optional[_Iterable[_Union[Field, _Mapping]]] = ..., metadata: _Optional[_Iterable[_Union[Metadata, _Mapping]]] = ...) -> None: ...
+    fields: _containers.RepeatedCompositeFieldContainer[Field]
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., export: bool = ..., name: _Optional[str] = ..., type_parameters: _Optional[_Iterable[_Union[TypeParameter, _Mapping]]] = ..., metadata: _Optional[_Iterable[_Union[Metadata, _Mapping]]] = ..., fields: _Optional[_Iterable[_Union[Field, _Mapping]]] = ...) -> None: ...
 
 class Database(_message.Message):
     __slots__ = ("pos", "runtime", "comments", "type", "name", "metadata")

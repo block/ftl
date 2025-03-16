@@ -1128,14 +1128,14 @@ export class Data extends Message<Data> {
   typeParameters: TypeParameter[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Field fields = 6;
-   */
-  fields: Field[] = [];
-
-  /**
    * @generated from field: repeated xyz.block.ftl.schema.v1.Metadata metadata = 7;
    */
   metadata: Metadata[] = [];
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Field fields = 6;
+   */
+  fields: Field[] = [];
 
   constructor(data?: PartialMessage<Data>) {
     super();
@@ -1150,8 +1150,8 @@ export class Data extends Message<Data> {
     { no: 3, name: "export", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "type_parameters", kind: "message", T: TypeParameter, repeated: true },
-    { no: 6, name: "fields", kind: "message", T: Field, repeated: true },
     { no: 7, name: "metadata", kind: "message", T: Metadata, repeated: true },
+    { no: 6, name: "fields", kind: "message", T: Field, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Data {

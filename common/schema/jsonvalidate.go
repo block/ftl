@@ -2,6 +2,7 @@ package schema
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -413,4 +414,27 @@ func TransformToAliasedFields(ref *Ref, sch *Schema, request map[string]any) (ma
 		}
 		return field.Name
 	})
+}
+
+// ValidateJSONCall validates a given JSON request against the provided schema when calling a verb.
+func ValidateJSONCall(jsonBytes []byte, verbRef *Ref, sch *Schema) error {
+	var request any
+	err := json.Unmarshal(jsonBytes, &request)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal request body: %w", err)
+	}
+
+	decl, ok := sch.Resolve(verbRef).Get()
+	if !ok {
+		return fmt.Errorf("unknown verb: %s", verbRef.String())
+	}
+	verb, ok := decl.(*Verb)
+	if !ok {
+		return fmt.Errorf("%s is not a verb", verbRef.String())
+	}
+
+	if err := ValidateJSONValue(verb.Request, nil, request, sch); err != nil {
+		return err
+	}
+	return nil
 }

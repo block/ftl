@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
@@ -154,4 +155,58 @@ func TestTransformToAliasedFields(t *testing.T) {
 	}
 	assert.NoError(t, err)
 	assert.Equal(t, expected, actual)
+}
+
+func TestValidateJSONCall(t *testing.T) {
+	schemaText := `
+module echo {
+  export data EchoRequest {
+    name String? +alias json "name"
+	age Int? +alias json "age"
+	weight Float? +alias json "weight"
+  }
+
+  export data EchoResponse {
+    message String +alias json "message"
+  }
+
+  export verb echo(echo.EchoRequest) echo.EchoResponse
+}`
+
+	sch, err := ParseString("test", schemaText)
+	assert.NoError(t, err)
+
+	tests := []struct {
+		name    string
+		ref     *Ref
+		input   string
+		wantErr string
+	}{
+		{
+			name:  "valid input",
+			ref:   &Ref{Module: "echo", Name: "echo"},
+			input: `{"name": "juho", "age": 123, "weight": 0.045}`,
+		},
+		{
+			name:    "invalid input",
+			ref:     &Ref{Module: "echo", Name: "echo"},
+			input:   `{"name": "juho", "age": 123, "weight": "too much"}`,
+			wantErr: "weight has wrong type, expected Float found string",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var input map[string]any
+			err := json.Unmarshal([]byte(tt.input), &input)
+			assert.NoError(t, err)
+
+			err = ValidateJSONCall([]byte(tt.input), tt.ref, sch)
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }

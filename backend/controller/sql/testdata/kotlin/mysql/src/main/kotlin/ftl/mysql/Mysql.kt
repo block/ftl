@@ -2,7 +2,7 @@ package ftl.mysql
 
 import xyz.block.ftl.*
 
-data class InsertRequest(val `data`: String, val id: Long)
+data class InsertRequest(val `data`: String)
 
 @Export
 @Verb

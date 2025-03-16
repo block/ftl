@@ -576,6 +576,15 @@ func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timel
 }
 
 func (s *service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
+	ref, err := schema.RefFromProto(req.Msg.Verb)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse verb: %w", err)
+	}
+
+	if err := schema.ValidateJSONCall(req.Msg.Body, ref, s.schemaEventSource.CanonicalView()); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+
 	resp, err := s.callClient.Call(ctx, connect.NewRequest(req.Msg))
 	if err != nil {
 		return nil, fmt.Errorf("failed to call verb: %w", err)

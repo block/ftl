@@ -751,8 +751,8 @@ func (x *Data) ToProto() *destpb.Data {
 		Export:         orZero(ptr(bool(x.Export))),
 		Name:           orZero(ptr(string(x.Name))),
 		TypeParameters: sliceMap(x.TypeParameters, func(v *TypeParameter) *destpb.TypeParameter { return v.ToProto() }),
-		Fields:         sliceMap(x.Fields, func(v *Field) *destpb.Field { return v.ToProto() }),
 		Metadata:       sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
+		Fields:         sliceMap(x.Fields, func(v *Field) *destpb.Field { return v.ToProto() }),
 	}
 }
 
@@ -779,13 +779,13 @@ func DataFromProto(v *destpb.Data) (out *Data, err error) {
 	}).Result(); err != nil {
 		return nil, fmt.Errorf("TypeParameters: %w", err)
 	}
-	if out.Fields, err = sliceMapR(v.Fields, func(v *destpb.Field) result.Result[*Field] { return result.From(FieldFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Fields: %w", err)
-	}
 	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
 		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
 	}).Result(); err != nil {
 		return nil, fmt.Errorf("Metadata: %w", err)
+	}
+	if out.Fields, err = sliceMapR(v.Fields, func(v *destpb.Field) result.Result[*Field] { return result.From(FieldFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Fields: %w", err)
 	}
 	return out, nil
 }
