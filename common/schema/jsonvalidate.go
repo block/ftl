@@ -64,8 +64,13 @@ func validateJSONValue(fieldType Type, path path, value any, sch *Schema, opts *
 
 	case *Int:
 		switch value := value.(type) {
-		case int64, float64:
+		case int64:
 			typeMatches = true
+		case float64:
+			// Check if the float64 is a whole number
+			if value == float64(int64(value)) {
+				typeMatches = true
+			}
 		case string:
 			if _, err := strconv.ParseInt(value, 10, 64); err == nil {
 				typeMatches = true
