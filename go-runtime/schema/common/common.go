@@ -367,7 +367,7 @@ func extractType(pass *analysis.Pass, node ast.Node) optional.Option[schema.Type
 		default:
 			return optional.None[schema.Type]()
 		}
-		return optional.Some[schema.Type](t)
+		return optional.Some(t)
 	}
 
 	return optional.None[schema.Type]()

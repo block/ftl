@@ -2,6 +2,7 @@ package compile
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -440,6 +441,10 @@ func (s *OngoingState) reset() {
 }
 
 func buildErrorFromError(err error) builderrors.Error {
+	var buildErr builderrors.Error
+	if errors.As(err, &buildErr) {
+		return buildErr
+	}
 	return builderrors.Error{
 		Type:  builderrors.FTL,
 		Msg:   err.Error(),
@@ -1121,10 +1126,12 @@ func (b *mainDeploymentContextBuilder) visitingMainModule(moduleName string) boo
 	return moduleName == b.mainModule.Name
 }
 
-func (b *mainDeploymentContextBuilder) processSumType(module *schema.Module, enum *schema.Enum) (goSumType, error) {
+func (b *mainDeploymentContextBuilder) processSumType(module *schema.Module, enum *schema.Enum) (out goSumType, err error) {
+	defer func() {
+		err = wrapErrWithPos(err, enum.Pos, "")
+	}()
 	moduleName := module.Name
 	var nt nativeType
-	var err error
 	if !b.visitingMainModule(moduleName) {
 		nt, err = nativeTypeFromQualifiedName("ftl/" + moduleName + "." + enum.Name)
 	} else if nn, ok := b.nativeNames[enum]; ok {
@@ -1144,15 +1151,15 @@ func (b *mainDeploymentContextBuilder) processSumType(module *schema.Module, enu
 		} else if nn, ok := b.nativeNames[v]; ok {
 			vnt, err = b.getNativeType(nn)
 		} else {
-			return goSumType{}, fmt.Errorf("missing native name for enum variant %s", enum.Name)
+			return goSumType{}, wrapErrWithPos(fmt.Errorf("missing native name for enum variant %s", enum.Name), v.Pos, "")
 		}
 		if err != nil {
-			return goSumType{}, err
+			return goSumType{}, wrapErrWithPos(err, v.Pos, "")
 		}
 
 		typ, err := b.getGoSchemaType(v.Value.(*schema.TypeValue).Value)
 		if err != nil {
-			return goSumType{}, err
+			return goSumType{}, wrapErrWithPos(err, v.Pos, "")
 		}
 		variants = append(variants, goSumTypeVariant{
 			Type:       typ,
@@ -1261,7 +1268,10 @@ func (b *mainDeploymentContextBuilder) getVerbResource(verb *schema.Verb, param 
 	}
 }
 
-func (b *mainDeploymentContextBuilder) processConfig(moduleName string, ref *schema.Ref, config *schema.Config) (goConfigHandle, error) {
+func (b *mainDeploymentContextBuilder) processConfig(moduleName string, ref *schema.Ref, config *schema.Config) (out goConfigHandle, err error) {
+	defer func() {
+		err = wrapErrWithPos(err, config.Pos, "")
+	}()
 	nn, ok := b.nativeNames[ref]
 	if !ok {
 		return goConfigHandle{}, fmt.Errorf("missing native name for config %s.%s", moduleName, config.Name)
@@ -1284,7 +1294,10 @@ func (b *mainDeploymentContextBuilder) processConfig(moduleName string, ref *sch
 	}, nil
 }
 
-func (b *mainDeploymentContextBuilder) processSecret(moduleName string, ref *schema.Ref, secret *schema.Secret) (goSecretHandle, error) {
+func (b *mainDeploymentContextBuilder) processSecret(moduleName string, ref *schema.Ref, secret *schema.Secret) (out goSecretHandle, err error) {
+	defer func() {
+		err = wrapErrWithPos(err, secret.Pos, "")
+	}()
 	nn, ok := b.nativeNames[ref]
 	if !ok {
 		return goSecretHandle{}, fmt.Errorf("missing native name for secret %s.%s", moduleName, secret.Name)
@@ -1320,7 +1333,10 @@ func (b *mainDeploymentContextBuilder) processDatabase(moduleName string, db *sc
 	}, nil
 }
 
-func (b *mainDeploymentContextBuilder) processTopic(moduleName string, ref *schema.Ref, topic *schema.Topic) (goTopicHandle, error) {
+func (b *mainDeploymentContextBuilder) processTopic(moduleName string, ref *schema.Ref, topic *schema.Topic) (out goTopicHandle, err error) {
+	defer func() {
+		err = wrapErrWithPos(err, topic.Pos, "")
+	}()
 	nn, ok := b.nativeNames[ref]
 	if !ok {
 		return goTopicHandle{}, fmt.Errorf("missing native name for topic %s.%s", moduleName, topic.Name)
@@ -1362,18 +1378,18 @@ func (b *mainDeploymentContextBuilder) processTopic(moduleName string, ref *sche
 	}, nil
 }
 
-func (b *mainDeploymentContextBuilder) getGoVerb(nativeName string, verb *schema.Verb, resources ...verbResource) (goVerb, error) {
+func (b *mainDeploymentContextBuilder) getGoVerb(nativeName string, verb *schema.Verb, resources ...verbResource) (out goVerb, err error) {
 	nt, err := b.getNativeType(nativeName)
 	if err != nil {
-		return goVerb{}, err
+		return goVerb{}, wrapErrWithPos(err, verb.Pos, "")
 	}
 	req, err := b.getGoSchemaType(verb.Request)
 	if err != nil {
-		return goVerb{}, err
+		return goVerb{}, wrapErrWithPos(err, verb.Pos, "could not parse request type")
 	}
 	resp, err := b.getGoSchemaType(verb.Response)
 	if err != nil {
-		return goVerb{}, err
+		return goVerb{}, wrapErrWithPos(err, verb.Pos, "could not parse response type")
 	}
 	return goVerb{
 		Name:       verb.Name,
@@ -1384,7 +1400,12 @@ func (b *mainDeploymentContextBuilder) getGoVerb(nativeName string, verb *schema
 	}, nil
 }
 
-func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (goSchemaType, error) {
+func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goSchemaType, err error) {
+	defer func() {
+		if typ != nil {
+			err = wrapErrWithPos(err, typ.Position(), "")
+		}
+	}()
 	typeName, err := genTypeWithNativeNames(nil, typ, b.nativeNames)
 	if err != nil {
 		return goSchemaType{}, err
@@ -1959,4 +1980,15 @@ func addImports(existingImports map[string]string, newTypes ...nativeType) map[s
 		}
 	}
 	return imports
+}
+
+func wrapErrWithPos(err error, pos schema.Position, format string) error {
+	if err == nil {
+		return nil
+	}
+	var zero = schema.Position{}
+	if pos == zero {
+		return err
+	}
+	return builderrors.Wrapf(err, pos.ToErrorPos(), format)
 }

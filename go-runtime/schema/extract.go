@@ -484,7 +484,6 @@ func goQualifiedNameForWidenedType(obj types.Object, metadata []schema.Metadata)
 func toErrorPos(pos token.Position, end token.Position) builderrors.Position {
 	return builderrors.Position{
 		Filename:    pos.Filename,
-		Offset:      pos.Offset,
 		Line:        pos.Line,
 		StartColumn: pos.Column,
 		EndColumn:   end.Column,
