@@ -15,7 +15,7 @@ require (
 	github.com/alecthomas/concurrency v0.0.2
 	github.com/alecthomas/kong v1.9.0
 	github.com/alecthomas/kong-toml v0.2.0
-	github.com/alecthomas/participle/v2 v2.1.1
+	github.com/alecthomas/participle/v2 v2.1.2
 	github.com/alecthomas/types v0.19.0
 	github.com/amacneil/dbmate/v2 v2.26.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3
@@ -27,9 +27,9 @@ require (
 	github.com/beevik/etree v1.5.0
 	github.com/block/ftl-golang-tools v0.4.0
 	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f
-	github.com/block/scaffolder v1.3.0
+	github.com/block/scaffolder v1.4.0
 	github.com/bmatcuk/doublestar/v4 v4.8.1
-	github.com/deckarep/golang-set/v2 v2.7.0
+	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/go-logr/logr v1.4.2
@@ -86,7 +86,7 @@ require (
 	k8s.io/api v0.32.3
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
-	modernc.org/sqlite v1.36.0
+	modernc.org/sqlite v1.36.1
 	oras.land/oras-go/v2 v2.5.0
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -239,7 +239,7 @@ require (
 	github.com/chzyer/readline v1.5.1
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/dlclark/regexp2 v1.11.4 // indirect
-	github.com/dop251/goja v0.0.0-20241009100908-5f46f2705ca3 // indirect
+	github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
