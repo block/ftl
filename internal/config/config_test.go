@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"context"
+	"sort"
 	"testing"
 	"time"
 
@@ -11,6 +12,23 @@ import (
 
 	"github.com/block/ftl/internal/config"
 )
+
+// sortConfigValues sorts config values by module and name for consistent comparison
+func sortConfigValues(values []config.Value) []config.Value {
+	sorted := make([]config.Value, len(values))
+	copy(sorted, values)
+	sort.Slice(sorted, func(i, j int) bool {
+		// First compare modules
+		iMod, _ := sorted[i].Ref.Module.Get()
+		jMod, _ := sorted[j].Ref.Module.Get()
+		if iMod != jMod {
+			return iMod < jMod
+		}
+		// If modules are equal, compare names
+		return sorted[i].Ref.Name < sorted[j].Ref.Name
+	})
+	return sorted
+}
 
 type syncIntervalOverride[R config.Role] struct {
 	SyncIntervalOverride time.Duration
@@ -45,10 +63,11 @@ func testConfig[R config.Role](t *testing.T, ctx context.Context, provider confi
 
 	values, err = provider.List(ctx, true)
 	assert.NoError(t, err)
-	assert.Equal(t, []config.Value{{
+	expected := []config.Value{{
 		Ref:   ref1,
 		Value: optional.Some(value1),
-	}}, values, "%s", repr.String(values))
+	}}
+	assert.Equal(t, expected, sortConfigValues(values), "%s", repr.String(values))
 
 	data, err := provider.Load(ctx, ref1)
 	assert.NoError(t, err)
@@ -59,7 +78,7 @@ func testConfig[R config.Role](t *testing.T, ctx context.Context, provider confi
 
 	values, err = provider.List(ctx, true)
 	assert.NoError(t, err)
-	assert.Equal(t, []config.Value{
+	expected = []config.Value{
 		{
 			Ref:   ref2,
 			Value: optional.Some(value2),
@@ -68,17 +87,19 @@ func testConfig[R config.Role](t *testing.T, ctx context.Context, provider confi
 			Ref:   ref1,
 			Value: optional.Some(value1),
 		},
-	}, values, "%s", repr.String(values))
+	}
+	assert.Equal(t, sortConfigValues(expected), sortConfigValues(values), "%s", repr.String(values))
 
 	err = provider.Delete(ctx, ref1)
 	assert.NoError(t, err)
 
 	values, err = provider.List(ctx, true)
 	assert.NoError(t, err)
-	assert.Equal(t, []config.Value{
+	expected = []config.Value{
 		{
 			Ref:   ref2,
 			Value: optional.Some(value2),
 		},
-	}, values)
+	}
+	assert.Equal(t, sortConfigValues(expected), sortConfigValues(values))
 }
