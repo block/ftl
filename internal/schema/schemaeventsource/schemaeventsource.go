@@ -208,6 +208,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 		for _, module := range cs.Modules {
 			module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
 		}
+		cs.State = schema.ChangesetStateRollingBack
 		cs.Error = event.Error
 		e.view.Store(clone)
 	case *schema.ChangesetFailedNotification:
