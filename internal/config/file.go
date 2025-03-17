@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/alecthomas/types/optional"
@@ -87,6 +88,9 @@ func (f *FileProvider[R]) List(ctx context.Context, withValues bool) ([]Value, e
 				Value: optional.Zero([]byte(v)),
 			})
 		}
+		sort.Slice(values, func(i, j int) bool {
+			return values[i].Ref.String() < values[j].Ref.String()
+		})
 		return nil
 	})
 }
