@@ -188,6 +188,17 @@ module echo {
 			input: `{"name": "juho", "age": 123, "weight": 0.045}`,
 		},
 		{
+			name:  "valid integer as float",
+			ref:   &Ref{Module: "echo", Name: "echo"},
+			input: `{"name": "juho", "age": 123.0, "weight": 0.045}`,
+		},
+		{
+			name:    "invalid float for integer",
+			ref:     &Ref{Module: "echo", Name: "echo"},
+			input:   `{"name": "juho", "age": 123.5, "weight": 0.045}`,
+			wantErr: "age has wrong type, expected Int found float64",
+		},
+		{
 			name:    "invalid input",
 			ref:     &Ref{Module: "echo", Name: "echo"},
 			input:   `{"name": "juho", "age": 123, "weight": "too much"}`,
