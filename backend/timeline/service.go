@@ -140,7 +140,8 @@ func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	filters, ascending := filtersFromQuery(req.Msg.Query)
+	ascending := isAscending(req.Msg.Query)
+	filters := filtersFromQuery(req.Msg.Query)
 	if req.Msg.Query.Limit == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
 	}
@@ -188,37 +189,38 @@ func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 	}), nil
 }
 
+// We want to throttle the number of updates we send to the client via the stream.
+const minUpdateInterval = 50 * time.Millisecond
+
 func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
 	sub := s.notifier.Subscribe(ctx)
 	lastUpdate := time.Now()
+	query := req.Msg.Query
 
-	// We might want to throttle the number of updates we send to the client.
-	var updateInterval time.Duration
-	if req.Msg.UpdateInterval != nil && req.Msg.UpdateInterval.AsDuration() > time.Second { // Minimum 1s interval.
+	updateInterval := minUpdateInterval
+	if req.Msg.UpdateInterval != nil && req.Msg.UpdateInterval.AsDuration() > minUpdateInterval {
 		updateInterval = req.Msg.UpdateInterval.AsDuration()
 	}
 
-	if req.Msg.Query.Limit == 0 {
+	if query.Limit == 0 {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
 	}
+	ascending := isAscending(query)
 
-	_, ascending := filtersFromQuery(req.Msg.Query)
-
-	timelineReq := req.Msg.Query
 	// Default to last 1 day of events
 	var lastEventID optional.Option[int64]
 	for {
-		newQuery := timelineReq
-		// We always want ascending order for the underlying query.
-		newQuery.Order = timelinepb.TimelineQuery_ORDER_ASC
-		if _, ok := lastEventID.Get(); ok {
-			newQuery.Filters = append(newQuery.Filters, &timelinepb.TimelineQuery_Filter{
+		newQuery := &timelinepb.TimelineQuery{
+			// We always want ascending order for the underlying query.
+			Order: timelinepb.TimelineQuery_ORDER_ASC,
+			Limit: query.Limit,
+			Filters: append(query.Filters, &timelinepb.TimelineQuery_Filter{
 				Filter: &timelinepb.TimelineQuery_Filter_Id{
 					Id: &timelinepb.TimelineQuery_IDFilter{
 						HigherThan: lastEventID.Ptr(),
 					},
 				},
-			})
+			}),
 		}
 
 		resp, err := s.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{Query: newQuery}))
@@ -226,36 +228,31 @@ func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timel
 			return fmt.Errorf("failed to get timeline: %w", err)
 		}
 
-		newEvents := make([]*timelinepb.Event, 0, len(resp.Msg.Events))
-		for _, event := range resp.Msg.Events {
-			if lastEventID, ok := lastEventID.Get(); !ok || event.Id != lastEventID {
-				// This is not a duplicate event.
-				newEvents = append(newEvents, event)
-			}
-		}
-		if len(newEvents) > 0 {
-			lastEventID = optional.Some(newEvents[len(newEvents)-1].Id)
+		events := resp.Msg.Events
+		if len(events) > 0 {
+			// keep sending events until all have been sent
+			lastEventID = optional.Some(events[len(events)-1].Id)
 
 			if !ascending {
 				// Original query was for descending order, so reverse the events.
-				slices.Reverse(newEvents)
+				slices.Reverse(events)
 			}
-			err = stream.Send(&timelinepb.StreamTimelineResponse{
-				Events: newEvents,
-			})
-			if err != nil {
+
+			if err = stream.Send(&timelinepb.StreamTimelineResponse{Events: events}); err != nil {
 				return fmt.Errorf("failed to get timeline events: %w", err)
 			}
-
+		} else {
+			// no more events to send, wait for a new events or the context to be done
+			select {
+			case <-sub:
+			case <-ctx.Done():
+				return nil
+			}
 		}
 
-		select {
-		case <-sub:
-		case <-ctx.Done():
-			return nil
-		}
-
+		// throttle the updates to the client
 		time.Sleep(time.Until(lastUpdate.Add(updateInterval)))
+		lastUpdate = time.Now()
 	}
 }
 

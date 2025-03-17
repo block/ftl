@@ -1,7 +1,6 @@
 package timeline
 
 import (
-	"context"
 	"strconv"
 	"testing"
 	"time"
@@ -13,13 +12,64 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestGetTimelineWithLimit(t *testing.T) {
+func TestGetTimeline(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
-	service := &service{notifier: channels.NewNotifier(ctx)}
+	t.Run("Limits", func(t *testing.T) {
+		t.Parallel()
 
-	// Create a bunch of entries
-	entryCount := 100
+		entryCount := 100
+		service := createTestService(t, callEventsFixture(entryCount))
+
+		// Test with different limits
+		for _, limit := range []int32{0, 10, 33, 110} {
+			resp, err := service.GetTimeline(t.Context(), connect.NewRequest(&timelinepb.GetTimelineRequest{
+				Query: &timelinepb.TimelineQuery{
+					Order: timelinepb.TimelineQuery_ORDER_DESC,
+					Limit: limit,
+					Filters: []*timelinepb.TimelineQuery_Filter{
+						evetTypeFilter(timelinepb.EventType_EVENT_TYPE_CALL),
+					},
+				},
+			}))
+			if limit == 0 {
+				assert.Error(t, err, "invalid_argument: limit must be > 0")
+				continue
+			}
+			assert.NoError(t, err)
+			if limit == 0 || limit > int32(entryCount) {
+				assert.Equal(t, entryCount, len(resp.Msg.Events))
+			} else {
+				assert.Equal(t, int(limit), len(resp.Msg.Events))
+			}
+		}
+	})
+
+	t.Run("Delete old events", func(t *testing.T) {
+		t.Parallel()
+
+		service := createTestService(t, timestampFixture(100))
+
+		// Delete half the events (everything older than 3 seconds)
+		_, err := service.DeleteOldEvents(t.Context(), connect.NewRequest(&timelinepb.DeleteOldEventsRequest{
+			AgeSeconds: 3,
+			EventType:  timelinepb.EventType_EVENT_TYPE_UNSPECIFIED,
+		}))
+		assert.NoError(t, err)
+		assert.Equal(t, len(service.events), 150, "expected only half the events to be deleted")
+	})
+}
+
+func createTestService(t *testing.T, dataFixture *timelinepb.CreateEventsRequest) *service {
+	t.Helper()
+
+	service := &service{notifier: channels.NewNotifier(t.Context())}
+	service.events = []*timelinepb.Event{}
+	_, err := service.CreateEvents(t.Context(), connect.NewRequest(dataFixture))
+	assert.NoError(t, err)
+	return service
+}
+
+func callEventsFixture(entryCount int) *timelinepb.CreateEventsRequest {
 	entries := []*timelinepb.CreateEventsRequest_EventEntry{}
 	for i := range entryCount {
 		entries = append(entries, &timelinepb.CreateEventsRequest_EventEntry{
@@ -33,56 +83,13 @@ func TestGetTimelineWithLimit(t *testing.T) {
 		})
 	}
 
-	_, err := service.CreateEvents(ctx, connect.NewRequest(&timelinepb.CreateEventsRequest{
-		Entries: entries,
-	}))
-	assert.NoError(t, err)
-
-	// Test with different limits
-	for _, limit := range []int32{
-		0,
-		10,
-		33,
-		110,
-	} {
-		resp, err := service.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{
-			Query: &timelinepb.TimelineQuery{
-				Order: timelinepb.TimelineQuery_ORDER_DESC,
-				Limit: limit,
-				Filters: []*timelinepb.TimelineQuery_Filter{
-					{
-						Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
-							EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
-								EventTypes: []timelinepb.EventType{
-									timelinepb.EventType_EVENT_TYPE_CALL,
-								},
-							},
-						},
-					},
-				},
-			},
-		}))
-		if limit == 0 {
-			assert.Error(t, err, "invalid_argument: limit must be > 0")
-			continue
-		}
-		assert.NoError(t, err)
-		if limit == 0 || limit > int32(entryCount) {
-			assert.Equal(t, entryCount, len(resp.Msg.Events))
-		} else {
-			assert.Equal(t, int(limit), len(resp.Msg.Events))
-		}
-	}
+	return &timelinepb.CreateEventsRequest{Entries: entries}
 }
 
-func TestDeleteOldEvents(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	service := &service{notifier: channels.NewNotifier(ctx)}
-
+func timestampFixture(entryCount int) *timelinepb.CreateEventsRequest {
 	// Create a bunch of entries of different types
 	entries := []*timelinepb.CreateEventsRequest_EventEntry{}
-	for i := range 100 {
+	for i := range entryCount {
 		var timestamp *timestamppb.Timestamp
 		if i < 50 {
 			timestamp = timestamppb.New(time.Now().Add(-3 * time.Second))
@@ -114,17 +121,15 @@ func TestDeleteOldEvents(t *testing.T) {
 			},
 		})
 	}
+	return &timelinepb.CreateEventsRequest{Entries: entries}
+}
 
-	_, err := service.CreateEvents(ctx, connect.NewRequest(&timelinepb.CreateEventsRequest{
-		Entries: entries,
-	}))
-	assert.NoError(t, err)
-
-	// Delete half the events (everything older than 3 seconds)
-	_, err = service.DeleteOldEvents(ctx, connect.NewRequest(&timelinepb.DeleteOldEventsRequest{
-		AgeSeconds: 3,
-		EventType:  timelinepb.EventType_EVENT_TYPE_UNSPECIFIED,
-	}))
-	assert.NoError(t, err)
-	assert.Equal(t, len(service.events), 150, "expected only half the events to be deleted")
+func evetTypeFilter(eventTypes ...timelinepb.EventType) *timelinepb.TimelineQuery_Filter {
+	return &timelinepb.TimelineQuery_Filter{
+		Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+			EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
+				EventTypes: eventTypes,
+			},
+		},
+	}
 }

@@ -90,6 +90,7 @@ type CLI struct {
 	Dev         devCmd                    `cmd:"" help:"Develop FTL modules. Will start the FTL cluster, build and deploy all modules found in the specified directories, and watch for changes."`
 	Serve       serveCmd                  `cmd:"" help:"Start the FTL server."`
 	Completion  kongcompletion.Completion `cmd:"" help:"Outputs shell code for initialising tab completions."`
+	Logs        logsCmd                   `cmd:"" help:"View logs from FTL modules."`
 
 	// Specify the 1Password vault to access secrets from.
 	Vault string `name:"opvault" help:"1Password vault to be used for secrets. The name of the 1Password item will be the <ref> and the secret will be stored in the password field." placeholder:"VAULT"`
@@ -107,7 +108,9 @@ type InteractiveCLI struct {
 // DevModeCLI is the embedded CLI when running in dev mode.
 type DevModeCLI struct {
 	SharedCLI
-	Logs logsCmd `cmd:"" help:"Log commands."`
+	Logs struct {
+		Level logsSetLevelCmd `cmd:"" help:"Set the current log level"`
+	} `cmd:"" help:"Log commands."`
 }
 
 var cli CLI

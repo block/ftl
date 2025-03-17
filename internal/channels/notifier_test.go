@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestBroadcaster(t *testing.T) {
+func TestNotifier(t *testing.T) {
 	t.Run("broadcasts messages to all subscribers", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()

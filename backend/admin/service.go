@@ -628,26 +628,49 @@ func (s *Service) FailChangeset(ctx context.Context, c *connect.Request[ftlv1.Fa
 }
 
 func (s *Service) StreamLogs(ctx context.Context, req *connect.Request[adminpb.StreamLogsRequest], resp *connect.ServerStream[adminpb.StreamLogsResponse]) error {
+	query := req.Msg.Query
+	query.Filters = append(query.Filters, &timelinepb.TimelineQuery_Filter{
+		Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
+			EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
+				EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_LOG},
+			},
+		},
+	})
+
 	timeline, err := s.timelineClient.StreamTimeline(ctx, connect.NewRequest(&timelinepb.StreamTimelineRequest{
-		Query: req.Msg.Query,
+		Query: query,
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to get timeline: %w", err)
 	}
 
-	for timeline.Receive() {
-		msg := timeline.Msg()
-		logs := make([]*timelinepb.LogEvent, 0, len(msg.Events))
-		for _, event := range msg.Events {
-			if log := event.GetLog(); log != nil {
-				logs = append(logs, log)
+	buffer := make(chan *timelinepb.LogEvent, 256)
+	errg, _ := errgroup.WithContext(ctx)
+	errg.Go(func() error {
+		for timeline.Receive() {
+			msg := timeline.Msg()
+			for _, event := range msg.Events {
+				if log := event.GetLog(); log != nil {
+					buffer <- log
+				}
 			}
 		}
-		if err := resp.Send(&adminpb.StreamLogsResponse{
-			Logs: logs,
-		}); err != nil {
-			return fmt.Errorf("failed to send logs: %w", err)
+		return nil
+	})
+	errg.Go(func() error {
+		for log := range buffer {
+			if err := resp.Send(&adminpb.StreamLogsResponse{
+				Logs: []*timelinepb.LogEvent{log},
+			}); err != nil {
+				return fmt.Errorf("failed to send logs: %w", err)
+			}
 		}
+		return nil
+	})
+
+	err = errg.Wait()
+	if err != nil && !errors.Is(err, context.Canceled) {
+		return fmt.Errorf("failed to stream logs: %w", err)
 	}
 	return nil
 }
