@@ -19,7 +19,7 @@ require (
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
 	github.com/alecthomas/concurrency v0.0.2 // indirect
 	github.com/alecthomas/kong v1.9.0 // indirect
-	github.com/alecthomas/participle/v2 v2.1.1 // indirect
+	github.com/alecthomas/participle/v2 v2.1.2 // indirect
 	github.com/alecthomas/types v0.19.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.29.9 // indirect
@@ -40,7 +40,7 @@ require (
 	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
-	github.com/deckarep/golang-set/v2 v2.7.0 // indirect
+	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.9.0 // indirect

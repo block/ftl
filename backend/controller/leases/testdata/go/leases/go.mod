@@ -24,7 +24,7 @@ require (
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
 	github.com/alecthomas/concurrency v0.0.2 // indirect
 	github.com/alecthomas/kong v1.9.0 // indirect
-	github.com/alecthomas/participle/v2 v2.1.1 // indirect
+	github.com/alecthomas/participle/v2 v2.1.2 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
 	github.com/alecthomas/types v0.19.0 // indirect
 	github.com/amacneil/dbmate/v2 v2.26.0 // indirect
@@ -47,13 +47,13 @@ require (
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/block/ftl-golang-tools v0.4.0 // indirect
 	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f // indirect
-	github.com/block/scaffolder v1.3.0 // indirect
+	github.com/block/scaffolder v1.4.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/deckarep/golang-set/v2 v2.7.0 // indirect
+	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v27.5.0+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
