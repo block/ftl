@@ -2,12 +2,18 @@ package channels
 
 import (
 	"context"
+	"slices"
 	"sync"
 )
 
+type notifierSubscriber struct {
+	ch  chan struct{}
+	ctx context.Context
+}
+
 // Notifier helps to notify multiple subscribers that an event has occurred.
 type Notifier struct {
-	subscribers []chan struct{}
+	subscribers []*notifierSubscriber
 
 	mu sync.Mutex
 }
@@ -24,12 +30,15 @@ func NewNotifier(ctx context.Context) *Notifier {
 // Subscribe to the notifier.
 //
 // The returned channel will be closed when the notifier context is cancelled.
-func (b *Notifier) Subscribe() <-chan struct{} {
+func (b *Notifier) Subscribe(ctx context.Context) <-chan struct{} {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	out := make(chan struct{}, 1)
-	b.subscribers = append(b.subscribers, out)
+	b.subscribers = append(b.subscribers, &notifierSubscriber{
+		ch:  out,
+		ctx: ctx,
+	})
 
 	return out
 }
@@ -39,15 +48,31 @@ func (b *Notifier) Notify(ctx context.Context) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	for _, ch := range b.subscribers {
-		select {
-		case <-ctx.Done():
+	closedIndices := map[*notifierSubscriber]bool{}
+	for _, sub := range b.subscribers {
+		if sub.ctx.Err() != nil {
+			// subscriber is closed, remove the subscriber
+			closedIndices[sub] = true
+			continue
+		}
+		if ctx.Err() != nil {
+			// context is done, terminate
 			return
-		case ch <- struct{}{}:
-		default:
-			// channel is full, skip
+		} else {
+			select {
+			case sub.ch <- struct{}{}:
+			default:
+				// channel is full, skip
+			}
 		}
 	}
+
+	for sub := range closedIndices {
+		close(sub.ch)
+	}
+	b.subscribers = slices.DeleteFunc(b.subscribers, func(sub *notifierSubscriber) bool {
+		return closedIndices[sub]
+	})
 }
 
 func (b *Notifier) closeWhenDone(ctx context.Context) {
@@ -57,8 +82,8 @@ func (b *Notifier) closeWhenDone(ctx context.Context) {
 		b.mu.Lock()
 		defer b.mu.Unlock()
 
-		for _, ch := range b.subscribers {
-			close(ch)
+		for _, sub := range b.subscribers {
+			close(sub.ch)
 		}
 	}()
 }
