@@ -9,13 +9,14 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
+	"github.com/block/ftl/internal/channels"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestGetTimelineWithLimit(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	service := &service{}
+	service := &service{notifier: channels.NewNotifier(ctx)}
 
 	// Create a bunch of entries
 	entryCount := 100
@@ -77,7 +78,7 @@ func TestGetTimelineWithLimit(t *testing.T) {
 func TestDeleteOldEvents(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	service := &service{}
+	service := &service{notifier: channels.NewNotifier(ctx)}
 
 	// Create a bunch of entries of different types
 	entries := []*timelinepb.CreateEventsRequest_EventEntry{}

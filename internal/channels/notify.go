@@ -12,6 +12,9 @@ type notifierSubscriber struct {
 }
 
 // Notifier helps to notify multiple subscribers that an event has occurred.
+//
+// Unlike pubsub.Topic, notifier drops messages if the subscribers are not processing them fast enough.
+// As the messages do not carry payload, we are safe to do so.
 type Notifier struct {
 	subscribers []*notifierSubscriber
 
@@ -58,12 +61,11 @@ func (b *Notifier) Notify(ctx context.Context) {
 		if ctx.Err() != nil {
 			// context is done, terminate
 			return
-		} else {
-			select {
-			case sub.ch <- struct{}{}:
-			default:
-				// channel is full, skip
-			}
+		}
+		select {
+		case sub.ch <- struct{}{}:
+		default:
+			// channel is full, skip
 		}
 	}
 

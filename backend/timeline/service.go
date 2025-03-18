@@ -39,6 +39,8 @@ type service struct {
 	lock   sync.RWMutex
 	nextID int
 	events []*timelinepb.Event
+
+	notifier *channels.Notifier
 }
 
 var _ timelineconnect.TimelineServiceHandler = (*service)(nil)
@@ -49,9 +51,10 @@ func Start(ctx context.Context, config Config) error {
 	logger := log.FromContext(ctx).Scope("timeline")
 	ctx = log.ContextWithLogger(ctx, logger)
 	svc := &service{
-		config: config,
-		events: make([]*timelinepb.Event, 0),
-		nextID: 0,
+		config:   config,
+		events:   make([]*timelinepb.Event, 0),
+		nextID:   0,
+		notifier: channels.NewNotifier(ctx),
 	}
 
 	go svc.reapCallEvents(ctx)
@@ -129,6 +132,7 @@ func (s *service) CreateEvents(ctx context.Context, req *connect.Request[timelin
 		s.events = append(s.events, event)
 		s.nextID++
 	}
+	s.notifier.Notify(ctx)
 	return connect.NewResponse(&timelinepb.CreateEventsResponse{}), nil
 }
 
@@ -185,8 +189,11 @@ func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 }
 
 func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
-	// Default to 1 second interval if not specified.
-	updateInterval := 1 * time.Second
+	sub := s.notifier.Subscribe(ctx)
+	lastUpdate := time.Now()
+
+	// We might want to throttle the number of updates we send to the client.
+	var updateInterval time.Duration
 	if req.Msg.UpdateInterval != nil && req.Msg.UpdateInterval.AsDuration() > time.Second { // Minimum 1s interval.
 		updateInterval = req.Msg.UpdateInterval.AsDuration()
 	}
@@ -241,11 +248,14 @@ func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timel
 			}
 
 		}
+
 		select {
-		case <-time.After(updateInterval):
+		case <-sub:
 		case <-ctx.Done():
 			return nil
 		}
+
+		time.Sleep(time.Until(lastUpdate.Add(updateInterval)))
 	}
 }
 

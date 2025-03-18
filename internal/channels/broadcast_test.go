@@ -2,13 +2,14 @@ package channels
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
 
 func TestBroadcaster(t *testing.T) {
 	t.Run("broadcasts messages to all subscribers", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 
 		b := NewNotifier(ctx)
@@ -32,7 +33,7 @@ func TestBroadcaster(t *testing.T) {
 	})
 
 	t.Run("closes all subscriber channels when context is done", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		b := NewNotifier(ctx)
 
@@ -57,14 +58,14 @@ func TestBroadcaster(t *testing.T) {
 	})
 
 	t.Run("does not notify closed subscribers", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		b := NewNotifier(ctx)
 
-		subCtx, subCancel := context.WithCancel(ctx)
+		subCtx, subCancel := context.WithCancelCause(ctx)
 		sub := b.Subscribe(subCtx)
 
-		subCancel()
+		subCancel(errors.New("test error"))
 
 		b.Notify(ctx)
 
