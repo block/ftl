@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -14,14 +15,12 @@ import (
 
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/terminal"
 )
 
-//go:embed goose_instructions_intro.txt
-var gooseIntroInstructions string
-
-//go:embed goose_instructions_first_prompt.txt
-var gooseFirstPromptInstructions string
+//go:embed goose_instructions.txt
+var gooseInstructions string
 
 type gooseCmd struct {
 	Prompt []string `arg:"" required:"" help:"Ask Goose for help"`
@@ -29,7 +28,7 @@ type gooseCmd struct {
 
 var first = true
 
-func (c *gooseCmd) Run(ctx context.Context) error {
+func (c *gooseCmd) Run(ctx context.Context, projectConfig projectconfig.Config) error {
 	gooseName := "🔮 Goose"
 	terminal.UpdateModuleState(ctx, gooseName, terminal.BuildStateBuilding)
 	defer terminal.UpdateModuleState(ctx, gooseName, terminal.BuildStateTerminated)
@@ -37,7 +36,7 @@ func (c *gooseCmd) Run(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	data := strings.Join(c.Prompt, " ")
-	args := []string{"run"}
+	args := []string{"run", "--with-extension", "ftl mcp", "--path", filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.jsonl")}
 	if first {
 		logger.Infof("Setting up goose")
 		first = false
@@ -48,21 +47,17 @@ func (c *gooseCmd) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-
-		fullIntroInstructions := gooseIntroInstructions + "\n\nAll FTL Docs:\n\n" + strings.Join(docs, "\n\n")
-
-		cmd := exec.Command(ctx, log.Debug, ".", "goose", "run", "--text", fullIntroInstructions)
-		out := &output{}
-		cmd.Stderr = out
-		err = cmd.Run()
-		if err != nil {
-			return fmt.Errorf("goose failed: %w", err)
+		components := []string{
+			"You are working with a system called FTL (Faster than Light) within an existing project. I want you to learn about FTL before I give you the user's prompt.\n\nAll FTL Docs:",
+			strings.Join(docs, "\n\n"),
+			gooseInstructions,
+			data,
 		}
-
-		// Second command includes final instructions and the user's input
-		data = gooseFirstPromptInstructions + data
+		data = strings.Join(components, "\n\n")
+	} else {
+		args = append(args, "--resume")
 	}
-	args = append(args, "--resume", "--with-extension", "ftl mcp", "--text", data)
+	args = append(args, "--text", data)
 
 	cmd := exec.Command(ctx, log.Debug, ".", "goose", args...)
 	out := &output{}
