@@ -36,22 +36,34 @@ func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig projectconfig
 
 	s.AddTool(mcp.StatusTool(ctx, buildEngineClient, adminClient))
 	s.AddTool(mcp.TimelineTool(ctx, timelineClient))
+	s.AddTool(mcp.ReadTool())
+	s.AddTool(mcp.WriteTool(ctx, buildEngineClient, adminClient))
 
-	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "NewModule", []string{"module", "new"},
-		mcp.IncludeOptional("dir"), mcp.Pattern("name", optional.Some(mcp.ModuleRegex))))
-	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "CallVerb", []string{"call"},
+	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "NewModule", []string{"module", "new"},
+		mcp.IncludeOptional("dir"), mcp.Pattern("name", optional.Some(mcp.ModuleRegex)),
+		mcp.IncludeStatus()))
+	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "CallVerb", []string{"call"},
 		mcp.IncludeOptional("request"), mcp.Args("-v")))
 	// TODO: all secret commands, with xor group of bools for providers
 	// TODO: all config commands, with xor group of bools for providers
-	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "ResetSubscription", []string{"pubsub", "subscription", "reset"},
+	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "ResetSubscription", []string{"pubsub", "subscription", "reset"},
 		mcp.AddHelp("This does not return any info about the state of the subscription."),
 		mcp.AddHelp("The user MUST explicitly ask for the subscription to be reset.")))
-	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "NewMySQLDatabase", []string{"mysql", "new"},
-		mcp.Pattern("datasource", optional.Some(mcp.RefRegex))))
-	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "NewMySQLMigration", []string{"mysql", "new", "migration"},
-		mcp.Ignore(newSQLCmd{}, "datasource")))
-	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "NewPostgresDatabase", []string{"postgres", "new"}))
-	s.AddTool(mcp.ToolFromCLI(ctx, k, executor, "NewPostgresMigration", []string{"postgres", "new", "migration"},
-		mcp.Ignore(newSQLCmd{}, "datasource")))
+	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "NewMySQLDatabase", []string{"mysql", "new"},
+		mcp.Pattern("datasource", optional.Some(mcp.RefRegex)),
+		mcp.IncludeStatus(),
+		mcp.AutoReadFilePaths()))
+	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "NewMySQLMigration", []string{"mysql", "new", "migration"},
+		mcp.Ignore(newSQLCmd{}, "datasource"),
+		mcp.Pattern("datasource", optional.Some(mcp.RefRegex)),
+		mcp.AutoReadFilePaths()))
+	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "NewPostgresDatabase", []string{"postgres", "new"},
+		mcp.Pattern("datasource", optional.Some(mcp.RefRegex)),
+		mcp.IncludeStatus(),
+		mcp.AutoReadFilePaths()))
+	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "NewPostgresMigration", []string{"postgres", "new", "migration"},
+		mcp.Ignore(newSQLCmd{}, "datasource"),
+		mcp.Pattern("datasource", optional.Some(mcp.RefRegex)),
+		mcp.AutoReadFilePaths()))
 	return s
 }

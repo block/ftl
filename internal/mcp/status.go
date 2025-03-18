@@ -24,90 +24,102 @@ type statusOutput struct {
 	Schema  string
 }
 
+func statusToolHandler(serverCtx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		output, err := getStatusOutput(serverCtx, buildEngineClient, adminClient)
+		if err != nil {
+			return nil, err
+		}
+		data, err := json.Marshal(output)
+		if err != nil {
+			return nil, fmt.Errorf("could not marshal status: %w", err)
+		}
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func getStatusOutput(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) (statusOutput, error) {
+	result, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient)
+	if err != nil {
+		return statusOutput{}, fmt.Errorf("could not get status: %w", err)
+	}
+
+	sch := ireflect.DeepCopy(result.Schema)
+	for _, module := range sch.Modules {
+		moduleState, ok := slices.Find(result.Modules, func(m devstate.ModuleState) bool {
+			return m.Name == module.Name
+		})
+		if !ok {
+			continue
+		}
+		for _, decl := range module.Decls {
+			switch decl := decl.(type) {
+			case *schema.Topic:
+				c, err := commentForPath(decl.Pos, moduleState.Path)
+				if err != nil {
+					return statusOutput{}, err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Verb:
+				c, err := commentForPath(decl.Pos, moduleState.Path)
+				if err != nil {
+					return statusOutput{}, err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Config:
+				c, err := commentForPath(decl.Pos, moduleState.Path)
+				if err != nil {
+					return statusOutput{}, err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Secret:
+				c, err := commentForPath(decl.Pos, moduleState.Path)
+				if err != nil {
+					return statusOutput{}, err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Database:
+				c, err := commentForPath(decl.Pos, moduleState.Path)
+				if err != nil {
+					return statusOutput{}, err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Data:
+				c, err := commentForPath(decl.Pos, moduleState.Path)
+				if err != nil {
+					return statusOutput{}, err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.Enum:
+				c, err := commentForPath(decl.Pos, moduleState.Path)
+				if err != nil {
+					return statusOutput{}, err
+				}
+				decl.Comments = append(decl.Comments, c)
+			case *schema.TypeAlias:
+				c, err := commentForPath(decl.Pos, moduleState.Path)
+				if err != nil {
+					return statusOutput{}, err
+				}
+				decl.Comments = append(decl.Comments, c)
+			}
+		}
+	}
+
+	output := statusOutput{
+		Modules: result.Modules,
+		Schema:  sch.String(),
+	}
+	return output, nil
+}
+
 func StatusTool(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient) (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool(
 			"Status",
 			mcp.WithDescription("Get the current status of each FTL module and the current schema"),
 		),
-		func(serverCtx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			result, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient)
-			if err != nil {
-				return nil, fmt.Errorf("could not get status: %w", err)
-			}
-
-			sch := ireflect.DeepCopy(result.Schema)
-			for _, module := range sch.Modules {
-				moduleState, ok := slices.Find(result.Modules, func(m devstate.ModuleState) bool {
-					return m.Name == module.Name
-				})
-				if !ok {
-					continue
-				}
-				for _, decl := range module.Decls {
-					switch decl := decl.(type) {
-					case *schema.Topic:
-						c, err := commentForPath(decl.Pos, moduleState.Path)
-						if err != nil {
-							return nil, err
-						}
-						decl.Comments = append(decl.Comments, c)
-					case *schema.Verb:
-						c, err := commentForPath(decl.Pos, moduleState.Path)
-						if err != nil {
-							return nil, err
-						}
-						decl.Comments = append(decl.Comments, c)
-					case *schema.Config:
-						c, err := commentForPath(decl.Pos, moduleState.Path)
-						if err != nil {
-							return nil, err
-						}
-						decl.Comments = append(decl.Comments, c)
-					case *schema.Secret:
-						c, err := commentForPath(decl.Pos, moduleState.Path)
-						if err != nil {
-							return nil, err
-						}
-						decl.Comments = append(decl.Comments, c)
-					case *schema.Database:
-						c, err := commentForPath(decl.Pos, moduleState.Path)
-						if err != nil {
-							return nil, err
-						}
-						decl.Comments = append(decl.Comments, c)
-					case *schema.Data:
-						c, err := commentForPath(decl.Pos, moduleState.Path)
-						if err != nil {
-							return nil, err
-						}
-						decl.Comments = append(decl.Comments, c)
-					case *schema.Enum:
-						c, err := commentForPath(decl.Pos, moduleState.Path)
-						if err != nil {
-							return nil, err
-						}
-						decl.Comments = append(decl.Comments, c)
-					case *schema.TypeAlias:
-						c, err := commentForPath(decl.Pos, moduleState.Path)
-						if err != nil {
-							return nil, err
-						}
-						decl.Comments = append(decl.Comments, c)
-					}
-				}
-			}
-
-			output := statusOutput{
-				Modules: result.Modules,
-				Schema:  sch.String(),
-			}
-			data, err := json.Marshal(output)
-			if err != nil {
-				return nil, fmt.Errorf("could not marshal status: %w", err)
-			}
-			return mcp.NewToolResultText(string(data)), nil
-		}
+		statusToolHandler(ctx, buildEngineClient, adminClient)
 }
 
 func commentForPath(pos schema.Position, modulePath string) (string, error) {

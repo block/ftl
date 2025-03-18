@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"maps"
@@ -15,8 +16,11 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/common/reflection"
 	islices "github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 const (
@@ -71,6 +75,21 @@ func Args(args ...string) CLIToolOption {
 	}
 }
 
+func IncludeStatus() CLIToolOption {
+	return func(inputOptions *CLIConfig) {
+		inputOptions.IncludeStatus = true
+	}
+}
+
+// AutoReadFilePaths enables filepath detection on the result of the CLI command.
+// If a filepath within the project directory is detected, it will be read in and included in the result for the assistant.
+// This speeds up the process of performing actions and then waiting for the assistant to read the file.
+func AutoReadFilePaths() CLIToolOption {
+	return func(inputOptions *CLIConfig) {
+		inputOptions.AutoReadFilePaths = true
+	}
+}
+
 type CLIOptionConfig struct {
 	IgnoreInModel   optional.Option[any]
 	IncludeOptional bool
@@ -78,9 +97,11 @@ type CLIOptionConfig struct {
 }
 
 type CLIConfig struct {
-	InputOptions map[string]*CLIOptionConfig
-	ExtraHelp    []string
-	ExtraArgs    []string
+	InputOptions      map[string]*CLIOptionConfig
+	ExtraHelp         []string
+	ExtraArgs         []string
+	IncludeStatus     bool
+	AutoReadFilePaths bool
 }
 
 func (c CLIConfig) Option(name string) *CLIOptionConfig {
@@ -92,7 +113,7 @@ func (c CLIConfig) Option(name string) *CLIOptionConfig {
 
 type CLIExecutor func(ctx context.Context, k *kong.Kong, args []string) error
 
-func ToolFromCLI(ctx context.Context, k *kong.Kong, executor CLIExecutor, title string, cmdPath []string, toolOptions ...CLIToolOption) (mcp.Tool, server.ToolHandlerFunc) {
+func ToolFromCLI(serverCtx context.Context, k *kong.Kong, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient, executor CLIExecutor, title string, cmdPath []string, toolOptions ...CLIToolOption) (mcp.Tool, server.ToolHandlerFunc) {
 	config := &CLIConfig{
 		InputOptions: map[string]*CLIOptionConfig{},
 	}
@@ -178,7 +199,7 @@ func ToolFromCLI(ctx context.Context, k *kong.Kong, executor CLIExecutor, title 
 			}), "\n")))
 		}
 	}
-	return mcp.NewTool(title, opts...), func(serverCtx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return mcp.NewTool(title, opts...), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := []string{}
 		args = append(args, cmdPath...)
 		for _, parser := range parsers {
@@ -202,7 +223,7 @@ func ToolFromCLI(ctx context.Context, k *kong.Kong, executor CLIExecutor, title 
 		}
 		os.Stdout = write
 		os.Stderr = write
-		if err := executor(ctx, k, args); err != nil {
+		if err := executor(serverCtx, k, args); err != nil {
 			return nil, err
 		}
 		write.Close()
@@ -211,7 +232,23 @@ func ToolFromCLI(ctx context.Context, k *kong.Kong, executor CLIExecutor, title 
 		if err != nil {
 			return nil, fmt.Errorf("could not read output: %w", err)
 		}
-		return mcp.NewToolResultText(buf.String()), nil
+		cliResult := buf.String()
+		content := []mcp.Content{
+			annotateTextContent(mcp.NewTextContent(cliResult), []mcp.Role{mcp.RoleAssistant}, 1.0),
+		}
+		if config.AutoReadFilePaths {
+			content = append(content, autoReadFilePaths(serverCtx, projectConfig, cliResult)...)
+		}
+		if config.IncludeStatus {
+			if statusContent, err := statusContent(serverCtx, buildEngineClient, adminClient); err == nil {
+				content = append(content, statusContent)
+			}
+		}
+
+		return &mcp.CallToolResult{
+			Content: content,
+			IsError: false,
+		}, nil
 	}
 }
 
@@ -305,4 +342,57 @@ func newStringOption(name string, flag bool, opts []mcp.PropertyOption) (mcp.Too
 		}
 		return []string{str}, nil
 	}
+}
+
+// statusContent returns the status of the FTL after the tool was run.
+func statusContent(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) (mcp.Content, error) {
+	output, err := getStatusOutput(ctx, buildEngineClient, adminClient)
+	if err != nil {
+		// Fallback to just returning the tool result
+		return nil, err
+	}
+	wrapper := struct {
+		Explanation string       `json:"explanation,omitempty"`
+		Status      statusOutput `json:"status"`
+	}{
+		Explanation: "FTL status was retreived after the changes were made. Here is the result.",
+		Status:      output,
+	}
+
+	statusJSON, err := json.Marshal(wrapper)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal status: %w", err)
+	}
+
+	return annotateTextContent(mcp.NewTextContent(string(statusJSON)), []mcp.Role{mcp.RoleAssistant}, 1.0), nil
+}
+
+func autoReadFilePaths(ctx context.Context, projectConfig projectconfig.Config, cliOutput string) []mcp.Content {
+	var contents []mcp.Content
+	root := projectConfig.Root()
+	for _, word := range strings.Fields(cliOutput) {
+		if !strings.HasPrefix(word, root) {
+			continue
+		}
+		if _, err := os.Stat(word); err == nil {
+			fileContent, err := os.ReadFile(word)
+			if err != nil {
+				continue
+			}
+			token, err := tokenForFileContent(fileContent)
+			if err != nil {
+				continue
+			}
+
+			result, err := newReadResult(fileContent, token, false,
+				`File at " + word + " may be relevant to the changes that were just made so it has been pre-fetched and included. 
+			The WriteVerificationToken can be used to update the file.`)
+			if err != nil {
+				continue
+			}
+			contents = append(contents, result.Content...)
+		}
+	}
+
+	return contents
 }
