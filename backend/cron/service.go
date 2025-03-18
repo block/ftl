@@ -70,8 +70,9 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 	logger.Debugf("Starting FTL cron service")
 	events := eventSource.Subscribe(ctx)
 
-	var rpcOpts []rpc.Option
 	var shard statemachine.Handle[struct{}, CronState, CronEvent]
+
+	g, ctx := errgroup.WithContext(ctx)
 
 	if config.Raft.DataDir == "" {
 		shard = statemachine.NewLocalHandle(newStateMachine(ctx))
@@ -83,17 +84,15 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 		shard = raft.AddShard(gctx, clusterBuilder, 1, newStateMachine(ctx))
 		cluster := clusterBuilder.Build(gctx)
 
+		var rpcOpts []rpc.Option
 		rpcOpts = append(rpcOpts, raft.RPCOption(cluster))
+		g.Go(func() error {
+			return rpc.Serve(ctx, config.Bind, rpcOpts...)
+		})
 	}
 
 	logger.Debugf("Starting cron service")
 	state := statemachine.NewSingleQueryHandle(shard, struct{}{})
-
-	g, ctx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		return rpc.Serve(ctx, config.Bind, rpcOpts...)
-	})
 
 	g.Go(func() error {
 		for {

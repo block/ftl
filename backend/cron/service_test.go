@@ -76,11 +76,7 @@ func TestCron(t *testing.T) {
 	schemaEndpoint, err := url.Parse("http://localhost:8897")
 	assert.NoError(t, err)
 
-	bind, err := url.Parse("http://127.0.0.1:0") // Use port 0 to let the OS assign a random port
-	assert.NoError(t, err)
-
 	cfg := Config{
-		Bind:                  bind,
 		SchemaServiceEndpoint: schemaEndpoint,
 		TimelineEndpoint:      timelineEndpoint,
 		Raft:                  raft.RaftConfig{},

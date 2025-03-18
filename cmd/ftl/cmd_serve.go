@@ -76,7 +76,6 @@ type serveCommonConfig struct {
 	Console             console.Config       `embed:"" prefix:"console-"`
 	Lease               lease.Config         `embed:"" prefix:"lease-"`
 	Admin               admin.Config         `embed:"" prefix:"admin-"`
-	Cron                cron.Config          `embed:"" prefix:"cron-"`
 	Recreate            bool                 `help:"Recreate any stateful resources if they already exist." default:"false"`
 	controller.CommonConfig
 	provisioner.CommonProvisionerConfig
@@ -324,7 +323,11 @@ func (s *serveCommonConfig) run(
 	// Start Cron
 	wg.Go(func() error {
 		ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("cron"))
-		err := cron.Start(ctx, s.Cron, schemaEventSource, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), timelineClient)
+		c := cron.Config{
+			SchemaServiceEndpoint: s.SchemaEndpoint,
+			TimelineEndpoint:      s.Timeline.Bind,
+		}
+		err := cron.Start(ctx, c, schemaEventSource, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), timelineClient)
 		if err != nil {
 			return fmt.Errorf("cron failed: %w", err)
 		}
