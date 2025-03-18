@@ -244,7 +244,7 @@ func checkSignature(
 
 	if params.Len() >= 2 {
 		if params.At(1).Type().String() == common.FtlUnitTypePath {
-			common.TokenErrorf(pass, params.At(1).Pos(), params.At(1).Name(), "second parameter must not be ftl.Unit")
+			common.TokenErrorf(pass, params.At(1).Pos(), params.At(1).Name(), "second parameter must not be ftl.Unit (verbs without a request type should omit the request parameter)")
 		}
 
 		if hasRequest {
