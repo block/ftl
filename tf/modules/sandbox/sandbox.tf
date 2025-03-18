@@ -154,7 +154,7 @@ output "values" {
           },
           {
             name: "FTL_SANDBOX_MYSQL_ENDPOINT",
-            value: aws_rds_cluster_instance.ftl_mysql_sandbox_instance[0].endpoint
+            value: "${aws_rds_cluster_instance.ftl_mysql_sandbox_instance[0].endpoint}:${aws_rds_cluster_instance.ftl_mysql_sandbox_instance[0].port}"
           },
           {
             name: "FTL_SANDBOX_KAFKA_BROKERS",
