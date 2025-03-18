@@ -125,7 +125,7 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 			if len(originalContent) == 0 {
 				userResult = annotateTextContent(mcp.NewTextContent("### "+path+"\n```\n"+fileContent+"\n```"), []mcp.Role{mcp.RoleUser}, 0.2)
 			} else {
-				userResult = annotateTextContent(mcp.NewTextContent(diff(path, string(originalContent), fileContent)), []mcp.Role{mcp.RoleUser}, 0.2)
+				userResult = annotateTextContent(mcp.NewTextContent(prettyDiff(path, string(originalContent), fileContent)), []mcp.Role{mcp.RoleUser}, 0.2)
 			}
 
 			content := []mcp.Content{
@@ -154,9 +154,9 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 		}
 }
 
-func diff(path, original, new string) string {
+func prettyDiff(path, original, new string) string {
 	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(string(original), new, false)
+	diffs := dmp.DiffMain(original, new, false)
 	diffs = dmp.DiffCleanupSemantic(diffs)
 	includedLines := 10
 	for i, d := range diffs {
@@ -195,7 +195,7 @@ func diff(path, original, new string) string {
 func tokenForFileContent(content []byte) (string, error) {
 	hasher := sha256.New()
 	if _, err := hasher.Write(content); err != nil {
-		return "", err
+		return "", fmt.Errorf("could not hash file content: %w", err)
 	}
 	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
 }

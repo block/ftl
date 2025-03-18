@@ -237,7 +237,7 @@ func ToolFromCLI(serverCtx context.Context, k *kong.Kong, projectConfig projectc
 			annotateTextContent(mcp.NewTextContent(cliResult), []mcp.Role{mcp.RoleAssistant}, 1.0),
 		}
 		if config.AutoReadFilePaths {
-			content = append(content, autoReadFilePaths(serverCtx, projectConfig, cliResult)...)
+			content = append(content, autoReadFilePaths(projectConfig, cliResult)...)
 		}
 		if config.IncludeStatus {
 			if statusContent, err := statusContent(serverCtx, buildEngineClient, adminClient); err == nil {
@@ -367,7 +367,7 @@ func statusContent(ctx context.Context, buildEngineClient buildenginepbconnect.B
 	return annotateTextContent(mcp.NewTextContent(string(statusJSON)), []mcp.Role{mcp.RoleAssistant}, 1.0), nil
 }
 
-func autoReadFilePaths(ctx context.Context, projectConfig projectconfig.Config, cliOutput string) []mcp.Content {
+func autoReadFilePaths(projectConfig projectconfig.Config, cliOutput string) []mcp.Content {
 	var contents []mcp.Content
 	root := projectConfig.Root()
 	for _, word := range strings.Fields(cliOutput) {
