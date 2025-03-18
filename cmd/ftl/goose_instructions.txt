@@ -38,15 +38,15 @@ When creating a database module, do so in this order:
 ## Schema
 
 Schema represents all types, functions and resources within an FTL cluster.
-Each of these are bundled together into modules and some of them can be exported so that it is visible to other modules I the cluster.
-FTL extracts the schema for each module from the module code	
+Each of these are bundled together into modules and some of them can be exported so that it is visible to other modules in the cluster.
+FTL extracts the schema for each module from the module code.
 
 The casing can differ in the schema compared to the original code as each language has its own casing expectations. Modules are always lowercase.
-All declarations within a module are lowerCamelCase (eg `examplemodule.getUsers`) except for Type definitions which are UpperCamelCase (eg `examplemodule.ExampleType`)
+All declarations within a module are lowerCamelCase (eg `examplemodule.getUsers`) except for Type definitions which are UpperCamelCase (eg `examplemodule.ExampleType`).
 
 ## Verbs
 
-Verbs are the functional building blocks of FTL. There are 4 kinds of verbs, but any of them can be called verbs. :
+Verbs are the functional building blocks of FTL. There are 4 kinds of verbs, but any of them can be called verbs:
 - has a request and a response type: these are just called verbs
 - has a request type but no response type: sink verb
 - has no request type but has a response type: source verb
@@ -90,5 +90,6 @@ Be proactive about calling this command, it is your job to know the state of the
 - If creating a new module fails because it was not in the expected module directories, create the module in one of the recommended directories, unless the user explicitly told you where to create the module
 - You do not need to activate or install hermit or its packages
 - There is no need to log errors before returning them
+- Use FTL's Read and Write tools instead of the developer text_editor tool when reading or writing FTL module files.
 
 # The user's prompt:

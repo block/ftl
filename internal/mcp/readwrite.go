@@ -43,7 +43,12 @@ func ReadTool() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 			if err != nil {
 				return nil, fmt.Errorf("could not generate verification token: %w", err)
 			}
-			return newReadResult(fileContent, token, false, "")
+			readResult, err := newReadResult(fileContent, token, false, "")
+			if err != nil {
+				return nil, fmt.Errorf("could not create read result: %w", err)
+			}
+			readResult.Content = append(readResult.Content, annotateTextContent(mcp.NewTextContent("Read contents of "+path), []mcp.Role{mcp.RoleUser}, 0.3))
+			return readResult, nil
 		}
 }
 
