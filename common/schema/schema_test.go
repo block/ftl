@@ -52,12 +52,12 @@ module todo {
 
   data InsertRequest {
     +generated
-    name String +sql column "requests"."name"
+    name String +sql column requests.name
   }
 
   data InsertResponse {
     +generated
-    name [String] +sql column "requests"."name_list"
+    name [String] +sql column requests.name_list
   }
 
   export verb create(todo.CreateRequest) todo.CreateResponse
@@ -812,11 +812,11 @@ module todo {
   }
   data InsertRequest {
     +generated
-    name String +sql column "requests"."name"
+    name String +sql column requests.name
   }
   data InsertResponse {
  	+generated
-    name [String] +sql column "requests"."name_list"
+    name [String] +sql column requests.name_list
   }
   data DestroyRequest {
     // A comment
