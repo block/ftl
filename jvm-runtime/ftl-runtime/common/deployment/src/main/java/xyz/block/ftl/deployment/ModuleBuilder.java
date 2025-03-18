@@ -431,6 +431,13 @@ public class ModuleBuilder {
                             .build();
                 }
                 if (info != null && info.hasDeclaredAnnotation(GENERATED_REF)) {
+
+                    // Validate that we are not attempting to modify the 'export' status of a generated type
+                    if (!info.hasAnnotation(EXPORT) && export) {
+                        validationFailures.add(new ValidationFailure(toError(forClass(clazz.name().toString())),
+                                "Generated type " + clazz.name()
+                                        + " cannot be implicitly exported as part of the signature of a verb as it is a generated type, define a new type instead"));
+                    }
                     var ref = info.declaredAnnotation(GENERATED_REF);
                     return handleNullabilityAnnotations(Type.newBuilder()
                             .setRef(Ref.newBuilder().setName(ref.value("name").asString())
