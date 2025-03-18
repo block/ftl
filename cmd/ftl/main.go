@@ -63,8 +63,6 @@ type SharedCLI struct {
 	Update    updateCmd    `cmd:"" help:"Update a deployment."`
 	Kill      killCmd      `cmd:"" help:"Kill a deployment."`
 	Schema    schemaCmd    `cmd:"" help:"FTL schema commands."`
-	Build     buildCmd     `cmd:"" help:"Build all modules found in the specified directories."`
-	Deploy    deployCmd    `cmd:"" help:"Build and deploy all modules found in the specified directories."`
 	Download  downloadCmd  `cmd:"" help:"Download a deployment."`
 	Secret    secretCmd    `cmd:"" help:"Manage secrets."`
 	Config    configCmd    `cmd:"" help:"Manage configuration."`
@@ -74,8 +72,14 @@ type SharedCLI struct {
 	Postgres  postgresCmd  `cmd:"" help:"Manage PostgreSQL databases."`
 }
 
+type BuildAndDeploy struct {
+	Build  buildCmd  `cmd:"" help:"Build all modules found in the specified directories."`
+	Deploy deployCmd `cmd:"" help:"Build and deploy all modules found in the specified directories."`
+}
+
 type CLI struct {
 	SharedCLI
+	BuildAndDeploy
 	LogConfig log.Config `embed:"" prefix:"log-" group:"Logging:"`
 
 	Authenticators map[string]string `help:"Authenticators to use for FTL endpoints." mapsep:"," env:"FTL_AUTHENTICATORS" placeholder:"HOST=EXE,…"`
@@ -94,6 +98,13 @@ type CLI struct {
 	MCP mcpCmd `cmd:"" help:"Start the MCP server."`
 }
 
+// InteractiveCLI is the CLI that is used when running in interactive mode.
+type InteractiveCLI struct {
+	SharedCLI
+	BuildAndDeploy
+}
+
+// DevModeCLI is the embedded CLI when running in dev mode.
 type DevModeCLI struct {
 	SharedCLI
 	Logs logsCmd `cmd:"" help:"Log commands."`
