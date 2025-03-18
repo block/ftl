@@ -128,7 +128,7 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 			}
 			defer os.Remove(tmpFile.Name()) // Delete the temp file if we error.
 			defer tmpFile.Close()
-			if _, err := tmpFile.Write([]byte(fileContent)); err != nil {
+			if _, err := tmpFile.WriteString(fileContent); err != nil {
 				return nil, fmt.Errorf("could not write to tmp file for %s: %w", path, err)
 			}
 			if err := os.Rename(tmpFile.Name(), path); err != nil {
@@ -168,9 +168,9 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 		}
 }
 
-func prettyDiff(path, original, new string) string {
+func prettyDiff(path, original, latest string) string {
 	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(original, new, false)
+	diffs := dmp.DiffMain(original, latest, false)
 	diffs = dmp.DiffCleanupSemantic(diffs)
 	includedLines := 10
 	for i, d := range diffs {
