@@ -36,7 +36,6 @@ func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.Provi
 	}
 
 	// call status endpoint in a loop until the status is not pending
-	statusCh := make(chan *provisioner.StatusResponse)
 	backoff := backoff.Backoff{
 		Min: 50 * time.Millisecond,
 		Max: 30 * time.Second,
@@ -47,13 +46,7 @@ func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.Provi
 			DesiredModule:     req.DesiredModule,
 		}))
 		if err != nil {
-			statusCh <- &provisioner.StatusResponse{
-				Status: &provisioner.StatusResponse_Failed{
-					Failed: &provisioner.StatusResponse_ProvisioningFailed{
-						ErrorMessage: err.Error(),
-					},
-				},
-			}
+			return nil, fmt.Errorf("provisioner status check failed %w", err)
 		}
 
 		switch status.Msg.GetStatus().(type) {

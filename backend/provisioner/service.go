@@ -99,8 +99,11 @@ func Start(
 			case *schema.ChangesetCreatedNotification:
 				err := svc.HandleChangesetPreparing(ctx, e.Changeset)
 				if err != nil {
-					_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: e.Changeset.Key.String(), Error: err.Error()}))
 					logger.Errorf(err, "Error provisioning changeset")
+					_, err = svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: e.Changeset.Key.String(), Error: err.Error()}))
+					if err != nil {
+						logger.Errorf(err, "Error rolling back changeset")
+					}
 				}
 			case *schema.ChangesetPreparedNotification:
 				err := svc.HandleChangesetPrepared(ctx, e.Key)
@@ -143,9 +146,9 @@ func Start(
 						err := svc.HandleChangesetPreparing(ctx, cs)
 						if err != nil {
 							logger.Errorf(err, "Error provisioning changeset")
-							_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+							_, err = svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
 							if err != nil {
-								logger.Errorf(err, "error rolling back changeset")
+								logger.Errorf(err, "Error rolling back changeset")
 							}
 							continue
 						}
