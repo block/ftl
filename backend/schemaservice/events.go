@@ -390,9 +390,12 @@ func handleChangesetFailedEvent(t *SchemaState, e *schema.ChangesetFailedEvent) 
 	return nil
 }
 func verifyChangesetRollingBackEvent(t *SchemaState, e *schema.ChangesetRollingBackEvent) error {
-	_, ok := t.changesets[e.Key]
+	cs, ok := t.changesets[e.Key]
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
+	}
+	if cs.State != schema.ChangesetStatePrepared && cs.State != schema.ChangesetStatePreparing {
+		return fmt.Errorf("changeset %s is not in the correct state expected %v or %v got %v", cs.Key, schema.ChangesetStatePrepared, schema.ChangesetStatePreparing, cs.State)
 	}
 	return nil
 }
