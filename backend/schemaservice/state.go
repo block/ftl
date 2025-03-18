@@ -280,7 +280,7 @@ func (c *schemaStateMachine) Publish(msg EventWrapper) error {
 }
 
 func (c *schemaStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, error) {
-	return c.notifier.Subscribe(), nil
+	return c.notifier.Subscribe(ctx), nil
 }
 
 func (c *schemaStateMachine) Close() error {

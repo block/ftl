@@ -135,7 +135,7 @@ func (s *cronStateMachine) Publish(event CronEvent) error {
 }
 
 func (s *cronStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, error) {
-	return s.notifier.Subscribe(), nil
+	return s.notifier.Subscribe(ctx), nil
 }
 
 func (s *cronStateMachine) Close() error {

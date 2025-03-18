@@ -34,7 +34,7 @@ func newMockStateMachine(ctx context.Context, initial string) *mockStateMachine 
 }
 
 func (m *mockStateMachine) Subscribe(ctx context.Context) (<-chan struct{}, error) {
-	return m.notifier.Subscribe(), nil
+	return m.notifier.Subscribe(ctx), nil
 }
 
 func (m *mockStateMachine) Publish(msg string) error {

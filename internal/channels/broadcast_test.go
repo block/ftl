@@ -2,21 +2,22 @@ package channels
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
 
 func TestBroadcaster(t *testing.T) {
 	t.Run("broadcasts messages to all subscribers", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 
 		b := NewNotifier(ctx)
 
 		// Create three subscribers
-		sub1 := b.Subscribe()
-		sub2 := b.Subscribe()
-		sub3 := b.Subscribe()
+		sub1 := b.Subscribe(ctx)
+		sub2 := b.Subscribe(ctx)
+		sub3 := b.Subscribe(ctx)
 
 		// Send a message
 		b.Notify(ctx)
@@ -32,13 +33,13 @@ func TestBroadcaster(t *testing.T) {
 	})
 
 	t.Run("closes all subscriber channels when context is done", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		b := NewNotifier(ctx)
 
 		// Create subscribers
-		sub1 := b.Subscribe()
-		sub2 := b.Subscribe()
+		sub1 := b.Subscribe(ctx)
+		sub2 := b.Subscribe(ctx)
 
 		// Cancel the context
 		cancel()
@@ -53,6 +54,27 @@ func TestBroadcaster(t *testing.T) {
 			case <-time.After(time.Second):
 				t.Error("timeout waiting for channel to close")
 			}
+		}
+	})
+
+	t.Run("does not notify closed subscribers", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+		b := NewNotifier(ctx)
+
+		subCtx, subCancel := context.WithCancelCause(ctx)
+		sub := b.Subscribe(subCtx)
+
+		subCancel(errors.New("test error"))
+
+		b.Notify(ctx)
+
+		select {
+		case _, ok := <-sub:
+			if ok {
+				t.Errorf("subscriber should not receive message")
+			}
+		default:
 		}
 	})
 }
