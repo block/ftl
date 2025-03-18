@@ -69,7 +69,7 @@ module todo {
       +ingress http GET /todo/destroy/{name}
 
   verb insert(todo.InsertRequest) todo.InsertResponse
-      +database calls todo.testdb
+      +database uses todo.testdb
       +sql query exec "INSERT INTO requests (name) VALUES (?)"
 	  +generated
 
@@ -264,7 +264,6 @@ Module
 
 func TestParserRoundTrip(t *testing.T) {
 	input := testSchema.String()
-	fmt.Printf("Input schema:\n%s\n", input)
 	actual, err := ParseString("", input)
 	assert.NoError(t, err, "%s", testSchema.String())
 	actual, err = actual.Validate()
@@ -831,7 +830,7 @@ module todo {
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
   	+ingress http GET /todo/destroy/{name}
   verb insert(todo.InsertRequest) todo.InsertResponse
-  	+database calls todo.testdb +sql query exec "INSERT INTO requests (name) VALUES (?)" +generated
+  	+database uses todo.testdb +sql query exec "INSERT INTO requests (name) VALUES (?)" +generated
   verb scheduled(Unit) Unit
     +cron */10 * * 1-10,11-31 * * *
   verb twiceADay(Unit) Unit

@@ -9,7 +9,7 @@ import (
 type MetadataDatabases struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
-	Calls []*Ref `parser:"'+' 'database' 'calls' @@ (',' @@)*" protobuf:"2"`
+	Calls []*Ref `parser:"'+' 'database' 'uses' @@ (',' @@)*" protobuf:"2"`
 }
 
 var _ Metadata = (*MetadataDatabases)(nil)
@@ -18,7 +18,7 @@ func (m *MetadataDatabases) Append(call *Ref)   { m.Calls = append(m.Calls, call
 func (m *MetadataDatabases) Position() Position { return m.Pos }
 func (m *MetadataDatabases) String() string {
 	out := &strings.Builder{}
-	fmt.Fprint(out, "+database calls ")
+	fmt.Fprint(out, "+database uses ")
 	w := 6
 	for i, call := range m.Calls {
 		if i > 0 {
