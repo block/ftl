@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -118,9 +119,22 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 				}
 
 			}
-			if err := os.WriteFile(path, []byte(fileContent), 0600); err != nil {
-				return nil, fmt.Errorf("could not write file: %w", err)
+
+			// Atomically write the file.
+			dir, filename := filepath.Split(path)
+			tmpFile, err := os.CreateTemp(dir, filename+"-")
+			if err != nil {
+				return nil, fmt.Errorf("could not create temp file for %s: %w", path, err)
 			}
+			defer os.Remove(tmpFile.Name()) // Delete the temp file if we error.
+			defer tmpFile.Close()
+			if _, err := tmpFile.Write([]byte(fileContent)); err != nil {
+				return nil, fmt.Errorf("could not write to tmp file for %s: %w", path, err)
+			}
+			if err := os.Rename(tmpFile.Name(), path); err != nil {
+				return nil, fmt.Errorf("could not replace file with tmp file %s: %w", path, err)
+			}
+
 			var userResult mcp.TextContent
 			if len(originalContent) == 0 {
 				userResult = annotateTextContent(mcp.NewTextContent("### "+path+"\n```\n"+fileContent+"\n```"), []mcp.Role{mcp.RoleUser}, 0.2)
