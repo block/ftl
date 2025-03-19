@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os/signal"
 	gslices "slices"
+	"sync"
 	"syscall"
 	"time"
 
@@ -43,6 +44,7 @@ type Service struct {
 	Config         Config
 	timelineClient *timelineclient.Client
 	devMode        bool
+	creationLock   sync.Mutex
 }
 
 func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
@@ -187,6 +189,8 @@ func (s *Service) GetDeployments(ctx context.Context, req *connect.Request[ftlv1
 
 // CreateChangeset creates a new changeset.
 func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv1.CreateChangesetRequest]) (*connect.Response[ftlv1.CreateChangesetResponse], error) {
+	s.creationLock.Lock()
+	defer s.creationLock.Unlock()
 	modules, err := slices.MapErr(req.Msg.Modules, func(m *schemapb.Module) (*schema.Module, error) {
 		out, err := schema.ModuleFromProto(m)
 		if err != nil {
@@ -214,7 +218,6 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 		ToRemove:  req.Msg.ToRemove,
 	}
 
-	// TODO: validate changeset schema with canonical schema
 	err = s.publishEvent(ctx, &schema.ChangesetCreatedEvent{Changeset: changeset})
 	if err != nil {
 		return nil, fmt.Errorf("could not create changeset %w", err)
