@@ -554,7 +554,7 @@ func testErrorReporting(t *testing.T) {
 		`33:69: unsupported response type "ftl/failing.Response"`,
 		`38:22-27: first parameter must be of type context.Context but is ftl/failing.Request`,
 		`38:53: unsupported response type "ftl/failing.Response"`,
-		`43:43-47: second parameter must not be ftl.Unit`,
+		`43:43-47: second parameter must not be ftl.Unit (verbs without a request type should omit the request parameter)`,
 		`43:59: unsupported response type "ftl/failing.Response"`,
 		`48:1-2: first parameter must be context.Context`,
 		`48:18: unsupported response type "ftl/failing.Response"`,
