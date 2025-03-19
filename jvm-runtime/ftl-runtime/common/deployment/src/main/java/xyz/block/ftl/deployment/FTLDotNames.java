@@ -2,21 +2,8 @@ package xyz.block.ftl.deployment;
 
 import org.jboss.jandex.DotName;
 
-import xyz.block.ftl.Config;
-import xyz.block.ftl.Cron;
-import xyz.block.ftl.Data;
+import xyz.block.ftl.*;
 import xyz.block.ftl.Enum;
-import xyz.block.ftl.EnumHolder;
-import xyz.block.ftl.Export;
-import xyz.block.ftl.GeneratedRef;
-import xyz.block.ftl.LeaseClient;
-import xyz.block.ftl.Secret;
-import xyz.block.ftl.SinglePartitionMapper;
-import xyz.block.ftl.Subscription;
-import xyz.block.ftl.Topic;
-import xyz.block.ftl.TypeAlias;
-import xyz.block.ftl.TypeAliasMapper;
-import xyz.block.ftl.Verb;
 
 public class FTLDotNames {
 
@@ -38,5 +25,6 @@ public class FTLDotNames {
     public static final DotName LEASE_CLIENT = DotName.createSimple(LeaseClient.class);
     public static final DotName GENERATED_REF = DotName.createSimple(GeneratedRef.class);
     public static final DotName TOPIC = DotName.createSimple(Topic.class);
+    public static final DotName FIXTURE = DotName.createSimple(Fixture.class.getName());
     public static final DotName SINGLE_PARTITION_MAPPER = DotName.createSimple(SinglePartitionMapper.class);
 }

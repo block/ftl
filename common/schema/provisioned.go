@@ -20,6 +20,7 @@ const (
 	ResourceTypeTopic        ResourceType = "topic"
 	ResourceTypeSubscription ResourceType = "subscription"
 	ResourceTypeRunner       ResourceType = "runner"
+	ResourceTypeFixture      ResourceType = "fixture"
 )
 
 // ProvisionedResource is metadata of a resource that can be provisioned

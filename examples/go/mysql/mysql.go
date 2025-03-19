@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"errors"
 
 	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
@@ -35,4 +36,19 @@ func Query(ctx context.Context, query GetRequestDataClient) ([]string, error) {
 		}
 	}
 	return items, nil
+}
+
+//ftl:fixture
+func Fixture(ctx context.Context, insert CreateRequestClient, query GetRequestDataClient) error {
+	rows, err := query(ctx)
+	if err != nil {
+		return err
+	}
+	if len(rows) > 0 {
+		return nil
+	}
+	return errors.Join(
+		insert(ctx, CreateRequestQuery{Data: ftl.Some("foo")}),
+		insert(ctx, CreateRequestQuery{Data: ftl.Some("bar")}),
+	)
 }

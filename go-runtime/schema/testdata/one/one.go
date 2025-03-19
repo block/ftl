@@ -217,6 +217,6 @@ func BatchStringToTime(ctx context.Context, input []string) ([]time.Time, error)
 }
 
 //ftl:fixture
-func Fixture()  {
-	
+func Fixture(ctx context.Context) error {
+	return nil
 }

@@ -11,6 +11,8 @@ import (
 
 type BatchStringToTimeClient func(context.Context, []string) ([]stdtime.Time, error)
 
+type FixtureClient func(context.Context) error
+
 type HttpClient func(context.Context, ftlbuiltin.HttpRequest[ftl.Unit, ftl.Unit, Req]) (ftlbuiltin.HttpResponse[Resp, ftl.Unit], error)
 
 type NothingClient func(context.Context) error
@@ -51,6 +53,10 @@ func init() {
 
 		reflection.ProvideResourcesForVerb(
 			BatchStringToTime,
+		),
+
+		reflection.ProvideResourcesForVerb(
+			Fixture,
 		),
 
 		reflection.ProvideResourcesForVerb(

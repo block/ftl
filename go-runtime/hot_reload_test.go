@@ -126,12 +126,16 @@ func TestHotReloadMultiModuleGo(t *testing.T) {
 		in.WaitWithTimeout("client", time.Minute),
 
 		// Edit service module to add a verb
+		// This also tests fixtures by initializing the greeting in a fixture
+		// Fixtures are only applicable in dev mode which is why it is tested here
 		in.EditFile("service", func(content []byte) []byte {
 			return []byte(`package service
 
 import (
 	"context"
 )
+
+var greeting string
 
 type GreetRequest struct {
 	Name string
@@ -141,9 +145,14 @@ type GreetResponse struct {
 	Message string
 }
 
+//ftl:fixture
+func Fixture(ctx context.Context)  error {
+    greeting = "Hello, "
+	return nil
+}
 //ftl:verb export
 func Greet(ctx context.Context, req GreetRequest) (GreetResponse, error) {
-	return GreetResponse{Message: "Hello, " + req.Name + "!"}, nil
+	return GreetResponse{Message: greeting + req.Name + "!"}, nil
 }
 `)
 		}, "service.go"),
@@ -252,11 +261,11 @@ func Echo(ctx context.Context, req EchoRequest, greet service.GreetClient) (Echo
 			resp := strings.ReplaceAll(string(content),
 				"Name string",
 				"Name string\n\tTitle string")
-			resp = strings.ReplaceAll(resp, "\"Hi, \" + req.Name", "\"Hi, \" + req.Title + \" \" + req.Name")
+			resp = strings.ReplaceAll(resp, "greeting + req.Name", "\"Hi, \" + req.Title + \" \" + req.Name")
 			return []byte(resp)
 		}, "service.go"),
 
-		// Update client to use new parameter
+		// Update client to use new parametei
 		in.EditFile("client", func(content []byte) []byte {
 			return []byte(strings.ReplaceAll(string(content),
 				"Name: req.Name",

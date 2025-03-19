@@ -194,6 +194,9 @@ func testExtractModuleSchema(t *testing.T) {
 
   verb batchStringToTime([String]) [Time]
 
+  verb fixture(Unit) Unit
+    +fixture
+  
   export verb http(builtin.HttpRequest<Unit, Unit, one.Req>) builtin.HttpResponse<one.Resp, Unit>
     +ingress http GET /get
 

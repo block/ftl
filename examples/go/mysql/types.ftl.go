@@ -8,6 +8,8 @@ import (
 	"github.com/block/ftl/go-runtime/server"
 )
 
+type FixtureClient func(context.Context) error
+
 type InsertClient func(context.Context, InsertRequest) (InsertResponse, error)
 
 type QueryClient func(context.Context) ([]string, error)
@@ -20,6 +22,11 @@ type TestdbHandle = ftl.DatabaseHandle[TestdbConfig]
 func init() {
 	reflection.Register(
 		reflection.Database[TestdbConfig]("testdb", server.InitMySQL),
+
+		reflection.ProvideResourcesForVerb(
+			Fixture,
+			server.SinkClient[CreateRequestClient, CreateRequestQuery](),
+		),
 
 		reflection.ProvideResourcesForVerb(
 			Insert,

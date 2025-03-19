@@ -42,7 +42,7 @@ type inMemProvisioningStep struct {
 	Done *atomic.Value[bool]
 }
 
-type InMemResourceProvisionerFn func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (*schema.RuntimeElement, error)
+type InMemResourceProvisionerFn func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error)
 
 // InMemProvisioner for running an in memory provisioner, constructing all resources concurrently
 //
@@ -126,7 +126,7 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.Provi
 					task.steps = append(task.steps, step)
 					noop = false
 					go func() {
-						event, err := handler(ctx, parsed, desiredModule.Runtime.Deployment.DeploymentKey, desired)
+						event, err := handler(ctx, parsed, desiredModule.Runtime.Deployment.DeploymentKey, desired, desiredModule)
 						if err != nil {
 							step.Err = err
 							completions <- stepCompletedEvent{step: step}

@@ -3,6 +3,7 @@ package buildengine
 import (
 	"context"
 	"fmt"
+	"github.com/block/ftl/common/slices"
 	"os"
 	"path/filepath"
 	"strings"
@@ -109,17 +110,16 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 
 // cleanFixtures removes fixtures from the schema, it is invoked for non-dev mode builds
 func cleanFixtures(module *schema.Module) {
-	for i := 0; i < len(module.Decls); i++ {
-		if verb, ok := module.Decls[i].(*schema.Verb); ok {
+	module.Decls = slices.Filter(module.Decls, func(d schema.Decl) bool {
+		if verb, ok := d.(*schema.Verb); ok {
 			for _, md := range verb.Metadata {
 				if _, ok := md.(*schema.MetadataFixture); ok {
-					module.Decls = append(module.Decls[:i], module.Decls[i+1:]...)
-					i--
-					break
+					return false
 				}
 			}
 		}
-	}
+		return true
+	})
 }
 
 func handleGitCommit(ctx context.Context, dir string, module *schema.Module) error {

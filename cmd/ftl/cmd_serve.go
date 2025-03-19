@@ -293,6 +293,11 @@ func (s *serveCommonConfig) run(
 				Types:       []schema.ResourceType{schema.ResourceTypeRunner},
 				ID:          "runner",
 			},
+			{
+				Provisioner: provisioner.NewFixtureProvisioner(),
+				Types:       []schema.ResourceType{schema.ResourceTypeFixture},
+				ID:          "fixture",
+			},
 		},
 	}
 
