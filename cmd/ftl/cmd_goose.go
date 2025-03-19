@@ -91,7 +91,7 @@ func (c *gooseCmd) Run(ctx context.Context, projectConfig projectconfig.Config, 
 	}
 	args = append(args, "--text", prompt)
 
-	cmd := exec.Command(ctx, log.Debug, ".", "/Users/mtoohey/Code/goose/target/debug/goose", args...)
+	cmd := exec.Command(ctx, log.Debug, ".", "goose", args...)
 	out := &output{}
 	cmd.Stdout = out
 	cmd.Stderr = out
