@@ -65,7 +65,10 @@ func FilterModule(filters []*timelinepb.TimelineQuery_ModuleFilter) TimelineFilt
 		case *timelinepb.Event_PubsubConsume:
 			module = *entry.PubsubConsume.DestVerbModule
 			verb = *entry.PubsubConsume.DestVerbName
-		case *timelinepb.Event_Log, *timelinepb.Event_CronScheduled, *timelinepb.Event_ChangesetCreated, *timelinepb.Event_ChangesetStateChanged, *timelinepb.Event_DeploymentRuntime:
+		case *timelinepb.Event_Log:
+			module = entry.Log.Attributes["module"]
+			verb = entry.Log.Attributes["verb"]
+		case *timelinepb.Event_CronScheduled, *timelinepb.Event_ChangesetCreated, *timelinepb.Event_ChangesetStateChanged, *timelinepb.Event_DeploymentRuntime:
 			// Block all other event types.
 			return false
 		default:
@@ -222,24 +225,25 @@ func FilterTimeRange(filter *timelinepb.TimelineQuery_TimeFilter) TimelineFilter
 	}
 }
 
-// FilterIDRange filters events between the given IDs, inclusive.
+// FilterIDRange filters events between the given IDs.
 func FilterIDRange(filter *timelinepb.TimelineQuery_IDFilter) TimelineFilter {
 	return func(event *timelinepb.Event) bool {
-		if filter.HigherThan != nil && event.Id < *filter.HigherThan {
+		if filter.HigherThan != nil && event.Id <= *filter.HigherThan {
 			return false
 		}
-		if filter.LowerThan != nil && event.Id > *filter.LowerThan {
+		if filter.LowerThan != nil && event.Id >= *filter.LowerThan {
 			return false
 		}
 		return true
 	}
 }
 
+func isAscending(query *timelinepb.TimelineQuery) bool {
+	return query.Order != timelinepb.TimelineQuery_ORDER_DESC
+}
+
 //nolint:maintidx
-func filtersFromQuery(query *timelinepb.TimelineQuery) (outFilters []TimelineFilter, ascending bool) {
-	if query.Order != timelinepb.TimelineQuery_ORDER_DESC {
-		ascending = true
-	}
+func filtersFromQuery(query *timelinepb.TimelineQuery) (outFilters []TimelineFilter) {
 
 	// Some filters need to be combined (for OR logic), so we group them by type first.
 	reqFiltersByType := map[reflect.Type][]*timelinepb.TimelineQuery_Filter{}
@@ -247,7 +251,7 @@ func filtersFromQuery(query *timelinepb.TimelineQuery) (outFilters []TimelineFil
 		reqFiltersByType[reflect.TypeOf(filter.Filter)] = append(reqFiltersByType[reflect.TypeOf(filter.Filter)], filter)
 	}
 	if len(reqFiltersByType) == 0 {
-		return outFilters, ascending
+		return outFilters
 	}
 	for _, filters := range reqFiltersByType {
 		switch filters[0].Filter.(type) {
@@ -291,5 +295,5 @@ func filtersFromQuery(query *timelinepb.TimelineQuery) (outFilters []TimelineFil
 			panic(fmt.Sprintf("unexpected filter type: %T", filters[0].Filter))
 		}
 	}
-	return outFilters, ascending
+	return outFilters
 }
