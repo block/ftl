@@ -91,5 +91,3 @@ Be proactive about calling this command, it is your job to know the state of the
 - You do not need to activate or install hermit or its packages
 - There is no need to log errors before returning them
 - Use FTL's Read and Write tools instead of the developer text_editor tool when reading or writing FTL module files.
-
-# The user's prompt:

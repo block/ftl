@@ -13,8 +13,11 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/mcp"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/terminal"
 )
@@ -28,38 +31,67 @@ type gooseCmd struct {
 
 var first = true
 
-func (c *gooseCmd) Run(ctx context.Context, projectConfig projectconfig.Config) error {
+func (c *gooseCmd) Run(ctx context.Context, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+	adminClient adminpbconnect.AdminServiceClient) error {
 	gooseName := "🔮 Goose"
 	terminal.UpdateModuleState(ctx, gooseName, terminal.BuildStateBuilding)
 	defer terminal.UpdateModuleState(ctx, gooseName, terminal.BuildStateTerminated)
 
 	logger := log.FromContext(ctx)
 
-	data := strings.Join(c.Prompt, " ")
+	var prompt string
+	userPrompt := strings.Join(c.Prompt, " ")
 	args := []string{"run", "--with-extension", "ftl mcp", "--path", filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.jsonl")}
 	if first {
 		logger.Infof("Setting up goose")
 		first = false
 
+		var docs []string
+		var status string
+		wg := &errgroup.Group{}
+		wg.Go(func() error {
+			var err error
+			docs, err = downloadDocs(ctx)
+			return err
+		})
+		wg.Go(func() error {
+			var err error
+			statusObj, err := mcp.GetStatusOutput(ctx, buildEngineClient, adminClient)
+			if err != nil {
+				return fmt.Errorf("failed to get status: %w", err)
+			}
+			statusBytes, err := json.Marshal(statusObj)
+			if err != nil {
+				return fmt.Errorf("failed to marshal status: %w", err)
+			}
+			status = string(statusBytes)
+			return nil
+		})
+		if err := wg.Wait(); err != nil {
+			return err //nolint:wrapcheck
+		}
+
 		// Run introduction instructions
 		// This is separate from the next command because goose may skip an instruction if it is part of a larger input.
-		docs, err := downloadDocs(ctx)
-		if err != nil {
-			return err
-		}
+
 		components := []string{
-			"You are working with a system called FTL (Faster than Light) within an existing project. I want you to learn about FTL before I give you the user's prompt.\n\nAll FTL Docs:",
+			"You are working with a system called FTL (Faster than Light) within an existing project. I want you to learn about FTL before I give you the user's prompt.",
+			"All FTL Docs:",
 			strings.Join(docs, "\n\n"),
 			gooseInstructions,
-			data,
+			"The initial FTL Status has been automatically fetched:",
+			status,
+			"The user's prompt:",
+			userPrompt,
 		}
-		data = strings.Join(components, "\n\n")
+		prompt = strings.Join(components, "\n\n")
 	} else {
+		prompt = userPrompt
 		args = append(args, "--resume")
 	}
-	args = append(args, "--text", data)
+	args = append(args, "--text", prompt)
 
-	cmd := exec.Command(ctx, log.Debug, ".", "goose", args...)
+	cmd := exec.Command(ctx, log.Debug, ".", "/Users/mtoohey/Code/goose/target/debug/goose", args...)
 	out := &output{}
 	cmd.Stdout = out
 	cmd.Stderr = out

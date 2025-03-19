@@ -19,14 +19,14 @@ import (
 	"github.com/block/ftl/internal/devstate"
 )
 
-type statusOutput struct {
+type StatusOutput struct {
 	Modules []devstate.ModuleState
 	Schema  string
 }
 
 func statusToolHandler(serverCtx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		output, err := getStatusOutput(serverCtx, buildEngineClient, adminClient)
+		output, err := GetStatusOutput(serverCtx, buildEngineClient, adminClient)
 		if err != nil {
 			return nil, err
 		}
@@ -38,10 +38,10 @@ func statusToolHandler(serverCtx context.Context, buildEngineClient buildenginep
 	}
 }
 
-func getStatusOutput(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) (statusOutput, error) {
+func GetStatusOutput(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) (StatusOutput, error) {
 	result, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient)
 	if err != nil {
-		return statusOutput{}, fmt.Errorf("could not get status: %w", err)
+		return StatusOutput{}, fmt.Errorf("could not get status: %w", err)
 	}
 
 	sch := ireflect.DeepCopy(result.Schema)
@@ -57,56 +57,56 @@ func getStatusOutput(ctx context.Context, buildEngineClient buildenginepbconnect
 			case *schema.Topic:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return statusOutput{}, err
+					return StatusOutput{}, err
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Verb:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return statusOutput{}, err
+					return StatusOutput{}, err
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Config:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return statusOutput{}, err
+					return StatusOutput{}, err
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Secret:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return statusOutput{}, err
+					return StatusOutput{}, err
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Database:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return statusOutput{}, err
+					return StatusOutput{}, err
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Data:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return statusOutput{}, err
+					return StatusOutput{}, err
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Enum:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return statusOutput{}, err
+					return StatusOutput{}, err
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.TypeAlias:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return statusOutput{}, err
+					return StatusOutput{}, err
 				}
 				decl.Comments = append(decl.Comments, c)
 			}
 		}
 	}
 
-	output := statusOutput{
+	output := StatusOutput{
 		Modules: result.Modules,
 		Schema:  sch.String(),
 	}

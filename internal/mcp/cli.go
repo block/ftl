@@ -346,14 +346,14 @@ func newStringOption(name string, flag bool, opts []mcp.PropertyOption) (mcp.Too
 
 // statusContent returns the status of the FTL after the tool was run.
 func statusContent(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) (mcp.Content, error) {
-	output, err := getStatusOutput(ctx, buildEngineClient, adminClient)
+	output, err := GetStatusOutput(ctx, buildEngineClient, adminClient)
 	if err != nil {
 		// Fallback to just returning the tool result
 		return nil, err
 	}
 	wrapper := struct {
 		Explanation string       `json:"explanation,omitempty"`
-		Status      statusOutput `json:"status"`
+		Status      StatusOutput `json:"status"`
 	}{
 		Explanation: "FTL status was retreived after the changes were made. Here is the result.",
 		Status:      output,
