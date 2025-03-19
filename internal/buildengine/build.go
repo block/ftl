@@ -3,7 +3,6 @@ package buildengine
 import (
 	"context"
 	"fmt"
-	"github.com/block/ftl/common/slices"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/exec"
