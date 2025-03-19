@@ -73,7 +73,7 @@ func newReadResult(fileContent []byte, token string, isError bool, explanation s
 
 type writeResult struct {
 	StatusExplanation    string       `json:"statusExplanation,omitempty"`
-	Status               statusOutput `json:"status,omitempty"`
+	Status               StatusOutput `json:"status,omitempty"`
 	TokenExplanation     string       `json:"tokenExplanation,omitempty"`
 	NewVerificationToken string       `json:"newVerificationToken"`
 }
@@ -152,7 +152,7 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 				assistantResult.TokenExplanation = "The file has been updated. A new verification token is provided if you need to update the file again."
 			}
 
-			if status, err := getStatusOutput(serverCtx, buildEngineClient, adminClient); err == nil {
+			if status, err := GetStatusOutput(serverCtx, buildEngineClient, adminClient); err == nil {
 				assistantResult.StatusExplanation = "The FTL status after the change is also provided."
 				assistantResult.Status = status
 			}
