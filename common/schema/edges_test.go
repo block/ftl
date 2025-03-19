@@ -27,7 +27,7 @@ module a {
     verb empty(Unit) Unit
     verb postEvent(Event) Unit
     verb getUsers([String]) [a.User]
-	    +database calls a.db
+	    +database uses a.db
 
     export verb inboundWithExternalTypes(builtin.HttpRequest<Unit, b.Location, Unit>) builtin.HttpResponse<b.Address, String>
         +ingress http GET /todo/external/{name}
@@ -62,7 +62,7 @@ module c {
         +calls c.end
     verb end(Unit) a.User
         +calls c.start
-    
+
 
 	enum Color: String {
 		Red = "Red"
