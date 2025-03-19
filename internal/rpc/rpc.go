@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"iter"
 	"net"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/types/result"
 	"github.com/jpillora/backoff"
 	"golang.org/x/net/http2"
 
@@ -349,6 +351,23 @@ func RetryStreamingServerStream[Req, Resp any](
 		}
 
 	}
+}
+
+// IterAsGrpc converts an iterator of results into a gRPC stream.
+// This is a convenience function to make it easier to unit test streaming endpoints.
+//
+// If the iterator returns an error, it is returned immediately, and the stream is not sent any more messages.
+func IterAsGrpc[T any](iter iter.Seq[result.Result[*T]], stream *connect.ServerStream[T]) error {
+	for msg := range iter {
+		res, ok := msg.Get()
+		if !ok {
+			return msg.Err() //nolint:wrapcheck
+		}
+		if err := stream.Send(res); err != nil {
+			return err //nolint:wrapcheck
+		}
+	}
+	return nil
 }
 
 // logLevelForError indicates the log.Level to use for the specified error

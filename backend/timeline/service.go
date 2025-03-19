@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"iter"
 	"net/url"
 	"sort"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
+	"github.com/alecthomas/types/result"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
@@ -192,68 +194,84 @@ func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 // We want to throttle the number of updates we send to the client via the stream.
 const minUpdateInterval = 50 * time.Millisecond
 
-func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
+func (s *service) streamTimelineIter(ctx context.Context, req *timelinepb.StreamTimelineRequest) (iter.Seq[result.Result[*timelinepb.StreamTimelineResponse]], error) {
 	sub := s.notifier.Subscribe(ctx)
 	lastUpdate := time.Now()
-	query := req.Msg.Query
+	query := req.Query
 
 	updateInterval := minUpdateInterval
-	if req.Msg.UpdateInterval != nil && req.Msg.UpdateInterval.AsDuration() > minUpdateInterval {
-		updateInterval = req.Msg.UpdateInterval.AsDuration()
+	if req.UpdateInterval != nil && req.UpdateInterval.AsDuration() > minUpdateInterval {
+		updateInterval = req.UpdateInterval.AsDuration()
 	}
 
 	if query.Limit == 0 {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
 	}
 	ascending := isAscending(query)
 
 	// Default to last 1 day of events
 	var lastEventID optional.Option[int64]
-	for {
-		newQuery := &timelinepb.TimelineQuery{
-			// We always want ascending order for the underlying query.
-			Order: timelinepb.TimelineQuery_ORDER_ASC,
-			Limit: query.Limit,
-			Filters: append(query.Filters, &timelinepb.TimelineQuery_Filter{
-				Filter: &timelinepb.TimelineQuery_Filter_Id{
-					Id: &timelinepb.TimelineQuery_IDFilter{
-						HigherThan: lastEventID.Ptr(),
+
+	return func(yield func(result.Result[*timelinepb.StreamTimelineResponse]) bool) {
+		for {
+			newQuery := &timelinepb.TimelineQuery{
+				// We always want ascending order for the underlying query.
+				Order: timelinepb.TimelineQuery_ORDER_ASC,
+				Limit: query.Limit,
+				Filters: append(query.Filters, &timelinepb.TimelineQuery_Filter{
+					Filter: &timelinepb.TimelineQuery_Filter_Id{
+						Id: &timelinepb.TimelineQuery_IDFilter{
+							HigherThan: lastEventID.Ptr(),
+						},
 					},
-				},
-			}),
-		}
-
-		resp, err := s.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{Query: newQuery}))
-		if err != nil {
-			return fmt.Errorf("failed to get timeline: %w", err)
-		}
-
-		events := resp.Msg.Events
-		if len(events) > 0 {
-			// keep sending events until all have been sent
-			lastEventID = optional.Some(events[len(events)-1].Id)
-
-			if !ascending {
-				// Original query was for descending order, so reverse the events.
-				slices.Reverse(events)
+				}),
 			}
 
-			if err = stream.Send(&timelinepb.StreamTimelineResponse{Events: events}); err != nil {
-				return fmt.Errorf("failed to get timeline events: %w", err)
+			resp, err := s.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{Query: newQuery}))
+			if err != nil {
+				yield(result.Err[*timelinepb.StreamTimelineResponse](fmt.Errorf("failed to get timeline: %w", err)))
+				return
 			}
-		} else {
-			// no more events to send, wait for a new events or the context to be done
-			select {
-			case <-sub:
-			case <-ctx.Done():
-				return nil
-			}
-		}
 
-		// throttle the updates to the client
-		time.Sleep(time.Until(lastUpdate.Add(updateInterval)))
-		lastUpdate = time.Now()
+			events := resp.Msg.Events
+			if len(events) > 0 {
+				// keep sending events until all have been sent
+				lastEventID = optional.Some(events[len(events)-1].Id)
+
+				if !ascending {
+					// Original query was for descending order, so reverse the events.
+					slices.Reverse(events)
+				}
+
+				if !yield(result.Ok(&timelinepb.StreamTimelineResponse{Events: events})) {
+					return
+				}
+			} else {
+				// no more events to send, wait for a new events or the context to be done
+				select {
+				case <-sub:
+				case <-ctx.Done():
+					return
+				}
+			}
+
+			// throttle the updates to the client
+			time.Sleep(time.Until(lastUpdate.Add(updateInterval)))
+			lastUpdate = time.Now()
+		}
+	}, nil
+}
+
+func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
+	iter, err := s.streamTimelineIter(ctx, req.Msg)
+	if err != nil {
+		return err
 	}
+
+	if err := rpc.IterAsGrpc(iter, stream); err != nil {
+		return fmt.Errorf("failed to stream timeline: %w", err)
+	}
+	return nil
 }
 
 func (s *service) DeleteOldEvents(ctx context.Context, req *connect.Request[timelinepb.DeleteOldEventsRequest]) (*connect.Response[timelinepb.DeleteOldEventsResponse], error) {
