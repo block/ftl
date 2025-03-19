@@ -1458,6 +1458,30 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 			return goSchemaType{}, err
 		}
 		result.nativeType = optional.Some(nt)
+	case *schema.Array:
+		e, err := b.getGoSchemaType(t.Element)
+		if err != nil {
+			return goSchemaType{}, err
+		}
+		result.children = append(result.children, e)
+	case *schema.Map:
+		k, err := b.getGoSchemaType(t.Key)
+		if err != nil {
+			return goSchemaType{}, err
+		}
+		result.children = append(result.children, k)
+
+		v, err := b.getGoSchemaType(t.Value)
+		if err != nil {
+			return goSchemaType{}, err
+		}
+		result.children = append(result.children, v)
+	case *schema.Optional:
+		e, err := b.getGoSchemaType(t.Type)
+		if err != nil {
+			return goSchemaType{}, err
+		}
+		result.children = append(result.children, e)
 	default:
 	}
 
@@ -1721,7 +1745,11 @@ func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames ex
 		if err != nil {
 			return "", err
 		}
-		return "map[" + key + "]" + genType(module, t.Value), nil
+		value, err := genTypeWithNativeNames(module, t.Value, nativeNames)
+		if err != nil {
+			return "", err
+		}
+		return "map[" + key + "]" + value, nil
 
 	case *schema.Optional:
 		typ, err := genTypeWithNativeNames(module, t.Type, nativeNames)
