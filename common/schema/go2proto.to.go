@@ -1467,6 +1467,10 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Encoding{value.ToProto()},
 		}
+	case *MetadataFixture:
+		return &destpb.Metadata{
+			Value: &destpb.Metadata_Fixture{value.ToProto()},
+		}
 	case *MetadataGenerated:
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Generated{value.ToProto()},
@@ -1539,6 +1543,8 @@ func MetadataFromProto(v *destpb.Metadata) (Metadata, error) {
 		return MetadataDatabasesFromProto(v.GetDatabases())
 	case *destpb.Metadata_Encoding:
 		return MetadataEncodingFromProto(v.GetEncoding())
+	case *destpb.Metadata_Fixture:
+		return MetadataFixtureFromProto(v.GetFixture())
 	case *destpb.Metadata_Generated:
 		return MetadataGeneratedFromProto(v.GetGenerated())
 	case *destpb.Metadata_Git:
@@ -1755,6 +1761,31 @@ func MetadataEncodingFromProto(v *destpb.MetadataEncoding) (out *MetadataEncodin
 	}
 	if out.Lenient, err = orZeroR(result.From(ptr(bool(v.Lenient)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Lenient: %w", err)
+	}
+	return out, nil
+}
+
+func (x *MetadataFixture) ToProto() *destpb.MetadataFixture {
+	if x == nil {
+		return nil
+	}
+	return &destpb.MetadataFixture{
+		Pos:    x.Pos.ToProto(),
+		Manual: orZero(ptr(bool(x.Manual))),
+	}
+}
+
+func MetadataFixtureFromProto(v *destpb.MetadataFixture) (out *MetadataFixture, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &MetadataFixture{}
+	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	}
+	if out.Manual, err = orZeroR(result.From(ptr(bool(v.Manual)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Manual: %w", err)
 	}
 	return out, nil
 }

@@ -115,6 +115,16 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 				Pos:  common.GoPosToSchemaPos(pass.Fset, dt.Pos),
 				Cron: dt.Cron.String(),
 			})
+		case *common.DirectiveFixture:
+			newSchType = &schema.Verb{}
+			if exported {
+				common.NoEndColumnErrorf(pass, dt.GetPosition(), "ftl:fixture cannot be attached to exported verbs")
+				continue
+			}
+			metadata = append(metadata, &schema.MetadataFixture{
+				Pos:    common.GoPosToSchemaPos(pass.Fset, dt.Pos),
+				Manual: dt.Manual,
+			})
 		case *common.DirectiveRetry:
 			pos := common.GoPosToSchemaPos(pass.Fset, dt.Pos)
 			var catch *schema.Ref

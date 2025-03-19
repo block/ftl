@@ -2221,6 +2221,12 @@ export class Metadata extends Message<Metadata> {
     case: "encoding";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.MetadataFixture fixture = 20;
+     */
+    value: MetadataFixture;
+    case: "fixture";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.MetadataGenerated generated = 18;
      */
     value: MetadataGenerated;
@@ -2308,6 +2314,7 @@ export class Metadata extends Message<Metadata> {
     { no: 3, name: "cron_job", kind: "message", T: MetadataCronJob, oneof: "value" },
     { no: 4, name: "databases", kind: "message", T: MetadataDatabases, oneof: "value" },
     { no: 9, name: "encoding", kind: "message", T: MetadataEncoding, oneof: "value" },
+    { no: 20, name: "fixture", kind: "message", T: MetadataFixture, oneof: "value" },
     { no: 18, name: "generated", kind: "message", T: MetadataGenerated, oneof: "value" },
     { no: 19, name: "git", kind: "message", T: MetadataGit, oneof: "value" },
     { no: 2, name: "ingress", kind: "message", T: MetadataIngress, oneof: "value" },
@@ -2665,6 +2672,49 @@ export class MetadataEncoding extends Message<MetadataEncoding> {
 
   static equals(a: MetadataEncoding | PlainMessage<MetadataEncoding> | undefined, b: MetadataEncoding | PlainMessage<MetadataEncoding> | undefined): boolean {
     return proto3.util.equals(MetadataEncoding, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.MetadataFixture
+ */
+export class MetadataFixture extends Message<MetadataFixture> {
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  /**
+   * @generated from field: bool manual = 2;
+   */
+  manual = false;
+
+  constructor(data?: PartialMessage<MetadataFixture>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.MetadataFixture";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position, opt: true },
+    { no: 2, name: "manual", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetadataFixture {
+    return new MetadataFixture().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetadataFixture {
+    return new MetadataFixture().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetadataFixture {
+    return new MetadataFixture().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetadataFixture | PlainMessage<MetadataFixture> | undefined, b: MetadataFixture | PlainMessage<MetadataFixture> | undefined): boolean {
+    return proto3.util.equals(MetadataFixture, a, b);
   }
 }
 

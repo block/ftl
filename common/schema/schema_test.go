@@ -68,10 +68,16 @@ module todo {
   export verb destroy(builtin.HttpRequest<Unit, todo.DestroyRequest, Unit>) builtin.HttpResponse<todo.DestroyResponse, String>
       +ingress http GET /todo/destroy/{name}
 
+  verb fixture(Unit) Unit
+	+fixture
+
   verb insert(todo.InsertRequest) todo.InsertResponse
       +database calls todo.testdb
       +sql query exec "INSERT INTO requests (name) VALUES (?)"
 	  +generated
+
+  verb manualFixture(Unit) Unit
+	+fixture manual
 
   verb mondays(Unit) Unit
       +cron Mon
@@ -229,12 +235,20 @@ Module
       IngressPathLiteral
       IngressPathParameter
   Verb
+    Unit
+    Unit
+    MetadataFixture
+  Verb
     Ref
     Ref
     MetadataDatabases
       Ref
     MetadataSQLQuery
     MetadataGenerated
+  Verb
+    Unit
+    Unit
+    MetadataFixture
   Verb
     Unit
     Unit
@@ -838,6 +852,10 @@ module todo {
     +cron 12h
   verb mondays(Unit) Unit
     +cron Mon
+  verb fixture(Unit) Unit
+    +fixture
+  verb manualFixture(Unit) Unit
+    +fixture manual
 }
 `
 	actual, err := ParseModuleString("", input)
@@ -1009,6 +1027,20 @@ var testSchema = MustValidate(&Schema{
 						&MetadataCronJob{
 							Cron: "Mon",
 						},
+					},
+				},
+				&Verb{Name: "fixture",
+					Request:  &Unit{Unit: true},
+					Response: &Unit{Unit: true},
+					Metadata: []Metadata{
+						&MetadataFixture{},
+					},
+				},
+				&Verb{Name: "manualFixture",
+					Request:  &Unit{Unit: true},
+					Response: &Unit{Unit: true},
+					Metadata: []Metadata{
+						&MetadataFixture{Manual: true},
 					},
 				},
 			},
