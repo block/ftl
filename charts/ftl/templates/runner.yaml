@@ -12,7 +12,7 @@ data:
       name: "(replaced)"
     spec:
       ports:
-        - name: verbs
+        - name: grpc
           protocol: TCP
           port: 8892
           appProtocol: http
