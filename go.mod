@@ -56,6 +56,7 @@ require (
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rs/cors v1.11.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
+	github.com/sergi/go-diff v1.3.1
 	github.com/sqlc-dev/sqlc v1.28.0
 	github.com/swaggest/jsonschema-go v0.3.73
 	github.com/tidwall/pretty v1.2.1
