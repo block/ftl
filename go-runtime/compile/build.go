@@ -626,7 +626,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 
 func fileHashesForOptimisticCompilation(config moduleconfig.AbsModuleConfig) (watch.FileHashes, error) {
 	// Include every file that may change while scaffolding the build template or tidying.
-	hashes, err := watch.ComputeFileHashes(config.Dir, false, []string{filepath.Join(buildDirName, "go", "main", "*"), "go.mod", "go.tidy", ftlTypesFilename})
+	hashes, err := watch.ComputeFileHashes(config.Dir, false, []string{filepath.Join(buildDirName, "go", "main", "*"), "go.mod", "go.tidy", ftlTypesFilename, ftlQueriesFilename})
 	if err != nil {
 		return nil, fmt.Errorf("could not calculate hashes for optimistic compilation: %w", err)
 	}
