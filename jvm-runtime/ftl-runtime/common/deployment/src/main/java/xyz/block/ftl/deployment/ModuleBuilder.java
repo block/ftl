@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -431,17 +432,18 @@ public class ModuleBuilder {
                             .build();
                 }
                 if (info != null && info.hasDeclaredAnnotation(GENERATED_REF)) {
+                    var ref = info.declaredAnnotation(GENERATED_REF);
 
+                    String module = ref.value("module").asString();
                     // Validate that we are not attempting to modify the 'export' status of a generated type
-                    if (!info.hasAnnotation(EXPORT) && export) {
+                    if (Objects.equals(module, this.moduleName) && !info.hasAnnotation(EXPORT) && export) {
                         validationFailures.add(new ValidationFailure(toError(forClass(clazz.name().toString())),
                                 "Generated type " + clazz.name()
                                         + " cannot be implicitly exported as part of the signature of a verb as it is a generated type, define a new type instead"));
                     }
-                    var ref = info.declaredAnnotation(GENERATED_REF);
                     return handleNullabilityAnnotations(Type.newBuilder()
                             .setRef(Ref.newBuilder().setName(ref.value("name").asString())
-                                    .setModule(ref.value("module").asString()))
+                                    .setModule(module))
                             .build(), nullability);
                 }
                 if (clazz.name().equals(DotName.STRING_NAME)) {
