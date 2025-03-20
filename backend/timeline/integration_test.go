@@ -155,7 +155,7 @@ type streamState struct {
 	actualEntries []*timelinepb.CreateEventsRequest_EventEntry
 }
 
-func TestStreamTimeline(t *testing.T) {
+func TestStreamTimelineIntegration(t *testing.T) {
 	lock := &sync.Mutex{}
 	state := &streamState{}
 	in.Run(t,

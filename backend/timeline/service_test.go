@@ -1,14 +1,18 @@
 package timeline
 
 import (
+	"iter"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/result"
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/iterops"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -59,6 +63,35 @@ func TestGetTimeline(t *testing.T) {
 	})
 }
 
+func TestStreamTimeline(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Returns a batch of Limit size as the first message", func(t *testing.T) {
+		t.Parallel()
+		service := createTestService(t, callEventsFixture(10))
+
+		iter, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{
+			Query: &timelinepb.TimelineQuery{Order: timelinepb.TimelineQuery_ORDER_DESC, Limit: 5},
+		})
+		assert.NoError(t, err)
+
+		res, err := slices.Collect(iterops.Take(iter, 1))[0].Result()
+		assert.NoError(t, err)
+		assert.Equal(t, 5, len(res.Events))
+	})
+	t.Run("Orders the messages by id in ascending order", func(t *testing.T) {
+		t.Parallel()
+
+		service := createTestService(t, callEventsFixture(10))
+		query := &timelinepb.TimelineQuery{Order: timelinepb.TimelineQuery_ORDER_ASC, Limit: 2}
+
+		eventIter := eventIterator(t, service, query)
+		ids := slices.Collect(iterops.Map(iterops.Take(eventIter, 4), getID))
+
+		assert.Equal(t, []int{0, 1, 2, 3}, ids)
+	})
+}
+
 func createTestService(t *testing.T, dataFixture *timelinepb.CreateEventsRequest) *service {
 	t.Helper()
 
@@ -67,6 +100,21 @@ func createTestService(t *testing.T, dataFixture *timelinepb.CreateEventsRequest
 	_, err := service.CreateEvents(t.Context(), connect.NewRequest(dataFixture))
 	assert.NoError(t, err)
 	return service
+}
+
+func eventIterator(t *testing.T, service *service, query *timelinepb.TimelineQuery) iter.Seq[*timelinepb.Event] {
+	t.Helper()
+
+	it, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{
+		Query: query,
+	})
+	assert.NoError(t, err)
+
+	return iterops.FlatMap(it, func(x result.Result[*timelinepb.StreamTimelineResponse]) iter.Seq[*timelinepb.Event] {
+		r, err := x.Result()
+		assert.NoError(t, err)
+		return slices.Values(r.Events)
+	})
 }
 
 func callEventsFixture(entryCount int) *timelinepb.CreateEventsRequest {
@@ -132,4 +180,8 @@ func evetTypeFilter(eventTypes ...timelinepb.EventType) *timelinepb.TimelineQuer
 			},
 		},
 	}
+}
+
+func getID(event *timelinepb.Event) int {
+	return int(event.Id)
 }
