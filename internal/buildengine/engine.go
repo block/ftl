@@ -1155,8 +1155,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 	if err != nil {
 		return fmt.Errorf("failed to marshal module config: %w", err)
 	}
-
-	moduleSchema, deploy, err := build(ctx, meta.plugin, e.projectConfig, languageplugin.BuildContext{
+	moduleSchema, deploy, err := build(ctx, e.projectConfig, meta.module, meta.plugin, languageplugin.BuildContext{
 		Config:       meta.module.Config,
 		Schema:       sch,
 		Dependencies: meta.module.Dependencies(Raw),
@@ -1166,6 +1165,11 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 	}, e.devMode, e.devModeEndpointUpdates)
 
 	if err != nil {
+		if errors.Is(err, errSQLError) {
+			// Keep sql error around so that subsequent auto rebuilds from the plugin keep the sql error
+			meta.module = meta.module.CopyWithSQLErrors(err)
+			e.moduleMetas.Store(moduleName, meta)
+		}
 		if errors.Is(err, errInvalidateDependencies) {
 			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 				Timestamp: timestamppb.Now(),
@@ -1193,6 +1197,10 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 			},
 		}
 		return err
+	}
+	if meta.module.SQLError != nil {
+		meta.module = meta.module.CopyWithSQLErrors(nil)
+		e.moduleMetas.Store(moduleName, meta)
 	}
 
 	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
@@ -1330,7 +1338,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 					}
 
 				case languageplugin.AutoRebuildEndedEvent:
-					moduleSch, deploy, err := handleBuildResult(ctx, e.projectConfig, meta.module.Config, event.Result, e.devMode, e.devModeEndpointUpdates)
+					moduleSch, deploy, err := handleBuildResult(ctx, e.projectConfig, meta.module, event.Result, e.devMode, e.devModeEndpointUpdates)
 					if err != nil {
 						if errors.Is(err, errInvalidateDependencies) {
 							e.rawEngineUpdates <- &buildenginepb.EngineEvent{

@@ -11,6 +11,9 @@ type Module struct {
 	// paths to deploy, relative to ModuleConfig.DeployDir
 	Deploy []string
 
+	// SQLErrors are errors that occurred during SQL build which overrule any errors from the language plugin
+	SQLError error
+
 	// do not read directly, use Dependecies() instead
 	dependencies []string
 }
@@ -31,6 +34,12 @@ func (m Module) CopyWithDeploy(files []string) Module {
 func (m Module) CopyWithDependencies(dependencies []string) Module {
 	module := reflect.DeepCopy(m)
 	module.dependencies = dependencies
+	return module
+}
+
+func (m Module) CopyWithSQLErrors(err error) Module {
+	module := reflect.DeepCopy(m)
+	module.SQLError = err
 	return module
 }
 
