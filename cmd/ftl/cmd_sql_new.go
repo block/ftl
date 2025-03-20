@@ -18,6 +18,8 @@ import (
 type newSQLCmd struct {
 	engine     string // Set by parent command
 	Datasource string `arg:"" help:"The qualified name of the datasource in the form module.datasource to create. If the module is not specified FTL will attempt to infer it from the current working directory."`
+
+	DevDirs []string `help:"Module directories that FTL Dev is discovering modules in" env:"FTL_DEV_DIRS" hidden:""`
 }
 
 func newNewSQLCmd(engine string) newSQLCmd {
@@ -25,11 +27,13 @@ func newNewSQLCmd(engine string) newSQLCmd {
 }
 
 func (i newSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) error {
-	dir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("could not get current working directory: %w", err)
+	var searchDirs []string
+	if len(i.DevDirs) > 0 {
+		searchDirs = i.DevDirs
+	} else {
+		searchDirs = projectConfig.AbsModuleDirs()
 	}
-	modules, err := watch.DiscoverModules(ctx, []string{dir})
+	modules, err := watch.DiscoverModules(ctx, searchDirs)
 	if err != nil {
 		return fmt.Errorf("could not discover modules: %w", err)
 	}
