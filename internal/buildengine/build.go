@@ -19,34 +19,34 @@ import (
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/sql"
 )
 
 var errInvalidateDependencies = errors.New("dependencies need to be updated")
+var errSQLError = errors.New("failed to add queries to schema")
 
 // Build a module in the given directory given the schema and module config.
 //
 // Plugins must use a lock file to ensure that only one build is running at a time.
 //
 // Returns invalidateDependenciesError if the build failed due to a change in dependencies.
-func build(ctx context.Context, plugin *languageplugin.LanguagePlugin, projectConfig projectconfig.Config, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
+func build(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
 	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
 
 	err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to add queries to schema: %w", err)
+		return nil, nil, errors.Join(errSQLError, err)
 	}
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
-	return handleBuildResult(ctx, projectConfig, bctx.Config, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints)
+	return handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints)
 }
 
 // handleBuildResult processes the result of a build
-func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, c moduleconfig.ModuleConfig, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
+func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, m Module, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
 	logger := log.FromContext(ctx)
-	config := c.Abs()
+	config := m.Config.Abs()
 
 	result, err := eitherResult.Result()
 	if err != nil {
@@ -55,6 +55,12 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 
 	if result.InvalidateDependencies {
 		return nil, nil, errInvalidateDependencies
+	}
+
+	if m.SQLError != nil {
+		// Plugin has rebuilt automatically even though a SQL error occurred.
+		// The build needs to fail with the current sql error
+		return nil, nil, m.SQLError
 	}
 
 	var errs []error
@@ -79,7 +85,7 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	result.Deploy = append(result.Deploy, migrationFiles...)
 	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLRootDir)
 
-	err = handleGitCommit(ctx, c.Abs().Dir, result.Schema)
+	err = handleGitCommit(ctx, config.Dir, result.Schema)
 	if !devMode {
 		cleanFixtures(result.Schema)
 	}
