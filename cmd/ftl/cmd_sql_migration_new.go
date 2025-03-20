@@ -94,7 +94,7 @@ func (i migrationSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Co
 
 // Purposely use a template string which is invalid so that autorebuilds do not deploy the empty migration
 // before the user is able to enter their own migration
-const migrationTemplate = "-- migrate:up\nPut migration here\n\n-- migrate:down\n\n"
+const migrationTemplate = "-- migrate:up\n\n\n-- migrate:down\n\n"
 
 // newMigration creates a new migration file and returns the path
 func newMigration(dir, name string) (string, error) {
