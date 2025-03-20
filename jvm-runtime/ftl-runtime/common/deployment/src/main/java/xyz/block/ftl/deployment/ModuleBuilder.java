@@ -466,11 +466,11 @@ public class ModuleBuilder {
                             .setName(name)
                             .setExport(type.hasAnnotation(EXPORT) || export);
                     addDecls(Decl.newBuilder().setEnum(ennum.build()).build());
-                    return ref;
+                    return handleNullabilityAnnotations(ref, nullability);
                 } else {
                     // If this data was processed already, skip early
                     if (setDeclExport(name, type.hasAnnotation(EXPORT) || export)) {
-                        return ref;
+                        return handleNullabilityAnnotations(ref, nullability);
                     }
                     Data.Builder data = Data.newBuilder()
                             .setPos(forClass(clazz.name().toString()))
@@ -479,7 +479,7 @@ public class ModuleBuilder {
                             .addAllComments(comments.getComments(name));
                     buildDataElement(data, clazz.name());
                     addDecls(Decl.newBuilder().setData(data).build());
-                    return ref;
+                    return handleNullabilityAnnotations(ref, nullability);
                 }
             }
             case PARAMETERIZED_TYPE -> {
