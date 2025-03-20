@@ -200,6 +200,34 @@ func (*DirectiveCronJob) MustAnnotate() []ast.Node {
 	return []ast.Node{&ast.FuncDecl{}}
 }
 
+type DirectiveFixture struct {
+	Pos token.Pos
+
+	Manual bool `parser:"'fixture' @'manual'?"`
+}
+
+func (*DirectiveFixture) directive() {}
+
+func (d *DirectiveFixture) String() string {
+	if d.Manual {
+		return "fixture manual"
+	}
+	return "fixture"
+}
+func (d *DirectiveFixture) IsExported() bool {
+	return false
+}
+func (*DirectiveFixture) GetTypeName() string { return "fixture" }
+func (d *DirectiveFixture) SetPosition(pos token.Pos) {
+	d.Pos = pos
+}
+func (d *DirectiveFixture) GetPosition() token.Pos {
+	return d.Pos
+}
+func (*DirectiveFixture) MustAnnotate() []ast.Node {
+	return []ast.Node{&ast.FuncDecl{}}
+}
+
 type DirectiveRetry struct {
 	Pos token.Pos
 
@@ -404,7 +432,7 @@ var DirectiveParser = participle.MustBuild[directiveWrapper](
 	participle.UseLookahead(2),
 	participle.Union[Directive](&DirectiveVerb{}, &DirectiveData{}, &DirectiveEnum{}, &DirectiveTypeAlias{},
 		&DirectiveIngress{}, &DirectiveCronJob{}, &DirectiveRetry{}, &DirectiveSubscriber{}, &DirectiveExport{},
-		&DirectiveTypeMap{}, &DirectiveEncoding{}, &DirectiveTopic{}, &DirectiveDatabase{}),
+		&DirectiveTypeMap{}, &DirectiveEncoding{}, &DirectiveTopic{}, &DirectiveDatabase{}, &DirectiveFixture{}),
 	participle.Union[schema.IngressPathComponent](&schema.IngressPathLiteral{}, &schema.IngressPathParameter{}),
 	participle.ParseTypeWith(schema.ParseTypeWithLexer),
 )

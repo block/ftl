@@ -151,6 +151,14 @@ func (v *Verb) GetProvisioned() ResourceSet {
 			},
 		})
 	}
+	for sub := range slices.FilterVariants[*MetadataFixture](v.Metadata) {
+		if !sub.Manual {
+			result = append(result, &ProvisionedResource{
+				Kind:   ResourceTypeFixture,
+				Config: v,
+			})
+		}
+	}
 	return result
 }
 

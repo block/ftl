@@ -33,6 +33,7 @@ import xyz.block.ftl.VerbClient;
 import xyz.block.ftl.runtime.VerbClientHelper;
 import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataCronJob;
+import xyz.block.ftl.schema.v1.MetadataFixture;
 
 public class VerbProcessor {
 
@@ -338,8 +339,9 @@ public class VerbProcessor {
         for (var verb : verbAnnotations) {
             boolean exported = verb.target().hasAnnotation(FTLDotNames.EXPORT);
             var method = verb.target().asMethod();
-            if (method.hasAnnotation(FTLDotNames.CRON) || method.hasAnnotation(FTLDotNames.SUBSCRIPTION)) {
-                throw new RuntimeException("Method " + method + " cannot have both @Verb and @Cron or @Subscription");
+            if (method.hasAnnotation(FTLDotNames.CRON) || method.hasAnnotation(FTLDotNames.SUBSCRIPTION)
+                    || method.hasAnnotation(FTLDotNames.FIXTURE)) {
+                throw new RuntimeException("Method " + method + " cannot have both @Verb and @Cron, @Fixture or @Subscription");
             }
             String className = method.declaringClass().name().toString();
             beans.addBeanClass(className);
@@ -363,6 +365,28 @@ public class VerbProcessor {
                             new ModuleBuilder.VerbCustomization()
                                     .setMetadataCallback(builder -> builder.addMetadata(Metadata.newBuilder()
                                             .setCronJob(MetadataCronJob.newBuilder().setCron(cron.value().asString()))
+                                            .build())))));
+        }
+
+        Collection<AnnotationInstance> fixtureAnnotation = index.getIndex().getAnnotations(FTLDotNames.FIXTURE);
+        log.debugf("Processing %d fixture annotations into decls", cronAnnotations.size());
+        for (var fixture : fixtureAnnotation) {
+            var method = fixture.target().asMethod();
+            if (method.hasAnnotation(FTLDotNames.VERB) || method.hasAnnotation(FTLDotNames.SUBSCRIPTION)
+                    || method.hasAnnotation(FTLDotNames.CRON)) {
+                throw new RuntimeException("Method " + method + " cannot have both @Fixture and @Verb, @Cron or @Subscription");
+            }
+            String className = method.declaringClass().name().toString();
+            beans.addBeanClass(className);
+            var manualElement = fixture.value("target");
+            var manual = manualElement == null || manualElement.asBoolean();
+
+            schemaContributorBuildItemBuildProducer.produce(
+                    new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
+                            false, ModuleBuilder.BodyType.DISALLOWED,
+                            new ModuleBuilder.VerbCustomization()
+                                    .setMetadataCallback(builder -> builder.addMetadata(Metadata.newBuilder()
+                                            .setFixture(MetadataFixture.newBuilder().setManual(manual))
                                             .build())))));
         }
 

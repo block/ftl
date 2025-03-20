@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	glog "log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -27,6 +28,8 @@ var proxy = httputil.NewSingleHostReverseProxy(proxyURL)
 
 func PrepareServer(ctx context.Context) error {
 	sm := terminal.FromContext(ctx)
+	// This looks the same as the default logger, but it will use a redirected STDERR
+	proxy.ErrorLog = glog.New(os.Stderr, "", glog.LstdFlags)
 	const console = "FTL Console (dev)"
 	sm.SetModuleState(console, terminal.BuildStateBuilding)
 	defer func() {

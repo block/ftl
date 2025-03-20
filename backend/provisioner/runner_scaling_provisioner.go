@@ -24,7 +24,7 @@ func NewRunnerScalingProvisioner(runners scaling.RunnerScaling) *InMemProvisione
 }
 
 func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned) (*schema.RuntimeElement, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned, _ *schema.Module) (*schema.RuntimeElement, error) {
 		if changeset.IsZero() {
 			return nil, fmt.Errorf("changeset must be provided")
 		}
@@ -50,9 +50,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 					case *schema.MetadataIngress:
 						http = true
 					default:
-
 					}
-
 				}
 			}
 		}
@@ -71,7 +69,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 }
 
 func deProvisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned) (*schema.RuntimeElement, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned, _ *schema.Module) (*schema.RuntimeElement, error) {
 		if changeset.IsZero() {
 			return nil, fmt.Errorf("changeset must be provided")
 		}

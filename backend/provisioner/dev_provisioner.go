@@ -34,7 +34,7 @@ func NewDevProvisioner(postgresPort int, mysqlPort int, recreate bool) *InMemPro
 	}, map[schema.ResourceType]InMemResourceProvisionerFn{})
 }
 func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (*schema.RuntimeElement, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx).Deployment(deployment)
 
 		dbName := strcase.ToLowerSnake(deployment.Payload.Module) + "_" + strcase.ToLowerSnake(res.ResourceID())
@@ -149,7 +149,7 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 
 func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionPostgres(15432, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(moduleName), node)
+	event, err := provisionPostgres(15432, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(moduleName), node, nil)
 	if err != nil {
 		return "", err
 	}
@@ -159,7 +159,7 @@ func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string)
 
 func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionMysql(13306, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(moduleName), node)
+	event, err := provisionMysql(13306, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(moduleName), node, nil)
 	if err != nil {
 		return "", err
 	}
@@ -168,7 +168,7 @@ func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (s
 }
 
 func provisionPostgres(postgresPort int, alwaysRecreate bool) InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned) (*schema.RuntimeElement, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		recreate := alwaysRecreate
 		logger := log.FromContext(ctx).Deployment(deployment)
 		db, ok := resource.(*schema.Database)
@@ -267,7 +267,7 @@ func provisionPostgres(postgresPort int, alwaysRecreate bool) InMemResourceProvi
 }
 
 func provisionTopic() InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (*schema.RuntimeElement, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		if err := dev.SetUpRedPanda(ctx); err != nil {
 			return nil, fmt.Errorf("could not set up redpanda: %w", err)
 		}
@@ -304,7 +304,7 @@ func provisionTopic() InMemResourceProvisionerFn {
 }
 
 func provisionSubscription() InMemResourceProvisionerFn {
-	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned) (*schema.RuntimeElement, error) {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 		verb, ok := res.(*schema.Verb)
 		if !ok {

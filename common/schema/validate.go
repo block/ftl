@@ -212,7 +212,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 
 					case *MetadataCronJob, *MetadataCalls, *MetadataConfig, *MetadataAlias, *MetadataTypeMap,
 						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact,
-						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit:
+						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit, *MetadataFixture:
 					}
 				}
 				if isSQLQuery && !hasDatabase {
@@ -511,6 +511,8 @@ func sortMetadataType(md Metadata) {
 		return
 	case *MetadataGit:
 		return
+	case *MetadataFixture:
+		return
 	}
 }
 
@@ -555,6 +557,8 @@ func getMetadataSortingPriority(metadata Metadata) int {
 		priority = 18
 	case *MetadataGit:
 		priority = 19
+	case *MetadataFixture:
+		priority = 20
 	}
 	return priority
 }
@@ -757,7 +761,7 @@ func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error)
 
 		case *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap, *MetadataEncoding,
 			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery, *MetadataPartitions, *MetadataGenerated,
-			*MetadataGit:
+			*MetadataGit, *MetadataFixture:
 		}
 	}
 	return

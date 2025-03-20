@@ -14,6 +14,7 @@ import (
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/exec"
@@ -39,11 +40,11 @@ func build(ctx context.Context, plugin *languageplugin.LanguagePlugin, projectCo
 		return nil, nil, fmt.Errorf("failed to add queries to schema: %w", err)
 	}
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
-	return handleBuildResult(ctx, projectConfig, bctx.Config, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devModeEndpoints)
+	return handleBuildResult(ctx, projectConfig, bctx.Config, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints)
 }
 
 // handleBuildResult processes the result of a build
-func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, c moduleconfig.ModuleConfig, eitherResult result.Result[languageplugin.BuildResult], devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
+func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, c moduleconfig.ModuleConfig, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
 	logger := log.FromContext(ctx)
 	config := c.Abs()
 
@@ -79,6 +80,9 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLRootDir)
 
 	err = handleGitCommit(ctx, c.Abs().Dir, result.Schema)
+	if !devMode {
+		cleanFixtures(result.Schema)
+	}
 	if err != nil {
 		logger.Debugf("Failed to save current git commit to schema: %s", err.Error())
 	}
@@ -102,6 +106,20 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 		return nil, nil, fmt.Errorf("failed to write schema: %w", err)
 	}
 	return result.Schema, result.Deploy, nil
+}
+
+// cleanFixtures removes fixtures from the schema, it is invoked for non-dev mode builds
+func cleanFixtures(module *schema.Module) {
+	module.Decls = slices.Filter(module.Decls, func(d schema.Decl) bool {
+		if verb, ok := d.(*schema.Verb); ok {
+			for _, md := range verb.Metadata {
+				if _, ok := md.(*schema.MetadataFixture); ok {
+					return false
+				}
+			}
+		}
+		return true
+	})
 }
 
 func handleGitCommit(ctx context.Context, dir string, module *schema.Module) error {
