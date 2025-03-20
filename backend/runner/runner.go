@@ -316,7 +316,7 @@ func (s *Service) getModule(ctx context.Context, key key.Deployment) (*schema.Mo
 	gdResp, err := s.schemaClient.GetDeployment(ctx, connect.NewRequest(&ftlv1.GetDeploymentRequest{DeploymentKey: s.config.Deployment.String()}))
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
-		return nil, fmt.Errorf("failed to get deployment: %w", err)
+		return nil, fmt.Errorf("failed to get deployment from schema service: %w", err)
 	}
 
 	module, err := schema.ValidatedModuleFromProto(gdResp.Msg.Schema)

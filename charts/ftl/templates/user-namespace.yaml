@@ -1,0 +1,8 @@
+{{- if .Values.provisioner.userNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+  name: {{ .Values.provisioner.userNamespace }}
+{{- end }}
