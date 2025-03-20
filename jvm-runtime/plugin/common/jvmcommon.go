@@ -822,7 +822,7 @@ func loadJavaConfig(languageConfig any, language string) (JavaConfig, error) {
 func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
 	defaults := langpb.ModuleConfigDefaultsResponse{
 		LanguageConfig: &structpb.Struct{Fields: map[string]*structpb.Value{}},
-		Watch:          []string{"pom.xml", "src/**", "build/generated", "target/generated-sources", "src/main/resources/db"},
+		Watch:          []string{"src/**", "build/generated", "target/generated-sources", "src/main/resources/db"},
 		SqlRootDir:     "src/main/resources/db",
 	}
 	dir := req.Msg.Dir
@@ -834,11 +834,13 @@ func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request
 		defaults.DevModeBuild = ptr("mvn -Dquarkus.console.enabled=false -q clean quarkus:dev")
 		defaults.Build = ptr("mvn -B clean package")
 		defaults.DeployDir = "target"
+		defaults.Watch = append(defaults.Watch, "pom.xml")
 	} else if fileExists(buildGradle) || fileExists(buildGradleKts) {
 		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolGradle)
 		defaults.DevModeBuild = ptr("gradle clean quarkusDev -Dquarkus.console.enabled=false")
 		defaults.Build = ptr("gradle clean build")
 		defaults.DeployDir = "build"
+		defaults.Watch = append(defaults.Watch, "build.gradle", "build.gradle.kts", "settings.gradle", "gradle.properties")
 	} else {
 		return nil, fmt.Errorf("could not find JVM build file in %s", dir)
 	}
