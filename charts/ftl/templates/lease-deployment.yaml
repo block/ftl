@@ -50,7 +50,7 @@ spec:
             - name: LOG_JSON
               value: "{{ .Values.lease.logJson | default .Values.logJson }}"
           ports:
-            - name: "http2"
+            - name: "grpc"
               containerPort: 8892
               hostPort: {{ .Values.lease.port }}
               protocol: "TCP"
