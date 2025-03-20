@@ -17,6 +17,7 @@ import (
 
 type logsCmd struct {
 	Follow  bool     `help:"Specify if the logs should be streamed" short:"f"`
+	Tail    int      `help:"Number of lines to tail" short:"t" default:"10"`
 	Modules []string `arg:"" optional:"" help:"Module names to get logs from. Can be 'module' or 'module:verb' format"`
 }
 
@@ -33,7 +34,7 @@ func (cmd *logsCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceC
 
 	query := &timelinepb.TimelineQuery{
 		Order: timelinepb.TimelineQuery_ORDER_ASC,
-		Limit: 10,
+		Limit: int32(cmd.Tail), //nolint:gosec
 	}
 
 	// Add module filters if modules are specified
@@ -64,8 +65,7 @@ func (cmd *logsCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceC
 	}
 
 	for stream.Receive() {
-		msg := stream.Msg()
-		for _, logEvent := range msg.Logs {
+		for _, logEvent := range stream.Msg().Logs {
 			logger.Log(log.Entry{
 				Level:      log.Level(logEvent.LogLevel),
 				Message:    logEvent.Message,

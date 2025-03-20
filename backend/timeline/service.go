@@ -199,6 +199,11 @@ func (s *service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 	lastUpdate := time.Now()
 	query := req.Query
 
+	reverseOrder := timelinepb.TimelineQuery_ORDER_DESC
+	if query.Order == reverseOrder {
+		reverseOrder = timelinepb.TimelineQuery_ORDER_ASC
+	}
+
 	updateInterval := minUpdateInterval
 	if req.UpdateInterval != nil && req.UpdateInterval.AsDuration() > minUpdateInterval {
 		updateInterval = req.UpdateInterval.AsDuration()
@@ -207,15 +212,27 @@ func (s *service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 	if query.Limit == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
 	}
-	ascending := isAscending(query)
 
-	// Default to last 1 day of events
-	var lastEventID optional.Option[int64]
+	// fetch the initial batch of events, up to the limit
+	resp, err := s.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{Query: &timelinepb.TimelineQuery{
+		Order:   reverseOrder,
+		Limit:   query.Limit,
+		Filters: query.Filters,
+	}}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get timeline: %w", err)
+	}
+	events := resp.Msg.Events
+	slices.Reverse(events)
+	lastEventID := updatedMaxEventID(events, optional.None[int64]())
 
 	return func(yield func(result.Result[*timelinepb.StreamTimelineResponse]) bool) {
+		if !yield(result.Ok(&timelinepb.StreamTimelineResponse{Events: events})) {
+			return
+		}
+
 		for {
 			newQuery := &timelinepb.TimelineQuery{
-				// We always want ascending order for the underlying query.
 				Order: timelinepb.TimelineQuery_ORDER_ASC,
 				Limit: query.Limit,
 				Filters: append(query.Filters, &timelinepb.TimelineQuery_Filter{
@@ -234,15 +251,12 @@ func (s *service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 			}
 
 			events := resp.Msg.Events
+			if query.Order == timelinepb.TimelineQuery_ORDER_DESC {
+				slices.Reverse(events)
+			}
+
 			if len(events) > 0 {
-				// keep sending events until all have been sent
-				lastEventID = optional.Some(events[len(events)-1].Id)
-
-				if !ascending {
-					// Original query was for descending order, so reverse the events.
-					slices.Reverse(events)
-				}
-
+				lastEventID = updatedMaxEventID(events, lastEventID)
 				if !yield(result.Ok(&timelinepb.StreamTimelineResponse{Events: events})) {
 					return
 				}
@@ -254,12 +268,21 @@ func (s *service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 					return
 				}
 			}
-
 			// throttle the updates to the client
 			time.Sleep(time.Until(lastUpdate.Add(updateInterval)))
 			lastUpdate = time.Now()
 		}
 	}, nil
+}
+
+func updatedMaxEventID(events []*timelinepb.Event, prevMaxEventID optional.Option[int64]) optional.Option[int64] {
+	if len(events) == 0 {
+		return prevMaxEventID
+	}
+	if events[len(events)-1].Id > events[0].Id {
+		return optional.Some(events[len(events)-1].Id)
+	}
+	return optional.Some(events[0].Id)
 }
 
 func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {

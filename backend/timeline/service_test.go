@@ -68,6 +68,7 @@ func TestStreamTimeline(t *testing.T) {
 
 	t.Run("Returns a batch of Limit size as the first message", func(t *testing.T) {
 		t.Parallel()
+
 		service := createTestService(t, callEventsFixture(10))
 
 		iter, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{
@@ -79,16 +80,17 @@ func TestStreamTimeline(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 5, len(res.Events))
 	})
-	t.Run("Orders the messages by id in ascending order", func(t *testing.T) {
+	t.Run("With ASC order, events are returned in ascending order, with the last <Limit> events", func(t *testing.T) {
 		t.Parallel()
 
-		service := createTestService(t, callEventsFixture(10))
-		query := &timelinepb.TimelineQuery{Order: timelinepb.TimelineQuery_ORDER_ASC, Limit: 2}
-
+		service := createTestService(t, callEventsFixture(20))
+		query := &timelinepb.TimelineQuery{Order: timelinepb.TimelineQuery_ORDER_ASC, Limit: 5}
 		eventIter := eventIterator(t, service, query)
-		ids := slices.Collect(iterops.Map(iterops.Take(eventIter, 4), getID))
 
-		assert.Equal(t, []int{0, 1, 2, 3}, ids)
+		// do not read the last event, as that would make the iterator running in
+		// this go-routine hang
+		ids := slices.Collect(iterops.Map(iterops.Take(eventIter, 4), getID))
+		assert.Equal(t, []int{15, 16, 17, 18}, ids)
 	})
 }
 
