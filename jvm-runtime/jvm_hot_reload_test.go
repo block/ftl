@@ -84,31 +84,11 @@ func TestLifecycleJVM(t *testing.T) {
 				}
 			}
 		}),
-		in.EditFile("echo", func(content []byte) []byte {
-			return []byte(strings.Replace(string(content), "</parent>", `
-</parent>
-<dependencies>
-	<dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-jdbc-postgresql</artifactId>
-    </dependency>
-</dependencies>`, 1))
-		}, "pom.xml"),
-
 		in.Call("echo", "hello", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
 			assert.Equal(t, "Bye, Bob!", response["message"])
 		}),
-		// Now lets add a database, add the ftl config
-		in.EditFile("echo", func(content []byte) []byte {
-			return []byte(`
-quarkus.datasource.testdb.db-kind=postgresql
-quarkus.hibernate-orm.datasource=testdb
-`)
-		}, "src/main/resources/application.properties"),
-
 		// Create a new datasource
 		in.Exec("ftl", "postgres", "new", "echo.testdb"),
-
 		// Add contents to the migration
 		in.EditFiles("echo", func(file string, content []byte) (bool, []byte) {
 			if strings.Contains(file, "init") {
@@ -130,9 +110,12 @@ INSERT INTO StockPrice VALUES (0, 100.0, 'FOO');
 			}
 			return false, nil
 		}, "src/main/resources/db/postgres/testdb/schema/"),
-		in.Sleep(time.Second*2),
-		in.QueryRow("echo_testdb", "SELECT stock from StockPrice", "FOO"),
-	)
+		in.CreateFile("echo", "-- name: GetStockPrice :many\nSELECT stock from StockPrice;", "src/main/resources/db/postgres/testdb/queries/queries.sql"),
+		in.Sleep(6),
+		in.Call("echo", "getStockPrice", map[string]string{}, func(t testing.TB, response []map[string]interface{}) {
+			assert.Equal(t, 1, len(response))
+			assert.Equal(t, "FOO", response[0]["stock"])
+		}))
 }
 
 func TestMultiModuleJVMHotReload(t *testing.T) {

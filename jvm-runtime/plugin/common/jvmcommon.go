@@ -448,18 +448,24 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 		s.watchReloadEvents(ctx, reloadEvents, firstResponseSent, stream, devModeEndpoint, hotReloadEndpoint, debugPort32)
 	}()
 
+	errors := make(chan error)
 	for {
 		newKey := key.NewDeploymentKey(module)
 		select {
+		case err := <-errors:
+			return fmt.Errorf("hot reload failed %w", err)
 		case bc := <-events:
 			logger.Debugf("Build context updated")
-			buildCtx = bc.buildCtx
-			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
-			if err != nil {
-				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
-			}
-			handleReloadResponse(result, newKey)
-			reloadEvents <- &buildResult{state: result.Msg.GetState(), buildContextUpdated: true, failed: result.Msg.Failed}
+			go func() {
+				buildCtx = bc.buildCtx
+				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
+				if err != nil {
+					errors <- err
+					return
+				}
+				handleReloadResponse(result, newKey)
+				reloadEvents <- &buildResult{state: result.Msg.GetState(), buildContextUpdated: true, failed: result.Msg.Failed}
+			}()
 		case <-fileEvents:
 			newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
 			if err != nil {
@@ -480,13 +486,18 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 				continue
 			}
 
-			result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
+			go func() {
 
-			if err != nil {
-				return fmt.Errorf("failed to invoke hot reload for build context update %w", err)
-			}
-			handleReloadResponse(result, newKey)
-			reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed}
+				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
+
+				if err != nil {
+					errors <- err
+					return
+				}
+				handleReloadResponse(result, newKey)
+				reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed}
+
+			}()
 		case <-ctx.Done():
 			return fmt.Errorf("context cancelled %w", ctx.Err())
 		}
