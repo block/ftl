@@ -323,7 +323,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		return fmt.Errorf("failed to get configMap %s: %w", configMapName, err)
 	}
 	systemDeploymentClient := r.client.AppsV1().Deployments(r.systemNamespace)
-	userDeploymentClient := r.client.AppsV1().Deployments(r.systemNamespace)
+	userDeploymentClient := r.client.AppsV1().Deployments(userNamespace)
 	provisionerDeployment, err := systemDeploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get this provisioner deployment %s: %w", provisionerDeploymentName, err)
