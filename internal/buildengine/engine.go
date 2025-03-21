@@ -1155,6 +1155,10 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 	if err != nil {
 		return fmt.Errorf("failed to marshal module config: %w", err)
 	}
+	if meta.module.SQLError != nil {
+		meta.module = meta.module.CopyWithSQLErrors(nil)
+		e.moduleMetas.Store(moduleName, meta)
+	}
 	moduleSchema, deploy, err := build(ctx, e.projectConfig, meta.module, meta.plugin, languageplugin.BuildContext{
 		Config:       meta.module.Config,
 		Schema:       sch,
@@ -1197,10 +1201,6 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 			},
 		}
 		return err
-	}
-	if meta.module.SQLError != nil {
-		meta.module = meta.module.CopyWithSQLErrors(nil)
-		e.moduleMetas.Store(moduleName, meta)
 	}
 
 	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
