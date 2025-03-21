@@ -350,8 +350,6 @@ jobs:
         uses: ./.github/actions/build-cache
       - name: Download Go Modules
         run: go mod download
-      - name: Start FTL
-        run: just k8s apply
       - name: Build Language Plugins
         run: just build-language-plugins
       - name: Run ${{ matrix.test }}
