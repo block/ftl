@@ -17,16 +17,26 @@ import (
 	in "github.com/block/ftl/internal/integration"
 )
 
-func TestKubeScaling(t *testing.T) {
+func TestKubeScalingUserNamespace(t *testing.T) {
+	runTest(t, func(dep string) string {
+		return "demo"
+	})
+}
+func TestKubeScalingDeploymentPerNamespace(t *testing.T) {
+	runTest(t, func(dep string) string {
+		return dep + "-ftl"
+	}, "--set", "ftl.provisioner.modulePerNamespace=true")
+}
+
+func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string) {
 	//failure := atomic.Value[error]{}
 	//done := atomic.Value[bool]{}
 	//done.Store(false)
 	//routineStopped := sync.WaitGroup{}
 	//routineStopped.Add(1)
 	echoDeployment := map[string]string{}
-	namespace := "demo"
 	in.Run(t,
-		in.WithKubernetes(),
+		in.WithKubernetes(helmArgs...),
 		in.CopyModule("echo"),
 		in.Deploy("echo"),
 		in.CopyModule("proxy"),
@@ -41,7 +51,7 @@ func TestKubeScaling(t *testing.T) {
 			assert.Equal(t, "Hello, Bob!!!", response)
 		}),
 		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
-			deps, err := client.AppsV1().Deployments("demo").List(ctx, v1.ListOptions{})
+			deps, err := client.AppsV1().Deployments(namespace("echo")).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			for _, dep := range deps.Items {
 				if strings.HasPrefix(dep.Name, "dpl-echo") {
@@ -53,7 +63,7 @@ func TestKubeScaling(t *testing.T) {
 		}),
 		in.Exec("ftl", "update", "echo", "-n", "2"),
 		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
-			deps, err := client.AppsV1().Deployments("demo").List(ctx, v1.ListOptions{})
+			deps, err := client.AppsV1().Deployments(namespace("echo")).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			for _, dep := range deps.Items {
 				if strings.HasPrefix(dep.Name, "dpl-echo") {
@@ -93,7 +103,7 @@ func TestKubeScaling(t *testing.T) {
 			assert.Equal(t, "Bye, Bob!!!", response)
 		}),
 		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
-			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
+			deps, err := client.AppsV1().Deployments(namespace("echo")).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			for _, dep := range deps.Items {
 				if strings.HasPrefix(dep.Name, "dpl-echo") {
@@ -132,14 +142,14 @@ func TestKubeScaling(t *testing.T) {
 			//assert.NoError(t, err)
 		},
 		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
-			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
+			deps, err := client.AppsV1().Deployments(namespace("echo")).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			depCount := 0
 			for _, dep := range deps.Items {
 				if strings.HasPrefix(dep.Name, "dpl-echo") {
 					t.Logf("Found deployment %s", dep.Name)
 					depCount++
-					service, err := client.CoreV1().Services(namespace).Get(ctx, dep.Name, v1.GetOptions{})
+					service, err := client.CoreV1().Services(namespace("echo")).Get(ctx, dep.Name, v1.GetOptions{})
 					assert.NoError(t, err)
 					assert.Equal(t, 1, len(dep.OwnerReferences), "Expected 1 owner reference", dep.OwnerReferences)
 					assert.Equal(t, service.UID, dep.OwnerReferences[0].UID)
@@ -151,7 +161,7 @@ func TestKubeScaling(t *testing.T) {
 		in.Exec("ftl", "kill", "echo"),
 		in.Sleep(time.Second*6), // The drain delay
 		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
-			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
+			deps, err := client.AppsV1().Deployments(namespace("echo")).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			depCount := 0
 			for _, dep := range deps.Items {

@@ -86,11 +86,12 @@ func WithLanguages(languages ...string) Option {
 }
 
 // WithKubernetes is a Run* option that specifies tests should be run on a kube cluster
-func WithKubernetes() Option {
+func WithKubernetes(helmArgs ...string) Option {
 	return func(o *options) {
 		o.kube = true
 		o.startController = false
 		o.startTimeline = false
+		o.helmArgs = helmArgs
 	}
 }
 
@@ -195,6 +196,7 @@ type options struct {
 	localstack        bool
 	console           bool
 	resetPubSub       bool
+	helmArgs          []string
 }
 
 // Run an integration test.
@@ -258,12 +260,16 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 
 			// On CI we always skip the full deploy, as the build is done in the CI pipeline
 			skipKubeFullDeploy := os.Getenv("CI") != ""
+			var args []string
 			if skipKubeFullDeploy {
-				Infof("Skipping full deploy since CI is set")
+				Infof("Using apply instead of full-deploy CI is set")
+				args = append([]string{}, "apply")
 			} else {
-				err = ftlexec.Command(ctx, log.Debug, filepath.Join(rootDir, "deployment"), "just", "full-deploy").RunBuffered(ctx)
-				assert.NoError(t, err)
+				args = append([]string{}, "full-deploy")
 			}
+			args = append(args, opts.helmArgs...)
+			err = ftlexec.Command(ctx, log.Debug, filepath.Join(rootDir, "deployment"), "just", args...).RunBuffered(ctx)
+			assert.NoError(t, err)
 			if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
 				// If we are already on linux/amd64 we don't need to rebuild, otherwise we now need a native one to interact with the kube cluster
 				Infof("Building FTL for native OS")
