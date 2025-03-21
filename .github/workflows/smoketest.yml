@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # ratchet:jlumbroso/free-disk-space@main
         with:
           # this might remove tools that are actually needed,
           # if set to "true" but frees about 6 GB
           tool-cache: false
       - name: Checkout the repository with full history
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -30,7 +30,7 @@ jobs:
       - name: Check out the last tagged release
         run: git checkout v${{ env.LATEST_VERSION }}
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1
+        uses: cashapp/activate-hermit@e49f5cb4dd64ff0b0b659d1d8df499595451155a # ratchet:cashapp/activate-hermit@v1
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Download Go Modules
@@ -50,7 +50,7 @@ jobs:
       - name: Check out HEAD of the current branch
         run: git checkout "$CURRENT_COMMIT"
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1
+        uses: cashapp/activate-hermit@e49f5cb4dd64ff0b0b659d1d8df499595451155a # ratchet:cashapp/activate-hermit@v1
       - name: Build Test Images
         run: just k8s full-deploy
       - name: Build Language Plugins
@@ -61,12 +61,12 @@ jobs:
           echo "Running smoke test on the HEAD images"
           OLD_FTL_VERSION=${{ env.LATEST_VERSION }} go test -v -timeout 15m -tags smoketest -run '^Test' ./smoketest
       - name: Archive Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: always()
         with:
           name: kube-report-smoke-test-upgrade
           path: /tmp/ftl-kube-report/
       - name: Print Disk Space
         if: always()
-        run: |
+        run: |-
           df

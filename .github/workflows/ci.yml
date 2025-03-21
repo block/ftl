@@ -11,25 +11,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build Language Plugins
         run: just build-language-plugins
       - name: Test
-        run:  go-test-annotate
+        run: go-test-annotate
   test-readme:
     name: Test README
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build Language Plugins
         run: just build-language-plugins
       - name: Test README
@@ -39,13 +39,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: golangci-lint
         run: |
           golangci-lint --version
@@ -69,11 +69,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Proto Breaking Change Check
         shell: bash
         run: |
@@ -84,11 +84,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Console pnpm install
         run: just pnpm-install
       - name: Console Lint
@@ -102,9 +102,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Test WASM
@@ -122,11 +122,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: VSCode extension pnpm install
         run: just pnpm-install
       - name: VSCode extension lint
@@ -140,11 +140,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Install Java
         run: java -version
       - name: Build Intellij Plugin
@@ -155,11 +155,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Rebuild All
         run: just build-all
       - name: Check No SCM Changes
@@ -175,23 +175,23 @@ jobs:
     name: Build Docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: cashapp/activate-hermit@v1.1.4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build website
         run: just build-docs
   gen-lsp:
     name: Generate LSP Help
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: cashapp/activate-hermit@v1.1.4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - run: just lsp-generate
   arch-lint:
     name: Lint Architecture
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: cashapp/activate-hermit@v1.1.4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - run: go-arch-lint check || true
   docker-shard:
     name: Shard Docker Builds
@@ -200,8 +200,8 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - uses: cashapp/activate-hermit@v1.1.4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - id: set-matrix
         name: Shard Docker Builds
         uses: ./.github/actions/shard-docker-builds
@@ -214,8 +214,8 @@ jobs:
         service: ${{ fromJson(needs.docker-shard.outputs.matrix) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - uses: cashapp/activate-hermit@v1.1.4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build Image and Save
         uses: ./.github/actions/save-docker-image
         with:
@@ -226,14 +226,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Restore playwright browser cache
         id: cache-playwright
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/restore@v4
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -253,9 +253,9 @@ jobs:
       matrix: ${{ steps.extract-tests.outputs.matrix }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Extract test cases
         id: extract-tests
         run: |
@@ -272,11 +272,11 @@ jobs:
       matrix: ${{fromJson(needs.integration-shard.outputs.matrix)}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Download Go Modules
         run: go mod download
       - name: Build Language Plugins
@@ -287,7 +287,7 @@ jobs:
           # shellcheck disable=SC2046
           echo '${{ matrix.test }}' | tr '|' ' ' | xargs -n1 just integration-tests
       - name: Archive Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: failure() # Upload the report only on failure
         with:
           name: failure-report-${{ github.run_id }}
@@ -300,9 +300,9 @@ jobs:
       matrix: ${{ steps.extract-tests.outputs.matrix }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Extract test cases
         id: extract-tests
         run: |
@@ -321,16 +321,16 @@ jobs:
       matrix: ${{fromJson(needs.infrastructure-shard.outputs.matrix)}}
     steps:
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # ratchet:jlumbroso/free-disk-space@main
         with:
           # this might remove tools that are actually needed,
           # if set to "true" but frees about 6 GB
           tool-cache: false
           large-packages: false # this is slow
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Load Docker Images
         uses: ./.github/actions/load-docker-images
       - name: Log in to DockerHub to avoid rate limiting
@@ -360,7 +360,7 @@ jobs:
           # shellcheck disable=SC2046
           go test -v -race -tags infrastructure -run '^${{ matrix.test }}$' $(git grep -l '^//go:build infrastructure' | xargs grep -l '^func ${{ matrix.test }}' | xargs -I {} dirname ./{})
       - name: Archive Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: always() # Always upload the report even on failure
         with:
           name: kube-report-${{ matrix.test }}
