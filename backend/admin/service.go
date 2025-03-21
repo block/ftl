@@ -644,33 +644,19 @@ func (s *Service) StreamLogs(ctx context.Context, req *connect.Request[adminpb.S
 		return fmt.Errorf("failed to get timeline: %w", err)
 	}
 
-	buffer := make(chan *timelinepb.LogEvent, 256)
-	errg, _ := errgroup.WithContext(ctx)
-	errg.Go(func() error {
-		for timeline.Receive() {
-			msg := timeline.Msg()
-			for _, event := range msg.Events {
-				if log := event.GetLog(); log != nil {
-					buffer <- log
-				}
+	for timeline.Receive() {
+		msg := timeline.Msg()
+		logs := []*timelinepb.LogEvent{}
+		for _, event := range msg.Events {
+			if log := event.GetLog(); log != nil {
+				logs = append(logs, log)
 			}
 		}
-		return nil
-	})
-	errg.Go(func() error {
-		for log := range buffer {
-			if err := resp.Send(&adminpb.StreamLogsResponse{
-				Logs: []*timelinepb.LogEvent{log},
-			}); err != nil {
-				return fmt.Errorf("failed to send logs: %w", err)
-			}
+		if err := resp.Send(&adminpb.StreamLogsResponse{
+			Logs: logs,
+		}); err != nil {
+			return fmt.Errorf("failed to send logs: %w", err)
 		}
-		return nil
-	})
-
-	err = errg.Wait()
-	if err != nil && !errors.Is(err, context.Canceled) {
-		return fmt.Errorf("failed to stream logs: %w", err)
 	}
 	return nil
 }
