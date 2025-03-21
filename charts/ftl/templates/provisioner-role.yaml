@@ -9,7 +9,7 @@ metadata:
   {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: {{ if .Values.provisioner.modulePerNamespace }} ClusterRole {{- else }} Role {{- end }}
 metadata:
   name: {{ include "ftl.fullname" . }}-provisioner
   labels:
@@ -32,6 +32,11 @@ rules:
   - apiGroups: [ "security.istio.io" ]
     resources: [ "authorizationpolicies" ]
     verbs: [ "get", "list", "watch", "delete", "create", "update", "patch" ]
+  {{ if .Values.provisioner.modulePerNamespace }}
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: [ "get", "list", "watch", "create" ]
+  {{- end}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -41,7 +46,7 @@ metadata:
     {{- include "ftl.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
+  kind: {{ if .Values.provisioner.modulePerNamespace }} ClusterRole {{- else }} Role {{- end }}
   name: {{ include "ftl.fullname" . }}-provisioner
 subjects:
   - kind: ServiceAccount
