@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/block/ftl/internal/key"
 	"io"
 	"net/url"
 	"os"
@@ -36,6 +35,7 @@ import (
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 )
@@ -548,7 +548,6 @@ func (r *k8sScaling) syncDeployment(ctx context.Context, thisImage string, deplo
 		})
 	}
 	changes = r.updateEnvVar(deployment, "FTL_DEPLOYMENT", deployment.Name, changes)
-	changes = r.updateEnvVar(deployment, "FTL_CONTROLLER_ENDPOINT", r.controller, changes)
 	return changes, nil
 }
 

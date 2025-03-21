@@ -24,6 +24,7 @@ func TestKubeScaling(t *testing.T) {
 	//routineStopped := sync.WaitGroup{}
 	//routineStopped.Add(1)
 	echoDeployment := map[string]string{}
+	namespace := "demo"
 	in.Run(t,
 		in.WithKubernetes(),
 		in.CopyModule("echo"),
@@ -39,8 +40,8 @@ func TestKubeScaling(t *testing.T) {
 			// Verify peer to peer communication
 			assert.Equal(t, "Hello, Bob!!!", response)
 		}),
-		in.VerifyKubeState(func(ctx context.Context, t testing.TB, namespace string, client kubernetes.Clientset) {
-			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
+		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
+			deps, err := client.AppsV1().Deployments("demo").List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			for _, dep := range deps.Items {
 				if strings.HasPrefix(dep.Name, "dpl-echo") {
@@ -51,8 +52,8 @@ func TestKubeScaling(t *testing.T) {
 			assert.NotEqual(t, "", echoDeployment["name"])
 		}),
 		in.Exec("ftl", "update", "echo", "-n", "2"),
-		in.VerifyKubeState(func(ctx context.Context, t testing.TB, namespace string, client kubernetes.Clientset) {
-			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
+		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
+			deps, err := client.AppsV1().Deployments("demo").List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			for _, dep := range deps.Items {
 				if strings.HasPrefix(dep.Name, "dpl-echo") {
@@ -91,7 +92,7 @@ func TestKubeScaling(t *testing.T) {
 		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Bye, Bob!!!", response)
 		}),
-		in.VerifyKubeState(func(ctx context.Context, t testing.TB, namespace string, client kubernetes.Clientset) {
+		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
 			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			for _, dep := range deps.Items {
@@ -130,7 +131,7 @@ func TestKubeScaling(t *testing.T) {
 			//err := failure.Load()
 			//assert.NoError(t, err)
 		},
-		in.VerifyKubeState(func(ctx context.Context, t testing.TB, namespace string, client kubernetes.Clientset) {
+		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
 			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			depCount := 0
@@ -149,7 +150,7 @@ func TestKubeScaling(t *testing.T) {
 		in.Exec("ftl", "kill", "proxy"),
 		in.Exec("ftl", "kill", "echo"),
 		in.Sleep(time.Second*6), // The drain delay
-		in.VerifyKubeState(func(ctx context.Context, t testing.TB, namespace string, client kubernetes.Clientset) {
+		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
 			deps, err := client.AppsV1().Deployments(namespace).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			depCount := 0
