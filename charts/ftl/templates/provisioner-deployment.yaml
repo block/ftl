@@ -58,6 +58,16 @@ spec:
               value: "{{ .Values.registry.repository }}"
             - name: FTL_ARTEFACT_REGISTRY_ALLOW_INSECURE
               value: "{{ .Values.registry.allowInsecure }}"
+            - name: FTL_INSTANCE_NAME
+              value: "{{ include "ftl.fullname" . }}"
+            {{- if .Values.provisioner.userNamespace}}
+            - name: FTL_USER_NAMESPACE
+              value: "{{ .Values.provisioner.userNamespace }}"
+            {{- end }}
+            {{- if .Values.provisioner.modulePerNamespace}}
+            - name: FTL_MODULE_PER_NAMESPACE
+              value: "{{ .Values.provisioner.modulePerNamespace }}"
+            {{- end }}
             - name: FTL_ARTEFACT_REGISTRY_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -70,6 +80,14 @@ spec:
                   name: {{ include "ftl.fullname" . }}-secrets
                   key: FTL_RUNNER_REGISTRY_PASSWORD
                   optional: true
+            - name: FTL_CRON_SERVICE_ACCOUNT
+              value: "{{ .Values.cron.serviceAccountName }}"
+            - name: FTL_CONSOLE_SERVICE_ACCOUNT
+              value: "{{ .Values.console.serviceAccountName }}"
+            - name: FTL_ADMIN_SERVICE_ACCOUNT
+              value: "{{ .Values.admin.serviceAccountName }}"
+            - name: FTL_HTTP_SERVICE_ACCOUNT
+              value: "{{ .Values.ingress.serviceAccountName }}"
             {{- if .Values.provisioner.env }}
             {{- toYaml .Values.provisioner.env | nindent 12 }}
             {{- end }}

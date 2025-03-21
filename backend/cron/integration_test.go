@@ -20,7 +20,7 @@ func TestDistributedCron(t *testing.T) {
 		// Wait for cron to execute at least once
 		in.Sleep(2*time.Second),
 
-		in.ExecWithOutput("kubectl", []string{"logs", "-l", "ftl.dev/module=cron"}, func(output string) {
+		in.ExecWithOutput("kubectl", []string{"logs", "-n", "demo", "-l", "ftl.dev/module=cron"}, func(output string) {
 			assert.Contains(t, output, "Cron job executed")
 		}),
 	)

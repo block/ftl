@@ -1,5 +1,7 @@
 
 ftl:
+  provisioner:
+    userNamespace: "demo"
   runner:
     podAnnotations:
       sidecar.istio.io/logLevel: "debug"

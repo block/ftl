@@ -81,7 +81,7 @@ func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.SchemaServiceClie
 		DeploymentKey: key.String(),
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to get deployment %q: %w", key, err)
+		return fmt.Errorf("failed to get deployment when downloading artifacts %q: %w", key, err)
 	}
 	start := time.Now()
 	count := 0

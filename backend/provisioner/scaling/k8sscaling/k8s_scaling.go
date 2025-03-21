@@ -35,11 +35,11 @@ import (
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 )
 
-const adminDeploymentName = "ftl-admin"
 const provisionerDeploymentName = "ftl-provisioner"
 const configMapName = "ftl-controller-deployment-config"
 const deploymentTemplate = "deploymentTemplate"
@@ -55,98 +55,24 @@ type k8sScaling struct {
 	disableIstio bool
 	controller   string
 
-	client    *kubernetes.Clientset
-	namespace string
+	client          *kubernetes.Clientset
+	systemNamespace string
 	// Map of known deployments
 	knownDeployments *xsync.MapOf[string, bool]
 	istioSecurity    optional.Option[istioclient.Clientset]
+	namespaceMapper  NamespaceMapper
+	// A unique per cluster identifier for this FTL instance
+	instanceName              string
+	cronServiceAccount        string
+	adminServiceAccount       string
+	consoleServiceAccount     string
+	httpIngressServiceAccount string
 }
 
-func NewK8sScaling(disableIstio bool, controllerURL string) scaling.RunnerScaling {
-	return &k8sScaling{disableIstio: disableIstio, controller: controllerURL}
-}
+type NamespaceMapper func(module string, systemNamespace string) string
 
-func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string, sch *schema.Module) error {
-	logger := log.FromContext(ctx)
-	module := sch.Name
-	logger = logger.Module(module)
-	ctx = log.ContextWithLogger(ctx, logger)
-	logger.Debugf("Updating deployment for %s", deploymentKey)
-	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
-	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get deployment %s: %w", deploymentKey, err)
-	}
-	return r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
-}
-
-func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
-	logger := log.FromContext(ctx)
-	module := sch.Name
-	logger = logger.Module(module)
-	ctx = log.ContextWithLogger(ctx, logger)
-	logger.Debugf("Creating deployment for %s", deploymentKey)
-	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
-	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
-	deploymentExists := true
-	if err != nil {
-		if errors.IsNotFound(err) {
-			deploymentExists = false
-		} else {
-			return url.URL{}, fmt.Errorf("failed to get deployment %s: %w", deploymentKey, err)
-		}
-	}
-
-	r.knownDeployments.Store(deploymentKey, true)
-	if deploymentExists {
-		logger.Debugf("Updating deployment %s", deploymentKey)
-		err = r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
-		return r.GetEndpointForDeployment(deploymentKey), err
-
-	}
-	err = r.handleNewDeployment(ctx, module, deploymentKey, sch, hasCron, hasIngress)
-	if err != nil {
-		return url.URL{}, err
-	}
-	err = r.waitForDeploymentReady(ctx, deploymentKey, deployTimeout)
-	if err != nil {
-		err2 := r.TerminateDeployment(ctx, deploymentKey)
-		if err2 != nil {
-			logger.Errorf(err2, "Failed to terminate deployment %s after failure", deploymentKey)
-		}
-		return url.URL{}, err
-	}
-
-	endpoint := r.GetEndpointForDeployment(deploymentKey)
-	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, endpoint.String(), log.Error)
-	timeout := time.After(1 * time.Minute)
-	for {
-		select {
-		case <-ctx.Done():
-			return url.URL{}, fmt.Errorf("context cancelled: %w", ctx.Err())
-		case <-timeout:
-			return url.URL{}, fmt.Errorf("timed out waiting for runner to be ready")
-		case <-time.After(time.Millisecond * 100):
-			_, err := client.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
-			if err == nil {
-				return endpoint, nil
-			}
-		}
-	}
-}
-
-func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey string) error {
-	logger := log.FromContext(ctx)
-	delCtx := log.ContextWithLogger(context.Background(), logger)
-	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
-	err := deploymentClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("failed to delete deployment %s: %w", deploymentKey, err)
-	}
-	return nil
+func NewK8sScaling(disableIstio bool, controllerURL string, instanceName string, mapper NamespaceMapper, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
+	return &k8sScaling{disableIstio: disableIstio, controller: controllerURL, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount}
 }
 
 func (r *k8sScaling) Start(ctx context.Context) error {
@@ -182,9 +108,104 @@ func (r *k8sScaling) Start(ctx context.Context) error {
 
 	logger.Debugf("Using namespace %s", namespace)
 	r.client = clientset
-	r.namespace = namespace
+	r.systemNamespace = namespace
 	r.knownDeployments = xsync.NewMapOf[string, bool]()
 	r.istioSecurity = optional.Ptr(sec)
+	return nil
+}
+
+func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string, sch *schema.Module) error {
+	logger := log.FromContext(ctx)
+	module := sch.Name
+	logger = logger.Module(module)
+	ctx = log.ContextWithLogger(ctx, logger)
+	logger.Debugf("Updating deployment for %s", deploymentKey)
+	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(sch.Name, r.systemNamespace))
+	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get deployment %s for update: %w", deploymentKey, err)
+	}
+	return r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
+}
+
+func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
+	logger := log.FromContext(ctx)
+	module := sch.Name
+	logger = logger.Module(module)
+	ctx = log.ContextWithLogger(ctx, logger)
+	dk, err := key.ParseDeploymentKey(deploymentKey)
+	if err != nil {
+		return url.URL{}, fmt.Errorf("failed to parse deployment key: %w", err)
+	}
+	logger.Debugf("Creating deployment for %s", deploymentKey)
+	namespace, err := r.ensureNamespace(ctx, sch)
+	if err != nil {
+		return url.URL{}, fmt.Errorf("failed to ensure namespace: %w", err)
+	}
+
+	deploymentClient := r.client.AppsV1().Deployments(namespace)
+	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
+	deploymentExists := true
+	if err != nil {
+		if errors.IsNotFound(err) {
+			deploymentExists = false
+		} else {
+			return url.URL{}, fmt.Errorf("failed to check for existence of deployment %s: %w", deploymentKey, err)
+		}
+	}
+
+	r.knownDeployments.Store(deploymentKey, true)
+	if deploymentExists {
+		logger.Debugf("Updating deployment %s", deploymentKey)
+		err = r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
+		return r.GetEndpointForDeployment(dk), err
+
+	}
+	err = r.handleNewDeployment(ctx, module, deploymentKey, sch, hasCron, hasIngress)
+	if err != nil {
+		return url.URL{}, err
+	}
+	err = r.waitForDeploymentReady(ctx, namespace, deploymentKey, deployTimeout)
+	if err != nil {
+		err2 := r.TerminateDeployment(ctx, deploymentKey)
+		if err2 != nil {
+			logger.Errorf(err2, "Failed to terminate deployment %s after failure", deploymentKey)
+		}
+		return url.URL{}, err
+	}
+
+	endpoint := r.GetEndpointForDeployment(dk)
+	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, endpoint.String(), log.Error)
+	timeout := time.After(1 * time.Minute)
+	for {
+		select {
+		case <-ctx.Done():
+			return url.URL{}, fmt.Errorf("context cancelled: %w", ctx.Err())
+		case <-timeout:
+			return url.URL{}, fmt.Errorf("timed out waiting for runner to be ready")
+		case <-time.After(time.Millisecond * 100):
+			_, err := client.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
+			if err == nil {
+				return endpoint, nil
+			}
+		}
+	}
+}
+
+func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey string) error {
+	logger := log.FromContext(ctx)
+	delCtx := log.ContextWithLogger(context.Background(), logger)
+	dk, err := key.ParseDeploymentKey(deploymentKey)
+	if err != nil {
+		return fmt.Errorf("failed to parse deployment key %s: %w", deploymentKey, err)
+	}
+	serviceClient := r.client.CoreV1().Services(r.namespaceMapper(dk.Payload.Module, r.systemNamespace))
+	err = serviceClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete service %s: %w", deploymentKey, err)
+		}
+	}
 	return nil
 }
 
@@ -227,12 +248,11 @@ func getKubeConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-func (r *k8sScaling) GetEndpointForDeployment(deployment string) url.URL {
-	// TODO: hard coded port? It's hard to deal with as we might not have the lease
-	// I think requiring this port is fine for now
+func (r *k8sScaling) GetEndpointForDeployment(deployment key.Deployment) url.URL {
+
 	return url.URL{Scheme: "http",
-		Host: fmt.Sprintf("%s:8892", deployment),
-	}
+		Host: fmt.Sprintf("%s.%s:8892", deployment.String(), r.namespaceMapper(deployment.Payload.Module, r.systemNamespace))}
+
 }
 
 func GetCurrentNamespace() (string, error) {
@@ -256,21 +276,21 @@ func GetCurrentNamespace() (string, error) {
 		return "", fmt.Errorf("no current context found in kubeconfig")
 	}
 
-	context, exists := config.Contexts[currentContext]
+	c, exists := config.Contexts[currentContext]
 	if !exists {
 		return "", fmt.Errorf("context %s not found in kubeconfig", currentContext)
 	}
 
-	return context.Namespace, nil
+	return c.Namespace, nil
 }
 
-func (r *k8sScaling) updateDeployment(ctx context.Context, name string, mod func(deployment *kubeapps.Deployment)) error {
-	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
+func (r *k8sScaling) updateDeployment(ctx context.Context, namespace string, name string, mod func(deployment *kubeapps.Deployment)) error {
+	deploymentClient := r.client.AppsV1().Deployments(namespace)
 	for range 10 {
 
 		get, err := deploymentClient.Get(ctx, name, v1.GetOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to get deployment %s: %w", name, err)
+			return fmt.Errorf("failed to get deployment %s to apply update: %w", name, err)
 		}
 		mod(get)
 		_, err = deploymentClient.Update(ctx, get, v1.UpdateOptions{})
@@ -287,33 +307,30 @@ func (r *k8sScaling) updateDeployment(ctx context.Context, name string, mod func
 }
 
 func (r *k8sScaling) thisContainerImage(ctx context.Context) (string, error) {
-	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
-	thisDeployment, err := deploymentClient.Get(ctx, adminDeploymentName, v1.GetOptions{})
+	deploymentClient := r.client.AppsV1().Deployments(r.systemNamespace)
+	thisDeployment, err := deploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get deployment %s: %w", adminDeploymentName, err)
+		return "", fmt.Errorf("failed to get admin deployment %s: %w", provisionerDeploymentName, err)
 	}
 	return thisDeployment.Spec.Template.Spec.Containers[0].Image, nil
 }
 
 func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, name string, sch *schema.Module, cron bool, ingress bool) error {
 	logger := log.FromContext(ctx)
-
-	cm, err := r.client.CoreV1().ConfigMaps(r.namespace).Get(ctx, configMapName, v1.GetOptions{})
+	userNamespace := r.namespaceMapper(module, r.systemNamespace)
+	cm, err := r.client.CoreV1().ConfigMaps(r.systemNamespace).Get(ctx, configMapName, v1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get configMap %s: %w", configMapName, err)
 	}
-	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
-	adminDeployment, err := deploymentClient.Get(ctx, adminDeploymentName, v1.GetOptions{})
+	systemDeploymentClient := r.client.AppsV1().Deployments(r.systemNamespace)
+	userDeploymentClient := r.client.AppsV1().Deployments(userNamespace)
+	provisionerDeployment, err := systemDeploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get deployment %s: %w", adminDeploymentName, err)
-	}
-	provisionerDeployment, err := deploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get deployment %s: %w", provisionerDeploymentName, err)
+		return fmt.Errorf("failed to get this provisioner deployment %s: %w", provisionerDeploymentName, err)
 	}
 	// First create a Service, this will be the root owner of all the other resources
 	// Only create if it does not exist already
-	servicesClient := r.client.CoreV1().Services(r.namespace)
+	servicesClient := r.client.CoreV1().Services(userNamespace)
 	service, err := servicesClient.Get(ctx, name, v1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
@@ -338,10 +355,9 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 
 	// Now create a ServiceAccount, we mostly need this for Istio but we create it for all deployments
 	// To keep things consistent
-	serviceAccountClient := r.client.CoreV1().ServiceAccounts(r.namespace)
+	serviceAccountClient := r.client.CoreV1().ServiceAccounts(userNamespace)
 	serviceAccount, err := serviceAccountClient.Get(ctx, module, v1.GetOptions{})
 	if err != nil {
-		//TODO: implement cleanup for Service Accounts of modules that are completly removed
 		if !errors.IsNotFound(err) {
 			return fmt.Errorf("failed to get service account %s: %w", name, err)
 		}
@@ -354,6 +370,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		if serviceAccount.Labels == nil {
 			serviceAccount.Labels = map[string]string{}
 		}
+		serviceAccount.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 		serviceAccount.Labels[moduleLabel] = module
 		_, err = serviceAccountClient.Create(ctx, serviceAccount, v1.CreateOptions{})
 		if err != nil {
@@ -362,11 +379,16 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		logger.Debugf("Created kube service  account%s", name)
 	} else {
 		logger.Debugf("Service account %s already exists", name)
+		serviceAccount.OwnerReferences = append(serviceAccount.OwnerReferences, v1.OwnerReference{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID})
+		_, err = serviceAccountClient.Update(ctx, serviceAccount, v1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to update service account %s: %w", name, err)
+		}
 	}
 
 	// Sync the istio policy if applicable
 	if sec, ok := r.istioSecurity.Get(); ok {
-		err = r.syncIstioPolicy(ctx, sec, module, name, service, adminDeployment, provisionerDeployment, sch, cron, ingress)
+		err = r.syncIstioPolicy(ctx, sec, userNamespace, module, name, service, provisionerDeployment, sch, cron, ingress)
 		if err != nil {
 			return err
 		}
@@ -405,7 +427,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	}
 	if strings.HasPrefix(rawRunnerImage, "ftl0/") {
 		// Images in the ftl0 namespace should use the same tag as the controller and use the same namespace as ourImage
-		runnerImage = strings.ReplaceAll(ourImage, "ftl-admin", rawRunnerImage[len(`ftl0/`):])
+		runnerImage = strings.ReplaceAll(ourImage, "ftl-provisioner", rawRunnerImage[len(`ftl0/`):])
 	} else {
 		// Images outside of the ftl0 namespace should use the same tag as the controller
 		ourImageComponents := strings.Split(ourImage, ":")
@@ -416,6 +438,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	}
 
 	deployment.Name = name
+	deployment.Namespace = userNamespace
 	deployment.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 	deployment.Spec.Template.Spec.Containers[0].Image = fmt.Sprintf("%s:%s", runnerImage, ourVersion)
 	deployment.Spec.Selector = &v1.LabelSelector{MatchLabels: map[string]string{"app": name}}
@@ -436,9 +459,9 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 
 	addLabels(&deployment.ObjectMeta, module, name)
 	addLabels(&deployment.Spec.Template.ObjectMeta, module, name)
-	deployment, err = deploymentClient.Create(ctx, deployment, v1.CreateOptions{})
+	_, err = userDeploymentClient.Create(ctx, deployment, v1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to create deployment %s: %w", deployment.Name, err)
+		return fmt.Errorf("failed to create deployment %s: %w", name, err)
 	}
 	logger.Debugf("Created kube deployment %s", name)
 
@@ -479,7 +502,7 @@ func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *k
 	// If we have queued changes we apply them here. Changes can fail and need to be retried
 	// Which is why they are supplied as a list of functions
 	if len(changes) > 0 {
-		err = r.updateDeployment(ctx, deployment.Name, func(deployment *kubeapps.Deployment) {
+		err = r.updateDeployment(ctx, deployment.Namespace, deployment.Name, func(deployment *kubeapps.Deployment) {
 			for _, change := range changes {
 				change(deployment)
 			}
@@ -525,7 +548,6 @@ func (r *k8sScaling) syncDeployment(ctx context.Context, thisImage string, deplo
 		})
 	}
 	changes = r.updateEnvVar(deployment, "FTL_DEPLOYMENT", deployment.Name, changes)
-	changes = r.updateEnvVar(deployment, "FTL_CONTROLLER_ENDPOINT", r.controller, changes)
 	return changes, nil
 }
 
@@ -556,7 +578,7 @@ func (r *k8sScaling) updateEnvVar(deployment *kubeapps.Deployment, envVerName st
 	return changes
 }
 
-func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, module string, name string, service *kubecore.Service, adminDeployment *kubeapps.Deployment, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
+func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, namespace string, module string, name string, service *kubecore.Service, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Creating new istio policy for %s", name)
 
@@ -577,32 +599,32 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 	callableModuleNames = maps.Keys(callableModules)
 	callableModuleNames = slices.Sort(callableModuleNames)
 
-	policiesClient := sec.SecurityV1().AuthorizationPolicies(r.namespace)
+	policiesClient := sec.SecurityV1().AuthorizationPolicies(namespace)
 
 	// Allow controller ingress
-	err := r.createOrUpdateIstioPolicy(ctx, policiesClient, name, func(policy *istiosec.AuthorizationPolicy) {
+	err := r.createOrUpdateIstioPolicy(ctx, policiesClient, namespace, name, func(policy *istiosec.AuthorizationPolicy) {
 		policy.Name = name
-		policy.Namespace = r.namespace
+		policy.Namespace = namespace
 		addLabels(&policy.ObjectMeta, module, name)
 		policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 		// At present we only allow ingress from the controller
 		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{"app": name}}
 		policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 		principals := []string{
-			"cluster.local/ns/" + r.namespace + "/sa/" + adminDeployment.Spec.Template.Spec.ServiceAccountName,
-			"cluster.local/ns/" + r.namespace + "/sa/" + provisionerDeployment.Spec.Template.Spec.ServiceAccountName,
+			"cluster.local/ns/" + r.systemNamespace + "/sa/" + provisionerDeployment.Spec.Template.Spec.ServiceAccountName,
+			"cluster.local/ns/" + r.systemNamespace + "/sa/" + r.adminServiceAccount,
+			"cluster.local/ns/" + r.systemNamespace + "/sa/" + r.consoleServiceAccount,
 		}
 		// TODO: fix hard coded service account names
 		if hasIngress {
 			// Allow ingress from the ingress gateway
-			principals = append(principals, "cluster.local/ns/"+r.namespace+"/sa/ftl-http-ingress")
+			principals = append(principals, "cluster.local/ns/"+r.systemNamespace+"/sa/"+r.httpIngressServiceAccount)
 		}
 
 		if hasCron {
 			// Allow cron invocations
-			principals = append(principals, "cluster.local/ns/"+r.namespace+"/sa/ftl-cron")
+			principals = append(principals, "cluster.local/ns/"+r.systemNamespace+"/sa/"+r.cronServiceAccount)
 		}
-		principals = append(principals, "cluster.local/ns/"+r.namespace+"/sa/ftl-console")
 		policy.Spec.Rules = []*istiosecmodel.Rule{
 			{
 				From: []*istiosecmodel.Rule_From{
@@ -623,7 +645,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 	// This feels like the wrong way around but given the way the provisioner works there is not much we can do about this at this stage
 	for _, callableModule := range callableModuleNames {
 		policyName := module + "-" + callableModule
-		err := r.createOrUpdateIstioPolicy(ctx, policiesClient, policyName, func(policy *istiosec.AuthorizationPolicy) {
+		err := r.createOrUpdateIstioPolicy(ctx, policiesClient, namespace, policyName, func(policy *istiosec.AuthorizationPolicy) {
 			if policy.Labels == nil {
 				policy.Labels = map[string]string{}
 			}
@@ -636,7 +658,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 					From: []*istiosecmodel.Rule_From{
 						{
 							Source: &istiosecmodel.Source{
-								Principals: []string{"cluster.local/ns/" + r.namespace + "/sa/" + module},
+								Principals: []string{"cluster.local/ns/" + r.namespaceMapper(module, r.systemNamespace) + "/sa/" + module},
 							},
 						},
 					},
@@ -650,7 +672,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 	return err
 }
 
-func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, policiesClient v2.AuthorizationPolicyInterface, name string, controllerIngress func(policy *istiosec.AuthorizationPolicy)) error {
+func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, policiesClient v2.AuthorizationPolicyInterface, namespace string, name string, controllerIngress func(policy *istiosec.AuthorizationPolicy)) error {
 	var update func(policy *istiosec.AuthorizationPolicy) error
 	policy, err := policiesClient.Get(ctx, name, v1.GetOptions{})
 	if err != nil {
@@ -659,7 +681,7 @@ func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, policiesClie
 		}
 		policy = &istiosec.AuthorizationPolicy{}
 		policy.Name = name
-		policy.Namespace = r.namespace
+		policy.Namespace = namespace
 		update = func(policy *istiosec.AuthorizationPolicy) error {
 			_, err := policiesClient.Create(ctx, policy, v1.CreateOptions{})
 			if err != nil {
@@ -681,10 +703,10 @@ func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, policiesClie
 	return update(policy)
 }
 
-func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, key string, timeout time.Duration) error {
+func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, namespace string, key string, timeout time.Duration) error {
 	logger := log.FromContext(ctx)
-	deploymentClient := r.client.AppsV1().Deployments(r.namespace)
-	podClient := r.client.CoreV1().Pods(r.namespace)
+	deploymentClient := r.client.AppsV1().Deployments(namespace)
+	podClient := r.client.CoreV1().Pods(namespace)
 	watch, err := deploymentClient.Watch(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
 	podWatch, err := podClient.Watch(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
 	if err != nil {
@@ -698,7 +720,7 @@ func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, key string, tim
 		case <-watch.ResultChan():
 			deployment, err := deploymentClient.Get(ctx, key, v1.GetOptions{})
 			if err != nil {
-				return fmt.Errorf("failed to get deployment %s: %w\n%s", key, err, r.findPodLogs(ctx, key, podClient))
+				return fmt.Errorf("failed to get deployment %s to check readiness: %w\n%s", key, err, r.findPodLogs(ctx, key, podClient))
 			}
 			if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 				logger.Debugf("Deployment %s is ready", key)
@@ -753,6 +775,43 @@ func (r *k8sScaling) findPodLogs(ctx context.Context, key string, podClient v3.P
 		}
 	}
 	return ret
+}
+
+func (r *k8sScaling) ensureNamespace(ctx context.Context, sch *schema.Module) (string, error) {
+	namespace := r.namespaceMapper(sch.Name, r.systemNamespace)
+	if namespace == r.systemNamespace {
+		return namespace, nil
+	}
+	ns, err := r.client.CoreV1().Namespaces().Get(ctx, namespace, v1.GetOptions{})
+	if err == nil {
+		if ns.Labels != nil {
+			// We can deploy into non managed namespaces
+			// But if they are managed we check that they are managed by this instance
+			if ns.Labels["app.kubernetes.io/managed-by"] == "ftl" {
+				if part, ok := ns.Labels["app.kubernetes.io/part-of"]; ok {
+					if part != r.instanceName {
+						return "", fmt.Errorf("namespace %s is managed by a different ftl instance: %s, this instance is %s", namespace, part, r.instanceName)
+					}
+				}
+			}
+		}
+		return namespace, nil
+	}
+	if !errors.IsNotFound(err) {
+		return "", fmt.Errorf("failed to get namespace %s: %w", namespace, err)
+	}
+	ns = &kubecore.Namespace{
+		Spec: kubecore.NamespaceSpec{},
+		ObjectMeta: v1.ObjectMeta{
+			Name:   namespace,
+			Labels: map[string]string{"app.kubernetes.io/managed-by": "ftl", "app.kubernetes.io/part-of": r.instanceName},
+		},
+	}
+	_, err = r.client.CoreV1().Namespaces().Create(ctx, ns, v1.CreateOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to create namespace %s: %w", namespace, err)
+	}
+	return namespace, nil
 }
 
 func readPodLogs(ctx context.Context, client v3.PodInterface, pod *kubecore.Pod) (string, error) {

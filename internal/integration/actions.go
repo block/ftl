@@ -526,9 +526,9 @@ func Call[Req any, Resp any](module, verb string, request Req, check func(t test
 }
 
 // VerifyKubeState lets you test the current kube state
-func VerifyKubeState(check func(ctx context.Context, t testing.TB, namespace string, client kubernetes.Clientset)) Action {
+func VerifyKubeState(check func(ctx context.Context, t testing.TB, client kubernetes.Clientset)) Action {
 	return func(t testing.TB, ic TestContext) {
-		check(ic.Context, t, ic.kubeNamespace, ic.kubeClient.MustGet())
+		check(ic.Context, t, ic.kubeClient.MustGet())
 	}
 }
 
