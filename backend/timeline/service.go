@@ -213,22 +213,31 @@ func (s *service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
 	}
 
-	// fetch the initial batch of events, up to the limit
-	resp, err := s.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{Query: &timelinepb.TimelineQuery{
-		Order:   reverseOrder,
-		Limit:   query.Limit,
-		Filters: query.Filters,
-	}}))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get timeline: %w", err)
-	}
-	events := resp.Msg.Events
-	slices.Reverse(events)
-	lastEventID := updatedMaxEventID(events, optional.None[int64]())
+	first := true
+	var events []*timelinepb.Event
+	var lastEventID optional.Option[int64]
 
 	return func(yield func(result.Result[*timelinepb.StreamTimelineResponse]) bool) {
-		if !yield(result.Ok(&timelinepb.StreamTimelineResponse{Events: events})) {
-			return
+		if first {
+			// we are returning the first batch
+			first = false
+			// fetch the initial batch of events, up to the limit
+			resp, err := s.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{Query: &timelinepb.TimelineQuery{
+				Order:   reverseOrder,
+				Limit:   query.Limit,
+				Filters: query.Filters,
+			}}))
+			if err != nil {
+				yield(result.Err[*timelinepb.StreamTimelineResponse](fmt.Errorf("failed to get timeline: %w", err)))
+				return
+			}
+			events = resp.Msg.Events
+			slices.Reverse(events)
+			lastEventID = updatedMaxEventID(events, optional.None[int64]())
+
+			if !yield(result.Ok(&timelinepb.StreamTimelineResponse{Events: events})) {
+				return
+			}
 		}
 
 		for {
@@ -250,7 +259,7 @@ func (s *service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 				return
 			}
 
-			events := resp.Msg.Events
+			events = resp.Msg.Events
 			if query.Order == timelinepb.TimelineQuery_ORDER_DESC {
 				slices.Reverse(events)
 			}
