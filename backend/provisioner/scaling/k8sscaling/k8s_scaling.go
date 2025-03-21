@@ -40,7 +40,6 @@ import (
 	"github.com/block/ftl/internal/rpc"
 )
 
-const adminDeploymentName = "ftl-admin"
 const provisionerDeploymentName = "ftl-provisioner"
 const configMapName = "ftl-controller-deployment-config"
 const deploymentTemplate = "deploymentTemplate"
@@ -63,13 +62,17 @@ type k8sScaling struct {
 	istioSecurity    optional.Option[istioclient.Clientset]
 	namespaceMapper  NamespaceMapper
 	// A unique per cluster identifier for this FTL instance
-	instanceName string
+	instanceName              string
+	cronServiceAccount        string
+	adminServiceAccount       string
+	consoleServiceAccount     string
+	httpIngressServiceAccount string
 }
 
 type NamespaceMapper func(module string, systemNamespace string) string
 
-func NewK8sScaling(disableIstio bool, controllerURL string, instanceName string, mapper NamespaceMapper) scaling.RunnerScaling {
-	return &k8sScaling{disableIstio: disableIstio, controller: controllerURL, instanceName: instanceName, namespaceMapper: mapper}
+func NewK8sScaling(disableIstio bool, controllerURL string, instanceName string, mapper NamespaceMapper, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
+	return &k8sScaling{disableIstio: disableIstio, controller: controllerURL, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount}
 }
 
 func (r *k8sScaling) Start(ctx context.Context) error {
@@ -147,7 +150,7 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 		if errors.IsNotFound(err) {
 			deploymentExists = false
 		} else {
-			return url.URL{}, fmt.Errorf("failed to check for existance of deployment %s: %w", deploymentKey, err)
+			return url.URL{}, fmt.Errorf("failed to check for existence of deployment %s: %w", deploymentKey, err)
 		}
 	}
 
@@ -196,13 +199,12 @@ func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey stri
 	if err != nil {
 		return fmt.Errorf("failed to parse deployment key %s: %w", deploymentKey, err)
 	}
-	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(dk.Payload.Module, r.systemNamespace))
-	err = deploymentClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
+	serviceClient := r.client.CoreV1().Services(r.namespaceMapper(dk.Payload.Module, r.systemNamespace))
+	err = serviceClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete service %s: %w", deploymentKey, err)
 		}
-		return fmt.Errorf("failed to delete deployment %s: %w", deploymentKey, err)
 	}
 	return nil
 }
@@ -322,10 +324,6 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	}
 	systemDeploymentClient := r.client.AppsV1().Deployments(r.systemNamespace)
 	userDeploymentClient := r.client.AppsV1().Deployments(r.systemNamespace)
-	adminDeployment, err := systemDeploymentClient.Get(ctx, adminDeploymentName, v1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get admin deployment %s: %w", adminDeploymentName, err)
-	}
 	provisionerDeployment, err := systemDeploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get this provisioner deployment %s: %w", provisionerDeploymentName, err)
@@ -360,7 +358,6 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	serviceAccountClient := r.client.CoreV1().ServiceAccounts(userNamespace)
 	serviceAccount, err := serviceAccountClient.Get(ctx, module, v1.GetOptions{})
 	if err != nil {
-		//TODO: implement cleanup for Service Accounts of modules that are completely removed
 		if !errors.IsNotFound(err) {
 			return fmt.Errorf("failed to get service account %s: %w", name, err)
 		}
@@ -373,6 +370,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		if serviceAccount.Labels == nil {
 			serviceAccount.Labels = map[string]string{}
 		}
+		serviceAccount.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 		serviceAccount.Labels[moduleLabel] = module
 		_, err = serviceAccountClient.Create(ctx, serviceAccount, v1.CreateOptions{})
 		if err != nil {
@@ -381,11 +379,16 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		logger.Debugf("Created kube service  account%s", name)
 	} else {
 		logger.Debugf("Service account %s already exists", name)
+		serviceAccount.OwnerReferences = append(serviceAccount.OwnerReferences, v1.OwnerReference{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID})
+		_, err = serviceAccountClient.Update(ctx, serviceAccount, v1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to update service account %s: %w", name, err)
+		}
 	}
 
 	// Sync the istio policy if applicable
 	if sec, ok := r.istioSecurity.Get(); ok {
-		err = r.syncIstioPolicy(ctx, sec, userNamespace, module, name, service, adminDeployment, provisionerDeployment, sch, cron, ingress)
+		err = r.syncIstioPolicy(ctx, sec, userNamespace, module, name, service, provisionerDeployment, sch, cron, ingress)
 		if err != nil {
 			return err
 		}
@@ -435,6 +438,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	}
 
 	deployment.Name = name
+	deployment.Namespace = userNamespace
 	deployment.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 	deployment.Spec.Template.Spec.Containers[0].Image = fmt.Sprintf("%s:%s", runnerImage, ourVersion)
 	deployment.Spec.Selector = &v1.LabelSelector{MatchLabels: map[string]string{"app": name}}
@@ -575,7 +579,7 @@ func (r *k8sScaling) updateEnvVar(deployment *kubeapps.Deployment, envVerName st
 	return changes
 }
 
-func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, namespace string, module string, name string, service *kubecore.Service, adminDeployment *kubeapps.Deployment, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
+func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, namespace string, module string, name string, service *kubecore.Service, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Creating new istio policy for %s", name)
 
@@ -608,20 +612,20 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{"app": name}}
 		policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 		principals := []string{
-			"cluster.local/ns/" + r.systemNamespace + "/sa/" + adminDeployment.Spec.Template.Spec.ServiceAccountName,
 			"cluster.local/ns/" + r.systemNamespace + "/sa/" + provisionerDeployment.Spec.Template.Spec.ServiceAccountName,
+			"cluster.local/ns/" + r.systemNamespace + "/sa/" + r.adminServiceAccount,
+			"cluster.local/ns/" + r.systemNamespace + "/sa/" + r.consoleServiceAccount,
 		}
 		// TODO: fix hard coded service account names
 		if hasIngress {
 			// Allow ingress from the ingress gateway
-			principals = append(principals, "cluster.local/ns/"+r.systemNamespace+"/sa/ftl-http-ingress")
+			principals = append(principals, "cluster.local/ns/"+r.systemNamespace+"/sa/"+r.httpIngressServiceAccount)
 		}
 
 		if hasCron {
 			// Allow cron invocations
-			principals = append(principals, "cluster.local/ns/"+r.systemNamespace+"/sa/ftl-cron")
+			principals = append(principals, "cluster.local/ns/"+r.systemNamespace+"/sa/"+r.cronServiceAccount)
 		}
-		principals = append(principals, "cluster.local/ns/"+r.systemNamespace+"/sa/ftl-console")
 		policy.Spec.Rules = []*istiosecmodel.Rule{
 			{
 				From: []*istiosecmodel.Rule_From{

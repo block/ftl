@@ -21,15 +21,19 @@ import (
 )
 
 var cli struct {
-	Version             kong.VersionFlag         `help:"Show version."`
-	ObservabilityConfig observability.Config     `embed:"" prefix:"o11y-"`
-	LogConfig           log.Config               `embed:"" prefix:"log-"`
-	ProvisionerConfig   provisioner.Config       `embed:""`
-	ConfigFlag          string                   `name:"config" short:"C" help:"Path to FTL project cf file." env:"FTL_CONFIG" placeholder:"FILE"`
-	RegistryConfig      artefacts.RegistryConfig `prefix:"oci-" embed:""`
-	InstanceName        string                   `help:"Instance name, use to differentiate ownership when there are multiple FTL instances ina cluster." env:"FTL_INSTANCE_NAME" default:"ftl"`
-	UserNamespace       string                   `help:"Namespace to use for user resources." env:"FTL_USER_NAMESPACE"`
-	ModulePerNamespace  bool                     `help:"If module per namespace mode is enabled" env:"FTL_MODULE_PER_NAMESPACE" default:"false"`
+	Version               kong.VersionFlag         `help:"Show version."`
+	ObservabilityConfig   observability.Config     `embed:"" prefix:"o11y-"`
+	LogConfig             log.Config               `embed:"" prefix:"log-"`
+	ProvisionerConfig     provisioner.Config       `embed:""`
+	ConfigFlag            string                   `name:"config" short:"C" help:"Path to FTL project cf file." env:"FTL_CONFIG" placeholder:"FILE"`
+	RegistryConfig        artefacts.RegistryConfig `prefix:"oci-" embed:""`
+	InstanceName          string                   `help:"Instance name, use to differentiate ownership when there are multiple FTL instances ina cluster." env:"FTL_INSTANCE_NAME" default:"ftl"`
+	UserNamespace         string                   `help:"Namespace to use for user resources." env:"FTL_USER_NAMESPACE"`
+	ModulePerNamespace    bool                     `help:"If module per namespace mode is enabled" env:"FTL_MODULE_PER_NAMESPACE" default:"false"`
+	CronServiceAccount    string                   `help:"Service account for cron." env:"FTL_CRON_SERVICE_ACCOUNT"`
+	ConsoleServiceAccount string                   `help:"Service account for console." env:"FTL_CONSOLE_SERVICE_ACCOUNT"`
+	AdminServiceAccount   string                   `help:"Service account for admin." env:"FTL_ADMIN_SERVICE_ACCOUNT"`
+	HTTPServiceAccount    string                   `help:"Service account for http." env:"FTL_HTTP_SERVICE_ACCOUNT"`
 }
 
 func main() {
@@ -61,7 +65,7 @@ func main() {
 			return systemNamespace
 		}
 	}
-	scaling := k8sscaling.NewK8sScaling(false, cli.ProvisionerConfig.ControllerEndpoint.String(), cli.InstanceName, mapper)
+	scaling := k8sscaling.NewK8sScaling(false, cli.ProvisionerConfig.ControllerEndpoint.String(), cli.InstanceName, mapper, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling)

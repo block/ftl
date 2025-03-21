@@ -80,6 +80,14 @@ spec:
                   name: {{ include "ftl.fullname" . }}-secrets
                   key: FTL_RUNNER_REGISTRY_PASSWORD
                   optional: true
+            - name: FTL_CRON_SERVICE_ACCOUNT
+              value: "{{ .Values.cron.serviceAccountName }}"
+            - name: FTL_CONSOLE_SERVICE_ACCOUNT
+              value: "{{ .Values.console.serviceAccountName }}"
+            - name: FTL_ADMIN_SERVICE_ACCOUNT
+              value: "{{ .Values.admin.serviceAccountName }}"
+            - name: FTL_HTTP_SERVICE_ACCOUNT
+              value: "{{ .Values.ingress.serviceAccountName }}"
             {{- if .Values.provisioner.env }}
             {{- toYaml .Values.provisioner.env | nindent 12 }}
             {{- end }}
