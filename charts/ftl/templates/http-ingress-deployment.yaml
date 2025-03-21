@@ -6,6 +6,7 @@ metadata:
   name: {{ include "ftl.fullname" . }}-http-ingress
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
+  namespace: {{ include "ftl.runtimeNamespace" . }}
 spec:
   replicas: {{ .Values.ingress.replicas }}
   revisionHistoryLimit: {{ .Values.ingress.revisionHistoryLimit }}
@@ -47,7 +48,7 @@ spec:
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
             - name: FTL_SCHEMA_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-schema.{{ .Release.Namespace }}:{{ $.Values.schema.services.schema.port }}"
             - name: LOG_LEVEL
               value: "{{ .Values.ingress.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON

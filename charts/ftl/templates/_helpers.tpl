@@ -18,6 +18,17 @@ If release name contains chart name it will be used as a full name.
 {{- end -}}
 
 {{/*
+The namespace for system Runtime services
+*/}}
+{{- define "ftl.runtimeNamespace" -}}
+{{- if .Values.runtimeNamespace -}}
+{{- .Values.runtimeNamespace -}}
+{{- else -}}
+{{ .Release.Namespace -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Common labels
 */}}
 {{- define "ftl.labels" -}}

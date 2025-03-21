@@ -5,6 +5,7 @@ metadata:
   name: {{ include "ftl.fullname" . }}-lease
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
+  namespace: {{ include "ftl.runtimeNamespace" . }}
 spec:
   replicas: {{ .Values.lease.replicas }}
   revisionHistoryLimit: {{ .Values.lease.revisionHistoryLimit }}

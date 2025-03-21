@@ -3,6 +3,7 @@ nameOverride: ""
 
 logLevel: debug
 logJson: true
+runtimeNamespace:
 
 image:
   tag: null

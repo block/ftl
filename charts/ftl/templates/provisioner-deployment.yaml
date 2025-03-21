@@ -45,9 +45,9 @@ spec:
             - name: TMPDIR
               value: "/working"
             - name: FTL_CONTROLLER_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-controller:{{ .Values.controller.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-controller.{{ include "ftl.runtimeNamespace" . }}:{{ .Values.controller.port }}"
             - name: FTL_TIMELINE_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-timeline.{{ include "ftl.runtimeNamespace" . }}:{{ .Values.timeline.port }}"
             - name: FTL_SCHEMA_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
             - name: LOG_LEVEL

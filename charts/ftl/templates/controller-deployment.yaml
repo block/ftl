@@ -5,6 +5,7 @@ metadata:
   name: {{ include "ftl.fullname" . }}-controller
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
+  namespace: {{ include "ftl.runtimeNamespace" . }}
 spec:
   replicas: {{ .Values.controller.replicas }}
   revisionHistoryLimit: {{ .Values.controller.revisionHistoryLimit }}
@@ -46,9 +47,9 @@ spec:
             - name: FTL_LEASE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-lease:{{ .Values.lease.port }}"
             - name: FTL_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-admin:{{ .Values.admin.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-admin.{{ .Release.Namespace }}:{{ .Values.admin.port }}"
             - name: FTL_SCHEMA_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-schema.{{ .Release.Namespace }}:{{ $.Values.schema.services.schema.port }}"
             - name: LOG_LEVEL
               value: "{{ .Values.controller.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON
