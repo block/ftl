@@ -21,7 +21,7 @@ start: setup full-deploy
 rm: teardown
 
 # Deploy all components after building images and setting up Istio
-full-deploy: build-all-images setup-istio-cluster
+full-deploy *args: build-all-images setup-istio-cluster
   #!/bin/bash
   kubectl rollout restart replicaset ftl-schema || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-controller || true # if this exists already restart it to get the latest image
@@ -30,8 +30,8 @@ full-deploy: build-all-images setup-istio-cluster
   kubectl rollout restart deployment ftl-http-ingress || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-timeline || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-console || true # if this exists already restart it to get the latest image
-  just apply || sleep 5 # wait for CRDs to be created, the initial apply will usually fail
-  just apply
+  just apply {{args}}|| sleep 5 # wait for CRDs to be created, the initial apply will usually fail
+  just apply {{args}}
 
 # Wait for core Kubernetes components to be ready
 wait-for-kube:
@@ -100,10 +100,10 @@ teardown-cluster:
 teardown: teardown-cluster teardown-registry
 
 # Apply Helm chart for FTL deployment
-apply:
+apply *args:
   kubectl delete job --ignore-not-found=true ftl-dbmig-latest
   helm dependency build ../charts/ftl-k3d
-  helm upgrade --install ftl-k3d ../charts/ftl-k3d -f values.yaml
+  helm upgrade --install ftl-k3d ../charts/ftl-k3d -f values.yaml {{args}}
 
 # Deploy specific version of FTL from Helm repository
 deploy-version version: setup-istio-cluster
