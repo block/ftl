@@ -647,7 +647,8 @@ func dumpKubePods(ctx context.Context, kubeClient optional.Option[kubernetes.Cli
 			if !ok {
 				continue
 			}
-			list, err := client.CoreV1().Pods(ns.Namespace).List(ctx, kubemeta.ListOptions{})
+			pods := client.CoreV1().Pods(ns.Namespace)
+			list, err := pods.List(ctx, kubemeta.ListOptions{})
 			if err == nil {
 				for _, pod := range list.Items {
 					Infof("Dumping logs for pod %s", pod.Name)
@@ -675,14 +676,14 @@ func dumpKubePods(ctx context.Context, kubeClient optional.Option[kubernetes.Cli
 							} else {
 								path = filepath.Join(dumpPath, pod.Name, container.Name+".log")
 							}
-							req := client.CoreV1().Pods(ns.Namespace).GetLogs(pod.Name, &kubecore.PodLogOptions{Container: container.Name, Previous: prev})
-							podLogs, err := req.Stream(context.Background())
+							req := client.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &kubecore.PodLogOptions{Container: container.Name, Previous: prev})
+							podLogs, err := req.Stream(ctx)
 							if err != nil {
 								if prev {
 									// This is pretty normal not to have previous logs
 									continue
 								}
-								Infof("Error getting logs for pod %s: %v previous: %v", pod.Name, err, prev)
+								Infof("Error getting logs for pod %s, %s: %v", pod.Name, container.Name, err)
 								continue
 							}
 							defer func() {
