@@ -11,9 +11,9 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - id: set-matrix
         name: Shard Docker Builds
         uses: ./.github/actions/shard-docker-builds
@@ -26,9 +26,9 @@ jobs:
         service: ${{ fromJson(needs.docker-shard.outputs.matrix) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build Image and Save
         uses: ./.github/actions/save-docker-image
         with:
@@ -42,15 +42,15 @@ jobs:
     needs: build-docker-images
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Load Docker Images
         uses: ./.github/actions/load-docker-images
       - name: Log in to Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # ratchet:docker/login-action@v3
         with:
           username: ftl0
           password: ${{ secrets.FTL_DOCKER_PUSH_TOKEN }}
@@ -67,11 +67,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Build Console
@@ -91,13 +91,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache@v4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -131,13 +131,13 @@ jobs:
     needs: [create-go-release]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           repository: block/hermit-ftl
           ref: "main"
           token: ${{ secrets.FTL_HERMIT_AUTOVERSION }}
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Setup Git Config
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -155,11 +155,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Publish
         run: |
           set -euo pipefail
@@ -174,19 +174,19 @@ jobs:
     name: Release Helm Charts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         name: "Checkout Charts Repository"
         with:
           repository: "${{ github.repository_owner }}/ftl-charts"
           token: "${{ secrets.FTL_CHARTS_TOKEN }}"
           fetch-depth: 0
       - name: Checkout FTL
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
           path: .ftl
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1.1.4
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
         with:
           working-directory: ".ftl"
       - name: Configure Git
