@@ -1,4 +1,4 @@
-
+runtimeNamespace: "ftl-runtime"
 ftl:
   provisioner:
     userNamespace: "demo"

@@ -5,6 +5,7 @@ metadata:
   name: {{ include "ftl.fullname" . }}-cron
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
+  namespace: {{ include "ftl.runtimeNamespace" . }}
 spec:
   replicas: {{ .Values.cron.replicas }}
   podManagementPolicy: Parallel
@@ -59,8 +60,8 @@ spec:
               value: "http://0.0.0.0:{{ .Values.cron.services.cron.port }}"
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
-            - name: FTL_SCHEMA_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
+            - name: FTL_ADMIN_ENDPOINT
+              value: "http://{{ include "ftl.fullname" . }}-admin.{{ .Release.Namespace }}:{{ $.Values.schema.services.schema.port }}"
             - name: LOG_LEVEL
               value: "{{ .Values.cron.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON
