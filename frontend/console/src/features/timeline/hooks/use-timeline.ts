@@ -42,8 +42,11 @@ export const useTimeline = (isStreaming: boolean, filters: TimelineQuery_Filter[
       // Initialize with empty pages instead of clearing cache
       queryClient.setQueryData(queryKey, { pages: [], pageParams: [] })
 
+      const intervalSeconds = BigInt(Math.floor(updateIntervalMs / 1000))
+      const intervalNanos = (updateIntervalMs % 1000) * 1000000
+
       for await (const response of client.streamTimeline(
-        { updateInterval: { seconds: BigInt(0), nanos: updateIntervalMs * 1000 }, query: { limit, filters, order } },
+        { updateInterval: { seconds: intervalSeconds, nanos: intervalNanos }, query: { limit, filters, order } },
         { signal },
       )) {
         console.debug('timeline-response:', response)
