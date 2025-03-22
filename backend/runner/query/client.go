@@ -96,7 +96,6 @@ func performQuery[T any](ctx context.Context, dbName string, commandType querypb
 	return results, nil
 }
 
-
 var _ queryconnect.QueryServiceClient = &InlineQueryClient{}
 
 // InlineQueryClient is used to perform queries by the unit test harness.
