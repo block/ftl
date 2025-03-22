@@ -39,8 +39,7 @@ func TestMySQL(t *testing.T) {
 		in.Call[in.Obj, in.Obj]("mysql", "query", map[string]any{}, func(t testing.TB, response in.Obj) {
 			assert.Equal(t, "hello", response["data"])
 		}),
-		// TODO: handle query verbs in ftltest
-		// in.IfLanguage("go", in.ExecModuleTest("mysql")),
+		in.IfLanguage("go", in.ExecModuleTest("mysql")),
 		in.Call[in.Obj, in.Obj]("mysql", "query", map[string]any{}, func(t testing.TB, response in.Obj) {
 			assert.Equal(t, "hello", response["data"])
 		}),
