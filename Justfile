@@ -10,6 +10,7 @@ ZIP_DIRS := "go-runtime/compile/build-template " + \
             "go-runtime/compile/external-module-template " + \
             "go-runtime/compile/main-work-template " + \
             "go-runtime/compile/queries-template " + \
+            "go-runtime/compile/test-types-template " + \
             "internal/projectinit/scaffolding " + \
             "go-runtime/scaffolding " + \
             "jvm-runtime/java/scaffolding " + \

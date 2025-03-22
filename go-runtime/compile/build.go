@@ -42,8 +42,9 @@ import (
 )
 
 var (
-	ftlTypesFilename   = "types.ftl.go"
-	ftlQueriesFilename = "queries.ftl.go"
+	ftlTypesFilename     = "types.ftl.go"
+	ftlQueriesFilename   = "queries.ftl.go"
+	ftlTestTypesFilename = "test.ftl.go"
 	// Searches for paths beginning with ../../../
 	// Matches the previous character as well to avoid matching the middle deeper backtrack paths, and because
 	// regex package does not support negative lookbehind assertions
@@ -422,6 +423,7 @@ func (s *OngoingState) DetectedFileChanges(config moduleconfig.AbsModuleConfig, 
 	paths := []string{
 		filepath.Join(config.Dir, ftlTypesFilename),
 		filepath.Join(config.Dir, ftlQueriesFilename),
+		filepath.Join(config.Dir, ftlTestTypesFilename),
 		filepath.Join(config.Dir, "go.mod"),
 		filepath.Join(config.Dir, "go.sum"),
 	}
@@ -626,7 +628,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 
 func fileHashesForOptimisticCompilation(config moduleconfig.AbsModuleConfig) (watch.FileHashes, error) {
 	// Include every file that may change while scaffolding the build template or tidying.
-	hashes, err := watch.ComputeFileHashes(config.Dir, false, []string{filepath.Join(buildDirName, "go", "main", "*"), "go.mod", "go.tidy", ftlTypesFilename, ftlQueriesFilename})
+	hashes, err := watch.ComputeFileHashes(config.Dir, false, []string{filepath.Join(buildDirName, "go", "main", "*"), "go.mod", "go.tidy", ftlTypesFilename, ftlQueriesFilename, ftlTestTypesFilename})
 	if err != nil {
 		return nil, fmt.Errorf("could not calculate hashes for optimistic compilation: %w", err)
 	}
@@ -739,6 +741,22 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 				return fmt.Errorf("failed to mark %s as deleted: %w", ftlQueriesFilename, err)
 			}
 		}
+		if len(mctx.Databases) > 0 {
+			if err := internal.ScaffoldZip(testTypesTemplateFiles(), config.Dir, mctx, scaffolder.Exclude("^go.mod$"),
+				scaffolder.Functions(funcs)); err != nil {
+				return fmt.Errorf("failed to scaffold test types template: %w", err)
+			}
+			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlTestTypesFilename)); err != nil {
+				return fmt.Errorf("failed to mark %s as modified: %w", ftlTestTypesFilename, err)
+			}
+		} else if _, err := os.Stat(filepath.Join(config.Dir, ftlTestTypesFilename)); err == nil && len(mctx.Databases) == 0 {
+			if err := os.Remove(filepath.Join(config.Dir, ftlTestTypesFilename)); err != nil {
+				return fmt.Errorf("failed to delete %s: %w", ftlTestTypesFilename, err)
+			}
+			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlTestTypesFilename)); err != nil {
+				return fmt.Errorf("failed to mark %s as deleted: %w", ftlTestTypesFilename, err)
+			}
+		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlTypesFilename)); err != nil {
 			return fmt.Errorf("failed to mark %s as modified: %w", ftlTypesFilename, err)
 		}
@@ -756,7 +774,16 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "mod", "tidy").RunStderrError(wgctx); err != nil {
 			return fmt.Errorf("%s: failed to tidy go.mod: %w", config.Dir, err)
 		}
-		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "fmt", ftlTypesFilename).RunStderrError(wgctx); err != nil {
+		fmtFiles := []string{ftlTypesFilename}
+		if _, err := os.Stat(filepath.Join(config.Dir, ftlTestTypesFilename)); err == nil {
+			fmtFiles = append(fmtFiles, ftlTestTypesFilename)
+		}
+		if _, err := os.Stat(filepath.Join(config.Dir, ftlQueriesFilename)); err == nil {
+			fmtFiles = append(fmtFiles, ftlQueriesFilename)
+		}
+		args := []string{"fmt"}
+		args = append(args, fmtFiles...)
+		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", args...).RunStderrError(wgctx); err != nil {
 			return fmt.Errorf("%s: failed to format module dir: %w", config.Dir, err)
 		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, "go.mod"), filepath.Join(config.Dir, "go.sum"), filepath.Join(config.Dir, ftlTypesFilename)); err != nil {

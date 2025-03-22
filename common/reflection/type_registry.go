@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/alecthomas/types/optional"
+	sets "github.com/deckarep/golang-set/v2"
 )
 
 // TypeRegistry is used for dynamic type resolution at runtime. It stores associations between sum type discriminators
@@ -15,6 +16,7 @@ type TypeRegistry struct {
 	variantsToDiscriminators map[reflect.Type]reflect.Type
 	externalTypes            map[reflect.Type]struct{}
 	verbCalls                map[Ref]verbCall
+	queryVerbs               sets.Set[Ref]
 	databases                map[reflect.Type]*ReflectedDatabaseHandle
 }
 
@@ -55,6 +57,7 @@ func newTypeRegistry(options ...Registree) *TypeRegistry {
 		externalTypes:            map[reflect.Type]struct{}{},
 		verbCalls:                map[Ref]verbCall{},
 		databases:                map[reflect.Type]*ReflectedDatabaseHandle{},
+		queryVerbs:               sets.NewSet[Ref](),
 	}
 	for _, o := range options {
 		o(t)

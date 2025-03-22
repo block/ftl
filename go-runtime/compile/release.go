@@ -20,6 +20,9 @@ var buildTemplateBytes []byte
 //go:embed queries-template.zip
 var queriesTemplateBytes []byte
 
+//go:embed test-types-template.zip
+var testTypesTemplateBytes []byte
+
 func mainWorkTemplateFiles() *zip.Reader {
 	zr, err := zip.NewReader(bytes.NewReader(mainWorkTemplateBytes), int64(len(mainWorkTemplateBytes)))
 	if err != nil {

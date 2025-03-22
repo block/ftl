@@ -28,5 +28,6 @@ func Query(
 			fn:   reflect.ValueOf(queryFunc),
 		}
 		t.verbCalls[ref] = vi
+		t.queryVerbs.Add(ref)
 	}
 }

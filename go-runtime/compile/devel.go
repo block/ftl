@@ -23,3 +23,7 @@ func buildTemplateFiles() *zip.Reader {
 func queriesTemplateFiles() *zip.Reader {
 	return internal.ZipRelativeToCaller("queries-template")
 }
+
+func testTypesTemplateFiles() *zip.Reader {
+	return internal.ZipRelativeToCaller("test-types-template")
+}
