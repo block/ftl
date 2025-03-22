@@ -7,12 +7,14 @@ import (
 	"github.com/alecthomas/types/once"
 )
 
-type ReflectedDatabaseHandle struct {
+type ReflectedDatabase struct {
 	DBType string
-	DB     *once.Handle[*sql.DB]
-
 	// configs
 	Name string
+}
+type ReflectedDatabaseHandle struct {
+	ReflectedDatabase
+	DB *once.Handle[*sql.DB]
 }
 
 func Database[T any](dbname string, init func(ref Ref) *ReflectedDatabaseHandle) Registree {

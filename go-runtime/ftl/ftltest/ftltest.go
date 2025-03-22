@@ -11,13 +11,17 @@ import (
 	"strings"
 
 	"github.com/alecthomas/types/optional"
+	"github.com/puzpuzpuz/xsync/v3"
 
-	"github.com/block/ftl/backend/provisioner"
+	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/internal"
 	"github.com/block/ftl/go-runtime/server"
+	"github.com/block/ftl/go-runtime/server/rpccontext"
 	cf "github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/deploymentcontext"
@@ -33,6 +37,7 @@ type OptionsState struct {
 	databases               map[string]deploymentcontext.Database
 	mockVerbs               map[schema.RefKey]deploymentcontext.Verb
 	allowDirectVerbBehavior bool
+	allowDirectSQLVerbs     bool
 }
 
 type optionRank int
@@ -73,8 +78,22 @@ func newContext(ctx context.Context, module string, options ...Option) context.C
 		}
 	}
 
+	if state.allowDirectSQLVerbs {
+		querySvc, err := query.New(ctx, &schema.Module{Name: module}, xsync.NewMapOf[string, string]())
+		if err != nil {
+			panic(fmt.Errorf("failed to create in-process query service to execute query verbs: %w", err))
+		}
+		for name, db := range state.databases {
+			err := querySvc.AddQueryConn(ctx, name, db)
+			if err != nil {
+				panic(fmt.Errorf("failed to create DB connection for %s: %w", name, err))
+			}
+		}
+		ctx = rpccontext.ContextWithClient[queryconnect.QueryServiceClient, ftlv1.PingRequest, ftlv1.PingResponse, *ftlv1.PingResponse](ctx, query.NewInlineQueryClient(querySvc)) // yuck
+	}
+
 	builder := deploymentcontext.NewBuilder(module).AddDatabases(state.databases)
-	builder = builder.UpdateForTesting(state.mockVerbs, state.allowDirectVerbBehavior, newFakeLeaseClient())
+	builder = builder.UpdateForTesting(state.mockVerbs, state.allowDirectVerbBehavior, state.allowDirectSQLVerbs, newFakeLeaseClient())
 
 	return mcu.MakeDynamic(ctx, builder.Build()).ApplyToContext(ctx)
 }
@@ -209,59 +228,6 @@ func WithSecret[T ftl.SecretType](secret ftl.Secret[T], value T) Option {
 			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
 			if err := fftl.setSecret(secret.Name, value); err != nil {
 				return err
-			}
-			return nil
-		},
-	}
-}
-
-// WithDatabase sets up a database for testing by appending "_test" to the DSN and emptying all tables
-func WithDatabase[T any]() Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			db := reflection.GetDatabase[T]()
-			name := db.Name
-			switch db.DBType {
-			case "postgres":
-				dsn, err := provisioner.ProvisionPostgresForTest(ctx, moduleGetter(), name)
-				if err != nil {
-					return fmt.Errorf("could not provision database %q: %w", name, err)
-				}
-				dir, err := os.Getwd()
-				if err != nil {
-					return fmt.Errorf("could not get working dir")
-				}
-				err = provisioner.RunPostgresMigration(ctx, dsn, dir, name)
-				if err != nil {
-					return fmt.Errorf("could not migrate database %q: %w", name, err)
-				}
-				// replace original database with test database
-				replacementDB, err := deploymentcontext.NewTestDatabase(deploymentcontext.DBTypePostgres, dsn)
-				if err != nil {
-					return fmt.Errorf("could not create database %q with DSN %q: %w", name, dsn, err)
-				}
-				state.databases[name] = replacementDB
-			case "mysql":
-				dsn, err := provisioner.ProvisionMySQLForTest(ctx, moduleGetter(), name)
-				if err != nil {
-					return fmt.Errorf("could not provision database %q: %w", name, err)
-				}
-				dir, err := os.Getwd()
-				if err != nil {
-					return fmt.Errorf("could not get working dir")
-				}
-				err = provisioner.RunMySQLMigration(ctx, dsn, dir, name)
-				if err != nil {
-					return fmt.Errorf("could not migrate database %q: %w", name, err)
-				}
-				// replace original database with test database
-				replacementDB, err := deploymentcontext.NewTestDatabase(deploymentcontext.DBTypeMySQL, dsn)
-				if err != nil {
-					return fmt.Errorf("could not create database %q with DSN %q: %w", name, dsn, err)
-				}
-				state.databases[name] = replacementDB
-
 			}
 			return nil
 		},
