@@ -38,6 +38,27 @@ func GetDatabase[T any]() *ReflectedDatabaseHandle {
 	return singletonTypeRegistry.databases[reflect.TypeFor[T]()]
 }
 
+func GetAllDatabases() []ReflectedDatabase {
+	var dbs []ReflectedDatabase
+	for _, db := range singletonTypeRegistry.databases {
+		dbs = append(dbs, db.ReflectedDatabase)
+	}
+	return dbs
+}
+
+func IsQueryVerb(ref Ref) bool {
+	_, ok := singletonTypeRegistry.queryVerbs[ref]
+	return ok
+}
+
+func GetQueryVerbDatabases() []ReflectedDatabase {
+	var dbs []ReflectedDatabase
+	for _, db := range singletonTypeRegistry.queryVerbs {
+		dbs = append(dbs, db)
+	}
+	return dbs
+}
+
 // GetDiscriminatorByVariant returns the discriminator type for the given variant type.
 func GetDiscriminatorByVariant(variant reflect.Type) optional.Option[reflect.Type] {
 	return singletonTypeRegistry.getDiscriminatorByVariant(variant)

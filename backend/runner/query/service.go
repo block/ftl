@@ -22,6 +22,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/log"
 )
@@ -50,6 +51,27 @@ func New(ctx context.Context, module *schema.Module, addresses *xsync.MapOf[stri
 	}
 
 	return s, nil
+}
+
+func (s *Service) AddQueryConn(ctx context.Context, name string, dsn deploymentcontext.Database) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var engine string
+	switch dsn.DBType {
+	case deploymentcontext.DBTypePostgres:
+		engine = "postgres"
+	case deploymentcontext.DBTypeMySQL:
+		engine = "mysql"
+	default:
+		return fmt.Errorf("unsupported database type: %s", dsn.DBType)
+	}
+	svc, err := newQueryConn(ctx, dsn.DSN, engine)
+	if err != nil {
+		return err
+	}
+	s.conns.Store(name, svc)
+	return nil
 }
 
 func (s *Service) Close() error {
@@ -82,7 +104,17 @@ func (s *Service) CommitTransaction(ctx context.Context, req *connect.Request[qu
 	return conn.CommitTransaction(ctx, req)
 }
 
+// serverStream is a stream of query responses implemented by *connect.ServerStream[querypb.ExecuteQueryResponse]
+// It's an interface for testing purposes.
+type serverStream interface {
+	Send(resp *querypb.ExecuteQueryResponse) error
+}
+
 func (s *Service) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
+	return s.ExecuteQueryInternal(ctx, req, stream)
+}
+
+func (s *Service) ExecuteQueryInternal(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream serverStream) error {
 	conn, err := s.getConnOrError(req.Msg.DatabaseName)
 	if err != nil {
 		return err
@@ -264,8 +296,6 @@ func (s *queryConn) Close() error {
 	return nil
 }
 
-var _ queryconnect.QueryServiceHandler = (*queryConn)(nil)
-
 func (s *queryConn) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("query connection should not be pinged directly"))
 }
@@ -330,7 +360,7 @@ func (s *queryConn) RollbackTransaction(ctx context.Context, req *connect.Reques
 	}), nil
 }
 
-func (s *queryConn) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
+func (s *queryConn) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream serverStream) error {
 	if req.Msg.TransactionId != nil && *req.Msg.TransactionId != "" {
 		s.lock.RLock()
 		tx, ok := s.transactions[*req.Msg.TransactionId]
@@ -343,7 +373,7 @@ func (s *queryConn) ExecuteQuery(ctx context.Context, req *connect.Request[query
 	return s.executeQuery(ctx, s.db, req.Msg, stream)
 }
 
-func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQueryRequest, stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
+func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQueryRequest, stream serverStream) error {
 	params, err := parseJSONParameters(req.GetParametersJson())
 	if err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to parse parameters: %w", err))
@@ -606,7 +636,7 @@ func getDriverName(engine string) string {
 	}
 }
 
-func handleNoRows(stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
+func handleNoRows(stream serverStream) error {
 	err := stream.Send(&querypb.ExecuteQueryResponse{
 		Result: &querypb.ExecuteQueryResponse_RowResults{
 			RowResults: &querypb.RowResults{

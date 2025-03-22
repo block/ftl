@@ -15,6 +15,8 @@ const (
 func Query(
 	module string,
 	verbName string,
+	dbName string,
+	dbType string,
 	queryFunc any,
 ) Registree {
 	ref := Ref{
@@ -28,5 +30,9 @@ func Query(
 			fn:   reflect.ValueOf(queryFunc),
 		}
 		t.verbCalls[ref] = vi
+		t.queryVerbs[ref] = ReflectedDatabase{
+			DBType: dbType,
+			Name:   dbName,
+		}
 	}
 }
