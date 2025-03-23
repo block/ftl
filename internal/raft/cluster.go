@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	logger2 "github.com/lni/dragonboat/v4/logger"
 	"iter"
 	"net/http"
 	"net/url"
@@ -22,6 +21,7 @@ import (
 	"github.com/lni/dragonboat/v4"
 	"github.com/lni/dragonboat/v4/client"
 	"github.com/lni/dragonboat/v4/config"
+	logger2 "github.com/lni/dragonboat/v4/logger"
 	"github.com/lni/dragonboat/v4/statemachine"
 
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
