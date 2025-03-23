@@ -21,6 +21,7 @@ import (
 	"github.com/lni/dragonboat/v4"
 	"github.com/lni/dragonboat/v4/client"
 	"github.com/lni/dragonboat/v4/config"
+	logger2 "github.com/lni/dragonboat/v4/logger"
 	"github.com/lni/dragonboat/v4/statemachine"
 
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
@@ -35,6 +36,9 @@ import (
 
 // maxJoinAttempts is the maximum number of times to attempt to join the cluster.
 const maxJoinAttempts = 5
+
+var loggerFactoryCreated = false
+var loggerFactoryMutex = sync.Mutex{}
 
 type RaftConfig struct {
 	InitialMembers    []string          `help:"Initial members" env:"RAFT_INITIAL_MEMBERS" and:"raft"`
@@ -450,8 +454,8 @@ func (c *Cluster) writeReplicaID(replicaID uint64) error {
 }
 
 func (c *Cluster) start(ctx context.Context, join bool) error {
+	initLoggerFactory(ctx)
 	logger := log.FromContext(ctx).Scope("raft")
-
 	// Create node host config
 	nhc := config.NodeHostConfig{
 		WALDir:         c.config.DataDir,
@@ -619,4 +623,46 @@ func randint64() (uint64, error) {
 		return 0, fmt.Errorf("failed to read random bytes: %w", err)
 	}
 	return binary.LittleEndian.Uint64(b[:]), nil
+}
+
+func initLoggerFactory(ctx context.Context) {
+	loggerFactoryMutex.Lock()
+	defer loggerFactoryMutex.Unlock()
+	if loggerFactoryCreated {
+		return
+	}
+	logger := log.FromContext(ctx)
+	loggerFactoryCreated = true
+	logger2.SetLoggerFactory(func(pkgName string) logger2.ILogger {
+		return &DragonBoatLoggingAdaptor{logger: logger}
+	})
+
+}
+
+type DragonBoatLoggingAdaptor struct {
+	logger *log.Logger
+}
+
+func (d DragonBoatLoggingAdaptor) SetLevel(level logger2.LogLevel) {
+	// Ignore, this is handled elsewhere
+}
+
+func (d DragonBoatLoggingAdaptor) Debugf(format string, args ...interface{}) {
+	d.logger.Debugf(format, args...)
+}
+
+func (d DragonBoatLoggingAdaptor) Infof(format string, args ...interface{}) {
+	d.logger.Infof(format, args...) //nolint
+}
+
+func (d DragonBoatLoggingAdaptor) Warningf(format string, args ...interface{}) {
+	d.logger.Warnf(format, args...)
+}
+
+func (d DragonBoatLoggingAdaptor) Errorf(format string, args ...interface{}) {
+	d.logger.Errorf(fmt.Errorf(format, args...), "Error in dragonboat")
+}
+
+func (d DragonBoatLoggingAdaptor) Panicf(format string, args ...interface{}) {
+	d.logger.Errorf(fmt.Errorf(format, args...), "Panic in dragonboat")
 }
