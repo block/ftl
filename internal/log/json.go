@@ -13,6 +13,7 @@ var _ Sink = (*jsonSink)(nil)
 
 type jsonEntry struct {
 	Entry
+	Level string `json:"level,omitempty"`
 	Time  string `json:"time,omitempty"`
 	Error string `json:"error,omitempty"`
 }
@@ -35,6 +36,7 @@ func (j *jsonSink) Log(entry Entry) error {
 		errStr = entry.Error.Error()
 	}
 	jentry := jsonEntry{
+		Level: entry.Level.String(),
 		Time:  entry.Time.Format(time.RFC3339Nano),
 		Error: errStr,
 		Entry: entry,
@@ -61,6 +63,22 @@ func JSONStreamer(r io.Reader, log *Logger, defaultLevel Level) error {
 		} else {
 			if entry.Error != "" {
 				entry.Entry.Error = errors.New(entry.Error)
+			}
+			switch strings.ToLower(entry.Level) {
+			case "fine", "finer", "config":
+				entry.Entry.Level = Debug
+			case "finest":
+				entry.Entry.Level = Trace
+			case "severe":
+				entry.Entry.Level = Error
+			case "":
+				entry.Entry.Level = Info
+			default:
+				entry.Entry.Level, err = ParseLevel(entry.Level)
+				if err != nil {
+					log.Warnf("Invalid log level: %s", err)
+					entry.Entry.Level = defaultLevel
+				}
 			}
 			entry.Entry.Time, err = time.Parse(time.RFC3339Nano, entry.Time)
 			if err != nil {
