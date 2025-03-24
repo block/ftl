@@ -13,10 +13,24 @@ import (
 	sops "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/iterops"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func BenchmarkTimeline(b *testing.B) {
+func BenchmarkTimelineInsert(b *testing.B) {
+	service := createTestService(b, &timelinepb.CreateEventsRequest{})
+	fixture := callEventsFixture(10_000)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for b.Loop() {
+		_, err := service.CreateEvents(b.Context(), connect.NewRequest(fixture))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkTimelineFilterID(b *testing.B) {
 	service := createTestService(b, callEventsFixture(10_000_000))
 
 	req := connect.NewRequest(&timelinepb.GetTimelineRequest{
@@ -24,10 +38,17 @@ func BenchmarkTimeline(b *testing.B) {
 			Order: timelinepb.TimelineQuery_ORDER_DESC,
 			Limit: 1000,
 			Filters: []*timelinepb.TimelineQuery_Filter{
-				evetTypeFilter(timelinepb.EventType_EVENT_TYPE_CALL),
+				&timelinepb.TimelineQuery_Filter{
+					Filter: &timelinepb.TimelineQuery_Filter_Id{
+						Id: &timelinepb.TimelineQuery_IDFilter{
+							HigherThan: proto.Int64(int64(service.nextID) - 1000),
+						},
+					},
+				},
 			},
 		},
 	})
+	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
 		_, err := service.GetTimeline(b.Context(), req)
