@@ -8,16 +8,21 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/common/strcase"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 )
+
+var queryNameRegex = regexp.MustCompile(`^-- name: ([^ ]+)`)
 
 type ConfigContext struct {
 	Dir         string
@@ -95,6 +100,9 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 			if err != nil {
 				return fmt.Errorf("failed to parse generated schema: %w", err)
 			}
+		}
+		if err = populatePositions(sch, cfg); err != nil {
+			return fmt.Errorf("failed to populate positions: %w", err)
 		}
 		if err = updateSchema(out, sch, cfg); err != nil {
 			return fmt.Errorf("failed to add queries to schema: %w", err)
@@ -245,4 +253,60 @@ func findSQLFiles(dir string, relativeToDir string) ([]string, error) {
 		return nil, fmt.Errorf("failed to walk SQL files: %w", err)
 	}
 	return sqlFiles, nil
+}
+
+// populatePositions adds positions to sql verbs in the schema.
+//
+// SQLC does not provide enough information to determine the position of a verb in the source sql file.
+// This is best effort.
+func populatePositions(m *schema.Module, cfg ConfigContext) error {
+	posMap := map[string]schema.Position{}
+	for _, sqlPath := range cfg.QueryPaths {
+		absPath, err := filepath.Abs(filepath.Join(cfg.OutDir, sqlPath))
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path for %s: %w", sqlPath, err)
+		}
+		sql, err := os.ReadFile(absPath)
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", absPath, err)
+		}
+		lines := strings.Split(string(sql), "\n")
+		for i, line := range lines {
+			if match := queryNameRegex.FindStringSubmatch(line); len(match) > 1 {
+				posMap[strcase.ToLowerCamel(match[1])] = schema.Position{
+					Filename: absPath,
+					Line:     i + 1,
+				}
+			}
+		}
+	}
+	dataTypes := map[string]*schema.Data{}
+	for data := range slices.FilterVariants[*schema.Data](m.Decls) {
+		dataTypes[data.Name] = data
+	}
+	for verb := range slices.FilterVariants[*schema.Verb](m.Decls) {
+		pos, ok := posMap[verb.Name]
+		if !ok {
+			continue
+		}
+		verb.Pos = pos
+		schema.Visit(verb, func(n schema.Node, next func() error) error {
+			ref, ok := n.(*schema.Ref)
+			if !ok {
+				return next()
+			}
+			data, ok := dataTypes[ref.Name]
+			if !ok {
+				return next()
+			}
+			if data.Pos.Filename != "" && data.Pos.String() <= pos.String() {
+				// multiple verbs can refer to the same data type
+				// keep existing pos as it is ordered first
+				return next()
+			}
+			data.Pos = pos
+			return next()
+		})
+	}
+	return nil
 }
