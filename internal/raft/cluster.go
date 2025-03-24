@@ -37,8 +37,7 @@ import (
 // maxJoinAttempts is the maximum number of times to attempt to join the cluster.
 const maxJoinAttempts = 5
 
-var loggerFactoryCreated = false
-var loggerFactoryMutex = sync.Mutex{}
+var loggerFactoryOnce sync.Once
 
 type RaftConfig struct {
 	InitialMembers    []string          `help:"Initial members" env:"RAFT_INITIAL_MEMBERS" and:"raft"`
@@ -626,15 +625,11 @@ func randint64() (uint64, error) {
 }
 
 func initLoggerFactory(ctx context.Context) {
-	loggerFactoryMutex.Lock()
-	defer loggerFactoryMutex.Unlock()
-	if loggerFactoryCreated {
-		return
-	}
-	logger := log.FromContext(ctx)
-	loggerFactoryCreated = true
-	logger2.SetLoggerFactory(func(pkgName string) logger2.ILogger {
-		return &DragonBoatLoggingAdaptor{logger: logger}
+	loggerFactoryOnce.Do(func() {
+		logger := log.FromContext(ctx)
+		logger2.SetLoggerFactory(func(pkgName string) logger2.ILogger {
+			return &DragonBoatLoggingAdaptor{logger: logger}
+		})
 	})
 
 }
