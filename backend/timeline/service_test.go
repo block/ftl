@@ -16,6 +16,27 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+func BenchmarkTimeline(b *testing.B) {
+	service := createTestService(b, callEventsFixture(10_000_000))
+
+	req := connect.NewRequest(&timelinepb.GetTimelineRequest{
+		Query: &timelinepb.TimelineQuery{
+			Order: timelinepb.TimelineQuery_ORDER_DESC,
+			Limit: 1000,
+			Filters: []*timelinepb.TimelineQuery_Filter{
+				evetTypeFilter(timelinepb.EventType_EVENT_TYPE_CALL),
+			},
+		},
+	})
+	b.ReportAllocs()
+	for b.Loop() {
+		_, err := service.GetTimeline(b.Context(), req)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func TestGetTimeline(t *testing.T) {
 	t.Parallel()
 	t.Run("Limits", func(t *testing.T) {
@@ -145,7 +166,7 @@ func readEventIDs(t *testing.T, n int, iter iter.Seq[result.Result[*timelinepb.S
 	return eventsIDs
 }
 
-func createTestService(t *testing.T, dataFixture *timelinepb.CreateEventsRequest) *service {
+func createTestService(t testing.TB, dataFixture *timelinepb.CreateEventsRequest) *service {
 	t.Helper()
 
 	service := &service{notifier: channels.NewNotifier(t.Context())}
