@@ -50,6 +50,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
     public boolean trigger(CodeGenContext context) throws CodeGenException {
         List<Path> schemaFiles = new ArrayList<>();
         log.debug("Generating JVM clients, data, enums from schema");
+        Path generatedDir = context.inputDir().resolve("generated");
         if (!Files.isDirectory(context.inputDir())) {
             return false;
         }
@@ -154,7 +155,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                     }
                 }
 
-                writeGeneratedClients(context, packageOutputMap);
+                schemaFiles.addAll(writeGeneratedClients(context, packageOutputMap, generatedDir));
 
             } catch (Exception e) {
                 throw new CodeGenException(e);
@@ -164,7 +165,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
             }
             return true;
         } finally {
-            CodeGenNotification.updateLastModified(schemaFiles);
+            CodeGenNotification.updateLastModified(List.of(generatedDir, context.inputDir()), schemaFiles);
         }
     }
 
@@ -190,12 +191,13 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
             String packageName, PackageOutput outputDir)
             throws IOException;
 
-    private void writeGeneratedClients(CodeGenContext context, Map<String, PackageOutput> packageOutputMap)
+    private List<Path> writeGeneratedClients(CodeGenContext context, Map<String, PackageOutput> packageOutputMap,
+            Path generatedDir)
             throws CodeGenException {
-        Path generatedDir = context.inputDir().resolve("generated");
+        List<Path> schemaFiles = new ArrayList<>();
         if (!Files.exists(generatedDir)) {
             log.info("No generated clients found");
-            return;
+            return List.of();
         }
         try (Stream<Path> pathStream = Files.list(generatedDir)) {
             for (var file : pathStream.toList()) {
@@ -209,6 +211,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                 } catch (Exception e) {
                     throw new CodeGenException("Failed to parse generated schema file " + file, e);
                 }
+                schemaFiles.add(file);
 
                 String packageName = PACKAGE_PREFIX + module.getName();
                 var output = packageOutputMap.computeIfAbsent(module.getName(),
@@ -242,6 +245,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
         } catch (IOException e) {
             throw new CodeGenException(e);
         }
+        return schemaFiles;
     }
 
     protected List<SQLColumnField> getOrderedSQLFields(Module module, Type type) {
