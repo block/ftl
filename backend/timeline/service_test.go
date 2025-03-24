@@ -131,6 +131,63 @@ func TestStreamTimeline(t *testing.T) {
 	})
 }
 
+func TestQueries(t *testing.T) {
+	t.Parallel()
+
+	service := createTestService(t, callEventsFixture(50))
+
+	type testCase struct {
+		name    string
+		query   *timelinepb.TimelineQuery
+		wantIDs []int
+	}
+
+	testCases := []testCase{{
+		name: "events in descending order",
+		query: &timelinepb.TimelineQuery{
+			Limit: 5,
+			Order: timelinepb.TimelineQuery_ORDER_DESC,
+		},
+		wantIDs: []int{4, 3, 2, 1, 0},
+	}, {
+		name: "events in ascending order",
+		query: &timelinepb.TimelineQuery{
+			Limit: 5,
+			Order: timelinepb.TimelineQuery_ORDER_ASC,
+		},
+		wantIDs: []int{45, 46, 47, 48, 49},
+	}, {
+		name: "events in ascending order with a lower than id filter",
+		query: &timelinepb.TimelineQuery{
+			Limit: 10,
+			Order: timelinepb.TimelineQuery_ORDER_ASC,
+			Filters: []*timelinepb.TimelineQuery_Filter{
+				higherIDThanFilter(45),
+			},
+		},
+		wantIDs: []int{46, 47, 48, 49},
+	}, {
+		name: "events in descending order with a higher than id filter",
+		query: &timelinepb.TimelineQuery{
+			Limit: 10,
+			Order: timelinepb.TimelineQuery_ORDER_DESC,
+			Filters: []*timelinepb.TimelineQuery_Filter{
+				lowerIDThanFilter(5),
+			},
+		},
+		wantIDs: []int{4, 3, 2, 1, 0},
+	}}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			iter, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{Query: tc.query})
+			assert.NoError(t, err)
+			events := readEventIDs(t, 1, iter)
+			assert.Equal(t, tc.wantIDs, events[0])
+		})
+	}
+}
+
 func readEventIDs(t *testing.T, n int, iter iter.Seq[result.Result[*timelinepb.StreamTimelineResponse]]) [][]int {
 	var eventsIDs [][]int
 	for res := range iter {
@@ -220,6 +277,26 @@ func evetTypeFilter(eventTypes ...timelinepb.EventType) *timelinepb.TimelineQuer
 		Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
 			EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
 				EventTypes: eventTypes,
+			},
+		},
+	}
+}
+
+func higherIDThanFilter(id int64) *timelinepb.TimelineQuery_Filter {
+	return &timelinepb.TimelineQuery_Filter{
+		Filter: &timelinepb.TimelineQuery_Filter_Id{
+			Id: &timelinepb.TimelineQuery_IDFilter{
+				HigherThan: &id,
+			},
+		},
+	}
+}
+
+func lowerIDThanFilter(id int64) *timelinepb.TimelineQuery_Filter {
+	return &timelinepb.TimelineQuery_Filter{
+		Filter: &timelinepb.TimelineQuery_Filter_Id{
+			Id: &timelinepb.TimelineQuery_IDFilter{
+				LowerThan: &id,
 			},
 		},
 	}
