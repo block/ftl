@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.17.0
 	connectrpc.com/grpcreflect v1.3.0
 	connectrpc.com/otelconnect v0.7.2
-	github.com/BurntSushi/toml v1.4.0
+	github.com/BurntSushi/toml v1.5.0
 	github.com/IBM/sarama v1.45.1
 	github.com/XSAM/otelsql v0.37.0
 	github.com/alecthomas/assert/v2 v2.11.0
@@ -15,7 +15,7 @@ require (
 	github.com/alecthomas/concurrency v0.0.2
 	github.com/alecthomas/kong v1.9.0
 	github.com/alecthomas/kong-toml v0.2.0
-	github.com/alecthomas/participle/v2 v2.1.2
+	github.com/alecthomas/participle/v2 v2.1.4
 	github.com/alecthomas/types v0.19.0
 	github.com/amacneil/dbmate/v2 v2.26.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3
@@ -27,26 +27,26 @@ require (
 	github.com/beevik/etree v1.5.0
 	github.com/block/ftl-golang-tools v0.4.0
 	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f
-	github.com/block/scaffolder v1.4.0
+	github.com/block/scaffolder v1.5.0
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/spec v0.21.0
-	github.com/go-sql-driver/mysql v1.9.0
+	github.com/go-sql-driver/mysql v1.9.1
 	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.3
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/cronexpr v1.1.2
-	github.com/jackc/pgx/v5 v5.7.2
+	github.com/jackc/pgx/v5 v5.7.3
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/jotaen/kong-completion v0.0.6
 	github.com/jpillora/backoff v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/lni/dragonboat/v4 v4.0.0-20240618143154-6a1623140f27
-	github.com/mark3labs/mcp-go v0.13.0
+	github.com/mark3labs/mcp-go v0.15.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/multiformats/go-base36 v0.2.0
 	github.com/opencontainers/go-digest v1.0.0
@@ -210,6 +210,7 @@ require (
 	github.com/wasilibs/go-pgquery v0.0.0-20240606042535-c0843d6592cc // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240604052452-61d7981e9a38 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
