@@ -14,14 +14,14 @@ require (
 	connectrpc.com/otelconnect v0.7.2 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
-	github.com/BurntSushi/toml v1.4.0 // indirect
+	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/IBM/sarama v1.45.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/XSAM/otelsql v0.37.0 // indirect
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
 	github.com/alecthomas/concurrency v0.0.2 // indirect
 	github.com/alecthomas/kong v1.9.0 // indirect
-	github.com/alecthomas/participle/v2 v2.1.2 // indirect
+	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
 	github.com/alecthomas/types v0.19.0 // indirect
 	github.com/amacneil/dbmate/v2 v2.26.0 // indirect
@@ -44,7 +44,7 @@ require (
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/block/ftl-golang-tools v0.4.0 // indirect
 	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f // indirect
-	github.com/block/scaffolder v1.4.0 // indirect
+	github.com/block/scaffolder v1.5.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
@@ -64,7 +64,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-sql-driver/mysql v1.9.0 // indirect
+	github.com/go-sql-driver/mysql v1.9.1 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -79,7 +79,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.7.2 // indirect
+	github.com/jackc/pgx/v5 v5.7.3 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
