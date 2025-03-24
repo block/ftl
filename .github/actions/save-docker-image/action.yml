@@ -14,7 +14,7 @@ runs:
         mkdir -p artifacts/ftl-${{ inputs.service }}
         docker save -o artifacts/ftl-${{ inputs.service }}/ftl-${{ inputs.service }}.tar ftl0/ftl-${{ inputs.service }}:latest
     - name: Temporarily save Docker image
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: docker-${{ inputs.service }}-artifact
         path: artifacts/ftl-${{ inputs.service }}
