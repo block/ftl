@@ -22,7 +22,7 @@ import (
 	"github.com/block/ftl/internal/moduleconfig"
 )
 
-var queryNameRegex = regexp.MustCompile(`^-- name: ([^ ]+)`)
+var queryNameRegex = regexp.MustCompile(`^-- name: ([A-Za-z0-9_]+)`)
 
 type ConfigContext struct {
 	Dir         string
