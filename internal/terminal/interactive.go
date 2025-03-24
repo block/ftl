@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"sync"
 	"syscall"
@@ -21,6 +22,8 @@ import (
 const interactivePrompt = "\033[32m>\033[0m "
 
 var _ readline.AutoCompleter = &FTLCompletion{}
+
+var gooseCmdRegex = regexp.MustCompile(`^(ftl\s+)?goose\s+(.*)`)
 
 type interactiveConsole struct {
 	l                   *readline.Instance
@@ -121,16 +124,25 @@ func (r *interactiveConsole) run(ctx context.Context, executor CommandExecutor) 
 		if line == "" {
 			continue
 		}
-		args, err := shellquote.Split(line)
-		if err != nil {
-			errorf("%s", err)
-			continue
-		}
-		if len(args) > 0 && args[0] == "ftl" {
-			args = args[1:]
-		}
-		if len(args) == 0 {
-			continue
+		var args []string
+		if gooseCmdRegex.MatchString(line) {
+			// Do not parse goose command text as a normal shell command. It is conversational and so apostrophes are fine and quotation marks should be kept.
+			args = []string{
+				"goose",
+				gooseCmdRegex.FindStringSubmatch(line)[2],
+			}
+		} else {
+			args, err = shellquote.Split(line)
+			if err != nil {
+				errorf("%s", err)
+				continue
+			}
+			if len(args) > 0 && args[0] == "ftl" {
+				args = args[1:]
+			}
+			if len(args) == 0 {
+				continue
+			}
 		}
 		if tsm != nil {
 			if len(args) > 0 && args[0] == "goose" {
