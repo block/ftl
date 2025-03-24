@@ -52,23 +52,29 @@ func Start(ctx context.Context, config Config) error {
 
 	logger := log.FromContext(ctx).Scope("timeline")
 	ctx = log.ContextWithLogger(ctx, logger)
-	svc := &service{
-		config:   config,
-		events:   make([]*timelinepb.Event, 0),
-		nextID:   0,
-		notifier: channels.NewNotifier(ctx),
+	svc, err := newService(ctx, config)
+	if err != nil {
+		return fmt.Errorf("failed to create timeline service: %w", err)
 	}
 
 	go svc.reapCallEvents(ctx)
 
 	logger.Debugf("Timeline service listening on: %s", config.Bind)
-	err := rpc.Serve(ctx, config.Bind,
+	if err := rpc.Serve(ctx, config.Bind,
 		rpc.GRPC(timelineconnect.NewTimelineServiceHandler, svc),
-	)
-	if err != nil {
+	); err != nil {
 		return fmt.Errorf("timeline service stopped serving: %w", err)
 	}
 	return nil
+}
+
+func newService(ctx context.Context, config Config) (*service, error) {
+	return &service{
+		config:   config,
+		nextID:   0,
+		notifier: channels.NewNotifier(ctx),
+		events:   make([]*timelinepb.Event, 0),
+	}, nil
 }
 
 func (s *service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
@@ -143,7 +149,7 @@ func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 	defer s.lock.RUnlock()
 
 	ascending := isAscending(req.Msg.Query)
-	filters := filtersFromQuery(req.Msg.Query)
+	fctx := filtersFromQuery(req.Msg.Query)
 	if req.Msg.Query.Limit == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
 	}
@@ -154,19 +160,21 @@ func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 	results := []*timelinepb.Event{}
 
 	var firstIdx, step int
-	var idxCheck func(int) bool
+	var idCheck func(int64) bool
+
 	if ascending {
-		firstIdx = 0
+		firstIdx = s.findIndexWithLargerID(fctx.higherThan)
 		step = 1
-		idxCheck = func(i int) bool { return i < len(s.events) }
+		idCheck = func(i int64) bool { return i <= fctx.lowerThan }
 	} else {
-		firstIdx = len(s.events) - 1
+		firstIdx = s.findIndexWithLargerID(fctx.lowerThan) - 1
 		step = -1
-		idxCheck = func(i int) bool { return i >= 0 }
+		idCheck = func(i int64) bool { return i >= fctx.higherThan }
 	}
-	for i := firstIdx; idxCheck(i); i += step {
+
+	for i := firstIdx; i >= 0 && i < len(s.events) && idCheck(s.events[i].Id); i += step {
 		event := s.events[i]
-		_, didNotMatchAFilter := slices.Find(filters, func(filter TimelineFilter) bool {
+		_, didNotMatchAFilter := slices.Find(fctx.filters, func(filter TimelineFilter) bool {
 			return !filter(event)
 		})
 		if didNotMatchAFilter {
@@ -189,6 +197,13 @@ func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 		Events: results,
 		Cursor: cursor,
 	}), nil
+}
+
+func (s *service) findIndexWithLargerID(id int64) int {
+	idx := sort.Search(len(s.events), func(i int) bool {
+		return s.events[i].Id >= id
+	})
+	return idx
 }
 
 // We want to throttle the number of updates we send to the client via the stream.
