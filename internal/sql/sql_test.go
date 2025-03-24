@@ -48,6 +48,10 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			&schema.Database{Name: "mysqldb", Type: schema.MySQLDatabaseType},
 			&schema.Database{Name: "psqldb", Type: schema.PostgresDatabaseType},
 			&schema.Data{
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Line:     4,
+				},
 				Name: "CreateRequestMySqlQuery",
 				Fields: []*schema.Field{
 					{
@@ -66,6 +70,10 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 			},
 			&schema.Data{
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Line:     4,
+				},
 				Name: "CreateRequestPsqlQuery",
 				Fields: []*schema.Field{
 					{
@@ -84,6 +92,10 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 			},
 			&schema.Data{
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Line:     1,
+				},
 				Name: "GetRequestDataMySqlResult",
 				Fields: []*schema.Field{
 					{
@@ -102,6 +114,10 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 			},
 			&schema.Data{
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Line:     1,
+				},
 				Name: "GetRequestDataPsqlResult",
 				Fields: []*schema.Field{
 					{
@@ -120,6 +136,10 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 			},
 			&schema.Verb{
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Line:     4,
+				},
 				Name:     "createRequestMySql",
 				Request:  &schema.Ref{Module: "test", Name: "CreateRequestMySqlQuery"},
 				Response: &schema.Unit{},
@@ -140,6 +160,10 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 			},
 			&schema.Verb{
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Line:     4,
+				},
 				Name:     "createRequestPsql",
 				Request:  &schema.Ref{Module: "test", Name: "CreateRequestPsqlQuery"},
 				Response: &schema.Unit{},
@@ -160,6 +184,10 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 			},
 			&schema.Verb{
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Line:     1,
+				},
 				Name:    "getRequestDataMySql",
 				Request: &schema.Unit{},
 				Response: &schema.Array{Element: &schema.Ref{
@@ -183,6 +211,10 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 			},
 			&schema.Verb{
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Line:     1,
+				},
 				Name:    "getRequestDataPsql",
 				Request: &schema.Unit{},
 				Response: &schema.Array{Element: &schema.Ref{

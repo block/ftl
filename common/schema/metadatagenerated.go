@@ -7,7 +7,7 @@ type MetadataGenerated struct {
 	Pos Position `parser:"'+' 'generated'" protobuf:"1,optional"`
 }
 
-var _ Metadata = (*MetadataSQLMigration)(nil)
+var _ Metadata = (*MetadataGenerated)(nil)
 
 func (*MetadataGenerated) schemaMetadata()          {}
 func (m *MetadataGenerated) schemaChildren() []Node { return nil }
