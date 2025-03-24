@@ -78,12 +78,23 @@ func (c *gooseCmd) Run(ctx context.Context, projectConfig projectconfig.Config, 
 			"You are working with a system called FTL (Faster than Light) within an existing project. I want you to learn about FTL before I give you the user's prompt.",
 			"All FTL Docs:",
 			strings.Join(docs, "\n\n"),
+		}
+
+		// Only include Go runtime docs if they are available (Go may not be installed)
+		goRuntimeDocs, err := getGoRuntimeDocs(ctx)
+		if err != nil {
+			logger.Debugf("Failed to get Go runtime docs (skipping this step): %v", err)
+		} else {
+			components = append(components, "FTL Go Package Docs:", goRuntimeDocs)
+		}
+
+		components = append(components,
 			gooseInstructions,
 			"The initial FTL Status has been automatically fetched:",
 			status,
 			"The user's prompt:",
 			userPrompt,
-		}
+		)
 		prompt = strings.Join(components, "\n\n")
 	} else {
 		prompt = userPrompt
@@ -184,6 +195,14 @@ func downloadDocs(ctx context.Context) ([]string, error) {
 		return getSidebarPosition(i) - getSidebarPosition(j)
 	})
 	return pagesSlice, nil
+}
+
+func getGoRuntimeDocs(ctx context.Context) (string, error) {
+	output, err := exec.Capture(ctx, ".", "go", "doc", "github.com/block/ftl/go-runtime/ftl")
+	if err != nil {
+		return "", fmt.Errorf("failed to get Go runtime docs: %w", err)
+	}
+	return string(output), nil
 }
 
 var _ io.Writer = &output{}
