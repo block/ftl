@@ -2,6 +2,7 @@ package timeline
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"slices"
 
@@ -242,8 +243,19 @@ func isAscending(query *timelinepb.TimelineQuery) bool {
 	return query.Order != timelinepb.TimelineQuery_ORDER_DESC
 }
 
+type filterContext struct {
+	lowerThan  int64
+	higherThan int64
+	filters    []TimelineFilter
+}
+
 //nolint:maintidx
-func filtersFromQuery(query *timelinepb.TimelineQuery) (outFilters []TimelineFilter) {
+func filtersFromQuery(query *timelinepb.TimelineQuery) *filterContext {
+	fContext := &filterContext{
+		filters:    []TimelineFilter{},
+		lowerThan:  math.MaxInt64,
+		higherThan: math.MinInt64,
+	}
 
 	// Some filters need to be combined (for OR logic), so we group them by type first.
 	reqFiltersByType := map[reflect.Type][]*timelinepb.TimelineQuery_Filter{}
@@ -251,49 +263,55 @@ func filtersFromQuery(query *timelinepb.TimelineQuery) (outFilters []TimelineFil
 		reqFiltersByType[reflect.TypeOf(filter.Filter)] = append(reqFiltersByType[reflect.TypeOf(filter.Filter)], filter)
 	}
 	if len(reqFiltersByType) == 0 {
-		return outFilters
+		return fContext
 	}
 	for _, filters := range reqFiltersByType {
 		switch filters[0].Filter.(type) {
 		case *timelinepb.TimelineQuery_Filter_LogLevel:
-			outFilters = append(outFilters, islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) TimelineFilter {
+			fContext.filters = append(fContext.filters, islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) TimelineFilter {
 				return FilterLogLevel(f.GetLogLevel())
 			})...)
 		case *timelinepb.TimelineQuery_Filter_Deployments:
-			outFilters = append(outFilters, FilterDeployments(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_DeploymentFilter {
+			fContext.filters = append(fContext.filters, FilterDeployments(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_DeploymentFilter {
 				return f.GetDeployments()
 			})))
 		case *timelinepb.TimelineQuery_Filter_Requests:
-			outFilters = append(outFilters, FilterRequests(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_RequestFilter {
+			fContext.filters = append(fContext.filters, FilterRequests(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_RequestFilter {
 				return f.GetRequests()
 			})))
 		case *timelinepb.TimelineQuery_Filter_EventTypes:
-			outFilters = append(outFilters, FilterTypes(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_EventTypeFilter {
+			fContext.filters = append(fContext.filters, FilterTypes(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_EventTypeFilter {
 				return f.GetEventTypes()
 			})...))
 		case *timelinepb.TimelineQuery_Filter_Time:
-			outFilters = append(outFilters, islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) TimelineFilter {
+			fContext.filters = append(fContext.filters, islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) TimelineFilter {
 				return FilterTimeRange(f.GetTime())
 			})...)
 		case *timelinepb.TimelineQuery_Filter_Id:
-			outFilters = append(outFilters, islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) TimelineFilter {
+			fContext.filters = append(fContext.filters, islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) TimelineFilter {
 				return FilterIDRange(f.GetId())
 			})...)
+			if filters[0].GetId().LowerThan != nil {
+				fContext.lowerThan = *filters[0].GetId().LowerThan
+			}
+			if filters[0].GetId().HigherThan != nil {
+				fContext.higherThan = *filters[0].GetId().HigherThan
+			}
 		case *timelinepb.TimelineQuery_Filter_Call:
-			outFilters = append(outFilters, FilterCall(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_CallFilter {
+			fContext.filters = append(fContext.filters, FilterCall(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_CallFilter {
 				return f.GetCall()
 			})))
 		case *timelinepb.TimelineQuery_Filter_Module:
-			outFilters = append(outFilters, FilterModule(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_ModuleFilter {
+			fContext.filters = append(fContext.filters, FilterModule(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_ModuleFilter {
 				return f.GetModule()
 			})))
 		case *timelinepb.TimelineQuery_Filter_Changesets:
-			outFilters = append(outFilters, FilterChangesets(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_ChangesetFilter {
+			fContext.filters = append(fContext.filters, FilterChangesets(islices.Map(filters, func(f *timelinepb.TimelineQuery_Filter) *timelinepb.TimelineQuery_ChangesetFilter {
 				return f.GetChangesets()
 			})))
 		default:
 			panic(fmt.Sprintf("unexpected filter type: %T", filters[0].Filter))
 		}
 	}
-	return outFilters
+	return fContext
 }

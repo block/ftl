@@ -11,7 +11,6 @@ import (
 	"github.com/alecthomas/types/result"
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	sops "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/iterops"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -148,9 +147,9 @@ func readEventIDs(t *testing.T, n int, iter iter.Seq[result.Result[*timelinepb.S
 func createTestService(t *testing.T, dataFixture *timelinepb.CreateEventsRequest) *service {
 	t.Helper()
 
-	service := &service{notifier: channels.NewNotifier(t.Context())}
-	service.events = []*timelinepb.Event{}
-	_, err := service.CreateEvents(t.Context(), connect.NewRequest(dataFixture))
+	service, err := newService(t.Context(), Config{})
+	assert.NoError(t, err)
+	_, err = service.CreateEvents(t.Context(), connect.NewRequest(dataFixture))
 	assert.NoError(t, err)
 	return service
 }
