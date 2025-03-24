@@ -379,7 +379,7 @@ public class VerbProcessor {
             String className = method.declaringClass().name().toString();
             beans.addBeanClass(className);
             var manualElement = fixture.value("target");
-            var manual = manualElement == null || manualElement.asBoolean();
+            var manual = manualElement != null && manualElement.asBoolean();
 
             schemaContributorBuildItemBuildProducer.produce(
                     new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
