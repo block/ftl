@@ -122,6 +122,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 				return fmt.Errorf("cron service stopped: %w", ctx.Err())
 
 			case change := <-events:
+				logger.Debugf("Received cron event %+x", change)
 				if err := updateCronJobs(ctx, cronJobs, change, timelineClient); err != nil {
 					logger.Errorf(err, "Failed to update cron jobs")
 					continue
