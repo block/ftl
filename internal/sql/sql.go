@@ -290,7 +290,7 @@ func populatePositions(m *schema.Module, cfg ConfigContext) error {
 			continue
 		}
 		verb.Pos = pos
-		schema.Visit(verb, func(n schema.Node, next func() error) error {
+		_ = schema.Visit(verb, func(n schema.Node, next func() error) error { //nolint:errcheck
 			ref, ok := n.(*schema.Ref)
 			if !ok {
 				return next()
