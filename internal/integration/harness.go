@@ -90,7 +90,6 @@ func WithKubernetes(helmArgs ...string) Option {
 	return func(o *options) {
 		o.kube = true
 		o.startController = false
-		o.startTimeline = false
 		o.helmArgs = helmArgs
 	}
 }
