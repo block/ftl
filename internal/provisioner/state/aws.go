@@ -1,6 +1,10 @@
 package state
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/alecthomas/types/optional"
+)
 
 // AWS states are intermediate provisioner states that are specific to AWS.
 
@@ -21,7 +25,7 @@ type RDSInstanceReadyMySQL struct {
 	Module     string
 	ResourceID string
 
-	MasterUserSecretARN string
+	MasterUserSecretARN optional.Option[string]
 	WriteEndpoint       string
 	ReadEndpoint        string
 }

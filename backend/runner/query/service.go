@@ -180,7 +180,6 @@ func (s *Service) UpdateConnections(ctx context.Context, module *schema.Module, 
 			continue
 		}
 
-		logger.Debugf("Creating new connection for database %s", db.Name)
 		parts := strings.Split(dbadr, ":")
 		port, err := strconv.Atoi(parts[1])
 		if err != nil {
@@ -189,6 +188,7 @@ func (s *Service) UpdateConnections(ctx context.Context, module *schema.Module, 
 		host := parts[0]
 		var sdsn string
 
+		logger.Debugf("Creating new connection for database %s to %s:%d", db.Name, host, port)
 		switch db.Type {
 		case schema.MySQLDatabaseType:
 			sdsn = dsn.MySQLDSN(db.Name, dsn.Host(host), dsn.Port(port))

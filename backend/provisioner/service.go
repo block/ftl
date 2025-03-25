@@ -180,10 +180,6 @@ func Start(
 							// We just ignore this error, as failing to roll back could be because we failed to provision
 							logger.Errorf(err, "Error rolling back changeset")
 						}
-						_, err = svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
-						if err != nil {
-							logger.Errorf(err, "error rolling back changeset")
-						}
 					}
 				}
 			case *schema.ChangesetFailedNotification, *schema.ChangesetFinalizedNotification:
@@ -256,7 +252,7 @@ func (s *Service) HandleChangesetRollingBack(ctx context.Context, changeset *sch
 	logger := log.FromContext(ctx).Changeset(changeset.Key)
 	err := s.deProvision(ctx, changeset.Key, changeset.Modules)
 	if err != nil {
-		return err
+		logger.Errorf(err, "Error de-provisioning changeset")
 	}
 	_, err = s.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: changeset.Key.String()}))
 	if err != nil {

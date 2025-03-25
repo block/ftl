@@ -83,6 +83,7 @@ setup-istio-cluster: setup-cluster
       helm install istiod istio/istiod -n istio-system --wait --version 1.23.3
   fi
   kubectl label namespace default istio-injection=enabled --overwrite
+  kubectl label namespace demo istio-injection=enabled --overwrite
   kubectl apply -f istio-access-logs.yaml
 
 # Complete setup of registry and Istio-enabled cluster
@@ -163,6 +164,9 @@ build-image image: setup-registry setup-istio-cluster
   just -f ../Justfile build-docker {{image}}
   docker tag ftl0/ftl-{{image}}:latest {{registry_local}}/ftl-{{image}}:latest
   docker push {{registry_local}}/ftl-{{image}}:latest
+
+deploy-image image:
+
 
 # Deploy FTL module from specified path
 deploy path:
