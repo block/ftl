@@ -26,6 +26,7 @@ func init() {
 		reflection.ProvideResourcesForVerb(
 			Fixture,
 			server.SinkClient[CreateRequestClient, CreateRequestQuery](),
+			server.SourceClient[GetRequestDataClient, []GetRequestDataResult](),
 		),
 
 		reflection.ProvideResourcesForVerb(
