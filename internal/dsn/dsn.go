@@ -61,7 +61,7 @@ func PostgresDSN(dbName string, options ...Option) string {
 	return fmt.Sprintf("postgres://%s:%d/%s?sslmode=disable&user=%s&password=%s", opts.host, opts.port, dbName, opts.user, opts.password)
 }
 
-// MySQLDSN returns a MySQLDSN string for connecting to the a MySQL database.
+// MySQLDSN returns a MySQLDSN string for connecting to a MySQL database.
 func MySQLDSN(dbName string, options ...Option) string {
 	opts := &dsnOptions{port: 13306, host: "127.0.0.1", user: "root", password: "secret"}
 	for _, opt := range options {

@@ -804,7 +804,7 @@ func (r *k8sScaling) ensureNamespace(ctx context.Context, sch *schema.Module) (s
 		Spec: kubecore.NamespaceSpec{},
 		ObjectMeta: v1.ObjectMeta{
 			Name:   namespace,
-			Labels: map[string]string{"app.kubernetes.io/managed-by": "ftl", "app.kubernetes.io/part-of": r.instanceName},
+			Labels: map[string]string{"app.kubernetes.io/managed-by": "ftl", "app.kubernetes.io/part-of": r.instanceName, "istio-injection": "enabled"},
 		},
 	}
 	_, err = r.client.CoreV1().Namespaces().Create(ctx, ns, v1.CreateOptions{})
