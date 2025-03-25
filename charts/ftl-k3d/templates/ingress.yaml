@@ -37,3 +37,11 @@ spec:
               name: ftl-admin
               port:
                 number: 8892
+        - path: /xyz.block.ftl.timeline.v1.TimelineService
+          pathType: Prefix
+          backend:
+            service:
+              name: ftl-timeline
+              port:
+                number: 8892
+

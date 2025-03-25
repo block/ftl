@@ -382,9 +382,12 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Admin))
 			}
 
-			if opts.startTimeline && !opts.kube {
-				ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:8894", log.Debug)
-
+			if opts.startTimeline {
+				if opts.kube {
+					ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:8892", log.Debug)
+				} else {
+					ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:8894", log.Debug)
+				}
 				Infof("Waiting for timeline to be ready")
 				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Timeline))
 			}
