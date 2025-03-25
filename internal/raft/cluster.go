@@ -51,6 +51,7 @@ type RaftConfig struct {
 	ChangesInterval   time.Duration     `help:"Interval for changes to be checked" default:"10ms"`
 	ChangesTimeout    time.Duration     `help:"Timeout for changes to be checked" default:"1s"`
 	QueryTimeout      time.Duration     `help:"Timeout for queries" default:"5s"`
+	Ephemeral         bool              `help:"The cluster runs on ephemeral storage that gets deleted on shutdown" env:"RAFT_EPHEMERAL"`
 
 	// Raft configuration
 	RTT                time.Duration `help:"Estimated average round trip time between nodes" default:"200ms"`
@@ -65,14 +66,15 @@ type Builder struct {
 	config        *RaftConfig
 	shards        map[uint64]statemachine.CreateStateMachineFunc
 	controlClient *http.Client
-
-	handles []*ShardHandle[any, any, sm.Marshallable]
+	ephemeral     bool // set true if the cluster is running on ephemeral storage that gets deleted on shutdown
+	handles       []*ShardHandle[any, any, sm.Marshallable]
 }
 
 func NewBuilder(cfg *RaftConfig) *Builder {
 	return &Builder{
-		config: cfg,
-		shards: map[uint64]statemachine.CreateStateMachineFunc{},
+		config:    cfg,
+		shards:    map[uint64]statemachine.CreateStateMachineFunc{},
+		ephemeral: cfg.Ephemeral,
 	}
 }
 
@@ -80,6 +82,12 @@ func NewBuilder(cfg *RaftConfig) *Builder {
 // the control plane.
 func (b *Builder) WithControlClient(client *http.Client) *Builder {
 	b.controlClient = client
+	return b
+}
+
+// Ephemeral sets the cluster to run on ephemeral storage that gets deleted on shutdown.
+func (b *Builder) Ephemeral() *Builder {
+	b.ephemeral = true
 	return b
 }
 
@@ -106,6 +114,7 @@ type Cluster struct {
 	shards           map[uint64]statemachine.CreateStateMachineFunc
 	controlClient    *http.Client
 	runtimeReplicaID uint64
+	ephemeral        bool
 
 	// runningCtx is cancelled when the cluster is stopped.
 	runningCtx       context.Context
@@ -124,6 +133,7 @@ func (b *Builder) Build(ctx context.Context) *Cluster {
 		config:        b.config,
 		shards:        b.shards,
 		controlClient: controlClient,
+		ephemeral:     b.ephemeral,
 	}
 
 	for _, handle := range b.handles {
@@ -533,8 +543,11 @@ func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statema
 func (c *Cluster) Stop(ctx context.Context) {
 	logger := log.FromContext(ctx).Scope("raft")
 	if c.nh != nil {
-		if err := c.removeFromAllShards(ctx); err != nil {
-			logger.Errorf(err, "failed to remove from shards")
+		if c.ephemeral {
+			// if we know the data will be lost, remove the node from all shards
+			if err := c.removeFromAllShards(ctx); err != nil {
+				logger.Errorf(err, "failed to remove from shards")
+			}
 		}
 		c.runningCtxCancel(fmt.Errorf("stopping raft cluster: %w", context.Canceled))
 		c.nh.Close()

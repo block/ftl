@@ -139,8 +139,8 @@ func TestJoiningExistingCluster(t *testing.T) {
 	}))
 	assert.NoError(t, err)
 
-	t.Log("join through the new member")
-	builder4 := testBuilder(t, nil, members[3].String(), nil)
+	t.Log("join through the new member as an ephemeral node")
+	builder4 := testBuilder(t, nil, members[3].String(), nil).Ephemeral()
 	shard4 := raft.AddShard(ctx, builder4, 1, &IntStateMachine{})
 	cluster4 := builder4.Build(ctx)
 
@@ -151,7 +151,7 @@ func TestJoiningExistingCluster(t *testing.T) {
 	t.Log("stopping the latest member")
 	cluster4.Stop(ctx)
 
-	t.Log("rejoining the cluster with the old address but a different replica id")
+	t.Log("rejoining the cluster with the old address but a different replica id works once ephemeral member was closed")
 	builder5 := testBuilder(t, nil, members[3].String(), nil)
 	_ = raft.AddShard(ctx, builder5, 1, &IntStateMachine{})
 	cluster5 := builder5.Build(ctx)
