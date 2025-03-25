@@ -26,13 +26,20 @@ func (c *Cluster) AddMember(ctx context.Context, req *connect.Request[raftpb.Add
 	logger.Infof("Adding member %s to shard %d on replica %d", address, shards, replicaID)
 
 	for _, shardID := range shards {
+		ok, err := c.isMember(ctx, shardID, replicaID, address)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check if member is already in cluster: %w", err)
+		}
+		if ok {
+			// already in the cluster, noop
+			return connect.NewResponse(&raftpb.AddMemberResponse{}), nil
+		}
+
 		if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
 			logger.Debugf("Requesting add replica to shard %d on replica %d", shardID, replicaID)
 			return c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0)
 		}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
 			if errors.Is(err, dragonboat.ErrRejected) {
-				// The request can be rejected if the member is already in the cluster.
-				// Check if the member in the cluster matches the requested address.
 				ok, err := c.isMember(ctx, shardID, replicaID, address)
 				if err != nil {
 					return nil, fmt.Errorf("failed to check if member is already in cluster: %w", err)

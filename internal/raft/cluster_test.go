@@ -145,13 +145,18 @@ func TestJoiningExistingCluster(t *testing.T) {
 	cluster4 := builder4.Build(ctx)
 
 	assert.NoError(t, cluster4.Join(ctx, controlAddress))
-	t.Cleanup(func() {
-		cluster4.Stop(ctx)
-	})
-
 	assert.NoError(t, shard4.Publish(ctx, IntEvent(1)))
-
 	assertShardValue(ctx, t, 2, shard1, shard2, shard3, shard4)
+
+	t.Log("stopping the latest member")
+	cluster4.Stop(ctx)
+
+	t.Log("rejoining the cluster with the old address but a different replica id")
+	builder5 := testBuilder(t, nil, members[3].String(), nil)
+	_ = raft.AddShard(ctx, builder5, 1, &IntStateMachine{})
+	cluster5 := builder5.Build(ctx)
+
+	assert.NoError(t, cluster5.Join(ctx, controlAddress))
 }
 
 func TestLeavingCluster(t *testing.T) {

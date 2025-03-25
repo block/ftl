@@ -533,6 +533,9 @@ func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statema
 func (c *Cluster) Stop(ctx context.Context) {
 	logger := log.FromContext(ctx).Scope("raft")
 	if c.nh != nil {
+		if err := c.removeFromAllShards(ctx); err != nil {
+			logger.Errorf(err, "failed to remove from shards")
+		}
 		c.runningCtxCancel(fmt.Errorf("stopping raft cluster: %w", context.Canceled))
 		c.nh.Close()
 		c.nh = nil
@@ -540,6 +543,15 @@ func (c *Cluster) Stop(ctx context.Context) {
 	} else {
 		logger.Debugf("raft cluster already stopped")
 	}
+}
+
+func (c *Cluster) removeFromAllShards(ctx context.Context) error {
+	for shardID := range c.shards {
+		if err := c.removeShardMember(ctx, shardID, c.runtimeReplicaID); err != nil {
+			return fmt.Errorf("failed to remove replica %d from shard %d: %w", c.runtimeReplicaID, shardID, err)
+		}
+	}
+	return nil
 }
 
 // withRetry runs an async dragonboat call and blocks until it succeeds or the context is cancelled.
