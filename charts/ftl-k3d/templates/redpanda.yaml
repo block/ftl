@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redpanda-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redpanda
+spec:
+  ports:
+    - name: kafka-external
+      port: 19092
+      targetPort: 19092
+    - name: pandaproxy-external
+      port: 18082
+      targetPort: 18082
+    - name: schema-registry
+      port: 18081
+      targetPort: 18081
+    - name: admin-api
+      port: 19644
+      targetPort: 9644
+  selector:
+    app: redpanda
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redpanda
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redpanda
+  template:
+    metadata:
+      labels:
+        app: redpanda
+    spec:
+      containers:
+        - name: redpanda
+          image: docker.redpanda.com/redpandadata/redpanda:v24.3.8@sha256:623a07b44f3b6508b327a4d18cdba8c9e7881dd9b3a362393e9a8df428c9294e
+          args:
+            - start
+            - "--kafka-addr"
+            - internal://0.0.0.0:9092,external://0.0.0.0:19092
+            - --advertise-kafka-addr
+            - internal://redpanda.{{.Release.Namespace}}:9092,external://redpanda.{{.Release.Namespace}}:19092
+            - --pandaproxy-addr
+            - internal://0.0.0.0:8082,external://0.0.0.0:18082
+            - --advertise-pandaproxy-addr
+            - internal://redpanda.{{.Release.Namespace}}:8082,external://redpanda.{{.Release.Namespace}}:18082
+            - --schema-registry-addr
+            - internal://0.0.0.0:8081,external://0.0.0.0:18081
+            - --rpc-addr
+            - 0.0.0.0:33145
+            - --advertise-rpc-addr
+            - redpanda.{{.Release.Namespace}}:33145
+            - --mode
+            - dev-container
+            - --smp
+            - "1"
+            - --default-log-level=info
+          volumeMounts:
+            - name: redpanda-storage
+              mountPath: /var/lib/redpanda/data
+          ports:
+            - containerPort: 18081
+            - containerPort: 18082
+            - containerPort: 19092
+            - containerPort: 9644
+          livenessProbe:
+            exec:
+              command: ["rpk", "cluster", "health"]
+            initialDelaySeconds: 80
+            periodSeconds: 1
+            timeoutSeconds: 60
+            failureThreshold: 60
+      volumes:
+        - name: redpanda-storage
+          persistentVolumeClaim:
+            claimName: redpanda-pvc

@@ -37,7 +37,6 @@ controller:
       cpu: 2
 
   envFrom: null
-  dbConnectionString: "postgres://$(endpoint):$(port)/tbd?sslmode=disable&user=$(username)&password=$(password)"
   serviceAccountName: ftl
 
   env:
@@ -91,6 +90,7 @@ provisioner:
         resources:
           - "mysql"
   envFrom: null
+  env: null
   serviceAccountName: ftl-provisioner
 
   readinessProbe: null
@@ -195,8 +195,6 @@ ingress:
       protocol: TCP
       port: 8891
 
-  ingressAnnotations:
-    kubernetes.io/ingress.class: nginx
   replicas: 1
   revisionHistoryLimit: 0
 

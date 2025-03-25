@@ -177,8 +177,12 @@ func Start(
 					} else if cs.State == schema.ChangesetStateRollingBack {
 						err := svc.HandleChangesetRollingBack(ctx, cs)
 						if err != nil {
+							// We just ignore this error, as failing to roll back could be because we failed to provision
 							logger.Errorf(err, "Error rolling back changeset")
-							continue
+						}
+						_, err = svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: cs.Key.String(), Error: err.Error()}))
+						if err != nil {
+							logger.Errorf(err, "error rolling back changeset")
 						}
 					}
 				}

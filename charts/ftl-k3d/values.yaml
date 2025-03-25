@@ -3,3 +3,13 @@ ftl:
   registry:
     repository: "ftl-registry.default:5000/ftl-artefacts"
     allowInsecure: "true"
+  provisioner:
+    env:
+      - name: FTL_SANDBOX_KAFKA_BROKERS
+        value: "redpanda.default:19092"
+    config:
+      plugins:
+        - id: "sandbox"
+          resources:
+            - "topic"
+            - "subscription"

@@ -139,10 +139,6 @@ exec pod *args:
 enter pod *args="bash":
   kubectl exec -it {{pod}} -- {{args}}
 
-# Connect to PostgreSQL database
-psql:
-  just enter statefulset.apps/ftl-postgresql env PGPASSWORD=ftl psql -U ftl ftl
-
 # Check FTL controller status
 ftl-status:
   just exec deployment/ftl-controller ./ftl status
