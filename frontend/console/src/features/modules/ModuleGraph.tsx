@@ -46,7 +46,9 @@ export const ModuleGraph = ({ module, onTapped }: ModuleGraphProps) => {
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       setSelectedNodeId(node.id)
-      onTapped?.(node.data?.item as FTLNode, node.id)
+      // The node id is the module name and the node name separated by a dot.
+      // We want to pass the module name to the onTapped callback.
+      onTapped?.(node.data?.item as FTLNode, node.id.split('.')[0])
     },
     [onTapped],
   )

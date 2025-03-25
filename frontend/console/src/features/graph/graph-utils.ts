@@ -1,12 +1,11 @@
 import type { Edge, Node } from '@xyflow/react'
 import * as dagre from 'dagre'
-import { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
+import { Config, Data, Database, type Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { MetadataSubscriber } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import type { ExpandablePanelProps } from '../../shared/components/ExpandablePanel'
 import { configPanels } from '../modules/decls/config/ConfigRightPanels'
 import { dataPanels } from '../modules/decls/data/DataRightPanels'
 import { databasePanels } from '../modules/decls/database/DatabaseRightPanels'
-import { enumPanels } from '../modules/decls/enum/EnumRightPanels'
 import { secretPanels } from '../modules/decls/secret/SecretRightPanels'
 import { topicPanels } from '../modules/decls/topic/TopicRightPanels'
 import { verbPanels } from '../modules/decls/verb/VerbRightPanel'
@@ -58,9 +57,6 @@ export const getIsExported = (item: FTLNode): boolean | undefined => {
   }
   if ('data' in item && item.data && typeof item.data === 'object' && 'export' in item.data) {
     return !!item.data.export
-  }
-  if ('enum' in item && item.enum && typeof item.enum === 'object' && 'export' in item.enum) {
-    return !!item.enum.export
   }
   if ('typealias' in item && item.typealias && typeof item.typealias === 'object' && 'export' in item.typealias) {
     return !!item.typealias.export
@@ -164,7 +160,6 @@ export const getGraphData = (
     createChildren(module.secrets, 'secret', (item: Secret) => item.secret?.name || '')
     createChildren(module.databases, 'database', (item: Database) => item.database?.name || '')
     createChildren(module.topics, 'topic', (item: Topic) => item.topic?.name || '')
-    createChildren(module.enums, 'enum', (item: Enum) => item.enum?.name || '')
   }
 
   // Second pass: Create edges
@@ -242,7 +237,6 @@ export const getGraphData = (
     processReferences(module, module.secrets, (item: Secret) => item.secret?.name || '')
     processReferences(module, module.databases, (item: Database) => item.database?.name || '')
     processReferences(module, module.topics, (item: Topic) => item.topic?.name || '')
-    processReferences(module, module.enums, (item: Enum) => item.enum?.name || '')
   }
 
   // Deduplicate edges
@@ -319,9 +313,6 @@ export const panelsForNode = (node: FTLNode | null, moduleName: string | null) =
   }
   if (node instanceof Database) {
     return databasePanels(moduleName, node, false)
-  }
-  if (node instanceof Enum) {
-    return enumPanels(moduleName, node, false)
   }
   if (node instanceof Data) {
     return dataPanels(moduleName, node, false)
