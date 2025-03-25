@@ -4,7 +4,6 @@ ingress:
   enabled: true
   ingressAnnotations:
     ingress.kubernetes.io/ssl-redirect: "false"
-    kubernetes.io/ingress.class: traefik
 
 istio:
   enabled: true

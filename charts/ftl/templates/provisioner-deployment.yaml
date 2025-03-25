@@ -88,6 +88,8 @@ spec:
               value: "{{ .Values.admin.serviceAccountName }}"
             - name: FTL_HTTP_SERVICE_ACCOUNT
               value: "{{ .Values.ingress.serviceAccountName }}"
+            - name: FTL_PROVISIONER_PLUGIN_CONFIG_FILE
+              value: /config/config.toml
             {{- if .Values.provisioner.env }}
             {{- toYaml .Values.provisioner.env | nindent 12 }}
             {{- end }}
