@@ -168,7 +168,7 @@ func (m DeploymentContext) GetSecret(name string, value any) error {
 // Returns an error if no database with that name is found or it is not the
 // expected type. When in a testing context (via ftltest), an error is returned
 // if the database is not a test database.
-	func (m DeploymentContext) GetDatabase(name string, dbType DBType) (string, bool, error) {
+func (m DeploymentContext) GetDatabase(name string, dbType DBType) (string, bool, error) {
 	db, ok := m.databases[name]
 	// TODO: Remove databases from the context once we have a way to inject test dbs in some other way
 	if !ok {

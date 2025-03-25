@@ -42,8 +42,8 @@ import (
 )
 
 var (
-	ftlTypesFilename     = "types.ftl.go"
-	ftlQueriesFilename   = "queries.ftl.go"
+	ftlTypesFilename   = "types.ftl.go"
+	ftlQueriesFilename = "queries.ftl.go"
 	// Searches for paths beginning with ../../../
 	// Matches the previous character as well to avoid matching the middle deeper backtrack paths, and because
 	// regex package does not support negative lookbehind assertions
