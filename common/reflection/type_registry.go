@@ -15,7 +15,6 @@ type TypeRegistry struct {
 	variantsToDiscriminators map[reflect.Type]reflect.Type
 	externalTypes            map[reflect.Type]struct{}
 	verbCalls                map[Ref]verbCall
-	queryVerbs               map[Ref]ReflectedDatabase // maps the verb ref to associated the database
 	databases                map[reflect.Type]*ReflectedDatabaseHandle
 }
 
@@ -56,7 +55,6 @@ func newTypeRegistry(options ...Registree) *TypeRegistry {
 		externalTypes:            map[reflect.Type]struct{}{},
 		verbCalls:                map[Ref]verbCall{},
 		databases:                map[reflect.Type]*ReflectedDatabaseHandle{},
-		queryVerbs:               map[Ref]ReflectedDatabase{},
 	}
 	for _, o := range options {
 		o(t)

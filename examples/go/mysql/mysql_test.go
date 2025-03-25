@@ -12,30 +12,44 @@ import (
 func TestDatabase(t *testing.T) {
 	ctx := ftltest.Context(
 		ftltest.WithCallsAllowedWithinModule(),
-		ftltest.WithSQLVerbsEnabled(),
+		ftltest.WithDatabase[TestdbConfig](),
 	)
 
 	_, err := ftltest.Call[InsertClient, InsertRequest, InsertResponse](ctx, InsertRequest{Data: "unit test 1"})
 	assert.NoError(t, err)
-	list, err := queryDBDirectly(ctx)
+	list, err := getAll(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(list))
 	assert.Equal(t, "unit test 1", list[0])
 
+	ctx = ftltest.Context(
+		ftltest.WithCallsAllowedWithinModule(),
+		ftltest.WithDatabase[TestdbConfig](),
+	)
+
 	_, err = ftltest.Call[InsertClient, InsertRequest, InsertResponse](ctx, InsertRequest{Data: "unit test 2"})
 	assert.NoError(t, err)
-	list, err = queryDBDirectly(ctx)
+	list, err = getAll(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(list))
-	assert.Equal(t, "unit test 2", list[1])
-	results, err := ftltest.CallSource[QueryClient, []string](ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(results))
-	assert.Equal(t, "unit test 1", results[0])
-	assert.Equal(t, "unit test 2", results[1])
+	assert.Equal(t, 1, len(list))
+	assert.Equal(t, "unit test 2", list[0])
 }
 
-func queryDBDirectly(ctx context.Context) ([]string, error) {
+func TestOptionOrdering(t *testing.T) {
+	ctx := ftltest.Context(
+		ftltest.WithCallsAllowedWithinModule(),
+		ftltest.WithDatabase[TestdbConfig](), // <--- consumes DSNs
+	)
+
+	_, err := ftltest.Call[InsertClient, InsertRequest, InsertResponse](ctx, InsertRequest{Data: "unit test 1"})
+	assert.NoError(t, err)
+	list, err := getAll(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(list))
+	assert.Equal(t, "unit test 1", list[0])
+}
+
+func getAll(ctx context.Context) ([]string, error) {
 	db, err := ftltest.GetDatabaseHandle[TestdbConfig]()
 	if err != nil {
 		return nil, err
