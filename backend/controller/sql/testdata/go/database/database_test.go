@@ -11,8 +11,8 @@ import (
 
 func TestDatabase(t *testing.T) {
 	ctx := ftltest.Context(
-		ftltest.WithAllDatabases(),
 		ftltest.WithCallsAllowedWithinModule(),
+		ftltest.WithDatabase[TestdbConfig](),
 	)
 
 	_, err := ftltest.Call[InsertClient, InsertRequest, InsertResponse](ctx, InsertRequest{Data: "unit test 1"})
@@ -23,8 +23,8 @@ func TestDatabase(t *testing.T) {
 	assert.Equal(t, "unit test 1", list[0])
 
 	ctx = ftltest.Context(
-		ftltest.WithAllDatabases(),
 		ftltest.WithCallsAllowedWithinModule(),
+		ftltest.WithDatabase[TestdbConfig](),
 	)
 
 	_, err = ftltest.Call[InsertClient, InsertRequest, InsertResponse](ctx, InsertRequest{Data: "unit test 2"})

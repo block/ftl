@@ -242,7 +242,6 @@ type queryVerb struct {
 	ParamFields    string
 	ColToFieldName string
 	DBName         string
-	DBType         string
 }
 
 type goType interface {
@@ -757,13 +756,7 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "mod", "tidy").RunStderrError(wgctx); err != nil {
 			return fmt.Errorf("%s: failed to tidy go.mod: %w", config.Dir, err)
 		}
-		fmtFiles := []string{ftlTypesFilename}
-		if _, err := os.Stat(filepath.Join(config.Dir, ftlQueriesFilename)); err == nil {
-			fmtFiles = append(fmtFiles, ftlQueriesFilename)
-		}
-		args := []string{"fmt"}
-		args = append(args, fmtFiles...)
-		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", args...).RunStderrError(wgctx); err != nil {
+		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "fmt", ftlTypesFilename).RunStderrError(wgctx); err != nil {
 			return fmt.Errorf("%s: failed to format module dir: %w", config.Dir, err)
 		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, "go.mod"), filepath.Join(config.Dir, "go.sum"), filepath.Join(config.Dir, ftlTypesFilename)); err != nil {
@@ -1030,23 +1023,14 @@ func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) (queryVerb
 	request := b.getQueryRequestResponseData(verb.Request)
 	response := b.getQueryRequestResponseData(verb.Response)
 
-	var dbRef *schema.Ref
+	var dbName string
 	for _, md := range verb.Metadata {
 		if db, ok := md.(*schema.MetadataDatabases); ok {
-			dbRef = db.Calls[0]
+			dbName = db.Calls[0].Name
 		}
 	}
-	if dbRef == nil || dbRef.Name == "" {
+	if dbName == "" {
 		return queryVerb{}, fmt.Errorf("missing database call for query verb %s", verb.Name)
-	}
-
-	decl, ok := b.sch.Resolve(dbRef).Get()
-	if !ok {
-		return queryVerb{}, fmt.Errorf("could not resolve database %s used by query verb %s", dbRef.String(), verb.Name)
-	}
-	db, ok := decl.(*schema.Database)
-	if !ok {
-		return queryVerb{}, fmt.Errorf("declaration %s referenced by query verb %s is not a database", dbRef.String(), verb.Name)
 	}
 
 	var params []string
@@ -1076,8 +1060,7 @@ func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) (queryVerb
 		RawSQL:         sqlQuery.Query,
 		ParamFields:    fmt.Sprintf("[]string{%s}", strings.Join(islices.Map(params, strconv.Quote), ",")),
 		ColToFieldName: fmt.Sprintf("[]tuple.Pair[string,string]{%s}", strings.Join(pairs, ",")),
-		DBName:         db.Name,
-		DBType:         db.Type,
+		DBName:         dbName,
 	}, nil
 }
 

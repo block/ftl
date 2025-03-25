@@ -35,10 +35,8 @@ func InitMySQL(ref reflection.Ref) *reflection.ReflectedDatabaseHandle {
 
 func InitDatabase(ref reflection.Ref, dbtype string, protoDBtype deploymentcontext.DBType, driver string) *reflection.ReflectedDatabaseHandle {
 	return &reflection.ReflectedDatabaseHandle{
-		ReflectedDatabase: reflection.ReflectedDatabase{
-			Name:   ref.Name,
-			DBType: dbtype,
-		},
+		Name:   ref.Name,
+		DBType: dbtype,
 		DB: once.Once(func(ctx context.Context) (*sql.DB, error) {
 			logger := log.FromContext(ctx)
 			provider := deploymentcontext.FromContext(ctx).CurrentContext()

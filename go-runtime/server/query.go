@@ -17,12 +17,11 @@ func Query[Req, Resp any](
 	verbName string,
 	commandType reflection.CommandType,
 	dbName string,
-	dbType string,
 	rawSQL string,
 	fields []string,
 	colToFieldName []tuple.Pair[string, string],
 ) reflection.Registree {
-	return reflection.Query(module, verbName, dbName, dbType, getQueryFunc[Req, Resp](commandType, dbName, rawSQL, getQueryParamValues(fields), colToFieldName))
+	return reflection.Query(module, verbName, getQueryFunc[Req, Resp](commandType, dbName, rawSQL, getQueryParamValues(fields), colToFieldName))
 }
 
 func QueryEmpty(
@@ -30,12 +29,11 @@ func QueryEmpty(
 	verbName string,
 	commandType reflection.CommandType,
 	dbName string,
-	dbType string,
 	rawSQL string,
 	fields []string,
 	colToFieldName []tuple.Pair[string, string],
 ) reflection.Registree {
-	return reflection.Query(module, verbName, dbName, dbType, getQueryFunc[ftl.Unit, ftl.Unit](commandType, dbName, rawSQL, getQueryParamValues(fields), colToFieldName))
+	return reflection.Query(module, verbName, getQueryFunc[ftl.Unit, ftl.Unit](commandType, dbName, rawSQL, getQueryParamValues(fields), colToFieldName))
 }
 
 func QuerySource[Resp any](
@@ -43,12 +41,11 @@ func QuerySource[Resp any](
 	verbName string,
 	commandType reflection.CommandType,
 	dbName string,
-	dbType string,
 	rawSQL string,
 	fields []string,
 	colToFieldName []tuple.Pair[string, string],
 ) reflection.Registree {
-	return reflection.Query(module, verbName, dbName, dbType, getQueryFunc[ftl.Unit, Resp](commandType, dbName, rawSQL, getQueryParamValues(fields), colToFieldName))
+	return reflection.Query(module, verbName, getQueryFunc[ftl.Unit, Resp](commandType, dbName, rawSQL, getQueryParamValues(fields), colToFieldName))
 }
 
 func QuerySink[Req any](
@@ -56,12 +53,11 @@ func QuerySink[Req any](
 	verbName string,
 	commandType reflection.CommandType,
 	dbName string,
-	dbType string,
 	rawSQL string,
 	fields []string,
 	colToFieldName []tuple.Pair[string, string],
 ) reflection.Registree {
-	return reflection.Query(module, verbName, dbName, dbType, getQueryFunc[Req, ftl.Unit](commandType, dbName, rawSQL, getQueryParamValues(fields), colToFieldName))
+	return reflection.Query(module, verbName, getQueryFunc[Req, ftl.Unit](commandType, dbName, rawSQL, getQueryParamValues(fields), colToFieldName))
 }
 
 func getQueryParamValues(fields []string) func(req any) []any {
