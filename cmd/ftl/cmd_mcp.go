@@ -43,12 +43,12 @@ func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig projectconfig
 		mcp.IncludeOptional("dir"), mcp.Pattern("name", optional.Some(mcp.ModuleRegex)),
 		mcp.IncludeStatus()))
 	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "CallVerb", []string{"call"},
-		mcp.IncludeOptional("request"), mcp.Args("-v")))
-	// TODO: all secret commands, with xor group of bools for providers
-	// TODO: all config commands, with xor group of bools for providers
+		mcp.IncludeOptional("request"),
+		mcp.Pattern("request", optional.Some(`^(({.*})|(\[.*\])|(".*")|([\-0-9\.])|(true)|(false)|(null))$`)), // Give a hint that it should look like json
+		mcp.Args("-v")))
 	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "ResetSubscription", []string{"pubsub", "subscription", "reset"},
 		mcp.AddHelp("This does not return any info about the state of the subscription."),
-		mcp.AddHelp("The user MUST explicitly ask for the subscription to be reset.")))
+		mcp.AddHelp("You MUST confirm with the user first before resetting a subscription as it can be be reversed. Being told to investigate an issue is not enough.")))
 	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "NewMySQLDatabase", []string{"mysql", "new"},
 		mcp.Pattern("datasource", optional.Some(mcp.RefRegex)),
 		mcp.IncludeStatus(),

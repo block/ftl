@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -29,8 +30,6 @@ type gooseCmd struct {
 	Prompt []string `arg:"" required:"" help:"Ask Goose for help"`
 }
 
-var first = true
-
 func (c *gooseCmd) Run(ctx context.Context, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient) error {
 	gooseName := "🔮 Goose"
@@ -39,13 +38,15 @@ func (c *gooseCmd) Run(ctx context.Context, projectConfig projectconfig.Config, 
 
 	logger := log.FromContext(ctx)
 
+	logPath := filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.jsonl")
+	logExists := false
+	if _, err := os.Stat(logPath); err == nil {
+		logExists = true
+	}
 	var prompt string
 	userPrompt := strings.Join(c.Prompt, " ")
-	args := []string{"run", "--with-extension", "ftl mcp", "--path", filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.jsonl")}
-	if first {
-		logger.Infof("Setting up goose")
-		first = false
-
+	args := []string{"run", "--with-extension", "ftl mcp", "--path", logPath}
+	if !logExists {
 		var docs []string
 		var status string
 		wg := &errgroup.Group{}
