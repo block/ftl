@@ -15,6 +15,7 @@ func Predictors(view *schemaeventsource.View) map[string]complete.Predictor {
 		"configs":       &declPredictor[*schema.Config]{view: *view},
 		"secrets":       &declPredictor[*schema.Secret]{view: *view},
 		"databases":     &declPredictor[*schema.Database]{view: *view},
+		"topics":        &declPredictor[*schema.Topic]{view: *view},
 		"subscriptions": &subscriptionsPredictor{view: *view},
 		"modules":       &modulePredictor{view: *view},
 		"deployments":   &deploymentsPredictor{view: *view},

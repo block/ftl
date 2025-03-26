@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
+import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
 import { Changeset, Module, Ref, RuntimeElement } from "../../schema/v1/schema_pb.js";
 import { TimelineQuery } from "../../timeline/v1/timeline_pb.js";
 import { LogEvent } from "../../timeline/v1/event_pb.js";
@@ -1702,6 +1702,301 @@ export class StreamLogsResponse extends Message<StreamLogsResponse> {
 
   static equals(a: StreamLogsResponse | PlainMessage<StreamLogsResponse> | undefined, b: StreamLogsResponse | PlainMessage<StreamLogsResponse> | undefined): boolean {
     return proto3.util.equals(StreamLogsResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.GetTopicInfoRequest
+ */
+export class GetTopicInfoRequest extends Message<GetTopicInfoRequest> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Ref topic = 1;
+   */
+  topic?: Ref;
+
+  constructor(data?: PartialMessage<GetTopicInfoRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.GetTopicInfoRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "topic", kind: "message", T: Ref },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTopicInfoRequest {
+    return new GetTopicInfoRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetTopicInfoRequest {
+    return new GetTopicInfoRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetTopicInfoRequest {
+    return new GetTopicInfoRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetTopicInfoRequest | PlainMessage<GetTopicInfoRequest> | undefined, b: GetTopicInfoRequest | PlainMessage<GetTopicInfoRequest> | undefined): boolean {
+    return proto3.util.equals(GetTopicInfoRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.PubSubEventMetadata
+ */
+export class PubSubEventMetadata extends Message<PubSubEventMetadata> {
+  /**
+   * @generated from field: google.protobuf.Timestamp timestamp = 1;
+   */
+  timestamp?: Timestamp;
+
+  /**
+   * @generated from field: int64 offset = 2;
+   */
+  offset = protoInt64.zero;
+
+  /**
+   * @generated from field: string request_key = 3;
+   */
+  requestKey = "";
+
+  constructor(data?: PartialMessage<PubSubEventMetadata>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.PubSubEventMetadata";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "timestamp", kind: "message", T: Timestamp },
+    { no: 2, name: "offset", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "request_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PubSubEventMetadata {
+    return new PubSubEventMetadata().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PubSubEventMetadata {
+    return new PubSubEventMetadata().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PubSubEventMetadata {
+    return new PubSubEventMetadata().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: PubSubEventMetadata | PlainMessage<PubSubEventMetadata> | undefined, b: PubSubEventMetadata | PlainMessage<PubSubEventMetadata> | undefined): boolean {
+    return proto3.util.equals(PubSubEventMetadata, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.GetTopicInfoResponse
+ */
+export class GetTopicInfoResponse extends Message<GetTopicInfoResponse> {
+  /**
+   * @generated from field: repeated xyz.block.ftl.admin.v1.GetTopicInfoResponse.PartitionInfo partitions = 1;
+   */
+  partitions: GetTopicInfoResponse_PartitionInfo[] = [];
+
+  constructor(data?: PartialMessage<GetTopicInfoResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.GetTopicInfoResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "partitions", kind: "message", T: GetTopicInfoResponse_PartitionInfo, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTopicInfoResponse {
+    return new GetTopicInfoResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetTopicInfoResponse {
+    return new GetTopicInfoResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetTopicInfoResponse {
+    return new GetTopicInfoResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetTopicInfoResponse | PlainMessage<GetTopicInfoResponse> | undefined, b: GetTopicInfoResponse | PlainMessage<GetTopicInfoResponse> | undefined): boolean {
+    return proto3.util.equals(GetTopicInfoResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.GetTopicInfoResponse.PartitionInfo
+ */
+export class GetTopicInfoResponse_PartitionInfo extends Message<GetTopicInfoResponse_PartitionInfo> {
+  /**
+   * @generated from field: int32 partition = 1;
+   */
+  partition = 0;
+
+  /**
+   * @generated from field: optional xyz.block.ftl.admin.v1.PubSubEventMetadata head = 2;
+   */
+  head?: PubSubEventMetadata;
+
+  constructor(data?: PartialMessage<GetTopicInfoResponse_PartitionInfo>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.GetTopicInfoResponse.PartitionInfo";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "partition", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "head", kind: "message", T: PubSubEventMetadata, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTopicInfoResponse_PartitionInfo {
+    return new GetTopicInfoResponse_PartitionInfo().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetTopicInfoResponse_PartitionInfo {
+    return new GetTopicInfoResponse_PartitionInfo().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetTopicInfoResponse_PartitionInfo {
+    return new GetTopicInfoResponse_PartitionInfo().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetTopicInfoResponse_PartitionInfo | PlainMessage<GetTopicInfoResponse_PartitionInfo> | undefined, b: GetTopicInfoResponse_PartitionInfo | PlainMessage<GetTopicInfoResponse_PartitionInfo> | undefined): boolean {
+    return proto3.util.equals(GetTopicInfoResponse_PartitionInfo, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.GetSubscriptionInfoRequest
+ */
+export class GetSubscriptionInfoRequest extends Message<GetSubscriptionInfoRequest> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Ref subscription = 1;
+   */
+  subscription?: Ref;
+
+  constructor(data?: PartialMessage<GetSubscriptionInfoRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.GetSubscriptionInfoRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "subscription", kind: "message", T: Ref },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSubscriptionInfoRequest {
+    return new GetSubscriptionInfoRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSubscriptionInfoRequest {
+    return new GetSubscriptionInfoRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSubscriptionInfoRequest {
+    return new GetSubscriptionInfoRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSubscriptionInfoRequest | PlainMessage<GetSubscriptionInfoRequest> | undefined, b: GetSubscriptionInfoRequest | PlainMessage<GetSubscriptionInfoRequest> | undefined): boolean {
+    return proto3.util.equals(GetSubscriptionInfoRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse
+ */
+export class GetSubscriptionInfoResponse extends Message<GetSubscriptionInfoResponse> {
+  /**
+   * @generated from field: repeated xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo partitions = 1;
+   */
+  partitions: GetSubscriptionInfoResponse_PartitionInfo[] = [];
+
+  constructor(data?: PartialMessage<GetSubscriptionInfoResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "partitions", kind: "message", T: GetSubscriptionInfoResponse_PartitionInfo, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSubscriptionInfoResponse {
+    return new GetSubscriptionInfoResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSubscriptionInfoResponse {
+    return new GetSubscriptionInfoResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSubscriptionInfoResponse {
+    return new GetSubscriptionInfoResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSubscriptionInfoResponse | PlainMessage<GetSubscriptionInfoResponse> | undefined, b: GetSubscriptionInfoResponse | PlainMessage<GetSubscriptionInfoResponse> | undefined): boolean {
+    return proto3.util.equals(GetSubscriptionInfoResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo
+ */
+export class GetSubscriptionInfoResponse_PartitionInfo extends Message<GetSubscriptionInfoResponse_PartitionInfo> {
+  /**
+   * @generated from field: int32 partition = 1;
+   */
+  partition = 0;
+
+  /**
+   * @generated from field: optional xyz.block.ftl.admin.v1.PubSubEventMetadata consumed = 2;
+   */
+  consumed?: PubSubEventMetadata;
+
+  /**
+   * @generated from field: optional xyz.block.ftl.admin.v1.PubSubEventMetadata next = 3;
+   */
+  next?: PubSubEventMetadata;
+
+  /**
+   * @generated from field: optional xyz.block.ftl.admin.v1.PubSubEventMetadata head = 4;
+   */
+  head?: PubSubEventMetadata;
+
+  constructor(data?: PartialMessage<GetSubscriptionInfoResponse_PartitionInfo>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "partition", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "consumed", kind: "message", T: PubSubEventMetadata, opt: true },
+    { no: 3, name: "next", kind: "message", T: PubSubEventMetadata, opt: true },
+    { no: 4, name: "head", kind: "message", T: PubSubEventMetadata, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSubscriptionInfoResponse_PartitionInfo {
+    return new GetSubscriptionInfoResponse_PartitionInfo().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSubscriptionInfoResponse_PartitionInfo {
+    return new GetSubscriptionInfoResponse_PartitionInfo().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSubscriptionInfoResponse_PartitionInfo {
+    return new GetSubscriptionInfoResponse_PartitionInfo().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSubscriptionInfoResponse_PartitionInfo | PlainMessage<GetSubscriptionInfoResponse_PartitionInfo> | undefined, b: GetSubscriptionInfoResponse_PartitionInfo | PlainMessage<GetSubscriptionInfoResponse_PartitionInfo> | undefined): boolean {
+    return proto3.util.equals(GetSubscriptionInfoResponse_PartitionInfo, a, b);
   }
 }
 

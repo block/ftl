@@ -94,6 +94,12 @@ const (
 	AdminServiceUploadArtefactProcedure = "/xyz.block.ftl.admin.v1.AdminService/UploadArtefact"
 	// AdminServiceStreamLogsProcedure is the fully-qualified name of the AdminService's StreamLogs RPC.
 	AdminServiceStreamLogsProcedure = "/xyz.block.ftl.admin.v1.AdminService/StreamLogs"
+	// AdminServiceGetTopicInfoProcedure is the fully-qualified name of the AdminService's GetTopicInfo
+	// RPC.
+	AdminServiceGetTopicInfoProcedure = "/xyz.block.ftl.admin.v1.AdminService/GetTopicInfo"
+	// AdminServiceGetSubscriptionInfoProcedure is the fully-qualified name of the AdminService's
+	// GetSubscriptionInfo RPC.
+	AdminServiceGetSubscriptionInfoProcedure = "/xyz.block.ftl.admin.v1.AdminService/GetSubscriptionInfo"
 )
 
 // AdminServiceClient is a client for the xyz.block.ftl.admin.v1.AdminService service.
@@ -150,6 +156,10 @@ type AdminServiceClient interface {
 	// Upload an artefact to the server.
 	UploadArtefact(context.Context) *connect.ClientStreamForClient[v11.UploadArtefactRequest, v11.UploadArtefactResponse]
 	StreamLogs(context.Context, *connect.Request[v11.StreamLogsRequest]) (*connect.ServerStreamForClient[v11.StreamLogsResponse], error)
+	// Get information about the state of pubsub topics.
+	GetTopicInfo(context.Context, *connect.Request[v11.GetTopicInfoRequest]) (*connect.Response[v11.GetTopicInfoResponse], error)
+	// Get information about the state of pubsub subscriptions.
+	GetSubscriptionInfo(context.Context, *connect.Request[v11.GetSubscriptionInfoRequest]) (*connect.Response[v11.GetSubscriptionInfoResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the xyz.block.ftl.admin.v1.AdminService service. By
@@ -304,6 +314,18 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(adminServiceMethods.ByName("StreamLogs")),
 			connect.WithClientOptions(opts...),
 		),
+		getTopicInfo: connect.NewClient[v11.GetTopicInfoRequest, v11.GetTopicInfoResponse](
+			httpClient,
+			baseURL+AdminServiceGetTopicInfoProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetTopicInfo")),
+			connect.WithClientOptions(opts...),
+		),
+		getSubscriptionInfo: connect.NewClient[v11.GetSubscriptionInfoRequest, v11.GetSubscriptionInfoResponse](
+			httpClient,
+			baseURL+AdminServiceGetSubscriptionInfoProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetSubscriptionInfo")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -332,6 +354,8 @@ type adminServiceClient struct {
 	getDeploymentArtefacts  *connect.Client[v11.GetDeploymentArtefactsRequest, v11.GetDeploymentArtefactsResponse]
 	uploadArtefact          *connect.Client[v11.UploadArtefactRequest, v11.UploadArtefactResponse]
 	streamLogs              *connect.Client[v11.StreamLogsRequest, v11.StreamLogsResponse]
+	getTopicInfo            *connect.Client[v11.GetTopicInfoRequest, v11.GetTopicInfoResponse]
+	getSubscriptionInfo     *connect.Client[v11.GetSubscriptionInfoRequest, v11.GetSubscriptionInfoResponse]
 }
 
 // Ping calls xyz.block.ftl.admin.v1.AdminService.Ping.
@@ -449,6 +473,16 @@ func (c *adminServiceClient) StreamLogs(ctx context.Context, req *connect.Reques
 	return c.streamLogs.CallServerStream(ctx, req)
 }
 
+// GetTopicInfo calls xyz.block.ftl.admin.v1.AdminService.GetTopicInfo.
+func (c *adminServiceClient) GetTopicInfo(ctx context.Context, req *connect.Request[v11.GetTopicInfoRequest]) (*connect.Response[v11.GetTopicInfoResponse], error) {
+	return c.getTopicInfo.CallUnary(ctx, req)
+}
+
+// GetSubscriptionInfo calls xyz.block.ftl.admin.v1.AdminService.GetSubscriptionInfo.
+func (c *adminServiceClient) GetSubscriptionInfo(ctx context.Context, req *connect.Request[v11.GetSubscriptionInfoRequest]) (*connect.Response[v11.GetSubscriptionInfoResponse], error) {
+	return c.getSubscriptionInfo.CallUnary(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the xyz.block.ftl.admin.v1.AdminService service.
 type AdminServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
@@ -503,6 +537,10 @@ type AdminServiceHandler interface {
 	// Upload an artefact to the server.
 	UploadArtefact(context.Context, *connect.ClientStream[v11.UploadArtefactRequest]) (*connect.Response[v11.UploadArtefactResponse], error)
 	StreamLogs(context.Context, *connect.Request[v11.StreamLogsRequest], *connect.ServerStream[v11.StreamLogsResponse]) error
+	// Get information about the state of pubsub topics.
+	GetTopicInfo(context.Context, *connect.Request[v11.GetTopicInfoRequest]) (*connect.Response[v11.GetTopicInfoResponse], error)
+	// Get information about the state of pubsub subscriptions.
+	GetSubscriptionInfo(context.Context, *connect.Request[v11.GetSubscriptionInfoRequest]) (*connect.Response[v11.GetSubscriptionInfoResponse], error)
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -653,6 +691,18 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(adminServiceMethods.ByName("StreamLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServiceGetTopicInfoHandler := connect.NewUnaryHandler(
+		AdminServiceGetTopicInfoProcedure,
+		svc.GetTopicInfo,
+		connect.WithSchema(adminServiceMethods.ByName("GetTopicInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceGetSubscriptionInfoHandler := connect.NewUnaryHandler(
+		AdminServiceGetSubscriptionInfoProcedure,
+		svc.GetSubscriptionInfo,
+		connect.WithSchema(adminServiceMethods.ByName("GetSubscriptionInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/xyz.block.ftl.admin.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServicePingProcedure:
@@ -701,6 +751,10 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceUploadArtefactHandler.ServeHTTP(w, r)
 		case AdminServiceStreamLogsProcedure:
 			adminServiceStreamLogsHandler.ServeHTTP(w, r)
+		case AdminServiceGetTopicInfoProcedure:
+			adminServiceGetTopicInfoHandler.ServeHTTP(w, r)
+		case AdminServiceGetSubscriptionInfoProcedure:
+			adminServiceGetSubscriptionInfoHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -800,4 +854,12 @@ func (UnimplementedAdminServiceHandler) UploadArtefact(context.Context, *connect
 
 func (UnimplementedAdminServiceHandler) StreamLogs(context.Context, *connect.Request[v11.StreamLogsRequest], *connect.ServerStream[v11.StreamLogsResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.admin.v1.AdminService.StreamLogs is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetTopicInfo(context.Context, *connect.Request[v11.GetTopicInfoRequest]) (*connect.Response[v11.GetTopicInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.admin.v1.AdminService.GetTopicInfo is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetSubscriptionInfo(context.Context, *connect.Request[v11.GetSubscriptionInfoRequest]) (*connect.Response[v11.GetSubscriptionInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.admin.v1.AdminService.GetSubscriptionInfo is not implemented"))
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/optional"
 	in "github.com/block/ftl/internal/integration"
 )
 
@@ -68,7 +69,7 @@ func checkOffsets(topic, subscription string, latest bool) in.Action {
 		admin, err := sarama.NewClusterAdmin(in.RedPandaBrokers, config)
 		assert.NoError(t, err)
 
-		partitionCount, err := kafkaPartitionCount(ic.Context, in.RedPandaBrokers, topic)
+		partitionCount, err := kafkaPartitionCount(optional.Some(admin), in.RedPandaBrokers, topic)
 		assert.NoError(t, err)
 
 		requestedPartitions := []int32{}

@@ -65,5 +65,6 @@ func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig projectconfig
 		mcp.Ignore(newSQLCmd{}, "datasource"),
 		mcp.Pattern("datasource", optional.Some(mcp.RefRegex)),
 		mcp.AutoReadFilePaths()))
+	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "SubscriptionInfo", []string{"pubsub", "subscription", "info"}))
 	return s
 }

@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, StreamLogsRequest, StreamLogsResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
+import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetSubscriptionInfoRequest, GetSubscriptionInfoResponse, GetTopicInfoRequest, GetTopicInfoResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, StreamLogsRequest, StreamLogsResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
 import { FailChangesetRequest, FailChangesetResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, RollbackChangesetRequest, RollbackChangesetResponse } from "../../v1/schemaservice_pb.js";
 
 /**
@@ -275,6 +275,28 @@ export const AdminService = {
       I: StreamLogsRequest,
       O: StreamLogsResponse,
       kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Get information about the state of pubsub topics.
+     *
+     * @generated from rpc xyz.block.ftl.admin.v1.AdminService.GetTopicInfo
+     */
+    getTopicInfo: {
+      name: "GetTopicInfo",
+      I: GetTopicInfoRequest,
+      O: GetTopicInfoResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get information about the state of pubsub subscriptions.
+     *
+     * @generated from rpc xyz.block.ftl.admin.v1.AdminService.GetSubscriptionInfo
+     */
+    getSubscriptionInfo: {
+      name: "GetSubscriptionInfo",
+      I: GetSubscriptionInfoRequest,
+      O: GetSubscriptionInfoResponse,
+      kind: MethodKind.Unary,
     },
   }
 } as const;
