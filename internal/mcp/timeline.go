@@ -12,6 +12,7 @@ import (
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
+	"github.com/block/ftl/internal/key"
 )
 
 type timelineOutput struct {
@@ -23,11 +24,13 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 	return mcp.NewTool(
 			"Timeline",
 			mcp.WithDescription(
-				`Get the latest runtime events for FTL each:
-				- Verb call
-				- Ingress call
-				- Event published and consumed by pubsub
-				- Logs`),
+				`Get the latest runtime events for FTL:
+				- Verb calls
+				- Ingress calls
+				- Events published and consumed by pubsub
+				- Logs
+				
+				This toll can also be used to find the request and response data of calls and pubsub.`),
 			mcp.WithString("module",
 				mcp.Description("Restrict results to a single module"),
 				mcp.Pattern(ModuleRegex)),
@@ -67,6 +70,19 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 					Filter: &timelinepb.TimelineQuery_Filter_Module{
 						Module: &timelinepb.TimelineQuery_ModuleFilter{
 							Module: module,
+						},
+					},
+				})
+			}
+			if requestKeyStr, ok := request.Params.Arguments["requestKey"].(string); ok && requestKeyStr != "" {
+				requestKey, err := key.ParseRequestKey(requestKeyStr)
+				if err != nil {
+					return nil, fmt.Errorf("invalid request key: %w", err)
+				}
+				timelineReq.Query.Filters = append(timelineReq.Query.Filters, &timelinepb.TimelineQuery_Filter{
+					Filter: &timelinepb.TimelineQuery_Filter_Requests{
+						Requests: &timelinepb.TimelineQuery_RequestFilter{
+							Requests: []string{requestKey.String()},
 						},
 					},
 				})
