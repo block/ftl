@@ -75,11 +75,6 @@ func validateCallExpr(pass *analysis.Pass, node *ast.CallExpr) {
 	if lhsPkgPath == "" || !aliased {
 		return
 	}
-
-	if selExpr.Sel.Name == "Publish" && isTopicHandleType(pass.TypesInfo.TypeOf(selExpr.X)) &&
-		!common.IsPathInModule(pass.Pkg, lhsPkgPath) {
-		common.Errorf(pass, node, "can not publish directly to topics in other modules")
-	}
 }
 
 func isTopicHandleType(typ types.Type) bool {
