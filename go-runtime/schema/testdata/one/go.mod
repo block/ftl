@@ -17,7 +17,7 @@ require (
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/alecthomas/types v0.19.0 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
-	github.com/block/ftl-golang-tools v0.4.0 // indirect
+	github.com/block/ftl-golang-tools v0.5.0 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
