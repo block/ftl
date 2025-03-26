@@ -12,7 +12,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/go-sql-driver/mysql"
-	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/concurrency"
@@ -73,20 +72,20 @@ func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error
 
 						Connector: connector,
 					}, nil
-				} else {
-					dsn, err := mysqlDSNSetup(ctx, input.WriteEndpoint, databaseName)
-					if err != nil {
-						return nil, err
-					}
-					return state.OutputMySQL{
-						Module:     input.Module,
-						ResourceID: input.ResourceID,
-						Connector: &schema.DSNDatabaseConnector{
-							Database: databaseName,
-							DSN:      dsn,
-						},
-					}, nil
 				}
+				dsn, err := mysqlDSNSetup(ctx, input.WriteEndpoint, databaseName)
+				if err != nil {
+					return nil, err
+				}
+				return state.OutputMySQL{
+					Module:     input.Module,
+					ResourceID: input.ResourceID,
+					Connector: &schema.DSNDatabaseConnector{
+						Database: databaseName,
+						DSN:      dsn,
+					},
+				}, nil
+
 			})
 		}
 	}
@@ -180,7 +179,6 @@ func mysqlSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAu
 }
 
 func mysqlDSNSetup(ctx context.Context, adminDSN string, database string) (string, error) {
-	logger := log.FromContext(ctx)
 	parsed, err := mysql.ParseDSN(adminDSN)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse dsn: %w", err)
@@ -192,18 +190,9 @@ func mysqlDSNSetup(ctx context.Context, adminDSN string, database string) (strin
 	}
 	defer db.Close()
 
-	res, err := db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS "+database)
+	_, err = db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS "+database)
 	if err != nil {
 		return "", fmt.Errorf("failed to create database: %w", err)
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return "", fmt.Errorf("failed to get rows affected: %w", err)
-	}
-	if rows > 0 {
-		logger.Infof("MySQL database created: %s", database) //nolint:forbidigo
-	} else {
-		logger.Debugf("MySQL database already exists: %s", database)
 	}
 	pw, err := generatePassword(16, passwordChars)
 	if err != nil {
@@ -213,7 +202,7 @@ func mysqlDSNSetup(ctx context.Context, adminDSN string, database string) (strin
 	if err != nil {
 		return "", fmt.Errorf("failed to generate username: %w", err)
 	}
-	res, err = db.ExecContext(ctx, "CREATE USER IF NOT EXISTS "+username+"@'%' IDENTIFIED BY '"+pw+"';")
+	_, err = db.ExecContext(ctx, "CREATE USER IF NOT EXISTS "+username+"@'%' IDENTIFIED BY '"+pw+"';")
 	if err != nil {
 		return "", fmt.Errorf("failed to create user: %w", err)
 	}
@@ -235,10 +224,10 @@ func generatePassword(length int, alphabet string) (string, error) {
 	password := make([]byte, length)
 	charCount := big.NewInt(int64(len(alphabet)))
 
-	for i := 0; i < length; i++ {
+	for i := range length {
 		index, err := rand.Int(rand.Reader, charCount)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("failed to generate password: %w", err)
 		}
 		password[i] = alphabet[index.Int64()]
 	}
