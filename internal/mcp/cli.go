@@ -322,6 +322,15 @@ func optionForInput(value *kong.Value, description string, flag bool, config *CL
 			return newStringOption(name, flag, opts)
 		}
 
+	case reflect.Slice:
+		if value.Target.Type().Elem().Kind() == reflect.Struct {
+			t := value.Target.Type().Elem()
+			if t == reflect.TypeOf(reflection.Ref{}) {
+				opts = append(opts, mcp.Pattern(RefRegex))
+				return newArrayOption(name, opts)
+			}
+		}
+
 	default:
 	}
 	panic(fmt.Sprintf("implement type %v %v for %s (hasDefault = %v)", value.Target.Type(), value.Target.Kind(), name, value.HasDefault))
@@ -341,6 +350,22 @@ func newStringOption(name string, flag bool, opts []mcp.PropertyOption) (mcp.Too
 			return []string{"--" + name, str}, nil
 		}
 		return []string{str}, nil
+	}
+}
+
+func newArrayOption(name string, opts []mcp.PropertyOption) (mcp.ToolOption, inputReader) {
+	return mcp.WithArray(name, opts...), func(args map[string]any) ([]string, error) {
+		value, ok := args[name]
+		if !ok {
+			return nil, nil
+		}
+		s, ok := value.([]any)
+		if !ok {
+			return nil, fmt.Errorf("did not expect %s to be %T", name, value)
+		}
+		return islices.Map(s, func(e any) string {
+			return fmt.Sprintf("%v", e)
+		}), nil
 	}
 }
 

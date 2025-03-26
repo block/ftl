@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package xyz.block.ftl.admin.v1;
 
+import "google/protobuf/timestamp.proto";
 import "xyz/block/ftl/schema/v1/schema.proto";
 import "xyz/block/ftl/timeline/v1/event.proto";
 import "xyz/block/ftl/timeline/v1/timeline.proto";
@@ -205,6 +206,38 @@ message StreamLogsResponse {
   repeated timeline.v1.LogEvent logs = 1;
 }
 
+message GetTopicInfoRequest {
+  ftl.schema.v1.Ref topic = 1;
+}
+
+message PubSubEventMetadata {
+  google.protobuf.Timestamp timestamp = 1;
+  int64 offset = 2;
+  string request_key = 3;
+}
+
+message GetTopicInfoResponse {
+  message PartitionInfo {
+    int32 partition = 1;
+    optional PubSubEventMetadata head = 2;
+  }
+  repeated PartitionInfo partitions = 1;
+}
+
+message GetSubscriptionInfoRequest {
+  ftl.schema.v1.Ref subscription = 1;
+}
+
+message GetSubscriptionInfoResponse {
+  message PartitionInfo {
+    int32 partition = 1;
+    optional PubSubEventMetadata consumed = 2;
+    optional PubSubEventMetadata next = 3;
+    optional PubSubEventMetadata head = 4;
+  }
+  repeated PartitionInfo partitions = 1;
+}
+
 // AdminService is the service that provides and updates admin data. For example,
 // it is used to encapsulate configuration and secrets.
 service AdminService {
@@ -285,4 +318,10 @@ service AdminService {
   rpc UploadArtefact(stream UploadArtefactRequest) returns (UploadArtefactResponse);
 
   rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
+
+  // Get information about the state of pubsub topics.
+  rpc GetTopicInfo(GetTopicInfoRequest) returns (GetTopicInfoResponse);
+
+  // Get information about the state of pubsub subscriptions.
+  rpc GetSubscriptionInfo(GetSubscriptionInfoRequest) returns (GetSubscriptionInfoResponse);
 }

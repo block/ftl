@@ -1,3 +1,4 @@
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from xyz.block.ftl.schema.v1 import schema_pb2 as _schema_pb2
 from xyz.block.ftl.timeline.v1 import event_pb2 as _event_pb2
 from xyz.block.ftl.timeline.v1 import timeline_pb2 as _timeline_pb2
@@ -325,3 +326,55 @@ class StreamLogsResponse(_message.Message):
     LOGS_FIELD_NUMBER: _ClassVar[int]
     logs: _containers.RepeatedCompositeFieldContainer[_event_pb2.LogEvent]
     def __init__(self, logs: _Optional[_Iterable[_Union[_event_pb2.LogEvent, _Mapping]]] = ...) -> None: ...
+
+class GetTopicInfoRequest(_message.Message):
+    __slots__ = ("topic",)
+    TOPIC_FIELD_NUMBER: _ClassVar[int]
+    topic: _schema_pb2.Ref
+    def __init__(self, topic: _Optional[_Union[_schema_pb2.Ref, _Mapping]] = ...) -> None: ...
+
+class PubSubEventMetadata(_message.Message):
+    __slots__ = ("timestamp", "offset", "request_key")
+    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
+    OFFSET_FIELD_NUMBER: _ClassVar[int]
+    REQUEST_KEY_FIELD_NUMBER: _ClassVar[int]
+    timestamp: _timestamp_pb2.Timestamp
+    offset: int
+    request_key: str
+    def __init__(self, timestamp: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., offset: _Optional[int] = ..., request_key: _Optional[str] = ...) -> None: ...
+
+class GetTopicInfoResponse(_message.Message):
+    __slots__ = ("partitions",)
+    class PartitionInfo(_message.Message):
+        __slots__ = ("partition", "head")
+        PARTITION_FIELD_NUMBER: _ClassVar[int]
+        HEAD_FIELD_NUMBER: _ClassVar[int]
+        partition: int
+        head: PubSubEventMetadata
+        def __init__(self, partition: _Optional[int] = ..., head: _Optional[_Union[PubSubEventMetadata, _Mapping]] = ...) -> None: ...
+    PARTITIONS_FIELD_NUMBER: _ClassVar[int]
+    partitions: _containers.RepeatedCompositeFieldContainer[GetTopicInfoResponse.PartitionInfo]
+    def __init__(self, partitions: _Optional[_Iterable[_Union[GetTopicInfoResponse.PartitionInfo, _Mapping]]] = ...) -> None: ...
+
+class GetSubscriptionInfoRequest(_message.Message):
+    __slots__ = ("subscription",)
+    SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    subscription: _schema_pb2.Ref
+    def __init__(self, subscription: _Optional[_Union[_schema_pb2.Ref, _Mapping]] = ...) -> None: ...
+
+class GetSubscriptionInfoResponse(_message.Message):
+    __slots__ = ("partitions",)
+    class PartitionInfo(_message.Message):
+        __slots__ = ("partition", "consumed", "next", "head")
+        PARTITION_FIELD_NUMBER: _ClassVar[int]
+        CONSUMED_FIELD_NUMBER: _ClassVar[int]
+        NEXT_FIELD_NUMBER: _ClassVar[int]
+        HEAD_FIELD_NUMBER: _ClassVar[int]
+        partition: int
+        consumed: PubSubEventMetadata
+        next: PubSubEventMetadata
+        head: PubSubEventMetadata
+        def __init__(self, partition: _Optional[int] = ..., consumed: _Optional[_Union[PubSubEventMetadata, _Mapping]] = ..., next: _Optional[_Union[PubSubEventMetadata, _Mapping]] = ..., head: _Optional[_Union[PubSubEventMetadata, _Mapping]] = ...) -> None: ...
+    PARTITIONS_FIELD_NUMBER: _ClassVar[int]
+    partitions: _containers.RepeatedCompositeFieldContainer[GetSubscriptionInfoResponse.PartitionInfo]
+    def __init__(self, partitions: _Optional[_Iterable[_Union[GetSubscriptionInfoResponse.PartitionInfo, _Mapping]]] = ...) -> None: ...
