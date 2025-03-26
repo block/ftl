@@ -255,9 +255,9 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ad
 
 	var successfulPartitions = resp.Msg.Partitions
 	slices.Sort(successfulPartitions)
-	var failedPartitions = []int{}
+	var failedPartitions = []int32{}
 	for p := range totalPartitions {
-		if p >= len(successfulPartitions) || int(successfulPartitions[p]) != p {
+		if int(p) >= len(successfulPartitions) || successfulPartitions[p] != p {
 			failedPartitions = append(failedPartitions, p)
 		}
 	}
@@ -298,16 +298,16 @@ func (s *Service) GetTopicInfo(ctx context.Context, req *connect.Request[adminpb
 	wg := &errgroup.Group{}
 	for i := range partitionCount {
 		wg.Go(func() error {
-			oldestOffset, err := client.GetOffset(topic.Runtime.TopicID, int32(i), sarama.OffsetOldest)
+			oldestOffset, err := client.GetOffset(topic.Runtime.TopicID, i, sarama.OffsetOldest)
 			if err != nil {
 				return fmt.Errorf("failed to get offset for partition %d: %w", i, err)
 			}
-			offset, err := client.GetOffset(topic.Runtime.TopicID, int32(i), sarama.OffsetNewest)
+			offset, err := client.GetOffset(topic.Runtime.TopicID, i, sarama.OffsetNewest)
 			if err != nil {
 				return fmt.Errorf("failed to get offset for partition %d: %w", i, err)
 			}
 			info := &adminpb.GetTopicInfoResponse_PartitionInfo{
-				Partition: int32(i),
+				Partition: i,
 			}
 			if oldestOffset == offset {
 				// no messages
@@ -316,7 +316,7 @@ func (s *Service) GetTopicInfo(ctx context.Context, req *connect.Request[adminpb
 			}
 
 			headOffset := offset - 1
-			info.Head, err = getEventMetadata(ctx, topic.Runtime.KafkaBrokers, topic.Runtime.TopicID, int32(i), headOffset)
+			info.Head, err = getEventMetadata(ctx, topic.Runtime.KafkaBrokers, topic.Runtime.TopicID, i, headOffset)
 			if err != nil {
 				return fmt.Errorf("failed to get event info for partition %d and offset %d: %w", i, headOffset, err)
 			}
@@ -380,7 +380,7 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 	}
 	partitionIDs := make([]int32, partitionCount)
 	for i := range partitionCount {
-		partitionIDs[i] = int32(i)
+		partitionIDs[i] = i
 	}
 	offsetResp, err := admin.ListConsumerGroupOffsets(ref.String(), map[string][]int32{subscription.Topic.String(): partitionIDs})
 	if err != nil {
@@ -395,16 +395,16 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 	wg := &errgroup.Group{}
 	for i := range partitionCount {
 		wg.Go(func() error {
-			oldestOffset, err := client.GetOffset(subscription.Topic.String(), int32(i), sarama.OffsetOldest)
+			oldestOffset, err := client.GetOffset(subscription.Topic.String(), i, sarama.OffsetOldest)
 			if err != nil {
 				return fmt.Errorf("failed to get offset for partition %d: %w", i, err)
 			}
-			highwaterMark, err := client.GetOffset(subscription.Topic.String(), int32(i), sarama.OffsetNewest)
+			highwaterMark, err := client.GetOffset(subscription.Topic.String(), i, sarama.OffsetNewest)
 			if err != nil {
 				return fmt.Errorf("failed to get offset for partition %d: %w", i, err)
 			}
 			info := &adminpb.GetSubscriptionInfoResponse_PartitionInfo{
-				Partition: int32(i),
+				Partition: i,
 			}
 			if oldestOffset == highwaterMark {
 				// no messages
@@ -413,25 +413,25 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 			}
 
 			headOffset := highwaterMark - 1
-			info.Head, err = getEventMetadata(ctx, connector.KafkaBrokers, subscription.Topic.String(), int32(i), headOffset)
+			info.Head, err = getEventMetadata(ctx, connector.KafkaBrokers, subscription.Topic.String(), i, headOffset)
 			if err != nil {
 				return fmt.Errorf("failed to get event info for partition %d and offset %d: %w", i, headOffset, err)
 			}
 
-			offsetBlock, ok := consumerOffsets[int32(i)]
+			offsetBlock, ok := consumerOffsets[i]
 			if !ok {
 				// no messages consumed
 				partitions <- info
 				return nil
 			}
 			if offsetBlock.Offset-1 >= oldestOffset {
-				info.Consumed, err = getEventMetadata(ctx, connector.KafkaBrokers, subscription.Topic.String(), int32(i), offsetBlock.Offset-1)
+				info.Consumed, err = getEventMetadata(ctx, connector.KafkaBrokers, subscription.Topic.String(), i, offsetBlock.Offset-1)
 				if err != nil {
 					return fmt.Errorf("failed to get event info for partition %d and offset %d: %w", i, offsetBlock.Offset-1, err)
 				}
 			}
 			if offsetBlock.Offset <= headOffset && offsetBlock.Offset >= oldestOffset {
-				info.Next, err = getEventMetadata(ctx, connector.KafkaBrokers, subscription.Topic.String(), int32(i), offsetBlock.Offset)
+				info.Next, err = getEventMetadata(ctx, connector.KafkaBrokers, subscription.Topic.String(), i, offsetBlock.Offset)
 				if err != nil {
 					return fmt.Errorf("failed to get event info for partition %d and offset %d: %w", i, offsetBlock.Offset, err)
 				}
@@ -456,7 +456,7 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 
 // kafkaPartitionCount returns the number of partitions for a given topic in kafka. This may differ from the number
 // of partitions in the schema if the topic was originally provisioned with a different number of partitions.
-func kafkaPartitionCount(adminClient optional.Option[sarama.ClusterAdmin], brokers []string, topicID string) (int, error) {
+func kafkaPartitionCount(adminClient optional.Option[sarama.ClusterAdmin], brokers []string, topicID string) (int32, error) {
 	config := sarama.NewConfig()
 	admin, ok := adminClient.Get()
 	if !ok {
@@ -480,7 +480,7 @@ func kafkaPartitionCount(adminClient optional.Option[sarama.ClusterAdmin], broke
 	} else if topicMetas[0].Err != sarama.ErrNoError {
 		return 0, fmt.Errorf("failed to describe topic %s: %w", topicID, topicMetas[0].Err)
 	}
-	return len(topicMetas[0].Partitions), nil
+	return int32(len(topicMetas[0].Partitions)), nil //nolint:gosec
 }
 
 func getEventMetadata(ctx context.Context, brokers []string, topicID string, partition int32, offset int64) (*adminpb.PubSubEventMetadata, error) {
