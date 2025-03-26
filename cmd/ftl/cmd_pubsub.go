@@ -10,7 +10,6 @@ import (
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/reflection"
-	"github.com/block/ftl/internal/log"
 )
 
 type pubsubCmd struct {
@@ -120,7 +119,7 @@ func (s *resetSubscriptionCmd) Run(ctx context.Context, client adminpbconnect.Ad
 	if err != nil {
 		return fmt.Errorf("failed to reset subscription: %w", err)
 	}
-	log.FromContext(ctx).Infof("Subscription %s reset", s.Subscription)
+	fmt.Printf("Subscription %s reset\n", s.Subscription)
 	return nil
 }
 

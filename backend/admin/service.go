@@ -239,7 +239,7 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ad
 		return nil, fmt.Errorf("no deployment for module %s", req.Msg.Subscription.Module)
 	}
 	topicID := subscriber.Topic.String()
-	totalPartitions, err := kafkaPartitionCount(ctx, optional.None[sarama.ClusterAdmin](), connection.KafkaBrokers, topicID)
+	totalPartitions, err := kafkaPartitionCount(optional.None[sarama.ClusterAdmin](), connection.KafkaBrokers, topicID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get partition count for topic %s: %w", topicID, err)
 	}
@@ -290,7 +290,7 @@ func (s *Service) GetTopicInfo(ctx context.Context, req *connect.Request[adminpb
 		return nil, fmt.Errorf("failed to create kakfa client: %w", err)
 	}
 	defer client.Close()
-	partitionCount, err := kafkaPartitionCount(ctx, optional.None[sarama.ClusterAdmin](), topic.Runtime.KafkaBrokers, topic.Runtime.TopicID)
+	partitionCount, err := kafkaPartitionCount(optional.None[sarama.ClusterAdmin](), topic.Runtime.KafkaBrokers, topic.Runtime.TopicID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get partition count: %w", err)
 	}
@@ -374,15 +374,15 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kafka admin client: %w", err)
 	}
-	partitionCount, err := kafkaPartitionCount(ctx, optional.Some(admin), connector.KafkaBrokers, subscription.Topic.String())
+	partitionCount, err := kafkaPartitionCount(optional.Some(admin), connector.KafkaBrokers, subscription.Topic.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get partition count: %w", err)
 	}
-	partitionIds := make([]int32, partitionCount)
+	partitionIDs := make([]int32, partitionCount)
 	for i := range partitionCount {
-		partitionIds[i] = int32(i)
+		partitionIDs[i] = int32(i)
 	}
-	offsetResp, err := admin.ListConsumerGroupOffsets(ref.String(), map[string][]int32{subscription.Topic.String(): partitionIds})
+	offsetResp, err := admin.ListConsumerGroupOffsets(ref.String(), map[string][]int32{subscription.Topic.String(): partitionIDs})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get consumer group offsets: %w", err)
 	}
@@ -456,7 +456,7 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 
 // kafkaPartitionCount returns the number of partitions for a given topic in kafka. This may differ from the number
 // of partitions in the schema if the topic was originally provisioned with a different number of partitions.
-func kafkaPartitionCount(ctx context.Context, adminClient optional.Option[sarama.ClusterAdmin], brokers []string, topicID string) (int, error) {
+func kafkaPartitionCount(adminClient optional.Option[sarama.ClusterAdmin], brokers []string, topicID string) (int, error) {
 	config := sarama.NewConfig()
 	admin, ok := adminClient.Get()
 	if !ok {
