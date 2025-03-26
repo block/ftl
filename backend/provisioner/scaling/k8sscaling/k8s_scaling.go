@@ -658,7 +658,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 					From: []*istiosecmodel.Rule_From{
 						{
 							Source: &istiosecmodel.Source{
-								Principals: []string{"cluster.local/ns/" + r.namespaceMapper(module, r.systemNamespace) + "/sa/" + module},
+								Principals: []string{"cluster.local/ns/" + r.namespaceMapper(callableModule, r.systemNamespace) + "/sa/" + callableModule},
 							},
 						},
 					},
