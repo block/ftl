@@ -44,6 +44,7 @@ type DeploymentContext struct {
 	allowDirectVerbBehaviorGlobal bool
 	allowDirectVerb               schema.RefKey
 	leaseClient                   optional.Option[LeaseClient]
+	allowDirectQueryVerbs         bool
 }
 
 // DynamicDeploymentContext provides up-to-date DeploymentContext instances supplied by the controller
@@ -83,6 +84,7 @@ func NewBuilderFromContext(ctx DeploymentContext) *Builder {
 		allowDirectVerbBehaviorGlobal: ctx.allowDirectVerbBehaviorGlobal,
 		allowDirectVerb:               ctx.allowDirectVerb,
 		leaseClient:                   ctx.leaseClient,
+		allowDirectQueryVerbs:         ctx.allowDirectQueryVerbs,
 	}
 }
 
@@ -124,12 +126,13 @@ func (b *Builder) AddAllowedDirectVerb(ref reflection.Ref) *Builder {
 }
 
 // UpdateForTesting marks the builder as part of a test environment and adds mock verbs and flags for other test features.
-func (b *Builder) UpdateForTesting(mockVerbs map[schema.RefKey]Verb, allowDirectVerbBehavior bool, leaseClient LeaseClient) *Builder {
+func (b *Builder) UpdateForTesting(mockVerbs map[schema.RefKey]Verb, allowDirectVerbBehavior bool, allowDirectQueryVerbs bool, leaseClient LeaseClient) *Builder {
 	b.isTesting = true
 	for name, verb := range mockVerbs {
 		b.mockVerbs[name] = verb
 	}
 	b.allowDirectVerbBehaviorGlobal = allowDirectVerbBehavior
+	b.allowDirectQueryVerbs = allowDirectQueryVerbs
 	b.leaseClient = optional.Some[LeaseClient](leaseClient)
 	return b
 }
@@ -207,6 +210,14 @@ func (m DeploymentContext) MockLeaseClient() optional.Option[LeaseClient] {
 func (m DeploymentContext) BehaviorForVerb(ref schema.Ref) (optional.Option[VerbBehavior], error) {
 	if mock, ok := m.mockVerbs[ref.ToRefKey()]; ok {
 		return optional.Some(VerbBehavior(MockBehavior{Mock: mock})), nil
+	} else if m.isTesting && reflection.IsQueryVerb(reflection.Ref{Module: ref.Module, Name: ref.Name}) {
+		if m.allowDirectQueryVerbs {
+			return optional.Some(VerbBehavior(DirectBehavior{})), nil
+		}
+		if ref.Module == m.module {
+			return optional.None[VerbBehavior](), fmt.Errorf("no mock found: provide a mock with ftltest.WhenVerb(%s, ...) or enable all SQL verbs to execute directly with ftltest.WithSQLVerbsEnabled()", strings.ToUpper(ref.Name[:1])+ref.Name[1:])
+		}
+		return optional.None[VerbBehavior](), fmt.Errorf("no mock found: query verbs must be mocked with ftltest.WhenVerb(%s.%s, ...)", ref.Module, strings.ToUpper(ref.Name[:1])+ref.Name[1:])
 	} else if (m.allowDirectVerbBehaviorGlobal || m.allowDirectVerb == ref.ToRefKey()) && ref.Module == m.module {
 		return optional.Some(VerbBehavior(DirectBehavior{})), nil
 	} else if m.isTesting {
