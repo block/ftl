@@ -94,6 +94,12 @@ func WithKubernetes(helmArgs ...string) Option {
 	}
 }
 
+func WithDebugLogging() Option {
+	return func(o *options) {
+		o.debugLogging = true
+	}
+}
+
 // WithLocalstack is a Run* option that specifies tests should be run on a localstack container
 func WithLocalstack() Option {
 	return func(o *options) {
@@ -196,6 +202,7 @@ type options struct {
 	console           bool
 	resetPubSub       bool
 	helmArgs          []string
+	debugLogging      bool
 }
 
 // Run an integration test.
@@ -330,7 +337,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				if opts.devMode {
 					command = []string{"dev"}
 				}
-				if os.Getenv("DEBUG") != "" {
+				if os.Getenv("DEBUG") != "" || opts.debugLogging {
 					command = append(command, "--log-level=DEBUG", "--log-timestamps")
 				}
 
