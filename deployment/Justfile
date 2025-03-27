@@ -165,9 +165,6 @@ build-image image: setup-registry setup-istio-cluster
   docker tag ftl0/ftl-{{image}}:latest {{registry_local}}/ftl-{{image}}:latest
   docker push {{registry_local}}/ftl-{{image}}:latest
 
-deploy-image image:
-
-
 # Deploy FTL module from specified path
 deploy path:
   #!/usr/bin/env bash
