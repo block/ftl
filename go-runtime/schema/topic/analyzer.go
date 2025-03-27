@@ -22,13 +22,7 @@ func Extract(pass *analysis.Pass, obj types.Object, node *ast.TypeSpec) optional
 		return optional.None[*schema.Topic]()
 	}
 
-	// extract event type
-	eventTypeExpr, ok := idxListExpr.Indices[0].(*ast.Ident)
-	if !ok {
-		common.Errorf(pass, node, "unsupported topic type")
-		return optional.None[*schema.Topic]()
-	}
-	typ, ok := common.ExtractType(pass, eventTypeExpr).Get()
+	eventType, ok := common.ExtractType(pass, idxListExpr.Indices[0]).Get()
 	if !ok {
 		common.Errorf(pass, node, "unsupported topic type")
 		return optional.None[*schema.Topic]()
@@ -45,7 +39,7 @@ func Extract(pass *analysis.Pass, obj types.Object, node *ast.TypeSpec) optional
 	topic := &schema.Topic{
 		Pos:   common.GoPosToSchemaPos(pass.Fset, node.Pos()),
 		Name:  name,
-		Event: typ,
+		Event: eventType,
 	}
 	partitions := 1
 	if md, ok := common.GetFactForObject[*common.ExtractedMetadata](pass, obj).Get(); ok {
