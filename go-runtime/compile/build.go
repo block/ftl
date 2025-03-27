@@ -171,13 +171,22 @@ func (c *mainDeploymentContext) generateTypesImports(mainModuleImport string) []
 	return filteredImports
 }
 
-func typeImports(t goSchemaType) []string {
+func typeImports(t goSchemaType, importUnit bool) []string {
 	imports := sets.NewSet[string]()
 	if nt, ok := t.nativeType.Get(); ok {
 		imports.Add(nt.importStatement())
 	}
+	if usesType(t.schemaType, &schema.Optional{}) {
+		imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
+	}
+	if usesType(t.schemaType, &schema.Time{}) {
+		imports.Add(`stdtime "time"`)
+	}
+	if usesType(t.schemaType, &schema.Unit{}) && importUnit {
+		imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
+	}
 	for _, c := range t.children {
-		imports.Append(typeImports(c)...)
+		imports.Append(typeImports(c, importUnit)...)
 	}
 	return imports.ToSlice()
 }
@@ -187,6 +196,9 @@ func verbImports(v goVerb) []string {
 	imports.Add(v.importStatement())
 	imports.Add(`"github.com/block/ftl/common/reflection"`)
 
+	imports.Append(typeImports(v.Request, false)...)
+	imports.Append(typeImports(v.Response, false)...)
+
 	if nt, ok := v.Request.nativeType.Get(); ok && v.Request.TypeName != "ftl.Unit" {
 		imports.Add(nt.importStatement())
 	}
@@ -194,10 +206,10 @@ func verbImports(v goVerb) []string {
 		imports.Add(nt.importStatement())
 	}
 	for _, r := range v.Request.children {
-		imports.Append(typeImports(r)...)
+		imports.Append(typeImports(r, true)...)
 	}
 	for _, r := range v.Response.children {
-		imports.Append(typeImports(r)...)
+		imports.Append(typeImports(r, true)...)
 	}
 
 	for _, r := range v.Resources {
@@ -282,6 +294,7 @@ type goSchemaType struct {
 	TypeName      string
 	LocalTypeName string
 	children      []goSchemaType
+	schemaType    schema.Type
 
 	nativeType optional.Option[nativeType]
 }
@@ -1440,6 +1453,7 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 		LocalTypeName: localTypeName,
 		children:      []goSchemaType{},
 		nativeType:    optional.None[nativeType](),
+		schemaType:    typ,
 	}
 
 	nn, ok := b.nativeNames[typ]
