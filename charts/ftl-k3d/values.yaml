@@ -7,9 +7,12 @@ ftl:
     env:
       - name: FTL_SANDBOX_KAFKA_BROKERS
         value: "redpanda.default:19092"
+      - name: FTL_SANDBOX_MYSQL_ENDPOINT
+        value: "root:secret@tcp(mysql.default:3306)/ftl"
     config:
       plugins:
         - id: "sandbox"
           resources:
             - "topic"
             - "subscription"
+            - "mysql"

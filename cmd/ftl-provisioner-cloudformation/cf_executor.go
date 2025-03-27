@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -133,7 +134,7 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]state.State, er
 				Module:     r.Module,
 				ResourceID: r.ResourceID,
 
-				MasterUserSecretARN: findValue(ctx, res, PropertyMySQLMasterUserARN),
+				MasterUserSecretARN: optional.Some[string](findValue(ctx, res, PropertyMySQLMasterUserARN)),
 				WriteEndpoint:       fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLWriteEndpoint), MySQLPort),
 				ReadEndpoint:        fmt.Sprintf("%s:%d", findValue(ctx, res, PropertyMySQLReadEndpoint), MySQLPort),
 			})

@@ -83,6 +83,7 @@ setup-istio-cluster: setup-cluster
       helm install istiod istio/istiod -n istio-system --wait --version 1.23.3
   fi
   kubectl label namespace default istio-injection=enabled --overwrite
+  kubectl label namespace demo istio-injection=enabled --overwrite
   kubectl apply -f istio-access-logs.yaml
 
 # Complete setup of registry and Istio-enabled cluster

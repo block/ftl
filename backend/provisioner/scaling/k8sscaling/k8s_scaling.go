@@ -18,7 +18,6 @@ import (
 	"istio.io/api/type/v1beta1"
 	istiosec "istio.io/client-go/pkg/apis/security/v1"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
-	v2 "istio.io/client-go/pkg/clientset/versioned/typed/security/v1"
 	kubeapps "k8s.io/api/apps/v1"
 	kubecore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -599,12 +598,8 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 	callableModuleNames = maps.Keys(callableModules)
 	callableModuleNames = slices.Sort(callableModuleNames)
 
-	policiesClient := sec.SecurityV1().AuthorizationPolicies(namespace)
-
 	// Allow controller ingress
-	err := r.createOrUpdateIstioPolicy(ctx, policiesClient, namespace, name, func(policy *istiosec.AuthorizationPolicy) {
-		policy.Name = name
-		policy.Namespace = namespace
+	err := r.createOrUpdateIstioPolicy(ctx, sec, namespace, name, func(policy *istiosec.AuthorizationPolicy) {
 		addLabels(&policy.ObjectMeta, module, name)
 		policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 		// At present we only allow ingress from the controller
@@ -644,13 +639,21 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 	// Setup policies for the modules we call
 	// This feels like the wrong way around but given the way the provisioner works there is not much we can do about this at this stage
 	for _, callableModule := range callableModuleNames {
+		logger.Debugf("Processing callable module %s", callableModule)
 		policyName := module + "-" + callableModule
-		err := r.createOrUpdateIstioPolicy(ctx, policiesClient, namespace, policyName, func(policy *istiosec.AuthorizationPolicy) {
+		err := r.createOrUpdateIstioPolicy(ctx, sec, r.namespaceMapper(callableModule, r.systemNamespace), policyName, func(policy *istiosec.AuthorizationPolicy) {
+
+			targetService, err := r.client.CoreV1().Services(policy.Namespace).Get(ctx, callableModule, v1.GetOptions{})
+			if err != nil {
+				logger.Errorf(err, "Failed to get service %s for module %s", callableModule, callableModule)
+			} else {
+				policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: targetService.Namespace, UID: targetService.UID}}
+			}
+
 			if policy.Labels == nil {
 				policy.Labels = map[string]string{}
 			}
 			policy.Labels[moduleLabel] = module
-			policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 			policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{moduleLabel: callableModule}}
 			policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 			policy.Spec.Rules = []*istiosecmodel.Rule{
@@ -672,13 +675,16 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 	return err
 }
 
-func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, policiesClient v2.AuthorizationPolicyInterface, namespace string, name string, controllerIngress func(policy *istiosec.AuthorizationPolicy)) error {
+func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, sec istioclient.Clientset, namespace string, name string, modify func(policy *istiosec.AuthorizationPolicy)) error {
+	logger := log.FromContext(ctx)
 	var update func(policy *istiosec.AuthorizationPolicy) error
+	policiesClient := sec.SecurityV1().AuthorizationPolicies(namespace)
 	policy, err := policiesClient.Get(ctx, name, v1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return fmt.Errorf("failed to get istio policy %s: %w", name, err)
 		}
+		logger.Debugf("Creating Istio policy for %s/%s", namespace, name)
 		policy = &istiosec.AuthorizationPolicy{}
 		policy.Name = name
 		policy.Namespace = namespace
@@ -690,6 +696,7 @@ func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, policiesClie
 			return nil
 		}
 	} else {
+		logger.Debugf("Updating Istio policy for %s/%s", name, namespace)
 		update = func(policy *istiosec.AuthorizationPolicy) error {
 			_, err := policiesClient.Update(ctx, policy, v1.UpdateOptions{})
 			if err != nil {
@@ -698,7 +705,7 @@ func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, policiesClie
 			return nil
 		}
 	}
-	controllerIngress(policy)
+	modify(policy)
 
 	return update(policy)
 }
@@ -804,7 +811,7 @@ func (r *k8sScaling) ensureNamespace(ctx context.Context, sch *schema.Module) (s
 		Spec: kubecore.NamespaceSpec{},
 		ObjectMeta: v1.ObjectMeta{
 			Name:   namespace,
-			Labels: map[string]string{"app.kubernetes.io/managed-by": "ftl", "app.kubernetes.io/part-of": r.instanceName},
+			Labels: map[string]string{"app.kubernetes.io/managed-by": "ftl", "app.kubernetes.io/part-of": r.instanceName, "istio-injection": "enabled"},
 		},
 	}
 	_, err = r.client.CoreV1().Namespaces().Create(ctx, ns, v1.CreateOptions{})

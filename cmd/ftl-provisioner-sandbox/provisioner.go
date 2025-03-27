@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/google/uuid"
@@ -142,7 +143,7 @@ func inputsFromSchema(
 				input := state.RDSInstanceReadyMySQL{
 					ResourceID:          provisioned.ResourceID(),
 					Module:              moduleName,
-					MasterUserSecretARN: config.MySQLCredentialsSecretARN,
+					MasterUserSecretARN: optional.From(config.MySQLCredentialsSecretARN, config.MySQLCredentialsSecretARN != ""),
 					WriteEndpoint:       config.MySQLEndpoint,
 					ReadEndpoint:        config.MySQLEndpoint,
 				}
