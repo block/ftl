@@ -2293,6 +2293,12 @@ export class Metadata extends Message<Metadata> {
     case: "subscriber";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.MetadataTransaction transaction = 21;
+     */
+    value: MetadataTransaction;
+    case: "transaction";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.MetadataTypeMap type_map = 8;
      */
     value: MetadataTypeMap;
@@ -2326,6 +2332,7 @@ export class Metadata extends Message<Metadata> {
     { no: 16, name: "sql_query", kind: "message", T: MetadataSQLQuery, oneof: "value" },
     { no: 11, name: "secrets", kind: "message", T: MetadataSecrets, oneof: "value" },
     { no: 7, name: "subscriber", kind: "message", T: MetadataSubscriber, oneof: "value" },
+    { no: 21, name: "transaction", kind: "message", T: MetadataTransaction, oneof: "value" },
     { no: 8, name: "type_map", kind: "message", T: MetadataTypeMap, oneof: "value" },
   ]);
 
@@ -3256,6 +3263,45 @@ export class MetadataSubscriber extends Message<MetadataSubscriber> {
 
   static equals(a: MetadataSubscriber | PlainMessage<MetadataSubscriber> | undefined, b: MetadataSubscriber | PlainMessage<MetadataSubscriber> | undefined): boolean {
     return proto3.util.equals(MetadataSubscriber, a, b);
+  }
+}
+
+/**
+ * MetadataTransaction identifies a verb that serves as a transaction boundary.
+ *
+ * @generated from message xyz.block.ftl.schema.v1.MetadataTransaction
+ */
+export class MetadataTransaction extends Message<MetadataTransaction> {
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  constructor(data?: PartialMessage<MetadataTransaction>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.MetadataTransaction";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetadataTransaction {
+    return new MetadataTransaction().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetadataTransaction {
+    return new MetadataTransaction().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetadataTransaction {
+    return new MetadataTransaction().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetadataTransaction | PlainMessage<MetadataTransaction> | undefined, b: MetadataTransaction | PlainMessage<MetadataTransaction> | undefined): boolean {
+    return proto3.util.equals(MetadataTransaction, a, b);
   }
 }
 

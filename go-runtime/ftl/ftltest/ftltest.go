@@ -14,6 +14,7 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 
 	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
+	queryclient "github.com/block/ftl/go-runtime/server/query"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/reflection"
@@ -89,7 +90,7 @@ func newContext(ctx context.Context, module string, options ...Option) context.C
 				panic(fmt.Errorf("failed to create DB connection for %s: %w", name, err))
 			}
 		}
-		ctx = rpccontext.ContextWithClient[queryconnect.QueryServiceClient, ftlv1.PingRequest, ftlv1.PingResponse, *ftlv1.PingResponse](ctx, query.NewInlineQueryClient(querySvc)) // yuck
+		ctx = rpccontext.ContextWithClient[queryconnect.QueryServiceClient, ftlv1.PingRequest, ftlv1.PingResponse, *ftlv1.PingResponse](ctx, queryclient.NewInlineQueryClient(querySvc)) // yuck
 	}
 
 	builder := deploymentcontext.NewBuilder(module).AddDatabases(state.databases)

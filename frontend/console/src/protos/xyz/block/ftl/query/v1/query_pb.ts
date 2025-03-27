@@ -495,13 +495,6 @@ export class ExecResult extends Message<ExecResult> {
    */
   rowsAffected = protoInt64.zero;
 
-  /**
-   * Only for some databases like MySQL
-   *
-   * @generated from field: optional int64 last_insert_id = 2;
-   */
-  lastInsertId?: bigint;
-
   constructor(data?: PartialMessage<ExecResult>) {
     super();
     proto3.util.initPartial(data, this);
@@ -511,7 +504,6 @@ export class ExecResult extends Message<ExecResult> {
   static readonly typeName = "xyz.block.ftl.query.v1.ExecResult";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "rows_affected", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-    { no: 2, name: "last_insert_id", kind: "scalar", T: 3 /* ScalarType.INT64 */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecResult {

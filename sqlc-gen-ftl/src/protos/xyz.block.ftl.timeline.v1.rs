@@ -91,23 +91,6 @@ pub struct CronScheduledEvent {
     pub error: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AsyncExecuteEvent {
-    #[prost(string, tag="1")]
-    pub deployment_key: ::prost::alloc::string::String,
-    #[prost(string, optional, tag="2")]
-    pub request_key: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(message, optional, tag="3")]
-    pub verb_ref: ::core::option::Option<super::super::schema::v1::Ref>,
-    #[prost(message, optional, tag="4")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag="5")]
-    pub duration: ::core::option::Option<::prost_types::Duration>,
-    #[prost(enumeration="AsyncExecuteEventType", tag="6")]
-    pub async_event_type: i32,
-    #[prost(string, optional, tag="7")]
-    pub error: ::core::option::Option<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PubSubPublishEvent {
     #[prost(string, tag="1")]
     pub deployment_key: ::prost::alloc::string::String,
@@ -193,7 +176,7 @@ pub struct Event {
     /// Unique ID for event.
     #[prost(int64, tag="2")]
     pub id: i64,
-    #[prost(oneof="event::Entry", tags="3, 4, 7, 8, 9, 10, 11, 12, 13, 14")]
+    #[prost(oneof="event::Entry", tags="3, 4, 7, 8, 9, 10, 11, 12, 13")]
     pub entry: ::core::option::Option<event::Entry>,
 }
 /// Nested message and enum types in `Event`.
@@ -209,16 +192,14 @@ pub mod event {
         #[prost(message, tag="8")]
         CronScheduled(super::CronScheduledEvent),
         #[prost(message, tag="9")]
-        AsyncExecute(super::AsyncExecuteEvent),
-        #[prost(message, tag="10")]
         PubsubPublish(super::PubSubPublishEvent),
-        #[prost(message, tag="11")]
+        #[prost(message, tag="10")]
         PubsubConsume(super::PubSubConsumeEvent),
-        #[prost(message, tag="12")]
+        #[prost(message, tag="11")]
         ChangesetCreated(super::ChangesetCreatedEvent),
-        #[prost(message, tag="13")]
+        #[prost(message, tag="12")]
         ChangesetStateChanged(super::ChangesetStateChangedEvent),
-        #[prost(message, tag="14")]
+        #[prost(message, tag="13")]
         DeploymentRuntime(super::DeploymentRuntimeEvent),
     }
 }
@@ -230,7 +211,6 @@ pub enum EventType {
     Call = 2,
     Ingress = 3,
     CronScheduled = 4,
-    AsyncExecute = 5,
     PubsubPublish = 6,
     PubsubConsume = 7,
     ChangesetCreated = 8,
@@ -249,7 +229,6 @@ impl EventType {
             Self::Call => "EVENT_TYPE_CALL",
             Self::Ingress => "EVENT_TYPE_INGRESS",
             Self::CronScheduled => "EVENT_TYPE_CRON_SCHEDULED",
-            Self::AsyncExecute => "EVENT_TYPE_ASYNC_EXECUTE",
             Self::PubsubPublish => "EVENT_TYPE_PUBSUB_PUBLISH",
             Self::PubsubConsume => "EVENT_TYPE_PUBSUB_CONSUME",
             Self::ChangesetCreated => "EVENT_TYPE_CHANGESET_CREATED",
@@ -265,41 +244,11 @@ impl EventType {
             "EVENT_TYPE_CALL" => Some(Self::Call),
             "EVENT_TYPE_INGRESS" => Some(Self::Ingress),
             "EVENT_TYPE_CRON_SCHEDULED" => Some(Self::CronScheduled),
-            "EVENT_TYPE_ASYNC_EXECUTE" => Some(Self::AsyncExecute),
             "EVENT_TYPE_PUBSUB_PUBLISH" => Some(Self::PubsubPublish),
             "EVENT_TYPE_PUBSUB_CONSUME" => Some(Self::PubsubConsume),
             "EVENT_TYPE_CHANGESET_CREATED" => Some(Self::ChangesetCreated),
             "EVENT_TYPE_CHANGESET_STATE_CHANGED" => Some(Self::ChangesetStateChanged),
             "EVENT_TYPE_DEPLOYMENT_RUNTIME" => Some(Self::DeploymentRuntime),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AsyncExecuteEventType {
-    Unspecified = 0,
-    Cron = 1,
-    Pubsub = 2,
-}
-impl AsyncExecuteEventType {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "ASYNC_EXECUTE_EVENT_TYPE_UNSPECIFIED",
-            Self::Cron => "ASYNC_EXECUTE_EVENT_TYPE_CRON",
-            Self::Pubsub => "ASYNC_EXECUTE_EVENT_TYPE_PUBSUB",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "ASYNC_EXECUTE_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "ASYNC_EXECUTE_EVENT_TYPE_CRON" => Some(Self::Cron),
-            "ASYNC_EXECUTE_EVENT_TYPE_PUBSUB" => Some(Self::Pubsub),
             _ => None,
         }
     }
@@ -343,18 +292,18 @@ impl LogLevel {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetTimelineRequest {
+pub struct TimelineQuery {
     #[prost(message, repeated, tag="1")]
-    pub filters: ::prost::alloc::vec::Vec<get_timeline_request::Filter>,
+    pub filters: ::prost::alloc::vec::Vec<timeline_query::Filter>,
     #[prost(int32, tag="2")]
     pub limit: i32,
     /// Ordering is done by id which matches publication order.
     /// This roughly corresponds to the time of the event, but not strictly.
-    #[prost(enumeration="get_timeline_request::Order", tag="3")]
+    #[prost(enumeration="timeline_query::Order", tag="3")]
     pub order: i32,
 }
-/// Nested message and enum types in `GetTimelineRequest`.
-pub mod get_timeline_request {
+/// Nested message and enum types in `TimelineQuery`.
+pub mod timeline_query {
     /// Filters events by log level.
     #[derive(Clone, Copy, PartialEq, ::prost::Message)]
     pub struct LogLevelFilter {
@@ -484,6 +433,11 @@ pub mod get_timeline_request {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetTimelineRequest {
+    #[prost(message, optional, tag="1")]
+    pub query: ::core::option::Option<TimelineQuery>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTimelineResponse {
     #[prost(message, repeated, tag="1")]
     pub events: ::prost::alloc::vec::Vec<Event>,
@@ -496,7 +450,7 @@ pub struct StreamTimelineRequest {
     #[prost(message, optional, tag="1")]
     pub update_interval: ::core::option::Option<::prost_types::Duration>,
     #[prost(message, optional, tag="2")]
-    pub query: ::core::option::Option<GetTimelineRequest>,
+    pub query: ::core::option::Option<TimelineQuery>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamTimelineResponse {
@@ -514,7 +468,7 @@ pub mod create_events_request {
     pub struct EventEntry {
         #[prost(message, optional, tag="1")]
         pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-        #[prost(oneof="event_entry::Entry", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11")]
+        #[prost(oneof="event_entry::Entry", tags="2, 3, 4, 5, 6, 7, 8, 9, 10")]
         pub entry: ::core::option::Option<event_entry::Entry>,
     }
     /// Nested message and enum types in `EventEntry`.
@@ -530,16 +484,14 @@ pub mod create_events_request {
             #[prost(message, tag="5")]
             CronScheduled(super::super::CronScheduledEvent),
             #[prost(message, tag="6")]
-            AsyncExecute(super::super::AsyncExecuteEvent),
-            #[prost(message, tag="7")]
             PubsubPublish(super::super::PubSubPublishEvent),
-            #[prost(message, tag="8")]
+            #[prost(message, tag="7")]
             PubsubConsume(super::super::PubSubConsumeEvent),
-            #[prost(message, tag="9")]
+            #[prost(message, tag="8")]
             ChangesetCreated(super::super::ChangesetCreatedEvent),
-            #[prost(message, tag="10")]
+            #[prost(message, tag="9")]
             ChangesetStateChanged(super::super::ChangesetStateChangedEvent),
-            #[prost(message, tag="11")]
+            #[prost(message, tag="10")]
             DeploymentRuntime(super::super::DeploymentRuntimeEvent),
         }
     }

@@ -60,7 +60,6 @@ message ExecuteQueryResponse {
 
 message ExecResult {
   int64 rows_affected = 1;
-  optional int64 last_insert_id = 2; // Only for some databases like MySQL
 }
 
 message RowResults {

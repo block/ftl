@@ -23,7 +23,8 @@ var (
 	metadataUnion = []Metadata{&MetadataCalls{}, &MetadataConfig{}, &MetadataIngress{}, &MetadataCronJob{},
 		&MetadataDatabases{}, &MetadataAlias{}, &MetadataRetry{}, &MetadataSecrets{}, &MetadataSubscriber{},
 		&MetadataTypeMap{}, &MetadataEncoding{}, &MetadataPublisher{}, &MetadataSQLMigration{}, &MetadataArtefact{},
-		&MetadataPartitions{}, &MetadataSQLQuery{}, &MetadataSQLColumn{}, &MetadataGenerated{}, &MetadataGit{}, &MetadataFixture{}}
+		&MetadataPartitions{}, &MetadataSQLQuery{}, &MetadataSQLColumn{}, &MetadataGenerated{}, &MetadataGit{}, &MetadataFixture{},
+		&MetadataTransaction{}}
 	ingressUnion = []IngressPathComponent{&IngressPathLiteral{}, &IngressPathParameter{}}
 	valueUnion   = []Value{&StringValue{}, &IntValue{}, &TypeValue{}}
 

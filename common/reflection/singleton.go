@@ -35,12 +35,12 @@ func GetVariantByName(discriminator reflect.Type, name string) optional.Option[r
 }
 
 func GetDatabase[T any]() *ReflectedDatabaseHandle {
-	return singletonTypeRegistry.databases[reflect.TypeFor[T]()]
+	return singletonTypeRegistry.dbHandles[reflect.TypeFor[T]()]
 }
 
 func GetAllDatabases() []ReflectedDatabase {
 	var dbs []ReflectedDatabase
-	for _, db := range singletonTypeRegistry.databases {
+	for _, db := range singletonTypeRegistry.dbHandles {
 		dbs = append(dbs, db.ReflectedDatabase)
 	}
 	return dbs
@@ -51,9 +51,25 @@ func IsQueryVerb(ref Ref) bool {
 	return ok
 }
 
+func GetTransactionDatabase(ref Ref) optional.Option[ReflectedDatabase] {
+	ref, ok := singletonTypeRegistry.transactionVerbs[ref]
+	if !ok {
+		return optional.None[ReflectedDatabase]()
+	}
+	db, ok := singletonTypeRegistry.databases[ref]
+	if !ok {
+		return optional.None[ReflectedDatabase]()
+	}
+	return optional.Some(db)
+}
+
 func GetQueryVerbDatabases() []ReflectedDatabase {
 	var dbs []ReflectedDatabase
 	for _, db := range singletonTypeRegistry.queryVerbs {
+		db, ok := singletonTypeRegistry.databases[db]
+		if !ok {
+			continue
+		}
 		dbs = append(dbs, db)
 	}
 	return dbs

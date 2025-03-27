@@ -281,13 +281,22 @@ func (n nativeType) TypeName() string {
 }
 
 type goVerb struct {
-	Name      string
-	Request   goSchemaType
-	Response  goSchemaType
-	Resources []verbResource
-	IsQuery   bool
+	Name                  string
+	Request               goSchemaType
+	Response              goSchemaType
+	Resources             []verbResource
+	IsQuery               bool
+	TransactionDatasource optional.Option[string]
 
 	nativeType
+}
+
+func (g goVerb) IsTransaction() bool {
+	return g.TransactionDatasource.Ok()
+}
+
+func (g goVerb) TransactionDatasourceName() string {
+	return g.TransactionDatasource.MustGet()
 }
 
 type goSchemaType struct {
@@ -935,7 +944,6 @@ func (b *mainDeploymentContextBuilder) visit(
 					if err != nil {
 						return err
 					}
-					verb.IsQuery = true
 					ctx.Verbs = append(ctx.Verbs, verb)
 				}
 			}
@@ -1425,12 +1433,28 @@ func (b *mainDeploymentContextBuilder) getGoVerb(nativeName string, verb *schema
 	if err != nil {
 		return goVerb{}, wrapErrWithPos(err, verb.Pos, "could not parse response type")
 	}
+	txn := optional.None[string]()
+	if verb.IsTransaction() {
+		dbSet := verb.ResolveDatabaseUses(b.sch, b.mainModule.Name)
+		dbs := dbSet.ToSlice()
+		if len(dbs) == 0 {
+			return goVerb{}, fmt.Errorf("transaction verbs must access a datasource; %s.%s does not access any",
+				b.mainModule.Name, verb.Name)
+		}
+		if len(dbs) > 1 {
+			return goVerb{}, fmt.Errorf("transaction verbs can only access a single datasource; %s.%s accesses %d: %v",
+				b.mainModule.Name, verb.Name, len(dbs), dbs)
+		}
+		txn = optional.Some(dbs[0].Name)
+	}
 	return goVerb{
-		Name:       verb.Name,
-		nativeType: nt,
-		Request:    req,
-		Response:   resp,
-		Resources:  resources,
+		Name:                  verb.Name,
+		nativeType:            nt,
+		Request:               req,
+		Response:              resp,
+		Resources:             resources,
+		TransactionDatasource: txn,
+		IsQuery:               verb.IsQuery(),
 	}, nil
 }
 

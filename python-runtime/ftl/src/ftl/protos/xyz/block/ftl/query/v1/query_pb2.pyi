@@ -104,12 +104,10 @@ class ExecuteQueryResponse(_message.Message):
     def __init__(self, exec_result: _Optional[_Union[ExecResult, _Mapping]] = ..., row_results: _Optional[_Union[RowResults, _Mapping]] = ...) -> None: ...
 
 class ExecResult(_message.Message):
-    __slots__ = ("rows_affected", "last_insert_id")
+    __slots__ = ("rows_affected",)
     ROWS_AFFECTED_FIELD_NUMBER: _ClassVar[int]
-    LAST_INSERT_ID_FIELD_NUMBER: _ClassVar[int]
     rows_affected: int
-    last_insert_id: int
-    def __init__(self, rows_affected: _Optional[int] = ..., last_insert_id: _Optional[int] = ...) -> None: ...
+    def __init__(self, rows_affected: _Optional[int] = ...) -> None: ...
 
 class RowResults(_message.Message):
     __slots__ = ("json_rows", "has_more")

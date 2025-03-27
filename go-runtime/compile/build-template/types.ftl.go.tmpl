@@ -60,6 +60,9 @@ func init() {
 		{{- end }}
 {{- end}}
 {{- range $verbs}}
+	{{ if .IsTransaction }}
+		reflection.Transaction({{ trimModuleQualifier $moduleName .TypeName }}, "{{ .TransactionDatasourceName }}"),
+	{{- end }}
 	{{ if not .IsQuery }}
 		reflection.ProvideResourcesForVerb(
             {{ trimModuleQualifier $moduleName .TypeName }},

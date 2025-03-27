@@ -14,6 +14,7 @@ import (
 
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/server/query"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/log"
 )
@@ -26,20 +27,19 @@ func DatabaseHandle[T any](name, dbtype string) reflection.VerbResource {
 	}
 }
 
-func InitPostgres(ref reflection.Ref) *reflection.ReflectedDatabaseHandle {
+func InitPostgres(ref reflection.Ref) (reflection.ReflectedDatabase, *once.Handle[*sql.DB]) {
 	return InitDatabase(ref, "postgres", deploymentcontext.DBTypePostgres, "pgx")
 }
-func InitMySQL(ref reflection.Ref) *reflection.ReflectedDatabaseHandle {
+func InitMySQL(ref reflection.Ref) (reflection.ReflectedDatabase, *once.Handle[*sql.DB]) {
 	return InitDatabase(ref, "mysql", deploymentcontext.DBTypeMySQL, "mysql")
 }
 
-func InitDatabase(ref reflection.Ref, dbtype string, protoDBtype deploymentcontext.DBType, driver string) *reflection.ReflectedDatabaseHandle {
-	return &reflection.ReflectedDatabaseHandle{
-		ReflectedDatabase: reflection.ReflectedDatabase{
+func InitDatabase(ref reflection.Ref, dbtype string, protoDBtype deploymentcontext.DBType, driver string) (reflection.ReflectedDatabase, *once.Handle[*sql.DB]) {
+	return reflection.ReflectedDatabase{
 			Name:   ref.Name,
 			DBType: dbtype,
 		},
-		DB: once.Once(func(ctx context.Context) (*sql.DB, error) {
+		once.Once(func(ctx context.Context) (*sql.DB, error) {
 			logger := log.FromContext(ctx)
 			provider := deploymentcontext.FromContext(ctx).CurrentContext()
 			dsn, testDB, err := provider.GetDatabase(ref.Name, protoDBtype)
@@ -71,6 +71,44 @@ func InitDatabase(ref reflection.Ref, dbtype string, protoDBtype deploymentconte
 				db.SetMaxOpenConns(20)
 			}
 			return db, nil
-		}),
+		})
+}
+
+// maybeBeginTransaction begins a transaction if the provided ref is a registered transaction verb
+func maybeBeginTransaction(ctx context.Context, ref reflection.Ref) (string, error) {
+	db, ok := reflection.GetTransactionDatabase(ref).Get()
+	if !ok {
+		return "", nil
 	}
+	txID, err := query.BeginTransaction(ctx, db.Name)
+	if err != nil {
+		return "", fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	return txID, nil
+}
+
+// maybeRollbackTransaction rolls back the current transaction if one is open
+func maybeRollbackTransaction(ctx context.Context, ref reflection.Ref) error {
+	db, ok := reflection.GetTransactionDatabase(ref).Get()
+	if !ok {
+		return nil
+	}
+	err := query.RollbackCurrentTransaction(ctx, db.Name)
+	if err != nil {
+		return fmt.Errorf("failed to rollback transaction: %w", err)
+	}
+	return nil
+}
+
+// maybeCommitTransaction commits the current transaction if one is open
+func maybeCommitTransaction(ctx context.Context, ref reflection.Ref) error {
+	db, ok := reflection.GetTransactionDatabase(ref).Get()
+	if !ok {
+		return nil
+	}
+	err := query.CommitCurrentTransaction(ctx, db.Name)
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
 }

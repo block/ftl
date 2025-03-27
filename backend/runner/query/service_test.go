@@ -47,7 +47,7 @@ func TestQueryService(t *testing.T) {
 	})
 
 	svc := &queryConn{
-		transactions: make(map[string]*sql.Tx),
+		transactions: make(map[string]*txWrapper),
 		db:           db,
 		lock:         sync.RWMutex{},
 	}
@@ -119,8 +119,9 @@ func TestQueryService(t *testing.T) {
 
 func TestServiceConfig(t *testing.T) {
 	t.Run("InvalidEngine", func(t *testing.T) {
-		_, err := newQueryConn(t.Context(), "user:pass@tcp(localhost:3306)/db", "invalid")
-		assert.Error(t, err)
+		assert.Panics(t, func() {
+			_, _ = newQueryConn(t.Context(), "user:pass@tcp(localhost:3306)/db", "invalid") //nolint:errcheck
+		}, "unsupported database engine: invalid")
 	})
 
 	t.Run("MissingDSN", func(t *testing.T) {

@@ -2,6 +2,9 @@ package database
 
 import (
 	"context"
+	"errors"
+
+	"github.com/block/ftl/go-runtime/ftl"
 )
 
 type InsertRequest struct {
@@ -19,6 +22,40 @@ func Insert(ctx context.Context, req InsertRequest, db TestdbHandle) (InsertResp
 	}
 
 	return InsertResponse{}, nil
+}
+
+type TransactionRequest struct {
+	Items []string
+}
+
+type TransactionResponse struct {
+	Count int
+}
+
+//ftl:transaction
+func TransactionInsert(ctx context.Context, req TransactionRequest, createRequest CreateRequestClient, getRequestData GetRequestDataClient) (TransactionResponse, error) {
+	for _, item := range req.Items {
+		err := createRequest(ctx, CreateRequestQuery{Data: ftl.Some(item)})
+		if err != nil {
+			return TransactionResponse{}, err
+		}
+	}
+	result, err := getRequestData(ctx)
+	if err != nil {
+		return TransactionResponse{}, err
+	}
+	return TransactionResponse{Count: len(result)}, nil
+}
+
+//ftl:transaction
+func TransactionRollback(ctx context.Context, req TransactionRequest, createRequest CreateRequestClient) (TransactionResponse, error) {
+	if len(req.Items) > 0 {
+		err := createRequest(ctx, CreateRequestQuery{Data: ftl.Some(req.Items[0])})
+		if err != nil {
+			return TransactionResponse{}, err
+		}
+	}
+	return TransactionResponse{}, errors.New("deliberate error to test rollback")
 }
 
 func persistRequest(ctx context.Context, req InsertRequest, db TestdbHandle) error {

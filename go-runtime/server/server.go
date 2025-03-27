@@ -23,6 +23,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/internal"
+	"github.com/block/ftl/go-runtime/server/query"
 	"github.com/block/ftl/go-runtime/server/rpccontext"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/log"
@@ -128,8 +129,24 @@ func InvokeVerb[Req, Resp any](ref reflection.Ref) func(ctx context.Context, req
 			request = optional.None[any]()
 		}
 
+		txID, err := maybeBeginTransaction(ctx, ref)
+		if err != nil {
+			return resp, err
+		}
+		if txID != "" {
+			callMetadata, ok := internal.MaybeCallMetadataFromContext(ctx).Get()
+			if !ok {
+				callMetadata = map[internal.MetadataKey]string{}
+			}
+			callMetadata[query.TransactionMetadataKey] = txID
+			ctx = internal.ContextWithCallMetadata(ctx, callMetadata)
+		}
+
 		out, err := reflection.CallVerb(reflection.Ref{Module: ref.Module, Name: ref.Name})(ctx, request)
 		if err != nil {
+			if err := maybeRollbackTransaction(ctx, ref); err != nil {
+				return resp, fmt.Errorf("%s: failed to rollback transaction: %w", ref, err)
+			}
 			return resp, err
 		}
 
@@ -141,7 +158,13 @@ func InvokeVerb[Req, Resp any](ref reflection.Ref) func(ctx context.Context, req
 		}
 		resp, ok := respValue.(Resp)
 		if !ok {
+			if err := maybeRollbackTransaction(ctx, ref); err != nil {
+				return resp, fmt.Errorf("%s: failed to rollback transaction: %w", ref, err)
+			}
 			return resp, fmt.Errorf("unexpected response type from verb %s: %T, expected %T", ref, resp, reflect.New(reflect.TypeFor[Resp]()).Interface())
+		}
+		if err = maybeCommitTransaction(ctx, ref); err != nil {
+			return resp, fmt.Errorf("%s: failed to commit transaction: %w", ref, err)
 		}
 		return resp, err
 	}
@@ -218,7 +241,14 @@ func call[Verb, Req, Resp any]() func(ctx context.Context, req Req) (resp Resp, 
 		}
 
 		client := rpccontext.ClientFromContext[ftlv1connect.VerbServiceClient](ctx)
-		cresp, err := client.Call(ctx, connect.NewRequest(&ftlv1.CallRequest{Verb: callee.ToProto(), Body: reqData}))
+		callReq := &ftlv1.CallRequest{Verb: callee.ToProto(), Body: reqData}
+		// propagate transaction ID to the next call
+		if callMd, ok := internal.MaybeCallMetadataFromContext(ctx).Get(); ok {
+			if txnID, ok := callMd[query.TransactionMetadataKey]; ok {
+				callReq.Metadata = &ftlv1.Metadata{Values: []*ftlv1.Metadata_Pair{query.GetTransactionMetadata(txnID)}}
+			}
+		}
+		cresp, err := client.Call(ctx, connect.NewRequest(callReq))
 		if err != nil {
 			return resp, fmt.Errorf("%s: failed to call Verb: %w", callee, err)
 		}

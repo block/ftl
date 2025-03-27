@@ -10,6 +10,10 @@ import (
 
 type InsertClient func(context.Context, InsertRequest) (InsertResponse, error)
 
+type TransactionInsertClient func(context.Context, TransactionRequest) (TransactionResponse, error)
+
+type TransactionRollbackClient func(context.Context, TransactionRequest) (TransactionResponse, error)
+
 //ftl:database postgres testdb
 type TestdbConfig struct{}
 
@@ -22,6 +26,21 @@ func init() {
 		reflection.ProvideResourcesForVerb(
 			Insert,
 			server.DatabaseHandle[TestdbConfig]("testdb", "postgres"),
+		),
+
+		reflection.Transaction(TransactionInsert, "testdb"),
+
+		reflection.ProvideResourcesForVerb(
+			TransactionInsert,
+			server.SinkClient[CreateRequestClient, CreateRequestQuery](),
+			server.SourceClient[GetRequestDataClient, []GetRequestDataResult](),
+		),
+
+		reflection.Transaction(TransactionRollback, "testdb"),
+
+		reflection.ProvideResourcesForVerb(
+			TransactionRollback,
+			server.SinkClient[CreateRequestClient, CreateRequestQuery](),
 		),
 	)
 }

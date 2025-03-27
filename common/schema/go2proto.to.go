@@ -1526,6 +1526,10 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Subscriber{value.ToProto()},
 		}
+	case *MetadataTransaction:
+		return &destpb.Metadata{
+			Value: &destpb.Metadata_Transaction{value.ToProto()},
+		}
 	case *MetadataTypeMap:
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_TypeMap{value.ToProto()},
@@ -1578,6 +1582,8 @@ func MetadataFromProto(v *destpb.Metadata) (Metadata, error) {
 		return MetadataSecretsFromProto(v.GetSecrets())
 	case *destpb.Metadata_Subscriber:
 		return MetadataSubscriberFromProto(v.GetSubscriber())
+	case *destpb.Metadata_Transaction:
+		return MetadataTransactionFromProto(v.GetTransaction())
 	case *destpb.Metadata_TypeMap:
 		return MetadataTypeMapFromProto(v.GetTypeMap())
 	default:
@@ -2114,6 +2120,27 @@ func MetadataSubscriberFromProto(v *destpb.MetadataSubscriber) (out *MetadataSub
 	}
 	if out.DeadLetter, err = orZeroR(result.From(ptr(bool(v.DeadLetter)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("DeadLetter: %w", err)
+	}
+	return out, nil
+}
+
+func (x *MetadataTransaction) ToProto() *destpb.MetadataTransaction {
+	if x == nil {
+		return nil
+	}
+	return &destpb.MetadataTransaction{
+		Pos: x.Pos.ToProto(),
+	}
+}
+
+func MetadataTransactionFromProto(v *destpb.MetadataTransaction) (out *MetadataTransaction, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &MetadataTransaction{}
+	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
 	}
 	return out, nil
 }

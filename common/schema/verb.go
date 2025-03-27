@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/types/optional"
+	sets "github.com/deckarep/golang-set/v2"
 
 	"github.com/block/ftl/common/slices"
 )
@@ -84,6 +85,16 @@ func (v *Verb) IsExported() bool { return v.Export }
 
 func (v *Verb) IsGenerated() bool {
 	_, found := slices.FindVariant[*MetadataGenerated](v.Metadata)
+	return found
+}
+
+func (v *Verb) IsTransaction() bool {
+	_, found := slices.FindVariant[*MetadataTransaction](v.Metadata)
+	return found
+}
+
+func (v *Verb) IsQuery() bool {
+	_, found := slices.FindVariant[*MetadataSQLQuery](v.Metadata)
 	return found
 }
 
@@ -173,6 +184,62 @@ func (v *Verb) GetQuery() (*MetadataSQLQuery, bool) {
 		return nil, false
 	}
 	return md, true
+}
+
+// ResolveDatabaseUses resolves all datasources accessed by a verb, explicitly or implicitly.
+func (v *Verb) ResolveDatabaseUses(schema *Schema, module string) sets.Set[RefKey] {
+	dbs := sets.NewSet[RefKey]()
+	for _, md := range v.Metadata {
+		switch md := md.(type) {
+		case *MetadataDatabases:
+			for _, db := range md.Calls {
+				dbs.Add(db.ToRefKey())
+			}
+		case *MetadataCalls:
+			for _, call := range md.Calls {
+				if call.Module == module && call.Name == v.Name {
+					continue
+				}
+				resolved, ok := schema.Resolve(call).Get()
+				if !ok {
+					continue
+				}
+				callee, ok := resolved.(*Verb)
+				if !ok {
+					continue
+				}
+				dbs = dbs.Union(callee.ResolveDatabaseUses(schema, module))
+			}
+		default:
+		}
+	}
+	return dbs
+}
+
+// ResolveCalls resolves all verbs called by a verb, explicitly or implicitly.
+func (v *Verb) ResolveCalls(schema *Schema, module string) sets.Set[RefKey] {
+	verbs := sets.NewSet[RefKey]()
+	for _, md := range v.Metadata {
+		switch md := md.(type) {
+		case *MetadataCalls:
+			for _, call := range md.Calls {
+				if call.Module == module && call.Name == v.Name {
+					continue
+				}
+				resolved, ok := schema.Resolve(call).Get()
+				if !ok {
+					continue
+				}
+				callee, ok := resolved.(*Verb)
+				if !ok {
+					continue
+				}
+				verbs = verbs.Union(callee.ResolveCalls(schema, module))
+			}
+		default:
+		}
+	}
+	return verbs
 }
 
 // Helper function to insert or update a value in a slice of interfaces

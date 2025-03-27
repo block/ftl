@@ -33,6 +33,9 @@ func init() {
 		{{- end }}
 {{- end}}
 {{- range $verbs}}
+	{{- if .IsTransaction }}
+		reflection.Transaction({{.TypeName}}, "{{ .TransactionDatasourceName }}"),
+	{{- end }}
 	{{- if not .IsQuery }}
 		reflection.ProvideResourcesForVerb(
             {{.TypeName}},

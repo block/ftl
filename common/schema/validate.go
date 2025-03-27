@@ -172,7 +172,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 				hasSubscribed := false
 				// if contains MetadataSQLQuery, must also contain MetadataDatabases
 				isSQLQuery := false
-				hasDatabase := false
+				injectsTransactions := false
 				for _, md := range n.Metadata {
 					switch md := md.(type) {
 					case *MetadataSubscriber:
@@ -207,17 +207,61 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 					case *MetadataSQLQuery:
 						isSQLQuery = true
 
-					case *MetadataDatabases:
-						hasDatabase = true
+					case *MetadataCalls:
+						for _, call := range md.Calls {
+							resolved := scopes.Resolve(*call)
+							if resolved == nil {
+								merr = append(merr, errorf(call, "unknown call %q", call))
+								continue
+							}
+							verb, ok := resolved.Symbol.(*Verb)
+							if !ok {
+								merr = append(merr, errorf(call, "expected verb, got %T", resolved.Symbol))
+								continue
+							}
+							if verb.IsTransaction() {
+								injectsTransactions = true
+							}
+						}
 
-					case *MetadataCronJob, *MetadataCalls, *MetadataConfig, *MetadataAlias, *MetadataTypeMap,
+					case *MetadataCronJob, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap,
 						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact,
-						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit, *MetadataFixture:
+						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit, *MetadataFixture,
+						*MetadataTransaction:
 					}
 				}
-				if isSQLQuery && !hasDatabase {
-					merr = append(merr, errorf(n, "query verb must specify a corresponding datasource"))
+				if isSQLQuery {
+					dbSet := n.ResolveDatabaseUses(schema, module.Name)
+					numDbs := dbSet.Cardinality()
+					if isSQLQuery && numDbs == 0 {
+						merr = append(merr, errorf(n, "query verb must specify a corresponding datasource"))
+					}
+					if isSQLQuery && numDbs > 1 {
+						merr = append(merr, errorf(n, "query verbs can only access a single datasource"))
+					}
 				}
+				if n.IsTransaction() {
+					dbSet := n.ResolveDatabaseUses(schema, module.Name)
+					numDbs := dbSet.Cardinality()
+					if numDbs == 0 {
+						merr = append(merr, errorf(n, "transaction verbs must access a datasource"))
+					}
+					if numDbs > 1 {
+						merr = append(merr, errorf(n, "transaction verbs can only access a single datasource"))
+					}
+					if injectsTransactions {
+						merr = append(merr, errorf(n, "transaction verbs cannot inject nested transactions"))
+					}
+					if n.IsExported() {
+						merr = append(merr, errorf(n, "transaction verbs cannot be exported"))
+					}
+					for _, verbRef := range n.ResolveCalls(schema, module.Name).ToSlice() {
+						if verbRef.Module != module.Name {
+							merr = append(merr, errorf(n, "transaction verbs cannot call verbs in external modules; %s.%s calls %s.%s", module.Name, n.Name, verbRef.Module, verbRef.Name))
+						}
+					}
+				}
+
 			case *Database:
 				found := false
 				for _, md := range n.Metadata {
@@ -513,6 +557,8 @@ func sortMetadataType(md Metadata) {
 		return
 	case *MetadataFixture:
 		return
+	case *MetadataTransaction:
+		return
 	}
 }
 
@@ -559,6 +605,8 @@ func getMetadataSortingPriority(metadata Metadata) int {
 		priority = 19
 	case *MetadataFixture:
 		priority = 20
+	case *MetadataTransaction:
+		priority = 21
 	}
 	return priority
 }
@@ -761,7 +809,7 @@ func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error)
 
 		case *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap, *MetadataEncoding,
 			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery, *MetadataPartitions, *MetadataGenerated,
-			*MetadataGit, *MetadataFixture:
+			*MetadataGit, *MetadataFixture, *MetadataTransaction:
 		}
 	}
 	return

@@ -7,9 +7,9 @@ import (
 
 	"github.com/alecthomas/types/tuple"
 
-	"github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/server/query"
 )
 
 func Query[Req, Resp any](
