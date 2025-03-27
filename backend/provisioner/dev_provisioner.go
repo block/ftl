@@ -272,12 +272,22 @@ func provisionTopic() InMemResourceProvisionerFn {
 			return nil, fmt.Errorf("could not set up redpanda: %w", err)
 		}
 
+		topic, ok := res.(*schema.Topic)
+		if !ok {
+			return nil, fmt.Errorf("expected topic, got %T", res)
+		}
+
+		partitions := 1
+		if pmd, ok := slices.FindVariant[*schema.MetadataPartitions](topic.Metadata); ok {
+			partitions = pmd.Partitions
+		}
+
 		exec := executor.NewKafkaTopicSetup()
 		err := exec.Prepare(ctx, state.TopicClusterReady{
 			InputTopic: state.InputTopic{
 				Topic:      res.ResourceID(),
 				Module:     deployment.Payload.Module,
-				Partitions: 1,
+				Partitions: partitions,
 			},
 			Brokers: redPandaBrokers,
 		})
