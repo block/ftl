@@ -20,6 +20,7 @@ func TestLifecycleJVM(t *testing.T) {
 	in.Run(t,
 		in.WithLanguages("java", "kotlin"),
 		in.WithDevMode(),
+		in.WithDebugLogging(),
 		in.GitInit(),
 		in.Exec("rm", "ftl-project.toml"),
 		in.Exec("ftl", "init", "test", "."),
