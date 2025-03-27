@@ -1268,9 +1268,6 @@ func (b *mainDeploymentContextBuilder) getVerbResource(verb *schema.Verb, param 
 			return goTopicHandle{}, fmt.Errorf("%s.%s uses %s topic handle, but %s is not a topic",
 				b.mainModule.Name, verb.Name, ref, ref)
 		}
-		if ref.Module != b.mainModule.Name {
-			return goTopicHandle{}, builderrors.Errorf(param.Ref.Pos.ToErrorPos(), "external topic %s can not be injected because publishing to external topics is not allowed", ref)
-		}
 		return b.processTopic(ref.Module, ref, topic)
 	case *schema.MetadataConfig:
 		cfg, ok := resolved.(*schema.Config)
