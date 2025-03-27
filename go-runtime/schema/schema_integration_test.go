@@ -578,7 +578,7 @@ func testErrorReporting(t *testing.T) {
 		`140:6-45: enum discriminator "TypeEnum3" cannot contain exported methods`,
 		`143:6-35: enum discriminator "NoMethodsTypeEnum" must define at least one method`,
 		`155:3-14: unexpected token "d"`,
-		`162:2-49: can not publish directly to topics in other modules`,
+		`161:38-62: could not inject external topic "pubsub.publicBroadcast" because publishing directly to external topics is not allowed`,
 		`168:2-12: struct field unexported must be exported by starting with an uppercase letter`,
 		`172:6: unsupported type "ftl/failing/child.BadChildStruct" for field "child"`,
 		`177:6: duplicate data declaration for "failing.Redeclared"; already declared at "27:6"`,

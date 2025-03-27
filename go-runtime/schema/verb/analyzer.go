@@ -88,6 +88,10 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 			case common.VerbResourceTypeDatabaseHandle:
 				verb.AddDatabase(r.ref)
 			case common.VerbResourceTypeTopicHandle:
+				if currentModule, err := common.FtlModuleFromGoPackage(pass.Pkg.Path()); err == nil && r.ref.Module != currentModule {
+					common.Errorf(pass, param, "could not inject external topic %q because publishing directly to external topics is not allowed", r.ref)
+					continue
+				}
 				verb.AddTopicPublish(r.ref)
 			case common.VerbResourceTypeConfig:
 				verb.AddConfig(r.ref)
