@@ -390,7 +390,7 @@ func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.O
 	}
 	args = append(args, "-f", "-", "-p", "ftl", "up", "-d", "--wait")
 	sm := terminal.FromContext(ctx)
-	statusLine := sm.NewDecoratedStatus("\u001B[92mDocker: "+name+"\u001B[94m", ansiResetTextColor, "starting")
+	statusLine := sm.NewDecoratedStatus("\u001B[92mDocker: "+name+"\u001B[94m ", ansiResetTextColor, "starting")
 	defer statusLine.Close()
 	cmd := exec.CommandWithEnv(ctx, log.Debug, ".", envars, "docker", args...)
 	cmd.Stdin = bytes.NewReader([]byte(composeYAML))
