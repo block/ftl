@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/alecthomas/types/optional"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -96,7 +97,11 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 			if !ok {
 				return nil, fmt.Errorf("content is required")
 			}
-			// TODO: validate if path is allowed
+			moduleDir, ok := detectModulePath(path).Get()
+			if !ok {
+				return nil, fmt.Errorf("this tool can only write to files within FTL modules")
+			}
+			originalGeneratedFiles := getGeneratedFileContent(moduleDir, path)
 
 			originalContent, err := os.ReadFile(path)
 			if err != nil {
@@ -117,7 +122,6 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 					return newReadResult(originalContent, token, true, `The file was not read before it was written or it has changed since it was last read.
 		The file has been read and provided here. Make sure you understand the existing content before using the Write tool so you do not accidentally alter data or code that you did not mean to change.`)
 				}
-
 			}
 
 			// Atomically write the file.
@@ -161,6 +165,20 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 				return nil, fmt.Errorf("could not marshal assistant result: %w", err)
 			}
 			content = append(content, annotateTextContent(mcp.NewTextContent(string(assistantResultJSON)), []mcp.Role{mcp.RoleAssistant}, 1.0))
+
+			latestGeneratedFiles := getGeneratedFileContent(moduleDir, path)
+			for path, latest := range latestGeneratedFiles {
+				original, ok := originalGeneratedFiles[path]
+				if ok && original.WriteVerificationToken == latest.WriteVerificationToken {
+					continue
+				}
+				latest.WriteVerificationToken = "" // Do not allow assistant to write to these files
+				generatedFileUpdateJSON, err := json.Marshal(latest)
+				if err != nil {
+					return nil, fmt.Errorf("could not marshal read result for generated file: %w", err)
+				}
+				content = append(content, annotateTextContent(mcp.NewTextContent(string(generatedFileUpdateJSON)), []mcp.Role{mcp.RoleAssistant}, 0.5))
+			}
 			return &mcp.CallToolResult{
 				Content: content,
 				IsError: false,
@@ -212,4 +230,46 @@ func tokenForFileContent(content []byte) (string, error) {
 		return "", fmt.Errorf("could not hash file content: %w", err)
 	}
 	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
+}
+
+func detectModulePath(path string) optional.Option[string] {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return optional.None[string]()
+	}
+	for dir := filepath.Dir(path); dir != "/"; dir = filepath.Dir(dir) {
+		if _, err := os.Stat(filepath.Join(dir, "ftl.toml")); err == nil {
+			return optional.Some(dir)
+		}
+	}
+	return optional.None[string]()
+}
+
+// getGeneratedFileContent returns the content of generated files that are relevant to the file being written.
+//
+// Currently this is hardcoded to only support `*.sql` -> `queries.ftl.go`.
+func getGeneratedFileContent(moduleDir string, writePath string) map[string]*readResult {
+	// TODO: make this generic with language plugin support
+	generatedPaths := []string{}
+	if strings.HasSuffix(writePath, ".sql") {
+		generatedPaths = append(generatedPaths, "queries.ftl.go")
+	}
+	out := map[string]*readResult{}
+	for _, path := range generatedPaths {
+		path = filepath.Join(moduleDir, path)
+		fileContent, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		token, err := tokenForFileContent(fileContent)
+		if err != nil {
+			continue
+		}
+		out[path] = &readResult{
+			FileContent:            string(fileContent),
+			WriteVerificationToken: token,
+			Explanation:            fmt.Sprintf("Generated file has changed at %s", path),
+		}
+	}
+	return out
 }
