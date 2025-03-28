@@ -8,29 +8,31 @@ import (
 	"time"
 
 	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/cmd/go2proto/testdata/external"
 	"github.com/block/ftl/internal/key"
 )
 
 //protobuf:export
 type Root struct {
-	Int             int                        `protobuf:"1"`
-	String          string                     `protobuf:"2"`
-	MessagePtr      *Message                   `protobuf:"4"`
-	Enum            Enum                       `protobuf:"5"`
-	SumType         SumType                    `protobuf:"6"`
-	OptionalInt     int                        `protobuf:"7,optional"`
-	OptionalIntPtr  *int                       `protobuf:"8,optional"`
-	OptionalMsg     *Message                   `protobuf:"9,optional"`
-	RepeatedInt     []int                      `protobuf:"10"`
-	RepeatedMsg     []*Message                 `protobuf:"11"`
-	URL             *url.URL                   `protobuf:"12"`
-	OptionalWrapper optional.Option[string]    `protobuf:"13"`
-	ExternalRoot    external.Root              `protobuf:"14"`
-	Key             key.Deployment             `protobuf:"15"`
-	OptionalTime    optional.Option[time.Time] `protobuf:"16"`
-	OptionalMessage optional.Option[Message]   `protobuf:"17"`
-	Map             map[string]time.Time       `protobuf:"18"`
+	Int                int                        `protobuf:"1"`
+	String             string                     `protobuf:"2"`
+	MessagePtr         *Message                   `protobuf:"4"`
+	Enum               Enum                       `protobuf:"5"`
+	SumType            SumType                    `protobuf:"6"`
+	OptionalInt        int                        `protobuf:"7,optional"`
+	OptionalIntPtr     *int                       `protobuf:"8,optional"`
+	OptionalMsg        *Message                   `protobuf:"9,optional"`
+	RepeatedInt        []int                      `protobuf:"10"`
+	RepeatedMsg        []*Message                 `protobuf:"11"`
+	URL                *url.URL                   `protobuf:"12"`
+	OptionalWrapper    optional.Option[string]    `protobuf:"13"`
+	ExternalRoot       external.Root              `protobuf:"14"`
+	Key                key.Deployment             `protobuf:"15"`
+	OptionalTime       optional.Option[time.Time] `protobuf:"16"`
+	OptionalMessage    optional.Option[Message]   `protobuf:"17"`
+	OptionalMessagePtr optional.Option[*Message]  `protobuf:"18"`
+	Map                map[string]time.Time       `protobuf:"19"`
 }
 
 type Message struct {

@@ -41,6 +41,9 @@ func sliceMap[T any, U any](values []T, f func(T) U) []U {
 }
 
 func sliceMapR[T any, U any](values []T, f func(T) result.Result[U]) result.Result[[]U] {
+	if len(values) == 0 {
+		return result.Ok[[]U](nil)
+	}
 	out := make([]U, len(values))
 	for i, v := range values {
 		r := f(v)
@@ -121,6 +124,14 @@ func optionalR[T any](r result.Result[*T]) result.Result[optional.Option[T]] {
 	}
 	v, _ := r.Get()
 	return result.Ok[optional.Option[T]](optional.Ptr(v))
+}
+
+func optionalRPtr[T any](r result.Result[*T]) result.Result[optional.Option[*T]] {
+	if r.Err() != nil {
+		return result.Err[optional.Option[*T]](r.Err())
+	}
+	v, _ := r.Get()
+	return result.Ok[optional.Option[*T]](optional.Zero(v))
 }
 
 func setNil[T, O any](v *T, o *O) *T {

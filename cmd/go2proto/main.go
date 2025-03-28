@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -131,10 +132,8 @@ type File struct {
 }
 
 func (f *File) AddImport(name string) {
-	for _, imp := range f.Imports {
-		if imp == name {
-			return
-		}
+	if slices.Contains(f.Imports, name) {
+		return
 	}
 	f.Imports = append(f.Imports, name)
 }
@@ -670,6 +669,9 @@ func (f *Field) ToProto() string {
 	if f.Optional {
 		if f.OptionalWrapper {
 			if f.Converter.ToProtoTakesPointer {
+				if f.Pointer {
+					return f.Converter.ToProto(name + ".Default(nil)")
+				}
 				return f.Converter.ToProto(name + ".Ptr()")
 			}
 			return "setNil(" + f.Converter.ToProto("orZero("+name+".Ptr())") + ", " + name + ".Ptr())"
@@ -700,6 +702,9 @@ func (f *Field) FromProto() string {
 	input := f.Converter.FromProto(name)
 	if f.Optional {
 		if f.OptionalWrapper {
+			if f.Pointer {
+				return "optionalRPtr(" + input + ")"
+			}
 			return "optionalR(" + input + ")"
 		}
 		if !f.Pointer {
