@@ -251,7 +251,8 @@ func TestJVMCoreFunctionality(t *testing.T) {
 		in.CopyModuleWithLanguage("gomodule", "go"),
 		in.CopyModuleWithLanguage("javaclient", "java"),
 		in.CopyModuleWithLanguage("kotlinmodule", "kotlin"),
-		in.Deploy("gomodule", "javaclient", "kotlinmodule"),
+		in.Deploy("gomodule"),
+		in.Deploy("javaclient", "kotlinmodule"),
 		in.SubTests(tests...),
 	)
 }
