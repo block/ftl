@@ -2,6 +2,7 @@ import type React from 'react'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Event } from '../../protos/xyz/block/ftl/timeline/v1/event_pb'
+import { durationToMillis } from '../../shared/utils'
 import type { TraceEvent } from '../timeline/hooks/use-request-trace-events'
 import { TraceDetailItem } from './TraceDetailItem'
 import { TraceRulerItem } from './TraceRulerItem'
@@ -44,7 +45,7 @@ export const TraceDetails: React.FC<TraceDetailsProps> = ({ events, selectedEven
             .sort((a, b) => requestStartTime([a]) - requestStartTime([b]))
             .map((event, index) => {
               const traceEvent = event.entry.value as TraceEvent
-              const eventDurationMs = (traceEvent.duration?.nanos ?? 0) / 1000000
+              const eventDurationMs = traceEvent.duration ? durationToMillis(traceEvent.duration) : 0
 
               return (
                 <TraceDetailItem
