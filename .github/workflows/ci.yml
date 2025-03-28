@@ -49,7 +49,7 @@ jobs:
       - name: golangci-lint
         run: |
           golangci-lint --version
-          golangci-lint run --new-from-rev="$(git merge-base origin/main HEAD)" --out-format github-actions ./...
+          golangci-lint run --new-from-rev="$(git merge-base origin/main HEAD)" ./... 2>&1 | to-annotation
       - name: lint-commit-or-rollback
         run: lint-commit-or-rollback ./backend/... 2>&1 | to-annotation
       - name: go-check-sumtype
