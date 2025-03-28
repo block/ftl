@@ -323,14 +323,21 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				case err = <-callChan:
 					// close call context now that the call is finished
 					if err == nil {
-						callCancel(fmt.Errorf("call failed: %w: %w", context.Canceled, err))
-					} else {
 						callCancel(fmt.Errorf("call succeeded: %w", context.Canceled))
+					} else {
+						callCancel(fmt.Errorf("call failed: %w: %w", context.Canceled, err))
 					}
 				}
 				observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, publishedAt.Default(startTime), err)
 				if err == nil {
 					break
+				}
+				var connectErr *connect.Error
+				if errors.As(err, &connectErr) {
+					// Connection error, do not count as an attempt
+					// This can happen when a runner is shutting down. This should never mark the message as consumed.
+					time.Sleep(time.Second)
+					continue
 				}
 				select {
 				case <-ctx.Done():
