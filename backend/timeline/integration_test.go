@@ -29,12 +29,7 @@ func TestTimeline(t *testing.T) {
 		in.CopyModule("publisher"),
 		in.CopyModule("subscriber"),
 		in.CopyModule("ingress"),
-		in.Deploy("cron"),
-		in.Deploy("time"),
-		in.Deploy("echo"),
-		in.Deploy("publisher"),
-		in.Deploy("subscriber"),
-		in.Deploy("ingress"),
+		in.Deploy("cron", "time", "echo", "publisher", "subscriber", "ingress"),
 
 		// Trigger events
 		in.HttpCall(http.MethodGet, "/users/123/posts/456", nil, nil, func(t testing.TB, resp *in.HTTPResponse) {}),

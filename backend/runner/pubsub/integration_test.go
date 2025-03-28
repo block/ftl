@@ -29,8 +29,7 @@ func TestRetry(t *testing.T) {
 		in.WithPubSub(),
 		in.CopyModule("publisher"),
 		in.CopyModule("subscriber"),
-		in.Deploy("publisher"),
-		in.Deploy("subscriber"),
+		in.Deploy("publisher", "subscriber"),
 
 		// publish events
 		in.Call("publisher", "publishOneToTopic2", map[string]any{"haystack": "firstCall"}, func(t testing.TB, resp in.Obj) {}),
@@ -51,8 +50,7 @@ func TestExternalPublishRuntimeCheck(t *testing.T) {
 	in.Run(t,
 		in.CopyModule("publisher"),
 		in.CopyModule("subscriber"),
-		in.Deploy("publisher"),
-		in.Deploy("subscriber"),
+		in.Deploy("publisher", "subscriber"),
 
 		in.ExpectError(
 			in.Call("subscriber", "publishToExternalModule", in.Obj{}, func(t testing.TB, resp in.Obj) {}),
@@ -69,8 +67,7 @@ func TestConsumerGroupMembership(t *testing.T) {
 		in.WithPubSub(),
 		in.CopyModule("publisher"),
 		in.CopyModule("subscriber"),
-		in.Deploy("publisher"),
-		in.Deploy("subscriber"),
+		in.Deploy("publisher", "subscriber"),
 
 		// consumer group must now have a member for each partition
 		checkGroupMembership("subscriber", "consumeSlow", 1),

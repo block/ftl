@@ -43,9 +43,7 @@ func TestExemplarSmoke(t *testing.T) {
 			fmt.Println(output)
 		}),
 
-		in.Deploy("origin"),
-		in.Deploy("relay"),
-		in.Deploy("pulse"),
+		in.Deploy("origin", "relay", "pulse"),
 
 		in.ExecWithOutput("curl", []string{"-s", "-X", "POST", "http://127.0.0.1:8891/ingress/agent", "-H", "Content-Type: application/json", "-d", fmt.Sprintf(`{"id": %v, "alias": "james", "license_to_kill": true, "hired_at": "2023-10-23T23:20:45.00Z"}`, successAgentId)}, func(output string) {
 			fmt.Printf("output: %s\n", output)

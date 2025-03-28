@@ -18,6 +18,9 @@ import (
 	"time"
 	"unicode"
 
+	islices "github.com/block/ftl/common/slices"
+	"golang.org/x/sync/errgroup"
+
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
@@ -224,18 +227,31 @@ func ExpectError(action Action, expectedErrorMsg ...string) Action {
 }
 
 // Deploy a module from the working directory and wait for it to become available.
-func Deploy(module string) Action {
+func Deploy(modules ...string) Action {
 	return Chain(
 		func(t testing.TB, ic TestContext) {
 			args := []string{"deploy", "-t", "4m"}
 			if ic.kubeClient.Ok() {
 				args = append(args, "--build-env", "GOOS=linux", "--build-env", "GOARCH=amd64", "--build-env", "CGO_ENABLED=0")
 			}
-			args = append(args, module)
+			args = append(args, modules...)
 
 			Exec("ftl", args...)(t, ic)
 		},
-		WaitWithTimeout(module, time.Minute*2),
+		func(t testing.TB, ic TestContext) {
+			// Wait for all modules to deploy
+			wg := &errgroup.Group{}
+			for _, module := range modules {
+				wg.Go(func() error {
+					WaitWithTimeout(module, time.Minute*2)(t, ic)
+					return nil
+				})
+			}
+			assert.NoError(t, wg.Wait())
+		},
+		Chain(islices.Map(modules, func(module string) Action {
+			return WaitWithTimeout(module, time.Minute*2)
+		})...),
 	)
 }
 
