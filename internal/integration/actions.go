@@ -19,6 +19,7 @@ import (
 	"unicode"
 
 	islices "github.com/block/ftl/common/slices"
+	"golang.org/x/sync/errgroup"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
@@ -236,6 +237,17 @@ func Deploy(modules ...string) Action {
 			args = append(args, modules...)
 
 			Exec("ftl", args...)(t, ic)
+		},
+		func(t testing.TB, ic TestContext) {
+			// Wait for all modules to deploy
+			wg := &errgroup.Group{}
+			for _, module := range modules {
+				wg.Go(func() error {
+					WaitWithTimeout(module, time.Minute*2)(t, ic)
+					return nil
+				})
+			}
+			assert.NoError(t, wg.Wait())
 		},
 		Chain(islices.Map(modules, func(module string) Action {
 			return WaitWithTimeout(module, time.Minute*2)
