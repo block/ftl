@@ -41,6 +41,9 @@ func sliceMap[T any, U any](values []T, f func(T) U) []U {
 }
 
 func sliceMapR[T any, U any](values []T, f func(T) result.Result[U]) result.Result[[]U] {
+	if len(values) == 0 {
+		return result.Ok[[]U](nil)
+	}
 	out := make([]U, len(values))
 	for i, v := range values {
 		r := f(v)
@@ -121,6 +124,14 @@ func optionalR[T any](r result.Result[*T]) result.Result[optional.Option[T]] {
 	}
 	v, _ := r.Get()
 	return result.Ok[optional.Option[T]](optional.Ptr(v))
+}
+
+func optionalRPtr[T any](r result.Result[*T]) result.Result[optional.Option[*T]] {
+	if r.Err() != nil {
+		return result.Err[optional.Option[*T]](r.Err())
+	}
+	v, _ := r.Get()
+	return result.Ok[optional.Option[*T]](optional.Zero(v))
 }
 
 func setNil[T, O any](v *T, o *O) *T {
@@ -249,23 +260,24 @@ func (x *Root) ToProto() *destpb.Root {
 		return nil
 	}
 	return &destpb.Root{
-		Int:             orZero(ptr(int64(x.Int))),
-		String_:         orZero(ptr(string(x.String))),
-		MessagePtr:      x.MessagePtr.ToProto(),
-		Enum:            orZero(ptr(x.Enum.ToProto())),
-		SumType:         SumTypeToProto(x.SumType),
-		OptionalInt:     ptr(int64(x.OptionalInt)),
-		OptionalIntPtr:  setNil(ptr(int64(orZero(x.OptionalIntPtr))), x.OptionalIntPtr),
-		OptionalMsg:     x.OptionalMsg.ToProto(),
-		RepeatedInt:     sliceMap(x.RepeatedInt, func(v int) int64 { return orZero(ptr(int64(v))) }),
-		RepeatedMsg:     sliceMap(x.RepeatedMsg, func(v *Message) *destpb.Message { return v.ToProto() }),
-		Url:             orZero(ptr(protoMust(x.URL.MarshalBinary()))),
-		OptionalWrapper: setNil(ptr(string(orZero(x.OptionalWrapper.Ptr()))), x.OptionalWrapper.Ptr()),
-		ExternalRoot:    orZero(ptr(string(protoMust(x.ExternalRoot.MarshalText())))),
-		Key:             orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		OptionalTime:    setNil(timestamppb.New(orZero(x.OptionalTime.Ptr())), x.OptionalTime.Ptr()),
-		OptionalMessage: x.OptionalMessage.Ptr().ToProto(),
-		Map:             mapValues(x.Map, func(x time.Time) *timestamppb.Timestamp { return timestamppb.New(x) }),
+		Int:                orZero(ptr(int64(x.Int))),
+		String_:            orZero(ptr(string(x.String))),
+		MessagePtr:         x.MessagePtr.ToProto(),
+		Enum:               orZero(ptr(x.Enum.ToProto())),
+		SumType:            SumTypeToProto(x.SumType),
+		OptionalInt:        ptr(int64(x.OptionalInt)),
+		OptionalIntPtr:     setNil(ptr(int64(orZero(x.OptionalIntPtr))), x.OptionalIntPtr),
+		OptionalMsg:        x.OptionalMsg.ToProto(),
+		RepeatedInt:        sliceMap(x.RepeatedInt, func(v int) int64 { return orZero(ptr(int64(v))) }),
+		RepeatedMsg:        sliceMap(x.RepeatedMsg, func(v *Message) *destpb.Message { return v.ToProto() }),
+		Url:                orZero(ptr(protoMust(x.URL.MarshalBinary()))),
+		OptionalWrapper:    setNil(ptr(string(orZero(x.OptionalWrapper.Ptr()))), x.OptionalWrapper.Ptr()),
+		ExternalRoot:       orZero(ptr(string(protoMust(x.ExternalRoot.MarshalText())))),
+		Key:                orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		OptionalTime:       setNil(timestamppb.New(orZero(x.OptionalTime.Ptr())), x.OptionalTime.Ptr()),
+		OptionalMessage:    x.OptionalMessage.Ptr().ToProto(),
+		OptionalMessagePtr: x.OptionalMessagePtr.Default(nil).ToProto(),
+		Map:                mapValues(x.Map, func(x time.Time) *timestamppb.Timestamp { return timestamppb.New(x) }),
 	}
 }
 
@@ -322,6 +334,9 @@ func RootFromProto(v *destpb.Root) (out *Root, err error) {
 	}
 	if out.OptionalMessage, err = optionalR(result.From(MessageFromProto(v.OptionalMessage))).Result(); err != nil {
 		return nil, fmt.Errorf("OptionalMessage: %w", err)
+	}
+	if out.OptionalMessagePtr, err = optionalRPtr(result.From(MessageFromProto(v.OptionalMessagePtr))).Result(); err != nil {
+		return nil, fmt.Errorf("OptionalMessagePtr: %w", err)
 	}
 	if out.Map, err = mapValuesR(v.Map, func(v *timestamppb.Timestamp) result.Result[time.Time] {
 		return orZeroR(result.From(setNil(ptr(v.AsTime()), v), nil))
