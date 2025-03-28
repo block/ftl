@@ -14,7 +14,6 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 
 	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
-	queryclient "github.com/block/ftl/go-runtime/server/query"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/reflection"
@@ -22,6 +21,7 @@ import (
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/internal"
 	"github.com/block/ftl/go-runtime/server"
+	queryclient "github.com/block/ftl/go-runtime/server/query"
 	"github.com/block/ftl/go-runtime/server/rpccontext"
 	cf "github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"

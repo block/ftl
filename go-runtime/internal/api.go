@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/common/schema"
 )
 
