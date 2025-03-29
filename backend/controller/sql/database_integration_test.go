@@ -126,3 +126,33 @@ func TestSQLVerbs(t *testing.T) {
 		}),
 	)
 }
+
+func TestTransactions(t *testing.T) {
+	in.Run(t,
+		in.WithLanguages("go"),
+		in.CopyModule("database"),
+		in.Deploy("database"),
+
+		// successful transaction
+		in.Call[in.Obj, in.Obj]("database", "transactionInsert", in.Obj{
+			"items": []string{"item1", "item2", "item3"},
+		}, func(t testing.TB, response in.Obj) {
+			count := response["count"].(float64)
+			assert.Equal(t, float64(3), count, "Transaction should have inserted 3 items")
+		}),
+		in.QueryRow("database_testdb", "SELECT data FROM requests WHERE data = 'item1'", "item1"),
+		in.QueryRow("database_testdb", "SELECT data FROM requests WHERE data = 'item2'", "item2"),
+		in.QueryRow("database_testdb", "SELECT data FROM requests WHERE data = 'item3'", "item3"),
+		in.QueryRow("database_testdb", "SELECT COUNT(*) FROM requests", float64(3)),
+
+		// rollback
+		in.ExpectError(
+			in.Call[in.Obj, in.Obj]("database", "transactionRollback", in.Obj{
+				"items": []string{"should-not-be-committed"},
+			}, nil),
+			"deliberate error to test rollback",
+		),
+		in.QueryRow("database_testdb", "SELECT COUNT(*) FROM requests WHERE data = 'should-not-be-committed'", float64(0)),
+		in.QueryRow("database_testdb", "SELECT COUNT(*) FROM requests", float64(3)),
+	)
+}

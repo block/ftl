@@ -448,7 +448,7 @@ class Map(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., key: _Optional[_Union[Type, _Mapping]] = ..., value: _Optional[_Union[Type, _Mapping]] = ...) -> None: ...
 
 class Metadata(_message.Message):
-    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "databases", "encoding", "fixture", "generated", "git", "ingress", "partitions", "publisher", "retry", "sql_column", "sql_migration", "sql_query", "secrets", "subscriber", "type_map")
+    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "databases", "encoding", "fixture", "generated", "git", "ingress", "partitions", "publisher", "retry", "sql_column", "sql_migration", "sql_query", "secrets", "subscriber", "transaction", "type_map")
     ALIAS_FIELD_NUMBER: _ClassVar[int]
     ARTEFACT_FIELD_NUMBER: _ClassVar[int]
     CALLS_FIELD_NUMBER: _ClassVar[int]
@@ -468,6 +468,7 @@ class Metadata(_message.Message):
     SQL_QUERY_FIELD_NUMBER: _ClassVar[int]
     SECRETS_FIELD_NUMBER: _ClassVar[int]
     SUBSCRIBER_FIELD_NUMBER: _ClassVar[int]
+    TRANSACTION_FIELD_NUMBER: _ClassVar[int]
     TYPE_MAP_FIELD_NUMBER: _ClassVar[int]
     alias: MetadataAlias
     artefact: MetadataArtefact
@@ -488,8 +489,9 @@ class Metadata(_message.Message):
     sql_query: MetadataSQLQuery
     secrets: MetadataSecrets
     subscriber: MetadataSubscriber
+    transaction: MetadataTransaction
     type_map: MetadataTypeMap
-    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., fixture: _Optional[_Union[MetadataFixture, _Mapping]] = ..., generated: _Optional[_Union[MetadataGenerated, _Mapping]] = ..., git: _Optional[_Union[MetadataGit, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., partitions: _Optional[_Union[MetadataPartitions, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_column: _Optional[_Union[MetadataSQLColumn, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., sql_query: _Optional[_Union[MetadataSQLQuery, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
+    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., fixture: _Optional[_Union[MetadataFixture, _Mapping]] = ..., generated: _Optional[_Union[MetadataGenerated, _Mapping]] = ..., git: _Optional[_Union[MetadataGit, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., partitions: _Optional[_Union[MetadataPartitions, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_column: _Optional[_Union[MetadataSQLColumn, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., sql_query: _Optional[_Union[MetadataSQLQuery, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., transaction: _Optional[_Union[MetadataTransaction, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
 
 class MetadataAlias(_message.Message):
     __slots__ = ("pos", "kind", "alias")
@@ -670,6 +672,12 @@ class MetadataSubscriber(_message.Message):
     from_offset: FromOffset
     dead_letter: bool
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., topic: _Optional[_Union[Ref, _Mapping]] = ..., from_offset: _Optional[_Union[FromOffset, str]] = ..., dead_letter: bool = ...) -> None: ...
+
+class MetadataTransaction(_message.Message):
+    __slots__ = ("pos",)
+    POS_FIELD_NUMBER: _ClassVar[int]
+    pos: Position
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ...) -> None: ...
 
 class MetadataTypeMap(_message.Message):
     __slots__ = ("pos", "runtime", "native_name")

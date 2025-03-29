@@ -10,9 +10,75 @@ import (
 	querypb "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1"
 	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	iquery "github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/encoding"
+	"github.com/block/ftl/go-runtime/internal"
 	"github.com/block/ftl/go-runtime/server/rpccontext"
 )
+
+const (
+	transactionMetadataString = "ftl-transaction"
+	TransactionMetadataKey    = internal.MetadataKey(transactionMetadataString)
+)
+
+func GetTransactionMetadata(txnID string) *ftlv1.Metadata_Pair {
+	return &ftlv1.Metadata_Pair{
+		Key:   transactionMetadataString,
+		Value: txnID,
+	}
+}
+
+func BeginTransaction(ctx context.Context, dbName string) (string, error) {
+	client := rpccontext.ClientFromContext[queryconnect.QueryServiceClient](ctx)
+	resp, err := client.BeginTransaction(ctx, connect.NewRequest(&querypb.BeginTransactionRequest{
+		DatabaseName: dbName,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	if resp.Msg.Status != querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS {
+		return "", fmt.Errorf("transaction on %s was not started", dbName)
+	}
+	return resp.Msg.TransactionId, nil
+}
+
+func RollbackCurrentTransaction(ctx context.Context, dbName string) error {
+	client := rpccontext.ClientFromContext[queryconnect.QueryServiceClient](ctx)
+	txID, ok := internal.CallMetadataFromContext(ctx)[TransactionMetadataKey]
+	if !ok {
+		return fmt.Errorf("no active transaction found")
+	}
+	resp, err := client.RollbackTransaction(ctx, connect.NewRequest(&querypb.RollbackTransactionRequest{
+		DatabaseName:  dbName,
+		TransactionId: txID,
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to rollback transaction: %w", err)
+	}
+	if resp.Msg.Status != querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS {
+		return fmt.Errorf("transaction %s was not rolled back", txID)
+	}
+	return nil
+}
+
+func CommitCurrentTransaction(ctx context.Context, dbName string) error {
+	client := rpccontext.ClientFromContext[queryconnect.QueryServiceClient](ctx)
+	txID, ok := internal.CallMetadataFromContext(ctx)[TransactionMetadataKey]
+	if !ok {
+		return fmt.Errorf("no active transaction found")
+	}
+	resp, err := client.CommitTransaction(ctx, connect.NewRequest(&querypb.CommitTransactionRequest{
+		DatabaseName:  dbName,
+		TransactionId: txID,
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	if resp.Msg.Status != querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS {
+		return fmt.Errorf("transaction %s was not committed", txID)
+	}
+	return nil
+}
 
 func One[Req, Resp any](ctx context.Context, dbName string, rawSQL string, params []any, colFieldNames []tuple.Pair[string, string]) (resp Resp, err error) {
 	results, err := performQuery[Resp](ctx, dbName, querypb.CommandType_COMMAND_TYPE_ONE, rawSQL, params, colFieldNames)
@@ -53,13 +119,19 @@ func performQuery[T any](ctx context.Context, dbName string, commandType querypb
 		})
 	}
 
-	stream, err := client.ExecuteQuery(ctx, connect.NewRequest(&querypb.ExecuteQueryRequest{
+	req := &querypb.ExecuteQueryRequest{
 		DatabaseName:   dbName,
 		RawSql:         rawSQL,
 		CommandType:    commandType,
 		ParametersJson: string(paramsJSON),
 		ResultColumns:  resultCols,
-	}))
+	}
+	if md, ok := internal.MaybeCallMetadataFromContext(ctx).Get(); ok {
+		if txID, ok := md[TransactionMetadataKey]; ok {
+			req.TransactionId = &txID
+		}
+	}
+	stream, err := client.ExecuteQuery(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -101,11 +173,11 @@ var _ queryconnect.QueryServiceClient = &InlineQueryClient{}
 // InlineQueryClient is used to perform queries by the unit test harness.
 // It executes the query server logic in-process and does not require network communication.
 type InlineQueryClient struct {
-	service   *Service
+	service   *iquery.Service
 	collector *responseCollector
 }
 
-func NewInlineQueryClient(service *Service) *InlineQueryClient {
+func NewInlineQueryClient(service *iquery.Service) *InlineQueryClient {
 	return &InlineQueryClient{
 		service:   service,
 		collector: &responseCollector{responses: []*querypb.ExecuteQueryResponse{}},

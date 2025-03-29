@@ -3,6 +3,8 @@ package internal
 import (
 	"context"
 
+	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/common/schema"
 )
 
@@ -54,6 +56,12 @@ type callMetadataKey struct{}
 // ContextWithCallMetadata returns a new context with the call metadata.
 func ContextWithCallMetadata(ctx context.Context, metadata map[MetadataKey]string) context.Context {
 	return context.WithValue(ctx, callMetadataKey{}, metadata)
+}
+
+// MaybeCallMetadataFromContext returns the call metadata from the context if it exists.
+func MaybeCallMetadataFromContext(ctx context.Context) optional.Option[map[MetadataKey]string] {
+	metadata, ok := ctx.Value(callMetadataKey{}).(map[MetadataKey]string)
+	return optional.From(metadata, ok)
 }
 
 // CallMetadataFromContext returns the call metadata from the context.

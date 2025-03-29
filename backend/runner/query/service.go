@@ -234,9 +234,20 @@ func (s *Service) UpdateConnections(ctx context.Context, module *schema.Module, 
 
 type queryConn struct {
 	lock         sync.RWMutex
-	transactions map[string]*sql.Tx
+	transactions map[string]*txWrapper
 	db           *sql.DB
 	engine       string
+}
+
+// txWrapper holds both the transaction and its dedicated connection
+type txWrapper struct {
+	tx         *sql.Tx
+	conn       *sql.Conn
+	cancelFunc context.CancelFunc //nolint:forbidigo
+}
+
+func (t *txWrapper) cancel() {
+	t.cancelFunc()
 }
 
 // DB represents a database that can execute queries
@@ -247,19 +258,6 @@ type DB interface {
 }
 
 func newQueryConn(ctx context.Context, dsn string, engine string) (*queryConn, error) {
-	if dsn == "" {
-		return nil, fmt.Errorf("database connection string is required")
-	}
-
-	switch engine {
-	case "mysql", "postgres":
-	default:
-		return nil, fmt.Errorf("unsupported database engine: %s (supported: mysql, postgres)", engine)
-	}
-
-	logger := log.FromContext(ctx).Scope("query")
-	ctx = log.ContextWithLogger(ctx, logger)
-
 	db, err := sql.Open(getDriverName(engine), dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -271,7 +269,7 @@ func newQueryConn(ctx context.Context, dsn string, engine string) (*queryConn, e
 	}
 
 	return &queryConn{
-		transactions: make(map[string]*sql.Tx),
+		transactions: make(map[string]*txWrapper),
 		db:           db,
 		engine:       engine,
 	}, nil
@@ -281,9 +279,9 @@ func (s *queryConn) Close() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	// Rollback any open transactions
-	for id, tx := range s.transactions {
-		_ = tx.Rollback() //nolint:errcheck
+	// Rollback any open transactions and close their connections
+	for id, wrapper := range s.transactions {
+		wrapper.cancel()
 		delete(s.transactions, id)
 	}
 
@@ -301,26 +299,43 @@ func (s *queryConn) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReq
 }
 
 func (s *queryConn) BeginTransaction(ctx context.Context, req *connect.Request[querypb.BeginTransactionRequest]) (*connect.Response[querypb.BeginTransactionResponse], error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+	// use context.Background() instead of the current request context. The transaction lifecycle
+	// must be managed independently to avoid premature cancelation; it may extend beyond the life of
+	// the current request if multiple verbs are executed in a single transaction.
+	txCtx, cancel := context.WithTimeoutCause(context.Background(), 30*time.Second, fmt.Errorf("transaction timed out")) // TODO: configure txn timeouts via db/config.toml
+	conn, err := s.db.Conn(txCtx)
 	if err != nil {
+		cancel()
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get dedicated connection: %w", err))
+	}
+
+	tx, err := conn.BeginTx(txCtx, nil)
+	if err != nil {
+		cancel()
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to begin transaction: %w", err))
 	}
 
-	transactionID := uuid.New().String()
-
+	txID := uuid.NewString()
 	s.lock.Lock()
-	s.transactions[transactionID] = tx
+	if s.transactions == nil {
+		s.transactions = make(map[string]*txWrapper)
+	}
+	s.transactions[txID] = &txWrapper{
+		tx:         tx,
+		conn:       conn,
+		cancelFunc: cancel,
+	}
 	s.lock.Unlock()
 
 	return connect.NewResponse(&querypb.BeginTransactionResponse{
-		TransactionId: transactionID,
+		TransactionId: txID,
 		Status:        querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS,
 	}), nil
 }
 
 func (s *queryConn) CommitTransaction(ctx context.Context, req *connect.Request[querypb.CommitTransactionRequest]) (*connect.Response[querypb.CommitTransactionResponse], error) {
 	s.lock.Lock()
-	tx, exists := s.transactions[req.Msg.TransactionId]
+	wrapper, exists := s.transactions[req.Msg.GetTransactionId()]
 	if !exists {
 		s.lock.Unlock()
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction %s not found", req.Msg.TransactionId))
@@ -328,12 +343,10 @@ func (s *queryConn) CommitTransaction(ctx context.Context, req *connect.Request[
 	delete(s.transactions, req.Msg.TransactionId)
 	s.lock.Unlock()
 
-	if err := tx.Commit(); err != nil {
-		return connect.NewResponse(&querypb.CommitTransactionResponse{
-			Status: querypb.TransactionStatus_TRANSACTION_STATUS_FAILED,
-		}), nil
+	defer wrapper.cancel()
+	if err := wrapper.tx.Commit(); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to commit transaction: %w", err))
 	}
-
 	return connect.NewResponse(&querypb.CommitTransactionResponse{
 		Status: querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS,
 	}), nil
@@ -341,7 +354,7 @@ func (s *queryConn) CommitTransaction(ctx context.Context, req *connect.Request[
 
 func (s *queryConn) RollbackTransaction(ctx context.Context, req *connect.Request[querypb.RollbackTransactionRequest]) (*connect.Response[querypb.RollbackTransactionResponse], error) {
 	s.lock.Lock()
-	tx, exists := s.transactions[req.Msg.TransactionId]
+	wrapper, exists := s.transactions[req.Msg.GetTransactionId()]
 	if !exists {
 		s.lock.Unlock()
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction %s not found", req.Msg.TransactionId))
@@ -349,12 +362,10 @@ func (s *queryConn) RollbackTransaction(ctx context.Context, req *connect.Reques
 	delete(s.transactions, req.Msg.TransactionId)
 	s.lock.Unlock()
 
-	if err := tx.Rollback(); err != nil {
-		return connect.NewResponse(&querypb.RollbackTransactionResponse{
-			Status: querypb.TransactionStatus_TRANSACTION_STATUS_FAILED,
-		}), nil
+	defer wrapper.cancel()
+	if err := wrapper.tx.Rollback(); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to rollback transaction: %w", err))
 	}
-
 	return connect.NewResponse(&querypb.RollbackTransactionResponse{
 		Status: querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS,
 	}), nil
@@ -363,12 +374,12 @@ func (s *queryConn) RollbackTransaction(ctx context.Context, req *connect.Reques
 func (s *queryConn) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream serverStream) error {
 	if req.Msg.TransactionId != nil && *req.Msg.TransactionId != "" {
 		s.lock.RLock()
-		tx, ok := s.transactions[*req.Msg.TransactionId]
+		wrapper, ok := s.transactions[req.Msg.GetTransactionId()]
 		s.lock.RUnlock()
 		if !ok {
-			return connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction not found: %s", *req.Msg.TransactionId))
+			return connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction %s not found", req.Msg.GetTransactionId()))
 		}
-		return s.executeQuery(ctx, tx, req.Msg, stream)
+		return s.executeQuery(ctx, wrapper.tx, req.Msg, stream)
 	}
 	return s.executeQuery(ctx, s.db, req.Msg, stream)
 }
@@ -389,16 +400,11 @@ func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.Execut
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get rows affected: %w", err))
 		}
-		lastInsertID, err := result.LastInsertId()
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get last insert id: %w", err))
-		}
 
 		protoResp := &querypb.ExecuteQueryResponse{
 			Result: &querypb.ExecuteQueryResponse_ExecResult{
 				ExecResult: &querypb.ExecResult{
 					RowsAffected: rowsAffected,
-					LastInsertId: &lastInsertID,
 				},
 			},
 		}

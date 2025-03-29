@@ -15,8 +15,10 @@ type TypeRegistry struct {
 	variantsToDiscriminators map[reflect.Type]reflect.Type
 	externalTypes            map[reflect.Type]struct{}
 	verbCalls                map[Ref]verbCall
-	queryVerbs               map[Ref]ReflectedDatabase // maps the verb ref to associated the database
-	databases                map[reflect.Type]*ReflectedDatabaseHandle
+	dbHandles                map[reflect.Type]*ReflectedDatabaseHandle
+	databases                map[Ref]ReflectedDatabase
+	queryVerbs               map[Ref]Ref // maps the verb ref to associated the database
+	transactionVerbs         map[Ref]Ref // maps the verb ref to associated the database
 }
 
 type sumTypeVariant struct {
@@ -55,8 +57,10 @@ func newTypeRegistry(options ...Registree) *TypeRegistry {
 		variantsToDiscriminators: map[reflect.Type]reflect.Type{},
 		externalTypes:            map[reflect.Type]struct{}{},
 		verbCalls:                map[Ref]verbCall{},
-		databases:                map[reflect.Type]*ReflectedDatabaseHandle{},
-		queryVerbs:               map[Ref]ReflectedDatabase{},
+		dbHandles:                map[reflect.Type]*ReflectedDatabaseHandle{},
+		databases:                map[Ref]ReflectedDatabase{},
+		queryVerbs:               map[Ref]Ref{},
+		transactionVerbs:         map[Ref]Ref{},
 	}
 	for _, o := range options {
 		o(t)

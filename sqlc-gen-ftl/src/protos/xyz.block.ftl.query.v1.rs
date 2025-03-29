@@ -87,9 +87,6 @@ pub mod execute_query_response {
 pub struct ExecResult {
     #[prost(int64, tag="1")]
     pub rows_affected: i64,
-    /// Only for some databases like MySQL
-    #[prost(int64, optional, tag="2")]
-    pub last_insert_id: ::core::option::Option<i64>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RowResults {

@@ -309,6 +309,7 @@ message Metadata {
     MetadataSQLQuery sql_query = 16;
     MetadataSecrets secrets = 11;
     MetadataSubscriber subscriber = 7;
+    MetadataTransaction transaction = 21;
     MetadataTypeMap type_map = 8;
   }
 }
@@ -426,6 +427,11 @@ message MetadataSubscriber {
   Ref topic = 2;
   FromOffset from_offset = 3;
   bool dead_letter = 4;
+}
+
+// MetadataTransaction identifies a verb that serves as a transaction boundary.
+message MetadataTransaction {
+  optional Position pos = 1;
 }
 
 message MetadataTypeMap {

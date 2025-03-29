@@ -11,6 +11,7 @@ import (
 
 	"github.com/block/ftl-golang-tools/go/analysis"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/common/strcase"
 	"github.com/block/ftl/go-runtime/schema/common"
 	"github.com/block/ftl/go-runtime/schema/initialize"
@@ -52,6 +53,7 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 	hasRequest := false
 	var orderedResourceParams []common.VerbResourceParam
 	if !common.ApplyMetadata[*schema.Verb](pass, obj, func(md *common.ExtractedMetadata) {
+		_, isTransaction := slices.FindVariant[*schema.MetadataTransaction](md.Metadata)
 		verb.Comments = md.Comments
 		verb.Export = md.IsExported
 		verb.Metadata = md.Metadata
@@ -84,6 +86,10 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 			common.MarkIncludeNativeName(pass, paramObj, r.ref)
 			switch r.typ {
 			case common.VerbResourceTypeVerbClient:
+				if currentModule, err := common.FtlModuleFromGoPackage(pass.Pkg.Path()); err == nil && isTransaction && r.ref.Module != currentModule {
+					common.Errorf(pass, param, "could not inject external verb %q because calling external verbs from within a transaction is not allowed", r.ref)
+					continue
+				}
 				verb.AddCall(r.ref)
 			case common.VerbResourceTypeDatabaseHandle:
 				verb.AddDatabase(r.ref)

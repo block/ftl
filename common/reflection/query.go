@@ -30,9 +30,6 @@ func Query(
 			fn:   reflect.ValueOf(queryFunc),
 		}
 		t.verbCalls[ref] = vi
-		t.queryVerbs[ref] = ReflectedDatabase{
-			DBType: dbType,
-			Name:   dbName,
-		}
+		t.queryVerbs[ref] = Ref{Module: ref.Module, Name: dbName}
 	}
 }

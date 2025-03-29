@@ -425,6 +425,31 @@ func (d *DirectiveDatabase) GetPosition() token.Pos {
 }
 func (*DirectiveDatabase) MustAnnotate() []ast.Node { return []ast.Node{&ast.GenDecl{}} }
 
+type DirectiveTransaction struct {
+	Pos token.Pos
+
+	Transaction bool `parser:"'transaction'"`
+}
+
+func (*DirectiveTransaction) directive() {}
+
+func (d *DirectiveTransaction) String() string {
+	return "transaction"
+}
+func (d *DirectiveTransaction) IsExported() bool {
+	return false
+}
+func (*DirectiveTransaction) GetTypeName() string { return "transaction" }
+func (d *DirectiveTransaction) SetPosition(pos token.Pos) {
+	d.Pos = pos
+}
+func (d *DirectiveTransaction) GetPosition() token.Pos {
+	return d.Pos
+}
+func (*DirectiveTransaction) MustAnnotate() []ast.Node {
+	return []ast.Node{&ast.FuncDecl{}}
+}
+
 var DirectiveParser = participle.MustBuild[directiveWrapper](
 	participle.Lexer(schema.Lexer),
 	participle.Elide("Whitespace"),
@@ -432,7 +457,8 @@ var DirectiveParser = participle.MustBuild[directiveWrapper](
 	participle.UseLookahead(2),
 	participle.Union[Directive](&DirectiveVerb{}, &DirectiveData{}, &DirectiveEnum{}, &DirectiveTypeAlias{},
 		&DirectiveIngress{}, &DirectiveCronJob{}, &DirectiveRetry{}, &DirectiveSubscriber{}, &DirectiveExport{},
-		&DirectiveTypeMap{}, &DirectiveEncoding{}, &DirectiveTopic{}, &DirectiveDatabase{}, &DirectiveFixture{}),
+		&DirectiveTypeMap{}, &DirectiveEncoding{}, &DirectiveTopic{}, &DirectiveDatabase{}, &DirectiveFixture{},
+		&DirectiveTransaction{}),
 	participle.Union[schema.IngressPathComponent](&schema.IngressPathLiteral{}, &schema.IngressPathParameter{}),
 	participle.ParseTypeWith(schema.ParseTypeWithLexer),
 )

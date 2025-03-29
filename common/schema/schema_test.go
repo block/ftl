@@ -85,6 +85,10 @@ module todo {
   verb scheduled(Unit) Unit
       +cron */10 * * 1-10,11-31 * * *
 
+  verb transaction(Unit) Unit
+    +database uses todo.testdb
+    +transaction
+
   verb twiceADay(Unit) Unit
       +cron 12h
 }
@@ -257,6 +261,12 @@ Module
     Unit
     Unit
     MetadataCronJob
+  Verb
+    Unit
+    Unit
+    MetadataDatabases
+      Ref
+    MetadataTransaction
   Verb
     Unit
     Unit
@@ -855,6 +865,9 @@ module todo {
     +fixture
   verb manualFixture(Unit) Unit
     +fixture manual
+  verb transaction(Unit) Unit
+    +database uses todo.testdb
+    +transaction
 }
 `
 	actual, err := ParseModuleString("", input)
@@ -1040,6 +1053,14 @@ var testSchema = MustValidate(&Schema{
 					Response: &Unit{Unit: true},
 					Metadata: []Metadata{
 						&MetadataFixture{Manual: true},
+					},
+				},
+				&Verb{Name: "transaction",
+					Request:  &Unit{Unit: true},
+					Response: &Unit{Unit: true},
+					Metadata: []Metadata{
+						&MetadataTransaction{},
+						&MetadataDatabases{Calls: []*Ref{{Module: "todo", Name: "testdb"}}},
 					},
 				},
 			},

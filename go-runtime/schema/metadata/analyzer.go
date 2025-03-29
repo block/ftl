@@ -173,6 +173,12 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 				Pos:     common.GoPosToSchemaPos(pass.Fset, dt.GetPosition()),
 				Lenient: dt.Lenient,
 			})
+		case *common.DirectiveTransaction:
+			requireOnlyDirective(pass, node, directives, dt.GetTypeName())
+			metadata = append(metadata, &schema.MetadataTransaction{
+				Pos: common.GoPosToSchemaPos(pass.Fset, dt.GetPosition()),
+			})
+			newSchType = &schema.Verb{}
 		case *common.DirectiveVerb:
 			newSchType = &schema.Verb{}
 		case *common.DirectiveData:

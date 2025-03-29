@@ -165,6 +165,15 @@ pub struct ApplyChangesetResponse {
     pub changeset: ::core::option::Option<super::super::schema::v1::Changeset>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateDeploymentRuntimeRequest {
+    /// The modules to add or update.
+    #[prost(message, optional, tag="1")]
+    pub element: ::core::option::Option<super::super::schema::v1::RuntimeElement>,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UpdateDeploymentRuntimeResponse {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetArtefactDiffsRequest {
     #[prost(string, repeated, tag="1")]
     pub client_digests: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
@@ -226,14 +235,67 @@ pub struct ClusterInfoResponse {
     pub arch: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct StreamChangesetLogsRequest {
-    #[prost(string, tag="1")]
-    pub changeset_key: ::prost::alloc::string::String,
+pub struct StreamLogsRequest {
+    #[prost(message, optional, tag="1")]
+    pub query: ::core::option::Option<super::super::timeline::v1::TimelineQuery>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct StreamChangesetLogsResponse {
+pub struct StreamLogsResponse {
     #[prost(message, repeated, tag="1")]
     pub logs: ::prost::alloc::vec::Vec<super::super::timeline::v1::LogEvent>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetTopicInfoRequest {
+    #[prost(message, optional, tag="1")]
+    pub topic: ::core::option::Option<super::super::schema::v1::Ref>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PubSubEventMetadata {
+    #[prost(message, optional, tag="1")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(int64, tag="2")]
+    pub offset: i64,
+    #[prost(string, tag="3")]
+    pub request_key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetTopicInfoResponse {
+    #[prost(message, repeated, tag="1")]
+    pub partitions: ::prost::alloc::vec::Vec<get_topic_info_response::PartitionInfo>,
+}
+/// Nested message and enum types in `GetTopicInfoResponse`.
+pub mod get_topic_info_response {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct PartitionInfo {
+        #[prost(int32, tag="1")]
+        pub partition: i32,
+        #[prost(message, optional, tag="2")]
+        pub head: ::core::option::Option<super::PubSubEventMetadata>,
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetSubscriptionInfoRequest {
+    #[prost(message, optional, tag="1")]
+    pub subscription: ::core::option::Option<super::super::schema::v1::Ref>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetSubscriptionInfoResponse {
+    #[prost(message, repeated, tag="1")]
+    pub partitions: ::prost::alloc::vec::Vec<get_subscription_info_response::PartitionInfo>,
+}
+/// Nested message and enum types in `GetSubscriptionInfoResponse`.
+pub mod get_subscription_info_response {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct PartitionInfo {
+        #[prost(int32, tag="1")]
+        pub partition: i32,
+        #[prost(message, optional, tag="2")]
+        pub consumed: ::core::option::Option<super::PubSubEventMetadata>,
+        #[prost(message, optional, tag="3")]
+        pub next: ::core::option::Option<super::PubSubEventMetadata>,
+        #[prost(message, optional, tag="4")]
+        pub head: ::core::option::Option<super::PubSubEventMetadata>,
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
