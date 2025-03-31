@@ -9,12 +9,14 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ReloadRequest(_message.Message):
-    __slots__ = ("force_new_runner", "new_deployment_key")
+    __slots__ = ("force_new_runner", "new_deployment_key", "schema_changed")
     FORCE_NEW_RUNNER_FIELD_NUMBER: _ClassVar[int]
     NEW_DEPLOYMENT_KEY_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_CHANGED_FIELD_NUMBER: _ClassVar[int]
     force_new_runner: bool
     new_deployment_key: str
-    def __init__(self, force_new_runner: bool = ..., new_deployment_key: _Optional[str] = ...) -> None: ...
+    schema_changed: bool
+    def __init__(self, force_new_runner: bool = ..., new_deployment_key: _Optional[str] = ..., schema_changed: bool = ...) -> None: ...
 
 class ReloadResponse(_message.Message):
     __slots__ = ("state", "failed")

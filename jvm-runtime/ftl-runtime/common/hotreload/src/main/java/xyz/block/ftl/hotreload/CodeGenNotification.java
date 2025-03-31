@@ -25,8 +25,8 @@ public class CodeGenNotification {
         CodeGenNotification.class.notifyAll();
     }
 
-    public static synchronized void waitForCodeGen() {
-        boolean wait = false;
+    public static synchronized void waitForCodeGen(boolean schemaChanged) {
+        boolean wait = schemaChanged && schemaDirs.isEmpty();
         for (Map.Entry<Path, Long> p : lastModified.entrySet()) {
             if (p.getKey().toFile().lastModified() != p.getValue()) {
                 wait = true;

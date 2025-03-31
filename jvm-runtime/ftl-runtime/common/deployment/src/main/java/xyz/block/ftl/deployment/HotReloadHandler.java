@@ -85,7 +85,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
         LOG.debugf("Reload request: %s", request.getNewDeploymentKey());
-        CodeGenNotification.waitForCodeGen();
+        CodeGenNotification.waitForCodeGen(request.getSchemaChanged());
         possibleNewDeploymentKeys.add(request.getNewDeploymentKey());
         var forceNewRunner = request.getForceNewRunner() || nextRequiresNewRunner;
         this.nextRequiresNewRunner = false;
