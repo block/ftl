@@ -26,9 +26,13 @@ func GetNewModuleFlags(ctx context.Context, language string) ([]*kong.Flag, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to get create module flags from plugin: %w", err)
 	}
+	return kongFlagsFromProto(res.Flags)
+}
+
+func kongFlagsFromProto(protoFlags []*langpb.GetNewModuleFlagsResponse_Flag) ([]*kong.Flag, error) {
 	flags := []*kong.Flag{}
 	shorts := map[rune]string{}
-	for _, f := range res.Flags {
+	for _, f := range protoFlags {
 		flag := &kong.Flag{
 			Value: &kong.Value{
 				Name: f.Name,
