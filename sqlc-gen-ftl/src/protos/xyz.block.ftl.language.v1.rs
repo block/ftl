@@ -48,16 +48,16 @@ pub struct ProjectConfig {
     pub hermit: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetCreateModuleFlagsRequest {
+pub struct GetNewModuleFlagsComman {
     #[prost(string, tag="1")]
     pub language: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetCreateModuleFlagsResponse {
+pub struct GetNewModuleFlagsResult {
     #[prost(message, repeated, tag="1")]
     pub flags: ::prost::alloc::vec::Vec<get_create_module_flags_response::Flag>,
 }
-/// Nested message and enum types in `GetCreateModuleFlagsResponse`.
+/// Nested message and enum types in `GetNewModuleFlagsResult`.
 pub mod get_create_module_flags_response {
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Flag {
@@ -78,7 +78,7 @@ pub mod get_create_module_flags_response {
 }
 /// Request to create a new module.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CreateModuleRequest {
+pub struct NewModuleRequest {
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
     /// The root directory for the module, which does not yet exist.
@@ -94,7 +94,7 @@ pub struct CreateModuleRequest {
 }
 /// Response to a create module request.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct CreateModuleResponse {
+pub struct NewModuleResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModuleConfigDefaultsRequest {

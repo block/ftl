@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package xyz.block.ftl.language.v1;
+
+import "google/protobuf/struct.proto";
+import "xyz/block/ftl/language/v1/service.proto";
+
+option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1;languagepb";
+option java_multiple_files = true;
+
+message GetNewModuleFlagsRequest {
+    string language = 1;
+  }
+  
+  message GetNewModuleFlagsResponse {
+    message Flag {
+      string name = 1;
+      string help = 2;
+      optional string envar = 3;
+      // short must be a single character
+      optional string short = 4;
+      optional string placeholder = 5;
+      optional string default = 6;
+    }
+    repeated Flag flags = 1;
+  }
+  
+  // Request to create a new module.
+  message NewModuleRequest {
+    string name = 1;
+    // The root directory for the module, which does not yet exist.
+    // The plugin should create the directory.
+    string dir = 2;
+  
+    // The project configuration
+    ProjectConfig project_config = 3;
+  
+    // Flags contains any values set for those configured in the GetCreateModuleFlags call
+    google.protobuf.Struct flags = 4;
+  }
+  
+  // Response to a create module request.
+  message NewModuleResponse {}
+  
+  message GetModuleConfigDefaultsRequest {
+    string dir = 1;
+  }
+  
+  // ModuleConfigDefaultsResponse provides defaults for ModuleConfig.
+  //
+  // The result may be cached by FTL, so defaulting logic should not be changing due to normal module changes.
+  // For example, it is valid to return defaults based on which build tool is configured within the module directory,
+  // as that is not expected to change during normal operation.
+  // It is not recommended to read the module's toml file to determine defaults, as when the toml file is updated,
+  // the module defaults will not be recalculated.
+  message GetModuleConfigDefaultsResponse {
+    // Default relative path to the directory containing all build artifacts for deployments
+    string deploy_dir = 1;
+  
+    // Default build command
+    optional string build = 2;
+  
+    // Dev mode build command, if different from the regular build command
+    optional string dev_mode_build = 3;
+  
+    // Build lock path to prevent concurrent builds
+    optional string build_lock = 4;
+  
+    // Default patterns to watch for file changes, relative to the module directory
+    repeated string watch = 6;
+  
+    // Default language specific configuration.
+    // These defaults are filled in by looking at each root key only. If the key is not present, the default is used.
+    google.protobuf.Struct language_config = 7;
+  
+    // Root directory containing SQL files.
+    string sql_root_dir = 8;
+  }
+
+// LanguageCommandService models commands that can be sent to a language plugin over the CLI interface.
+service LanguageCommandService {
+  // Get language specific flags that can be used to create a new module.
+  rpc GetNewModuleFlags(GetNewModuleFlagsRequest) returns (GetNewModuleFlagsResponse);
+
+  // Generates files for a new module with the requested name
+  rpc NewModule(NewModuleRequest) returns (NewModuleResponse);
+
+  // Provide default values for ModuleConfig for values that are not configured in the ftl.toml file.
+  rpc GetModuleConfigDefaults(GetModuleConfigDefaultsRequest) returns (GetModuleConfigDefaultsResponse);
+}

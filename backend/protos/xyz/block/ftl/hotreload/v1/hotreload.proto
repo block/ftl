@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package xyz.block.ftl.hotreload.v1;
 
-import "xyz/block/ftl/language/v1/language.proto";
+import "xyz/block/ftl/language/v1/service.proto";
 import "xyz/block/ftl/schema/v1/schema.proto";
 import "xyz/block/ftl/v1/ftl.proto";
 

@@ -8,12 +8,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/either"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/alecthomas/types/result"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/builderrors"
@@ -158,100 +156,6 @@ func (p *LanguagePlugin) Kill() error {
 // The same topic must be returned each time this method is called
 func (p *LanguagePlugin) Updates() *pubsub.Topic[PluginEvent] {
 	return p.updates
-}
-
-// GetCreateModuleFlags returns the flags that can be used to create a module for this language.
-func (p *LanguagePlugin) GetCreateModuleFlags(ctx context.Context) ([]*kong.Flag, error) {
-	res, err := p.client.getCreateModuleFlags(ctx, connect.NewRequest(&langpb.GetCreateModuleFlagsRequest{}))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get create module flags from plugin: %w", err)
-	}
-	flags := []*kong.Flag{}
-	shorts := map[rune]string{}
-	for _, f := range res.Msg.Flags {
-		flag := &kong.Flag{
-			Value: &kong.Value{
-				Name: f.Name,
-				Help: f.Help,
-				Tag:  &kong.Tag{},
-			},
-		}
-		if f.Envar != nil && *f.Envar != "" {
-			flag.Value.Tag.Envs = []string{*f.Envar}
-		}
-		if f.Default != nil && *f.Default != "" {
-			flag.Value.HasDefault = true
-			flag.Value.Default = *f.Default
-		}
-		if f.Short != nil && *f.Short != "" {
-			if len(*f.Short) > 1 {
-				return nil, fmt.Errorf("invalid flag declared: short flag %q for %v must be a single character", *f.Short, f.Name)
-			}
-			short := rune((*f.Short)[0])
-			if existingFullName, ok := shorts[short]; ok {
-				return nil, fmt.Errorf("multiple flags declared with the same short name: %v and %v", existingFullName, f.Name)
-			}
-			flag.Short = short
-			shorts[short] = f.Name
-
-		}
-		if f.Placeholder != nil && *f.Placeholder != "" {
-			flag.PlaceHolder = *f.Placeholder
-		}
-		flags = append(flags, flag)
-	}
-	return flags, nil
-}
-
-// CreateModule creates a new module in the given directory with the given name and language.
-func (p *LanguagePlugin) CreateModule(ctx context.Context, projConfig projectconfig.Config, moduleConfig moduleconfig.ModuleConfig, flags map[string]string) error {
-	genericFlags := map[string]any{}
-	for k, v := range flags {
-		genericFlags[k] = v
-	}
-	flagsProto, err := structpb.NewStruct(genericFlags)
-	if err != nil {
-		return fmt.Errorf("failed to convert flags to proto: %w", err)
-	}
-	_, err = p.client.createModule(ctx, connect.NewRequest(&langpb.CreateModuleRequest{
-		Name:          moduleConfig.Module,
-		Dir:           moduleConfig.Dir,
-		ProjectConfig: langpb.ProjectConfigToProto(projConfig),
-		Flags:         flagsProto,
-	}))
-	if err != nil {
-		return fmt.Errorf("failed to create module: %w", err)
-	}
-	return nil
-}
-
-// ModuleConfigDefaults provides custom defaults for the module config.
-//
-// The result may be cached by FTL, so defaulting logic should not be changing due to normal module changes.
-// For example, it is valid to return defaults based on which build tool is configured within the module directory,
-// as that is not expected to change during normal operation.
-// It is not recommended to read the module's toml file to determine defaults, as when the toml file is updated,
-// the module defaults will not be recalculated.
-func (p *LanguagePlugin) ModuleConfigDefaults(ctx context.Context, dir string) (moduleconfig.CustomDefaults, error) {
-	resp, err := p.client.moduleConfigDefaults(ctx, connect.NewRequest(&langpb.ModuleConfigDefaultsRequest{
-		Dir: dir,
-	}))
-	if err != nil {
-		return moduleconfig.CustomDefaults{}, fmt.Errorf("failed to get module config defaults from plugin: %w", err)
-	}
-	return customDefaultsFromProto(resp.Msg), nil
-}
-
-func customDefaultsFromProto(proto *langpb.ModuleConfigDefaultsResponse) moduleconfig.CustomDefaults {
-	return moduleconfig.CustomDefaults{
-		DeployDir:      proto.DeployDir,
-		Watch:          proto.Watch,
-		Build:          optional.Ptr(proto.Build),
-		DevModeBuild:   optional.Ptr(proto.DevModeBuild),
-		BuildLock:      optional.Ptr(proto.BuildLock),
-		LanguageConfig: proto.LanguageConfig.AsMap(),
-		SQLRootDir:     proto.SqlRootDir,
-	}
 }
 
 // GetDependencies returns the dependencies of the module.

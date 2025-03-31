@@ -3,21 +3,17 @@ package pythonplugin
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
-	"github.com/block/scaffolder"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	langconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
-	pythonruntime "github.com/block/ftl/python-runtime"
 	"github.com/block/ftl/python-runtime/compile"
 )
 
@@ -53,43 +49,6 @@ func New() *Service {
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
-}
-
-func (s *Service) GetCreateModuleFlags(ctx context.Context, req *connect.Request[langpb.GetCreateModuleFlagsRequest]) (*connect.Response[langpb.GetCreateModuleFlagsResponse], error) {
-	return connect.NewResponse(&langpb.GetCreateModuleFlagsResponse{}), nil
-}
-
-type scaffoldingContext struct {
-	Name string
-}
-
-func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.CreateModuleRequest]) (*connect.Response[langpb.CreateModuleResponse], error) {
-	logger := log.FromContext(ctx)
-	projConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
-
-	opts := []scaffolder.Option{}
-	if !projConfig.Hermit {
-		logger.Debugf("Excluding bin directory")
-		opts = append(opts, scaffolder.Exclude("^bin"))
-	}
-
-	sctx := scaffoldingContext{
-		Name: req.Msg.Name,
-	}
-
-	// scaffold at one directory above the module directory
-	parentPath := filepath.Dir(req.Msg.Dir)
-	if err := internal.ScaffoldZip(pythonruntime.Files(), parentPath, sctx, opts...); err != nil {
-		return nil, fmt.Errorf("failed to scaffold: %w", err)
-	}
-	return connect.NewResponse(&langpb.CreateModuleResponse{}), nil
-}
-
-func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
-	return connect.NewResponse(&langpb.ModuleConfigDefaultsResponse{
-		Watch:     []string{"**/*.py"},
-		DeployDir: ".ftl",
-	}), nil
 }
 
 func (s *Service) GetDependencies(ctx context.Context, req *connect.Request[langpb.GetDependenciesRequest]) (*connect.Response[langpb.GetDependenciesResponse], error) {

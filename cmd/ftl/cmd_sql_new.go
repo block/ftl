@@ -65,11 +65,7 @@ func (i newSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) 
 	}
 
 	language := module.Language
-	plugin, err := languageplugin.CreateLanguagePlugin(ctx, projectConfig, language)
-	if err != nil {
-		return fmt.Errorf("could not create plugin for language %q: %w", language, err)
-	}
-	defaults, err := plugin.ModuleConfigDefaults(ctx, module.Dir)
+	defaults, err := languageplugin.GetModuleConfigDefaults(ctx, language, module.Dir)
 	if err != nil {
 		return fmt.Errorf("could not get module config defaults for language %q: %w", language, err)
 	}
