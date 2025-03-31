@@ -24,6 +24,13 @@ export class ReloadRequest extends Message<ReloadRequest> {
    */
   newDeploymentKey = "";
 
+  /**
+   * If the schema has changed on the plugin side, this will be true
+   *
+   * @generated from field: bool schema_changed = 3;
+   */
+  schemaChanged = false;
+
   constructor(data?: PartialMessage<ReloadRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -34,6 +41,7 @@ export class ReloadRequest extends Message<ReloadRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "force_new_runner", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 2, name: "new_deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "schema_changed", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReloadRequest {

@@ -218,6 +218,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                         (k) -> new PackageOutput(context.outDir(), packageName));
                 for (var decl : module.getDeclsList()) {
                     if (decl.hasVerb()) {
+                        log.debugf("Generating SQL verb %s", decl.getVerb().getName());
                         var verb = decl.getVerb();
                         var queryMetadata = verb.getMetadataList().stream().filter(md -> md.hasSqlQuery()).findFirst()
                                 .map(md -> md.getSqlQuery()).orElse(null);
@@ -236,6 +237,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                             generateSQLQueryVerb(module, verb, dbName, queryMetadata, packageName, output);
                         }
                     } else if (decl.hasData()) {
+                        log.debugf("Generating SQL verb data %s", decl.getVerb().getName());
                         var data = decl.getData();
                         generateDataObject(module, data, packageName, new HashMap<>(), new HashMap<>(), new HashMap<>(),
                                 output);

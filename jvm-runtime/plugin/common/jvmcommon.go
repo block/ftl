@@ -58,7 +58,8 @@ const ErrorFile = "errors.pb"
 var ErrInvalidateDependencies = errors.New("dependencies need to be updated")
 
 type buildContextUpdatedEvent struct {
-	buildCtx buildContext
+	buildCtx      buildContext
+	schemaChanged bool
 }
 
 // buildContext contains contextual information needed to build.
@@ -179,7 +180,7 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 		return nil, fmt.Errorf("failed to parse schema from proto: %w", err)
 	}
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
-	err = s.writeGenericSchemaFiles(ctx, sch, config, false)
+	_, err = s.writeGenericSchemaFiles(ctx, sch, config, false)
 	if err != nil {
 		return nil, err
 	}
@@ -205,13 +206,13 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		return err
 	}
 	s.buildContext.Store(buildCtx)
-	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
+	changed, err := s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
 	if err != nil {
 		return fmt.Errorf("failed to write generic schema files: %w", err)
 	}
 	if s.acceptsContextUpdates.Load() {
 		// Already running in dev mode, we don't need to rebuild
-		s.updatesTopic.Publish(buildContextUpdatedEvent{buildCtx: buildCtx})
+		s.updatesTopic.Publish(buildContextUpdatedEvent{buildCtx: buildCtx, schemaChanged: changed})
 		return nil
 	}
 	if req.Msg.RebuildAutomatically {
@@ -341,8 +342,9 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 		for e := range channels.IterContext(ctx, watchEvents) {
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
 				// Ignore changes to external protos. If a depenency was updated, the plugin will receive a new build context.
+				// Also ignore changes to
 				change.Changes = islices.Filter(change.Changes, func(c watch.FileChange) bool {
-					return !strings.HasPrefix(c.Path, stubsDir)
+					return !strings.HasPrefix(c.Path, stubsDir) && !strings.HasSuffix(c.Path, "queries.sql")
 				})
 				if len(change.Changes) == 0 {
 					continue
@@ -458,7 +460,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 			logger.Debugf("Build context updated")
 			go func() {
 				buildCtx = bc.buildCtx
-				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
+				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: bc.schemaChanged}))
 				if err != nil {
 					errors <- err
 					return
@@ -769,13 +771,14 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 	s.buildContext.Store(buildCtx)
-	err = s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
+	changed, err := s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to write generic schema files: %w", err)
 	}
 
 	s.updatesTopic.Publish(buildContextUpdatedEvent{
-		buildCtx: buildCtx,
+		buildCtx:      buildCtx,
+		schemaChanged: changed,
 	})
 
 	return connect.NewResponse(&langpb.BuildContextUpdatedResponse{}), nil
@@ -1044,25 +1047,27 @@ func ptr(s string) *string {
 	return &s
 }
 
-func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema, config moduleconfig.AbsModuleConfig, containsGeneratedSchema bool) error {
+func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema, config moduleconfig.AbsModuleConfig, containsGeneratedSchema bool) (bool, error) {
 	if v == nil {
-		return nil
+		return false, nil
 	}
 	logger := log.FromContext(ctx)
 	modPath := filepath.Join(config.Dir, "src", "main", "ftl-module-schema")
 	err := os.MkdirAll(modPath, 0750)
 	if err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", modPath, err)
+		return false, fmt.Errorf("failed to create directory %s: %w", modPath, err)
 	}
 	changed := false
 
 	for _, mod := range v.Modules {
 		if mod.Name == config.Module {
 			if containsGeneratedSchema {
-				err = s.writeGeneratedSchemaFiles(mod, modPath)
+				logger.Debugf("writing generated schema files for %s", mod.Name)
+				sw, err := s.writeGeneratedSchemaFiles(mod, modPath)
 				if err != nil {
-					return err
+					return false, err
 				}
+				changed = changed || sw
 			}
 			continue
 		}
@@ -1072,7 +1077,7 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 		}
 		data, err := schema.ModuleToBytes(mod)
 		if err != nil {
-			return fmt.Errorf("failed to export module schema for module %s %w", mod.Name, err)
+			return false, fmt.Errorf("failed to export module schema for module %s %w", mod.Name, err)
 		}
 		schemaFile := filepath.Join(modPath, mod.Name+".pb")
 		if fileExists(schemaFile) {
@@ -1088,23 +1093,20 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 		err = os.WriteFile(schemaFile, data, 0644) // #nosec
 		logger.Debugf("writing schema files for %s to %s", mod.Name, schemaFile)
 		if err != nil {
-			return fmt.Errorf("failed to write schema file for module %s %w", mod.Name, err)
+			return false, fmt.Errorf("failed to write schema file for module %s %w", mod.Name, err)
 		}
 	}
-	if !changed {
-		return nil
-	}
-	return nil
+	return changed, nil
 }
 
-func (s *Service) writeGeneratedSchemaFiles(m *schema.Module, schemaDir string) error {
+func (s *Service) writeGeneratedSchemaFiles(m *schema.Module, schemaDir string) (bool, error) {
 	if m == nil {
-		return nil
+		return false, nil
 	}
 	generatedDir := filepath.Join(schemaDir, "generated")
 	err := os.MkdirAll(generatedDir, 0750)
 	if err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", generatedDir, err)
+		return false, fmt.Errorf("failed to create directory %s: %w", generatedDir, err)
 	}
 	schemaFile := filepath.Join(generatedDir, m.Name+".pb")
 
@@ -1113,15 +1115,15 @@ func (s *Service) writeGeneratedSchemaFiles(m *schema.Module, schemaDir string) 
 		if fileExists(schemaFile) {
 			err := os.Remove(schemaFile)
 			if err != nil {
-				return fmt.Errorf("failed to remove generated schema file for module %s %w", m.Name, err)
+				return false, fmt.Errorf("failed to remove generated schema file for module %s %w", m.Name, err)
 			}
 		}
-		return nil
+		return false, nil
 	}
 
 	data, err := schema.ModuleToBytes(generatedModule)
 	if err != nil {
-		return fmt.Errorf("failed to export generated module schema for module %s %w", m.Name, err)
+		return false, fmt.Errorf("failed to export generated module schema for module %s %w", m.Name, err)
 	}
 
 	if fileExists(schemaFile) {
@@ -1129,14 +1131,14 @@ func (s *Service) writeGeneratedSchemaFiles(m *schema.Module, schemaDir string) 
 		if err == nil {
 			// file has not changed, no need to write
 			if bytes.Equal(existing, data) {
-				return nil
+				return false, nil
 			}
 		}
 	}
 
 	err = os.WriteFile(schemaFile, data, 0644) // #nosec
 	if err != nil {
-		return fmt.Errorf("failed to write generated schema file for module %s %w", m.Name, err)
+		return false, fmt.Errorf("failed to write generated schema file for module %s %w", m.Name, err)
 	}
-	return nil
+	return true, nil
 }

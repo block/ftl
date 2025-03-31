@@ -13,6 +13,8 @@ message ReloadRequest {
   bool force_new_runner = 1;
   // If the reload results in a new runner, this will be the new deployment key
   string new_deployment_key = 2;
+  // If the schema has changed on the plugin side, this will be true
+  bool schema_changed = 3;
 }
 
 message ReloadResponse {
