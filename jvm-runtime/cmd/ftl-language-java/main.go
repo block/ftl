@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/kong"
+
 	"github.com/block/ftl"
 	languagepb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"

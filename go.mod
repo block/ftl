@@ -49,7 +49,6 @@ require (
 	github.com/mark3labs/mcp-go v0.15.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/multiformats/go-base36 v0.2.0
-	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/otiai10/copy v1.14.1
