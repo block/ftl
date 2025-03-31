@@ -76,7 +76,11 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 		flags[f.Name] = flagValue
 	}
 
-	release, err := flock.Acquire(ctx, config.WatchModulesLockPath(), 30*time.Second)
+	lockPath := config.WatchModulesLockPath()
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0700); err != nil {
+		return fmt.Errorf("could not create directory for file lock: %w", err)
+	}
+	release, err := flock.Acquire(ctx, lockPath, 30*time.Second)
 	if err != nil {
 		return fmt.Errorf("could not acquire file lock: %w", err)
 	}
