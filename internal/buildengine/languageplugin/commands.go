@@ -9,14 +9,15 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
+
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // GetCreateModuleFlags returns the flags that can be used to create a module for this language.

@@ -8,8 +8,9 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/block/ftl/internal/log"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/block/ftl/internal/log"
 )
 
 type Command struct {

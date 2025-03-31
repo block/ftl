@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 
 	"connectrpc.com/connect"
+	"github.com/block/scaffolder"
+
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/log"
 	pythonruntime "github.com/block/ftl/python-runtime"
-	"github.com/block/scaffolder"
 )
 
 type CmdService struct{}

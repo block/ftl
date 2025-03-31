@@ -9,13 +9,14 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
+	"github.com/block/scaffolder"
+
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
 	goruntime "github.com/block/ftl/go-runtime"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/scaffolder"
 )
 
 type CmdService struct{}
