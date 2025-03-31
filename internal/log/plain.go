@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/types/once"
@@ -122,12 +123,25 @@ func (t *plainSink) Log(entry Entry) error {
 	// Print
 	var err error
 	if t.isaTTY {
-		_, err = fmt.Fprintf(t.w, "%s%s%s%s\x1b[0m\n", levelColours[entry.Level], prefix, levelColours[entry.Level], entry.Message)
+		// Split message by newlines and apply color to each line
+		lines := strings.Split(entry.Message, "\n")
+		for i, line := range lines {
+			if i > 0 {
+				// For subsequent lines, just add the newline and color
+				_, err = fmt.Fprintf(t.w, "\n%s%s", levelColours[entry.Level], line)
+			} else {
+				_, err = fmt.Fprintf(t.w, "%s%s%s%s", levelColours[entry.Level], prefix, levelColours[entry.Level], line)
+			}
+			if err != nil {
+				return fmt.Errorf("failed to write log entry: %w", err)
+			}
+		}
+		_, err = fmt.Fprintf(t.w, "\x1b[0m\n")
 	} else {
 		_, err = fmt.Fprintf(t.w, "%s%s\n", prefix, entry.Message)
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write log entry: %w", err)
 	}
 	return nil
 }
