@@ -19,7 +19,7 @@ import (
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
-const interactivePrompt = "\033[32m>\033[0m "
+const interactivePrompt = "\033[1;32m❯\033[0m "
 
 var _ readline.AutoCompleter = &FTLCompletion{}
 
