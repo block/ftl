@@ -37,7 +37,4 @@ spec:
       patch:
         operation: MERGE
         value:
-          http_protocol_options:
-            enable_trailers: true
-          http2_protocol_options:
-            max_concurrent_streams: 100
+          http2_protocol_options: {}
