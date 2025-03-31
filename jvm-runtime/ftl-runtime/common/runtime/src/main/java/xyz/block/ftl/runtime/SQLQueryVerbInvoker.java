@@ -52,8 +52,14 @@ public class SQLQueryVerbInvoker implements VerbInvoker {
     @Override
     public CallResponse handle(CallRequest request) {
         try {
+            String transactionId = null;
+            for (var pair : request.getMetadata().getValuesList()) {
+                if (pair.getKey().equals("ftl-transaction")) {
+                    transactionId = pair.getValue();
+                }
+            }
             Object result = getVerbClientHelper().executeQuery(request.getBody().toByteArray(), dbName, command, rawSQL,
-                    fields, colToFieldName, returnType);
+                    fields, colToFieldName, returnType, transactionId);
             if (result == null) {
                 if (command.equals("exec")) {
                     return CallResponse.newBuilder().setBody(ByteString.copyFrom("{}", StandardCharsets.UTF_8)).build();

@@ -23,17 +23,21 @@ public class FTLRecorder {
 
     public void registerVerb(String module, String verbName, String methodName, List<Class<?>> parameterTypes,
             Class<?> verbHandlerClass, List<VerbRegistry.ParameterSupplier> paramMappers,
-            boolean allowNullReturn) {
+            boolean allowNullReturn, boolean isTransaction) {
         //TODO: this sucks
         try {
             var method = verbHandlerClass.getDeclaredMethod(methodName, parameterTypes.toArray(new Class[0]));
             method.setAccessible(true);
             var handlerInstance = Arc.container().instance(verbHandlerClass);
             Arc.container().instance(VerbRegistry.class).get().register(module, verbName, handlerInstance, method,
-                    paramMappers, allowNullReturn);
+                    paramMappers, allowNullReturn, isTransaction);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void registerTransactionDbAccess(String module, String verbName, List<String> databaseUses) {
+        Arc.container().instance(VerbRegistry.class).get().registerTransactionDbAccess(module, verbName, databaseUses);
     }
 
     public void registerSqlQueryVerb(String module, String verbName, Class<?> sqlQueryClientClass, Class<?> returnType,

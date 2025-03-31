@@ -27,4 +27,5 @@ public class FTLDotNames {
     public static final DotName TOPIC = DotName.createSimple(Topic.class);
     public static final DotName FIXTURE = DotName.createSimple(Fixture.class.getName());
     public static final DotName SINGLE_PARTITION_MAPPER = DotName.createSimple(SinglePartitionMapper.class);
+    public static final DotName TRANSACTIONAL = DotName.createSimple(Transactional.class);
 }

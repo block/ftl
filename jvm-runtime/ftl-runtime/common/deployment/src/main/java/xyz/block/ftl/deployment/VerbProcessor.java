@@ -336,6 +336,7 @@ public class VerbProcessor {
         Collection<AnnotationInstance> verbAnnotations = index.getIndex().getAnnotations(FTLDotNames.VERB);
         log.debugf("Processing %d verb annotations into decls", verbAnnotations.size());
         var beans = AdditionalBeanBuildItem.builder().setUnremovable();
+
         for (var verb : verbAnnotations) {
             boolean exported = verb.target().hasAnnotation(FTLDotNames.EXPORT);
             var method = verb.target().asMethod();
@@ -346,7 +347,23 @@ public class VerbProcessor {
             String className = method.declaringClass().name().toString();
             beans.addBeanClass(className);
             schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                    .registerVerbMethod(method, className, exported, ModuleBuilder.BodyType.ALLOWED)));
+                    .registerVerbMethod(method, className, exported, false, ModuleBuilder.BodyType.ALLOWED)));
+        }
+
+        Collection<AnnotationInstance> transactionAnnotations = index.getIndex().getAnnotations(FTLDotNames.TRANSACTIONAL);
+        for (var txn : transactionAnnotations) {
+            boolean exported = txn.target().hasAnnotation(FTLDotNames.EXPORT);
+            var method = txn.target().asMethod();
+            if (method.hasAnnotation(FTLDotNames.VERB) || method.hasAnnotation(FTLDotNames.CRON)
+                    || method.hasAnnotation(FTLDotNames.SUBSCRIPTION)
+                    || method.hasAnnotation(FTLDotNames.FIXTURE)) {
+                throw new RuntimeException(
+                        "Method " + method + " cannot have both @Transaction and @Verb, @Cron, @Fixture or @Subscription");
+            }
+            String className = method.declaringClass().name().toString();
+            beans.addBeanClass(className);
+            schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
+                    .registerVerbMethod(method, className, exported, true, ModuleBuilder.BodyType.ALLOWED)));
         }
 
         Collection<AnnotationInstance> cronAnnotations = index.getIndex().getAnnotations(FTLDotNames.CRON);
@@ -360,7 +377,7 @@ public class VerbProcessor {
             beans.addBeanClass(className);
 
             schemaContributorBuildItemBuildProducer.produce(
-                    new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
+                    new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className, false,
                             false, ModuleBuilder.BodyType.DISALLOWED,
                             new ModuleBuilder.VerbCustomization()
                                     .setMetadataCallback(builder -> builder.addMetadata(Metadata.newBuilder()
@@ -383,7 +400,7 @@ public class VerbProcessor {
 
             schemaContributorBuildItemBuildProducer.produce(
                     new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
-                            false, ModuleBuilder.BodyType.DISALLOWED,
+                            false, false, ModuleBuilder.BodyType.DISALLOWED,
                             new ModuleBuilder.VerbCustomization()
                                     .setMetadataCallback(builder -> builder.addMetadata(Metadata.newBuilder()
                                             .setFixture(MetadataFixture.newBuilder().setManual(manual))
