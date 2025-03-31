@@ -41,46 +41,47 @@ const BuildStateTerminated BuildState = "Terminated"
 
 // moduleStatusPadding is the padding between module status entries
 // it accounts for the icon, the module name, and the padding between them
-const moduleStatusPadding = 5
+const moduleStatusPadding = 8
 
 var _ StatusManager = &terminalStatusManager{}
 var _ StatusLine = &terminalStatusLine{}
 
 var buildColors map[BuildState]string
 var buildStateIcon map[BuildState]func(int) string
-
-var spinner = []string{"◜", "◝", "◞", "◟"}
+var spinnerChars = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 func init() {
 	buildColors = map[BuildState]string{
-		BuildStateWaiting:       "\u001B[93m",
-		BuildStateBuilding:      "\u001B[94m",
-		BuildStateBuilt:         "\u001B[92m",
-		BuildStateDeployWaiting: "\u001B[93m",
-		BuildStateDeploying:     "\u001B[94m",
-		BuildStateDeployed:      "\u001B[92m",
-		BuildStateFailed:        "\u001B[91m",
+		BuildStateWaiting:       "\u001B[38;5;244m", // Dimmed gray for waiting
+		BuildStateBuilding:      "\u001B[38;5;33m",  // Bright blue for building
+		BuildStateBuilt:         "\u001B[38;5;40m",  // Bright green for success
+		BuildStateDeployWaiting: "\u001B[38;5;244m", // Dimmed gray for waiting
+		BuildStateDeploying:     "\u001B[38;5;33m",  // Bright blue for deploying
+		BuildStateDeployed:      "\u001B[38;5;40m",  // Bright green for success
+		BuildStateFailed:        "\u001B[38;5;196m", // Bright red for failure
+	}
+
+	waiting := func(int) string {
+		return "◌"
 	}
 	spin := func(spinnerCount int) string {
-		return spinner[spinnerCount]
+		return spinnerChars[spinnerCount%len(spinnerChars)]
 	}
-	block := func(int) string {
-		return "✔"
+	success := func(int) string {
+		return "●"
 	}
-	cross := func(int) string {
-		return "✘"
+	failed := func(int) string {
+		return "✖"
 	}
-	empty := func(int) string {
-		return "•"
-	}
+
 	buildStateIcon = map[BuildState]func(int) string{
-		BuildStateWaiting:       empty,
+		BuildStateWaiting:       waiting,
 		BuildStateBuilding:      spin,
-		BuildStateBuilt:         block,
-		BuildStateDeployWaiting: empty,
+		BuildStateBuilt:         success,
+		BuildStateDeployWaiting: waiting,
 		BuildStateDeploying:     spin,
-		BuildStateDeployed:      block,
-		BuildStateFailed:        cross,
+		BuildStateDeployed:      success,
+		BuildStateFailed:        failed,
 	}
 }
 
@@ -224,7 +225,7 @@ func NewStatusManager(ctx context.Context) StatusManager {
 		for !sm.closed.Load() {
 			time.Sleep(150 * time.Millisecond)
 			sm.statusLock.Lock()
-			if sm.spinnerCount == len(spinner)-1 {
+			if sm.spinnerCount == len(spinnerChars)-1 {
 				sm.spinnerCount = 0
 			} else {
 				sm.spinnerCount++
@@ -241,7 +242,6 @@ func NewStatusManager(ctx context.Context) StatusManager {
 				sm.recalculateLines()
 			}
 			sm.statusLock.Unlock()
-
 		}
 	}()
 
@@ -436,15 +436,18 @@ func (r *terminalStatusManager) recalculateLines() {
 	total := 0
 	if len(r.moduleStates) > 0 && r.moduleLine != nil {
 		total++
-		entryLength := 0
-		keys := []string{}
+		// Calculate the longest module name to ensure consistent spacing
+		maxLength := 0
+		keys := make([]string, 0, len(r.moduleStates))
 		for k := range r.moduleStates {
-			thisLength := len(k) + moduleStatusPadding
-			if thisLength > entryLength {
-				entryLength = thisLength
+			if len(k) > maxLength {
+				maxLength = len(k)
 			}
 			keys = append(keys, k)
 		}
+		// Calculate entry length based on longest module name plus padding
+		entryLength := maxLength + moduleStatusPadding
+
 		msg := ""
 		perLine := r.width / entryLength
 		if perLine == 0 {
@@ -458,13 +461,16 @@ func (r *terminalStatusManager) recalculateLines() {
 				multiLine = true
 				total++
 			}
-			pad := strings.Repeat(" ", entryLength-len(k)-moduleStatusPadding)
 			state := r.moduleStates[k]
-			msg += buildColors[state] + buildStateIcon[state](r.spinnerCount) + "[" + log.ScopeColor(k) + k + buildColors[state] + "]  " + ansiResetTextColor + pad
+			icon := buildStateIcon[state](r.spinnerCount)
+			moduleText := buildColors[state] + icon + " " + log.ScopeColor(k) + k + buildColors[state] + ansiResetTextColor
+
+			// Calculate padding based on longest module name
+			padLength := entryLength - len(k) - 2 // -2 for icon and space
+			pad := strings.Repeat(" ", padLength)
+			msg += moduleText + pad
 		}
 		if !multiLine {
-			// For multi-line messages we don't want to trim the message as we want to line up the columns
-			// For a single line this just looks weird
 			msg = strings.TrimSpace(msg)
 		}
 		r.moduleLine.message = msg
