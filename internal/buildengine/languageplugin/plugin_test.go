@@ -9,6 +9,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/atomic"
+	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
 
@@ -138,94 +139,91 @@ func setUp() (context.Context, *LanguagePlugin, *mockPluginClient, BuildContext)
 	return ctx, plugin, mockImpl, bctx
 }
 
-// func TestCreateModuleFlags(t *testing.T) {
-// 	t.Parallel()
-// 	for _, tt := range []struct {
-// 		protoFlags    []*langpb.GetNewModuleFlagsResponse_Flag
-// 		expectedFlags []*kong.Flag
-// 		expectedError optional.Option[string]
-// 	}{
-// 		{
-// 			protoFlags: []*langpb.GetNewModuleFlagsResponse_Flag{
-// 				{
-// 					Name:        "full-flag",
-// 					Help:        "This has all the fields set",
-// 					Envar:       optional.Some("full-flag").Ptr(),
-// 					Short:       optional.Some("f").Ptr(),
-// 					Placeholder: optional.Some("placeholder").Ptr(),
-// 					Default:     optional.Some("defaultValue").Ptr(),
-// 				},
-// 				{
-// 					Name: "sparse-flag",
-// 					Help: "This has only the minimum fields set",
-// 				},
-// 			},
-// 			expectedFlags: []*kong.Flag{
-// 				{
-// 					Value: &kong.Value{
-// 						Name:       "full-flag",
-// 						Help:       "This has all the fields set",
-// 						HasDefault: true,
-// 						Default:    "defaultValue",
-// 						Tag: &kong.Tag{
-// 							Envs: []string{
-// 								"full-flag",
-// 							},
-// 						},
-// 					},
-// 					PlaceHolder: "placeholder",
-// 					Short:       'f',
-// 				},
-// 				{
-// 					Value: &kong.Value{
-// 						Name: "sparse-flag",
-// 						Help: "This has only the minimum fields set",
-// 						Tag:  &kong.Tag{},
-// 					},
-// 				},
-// 			},
-// 		},
-// 		{
-// 			protoFlags: []*langpb.GetNewModuleFlagsResponse_Flag{
-// 				{
-// 					Name:  "multi-char-short",
-// 					Help:  "This has all the fields set",
-// 					Short: optional.Some("multi").Ptr(),
-// 				},
-// 			},
-// 			expectedError: optional.Some(`invalid flag declared: short flag "multi" for multi-char-short must be a single character`),
-// 		},
-// 		{
-// 			protoFlags: []*langpb.GetNewModuleFlagsResult_Flag{
-// 				{
-// 					Name:  "dupe-short-1",
-// 					Help:  "Short must be unique",
-// 					Short: optional.Some("d").Ptr(),
-// 				},
-// 				{
-// 					Name:  "dupe-short-2",
-// 					Help:  "Short must be unique",
-// 					Short: optional.Some("d").Ptr(),
-// 				},
-// 			},
-// 			expectedError: optional.Some(`multiple flags declared with the same short name: dupe-short-1 and dupe-short-2`),
-// 		},
-// 	} {
-// 		t.Run(tt.protoFlags[0].Name, func(t *testing.T) {
-// 			t.Parallel()
-
-// 			ctx, plugin, mockImpl, _ := setUp()
-// 			mockImpl.flags = tt.protoFlags
-// 			kongFlags, err := plugin.GetCreateModuleFlags(ctx)
-// 			if expectedError, ok := tt.expectedError.Get(); ok {
-// 				assert.Contains(t, err.Error(), expectedError)
-// 				return
-// 			}
-// 			assert.NoError(t, err)
-// 			assert.Equal(t, tt.expectedFlags, kongFlags)
-// 		})
-// 	}
-// }
+func TestNewModuleFlags(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		protoFlags    []*langpb.GetNewModuleFlagsResponse_Flag
+		expectedFlags []*kong.Flag
+		expectedError optional.Option[string]
+	}{
+		{
+			protoFlags: []*langpb.GetNewModuleFlagsResponse_Flag{
+				{
+					Name:        "full-flag",
+					Help:        "This has all the fields set",
+					Envar:       optional.Some("full-flag").Ptr(),
+					Short:       optional.Some("f").Ptr(),
+					Placeholder: optional.Some("placeholder").Ptr(),
+					Default:     optional.Some("defaultValue").Ptr(),
+				},
+				{
+					Name: "sparse-flag",
+					Help: "This has only the minimum fields set",
+				},
+			},
+			expectedFlags: []*kong.Flag{
+				{
+					Value: &kong.Value{
+						Name:       "full-flag",
+						Help:       "This has all the fields set",
+						HasDefault: true,
+						Default:    "defaultValue",
+						Tag: &kong.Tag{
+							Envs: []string{
+								"full-flag",
+							},
+						},
+					},
+					PlaceHolder: "placeholder",
+					Short:       'f',
+				},
+				{
+					Value: &kong.Value{
+						Name: "sparse-flag",
+						Help: "This has only the minimum fields set",
+						Tag:  &kong.Tag{},
+					},
+				},
+			},
+		},
+		{
+			protoFlags: []*langpb.GetNewModuleFlagsResponse_Flag{
+				{
+					Name:  "multi-char-short",
+					Help:  "This has all the fields set",
+					Short: optional.Some("multi").Ptr(),
+				},
+			},
+			expectedError: optional.Some(`invalid flag declared: short flag "multi" for multi-char-short must be a single character`),
+		},
+		{
+			protoFlags: []*langpb.GetNewModuleFlagsResponse_Flag{
+				{
+					Name:  "dupe-short-1",
+					Help:  "Short must be unique",
+					Short: optional.Some("d").Ptr(),
+				},
+				{
+					Name:  "dupe-short-2",
+					Help:  "Short must be unique",
+					Short: optional.Some("d").Ptr(),
+				},
+			},
+			expectedError: optional.Some(`multiple flags declared with the same short name: dupe-short-1 and dupe-short-2`),
+		},
+	} {
+		t.Run(tt.protoFlags[0].Name, func(t *testing.T) {
+			t.Parallel()
+			kongFlags, err := kongFlagsFromProto(tt.protoFlags)
+			if expectedError, ok := tt.expectedError.Get(); ok {
+				assert.Contains(t, err.Error(), expectedError)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedFlags, kongFlags)
+		})
+	}
+}
 
 func TestSimultaneousBuild(t *testing.T) {
 	t.Parallel()
