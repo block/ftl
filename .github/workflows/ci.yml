@@ -47,6 +47,7 @@ jobs:
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: golangci-lint
+        shell: bash
         run: |
           golangci-lint --version
           golangci-lint run --new-from-rev="$(git merge-base origin/main HEAD)" ./... 2>&1 | to-annotation
