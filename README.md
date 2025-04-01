@@ -50,7 +50,7 @@ diff -u <(
 </script>-->
 
 ```sh file=test.sh region=init
-ftl init myproject
+ftl init --no-hermit myproject
 cd myproject
 ftl module new go alice
 ```

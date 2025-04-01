@@ -40,6 +40,7 @@ require (
 	github.com/google/go-containerregistry v0.20.3
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/cronexpr v1.1.2
+	github.com/hashicorp/yamux v0.1.2
 	github.com/jackc/pgx/v5 v5.7.3
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/jotaen/kong-completion v0.0.6

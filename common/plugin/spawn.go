@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -12,6 +14,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/types/must"
+	"github.com/hashicorp/yamux"
 	"github.com/jpillora/backoff"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -28,9 +32,8 @@ type PingableClient interface {
 }
 
 type pluginOptions struct {
-	envars            []string
-	additionalClients []func(baseURL string, opts ...connect.ClientOption)
-	startTimeout      time.Duration
+	envars       []string
+	startTimeout time.Duration
 }
 
 // Option used when creating a plugin.
@@ -48,18 +51,6 @@ func WithEnvars(envars ...string) Option {
 func WithStartTimeout(timeout time.Duration) Option {
 	return func(po *pluginOptions) error {
 		po.startTimeout = timeout
-		return nil
-	}
-}
-
-// WithExtraClient connects to an additional gRPC service in the same plugin.
-//
-// The client instance is written to "out".
-func WithExtraClient[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr rpc.PingResponse[Resp]](out *Client, makeClient rpc.ClientFactory[Client, Req, Resp, RespPtr]) Option {
-	return func(po *pluginOptions) error {
-		po.additionalClients = append(po.additionalClients, func(baseURL string, opts ...connect.ClientOption) {
-			*out = rpc.Dial(makeClient, baseURL, log.Trace, opts...)
-		})
 		return nil
 	}
 }
@@ -113,16 +104,17 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 		return nil, nil, err
 	}
 
-	// Find a free port.
-	addr, err := AllocatePort()
-	if err != nil {
-		return nil, nil, err
-	}
+	logger.Tracef("Spawning plugin")
 
-	// Start the plugin process.
-	pluginEndpoint := &url.URL{Scheme: "http", Host: addr.String()}
-	logger.Tracef("Spawning plugin on %s", pluginEndpoint)
+	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create parent-child pipe: %w", err)
+	}
+	parentFile := os.NewFile(uintptr(fds[0]), "parent-sock")
+	childFile := os.NewFile(uintptr(fds[1]), "child-sock")
+
 	cmd := exec.Command(ctx, defaultLevel, dir, exe)
+	cmd.ExtraFiles = []*os.File{childFile} // 3, 4
 
 	// Send the plugin's stderr and stdout to the logger.
 	cmd.Stderr = nil
@@ -135,7 +127,6 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create stdout pipe: %w", err)
 	}
-	cmd.Env = append(cmd.Env, "FTL_BIND="+pluginEndpoint.String())
 	cmd.Env = append(cmd.Env, "FTL_WORKING_DIR="+workingDir)
 	// If the log level is lower than debug we just leave it at the default.
 	// Otherwise we set the log level to debug so we can replay it if needed
@@ -180,8 +171,34 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 		return nil, nil, err
 	}
 
+	pluginEndpoint := must.Get(url.Parse("http://localhost"))
+
+	mclient, err := yamux.Client(parentFile, yamux.DefaultConfig())
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create multiplexing client on stdio: %w", err)
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create dialer: %w", err)
+	}
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				conn, err := mclient.Open()
+				if err != nil {
+					return nil, fmt.Errorf("failed to open multiplexed connection: %w", err)
+				}
+				return conn, nil
+			},
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+	}
+
 	// Wait for the plugin to start.
-	client := rpc.Dial(makeClient, pluginEndpoint.String(), log.Trace)
+	client := rpc.DialWithClient(httpClient, makeClient, pluginEndpoint.String(), log.Trace)
 	pingErr := make(chan error)
 	go func() {
 		retry := backoff.Backoff{Min: pluginRetryDelay, Max: pluginRetryDelay}
@@ -198,10 +215,6 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 		if err != nil {
 			return nil, nil, fmt.Errorf("plugin failed to respond to ping: %w", err)
 		}
-	}
-
-	for _, makeClient := range opts.additionalClients {
-		makeClient(pluginEndpoint.String())
 	}
 
 	logger.Debugf("Online")

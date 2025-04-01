@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"reflect"
@@ -17,6 +16,7 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	"github.com/alecthomas/kong"
+	"github.com/hashicorp/yamux"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
@@ -29,7 +29,6 @@ import (
 
 type serveCli struct {
 	LogConfig log.Config `prefix:"log-" embed:"" group:"Logging:"`
-	Bind      *url.URL   `help:"URL to listen on." env:"FTL_BIND" required:""`
 	kong.Plugins
 }
 
@@ -122,8 +121,6 @@ func Start[Impl any, Iface any, Config any](
 	logger = logger.Scope(name)
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	logger.Tracef("Starting on %s", cli.Bind)
-
 	// Signal handling.
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
@@ -145,7 +142,15 @@ func Start[Impl any, Iface any, Config any](
 		panic(fmt.Sprintf("%s does not implement %s", reflect.TypeOf(svc), reflect.TypeOf(iface)))
 	}
 
-	l, err := net.Listen("tcp", cli.Bind.Host)
+	socket := os.NewFile(3, "child")
+	if socket == nil {
+		panic("child socket on FD 3 is not set")
+	}
+
+	l, err := yamux.Server(socket, yamux.DefaultConfig())
+	if err != nil {
+		panic(fmt.Errorf("failed to create multiplexing server: %w", err))
+	}
 	kctx.FatalIfErrorf(err)
 
 	servicePaths := []string{servicePath}

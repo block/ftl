@@ -127,6 +127,12 @@ func Dial[Client Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr PingRe
 	return factory(client, baseURL, opts...)
 }
 
+// DialWithClient creates a new client using the provided HTTP client.
+func DialWithClient[Client Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr PingResponse[Resp]](client connect.HTTPClient, factory ClientFactory[Client, Req, Resp, RespPtr], baseURL string, errorLevel log.Level, opts ...connect.ClientOption) Client {
+	opts = append(opts, DefaultClientOptions(errorLevel)...)
+	return factory(client, baseURL, opts...)
+}
+
 // ContextValuesMiddleware injects values from a Context into the request Context.
 func ContextValuesMiddleware(ctx context.Context, handler http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
