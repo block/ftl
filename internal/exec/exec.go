@@ -96,8 +96,8 @@ func (c *Cmd) Capture(ctx context.Context) ([]byte, error) {
 	outBuffer := &bytes.Buffer{}
 	errorBuffer := NewCircularBuffer(100)
 
-	c.Cmd.Stdout = outBuffer
-	c.Cmd.Stderr = errorBuffer.WriterAt(ctx, c.level)
+	c.Stdout = outBuffer
+	c.Stderr = errorBuffer.WriterAt(ctx, c.level)
 
 	if err := c.Run(); err != nil {
 		return nil, errors.New(strings.TrimSpace(string(errorBuffer.Bytes())))

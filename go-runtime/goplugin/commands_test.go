@@ -1,7 +1,6 @@
 package goplugin
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -50,7 +49,7 @@ func TestGoConfigDefaults(t *testing.T) {
 		t.Run(tt.dir, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := context.Background()
+			ctx := t.Context()
 			dir, err := filepath.Abs(tt.dir)
 			assert.NoError(t, err)
 

@@ -20,7 +20,7 @@ import (
 	"github.com/block/ftl/internal/projectconfig"
 )
 
-// GetCreateModuleFlags returns the flags that can be used to create a module for this language.
+// GetNewModuleFlags returns the flags that can be used to create a module for this language.
 func GetNewModuleFlags(ctx context.Context, language string) ([]*kong.Flag, error) {
 	res, err := runCommand[*langpb.GetNewModuleFlagsResponse](ctx, "GetNewModuleFlags", language, &langpb.GetNewModuleFlagsRequest{})
 	if err != nil {
@@ -41,11 +41,11 @@ func kongFlagsFromProto(protoFlags []*langpb.GetNewModuleFlagsResponse_Flag) ([]
 			},
 		}
 		if f.Envar != nil && *f.Envar != "" {
-			flag.Value.Tag.Envs = []string{*f.Envar}
+			flag.Tag.Envs = []string{*f.Envar}
 		}
 		if f.Default != nil && *f.Default != "" {
-			flag.Value.HasDefault = true
-			flag.Value.Default = *f.Default
+			flag.HasDefault = true
+			flag.Default = *f.Default
 		}
 		if f.Short != nil && *f.Short != "" {
 			if len(*f.Short) > 1 {
@@ -67,7 +67,7 @@ func kongFlagsFromProto(protoFlags []*langpb.GetNewModuleFlagsResponse_Flag) ([]
 	return flags, nil
 }
 
-// CreateModule creates a new module in the given directory with the given name and language.
+// NewModule creates a new module in the given directory with the given name and language.
 func NewModule(ctx context.Context, language string, projConfig projectconfig.Config, moduleConfig moduleconfig.ModuleConfig, flags map[string]string) error {
 	genericFlags := map[string]any{}
 	for k, v := range flags {
@@ -133,7 +133,10 @@ func runCommand[Resp proto.Message](ctx context.Context, name string, language s
 	if err != nil {
 		return out, fmt.Errorf("failed to run command: %w", err)
 	}
-	out = reflect.New(reflect.TypeOf((Resp)(out)).Elem()).Interface().(Resp)
+	out, ok := reflect.New(reflect.TypeOf(out).Elem()).Interface().(Resp)
+	if !ok {
+		return out, fmt.Errorf("failed to create response type: %T", out)
+	}
 	err = proto.Unmarshal(outBytes, out)
 	if err != nil {
 		return out, fmt.Errorf("failed to unmarshal result: %w", err)

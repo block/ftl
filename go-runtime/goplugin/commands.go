@@ -43,7 +43,7 @@ type scaffoldingContext struct {
 	Replace   map[string]string
 }
 
-// CreateModule generates files for a new module with the requested name
+// NewModule generates files for a new module with the requested name
 func (CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.NewModuleRequest]) (*connect.Response[langpb.NewModuleResponse], error) {
 	logger := log.FromContext(ctx)
 	logger = logger.Module(req.Msg.Name)

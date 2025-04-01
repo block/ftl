@@ -16,7 +16,7 @@ func Invoke(ctx context.Context, handler http.Handler, path, command string, req
 	if err != nil {
 		return fmt.Errorf("failed to read request: %w", err)
 	}
-	hreq, err := http.NewRequestWithContext(ctx, "POST", "http://localhost"+path+command, grpcBody)
+	hreq, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost"+path+command, grpcBody)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -50,8 +50,11 @@ func wrapGRPC(req io.Reader) (io.Reader, error) {
 		return nil, fmt.Errorf("failed to write flag: %w", err)
 	}
 	// Write the 4-byte length prefix (big-endian)
-	length := uint32(len(messageBytes))
-	if err := binary.Write(buf, binary.BigEndian, length); err != nil {
+	length := len(messageBytes)
+	if length > int(^uint32(0)) {
+		return nil, fmt.Errorf("message size exceeds maximum length: %d bytes", length)
+	}
+	if err := binary.Write(buf, binary.BigEndian, uint32(length)); err != nil {
 		return nil, fmt.Errorf("failed to write length prefix: %w", err)
 	}
 	if _, err := buf.Write(messageBytes); err != nil {
