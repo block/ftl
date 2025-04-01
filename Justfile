@@ -89,6 +89,7 @@ DOCKER_IMAGES := '''
 }
 '''
 USER_HERMIT_PACKAGES := "openjdk maven go-1"
+export CGO_ENABLED := "0"
 
 _help:
   @just -l
@@ -193,9 +194,9 @@ _build-go-binary-fast dir binary="":
   binary="${2:-$(basename "$1")}"
 
   if [ "${FTL_DEBUG:-}" = "true" ]; then
-    go build -o "{{RELEASE}}/${binary}" -tags release -gcflags=all="-N -l" -ldflags "-s -w -X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.timestamp={{TIMESTAMP}}" "$1"
+    go build -C "$1" -o "$(pwd)/{{RELEASE}}/${binary}" -tags release -gcflags=all="-N -l" -ldflags "-s -w -X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.timestamp={{TIMESTAMP}}" .
   else
-    mk "{{RELEASE}}/${binary}" : !(build|integration|infrastructure|node_modules|Procfile*|Dockerfile*) -- go build -o "{{RELEASE}}/${binary}" -tags release -ldflags "-s -w -X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.timestamp={{TIMESTAMP}}" "$1"
+    mk "{{RELEASE}}/${binary}" : !(build|integration|infrastructure|node_modules|Procfile*|Dockerfile*) -- go build -C "$1" -o "$(pwd)/{{RELEASE}}/${binary}" -tags release -ldflags "-s -w -X github.com/block/ftl.Version={{VERSION}} -X github.com/block/ftl.timestamp={{TIMESTAMP}}" .
   fi
 
 # Build the ZIP files that are embedded in the FTL release binaries
