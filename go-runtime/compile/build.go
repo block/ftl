@@ -542,7 +542,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	}
 
 	var sharedModulesPaths []string
-	for _, mod := range sch.Modules {
+	for _, mod := range sch.InternalModules() {
 		if mod.Name == config.Module {
 			continue
 		}
@@ -832,9 +832,11 @@ func buildMainDeploymentContext(sch *schema.Schema, result extract.Result, goMod
 	if ftl.IsRelease(ftl.Version) {
 		ftlVersion = ftl.Version
 	}
-	combinedSch := &schema.Schema{
-		Modules: append(sch.Modules, result.Module),
+	realm := &schema.Realm{
+		Name:    projectName,
+		Modules: append(sch.InternalModules(), result.Module),
 	}
+	combinedSch := &schema.Schema{Realms: []*schema.Realm{realm}}
 	builder := &mainDeploymentContextBuilder{
 		sch:                     combinedSch,
 		mainModule:              result.Module,

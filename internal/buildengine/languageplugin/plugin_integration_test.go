@@ -67,7 +67,7 @@ func TestBuilds(t *testing.T) {
 		in.CopyModule(MODULE_NAME),
 		bctx.startPlugin(),
 		bctx.setUpModuleConfig(MODULE_NAME),
-		bctx.generateStubs(sch.Modules...),
+		bctx.generateStubs(sch.InternalModules()...),
 		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build once
@@ -130,7 +130,7 @@ func TestDependenciesUpdate(t *testing.T) {
 		in.CopyModule(MODULE_NAME),
 		bctx.startPlugin(),
 		bctx.setUpModuleConfig(MODULE_NAME),
-		bctx.generateStubs(sch.Modules...),
+		bctx.generateStubs(sch.InternalModules()...),
 		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build
@@ -167,7 +167,7 @@ func TestBuildLock(t *testing.T) {
 		in.CopyModule(MODULE_NAME),
 		bctx.startPlugin(),
 		bctx.setUpModuleConfig(MODULE_NAME),
-		bctx.generateStubs(sch.Modules...),
+		bctx.generateStubs(sch.InternalModules()...),
 		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build and enable rebuilding automatically
@@ -198,7 +198,7 @@ func TestBuildsWhenAlreadyLocked(t *testing.T) {
 		in.CopyModule(MODULE_NAME),
 		bctx.startPlugin(),
 		bctx.setUpModuleConfig(MODULE_NAME),
-		bctx.generateStubs(sch.Modules...),
+		bctx.generateStubs(sch.InternalModules()...),
 		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build and enable rebuilding automatically
@@ -223,16 +223,18 @@ func generateInitialSchema(t *testing.T) *schema.Schema {
 	t.Helper()
 
 	sch, err := (&schema.Schema{
-		Modules: []*schema.Module{
-			{
-				Name: "dependable",
-				Decls: []schema.Decl{
-					&schema.Data{
-						Name:   "Data",
-						Export: true,
+		Realms: []*schema.Realm{{
+			Modules: []*schema.Module{
+				{
+					Name: "dependable",
+					Decls: []schema.Decl{
+						&schema.Data{
+							Name:   "Data",
+							Export: true,
+						},
 					},
 				},
-			},
+			}},
 		},
 	}).Validate()
 	assert.NoError(t, err)

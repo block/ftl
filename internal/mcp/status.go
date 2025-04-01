@@ -45,7 +45,7 @@ func GetStatusOutput(ctx context.Context, buildEngineClient buildenginepbconnect
 	}
 
 	sch := ireflect.DeepCopy(result.Schema)
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		moduleState, ok := slices.Find(result.Modules, func(m devstate.ModuleState) bool {
 			return m.Name == module.Name
 		})

@@ -20,9 +20,8 @@ var ErrNotFound = errors.New("not found")
 
 //protobuf:export
 type Schema struct {
-	Pos Position `parser:"" protobuf:"1,optional"`
-
-	Modules []*Module `parser:"@@*" protobuf:"2"`
+	Pos    Position `parser:"" protobuf:"1,optional"`
+	Realms []*Realm `parser:"@@*" protobuf:"2"`
 }
 
 var _ Node = (*Schema)(nil)
@@ -30,21 +29,21 @@ var _ Node = (*Schema)(nil)
 func (s *Schema) Position() Position { return s.Pos }
 func (s *Schema) String() string {
 	out := &strings.Builder{}
-	for i, m := range s.Modules {
-		if i != 0 {
+	for i, r := range s.Realms {
+		if i > 0 {
 			fmt.Fprintln(out)
 		}
-		fmt.Fprint(out, m)
+		fmt.Fprint(out, r)
 	}
 	return out.String()
 }
 
 func (s *Schema) schemaChildren() []Node {
-	out := make([]Node, len(s.Modules))
-	for i, m := range s.Modules {
-		out[i] = m
+	var realms []Node
+	for _, r := range s.Realms {
+		realms = append(realms, r)
 	}
-	return out
+	return realms
 }
 
 func (s *Schema) Hash() [sha256.Size]byte {
@@ -122,16 +121,7 @@ func (s *Schema) resolveToSymbolMonomorphised(n Node, parent Node) (Symbol, erro
 
 // ResolveWithModule a reference to a declaration and its module.
 func (s *Schema) ResolveWithModule(ref *Ref) (optional.Option[Decl], optional.Option[*Module]) {
-	for _, module := range s.Modules {
-		if module.Name == ref.Module {
-			for _, decl := range module.Decls {
-				if decl.GetName() == ref.Name {
-					return optional.Some(decl), optional.Some(module)
-				}
-			}
-		}
-	}
-	return optional.None[Decl](), optional.None[*Module]()
+	return s.Realms[0].ResolveWithModule(ref)
 }
 
 // Resolve a reference to a declaration.
@@ -140,71 +130,16 @@ func (s *Schema) Resolve(ref *Ref) optional.Option[Decl] {
 	return decl
 }
 
-// ResolveToType resolves a reference to a declaration of the given type.
-//
-// The out parameter must be a pointer to a non-nil Decl implementation or this
-// will panic.
-//
-//	data := &Data{}
-//	err := s.ResolveToType(ref, data)
 func (s *Schema) ResolveToType(ref *Ref, out Decl) error {
-	// Programmer error.
-	if reflect.ValueOf(out).Kind() != reflect.Ptr {
-		panic(fmt.Errorf("out parameter is not a pointer"))
-	}
-	if reflect.ValueOf(out).Elem().Kind() == reflect.Invalid {
-		panic(fmt.Errorf("out parameter is a nil pointer"))
-	}
-
-	for _, module := range s.Modules {
-		if module.Name == ref.Module {
-			for _, decl := range module.Decls {
-				if decl.GetName() == ref.Name {
-					declType := reflect.TypeOf(decl)
-					outType := reflect.TypeOf(out)
-					if declType.Elem().AssignableTo(outType.Elem()) {
-						reflect.ValueOf(out).Elem().Set(reflect.ValueOf(decl).Elem())
-						return nil
-					}
-					return fmt.Errorf("resolved declaration is not of the expected type: want %s, got %s",
-						outType, declType)
-				}
-			}
-		}
-	}
-
-	return fmt.Errorf("could not resolve reference %v: %w", ref, ErrNotFound)
+	return s.Realms[0].ResolveToType(ref, out)
 }
 
-// Module returns the named module if it exists.
 func (s *Schema) Module(name string) optional.Option[*Module] {
-	for _, module := range s.Modules {
-		if module.Name == name {
-			return optional.Some(module)
-		}
-	}
-	return optional.None[*Module]()
+	return s.Realms[0].Module(name)
 }
 
-// Deployment returns the named deployment if it exists.
 func (s *Schema) Deployment(name key.Deployment) optional.Option[*Module] {
-	for _, module := range s.Modules {
-		if module.GetRuntime().GetDeployment().GetDeploymentKey() == name {
-			return optional.Some(module)
-		}
-	}
-	return optional.None[*Module]()
-}
-
-// Upsert inserts or replaces a module.
-func (s *Schema) Upsert(module *Module) {
-	for i, m := range s.Modules {
-		if m.Name == module.Name {
-			s.Modules[i] = module
-			return
-		}
-	}
-	s.Modules = append(s.Modules, module)
+	return s.Realms[0].Deployment(name)
 }
 
 // TypeName returns the name of a type as a string, stripping any package prefix and correctly handling Ref aliases.
@@ -221,58 +156,19 @@ func TypeName(v any) string {
 
 // FromProto converts a protobuf Schema to a Schema and validates it.
 func FromProto(s *schemapb.Schema) (*Schema, error) {
-	if s == nil {
-		return &Schema{}, nil
-	}
-	modules, err := moduleListToSchema(s.Modules)
+	realms, err := realmListToSchema(s.Realms)
 	if err != nil {
 		return nil, err
 	}
-	schema := &Schema{
-		Modules: modules,
+	if len(realms) != 1 {
+		return nil, errors.New("expected exactly one realm in schema")
 	}
+	schema := &Schema{Realms: realms}
 	return schema.Validate()
 }
 
-// ModuleDependencies returns the modules that the given module depends on
-// Dependency modules are the ones that are called by the given module, or that publish topics that the given module subscribes to
 func (s *Schema) ModuleDependencies(module string) map[string]*Module {
-	mods := map[string]*Module{}
-	for _, sch := range s.Modules {
-		mods[sch.Name] = sch
-	}
-	deps := make(map[string]*Module)
-	toProcess := []string{module}
-	for len(toProcess) > 0 {
-		dep := toProcess[0]
-		toProcess = toProcess[1:]
-		if deps[dep] != nil {
-			continue
-		}
-		dm := mods[dep]
-		deps[dep] = dm
-		for _, m := range dm.Decls {
-			if ref, ok := m.(*Verb); ok {
-				for _, ref := range ref.Metadata {
-					switch md := ref.(type) {
-					case *MetadataCalls:
-						for _, calls := range md.Calls {
-							if calls.Module != "" {
-								toProcess = append(toProcess, calls.Module)
-							}
-						}
-					case *MetadataSubscriber:
-						if md.Topic.Module != "" {
-							toProcess = append(toProcess, md.Topic.Module)
-						}
-					default:
-					}
-				}
-			}
-		}
-	}
-	delete(deps, module)
-	return deps
+	return s.Realms[0].ModuleDependencies(module)
 }
 
 func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
@@ -284,6 +180,24 @@ func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
 		return nil, err
 	}
 	return module, nil
+}
+
+func (s *Schema) InternalRealms() []*Realm {
+	var out []*Realm
+	for _, r := range s.Realms {
+		if !r.External {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+func (s *Schema) InternalModules() []*Module {
+	var out []*Module
+	for _, r := range s.InternalRealms() {
+		out = append(out, r.Modules...)
+	}
+	return out
 }
 
 // SchemaState is the schema service state as persisted in Raft

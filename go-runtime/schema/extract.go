@@ -382,7 +382,7 @@ func combineAllPackageResults(sch *schema.Schema, finalizeResults []finalize.Res
 	}
 
 	// add existing schema decls to the result, validating that there are no conflicts
-	for _, generatedModule := range sch.Modules {
+	for _, generatedModule := range sch.InternalModules() {
 		if generatedModule.Name == cd.module.Name {
 			for _, decl := range generatedModule.Decls {
 				if !decl.IsGenerated() {

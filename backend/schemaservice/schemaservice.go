@@ -133,7 +133,7 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 	}
 	modules = append(modules, slices.Map(schemas, func(d *schema.Module) *schemapb.Module { return d.ToProto() })...)
 	changesets := slices.Map(gslices.Collect(maps.Values(view.GetChangesets())), func(c *schema.Changeset) *schemapb.Changeset { return c.ToProto() })
-	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Modules: modules}, Changesets: changesets}), nil
+	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Realms: []*schemapb.Realm{{Modules: modules}}}, Changesets: changesets}), nil
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], stream *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
@@ -409,7 +409,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 	modules = append(modules, gslices.Collect(maps.Values(view.GetCanonicalDeployments()))...)
 
 	notification := &schema.FullSchemaNotification{
-		Schema:     &schema.Schema{Modules: modules},
+		Schema:     &schema.Schema{Realms: []*schema.Realm{{Modules: modules}}},
 		Changesets: gslices.Collect(maps.Values(view.GetChangesets())),
 	}
 	err = sendChange(&ftlv1.PullSchemaResponse{

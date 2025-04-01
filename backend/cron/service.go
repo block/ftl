@@ -261,7 +261,7 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change 
 
 	switch change := change.(type) {
 	case *schema.FullSchemaNotification:
-		for _, module := range change.Schema.Modules {
+		for _, module := range change.Schema.InternalModules() {
 			logger.Debugf("Updated cron jobs for module %s", module.Name)
 			moduleJobs, err := extractCronJobs(module)
 			if err != nil {

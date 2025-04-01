@@ -164,9 +164,11 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 		logger.Debugf("Schema source is not live, skipping initial sync.")
 		c.SchemaUpdates <- SchemaUpdatedEvent{
 			schema: &schema.Schema{
-				Modules: []*schema.Module{
-					schema.Builtins(),
-				},
+				Realms: []*schema.Realm{{
+					Modules: []*schema.Module{
+						schema.Builtins(),
+					},
+				}},
 			},
 		}
 	} else {
@@ -472,17 +474,25 @@ func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendin
 func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Schema, deployment *pendingDeploy, modulesToCheck []string) map[string]bool {
 	out := map[string]bool{}
 	sch := &schema.Schema{}
-	for _, moduleSch := range originalSch.Modules {
-		if _, ok := deployment.modules[moduleSch.Name]; ok {
-			continue
+	for _, realm := range originalSch.Realms {
+		for _, module := range realm.Modules {
+			newRealm := &schema.Realm{
+				Name:     realm.Name,
+				External: realm.External,
+				Modules:  []*schema.Module{module},
+			}
+			sch.Realms = append(sch.Realms, newRealm)
+			if _, ok := deployment.modules[module.Name]; ok {
+				continue
+			}
+			newRealm.Modules = append(newRealm.Modules, reflect.DeepCopy(module))
 		}
-		sch.Modules = append(sch.Modules, reflect.DeepCopy(moduleSch))
 	}
 	for _, m := range deployment.modules {
-		sch.Modules = append(sch.Modules, m.schema)
+		sch.Realms[0].Modules = append(sch.Realms[0].Modules, m.schema)
 	}
 	for _, mod := range modulesToCheck {
-		depSch, ok := slices.Find(sch.Modules, func(m *schema.Module) bool {
+		depSch, ok := slices.Find(sch.InternalModules(), func(m *schema.Module) bool {
 			return m.Name == mod
 		})
 		if !ok {
@@ -499,7 +509,15 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	logger := log.FromContext(ctx)
 	overridden := map[string]bool{}
 	toRemove := map[string]bool{}
-	sch := &schema.Schema{}
+	realm := &schema.Realm{
+		// TODO: implement
+		Name:     "todo",
+		External: false,
+		Modules:  []*schema.Module{},
+	}
+	sch := &schema.Schema{
+		Realms: []*schema.Realm{realm},
+	}
 	for _, d := range append(toDeploy, deploying...) {
 		if !d.publishInSchema {
 			continue
@@ -509,22 +527,22 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 				continue
 			}
 			overridden[mod.name] = true
-			sch.Modules = append(sch.Modules, mod.schema)
+			realm.Modules = append(realm.Modules, mod.schema)
 		}
 		for mod := range d.waitingForModules {
 			toRemove[mod] = true
 		}
 	}
-	for _, mod := range c.schemaSource.CanonicalView().Modules {
+	for _, mod := range c.schemaSource.CanonicalView().InternalModules() {
 		if _, ok := overridden[mod.Name]; ok {
 			continue
 		}
-		sch.Modules = append(sch.Modules, reflect.DeepCopy(mod))
+		realm.Modules = append(realm.Modules, reflect.DeepCopy(mod))
 	}
 	// remove modules that we need to rebuild so that the schema is valid
 	for {
 		foundMoreToRemove := false
-		for _, mod := range sch.Modules {
+		for _, mod := range sch.InternalModules() {
 			if toRemove[mod.Name] {
 				continue
 			}
@@ -540,7 +558,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 			break
 		}
 	}
-	sch.Modules = slices.Filter(sch.Modules, func(m *schema.Module) bool {
+	sch.Realms[0].Modules = slices.Filter(sch.Realms[0].Modules, func(m *schema.Module) bool {
 		return !toRemove[m.Name]
 	})
 

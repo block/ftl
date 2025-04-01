@@ -3907,6 +3907,61 @@ export class Position extends Message<Position> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.schema.v1.Realm
+ */
+export class Realm extends Message<Realm> {
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  /**
+   * @generated from field: bool external = 2;
+   */
+  external = false;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name = "";
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 4;
+   */
+  modules: Module[] = [];
+
+  constructor(data?: PartialMessage<Realm>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.Realm";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position },
+    { no: 2, name: "external", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "modules", kind: "message", T: Module, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Realm {
+    return new Realm().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Realm {
+    return new Realm().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Realm {
+    return new Realm().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Realm | PlainMessage<Realm> | undefined, b: Realm | PlainMessage<Realm> | undefined): boolean {
+    return proto3.util.equals(Realm, a, b);
+  }
+}
+
+/**
  * Ref is an untyped reference to a symbol.
  *
  * @generated from message xyz.block.ftl.schema.v1.Ref
@@ -4100,9 +4155,9 @@ export class Schema extends Message<Schema> {
   pos?: Position;
 
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 2;
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Realm realms = 2;
    */
-  modules: Module[] = [];
+  realms: Realm[] = [];
 
   constructor(data?: PartialMessage<Schema>) {
     super();
@@ -4113,7 +4168,7 @@ export class Schema extends Message<Schema> {
   static readonly typeName = "xyz.block.ftl.schema.v1.Schema";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "pos", kind: "message", T: Position, opt: true },
-    { no: 2, name: "modules", kind: "message", T: Module, repeated: true },
+    { no: 2, name: "realms", kind: "message", T: Realm, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Schema {

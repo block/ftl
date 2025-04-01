@@ -66,14 +66,14 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 	if m, ok := m.Get(); ok {
 		// Replace original version of module with new version in case they differ
 		var found bool
-		for i, module := range schema.Modules {
+		for i, module := range schema.InternalModules() {
 			if module.Name == m.Name {
-				schema.Modules[i] = m
+				schema.InternalModules()[i] = m
 				found = true
 			}
 		}
 		if !found {
-			schema.Modules = append(schema.Modules, m)
+			schema.Realms[0].Modules = append(schema.Realms[0].Modules, m)
 		}
 	}
 
@@ -84,8 +84,8 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 	// Inject builtins.
 	builtins := Builtins()
 	// Move builtins to the front of the list.
-	schema.Modules = slices.DeleteFunc(schema.Modules, func(m *Module) bool { return m.Name == builtins.Name })
-	schema.Modules = append([]*Module{builtins}, schema.Modules...)
+	schema.Realms[0].Modules = slices.DeleteFunc(schema.Realms[0].Modules, func(m *Module) bool { return m.Name == builtins.Name })
+	schema.Realms[0].Modules = append([]*Module{builtins}, schema.Realms[0].Modules...)
 
 	scopes := NewScopes()
 
@@ -95,7 +95,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 	}
 
 	// First pass, add all the modules.
-	for _, module := range schema.Modules {
+	for _, module := range schema.InternalModules() {
 		if module == builtins {
 			continue
 		}
@@ -105,7 +105,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 	}
 
 	// Validate modules.
-	for _, module := range schema.Modules {
+	for _, module := range schema.InternalModules() {
 		// Skip builtin module, it's already been validated.
 		if module.Name == "builtin" {
 			continue
@@ -648,7 +648,7 @@ func validateDependencies(schema *Schema) error {
 	vertexes := []dependencyVertex{}
 	vertexStates := map[dependencyVertex]dependencyVertexState{}
 
-	for _, module := range schema.Modules {
+	for _, module := range schema.InternalModules() {
 		currentImports := module.Imports()
 		sort.Strings(currentImports)
 		imports[module.Name] = currentImports

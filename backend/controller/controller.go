@@ -276,7 +276,7 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 		}
 	}
 	allModules := s.routeTable.Current()
-	routes := slices.Map(allModules.Schema().Modules, func(module *schema.Module) (out *ftlv1.StatusResponse_Route) {
+	routes := slices.Map(allModules.Schema().InternalModules(), func(module *schema.Module) (out *ftlv1.StatusResponse_Route) {
 		key := ""
 		endpoint := module.GetRuntime().GetRunner().GetEndpoint()
 		if dkey := module.GetRuntime().GetDeployment().GetDeploymentKey(); !dkey.IsZero() {

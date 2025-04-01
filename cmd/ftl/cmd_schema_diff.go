@@ -54,15 +54,15 @@ func (d *schemaDiffCmd) Run(
 		return fmt.Errorf("failed to get current schema: %w", err)
 	}
 	if sameModulesOnly {
-		tempModules := current.Modules
-		current.Modules = []*schema.Module{}
+		tempModules := current.Realms[0].Modules
+		current.Realms[0].Modules = []*schema.Module{}
 		moduleMap := map[string]*schema.Module{}
 		for _, i := range tempModules {
 			moduleMap[i.Name] = i
 		}
-		for _, i := range other.Modules {
+		for _, i := range other.InternalModules() {
 			if mod, ok := moduleMap[i.Name]; ok {
-				current.Modules = append(current.Modules, mod)
+				current.Realms[0].Modules = append(current.Realms[0].Modules, mod)
 			}
 		}
 	}
@@ -111,12 +111,16 @@ func localSchema(ctx context.Context, projectConfig projectconfig.Config) (*sche
 			moduleSchemas <- either.LeftOf[error](module)
 		}()
 	}
-	sch := &schema.Schema{}
+	realm := &schema.Realm{
+		Name:    projectConfig.Name,
+		Modules: []*schema.Module{},
+	}
+	sch := &schema.Schema{Realms: []*schema.Realm{realm}}
 	for range len(modules) {
 		result := <-moduleSchemas
 		switch result := result.(type) {
 		case either.Left[*schema.Module, error]:
-			sch.Upsert(result.Get())
+			realm.Upsert(result.Get())
 		case either.Right[*schema.Module, error]:
 			errs = append(errs, result.Get())
 		default:
@@ -125,7 +129,7 @@ func localSchema(ctx context.Context, projectConfig projectconfig.Config) (*sche
 		}
 	}
 	// we want schema even if there are errors as long as we have some modules
-	if len(sch.Modules) == 0 && len(errs) > 0 {
+	if len(sch.InternalModules()) == 0 && len(errs) > 0 {
 		return nil, fmt.Errorf("failed to read schema, possibly due to not building: %w", errors.Join(errs...))
 	}
 	return sch, nil

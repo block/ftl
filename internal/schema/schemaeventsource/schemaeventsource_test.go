@@ -106,7 +106,9 @@ func TestSchemaEventSource(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
 			Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{FullSchemaNotification: &schemapb.FullSchemaNotification{
 				Schema: &schemapb.Schema{
-					Modules: []*schemapb.Module{time1.ToProto()},
+					Realms: []*schemapb.Realm{{
+						Modules: []*schemapb.Module{time1.ToProto()},
+					}},
 				},
 			}}},
 		})
@@ -130,7 +132,7 @@ func TestSchemaEventSource(t *testing.T) {
 		assert.True(t, changes.WaitForInitialSync(waitCtx))
 
 		var expected schema.Notification = &schema.FullSchemaNotification{
-			Schema: &schema.Schema{Modules: []*schema.Module{time1}},
+			Schema: &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time1}}}},
 		}
 		assertEqual(t, expected, recv(t))
 
@@ -139,7 +141,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time1, echo1}}, changes.CanonicalView())
+		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time1, echo1}}}}, changes.CanonicalView())
 	})
 
 	t.Run("Mutation", func(t *testing.T) {
@@ -159,7 +161,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2, echo1}}, changes.CanonicalView())
+		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2, echo1}}}}, changes.CanonicalView())
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -184,7 +186,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Modules: []*schema.Module{time2}}, changes.CanonicalView())
+		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2}}}}, changes.CanonicalView())
 	})
 }
 

@@ -43,7 +43,11 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 		msg := resp.Msg()
 		switch e := msg.Event.Value.(type) {
 		case *schemapb.Notification_FullSchemaNotification:
-			err = g.handleSchema(e.FullSchemaNotification.Schema.Modules...)
+			sch, err := schema.SchemaFromProto(e.FullSchemaNotification.Schema)
+			if err != nil {
+				return fmt.Errorf("invalid schema: %w", err)
+			}
+			err = g.handleSchema(sch.InternalModules()...)
 			if err != nil {
 				return err
 			}
@@ -51,7 +55,15 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 				return nil
 			}
 		case *schemapb.Notification_ChangesetCommittedNotification:
-			err = g.handleSchema(e.ChangesetCommittedNotification.Changeset.Modules...)
+			var modules []*schema.Module
+			for _, module := range e.ChangesetCommittedNotification.Changeset.Modules {
+				m, err := schema.ModuleFromProto(module)
+				if err != nil {
+					return fmt.Errorf("invalid module: %w", err)
+				}
+				modules = append(modules, m)
+			}
+			err = g.handleSchema(modules...)
 			if err != nil {
 				return err
 			}
@@ -66,13 +78,9 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 	return nil
 }
 
-func (g *getSchemaCmd) handleSchema(modules ...*schemapb.Module) error {
-	for _, s := range modules {
-		module, err := schema.ValidatedModuleFromProto(s)
-		if err != nil {
-			return fmt.Errorf("invalid module: %w", err)
-		}
-		if len(g.Modules) == 0 || slices.Contains(g.Modules, s.Name) {
+func (g *getSchemaCmd) handleSchema(modules ...*schema.Module) error {
+	for _, module := range modules {
+		if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
 			fmt.Println(module)
 		}
 	}
@@ -92,10 +100,19 @@ msgloop:
 
 		switch e := msg.Event.Value.(type) {
 		case *schemapb.Notification_FullSchemaNotification:
-			for _, module := range e.FullSchemaNotification.Schema.Modules {
-				if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
-					schema.Modules = append(schema.Modules, module)
-					delete(remainingNames, module.Name)
+			for _, realm := range e.FullSchemaNotification.Schema.Realms {
+				protoRealm := &schemapb.Realm{
+					Name:     realm.Name,
+					External: realm.External,
+				}
+				for _, module := range realm.Modules {
+					if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
+						protoRealm.Modules = append(protoRealm.Modules, module)
+						delete(remainingNames, module.Name)
+					}
+				}
+				if len(protoRealm.Modules) > 0 {
+					schema.Realms = append(schema.Realms, protoRealm)
 				}
 			}
 			break msgloop
@@ -124,18 +141,26 @@ func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.P
 	for _, name := range g.Modules {
 		remainingNames[name] = true
 	}
-	schema := &schemapb.Schema{}
+	schema := &schemapb.Schema{Realms: []*schemapb.Realm{{}}}
 	for resp.Receive() {
 		msg := resp.Msg()
 
 		switch e := msg.Event.Value.(type) {
 		case *schemapb.Notification_FullSchemaNotification:
-			for _, module := range e.FullSchemaNotification.Schema.Modules {
-				if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
-					schema.Modules = append(schema.Modules, module)
-					delete(remainingNames, module.Name)
+			for _, realm := range e.FullSchemaNotification.Schema.Realms {
+				protoRealm := &schemapb.Realm{
+					Name:     realm.Name,
+					External: realm.External,
 				}
-				break
+				for _, module := range realm.Modules {
+					if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
+						protoRealm.Modules = append(protoRealm.Modules, module)
+						delete(remainingNames, module.Name)
+					}
+				}
+				if len(protoRealm.Modules) > 0 {
+					schema.Realms = append(schema.Realms, protoRealm)
+				}
 			}
 		default:
 			// Ignore for now

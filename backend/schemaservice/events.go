@@ -169,23 +169,25 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	for _, mod := range updatingModules {
 		updatedDep[mod.Name] = mod
 	}
-	sch := &schema.Schema{Modules: maps.Values(updatedDep)} //nolint
+	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(updatedDep)}}} //nolint
 	merged := latestSchema(sch, e.Changeset)
-	merged.Modules = slices.Filter(merged.Modules, func(m *schema.Module) bool {
-		if m.Builtin {
-			return true
-		}
-		remove := rem[m.Runtime.Deployment.DeploymentKey.String()]
-		if remove {
-			delete(rem, m.Runtime.Deployment.DeploymentKey.String())
-		}
-		return !remove
-	})
+	for _, realm := range merged.InternalRealms() {
+		realm.Modules = slices.Filter(realm.Modules, func(m *schema.Module) bool {
+			if m.Builtin {
+				return true
+			}
+			remove := rem[m.Runtime.Deployment.DeploymentKey.String()]
+			if remove {
+				delete(rem, m.Runtime.Deployment.DeploymentKey.String())
+			}
+			return !remove
+		})
+	}
 	if len(rem) > 0 {
 		return fmt.Errorf("changeset has modules to remove that are not in the schema: %v", maps.Keys(rem))
 	}
 	problems := []error{}
-	for _, mod := range merged.Modules {
+	for _, mod := range merged.InternalModules() {
 		_, err := schema.ValidateModuleInSchema(merged, optional.Some(mod))
 		if err != nil {
 			problems = append(problems, fmt.Errorf("module %s is not valid: %w", mod.Name, err))
@@ -424,11 +426,13 @@ func handleChangesetRollingBackEvent(t *SchemaState, e *schema.ChangesetRollingB
 // latest schema calculates the latest schema by applying active deployments in changeset to the canonical schema.
 func latestSchema(canonical *schema.Schema, changeset *schema.Changeset) *schema.Schema {
 	sch := reflect.DeepCopy(canonical)
-	for _, module := range changeset.Modules {
-		if i := slices2.IndexFunc(sch.Modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
-			sch.Modules[i] = module
-		} else {
-			sch.Modules = append(sch.Modules, module)
+	for _, realm := range sch.InternalRealms() {
+		for _, module := range changeset.Modules {
+			if i := slices2.IndexFunc(realm.Modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
+				realm.Modules[i] = module
+			} else {
+				realm.Modules = append(realm.Modules, module)
+			}
 		}
 	}
 	return sch

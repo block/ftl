@@ -28,8 +28,8 @@ func TestLifecycleJVM(t *testing.T) {
 		in.IfLanguage("kotlin", in.Exec("ftl", "module", "new", "kotlin", "echo")),
 		in.WaitWithTimeout("echo", time.Minute*3),
 		in.VerifySchema(func(ctx context.Context, t testing.TB, schema *schema.Schema) {
-			assert.Equal(t, 2, len(schema.Modules))
-			for _, m := range schema.Modules {
+			assert.Equal(t, 2, len(schema.InternalModules()))
+			for _, m := range schema.InternalModules() {
 				if !m.Builtin {
 					deployment = m.Runtime.Deployment.DeploymentKey.String()
 				}
@@ -51,8 +51,8 @@ func TestLifecycleJVM(t *testing.T) {
 		}),
 		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
 			// Non structurally changing edits should not trigger a new deployment.
-			assert.Equal(t, 2, len(sch.Modules))
-			for _, m := range sch.Modules {
+			assert.Equal(t, 2, len(sch.InternalModules()))
+			for _, m := range sch.InternalModules() {
 				if !m.Builtin {
 					assert.Equal(t, deployment, m.Runtime.Deployment.DeploymentKey.String())
 				}
@@ -78,8 +78,8 @@ func TestLifecycleJVM(t *testing.T) {
 		}),
 		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
 			// Non structurally changing edits should not trigger a new deployment.
-			assert.Equal(t, 2, len(sch.Modules))
-			for _, m := range sch.Modules {
+			assert.Equal(t, 2, len(sch.InternalModules()))
+			for _, m := range sch.InternalModules() {
 				if !m.Builtin {
 					assert.NotEqual(t, deployment, m.Runtime.Deployment.DeploymentKey.String())
 				}

@@ -29,12 +29,12 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	out := &schema.Schema{}
+	out := &schema.Schema{Realms: []*schema.Realm{{Name: "test"}}}
 	err = AddDatabaseDeclsToSchema(ctx, tmpDir, mc.Abs(), out)
 	assert.NoError(t, err)
 
 	var actual *schema.Module
-	for _, d := range out.Modules {
+	for _, d := range out.InternalModules() {
 		if d.Name == "test" {
 			actual = d
 			break

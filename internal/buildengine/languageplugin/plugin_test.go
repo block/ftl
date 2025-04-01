@@ -133,7 +133,7 @@ func setUp() (context.Context, *LanguagePlugin, *mockPluginClient, BuildContext)
 			Dir:      "test/dir",
 			Language: "test-lang",
 		},
-		Schema:       &schema.Schema{},
+		Schema:       &schema.Schema{Realms: []*schema.Realm{{Name: "test"}}},
 		Dependencies: []string{},
 	}
 	return ctx, plugin, mockImpl, bctx
@@ -270,7 +270,7 @@ func TestRebuilds(t *testing.T) {
 	checkResult(t, <-result, "first build")
 
 	// send rebuild request with updated schema
-	bctx.Schema.Modules = append(bctx.Schema.Modules, &schema.Module{Name: "another"})
+	bctx.Schema.Realms[0].Modules = append(bctx.Schema.Realms[0].Modules, &schema.Module{Name: "another"})
 	sch, err := bctx.Schema.Validate()
 	assert.NoError(t, err, "schema should be valid")
 	result = beginBuild(ctx, plugin, bctx, true)

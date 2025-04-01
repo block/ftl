@@ -44,7 +44,7 @@ func SchemaToOpenAPI(sch *schema.Schema) (*spec.Swagger, error) {
 	}
 
 	// Process all verbs with ingress metadata
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		for _, decl := range module.Decls {
 			verb, ok := decl.(*schema.Verb)
 			if !ok {
@@ -267,7 +267,7 @@ func addDefinitions(swagger *spec.Swagger, sch *schema.Schema) {
 	includedModules := make(map[string]bool)
 
 	// First, find all modules that have ingress verbs
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		for _, decl := range module.Decls {
 			verb, ok := decl.(*schema.Verb)
 			if !ok {
@@ -285,7 +285,7 @@ func addDefinitions(swagger *spec.Swagger, sch *schema.Schema) {
 	}
 
 	// Only include data types from modules with ingress verbs
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		// Skip modules that don't have ingress verbs
 		if !includedModules[module.Name] && module.Name != "builtin" {
 			continue

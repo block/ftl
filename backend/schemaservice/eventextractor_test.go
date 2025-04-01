@@ -51,8 +51,9 @@ func TestEventExtractor(t *testing.T) {
 						FullSchemaNotification: &schemapb.FullSchemaNotification{
 							Schema: &schemapb.Schema{
 								Pos: &schemapb.Position{},
-								Modules: []*schemapb.Module{
-									{Name: "test",
+								Realms: []*schemapb.Realm{{
+									Pos: &schemapb.Position{},
+									Modules: []*schemapb.Module{{Name: "test",
 										Pos: &schemapb.Position{},
 										Runtime: &schemapb.ModuleRuntime{
 											Base: &schemapb.ModuleRuntimeBase{Language: "go", Os: &empty, Arch: &empty, Image: &empty, CreateTime: timestamppb.New(now)},
@@ -61,11 +62,10 @@ func TestEventExtractor(t *testing.T) {
 												DeploymentKey: newKey.String(),
 											},
 										},
-									},
-								},
+									}},
+								}},
 							},
-						},
-					},
+						}},
 					},
 				},
 			},

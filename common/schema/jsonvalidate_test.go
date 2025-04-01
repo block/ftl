@@ -9,23 +9,25 @@ import (
 
 func TestTransformFromAliasedFields(t *testing.T) {
 	schemaText := `
-		module test {
-			enum TypeEnum {
-				A test.Inner
-				B String
-			}
-			
-			data Inner {
-				waz String +alias json "foo"
-			}
+		realm test {
+			module test {
+				enum TypeEnum {
+					A test.Inner
+					B String
+				}
+				
+				data Inner {
+					waz String +alias json "foo"
+				}
 
-			data Test {
-				scalar String +alias json "bar"
-				inner test.Inner
-				array [test.Inner]
-				map {String: test.Inner}
-				optional test.Inner
-				typeEnum test.TypeEnum
+				data Test {
+					scalar String +alias json "bar"
+					inner test.Inner
+					array [test.Inner]
+					map {String: test.Inner}
+					optional test.Inner
+					typeEnum test.TypeEnum
+				}
 			}
 		}
 		`
@@ -84,23 +86,25 @@ func TestTransformFromAliasedFields(t *testing.T) {
 
 func TestTransformToAliasedFields(t *testing.T) {
 	schemaText := `
-		module test {
-			enum TypeEnum {
-				A test.Inner
-				B String
-			}
+		realm foo {	
+			module test {
+				enum TypeEnum {
+					A test.Inner
+					B String
+				}
 
-			data Inner {
-				waz String +alias json "foo"
-			}
+				data Inner {
+					waz String +alias json "foo"
+				}
 
-			data Test {
-				scalar String +alias json "bar"
-				inner test.Inner
-				array [test.Inner]
-				map {String: test.Inner}
-				optional test.Inner
-				typeEnum test.TypeEnum
+				data Test {
+					scalar String +alias json "bar"
+					inner test.Inner
+					array [test.Inner]
+					map {String: test.Inner}
+					optional test.Inner
+					typeEnum test.TypeEnum
+				}
 			}
 		}
 		`
@@ -159,18 +163,20 @@ func TestTransformToAliasedFields(t *testing.T) {
 
 func TestValidateJSONCall(t *testing.T) {
 	schemaText := `
-module echo {
-  export data EchoRequest {
-    name String? +alias json "name"
-	age Int? +alias json "age"
-	weight Float? +alias json "weight"
-  }
+realm test {
+	module echo {
+		export data EchoRequest {
+			name String? +alias json "name"
+			age Int? +alias json "age"
+			weight Float? +alias json "weight"
+		}
 
-  export data EchoResponse {
-    message String +alias json "message"
-  }
+		export data EchoResponse {
+			message String +alias json "message"
+		}
 
-  export verb echo(echo.EchoRequest) echo.EchoResponse
+		export verb echo(echo.EchoRequest) echo.EchoResponse
+	}
 }`
 
 	sch, err := ParseString("test", schemaText)

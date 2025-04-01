@@ -128,7 +128,7 @@ module cyclic {
 	`)
 	assert.NoError(t, err)
 	verbDecls := stdslices.Collect(slices.FilterVariants[*schema.Verb](module.Decls))
-	_, err = buildMainDeploymentContext(&schema.Schema{}, goschema.Result{
+	_, err = buildMainDeploymentContext(&schema.Schema{Realms: []*schema.Realm{{Name: "foo"}}}, goschema.Result{
 		Module: module,
 		VerbResourceParamOrder: map[*schema.Verb][]common.VerbResourceParam{
 			verbDecls[0]: {},
