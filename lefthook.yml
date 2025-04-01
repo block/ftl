@@ -8,6 +8,8 @@ pre-push:
       run: just test-backend
     lint-backend:
       run: just lint-backend
+    lint-scripts:
+      run: just lint-scripts
     build-frontend:
       root: frontend/console/
       run: just build-frontend
