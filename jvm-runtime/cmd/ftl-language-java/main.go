@@ -40,7 +40,6 @@ func main() {
 		err := clirpc.Invoke(ctx, handler, path, cli.Command, os.Stdin, os.Stdout)
 		kctx.FatalIfErrorf(err)
 	}
-	kctx.FatalIfErrorf(kctx.Run())
 }
 
 func createService(ctx context.Context, config any) (context.Context, *common.Service, error) {

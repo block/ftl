@@ -22,7 +22,7 @@ import (
 
 // GetCreateModuleFlags returns the flags that can be used to create a module for this language.
 func GetNewModuleFlags(ctx context.Context, language string) ([]*kong.Flag, error) {
-	res, err := runCommand[*langpb.GetNewModuleFlagsResponse](ctx, "get-new-module-flags", language, &langpb.GetNewModuleFlagsRequest{})
+	res, err := runCommand[*langpb.GetNewModuleFlagsResponse](ctx, "GetNewModuleFlags", language, &langpb.GetNewModuleFlagsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get create module flags from plugin: %w", err)
 	}
@@ -77,7 +77,7 @@ func NewModule(ctx context.Context, language string, projConfig projectconfig.Co
 	if err != nil {
 		return fmt.Errorf("failed to convert flags to proto: %w", err)
 	}
-	_, err = runCommand[*langpb.NewModuleResponse](ctx, "new-module", language, &langpb.NewModuleRequest{
+	_, err = runCommand[*langpb.NewModuleResponse](ctx, "NewModule", language, &langpb.NewModuleRequest{
 		Name:          moduleConfig.Module,
 		Dir:           moduleConfig.Dir,
 		ProjectConfig: langpb.ProjectConfigToProto(projConfig),
@@ -97,7 +97,7 @@ func NewModule(ctx context.Context, language string, projConfig projectconfig.Co
 // It is not recommended to read the module's toml file to determine defaults, as when the toml file is updated,
 // the module defaults will not be recalculated.
 func GetModuleConfigDefaults(ctx context.Context, language string, dir string) (moduleconfig.CustomDefaults, error) {
-	result, err := runCommand[*langpb.GetModuleConfigDefaultsResponse](ctx, "get-module-config-defaults", language, &langpb.GetModuleConfigDefaultsRequest{
+	result, err := runCommand[*langpb.GetModuleConfigDefaultsResponse](ctx, "GetModuleConfigDefaults", language, &langpb.GetModuleConfigDefaultsRequest{
 		Dir: dir,
 	})
 	if err != nil {
@@ -136,7 +136,7 @@ func runCommand[Resp proto.Message](ctx context.Context, name string, language s
 	out = reflect.New(reflect.TypeOf((Resp)(out)).Elem()).Interface().(Resp)
 	err = proto.Unmarshal(outBytes, out)
 	if err != nil {
-		panic(fmt.Sprintf("failed to unmarshal result (%v): %v: %s", len(outBytes), err, string(outBytes)))
+		return out, fmt.Errorf("failed to unmarshal result: %w", err)
 	}
 	return out, nil
 }
