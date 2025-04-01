@@ -271,6 +271,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		DebugPort:            debugPort,
 		DevEndpoint:          devURI,
 		DevHotReloadEndpoint: devHotReloadURI,
+		LocalRunners:         true,
 	}
 
 	simpleName := fmt.Sprintf("runner%d", keySuffix)

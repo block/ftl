@@ -40,13 +40,15 @@ type Service struct {
 	localModuleName             string
 	bindAddress                 string
 	localDeployment             key.Deployment
+	localRunner                 bool
 }
 
 func New(controllerModuleService ftlv1connect.ControllerServiceClient,
 	leaseClient ftlleaseconnect.LeaseServiceClient,
 	timelineClient *timelineclient.Client,
 	bindAddress string,
-	localDeployment key.Deployment) *Service {
+	localDeployment key.Deployment,
+	localRunners bool) *Service {
 	proxy := &Service{
 		controllerDeploymentService: controllerModuleService,
 		controllerLeaseService:      leaseClient,
@@ -55,6 +57,7 @@ func New(controllerModuleService ftlv1connect.ControllerServiceClient,
 		localModuleName:             localDeployment.Payload.Module,
 		bindAddress:                 bindAddress,
 		localDeployment:             localDeployment,
+		localRunner:                 localRunners,
 	}
 	return proxy
 }
@@ -172,7 +175,13 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		Request:       req.Msg,
 	}
 
-	originalResp, err := verbService.client.Call(ctx, headers.CopyRequestForForwarding(req))
+	newRequest := headers.CopyRequestForForwarding(req)
+	if r.localRunner {
+		// When running locally we emulate spiffe client cert headers that istio would normally add
+		// This is so that we can emulate the same behavior as when running in the cloud
+		newRequest.Header().Set("x-forwarded-client-cert", "By=spiffe://cluster.local/ns/"+req.Msg.Verb.Module+"/sa/"+req.Msg.Verb.Module+";URI=spiffe://cluster.local/ns/"+r.localModuleName+"/sa/"+r.localModuleName)
+	}
+	originalResp, err := verbService.client.Call(ctx, newRequest)
 	if err != nil {
 		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
 		r.timelineClient.Publish(ctx, callEvent)

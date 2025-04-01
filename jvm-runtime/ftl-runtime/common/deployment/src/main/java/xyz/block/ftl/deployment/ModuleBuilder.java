@@ -46,6 +46,7 @@ import io.quarkus.arc.processor.DotNames;
 import xyz.block.ftl.Config;
 import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.Secret;
+import xyz.block.ftl.WorkloadIdentity;
 import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
 import xyz.block.ftl.runtime.FTLRecorder;
@@ -270,6 +271,9 @@ public class ModuleBuilder {
                 } else if (FTLDotNames.LEASE_CLIENT.equals(param.type().name())) {
                     parameterTypes.add(LeaseClient.class);
                     paramMappers.add(recorder.leaseClientSupplier());
+                } else if (FTLDotNames.WORKLOAD_IDENTITY.equals(param.type().name())) {
+                    parameterTypes.add(WorkloadIdentity.class);
+                    paramMappers.add(recorder.workloadIdentitySupplier());
                 } else if (bodyType != BodyType.DISALLOWED && bodyParamType == null) {
                     bodyParamType = param.type();
                     bodyParamNullability = nullability(param);

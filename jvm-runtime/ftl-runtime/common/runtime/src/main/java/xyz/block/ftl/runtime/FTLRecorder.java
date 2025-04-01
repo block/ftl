@@ -179,4 +179,15 @@ public class FTLRecorder {
     public void failStartup(String message) {
         throw new RuntimeException(message);
     }
+
+    public VerbRegistry.ParameterSupplier workloadIdentitySupplier() {
+
+        return new VerbRegistry.ParameterSupplier() {
+            @Override
+            public Object apply(ObjectMapper mapper, CallRequest callRequest) {
+                return WorkloadIdentityImpl.create();
+            }
+        };
+    }
+
 }

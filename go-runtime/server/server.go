@@ -93,6 +93,9 @@ func HandleCall[Req, Resp any](module string, verb string) Handler {
 				return nil, fmt.Errorf("invalid request to verb %s: %w", ref, err)
 			}
 			ctx = observability.AddSpanContextToLogger(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to add workload identity to context: %w", err)
+			}
 
 			// InvokeVerb Verb.
 			resp, err := InvokeVerb[Req, Resp](ref)(ctx, req)
@@ -109,7 +112,6 @@ func HandleCall[Req, Resp any](module string, verb string) Handler {
 		},
 	}
 }
-
 func HandleSink[Req any](module string, verb string) Handler {
 	return HandleCall[Req, ftl.Unit](module, verb)
 }
@@ -307,6 +309,8 @@ func (m *moduleServer) Call(ctx context.Context, req *connect.Request[ftlv1.Call
 			metadata[internal.MetadataKey(pair.Key)] = pair.Value
 		}
 	}
+
+	ctx, err = addWorkloadIdentity(ctx, req.Header())
 
 	respdata, err := handler.fn(ctx, req.Msg.Body, metadata)
 	if err != nil {
