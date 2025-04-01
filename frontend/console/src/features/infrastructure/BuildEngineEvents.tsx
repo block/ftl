@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { EngineEvent } from '../../protos/xyz/block/ftl/buildengine/v1/buildengine_pb'
-import type { Error as BuildError } from '../../protos/xyz/block/ftl/language/v1/language_pb'
+import type { Error as BuildError } from '../../protos/xyz/block/ftl/language/v1/service_pb'
 import { List } from '../../shared/components/List'
 import { StatusIndicator } from '../../shared/components/StatusIndicator'
 import { formatTimestampShort } from '../../shared/utils'

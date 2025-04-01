@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
-	"github.com/block/scaffolder"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	langconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
@@ -20,11 +18,8 @@ import (
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	goruntime "github.com/block/ftl/go-runtime"
 	"github.com/block/ftl/go-runtime/compile"
-	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/channels"
-	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
@@ -106,89 +101,6 @@ func New() *Service {
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	log.FromContext(ctx).Debugf("Received Ping")
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
-}
-
-func (s *Service) GetCreateModuleFlags(ctx context.Context, req *connect.Request[langpb.GetCreateModuleFlagsRequest]) (*connect.Response[langpb.GetCreateModuleFlagsResponse], error) {
-	return connect.NewResponse(&langpb.GetCreateModuleFlagsResponse{
-		Flags: []*langpb.GetCreateModuleFlagsResponse_Flag{
-			{
-				Name:        "replace",
-				Help:        "Replace a module import path with a local path in the initialised FTL module.",
-				Envar:       optional.Some("FTL_INIT_GO_REPLACE").Ptr(),
-				Short:       optional.Some("r").Ptr(),
-				Placeholder: optional.Some("OLD=NEW,...").Ptr(),
-			},
-		},
-	}), nil
-}
-
-type scaffoldingContext struct {
-	Name      string
-	GoVersion string
-	Replace   map[string]string
-}
-
-// CreateModule generates files for a new module with the requested name
-func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.CreateModuleRequest]) (*connect.Response[langpb.CreateModuleResponse], error) {
-	logger := log.FromContext(ctx)
-	logger = logger.Module(req.Msg.Name)
-	ctx = log.ContextWithLogger(ctx, logger)
-	flags := req.Msg.Flags.AsMap()
-	projConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
-
-	opts := []scaffolder.Option{
-		scaffolder.Exclude("^go.mod$"),
-	}
-	if !projConfig.Hermit {
-		logger.Debugf("Excluding bin directory")
-		opts = append(opts, scaffolder.Exclude("^bin"))
-	}
-
-	sctx := scaffoldingContext{
-		Name:      req.Msg.Name,
-		GoVersion: runtime.Version()[2:],
-		Replace:   map[string]string{},
-	}
-	if replaceValue, ok := flags["replace"]; ok && replaceValue != "" {
-		replaceStr, ok := replaceValue.(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid replace flag is not a string: %v", replaceValue)
-		}
-		for _, replace := range strings.Split(replaceStr, ",") {
-			parts := strings.Split(replace, "=")
-			if len(parts) != 2 {
-				return nil, fmt.Errorf("invalid replace flag (format: A=B,C=D): %q", replace)
-			}
-			sctx.Replace[parts[0]] = parts[1]
-		}
-	}
-
-	// scaffold at one directory above the module directory
-	parentPath := filepath.Dir(req.Msg.Dir)
-	if err := internal.ScaffoldZip(goruntime.Files(), parentPath, sctx, opts...); err != nil {
-		return nil, fmt.Errorf("failed to scaffold: %w", err)
-	}
-	logger.Debugf("Running go mod tidy: %s", req.Msg.Dir)
-	if err := exec.Command(ctx, log.Debug, req.Msg.Dir, "go", "mod", "tidy").RunBuffered(ctx); err != nil {
-		return nil, fmt.Errorf("could not tidy: %w", err)
-	}
-	return connect.NewResponse(&langpb.CreateModuleResponse{}), nil
-}
-
-// ModuleConfigDefaults provides default values for ModuleConfig for values that are not configured in the ftl.toml file.
-func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
-	deployDir := ".ftl"
-	watch := []string{"**/*.go", "go.mod", "go.sum"}
-	additionalWatch, err := replacementWatches(req.Msg.Dir, deployDir)
-	watch = append(watch, additionalWatch...)
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&langpb.ModuleConfigDefaultsResponse{
-		Watch:      watch,
-		DeployDir:  deployDir,
-		SqlRootDir: "db",
-	}), nil
 }
 
 // GetDependencies extracts dependencies for a module

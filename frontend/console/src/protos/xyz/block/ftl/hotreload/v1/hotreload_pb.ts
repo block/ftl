@@ -6,7 +6,7 @@
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 import { Module } from "../../schema/v1/schema_pb.js";
-import { ErrorList } from "../../language/v1/language_pb.js";
+import { ErrorList } from "../../language/v1/service_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.hotreload.v1.ReloadRequest

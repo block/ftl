@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, Timestamp } from "@bufbuild/protobuf";
-import { ErrorList, ModuleConfig } from "../../language/v1/language_pb.js";
+import { ErrorList, ModuleConfig } from "../../language/v1/service_pb.js";
 
 /**
  * EngineStarted is published when the engine becomes busy building and deploying modules.

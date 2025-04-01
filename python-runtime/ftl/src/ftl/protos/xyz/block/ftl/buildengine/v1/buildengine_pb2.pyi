@@ -1,5 +1,5 @@
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
-from xyz.block.ftl.language.v1 import language_pb2 as _language_pb2
+from xyz.block.ftl.language.v1 import service_pb2 as _service_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -21,8 +21,8 @@ class EngineEnded(_message.Message):
         ERRORS_FIELD_NUMBER: _ClassVar[int]
         module: str
         path: str
-        errors: _language_pb2.ErrorList
-        def __init__(self, module: _Optional[str] = ..., path: _Optional[str] = ..., errors: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ...) -> None: ...
+        errors: _service_pb2.ErrorList
+        def __init__(self, module: _Optional[str] = ..., path: _Optional[str] = ..., errors: _Optional[_Union[_service_pb2.ErrorList, _Mapping]] = ...) -> None: ...
     MODULES_FIELD_NUMBER: _ClassVar[int]
     modules: _containers.RepeatedCompositeFieldContainer[EngineEnded.Module]
     def __init__(self, modules: _Optional[_Iterable[_Union[EngineEnded.Module, _Mapping]]] = ...) -> None: ...
@@ -42,34 +42,34 @@ class ModuleRemoved(_message.Message):
 class ModuleBuildWaiting(_message.Message):
     __slots__ = ("config",)
     CONFIG_FIELD_NUMBER: _ClassVar[int]
-    config: _language_pb2.ModuleConfig
-    def __init__(self, config: _Optional[_Union[_language_pb2.ModuleConfig, _Mapping]] = ...) -> None: ...
+    config: _service_pb2.ModuleConfig
+    def __init__(self, config: _Optional[_Union[_service_pb2.ModuleConfig, _Mapping]] = ...) -> None: ...
 
 class ModuleBuildStarted(_message.Message):
     __slots__ = ("config", "is_auto_rebuild")
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     IS_AUTO_REBUILD_FIELD_NUMBER: _ClassVar[int]
-    config: _language_pb2.ModuleConfig
+    config: _service_pb2.ModuleConfig
     is_auto_rebuild: bool
-    def __init__(self, config: _Optional[_Union[_language_pb2.ModuleConfig, _Mapping]] = ..., is_auto_rebuild: bool = ...) -> None: ...
+    def __init__(self, config: _Optional[_Union[_service_pb2.ModuleConfig, _Mapping]] = ..., is_auto_rebuild: bool = ...) -> None: ...
 
 class ModuleBuildFailed(_message.Message):
     __slots__ = ("config", "errors", "is_auto_rebuild")
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     ERRORS_FIELD_NUMBER: _ClassVar[int]
     IS_AUTO_REBUILD_FIELD_NUMBER: _ClassVar[int]
-    config: _language_pb2.ModuleConfig
-    errors: _language_pb2.ErrorList
+    config: _service_pb2.ModuleConfig
+    errors: _service_pb2.ErrorList
     is_auto_rebuild: bool
-    def __init__(self, config: _Optional[_Union[_language_pb2.ModuleConfig, _Mapping]] = ..., errors: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ..., is_auto_rebuild: bool = ...) -> None: ...
+    def __init__(self, config: _Optional[_Union[_service_pb2.ModuleConfig, _Mapping]] = ..., errors: _Optional[_Union[_service_pb2.ErrorList, _Mapping]] = ..., is_auto_rebuild: bool = ...) -> None: ...
 
 class ModuleBuildSuccess(_message.Message):
     __slots__ = ("config", "is_auto_rebuild")
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     IS_AUTO_REBUILD_FIELD_NUMBER: _ClassVar[int]
-    config: _language_pb2.ModuleConfig
+    config: _service_pb2.ModuleConfig
     is_auto_rebuild: bool
-    def __init__(self, config: _Optional[_Union[_language_pb2.ModuleConfig, _Mapping]] = ..., is_auto_rebuild: bool = ...) -> None: ...
+    def __init__(self, config: _Optional[_Union[_service_pb2.ModuleConfig, _Mapping]] = ..., is_auto_rebuild: bool = ...) -> None: ...
 
 class ModuleDeployWaiting(_message.Message):
     __slots__ = ("module",)
@@ -88,8 +88,8 @@ class ModuleDeployFailed(_message.Message):
     MODULE_FIELD_NUMBER: _ClassVar[int]
     ERRORS_FIELD_NUMBER: _ClassVar[int]
     module: str
-    errors: _language_pb2.ErrorList
-    def __init__(self, module: _Optional[str] = ..., errors: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ...) -> None: ...
+    errors: _service_pb2.ErrorList
+    def __init__(self, module: _Optional[str] = ..., errors: _Optional[_Union[_service_pb2.ErrorList, _Mapping]] = ...) -> None: ...
 
 class ModuleDeploySuccess(_message.Message):
     __slots__ = ("module",)

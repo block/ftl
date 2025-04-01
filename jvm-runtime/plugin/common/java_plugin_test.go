@@ -81,7 +81,7 @@ func TestJavaConfigDefaults(t *testing.T) {
 				_ = plugin.Kill() //nolint:errcheck
 			})
 
-			defaults, err := plugin.ModuleConfigDefaults(ctx, dir)
+			defaults, err := languageplugin.GetModuleConfigDefaults(ctx, "java", dir)
 			assert.NoError(t, err)
 
 			assert.Equal(t, tt.expected, defaults)

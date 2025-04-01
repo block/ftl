@@ -1289,7 +1289,7 @@ func (e *Engine) newModuleMeta(ctx context.Context, config moduleconfig.Unvalida
 	}()
 
 	// update config with defaults
-	customDefaults, err := plugin.ModuleConfigDefaults(ctx, config.Dir)
+	customDefaults, err := languageplugin.GetModuleConfigDefaults(ctx, config.Language, config.Dir)
 	if err != nil {
 		return moduleMeta{}, fmt.Errorf("could not get defaults provider for %s: %w", config.Module, err)
 	}
