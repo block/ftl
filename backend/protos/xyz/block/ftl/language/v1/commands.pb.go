@@ -264,7 +264,7 @@ func (x *GetModuleConfigDefaultsRequest) GetDir() string {
 	return ""
 }
 
-// ModuleConfigDefaultsResponse provides defaults for ModuleConfig.
+// GetModuleConfigDefaultsResponse provides defaults for ModuleConfig.
 //
 // The result may be cached by FTL, so defaulting logic should not be changing due to normal module changes.
 // For example, it is valid to return defaults based on which build tool is configured within the module directory,

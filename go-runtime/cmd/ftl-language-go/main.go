@@ -21,9 +21,6 @@ var cli struct {
 	Command string           `arg:"" optional:"" help:"Command to run synchronously. Request is passed as proto-encoded bytes on stdin, and response returned on stdout."`
 }
 
-type serve struct {
-}
-
 func main() {
 	kctx := kong.Parse(&cli,
 		kong.Description(`FTL - Go`),
@@ -38,14 +35,11 @@ func main() {
 			languagepbconnect.NewLanguageServiceHandler)
 	} else {
 		ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.Logging))
-		err := clirpc.Invoke(ctx, cli.Command, os.Stdin, os.Stdout)
+		path, handler := languagepbconnect.NewLanguageCommandServiceHandler(goplugin.CmdService{})
+		err := clirpc.Invoke(ctx, handler, path, cli.Command, os.Stdin, os.Stdout)
 		kctx.FatalIfErrorf(err)
 	}
 	kctx.FatalIfErrorf(kctx.Run())
-}
-
-func (s serve) Run() error {
-	return nil
 }
 
 func createService(ctx context.Context, config any) (context.Context, *goplugin.Service, error) {

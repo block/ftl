@@ -90,7 +90,7 @@ func (CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.New
 	return connect.NewResponse(&langpb.NewModuleResponse{}), nil
 }
 
-// ModuleConfigDefaults provides default values for ModuleConfig for values that are not configured in the ftl.toml file.
+// GetModuleConfigDefaults provides default values for ModuleConfig for values that are not configured in the ftl.toml file.
 func (CmdService) GetModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.GetModuleConfigDefaultsRequest]) (*connect.Response[langpb.GetModuleConfigDefaultsResponse], error) {
 	deployDir := ".ftl"
 	watch := []string{"**/*.go", "go.mod", "go.sum"}
