@@ -357,3 +357,144 @@ When you use a generated query client in your code, you're calling a verb that h
 
   </TabItem>
 </Tabs>
+
+## Transactions
+
+FTL provides transaction support through verb annotations. When a verb is marked as transactional, FTL will automatically manage the transaction boundaries - beginning the transaction when the verb is called, committing if the verb completes successfully, and rolling back if any errors occur during execution.
+
+<Tabs groupId="languages">
+  <TabItem value="go" label="Go" default>
+
+To mark a verb as transactional, use the `//ftl:transaction` comment directive:
+
+```go
+type CreateUserRequest struct {
+    Name  string
+    Email string
+}
+
+//ftl:transaction
+func CreateUser(ctx context.Context, req CreateUserRequest, db MydbHandle, createAddress CreateAddressClient) error {
+    // All database operations within this verb will be executed in a single transaction
+    result, err := db.Get(ctx).Exec("INSERT INTO users (name, email) VALUES ($1, $2)", req.Name, req.Email)
+    if err != nil {
+        return err // Transaction will be rolled back
+    }
+    
+    userId, err := result.LastInsertId()
+    if err != nil {
+        return err // Transaction will be rolled back
+    }
+    
+    // createAddress is a generated query client from a SQL file in queries/
+    err = createAddress(ctx, AddressRequest{UserId: userId})
+    if err != nil {
+        return err // Transaction will be rolled back
+    }
+    
+    return nil // Transaction will be committed
+}
+```
+
+  </TabItem>
+  <TabItem value="kotlin" label="Kotlin">
+
+To mark a verb as transactional, use the `@Transactional` annotation:
+
+```kotlin
+data class CreateUserRequest(
+    val name: String,
+    val email: String
+)
+
+@Transactional
+fun createUser(
+    request: CreateUserRequest,
+    createAddress: CreateAddressClient // Generated query client
+): Unit {    
+    // createAddress is a generated query client from a SQL file in queries/
+    createAddress.createAddress(AddressRequest(userId = userId))
+    // Transaction commits if we reach here without errors
+    // Any errors will cause automatic rollback
+}
+```
+
+  </TabItem>
+  <TabItem value="java" label="Java">
+
+To mark a verb as transactional, use the `@Transactional` annotation:
+
+```java
+public class CreateUserRequest {
+    private String name;
+    private String email;
+}
+
+public class UserService {
+    @Transactional
+    public void createUser(
+        CreateUserRequest request,
+        CreateAddressClient createAddress  // Generated query client
+    ) { 
+        // createAddress is a generated query client from a SQL file in queries/
+        createAddress.createAddress(new AddressRequest(userId));
+        // Transaction commits if we reach here without errors
+        // Any errors will cause automatic rollback
+    }
+}
+```
+
+  </TabItem>
+  <TabItem value="schema" label="Schema">
+
+In the FTL schema, transaction verbs are represented with the `+transaction` annotation:
+
+```schema
+module example {
+  // Database declaration
+  database postgres mydb
+    +migration sha256:59b989063b6de57a1b6867e8ad7915109c9b8632616118c6ef23e4439cf17f8e
+  
+  data CreateUserRequest {
+    name String
+    email String
+  }
+  
+  data AddressRequest {
+    userId Int +sql column "addresses"."id"
+    street String +sql column "addresses"."street"
+    city String +sql column "addresses"."city"
+  }
+  
+  // Generated query client from SQL file
+  verb createAddress(example.AddressRequest) Unit
+    +database calls example.mydb
+    +sql query exec "INSERT INTO addresses (user_id, street, city) VALUES (?, ?, ?)"
+  
+  // Transaction verb that uses both direct database access and a generated query client
+  verb createUser(example.CreateUserRequest) Unit
+    +transaction
+    +database calls example.mydb
+    +calls example.createAddress
+}
+```
+
+  </TabItem>
+</Tabs>
+
+### Transaction Rules and Limitations
+
+When using transactions, FTL enforces the following restrictions:
+
+1. **Database Usage**: Transaction verbs must use at least one database resource (either through a database handle or SQL query clients). FTL infers which database to open the transaction against based on these usages.
+
+2. **Single Database**: FTL only supports transactions against a single database. Two-phase commits across multiple databases are not supported.
+
+3. **No Nesting**: Transaction verbs cannot be nested. This means you cannot inject another transaction verb's client as a resource within a transaction verb.
+
+4. **Module Scope**: Transaction verbs can only call other verbs within the same module. Calls to external verbs from other modules are not allowed within a transaction.
+
+5. **Automatic Management**: Transaction boundaries are automatically managed by FTL:
+   - The transaction begins when the verb is called
+   - The transaction commits if the verb completes successfully
+   - The transaction rolls back if any errors occur during execution
