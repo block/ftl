@@ -2,8 +2,12 @@ package time
 
 import (
 	"context"
+	"github.com/block/ftl/go-runtime/ftl"
 	"time"
 )
+
+// Simple string configuration
+type Greeting = ftl.Config[string]
 
 type TimeRequest struct{}
 type TimeResponse struct {
@@ -24,4 +28,9 @@ func Time(ctx context.Context, req TimeRequest, ic InternalClient) (TimeResponse
 //ftl:verb export
 func Internal(ctx context.Context, req TimeRequest) (TimeResponse, error) {
 	return TimeResponse{Time: time.Now()}, nil
+}
+
+//ftl:verb export
+func Hello(ctx context.Context, req string, greeting Greeting) (string, error) {
+	return greeting.Get(ctx) + " " + req, nil
 }

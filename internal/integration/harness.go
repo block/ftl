@@ -91,6 +91,7 @@ func WithKubernetes(helmArgs ...string) Option {
 		o.kube = true
 		o.startController = false
 		o.helmArgs = helmArgs
+		o.envars["FTL_ENDPOINT"] = "http://localhost:8792"
 	}
 }
 
@@ -317,6 +318,14 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 
 	assert.Equal(t, *buildOnceOptions, opts, "Options changed between test runs")
 
+	adminPort := "8892"
+	consolePort := "8899"
+	schemaPort := "8897"
+	if opts.kube {
+		adminPort = "8792"
+		consolePort = "8792"
+		schemaPort = "8792"
+	}
 	for _, language := range opts.languages {
 		t.Run(language, func(t *testing.T) {
 			t.Helper()
@@ -325,7 +334,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			defer done(fmt.Errorf("test complete"))
 			tmpDir := initWorkDir(t, cwd, opts)
 
-			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:8892", log.Debug)
+			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:"+adminPort, log.Debug)
 
 			var admin adminpbconnect.AdminServiceClient
 			var console consolepbconnect.ConsoleServiceClient
@@ -354,9 +363,9 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				ctx = startProcess(ctx, t, tmpDir, opts.devMode, args...)
 			}
 			if opts.startController || opts.kube {
-				admin = rpc.Dial(adminpbconnect.NewAdminServiceClient, "http://localhost:8892", log.Debug)
-				console = rpc.Dial(consolepbconnect.NewConsoleServiceClient, "http://localhost:8899", log.Debug)
-				schema = rpc.Dial(ftlv1connect.NewSchemaServiceClient, "http://localhost:8897", log.Debug)
+				admin = rpc.Dial(adminpbconnect.NewAdminServiceClient, "http://localhost:"+adminPort, log.Debug)
+				console = rpc.Dial(consolepbconnect.NewConsoleServiceClient, "http://localhost:"+consolePort, log.Debug)
+				schema = rpc.Dial(ftlv1connect.NewSchemaServiceClient, "http://localhost:"+schemaPort, log.Debug)
 			}
 
 			testData := filepath.Join(cwd, "testdata", language)
@@ -390,7 +399,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 
 			if opts.startTimeline {
 				if opts.kube {
-					ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:8892", log.Debug)
+					ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:8792", log.Debug)
 				} else {
 					ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:8894", log.Debug)
 				}

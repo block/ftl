@@ -639,15 +639,19 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 	// Setup policies for the modules we call
 	// This feels like the wrong way around but given the way the provisioner works there is not much we can do about this at this stage
 	for _, callableModule := range callableModuleNames {
+		if callableModule == module {
+			continue
+		}
 		logger.Debugf("Processing callable module %s", callableModule)
 		policyName := module + "-" + callableModule
-		err := r.createOrUpdateIstioPolicy(ctx, sec, r.namespaceMapper(callableModule, r.systemNamespace), policyName, func(policy *istiosec.AuthorizationPolicy) {
+		callableModuleNamespace := r.namespaceMapper(callableModule, r.systemNamespace)
+		err := r.createOrUpdateIstioPolicy(ctx, sec, callableModuleNamespace, policyName, func(policy *istiosec.AuthorizationPolicy) {
 
-			targetService, err := r.client.CoreV1().Services(policy.Namespace).Get(ctx, callableModule, v1.GetOptions{})
+			targetServiceAccount, err := r.client.CoreV1().ServiceAccounts(callableModuleNamespace).Get(ctx, callableModule, v1.GetOptions{})
 			if err != nil {
-				logger.Errorf(err, "Failed to get service %s for module %s", callableModule, callableModule)
+				logger.Errorf(err, "Failed to get service account %s for module %s", callableModule, callableModule)
 			} else {
-				policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: targetService.Namespace, UID: targetService.UID}}
+				policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "serviceAccount", Name: targetServiceAccount.Namespace, UID: targetServiceAccount.UID}}
 			}
 
 			if policy.Labels == nil {
