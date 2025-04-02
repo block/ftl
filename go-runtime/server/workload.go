@@ -8,10 +8,12 @@ import (
 	"strings"
 
 	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/internal/log"
 )
 
 func addWorkloadIdentity(ctx context.Context, metadata http.Header) (context.Context, error) {
-	fmt.Printf("Request map: %v\n", metadata)
+	logger := log.FromContext(ctx)
+	logger.Tracef("Request map: %v\n", metadata)
 	clientcert := metadata["X-Forwarded-Client-Cert"]
 	if len(clientcert) == 0 {
 		return ctx, nil

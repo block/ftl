@@ -41,7 +41,7 @@ const BuildStateTerminated BuildState = "Terminated"
 
 // moduleStatusPadding is the padding between module status entries
 // it accounts for the icon, the module name, and the padding between them
-const moduleStatusPadding = 8
+const moduleStatusPadding = 5
 
 var _ StatusManager = &terminalStatusManager{}
 var _ StatusLine = &terminalStatusLine{}
@@ -143,15 +143,10 @@ func NewStatusManager(ctx context.Context) StatusManager {
 	os.Stderr = sm.write
 
 	go func() {
-		for {
-			c := make(chan os.Signal, 1)
-			signal.Notify(c, syscall.SIGWINCH)
-			// Block until a signal is received.
-			<-c
-			sm.statusLock.Lock()
-			sm.width, sm.height, _ = term.GetSize(int(sm.old.Fd())) //nolint:errcheck
-			sm.recalculateLines()
-			sm.statusLock.Unlock()
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGWINCH)
+		for range c {
+			sm.handleResize()
 		}
 	}()
 
@@ -431,6 +426,18 @@ func (r *terminalStatusManager) redrawStatus() {
 	}
 }
 
+func truncateModuleName(name string, maxLength int) string {
+	if len(name) <= maxLength {
+		return name
+	}
+	if maxLength < 5 {
+		return name[:maxLength]
+	}
+
+	half := (maxLength - 3) / 2
+	return name[:half] + "..." + name[len(name)-half:]
+}
+
 func (r *terminalStatusManager) recalculateLines() {
 	r.clearStatusMessages()
 	total := 0
@@ -445,7 +452,13 @@ func (r *terminalStatusManager) recalculateLines() {
 			}
 			keys = append(keys, k)
 		}
-		// Calculate entry length based on longest module name plus padding
+
+		// Cap the maximum length to 25% of terminal width
+		maxAllowedLength := r.width / 4
+		if maxLength > maxAllowedLength {
+			maxLength = maxAllowedLength
+		}
+
 		entryLength := maxLength + moduleStatusPadding
 
 		msg := ""
@@ -463,10 +476,11 @@ func (r *terminalStatusManager) recalculateLines() {
 			}
 			state := r.moduleStates[k]
 			icon := buildStateIcon[state](r.spinnerCount)
-			moduleText := buildColors[state] + icon + " " + log.ScopeColor(k) + k + buildColors[state] + ansiResetTextColor
 
-			// Calculate padding based on longest module name
-			padLength := entryLength - len(k) - 2 // -2 for icon and space
+			displayName := truncateModuleName(k, maxLength)
+			moduleText := buildColors[state] + icon + " " + log.ScopeColor(k) + displayName + buildColors[state] + ansiResetTextColor
+
+			padLength := entryLength - len(displayName) - 2 // -2 for icon and space
 			pad := strings.Repeat(" ", padLength)
 			msg += moduleText + pad
 		}
@@ -484,7 +498,9 @@ func (r *terminalStatusManager) recalculateLines() {
 		}
 	}
 	total += r.interactiveLines
+
 	r.totalStatusLines = total
+
 	r.redrawStatus()
 }
 
@@ -597,4 +613,11 @@ func (s *statusLineWriter) Write(p []byte) (n int, err error) {
 		}
 	}
 	return len(p), nil
+}
+
+func (r *terminalStatusManager) handleResize() {
+	r.statusLock.Lock()
+	defer r.statusLock.Unlock()
+	r.width, r.height, _ = term.GetSize(int(r.old.Fd())) //nolint:errcheck
+	r.recalculateLines()
 }
