@@ -1,7 +1,7 @@
 builds:
   - &settings
     id: ftl
-    main: ./cmd/ftl
+    dir: ./cmd/ftl
     binary: ftl
     env:
       - CGO_ENABLED=0
@@ -15,23 +15,23 @@ builds:
     ldflags: -s -w -buildid= -X github.com/block/ftl.Version={{.Version}} -X  github.com/block/ftl.timestamp={{ .CommitTimestamp }}
     tags: [release]
   - id: ftl-sqlc
-    main: ./cmd/ftl-sqlc
+    dir: ./cmd/ftl-sqlc
     binary: ftl-sqlc
     <<: *settings
   - id: ftl-language-go
-    main: ./go-runtime/cmd/ftl-language-go
+    dir: ./go-runtime/cmd/ftl-language-go
     binary: ftl-language-go
     <<: *settings
   - id: ftl-language-java
-    main: ./jvm-runtime/cmd/ftl-language-java
+    dir: ./jvm-runtime/cmd/ftl-language-java
     binary: ftl-language-java
     <<: *settings
   - id: ftl-language-kotlin
-    main: ./jvm-runtime/cmd/ftl-language-kotlin
+    dir: ./jvm-runtime/cmd/ftl-language-kotlin
     binary: ftl-language-kotlin
     <<: *settings
   - id: ftl-language-python
-    main: ./python-runtime/cmd/ftl-language-python
+    dir: ./python-runtime/cmd/ftl-language-python
     binary: ftl-language-python
     <<: *settings
 
