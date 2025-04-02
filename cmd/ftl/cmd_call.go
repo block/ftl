@@ -96,7 +96,8 @@ func callVerb(
 			if cmd != nil && cmd.ConsoleEndpoint != nil {
 				consoleURL = cmd.ConsoleEndpoint.String()
 			}
-			fmt.Printf("Trace URL: %s/traces/%s\n", consoleURL, requestKey)
+			traceURL := fmt.Sprintf("%s/traces/%s", consoleURL, requestKey)
+			fmt.Printf("Trace URL: \x1b]8;;%s\x07%s\x1b]8;;\x07\u001b[0m\n", traceURL, traceURL)
 			fmt.Println()
 		}
 	}
