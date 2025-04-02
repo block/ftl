@@ -638,8 +638,9 @@ func startProcess(ctx context.Context, t testing.TB, tempDir string, devMode boo
 }
 
 func dumpTestContents(ctx context.Context, ic TestContext) {
-	_ = os.RemoveAll(dumpContentsPath)               // nolint
-	_ = copy.Copy(ic.WorkingDir(), dumpContentsPath) // nolint
+	path := filepath.Join(dumpContentsPath, ic.realT.Name())
+	_ = os.RemoveAll(path)               // nolint
+	_ = copy.Copy(ic.WorkingDir(), path) // nolint
 
 }
 
