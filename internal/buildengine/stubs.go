@@ -28,15 +28,23 @@ func GenerateStubs(ctx context.Context, projectRoot string, modules []*schema.Mo
 }
 
 // CleanStubs removes all generated stubs.
-func CleanStubs(ctx context.Context, projectRoot string) error {
+func CleanStubs(ctx context.Context, projectRoot string, configs []moduleconfig.UnvalidatedModuleConfig) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Deleting all generated stubs")
 	sharedFtlDir := filepath.Join(projectRoot, buildDirName)
 
-	// Wipe the modules directory to ensure we don't have any stale modules.
-	err := os.RemoveAll(sharedFtlDir)
-	if err != nil {
-		return fmt.Errorf("failed to remove %s: %w", sharedFtlDir, err)
+	// Figure out which languages we need to clean.
+	languages := make(map[string]struct{})
+	for _, config := range configs {
+		languages[config.Language] = struct{}{}
+	}
+
+	for lang := range languages {
+		stubsDir := filepath.Join(sharedFtlDir, lang, "modules")
+		err := os.RemoveAll(stubsDir)
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove %s: %w", stubsDir, err)
+		}
 	}
 
 	return nil

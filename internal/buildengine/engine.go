@@ -188,7 +188,12 @@ func New(
 	ctx, cancel := context.WithCancelCause(ctx)
 	e.cancel = cancel
 
-	err := CleanStubs(ctx, projectConfig.Root())
+	configs, err := watch.DiscoverModules(ctx, moduleDirs)
+	if err != nil {
+		return nil, fmt.Errorf("could not find modules: %w", err)
+	}
+
+	err = CleanStubs(ctx, projectConfig.Root(), configs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to clean stubs: %w", err)
 	}
@@ -201,11 +206,6 @@ func New(
 			log.FromContext(ctx).Errorf(err, "updates service failed")
 		}
 	}()
-
-	configs, err := watch.DiscoverModules(ctx, moduleDirs)
-	if err != nil {
-		return nil, fmt.Errorf("could not find modules: %w", err)
-	}
 
 	go e.watchForEventsToPublish(ctx, len(configs) > 0)
 
