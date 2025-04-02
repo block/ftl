@@ -16,6 +16,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/must"
 	"github.com/alecthomas/types/result"
 	"github.com/bmatcuk/doublestar/v4"
 	"golang.org/x/sync/errgroup"
@@ -24,7 +25,6 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/flock"
 	in "github.com/block/ftl/internal/integration"
 	"github.com/block/ftl/internal/log"
@@ -46,12 +46,6 @@ import (
 //     on dependency on the module "dependable" when everything before the colon is removed.
 //     - dependable.Data is a data type which can be used to avoid unused dependency warnings.
 
-var client *pluginClientImpl
-var bindURL *url.URL
-var config moduleconfig.ModuleConfig
-var buildChan chan result.Result[*langpb.BuildResponse]
-var buildChanCancel streamCancelFunc
-
 const MODULE_NAME = "plugintest"
 const VERB_NAME_SNIPPET = "aabbcc"
 
@@ -65,34 +59,35 @@ const (
 
 func TestBuilds(t *testing.T) {
 	sch := generateInitialSchema(t)
+	bctx := &testContext{}
 	in.Run(t,
 		in.WithLanguages("go"),
 		in.WithoutController(),
 		in.WithoutTimeline(),
 		in.CopyModule(MODULE_NAME),
-		startPlugin(),
-		setUpModuleConfig(MODULE_NAME),
-		generateStubs(sch.Modules...),
-		syncStubReferences("builtin", "dependable"),
+		bctx.startPlugin(),
+		bctx.setUpModuleConfig(MODULE_NAME),
+		bctx.generateStubs(sch.Modules...),
+		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build once
-		build(false, []string{}, sch, "build-once"),
-		waitForBuildToEnd(SUCCESS, "build-once", false, nil),
+		bctx.build(false, []string{}, sch, "build-once"),
+		bctx.waitForBuildToEnd(SUCCESS, "build-once", false, nil),
 
 		// Sending build context updates should fail if the plugin has no way to send back a build result
 		in.Fail(
-			sendUpdatedBuildContext("no-build-stream", []string{}, sch),
+			bctx.sendUpdatedBuildContext("no-build-stream", []string{}, sch),
 			"expected error when sending build context update without a build stream",
 		),
 
 		// Build and enable rebuilding automatically
-		build(true, []string{}, sch, "build-and-watch"),
-		waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
+		bctx.build(true, []string{}, sch, "build-and-watch"),
+		bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
 
 		// Update verb name and expect auto rebuild started and ended
-		modifyVerbName(MODULE_NAME, VERB_NAME_SNIPPET, "aaabbbccc"),
-		in.IfLanguages(waitForAutoRebuildToStart("build-and-watch"), "go"),
-		waitForBuildToEnd(SUCCESS, "build-and-watch", true, func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse) {
+		bctx.modifyVerbName(MODULE_NAME, VERB_NAME_SNIPPET, "aaabbbccc"),
+		in.IfLanguages(bctx.waitForAutoRebuildToStart("build-and-watch"), "go"),
+		bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", true, func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse) {
 			successEvent, ok := event.Event.(*langpb.BuildResponse_BuildSuccess)
 			assert.True(t, ok)
 			_, found := slices.Find(successEvent.BuildSuccess.Module.Decls, func(decl *schemapb.Decl) bool {
@@ -107,53 +102,55 @@ func TestBuilds(t *testing.T) {
 
 		// Trigger an auto rebuild, but when we are told of the build being started, send a build context update
 		// to force a new build
-		modifyVerbName(MODULE_NAME, "aaabbbccc", "aaaabbbbcccc"),
-		in.IfLanguages(waitForAutoRebuildToStart("build-and-watch"), "go"),
-		sendUpdatedBuildContext("explicit-build", []string{}, sch),
-		waitForBuildToEnd(SUCCESSORFAILURE, "build-and-watch", true, nil),
-		waitForBuildToEnd(SUCCESS, "explicit-build", false, nil),
+		bctx.modifyVerbName(MODULE_NAME, "aaabbbccc", "aaaabbbbcccc"),
+		in.IfLanguages(bctx.waitForAutoRebuildToStart("build-and-watch"), "go"),
+		bctx.sendUpdatedBuildContext("explicit-build", []string{}, sch),
+		bctx.waitForBuildToEnd(SUCCESSORFAILURE, "build-and-watch", true, nil),
+		bctx.waitForBuildToEnd(SUCCESS, "explicit-build", false, nil),
 
 		// Trigger 2 explicit builds, make sure we get a response for both of them (first one can fail)
-		sendUpdatedBuildContext("double-build-1", []string{}, sch),
-		sendUpdatedBuildContext("double-build-2", []string{}, sch),
-		waitForBuildToEnd(SUCCESSORFAILURE, "double-build-1", false, nil),
-		waitForBuildToEnd(SUCCESS, "double-build-2", false, nil),
+		bctx.sendUpdatedBuildContext("double-build-1", []string{}, sch),
+		bctx.sendUpdatedBuildContext("double-build-2", []string{}, sch),
+		bctx.waitForBuildToEnd(SUCCESSORFAILURE, "double-build-1", false, nil),
+		bctx.waitForBuildToEnd(SUCCESS, "double-build-2", false, nil),
 
-		killPlugin(),
+		bctx.killPlugin(),
 	)
 }
 
 func TestDependenciesUpdate(t *testing.T) {
 	sch := generateInitialSchema(t)
 
+	bctx := &testContext{}
+
 	in.Run(t,
 		in.WithLanguages("go"), //no java support yet, as it relies on writeGenericSchemaFiles
 		in.WithoutController(),
 		in.WithoutTimeline(),
 		in.CopyModule(MODULE_NAME),
-		startPlugin(),
-		setUpModuleConfig(MODULE_NAME),
-		generateStubs(sch.Modules...),
-		syncStubReferences("builtin", "dependable"),
+		bctx.startPlugin(),
+		bctx.setUpModuleConfig(MODULE_NAME),
+		bctx.generateStubs(sch.Modules...),
+		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build
-		build(false, []string{}, sch, "initial-ctx"),
-		waitForBuildToEnd(SUCCESS, "initial-ctx", false, nil),
+		bctx.build(false, []string{}, sch, "initial-ctx"),
+		bctx.waitForBuildToEnd(SUCCESS, "initial-ctx", false, nil),
 
 		// Add dependency, build, and expect a failure due to invalidated dependencies
-		addDependency(MODULE_NAME, "dependable"),
-		build(false, []string{}, sch, "detect-dep"),
-		waitForBuildToEnd(FAILURE, "detect-dep", false, func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse) {
+		bctx.addDependency(MODULE_NAME, "dependable"),
+		bctx.build(false, []string{}, sch, "detect-dep"),
+		bctx.waitForBuildToEnd(FAILURE, "detect-dep", false, func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse) {
 			failureEvent, ok := event.Event.(*langpb.BuildResponse_BuildFailure)
 			assert.True(t, ok)
 			assert.True(t, failureEvent.BuildFailure.InvalidateDependencies, "expected dependencies to be invalidated")
 		}),
 
 		// Build with new dependency
-		build(false, []string{"dependable"}, sch, "dep-added"),
-		waitForBuildToEnd(SUCCESS, "dep-added", false, nil),
+		bctx.build(false, []string{"dependable"}, sch, "dep-added"),
+		bctx.waitForBuildToEnd(SUCCESS, "dep-added", false, nil),
 
-		killPlugin(),
+		bctx.killPlugin(),
 	)
 }
 
@@ -161,27 +158,29 @@ func TestDependenciesUpdate(t *testing.T) {
 func TestBuildLock(t *testing.T) {
 	sch := generateInitialSchema(t)
 
+	bctx := &testContext{}
+
 	in.Run(t,
 		in.WithLanguages("go"),
 		in.WithoutController(),
 		in.WithoutTimeline(),
 		in.CopyModule(MODULE_NAME),
-		startPlugin(),
-		setUpModuleConfig(MODULE_NAME),
-		generateStubs(sch.Modules...),
-		syncStubReferences("builtin", "dependable"),
+		bctx.startPlugin(),
+		bctx.setUpModuleConfig(MODULE_NAME),
+		bctx.generateStubs(sch.Modules...),
+		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build and enable rebuilding automatically
-		checkBuildLockLifecycle(
-			build(true, []string{}, sch, "build-and-watch"),
-			waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
+		bctx.checkBuildLockLifecycle(
+			bctx.build(true, []string{}, sch, "build-and-watch"),
+			bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
 		),
 
 		// Update verb name and expect auto rebuild started and ended
-		modifyVerbName(MODULE_NAME, VERB_NAME_SNIPPET, "aaabbbccc"),
-		checkBuildLockLifecycle(
-			waitForAutoRebuildToStart("build-and-watch"),
-			waitForBuildToEnd(SUCCESS, "build-and-watch", true, nil),
+		bctx.modifyVerbName(MODULE_NAME, VERB_NAME_SNIPPET, "aaabbbccc"),
+		bctx.checkBuildLockLifecycle(
+			bctx.waitForAutoRebuildToStart("build-and-watch"),
+			bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", true, nil),
 		),
 	)
 }
@@ -190,30 +189,32 @@ func TestBuildLock(t *testing.T) {
 func TestBuildsWhenAlreadyLocked(t *testing.T) {
 	sch := generateInitialSchema(t)
 
+	bctx := &testContext{}
+
 	in.Run(t,
 		in.WithLanguages("go"),
 		in.WithoutController(),
 		in.WithoutTimeline(),
 		in.CopyModule(MODULE_NAME),
-		startPlugin(),
-		setUpModuleConfig(MODULE_NAME),
-		generateStubs(sch.Modules...),
-		syncStubReferences("builtin", "dependable"),
+		bctx.startPlugin(),
+		bctx.setUpModuleConfig(MODULE_NAME),
+		bctx.generateStubs(sch.Modules...),
+		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build and enable rebuilding automatically
-		checkBuildLockLifecycle(
-			build(true, []string{}, sch, "build-and-watch"),
-			waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
+		bctx.checkBuildLockLifecycle(
+			bctx.build(true, []string{}, sch, "build-and-watch"),
+			bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
 		),
 
 		// Confirm that build lock changes do not trigger a rebuild triggered by file changes
-		obtainAndReleaseBuildLock(3*time.Second),
-		checkForNoEvents(3*time.Second),
+		bctx.obtainAndReleaseBuildLock(3*time.Second),
+		bctx.checkForNoEvents(3*time.Second),
 
 		// Confirm that builds fail or stall when a lock file is already present
-		checkLockedBehavior(
-			sendUpdatedBuildContext("updated-ctx", []string{}, sch),
-			waitForBuildToEnd(FAILURE, "updated-ctx", false, nil),
+		bctx.checkLockedBehavior(
+			bctx.sendUpdatedBuildContext("updated-ctx", []string{}, sch),
+			bctx.waitForBuildToEnd(FAILURE, "updated-ctx", false, nil),
 		),
 	)
 }
@@ -238,36 +239,39 @@ func generateInitialSchema(t *testing.T) *schema.Schema {
 	return sch
 }
 
-func startPlugin() in.Action {
+type testContext struct {
+	client          *pluginClientImpl
+	bindURL         *url.URL
+	config          moduleconfig.ModuleConfig
+	buildChan       chan result.Result[*langpb.BuildResponse]
+	buildChanCancel streamCancelFunc
+}
+
+func (bctx *testContext) startPlugin() in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Starting plugin")
-		baseBind, err := url.Parse("http://127.0.0.1:8893")
-		assert.NoError(t, err)
-		bindAllocator, err := bind.NewBindAllocator(baseBind, 0)
-		assert.NoError(t, err)
-
-		bindURL, err = bindAllocator.Next()
-		assert.NoError(t, err)
-		client, err = newClientImpl(ic.Context, ic.WorkingDir(), ic.Language, "test")
+		bctx.bindURL = must.Get(url.Parse("http://127.0.0.1:8893"))
+		var err error
+		bctx.client, err = newClientImpl(ic.Context, ic.WorkingDir(), ic.Language, "test")
 		assert.NoError(t, err)
 	}
 }
 
-func killPlugin() in.Action {
+func (bctx *testContext) killPlugin() in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Killing plugin")
-		err := client.kill()
+		err := bctx.client.kill()
 		assert.NoError(t, err, "could not kill plugin")
 
 		time.Sleep(1 * time.Second)
 
 		// check that the bind port is freed (ie: the plugin has exited)
 		var l *net.TCPListener
-		_, portStr, err := net.SplitHostPort(bindURL.Host)
+		_, portStr, err := net.SplitHostPort(bctx.bindURL.Host)
 		assert.NoError(t, err)
 		port, err := strconv.Atoi(portStr)
 		assert.NoError(t, err)
-		l, err = net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP(bindURL.Hostname()), Port: port})
+		l, err = net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP(bctx.bindURL.Hostname()), Port: port})
 		if err != nil {
 			// panic so that we don't retry, which can hide the real error
 			panic("plugin's port is still in use")
@@ -276,7 +280,7 @@ func killPlugin() in.Action {
 	}
 }
 
-func setUpModuleConfig(moduleName string) in.Action {
+func (bctx *testContext) setUpModuleConfig(moduleName string) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Setting up config for %s", moduleName)
 		path := filepath.Join(ic.WorkingDir(), moduleName)
@@ -286,20 +290,20 @@ func setUpModuleConfig(moduleName string) in.Action {
 		unvalidatedConfig, err := moduleconfig.LoadConfig(path)
 		assert.NoError(t, err)
 
-		config, err = unvalidatedConfig.FillDefaultsAndValidate(defaults)
+		bctx.config, err = unvalidatedConfig.FillDefaultsAndValidate(defaults)
 		assert.NoError(t, err)
 	}
 }
 
-func generateStubs(moduleSchs ...*schema.Module) in.Action {
+func (bctx *testContext) generateStubs(moduleSchs ...*schema.Module) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Generating stubs for %v", slices.Map(moduleSchs, func(m *schema.Module) string { return m.Name }))
 		wg, wgctx := errgroup.WithContext(ic.Context)
 		for _, moduleSch := range moduleSchs {
 			wg.Go(func() error {
 				var configForStub moduleconfig.ModuleConfig
-				if moduleSch.Name == config.Module {
-					configForStub = config
+				if moduleSch.Name == bctx.config.Module {
+					configForStub = bctx.config
 				} else if moduleSch.Name == "builtin" {
 					configForStub = moduleconfig.ModuleConfig{
 						Module:   "builtin",
@@ -316,16 +320,16 @@ func generateStubs(moduleSchs ...*schema.Module) in.Action {
 				assert.NoError(t, err)
 
 				var nativeConfigProto *langpb.ModuleConfig
-				if moduleSch.Name != config.Module {
-					nativeConfigProto, err = langpb.ModuleConfigToProto(config.Abs())
+				if moduleSch.Name != bctx.config.Module {
+					nativeConfigProto, err = langpb.ModuleConfigToProto(bctx.config.Abs())
 					assert.NoError(t, err)
 				}
 
-				path := filepath.Join(ic.WorkingDir(), ".ftl", config.Language, "modules", configForStub.Module)
+				path := filepath.Join(ic.WorkingDir(), ".ftl", bctx.config.Language, "modules", configForStub.Module)
 				err = os.MkdirAll(path, 0750)
 				assert.NoError(t, err)
 
-				_, err = client.generateStubs(wgctx, connect.NewRequest(&langpb.GenerateStubsRequest{
+				_, err = bctx.client.generateStubs(wgctx, connect.NewRequest(&langpb.GenerateStubsRequest{
 					Dir:                path,
 					Module:             moduleSch.ToProto(),
 					ModuleConfig:       configForStubProto,
@@ -340,35 +344,35 @@ func generateStubs(moduleSchs ...*schema.Module) in.Action {
 	}
 }
 
-func syncStubReferences(moduleNames ...string) in.Action {
+func (bctx *testContext) syncStubReferences(moduleNames ...string) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Syncing stub references for %v", moduleNames)
 
-		configProto, err := langpb.ModuleConfigToProto(config.Abs())
+		configProto, err := langpb.ModuleConfigToProto(bctx.config.Abs())
 		assert.NoError(t, err)
 
-		_, err = client.syncStubReferences(ic.Context, connect.NewRequest(&langpb.SyncStubReferencesRequest{
+		_, err = bctx.client.syncStubReferences(ic.Context, connect.NewRequest(&langpb.SyncStubReferencesRequest{
 			ModuleConfig: configProto,
-			StubsRoot:    filepath.Join(ic.WorkingDir(), ".ftl", config.Language, "modules"),
+			StubsRoot:    filepath.Join(ic.WorkingDir(), ".ftl", bctx.config.Language, "modules"),
 			Modules:      moduleNames,
 		}))
 		assert.NoError(t, err)
 	}
 }
 
-func build(rebuildAutomatically bool, dependencies []string, sch *schema.Schema, contextId string) in.Action {
+func (bctx *testContext) build(rebuildAutomatically bool, dependencies []string, sch *schema.Schema, contextId string) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Plugin building: %s", contextId)
-		configProto, err := langpb.ModuleConfigToProto(config.Abs())
+		configProto, err := langpb.ModuleConfigToProto(bctx.config.Abs())
 		assert.NoError(t, err)
 
 		schemaProto := sch.ToProto()
-		buildChan, buildChanCancel, err = client.build(ic.Context, connect.NewRequest(&langpb.BuildRequest{
+		bctx.buildChan, bctx.buildChanCancel, err = bctx.client.build(ic.Context, connect.NewRequest(&langpb.BuildRequest{
 			ProjectConfig: &langpb.ProjectConfig{
 				Dir:  ic.WorkingDir(),
 				Name: "test",
 			},
-			StubsRoot: filepath.Join(ic.WorkingDir(), ".ftl", config.Language, "modules"),
+			StubsRoot: filepath.Join(ic.WorkingDir(), ".ftl", bctx.config.Language, "modules"),
 			BuildContext: &langpb.BuildContext{
 				Id:           contextId,
 				ModuleConfig: configProto,
@@ -377,17 +381,18 @@ func build(rebuildAutomatically bool, dependencies []string, sch *schema.Schema,
 			},
 			RebuildAutomatically: rebuildAutomatically,
 		}))
+		assert.NoError(t, err)
 	}
 }
 
-func sendUpdatedBuildContext(contextId string, dependencies []string, sch *schema.Schema) in.Action {
+func (bctx *testContext) sendUpdatedBuildContext(contextId string, dependencies []string, sch *schema.Schema) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Sending updated context to plugin: %s", contextId)
-		configProto, err := langpb.ModuleConfigToProto(config.Abs())
+		configProto, err := langpb.ModuleConfigToProto(bctx.config.Abs())
 		assert.NoError(t, err)
 
 		schemaProto := sch.ToProto()
-		_, err = client.buildContextUpdated(ic.Context, connect.NewRequest(&langpb.BuildContextUpdatedRequest{
+		_, err = bctx.client.buildContextUpdated(ic.Context, connect.NewRequest(&langpb.BuildContextUpdatedRequest{
 			BuildContext: &langpb.BuildContext{
 				Id:           contextId,
 				ModuleConfig: configProto,
@@ -399,13 +404,13 @@ func sendUpdatedBuildContext(contextId string, dependencies []string, sch *schem
 	}
 }
 
-func waitForAutoRebuildToStart(contextId string) in.Action {
+func (bctx *testContext) waitForAutoRebuildToStart(contextId string) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Waiting for auto rebuild to start: %s", contextId)
 		logger := log.FromContext(ic.Context)
-		assert.NotZero(t, buildChan, "buildChan must be set before calling waitForAutoRebuildStarted")
+		assert.NotZero(t, bctx.buildChan, "buildChan must be set before calling waitForAutoRebuildStarted")
 		for {
-			event, err := (<-buildChan).Result()
+			event, err := (<-bctx.buildChan).Result()
 			assert.NoError(t, err, "did not expect a build stream error")
 			switch event := event.Event.(type) {
 			case *langpb.BuildResponse_AutoRebuildStarted:
@@ -431,7 +436,7 @@ func waitForAutoRebuildToStart(contextId string) in.Action {
 	}
 }
 
-func waitForBuildToEnd(success BuildResultType, contextId string, automaticRebuild bool, additionalChecks func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse)) in.Action {
+func (bctx *testContext) waitForBuildToEnd(success BuildResultType, contextId string, automaticRebuild bool, additionalChecks func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse)) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		switch success {
 		case SUCCESSORFAILURE:
@@ -442,9 +447,9 @@ func waitForBuildToEnd(success BuildResultType, contextId string, automaticRebui
 			in.Infof("Waiting for build to fail: %s", contextId)
 		}
 		logger := log.FromContext(ic.Context)
-		assert.NotZero(t, buildChan, "buildChan must be set before calling waitForAutoRebuildStarted")
+		assert.NotZero(t, bctx.buildChan, "buildChan must be set before calling waitForAutoRebuildStarted")
 		for {
-			e, err := (<-buildChan).Result()
+			e, err := (<-bctx.buildChan).Result()
 			assert.NoError(t, err, "did not expect a build stream error")
 
 			switch event := e.Event.(type) {
@@ -492,12 +497,12 @@ func waitForBuildToEnd(success BuildResultType, contextId string, automaticRebui
 	}
 }
 
-func checkForNoEvents(duration time.Duration) in.Action {
+func (bctx *testContext) checkForNoEvents(duration time.Duration) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Checking for no events for %v", duration)
 		for {
 			select {
-			case result := <-buildChan:
+			case result := <-bctx.buildChan:
 				e, err := result.Result()
 				assert.NoError(t, err, "did not expect a build stream error")
 				switch event := e.Event.(type) {
@@ -517,12 +522,12 @@ func checkForNoEvents(duration time.Duration) in.Action {
 	}
 }
 
-func addDependency(moduleName, depName string) in.Action {
+func (bctx *testContext) addDependency(moduleName, depName string) in.Action {
 	searchStr := "uncommentForDependency:"
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Adding dependency: %s", depName)
 		found := false
-		assert.NoError(t, walkWatchedFiles(t, ic, moduleName, func(path string) {
+		assert.NoError(t, bctx.walkWatchedFiles(t, ic, moduleName, func(path string) {
 			bytes, err := os.ReadFile(path)
 			assert.NoError(t, err)
 
@@ -547,11 +552,11 @@ func addDependency(moduleName, depName string) in.Action {
 	}
 }
 
-func modifyVerbName(moduleName, old, new string) in.Action {
+func (bctx *testContext) modifyVerbName(moduleName, old, new string) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Modifying verb name: %s -> %s", old, new)
 		found := false
-		assert.NoError(t, walkWatchedFiles(t, ic, moduleName, func(path string) {
+		assert.NoError(t, bctx.walkWatchedFiles(t, ic, moduleName, func(path string) {
 			bytes, err := os.ReadFile(path)
 			assert.NoError(t, err)
 
@@ -576,7 +581,7 @@ func modifyVerbName(moduleName, old, new string) in.Action {
 	}
 }
 
-func walkWatchedFiles(t testing.TB, ic in.TestContext, moduleName string, visit func(path string)) error {
+func (bctx *testContext) walkWatchedFiles(t testing.TB, ic in.TestContext, moduleName string, visit func(path string)) error {
 	path := filepath.Join(ic.WorkingDir(), moduleName)
 	return watch.WalkDir(path, true, func(srcPath string, entry fs.DirEntry) error {
 		if entry.IsDir() {
@@ -585,7 +590,7 @@ func walkWatchedFiles(t testing.TB, ic in.TestContext, moduleName string, visit 
 		relativePath, err := filepath.Rel(path, srcPath)
 		assert.NoError(t, err)
 
-		_, matched := slices.Find(config.Watch, func(pattern string) bool {
+		_, matched := slices.Find(bctx.config.Watch, func(pattern string) bool {
 			match, err := doublestar.PathMatch(pattern, relativePath)
 			assert.NoError(t, err)
 			return match
@@ -597,11 +602,11 @@ func walkWatchedFiles(t testing.TB, ic in.TestContext, moduleName string, visit 
 	})
 }
 
-func checkBuildLockLifecycle(childActions ...in.Action) in.Action {
+func (bctx *testContext) checkBuildLockLifecycle(childActions ...in.Action) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Checking build lock is unlocked")
-		_, err := os.Stat(config.Abs().BuildLock)
-		assert.Error(t, err, "expected build lock file to not exist before building at %v", config.Abs().BuildLock)
+		_, err := os.Stat(bctx.config.Abs().BuildLock)
+		assert.Error(t, err, "expected build lock file to not exist before building at %v", bctx.config.Abs().BuildLock)
 
 		lockFound := make(chan bool)
 		go func() {
@@ -610,7 +615,7 @@ func checkBuildLockLifecycle(childActions ...in.Action) in.Action {
 			for {
 				select {
 				case <-time.After(1 * time.Second):
-					if _, err := os.Stat(config.Abs().BuildLock); err == nil {
+					if _, err := os.Stat(bctx.config.Abs().BuildLock); err == nil {
 						lockFound <- true
 						return
 					}
@@ -630,18 +635,18 @@ func checkBuildLockLifecycle(childActions ...in.Action) in.Action {
 			childAction(t, ic)
 		}
 		// confirm that at some point we did find the lock file
-		assert.True(t, (<-lockFound), "never found build lock file at %v while building", config.Abs().BuildLock)
+		assert.True(t, (<-lockFound), "never found build lock file at %v while building", bctx.config.Abs().BuildLock)
 
 		in.Infof("Checking build lock is unlocked")
-		_, err = os.Stat(config.Abs().BuildLock)
-		assert.Error(t, err, "expected build lock file to not exist after building at %v", config.Abs().BuildLock)
+		_, err = os.Stat(bctx.config.Abs().BuildLock)
+		assert.Error(t, err, "expected build lock file to not exist after building at %v", bctx.config.Abs().BuildLock)
 	}
 }
 
-func obtainAndReleaseBuildLock(duration time.Duration) in.Action {
+func (bctx *testContext) obtainAndReleaseBuildLock(duration time.Duration) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Obtaining and releasing build lock")
-		release, err := flock.Acquire(ic.Context, config.Abs().BuildLock, BuildLockTimeout)
+		release, err := flock.Acquire(ic.Context, bctx.config.Abs().BuildLock, BuildLockTimeout)
 		assert.NoError(t, err, "could not get build lock")
 		time.Sleep(duration)
 		err = release()
@@ -649,10 +654,10 @@ func obtainAndReleaseBuildLock(duration time.Duration) in.Action {
 	}
 }
 
-func checkLockedBehavior(buildFailureActions ...in.Action) in.Action {
+func (bctx *testContext) checkLockedBehavior(buildFailureActions ...in.Action) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
-		in.Infof("Acquiring build lock: %v", config.Abs().BuildLock)
-		release, err := flock.Acquire(ic.Context, config.Abs().BuildLock, BuildLockTimeout)
+		in.Infof("Acquiring build lock: %v", bctx.config.Abs().BuildLock)
+		release, err := flock.Acquire(ic.Context, bctx.config.Abs().BuildLock, BuildLockTimeout)
 		assert.NoError(t, err, "could not get build lock")
 
 		// build on a separate goroutine
@@ -665,7 +670,7 @@ func checkLockedBehavior(buildFailureActions ...in.Action) in.Action {
 		}()
 
 		// wait for build to fail due to file lock
-		_ = <-buildEnded
+		<-buildEnded
 
 		err = release() //nolint:errcheck
 		assert.NoError(t, err, "could not release build lock")
