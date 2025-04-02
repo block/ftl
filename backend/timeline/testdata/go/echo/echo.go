@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"ftl/time"
-
 	"github.com/block/ftl/go-runtime/ftl"
 )
 

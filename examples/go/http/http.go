@@ -2,8 +2,8 @@ package http
 
 import (
 	"context"
-	"ftl/builtin"
 
+	"ftl/builtin"
 	"github.com/block/ftl/go-runtime/ftl"
 )
 

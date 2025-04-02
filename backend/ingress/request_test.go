@@ -223,7 +223,7 @@ func TestBuildRequestBody(t *testing.T) {
 			expected: HTTPRequest[ftl.Unit, ftl.Unit, map[string][]string]{
 				Method: "GET",
 				Path:   "/multiMapQuery",
-				Query:  map[string][]string{"alias": []string{"value"}},
+				Query:  map[string][]string{"alias": {"value"}},
 			},
 		},
 	} {

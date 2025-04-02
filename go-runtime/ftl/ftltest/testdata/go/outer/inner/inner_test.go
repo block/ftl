@@ -3,8 +3,9 @@ package inner_test
 import (
 	"testing"
 
-	"github.com/block/ftl/common/reflection"
 	"github.com/alecthomas/assert/v2"
+
+	"github.com/block/ftl/common/reflection"
 )
 
 func TestInner(t *testing.T) {

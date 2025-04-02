@@ -250,6 +250,18 @@ build-intellij-plugin:
 format-frontend:
   cd {{CONSOLE_ROOT}} && pnpm run lint:fix
 
+# Format .go files
+format-backend:
+  #!/bin/bash
+  # shellcheck disable=SC2207
+  GO_FILES=($(git ls-files | grep '\.go$' | xargs -n1 grep -L '// Code generated.*DO NOT EDIT' || true))
+  gofmt -w -s "${GO_FILES[@]}"
+  gosimports -w --local ftl,github.com/block/ftl "${GO_FILES[@]}"
+
+# Format .proto files
+format-protos:
+  buf format -w
+
 # Install Node dependencies using pnpm
 pnpm-install:
   @mk $(yq '.packages[] | . + "/node_modules"' pnpm-workspace.yaml) node_modules/.modules.yaml : pnpm-lock.yaml -- @retry 3 pnpm install --frozen-lockfile
@@ -345,7 +357,7 @@ build-docs: pnpm-install
 
 # Generate LSP hover help text
 lsp-generate:
-  @mk internal/lsp/hoveritems.go : internal/lsp docs/docs -- ftl-gen-lsp
+  @mk internal/lsp/hoveritems.go : internal/lsp docs/docs -- "ftl-gen-lsp && gofmt -w -s internal/lsp/hoveritems.go"
 
 # Run `ftl dev` providing a Delve endpoint for attaching a debugger.
 debug *args:

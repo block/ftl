@@ -2,13 +2,13 @@ package wrapped
 
 import (
 	"context"
-	"ftl/time"
 	"path/filepath"
 	"testing"
 	stdtime "time"
 
 	"github.com/alecthomas/assert/v2"
 
+	"ftl/time"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/ftl/ftltest"

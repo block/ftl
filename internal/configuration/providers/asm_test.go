@@ -4,34 +4,10 @@ package providers
 
 /*
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"net/url"
-	"os"
-	"path"
-	"sort"
-	"testing"
-	"time"
 
-	"connectrpc.com/connect"
-	"github.com/alecthomas/assert/v2"
-	"github.com/alecthomas/types/optional"
-	. "github.com/alecthomas/types/optional"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 
-	"github.com/block/ftl/backend/controller/leases"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/configuration/providers/providerstest"
-	"github.com/block/ftl/internal/configuration/routers"
-	"github.com/block/ftl/internal/configuration/routers/routerstest"
-	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/testutils"
+
+
 )
 
 func setUp(ctx context.Context, t *testing.T, router optional.Option[configuration.Router[configuration.Secrets]]) (*manager.Manager[configuration.Secrets], ASM, *asmManager, *secretsmanager.Client, *providerstest.ManualSyncProvider[configuration.Secrets], *leases.FakeLeaser) {

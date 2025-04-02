@@ -4,9 +4,7 @@ import (
 	"context"
 
 	"ftl/builtin"
-
 	"ftl/typeregistry/subpackage"
-
 	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
 

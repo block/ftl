@@ -3,12 +3,10 @@ package typeregistry
 import (
 	"testing"
 
-	"ftl/builtin"
-
-	"ftl/typeregistry/subpackage"
-
 	"github.com/alecthomas/assert/v2"
 
+	"ftl/builtin"
+	"ftl/typeregistry/subpackage"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/ftl/ftltest"

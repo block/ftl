@@ -31,7 +31,7 @@ func TestModel(t *testing.T) {
 		OptionalMsg:        &Message{Time: now},
 		OptionalWrapper:    optional.Some("foo"),
 		RepeatedInt:        []int{1, 2, 3},
-		RepeatedMsg:        []*Message{&Message{Time: now}, &Message{Time: now}},
+		RepeatedMsg:        []*Message{{Time: now}, {Time: now}},
 		URL:                must.Get(url.Parse("http://127.0.0.1")),
 		Key:                key.NewDeploymentKey("echo"),
 		ExternalRoot:       external.Root{Prefix: "abc", Suffix: "xyz"},

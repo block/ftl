@@ -1,10 +1,12 @@
 package subscriber_test
 
 import (
+	"testing"
+
+	"github.com/alecthomas/assert/v2"
+
 	"ftl/pubsub"
 	"github.com/block/ftl/go-runtime/ftl/ftltest"
-	"github.com/alecthomas/assert/v2"
-	"testing"
 )
 
 func TestPublishToExternalModule(t *testing.T) {

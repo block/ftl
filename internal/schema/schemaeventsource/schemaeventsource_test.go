@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/must"
 	"github.com/alecthomas/types/optional"

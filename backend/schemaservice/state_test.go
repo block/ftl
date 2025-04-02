@@ -39,7 +39,7 @@ func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 		Changeset: &schema.Changeset{
 			Key: changesetKey,
 			Modules: []*schema.Module{
-				&schema.Module{
+				{
 					Name: "test2",
 					Runtime: &schema.ModuleRuntime{
 						Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey},

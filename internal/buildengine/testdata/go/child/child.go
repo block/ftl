@@ -2,8 +2,8 @@ package child
 
 import (
 	"context"
-	"ftl/parent"
 
+	"ftl/parent"
 	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
 

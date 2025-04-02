@@ -3,8 +3,8 @@ package wrapped
 import (
 	"context"
 	"fmt"
-	"ftl/time"
 
+	"ftl/time"
 	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
 

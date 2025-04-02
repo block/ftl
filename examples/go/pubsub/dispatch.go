@@ -3,8 +3,9 @@ package pubsub
 import (
 	"context"
 
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 	"golang.org/x/exp/rand"
+
+	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
 
 type OrderPizzaRequest struct {

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"ftl/another"
 	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 	lib "github.com/block/ftl/go-runtime/schema/testdata"
-
-	"ftl/another"
 )
 
 //ftl:enum

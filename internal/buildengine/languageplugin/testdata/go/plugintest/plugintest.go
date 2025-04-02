@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
-	// uncommentForDependency: "ftl/dependable"
 )
 
 type EchoRequest struct {

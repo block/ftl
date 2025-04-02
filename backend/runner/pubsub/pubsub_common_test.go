@@ -12,6 +12,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
+
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	"github.com/block/ftl/common/slices"
 	in "github.com/block/ftl/internal/integration"

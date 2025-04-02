@@ -18,17 +18,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jpillora/backoff"
-
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
+	"github.com/jpillora/backoff"
 	"github.com/otiai10/copy"
-	"k8s.io/client-go/kubernetes"
-
 	kubecore "k8s.io/api/core/v1"
 	kubemeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"

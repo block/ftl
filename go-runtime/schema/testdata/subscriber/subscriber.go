@@ -2,6 +2,7 @@ package subscriber
 
 import (
 	"context"
+
 	"ftl/pubsub"
 )
 
