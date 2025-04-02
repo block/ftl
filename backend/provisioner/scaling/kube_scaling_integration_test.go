@@ -50,6 +50,10 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 			// Verify peer to peer communication
 			assert.Equal(t, "Hello, Bob!!!", response)
 		}),
+		in.Call("proxy", "proxyCallerIdentity", map[string]string{}, func(t testing.TB, response string) {
+			// Verify istio caller identity
+			assert.Equal(t, "spiffe://cluster.local/ns/"+namespace("proxy")+"/sa/proxy", response)
+		}),
 		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
 			deps, err := client.AppsV1().Deployments(namespace("echo")).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)

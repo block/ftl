@@ -3,6 +3,7 @@ apiVersion: v1
 kind: Namespace
 metadata:
   labels:
+    istio-injection: enabled
     app.kubernetes.io/part-of: {{ include "ftl.fullname" . }}
     {{- include "ftl.labels" . | nindent 4 }}
   name: {{ .Values.provisioner.userNamespace }}

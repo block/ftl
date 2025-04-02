@@ -2,9 +2,7 @@ module ftl/echo
 
 go 1.24.0
 
-replace github.com/block/ftl => ./../../../../../..
-
-require github.com/block/ftl v0.0.0-00010101000000-000000000000
+require github.com/block/ftl v0.238.0
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
@@ -51,3 +49,5 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 )
+
+replace github.com/block/ftl => ../../../../../..

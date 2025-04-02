@@ -73,6 +73,7 @@ type Config struct {
 	DebugPort             int                     `help:"The port to use for debugging." env:"FTL_DEBUG_PORT"`
 	DevEndpoint           optional.Option[string] `help:"An existing endpoint to connect to in development mode" hidden:""`
 	DevHotReloadEndpoint  optional.Option[string] `help:"The gRPC enpoint to send runner into to for hot reload." hidden:""`
+	LocalRunners          bool                    `help:"Set to true if we are running with local runners" hidden:""`
 }
 
 func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService) error {
@@ -365,7 +366,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
 	s.proxy = proxy.New(s.controllerClient, leaseServiceClient, s.timelineClient,
-		s.config.Bind.String(), s.config.Deployment)
+		s.config.Bind.String(), s.config.Deployment, s.config.LocalRunners)
 
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {
