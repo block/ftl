@@ -3,8 +3,9 @@
 package pubsub_test
 
 import (
-	in "github.com/block/ftl/internal/integration"
 	"testing"
+
+	in "github.com/block/ftl/internal/integration"
 )
 
 func TestPubSubOnKube(t *testing.T) {

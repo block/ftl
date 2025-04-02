@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 )

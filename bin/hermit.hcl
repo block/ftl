@@ -1,4 +1,5 @@
 env = {
+  "CGO_ENABLED": "0",
   "DBMATE_MIGRATIONS_DIR": "${HERMIT_ENV}/backend/controller/sql/schema",
   "DBMATE_NO_DUMP_SCHEMA": "true",
   "FTL_INIT_GO_REPLACE": "github.com/block/ftl=${HERMIT_ENV}",
@@ -10,3 +11,6 @@ env = {
   "PATH": "${HERMIT_ENV}/scripts:${HERMIT_ENV}/frontend/console/node_modules/.bin:${HERMIT_ENV}/frontend/vscode/node_modules/.bin:${PATH}",
 }
 sources = ["env:///bin/packages", "https://github.com/cashapp/hermit-packages.git"]
+
+github-token-auth {
+}

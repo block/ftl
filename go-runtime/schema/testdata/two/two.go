@@ -3,11 +3,11 @@ package two
 import (
 	"context"
 
-	"github.com/block/ftl/go-runtime/ftl"
-	lib "github.com/block/ftl/go-runtime/schema/testdata"
 	libbackoff "github.com/jpillora/backoff"
 
 	"ftl/builtin"
+	"github.com/block/ftl/go-runtime/ftl"
+	lib "github.com/block/ftl/go-runtime/schema/testdata"
 )
 
 //ftl:enum export

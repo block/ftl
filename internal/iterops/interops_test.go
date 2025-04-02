@@ -7,6 +7,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/tuple"
+
 	"github.com/block/ftl/internal/iterops"
 )
 

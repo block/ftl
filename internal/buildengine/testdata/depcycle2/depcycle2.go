@@ -3,6 +3,7 @@ package depcycle2
 import (
 	"context"
 	"fmt"
+
 	"ftl/depcycle1"
 )
 

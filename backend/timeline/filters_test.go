@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"google.golang.org/protobuf/proto"
+
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestFilterModule_Multiple(t *testing.T) {

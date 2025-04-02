@@ -12,9 +12,8 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/otiai10/copy"
-
 	"github.com/alecthomas/assert/v2"
+	"github.com/otiai10/copy"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"

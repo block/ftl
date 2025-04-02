@@ -6,6 +6,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/kong"
+
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 )

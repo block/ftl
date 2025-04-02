@@ -13,12 +13,11 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/participle/v2/lexer"
 
-	"github.com/block/ftl/go-runtime/schema/common"
-
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/go-runtime/schema/common"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
 )

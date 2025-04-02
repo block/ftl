@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+
 	"github.com/block/ftl/internal/eventstream"
 	"github.com/block/ftl/internal/raft"
 )

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+
 	in "github.com/block/ftl/internal/integration"
 )
 

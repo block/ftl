@@ -2,7 +2,7 @@ package parent
 
 import (
 	"context"
-	// Import the FTL SDK.
+
 	"ftl/parent/child"
 )
 

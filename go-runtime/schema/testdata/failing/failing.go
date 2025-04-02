@@ -5,7 +5,6 @@ import (
 
 	"ftl/failing/child"
 	ps "ftl/pubsub"
-
 	"github.com/block/ftl/go-runtime/ftl"
 )
 

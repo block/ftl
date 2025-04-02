@@ -2,8 +2,8 @@ package two
 
 import (
 	"context"
-	"ftl/builtin"
 
+	"ftl/builtin"
 	lib "github.com/block/ftl/go-runtime/schema/testdata"
 )
 

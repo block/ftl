@@ -4,10 +4,8 @@ import (
 	"context"
 	"time"
 
-	"ftl/two"
-
 	"ftl/builtin"
-
+	"ftl/two"
 	"github.com/block/ftl/go-runtime/ftl"
 )
 

@@ -9,11 +9,12 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/result"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	sops "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/iterops"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func BenchmarkTimelineInsert(b *testing.B) {
@@ -37,7 +38,7 @@ func BenchmarkTimelineFilterID(b *testing.B) {
 			Order: timelinepb.TimelineQuery_ORDER_DESC,
 			Limit: 1000,
 			Filters: []*timelinepb.TimelineQuery_Filter{
-				&timelinepb.TimelineQuery_Filter{
+				{
 					Filter: &timelinepb.TimelineQuery_Filter_Id{
 						Id: &timelinepb.TimelineQuery_IDFilter{
 							HigherThan: proto.Int64(int64(service.nextID) - 1000),

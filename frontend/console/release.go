@@ -5,6 +5,7 @@ package console
 import (
 	"context"
 	"embed"
+	"errors"
 	"io"
 	"io/fs"
 	"net/http"
@@ -13,8 +14,6 @@ import (
 	"path"
 	"strings"
 	"time"
-
-	"errors"
 
 	"github.com/block/ftl/internal/cors"
 )

@@ -7,13 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
-
-	"connectrpc.com/connect"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/builderrors"

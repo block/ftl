@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"time"
-	// Import the FTL SDK.
 )
 
 type Price struct {

@@ -1,16 +1,16 @@
 package buildengine
 
 import (
-	"github.com/block/ftl/internal/log"
 	"path/filepath"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/scaffolder"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/scaffolder"
 )
 
 func TestExtractMigrations(t *testing.T) {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"ftl/builtin"
-
 	lib "github.com/block/ftl/backend/console/testdata/go"
 	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )

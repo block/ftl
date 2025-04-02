@@ -2,7 +2,6 @@ package verbtypes
 
 import (
 	"context"
-	// Import the FTL SDK.
 )
 
 // verbtypes is a simple module that has each type of verb (verb, source, sink and empty)

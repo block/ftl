@@ -5,26 +5,17 @@ set -euo pipefail
 just tidy
 
 echo "Formatting Go..."
-# shellcheck disable=SC2207
-GO_FILES=($(go list -f '{{range .GoFiles}}{{$.Dir}}/{{.}}
-{{end}}' ./... | xargs -n1 grep -L '// Code generated.*DO NOT EDIT' || true))
-# gofmt -w -s
-gofmt -w -s "${GO_FILES[@]}"
-
-# gosimports
-# shellcheck disable=SC2046
-gosimports -w --local github.com/block/ftl "${GO_FILES[@]}"
+just format-backend
 
 echo "Formatting protobufs..."
-# Format .proto files
-buf format -w
+just format-protos
 
 # Revert changes to generated files.
 find backend/protos \( -name '*.pb.go' -o -name '*.connect.go' \) -print0 | xargs -0 -r git checkout > /dev/null
 
 just pnpm-install
 
-(cd backend/protos && buf generate)
+just build-protos
 
 echo "Formatting TypeScript..."
 just format-frontend

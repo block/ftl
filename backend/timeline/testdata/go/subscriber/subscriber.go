@@ -2,8 +2,8 @@ package subscriber
 
 import (
 	"context"
-	"ftl/publisher"
 
+	"ftl/publisher"
 	"github.com/block/ftl/go-runtime/ftl"
 )
 

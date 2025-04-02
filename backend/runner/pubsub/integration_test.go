@@ -11,6 +11,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
+
 	"github.com/block/ftl/internal/exec"
 	in "github.com/block/ftl/internal/integration"
 )

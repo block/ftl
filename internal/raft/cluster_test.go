@@ -13,6 +13,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	"golang.org/x/sync/errgroup"
+
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
 	"github.com/block/ftl/internal/iterops"
@@ -22,7 +24,6 @@ import (
 	"github.com/block/ftl/internal/retry"
 	"github.com/block/ftl/internal/rpc"
 	sm "github.com/block/ftl/internal/statemachine"
-	"golang.org/x/sync/errgroup"
 )
 
 type IntEvent int64

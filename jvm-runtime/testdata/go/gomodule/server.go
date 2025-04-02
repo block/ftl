@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"ftl/builtin"
-
 	"github.com/decentralized-identity/web5-go/dids/did"
 
+	"ftl/builtin"
 	"github.com/block/ftl/go-runtime/ftl"
 )
 
