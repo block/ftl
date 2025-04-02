@@ -30,8 +30,6 @@ type testBuildContext struct {
 }
 
 type mockPluginClient struct {
-	flags []*langpb.GetCreateModuleFlagsResponse_Flag
-
 	// atomic.Value does not allow us to atomically publish, close and replace the chan
 	buildEventsLock *sync.Mutex
 	buildEvents     chan result.Result[*langpb.BuildResponse]
@@ -49,23 +47,6 @@ func newMockPluginClient() *mockPluginClient {
 		buildEvents:     make(chan result.Result[*langpb.BuildResponse], 64),
 		cmdError:        make(chan error),
 	}
-}
-
-func (p *mockPluginClient) getCreateModuleFlags(context.Context, *connect.Request[langpb.GetCreateModuleFlagsRequest]) (*connect.Response[langpb.GetCreateModuleFlagsResponse], error) {
-	return connect.NewResponse(&langpb.GetCreateModuleFlagsResponse{
-		Flags: p.flags,
-	}), nil
-}
-
-func (p *mockPluginClient) createModule(context.Context, *connect.Request[langpb.CreateModuleRequest]) (*connect.Response[langpb.CreateModuleResponse], error) {
-	panic("not implemented")
-}
-
-func (p *mockPluginClient) moduleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
-	return connect.NewResponse(&langpb.ModuleConfigDefaultsResponse{
-		DeployDir: "test-deploy-dir",
-		Watch:     []string{"a", "b", "c"},
-	}), nil
 }
 
 func (p *mockPluginClient) getDependencies(context.Context, *connect.Request[langpb.GetDependenciesRequest]) (*connect.Response[langpb.GetDependenciesResponse], error) {
@@ -158,15 +139,15 @@ func setUp() (context.Context, *LanguagePlugin, *mockPluginClient, BuildContext)
 	return ctx, plugin, mockImpl, bctx
 }
 
-func TestCreateModuleFlags(t *testing.T) {
+func TestNewModuleFlags(t *testing.T) {
 	t.Parallel()
 	for _, tt := range []struct {
-		protoFlags    []*langpb.GetCreateModuleFlagsResponse_Flag
+		protoFlags    []*langpb.GetNewModuleFlagsResponse_Flag
 		expectedFlags []*kong.Flag
 		expectedError optional.Option[string]
 	}{
 		{
-			protoFlags: []*langpb.GetCreateModuleFlagsResponse_Flag{
+			protoFlags: []*langpb.GetNewModuleFlagsResponse_Flag{
 				{
 					Name:        "full-flag",
 					Help:        "This has all the fields set",
@@ -206,7 +187,7 @@ func TestCreateModuleFlags(t *testing.T) {
 			},
 		},
 		{
-			protoFlags: []*langpb.GetCreateModuleFlagsResponse_Flag{
+			protoFlags: []*langpb.GetNewModuleFlagsResponse_Flag{
 				{
 					Name:  "multi-char-short",
 					Help:  "This has all the fields set",
@@ -216,7 +197,7 @@ func TestCreateModuleFlags(t *testing.T) {
 			expectedError: optional.Some(`invalid flag declared: short flag "multi" for multi-char-short must be a single character`),
 		},
 		{
-			protoFlags: []*langpb.GetCreateModuleFlagsResponse_Flag{
+			protoFlags: []*langpb.GetNewModuleFlagsResponse_Flag{
 				{
 					Name:  "dupe-short-1",
 					Help:  "Short must be unique",
@@ -233,10 +214,7 @@ func TestCreateModuleFlags(t *testing.T) {
 	} {
 		t.Run(tt.protoFlags[0].Name, func(t *testing.T) {
 			t.Parallel()
-
-			ctx, plugin, mockImpl, _ := setUp()
-			mockImpl.flags = tt.protoFlags
-			kongFlags, err := plugin.GetCreateModuleFlags(ctx)
+			kongFlags, err := kongFlagsFromProto(tt.protoFlags)
 			if expectedError, ok := tt.expectedError.Get(); ok {
 				assert.Contains(t, err.Error(), expectedError)
 				return

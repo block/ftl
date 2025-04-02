@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -76,7 +77,7 @@ func (c *Cmd) RunBuffered(ctx context.Context) error {
 	return nil
 }
 
-// RunStderrError runs the command and captures the output. If the command fails, the stderr is returned as the error message.
+// RunStderrError runs the command and captures stderr. If the command fails, the stderr is returned as the error message.
 func (c *Cmd) RunStderrError(ctx context.Context) error {
 	errorBuffer := NewCircularBuffer(100)
 
@@ -88,6 +89,21 @@ func (c *Cmd) RunStderrError(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// Capture runs the command and captures the output. If the command fails, the stderr is returned as the error message.
+func (c *Cmd) Capture(ctx context.Context) ([]byte, error) {
+	outBuffer := &bytes.Buffer{}
+	errorBuffer := NewCircularBuffer(100)
+
+	c.Stdout = outBuffer
+	c.Stderr = errorBuffer.WriterAt(ctx, c.level)
+
+	if err := c.Run(); err != nil {
+		return nil, errors.New(strings.TrimSpace(string(errorBuffer.Bytes())))
+	}
+
+	return outBuffer.Bytes(), nil
 }
 
 // Kill sends a signal to the process group of the command.

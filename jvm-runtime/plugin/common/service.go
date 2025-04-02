@@ -1,7 +1,6 @@
 package common
 
 import (
-	"archive/zip"
 	"bufio"
 	"bytes"
 	"context"
@@ -21,12 +20,10 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/beevik/etree"
-	"github.com/block/scaffolder"
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/block/ftl"
 	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
@@ -40,7 +37,6 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	islices "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/flock"
@@ -87,83 +83,19 @@ func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 type Service struct {
 	updatesTopic          *pubsub.Topic[buildContextUpdatedEvent]
 	acceptsContextUpdates atomic.Value[bool]
-	scaffoldFiles         *zip.Reader
 	buildContext          atomic.Value[buildContext]
 }
 
 var _ langconnect.LanguageServiceHandler = &Service{}
 
-func New(scaffoldFiles *zip.Reader) *Service {
+func New() *Service {
 	return &Service{
-		updatesTopic:  pubsub.New[buildContextUpdatedEvent](),
-		scaffoldFiles: scaffoldFiles,
+		updatesTopic: pubsub.New[buildContextUpdatedEvent](),
 	}
 }
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
-}
-
-func (s *Service) GetCreateModuleFlags(ctx context.Context, req *connect.Request[langpb.GetCreateModuleFlagsRequest]) (*connect.Response[langpb.GetCreateModuleFlagsResponse], error) {
-	return connect.NewResponse(&langpb.GetCreateModuleFlagsResponse{
-		Flags: []*langpb.GetCreateModuleFlagsResponse_Flag{
-			{
-				Name: "group",
-				Help: "The Maven groupId of the project.",
-			},
-		},
-	}), nil
-}
-
-// CreateModule generates files for a new module with the requested name
-func (s *Service) CreateModule(ctx context.Context, req *connect.Request[langpb.CreateModuleRequest]) (*connect.Response[langpb.CreateModuleResponse], error) {
-	logger := log.FromContext(ctx)
-	logger = logger.Module(req.Msg.Name)
-	projConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
-	groupAny, ok := req.Msg.Flags.AsMap()["group"]
-	if !ok {
-		groupAny = ""
-	}
-	group, ok := groupAny.(string)
-	if !ok {
-		return nil, fmt.Errorf("group not a string")
-	}
-	if group == "" {
-		group = "ftl." + req.Msg.Name
-	}
-
-	packageDir := strings.ReplaceAll(group, ".", "/")
-	opts := []scaffolder.Option{
-		scaffolder.Exclude("^go.mod$"), // This is still needed, as there is an 'ignore' module in the scaffold dir
-	}
-	if !projConfig.Hermit {
-		logger.Debugf("Excluding bin directory")
-		opts = append(opts, scaffolder.Exclude("^bin"))
-	}
-
-	version := ftl.BaseVersion(ftl.Version)
-	if !ftl.IsRelease(version) {
-		version = "1.0-SNAPSHOT"
-	}
-	sctx := struct {
-		Dir        string
-		Name       string
-		Group      string
-		PackageDir string
-		Version    string
-	}{
-		Dir:        projConfig.Path,
-		Name:       req.Msg.Name,
-		Group:      group,
-		PackageDir: packageDir,
-		Version:    version,
-	}
-	// scaffold at one directory above the module directory
-	parentPath := filepath.Dir(req.Msg.Dir)
-	if err := internal.ScaffoldZip(s.scaffoldFiles, parentPath, sctx, opts...); err != nil {
-		return nil, fmt.Errorf("failed to scaffold: %w", err)
-	}
-	return connect.NewResponse(&langpb.CreateModuleResponse{}), nil
 }
 
 func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb.GenerateStubsRequest]) (*connect.Response[langpb.GenerateStubsResponse], error) {
@@ -831,35 +763,6 @@ func loadJavaConfig(languageConfig any, language string) (JavaConfig, error) {
 		return JavaConfig{}, fmt.Errorf("failed to decode %s config: %w", language, err)
 	}
 	return javaConfig, nil
-}
-
-func (s *Service) ModuleConfigDefaults(ctx context.Context, req *connect.Request[langpb.ModuleConfigDefaultsRequest]) (*connect.Response[langpb.ModuleConfigDefaultsResponse], error) {
-	defaults := langpb.ModuleConfigDefaultsResponse{
-		LanguageConfig: &structpb.Struct{Fields: map[string]*structpb.Value{}},
-		Watch:          []string{"src/**", "build/generated", "target/generated-sources", "src/main/resources/db"},
-		SqlRootDir:     "src/main/resources/db",
-	}
-	dir := req.Msg.Dir
-	pom := filepath.Join(dir, "pom.xml")
-	buildGradle := filepath.Join(dir, "build.gradle")
-	buildGradleKts := filepath.Join(dir, "build.gradle.kts")
-	if fileExists(pom) {
-		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolMaven)
-		defaults.DevModeBuild = ptr("mvn -Dquarkus.console.enabled=false -q clean quarkus:dev")
-		defaults.Build = ptr("mvn -B clean package")
-		defaults.DeployDir = "target"
-		defaults.Watch = append(defaults.Watch, "pom.xml")
-	} else if fileExists(buildGradle) || fileExists(buildGradleKts) {
-		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolGradle)
-		defaults.DevModeBuild = ptr("gradle clean quarkusDev -Dquarkus.console.enabled=false")
-		defaults.Build = ptr("gradle clean build")
-		defaults.DeployDir = "build"
-		defaults.Watch = append(defaults.Watch, "build.gradle", "build.gradle.kts", "settings.gradle", "gradle.properties")
-	} else {
-		return nil, fmt.Errorf("could not find JVM build file in %s", dir)
-	}
-
-	return connect.NewResponse[langpb.ModuleConfigDefaultsResponse](&defaults), nil
 }
 
 func fileExists(filename string) bool {

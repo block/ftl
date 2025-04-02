@@ -174,7 +174,8 @@
                                 <include>**/controller.proto</include>
                                 <include>**/lease.proto</include>
                                 <include>**/ftl.proto</include>
-                                <include>**/language.proto</include>
+                                <include>**/service.proto</include>
+                                <include>**/commands.proto</include>
                                 <include>**/hotreload.proto</include>
                                 <include>**/publish.proto</include>
                                 <include>**/pubsub.proto</include>

@@ -141,12 +141,8 @@ func main() {
 	pluginCtx := log.ContextWithLogger(ctx, log.Configure(os.Stdout, cli.LogConfig))
 	// TODO: don't do this
 	projectConfig, _ := projectconfig.Load(ctx, optional.None[string]()) //nolint:errcheck
-	languagePlugin, err := languageplugin.PrepareNewCmd(pluginCtx, projectConfig, app, os.Args[1:])
+	err = languageplugin.PrepareNewCmd(pluginCtx, projectConfig, app, os.Args[1:])
 	app.FatalIfErrorf(err)
-	addToExit(app, func(code int) {
-		// Kill the plugin when the app exits due to an error, or after showing help.
-		languagePlugin.Close()
-	})
 
 	kctx, err := app.Parse(os.Args[1:])
 	app.FatalIfErrorf(err)
@@ -163,9 +159,6 @@ func main() {
 		}
 		defer trace.Stop()
 	}
-
-	// Plugins take time to launch, so we bind the "ftl module new" plugin to the kong context.
-	kctx.Bind(languagePlugin)
 
 	if !cli.Plain {
 		sm := terminal.NewStatusManager(ctx)
@@ -326,7 +319,6 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		kctx.BindTo(ctx, (*context.Context)(nil))
 		kctx.Bind(bindContext)
 		kctx.BindTo(cancel, (*context.CancelCauseFunc)(nil))
-		kctx.Bind(languageplugin.InitializedPlugins{})
 		kctx.Bind(cli.AdminEndpoint)
 		return ctx
 	}

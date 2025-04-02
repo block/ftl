@@ -280,15 +280,13 @@ func setUpModuleConfig(moduleName string) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Setting up config for %s", moduleName)
 		path := filepath.Join(ic.WorkingDir(), moduleName)
-		resp, err := client.moduleConfigDefaults(ic.Context, connect.NewRequest(&langpb.ModuleConfigDefaultsRequest{
-			Dir: path,
-		}))
+		defaults, err := GetModuleConfigDefaults(ic.Context, ic.Language, path)
 		assert.NoError(t, err)
 
 		unvalidatedConfig, err := moduleconfig.LoadConfig(path)
 		assert.NoError(t, err)
 
-		config, err = unvalidatedConfig.FillDefaultsAndValidate(customDefaultsFromProto(resp.Msg))
+		config, err = unvalidatedConfig.FillDefaultsAndValidate(defaults)
 		assert.NoError(t, err)
 	}
 }

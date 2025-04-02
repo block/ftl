@@ -38,7 +38,7 @@ func runInnerCmd(ctx context.Context, k *kong.Kong, projConfig projectconfig.Con
 		}
 	}()
 	// Dynamically update the kong app with language specific flags for the "ftl module new" command.
-	languagePlugin, err := languageplugin.PrepareNewCmd(ctx, projConfig, k, args)
+	err := languageplugin.PrepareNewCmd(ctx, projConfig, k, args)
 	if err != nil {
 		return fmt.Errorf("could not prepare for command: %w", err)
 	}
@@ -46,7 +46,6 @@ func runInnerCmd(ctx context.Context, k *kong.Kong, projConfig projectconfig.Con
 	if err != nil {
 		return err //nolint:wrapcheck
 	}
-	kctx.Bind(languagePlugin)
 	subctx := binder(ctx, kctx)
 
 	err = kctx.Run(subctx)

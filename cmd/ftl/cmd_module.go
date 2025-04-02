@@ -33,7 +33,7 @@ type moduleNewCmd struct {
 	Force       bool     `help:"Force creation of module without checking allowed directories." short:"f"`
 }
 
-func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconfig.Config, pluginHolder languageplugin.InitializedPlugins) error {
+func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconfig.Config) error {
 	logger := log.FromContext(ctx)
 	name, path, err := validateModule(i.Dir, i.Name)
 	if err != nil {
@@ -76,18 +76,17 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 		flags[f.Name] = flagValue
 	}
 
-	plugin, err := pluginHolder.Plugin(ctx, config, i.Language)
-	if err != nil {
-		return err
+	lockPath := config.WatchModulesLockPath()
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0700); err != nil {
+		return fmt.Errorf("could not create directory for file lock: %w", err)
 	}
-
-	release, err := flock.Acquire(ctx, config.WatchModulesLockPath(), 30*time.Second)
+	release, err := flock.Acquire(ctx, lockPath, 30*time.Second)
 	if err != nil {
 		return fmt.Errorf("could not acquire file lock: %w", err)
 	}
 	defer release() //nolint:errcheck
 
-	err = plugin.CreateModule(ctx, config, moduleConfig, flags)
+	err = languageplugin.NewModule(ctx, i.Language, config, moduleConfig, flags)
 	if err != nil {
 		return err
 	}
@@ -99,7 +98,6 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 			return err
 		}
 	}
-	_ = plugin.Kill() //nolint:errcheck
 
 	fmt.Printf("Successfully created %s module %q in %s\n", i.Language, name, path)
 	return nil

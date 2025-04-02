@@ -5,6 +5,6 @@ import (
 	"github.com/block/ftl/jvm-runtime/plugin/common"
 )
 
-func New() *common.Service {
-	return common.New(kotlin.Files())
+func NewCmdService() *common.CmdService {
+	return common.NewCmdService(kotlin.Files())
 }

@@ -1,4 +1,4 @@
-from xyz.block.ftl.language.v1 import language_pb2 as _language_pb2
+from xyz.block.ftl.language.v1 import service_pb2 as _service_pb2
 from xyz.block.ftl.schema.v1 import schema_pb2 as _schema_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
 from google.protobuf.internal import containers as _containers
@@ -83,7 +83,7 @@ class SchemaState(_message.Message):
     NEW_RUNNER_REQUIRED_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
     module: _schema_pb2.Module
-    errors: _language_pb2.ErrorList
+    errors: _service_pb2.ErrorList
     new_runner_required: bool
     version: int
-    def __init__(self, module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., errors: _Optional[_Union[_language_pb2.ErrorList, _Mapping]] = ..., new_runner_required: bool = ..., version: _Optional[int] = ...) -> None: ...
+    def __init__(self, module: _Optional[_Union[_schema_pb2.Module, _Mapping]] = ..., errors: _Optional[_Union[_service_pb2.ErrorList, _Mapping]] = ..., new_runner_required: bool = ..., version: _Optional[int] = ...) -> None: ...
