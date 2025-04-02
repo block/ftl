@@ -3,26 +3,28 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/jpillora/backoff"
 
-	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
+	timelinev1 "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
-	status "github.com/block/ftl/internal/terminal"
+	"github.com/block/ftl/internal/terminal"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
 type replayCmd struct {
-	Wait    time.Duration  `short:"w" help:"Wait up to this elapsed time for the FTL cluster to become available." default:"1m"`
-	Verb    reflection.Ref `arg:"" required:"" help:"Full path of Verb to call." predictor:"verbs"`
-	Verbose bool           `flag:"" short:"v" help:"Print verbose information."`
+	Wait            time.Duration  `short:"w" help:"Wait up to this elapsed time for the FTL cluster to become available." default:"1m"`
+	Verb            reflection.Ref `arg:"" required:"" help:"Full path of Verb to call." predictor:"verbs"`
+	Verbose         bool           `flag:"" short:"v" help:"Print verbose information."`
+	ConsoleEndpoint *url.URL       `help:"Console endpoint." env:"FTL_CONTROLLER_CONSOLE_URL" default:"http://127.0.0.1:8899"`
 }
 
 func (c *replayCmd) Run(
@@ -68,22 +70,22 @@ func (c *replayCmd) Run(
 		return fmt.Errorf("verb not found: %s", c.Verb)
 	}
 
-	events, err := timelineClient.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{
-		Query: &timelinepb.TimelineQuery{
-			Order: timelinepb.TimelineQuery_ORDER_DESC,
-			Filters: []*timelinepb.TimelineQuery_Filter{
+	events, err := timelineClient.GetTimeline(ctx, connect.NewRequest(&timelinev1.GetTimelineRequest{
+		Query: &timelinev1.TimelineQuery{
+			Order: timelinev1.TimelineQuery_ORDER_DESC,
+			Filters: []*timelinev1.TimelineQuery_Filter{
 				{
-					Filter: &timelinepb.TimelineQuery_Filter_Call{
-						Call: &timelinepb.TimelineQuery_CallFilter{
+					Filter: &timelinev1.TimelineQuery_Filter_Call{
+						Call: &timelinev1.TimelineQuery_CallFilter{
 							DestModule: c.Verb.Module,
 							DestVerb:   &c.Verb.Name,
 						},
 					},
 				},
 				{
-					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
-						EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
-							EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_CALL},
+					Filter: &timelinev1.TimelineQuery_Filter_EventTypes{
+						EventTypes: &timelinev1.TimelineQuery_EventTypeFilter{
+							EventTypes: []timelinev1.EventType{timelinev1.EventType_EVENT_TYPE_CALL},
 						},
 					},
 				},
@@ -98,8 +100,14 @@ func (c *replayCmd) Run(
 	}
 	requestJSON := events.Msg.GetEvents()[0].GetCall().Request
 
-	logger.Infof("Calling %s with body:", c.Verb)
-	status.PrintJSON(ctx, []byte(requestJSON))
-	logger.Infof("Response:")
-	return callVerb(ctx, verbClient, eventSource, c.Verb, []byte(requestJSON), c.Verbose)
+	logger.Debugf("Replaying %s with body:", c.Verb)
+	terminal.PrintJSON(ctx, []byte(requestJSON))
+	logger.Debugf("Response:")
+
+	// Create a callCmd with the same console endpoint configuration
+	cmd := &callCmd{
+		ConsoleEndpoint: c.ConsoleEndpoint,
+		Verbose:         c.Verbose,
+	}
+	return callVerb(ctx, verbClient, eventSource, c.Verb, []byte(requestJSON), c.Verbose, cmd)
 }

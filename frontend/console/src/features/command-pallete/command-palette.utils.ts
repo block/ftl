@@ -1,4 +1,4 @@
-import { type HugeiconsProps, PackageIcon } from 'hugeicons-react'
+import { Activity03Icon, type HugeiconsProps, PackageIcon } from 'hugeicons-react'
 import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
 import { declIcon, declTypeName, moduleTreeFromStream } from '../modules/module.utils'
 
@@ -9,6 +9,23 @@ export interface PaletteItem {
   title: string
   subtitle?: string
   url: string
+}
+
+const traceIdPattern = /^req-(ingress|cron|pubsub)-[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/
+
+export const isTraceId = (query: string): boolean => {
+  return traceIdPattern.test(query.trim())
+}
+
+export const createTraceItem = (traceId: string): PaletteItem => {
+  return {
+    id: `trace-${traceId}`,
+    icon: Activity03Icon,
+    iconType: 'trace',
+    title: 'View Trace',
+    subtitle: traceId,
+    url: `/traces/${traceId}`,
+  }
 }
 
 export const paletteItems = (result: StreamModulesResult): PaletteItem[] => {

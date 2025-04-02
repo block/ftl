@@ -4,7 +4,7 @@ import { ArrowRight01Icon, CellsIcon } from 'hugeicons-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStreamModules } from '../modules/hooks/use-stream-modules'
-import { type PaletteItem, paletteItems } from './command-palette.utils'
+import { type PaletteItem, createTraceItem, isTraceId, paletteItems } from './command-palette.utils'
 
 type CommandPaletteProps = {
   isOpen: boolean
@@ -38,8 +38,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     if (query === '') {
       setFilteredItems([])
     } else {
-      const results = fuse.search(query).map((result) => result.item)
+      if (isTraceId(query)) {
+        setFilteredItems([createTraceItem(query.trim())])
+        return
+      }
 
+      const results = fuse.search(query).map((result) => result.item)
       // only show first 25 results
       setFilteredItems(results.slice(0, 25))
     }
@@ -76,7 +80,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
               id='command-palette-search-input'
               autoFocus
               className='w-full rounded-md border-0 bg-gray-100 dark:bg-gray-900 px-4 py-2.5 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-300 focus:ring-0 sm:text-sm'
-              placeholder='Search...'
+              placeholder='Search or paste a trace ID...'
               onChange={(event) => setQuery(event.target.value)}
               onBlur={handleClose}
             />
