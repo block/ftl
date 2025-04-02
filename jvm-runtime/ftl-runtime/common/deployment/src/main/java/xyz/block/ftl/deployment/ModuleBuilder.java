@@ -24,6 +24,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.ArrayType;
@@ -67,6 +68,7 @@ import xyz.block.ftl.schema.v1.MetadataCalls;
 import xyz.block.ftl.schema.v1.MetadataConfig;
 import xyz.block.ftl.schema.v1.MetadataPublisher;
 import xyz.block.ftl.schema.v1.MetadataSecrets;
+import xyz.block.ftl.schema.v1.MetadataTransaction;
 import xyz.block.ftl.schema.v1.MetadataTypeMap;
 import xyz.block.ftl.schema.v1.Module;
 import xyz.block.ftl.schema.v1.Position;
@@ -192,12 +194,12 @@ public class ModuleBuilder {
     }
 
     public void registerVerbMethod(MethodInfo method, String className,
-            boolean exported, BodyType bodyType) {
-        registerVerbMethod(method, className, exported, bodyType, new VerbCustomization());
+            boolean exported, boolean transaction, BodyType bodyType) {
+        registerVerbMethod(method, className, exported, transaction, bodyType, new VerbCustomization());
     }
 
     public void registerVerbMethod(MethodInfo method, String className,
-            boolean exported, BodyType bodyType, VerbCustomization customization) {
+            boolean exported, boolean transaction, BodyType bodyType, VerbCustomization customization) {
         try {
             List<Class<?>> parameterTypes = new ArrayList<>();
             List<VerbRegistry.ParameterSupplier> paramMappers = new ArrayList<>();
@@ -273,7 +275,7 @@ public class ModuleBuilder {
                     bodyParamNullability = nullability(param);
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
                     parameterTypes.add(paramType);
-                    //TODO: map and list types
+                    // TODO: map and list types
                     paramMappers.add(new VerbRegistry.BodySupplier(pos));
                 } else {
                     this.validationFailures.add(new ValidationFailure(toError(forMethod(method)),
@@ -301,11 +303,14 @@ public class ModuleBuilder {
             if (publisherMetadata.getTopicsCount() > 0) {
                 verbBuilder.addMetadata(Metadata.newBuilder().setPublisher(publisherMetadata));
             }
+            if (transaction) {
+                verbBuilder.addMetadata(Metadata.newBuilder().setTransaction(MetadataTransaction.newBuilder().build()));
+            }
 
             if (!customization.customHandling) {
                 recorder.registerVerb(moduleName, verbName, method.name(), parameterTypes,
                         Class.forName(className, false, Thread.currentThread().getContextClassLoader()), paramMappers,
-                        method.returnType() == VoidType.VOID);
+                        method.returnType() == VoidType.VOID, transaction);
             }
             verbBuilder.setName(verbName)
                     .setExport(exported)
@@ -325,6 +330,60 @@ public class ModuleBuilder {
             validationFailures.add(new ValidationFailure(toError(forMethod(method)),
                     "Failed to process FTL method " + method.declaringClass().name() + "." + method.name()));
         }
+    }
+
+    public void registerTransactionDbAccess() {
+        for (var decl : decls.values()) {
+            if (!decl.hasVerb()) {
+                continue;
+            }
+            var verb = decl.getVerb();
+            if (!verb.getMetadataList().stream().anyMatch(m -> m.hasTransaction())) {
+                continue;
+            }
+            var databaseUses = resolveDatabaseUses(verb);
+            recorder.registerTransactionDbAccess(moduleName, verb.getName(), databaseUses);
+        }
+    }
+
+    private Verb resolveVerb(Ref ref) {
+        for (var verb : decls.values()) {
+            if (verb.hasVerb()) {
+                if (verb.getVerb().getName().equals(ref.getName())) {
+                    return verb.getVerb();
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<String> resolveDatabaseUses(Verb verb) {
+        List<String> refs = new ArrayList<>();
+        Set<Ref> visited = new HashSet<>();
+        for (var metadata : verb.getMetadataList()) {
+            if (metadata.hasCalls()) {
+                for (var call : metadata.getCalls().getCallsList()) {
+                    if (visited.contains(call)) {
+                        continue;
+                    }
+                    visited.add(call);
+                    if (!call.getModule().equals(moduleName)) {
+                        continue;
+                    }
+                    if (call.getName().equals(verb.getName())) {
+                        continue;
+                    }
+                    Verb callee = resolveVerb(call);
+                    if (callee != null) {
+                        refs.addAll(resolveDatabaseUses(callee));
+                    }
+                }
+            }
+            if (metadata.hasDatabases()) {
+                refs.addAll(metadata.getDatabases().getCallsList().stream().map(Ref::getName).collect(Collectors.toList()));
+            }
+        }
+        return refs;
     }
 
     public void registerSQLQueryMethod(MethodInfo method, String className, String returnType, String dbName,
@@ -435,7 +494,8 @@ public class ModuleBuilder {
                     var ref = info.declaredAnnotation(GENERATED_REF);
 
                     String module = ref.value("module").asString();
-                    // Validate that we are not attempting to modify the 'export' status of a generated type
+                    // Validate that we are not attempting to modify the 'export' status of a
+                    // generated type
                     if (Objects.equals(module, this.moduleName) && !info.hasAnnotation(EXPORT) && export) {
                         validationFailures.add(new ValidationFailure(toError(forClass(clazz.name().toString())),
                                 "Generated type " + clazz.name()

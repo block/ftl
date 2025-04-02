@@ -44,7 +44,7 @@ public class SubscriptionProcessor {
 
     private SchemaContributorBuildItem generateSubscription(MethodInfo method, String className, SubscriptionAnnotation info) {
         return new SchemaContributorBuildItem(moduleBuilder -> {
-            moduleBuilder.registerVerbMethod(method, className, false, ModuleBuilder.BodyType.REQUIRED,
+            moduleBuilder.registerVerbMethod(method, className, false, false, ModuleBuilder.BodyType.REQUIRED,
                     new ModuleBuilder.VerbCustomization().setMetadataCallback(builder -> {
 
                         builder.addMetadata(Metadata.newBuilder().setSubscriber(MetadataSubscriber.newBuilder()

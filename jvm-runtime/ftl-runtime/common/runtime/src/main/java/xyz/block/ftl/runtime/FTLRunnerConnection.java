@@ -4,6 +4,8 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
 import xyz.block.ftl.v1.GetDeploymentContextResponse;
@@ -19,11 +21,19 @@ public interface FTLRunnerConnection extends Closeable {
 
     void publishEvent(String topic, String callingVerbName, byte[] event, String key);
 
-    String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName);
+    String beginTransaction(String databaseName);
 
-    List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName);
+    void commitTransaction(String databaseName, String transactionId);
 
-    void executeQueryExec(String dbName, String sql, String paramsJson);
+    void rollbackTransaction(String databaseName, String transactionId);
+
+    String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName,
+            @Nullable String transactionId);
+
+    List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName,
+            @Nullable String transactionId);
+
+    void executeQueryExec(String dbName, String sql, String paramsJson, @Nullable String transactionId);
 
     LeaseHandle acquireLease(Duration duration, String... keys) throws LeaseFailedException;
 

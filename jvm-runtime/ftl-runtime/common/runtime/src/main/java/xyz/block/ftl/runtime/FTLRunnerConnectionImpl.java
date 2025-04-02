@@ -26,11 +26,18 @@ import xyz.block.ftl.lease.v1.LeaseServiceGrpc;
 import xyz.block.ftl.pubsub.v1.PublishEventRequest;
 import xyz.block.ftl.pubsub.v1.PublishEventResponse;
 import xyz.block.ftl.pubsub.v1.PublishServiceGrpc;
+import xyz.block.ftl.query.v1.BeginTransactionRequest;
+import xyz.block.ftl.query.v1.BeginTransactionResponse;
 import xyz.block.ftl.query.v1.CommandType;
+import xyz.block.ftl.query.v1.CommitTransactionRequest;
+import xyz.block.ftl.query.v1.CommitTransactionResponse;
 import xyz.block.ftl.query.v1.ExecuteQueryRequest;
 import xyz.block.ftl.query.v1.ExecuteQueryResponse;
 import xyz.block.ftl.query.v1.QueryServiceGrpc;
 import xyz.block.ftl.query.v1.ResultColumn;
+import xyz.block.ftl.query.v1.RollbackTransactionRequest;
+import xyz.block.ftl.query.v1.RollbackTransactionResponse;
+import xyz.block.ftl.query.v1.TransactionStatus;
 import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.v1.CallRequest;
 import xyz.block.ftl.v1.CallResponse;
@@ -115,32 +122,43 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     public byte[] callVerb(String name, String module, byte[] payload) {
         CompletableFuture<byte[]> cf = new CompletableFuture<>();
 
-        verbService.call(CallRequest.newBuilder().setVerb(Ref.newBuilder().setModule(module).setName(name))
-                .setBody(ByteString.copyFrom(payload)).build(), new StreamObserver<>() {
+        CallRequest.Builder requestBuilder = CallRequest.newBuilder()
+                .setVerb(Ref.newBuilder().setModule(module).setName(name))
+                .setBody(ByteString.copyFrom(payload));
 
-                    @Override
-                    public void onNext(CallResponse callResponse) {
-                        if (callResponse.hasError()) {
-                            cf.completeExceptionally(new RuntimeException(callResponse.getError().getMessage()));
-                        } else {
-                            cf.complete(callResponse.getBody().toByteArray());
-                        }
-                    }
+        // Propagate metadata from current context if available
+        var currentTransactionId = CurrentTransaction.getCurrentId();
+        if (currentTransactionId != null) {
+            requestBuilder.setMetadata(CurrentTransaction.getMetadataWithCurrentId());
+        }
 
-                    @Override
-                    public void onError(Throwable throwable) {
-                        cf.completeExceptionally(throwable);
-                    }
+        verbService.call(requestBuilder.build(), new StreamObserver<>() {
 
-                    @Override
-                    public void onCompleted() {
+            @Override
+            public void onNext(CallResponse callResponse) {
+                if (callResponse.hasError()) {
+                    cf.completeExceptionally(new RuntimeException(callResponse.getError().getMessage()));
+                } else {
+                    cf.complete(callResponse.getBody().toByteArray());
+                }
+            }
 
-                    }
-                });
+            @Override
+            public void onError(Throwable throwable) {
+                cf.completeExceptionally(throwable);
+            }
+
+            @Override
+            public void onCompleted() {
+
+            }
+        });
         try {
             return cf.get();
         } catch (Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            CurrentTransaction.clearCurrent();
         }
     }
 
@@ -249,8 +267,106 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     }
 
     @Override
-    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName) {
-        var request = createQueryRequest(dbName, sql, paramsJson, colToFieldName)
+    public String beginTransaction(String databaseName) {
+        CompletableFuture<String> cf = new CompletableFuture<>();
+        queryService.beginTransaction(BeginTransactionRequest.newBuilder().setDatabaseName(databaseName).build(),
+                new StreamObserver<BeginTransactionResponse>() {
+                    @Override
+                    public void onNext(BeginTransactionResponse response) {
+                        cf.complete(response.getTransactionId());
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        cf.completeExceptionally(throwable);
+                    }
+
+                    @Override
+                    public void onCompleted() {
+                        cf.complete(null);
+                    }
+                });
+
+        try {
+            return cf.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void commitTransaction(String databaseName, String transactionId) {
+        CompletableFuture<String> cf = new CompletableFuture<>();
+        queryService.commitTransaction(CommitTransactionRequest.newBuilder()
+                .setTransactionId(transactionId)
+                .setDatabaseName(databaseName)
+                .build(),
+                new StreamObserver<CommitTransactionResponse>() {
+                    @Override
+                    public void onNext(CommitTransactionResponse response) {
+                        if (response.getStatus() != TransactionStatus.TRANSACTION_STATUS_SUCCESS) {
+                            cf.completeExceptionally(new RuntimeException("failed to commit transaction"));
+                        } else {
+                            cf.complete(null);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        cf.completeExceptionally(throwable);
+                    }
+
+                    @Override
+                    public void onCompleted() {
+                        cf.complete(null);
+                    }
+                });
+
+        try {
+            cf.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void rollbackTransaction(String databaseName, String transactionId) {
+        CompletableFuture<String> cf = new CompletableFuture<>();
+        queryService.rollbackTransaction(RollbackTransactionRequest.newBuilder()
+                .setTransactionId(transactionId)
+                .setDatabaseName(databaseName)
+                .build(),
+                new StreamObserver<RollbackTransactionResponse>() {
+                    @Override
+                    public void onNext(RollbackTransactionResponse response) {
+                        if (response.getStatus() != TransactionStatus.TRANSACTION_STATUS_SUCCESS) {
+                            cf.completeExceptionally(new RuntimeException("failed to rollback transaction"));
+                        } else {
+                            cf.complete(null);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        cf.completeExceptionally(throwable);
+                    }
+
+                    @Override
+                    public void onCompleted() {
+                        cf.complete(null);
+                    }
+                });
+
+        try {
+            cf.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName, String transactionId) {
+        var request = createQueryRequest(dbName, sql, paramsJson, colToFieldName, transactionId)
                 .setCommandType(CommandType.COMMAND_TYPE_ONE)
                 .build();
         List<ExecuteQueryResponse> responses = executeQuery(request);
@@ -269,8 +385,9 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     }
 
     @Override
-    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName) {
-        var request = createQueryRequest(dbName, sql, paramsJson, colToFieldName)
+    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName,
+            String transactionId) {
+        var request = createQueryRequest(dbName, sql, paramsJson, colToFieldName, transactionId)
                 .setCommandType(CommandType.COMMAND_TYPE_MANY)
                 .build();
 
@@ -286,8 +403,8 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     }
 
     @Override
-    public void executeQueryExec(String dbName, String sql, String paramsJson) {
-        var request = createQueryRequest(dbName, sql, paramsJson, null)
+    public void executeQueryExec(String dbName, String sql, String paramsJson, String transactionId) {
+        var request = createQueryRequest(dbName, sql, paramsJson, null, transactionId)
                 .setCommandType(CommandType.COMMAND_TYPE_EXEC)
                 .build();
         executeQuery(request);
@@ -321,10 +438,14 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     }
 
     private ExecuteQueryRequest.Builder createQueryRequest(String dbName, String sql, String paramsJson,
-            String[] colToFieldName) {
+            String[] colToFieldName, String transactionId) {
         ExecuteQueryRequest.Builder requestBuilder = ExecuteQueryRequest.newBuilder()
                 .setRawSql(sql)
                 .setDatabaseName(dbName);
+
+        if (transactionId != null && !transactionId.isEmpty()) {
+            requestBuilder.setTransactionId(transactionId);
+        }
 
         if (paramsJson != null && !paramsJson.isEmpty()) {
             requestBuilder.setParametersJson(paramsJson);

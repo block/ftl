@@ -176,7 +176,7 @@ public class HTTPProcessor {
                             });
 
                     moduleBuilder.registerVerbMethod(endpoint.getMethodInfo(), endpoint.getActualClassInfo().name().toString(),
-                            false, ModuleBuilder.BodyType.ALLOWED, verbCustomization);
+                            false, false, ModuleBuilder.BodyType.ALLOWED, verbCustomization);
                 }
             }
         });

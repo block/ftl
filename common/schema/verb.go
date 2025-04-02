@@ -219,6 +219,7 @@ func (v *Verb) ResolveDatabaseUses(schema *Schema, module string) sets.Set[RefKe
 // ResolveCalls resolves all verbs called by a verb, explicitly or implicitly.
 func (v *Verb) ResolveCalls(schema *Schema, module string) sets.Set[RefKey] {
 	verbs := sets.NewSet[RefKey]()
+	visited := sets.NewSet[RefKey]()
 	for _, md := range v.Metadata {
 		switch md := md.(type) {
 		case *MetadataCalls:
@@ -226,6 +227,10 @@ func (v *Verb) ResolveCalls(schema *Schema, module string) sets.Set[RefKey] {
 				if call.Module == module && call.Name == v.Name {
 					continue
 				}
+				if visited.Contains(call.ToRefKey()) {
+					continue
+				}
+				visited.Add(call.ToRefKey())
 				resolved, ok := schema.Resolve(call).Get()
 				if !ok {
 					continue

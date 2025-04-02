@@ -9,7 +9,6 @@ import (
 
 type InsertRequest struct {
 	Data string
-	Id   int
 }
 
 type InsertResponse struct{}
@@ -59,7 +58,7 @@ func TransactionRollback(ctx context.Context, req TransactionRequest, createRequ
 }
 
 func persistRequest(ctx context.Context, req InsertRequest, db TestdbHandle) error {
-	_, err := db.Get(ctx).Exec("INSERT INTO requests (id,data) VALUES ($1, $2);", req.Id, req.Data)
+	_, err := db.Get(ctx).Exec("INSERT INTO requests (data) VALUES ($1);", req.Data)
 	if err != nil {
 		return err
 	}

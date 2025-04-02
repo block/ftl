@@ -20,7 +20,7 @@ func TestDatabase(t *testing.T) {
 		// deploy real module against "testdb"
 		in.CopyModule("database"),
 		in.Deploy("database"),
-		in.Call[in.Obj, in.Obj]("database", "insert", in.Obj{"data": "hello", "id": 1}, nil),
+		in.Call[in.Obj, in.Obj]("database", "insert", in.Obj{"data": "hello"}, nil),
 		in.QueryRow("database_testdb", "SELECT data FROM requests", "hello"),
 
 		// run tests which should only affect "testdb_test"
@@ -129,7 +129,7 @@ func TestSQLVerbs(t *testing.T) {
 
 func TestTransactions(t *testing.T) {
 	in.Run(t,
-		in.WithLanguages("go"),
+		in.WithLanguages("go", "java", "kotlin"),
 		in.CopyModule("database"),
 		in.Deploy("database"),
 

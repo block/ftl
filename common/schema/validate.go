@@ -252,9 +252,6 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 					if injectsTransactions {
 						merr = append(merr, errorf(n, "transaction verbs cannot inject nested transactions"))
 					}
-					if n.IsExported() {
-						merr = append(merr, errorf(n, "transaction verbs cannot be exported"))
-					}
 					for _, verbRef := range n.ResolveCalls(schema, module.Name).ToSlice() {
 						if verbRef.Module != module.Name {
 							merr = append(merr, errorf(n, "transaction verbs cannot call verbs in external modules; %s.%s calls %s.%s", module.Name, n.Name, verbRef.Module, verbRef.Name))

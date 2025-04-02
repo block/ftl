@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
 import xyz.block.ftl.v1.GetDeploymentContextResponse;
@@ -35,17 +37,32 @@ public class MockRunnerConnection implements FTLRunnerConnection {
     }
 
     @Override
-    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName) {
+    public String beginTransaction(String databaseName) {
+        return "123";
+    }
+
+    @Override
+    public void commitTransaction(String databaseName, String transactionId) {
+    }
+
+    @Override
+    public void rollbackTransaction(String databaseName, String transactionId) {
+    }
+
+    @Override
+    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName,
+            @Nullable String transactionId) {
         return null;
     }
 
     @Override
-    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName) {
+    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName,
+            @Nullable String transactionId) {
         return new ArrayList<>();
     }
 
     @Override
-    public void executeQueryExec(String dbName, String sql, String paramsJson) {
+    public void executeQueryExec(String dbName, String sql, String paramsJson, @Nullable String transactionId) {
     }
 
     @Override

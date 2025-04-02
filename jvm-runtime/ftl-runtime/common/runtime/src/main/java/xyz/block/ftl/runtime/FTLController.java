@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.logging.Logger;
+import org.jetbrains.annotations.Nullable;
 
 import io.quarkus.runtime.LaunchMode;
 import xyz.block.ftl.LeaseClient;
@@ -129,16 +130,30 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         getRunnerConnection().publishEvent(topic, callingVerbName, event, key);
     }
 
-    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName) {
-        return getRunnerConnection().executeQueryOne(dbName, sql, paramsJson, colToFieldName);
+    public String beginTransaction(String databaseName) {
+        return getRunnerConnection().beginTransaction(databaseName);
     }
 
-    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName) {
-        return getRunnerConnection().executeQueryMany(dbName, sql, paramsJson, colToFieldName);
+    public void commitTransaction(String databaseName, String transactionId) {
+        getRunnerConnection().commitTransaction(databaseName, transactionId);
     }
 
-    public void executeQueryExec(String dbName, String sql, String paramsJson) {
-        getRunnerConnection().executeQueryExec(dbName, sql, paramsJson);
+    public void rollbackTransaction(String databaseName, String transactionId) {
+        getRunnerConnection().rollbackTransaction(databaseName, transactionId);
+    }
+
+    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName,
+            @Nullable String transactionId) {
+        return getRunnerConnection().executeQueryOne(dbName, sql, paramsJson, colToFieldName, transactionId);
+    }
+
+    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName,
+            @Nullable String transactionId) {
+        return getRunnerConnection().executeQueryMany(dbName, sql, paramsJson, colToFieldName, transactionId);
+    }
+
+    public void executeQueryExec(String dbName, String sql, String paramsJson, @Nullable String transactionId) {
+        getRunnerConnection().executeQueryExec(dbName, sql, paramsJson, transactionId);
     }
 
     public LeaseHandle acquireLease(Duration duration, String... keys) throws LeaseFailedException {

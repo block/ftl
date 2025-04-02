@@ -1,2 +1,5 @@
--- name: InsertRequest :one
-INSERT INTO requests (data, id) VALUES ($1, $2) RETURNING *;
+-- name: CreateRequest :one
+INSERT INTO requests (data) VALUES ($1) RETURNING *;
+
+-- name: GetRequestData :many
+SELECT data FROM requests;
