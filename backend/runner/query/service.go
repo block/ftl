@@ -529,7 +529,38 @@ func parseTimeString(s string) (time.Time, error) {
 // scanRowToMap scans a row and returns a JSON string representation
 func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error) {
 	if len(resultColumns) == 0 {
-		return "", fmt.Errorf("result_columns required for scanning rows")
+		var rawValue any
+
+		var err error
+		switch r := row.(type) {
+		case *sql.Row:
+			err = r.Scan(&rawValue)
+		case *sql.Rows:
+			var columns []string
+			columns, err = r.Columns()
+			if err != nil {
+				return "", fmt.Errorf("failed to get column names: %w", err)
+			}
+			if len(columns) != 1 {
+				return "", fmt.Errorf("expected exactly one column for raw value query, got %d", len(columns))
+			}
+			err = r.Scan(&rawValue)
+		default:
+			return "", fmt.Errorf("unsupported row type: %T", row)
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to scan raw value: %w", err)
+		}
+
+		if rawValue == nil {
+			return "", nil
+		}
+
+		jsonBytes, err := encoding.Marshal(processFieldValue(rawValue))
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal raw value: %w", err)
+		}
+		return string(jsonBytes), nil
 	}
 
 	typeNameBySQLName := make(map[string]string)
@@ -598,28 +629,9 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 			continue
 		}
 
-		var fieldValue any
-		switch v := val.(type) {
-		case []byte:
-			str := string(v)
-			if t, err := parseTimeString(str); err == nil {
-				fieldValue = t
-			} else {
-				fieldValue = str
-			}
-		case string:
-			if t, err := parseTimeString(v); err == nil {
-				fieldValue = t
-			} else {
-				fieldValue = v
-			}
-		default:
-			fieldValue = v
-		}
-
 		field := structValue.FieldByName(exportName(typeName))
 		if field.IsValid() {
-			field.Set(reflect.ValueOf(fieldValue))
+			field.Set(reflect.ValueOf(processFieldValue(val)))
 		}
 	}
 
@@ -629,6 +641,24 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 	}
 
 	return string(jsonBytes), nil
+}
+
+func processFieldValue(val any) any {
+	switch v := val.(type) {
+	case []byte:
+		str := string(v)
+		if t, err := parseTimeString(str); err == nil {
+			return t
+		}
+		return str
+	case string:
+		if t, err := parseTimeString(v); err == nil {
+			return t
+		}
+		return v
+	default:
+		return v
+	}
 }
 
 func getDriverName(engine string) string {

@@ -9,7 +9,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	xslices "slices"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/alecthomas/types/optional"
 
@@ -23,6 +27,11 @@ import (
 )
 
 var queryNameRegex = regexp.MustCompile(`^-- name: ([A-Za-z0-9_]+)`)
+
+type declUniquenessData struct {
+	decl   schema.Decl
+	dbName string
+}
 
 type ConfigContext struct {
 	Dir         string
@@ -90,6 +99,16 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 			break
 		}
 	}
+ 
+	// sort configs so they are processed deterministically.
+	// We may end up modifying the name of a generated decl to avoid conflicts when table names are the same
+	// across multiple datasources. Sorting by database name ensures that the schema produced is deterministic.
+	xslices.SortFunc(cfgs, func(a, b ConfigContext) int {
+		return strings.Compare(a.Database, b.Database)
+	})
+
+	// tracks declarations to detect duplicates among the generated decls
+	var declUniqueness = map[string]declUniquenessData{}
 	for _, cfg := range cfgs {
 		var err error
 		if len(cfg.QueryPaths) > 0 {
@@ -104,7 +123,7 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 		if err = populatePositions(sch, cfg); err != nil {
 			return fmt.Errorf("failed to populate positions: %w", err)
 		}
-		if err = updateSchema(out, sch, cfg); err != nil {
+		if err = updateSchema(out, sch, cfg, declUniqueness); err != nil {
 			return fmt.Errorf("failed to add queries to schema: %w", err)
 		}
 	}
@@ -112,7 +131,7 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 }
 
 // updateSchema updates the schema with the new database decls (databases and queries).
-func updateSchema(out *schema.Schema, queries *schema.Module, cfg ConfigContext) error {
+func updateSchema(out *schema.Schema, queries *schema.Module, cfg ConfigContext, declUniqueness map[string]declUniquenessData) error {
 	dbType, err := toDatabaseType(cfg.Engine)
 	if err != nil {
 		return err
@@ -120,6 +139,10 @@ func updateSchema(out *schema.Schema, queries *schema.Module, cfg ConfigContext)
 	db := &schema.Database{
 		Name: cfg.Database,
 		Type: dbType,
+	}
+
+	if err := updateDuplicateDeclNames(queries, cfg.Database, declUniqueness); err != nil {
+		return fmt.Errorf("failed to update duplicate declaration names: %w", err)
 	}
 	queries.Decls = append(queries.Decls, db)
 
@@ -307,6 +330,59 @@ func populatePositions(m *schema.Module, cfg ConfigContext) error {
 			data.Pos = pos
 			return next()
 		})
+	}
+	return nil
+}
+
+// updateDuplicateDeclName updates the declaration name if it already exists in another generated module
+func updateDuplicateDeclNames(module *schema.Module, dbName string, declUniqueness map[string]declUniquenessData) error {
+	for _, d := range module.Decls {
+		if loaded, exists := declUniqueness[d.GetName()]; exists {
+			if loaded.dbName == dbName {
+				// if duplicated within the same database, keep the duplicate to surface a build error
+				return nil
+			}
+			oldName := d.GetName()
+			switch t := d.(type) {
+			case *schema.Data:
+				t.Name = cases.Title(language.English).String(dbName) + t.Name
+			case *schema.Verb:
+				t.Name = strings.ToLower(dbName) + cases.Title(language.English).String(t.Name)
+			case *schema.Database:
+				return fmt.Errorf("database %s is duplicated in module %s", t.Name, module.Name)
+			default:
+				return fmt.Errorf("unsupported declaration %q of type %T was generated in module %s", t.GetName(), t, module.Name)
+			}
+			if err := updateRefs(module, schema.RefKey{Module: module.Name, Name: oldName}, d.GetName()); err != nil {
+				return err
+			}
+			declUniqueness[d.GetName()] = declUniquenessData{
+				decl:   d,
+				dbName: dbName,
+			}
+		} else {
+			declUniqueness[d.GetName()] = declUniquenessData{
+				decl:   d,
+				dbName: dbName,
+			}
+		}
+	}
+	return nil
+}
+
+func updateRefs(module *schema.Module, ref schema.RefKey, newName string) error {
+	err := schema.Visit(module, func(n schema.Node, next func() error) error {
+		r, ok := n.(*schema.Ref)
+		if !ok {
+			return next()
+		}
+		if r.ToRefKey() == ref {
+			r.Name = newName
+		}
+		return next()
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update refs to duplicated generated declaration %s: %w", ref.Name, err)
 	}
 	return nil
 }

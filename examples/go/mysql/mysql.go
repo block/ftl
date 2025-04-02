@@ -15,7 +15,7 @@ type InsertResponse struct{}
 
 //ftl:verb export
 func Insert(ctx context.Context, req InsertRequest, insert CreateRequestClient) (InsertResponse, error) {
-	err := insert(ctx, CreateRequestQuery{Data: ftl.Some(req.Data)})
+	err := insert(ctx, ftl.Some(req.Data))
 	if err != nil {
 		return InsertResponse{}, err
 	}
@@ -31,7 +31,7 @@ func Query(ctx context.Context, query GetRequestDataClient) ([]string, error) {
 	}
 	var items []string
 	for _, row := range rows {
-		if d, ok := row.Data.Get(); ok {
+		if d, ok := row.Get(); ok {
 			items = append(items, d)
 		}
 	}
@@ -48,7 +48,7 @@ func Fixture(ctx context.Context, insert CreateRequestClient, query GetRequestDa
 		return nil
 	}
 	return errors.Join(
-		insert(ctx, CreateRequestQuery{Data: ftl.Some("foo")}),
-		insert(ctx, CreateRequestQuery{Data: ftl.Some("bar")}),
+		insert(ctx, ftl.Some("foo")),
+		insert(ctx, ftl.Some("bar")),
 	)
 }

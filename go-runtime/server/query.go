@@ -66,6 +66,10 @@ func QuerySink[Req any](
 
 func getQueryParamValues(fields []string) func(req any) []any {
 	return func(req any) []any {
+		if len(fields) == 0 {
+			return []any{req}
+		}
+
 		reqValue := reflect.ValueOf(req)
 		if reqValue.Kind() == reflect.Ptr {
 			reqValue = reqValue.Elem()

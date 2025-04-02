@@ -51,10 +51,10 @@ INSERT INTO users (name) VALUES (?);
 `, "db/mysql/userdb/queries/queries.sql"),
 		in.Sleep(time.Second*5),
 		// Test initial schema works
-		in.Call("users", "createUser", map[string]string{"name": "Alice"}, func(t testing.TB, response map[string]interface{}) {
+		in.Call("users", "createUser", "Alice", func(t testing.TB, response map[string]interface{}) {
 
 		}),
-		in.Call("users", "createUser", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]interface{}) {
+		in.Call("users", "createUser", "Bob", func(t testing.TB, response map[string]interface{}) {
 
 		}),
 		// Edit the query file, verify we keep our state
