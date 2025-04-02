@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -24,10 +25,11 @@ import (
 )
 
 type callCmd struct {
-	Wait    time.Duration  `short:"w" help:"Wait up to this elapsed time for the FTL cluster to become available." default:"1m"`
-	Verb    reflection.Ref `arg:"" required:"" help:"Full path of Verb to call." predictor:"verbs"`
-	Request string         `arg:"" optional:"" help:"JSON5 request payload." default:"{}"`
-	Verbose bool           `flag:"" short:"v" help:"Print verbose information."`
+	Wait            time.Duration  `short:"w" help:"Wait up to this elapsed time for the FTL cluster to become available." default:"1m"`
+	Verb            reflection.Ref `arg:"" required:"" help:"Full path of Verb to call." predictor:"verbs"`
+	Request         string         `arg:"" optional:"" help:"JSON5 request payload." default:"{}"`
+	Verbose         bool           `flag:"" short:"v" help:"Print verbose information."`
+	ConsoleEndpoint *url.URL       `help:"Console endpoint." env:"FTL_CONTROLLER_CONSOLE_URL" default:"http://127.0.0.1:8899"`
 }
 
 func (c *callCmd) Run(
@@ -52,7 +54,7 @@ func (c *callCmd) Run(
 
 	logger.Debugf("Calling %s", c.Verb)
 
-	return callVerb(ctx, verbClient, schemaClient, c.Verb, requestJSON, c.Verbose)
+	return callVerb(ctx, verbClient, schemaClient, c.Verb, requestJSON, c.Verbose, c)
 }
 
 func callVerb(
@@ -62,6 +64,7 @@ func callVerb(
 	verb reflection.Ref,
 	requestJSON []byte,
 	verbose bool,
+	cmd *callCmd,
 ) error {
 	logger := log.FromContext(ctx)
 
@@ -88,7 +91,13 @@ func callVerb(
 			return fmt.Errorf("could not get request key: %w", err)
 		}
 		if ok {
-			fmt.Printf("RequestKey: %s\n", requestKey)
+			fmt.Printf("Request ID: %s\n", requestKey)
+			consoleURL := "http://localhost:8899"
+			if cmd != nil && cmd.ConsoleEndpoint != nil {
+				consoleURL = cmd.ConsoleEndpoint.String()
+			}
+			fmt.Printf("Trace URL: %s/traces/%s\n", consoleURL, requestKey)
+			fmt.Println()
 		}
 	}
 
