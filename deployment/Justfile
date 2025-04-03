@@ -44,13 +44,13 @@ wait-for-kube:
   kubectl wait --for=condition=available deployment/ftl-http-ingress --timeout=5m
   kubectl wait --for=condition=available deployment/registry --timeout=5m
   sleep 1
-  ftl schema get || sleep 5 && ftl schema get
+  ftl-k3d schema get || sleep 5 && FTL_ENDPOINT="http://localhost:8792" ftl-k3d schema get
 
 # Wait for FTL version upgrade to complete
 wait-for-version-upgrade oldversion:
   #!/bin/bash
-  while [ "$(ftl status | yq '.controllers[0].version')" == {{oldversion}} ]; do sleep 1; done
-  ftl status
+  while [ "$(ftl-k3d status | yq '.controllers[0].version')" == {{oldversion}} ]; do sleep 1; done
+  ftl-k3d status
 
 # Set up local container registry
 setup-registry:
@@ -64,7 +64,7 @@ setup-cluster: setup-registry
   #!/bin/bash
   bash -c "cd ../ && just chart dep-update"
   if [ -z "$(k3d cluster list | grep ftl)" ]; then
-  k3d cluster create ftl --api-port 6550 -p "8892:80@loadbalancer" -p "8891:80@loadbalancer" -p "8896:80@loadbalancer" -p "8897:80@loadbalancer" --agents 2 \
+  k3d cluster create ftl --api-port 6550 -p "8792:80@loadbalancer" --agents 2 \
       --registry-use {{registry_full}} \
       --registry-config '{{mirrors}}'\
       --k3s-arg '--kubelet-arg=eviction-hard=imagefs.available<1%,nodefs.available<1%@agent:*' \
@@ -139,10 +139,6 @@ exec pod *args:
 enter pod *args="bash":
   kubectl exec -it {{pod}} -- {{args}}
 
-# Check FTL controller status
-ftl-status:
-  just exec deployment/ftl-controller ./ftl status
-
 # Build and push all FTL images to local registry
 build-all-images: setup-registry setup-istio-cluster
   #!/bin/bash
@@ -163,6 +159,7 @@ build-image image: setup-registry setup-istio-cluster
   just -f ../Justfile build-docker {{image}}
   docker tag ftl0/ftl-{{image}}:latest {{registry_local}}/ftl-{{image}}:latest
   docker push {{registry_local}}/ftl-{{image}}:latest
+  kubectl rollout restart deployment ftl-{{image}} || true
 
 # Deploy FTL module from specified path
 deploy path:

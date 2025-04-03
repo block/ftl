@@ -367,11 +367,11 @@ func (r *terminalStatusManager) Close() {
 		r.statusLock.Unlock()
 		return
 	}
-	r.closed.Store(true)
 	if it, ok := r.interactiveConsole.Get(); ok {
 		it.Close()
 	}
 	r.clearStatusMessages()
+	r.closed.Store(true)
 	r.totalStatusLines = 0
 	r.lines = []*terminalStatusLine{}
 	os.Stdout = r.old // restoring the real stdout

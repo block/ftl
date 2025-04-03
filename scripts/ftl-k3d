@@ -1,0 +1,3 @@
+#!/bin/bash
+set -euo pipefail
+FTL_ENDPOINT=http://localhost:8792 ftl "$@"

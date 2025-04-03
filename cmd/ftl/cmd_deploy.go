@@ -12,6 +12,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
+	"github.com/block/ftl/internal/terminal"
 )
 
 type deployCmd struct {
@@ -54,5 +55,7 @@ func (d *deployCmd) Run(
 	if err != nil {
 		return fmt.Errorf("failed to deploy: %w", err)
 	}
+	logger.Infof("Deployed modules %v", engine.Modules()) //nolint
+	terminal.FromContext(ctx).Close()
 	return nil
 }
