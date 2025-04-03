@@ -21,6 +21,7 @@ import (
 
 func TestVerbCalls(t *testing.T) {
 	in.Run(t,
+		in.WithFTLConfig("ftl-project.toml"),
 		in.WithLanguages("java"),
 		in.CopyModule("javaserver"),
 		in.Deploy("javaserver"),
@@ -29,6 +30,9 @@ func TestVerbCalls(t *testing.T) {
 		}),
 		in.Call("javaserver", "anyOutput", "Jimmy", func(t testing.TB, response map[string]string) {
 			assert.Equal(t, map[string]string{"name": "Jimmy"}, response)
+		}),
+		in.Call("javaserver", "egress", map[string]string{}, func(t testing.TB, response string) {
+			assert.Equal(t, "https://github.com", response)
 		}),
 	)
 }

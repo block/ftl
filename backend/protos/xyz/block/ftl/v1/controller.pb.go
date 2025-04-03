@@ -412,6 +412,7 @@ type GetDeploymentContextResponse struct {
 	Secrets       map[string][]byte                     `protobuf:"bytes,4,rep,name=secrets,proto3" json:"secrets,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Databases     []*GetDeploymentContextResponse_DSN   `protobuf:"bytes,5,rep,name=databases,proto3" json:"databases,omitempty"`
 	Routes        []*GetDeploymentContextResponse_Route `protobuf:"bytes,6,rep,name=routes,proto3" json:"routes,omitempty"`
+	Egress        map[string]string                     `protobuf:"bytes,7,rep,name=egress,proto3" json:"egress,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -484,6 +485,13 @@ func (x *GetDeploymentContextResponse) GetDatabases() []*GetDeploymentContextRes
 func (x *GetDeploymentContextResponse) GetRoutes() []*GetDeploymentContextResponse_Route {
 	if x != nil {
 		return x.Routes
+	}
+	return nil
+}
+
+func (x *GetDeploymentContextResponse) GetEgress() map[string]string {
+	if x != nil {
+		return x.Egress
 	}
 	return nil
 }
@@ -1073,7 +1081,7 @@ const file_xyz_block_ftl_v1_controller_proto_rawDesc = "" +
 	"\x1bGetDeploymentContextRequest\x12\x1e\n" +
 	"\n" +
 	"deployment\x18\x01 \x01(\tR\n" +
-	"deployment\"\x9b\x06\n" +
+	"deployment\"\xaa\a\n" +
 	"\x1cGetDeploymentContextResponse\x12\x16\n" +
 	"\x06module\x18\x01 \x01(\tR\x06module\x12\x1e\n" +
 	"\n" +
@@ -1082,7 +1090,8 @@ const file_xyz_block_ftl_v1_controller_proto_rawDesc = "" +
 	"\aconfigs\x18\x03 \x03(\v2;.xyz.block.ftl.v1.GetDeploymentContextResponse.ConfigsEntryR\aconfigs\x12U\n" +
 	"\asecrets\x18\x04 \x03(\v2;.xyz.block.ftl.v1.GetDeploymentContextResponse.SecretsEntryR\asecrets\x12P\n" +
 	"\tdatabases\x18\x05 \x03(\v22.xyz.block.ftl.v1.GetDeploymentContextResponse.DSNR\tdatabases\x12L\n" +
-	"\x06routes\x18\x06 \x03(\v24.xyz.block.ftl.v1.GetDeploymentContextResponse.RouteR\x06routes\x1av\n" +
+	"\x06routes\x18\x06 \x03(\v24.xyz.block.ftl.v1.GetDeploymentContextResponse.RouteR\x06routes\x12R\n" +
+	"\x06egress\x18\a \x03(\v2:.xyz.block.ftl.v1.GetDeploymentContextResponse.EgressEntryR\x06egress\x1av\n" +
 	"\x03DSN\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12I\n" +
 	"\x04type\x18\x02 \x01(\x0e25.xyz.block.ftl.v1.GetDeploymentContextResponse.DbTypeR\x04type\x12\x10\n" +
@@ -1097,7 +1106,10 @@ const file_xyz_block_ftl_v1_controller_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1a:\n" +
 	"\fSecretsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"J\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1a9\n" +
+	"\vEgressEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"J\n" +
 	"\x06DbType\x12\x17\n" +
 	"\x13DB_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10DB_TYPE_POSTGRES\x10\x01\x12\x11\n" +
@@ -1122,7 +1134,7 @@ func file_xyz_block_ftl_v1_controller_proto_rawDescGZIP() []byte {
 }
 
 var file_xyz_block_ftl_v1_controller_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_xyz_block_ftl_v1_controller_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_xyz_block_ftl_v1_controller_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_xyz_block_ftl_v1_controller_proto_goTypes = []any{
 	(GetDeploymentContextResponse_DbType)(0),   // 0: xyz.block.ftl.v1.GetDeploymentContextResponse.DbType
 	(*RegisterRunnerRequest)(nil),              // 1: xyz.block.ftl.v1.RegisterRunnerRequest
@@ -1143,13 +1155,14 @@ var file_xyz_block_ftl_v1_controller_proto_goTypes = []any{
 	(*GetDeploymentContextResponse_Route)(nil), // 16: xyz.block.ftl.v1.GetDeploymentContextResponse.Route
 	nil,                     // 17: xyz.block.ftl.v1.GetDeploymentContextResponse.ConfigsEntry
 	nil,                     // 18: xyz.block.ftl.v1.GetDeploymentContextResponse.SecretsEntry
-	(*structpb.Struct)(nil), // 19: google.protobuf.Struct
-	(*v1.Module)(nil),       // 20: xyz.block.ftl.schema.v1.Module
-	(*PingRequest)(nil),     // 21: xyz.block.ftl.v1.PingRequest
-	(*PingResponse)(nil),    // 22: xyz.block.ftl.v1.PingResponse
+	nil,                     // 19: xyz.block.ftl.v1.GetDeploymentContextResponse.EgressEntry
+	(*structpb.Struct)(nil), // 20: google.protobuf.Struct
+	(*v1.Module)(nil),       // 21: xyz.block.ftl.schema.v1.Module
+	(*PingRequest)(nil),     // 22: xyz.block.ftl.v1.PingRequest
+	(*PingResponse)(nil),    // 23: xyz.block.ftl.v1.PingResponse
 }
 var file_xyz_block_ftl_v1_controller_proto_depIdxs = []int32{
-	19, // 0: xyz.block.ftl.v1.RegisterRunnerRequest.labels:type_name -> google.protobuf.Struct
+	20, // 0: xyz.block.ftl.v1.RegisterRunnerRequest.labels:type_name -> google.protobuf.Struct
 	9,  // 1: xyz.block.ftl.v1.StatusResponse.controllers:type_name -> xyz.block.ftl.v1.StatusResponse.Controller
 	10, // 2: xyz.block.ftl.v1.StatusResponse.runners:type_name -> xyz.block.ftl.v1.StatusResponse.Runner
 	11, // 3: xyz.block.ftl.v1.StatusResponse.deployments:type_name -> xyz.block.ftl.v1.StatusResponse.Deployment
@@ -1159,28 +1172,29 @@ var file_xyz_block_ftl_v1_controller_proto_depIdxs = []int32{
 	18, // 7: xyz.block.ftl.v1.GetDeploymentContextResponse.secrets:type_name -> xyz.block.ftl.v1.GetDeploymentContextResponse.SecretsEntry
 	15, // 8: xyz.block.ftl.v1.GetDeploymentContextResponse.databases:type_name -> xyz.block.ftl.v1.GetDeploymentContextResponse.DSN
 	16, // 9: xyz.block.ftl.v1.GetDeploymentContextResponse.routes:type_name -> xyz.block.ftl.v1.GetDeploymentContextResponse.Route
-	19, // 10: xyz.block.ftl.v1.StatusResponse.Runner.labels:type_name -> google.protobuf.Struct
-	19, // 11: xyz.block.ftl.v1.StatusResponse.Deployment.labels:type_name -> google.protobuf.Struct
-	20, // 12: xyz.block.ftl.v1.StatusResponse.Deployment.schema:type_name -> xyz.block.ftl.schema.v1.Module
-	19, // 13: xyz.block.ftl.v1.ProcessListResponse.ProcessRunner.labels:type_name -> google.protobuf.Struct
-	19, // 14: xyz.block.ftl.v1.ProcessListResponse.Process.labels:type_name -> google.protobuf.Struct
-	13, // 15: xyz.block.ftl.v1.ProcessListResponse.Process.runner:type_name -> xyz.block.ftl.v1.ProcessListResponse.ProcessRunner
-	0,  // 16: xyz.block.ftl.v1.GetDeploymentContextResponse.DSN.type:type_name -> xyz.block.ftl.v1.GetDeploymentContextResponse.DbType
-	21, // 17: xyz.block.ftl.v1.ControllerService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
-	5,  // 18: xyz.block.ftl.v1.ControllerService.ProcessList:input_type -> xyz.block.ftl.v1.ProcessListRequest
-	3,  // 19: xyz.block.ftl.v1.ControllerService.Status:input_type -> xyz.block.ftl.v1.StatusRequest
-	7,  // 20: xyz.block.ftl.v1.ControllerService.GetDeploymentContext:input_type -> xyz.block.ftl.v1.GetDeploymentContextRequest
-	1,  // 21: xyz.block.ftl.v1.ControllerService.RegisterRunner:input_type -> xyz.block.ftl.v1.RegisterRunnerRequest
-	22, // 22: xyz.block.ftl.v1.ControllerService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	6,  // 23: xyz.block.ftl.v1.ControllerService.ProcessList:output_type -> xyz.block.ftl.v1.ProcessListResponse
-	4,  // 24: xyz.block.ftl.v1.ControllerService.Status:output_type -> xyz.block.ftl.v1.StatusResponse
-	8,  // 25: xyz.block.ftl.v1.ControllerService.GetDeploymentContext:output_type -> xyz.block.ftl.v1.GetDeploymentContextResponse
-	2,  // 26: xyz.block.ftl.v1.ControllerService.RegisterRunner:output_type -> xyz.block.ftl.v1.RegisterRunnerResponse
-	22, // [22:27] is the sub-list for method output_type
-	17, // [17:22] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	19, // 10: xyz.block.ftl.v1.GetDeploymentContextResponse.egress:type_name -> xyz.block.ftl.v1.GetDeploymentContextResponse.EgressEntry
+	20, // 11: xyz.block.ftl.v1.StatusResponse.Runner.labels:type_name -> google.protobuf.Struct
+	20, // 12: xyz.block.ftl.v1.StatusResponse.Deployment.labels:type_name -> google.protobuf.Struct
+	21, // 13: xyz.block.ftl.v1.StatusResponse.Deployment.schema:type_name -> xyz.block.ftl.schema.v1.Module
+	20, // 14: xyz.block.ftl.v1.ProcessListResponse.ProcessRunner.labels:type_name -> google.protobuf.Struct
+	20, // 15: xyz.block.ftl.v1.ProcessListResponse.Process.labels:type_name -> google.protobuf.Struct
+	13, // 16: xyz.block.ftl.v1.ProcessListResponse.Process.runner:type_name -> xyz.block.ftl.v1.ProcessListResponse.ProcessRunner
+	0,  // 17: xyz.block.ftl.v1.GetDeploymentContextResponse.DSN.type:type_name -> xyz.block.ftl.v1.GetDeploymentContextResponse.DbType
+	22, // 18: xyz.block.ftl.v1.ControllerService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	5,  // 19: xyz.block.ftl.v1.ControllerService.ProcessList:input_type -> xyz.block.ftl.v1.ProcessListRequest
+	3,  // 20: xyz.block.ftl.v1.ControllerService.Status:input_type -> xyz.block.ftl.v1.StatusRequest
+	7,  // 21: xyz.block.ftl.v1.ControllerService.GetDeploymentContext:input_type -> xyz.block.ftl.v1.GetDeploymentContextRequest
+	1,  // 22: xyz.block.ftl.v1.ControllerService.RegisterRunner:input_type -> xyz.block.ftl.v1.RegisterRunnerRequest
+	23, // 23: xyz.block.ftl.v1.ControllerService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	6,  // 24: xyz.block.ftl.v1.ControllerService.ProcessList:output_type -> xyz.block.ftl.v1.ProcessListResponse
+	4,  // 25: xyz.block.ftl.v1.ControllerService.Status:output_type -> xyz.block.ftl.v1.StatusResponse
+	8,  // 26: xyz.block.ftl.v1.ControllerService.GetDeploymentContext:output_type -> xyz.block.ftl.v1.GetDeploymentContextResponse
+	2,  // 27: xyz.block.ftl.v1.ControllerService.RegisterRunner:output_type -> xyz.block.ftl.v1.RegisterRunnerResponse
+	23, // [23:28] is the sub-list for method output_type
+	18, // [18:23] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_v1_controller_proto_init() }
@@ -1197,7 +1211,7 @@ func file_xyz_block_ftl_v1_controller_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xyz_block_ftl_v1_controller_proto_rawDesc), len(file_xyz_block_ftl_v1_controller_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   18,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

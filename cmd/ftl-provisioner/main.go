@@ -8,6 +8,7 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/controller/artefacts"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner"
 	"github.com/block/ftl/backend/provisioner/scaling/k8sscaling"
@@ -47,6 +48,7 @@ func main() {
 	logger := log.Configure(os.Stderr, cli.LogConfig).Scope("provisioner")
 	ctx := log.ContextWithLogger(context.Background(), logger)
 	timelineClient := timeline.NewClient(ctx, cli.ProvisionerConfig.TimelineEndpoint)
+	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.ProvisionerConfig.AdminEndpoint.String(), log.Error)
 	err := observability.Init(ctx, false, "", "ftl-provisioner", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
@@ -68,7 +70,7 @@ func main() {
 	scaling := k8sscaling.NewK8sScaling(false, cli.ProvisionerConfig.ControllerEndpoint.String(), cli.InstanceName, mapper, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
-	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling)
+	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient)
 	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
 
 	// Use in mem sql-migration provisioner as fallback for sql-migration provisioning if no other provisioner is registered

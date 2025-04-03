@@ -2,6 +2,7 @@ package xyz.block.ftl.test
 
 import xyz.block.ftl.Export
 import xyz.block.ftl.Verb
+import xyz.block.ftl.Egress
 
 class Verbs {
 
@@ -22,5 +23,11 @@ class Verbs {
   @Verb
   fun typeEnumVerb(animal: AnimalWrapper): AnimalWrapper {
     return animal
+  }
+
+  @Export
+  @Verb
+  fun egress(@Egress("url") url: String): String {
+    return url
   }
 }

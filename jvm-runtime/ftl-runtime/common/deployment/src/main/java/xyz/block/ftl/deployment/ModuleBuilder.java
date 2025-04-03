@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jboss.jandex.AnnotationTarget;
@@ -43,6 +44,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.quarkus.arc.processor.DotNames;
 import xyz.block.ftl.Config;
+import xyz.block.ftl.Egress;
 import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.Secret;
 import xyz.block.ftl.WorkloadIdentity;
@@ -66,6 +68,7 @@ import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataAlias;
 import xyz.block.ftl.schema.v1.MetadataCalls;
 import xyz.block.ftl.schema.v1.MetadataConfig;
+import xyz.block.ftl.schema.v1.MetadataEgress;
 import xyz.block.ftl.schema.v1.MetadataPublisher;
 import xyz.block.ftl.schema.v1.MetadataSecrets;
 import xyz.block.ftl.schema.v1.MetadataTransaction;
@@ -211,6 +214,7 @@ public class ModuleBuilder {
             String verbName = validateName(method, ModuleBuilder.methodToName(method));
             MetadataCalls.Builder callsMetadata = MetadataCalls.newBuilder();
             MetadataConfig.Builder configMetadata = MetadataConfig.newBuilder();
+            MetadataEgress.Builder configEgress = MetadataEgress.newBuilder();
             MetadataSecrets.Builder secretMetadata = MetadataSecrets.newBuilder();
             MetadataPublisher.Builder publisherMetadata = MetadataPublisher.newBuilder();
             var pos = -1;
@@ -249,6 +253,22 @@ public class ModuleBuilder {
                         knownConfig.add(name);
                     }
                     configMetadata.addConfig(Ref.newBuilder().setName(name).setModule(moduleName).build());
+                } else if (param.hasAnnotation(Egress.class)) {
+                    Class<?> paramType = ModuleBuilder.loadClass(param.type());
+                    parameterTypes.add(paramType);
+                    String target = param.annotation(Egress.class).value().asString();
+                    paramMappers.add(new VerbRegistry.EgressSupplier(target, paramType));
+                    configEgress.addTargets(target);
+                    for (var config : extractVars(target)) {
+                        if (!knownConfig.contains(config)) {
+                            xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
+                                    .newBuilder()
+                                    .setType(buildType(param.type(), false, param))
+                                    .setName(config);
+                            addDecls(Decl.newBuilder().setConfig(configBuilder).build());
+                            knownConfig.add(config);
+                        }
+                    }
                 } else if (knownTopics.containsKey(param.type().name())) {
                     var topic = knownTopics.get(param.type().name());
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
@@ -310,6 +330,9 @@ public class ModuleBuilder {
             if (publisherMetadata.getTopicsCount() > 0) {
                 verbBuilder.addMetadata(Metadata.newBuilder().setPublisher(publisherMetadata));
             }
+            if (configEgress.getTargetsCount() > 0) {
+                verbBuilder.addMetadata(Metadata.newBuilder().setEgress(configEgress));
+            }
             if (transaction) {
                 verbBuilder.addMetadata(Metadata.newBuilder().setTransaction(MetadataTransaction.newBuilder().build()));
             }
@@ -338,6 +361,20 @@ public class ModuleBuilder {
                     "Failed to process FTL method " + method.declaringClass().name() + "." + method.name() + " "
                             + e.getMessage()));
         }
+    }
+
+    private List<String> extractVars(String target) {
+
+        List<String> ret = new ArrayList<>();
+        var regex = Pattern.compile("\\$\\{(\\w+)}");
+        Matcher matcher = regex.matcher(target);
+        while (matcher.find()) {
+            String var = matcher.group(1);
+            if (var != null && !var.isEmpty()) {
+                ret.add(var);
+            }
+        }
+        return ret;
     }
 
     public void registerTransactionDbAccess() {
