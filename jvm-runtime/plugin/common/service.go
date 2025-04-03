@@ -543,7 +543,10 @@ func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, buildCt
 		logger := log.FromContext(ctx)
 		logger.Infof("Using dev mode build command '%s'", devModeBuild)
 		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
-		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind), "MAVEN_OPTS=-Xmx1024m", "FTL_MODULE_NAME="+buildCtx.Config.Module)
+		if os.Getenv("MAVEN_OPTS") == "" {
+			command.Env = append(command.Env, "MAVEN_OPTS=-Xmx2048m")
+		}
+		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind), "FTL_MODULE_NAME="+buildCtx.Config.Module)
 		command.Stdout = stdout
 		command.Stderr = os.Stderr
 		err := command.Run()
