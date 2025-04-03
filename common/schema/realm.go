@@ -28,9 +28,11 @@ func (r *Realm) String() string {
 	} else {
 		fmt.Fprintf(out, "realm %s {", r.Name)
 	}
-	for _, module := range r.Modules {
-		fmt.Fprintln(out)
-		fmt.Fprint(out, indent(module.String()))
+	for i, module := range r.Modules {
+		if i > 0 {
+			fmt.Fprintln(out)
+		}
+		fmt.Fprintln(out, indent(module.String()))
 	}
 	fmt.Fprintf(out, "}\n")
 	return out.String()

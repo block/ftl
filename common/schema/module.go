@@ -154,7 +154,7 @@ func (m *Module) String() string {
 		fmt.Fprintln(w, indent(decl.String()))
 		lastTypePrinted = optional.Some(t)
 	}
-	fmt.Fprintln(w, "}")
+	fmt.Fprint(w, "}")
 	return w.String()
 }
 

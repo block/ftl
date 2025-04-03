@@ -409,7 +409,10 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 	modules = append(modules, gslices.Collect(maps.Values(view.GetCanonicalDeployments()))...)
 
 	notification := &schema.FullSchemaNotification{
-		Schema:     &schema.Schema{Realms: []*schema.Realm{{Modules: modules}}},
+		Schema: &schema.Schema{Realms: []*schema.Realm{{
+			Name:    "default", // TODO: implement
+			Modules: modules,
+		}}},
 		Changesets: gslices.Collect(maps.Values(view.GetChangesets())),
 	}
 	err = sendChange(&ftlv1.PullSchemaResponse{

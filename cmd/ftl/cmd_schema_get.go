@@ -47,7 +47,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			if err != nil {
 				return fmt.Errorf("invalid schema: %w", err)
 			}
-			err = g.handleSchema(sch.InternalModules()...)
+			err = g.handleSchema(sch)
 			if err != nil {
 				return err
 			}
@@ -63,7 +63,12 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 				}
 				modules = append(modules, m)
 			}
-			err = g.handleSchema(modules...)
+			realm := &schema.Realm{
+				Name:     "default", // TODO: implement
+				External: false,
+				Modules:  modules,
+			}
+			err = g.handleSchema(&schema.Schema{Realms: []*schema.Realm{realm}})
 			if err != nil {
 				return err
 			}
@@ -78,11 +83,9 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 	return nil
 }
 
-func (g *getSchemaCmd) handleSchema(modules ...*schema.Module) error {
-	for _, module := range modules {
-		if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
-			fmt.Println(module)
-		}
+func (g *getSchemaCmd) handleSchema(sch *schema.Schema) error {
+	for _, realm := range sch.Realms {
+		fmt.Println(realm)
 	}
 	return nil
 }
