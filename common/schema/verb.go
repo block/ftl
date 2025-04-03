@@ -192,7 +192,7 @@ func (v *Verb) ResolveDatabaseUses(schema *Schema, module string) sets.Set[RefKe
 	for _, md := range v.Metadata {
 		switch md := md.(type) {
 		case *MetadataDatabases:
-			for _, db := range md.Calls {
+			for _, db := range md.Uses {
 				dbs.Add(db.ToRefKey())
 			}
 		case *MetadataCalls:

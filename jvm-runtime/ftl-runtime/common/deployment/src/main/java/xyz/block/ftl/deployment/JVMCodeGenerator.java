@@ -224,7 +224,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                                 .map(md -> md.getSqlQuery()).orElse(null);
                         var dbCallMetadata = verb.getMetadataList().stream().filter(md -> md.hasDatabases()).findFirst()
                                 .map(md -> md.getDatabases()).orElse(null);
-                        var dbCalls = dbCallMetadata != null ? dbCallMetadata.getCallsList() : null;
+                        var dbCalls = dbCallMetadata != null ? dbCallMetadata.getUsesList() : null;
                         if (queryMetadata != null) {
                             if (dbCalls == null) {
                                 throw new CodeGenException("SQL query verb " + verb.getName() + " has no database calls");

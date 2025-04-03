@@ -1733,8 +1733,8 @@ func (x *MetadataDatabases) ToProto() *destpb.MetadataDatabases {
 		return nil
 	}
 	return &destpb.MetadataDatabases{
-		Pos:   x.Pos.ToProto(),
-		Calls: sliceMap(x.Calls, func(v *Ref) *destpb.Ref { return v.ToProto() }),
+		Pos:  x.Pos.ToProto(),
+		Uses: sliceMap(x.Uses, func(v *Ref) *destpb.Ref { return v.ToProto() }),
 	}
 }
 
@@ -1747,8 +1747,8 @@ func MetadataDatabasesFromProto(v *destpb.MetadataDatabases) (out *MetadataDatab
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
 		return nil, fmt.Errorf("Pos: %w", err)
 	}
-	if out.Calls, err = sliceMapR(v.Calls, func(v *destpb.Ref) result.Result[*Ref] { return result.From(RefFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Calls: %w", err)
+	if out.Uses, err = sliceMapR(v.Uses, func(v *destpb.Ref) result.Result[*Ref] { return result.From(RefFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Uses: %w", err)
 	}
 	return out, nil
 }

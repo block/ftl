@@ -24,7 +24,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.ArrayType;
@@ -384,7 +383,7 @@ public class ModuleBuilder {
                 }
             }
             if (metadata.hasDatabases()) {
-                refs.addAll(metadata.getDatabases().getCallsList().stream().map(Ref::getName).collect(Collectors.toList()));
+                refs.addAll(metadata.getDatabases().getUsesList().stream().map(Ref::getName).toList());
             }
         }
         return refs;

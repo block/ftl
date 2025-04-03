@@ -1058,7 +1058,7 @@ func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) (queryVerb
 	var dbRef *schema.Ref
 	for _, md := range verb.Metadata {
 		if db, ok := md.(*schema.MetadataDatabases); ok {
-			dbRef = db.Calls[0]
+			dbRef = db.Uses[0]
 		}
 	}
 	if dbRef == nil || dbRef.Name == "" {
