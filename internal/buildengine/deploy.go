@@ -165,6 +165,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 		c.SchemaUpdates <- SchemaUpdatedEvent{
 			schema: &schema.Schema{
 				Realms: []*schema.Realm{{
+					Name: "default", // TODO: projectName,
 					Modules: []*schema.Module{
 						schema.Builtins(),
 					},
@@ -477,13 +478,13 @@ func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Sche
 	out := map[string]bool{}
 	sch := &schema.Schema{}
 	for _, realm := range originalSch.Realms {
+		newRealm := &schema.Realm{
+			Name:     realm.Name,
+			External: realm.External,
+			Modules:  []*schema.Module{},
+		}
+		sch.Realms = append(sch.Realms, newRealm)
 		for _, module := range realm.Modules {
-			newRealm := &schema.Realm{
-				Name:     realm.Name,
-				External: realm.External,
-				Modules:  []*schema.Module{module},
-			}
-			sch.Realms = append(sch.Realms, newRealm)
 			if _, ok := deployment.modules[module.Name]; ok {
 				continue
 			}
