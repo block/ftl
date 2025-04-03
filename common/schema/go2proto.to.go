@@ -1052,6 +1052,54 @@ func DeploymentStateFromProto(v destpb.DeploymentState) (DeploymentState, error)
 	return DeploymentState(v), nil
 }
 
+func (x *EgressElement) ToProto() *destpb.EgressElement {
+	if x == nil {
+		return nil
+	}
+	return &destpb.EgressElement{
+		Expression: orZero(ptr(string(x.Expression))),
+		Target:     orZero(ptr(string(x.Target))),
+	}
+}
+
+func EgressElementFromProto(v *destpb.EgressElement) (out *EgressElement, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &EgressElement{}
+	if out.Expression, err = orZeroR(result.From(ptr(string(v.Expression)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Expression: %w", err)
+	}
+	if out.Target, err = orZeroR(result.From(ptr(string(v.Target)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Target: %w", err)
+	}
+	return out, nil
+}
+
+func (x *EgressRuntime) ToProto() *destpb.EgressRuntime {
+	if x == nil {
+		return nil
+	}
+	return &destpb.EgressRuntime{
+		Targets: sliceMap(x.Targets, func(v EgressElement) *destpb.EgressElement { return v.ToProto() }),
+	}
+}
+
+func EgressRuntimeFromProto(v *destpb.EgressRuntime) (out *EgressRuntime, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &EgressRuntime{}
+	if out.Targets, err = sliceMapR(v.Targets, func(v *destpb.EgressElement) result.Result[EgressElement] {
+		return orZeroR(result.From(EgressElementFromProto(v)))
+	}).Result(); err != nil {
+		return nil, fmt.Errorf("Targets: %w", err)
+	}
+	return out, nil
+}
+
 func (x *Enum) ToProto() *destpb.Enum {
 	if x == nil {
 		return nil
@@ -1474,6 +1522,10 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Databases{value.ToProto()},
 		}
+	case *MetadataEgress:
+		return &destpb.Metadata{
+			Value: &destpb.Metadata_Egress{value.ToProto()},
+		}
 	case *MetadataEncoding:
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Encoding{value.ToProto()},
@@ -1556,6 +1608,8 @@ func MetadataFromProto(v *destpb.Metadata) (Metadata, error) {
 		return MetadataCronJobFromProto(v.GetCronJob())
 	case *destpb.Metadata_Databases:
 		return MetadataDatabasesFromProto(v.GetDatabases())
+	case *destpb.Metadata_Egress:
+		return MetadataEgressFromProto(v.GetEgress())
 	case *destpb.Metadata_Encoding:
 		return MetadataEncodingFromProto(v.GetEncoding())
 	case *destpb.Metadata_Fixture:
@@ -1749,6 +1803,31 @@ func MetadataDatabasesFromProto(v *destpb.MetadataDatabases) (out *MetadataDatab
 	}
 	if out.Uses, err = sliceMapR(v.Uses, func(v *destpb.Ref) result.Result[*Ref] { return result.From(RefFromProto(v)) }).Result(); err != nil {
 		return nil, fmt.Errorf("Uses: %w", err)
+	}
+	return out, nil
+}
+
+func (x *MetadataEgress) ToProto() *destpb.MetadataEgress {
+	if x == nil {
+		return nil
+	}
+	return &destpb.MetadataEgress{
+		Pos:     x.Pos.ToProto(),
+		Targets: sliceMap(x.Targets, func(v string) string { return orZero(ptr(string(v))) }),
+	}
+}
+
+func MetadataEgressFromProto(v *destpb.MetadataEgress) (out *MetadataEgress, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &MetadataEgress{}
+	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	}
+	if out.Targets, err = sliceMapR(v.Targets, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Targets: %w", err)
 	}
 	return out, nil
 }
@@ -2597,6 +2676,10 @@ func RuntimeToProto(value Runtime) *destpb.Runtime {
 		return &destpb.Runtime{
 			Value: &destpb.Runtime_DatabaseRuntime{value.ToProto()},
 		}
+	case *EgressRuntime:
+		return &destpb.Runtime{
+			Value: &destpb.Runtime_EgressRuntime{value.ToProto()},
+		}
 	case *ModuleRuntimeDeployment:
 		return &destpb.Runtime{
 			Value: &destpb.Runtime_ModuleRuntimeDeployment{value.ToProto()},
@@ -2609,13 +2692,13 @@ func RuntimeToProto(value Runtime) *destpb.Runtime {
 		return &destpb.Runtime{
 			Value: &destpb.Runtime_ModuleRuntimeScaling{value.ToProto()},
 		}
+	case *PlaintextKafkaSubscriptionConnector:
+		return &destpb.Runtime{
+			Value: &destpb.Runtime_PlaintextKafkaSubscriptionConnector{value.ToProto()},
+		}
 	case *TopicRuntime:
 		return &destpb.Runtime{
 			Value: &destpb.Runtime_TopicRuntime{value.ToProto()},
-		}
-	case *VerbRuntime:
-		return &destpb.Runtime{
-			Value: &destpb.Runtime_VerbRuntime{value.ToProto()},
 		}
 	default:
 		panic(fmt.Sprintf("unknown variant: %T", value))
@@ -2629,16 +2712,18 @@ func RuntimeFromProto(v *destpb.Runtime) (Runtime, error) {
 	switch v.Value.(type) {
 	case *destpb.Runtime_DatabaseRuntime:
 		return DatabaseRuntimeFromProto(v.GetDatabaseRuntime())
+	case *destpb.Runtime_EgressRuntime:
+		return EgressRuntimeFromProto(v.GetEgressRuntime())
 	case *destpb.Runtime_ModuleRuntimeDeployment:
 		return ModuleRuntimeDeploymentFromProto(v.GetModuleRuntimeDeployment())
 	case *destpb.Runtime_ModuleRuntimeRunner:
 		return ModuleRuntimeRunnerFromProto(v.GetModuleRuntimeRunner())
 	case *destpb.Runtime_ModuleRuntimeScaling:
 		return ModuleRuntimeScalingFromProto(v.GetModuleRuntimeScaling())
+	case *destpb.Runtime_PlaintextKafkaSubscriptionConnector:
+		return PlaintextKafkaSubscriptionConnectorFromProto(v.GetPlaintextKafkaSubscriptionConnector())
 	case *destpb.Runtime_TopicRuntime:
 		return TopicRuntimeFromProto(v.GetTopicRuntime())
-	case *destpb.Runtime_VerbRuntime:
-		return VerbRuntimeFromProto(v.GetVerbRuntime())
 	default:
 		panic(fmt.Sprintf("unknown variant: %T", v.Value))
 	}
@@ -3234,6 +3319,7 @@ func (x *VerbRuntime) ToProto() *destpb.VerbRuntime {
 	}
 	return &destpb.VerbRuntime{
 		SubscriptionConnector: SubscriptionConnectorToProto(x.SubscriptionConnector),
+		EgressRuntime:         x.EgressRuntime.ToProto(),
 	}
 }
 
@@ -3245,6 +3331,9 @@ func VerbRuntimeFromProto(v *destpb.VerbRuntime) (out *VerbRuntime, err error) {
 	out = &VerbRuntime{}
 	if out.SubscriptionConnector, err = orZeroR(ptrR(result.From(SubscriptionConnectorFromProto(v.SubscriptionConnector)))).Result(); err != nil {
 		return nil, fmt.Errorf("SubscriptionConnector: %w", err)
+	}
+	if out.EgressRuntime, err = result.From(EgressRuntimeFromProto(v.EgressRuntime)).Result(); err != nil {
+		return nil, fmt.Errorf("EgressRuntime: %w", err)
 	}
 	return out, nil
 }
