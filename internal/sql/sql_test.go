@@ -145,7 +145,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Unit{},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Calls: []*schema.Ref{
+						Uses: []*schema.Ref{
 							{
 								Module: "test",
 								Name:   "mysqldb",
@@ -169,7 +169,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Unit{},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Calls: []*schema.Ref{
+						Uses: []*schema.Ref{
 							{
 								Module: "test",
 								Name:   "psqldb",
@@ -196,7 +196,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Calls: []*schema.Ref{
+						Uses: []*schema.Ref{
 							{
 								Module: "test",
 								Name:   "mysqldb",
@@ -223,7 +223,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Calls: []*schema.Ref{
+						Uses: []*schema.Ref{
 							{
 								Module: "test",
 								Name:   "psqldb",

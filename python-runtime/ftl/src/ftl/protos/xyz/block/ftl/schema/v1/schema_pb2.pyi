@@ -540,12 +540,12 @@ class MetadataCronJob(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., cron: _Optional[str] = ...) -> None: ...
 
 class MetadataDatabases(_message.Message):
-    __slots__ = ("pos", "calls")
+    __slots__ = ("pos", "uses")
     POS_FIELD_NUMBER: _ClassVar[int]
-    CALLS_FIELD_NUMBER: _ClassVar[int]
+    USES_FIELD_NUMBER: _ClassVar[int]
     pos: Position
-    calls: _containers.RepeatedCompositeFieldContainer[Ref]
-    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., calls: _Optional[_Iterable[_Union[Ref, _Mapping]]] = ...) -> None: ...
+    uses: _containers.RepeatedCompositeFieldContainer[Ref]
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., uses: _Optional[_Iterable[_Union[Ref, _Mapping]]] = ...) -> None: ...
 
 class MetadataEncoding(_message.Message):
     __slots__ = ("pos", "type", "lenient")

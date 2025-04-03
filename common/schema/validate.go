@@ -523,7 +523,7 @@ func sortMetadataType(md Metadata) {
 	case *MetadataCronJob:
 		return
 	case *MetadataDatabases:
-		sortRefs(m.Calls)
+		sortRefs(m.Uses)
 	case *MetadataEncoding:
 		return
 	case *MetadataIngress:

@@ -983,7 +983,7 @@ var testSchema = MustValidate(&Schema{
 					Request:  &Ref{Module: "todo", Name: "InsertRequest"},
 					Response: &Ref{Module: "todo", Name: "InsertResponse"},
 					Metadata: []Metadata{
-						&MetadataDatabases{Calls: []*Ref{{Module: "todo", Name: "testdb"}}},
+						&MetadataDatabases{Uses: []*Ref{{Module: "todo", Name: "testdb"}}},
 						&MetadataSQLQuery{Command: "exec", Query: "INSERT INTO requests (name) VALUES (?)"},
 						&MetadataGenerated{},
 					},
@@ -1060,7 +1060,7 @@ var testSchema = MustValidate(&Schema{
 					Response: &Unit{Unit: true},
 					Metadata: []Metadata{
 						&MetadataTransaction{},
-						&MetadataDatabases{Calls: []*Ref{{Module: "todo", Name: "testdb"}}},
+						&MetadataDatabases{Uses: []*Ref{{Module: "todo", Name: "testdb"}}},
 					},
 				},
 			},

@@ -346,7 +346,7 @@ message MetadataCronJob {
 
 message MetadataDatabases {
   optional Position pos = 1;
-  repeated Ref calls = 2;
+  repeated Ref uses = 2;
 }
 
 message MetadataEncoding {
