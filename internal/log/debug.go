@@ -14,7 +14,7 @@ import (
 const logFileName = "log.json"
 
 func SetupDebugFileLogging(ctx context.Context, root string, maxLogs int) {
-	logDir := filepath.Join(root, ".ftl-dev-logs")
+	logDir := filepath.Join(root, ".ftl", "logs")
 	logger := FromContext(ctx)
 	if err := os.MkdirAll(logDir, 0755); err != nil { //nolint:gosec
 		logger.Errorf(err, "Could not create log directory %s", logDir)
