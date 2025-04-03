@@ -1,0 +1,7 @@
+name = "ftl"
+secrets-provider = "inline"
+config-provider = "inline"
+
+[global]
+  [global.configuration]
+    url = "inline://Imh0dHBzOi8vZ2l0aHViLmNvbSI"

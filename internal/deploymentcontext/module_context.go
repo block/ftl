@@ -37,6 +37,7 @@ type DeploymentContext struct {
 	secrets   map[string][]byte
 	routes    map[string]string
 	databases map[string]Database
+	egress    map[string]string
 
 	isTesting                     bool
 	mockVerbs                     map[schema.RefKey]Verb
@@ -69,6 +70,7 @@ func NewBuilder(module string) *Builder {
 		databases: map[string]Database{},
 		mockVerbs: map[schema.RefKey]Verb{},
 		routes:    map[string]string{},
+		egress:    map[string]string{},
 	}
 }
 
@@ -84,6 +86,7 @@ func NewBuilderFromContext(ctx DeploymentContext) *Builder {
 		allowDirectVerb:               ctx.allowDirectVerb,
 		leaseClient:                   ctx.leaseClient,
 		allowDirectQueryVerbs:         ctx.allowDirectQueryVerbs,
+		egress:                        ctx.egress,
 	}
 }
 
@@ -99,6 +102,14 @@ func (b *Builder) AddConfigs(configs map[string][]byte) *Builder {
 func (b *Builder) AddSecrets(secrets map[string][]byte) *Builder {
 	for name, data := range secrets {
 		b.secrets[name] = data
+	}
+	return b
+}
+
+// AddEgress adds egress values to the builder
+func (b *Builder) AddEgress(egress map[string]string) *Builder {
+	for name, data := range egress {
+		b.egress[name] = data
 	}
 	return b
 }

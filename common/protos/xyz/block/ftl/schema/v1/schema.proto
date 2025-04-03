@@ -201,6 +201,16 @@ enum DeploymentState {
   DEPLOYMENT_STATE_FAILED = 8;
 }
 
+message EgressElement {
+  string expression = 1;
+  string target = 2;
+}
+
+// EgressRuntime stores the actual egress target.
+message EgressRuntime {
+  repeated EgressElement targets = 1;
+}
+
 message Enum {
   optional Position pos = 1;
   repeated string comments = 2;
@@ -294,6 +304,7 @@ message Metadata {
     MetadataConfig config = 10;
     MetadataCronJob cron_job = 3;
     MetadataDatabases databases = 4;
+    MetadataEgress egress = 22;
     MetadataEncoding encoding = 9;
     MetadataFixture fixture = 20;
     MetadataGenerated generated = 18;
@@ -345,6 +356,12 @@ message MetadataCronJob {
 message MetadataDatabases {
   optional Position pos = 1;
   repeated Ref uses = 2;
+}
+
+// MetadataEgress identifies a verb that serves as a Egress boundary.
+message MetadataEgress {
+  optional Position pos = 1;
+  repeated string targets = 2;
 }
 
 message MetadataEncoding {
@@ -542,11 +559,12 @@ message Ref {
 message Runtime {
   oneof value {
     DatabaseRuntime database_runtime = 6;
+    EgressRuntime egress_runtime = 7;
     ModuleRuntimeDeployment module_runtime_deployment = 1;
     ModuleRuntimeRunner module_runtime_runner = 3;
     ModuleRuntimeScaling module_runtime_scaling = 2;
+    PlaintextKafkaSubscriptionConnector plaintext_kafka_subscription_connector = 8;
     TopicRuntime topic_runtime = 5;
-    VerbRuntime verb_runtime = 4;
   }
 }
 
@@ -589,7 +607,7 @@ message StringValue {
 // SubscriptionConnector is a connector to subscribe to a topic.
 message SubscriptionConnector {
   oneof value {
-    PlaintextKafkaSubscriptionConnector plaintext_kafka_subscription_connector = 1;
+    PlaintextKafkaSubscriptionConnector plaintext_kafka_subscription_connector = 8;
   }
 }
 
@@ -678,4 +696,5 @@ message Verb {
 
 message VerbRuntime {
   optional SubscriptionConnector subscription_connector = 1;
+  optional EgressRuntime egress_runtime = 2;
 }

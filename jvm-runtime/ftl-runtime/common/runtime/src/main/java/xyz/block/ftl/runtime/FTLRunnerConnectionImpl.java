@@ -267,6 +267,11 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     }
 
     @Override
+    public String getEgress(String name) {
+        return getDeploymentContext().getEgressMap().get(name);
+    }
+
+    @Override
     public String beginTransaction(String databaseName) {
         CompletableFuture<String> cf = new CompletableFuture<>();
         queryService.beginTransaction(BeginTransactionRequest.newBuilder().setDatabaseName(databaseName).build(),

@@ -25,12 +25,15 @@ func (x *RuntimeElement) ApplyToModule(state *Module) error {
 		state.Runtime.Scaling = v
 	case *ModuleRuntimeRunner:
 		state.Runtime.Runner = v
-	case *VerbRuntime:
+	case SubscriptionConnector:
 		d, err := findDecl[*Verb](state, x)
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		(*d).Runtime = v
+		if (*d).Runtime == nil {
+			(*d).Runtime = &VerbRuntime{}
+		}
+		(*d).Runtime.SubscriptionConnector = v
 	case *TopicRuntime:
 		d, err := findDecl[*Topic](state, x)
 		if err != nil {
@@ -43,6 +46,15 @@ func (x *RuntimeElement) ApplyToModule(state *Module) error {
 			return errors.WithStack(err)
 		}
 		(*d).Runtime = v
+	case *EgressRuntime:
+		d, err := findDecl[*Verb](state, x)
+		if err != nil {
+			return err
+		}
+		if (*d).Runtime == nil {
+			(*d).Runtime = &VerbRuntime{}
+		}
+		(*d).Runtime.EgressRuntime = v
 	}
 	return nil
 }

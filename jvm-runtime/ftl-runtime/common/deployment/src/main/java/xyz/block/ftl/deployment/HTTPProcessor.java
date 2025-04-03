@@ -58,6 +58,10 @@ public class HTTPProcessor {
                         Class<?> paramType = ModuleBuilder.loadClass(type);
                         String name = annotations.get(FTLDotNames.CONFIG).value().asString();
                         return new VerbRegistry.ConfigSupplier(name, paramType);
+                    } else if (annotations.containsKey(FTLDotNames.EGRESS)) {
+                        Class<?> paramType = ModuleBuilder.loadClass(type);
+                        String name = annotations.get(FTLDotNames.EGRESS).value().asString();
+                        return new VerbRegistry.EgressSupplier(name, paramType);
                     } else if (topics.getTopics().containsKey(type.name())) {
                         var topic = topics.getTopics().get(type.name());
                         return recorder.topicParamExtractor(topic.generatedProducer());

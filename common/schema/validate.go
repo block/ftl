@@ -20,6 +20,7 @@ import (
 	ftlerrors "github.com/block/ftl/common/errors"
 	dc "github.com/block/ftl/common/reflect"
 	islices "github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/egress"
 )
 
 var (
@@ -245,11 +246,10 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 								injectsTransactions = true
 							}
 						}
-
 					case *MetadataCronJob, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap,
 						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact,
 						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit, *MetadataFixture,
-						*MetadataTransaction:
+						*MetadataTransaction, *MetadataEgress:
 					}
 				}
 				if isSQLQuery {
@@ -578,6 +578,8 @@ func sortMetadataType(md Metadata) {
 		return
 	case *MetadataTransaction:
 		return
+	case *MetadataEgress:
+		slices.Sort(m.Targets)
 	}
 }
 
@@ -626,6 +628,8 @@ func getMetadataSortingPriority(metadata Metadata) int {
 		priority = 20
 	case *MetadataTransaction:
 		priority = 21
+	case *MetadataEgress:
+		priority = 22
 	}
 	return priority
 }
@@ -827,6 +831,20 @@ func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error)
 		case *MetadataSQLColumn:
 			merr = append(merr, errorf(md, "metadata %q is not valid on verbs", strings.TrimSpace(md.String())))
 
+		case *MetadataEgress:
+			config := islices.FilterVariants[*Config, Decl](module.Decls)
+			configNames := map[string]bool{}
+			for i := range config {
+				configNames[i.Name] = true
+			}
+			for _, target := range md.Targets {
+				extract := egress.ExtractConfigItems(target)
+				for _, item := range extract {
+					if !configNames[item] {
+						merr = append(merr, errorf(md, "egress target %q references unknown config %q", target, item))
+					}
+				}
+			}
 		case *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap, *MetadataEncoding,
 			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery, *MetadataPartitions, *MetadataGenerated,
 			*MetadataGit, *MetadataFixture, *MetadataTransaction:

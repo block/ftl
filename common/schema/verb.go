@@ -165,8 +165,18 @@ func (v *Verb) GetProvisioned() ResourceSet {
 	for sub := range slices.FilterVariants[*MetadataFixture](v.Metadata) {
 		if !sub.Manual {
 			result = append(result, &ProvisionedResource{
-				Kind:   ResourceTypeFixture,
-				Config: v,
+				Kind:               ResourceTypeFixture,
+				Config:             v,
+				DeploymentSpecific: true,
+			})
+		}
+	}
+	for sub := range slices.FilterVariants[*MetadataEgress](v.Metadata) {
+		for _, target := range sub.Targets {
+			result = append(result, &ProvisionedResource{
+				Kind:               ResourceTypeEgress,
+				Config:             target,
+				DeploymentSpecific: true,
 			})
 		}
 	}

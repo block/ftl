@@ -16,6 +16,7 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemaconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
@@ -36,8 +37,9 @@ type CommonProvisionerConfig struct {
 }
 
 type Config struct {
-	ControllerEndpoint *url.URL `name:"ftl-controller-endpoint" help:"Controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" default:"http://127.0.0.1:8892"`
+	ControllerEndpoint *url.URL `name:"ftl-controller-endpoint" help:"Controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" default:"http://127.0.0.1:8893"`
 	SchemaEndpoint     *url.URL `help:"Schema service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
+	AdminEndpoint      *url.URL `help:"Admin service endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	TimelineEndpoint   *url.URL `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	CommonProvisionerConfig
 }
@@ -190,7 +192,7 @@ func Start(
 	return nil
 }
 
-func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.File, scaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
+func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.File, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient) (*ProvisionerRegistry, error) {
 	config := provisionerPluginConfig{}
 	bytes, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil {
@@ -200,7 +202,7 @@ func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.Fil
 		return nil, errors.Wrap(err, "error parsing plugin configuration")
 	}
 
-	registry, err := registryFromConfig(ctx, workingDir, &config, scaling)
+	registry, err := registryFromConfig(ctx, workingDir, &config, scaling, adminClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating provisioner registry")
 	}

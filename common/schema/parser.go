@@ -25,7 +25,7 @@ var (
 		&MetadataDatabases{}, &MetadataAlias{}, &MetadataRetry{}, &MetadataSecrets{}, &MetadataSubscriber{},
 		&MetadataTypeMap{}, &MetadataEncoding{}, &MetadataPublisher{}, &MetadataSQLMigration{}, &MetadataArtefact{},
 		&MetadataPartitions{}, &MetadataSQLQuery{}, &MetadataSQLColumn{}, &MetadataGenerated{}, &MetadataGit{}, &MetadataFixture{},
-		&MetadataTransaction{}}
+		&MetadataTransaction{}, &MetadataEgress{}}
 	ingressUnion = []IngressPathComponent{&IngressPathLiteral{}, &IngressPathParameter{}}
 	valueUnion   = []Value{&StringValue{}, &IntValue{}, &TypeValue{}}
 

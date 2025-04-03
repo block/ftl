@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import xyz.block.ftl.Egress;
 import xyz.block.ftl.Export;
 import xyz.block.ftl.Verb;
 
@@ -37,5 +38,11 @@ public class Verbs {
     @Verb
     public AnimalWrapper typeEnumVerb(AnimalWrapper animal) {
         return animal;
+    }
+
+    @Export
+    @Verb
+    public String egress(@Egress("${url}") String url) {
+        return url;
     }
 }
