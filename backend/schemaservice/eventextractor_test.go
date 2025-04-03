@@ -52,7 +52,8 @@ func TestEventExtractor(t *testing.T) {
 							Schema: &schemapb.Schema{
 								Pos: &schemapb.Position{},
 								Realms: []*schemapb.Realm{{
-									Pos: &schemapb.Position{},
+									Pos:  &schemapb.Position{},
+									Name: "default",
 									Modules: []*schemapb.Module{{Name: "test",
 										Pos: &schemapb.Position{},
 										Runtime: &schemapb.ModuleRuntime{

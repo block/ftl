@@ -20,10 +20,9 @@ func TestIndent(t *testing.T) {
 
 func TestSchemaString(t *testing.T) {
 	expected := `
-realm foo {
-` +
-		Builtins().String() +
+realm foo {  ` + Builtins().String() +
 		`
+		
   // A comment
   module todo {
     +git "https://github/com/fake" "1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167"
@@ -994,14 +993,12 @@ var testSchema = MustValidate(&Schema{
 							{Name: "name", Type: &Optional{Type: &Map{Key: &String{}, Value: &String{}}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rqn"}}},
 						},
 					},
-				},
-				&Verb{Name: "insert",
-					Request:  &Ref{Module: "todo", Name: "InsertRequest"},
-					Response: &Ref{Module: "todo", Name: "InsertResponse"},
-					Metadata: []Metadata{
-						&MetadataDatabases{Uses: []*Ref{{Module: "todo", Name: "testdb"}}},
-						&MetadataSQLQuery{Command: "exec", Query: "INSERT INTO requests (name) VALUES (?)"},
-						&MetadataGenerated{},
+					&Data{
+						Name:   "CreateResponse",
+						Export: true,
+						Fields: []*Field{
+							{Name: "name", Type: &Array{Element: &String{}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rsn"}}},
+						},
 					},
 					&Data{
 						Name: "DestroyRequest",
@@ -1020,7 +1017,7 @@ var testSchema = MustValidate(&Schema{
 						Request:  &Ref{Module: "todo", Name: "InsertRequest"},
 						Response: &Ref{Module: "todo", Name: "InsertResponse"},
 						Metadata: []Metadata{
-							&MetadataDatabases{Calls: []*Ref{{Module: "todo", Name: "testdb"}}},
+							&MetadataDatabases{Uses: []*Ref{{Module: "todo", Name: "testdb"}}},
 							&MetadataSQLQuery{Command: "exec", Query: "INSERT INTO requests (name) VALUES (?)"},
 							&MetadataGenerated{},
 						},
@@ -1097,7 +1094,7 @@ var testSchema = MustValidate(&Schema{
 						Response: &Unit{Unit: true},
 						Metadata: []Metadata{
 							&MetadataTransaction{},
-							&MetadataDatabases{Calls: []*Ref{{Module: "todo", Name: "testdb"}}},
+							&MetadataDatabases{Uses: []*Ref{{Module: "todo", Name: "testdb"}}},
 						},
 					},
 				},
@@ -1185,40 +1182,6 @@ var testSchema = MustValidate(&Schema{
 						},
 					},
 				},
-<<<<<<< HEAD
-				&Verb{Name: "mondays",
-					Request:  &Unit{Unit: true},
-					Response: &Unit{Unit: true},
-					Metadata: []Metadata{
-						&MetadataCronJob{
-							Cron: "Mon",
-						},
-					},
-				},
-				&Verb{Name: "fixture",
-					Request:  &Unit{Unit: true},
-					Response: &Unit{Unit: true},
-					Metadata: []Metadata{
-						&MetadataFixture{},
-					},
-				},
-				&Verb{Name: "manualFixture",
-					Request:  &Unit{Unit: true},
-					Response: &Unit{Unit: true},
-					Metadata: []Metadata{
-						&MetadataFixture{Manual: true},
-					},
-				},
-				&Verb{Name: "transaction",
-					Request:  &Unit{Unit: true},
-					Response: &Unit{Unit: true},
-					Metadata: []Metadata{
-						&MetadataTransaction{},
-						&MetadataDatabases{Uses: []*Ref{{Module: "todo", Name: "testdb"}}},
-					},
-				},
-=======
->>>>>>> 1741755a7 (feat: add realms to the schema)
 			},
 		},
 	}},
