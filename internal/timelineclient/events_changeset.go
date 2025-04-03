@@ -67,8 +67,10 @@ func (d DeploymentRuntime) ToEntry() (*timelinepb.CreateEventsRequest_EventEntry
 			event.ElementType = "scaling"
 		case *schema.ModuleRuntimeRunner:
 			event.ElementType = "runner"
-		case *schema.VerbRuntime:
-			event.ElementType = "verb"
+		case *schema.EgressRuntime:
+			event.ElementType = "egress"
+		case schema.SubscriptionConnector:
+			event.ElementType = "subscription"
 		case *schema.TopicRuntime:
 			event.ElementType = "topic"
 		case *schema.DatabaseRuntime:

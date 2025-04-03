@@ -13,6 +13,7 @@ public class FTLDotNames {
 
     public static final DotName SECRET = DotName.createSimple(Secret.class);
     public static final DotName CONFIG = DotName.createSimple(Config.class);
+    public static final DotName EGRESS = DotName.createSimple(Egress.class);
     public static final DotName EXPORT = DotName.createSimple(Export.class);
     public static final DotName DATA = DotName.createSimple(Data.class);
     public static final DotName ENUM = DotName.createSimple(Enum.class);
