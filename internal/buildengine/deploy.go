@@ -208,11 +208,13 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 					}
 				}
 				if existing.superseded {
-					if deployment, err = c.mergePendingDeployment(deployment, existing); err != nil {
+					newDeployment, err := c.mergePendingDeployment(deployment, existing)
+					if err != nil {
 						// Fail new deployment attempt as it is incompatible with a dependency that is already in the queue
 						deployment.err <- err
 						continue
 					}
+					deployment = newDeployment
 				}
 			}
 			toDeploy = slices.Filter(toDeploy, func(d *pendingDeploy) bool {
@@ -510,8 +512,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	overridden := map[string]bool{}
 	toRemove := map[string]bool{}
 	realm := &schema.Realm{
-		// TODO: implement
-		Name:     "todo",
+		Name:     "default", // TODO: implement
 		External: false,
 		Modules:  []*schema.Module{},
 	}

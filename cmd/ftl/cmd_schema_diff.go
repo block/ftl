@@ -112,7 +112,7 @@ func localSchema(ctx context.Context, projectConfig projectconfig.Config) (*sche
 		}()
 	}
 	realm := &schema.Realm{
-		Name:    projectConfig.Name,
+		Name:    "default", // TODO: projectConfig.Name,
 		Modules: []*schema.Module{},
 	}
 	sch := &schema.Schema{Realms: []*schema.Realm{realm}}

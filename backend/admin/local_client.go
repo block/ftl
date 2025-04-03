@@ -47,7 +47,7 @@ func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, er
 		}()
 	}
 	realm := &schema.Realm{
-		Name:    s.projConfig.Name,
+		Name:    "default", // TODO: s.projConfig.Name,
 		Modules: []*schema.Module{},
 	}
 	sch := &schema.Schema{Realms: []*schema.Realm{realm}}
