@@ -1047,7 +1047,7 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 	}
 
 	// Build the remaining modules
-	remaining := slices.Filter(maps.Keys(graph), func(module string) bool { //nolint:exptostd
+	remaining := slices.Filter(maps.Keys(graph), func(module string) bool {
 		return !slices.Contains(depErr.Modules, module) && module != "builtin"
 	})
 	if len(remaining) == 0 {
