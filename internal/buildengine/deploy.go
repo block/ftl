@@ -250,7 +250,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 				toDeploy = append(toDeploy, deployment)
 			}
 			if deployment.publishInSchema {
-				c.publishUpdatedSchema(ctx, stdslices.Collect(maps.Keys(deployment.modules)), toDeploy, deploying) //nolint:exptostd
+				c.publishUpdatedSchema(ctx, stdslices.Collect(maps.Keys(deployment.modules)), toDeploy, deploying)
 			}
 		case notification := <-events:
 			var key key.Changeset
@@ -366,7 +366,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 	keyChan := make(chan result.Result[key.Changeset], 1)
 	go func() {
-		err := deploy(ctx, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan) //nolint:exptostd
+		err := deploy(ctx, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan)
 		if err != nil {
 			// Handle deployment failure
 			for _, module := range deployment.modules {
@@ -458,7 +458,7 @@ func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendin
 	}
 	if len(addedModules) > 0 {
 		if invalid := c.invalidModulesForDeployment(c.schemaSource.CanonicalView(), out, addedModules); len(invalid) > 0 {
-			return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: modules were incompatible %v", maps.Keys(d.modules), maps.Keys(old.modules), maps.Keys(invalid)) //nolint:exptostd
+			return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: modules were incompatible %v", maps.Keys(d.modules), maps.Keys(old.modules), maps.Keys(invalid))
 		}
 	}
 	out.publishInSchema = out.publishInSchema || old.publishInSchema
@@ -668,7 +668,7 @@ func uploadArtefacts(ctx context.Context, module *pendingModule, client AdminCli
 		return nil, err
 	}
 
-	gadResp, err := client.GetArtefactDiffs(ctx, connect.NewRequest(&adminpb.GetArtefactDiffsRequest{ClientDigests: stdslices.Collect(maps.Keys(filesByHash))})) //nolint:exptostd
+	gadResp, err := client.GetArtefactDiffs(ctx, connect.NewRequest(&adminpb.GetArtefactDiffsRequest{ClientDigests: stdslices.Collect(maps.Keys(filesByHash))}))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get artefact diffs: %w", err)
 	}

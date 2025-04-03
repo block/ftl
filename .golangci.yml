@@ -19,6 +19,7 @@ linters:
     - err113
     - errchkjson
     - exhaustruct
+    - exptostd
     - funlen
     - gochecknoglobals
     - gochecknoinits
