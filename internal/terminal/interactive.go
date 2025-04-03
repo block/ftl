@@ -103,7 +103,6 @@ func (r *interactiveConsole) run(ctx context.Context, executor CommandExecutor) 
 	for {
 		line, err := l.Readline()
 		if errors.Is(err, readline.ErrInterrupt) {
-
 			if len(line) == 0 {
 				break
 			}
@@ -118,7 +117,9 @@ func (r *interactiveConsole) run(ctx context.Context, executor CommandExecutor) 
 			return nil
 		}
 		if tsm != nil {
-			tsm.consoleNewline(line)
+			tsm.statusLock.Lock()
+			tsm.clearStatusMessages()
+			tsm.statusLock.Unlock()
 		}
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -147,8 +148,8 @@ func (r *interactiveConsole) run(ctx context.Context, executor CommandExecutor) 
 		if tsm != nil {
 			if len(args) > 0 && args[0] == "goose" {
 				tsm.consoleNewline("👤 " + strings.Join(args[1:], " "))
-			} else {
-				tsm.consoleNewline("> " + line)
+			} else if r.currentLineCallback != nil {
+				tsm.consoleNewline("❯ " + line)
 			}
 		}
 		if err := executor(ctx, k, args, func(i int) {
