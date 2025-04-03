@@ -66,10 +66,15 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 	if m, ok := m.Get(); ok {
 		// Replace original version of module with new version in case they differ
 		var found bool
-		for i, module := range schema.InternalModules() {
-			if module.Name == m.Name {
-				schema.InternalModules()[i] = m
-				found = true
+		for _, realm := range schema.Realms {
+			if realm.External {
+				continue
+			}
+			for i, module := range realm.Modules {
+				if module.Name == m.Name {
+					realm.Modules[i] = m
+					found = true
+				}
 			}
 		}
 		if !found {
@@ -83,9 +88,14 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 
 	// Inject builtins.
 	builtins := Builtins()
-	// Move builtins to the front of the list.
-	schema.Realms[0].Modules = slices.DeleteFunc(schema.Realms[0].Modules, func(m *Module) bool { return m.Name == builtins.Name })
-	schema.Realms[0].Modules = append([]*Module{builtins}, schema.Realms[0].Modules...)
+	for _, realm := range schema.Realms {
+		if realm.External {
+			continue
+		}
+		// Move builtins to the front of the list.
+		realm.Modules = slices.DeleteFunc(realm.Modules, func(m *Module) bool { return m.Name == builtins.Name })
+		realm.Modules = append([]*Module{builtins}, realm.Modules...)
+	}
 
 	scopes := NewScopes()
 
