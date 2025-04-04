@@ -21,6 +21,7 @@ type errorDetector struct {
 	logger *log.Logger
 	output string
 	ended  atomic.Value[bool]
+	errors []builderrors.Error
 }
 
 func (o *errorDetector) Write(p []byte) (n int, err error) {
@@ -38,9 +39,11 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 		} else if cleanLine, ok := strings.CutPrefix(line, "WARN "); ok {
 			o.logger.Warnf("%s", cleanLine)
 		} else if cleanLine, ok := strings.CutPrefix(line, "[INFO] "); ok {
-			o.logger.Infof("%s", cleanLine)
+			// We downgrade maven errors, as maven is very verbose
+			// Basically we just log maven Info as our Debug
+			o.logger.Debugf("%s", cleanLine)
 		} else if cleanLine, ok := strings.CutPrefix(line, "INFO "); ok {
-			o.logger.Infof("%s", cleanLine)
+			o.logger.Debugf("%s", cleanLine)
 		} else if cleanLine, ok := strings.CutPrefix(line, "[DEBUG] "); ok {
 			o.logger.Debugf("%s", cleanLine)
 		} else if cleanLine, ok := strings.CutPrefix(line, "DEBUG "); ok {
@@ -59,7 +62,7 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 				o.logger.Infof("Log Parse Failure: %s", line) //nolint
 			}
 		} else {
-			o.logger.Infof("%s", line) //nolint
+			o.logger.Debugf("%s", line)
 		}
 	}
 	if !o.ended.Load() {
@@ -68,7 +71,10 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func (o *errorDetector) FinalizeCapture() []builderrors.Error {
+func (o *errorDetector) FinalizeCapture(dump bool) []builderrors.Error {
+	if o.ended.Load() {
+		return o.errors
+	}
 	o.ended.Store(true)
 
 	// Example error output:
@@ -83,8 +89,12 @@ func (o *errorDetector) FinalizeCapture() []builderrors.Error {
 	// [ERROR] For more information about the errors and possible solutions, please read the following articles:
 	// [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
 
-	var errs []builderrors.Error
 	lines := slices.Filter(strings.Split(o.output, "\n"), func(s string) bool {
+		if dump {
+			// If we are dumping it is because there was a failure
+			// So we want to display the full maven output
+			o.logger.Warnf("%s", s)
+		}
 		return strings.HasPrefix(s, "[ERROR]")
 	})
 	for _, line := range lines {
@@ -96,13 +106,13 @@ func (o *errorDetector) FinalizeCapture() []builderrors.Error {
 			// This looks like the end of the errors and the start of help text
 			break
 		}
-		errs = append(errs, builderrors.Error{
+		o.errors = append(o.errors, builderrors.Error{
 			Msg:   line,
 			Type:  builderrors.COMPILER,
 			Level: builderrors.ERROR,
 		})
 	}
-	return errs
+	return o.errors
 }
 
 type JvmLogRecord struct {

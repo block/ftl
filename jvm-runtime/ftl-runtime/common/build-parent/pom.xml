@@ -74,6 +74,7 @@
                 <configuration>
                     <compilerArgs>
                         <arg>-parameters</arg>
+                        <arg>-proc:full</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
