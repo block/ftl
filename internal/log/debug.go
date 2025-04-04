@@ -11,7 +11,7 @@ import (
 	"github.com/block/ftl-golang-tools/go/ssa/interp/testdata/src/sync"
 )
 
-const logFileName = "log.json"
+const logFileName = "log.jsonl"
 
 func SetupDebugFileLogging(ctx context.Context, root string, maxLogs int) {
 	logDir := filepath.Join(root, ".ftl", "logs")
@@ -77,15 +77,15 @@ func (r *logRotatingSink) Log(entry Entry) error {
 
 func rotateLogs(workingDir string, maxLogs int) (*os.File, error) {
 	// Remove the oldest log file if it exists
-	oldestLog := filepath.Join(workingDir, fmt.Sprintf("log.%d.json", maxLogs))
+	oldestLog := filepath.Join(workingDir, fmt.Sprintf("log.%d.jsonl", maxLogs))
 	if _, err := os.Stat(oldestLog); err == nil {
 		os.Remove(oldestLog)
 	}
 
 	// Shift log files up
 	for i := maxLogs - 1; i > 0; i-- {
-		oldName := filepath.Join(workingDir, fmt.Sprintf("log.%d.json", i))
-		newName := filepath.Join(workingDir, fmt.Sprintf("log.%d.json", i+1))
+		oldName := filepath.Join(workingDir, fmt.Sprintf("log.%d.jsonl", i))
+		newName := filepath.Join(workingDir, fmt.Sprintf("log.%d.jsonl", i+1))
 		if _, err := os.Stat(oldName); err == nil {
 			err := os.Rename(oldName, newName)
 			if err != nil {
@@ -97,7 +97,7 @@ func rotateLogs(workingDir string, maxLogs int) (*os.File, error) {
 	// Rename the current log file if it exists
 	currentLog := filepath.Join(workingDir, logFileName)
 	if _, err := os.Stat(currentLog); err == nil {
-		err := os.Rename(currentLog, filepath.Join(workingDir, "log.1.json"))
+		err := os.Rename(currentLog, filepath.Join(workingDir, "log.1.jsonl"))
 		if err != nil {
 			return nil, fmt.Errorf("could not rename log file %s: %w", currentLog, err)
 		}
