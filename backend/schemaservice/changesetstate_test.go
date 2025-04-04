@@ -36,8 +36,10 @@ func TestChangesetState(t *testing.T) {
 		event := &schema.ChangesetCreatedEvent{
 			Changeset: &schema.Changeset{
 				CreatedAt: time.Now(),
-				Modules:   []*schema.Module{module},
-				Error:     "",
+				RealmChanges: []*schema.RealmChange{{
+					Modules: []*schema.Module{module},
+				}},
+				Error: "",
 			},
 		}
 		sm := schemaservice.SchemaState{}
@@ -52,8 +54,10 @@ func TestChangesetState(t *testing.T) {
 			Changeset: &schema.Changeset{
 				Key:       key.NewChangesetKey(),
 				CreatedAt: time.Now(),
-				Modules:   []*schema.Module{nm},
-				Error:     "",
+				RealmChanges: []*schema.RealmChange{{
+					Modules: []*schema.Module{nm},
+				}},
+				Error: "",
 			},
 		}
 		sm := schemaservice.SchemaState{}
@@ -67,8 +71,10 @@ func TestChangesetState(t *testing.T) {
 			Changeset: &schema.Changeset{
 				Key:       changesetKey,
 				CreatedAt: time.Now(),
-				Modules:   []*schema.Module{module},
-				Error:     "",
+				RealmChanges: []*schema.RealmChange{{
+					Modules: []*schema.Module{module},
+				}},
+				Error: "",
 			},
 		}})
 
@@ -76,8 +82,9 @@ func TestChangesetState(t *testing.T) {
 		view, err = state.View(ctx)
 		assert.NoError(t, err)
 		csd := changeset(t, view)
-		assert.Equal(t, 1, len(csd.Modules))
-		for _, d := range csd.Modules {
+		assert.Equal(t, 1, len(csd.RealmChanges))
+		assert.Equal(t, 1, len(csd.RealmChanges[0].Modules))
+		for _, d := range csd.RealmChanges[0].Modules {
 			assert.NoError(t, err)
 			assert.Equal(t, schema.DeploymentStateProvisioning, d.Runtime.Deployment.State)
 			changesetKey = csd.Key
@@ -90,13 +97,15 @@ func TestChangesetState(t *testing.T) {
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentRuntimeEvent{
 			Payload:   &schema.RuntimeElement{Deployment: module.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeRunner{Endpoint: "http://localhost:8080"}},
 			Changeset: &changesetKey,
+			Realm:     "test",
 		}})
 		assert.NoError(t, err)
 		view, err = state.View(ctx)
 		assert.NoError(t, err)
 		csd := changeset(t, view)
-		assert.Equal(t, 1, len(csd.Modules))
-		for _, d := range csd.Modules {
+		assert.Equal(t, 1, len(csd.RealmChanges))
+		assert.Equal(t, 1, len(csd.RealmChanges[0].Modules))
+		for _, d := range csd.RealmChanges[0].Modules {
 			assert.Equal(t, "http://localhost:8080", d.Runtime.Runner.Endpoint)
 			assert.Equal(t, schema.DeploymentStateProvisioning, d.Runtime.Deployment.State)
 		}
@@ -128,6 +137,7 @@ func TestChangesetState(t *testing.T) {
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentRuntimeEvent{
 			Payload:   &schema.RuntimeElement{Deployment: module.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeDeployment{State: schema.DeploymentStateReady}},
 			Changeset: &changesetKey,
+			Realm:     "test",
 		}})
 		assert.NoError(t, err)
 		view, err = state.View(ctx)

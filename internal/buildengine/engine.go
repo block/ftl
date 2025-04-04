@@ -180,7 +180,7 @@ func New(
 		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
 		os:               runtime.GOOS,
 	}
-	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges)
+	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges, &e.projectConfig)
 	for _, option := range options {
 		option(e)
 	}
@@ -436,7 +436,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
-				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module)
+				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module, e.projectConfig.Name)
 				if err != nil {
 					logger.Errorf(err, "terminate %s failed", event.Config.Module)
 				}

@@ -541,8 +541,12 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[adminpb.ApplyChangesetRequest], stream *connect.ServerStream[adminpb.ApplyChangesetResponse]) error {
 	events := s.source.Subscribe(ctx)
 	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
-		Modules:  req.Msg.Modules,
-		ToRemove: req.Msg.ToRemove,
+		RealmChanges: islices.Map(req.Msg.RealmChanges, func(r *schemapb.RealmChange) *ftlv1.RealmChange {
+			return &ftlv1.RealmChange{
+				Modules:  r.Modules,
+				ToRemove: r.ToRemove,
+			}
+		}),
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to create changeset: %w", err)
@@ -552,9 +556,8 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 		return fmt.Errorf("failed to parse changeset key: %w", err)
 	}
 	changeset := &schemapb.Changeset{
-		Key:      cs.Msg.Changeset,
-		Modules:  req.Msg.Modules,
-		ToRemove: req.Msg.ToRemove,
+		Key:          cs.Msg.Changeset,
+		RealmChanges: req.Msg.RealmChanges,
 	}
 	if err := stream.Send(&adminpb.ApplyChangesetResponse{
 		Changeset: changeset,
@@ -931,7 +934,7 @@ func (o *OnceValue[T]) Get(ctx context.Context) (T, bool) {
 }
 
 func (s *Service) UpdateDeploymentRuntime(ctx context.Context, c *connect.Request[adminpb.UpdateDeploymentRuntimeRequest]) (*connect.Response[adminpb.UpdateDeploymentRuntimeResponse], error) {
-	_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Update: c.Msg.Element}))
+	_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Update: c.Msg.Element, Realm: c.Msg.Realm}))
 	if err != nil {
 		return nil, fmt.Errorf("failed to update deployment runtime: %w", err)
 	}

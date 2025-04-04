@@ -167,7 +167,7 @@ func (s *Service) UpdateDeploymentRuntime(ctx context.Context, req *connect.Requ
 		}
 		changeset = &cs
 	}
-	err = s.publishEvent(ctx, &schema.DeploymentRuntimeEvent{Changeset: changeset, Payload: event})
+	err = s.publishEvent(ctx, &schema.DeploymentRuntimeEvent{Changeset: changeset, Payload: event, Realm: req.Msg.Realm})
 	if err != nil {
 		return nil, fmt.Errorf("could not apply event: %w", err)
 	}
@@ -197,31 +197,37 @@ func (s *Service) GetDeployments(ctx context.Context, req *connect.Request[ftlv1
 func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv1.CreateChangesetRequest]) (*connect.Response[ftlv1.CreateChangesetResponse], error) {
 	s.creationLock.Lock()
 	defer s.creationLock.Unlock()
-	modules, err := slices.MapErr(req.Msg.Modules, func(m *schemapb.Module) (*schema.Module, error) {
-		out, err := schema.ModuleFromProto(m)
-		if err != nil {
-			return nil, fmt.Errorf("invalid module %s: %w", m.Name, err)
-		}
-		if !out.ModRuntime().ModDeployment().DeploymentKey.IsZero() {
-			// In dev mode we relax this restriction to allow for hot reload endpoints to allocate a deployment key.
-			if !s.devMode {
-				return nil, fmt.Errorf("deployment key cannot be set on changeset creation, it must be allocated by the schema service")
+	realmChanges, err := slices.MapErr(req.Msg.RealmChanges, func(r *ftlv1.RealmChange) (*schema.RealmChange, error) {
+		modules := make([]*schema.Module, 0, len(r.Modules))
+		for _, m := range r.Modules {
+			out, err := schema.ModuleFromProto(m)
+			if err != nil {
+				return nil, fmt.Errorf("invalid module %s: %w", m.Name, err)
 			}
-		} else {
-			// Allocate a deployment key for the module.
-			out.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey(m.Name)
+			if !out.ModRuntime().ModDeployment().DeploymentKey.IsZero() {
+				// In dev mode we relax this restriction to allow for hot reload endpoints to allocate a deployment key.
+				if !s.devMode {
+					return nil, fmt.Errorf("deployment key cannot be set on changeset creation, it must be allocated by the schema service")
+				}
+			} else {
+				// Allocate a deployment key for the module.
+				out.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey(m.Name)
+			}
 		}
-		return out, nil
+
+		return &schema.RealmChange{
+			Modules:  modules,
+			ToRemove: r.ToRemove,
+		}, nil
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	changeset := &schema.Changeset{
-		Key:       key.NewChangesetKey(),
-		State:     schema.ChangesetStatePreparing,
-		Modules:   modules,
-		CreatedAt: time.Now(),
-		ToRemove:  req.Msg.ToRemove,
+		Key:          key.NewChangesetKey(),
+		State:        schema.ChangesetStatePreparing,
+		RealmChanges: realmChanges,
+		CreatedAt:    time.Now(),
 	}
 
 	err = s.publishEvent(ctx, &schema.ChangesetCreatedEvent{Changeset: changeset})
@@ -335,15 +341,17 @@ func (s *Service) publishEvent(ctx context.Context, event schema.Event) error {
 
 	switch e := event.(type) {
 	case *schema.ChangesetCreatedEvent:
-		moduleNames := make([]string, 0, len(e.Changeset.Modules))
-		for _, module := range e.Changeset.Modules {
+		// TODO: support multiple realms in the timeline
+		modules := e.Changeset.InternalModules()
+		moduleNames := make([]string, 0, len(modules))
+		for _, module := range modules {
 			moduleNames = append(moduleNames, module.Name)
 		}
 		s.timelineClient.Publish(ctx, timelineclient.ChangesetCreated{
 			Key:       e.Changeset.Key,
 			CreatedAt: e.Changeset.CreatedAt,
 			Modules:   moduleNames,
-			ToRemove:  e.Changeset.ToRemove,
+			ToRemove:  e.Changeset.InternalToRemove(),
 		})
 	case *schema.ChangesetPreparedEvent:
 		s.timelineClient.Publish(ctx, timelineclient.ChangesetStateChanged{

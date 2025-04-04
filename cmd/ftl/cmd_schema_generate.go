@@ -12,7 +12,6 @@ import (
 	"github.com/block/scaffolder"
 	"github.com/block/scaffolder/extensions/javascript"
 	"github.com/radovskyb/watcher"
-	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -21,6 +20,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/maps"
 )
 
 type schemaGenerateCmd struct {
@@ -46,7 +46,15 @@ func (s *schemaGenerateCmd) oneOffGenerate(ctx context.Context, schemaClient adm
 	if err != nil {
 		return fmt.Errorf("invalid schema: %w", err)
 	}
-	return s.regenerateModules(log.FromContext(ctx), sch.InternalModules())
+
+	realms := map[string]map[string]*schema.Module{}
+	for _, realm := range sch.Realms {
+		realms[realm.Name] = maps.FromSlice(realm.Modules, func(m *schema.Module) (string, *schema.Module) {
+			return m.Name, m
+		})
+	}
+
+	return s.regenerateModules(log.FromContext(ctx), realms)
 }
 
 func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
@@ -75,7 +83,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 
 	wg, ctx := errgroup.WithContext(ctx)
 
-	moduleChange := make(chan []*schema.Module)
+	moduleChange := make(chan map[string]map[string]*schema.Module)
 
 	wg.Go(func() error {
 		for {
@@ -84,7 +92,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 				return fmt.Errorf("failed to pull schema: %w", err)
 			}
 
-			modules := map[string]*schema.Module{}
+			realms := map[string]map[string]*schema.Module{}
 			for stream.Receive() {
 				msg := stream.Msg()
 				switch msg := msg.Event.Value.(type) {
@@ -93,9 +101,11 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 					if err != nil {
 						return fmt.Errorf("invalid schema: %w", err)
 					}
-
-					for _, module := range sch.InternalModules() {
-						modules[module.Name] = module
+					for _, realm := range sch.Realms {
+						realms[realm.Name] = map[string]*schema.Module{}
+						for _, module := range realm.Modules {
+							realms[realm.Name][module.Name] = module
+						}
 					}
 				case *schemapb.Notification_DeploymentRuntimeNotification:
 					not, err := schema.DeploymentRuntimeNotificationFromProto(msg.DeploymentRuntimeNotification)
@@ -103,7 +113,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 						return fmt.Errorf("invalid deployment runtime notification: %w", err)
 					}
 					if not.Changeset == nil || not.Changeset.IsZero() {
-						m, ok := modules[not.Payload.Deployment.Payload.Module]
+						m, ok := realms[not.Realm][not.Payload.Deployment.Payload.Module]
 						if ok {
 							err := not.Payload.ApplyToModule(m)
 							if err != nil {
@@ -114,18 +124,19 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 				case *schemapb.Notification_ChangesetCreatedNotification:
 				case *schemapb.Notification_ChangesetPreparedNotification:
 				case *schemapb.Notification_ChangesetCommittedNotification:
-					for _, m := range msg.ChangesetCommittedNotification.Changeset.RemovingModules {
-						delete(modules, m.Name)
-					}
-					for _, m := range msg.ChangesetCommittedNotification.Changeset.Modules {
-						module, err := schema.ValidatedModuleFromProto(m)
-						if err != nil {
-							return fmt.Errorf("invalid module: %w", err)
+					for _, rc := range msg.ChangesetCommittedNotification.Changeset.RealmChanges {
+						for _, m := range rc.RemovingModules {
+							delete(realms[rc.Name], m.Name)
 						}
-						modules[module.Name] = module
+						for _, m := range rc.Modules {
+							module, err := schema.ValidatedModuleFromProto(m)
+							if err != nil {
+								return fmt.Errorf("invalid module: %w", err)
+							}
+							maps.InsertMapMap(realms, rc.Name, module.Name, module)
+						}
 					}
-
-					moduleChange <- maps.Values(modules)
+					moduleChange <- realms
 				}
 
 				stream.Close()
@@ -137,7 +148,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 
 	wg.Go(func() error { return watch.Start(s.Watch) })
 
-	var previousModules []*schema.Module
+	var previousRealms map[string]map[string]*schema.Module
 	for {
 		select {
 		case <-ctx.Done():
@@ -145,32 +156,36 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 
 		case event := <-watch.Event:
 			logger.Debugf("Template changed (%s), regenerating modules", event.Path)
-			if err := s.regenerateModules(logger, previousModules); err != nil {
+			if err := s.regenerateModules(logger, previousRealms); err != nil {
 				return fmt.Errorf("failed to regenerate modules: %w", err)
 			}
 
-		case modules := <-moduleChange:
-			previousModules = modules
-			if err := s.regenerateModules(logger, modules); err != nil {
+		case realms := <-moduleChange:
+			previousRealms = realms
+			if err := s.regenerateModules(logger, realms); err != nil {
 				return fmt.Errorf("failed to regenerate modules: %w", err)
 			}
 		}
 	}
 }
 
-func (s *schemaGenerateCmd) regenerateModules(logger *log.Logger, modules []*schema.Module) error {
+func (s *schemaGenerateCmd) regenerateModules(logger *log.Logger, realms map[string]map[string]*schema.Module) error {
 	if err := os.RemoveAll(s.Dest); err != nil {
 		return fmt.Errorf("failed to remove destination directory: %w", err)
 	}
 
-	for _, module := range modules {
-		if err := scaffolder.Scaffold(s.Template, s.Dest, module,
-			scaffolder.Extend(javascript.Extension("template.js", javascript.WithLogger(makeJSLoggerAdapter(logger)))),
-		); err != nil {
-			return fmt.Errorf("failed to scaffold module %s: %w", module.Name, err)
+	count := 0
+	for _, modules := range realms {
+		for _, module := range modules {
+			count++
+			if err := scaffolder.Scaffold(s.Template, s.Dest, module,
+				scaffolder.Extend(javascript.Extension("template.js", javascript.WithLogger(makeJSLoggerAdapter(logger)))),
+			); err != nil {
+				return fmt.Errorf("failed to scaffold module %s: %w", module.Name, err)
+			}
 		}
 	}
-	logger.Debugf("Generated %d modules in %s", len(modules), s.Dest)
+	logger.Debugf("Generated %d modules in %s", count, s.Dest)
 	return nil
 }
 

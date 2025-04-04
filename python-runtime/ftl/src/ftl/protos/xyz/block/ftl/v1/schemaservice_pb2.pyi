@@ -32,12 +32,14 @@ class PullSchemaResponse(_message.Message):
     def __init__(self, event: _Optional[_Union[_schema_pb2.Notification, _Mapping]] = ...) -> None: ...
 
 class UpdateDeploymentRuntimeRequest(_message.Message):
-    __slots__ = ("changeset", "update")
+    __slots__ = ("changeset", "realm", "update")
     CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    REALM_FIELD_NUMBER: _ClassVar[int]
     UPDATE_FIELD_NUMBER: _ClassVar[int]
     changeset: str
+    realm: str
     update: _schema_pb2.RuntimeElement
-    def __init__(self, changeset: _Optional[str] = ..., update: _Optional[_Union[_schema_pb2.RuntimeElement, _Mapping]] = ...) -> None: ...
+    def __init__(self, changeset: _Optional[str] = ..., realm: _Optional[str] = ..., update: _Optional[_Union[_schema_pb2.RuntimeElement, _Mapping]] = ...) -> None: ...
 
 class UpdateDeploymentRuntimeResponse(_message.Message):
     __slots__ = ()
@@ -53,13 +55,19 @@ class GetDeploymentsResponse(_message.Message):
     schema: _containers.RepeatedCompositeFieldContainer[DeployedSchema]
     def __init__(self, schema: _Optional[_Iterable[_Union[DeployedSchema, _Mapping]]] = ...) -> None: ...
 
-class CreateChangesetRequest(_message.Message):
+class RealmChange(_message.Message):
     __slots__ = ("modules", "to_remove")
     MODULES_FIELD_NUMBER: _ClassVar[int]
     TO_REMOVE_FIELD_NUMBER: _ClassVar[int]
     modules: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Module]
     to_remove: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ..., to_remove: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class CreateChangesetRequest(_message.Message):
+    __slots__ = ("realm_changes",)
+    REALM_CHANGES_FIELD_NUMBER: _ClassVar[int]
+    realm_changes: _containers.RepeatedCompositeFieldContainer[RealmChange]
+    def __init__(self, realm_changes: _Optional[_Iterable[_Union[RealmChange, _Mapping]]] = ...) -> None: ...
 
 class CreateChangesetResponse(_message.Message):
     __slots__ = ("changeset",)

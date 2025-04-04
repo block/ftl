@@ -17,3 +17,12 @@ func MapValues[X comparable, Y any, Z any](input map[X]Y, transform func(X, Y) Z
 	}
 	return output
 }
+
+// InsertMapMap inserts a value into a map[K1]map[K2]V.
+// If the key1 does not exist, it is created as a new map[K2]V.
+func InsertMapMap[K1 comparable, K2 comparable, V any](m map[K1]map[K2]V, key1 K1, key2 K2, value V) {
+	if _, ok := m[key1]; !ok {
+		m[key1] = map[K2]V{}
+	}
+	m[key1][key2] = value
+}

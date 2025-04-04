@@ -41,11 +41,9 @@ message Bytes {
 message Changeset {
   string key = 1;
   google.protobuf.Timestamp created_at = 2;
-  repeated Module modules = 3;
-  repeated string to_remove = 4;
-  repeated Module removing_modules = 5;
-  ChangesetState state = 6;
-  optional string error = 7;
+  repeated RealmChange realm_changes = 3;
+  ChangesetState state = 4;
+  optional string error = 5;
 }
 
 message ChangesetCommittedEvent {
@@ -184,11 +182,13 @@ message Decl {
 message DeploymentRuntimeEvent {
   RuntimeElement payload = 1;
   string changeset = 2;
+  string realm = 3;
 }
 
 message DeploymentRuntimeNotification {
   RuntimeElement payload = 1;
   string changeset = 2;
+  string realm = 3;
 }
 
 enum DeploymentState {
@@ -518,6 +518,14 @@ message Realm {
   bool external = 2;
   string name = 3;
   repeated Module modules = 4;
+}
+
+message RealmChange {
+  string name = 1;
+  bool external = 2;
+  repeated Module modules = 3;
+  repeated string to_remove = 4;
+  repeated Module removing_modules = 5;
 }
 
 // Ref is an untyped reference to a symbol.

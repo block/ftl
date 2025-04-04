@@ -32,6 +32,7 @@ var _ Event = (*ChangesetFailedEvent)(nil)
 type DeploymentRuntimeEvent struct {
 	Payload   *RuntimeElement `protobuf:"1"`
 	Changeset *key.Changeset  `protobuf:"2"`
+	Realm     string          `protobuf:"3"`
 }
 
 func (e *DeploymentRuntimeEvent) DeploymentKey() key.Deployment {
@@ -63,11 +64,13 @@ type ChangesetCreatedEvent struct {
 
 func (e *ChangesetCreatedEvent) DebugString() string {
 	ret := fmt.Sprintf("ChangesetCreatedEvent{key: %s", e.Changeset.Key.String())
-	for _, m := range e.Changeset.Modules {
-		if m.Runtime == nil || m.Runtime.Deployment == nil {
-			ret += fmt.Sprintf(", invalid module: %s", m.Name)
-		} else {
-			ret += fmt.Sprintf(", deployment: %s", m.Runtime.Deployment.DeploymentKey.String())
+	for _, realm := range e.Changeset.RealmChanges {
+		for _, m := range realm.Modules {
+			if m.Runtime == nil || m.Runtime.Deployment == nil {
+				ret += fmt.Sprintf(", invalid module: %s", m.Name)
+			} else {
+				ret += fmt.Sprintf(", deployment: %s", m.Runtime.Deployment.DeploymentKey.String())
+			}
 		}
 	}
 	return ret + "}"

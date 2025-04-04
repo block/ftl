@@ -314,13 +314,11 @@ func (x *Changeset) ToProto() *destpb.Changeset {
 		return nil
 	}
 	return &destpb.Changeset{
-		Key:             orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		CreatedAt:       timestamppb.New(x.CreatedAt),
-		Modules:         sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
-		ToRemove:        sliceMap(x.ToRemove, func(v string) string { return orZero(ptr(string(v))) }),
-		RemovingModules: sliceMap(x.RemovingModules, func(v *Module) *destpb.Module { return v.ToProto() }),
-		State:           orZero(ptr(x.State.ToProto())),
-		Error:           ptr(string(x.Error)),
+		Key:          orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		CreatedAt:    timestamppb.New(x.CreatedAt),
+		RealmChanges: sliceMap(x.RealmChanges, func(v *RealmChange) *destpb.RealmChange { return v.ToProto() }),
+		State:        orZero(ptr(x.State.ToProto())),
+		Error:        ptr(string(x.Error)),
 	}
 }
 
@@ -336,14 +334,8 @@ func ChangesetFromProto(v *destpb.Changeset) (out *Changeset, err error) {
 	if out.CreatedAt, err = orZeroR(result.From(setNil(ptr(v.CreatedAt.AsTime()), v.CreatedAt), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("CreatedAt: %w", err)
 	}
-	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Modules: %w", err)
-	}
-	if out.ToRemove, err = sliceMapR(v.ToRemove, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("ToRemove: %w", err)
-	}
-	if out.RemovingModules, err = sliceMapR(v.RemovingModules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("RemovingModules: %w", err)
+	if out.RealmChanges, err = sliceMapR(v.RealmChanges, func(v *destpb.RealmChange) result.Result[*RealmChange] { return result.From(RealmChangeFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("RealmChanges: %w", err)
 	}
 	if out.State, err = orZeroR(ptrR(result.From(ChangesetStateFromProto(v.State)))).Result(); err != nil {
 		return nil, fmt.Errorf("State: %w", err)
@@ -997,6 +989,7 @@ func (x *DeploymentRuntimeEvent) ToProto() *destpb.DeploymentRuntimeEvent {
 	return &destpb.DeploymentRuntimeEvent{
 		Payload:   x.Payload.ToProto(),
 		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
+		Realm:     orZero(ptr(string(x.Realm))),
 	}
 }
 
@@ -1012,6 +1005,9 @@ func DeploymentRuntimeEventFromProto(v *destpb.DeploymentRuntimeEvent) (out *Dep
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
 	}
+	if out.Realm, err = orZeroR(result.From(ptr(string(v.Realm)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Realm: %w", err)
+	}
 	if err := out.Validate(); err != nil {
 		return nil, err
 	}
@@ -1025,6 +1021,7 @@ func (x *DeploymentRuntimeNotification) ToProto() *destpb.DeploymentRuntimeNotif
 	return &destpb.DeploymentRuntimeNotification{
 		Payload:   x.Payload.ToProto(),
 		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
+		Realm:     orZero(ptr(string(x.Realm))),
 	}
 }
 
@@ -1039,6 +1036,9 @@ func DeploymentRuntimeNotificationFromProto(v *destpb.DeploymentRuntimeNotificat
 	}
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
 		return nil, fmt.Errorf("Changeset: %w", err)
+	}
+	if out.Realm, err = orZeroR(result.From(ptr(string(v.Realm)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Realm: %w", err)
 	}
 	return out, nil
 }
@@ -2551,6 +2551,43 @@ func RealmFromProto(v *destpb.Realm) (out *Realm, err error) {
 	}
 	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
 		return nil, fmt.Errorf("Modules: %w", err)
+	}
+	return out, nil
+}
+
+func (x *RealmChange) ToProto() *destpb.RealmChange {
+	if x == nil {
+		return nil
+	}
+	return &destpb.RealmChange{
+		Name:            orZero(ptr(string(x.Name))),
+		External:        orZero(ptr(bool(x.External))),
+		Modules:         sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		ToRemove:        sliceMap(x.ToRemove, func(v string) string { return orZero(ptr(string(v))) }),
+		RemovingModules: sliceMap(x.RemovingModules, func(v *Module) *destpb.Module { return v.ToProto() }),
+	}
+}
+
+func RealmChangeFromProto(v *destpb.RealmChange) (out *RealmChange, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &RealmChange{}
+	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Name: %w", err)
+	}
+	if out.External, err = orZeroR(result.From(ptr(bool(v.External)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("External: %w", err)
+	}
+	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Modules: %w", err)
+	}
+	if out.ToRemove, err = sliceMapR(v.ToRemove, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
+		return nil, fmt.Errorf("ToRemove: %w", err)
+	}
+	if out.RemovingModules, err = sliceMapR(v.RemovingModules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("RemovingModules: %w", err)
 	}
 	return out, nil
 }

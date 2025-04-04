@@ -55,20 +55,22 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 				return nil
 			}
 		case *schemapb.Notification_ChangesetCommittedNotification:
-			var modules []*schema.Module
-			for _, module := range e.ChangesetCommittedNotification.Changeset.Modules {
-				m, err := schema.ModuleFromProto(module)
-				if err != nil {
-					return fmt.Errorf("invalid module: %w", err)
+			var realms []*schema.Realm
+			for _, realmChange := range e.ChangesetCommittedNotification.Changeset.RealmChanges {
+				realm := &schema.Realm{
+					Name:     realmChange.Name,
+					External: false,
 				}
-				modules = append(modules, m)
+				realms = append(realms, realm)
+				for _, module := range realmChange.Modules {
+					m, err := schema.ModuleFromProto(module)
+					if err != nil {
+						return fmt.Errorf("invalid module: %w", err)
+					}
+					realm.Modules = append(realm.Modules, m)
+				}
 			}
-			realm := &schema.Realm{
-				Name:     "default", // TODO: implement
-				External: false,
-				Modules:  modules,
-			}
-			err = g.handleSchema(&schema.Schema{Realms: []*schema.Realm{realm}})
+			err = g.handleSchema(&schema.Schema{Realms: realms})
 			if err != nil {
 				return err
 			}

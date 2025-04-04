@@ -24,7 +24,8 @@ message PullSchemaResponse {
 
 message UpdateDeploymentRuntimeRequest {
   optional string changeset = 1;
-  xyz.block.ftl.schema.v1.RuntimeElement update = 2;
+  string realm = 2;
+  xyz.block.ftl.schema.v1.RuntimeElement update = 3;
 }
 
 message UpdateDeploymentRuntimeResponse {}
@@ -34,11 +35,17 @@ message GetDeploymentsRequest {}
 message GetDeploymentsResponse {
   repeated DeployedSchema schema = 1;
 }
-message CreateChangesetRequest {
+
+message RealmChange {
   // The modules to add or update.
   repeated ftl.schema.v1.Module modules = 1;
   // The deployments to remove.
   repeated string to_remove = 2;
+}
+
+message CreateChangesetRequest {
+  // The realms changed in this changeset.
+  repeated RealmChange realm_changes = 1;
 }
 
 message CreateChangesetResponse {

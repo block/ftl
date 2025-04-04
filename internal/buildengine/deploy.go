@@ -98,6 +98,8 @@ type DeployCoordinator struct {
 	SchemaUpdates chan SchemaUpdatedEvent
 
 	logChanges bool // log changes from timeline
+
+	projConfig *projectconfig.Config
 }
 
 func NewDeployCoordinator(
@@ -107,6 +109,7 @@ func NewDeployCoordinator(
 	dependencyGrapher DependencyGrapher,
 	engineUpdates chan *buildenginepb.EngineEvent,
 	logChanges bool,
+	projConfig *projectconfig.Config,
 ) *DeployCoordinator {
 	c := &DeployCoordinator{
 		adminClient:       adminClient,
@@ -116,6 +119,7 @@ func NewDeployCoordinator(
 		deploymentQueue:   make(chan pendingDeploy, 128),
 		SchemaUpdates:     make(chan SchemaUpdatedEvent, 128),
 		logChanges:        logChanges,
+		projConfig:        projConfig,
 	}
 	// Start the deployment queue processor
 	go c.processEvents(ctx)
@@ -263,24 +267,37 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 			switch e := notification.(type) {
 			case *schema.ChangesetCommittedNotification:
 				key = e.Changeset.Key
-				updatedModules = slices.Map(e.Changeset.Modules, func(m *schema.Module) string { return m.Name })
 
-				for _, m := range e.Changeset.RemovingModules {
-					if _, ok := slices.Find(updatedModules, func(s string) bool { return s == m.Name }); ok {
+				for _, realm := range e.Changeset.RealmChanges {
+					if realm.External {
 						continue
 					}
-					c.engineUpdates <- &buildenginepb.EngineEvent{
-						Timestamp: timestamppb.Now(),
-						Event: &buildenginepb.EngineEvent_ModuleRemoved{
-							ModuleRemoved: &buildenginepb.ModuleRemoved{
-								Module: m.Name,
+
+					updatedModules = slices.Map(realm.Modules, func(m *schema.Module) string { return m.Name })
+
+					for _, m := range realm.RemovingModules {
+						if _, ok := slices.Find(updatedModules, func(s string) bool { return s == m.Name }); ok {
+							continue
+						}
+						c.engineUpdates <- &buildenginepb.EngineEvent{
+							Timestamp: timestamppb.Now(),
+							Event: &buildenginepb.EngineEvent_ModuleRemoved{
+								ModuleRemoved: &buildenginepb.ModuleRemoved{
+									Module: m.Name,
+								},
 							},
-						},
+						}
 					}
 				}
 			case *schema.ChangesetRollingBackNotification:
 				key = e.Changeset.Key
-				updatedModules = slices.Map(e.Changeset.Modules, func(m *schema.Module) string { return m.Name })
+
+				for _, realm := range e.Changeset.RealmChanges {
+					if realm.External {
+						continue
+					}
+					updatedModules = slices.Map(realm.Modules, func(m *schema.Module) string { return m.Name })
+				}
 			default:
 				continue
 			}
@@ -333,9 +350,14 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 		if cs.State >= schema.ChangesetStateCommitted {
 			continue
 		}
-		for _, mod := range cs.Modules {
-			if modules[mod.Name] || depModules[mod.Name] {
-				return false
+		for _, realm := range cs.RealmChanges {
+			if realm.External {
+				continue
+			}
+			for _, mod := range realm.Modules {
+				if modules[mod.Name] || depModules[mod.Name] {
+					return false
+				}
 			}
 		}
 	}
@@ -371,7 +393,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 	keyChan := make(chan result.Result[key.Changeset], 1)
 	go func() {
-		err := deploy(ctx, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan)
+		err := deploy(ctx, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan, c.projConfig.Name)
 		if err != nil {
 			// Handle deployment failure
 			for _, module := range deployment.modules {
@@ -579,7 +601,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	}
 }
 
-func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, module string) error {
+func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, realm, module string) error {
 	logger := log.FromContext(ctx).Module(module).Scope("terminate")
 
 	mod, ok := c.schemaSource.CanonicalView().Module(module).Get()
@@ -591,7 +613,10 @@ func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, modul
 
 	logger.Infof("Terminating deployment %s", key) //nolint:forbidigo
 	stream, err := c.adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
-		ToRemove: []string{key.String()},
+		RealmChanges: []*schemapb.RealmChange{{
+			Name:     realm,
+			ToRemove: []string{key.String()},
+		}},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to terminate deployment: %w", err)
@@ -624,7 +649,7 @@ func prepareForDeploy(ctx context.Context, modules map[string]*pendingModule, ad
 }
 
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClient, receivedKey chan result.Result[key.Changeset]) (err error) {
+func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClient, receivedKey chan result.Result[key.Changeset], realm string) (err error) {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Deploying %v", strings.Join(slices.Map(modules, func(m *schema.Module) string { return m.Name }), ", "))
 	changesetKey := optional.Option[key.Changeset]{}
@@ -641,9 +666,12 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 	defer closeStream(fmt.Errorf("function is complete: %w", context.Canceled))
 
 	stream, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
-		Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
-			return m.ToProto()
-		}),
+		RealmChanges: []*schemapb.RealmChange{{
+			Name: realm,
+			Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
+				return m.ToProto()
+			}),
+		}},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to deploy changeset: %w", err)

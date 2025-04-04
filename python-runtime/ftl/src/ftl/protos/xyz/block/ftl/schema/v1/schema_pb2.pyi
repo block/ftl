@@ -102,22 +102,18 @@ class Bytes(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ...) -> None: ...
 
 class Changeset(_message.Message):
-    __slots__ = ("key", "created_at", "modules", "to_remove", "removing_modules", "state", "error")
+    __slots__ = ("key", "created_at", "realm_changes", "state", "error")
     KEY_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
-    MODULES_FIELD_NUMBER: _ClassVar[int]
-    TO_REMOVE_FIELD_NUMBER: _ClassVar[int]
-    REMOVING_MODULES_FIELD_NUMBER: _ClassVar[int]
+    REALM_CHANGES_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     key: str
     created_at: _timestamp_pb2.Timestamp
-    modules: _containers.RepeatedCompositeFieldContainer[Module]
-    to_remove: _containers.RepeatedScalarFieldContainer[str]
-    removing_modules: _containers.RepeatedCompositeFieldContainer[Module]
+    realm_changes: _containers.RepeatedCompositeFieldContainer[RealmChange]
     state: ChangesetState
     error: str
-    def __init__(self, key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., to_remove: _Optional[_Iterable[str]] = ..., removing_modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., state: _Optional[_Union[ChangesetState, str]] = ..., error: _Optional[str] = ...) -> None: ...
+    def __init__(self, key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., realm_changes: _Optional[_Iterable[_Union[RealmChange, _Mapping]]] = ..., state: _Optional[_Union[ChangesetState, str]] = ..., error: _Optional[str] = ...) -> None: ...
 
 class ChangesetCommittedEvent(_message.Message):
     __slots__ = ("key",)
@@ -308,20 +304,24 @@ class Decl(_message.Message):
     def __init__(self, config: _Optional[_Union[Config, _Mapping]] = ..., data: _Optional[_Union[Data, _Mapping]] = ..., database: _Optional[_Union[Database, _Mapping]] = ..., enum: _Optional[_Union[Enum, _Mapping]] = ..., secret: _Optional[_Union[Secret, _Mapping]] = ..., topic: _Optional[_Union[Topic, _Mapping]] = ..., type_alias: _Optional[_Union[TypeAlias, _Mapping]] = ..., verb: _Optional[_Union[Verb, _Mapping]] = ...) -> None: ...
 
 class DeploymentRuntimeEvent(_message.Message):
-    __slots__ = ("payload", "changeset")
+    __slots__ = ("payload", "changeset", "realm")
     PAYLOAD_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    REALM_FIELD_NUMBER: _ClassVar[int]
     payload: RuntimeElement
     changeset: str
-    def __init__(self, payload: _Optional[_Union[RuntimeElement, _Mapping]] = ..., changeset: _Optional[str] = ...) -> None: ...
+    realm: str
+    def __init__(self, payload: _Optional[_Union[RuntimeElement, _Mapping]] = ..., changeset: _Optional[str] = ..., realm: _Optional[str] = ...) -> None: ...
 
 class DeploymentRuntimeNotification(_message.Message):
-    __slots__ = ("payload", "changeset")
+    __slots__ = ("payload", "changeset", "realm")
     PAYLOAD_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_FIELD_NUMBER: _ClassVar[int]
+    REALM_FIELD_NUMBER: _ClassVar[int]
     payload: RuntimeElement
     changeset: str
-    def __init__(self, payload: _Optional[_Union[RuntimeElement, _Mapping]] = ..., changeset: _Optional[str] = ...) -> None: ...
+    realm: str
+    def __init__(self, payload: _Optional[_Union[RuntimeElement, _Mapping]] = ..., changeset: _Optional[str] = ..., realm: _Optional[str] = ...) -> None: ...
 
 class Enum(_message.Message):
     __slots__ = ("pos", "comments", "export", "name", "type", "variants")
@@ -816,6 +816,20 @@ class Realm(_message.Message):
     name: str
     modules: _containers.RepeatedCompositeFieldContainer[Module]
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., external: bool = ..., name: _Optional[str] = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ...) -> None: ...
+
+class RealmChange(_message.Message):
+    __slots__ = ("name", "external", "modules", "to_remove", "removing_modules")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    EXTERNAL_FIELD_NUMBER: _ClassVar[int]
+    MODULES_FIELD_NUMBER: _ClassVar[int]
+    TO_REMOVE_FIELD_NUMBER: _ClassVar[int]
+    REMOVING_MODULES_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    external: bool
+    modules: _containers.RepeatedCompositeFieldContainer[Module]
+    to_remove: _containers.RepeatedScalarFieldContainer[str]
+    removing_modules: _containers.RepeatedCompositeFieldContainer[Module]
+    def __init__(self, name: _Optional[str] = ..., external: bool = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., to_remove: _Optional[_Iterable[str]] = ..., removing_modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ...) -> None: ...
 
 class Ref(_message.Message):
     __slots__ = ("pos", "module", "name", "type_parameters")
