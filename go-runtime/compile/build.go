@@ -222,9 +222,7 @@ func verbImports(v goVerb, main bool) []string {
 type mainFileContext struct {
 	Imports []string
 
-	ProjectName   string
-	SumTypes      []goSumType
-	ExternalTypes []goExternalType
+	ProjectName string
 }
 
 type typesFileContext struct {
@@ -855,9 +853,7 @@ func (b *mainDeploymentContextBuilder) build(goModVersion, ftlVersion, projectNa
 		Verbs:              make([]goVerb, 0, len(b.mainModule.Decls)),
 		Databases:          make([]goDBHandle, 0, len(b.mainModule.Decls)),
 		MainCtx: mainFileContext{
-			ProjectName:   projectName,
-			SumTypes:      []goSumType{},
-			ExternalTypes: []goExternalType{},
+			ProjectName: projectName,
 		},
 		TypesCtx: typesFileContext{
 			SumTypes:      []goSumType{},
@@ -875,9 +871,6 @@ func (b *mainDeploymentContextBuilder) build(goModVersion, ftlVersion, projectNa
 		return mainDeploymentContext{}, err
 	}
 
-	slices.SortFunc(ctx.MainCtx.SumTypes, func(a, b goSumType) int {
-		return strings.Compare(a.TypeName(), b.TypeName())
-	})
 	slices.SortFunc(ctx.TypesCtx.SumTypes, func(a, b goSumType) int {
 		return strings.Compare(a.TypeName(), b.TypeName())
 	})
@@ -972,7 +965,7 @@ func (b *mainDeploymentContextBuilder) visit(
 		default:
 		}
 
-		maybeGoType, isLocal, err := b.getGoType(module, node)
+		maybeGoType, _, err := b.getGoType(module, node)
 		if err != nil {
 			return err
 		}
@@ -989,13 +982,9 @@ func (b *mainDeploymentContextBuilder) visit(
 		case goVerb:
 			ctx.Verbs = append(ctx.Verbs, n)
 		case goSumType:
-			if isLocal {
-				ctx.TypesCtx.SumTypes = append(ctx.TypesCtx.SumTypes, n)
-			}
-			ctx.MainCtx.SumTypes = append(ctx.MainCtx.SumTypes, n)
+			ctx.TypesCtx.SumTypes = append(ctx.TypesCtx.SumTypes, n)
 		case goExternalType:
 			ctx.TypesCtx.ExternalTypes = append(ctx.TypesCtx.ExternalTypes, n)
-			ctx.MainCtx.ExternalTypes = append(ctx.MainCtx.ExternalTypes, n)
 		case goDBHandle:
 			ctx.Databases = append(ctx.Databases, n)
 		}
