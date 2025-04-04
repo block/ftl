@@ -20,7 +20,8 @@ func TestIndent(t *testing.T) {
 
 func TestSchemaString(t *testing.T) {
 	expected := `
-realm foo {  ` + Builtins().String() +
+realm foo {  
+` + Builtins().String() +
 		`
 		
   // A comment
