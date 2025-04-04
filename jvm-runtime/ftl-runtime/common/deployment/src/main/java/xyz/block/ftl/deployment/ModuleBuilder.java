@@ -200,6 +200,7 @@ public class ModuleBuilder {
 
     public void registerVerbMethod(MethodInfo method, String className,
             boolean exported, boolean transaction, BodyType bodyType, VerbCustomization customization) {
+        Position methodPos = forMethod(method);
         try {
             List<Class<?>> parameterTypes = new ArrayList<>();
             List<VerbRegistry.ParameterSupplier> paramMappers = new ArrayList<>();
@@ -225,7 +226,7 @@ public class ModuleBuilder {
                     paramMappers.add(new VerbRegistry.SecretSupplier(name, paramType));
                     if (!knownSecrets.contains(name)) {
                         xyz.block.ftl.schema.v1.Secret.Builder secretBuilder = xyz.block.ftl.schema.v1.Secret
-                                .newBuilder()
+                                .newBuilder().setPos(methodPos)
                                 .setType(buildType(param.type(), false, param))
                                 .setName(name)
                                 .addAllComments(comments.getComments(name));
@@ -240,7 +241,7 @@ public class ModuleBuilder {
                     paramMappers.add(new VerbRegistry.ConfigSupplier(name, paramType));
                     if (!knownConfig.contains(name)) {
                         xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
-                                .newBuilder()
+                                .newBuilder().setPos(methodPos)
                                 .setType(buildType(param.type(), false, param))
                                 .setName(name)
                                 .addAllComments(comments.getComments(name));
@@ -254,19 +255,22 @@ public class ModuleBuilder {
                     parameterTypes.add(paramType);
                     paramMappers.add(recorder.topicSupplier(topic.generatedProducer(), verbName));
                     publisherMetadata
-                            .addTopics(Ref.newBuilder().setName(topic.topicName()).setModule(moduleName).build());
+                            .addTopics(Ref.newBuilder().setPos(methodPos).setName(topic.topicName()).setModule(moduleName)
+                                    .build());
                 } else if (verbClients.containsKey(param.type().name())) {
                     var client = verbClients.get(param.type().name());
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
                     parameterTypes.add(paramType);
                     paramMappers.add(recorder.verbClientSupplier(client.generatedClient()));
-                    callsMetadata.addCalls(Ref.newBuilder().setName(client.name()).setModule(client.module()).build());
+                    callsMetadata.addCalls(
+                            Ref.newBuilder().setPos(methodPos).setName(client.name()).setModule(client.module()).build());
                 } else if (sqlQueryClients.containsKey(param.type().name())) {
                     var client = sqlQueryClients.get(param.type().name());
                     Class<?> paramType = ModuleBuilder.loadClass(param.type());
                     parameterTypes.add(paramType);
                     paramMappers.add(recorder.verbClientSupplier(client.generatedClient()));
-                    callsMetadata.addCalls(Ref.newBuilder().setName(client.name()).setModule(client.module()).build());
+                    callsMetadata.addCalls(
+                            Ref.newBuilder().setPos(methodPos).setName(client.name()).setModule(client.module()).build());
                 } else if (FTLDotNames.LEASE_CLIENT.equals(param.type().name())) {
                     parameterTypes.add(LeaseClient.class);
                     paramMappers.add(recorder.leaseClientSupplier());
@@ -281,14 +285,14 @@ public class ModuleBuilder {
                     // TODO: map and list types
                     paramMappers.add(new VerbRegistry.BodySupplier(pos));
                 } else {
-                    this.validationFailures.add(new ValidationFailure(toError(forMethod(method)),
+                    this.validationFailures.add(new ValidationFailure(toError(methodPos),
                             "Invalid parameter " + param.name() + " in verb " + verbName));
                     return;
                 }
             }
             if (bodyParamType == null) {
                 if (bodyType == BodyType.REQUIRED) {
-                    this.validationFailures.add(new ValidationFailure(toError(forMethod(method)),
+                    this.validationFailures.add(new ValidationFailure(toError(methodPos),
                             "Missing required payload parameter"));
                     return;
                 }
@@ -317,7 +321,7 @@ public class ModuleBuilder {
             }
             verbBuilder.setName(verbName)
                     .setExport(exported)
-                    .setPos(PositionUtils.forMethod(method))
+                    .setPos(methodPos)
                     .setRequest(
                             customization.requestType.apply(buildType(bodyParamType, exported, bodyParamNullability)))
                     .setResponse(customization.responseType.apply(buildType(method.returnType(), exported, method)))
@@ -330,7 +334,7 @@ public class ModuleBuilder {
 
         } catch (Exception e) {
             log.errorf(e, "Failed to process FTL method %s.%s", method.declaringClass().name(), method.name());
-            validationFailures.add(new ValidationFailure(toError(forMethod(method)),
+            validationFailures.add(new ValidationFailure(toError(methodPos),
                     "Failed to process FTL method " + method.declaringClass().name() + "." + method.name()));
         }
     }
