@@ -311,7 +311,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 				IngressPathComponent, Metadata, Value, Type, DatabaseConnector,
 				*Module, *Optional, *Schema, *TypeAlias, *String, *Time, *Unit, *Any, *TypeParameter,
 				*EnumVariant, *Config, *Secret, *Topic, *DatabaseRuntime, *DatabaseRuntimeConnections,
-				*Data, *Field, *MetadataPartitions, *MetadataSQLQuery, *MetadataSQLColumn:
+				*Data, *Field, *MetadataPartitions, *MetadataSQLQuery, *MetadataSQLColumn, *Realm:
 			}
 			return nil
 		})
@@ -457,7 +457,7 @@ func (m *Module) Validate() error {
 		case Type, Metadata, Value, IngressPathComponent, DatabaseConnector,
 			*Module, *Schema, *Optional, *TypeParameter, *EnumVariant,
 			*Config, *Secret, *DatabaseRuntime, *DatabaseRuntimeConnections,
-			*Database, *Enum:
+			*Database, *Enum, *Realm:
 		}
 		return nil
 	})

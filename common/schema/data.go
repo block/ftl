@@ -119,7 +119,7 @@ func (d *Data) Monomorphise(ref *Ref) (*Data, error) {
 
 		case Type, Metadata, Value, IngressPathComponent, DatabaseConnector,
 			*Module, *Schema, *TypeParameter, *Verb, *Enum, *TypeAlias, *Topic, *Database,
-			*DatabaseRuntimeConnections, *Data, *EnumVariant, *DatabaseRuntime:
+			*DatabaseRuntimeConnections, *Data, *EnumVariant, *DatabaseRuntime, *Realm:
 		}
 		return next()
 	})
