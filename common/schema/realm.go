@@ -57,6 +57,19 @@ func (r *Realm) ResolveWithModule(ref *Ref) (optional.Option[Decl], optional.Opt
 	return optional.None[Decl](), optional.None[*Module]()
 }
 
+func (r *Realm) ContainsRef(ref *Ref) bool {
+	for _, module := range r.Modules {
+		if module.Name == ref.Module {
+			for _, decl := range module.Decls {
+				if decl.GetName() == ref.Name {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // ResolveToType resolves a reference to a declaration of the given type.
 //
 // The out parameter must be a pointer to a non-nil Decl implementation or this

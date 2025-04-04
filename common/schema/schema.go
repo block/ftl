@@ -121,7 +121,13 @@ func (s *Schema) resolveToSymbolMonomorphised(n Node, parent Node) (Symbol, erro
 
 // ResolveWithModule a reference to a declaration and its module.
 func (s *Schema) ResolveWithModule(ref *Ref) (optional.Option[Decl], optional.Option[*Module]) {
-	return s.Realms[0].ResolveWithModule(ref)
+	for _, realm := range s.Realms {
+		resolved, module := realm.ResolveWithModule(ref)
+		if _, ok := resolved.Get(); ok {
+			return resolved, module
+		}
+	}
+	return optional.None[Decl](), optional.None[*Module]()
 }
 
 // Resolve a reference to a declaration.
@@ -131,15 +137,32 @@ func (s *Schema) Resolve(ref *Ref) optional.Option[Decl] {
 }
 
 func (s *Schema) ResolveToType(ref *Ref, out Decl) error {
-	return s.Realms[0].ResolveToType(ref, out)
+	for _, realm := range s.Realms {
+		if realm.ContainsRef(ref) {
+			return realm.ResolveToType(ref, out)
+		}
+	}
+	return fmt.Errorf("could not resolve reference %v: %w", ref, ErrNotFound)
 }
 
 func (s *Schema) Module(name string) optional.Option[*Module] {
-	return s.Realms[0].Module(name)
+	for _, realm := range s.Realms {
+		module := realm.Module(name)
+		if _, ok := module.Get(); ok {
+			return module
+		}
+	}
+	return optional.None[*Module]()
 }
 
 func (s *Schema) Deployment(name key.Deployment) optional.Option[*Module] {
-	return s.Realms[0].Deployment(name)
+	for _, realm := range s.Realms {
+		deployment := realm.Deployment(name)
+		if _, ok := deployment.Get(); ok {
+			return deployment
+		}
+	}
+	return optional.None[*Module]()
 }
 
 // TypeName returns the name of a type as a string, stripping any package prefix and correctly handling Ref aliases.
@@ -168,7 +191,13 @@ func FromProto(s *schemapb.Schema) (*Schema, error) {
 }
 
 func (s *Schema) ModuleDependencies(module string) map[string]*Module {
-	return s.Realms[0].ModuleDependencies(module)
+	for _, realm := range s.Realms {
+		deps := realm.ModuleDependencies(module)
+		if len(deps) > 0 {
+			return deps
+		}
+	}
+	return nil
 }
 
 func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
