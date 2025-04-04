@@ -450,6 +450,36 @@ func (*DirectiveTransaction) MustAnnotate() []ast.Node {
 	return []ast.Node{&ast.FuncDecl{}}
 }
 
+type DirectiveEgress struct {
+	Pos token.Pos `parser:"'egress'"`
+
+	Targets []EgressTarget `parser:"@@ ( Whitespace @@)*"`
+}
+
+type EgressTarget struct {
+	Name   string `parser:"@Ident '='"`
+	Target string `parser:"@String"`
+}
+
+func (*DirectiveEgress) directive() {}
+
+func (d *DirectiveEgress) String() string {
+	return "egress"
+}
+func (d *DirectiveEgress) IsExported() bool {
+	return false
+}
+func (*DirectiveEgress) GetTypeName() string { return "egress" }
+func (d *DirectiveEgress) SetPosition(pos token.Pos) {
+	d.Pos = pos
+}
+func (d *DirectiveEgress) GetPosition() token.Pos {
+	return d.Pos
+}
+func (*DirectiveEgress) MustAnnotate() []ast.Node {
+	return []ast.Node{&ast.FuncDecl{}}
+}
+
 var DirectiveParser = participle.MustBuild[directiveWrapper](
 	participle.Lexer(schema.Lexer),
 	participle.Elide("Whitespace"),
@@ -458,7 +488,7 @@ var DirectiveParser = participle.MustBuild[directiveWrapper](
 	participle.Union[Directive](&DirectiveVerb{}, &DirectiveData{}, &DirectiveEnum{}, &DirectiveTypeAlias{},
 		&DirectiveIngress{}, &DirectiveCronJob{}, &DirectiveRetry{}, &DirectiveSubscriber{}, &DirectiveExport{},
 		&DirectiveTypeMap{}, &DirectiveEncoding{}, &DirectiveTopic{}, &DirectiveDatabase{}, &DirectiveFixture{},
-		&DirectiveTransaction{}),
+		&DirectiveTransaction{}, &DirectiveEgress{}),
 	participle.Union[schema.IngressPathComponent](&schema.IngressPathLiteral{}, &schema.IngressPathParameter{}),
 	participle.ParseTypeWith(schema.ParseTypeWithLexer),
 )

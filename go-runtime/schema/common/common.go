@@ -783,6 +783,7 @@ const (
 	VerbResourceTypeSecret
 	VerbResourceTypeTopicHandle
 	VerbResourceTypeVerbClient
+	VerbResourceTypeEgress
 )
 
 func GetVerbResourceType(pass *analysis.Pass, obj types.Object) VerbResourceType {
@@ -792,7 +793,6 @@ func GetVerbResourceType(pass *analysis.Pass, obj types.Object) VerbResourceType
 	if obj.Pkg() == nil {
 		return VerbResourceTypeNone
 	}
-
 	switch t := obj.Type().(type) {
 	case *types.Named:
 		switch t.Obj().Pkg().Path() + "." + t.Obj().Name() {
@@ -805,7 +805,6 @@ func GetVerbResourceType(pass *analysis.Pass, obj types.Object) VerbResourceType
 		case FtlSecretTypePath:
 			return VerbResourceTypeSecret
 		}
-
 		if _, ok := t.Underlying().(*types.Signature); !ok {
 			return VerbResourceTypeNone
 		}
