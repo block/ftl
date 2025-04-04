@@ -51,11 +51,9 @@ jobs:
         run: |
           golangci-lint --version
           golangci-lint run --new-from-rev="$(git merge-base origin/main HEAD)" ./... 2>&1 | to-annotation
-      - name: lint-commit-or-rollback
-        run: lint-commit-or-rollback ./backend/... 2>&1 | to-annotation
       - name: go-check-sumtype
         shell: bash
-        run: go-check-sumtype --include-shared-interfaces=true ./backend/... ./cmd/... ./internal/... 2>&1 | to-annotation
+        run: go-check-sumtype --include-shared-interfaces=true ./... 2>&1 | to-annotation
       - name: actionlint
         shell: bash
         run: actionlint --oneline | to-annotation

@@ -191,7 +191,7 @@ func nodeToJSSchema(node Node, refs map[RefKey]*Ref) *jsonschema.Schema {
 
 	case Metadata, IngressPathComponent, DatabaseConnector, Type, Value,
 		*Module, *Field, *Schema, *Database, *Verb, *EnumVariant,
-		*Config, *Secret, *Topic, *DatabaseRuntime, *DatabaseRuntimeConnections:
+		*Config, *Secret, *Topic, *DatabaseRuntime, *DatabaseRuntimeConnections, *Realm:
 		panic(fmt.Sprintf("unsupported node type %T", node))
 
 	default:
