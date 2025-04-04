@@ -30,5 +30,5 @@ func FromProto(response *ftlv1.GetDeploymentContextResponse) (DeploymentContext,
 		}
 		databases[entry.Name] = db
 	}
-	return NewBuilder(response.Module).AddConfigs(response.Configs).AddSecrets(response.Secrets).AddDatabases(databases).Build(), nil
+	return NewBuilder(response.Module).AddConfigs(response.Configs).AddSecrets(response.Secrets).AddDatabases(databases).AddEgress(response.Egress).Build(), nil
 }

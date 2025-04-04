@@ -319,19 +319,19 @@ class DeploymentRuntimeNotification(_message.Message):
     changeset: str
     def __init__(self, payload: _Optional[_Union[RuntimeElement, _Mapping]] = ..., changeset: _Optional[str] = ...) -> None: ...
 
-class EgressElement(_message.Message):
+class EgressRuntime(_message.Message):
+    __slots__ = ("targets",)
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
+    targets: _containers.RepeatedCompositeFieldContainer[EgressTarget]
+    def __init__(self, targets: _Optional[_Iterable[_Union[EgressTarget, _Mapping]]] = ...) -> None: ...
+
+class EgressTarget(_message.Message):
     __slots__ = ("expression", "target")
     EXPRESSION_FIELD_NUMBER: _ClassVar[int]
     TARGET_FIELD_NUMBER: _ClassVar[int]
     expression: str
     target: str
     def __init__(self, expression: _Optional[str] = ..., target: _Optional[str] = ...) -> None: ...
-
-class EgressRuntime(_message.Message):
-    __slots__ = ("targets",)
-    TARGETS_FIELD_NUMBER: _ClassVar[int]
-    targets: _containers.RepeatedCompositeFieldContainer[EgressElement]
-    def __init__(self, targets: _Optional[_Iterable[_Union[EgressElement, _Mapping]]] = ...) -> None: ...
 
 class Enum(_message.Message):
     __slots__ = ("pos", "comments", "export", "name", "type", "variants")

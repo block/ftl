@@ -1985,69 +1985,17 @@ func (x *DeploymentRuntimeNotification) GetChangeset() string {
 	return ""
 }
 
-type EgressElement struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Expression    string                 `protobuf:"bytes,1,opt,name=expression,proto3" json:"expression,omitempty"`
-	Target        string                 `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *EgressElement) Reset() {
-	*x = EgressElement{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *EgressElement) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*EgressElement) ProtoMessage() {}
-
-func (x *EgressElement) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use EgressElement.ProtoReflect.Descriptor instead.
-func (*EgressElement) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{30}
-}
-
-func (x *EgressElement) GetExpression() string {
-	if x != nil {
-		return x.Expression
-	}
-	return ""
-}
-
-func (x *EgressElement) GetTarget() string {
-	if x != nil {
-		return x.Target
-	}
-	return ""
-}
-
 // EgressRuntime stores the actual egress target.
 type EgressRuntime struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Targets       []*EgressElement       `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
+	Targets       []*EgressTarget        `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EgressRuntime) Reset() {
 	*x = EgressRuntime{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[31]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2059,7 +2007,7 @@ func (x *EgressRuntime) String() string {
 func (*EgressRuntime) ProtoMessage() {}
 
 func (x *EgressRuntime) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[31]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2072,14 +2020,66 @@ func (x *EgressRuntime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EgressRuntime.ProtoReflect.Descriptor instead.
 func (*EgressRuntime) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{31}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{30}
 }
 
-func (x *EgressRuntime) GetTargets() []*EgressElement {
+func (x *EgressRuntime) GetTargets() []*EgressTarget {
 	if x != nil {
 		return x.Targets
 	}
 	return nil
+}
+
+type EgressTarget struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Expression    string                 `protobuf:"bytes,1,opt,name=expression,proto3" json:"expression,omitempty"`
+	Target        string                 `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EgressTarget) Reset() {
+	*x = EgressTarget{}
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EgressTarget) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EgressTarget) ProtoMessage() {}
+
+func (x *EgressTarget) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EgressTarget.ProtoReflect.Descriptor instead.
+func (*EgressTarget) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *EgressTarget) GetExpression() string {
+	if x != nil {
+		return x.Expression
+	}
+	return ""
+}
+
+func (x *EgressTarget) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
 }
 
 type Enum struct {
@@ -7274,14 +7274,14 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"\tchangeset\x18\x02 \x01(\tR\tchangeset\"\x80\x01\n" +
 	"\x1dDeploymentRuntimeNotification\x12A\n" +
 	"\apayload\x18\x01 \x01(\v2'.xyz.block.ftl.schema.v1.RuntimeElementR\apayload\x12\x1c\n" +
-	"\tchangeset\x18\x02 \x01(\tR\tchangeset\"G\n" +
-	"\rEgressElement\x12\x1e\n" +
+	"\tchangeset\x18\x02 \x01(\tR\tchangeset\"P\n" +
+	"\rEgressRuntime\x12?\n" +
+	"\atargets\x18\x01 \x03(\v2%.xyz.block.ftl.schema.v1.EgressTargetR\atargets\"F\n" +
+	"\fEgressTarget\x12\x1e\n" +
 	"\n" +
 	"expression\x18\x01 \x01(\tR\n" +
 	"expression\x12\x16\n" +
-	"\x06target\x18\x02 \x01(\tR\x06target\"Q\n" +
-	"\rEgressRuntime\x12@\n" +
-	"\atargets\x18\x01 \x03(\v2&.xyz.block.ftl.schema.v1.EgressElementR\atargets\"\x93\x02\n" +
+	"\x06target\x18\x02 \x01(\tR\x06target\"\x93\x02\n" +
 	"\x04Enum\x128\n" +
 	"\x03pos\x18\x01 \x01(\v2!.xyz.block.ftl.schema.v1.PositionH\x00R\x03pos\x88\x01\x01\x12\x1a\n" +
 	"\bcomments\x18\x02 \x03(\tR\bcomments\x12\x16\n" +
@@ -7775,8 +7775,8 @@ var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(*Decl)(nil),                                // 31: xyz.block.ftl.schema.v1.Decl
 	(*DeploymentRuntimeEvent)(nil),              // 32: xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
 	(*DeploymentRuntimeNotification)(nil),       // 33: xyz.block.ftl.schema.v1.DeploymentRuntimeNotification
-	(*EgressElement)(nil),                       // 34: xyz.block.ftl.schema.v1.EgressElement
-	(*EgressRuntime)(nil),                       // 35: xyz.block.ftl.schema.v1.EgressRuntime
+	(*EgressRuntime)(nil),                       // 34: xyz.block.ftl.schema.v1.EgressRuntime
+	(*EgressTarget)(nil),                        // 35: xyz.block.ftl.schema.v1.EgressTarget
 	(*Enum)(nil),                                // 36: xyz.block.ftl.schema.v1.Enum
 	(*EnumVariant)(nil),                         // 37: xyz.block.ftl.schema.v1.EnumVariant
 	(*Event)(nil),                               // 38: xyz.block.ftl.schema.v1.Event
@@ -7886,7 +7886,7 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	102, // 35: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
 	86,  // 36: xyz.block.ftl.schema.v1.DeploymentRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
 	86,  // 37: xyz.block.ftl.schema.v1.DeploymentRuntimeNotification.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
-	34,  // 38: xyz.block.ftl.schema.v1.EgressRuntime.targets:type_name -> xyz.block.ftl.schema.v1.EgressElement
+	35,  // 38: xyz.block.ftl.schema.v1.EgressRuntime.targets:type_name -> xyz.block.ftl.schema.v1.EgressTarget
 	80,  // 39: xyz.block.ftl.schema.v1.Enum.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	96,  // 40: xyz.block.ftl.schema.v1.Enum.type:type_name -> xyz.block.ftl.schema.v1.Type
 	37,  // 41: xyz.block.ftl.schema.v1.Enum.variants:type_name -> xyz.block.ftl.schema.v1.EnumVariant
@@ -7999,7 +7999,7 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	80,  // 148: xyz.block.ftl.schema.v1.Ref.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	96,  // 149: xyz.block.ftl.schema.v1.Ref.type_parameters:type_name -> xyz.block.ftl.schema.v1.Type
 	29,  // 150: xyz.block.ftl.schema.v1.Runtime.database_runtime:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntime
-	35,  // 151: xyz.block.ftl.schema.v1.Runtime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
+	34,  // 151: xyz.block.ftl.schema.v1.Runtime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
 	74,  // 152: xyz.block.ftl.schema.v1.Runtime.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
 	75,  // 153: xyz.block.ftl.schema.v1.Runtime.module_runtime_runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
 	76,  // 154: xyz.block.ftl.schema.v1.Runtime.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
@@ -8054,7 +8054,7 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	48,  // 203: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
 	103, // 204: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
 	92,  // 205: xyz.block.ftl.schema.v1.VerbRuntime.subscription_connector:type_name -> xyz.block.ftl.schema.v1.SubscriptionConnector
-	35,  // 206: xyz.block.ftl.schema.v1.VerbRuntime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
+	34,  // 206: xyz.block.ftl.schema.v1.VerbRuntime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
 	207, // [207:207] is the sub-list for method output_type
 	207, // [207:207] is the sub-list for method input_type
 	207, // [207:207] is the sub-list for extension type_name

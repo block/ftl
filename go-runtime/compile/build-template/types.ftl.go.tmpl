@@ -92,6 +92,9 @@ func init() {
 				{{- with getSecretHandle . }}
 			server.Secret[{{ trimModuleQualifier $moduleName .Type.TypeName }}]("{{.Module}}", "{{.Name}}"),
 				{{- end }}
+				{{- with getEgressTarget . }}
+			server.Egress("{{.Target}}"),
+				{{- end }}
 			{{- end}}
 		),
 	{{- end }}

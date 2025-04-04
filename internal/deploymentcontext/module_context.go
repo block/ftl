@@ -173,6 +173,10 @@ func (m DeploymentContext) GetSecret(name string, value any) error {
 	return errors.WithStack(json.Unmarshal(data, value))
 }
 
+func (m DeploymentContext) GetEgress(name string) string {
+	return m.egress[name]
+}
+
 // GetDatabase gets a database DSN by name and type.
 //
 // Returns an error if no database with that name is found or it is not the

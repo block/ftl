@@ -33,14 +33,14 @@ func (*PlaintextKafkaSubscriptionConnector) subscriptionConnector() {}
 //
 //protobuf:7
 type EgressRuntime struct {
-	Targets []EgressElement `protobuf:"1"`
+	Targets []EgressTarget `protobuf:"1"`
 }
 
 func (e EgressRuntime) runtimeElement() {
 
 }
 
-type EgressElement struct {
+type EgressTarget struct {
 	Expression string `protobuf:"1"`
 	Target     string `protobuf:"2"`
 }

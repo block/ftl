@@ -18,7 +18,7 @@ func init() {
 
 		reflection.ProvideResourcesForVerb(
 			Hello,
-			server.Config[string]("time", "greeting"),
+			server.Egress("example.com"),
 		),
 
 		reflection.ProvideResourcesForVerb(

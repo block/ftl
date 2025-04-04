@@ -179,6 +179,19 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 				Pos: common.GoPosToSchemaPos(pass.Fset, dt.GetPosition()),
 			})
 			newSchType = &schema.Verb{}
+		case *common.DirectiveEgress:
+			targets := []string{}
+			params := map[string]string{}
+			for _, t := range dt.Targets {
+				targets = append(targets, t.Target)
+				params[t.Name] = t.Target
+			}
+			metadata = append(metadata, &schema.MetadataEgress{
+				Pos:     common.GoPosToSchemaPos(pass.Fset, dt.GetPosition()),
+				Targets: targets,
+			})
+			common.MarkEgressParameters(pass, obj, params)
+			newSchType = &schema.Verb{}
 		case *common.DirectiveVerb:
 			newSchType = &schema.Verb{}
 		case *common.DirectiveData:

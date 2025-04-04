@@ -1045,37 +1045,12 @@ func DeploymentStateFromProto(v destpb.DeploymentState) (DeploymentState, error)
 	return DeploymentState(v), nil
 }
 
-func (x *EgressElement) ToProto() *destpb.EgressElement {
-	if x == nil {
-		return nil
-	}
-	return &destpb.EgressElement{
-		Expression: orZero(ptr(string(x.Expression))),
-		Target:     orZero(ptr(string(x.Target))),
-	}
-}
-
-func EgressElementFromProto(v *destpb.EgressElement) (out *EgressElement, err error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	out = &EgressElement{}
-	if out.Expression, err = orZeroR(result.From(ptr(string(v.Expression)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Expression: %w", err)
-	}
-	if out.Target, err = orZeroR(result.From(ptr(string(v.Target)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Target: %w", err)
-	}
-	return out, nil
-}
-
 func (x *EgressRuntime) ToProto() *destpb.EgressRuntime {
 	if x == nil {
 		return nil
 	}
 	return &destpb.EgressRuntime{
-		Targets: sliceMap(x.Targets, func(v EgressElement) *destpb.EgressElement { return v.ToProto() }),
+		Targets: sliceMap(x.Targets, func(v EgressTarget) *destpb.EgressTarget { return v.ToProto() }),
 	}
 }
 
@@ -1085,10 +1060,35 @@ func EgressRuntimeFromProto(v *destpb.EgressRuntime) (out *EgressRuntime, err er
 	}
 
 	out = &EgressRuntime{}
-	if out.Targets, err = sliceMapR(v.Targets, func(v *destpb.EgressElement) result.Result[EgressElement] {
-		return orZeroR(result.From(EgressElementFromProto(v)))
+	if out.Targets, err = sliceMapR(v.Targets, func(v *destpb.EgressTarget) result.Result[EgressTarget] {
+		return orZeroR(result.From(EgressTargetFromProto(v)))
 	}).Result(); err != nil {
 		return nil, fmt.Errorf("Targets: %w", err)
+	}
+	return out, nil
+}
+
+func (x *EgressTarget) ToProto() *destpb.EgressTarget {
+	if x == nil {
+		return nil
+	}
+	return &destpb.EgressTarget{
+		Expression: orZero(ptr(string(x.Expression))),
+		Target:     orZero(ptr(string(x.Target))),
+	}
+}
+
+func EgressTargetFromProto(v *destpb.EgressTarget) (out *EgressTarget, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &EgressTarget{}
+	if out.Expression, err = orZeroR(result.From(ptr(string(v.Expression)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Expression: %w", err)
+	}
+	if out.Target, err = orZeroR(result.From(ptr(string(v.Target)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Target: %w", err)
 	}
 	return out, nil
 }

@@ -201,14 +201,14 @@ enum DeploymentState {
   DEPLOYMENT_STATE_FAILED = 8;
 }
 
-message EgressElement {
-  string expression = 1;
-  string target = 2;
-}
-
 // EgressRuntime stores the actual egress target.
 message EgressRuntime {
-  repeated EgressElement targets = 1;
+  repeated EgressTarget targets = 1;
+}
+
+message EgressTarget {
+  string expression = 1;
+  string target = 2;
 }
 
 message Enum {

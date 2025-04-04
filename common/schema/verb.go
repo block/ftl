@@ -138,6 +138,22 @@ func (v *Verb) AddTopicPublish(topic *Ref) {
 	v.Metadata = upsert[MetadataPublisher](v.Metadata, topic)
 }
 
+func (v *Verb) AddEgress(target string) {
+	egress := v.GetMetadataEgress()
+	if e, ok := egress.Get(); ok {
+		if slices.Contains(e.Targets, target) {
+			return
+		}
+		e.Targets = append(e.Targets, target)
+		return
+	}
+	v.Metadata = append(v.Metadata, &MetadataEgress{
+		Pos:     v.Pos,
+		Targets: []string{target},
+	})
+
+}
+
 func (v *Verb) SortMetadata() {
 	sortMetadata(v.Metadata)
 }
@@ -146,6 +162,9 @@ func (v *Verb) GetMetadataIngress() optional.Option[*MetadataIngress] {
 	return optional.From(slices.FindVariant[*MetadataIngress](v.Metadata))
 }
 
+func (v *Verb) GetMetadataEgress() optional.Option[*MetadataEgress] {
+	return optional.From(slices.FindVariant[*MetadataEgress](v.Metadata))
+}
 func (v *Verb) GetMetadataCronJob() optional.Option[*MetadataCronJob] {
 	return optional.From(slices.FindVariant[*MetadataCronJob](v.Metadata))
 }
