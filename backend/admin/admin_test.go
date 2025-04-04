@@ -213,9 +213,9 @@ func TestAdminValidation(t *testing.T) {
 	admin := NewEnvironmentClient(cm, sm, &mockSchemaRetriever{})
 
 	testSetConfig(t, ctx, admin, "batmobile", "color", "Black", "")
-	testSetConfig(t, ctx, admin, "batmobile", "color", "Red", "JSON validation failed: Red is not a valid variant of enum batmobile.Color")
+	testSetConfig(t, ctx, admin, "batmobile", "color", "Red", "JSON validation failed: Red is not a valid variant of enum Color")
 	testSetConfig(t, ctx, admin, "batmobile", "capacity", 2, "")
-	testSetConfig(t, ctx, admin, "batmobile", "capacity", 3, "JSON validation failed: %!s(float64=3) is not a valid variant of enum batmobile.Capacity")
+	testSetConfig(t, ctx, admin, "batmobile", "capacity", 3, "JSON validation failed: %!s(float64=3) is not a valid variant of enum Capacity")
 
 	testSetSecret(t, ctx, admin, "batmobile", "owner", "Bruce Wayne", "")
 	testSetSecret(t, ctx, admin, "batmobile", "owner", 99, "JSON validation failed: owner has wrong type, expected String found float64")

@@ -56,7 +56,7 @@ enum {{ .Name }} {
 message {{ .Name }} {
   oneof value {
 {{- range $name, $id := .Variants }}
-    {{ $name }} {{ trimPrefix $name $sumtype.Name | toLowerSnake }} = {{ $id }};
+    {{ $name }} {{ $name | $sumtype.FieldName }} = {{ $id }};
 {{- end }}
   }
 }

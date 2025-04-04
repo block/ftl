@@ -139,82 +139,87 @@ func validateJSONValue(fieldType Type, path path, value any, sch *Schema, opts *
 		if !ok {
 			return fmt.Errorf("unknown ref %v", fieldType)
 		}
+		typeDecl, ok := decl.(Type)
+		if !ok {
+			return fmt.Errorf("ref %v does not resolve to a type", fieldType)
+		}
+		return validateJSONValue(typeDecl, path, value, sch, opts)
 
-		switch d := decl.(type) {
-		case *Data:
-			if valueMap, ok := value.(map[string]any); ok {
-				transformedMap, err := TransformFromAliasedFields(fieldType, sch, valueMap)
-				if err != nil {
-					return fmt.Errorf("failed to transform aliased fields: %w", err)
-				}
-
-				if err := validateRequestMap(fieldType, path, transformedMap, sch, opts); err != nil {
-					return err
-				}
-				typeMatches = true
-			}
-		case *TypeAlias:
-			return validateJSONValue(d.Type, path, value, sch, opts)
-		case *Enum:
-			var inputName any
-			inputName = value
-			for _, v := range d.Variants {
-				switch t := v.Value.(type) {
-				case *StringValue:
-					if valueStr, ok := value.(string); ok {
-						if t.Value == valueStr {
-							typeMatches = true
-							break
-						}
-					}
-				case *IntValue:
-					switch value := value.(type) {
-					case int, int64:
-						if t.Value == value {
-							typeMatches = true
-							break
-						}
-					case float64:
-						if float64(t.Value) == value {
-							typeMatches = true
-							break
-						}
-					}
-				case *TypeValue:
-					if reqVariant, ok := value.(map[string]any); ok {
-						vName, ok := reqVariant["name"]
-						if !ok {
-							return fmt.Errorf(`missing name field in enum type %q: expected structure is `+
-								"{\"name\": \"<variant name>\", \"value\": <variant value>}", value)
-						}
-						vNameStr, ok := vName.(string)
-						if !ok {
-							return fmt.Errorf(`invalid type for enum %q; name field must be a string, was %T`,
-								fieldType, vName)
-						}
-						inputName = fmt.Sprintf("%q", vNameStr)
-
-						vValue, ok := reqVariant["value"]
-						if !ok {
-							return fmt.Errorf(`missing value field in enum type %q: expected structure is `+
-								"{\"name\": \"<variant name>\", \"value\": <variant value>}", value)
-						}
-
-						if v.Name == vNameStr {
-							return validateJSONValue(t.Value, path, vValue, sch, opts)
-						}
-					} else {
-						return fmt.Errorf(`malformed enum type %s: expected structure is `+
-							"{\"name\": \"<variant name>\", \"value\": <variant value>}", path)
-					}
-				}
-			}
-			if !typeMatches {
-				return fmt.Errorf("%s is not a valid variant of enum %s", inputName, fieldType)
+	case *Data:
+		if valueMap, ok := value.(map[string]any); ok {
+			transformedMap, err := TransformFromAliasedFields(sch, fieldType, valueMap)
+			if err != nil {
+				return fmt.Errorf("failed to transform aliased fields: %w", err)
 			}
 
-		case *Config, *Database, *Secret, *Verb, *Topic:
+			if err := validateMap(fieldType, path, transformedMap, sch, opts); err != nil {
+				return err
+			}
+			typeMatches = true
+		}
 
+	case *Field:
+		panic("Field should be validated by Data case")
+
+	case *TypeAlias:
+		return validateJSONValue(fieldType.Type, path, value, sch, opts)
+
+	case *Enum:
+		var inputName any
+		inputName = value
+		for _, v := range fieldType.Variants {
+			switch t := v.Value.(type) {
+			case *StringValue:
+				if valueStr, ok := value.(string); ok {
+					if t.Value == valueStr {
+						typeMatches = true
+						break
+					}
+				}
+			case *IntValue:
+				switch value := value.(type) {
+				case int, int64:
+					if t.Value == value {
+						typeMatches = true
+						break
+					}
+				case float64:
+					if float64(t.Value) == value {
+						typeMatches = true
+						break
+					}
+				}
+			case *TypeValue:
+				if reqVariant, ok := value.(map[string]any); ok {
+					vName, ok := reqVariant["name"]
+					if !ok {
+						return fmt.Errorf(`missing name field in enum type %q: expected structure is `+
+							"{\"name\": \"<variant name>\", \"value\": <variant value>}", value)
+					}
+					vNameStr, ok := vName.(string)
+					if !ok {
+						return fmt.Errorf(`invalid type for enum %q; name field must be a string, was %T`,
+							fieldType, vName)
+					}
+					inputName = fmt.Sprintf("%q", vNameStr)
+
+					vValue, ok := reqVariant["value"]
+					if !ok {
+						return fmt.Errorf(`missing value field in enum type %q: expected structure is `+
+							"{\"name\": \"<variant name>\", \"value\": <variant value>}", value)
+					}
+
+					if v.Name == vNameStr {
+						return validateJSONValue(t.Value, path, vValue, sch, opts)
+					}
+				} else {
+					return fmt.Errorf(`malformed enum type %s: expected structure is `+
+						"{\"name\": \"<variant name>\", \"value\": <variant value>}", path)
+				}
+			}
+		}
+		if !typeMatches {
+			return fmt.Errorf("%s is not a valid variant of enum %s", inputName, fieldType.Name)
 		}
 
 	case *Bytes:
@@ -247,46 +252,57 @@ func ValidateRequestMap(ref *Ref, path path, request map[string]any, sch *Schema
 	for _, opt := range opts {
 		opt(cfg)
 	}
-	return validateRequestMap(ref, path, request, sch, cfg)
-}
-
-// ValidateRequestMap validates a given JSON map against the provided schema.
-func validateRequestMap(ref *Ref, path path, request map[string]any, sch *Schema, opts *encodingOptions) error {
 	symbol, err := sch.ResolveRequestResponseType(ref)
 	if err != nil {
 		return err
 	}
+	return validateRequestMap(symbol, path, request, sch, cfg)
+}
 
+func validateRequestMap(symbol Symbol, path path, request map[string]any, sch *Schema, opts *encodingOptions) error {
 	var errs []error
-	if data, ok := symbol.(*Data); ok {
-		validFields := sets.NewSet[string]()
-		for _, field := range data.Fields {
-			validFields.Add(field.Name)
-			fieldPath := append(path, "."+field.Name) //nolint:gocritic
+	switch symbol := symbol.(type) {
+	case *Data:
+		errs = append(errs, validateMap(symbol, path, request, sch, opts))
+	case *Map:
+		// TODO: Validate key/value types-
+		//
+	case *Any:
+	default:
+		errs = append(errs, fmt.Errorf("unsupported symbol type %T", symbol))
+	}
+	return errors.Join(errs...)
+}
 
-			value, haveValue := request[field.Name]
-			if !haveValue && !allowMissingField(field) {
-				errs = append(errs, fmt.Errorf("%s is required", fieldPath))
-				continue
-			}
+// validateMap validates a given JSON map against the provided Data structure.
+func validateMap(data *Data, path path, request map[string]any, sch *Schema, opts *encodingOptions) error {
+	var errs []error
+	validFields := sets.NewSet[string]()
+	for _, field := range data.Fields {
+		validFields.Add(field.Name)
+		fieldPath := append(path, "."+field.Name) //nolint:gocritic
 
-			if haveValue {
-				err := validateJSONValue(field.Type, fieldPath, value, sch, opts)
-				if err != nil {
-					errs = append(errs, err)
-				}
-			}
+		value, haveValue := request[field.Name]
+		if !haveValue && !allowMissingField(field) {
+			errs = append(errs, fmt.Errorf("%s is required", fieldPath))
+			continue
 		}
 
-		if !opts.lenient {
-			for key := range request {
-				if !validFields.Contains(key) {
-					errs = append(errs, fmt.Errorf("%s is not a valid field", append(path, "."+key)))
-				}
+		if haveValue {
+			err := validateJSONValue(field.Type, fieldPath, value, sch, opts)
+			if err != nil {
+				errs = append(errs, err)
 			}
 		}
 	}
 
+	if !opts.lenient {
+		for key := range request {
+			if !validFields.Contains(key) {
+				errs = append(errs, fmt.Errorf("%s is not a valid field", append(path, "."+key)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -296,7 +312,7 @@ func allowMissingField(field *Field) bool {
 	case *Optional, *Any, *Array, *Map, *Bytes, *Unit:
 		return true
 
-	case *Bool, *Ref, *Float, *Int, *String, *Time:
+	case *Bool, *Ref, *Float, *Int, *String, *Time, *Data, *Enum, *Field, *TypeAlias:
 	}
 	return false
 }
@@ -307,62 +323,60 @@ func TransformAliasedFields(sch *Schema, t Type, obj any, aliaser func(obj map[s
 	}
 	switch t := t.(type) {
 	case *Ref:
-		decl, ok := sch.Resolve(t).Get()
-		if !ok {
+		dt, err := sch.ResolveType(t)
+		if err != nil {
 			return fmt.Errorf("%s: failed to resolve ref %s", t.Pos, t)
 		}
-		switch decl := decl.(type) {
-		case *Data:
-			data, err := sch.ResolveMonomorphised(t)
-			if err != nil {
-				return fmt.Errorf("%s: failed to resolve data type: %w", t.Pos, err)
+		return TransformAliasedFields(sch, dt, obj, aliaser)
+
+	case *Data: // NOTE: assumed to have been monomorphised already.
+		m, ok := obj.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s: expected map, got %T", t.Pos, obj)
+		}
+		for _, field := range t.Fields {
+			name := aliaser(m, field)
+			if err := TransformAliasedFields(sch, field.Type, m[name], aliaser); err != nil {
+				return err
 			}
-			m, ok := obj.(map[string]any)
-			if !ok {
-				return fmt.Errorf("%s: expected map, got %T", t.Pos, obj)
-			}
-			for _, field := range data.Fields {
-				name := aliaser(m, field)
-				if err := TransformAliasedFields(sch, field.Type, m[name], aliaser); err != nil {
+		}
+
+	case *Field:
+		panic("Field should be validated by Data case")
+
+	case *Enum:
+		if t.IsValueEnum() {
+			return nil
+		}
+
+		// type enum
+		m, ok := obj.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s: expected map, got %T", t.Pos, obj)
+		}
+		name, ok := m["name"]
+		if !ok {
+			return fmt.Errorf("%s: expected type enum request to have 'name' field", t.Pos)
+		}
+		nameStr, ok := name.(string)
+		if !ok {
+			return fmt.Errorf("%s: expected 'name' field to be a string, got %T", t.Pos, name)
+		}
+
+		value, ok := m["value"]
+		if !ok {
+			return fmt.Errorf("%s: expected type enum request to have 'value' field", t.Pos)
+		}
+
+		for _, v := range t.Variants {
+			if v.Name == nameStr {
+				if err := TransformAliasedFields(sch, v.Value.(*TypeValue).Value, value, aliaser); err != nil { //nolint:forcetypeassert
 					return err
 				}
 			}
-		case *Enum:
-			if decl.IsValueEnum() {
-				return nil
-			}
-
-			// type enum
-			m, ok := obj.(map[string]any)
-			if !ok {
-				return fmt.Errorf("%s: expected map, got %T", t.Pos, obj)
-			}
-			name, ok := m["name"]
-			if !ok {
-				return fmt.Errorf("%s: expected type enum request to have 'name' field", t.Pos)
-			}
-			nameStr, ok := name.(string)
-			if !ok {
-				return fmt.Errorf("%s: expected 'name' field to be a string, got %T", t.Pos, name)
-			}
-
-			value, ok := m["value"]
-			if !ok {
-				return fmt.Errorf("%s: expected type enum request to have 'value' field", t.Pos)
-			}
-
-			for _, v := range decl.Variants {
-				if v.Name == nameStr {
-					if err := TransformAliasedFields(sch, v.Value.(*TypeValue).Value, value, aliaser); err != nil { //nolint:forcetypeassert
-						return err
-					}
-				}
-			}
-		case *TypeAlias:
-			return TransformAliasedFields(sch, decl.Type, obj, aliaser)
-		case *Config, *Database, *Secret, *Verb, *Topic:
-			return fmt.Errorf("%s: unsupported ref type %T", t.Pos, decl)
 		}
+	case *TypeAlias:
+		return TransformAliasedFields(sch, t.Type, obj, aliaser)
 
 	case *Array:
 		a, ok := obj.([]any)
@@ -398,8 +412,8 @@ func TransformAliasedFields(sch *Schema, t Type, obj any, aliaser func(obj map[s
 	return nil
 }
 
-func TransformFromAliasedFields(ref *Ref, sch *Schema, request map[string]any) (map[string]any, error) {
-	return request, TransformAliasedFields(sch, ref, request, func(obj map[string]any, field *Field) string {
+func TransformFromAliasedFields(sch *Schema, t Type, request map[string]any) (map[string]any, error) {
+	return request, TransformAliasedFields(sch, t, request, func(obj map[string]any, field *Field) string {
 		if jsonAlias, ok := field.Alias(AliasKindJSON).Get(); ok {
 			if _, ok := obj[field.Name]; !ok && obj[jsonAlias] != nil {
 				obj[field.Name] = obj[jsonAlias]
@@ -410,8 +424,8 @@ func TransformFromAliasedFields(ref *Ref, sch *Schema, request map[string]any) (
 	})
 }
 
-func TransformToAliasedFields(ref *Ref, sch *Schema, request map[string]any) (map[string]any, error) {
-	return request, TransformAliasedFields(sch, ref, request, func(obj map[string]any, field *Field) string {
+func TransformToAliasedFields(sch *Schema, t Type, request map[string]any) (map[string]any, error) {
+	return request, TransformAliasedFields(sch, t, request, func(obj map[string]any, field *Field) string {
 		if jsonAlias, ok := field.Alias(AliasKindJSON).Get(); ok && field.Name != jsonAlias {
 			obj[jsonAlias] = obj[field.Name]
 			delete(obj, field.Name)

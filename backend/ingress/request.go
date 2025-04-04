@@ -83,7 +83,7 @@ func buildRequestBody(route *ingressRoute, r *http.Request, sch *schema.Schema) 
 		return nil, fmt.Errorf("no HTTP ingress metadata for verb %s", verb.Name)
 	}
 
-	requestMap, err = schema.TransformFromAliasedFields(request, sch, requestMap)
+	requestMap, err = schema.TransformFromAliasedFields(sch, request, requestMap)
 	if err != nil {
 		return nil, err
 	}

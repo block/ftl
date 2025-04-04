@@ -15,7 +15,7 @@ func TestTransformFromAliasedFields(t *testing.T) {
 					A test.Inner
 					B String
 				}
-				
+
 				data Inner {
 					waz String +alias json "foo"
 				}
@@ -34,7 +34,7 @@ func TestTransformFromAliasedFields(t *testing.T) {
 
 	sch, err := ParseString("test", schemaText)
 	assert.NoError(t, err)
-	actual, err := TransformFromAliasedFields(&Ref{Module: "test", Name: "Test"}, sch, map[string]any{
+	actual, err := TransformFromAliasedFields(sch, &Ref{Module: "test", Name: "Test"}, map[string]any{
 		"bar": "value",
 		"inner": map[string]any{
 			"foo": "value",
@@ -86,7 +86,7 @@ func TestTransformFromAliasedFields(t *testing.T) {
 
 func TestTransformToAliasedFields(t *testing.T) {
 	schemaText := `
-		realm foo {	
+		realm foo {
 			module test {
 				enum TypeEnum {
 					A test.Inner
@@ -111,7 +111,7 @@ func TestTransformToAliasedFields(t *testing.T) {
 
 	sch, err := ParseString("test", schemaText)
 	assert.NoError(t, err)
-	actual, err := TransformToAliasedFields(&Ref{Module: "test", Name: "Test"}, sch, map[string]any{
+	actual, err := TransformToAliasedFields(sch, &Ref{Module: "test", Name: "Test"}, map[string]any{
 		"scalar": "value",
 		"inner": map[string]any{
 			"waz": "value",

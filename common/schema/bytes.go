@@ -17,3 +17,4 @@ func (*Bytes) schemaType()             {}
 func (*Bytes) schemaSymbol()           {}
 func (*Bytes) String() string          { return "Bytes" }
 func (*Bytes) GetName() string         { return "Bytes" }
+func (*Bytes) Kind() Kind              { return KindBytes }

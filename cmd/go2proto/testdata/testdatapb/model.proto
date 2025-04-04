@@ -68,9 +68,9 @@ message SumType {
   oneof value {
     SubSumTypeA sub_sum_type_a = 4;
     SubSumTypeB sub_sum_type_b = 5;
-    SumTypeA a = 1;
-    SumTypeB b = 2;
-    SumTypeC c = 3;
+    SumTypeA sum_type_a = 1;
+    SumTypeB sum_type_b = 2;
+    SumTypeC sum_type_c = 3;
   }
 }
 
