@@ -8,6 +8,7 @@ import (
 
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/maps"
 )
 
 // A Data structure.
@@ -41,15 +42,13 @@ func (d *Data) Equal(other Type) bool {
 	if len(d.TypeParameters) != len(o.TypeParameters) {
 		return false
 	}
-	if len(d.Metadata) != len(o.Metadata) {
-		return false
-	}
 	if len(d.Fields) != len(o.Fields) {
 		return false
 	}
-	for _, f := range d.Fields {
-		fo := o.FieldByName(f.Name)
-		if fo == nil || f.Name != fo.Name || !f.Type.Equal(fo.Type) {
+	ourFields := maps.FromSlice(d.Fields, func(f *Field) (string, *Field) { return f.Name, f })
+	otherFields := maps.FromSlice(o.Fields, func(f *Field) (string, *Field) { return f.Name, f })
+	for name, field := range ourFields {
+		if otherField, ok := otherFields[name]; !ok || !field.Type.Equal(otherField.Type) {
 			return false
 		}
 	}

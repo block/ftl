@@ -7,7 +7,6 @@ import (
 	"github.com/alecthomas/types/optional"
 )
 
-//protobuf:15 Type
 type Field struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
