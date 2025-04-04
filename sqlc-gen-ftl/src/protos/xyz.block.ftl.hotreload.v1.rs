@@ -7,6 +7,9 @@ pub struct ReloadRequest {
     /// If the reload results in a new runner, this will be the new deployment key
     #[prost(string, tag="2")]
     pub new_deployment_key: ::prost::alloc::string::String,
+    /// If the schema has changed on the plugin side, this will be true
+    #[prost(bool, tag="3")]
+    pub schema_changed: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReloadResponse {

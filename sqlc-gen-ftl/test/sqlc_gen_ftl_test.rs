@@ -235,7 +235,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                     }, schemapb::Metadata {
                         value: Some(schemapb::metadata::Value::Databases(schemapb::MetadataDatabases {
                             pos: None,
-                            calls: vec![schemapb::Ref {
+                            uses: vec![schemapb::Ref {
                                 pos: None,
                                 module: "echo".to_string(),
                                 name: "testdb".to_string(),
@@ -280,7 +280,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                     }, schemapb::Metadata {
                         value: Some(schemapb::metadata::Value::Databases(schemapb::MetadataDatabases {
                             pos: None,
-                            calls: vec![schemapb::Ref {
+                            uses: vec![schemapb::Ref {
                                 pos: None,
                                 module: "echo".to_string(),
                                 name: "testdb".to_string(),
