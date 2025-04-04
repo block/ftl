@@ -75,7 +75,7 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
                 if (runnerDetails == null) {
                     waitForRunner();
                     if (runnerDetails == null) {
-                        log.error("Failed to get runner details");
+                        log.debugf("Failed to get runner details");
                         return this.runnerConnection = new MockRunnerConnection();
                     }
                 }
@@ -102,7 +102,7 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         if (runnerDetails == null) {
             waitForRunner();
             if (runnerDetails == null) {
-                log.error("Failed to get runner details");
+                log.debugf("Failed to get runner details");
                 return null;
             }
         }
