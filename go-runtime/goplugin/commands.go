@@ -3,6 +3,7 @@ package goplugin
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
 	"github.com/block/scaffolder"
+	"golang.org/x/mod/modfile"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
@@ -43,6 +45,37 @@ type scaffoldingContext struct {
 	Replace   map[string]string
 }
 
+// determineGoVersion looks for a go.mod file in any subdirectory of the given path
+// and returns its Go version. If no go.mod is found or none contain a Go version,
+// returns the current Go runtime version.
+func determineGoVersion(projectPath string) string {
+	if projectPath == "" {
+		return runtime.Version()[2:]
+	}
+
+	entries, err := os.ReadDir(projectPath)
+	if err != nil {
+		return runtime.Version()[2:]
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		goModPath := filepath.Join(projectPath, entry.Name(), "go.mod")
+		data, err := os.ReadFile(goModPath)
+		if err != nil {
+			continue
+		}
+		modFile, err := modfile.Parse(goModPath, data, nil)
+		if err != nil || modFile.Go == nil {
+			continue
+		}
+		return modFile.Go.Version
+	}
+	return runtime.Version()[2:]
+}
+
 // NewModule generates files for a new module with the requested name
 func (CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.NewModuleRequest]) (*connect.Response[langpb.NewModuleResponse], error) {
 	logger := log.FromContext(ctx)
@@ -61,7 +94,7 @@ func (CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.New
 
 	sctx := scaffoldingContext{
 		Name:      req.Msg.Name,
-		GoVersion: runtime.Version()[2:],
+		GoVersion: determineGoVersion(projConfig.Path),
 		Replace:   map[string]string{},
 	}
 	if replaceValue, ok := flags["replace"]; ok && replaceValue != "" {
