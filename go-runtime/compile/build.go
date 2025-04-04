@@ -81,21 +81,10 @@ func (c *mainDeploymentContext) generateMainImports() []string {
 	imports.Add(`"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"`)
 	imports.Add(`"github.com/block/ftl/common/plugin"`)
 	imports.Add(`"github.com/block/ftl/go-runtime/server"`)
-	if len(c.MainCtx.SumTypes) > 0 || len(c.MainCtx.ExternalTypes) > 0 {
-		imports.Add(`"github.com/block/ftl/common/reflection"`)
-	}
 
 	for _, v := range c.Verbs {
-		imports.Append(verbImports(v)...)
-	}
-	for _, st := range c.MainCtx.SumTypes {
-		imports.Add(st.importStatement())
-		for _, v := range st.Variants {
-			imports.Add(v.importStatement())
-		}
-	}
-	for _, e := range c.MainCtx.ExternalTypes {
-		imports.Add(e.importStatement())
+		imports.Add("_ " + strconv.Quote(v.importPath))
+		imports.Append(verbImports(v, true)...)
 	}
 	out := imports.ToSlice()
 	slices.Sort(out)
@@ -154,10 +143,11 @@ func (c *mainDeploymentContext) generateTypesImports(mainModuleImport string) []
 		imports.Add(et.importStatement())
 	}
 	for _, v := range c.Verbs {
+		imports.Add(`"github.com/block/ftl/common/reflection"`)
 		if len(v.Resources) > 0 {
 			imports.Add(`"github.com/block/ftl/go-runtime/server"`)
 		}
-		imports.Append(verbImports(v)...)
+		imports.Append(verbImports(v, false)...)
 	}
 
 	var filteredImports []string
@@ -191,10 +181,13 @@ func typeImports(t goSchemaType, importUnit bool) []string {
 	return imports.ToSlice()
 }
 
-func verbImports(v goVerb) []string {
+func verbImports(v goVerb, main bool) []string {
 	imports := sets.NewSet[string]()
-	imports.Add(v.importStatement())
-	imports.Add(`"github.com/block/ftl/common/reflection"`)
+
+	if !main {
+		imports.Add(v.importStatement())
+		imports.Add(`"github.com/block/ftl/common/reflection"`)
+	}
 
 	imports.Append(typeImports(v.Request, false)...)
 	imports.Append(typeImports(v.Response, false)...)
@@ -212,13 +205,15 @@ func verbImports(v goVerb) []string {
 		imports.Append(typeImports(r, true)...)
 	}
 
-	for _, r := range v.Resources {
-		switch r := r.(type) {
-		case verbClient:
-			imports.Add(`"github.com/block/ftl/go-runtime/server"`)
-			imports.Append(verbImports(r.goVerb)...)
-		case goTopicHandle:
-			imports.Add(r.MapperType.importStatement())
+	if !main {
+		for _, r := range v.Resources {
+			switch r := r.(type) {
+			case verbClient:
+				imports.Add(`"github.com/block/ftl/go-runtime/server"`)
+				imports.Append(verbImports(r.goVerb, false)...)
+			case goTopicHandle:
+				imports.Add(r.MapperType.importStatement())
+			}
 		}
 	}
 	return imports.ToSlice()
