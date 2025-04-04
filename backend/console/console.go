@@ -119,7 +119,7 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 
 	allowed := map[string]bool{}
 	var modules []*consolepb.Module
-	for _, mod := range sch.Modules {
+	for _, mod := range sch.InternalModules() {
 		if mod.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() || mod.GetRuntime().GetRunner().GetEndpoint() == "" {
 			continue
 		}
@@ -387,7 +387,7 @@ func (s *service) StreamModules(ctx context.Context, req *connect.Request[consol
 
 // filterDeployments removes any duplicate modules by selecting the deployment with the
 // latest CreatedAt.
-func (s *service) filterDeployments(unfilteredDeployments *schema.Schema) []*schema.Module {
+func (s *service) filterDeployments(unfilteredDeployments *schema.Realm) []*schema.Module {
 	latest := make(map[string]*schema.Module)
 
 	for _, deployment := range unfilteredDeployments.Modules {
@@ -408,14 +408,22 @@ func (s *service) filterDeployments(unfilteredDeployments *schema.Schema) []*sch
 }
 
 func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
-	unfilteredDeployments := s.schemaEventSource.CanonicalView()
+	unfilteredSchema := s.schemaEventSource.CanonicalView()
 
-	deployments := s.filterDeployments(unfilteredDeployments)
-	sch := &schema.Schema{
-		Modules: deployments,
+	realms := []*schema.Realm{}
+	for _, realm := range unfilteredSchema.Realms {
+		realms = append(realms, &schema.Realm{
+			External: realm.External,
+			Name:     realm.Name,
+			Modules:  s.filterDeployments(realm),
+		})
 	}
+
+	sch := &schema.Schema{Realms: realms}
 	builtin := schema.Builtins()
-	sch.Modules = append(sch.Modules, builtin)
+	for _, realm := range sch.InternalRealms() {
+		realm.Modules = append(realm.Modules, builtin)
+	}
 
 	// Get topology
 	sorted, err := buildengine.TopologicalSort(graph(sch))
@@ -433,7 +441,7 @@ func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.Ser
 	}
 
 	var modules []*consolepb.Module
-	for _, deployment := range deployments {
+	for _, deployment := range sch.InternalModules() {
 		if deployment.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 			continue
 		}
@@ -466,7 +474,7 @@ func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.Ser
 
 func graph(sch *schema.Schema) map[string][]string {
 	out := make(map[string][]string)
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		buildGraph(sch, module, out)
 	}
 	return out
@@ -477,7 +485,7 @@ func buildGraph(sch *schema.Schema, module *schema.Module, out map[string][]stri
 	out[module.Name] = module.Imports()
 	for _, dep := range module.Imports() {
 		var depModule *schema.Module
-		for _, m := range sch.Modules {
+		for _, m := range sch.InternalModules() {
 			if m.String() == dep {
 				depModule = m
 				break

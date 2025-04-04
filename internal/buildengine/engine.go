@@ -265,7 +265,7 @@ func (e *Engine) GetModuleSchema(moduleName string) (*schema.Module, bool) {
 	if sch == nil {
 		return nil, false
 	}
-	module, ok := slices.Find(sch.Modules, func(m *schema.Module) bool {
+	module, ok := slices.Find(sch.InternalModules(), func(m *schema.Module) bool {
 		return m.Name == moduleName
 	})
 	if !ok {
@@ -328,10 +328,10 @@ func (e *Engine) buildGraph(moduleName string, out map[string][]string) error {
 // the FTL controller.
 func (e *Engine) Import(ctx context.Context, moduleSch *schema.Module) {
 	sch := reflect.DeepCopy(e.targetSchema.Load())
-	sch.Modules = slices.Filter(sch.Modules, func(m *schema.Module) bool {
+	sch.Realms[0].Modules = slices.Filter(sch.Realms[0].Modules, func(m *schema.Module) bool {
 		return m.Name != moduleSch.Name
 	})
-	sch.Modules = append(sch.Modules, moduleSch)
+	sch.Realms[0].Modules = append(sch.Realms[0].Modules, moduleSch)
 	e.targetSchema.Store(sch)
 }
 
@@ -398,7 +398,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 		break
 	}
 	moduleHashes := map[string][]byte{}
-	for _, sch := range e.targetSchema.Load().Modules {
+	for _, sch := range e.targetSchema.Load().InternalModules() {
 		hash, err := computeModuleHash(sch)
 		if err != nil {
 			return fmt.Errorf("compute hash for %s failed: %w", sch.Name, err)
@@ -481,7 +481,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 			}
 		case event := <-e.deployCoordinator.SchemaUpdates:
 			e.targetSchema.Store(event.schema)
-			for _, module := range event.schema.Modules {
+			for _, module := range event.schema.InternalModules() {
 				if !event.updatedModules[module.Name] {
 					continue
 				}
@@ -1149,7 +1149,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 		return fmt.Errorf("module %q not found", moduleName)
 	}
 
-	sch := &schema.Schema{Modules: maps.Values(builtModules)}
+	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(builtModules)}}} //nolint:exptostd
 
 	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
 	if err != nil {
@@ -1230,7 +1230,7 @@ func (e *Engine) gatherSchemas(
 	moduleSchemas map[string]*schema.Module,
 	out map[string]*schema.Module,
 ) error {
-	for _, sch := range e.targetSchema.Load().Modules {
+	for _, sch := range e.targetSchema.Load().InternalModules() {
 		out[sch.Name] = sch
 	}
 
@@ -1248,17 +1248,22 @@ func (e *Engine) gatherSchemas(
 }
 
 func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[string]*schema.Module, metasMap map[string]moduleMeta) error {
-	fullSchema := &schema.Schema{Modules: maps.Values(newModules)}
-	for _, module := range e.targetSchema.Load().Modules {
+	fullSchema := &schema.Schema{Realms: []*schema.Realm{{
+		Modules: maps.Values(newModules),
+		Name:    "default", // TODO: projectName,
+	}}} //nolint:exptostd
+	for _, module := range e.targetSchema.Load().InternalModules() {
 		if _, ok := newModules[module.Name]; !ok {
-			fullSchema.Modules = append(fullSchema.Modules, module)
+			fullSchema.Realms[0].Modules = append(fullSchema.Realms[0].Modules, module)
 		}
 	}
-	sort.SliceStable(fullSchema.Modules, func(i, j int) bool { return fullSchema.Modules[i].Name < fullSchema.Modules[j].Name })
+	sort.SliceStable(fullSchema.Realms[0].Modules, func(i, j int) bool {
+		return fullSchema.Realms[0].Modules[i].Name < fullSchema.Realms[0].Modules[j].Name
+	})
 
 	return SyncStubReferences(ctx,
 		e.projectConfig.Root(),
-		slices.Map(fullSchema.Modules, func(m *schema.Module) string { return m.Name }),
+		slices.Map(fullSchema.InternalModules(), func(m *schema.Module) string { return m.Name }),
 		metasMap,
 		fullSchema)
 }

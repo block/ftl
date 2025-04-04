@@ -43,9 +43,9 @@ type ingressRoute struct {
 func extractIngressRoutingEntries(sch *schema.Schema) materialisedView {
 	out := materialisedView{
 		schema: sch,
-		routes: make(map[string][]ingressRoute, len(sch.Modules)*2),
+		routes: make(map[string][]ingressRoute, len(sch.InternalModules())*2),
 	}
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		for _, decl := range module.Decls {
 			if verb, ok := decl.(*schema.Verb); ok {
 				for _, metadata := range verb.Metadata {

@@ -142,53 +142,55 @@ func testAdminSecrets(
 }
 
 var testSchema = schema.MustValidate(&schema.Schema{
-	Modules: []*schema.Module{
-		{
-			Name:     "batmobile",
-			Comments: []string{"A batmobile comment"},
-			Decls: []schema.Decl{
-				&schema.Secret{
-					Comments: []string{"top secret"},
-					Name:     "owner",
-					Type:     &schema.String{},
-				},
-				&schema.Secret{
-					Comments: []string{"ultra secret"},
-					Name:     "horsepower",
-					Type:     &schema.Int{},
-				},
-				&schema.Config{
-					Comments: []string{"car color"},
-					Name:     "color",
-					Type:     &schema.Ref{Module: "batmobile", Name: "Color"},
-				},
-				&schema.Config{
-					Comments: []string{"car capacity"},
-					Name:     "capacity",
-					Type:     &schema.Ref{Module: "batmobile", Name: "Capacity"},
-				},
-				&schema.Enum{
-					Comments: []string{"Car colors"},
-					Name:     "Color",
-					Type:     &schema.String{},
-					Variants: []*schema.EnumVariant{
-						{Name: "Black", Value: &schema.StringValue{Value: "Black"}},
-						{Name: "Blue", Value: &schema.StringValue{Value: "Blue"}},
-						{Name: "Green", Value: &schema.StringValue{Value: "Green"}},
+	Realms: []*schema.Realm{{
+		Modules: []*schema.Module{
+			{
+				Name:     "batmobile",
+				Comments: []string{"A batmobile comment"},
+				Decls: []schema.Decl{
+					&schema.Secret{
+						Comments: []string{"top secret"},
+						Name:     "owner",
+						Type:     &schema.String{},
 					},
-				},
-				&schema.Enum{
-					Comments: []string{"Car capacities"},
-					Name:     "Capacity",
-					Type:     &schema.Int{},
-					Variants: []*schema.EnumVariant{
-						{Name: "One", Value: &schema.IntValue{Value: int(1)}},
-						{Name: "Two", Value: &schema.IntValue{Value: int(2)}},
-						{Name: "Four", Value: &schema.IntValue{Value: int(4)}},
+					&schema.Secret{
+						Comments: []string{"ultra secret"},
+						Name:     "horsepower",
+						Type:     &schema.Int{},
+					},
+					&schema.Config{
+						Comments: []string{"car color"},
+						Name:     "color",
+						Type:     &schema.Ref{Module: "batmobile", Name: "Color"},
+					},
+					&schema.Config{
+						Comments: []string{"car capacity"},
+						Name:     "capacity",
+						Type:     &schema.Ref{Module: "batmobile", Name: "Capacity"},
+					},
+					&schema.Enum{
+						Comments: []string{"Car colors"},
+						Name:     "Color",
+						Type:     &schema.String{},
+						Variants: []*schema.EnumVariant{
+							{Name: "Black", Value: &schema.StringValue{Value: "Black"}},
+							{Name: "Blue", Value: &schema.StringValue{Value: "Blue"}},
+							{Name: "Green", Value: &schema.StringValue{Value: "Green"}},
+						},
+					},
+					&schema.Enum{
+						Comments: []string{"Car capacities"},
+						Name:     "Capacity",
+						Type:     &schema.Int{},
+						Variants: []*schema.EnumVariant{
+							{Name: "One", Value: &schema.IntValue{Value: int(1)}},
+							{Name: "Two", Value: &schema.IntValue{Value: int(2)}},
+							{Name: "Four", Value: &schema.IntValue{Value: int(4)}},
+						},
 					},
 				},
 			},
-		},
+		}},
 	},
 })
 

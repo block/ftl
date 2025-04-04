@@ -42,11 +42,11 @@ func (s *schemaGenerateCmd) oneOffGenerate(ctx context.Context, schemaClient adm
 	if err != nil {
 		return fmt.Errorf("failed to get schema: %w", err)
 	}
-	modules, err := slices.MapErr(response.Msg.Schema.Modules, schema.ModuleFromProto)
+	sch, err := schema.SchemaFromProto(response.Msg.Schema)
 	if err != nil {
-		return fmt.Errorf("invalid module schema: %w", err)
+		return fmt.Errorf("invalid schema: %w", err)
 	}
-	return s.regenerateModules(log.FromContext(ctx), modules)
+	return s.regenerateModules(log.FromContext(ctx), sch.InternalModules())
 }
 
 func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
@@ -89,11 +89,12 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 				msg := stream.Msg()
 				switch msg := msg.Event.Value.(type) {
 				case *schemapb.Notification_FullSchemaNotification:
-					for _, m := range msg.FullSchemaNotification.Schema.Modules {
-						module, err := schema.ValidatedModuleFromProto(m)
-						if err != nil {
-							return fmt.Errorf("invalid module: %w", err)
-						}
+					sch, err := schema.SchemaFromProto(msg.FullSchemaNotification.Schema)
+					if err != nil {
+						return fmt.Errorf("invalid schema: %w", err)
+					}
+
+					for _, module := range sch.InternalModules() {
 						modules[module.Name] = module
 					}
 				case *schemapb.Notification_DeploymentRuntimeNotification:

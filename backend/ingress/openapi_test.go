@@ -10,48 +10,50 @@ import (
 
 func TestOpenAPI(t *testing.T) {
 	s, err := schema.ParseString("ingress", `
-		module http {
-		  	export data ApiError {
-				message String +alias json "message"
-			}
-				
-			export data GetPathParams {
-				name String +alias json "name"
-			}
-			
-			export data GetQueryParams {
-				age Int? +alias json "age"
-			} 
+		realm test {
+      module http {
+          export data ApiError {
+          message String +alias json "message"
+        }
+          
+        export data GetPathParams {
+          name String +alias json "name"
+        }
+        
+        export data GetQueryParams {
+          age Int? +alias json "age"
+        } 
 
-			export data GetResponse {
-				name String +alias json "name"
-				age Int? +alias json "age"
-			}
-			
-			export data PostRequest {
-				name String +alias json "name"
-				age Int +alias json "age"
-			}
+        export data GetResponse {
+          name String +alias json "name"
+          age Int? +alias json "age"
+        }
+        
+        export data PostRequest {
+          name String +alias json "name"
+          age Int +alias json "age"
+        }
 
-			export data PostResponse {
-				name String +alias json "name"
-				age Int +alias json "age"
-			}
+        export data PostResponse {
+          name String +alias json "name"
+          age Int +alias json "age"
+        }
 
-			// Example usage of path and query params
-			// curl http://localhost:8891/get/wicket?age=10
-			export verb get(builtin.HttpRequest<Unit, http.GetPathParams, http.GetQueryParams>) builtin.HttpResponse<http.GetResponse, http.ApiError>
-				+ingress http GET /get/{name}
+        // Example usage of path and query params
+        // curl http://localhost:8891/get/wicket?age=10
+        export verb get(builtin.HttpRequest<Unit, http.GetPathParams, http.GetQueryParams>) builtin.HttpResponse<http.GetResponse, http.ApiError>
+          +ingress http GET /get/{name}
 
-			// Example POST request with a JSON body
-			// curl -X POST http://localhost:8891/post -d '{"name": "wicket", "age": 10}'
-			export verb post(builtin.HttpRequest<http.PostRequest, Unit, Unit>) builtin.HttpResponse<http.PostResponse, http.ApiError> 
-				+ingress http POST /post
+        // Example POST request with a JSON body
+        // curl -X POST http://localhost:8891/post -d '{"name": "wicket", "age": 10}'
+        export verb post(builtin.HttpRequest<http.PostRequest, Unit, Unit>) builtin.HttpResponse<http.PostResponse, http.ApiError> 
+          +ingress http POST /post
 
-			// Posts a string and returns a string
-			export verb postStrings(builtin.HttpRequest<String, Unit, Unit>) builtin.HttpResponse<String, http.ApiError>
-				+ingress http POST /post/name
-		}
+        // Posts a string and returns a string
+        export verb postStrings(builtin.HttpRequest<String, Unit, Unit>) builtin.HttpResponse<String, http.ApiError>
+          +ingress http POST /post/name
+      }
+    }
 	`)
 	assert.NoError(t, err)
 

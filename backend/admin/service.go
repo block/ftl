@@ -76,7 +76,7 @@ type streamSchemaRetriever struct {
 
 func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, error) {
 	view := c.source.CanonicalView()
-	return &schema.Schema{Modules: view.Modules}, nil
+	return &schema.Schema{Realms: view.Realms}, nil
 }
 
 // NewAdminService creates a new Service.
@@ -212,7 +212,7 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ad
 	// Find nodes in schema
 	// TODO: we really want all deployments for a module... not just latest... Use canonical and check ActiveChangeset?
 	sch := s.source.CanonicalView()
-	module, ok := islices.Find(sch.Modules, func(m *schema.Module) bool {
+	module, ok := islices.Find(sch.InternalModules(), func(m *schema.Module) bool {
 		return m.Name == req.Msg.Subscription.Module
 	})
 	if !ok {

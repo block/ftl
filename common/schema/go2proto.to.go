@@ -2518,6 +2518,39 @@ func PositionFromProto(v *destpb.Position) (out *Position, err error) {
 	return out, nil
 }
 
+func (x *Realm) ToProto() *destpb.Realm {
+	if x == nil {
+		return nil
+	}
+	return &destpb.Realm{
+		Pos:      x.Pos.ToProto(),
+		External: orZero(ptr(bool(x.External))),
+		Name:     orZero(ptr(string(x.Name))),
+		Modules:  sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+	}
+}
+
+func RealmFromProto(v *destpb.Realm) (out *Realm, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &Realm{}
+	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
+		return nil, fmt.Errorf("Pos: %w", err)
+	}
+	if out.External, err = orZeroR(result.From(ptr(bool(v.External)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("External: %w", err)
+	}
+	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Name: %w", err)
+	}
+	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Modules: %w", err)
+	}
+	return out, nil
+}
+
 func (x *Ref) ToProto() *destpb.Ref {
 	if x == nil {
 		return nil
@@ -2641,8 +2674,8 @@ func (x *Schema) ToProto() *destpb.Schema {
 		return nil
 	}
 	return &destpb.Schema{
-		Pos:     x.Pos.ToProto(),
-		Modules: sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		Pos:    x.Pos.ToProto(),
+		Realms: sliceMap(x.Realms, func(v *Realm) *destpb.Realm { return v.ToProto() }),
 	}
 }
 
@@ -2655,8 +2688,8 @@ func SchemaFromProto(v *destpb.Schema) (out *Schema, err error) {
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
 		return nil, fmt.Errorf("Pos: %w", err)
 	}
-	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Modules: %w", err)
+	if out.Realms, err = sliceMapR(v.Realms, func(v *destpb.Realm) result.Result[*Realm] { return result.From(RealmFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Realms: %w", err)
 	}
 	return out, nil
 }

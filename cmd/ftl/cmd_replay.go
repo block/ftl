@@ -51,7 +51,7 @@ func (c *replayCmd) Run(
 	eventSource.WaitForInitialSync(ctx)
 
 	found := false
-	for _, module := range eventSource.CanonicalView().Modules {
+	for _, module := range eventSource.CanonicalView().InternalModules() {
 		if module.Name == c.Verb.Module {
 			for _, v := range module.Verbs() {
 				if v.Name == c.Verb.Name {

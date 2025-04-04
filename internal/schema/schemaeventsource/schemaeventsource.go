@@ -113,7 +113,7 @@ func (e *EventSource) ActiveChangesets() map[key.Changeset]*schema.Changeset {
 }
 
 func (e *EventSource) PublishModuleForTest(module *schema.Module) error {
-	return e.Publish(&schema.FullSchemaNotification{Schema: &schema.Schema{Modules: []*schema.Module{module}}})
+	return e.Publish(&schema.FullSchemaNotification{Schema: &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{module}}}}})
 }
 
 // Publish an event to the EventSource.
@@ -150,7 +150,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 				}
 			}
 		} else {
-			for _, m := range clone.schema.Modules {
+			for _, m := range clone.schema.InternalModules() {
 				if m.Runtime == nil {
 					continue
 				}
@@ -178,7 +178,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 	case *schema.ChangesetCommittedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		clone.activeChangesets[event.Changeset.Key] = event.Changeset
-		modules := clone.schema.Modules
+		modules := clone.schema.InternalModules()
 		for _, module := range event.Changeset.Modules {
 			module.Runtime.Deployment.State = schema.DeploymentStateCanonical
 			if i := slices.IndexFunc(modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
@@ -193,7 +193,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 			})
 
 		}
-		clone.schema.Modules = modules
+		clone.schema.Realms[0].Modules = modules
 		e.view.Store(clone)
 	case *schema.ChangesetDrainedNotification:
 		clone := reflect.DeepCopy(e.view.Load())

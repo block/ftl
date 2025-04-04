@@ -295,7 +295,10 @@ func Wait(module string) Action {
 		ic.AssertWithRetry(t, func(t testing.TB, ic TestContext) {
 			status, err := ic.Admin.GetSchema(ic, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 			assert.NoError(t, err)
-			for _, deployment := range status.Msg.GetSchema().Modules {
+
+			schema, err := schema.FromProto(status.Msg.GetSchema())
+			assert.NoError(t, err)
+			for _, deployment := range schema.InternalModules() {
 				if deployment.Name == module {
 					return
 				}
@@ -320,7 +323,10 @@ func WaitWithTimeout(module string, timeout time.Duration) Action {
 			case <-tick.C:
 				status, err := ic.Admin.GetSchema(ic, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 				assert.NoError(t, err)
-				for _, deployment := range status.Msg.GetSchema().Modules {
+				sch, err := schema.FromProto(status.Msg.GetSchema())
+				assert.NoError(t, err)
+
+				for _, deployment := range sch.InternalModules() {
 					if deployment.Name == module {
 						return
 					}
@@ -568,17 +574,24 @@ func VerifySchema(check func(ctx context.Context, t testing.TB, sch *schema.Sche
 // VerifySchemaVerb lets you test the current schema for a specific verb
 func VerifySchemaVerb(module string, verb string, check func(ctx context.Context, t testing.TB, schema *schemapb.Schema, verb *schemapb.Verb)) Action {
 	return func(t testing.TB, ic TestContext) {
-		sch, err := ic.Schema.GetSchema(ic, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
+		resp, err := ic.Schema.GetSchema(ic, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 		if err != nil {
 			t.Errorf("failed to get schema: %v", err)
 			return
 		}
-		for _, m := range sch.Msg.GetSchema().Modules {
+		sch, err := schema.FromProto(resp.Msg.GetSchema())
+		if err != nil {
+			t.Errorf("failed to parse schema: %v", err)
+			return
+		}
+		for _, m := range sch.InternalModules() {
 			if m.Name == module {
 				for _, v := range m.Decls {
-					if v.GetVerb() != nil && v.GetVerb().Name == verb {
-						check(ic.Context, t, sch.Msg.GetSchema(), v.GetVerb())
-						return
+					if v, ok := v.(*schema.Verb); ok {
+						if v.Name == verb {
+							check(ic.Context, t, sch.ToProto(), v.ToProto())
+							return
+						}
 					}
 				}
 			}

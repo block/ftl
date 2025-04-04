@@ -52,52 +52,52 @@ func TestValidation(t *testing.T) {
 		err     string
 	}{
 		{name: "Int",
-			schema:  `module test { data Test { intValue Int } }`,
+			schema:  `realm test { module test { data Test { intValue Int } } }`,
 			request: obj{"intValue": 10.0}},
 		{name: "Float",
-			schema:  `module test { data Test { floatValue Float } }`,
+			schema:  `realm test { module test { data Test { floatValue Float } } }`,
 			request: obj{"floatValue": 10.0}},
 		{name: "String",
-			schema:  `module test { data Test { stringValue String } }`,
+			schema:  `realm test { module test { data Test { stringValue String } } }`,
 			request: obj{"stringValue": "test"}},
 		{name: "Bool",
-			schema:  `module test { data Test { boolValue Bool } }`,
+			schema:  `realm test { module test { data Test { boolValue Bool } } }`,
 			request: obj{"boolValue": true}},
 		{name: "IntString",
-			schema:  `module test { data Test { intValue Int } }`,
+			schema:  `realm test { module test { data Test { intValue Int } } }`,
 			request: obj{"intValue": "10"}},
 		{name: "FloatString",
-			schema:  `module test { data Test { floatValue Float } }`,
+			schema:  `realm test { module test { data Test { floatValue Float } } }`,
 			request: obj{"floatValue": "10.0"}},
 		{name: "BoolString",
-			schema:  `module test { data Test { boolValue Bool } }`,
+			schema:  `realm test { module test { data Test { boolValue Bool } } }`,
 			request: obj{"boolValue": "true"}},
 		{name: "Array",
-			schema:  `module test { data Test { arrayValue [String] } }`,
+			schema:  `realm test { module test { data Test { arrayValue [String] } } }`,
 			request: obj{"arrayValue": []any{"test1", "test2"}}},
 		{name: "Map",
-			schema:  `module test { data Test { mapValue {String: String} } }`,
+			schema:  `realm test { module test { data Test { mapValue {String: String} } } }`,
 			request: obj{"mapValue": obj{"key1": "value1", "key2": "value2"}}},
 		{name: "DataRef",
-			schema:  `module test { data Nested { intValue Int } data Test { dataRef test.Nested } }`,
+			schema:  `realm test { module test { data Nested { intValue Int } data Test { dataRef test.Nested } } }`,
 			request: obj{"dataRef": obj{"intValue": 10.0}}},
 		{name: "Optional",
-			schema:  `module test { data Test { intValue Int? } }`,
+			schema:  `realm test { module test { data Test { intValue Int? } } }`,
 			request: obj{}},
 		{name: "OptionalProvided",
-			schema:  `module test { data Test { intValue Int? } }`,
+			schema:  `realm test { module test { data Test { intValue Int? } } }`,
 			request: obj{"intValue": 10.0}},
 		{name: "ArrayDataRef",
-			schema:  `module test { data Nested { intValue Int } data Test { arrayValue [test.Nested] } }`,
+			schema:  `realm test { module test { data Nested { intValue Int } data Test { arrayValue [test.Nested] } } }`,
 			request: obj{"arrayValue": []any{obj{"intValue": 10.0}, obj{"intValue": 20.0}}}},
 		{name: "MapDataRef",
-			schema:  `module test { data Nested { intValue Int } data Test { mapValue {String: test.Nested} } }`,
+			schema:  `realm test { module test { data Nested { intValue Int } data Test { mapValue {String: test.Nested} } } }`,
 			request: obj{"mapValue": obj{"key1": obj{"intValue": 10.0}, "key2": obj{"intValue": 20.0}}}},
 		{name: "OtherModuleRef",
-			schema:  `module other { export data Other { intValue Int } } module test { data Test { otherRef other.Other } }`,
+			schema:  `realm test { module other { export data Other { intValue Int } } module test { data Test { otherRef other.Other } } }`,
 			request: obj{"otherRef": obj{"intValue": 10.0}}},
 		{name: "AllowedMissingFieldTypes",
-			schema: `
+			schema: `realm test {
 			module test {
 				data Test {
 					array [Int]
@@ -106,33 +106,33 @@ func TestValidation(t *testing.T) {
 					bytes Bytes
 					unit Unit
 				}
-			}`,
+			} }`,
 			request: obj{},
 		},
 		{name: "StringAlias",
-			schema: `module test {
+			schema: `realm test { module test {
 			typealias StringAlias String
 			 data Test { stringValue test.StringAlias }
-			 }`,
+			 } }`,
 			request: obj{"stringValue": "test"},
 		},
 		{name: "IntAlias",
-			schema: `module test {
+			schema: `realm test { module test {
 			typealias IntAlias Int
 			data Test { intValue test.IntAlias }
-			}`,
+			} }`,
 			request: obj{"intValue": 10.0},
 		},
 		{name: "DataAlias",
-			schema: `module test {
+			schema: `realm test { module test {
 			typealias IntAlias test.Inner
 			data Inner { string String }
 			data Test { obj test.IntAlias }
-			}`,
+			} }`,
 			request: obj{"obj": obj{"string": "test"}},
 		},
 		{name: "RequiredFields",
-			schema:  `module test { data Test { int Int } }`,
+			schema:  `realm test { module test { data Test { int Int } } }`,
 			request: obj{},
 			err:     "int is required",
 		},
@@ -237,20 +237,22 @@ func TestResponseBodyForVerb(t *testing.T) {
 		}},
 	}
 	sch := &schema.Schema{
-		Modules: []*schema.Module{
-			schema.Builtins(),
-			{
-				Name: "test",
-				Decls: []schema.Decl{
-					&schema.Data{
-						Name: "Test",
-						Fields: []*schema.Field{
-							{Name: "message", Type: &schema.String{}, Metadata: []schema.Metadata{&schema.MetadataAlias{Kind: schema.AliasKindJSON, Alias: "msg"}}},
+		Realms: []*schema.Realm{{
+			Modules: []*schema.Module{
+				schema.Builtins(),
+				{
+					Name: "test",
+					Decls: []schema.Decl{
+						&schema.Data{
+							Name: "Test",
+							Fields: []*schema.Field{
+								{Name: "message", Type: &schema.String{}, Metadata: []schema.Metadata{&schema.MetadataAlias{Kind: schema.AliasKindJSON, Alias: "msg"}}},
+							},
 						},
+						jsonVerb,
 					},
-					jsonVerb,
 				},
-			},
+			}},
 		},
 	}
 	tests := []struct {
@@ -324,63 +326,65 @@ func TestValueForData(t *testing.T) {
 
 func TestEnumValidation(t *testing.T) {
 	sch := &schema.Schema{
-		Modules: []*schema.Module{
-			{Name: "test", Decls: []schema.Decl{
-				&schema.Enum{
-					Name: "Color",
-					Type: &schema.Int{},
-					Variants: []*schema.EnumVariant{
-						{Name: "Red", Value: &schema.StringValue{Value: "Red"}},
-						{Name: "Blue", Value: &schema.StringValue{Value: "Blue"}},
-						{Name: "Green", Value: &schema.StringValue{Value: "Green"}},
+		Realms: []*schema.Realm{{
+			Modules: []*schema.Module{
+				{Name: "test", Decls: []schema.Decl{
+					&schema.Enum{
+						Name: "Color",
+						Type: &schema.Int{},
+						Variants: []*schema.EnumVariant{
+							{Name: "Red", Value: &schema.StringValue{Value: "Red"}},
+							{Name: "Blue", Value: &schema.StringValue{Value: "Blue"}},
+							{Name: "Green", Value: &schema.StringValue{Value: "Green"}},
+						},
 					},
-				},
-				&schema.Enum{
-					Name: "ColorInt",
-					Type: &schema.Int{},
-					Variants: []*schema.EnumVariant{
-						{Name: "RedInt", Value: &schema.IntValue{Value: 0}},
-						{Name: "BlueInt", Value: &schema.IntValue{Value: 1}},
-						{Name: "GreenInt", Value: &schema.IntValue{Value: 2}},
+					&schema.Enum{
+						Name: "ColorInt",
+						Type: &schema.Int{},
+						Variants: []*schema.EnumVariant{
+							{Name: "RedInt", Value: &schema.IntValue{Value: 0}},
+							{Name: "BlueInt", Value: &schema.IntValue{Value: 1}},
+							{Name: "GreenInt", Value: &schema.IntValue{Value: 2}},
+						},
 					},
-				},
-				&schema.Enum{
-					Name: "TypeEnum",
-					Variants: []*schema.EnumVariant{
-						{Name: "String", Value: &schema.TypeValue{Value: &schema.String{}}},
-						{Name: "List", Value: &schema.TypeValue{Value: &schema.Array{Element: &schema.String{}}}},
+					&schema.Enum{
+						Name: "TypeEnum",
+						Variants: []*schema.EnumVariant{
+							{Name: "String", Value: &schema.TypeValue{Value: &schema.String{}}},
+							{Name: "List", Value: &schema.TypeValue{Value: &schema.Array{Element: &schema.String{}}}},
+						},
 					},
-				},
-				&schema.Data{
-					Name: "StringEnumRequest",
-					Fields: []*schema.Field{
-						{Name: "message", Type: &schema.Ref{Name: "Color", Module: "test"}},
+					&schema.Data{
+						Name: "StringEnumRequest",
+						Fields: []*schema.Field{
+							{Name: "message", Type: &schema.Ref{Name: "Color", Module: "test"}},
+						},
 					},
-				},
-				&schema.Data{
-					Name: "IntEnumRequest",
-					Fields: []*schema.Field{
-						{Name: "message", Type: &schema.Ref{Name: "ColorInt", Module: "test"}},
+					&schema.Data{
+						Name: "IntEnumRequest",
+						Fields: []*schema.Field{
+							{Name: "message", Type: &schema.Ref{Name: "ColorInt", Module: "test"}},
+						},
 					},
-				},
-				&schema.Data{
-					Name: "OptionalEnumRequest",
-					Fields: []*schema.Field{
-						{Name: "message", Type: &schema.Optional{
-							Type: &schema.Ref{Name: "Color", Module: "test"},
-						}},
+					&schema.Data{
+						Name: "OptionalEnumRequest",
+						Fields: []*schema.Field{
+							{Name: "message", Type: &schema.Optional{
+								Type: &schema.Ref{Name: "Color", Module: "test"},
+							}},
+						},
 					},
-				},
-				&schema.Data{
-					Name: "TypeEnumRequest",
-					Fields: []*schema.Field{
-						{Name: "message", Type: &schema.Optional{
-							Type: &schema.Ref{Name: "TypeEnum", Module: "test"},
-						}},
+					&schema.Data{
+						Name: "TypeEnumRequest",
+						Fields: []*schema.Field{
+							{Name: "message", Type: &schema.Optional{
+								Type: &schema.Ref{Name: "TypeEnum", Module: "test"},
+							}},
+						},
 					},
-				},
-			}},
-		},
+				}},
+			},
+		}},
 	}
 
 	tests := []struct {

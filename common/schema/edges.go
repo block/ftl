@@ -19,7 +19,7 @@ func Graph(s *Schema) map[RefKey]GraphNode {
 	// Build graph with outbound edges.
 	result := map[RefKey]GraphNode{}
 
-	for _, module := range s.Modules {
+	for _, module := range s.InternalModules() {
 		Visit(module, func(s Node, next func() error) error { //nolint:errcheck
 			d, ok := s.(Decl)
 			if !ok {

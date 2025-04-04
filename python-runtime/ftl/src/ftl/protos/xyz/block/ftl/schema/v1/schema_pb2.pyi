@@ -803,6 +803,18 @@ class Position(_message.Message):
     column: int
     def __init__(self, filename: _Optional[str] = ..., line: _Optional[int] = ..., column: _Optional[int] = ...) -> None: ...
 
+class Realm(_message.Message):
+    __slots__ = ("pos", "external", "name", "modules")
+    POS_FIELD_NUMBER: _ClassVar[int]
+    EXTERNAL_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    MODULES_FIELD_NUMBER: _ClassVar[int]
+    pos: Position
+    external: bool
+    name: str
+    modules: _containers.RepeatedCompositeFieldContainer[Module]
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., external: bool = ..., name: _Optional[str] = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ...) -> None: ...
+
 class Ref(_message.Message):
     __slots__ = ("pos", "module", "name", "type_parameters")
     POS_FIELD_NUMBER: _ClassVar[int]
@@ -842,12 +854,12 @@ class RuntimeElement(_message.Message):
     def __init__(self, element: _Optional[_Union[Runtime, _Mapping]] = ..., deployment: _Optional[str] = ..., name: _Optional[str] = ...) -> None: ...
 
 class Schema(_message.Message):
-    __slots__ = ("pos", "modules")
+    __slots__ = ("pos", "realms")
     POS_FIELD_NUMBER: _ClassVar[int]
-    MODULES_FIELD_NUMBER: _ClassVar[int]
+    REALMS_FIELD_NUMBER: _ClassVar[int]
     pos: Position
-    modules: _containers.RepeatedCompositeFieldContainer[Module]
-    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ...) -> None: ...
+    realms: _containers.RepeatedCompositeFieldContainer[Realm]
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., realms: _Optional[_Iterable[_Union[Realm, _Mapping]]] = ...) -> None: ...
 
 class SchemaState(_message.Message):
     __slots__ = ("modules", "changesets", "changeset_events", "deployment_events")

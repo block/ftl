@@ -30,7 +30,7 @@ type declPredictor[d schema.Decl] struct {
 func (p *declPredictor[d]) Predict(args complete.Args) []string {
 	sch := p.view.GetCanonical()
 	ret := []string{}
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		for _, dec := range module.Decls {
 			if _, ok := dec.(d); ok {
 				ref := schema.Ref{Module: module.Name, Name: dec.GetName()}
@@ -48,7 +48,7 @@ type subscriptionsPredictor struct {
 func (p *subscriptionsPredictor) Predict(args complete.Args) []string {
 	sch := p.view.GetCanonical()
 	ret := []string{}
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		for _, dec := range module.Decls {
 			verb, ok := dec.(*schema.Verb)
 			if !ok {
@@ -72,7 +72,7 @@ type modulePredictor struct {
 func (v *modulePredictor) Predict(args complete.Args) []string {
 	sch := v.view.GetCanonical()
 	ret := []string{}
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		ret = append(ret, module.Name)
 	}
 	return ret
@@ -85,7 +85,7 @@ type deploymentsPredictor struct {
 func (v *deploymentsPredictor) Predict(args complete.Args) []string {
 	sch := v.view.GetCanonical()
 	ret := []string{}
-	for _, module := range sch.Modules {
+	for _, module := range sch.InternalModules() {
 		if module.Runtime == nil || module.Runtime.Deployment == nil {
 			continue
 		}

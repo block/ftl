@@ -25,6 +25,7 @@ import (
 
 func TestIngress(t *testing.T) {
 	sch, err := schema.ParseString("", `
+	realm test {
 		module test {
 			data AliasRequest {
 				aliased String +alias json "alias"
@@ -58,6 +59,7 @@ func TestIngress(t *testing.T) {
 			export verb postJsonPayload(HttpRequest<test.JsonPayload, Unit, Unit>) HttpResponse<Empty, Empty>
 				+ingress http POST /postJsonPayload
 		}
+	}
 	`)
 	assert.NoError(t, err)
 

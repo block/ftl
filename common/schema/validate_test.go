@@ -19,7 +19,7 @@ func TestValidate(t *testing.T) {
 		errs   []string
 	}{
 		{name: "TwoModuleCycle",
-			schema: `
+			schema: `realm foo {
 				module one {
 					export verb one(builtin.Empty) builtin.Empty
 						+calls two.two
@@ -29,10 +29,10 @@ func TestValidate(t *testing.T) {
 					export verb two(builtin.Empty) builtin.Empty
 						+calls one.one
 				}
-				`,
+			}`,
 			errs: []string{"found cycle in dependencies: two -> one -> two"}},
 		{name: "ThreeModulesNoCycle",
-			schema: `
+			schema: `realm foo {
 				module one {
 					verb one(builtin.Empty) builtin.Empty
 						+calls two.two
@@ -46,9 +46,9 @@ func TestValidate(t *testing.T) {
 				module three {
 					export verb three(builtin.Empty) builtin.Empty
 				}
-				`},
+			}`},
 		{name: "ThreeModulesCycle",
-			schema: `
+			schema: `realm foo {
 				module one {
 					export verb one(builtin.Empty) builtin.Empty
 						+calls two.two
@@ -63,10 +63,10 @@ func TestValidate(t *testing.T) {
 					export verb three(builtin.Empty) builtin.Empty
 						+calls one.one
 				}
-				`,
+			}`,
 			errs: []string{"found cycle in dependencies: two -> three -> one -> two"}},
 		{name: "TwoModuleCycleDiffVerbs",
-			schema: `
+			schema: `realm foo {
 				module one {
 					verb a(builtin.Empty) builtin.Empty
 						+calls two.a
@@ -77,10 +77,10 @@ func TestValidate(t *testing.T) {
 					export verb a(builtin.Empty) builtin.Empty
 						+calls one.b
 				}
-				`,
+			}`,
 			errs: []string{"found cycle in dependencies: two -> one -> two"}},
 		{name: "SelfReference",
-			schema: `
+			schema: `realm foo {
 				module one {
 					verb a(builtin.Empty) builtin.Empty
 						+calls one.b
@@ -88,27 +88,27 @@ func TestValidate(t *testing.T) {
 					verb b(builtin.Empty) builtin.Empty
 						+calls one.a
 				}
-			`},
+			}`},
 		{name: "ValidIngressRequestType",
-			schema: `
+			schema: `realm foo {
 				module one {
 					export verb a(builtin.HttpRequest<Unit, Unit, Unit>) builtin.HttpResponse<builtin.Empty, builtin.Empty>
 						+ingress http GET /a
 				}
-			`},
+			}`},
 		{name: "InvalidIngressRequestType",
-			schema: `
+			schema: `realm foo {
 				module one {
 					export verb a(builtin.Empty) builtin.Empty
 						+ingress http GET /a
 				}
-			`,
+			}`,
 			errs: []string{
 				"3:20: ingress verb a: request type builtin.Empty must be builtin.HttpRequest",
 				"3:35: ingress verb a: response type builtin.Empty must be builtin.HttpResponse",
 			}},
 		{name: "IngressBodyTypes",
-			schema: `
+			schema: `realm foo {
 				module one {
 					export verb bytes(builtin.HttpRequest<Bytes, Unit, Unit>) builtin.HttpResponse<Bytes, Bytes>
 						+ingress http POST /bytes
@@ -134,7 +134,7 @@ func TestValidate(t *testing.T) {
 						parameter String
 					}
 				}
-			`,
+			}`,
 			errs: []string{
 				"11:22: ingress verb any: GET request type builtin.HttpRequest<Any, Unit, Unit> must have a body of unit not Any",
 				"11:60: ingress verb any: response type builtin.HttpResponse<Any, Any> must have a body of bytes, string, data structure, unit, float, int, bool, map, or array not Any",
@@ -145,65 +145,65 @@ func TestValidate(t *testing.T) {
 				"20:7: duplicate http ingress GET /path/{} for 13:6:\"path\" and 19:6:\"pathFound\"",
 			}},
 		{name: "GetRequestWithBody",
-			schema: `
+			schema: `realm foo {
 				module one {
 					export verb bytes(builtin.HttpRequest<Bytes, Unit, Unit>) builtin.HttpResponse<Bytes, Bytes>
 						+ingress http GET /bytes
 				}
-			`,
+			}`,
 			errs: []string{
 				"3:24: ingress verb bytes: GET request type builtin.HttpRequest<Bytes, Unit, Unit> must have a body of unit not Bytes",
 			}},
 		{name: "Array",
-			schema: `
+			schema: `realm foo {
 				module one {
 					data Data {}
 					export verb one(builtin.HttpRequest<[one.Data], Unit, Unit>) builtin.HttpResponse<[one.Data], builtin.Empty>
 						+ingress http POST /one
 				}
-			`,
+			}`,
 		},
 		{name: "DoubleCron",
-			schema: `
+			schema: `realm foo {
 				module one {
 					verb cronjob(Unit) Unit
 						+cron * */2 0-23/2,4-5 * * * *
 						+cron * * * * * * *
 				}
-			`,
+			}`,
 			errs: []string{
 				"5:7: verb can not have multiple instances of cronjob",
 			},
 		},
 		{name: "DoubleIngress",
-			schema: `
+			schema: `realm foo {
 				module one {
 					data Data {}
 					export verb one(builtin.HttpRequest<[one.Data], Unit, Unit>) builtin.HttpResponse<[one.Data], builtin.Empty>
 					    +ingress http POST /one
 					    +ingress http POST /two
 				}
-			`,
+			}`,
 			errs: []string{
 				"6:10: verb can not have multiple instances of ingress",
 			},
 		},
 		{name: "CronOnNonEmptyVerb",
-			schema: `
+			schema: `realm foo {
 				module one {
 					verb verbWithWrongInput(builtin.Empty) Unit
 						+cron * * * * * * *
 					verb verbWithWrongOutput(Unit) builtin.Empty
 						+cron * * * * * * *
 				}
-			`,
+			}`,
 			errs: []string{
 				"4:7: verb verbWithWrongInput: cron job can not have a request type",
 				"6:7: verb verbWithWrongOutput: cron job can not have a response type",
 			},
 		},
 		{name: "IngressBodyExternalType",
-			schema: `
+			schema: `realm foo {
 				module two {
 					export data Data {}
 				}
@@ -211,66 +211,66 @@ func TestValidate(t *testing.T) {
 					export verb a(builtin.HttpRequest<two.Data, Unit, Unit>) builtin.HttpResponse<two.Data, builtin.Empty>
 						+ingress http GET /a
 				}
-			`,
+			}`,
 		},
 		{name: "DuplicateConfigs",
-			schema: `
+			schema: `realm foo {
 				module one {
                   	config FTL_ENDPOINT String
                     config FTL_ENDPOINT Any
                     config FTL_ENDPOINT String
 				}
-			`,
+			}`,
 			errs: []string{
 				`4:21: duplicate config "FTL_ENDPOINT", first defined at 3:20`,
 				`5:21: duplicate config "FTL_ENDPOINT", first defined at 3:20`,
 			},
 		},
 		{name: "DuplicateSecrets",
-			schema: `
+			schema: `realm foo {
 				module one {
 					secret MY_SECRET String
 					secret MY_SECRET Any
 					secret MY_SECRET String
 				}
-			`,
+			}`,
 			errs: []string{
 				`4:6: duplicate secret "MY_SECRET", first defined at 3:6`,
 				`5:6: duplicate secret "MY_SECRET", first defined at 3:6`,
 			},
 		},
 		{name: "ConfigAndSecretsWithSameName",
-			schema: `
+			schema: `realm foo {
 				module one {
 					config FTL_ENDPOINT String
 					secret FTL_ENDPOINT String
 				}
-			`,
+			}`,
 		},
 		{name: "DuplicateDatabases",
-			schema: `
+			schema: `realm foo {
 				module one {
 					database postgres MY_DB
 					database postgres MY_DB
 				}
-			`,
+			}`,
 			errs: []string{
 				`4:6: duplicate database "MY_DB", first defined at 3:6`,
 			},
 		},
 		{name: "ValueEnumMismatchedVariantTypes",
-			schema: `
+			schema: `realm foo {
 				module one {
 					enum Enum: Int {
 						A = "A"
 						B = 1
 					}
 				}
-				`,
+			}`,
 			errs: []string{"4:7: enum variant \"A\" of type Int cannot have a value of type \"String\""},
 		},
 		{name: "NonSubscriberVerbsWithRetry",
-			schema: `
+			schema: `realm foo {
 				module one {
 					verb A(builtin.Empty) Unit
 						+retry 10 5s 20m
@@ -278,14 +278,14 @@ func TestValidate(t *testing.T) {
 						+retry 1m5s 20m30s
 					verb C(builtin.Empty) Unit
 				}
-				`,
+			}`,
 			errs: []string{
 				`4:7: retries can only be added to subscribers`,
 				`6:7: retries can only be added to subscribers`,
 			},
 		},
 		{name: "InvalidRetryDurations",
-			schema: `
+			schema: `realm foo {
 				module one {
 
 					data Event {}
@@ -329,7 +329,7 @@ func TestValidate(t *testing.T) {
 					verb catchSub(builtin.CatchRequest<Unit>) Unit
 
 				}
-				`,
+			}`,
 			errs: []string{
 				"11:7: could not parse min backoff duration: could not parse retry duration: duration has unit \"d\" out of order - units need to be ordered from largest to smallest - eg '1d3h2m'",
 				"14:7: could not parse min backoff duration: retry must have a minimum backoff of 1s",
@@ -345,18 +345,18 @@ func TestValidate(t *testing.T) {
 			},
 		},
 		{name: "InvalidRetryInvalidSpace",
-			schema: `
+			schema: `realm foo {
 				module one {
 					verb A(builtin.Empty) Unit
 						+retry 10 5 s
 				}
-				`,
+			}`,
 			errs: []string{
 				`4:19: unexpected token "s"`,
 			},
 		},
 		{name: "InvalidPubSub",
-			schema: `
+			schema: `realm foo {
 			module test {
 				export topic topicA test.eventA
 
@@ -390,7 +390,7 @@ func TestValidate(t *testing.T) {
 				verb subWithClashingDeadLetter(test.eventA) Unit
 					+subscribe topicA from=beginning deadletter
 			}
-			`,
+		}`,
 			errs: []string{
 				"16:6: verb wrongEventType: request type test.eventA differs from subscription's event type test.eventB",
 				"19:6: verb sourceCantSubscribe: must be a sink to subscribe but found response type test.eventB",
@@ -399,11 +399,10 @@ func TestValidate(t *testing.T) {
 				"29:6: dead letter topic test.subWithExistingDeadLetterFailed must have the same event type (builtin.FailedEvent<test.eventB>) as the subscription request type (builtin.FailedEvent<test.eventA>)",
 				"33:6: expected test.subWithClashingDeadLetterFailed to be a dead letter topic but was already declared at 31:5",
 				`7:5: invalid name: must consist of only letters, numbers and underscores, and start with a lowercase letter.`,
-			},
-		},
+			}},
 		{
 			name: "PubSubCatch",
-			schema: `
+			schema: `realm foo {
 		module test {
 			// pub sub basic set up
 
@@ -451,7 +450,7 @@ func TestValidate(t *testing.T) {
 				+subscribe test.topicB from=beginning
 				+retry 1 1s catch test.EventB
 		}
-		`,
+		}`,
 			errs: []string{
 				"31:5: catch verb must have a request type of builtin.CatchRequest<test.EventA> or builtin.CatchRequest<Any>, but found builtin.CatchRequest<test.EventB>",
 				"35:5: catch verb must not have a response type but found test.EventA",
@@ -462,7 +461,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "DoubleSubscribe",
-			schema: `
+			schema: `realm foo {
 			module one {
 				data EventA {}
 
@@ -472,17 +471,17 @@ func TestValidate(t *testing.T) {
 					+subscribe one.topicA from=beginning
 					+subscribe one.topicA from=beginning
 			}
-		`,
+		}`,
 			errs: []string{
 				`9:6: verb can not subscribe to multiple topics`,
 			},
 		},
 		{
 			name: "ModuleNameCantBeGoKeyword",
-			schema: `
+			schema: `realm foo {
 			module map {
 			}
-		`,
+		}`,
 			errs: []string{
 				`2:4: module name "map" is invalid`,
 			},
@@ -511,12 +510,12 @@ func TestValidateModuleWithSchema(t *testing.T) {
 		errs         []string
 	}{
 		{name: "ValidModuleWithSchema",
-			schema: `
+			schema: `realm foo {
 				module one {
 					export data Test {}
 					export verb one(builtin.Empty) builtin.Empty
 				}
-				`,
+			}`,
 			moduleSchema: `
 				module two {
 					export verb two(builtin.Empty) one.Test
@@ -524,11 +523,11 @@ func TestValidateModuleWithSchema(t *testing.T) {
 				}`,
 		},
 		{name: "NonExportedVerbCall",
-			schema: `
+			schema: `realm foo {
 				module one {
 					verb one(builtin.Empty) builtin.Empty
 				}
-				`,
+			}`,
 			moduleSchema: `
 				module two {
 					export verb two(builtin.Empty) builtin.Empty
@@ -545,7 +544,7 @@ func TestValidateModuleWithSchema(t *testing.T) {
 			assert.NoError(t, err)
 			module, err := ParseModuleString("", test.moduleSchema)
 			assert.NoError(t, err)
-			sch.Modules = append(sch.Modules, module)
+			sch.Realms[0].Modules = append(sch.Realms[0].Modules, module)
 			_, err = ValidateModuleInSchema(sch, optional.Some[*Module](module))
 			if test.errs == nil {
 				assert.NoError(t, err)

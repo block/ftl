@@ -51,6 +51,7 @@ type HTTPRequest[Body any, Path any, Query any] struct {
 
 func TestBuildRequestBody(t *testing.T) {
 	sch, err := schema.ParseString("test", `
+	realm test {
 		module test {
 			data AliasRequest {
 				aliased String +alias json "alias"
@@ -100,6 +101,7 @@ func TestBuildRequestBody(t *testing.T) {
 			export verb multiMapQuery(HttpRequest<Unit, Unit, {String: [String]}>) HttpResponse<Empty, Empty>
 				+ingress http GET /multiMapQuery
 		}
+	}
 	`)
 	assert.NoError(t, err)
 	for _, test := range []struct {

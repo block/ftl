@@ -152,9 +152,9 @@ func (m *Module) String() string {
 			}
 		}
 		fmt.Fprintln(w, indent(decl.String()))
-		lastTypePrinted = optional.Some[reflect.Type](t)
+		lastTypePrinted = optional.Some(t)
 	}
-	fmt.Fprintln(w, "}")
+	fmt.Fprint(w, "}")
 	return w.String()
 }
 
@@ -306,6 +306,18 @@ func moduleListToSchema(s []*schemapb.Module) ([]*Module, error) {
 			return nil, fmt.Errorf("%w", err)
 		}
 		out = append(out, module)
+	}
+	return out, nil
+}
+
+func realmListToSchema(s []*schemapb.Realm) ([]*Realm, error) {
+	var out []*Realm
+	for _, n := range s {
+		realm, err := RealmFromProto(n)
+		if err != nil {
+			return nil, fmt.Errorf("%w", err)
+		}
+		out = append(out, realm)
 	}
 	return out, nil
 }

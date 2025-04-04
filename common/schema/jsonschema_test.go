@@ -9,71 +9,73 @@ import (
 )
 
 var jsonSchemaSample = &Schema{
-	Modules: []*Module{
-		{Name: "foo", Decls: []Decl{
-			&Data{
-				Name:     "Foo",
-				Comments: []string{"Data comment"},
-				Fields: []*Field{
-					{Name: "string", Type: &String{}, Comments: []string{"Field comment"}},
-					{Name: "int", Type: &Int{}},
-					{Name: "float", Type: &Float{}},
-					{Name: "optional", Type: &Optional{Type: &String{}}},
-					{Name: "bool", Type: &Bool{}},
-					{Name: "time", Type: &Time{}},
-					{Name: "array", Type: &Array{Element: &String{}}},
-					{Name: "arrayOfRefs", Type: &Array{Element: &Ref{Module: "foo", Name: "Item"}}},
-					{Name: "arrayOfArray", Type: &Array{Element: &Array{Element: &String{}}}},
-					{Name: "optionalArray", Type: &Array{Element: &Optional{Type: &String{}}}},
-					{Name: "map", Type: &Map{Key: &String{}, Value: &Int{}}},
-					{Name: "optionalMap", Type: &Map{Key: &String{}, Value: &Optional{Type: &Int{}}}},
-					{Name: "ref", Type: &Ref{Module: "bar", Name: "Bar"}},
-					{Name: "any", Type: &Any{}},
-					{Name: "keyValue", Type: &Ref{Module: "foo", Name: "Generic", TypeParameters: []Type{&String{}, &Int{}}}},
-					{Name: "stringEnumRef", Type: &Ref{Module: "foo", Name: "StringEnum"}},
-					{Name: "intEnumRef", Type: &Ref{Module: "foo", Name: "IntEnum"}},
-					{Name: "typeEnumRef", Type: &Ref{Module: "foo", Name: "TypeEnum"}},
+	Realms: []*Realm{{
+		Modules: []*Module{
+			{Name: "foo", Decls: []Decl{
+				&Data{
+					Name:     "Foo",
+					Comments: []string{"Data comment"},
+					Fields: []*Field{
+						{Name: "string", Type: &String{}, Comments: []string{"Field comment"}},
+						{Name: "int", Type: &Int{}},
+						{Name: "float", Type: &Float{}},
+						{Name: "optional", Type: &Optional{Type: &String{}}},
+						{Name: "bool", Type: &Bool{}},
+						{Name: "time", Type: &Time{}},
+						{Name: "array", Type: &Array{Element: &String{}}},
+						{Name: "arrayOfRefs", Type: &Array{Element: &Ref{Module: "foo", Name: "Item"}}},
+						{Name: "arrayOfArray", Type: &Array{Element: &Array{Element: &String{}}}},
+						{Name: "optionalArray", Type: &Array{Element: &Optional{Type: &String{}}}},
+						{Name: "map", Type: &Map{Key: &String{}, Value: &Int{}}},
+						{Name: "optionalMap", Type: &Map{Key: &String{}, Value: &Optional{Type: &Int{}}}},
+						{Name: "ref", Type: &Ref{Module: "bar", Name: "Bar"}},
+						{Name: "any", Type: &Any{}},
+						{Name: "keyValue", Type: &Ref{Module: "foo", Name: "Generic", TypeParameters: []Type{&String{}, &Int{}}}},
+						{Name: "stringEnumRef", Type: &Ref{Module: "foo", Name: "StringEnum"}},
+						{Name: "intEnumRef", Type: &Ref{Module: "foo", Name: "IntEnum"}},
+						{Name: "typeEnumRef", Type: &Ref{Module: "foo", Name: "TypeEnum"}},
+					},
 				},
-			},
-			&Data{
-				Name: "Item", Fields: []*Field{{Name: "name", Type: &String{}}},
-			},
-			&Data{
-				Name:           "Generic",
-				TypeParameters: []*TypeParameter{{Name: "K"}, {Name: "V"}},
-				Fields: []*Field{
-					{Name: "key", Type: &Ref{Name: "K"}},
-					{Name: "value", Type: &Ref{Name: "V"}},
+				&Data{
+					Name: "Item", Fields: []*Field{{Name: "name", Type: &String{}}},
 				},
-			},
-			&Enum{
-				Name: "StringEnum",
-				Type: &String{},
-				Variants: []*EnumVariant{
-					{Name: "A", Value: &StringValue{Value: "A"}},
-					{Name: "B", Value: &StringValue{Value: "B"}},
+				&Data{
+					Name:           "Generic",
+					TypeParameters: []*TypeParameter{{Name: "K"}, {Name: "V"}},
+					Fields: []*Field{
+						{Name: "key", Type: &Ref{Name: "K"}},
+						{Name: "value", Type: &Ref{Name: "V"}},
+					},
 				},
-			},
-			&Enum{
-				Name: "IntEnum",
-				Type: &Int{},
-				Variants: []*EnumVariant{
-					{Name: "Zero", Value: &IntValue{Value: 0}},
-					{Name: "One", Value: &IntValue{Value: 1}},
+				&Enum{
+					Name: "StringEnum",
+					Type: &String{},
+					Variants: []*EnumVariant{
+						{Name: "A", Value: &StringValue{Value: "A"}},
+						{Name: "B", Value: &StringValue{Value: "B"}},
+					},
 				},
-			},
-			&Enum{
-				Name: "TypeEnum",
-				Variants: []*EnumVariant{
-					{Name: "StringVariant", Value: &TypeValue{Value: &String{}}},
-					{Name: "IntVariant", Value: &TypeValue{Value: &Int{}}},
+				&Enum{
+					Name: "IntEnum",
+					Type: &Int{},
+					Variants: []*EnumVariant{
+						{Name: "Zero", Value: &IntValue{Value: 0}},
+						{Name: "One", Value: &IntValue{Value: 1}},
+					},
 				},
-			},
-		}},
-		{Name: "bar", Decls: []Decl{
-			&Data{Name: "Bar", Fields: []*Field{{Name: "bar", Type: &String{}}}},
-		}},
-	},
+				&Enum{
+					Name: "TypeEnum",
+					Variants: []*EnumVariant{
+						{Name: "StringVariant", Value: &TypeValue{Value: &String{}}},
+						{Name: "IntVariant", Value: &TypeValue{Value: &Int{}}},
+					},
+				},
+			}},
+			{Name: "bar", Decls: []Decl{
+				&Data{Name: "Bar", Fields: []*Field{{Name: "bar", Type: &String{}}}},
+			}},
+		},
+	}},
 }
 
 func TestDataToJSONSchema(t *testing.T) {

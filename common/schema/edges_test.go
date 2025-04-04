@@ -9,68 +9,70 @@ import (
 )
 
 func TestEdges(t *testing.T) {
-	input := Builtins().String() + `
-module a {
-    config employeeOfTheMonth a.User
-    secret myFavoriteChild a.User
+	input := `realm foo {` +
+		Builtins().String() + `
+	module a {
+		config employeeOfTheMonth a.User
+		secret myFavoriteChild a.User
 
-    database mysql db
+		database mysql db
 
-    export data User {
-        name String
-    }
+		export data User {
+			name String
+		}
 
-    export data Event {
-        user User
-    }
+		export data Event {
+			user User
+		}
 
-    verb empty(Unit) Unit
-    verb postEvent(Event) Unit
-    verb getUsers([String]) [a.User]
-	    +database uses a.db
+		verb empty(Unit) Unit
+		verb postEvent(Event) Unit
+		verb getUsers([String]) [a.User]
+			+database uses a.db
 
-    export verb inboundWithExternalTypes(builtin.HttpRequest<Unit, b.Location, Unit>) builtin.HttpResponse<b.Address, String>
-        +ingress http GET /todo/external/{name}
+		export verb inboundWithExternalTypes(builtin.HttpRequest<Unit, b.Location, Unit>) builtin.HttpResponse<b.Address, String>
+			+ingress http GET /todo/external/{name}
 
-	export verb inboundWithDupes(builtin.HttpRequest<Unit, b.Location, Unit>) builtin.HttpResponse<b.Location, String>
-        +ingress http GET /todo/dupes/{name}
-}
-module b {
-	export data Location {
-		latitude Float
-		longitude Float
+		export verb inboundWithDupes(builtin.HttpRequest<Unit, b.Location, Unit>) builtin.HttpResponse<b.Location, String>
+			+ingress http GET /todo/dupes/{name}
 	}
-	export data Address {
-		name String
-		street String
-		city String
-		state String
-		country String
+	module b {
+		export data Location {
+			latitude Float
+			longitude Float
+		}
+		export data Address {
+			name String
+			street String
+			city String
+			state String
+			country String
+		}
+
+		topic locations b.Location
+
+		verb consume(b.Location) Unit
+			+subscribe b.locations from=latest
+
 	}
-
-	topic locations b.Location
-
-	verb consume(b.Location) Unit
-	    +subscribe b.locations from=latest
-
-}
-module c {
-    // cyclic verbs
-    verb start(c.AliasedUser) b.Location
-        +calls c.middle
-    verb middle(b.Address) b.Location
-        +calls c.end
-    verb end(Unit) a.User
-        +calls c.start
+	module c {
+		// cyclic verbs
+		verb start(c.AliasedUser) b.Location
+			+calls c.middle
+		verb middle(b.Address) b.Location
+			+calls c.end
+		verb end(Unit) a.User
+			+calls c.start
 
 
-	enum Color: String {
-		Red = "Red"
-		Blue = "Blue"
-		Green = "Green"
+		enum Color: String {
+			Red = "Red"
+			Blue = "Blue"
+			Green = "Green"
+		}
+
+		typealias AliasedUser a.User
 	}
-
-	typealias AliasedUser a.User
 }
 `
 

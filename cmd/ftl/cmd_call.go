@@ -131,7 +131,7 @@ func findSuggestions(
 	verbs := []string{}
 
 	// build a list of all the verbs
-	for _, module := range res.Modules {
+	for _, module := range res.InternalModules() {
 		for _, v := range module.Verbs() {
 			verbName := fmt.Sprintf("%s.%s", module.Name, v.Name)
 			if verbName == fmt.Sprintf("%s.%s", verb.Module, verb.Name) {

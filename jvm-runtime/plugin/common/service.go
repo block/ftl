@@ -965,7 +965,7 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 	}
 	changed := false
 
-	for _, mod := range v.Modules {
+	for _, mod := range v.InternalModules() {
 		if mod.Name == config.Module {
 			if containsGeneratedSchema {
 				logger.Debugf("writing generated schema files for %s", mod.Name)

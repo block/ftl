@@ -46,13 +46,17 @@ func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, er
 			moduleSchemas <- either.LeftOf[error](module)
 		}()
 	}
-	sch := &schema.Schema{}
+	realm := &schema.Realm{
+		Name:    "default", // TODO: s.projConfig.Name,
+		Modules: []*schema.Module{},
+	}
+	sch := &schema.Schema{Realms: []*schema.Realm{realm}}
 	errs := []error{}
 	for range len(modules) {
 		result := <-moduleSchemas
 		switch result := result.(type) {
 		case either.Left[*schema.Module, error]:
-			sch.Upsert(result.Get())
+			realm.Upsert(result.Get())
 		case either.Right[*schema.Module, error]:
 			errs = append(errs, result.Get())
 		default:

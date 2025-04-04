@@ -512,6 +512,13 @@ message Position {
   int64 column = 3;
 }
 
+message Realm {
+  Position pos = 1;
+  bool external = 2;
+  string name = 3;
+  repeated Module modules = 4;
+}
+
 // Ref is an untyped reference to a symbol.
 message Ref {
   optional Position pos = 1;
@@ -539,7 +546,7 @@ message RuntimeElement {
 
 message Schema {
   optional Position pos = 1;
-  repeated Module modules = 2;
+  repeated Realm realms = 2;
 }
 
 // SchemaState is the schema service state as persisted in Raft

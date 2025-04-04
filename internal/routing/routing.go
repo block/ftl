@@ -98,13 +98,16 @@ func (r *RouteTable) Unsubscribe(s chan string) {
 }
 
 func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
+	logger := log.FromContext(ctx)
+
 	if sch == nil {
 		return RouteView{moduleToDeployment: map[string]key.Deployment{}, byDeployment: map[string]*url.URL{}, schema: &schema.Schema{}}
 	}
-	logger := log.FromContext(ctx)
-	moduleToDeployment := make(map[string]key.Deployment, len(sch.Modules))
-	byDeployment := make(map[string]*url.URL, len(sch.Modules))
-	for _, module := range sch.Modules {
+
+	modules := sch.InternalModules()
+	moduleToDeployment := make(map[string]key.Deployment, len(modules))
+	byDeployment := make(map[string]*url.URL, len(modules))
+	for _, module := range modules {
 		if module.GetRuntime() == nil {
 			continue
 		}

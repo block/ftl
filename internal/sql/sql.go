@@ -84,9 +84,9 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 	sch := &schema.Module{
 		Name: mc.Module,
 	}
-	for i, m := range out.Modules {
+	for i, m := range out.InternalModules() {
 		if m.Name == mc.Module {
-			out.Modules[i] = sch
+			out.InternalModules()[i] = sch
 			break
 		}
 	}
@@ -128,15 +128,15 @@ func updateSchema(out *schema.Schema, queries *schema.Module, cfg ConfigContext)
 		return fmt.Errorf("failed to validate module %s: %w", queries.Name, err)
 	}
 	found := false
-	for i, m := range out.Modules {
+	for i, m := range out.InternalModules() {
 		if m.Name == queries.Name {
-			out.Modules[i].Decls = append(out.Modules[i].Decls, queries.Decls...)
+			out.InternalModules()[i].Decls = append(out.InternalModules()[i].Decls, queries.Decls...)
 			found = true
 			break
 		}
 	}
 	if !found {
-		out.Modules = append(out.Modules, queries)
+		out.Realms[0].Modules = append(out.Realms[0].Modules, queries)
 	}
 
 	return nil

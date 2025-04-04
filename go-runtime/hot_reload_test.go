@@ -187,8 +187,8 @@ func Echo(ctx context.Context, req EchoRequest, greet service.GreetClient) (Echo
 
 		// Verify initial schema
 		in.VerifySchema(func(ctx context.Context, t testing.TB, schema *schema.Schema) {
-			assert.Equal(t, 3, len(schema.Modules)) // builtin + service + client
-			for _, m := range schema.Modules {
+			assert.Equal(t, 3, len(schema.InternalModules())) // builtin + service + client
+			for _, m := range schema.InternalModules() {
 				if !m.Builtin {
 					if m.Name == "service" {
 						serviceDeployment = m.Runtime.Deployment.DeploymentKey.String()
@@ -216,8 +216,8 @@ func Echo(ctx context.Context, req EchoRequest, greet service.GreetClient) (Echo
 
 		// Verify deployment change
 		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
-			assert.Equal(t, 3, len(sch.Modules))
-			for _, m := range sch.Modules {
+			assert.Equal(t, 3, len(sch.InternalModules()))
+			for _, m := range sch.InternalModules() {
 				if !m.Builtin {
 					if m.Name == "service" {
 						assert.NotEqual(t, serviceDeployment, m.Runtime.Deployment.DeploymentKey.String())
@@ -246,8 +246,8 @@ func Echo(ctx context.Context, req EchoRequest, greet service.GreetClient) (Echo
 
 		// Verify new deployment for structural change
 		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
-			assert.Equal(t, 3, len(sch.Modules))
-			for _, m := range sch.Modules {
+			assert.Equal(t, 3, len(sch.InternalModules()))
+			for _, m := range sch.InternalModules() {
 				if !m.Builtin {
 					if m.Name == "service" {
 						assert.NotEqual(t, serviceDeployment, m.Runtime.Deployment.DeploymentKey.String())
@@ -279,8 +279,8 @@ func Echo(ctx context.Context, req EchoRequest, greet service.GreetClient) (Echo
 
 		// Verify both modules got new deployments
 		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
-			assert.Equal(t, 3, len(sch.Modules))
-			for _, m := range sch.Modules {
+			assert.Equal(t, 3, len(sch.InternalModules()))
+			for _, m := range sch.InternalModules() {
 				if !m.Builtin {
 					if m.Name == "service" {
 						assert.NotEqual(t, serviceDeployment, m.Runtime.Deployment.DeploymentKey.String())

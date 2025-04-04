@@ -27,7 +27,7 @@ func TestBuild(t *testing.T) {
 			Dir:    moduleDir,
 			Module: "test",
 		}
-		actual, buildErrors, err := Build(ctx, "", "", config, &schema.Schema{}, nil, true)
+		actual, buildErrors, err := Build(ctx, "", "", config, &schema.Schema{Realms: []*schema.Realm{{Name: "test"}}}, nil, true)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(buildErrors))
 		expected := &schema.Module{
