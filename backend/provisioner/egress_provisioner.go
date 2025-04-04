@@ -32,7 +32,7 @@ func provisionEgress(adminClient adminpbconnect.AdminServiceClient) InMemResourc
 			panic(fmt.Errorf("unexpected resource type: %T", res))
 		}
 		for egress := range slices.FilterVariants[*schema.MetadataEgress](verb.Metadata) {
-			elements := []schema.EgressElement{}
+			elements := []schema.EgressTarget{}
 			logger.Debugf("Provisioning egress for verb: %s", verb.Name)
 			for _, e := range egress.Targets {
 				interpolated, err := egress2.Interpolate(
@@ -51,7 +51,7 @@ func provisionEgress(adminClient adminpbconnect.AdminServiceClient) InMemResourc
 				if err != nil {
 					return nil, fmt.Errorf("failed to interpolate egress target %q: %w", e, err)
 				}
-				elements = append(elements, schema.EgressElement{Expression: e, Target: interpolated})
+				elements = append(elements, schema.EgressTarget{Expression: e, Target: interpolated})
 			}
 			return &schema.RuntimeElement{
 				Name:       optional.Some(res.ResourceID()),
