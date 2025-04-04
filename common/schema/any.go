@@ -17,3 +17,4 @@ func (*Any) schemaSymbol()          {}
 func (*Any) String() string         { return "Any" }
 func (*Any) Equal(other Type) bool  { _, ok := other.(*Any); return ok }
 func (*Any) GetName() string        { return "Any" }
+func (*Any) Kind() Kind             { return KindAny }

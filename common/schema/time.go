@@ -17,3 +17,4 @@ func (*Time) schemaType()             {}
 func (*Time) schemaSymbol()           {}
 func (*Time) String() string          { return "Time" }
 func (*Time) GetName() string         { return "Time" }
+func (*Time) Kind() Kind              { return KindTime }

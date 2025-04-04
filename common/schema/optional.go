@@ -24,3 +24,4 @@ func (o *Optional) String() string         { return o.Type.String() + "?" }
 func (*Optional) schemaType()              {}
 func (*Optional) schemaSymbol()            {}
 func (o *Optional) schemaChildren() []Node { return []Node{o.Type} }
+func (*Optional) Kind() Kind               { return KindOptional }

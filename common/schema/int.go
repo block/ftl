@@ -17,3 +17,4 @@ func (*Int) schemaChildren() []Node  { return nil }
 func (*Int) schemaType()             {}
 func (*Int) String() string          { return "Int" }
 func (*Int) GetName() string         { return "Int" }
+func (*Int) Kind() Kind              { return KindInt }

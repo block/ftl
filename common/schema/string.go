@@ -17,3 +17,4 @@ func (*String) schemaType()             {}
 func (*String) schemaSymbol()           {}
 func (*String) String() string          { return "String" }
 func (*String) GetName() string         { return "String" }
+func (*String) Kind() Kind              { return KindString }

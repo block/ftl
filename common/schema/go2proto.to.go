@@ -3012,6 +3012,14 @@ func TypeToProto(value Type) *destpb.Type {
 		return &destpb.Type{
 			Value: &destpb.Type_Bytes{value.ToProto()},
 		}
+	case *Data:
+		return &destpb.Type{
+			Value: &destpb.Type_Data{value.ToProto()},
+		}
+	case *Enum:
+		return &destpb.Type{
+			Value: &destpb.Type_Enum{value.ToProto()},
+		}
 	case *Float:
 		return &destpb.Type{
 			Value: &destpb.Type_Float{value.ToProto()},
@@ -3040,6 +3048,10 @@ func TypeToProto(value Type) *destpb.Type {
 		return &destpb.Type{
 			Value: &destpb.Type_Time{value.ToProto()},
 		}
+	case *TypeAlias:
+		return &destpb.Type{
+			Value: &destpb.Type_TypeAlias{value.ToProto()},
+		}
 	case *Unit:
 		return &destpb.Type{
 			Value: &destpb.Type_Unit{value.ToProto()},
@@ -3062,6 +3074,10 @@ func TypeFromProto(v *destpb.Type) (Type, error) {
 		return BoolFromProto(v.GetBool())
 	case *destpb.Type_Bytes:
 		return BytesFromProto(v.GetBytes())
+	case *destpb.Type_Data:
+		return DataFromProto(v.GetData())
+	case *destpb.Type_Enum:
+		return EnumFromProto(v.GetEnum())
 	case *destpb.Type_Float:
 		return FloatFromProto(v.GetFloat())
 	case *destpb.Type_Int:
@@ -3076,6 +3092,8 @@ func TypeFromProto(v *destpb.Type) (Type, error) {
 		return StringFromProto(v.GetString_())
 	case *destpb.Type_Time:
 		return TimeFromProto(v.GetTime())
+	case *destpb.Type_TypeAlias:
+		return TypeAliasFromProto(v.GetTypeAlias())
 	case *destpb.Type_Unit:
 		return UnitFromProto(v.GetUnit())
 	default:

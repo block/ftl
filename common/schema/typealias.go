@@ -6,6 +6,7 @@ import (
 )
 
 //protobuf:5
+//protobuf:16 Type
 type TypeAlias struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
@@ -16,6 +17,7 @@ type TypeAlias struct {
 	Metadata []Metadata `parser:"@@*" protobuf:"6"`
 }
 
+var _ Type = (*TypeAlias)(nil)
 var _ Decl = (*TypeAlias)(nil)
 var _ Symbol = (*TypeAlias)(nil)
 
@@ -47,3 +49,13 @@ func (t *TypeAlias) schemaChildren() []Node {
 func (t *TypeAlias) GetName() string   { return t.Name }
 func (t *TypeAlias) IsExported() bool  { return t.Export }
 func (t *TypeAlias) IsGenerated() bool { return false }
+func (t *TypeAlias) Equal(other Type) bool {
+	o, ok := other.(*TypeAlias)
+	if !ok {
+		return false
+	}
+	return t.Name == o.Name && t.Type.Equal(o.Type)
+}
+
+func (t *TypeAlias) Kind() Kind  { return KindTypeAlias }
+func (t *TypeAlias) schemaType() {}

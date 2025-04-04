@@ -4717,6 +4717,18 @@ export class Type extends Message<Type> {
     case: "bytes";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.Data data = 13;
+     */
+    value: Data;
+    case: "data";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.Enum enum = 14;
+     */
+    value: Enum;
+    case: "enum";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.Float float = 2;
      */
     value: Float;
@@ -4759,6 +4771,12 @@ export class Type extends Message<Type> {
     case: "time";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.TypeAlias type_alias = 16;
+     */
+    value: TypeAlias;
+    case: "typeAlias";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.Unit unit = 10;
      */
     value: Unit;
@@ -4777,6 +4795,8 @@ export class Type extends Message<Type> {
     { no: 7, name: "array", kind: "message", T: Array, oneof: "value" },
     { no: 5, name: "bool", kind: "message", T: Bool, oneof: "value" },
     { no: 4, name: "bytes", kind: "message", T: Bytes, oneof: "value" },
+    { no: 13, name: "data", kind: "message", T: Data, oneof: "value" },
+    { no: 14, name: "enum", kind: "message", T: Enum, oneof: "value" },
     { no: 2, name: "float", kind: "message", T: Float, oneof: "value" },
     { no: 1, name: "int", kind: "message", T: Int, oneof: "value" },
     { no: 8, name: "map", kind: "message", T: Map, oneof: "value" },
@@ -4784,6 +4804,7 @@ export class Type extends Message<Type> {
     { no: 11, name: "ref", kind: "message", T: Ref, oneof: "value" },
     { no: 3, name: "string", kind: "message", T: String, oneof: "value" },
     { no: 6, name: "time", kind: "message", T: Time, oneof: "value" },
+    { no: 16, name: "type_alias", kind: "message", T: TypeAlias, oneof: "value" },
     { no: 10, name: "unit", kind: "message", T: Unit, oneof: "value" },
   ]);
 

@@ -326,7 +326,7 @@ func TestJSONSchemaValidation(t *testing.T) {
 	jsonschema, err := jsonschema.CompileString("http://ftl.block.xyz/schema.json", string(schemaJSON))
 	assert.NoError(t, err)
 
-	var v interface{}
+	var v any
 	err = json.Unmarshal([]byte(input), &v)
 	assert.NoError(t, err)
 
@@ -364,7 +364,7 @@ func TestInvalidEnumValidation(t *testing.T) {
 	jsonschema, err := jsonschema.CompileString("http://ftl.block.xyz/schema.json", string(schemaJSON))
 	assert.NoError(t, err)
 
-	var v interface{}
+	var v any
 	err = json.Unmarshal([]byte(input), &v)
 	assert.NoError(t, err)
 

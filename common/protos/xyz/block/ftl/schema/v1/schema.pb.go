@@ -6208,6 +6208,8 @@ type Type struct {
 	//	*Type_Array
 	//	*Type_Bool
 	//	*Type_Bytes
+	//	*Type_Data
+	//	*Type_Enum
 	//	*Type_Float
 	//	*Type_Int
 	//	*Type_Map
@@ -6215,6 +6217,7 @@ type Type struct {
 	//	*Type_Ref
 	//	*Type_String_
 	//	*Type_Time
+	//	*Type_TypeAlias
 	//	*Type_Unit
 	Value         isType_Value `protobuf_oneof:"value"`
 	unknownFields protoimpl.UnknownFields
@@ -6294,6 +6297,24 @@ func (x *Type) GetBytes() *Bytes {
 	return nil
 }
 
+func (x *Type) GetData() *Data {
+	if x != nil {
+		if x, ok := x.Value.(*Type_Data); ok {
+			return x.Data
+		}
+	}
+	return nil
+}
+
+func (x *Type) GetEnum() *Enum {
+	if x != nil {
+		if x, ok := x.Value.(*Type_Enum); ok {
+			return x.Enum
+		}
+	}
+	return nil
+}
+
 func (x *Type) GetFloat() *Float {
 	if x != nil {
 		if x, ok := x.Value.(*Type_Float); ok {
@@ -6357,6 +6378,15 @@ func (x *Type) GetTime() *Time {
 	return nil
 }
 
+func (x *Type) GetTypeAlias() *TypeAlias {
+	if x != nil {
+		if x, ok := x.Value.(*Type_TypeAlias); ok {
+			return x.TypeAlias
+		}
+	}
+	return nil
+}
+
 func (x *Type) GetUnit() *Unit {
 	if x != nil {
 		if x, ok := x.Value.(*Type_Unit); ok {
@@ -6384,6 +6414,14 @@ type Type_Bool struct {
 
 type Type_Bytes struct {
 	Bytes *Bytes `protobuf:"bytes,4,opt,name=bytes,proto3,oneof"`
+}
+
+type Type_Data struct {
+	Data *Data `protobuf:"bytes,13,opt,name=data,proto3,oneof"`
+}
+
+type Type_Enum struct {
+	Enum *Enum `protobuf:"bytes,14,opt,name=enum,proto3,oneof"`
 }
 
 type Type_Float struct {
@@ -6414,6 +6452,10 @@ type Type_Time struct {
 	Time *Time `protobuf:"bytes,6,opt,name=time,proto3,oneof"`
 }
 
+type Type_TypeAlias struct {
+	TypeAlias *TypeAlias `protobuf:"bytes,16,opt,name=type_alias,json=typeAlias,proto3,oneof"`
+}
+
 type Type_Unit struct {
 	Unit *Unit `protobuf:"bytes,10,opt,name=unit,proto3,oneof"`
 }
@@ -6425,6 +6467,10 @@ func (*Type_Array) isType_Value() {}
 func (*Type_Bool) isType_Value() {}
 
 func (*Type_Bytes) isType_Value() {}
+
+func (*Type_Data) isType_Value() {}
+
+func (*Type_Enum) isType_Value() {}
 
 func (*Type_Float) isType_Value() {}
 
@@ -6439,6 +6485,8 @@ func (*Type_Ref) isType_Value() {}
 func (*Type_String_) isType_Value() {}
 
 func (*Type_Time) isType_Value() {}
+
+func (*Type_TypeAlias) isType_Value() {}
 
 func (*Type_Unit) isType_Value() {}
 
@@ -7385,19 +7433,23 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"\b_runtime\"N\n" +
 	"\fTopicRuntime\x12#\n" +
 	"\rkafka_brokers\x18\x01 \x03(\tR\fkafkaBrokers\x12\x19\n" +
-	"\btopic_id\x18\x02 \x01(\tR\atopicId\"\x9a\x05\n" +
+	"\btopic_id\x18\x02 \x01(\tR\atopicId\"\xc9\x06\n" +
 	"\x04Type\x120\n" +
 	"\x03any\x18\t \x01(\v2\x1c.xyz.block.ftl.schema.v1.AnyH\x00R\x03any\x126\n" +
 	"\x05array\x18\a \x01(\v2\x1e.xyz.block.ftl.schema.v1.ArrayH\x00R\x05array\x123\n" +
 	"\x04bool\x18\x05 \x01(\v2\x1d.xyz.block.ftl.schema.v1.BoolH\x00R\x04bool\x126\n" +
-	"\x05bytes\x18\x04 \x01(\v2\x1e.xyz.block.ftl.schema.v1.BytesH\x00R\x05bytes\x126\n" +
+	"\x05bytes\x18\x04 \x01(\v2\x1e.xyz.block.ftl.schema.v1.BytesH\x00R\x05bytes\x123\n" +
+	"\x04data\x18\r \x01(\v2\x1d.xyz.block.ftl.schema.v1.DataH\x00R\x04data\x123\n" +
+	"\x04enum\x18\x0e \x01(\v2\x1d.xyz.block.ftl.schema.v1.EnumH\x00R\x04enum\x126\n" +
 	"\x05float\x18\x02 \x01(\v2\x1e.xyz.block.ftl.schema.v1.FloatH\x00R\x05float\x120\n" +
 	"\x03int\x18\x01 \x01(\v2\x1c.xyz.block.ftl.schema.v1.IntH\x00R\x03int\x120\n" +
 	"\x03map\x18\b \x01(\v2\x1c.xyz.block.ftl.schema.v1.MapH\x00R\x03map\x12?\n" +
 	"\boptional\x18\f \x01(\v2!.xyz.block.ftl.schema.v1.OptionalH\x00R\boptional\x120\n" +
 	"\x03ref\x18\v \x01(\v2\x1c.xyz.block.ftl.schema.v1.RefH\x00R\x03ref\x129\n" +
 	"\x06string\x18\x03 \x01(\v2\x1f.xyz.block.ftl.schema.v1.StringH\x00R\x06string\x123\n" +
-	"\x04time\x18\x06 \x01(\v2\x1d.xyz.block.ftl.schema.v1.TimeH\x00R\x04time\x123\n" +
+	"\x04time\x18\x06 \x01(\v2\x1d.xyz.block.ftl.schema.v1.TimeH\x00R\x04time\x12C\n" +
+	"\n" +
+	"type_alias\x18\x10 \x01(\v2\".xyz.block.ftl.schema.v1.TypeAliasH\x00R\ttypeAlias\x123\n" +
 	"\x04unit\x18\n" +
 	" \x01(\v2\x1d.xyz.block.ftl.schema.v1.UnitH\x00R\x04unitB\a\n" +
 	"\x05value\"\x87\x02\n" +
@@ -7763,35 +7815,38 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	6,   // 172: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
 	7,   // 173: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
 	8,   // 174: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
-	38,  // 175: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
-	43,  // 176: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
-	45,  // 177: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
-	75,  // 178: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
-	81,  // 179: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
-	87,  // 180: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
-	90,  // 181: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
-	97,  // 182: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
-	77,  // 183: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	93,  // 184: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
-	46,  // 185: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	77,  // 186: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	77,  // 187: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	93,  // 188: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
-	77,  // 189: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	44,  // 190: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
-	88,  // 191: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
-	96,  // 192: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
-	77,  // 193: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	93,  // 194: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
-	93,  // 195: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
-	46,  // 196: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	100, // 197: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
-	89,  // 198: xyz.block.ftl.schema.v1.VerbRuntime.subscription_connector:type_name -> xyz.block.ftl.schema.v1.SubscriptionConnector
-	199, // [199:199] is the sub-list for method output_type
-	199, // [199:199] is the sub-list for method input_type
-	199, // [199:199] is the sub-list for extension type_name
-	199, // [199:199] is the sub-list for extension extendee
-	0,   // [0:199] is the sub-list for field type_name
+	26,  // 175: xyz.block.ftl.schema.v1.Type.data:type_name -> xyz.block.ftl.schema.v1.Data
+	34,  // 176: xyz.block.ftl.schema.v1.Type.enum:type_name -> xyz.block.ftl.schema.v1.Enum
+	38,  // 177: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
+	43,  // 178: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
+	45,  // 179: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
+	75,  // 180: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
+	81,  // 181: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
+	87,  // 182: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
+	90,  // 183: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
+	94,  // 184: xyz.block.ftl.schema.v1.Type.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
+	97,  // 185: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
+	77,  // 186: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	93,  // 187: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
+	46,  // 188: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	77,  // 189: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	77,  // 190: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	93,  // 191: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
+	77,  // 192: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	44,  // 193: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
+	88,  // 194: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
+	96,  // 195: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
+	77,  // 196: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	93,  // 197: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
+	93,  // 198: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
+	46,  // 199: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	100, // 200: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
+	89,  // 201: xyz.block.ftl.schema.v1.VerbRuntime.subscription_connector:type_name -> xyz.block.ftl.schema.v1.SubscriptionConnector
+	202, // [202:202] is the sub-list for method output_type
+	202, // [202:202] is the sub-list for method input_type
+	202, // [202:202] is the sub-list for extension type_name
+	202, // [202:202] is the sub-list for extension extendee
+	0,   // [0:202] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_schema_v1_schema_proto_init() }
@@ -7931,6 +7986,8 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 		(*Type_Array)(nil),
 		(*Type_Bool)(nil),
 		(*Type_Bytes)(nil),
+		(*Type_Data)(nil),
+		(*Type_Enum)(nil),
 		(*Type_Float)(nil),
 		(*Type_Int)(nil),
 		(*Type_Map)(nil),
@@ -7938,6 +7995,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 		(*Type_Ref)(nil),
 		(*Type_String_)(nil),
 		(*Type_Time)(nil),
+		(*Type_TypeAlias)(nil),
 		(*Type_Unit)(nil),
 	}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[90].OneofWrappers = []any{}

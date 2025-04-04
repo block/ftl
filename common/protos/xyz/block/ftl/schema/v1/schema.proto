@@ -619,6 +619,8 @@ message Type {
     Array array = 7;
     Bool bool = 5;
     Bytes bytes = 4;
+    Data data = 13;
+    Enum enum = 14;
     Float float = 2;
     Int int = 1;
     Map map = 8;
@@ -626,6 +628,7 @@ message Type {
     Ref ref = 11;
     String string = 3;
     Time time = 6;
+    TypeAlias type_alias = 16;
     Unit unit = 10;
   }
 }
