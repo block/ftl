@@ -189,12 +189,13 @@ func TestValidate(t *testing.T) {
 			},
 		},
 		{name: "MissingEgressConfig",
-			schema: `
+			schema: `realm foo {
 				module one {
 					data Data {}
 					export verb one(Unit) Unit
 					    +egress "${target}"
 				}
+            }
 			`,
 			errs: []string{
 				"5:10: egress target \"${target}\" references unknown config \"target\"",

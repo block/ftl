@@ -33,6 +33,8 @@ type FTL interface {
 
 	// GetSecret unmarshals a secret value into dest.
 	GetSecret(ctx context.Context, name string, dest any) error
+	// GetEgress returns an egress URL for a given name.
+	GetEgress(ctx context.Context, name string) (string, error)
 }
 
 type ftlContextKey struct{}

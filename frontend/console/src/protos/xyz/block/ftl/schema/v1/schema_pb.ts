@@ -1537,58 +1537,15 @@ export class DeploymentRuntimeNotification extends Message<DeploymentRuntimeNoti
 }
 
 /**
- * @generated from message xyz.block.ftl.schema.v1.EgressElement
- */
-export class EgressElement extends Message<EgressElement> {
-  /**
-   * @generated from field: string expression = 1;
-   */
-  expression = "";
-
-  /**
-   * @generated from field: string target = 2;
-   */
-  target = "";
-
-  constructor(data?: PartialMessage<EgressElement>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.schema.v1.EgressElement";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "expression", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "target", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EgressElement {
-    return new EgressElement().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EgressElement {
-    return new EgressElement().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EgressElement {
-    return new EgressElement().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: EgressElement | PlainMessage<EgressElement> | undefined, b: EgressElement | PlainMessage<EgressElement> | undefined): boolean {
-    return proto3.util.equals(EgressElement, a, b);
-  }
-}
-
-/**
  * EgressRuntime stores the actual egress target.
  *
  * @generated from message xyz.block.ftl.schema.v1.EgressRuntime
  */
 export class EgressRuntime extends Message<EgressRuntime> {
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.EgressElement targets = 1;
+   * @generated from field: repeated xyz.block.ftl.schema.v1.EgressTarget targets = 1;
    */
-  targets: EgressElement[] = [];
+  targets: EgressTarget[] = [];
 
   constructor(data?: PartialMessage<EgressRuntime>) {
     super();
@@ -1598,7 +1555,7 @@ export class EgressRuntime extends Message<EgressRuntime> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.schema.v1.EgressRuntime";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "targets", kind: "message", T: EgressElement, repeated: true },
+    { no: 1, name: "targets", kind: "message", T: EgressTarget, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EgressRuntime {
@@ -1615,6 +1572,49 @@ export class EgressRuntime extends Message<EgressRuntime> {
 
   static equals(a: EgressRuntime | PlainMessage<EgressRuntime> | undefined, b: EgressRuntime | PlainMessage<EgressRuntime> | undefined): boolean {
     return proto3.util.equals(EgressRuntime, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.EgressTarget
+ */
+export class EgressTarget extends Message<EgressTarget> {
+  /**
+   * @generated from field: string expression = 1;
+   */
+  expression = "";
+
+  /**
+   * @generated from field: string target = 2;
+   */
+  target = "";
+
+  constructor(data?: PartialMessage<EgressTarget>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.EgressTarget";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "expression", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "target", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EgressTarget {
+    return new EgressTarget().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EgressTarget {
+    return new EgressTarget().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EgressTarget {
+    return new EgressTarget().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: EgressTarget | PlainMessage<EgressTarget> | undefined, b: EgressTarget | PlainMessage<EgressTarget> | undefined): boolean {
+    return proto3.util.equals(EgressTarget, a, b);
   }
 }
 
