@@ -11,65 +11,6 @@ import (
 	{{.}}
 {{- end}}
 )
-{{- if or .SumTypes .ExternalTypes $verbs }}
-
-func init() {
-	reflection.Register(
-{{- range .SumTypes}}
-		reflection.SumType[{{.TypeName}}](
-			{{- range .Variants}}
-			*new({{.TypeName}}),
-			{{- end}}
-		),
-{{- end}}
-{{- range .ExternalTypes}}
-		reflection.ExternalType(*new({{.TypeName}})),
-{{- end}}
-{{- range $dbs}}
-		{{- if eq .Type "postgres" }}
-		reflection.Database[{{.TypeName}}]("{{.Name}}", server.InitPostgres),
-		{{- else if eq .Type "mysql" }}
-        reflection.Database[{{.TypeName}}]("{{.Name}}", server.InitMySQL),
-		{{- end }}
-{{- end}}
-{{- range $verbs}}
-	{{- if .IsTransaction }}
-		reflection.Transaction({{.TypeName}}, "{{ .TransactionDatasourceName }}"),
-	{{- end }}
-	{{- if not .IsQuery }}
-		reflection.ProvideResourcesForVerb(
-            {{.TypeName}},
-            {{- range .Resources}}
-                {{- with getVerbClient . }}
-            	{{- if and (eq .Request.TypeName "ftl.Unit") (eq .Response.TypeName "ftl.Unit") }}
-            server.EmptyClient[{{.TypeName}}](),
-            	{{- else if eq .Request.TypeName "ftl.Unit" }}
-            server.SourceClient[{{.TypeName}}, {{.Response.TypeName}}](),
-            	{{- else if eq .Response.TypeName "ftl.Unit" }}
-            server.SinkClient[{{.TypeName}}, {{.Request.TypeName}}](),
-            	{{- else }}
-            server.VerbClient[{{.TypeName}}, {{.Request.TypeName}}, {{.Response.TypeName}}](),
-            	{{- end -}}
-                {{- end }}
-                {{- with getDatabaseHandle . }}
-			server.DatabaseHandle[{{.TypeName}}]("{{.Name}}", "{{.Type}}"),
-                {{- end }}
-                {{- with getTopicHandle . }}
-			server.TopicHandle[{{.EventType.TypeName}}, {{ .MapperTypeName "" }}]("{{.Module}}", "{{.Name}}"),
-                {{- end }}
-				{{- with getConfigHandle . }}
-			server.Config[{{.Type.TypeName}}]("{{.Module}}", "{{.Name}}"),
-				{{- end }}
-				{{- with getSecretHandle . }}
-			server.Secret[{{.Type.TypeName}}]("{{.Module}}", "{{.Name}}"),
-				{{- end }}
-			{{- end}}
-		),
-	{{- end }}
-{{- end}}
-	)
-}
-{{- end}}
 
 func main() {
 	verbConstructor := server.NewUserVerbServer("{{.ProjectName}}", "{{$name}}",
