@@ -41,7 +41,9 @@ type Ref struct {
 
 var _ sql.Scanner = (*Ref)(nil)
 var _ driver.Valuer = (*Ref)(nil)
+var _ Symbol = (*Ref)(nil)
 
+func (r *Ref) schemaSymbol()               {}
 func (r Ref) Value() (driver.Value, error) { return r.String(), nil }
 
 func (r *Ref) Scan(src any) error {
@@ -106,6 +108,8 @@ func (r *Ref) String() string {
 	}
 	return out
 }
+
+func (r *Ref) Kind() Kind { return KindRef }
 
 func ParseRef(ref string) (*Ref, error) {
 	out, err := refParser.ParseString("", ref)

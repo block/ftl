@@ -286,6 +286,44 @@ type SumType struct {
 func (SumType) decl()              {}
 func (s SumType) DeclName() string { return s.Name }
 
+func (s SumType) ShouldStripPrefix() bool {
+	for name := range s.Variants {
+		if !strings.HasPrefix(name, s.Name) {
+			return false
+		}
+	}
+	return true
+}
+
+func (s SumType) FieldName(variant string) string {
+	if s.ShouldStripPrefix() {
+		return strcase.ToLowerSnake(strings.TrimPrefix(variant, s.Name))
+	}
+	return strcase.ToLowerSnake(variant)
+}
+
+func (s SumType) Getter(variant string) string {
+	if s.ShouldStripPrefix() {
+		return "Get" + protoName(strings.TrimPrefix(variant, s.Name))
+	}
+	return "Get" + protoName(variant)
+}
+
+// TypeName returns the full oneof typename, which is <SumType>_<VariantType>
+func (s SumType) TypeName(variant string) string {
+	out := ""
+	for name := range s.Variants {
+		if !strings.HasPrefix(name, s.Name) {
+			out = protoName(s.Name) + "_" + protoName(variant)
+			break
+		}
+	}
+	if out == "" {
+		out = protoName(s.Name) + "_" + protoName(strings.TrimPrefix(variant, s.Name))
+	}
+	return out
+}
+
 // TextMarshaler is a named type that implements encoding.TextMarshaler. Encoding will delegate to the marshaller.
 type TextMarshaler struct {
 	Comment string

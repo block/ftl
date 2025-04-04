@@ -606,13 +606,20 @@ message Type {
     Array array = 7;
     Bool bool = 5;
     Bytes bytes = 4;
+    Data data = 13;
+    Enum enum = 14;
+    EnumVariant enum_variant = 16;
+    Field field = 15;
     Float float = 2;
     Int int = 1;
+    IntValue int_value = 17;
     Map map = 8;
     Optional optional = 12;
     Ref ref = 11;
     String string = 3;
+    StringValue string_value = 18;
     Time time = 6;
+    TypeValue type_value = 19;
     Unit unit = 10;
   }
 }

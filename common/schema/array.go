@@ -22,3 +22,4 @@ func (a *Array) schemaChildren() []Node { return []Node{a.Element} }
 func (a *Array) schemaType()            {}
 func (a *Array) schemaSymbol()          {}
 func (a *Array) String() string         { return "[" + a.Element.String() + "]" }
+func (a *Array) Kind() Kind             { return KindArray }

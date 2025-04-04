@@ -16,6 +16,7 @@ type TypeAlias struct {
 	Metadata []Metadata `parser:"@@*" protobuf:"6"`
 }
 
+var _ Type = (*TypeAlias)(nil)
 var _ Decl = (*TypeAlias)(nil)
 var _ Symbol = (*TypeAlias)(nil)
 
@@ -47,3 +48,13 @@ func (t *TypeAlias) schemaChildren() []Node {
 func (t *TypeAlias) GetName() string   { return t.Name }
 func (t *TypeAlias) IsExported() bool  { return t.Export }
 func (t *TypeAlias) IsGenerated() bool { return false }
+func (x *TypeAlias) Equal(other Type) bool {
+	o, ok := other.(*TypeAlias)
+	if !ok {
+		return false
+	}
+	return x.Name == o.Name && x.Type.Equal(o.Type)
+}
+
+func (x *TypeAlias) Kind() Kind  { return KindTypeAlias }
+func (x *TypeAlias) schemaType() {}

@@ -2950,6 +2950,22 @@ func TypeToProto(value Type) *destpb.Type {
 		return &destpb.Type{
 			Value: &destpb.Type_Bytes{value.ToProto()},
 		}
+	case *Data:
+		return &destpb.Type{
+			Value: &destpb.Type_Data{value.ToProto()},
+		}
+	case *Enum:
+		return &destpb.Type{
+			Value: &destpb.Type_Enum{value.ToProto()},
+		}
+	case *EnumVariant:
+		return &destpb.Type{
+			Value: &destpb.Type_EnumVariant{value.ToProto()},
+		}
+	case *Field:
+		return &destpb.Type{
+			Value: &destpb.Type_Field{value.ToProto()},
+		}
 	case *Float:
 		return &destpb.Type{
 			Value: &destpb.Type_Float{value.ToProto()},
@@ -2957,6 +2973,10 @@ func TypeToProto(value Type) *destpb.Type {
 	case *Int:
 		return &destpb.Type{
 			Value: &destpb.Type_Int{value.ToProto()},
+		}
+	case *IntValue:
+		return &destpb.Type{
+			Value: &destpb.Type_IntValue{value.ToProto()},
 		}
 	case *Map:
 		return &destpb.Type{
@@ -2974,9 +2994,17 @@ func TypeToProto(value Type) *destpb.Type {
 		return &destpb.Type{
 			Value: &destpb.Type_String_{value.ToProto()},
 		}
+	case *StringValue:
+		return &destpb.Type{
+			Value: &destpb.Type_StringValue{value.ToProto()},
+		}
 	case *Time:
 		return &destpb.Type{
 			Value: &destpb.Type_Time{value.ToProto()},
+		}
+	case *TypeValue:
+		return &destpb.Type{
+			Value: &destpb.Type_TypeValue{value.ToProto()},
 		}
 	case *Unit:
 		return &destpb.Type{
@@ -3000,10 +3028,20 @@ func TypeFromProto(v *destpb.Type) (Type, error) {
 		return BoolFromProto(v.GetBool())
 	case *destpb.Type_Bytes:
 		return BytesFromProto(v.GetBytes())
+	case *destpb.Type_Data:
+		return DataFromProto(v.GetData())
+	case *destpb.Type_Enum:
+		return EnumFromProto(v.GetEnum())
+	case *destpb.Type_EnumVariant:
+		return EnumVariantFromProto(v.GetEnumVariant())
+	case *destpb.Type_Field:
+		return FieldFromProto(v.GetField())
 	case *destpb.Type_Float:
 		return FloatFromProto(v.GetFloat())
 	case *destpb.Type_Int:
 		return IntFromProto(v.GetInt())
+	case *destpb.Type_IntValue:
+		return IntValueFromProto(v.GetIntValue())
 	case *destpb.Type_Map:
 		return MapFromProto(v.GetMap())
 	case *destpb.Type_Optional:
@@ -3012,8 +3050,12 @@ func TypeFromProto(v *destpb.Type) (Type, error) {
 		return RefFromProto(v.GetRef())
 	case *destpb.Type_String_:
 		return StringFromProto(v.GetString_())
+	case *destpb.Type_StringValue:
+		return StringValueFromProto(v.GetStringValue())
 	case *destpb.Type_Time:
 		return TimeFromProto(v.GetTime())
+	case *destpb.Type_TypeValue:
+		return TypeValueFromProto(v.GetTypeValue())
 	case *destpb.Type_Unit:
 		return UnitFromProto(v.GetUnit())
 	default:

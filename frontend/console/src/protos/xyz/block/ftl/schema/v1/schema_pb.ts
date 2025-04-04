@@ -4613,6 +4613,30 @@ export class Type extends Message<Type> {
     case: "bytes";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.Data data = 13;
+     */
+    value: Data;
+    case: "data";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.Enum enum = 14;
+     */
+    value: Enum;
+    case: "enum";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.EnumVariant enum_variant = 16;
+     */
+    value: EnumVariant;
+    case: "enumVariant";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.Field field = 15;
+     */
+    value: Field;
+    case: "field";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.Float float = 2;
      */
     value: Float;
@@ -4623,6 +4647,12 @@ export class Type extends Message<Type> {
      */
     value: Int;
     case: "int";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.IntValue int_value = 17;
+     */
+    value: IntValue;
+    case: "intValue";
   } | {
     /**
      * @generated from field: xyz.block.ftl.schema.v1.Map map = 8;
@@ -4649,10 +4679,22 @@ export class Type extends Message<Type> {
     case: "string";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.StringValue string_value = 18;
+     */
+    value: StringValue;
+    case: "stringValue";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.Time time = 6;
      */
     value: Time;
     case: "time";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.TypeValue type_value = 19;
+     */
+    value: TypeValue;
+    case: "typeValue";
   } | {
     /**
      * @generated from field: xyz.block.ftl.schema.v1.Unit unit = 10;
@@ -4673,13 +4715,20 @@ export class Type extends Message<Type> {
     { no: 7, name: "array", kind: "message", T: Array, oneof: "value" },
     { no: 5, name: "bool", kind: "message", T: Bool, oneof: "value" },
     { no: 4, name: "bytes", kind: "message", T: Bytes, oneof: "value" },
+    { no: 13, name: "data", kind: "message", T: Data, oneof: "value" },
+    { no: 14, name: "enum", kind: "message", T: Enum, oneof: "value" },
+    { no: 16, name: "enum_variant", kind: "message", T: EnumVariant, oneof: "value" },
+    { no: 15, name: "field", kind: "message", T: Field, oneof: "value" },
     { no: 2, name: "float", kind: "message", T: Float, oneof: "value" },
     { no: 1, name: "int", kind: "message", T: Int, oneof: "value" },
+    { no: 17, name: "int_value", kind: "message", T: IntValue, oneof: "value" },
     { no: 8, name: "map", kind: "message", T: Map, oneof: "value" },
     { no: 12, name: "optional", kind: "message", T: Optional, oneof: "value" },
     { no: 11, name: "ref", kind: "message", T: Ref, oneof: "value" },
     { no: 3, name: "string", kind: "message", T: String, oneof: "value" },
+    { no: 18, name: "string_value", kind: "message", T: StringValue, oneof: "value" },
     { no: 6, name: "time", kind: "message", T: Time, oneof: "value" },
+    { no: 19, name: "type_value", kind: "message", T: TypeValue, oneof: "value" },
     { no: 10, name: "unit", kind: "message", T: Unit, oneof: "value" },
   ]);
 
