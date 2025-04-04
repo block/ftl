@@ -83,12 +83,17 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 	}
 
 	modules := map[string]bool{}
+	realms := map[string]bool{}
 	merr := []error{}
 	ingress := map[string]*Verb{}
 
 	// Inject builtins.
 	builtins := Builtins()
 	for _, realm := range schema.Realms {
+		if realms[realm.Name] {
+			merr = append(merr, errorf(realm, "duplicate realm %q", realm.Name))
+		}
+		realms[realm.Name] = true
 		if realm.External {
 			continue
 		}
