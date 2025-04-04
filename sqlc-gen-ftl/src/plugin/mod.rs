@@ -104,7 +104,7 @@ fn to_verb(query: &pluginpb::Query, module_name: &str, database_name: &str) -> s
         value: Some(
             schemapb::metadata::Value::Databases(schemapb::MetadataDatabases {
                 pos: None,
-                calls: vec![schemapb::Ref {
+                uses: vec![schemapb::Ref {
                     pos: None,
                     module: module_name.to_string(),
                     name: database_name.to_string(),

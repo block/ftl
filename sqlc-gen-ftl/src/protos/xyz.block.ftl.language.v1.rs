@@ -48,92 +48,6 @@ pub struct ProjectConfig {
     pub hermit: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetNewModuleFlagsComman {
-    #[prost(string, tag="1")]
-    pub language: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetNewModuleFlagsResult {
-    #[prost(message, repeated, tag="1")]
-    pub flags: ::prost::alloc::vec::Vec<get_create_module_flags_response::Flag>,
-}
-/// Nested message and enum types in `GetNewModuleFlagsResult`.
-pub mod get_create_module_flags_response {
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Flag {
-        #[prost(string, tag="1")]
-        pub name: ::prost::alloc::string::String,
-        #[prost(string, tag="2")]
-        pub help: ::prost::alloc::string::String,
-        #[prost(string, optional, tag="3")]
-        pub envar: ::core::option::Option<::prost::alloc::string::String>,
-        /// short must be a single character
-        #[prost(string, optional, tag="4")]
-        pub short: ::core::option::Option<::prost::alloc::string::String>,
-        #[prost(string, optional, tag="5")]
-        pub placeholder: ::core::option::Option<::prost::alloc::string::String>,
-        #[prost(string, optional, tag="6")]
-        pub default: ::core::option::Option<::prost::alloc::string::String>,
-    }
-}
-/// Request to create a new module.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NewModuleRequest {
-    #[prost(string, tag="1")]
-    pub name: ::prost::alloc::string::String,
-    /// The root directory for the module, which does not yet exist.
-    /// The plugin should create the directory.
-    #[prost(string, tag="2")]
-    pub dir: ::prost::alloc::string::String,
-    /// The project configuration
-    #[prost(message, optional, tag="3")]
-    pub project_config: ::core::option::Option<ProjectConfig>,
-    /// Flags contains any values set for those configured in the GetCreateModuleFlags call
-    #[prost(message, optional, tag="4")]
-    pub flags: ::core::option::Option<::prost_types::Struct>,
-}
-/// Response to a create module request.
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct NewModuleResponse {
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ModuleConfigDefaultsRequest {
-    #[prost(string, tag="1")]
-    pub dir: ::prost::alloc::string::String,
-}
-/// ModuleConfigDefaultsResponse provides defaults for ModuleConfig.
-///
-/// The result may be cached by FTL, so defaulting logic should not be changing due to normal module changes.
-/// For example, it is valid to return defaults based on which build tool is configured within the module directory,
-/// as that is not expected to change during normal operation.
-/// It is not recommended to read the module's toml file to determine defaults, as when the toml file is updated,
-/// the module defaults will not be recalculated.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ModuleConfigDefaultsResponse {
-    /// Default relative path to the directory containing all build artifacts for deployments
-    #[prost(string, tag="1")]
-    pub deploy_dir: ::prost::alloc::string::String,
-    /// Default build command
-    #[prost(string, optional, tag="2")]
-    pub build: ::core::option::Option<::prost::alloc::string::String>,
-    /// Dev mode build command, if different from the regular build command
-    #[prost(string, optional, tag="3")]
-    pub dev_mode_build: ::core::option::Option<::prost::alloc::string::String>,
-    /// Build lock path to prevent concurrent builds
-    #[prost(string, optional, tag="4")]
-    pub build_lock: ::core::option::Option<::prost::alloc::string::String>,
-    /// Default patterns to watch for file changes, relative to the module directory
-    #[prost(string, repeated, tag="6")]
-    pub watch: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    /// Default language specific configuration.
-    /// These defaults are filled in by looking at each root key only. If the key is not present, the default is used.
-    #[prost(message, optional, tag="7")]
-    pub language_config: ::core::option::Option<::prost_types::Struct>,
-    /// Root directory containing SQL files.
-    #[prost(string, tag="8")]
-    pub sql_root_dir: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetDependenciesRequest {
     #[prost(message, optional, tag="1")]
     pub module_config: ::core::option::Option<ModuleConfig>,
@@ -409,5 +323,91 @@ pub struct SyncStubReferencesRequest {
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct SyncStubReferencesResponse {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetNewModuleFlagsRequest {
+    #[prost(string, tag="1")]
+    pub language: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetNewModuleFlagsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub flags: ::prost::alloc::vec::Vec<get_new_module_flags_response::Flag>,
+}
+/// Nested message and enum types in `GetNewModuleFlagsResponse`.
+pub mod get_new_module_flags_response {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Flag {
+        #[prost(string, tag="1")]
+        pub name: ::prost::alloc::string::String,
+        #[prost(string, tag="2")]
+        pub help: ::prost::alloc::string::String,
+        #[prost(string, optional, tag="3")]
+        pub envar: ::core::option::Option<::prost::alloc::string::String>,
+        /// short must be a single character
+        #[prost(string, optional, tag="4")]
+        pub short: ::core::option::Option<::prost::alloc::string::String>,
+        #[prost(string, optional, tag="5")]
+        pub placeholder: ::core::option::Option<::prost::alloc::string::String>,
+        #[prost(string, optional, tag="6")]
+        pub default: ::core::option::Option<::prost::alloc::string::String>,
+    }
+}
+/// Request to create a new module.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NewModuleRequest {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// The root directory for the module, which does not yet exist.
+    /// The plugin should create the directory.
+    #[prost(string, tag="2")]
+    pub dir: ::prost::alloc::string::String,
+    /// The project configuration
+    #[prost(message, optional, tag="3")]
+    pub project_config: ::core::option::Option<ProjectConfig>,
+    /// Flags contains any values set for those configured in the GetCreateModuleFlags call
+    #[prost(message, optional, tag="4")]
+    pub flags: ::core::option::Option<::prost_types::Struct>,
+}
+/// Response to a create module request.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct NewModuleResponse {
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetModuleConfigDefaultsRequest {
+    #[prost(string, tag="1")]
+    pub dir: ::prost::alloc::string::String,
+}
+/// GetModuleConfigDefaultsResponse provides defaults for ModuleConfig.
+///
+/// The result may be cached by FTL, so defaulting logic should not be changing due to normal module changes.
+/// For example, it is valid to return defaults based on which build tool is configured within the module directory,
+/// as that is not expected to change during normal operation.
+/// It is not recommended to read the module's toml file to determine defaults, as when the toml file is updated,
+/// the module defaults will not be recalculated.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetModuleConfigDefaultsResponse {
+    /// Default relative path to the directory containing all build artifacts for deployments
+    #[prost(string, tag="1")]
+    pub deploy_dir: ::prost::alloc::string::String,
+    /// Default build command
+    #[prost(string, optional, tag="2")]
+    pub build: ::core::option::Option<::prost::alloc::string::String>,
+    /// Dev mode build command, if different from the regular build command
+    #[prost(string, optional, tag="3")]
+    pub dev_mode_build: ::core::option::Option<::prost::alloc::string::String>,
+    /// Build lock path to prevent concurrent builds
+    #[prost(string, optional, tag="4")]
+    pub build_lock: ::core::option::Option<::prost::alloc::string::String>,
+    /// Default patterns to watch for file changes, relative to the module directory
+    #[prost(string, repeated, tag="6")]
+    pub watch: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Default language specific configuration.
+    /// These defaults are filled in by looking at each root key only. If the key is not present, the default is used.
+    #[prost(message, optional, tag="7")]
+    pub language_config: ::core::option::Option<::prost_types::Struct>,
+    /// Root directory containing SQL files.
+    #[prost(string, tag="8")]
+    pub sql_root_dir: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

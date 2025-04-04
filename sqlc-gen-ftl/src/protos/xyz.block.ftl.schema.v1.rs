@@ -478,7 +478,7 @@ pub struct MetadataDatabases {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
     #[prost(message, repeated, tag="2")]
-    pub calls: ::prost::alloc::vec::Vec<Ref>,
+    pub uses: ::prost::alloc::vec::Vec<Ref>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataEncoding {
