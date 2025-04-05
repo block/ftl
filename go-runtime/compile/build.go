@@ -99,16 +99,12 @@ func (c *mainDeploymentContext) generateQueryImports() []string {
 	imports.Add(`"github.com/alecthomas/types/tuple"`)
 	for _, d := range c.QueriesCtx.Data {
 		for _, f := range d.Fields {
-			if usesType(f.Type, &schema.Time{}) {
-				imports.Add(`stdtime "time"`)
-			}
-			if usesType(f.Type, &schema.Unit{}) {
-				imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
-			}
-			if usesType(f.Type, &schema.Optional{}) {
-				imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
-			}
+			imports.Append(schemaTypeImports(f.Type, true)...)
 		}
+	}
+	for _, v := range c.QueriesCtx.Verbs {
+		imports.Append(schemaTypeImports(v.Request, false)...)
+		imports.Append(schemaTypeImports(v.Response, false)...)
 	}
 	result := imports.ToSlice()
 	slices.Sort(result)
@@ -166,17 +162,23 @@ func typeImports(t goSchemaType, importUnit bool) []string {
 	if nt, ok := t.nativeType.Get(); ok {
 		imports.Add(nt.importStatement())
 	}
-	if usesType(t.schemaType, &schema.Optional{}) {
-		imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
-	}
-	if usesType(t.schemaType, &schema.Time{}) {
-		imports.Add(`stdtime "time"`)
-	}
-	if usesType(t.schemaType, &schema.Unit{}) && importUnit {
-		imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
-	}
+	imports.Append(schemaTypeImports(t.schemaType, importUnit)...)
 	for _, c := range t.children {
 		imports.Append(typeImports(c, importUnit)...)
+	}
+	return imports.ToSlice()
+}
+
+func schemaTypeImports(t schema.Type, importUnit bool) []string {
+	imports := sets.NewSet[string]()
+	if usesType(t, &schema.Optional{}) {
+		imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
+	}
+	if usesType(t, &schema.Time{}) {
+		imports.Add(`stdtime "time"`)
+	}
+	if usesType(t, &schema.Unit{}) && importUnit {
+		imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
 	}
 	return imports.ToSlice()
 }

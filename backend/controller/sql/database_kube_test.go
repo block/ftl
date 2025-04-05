@@ -27,7 +27,7 @@ func TestSQLVerbsInKube(t *testing.T) {
 		}, nil),
 
 		// Test ONE operation - get the inserted record
-		in.Call[in.Obj, in.Obj]("mysql", "getTestType", in.Obj{"id": 1}, func(t testing.TB, response in.Obj) {
+		in.Call[int, in.Obj]("mysql", "getTestType", 1, func(t testing.TB, response in.Obj) {
 			intVal := response["intVal"].(float64)
 			floatVal := response["floatVal"].(float64)
 

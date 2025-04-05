@@ -13,3 +13,11 @@ INSERT INTO all_types (
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 );
 
+-- name: GetSingleColumn :one
+SELECT some_text FROM all_types WHERE id = ?;
+
+-- name: GetPartialTable :one
+SELECT id, some_text, some_bool FROM all_types WHERE id = ?;
+
+-- name: GetAllTypesMany :many
+SELECT * FROM all_types LIMIT 10;

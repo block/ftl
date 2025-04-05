@@ -33,6 +33,12 @@ func CleanStubs(ctx context.Context, projectRoot string, configs []moduleconfig.
 	logger.Debugf("Deleting all generated stubs")
 	sharedFtlDir := filepath.Join(projectRoot, buildDirName)
 
+	resourcesDir := filepath.Join(sharedFtlDir, "resources")
+	err := os.RemoveAll(resourcesDir)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove %s: %w", resourcesDir, err)
+	}
+
 	// Figure out which languages we need to clean.
 	languages := make(map[string]struct{})
 	for _, config := range configs {

@@ -9,20 +9,13 @@ import (
 	"github.com/block/ftl/go-runtime/server"
 )
 
-type CreateRequestQuery struct {
-	Data ftl.Option[string]
-}
-type GetRequestDataResult struct {
-	Data ftl.Option[string]
-}
+type CreateRequestClient func(context.Context, ftl.Option[string]) error
 
-type CreateRequestClient func(context.Context, CreateRequestQuery) error
-
-type GetRequestDataClient func(context.Context) ([]GetRequestDataResult, error)
+type GetRequestDataClient func(context.Context) ([]ftl.Option[string], error)
 
 func init() {
 	reflection.Register(
-		server.QuerySink[CreateRequestQuery]("database", "createRequest", reflection.CommandTypeExec, "testdb", "postgres", "INSERT INTO requests (data) VALUES ($1)", []string{"Data"}, []tuple.Pair[string, string]{}),
-		server.QuerySource[GetRequestDataResult]("database", "getRequestData", reflection.CommandTypeMany, "testdb", "postgres", "SELECT data FROM requests", []string{}, []tuple.Pair[string, string]{tuple.PairOf("data", "Data")}),
+		server.QuerySink[ftl.Option[string]]("database", "createRequest", reflection.CommandTypeExec, "testdb", "postgres", "INSERT INTO requests (data) VALUES ($1)", []string{}, []tuple.Pair[string, string]{}),
+		server.QuerySource[ftl.Option[string]]("database", "getRequestData", reflection.CommandTypeMany, "testdb", "postgres", "SELECT data FROM requests", []string{}, []tuple.Pair[string, string]{}),
 	)
 }

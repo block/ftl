@@ -19,6 +19,8 @@ protoc-gen-prost = { version = "0.4.0" }
 serde = { version = "1.0", default-features = false, features = ["derive", "alloc", "std"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc", "std"] }
 convert_case = "0.8.0"
+regex = { version = "1.10.2", default-features = false, features = ["std", "unicode-case"] }
+lazy_static = "1.4.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
@@ -30,7 +32,7 @@ prost-build = "0.13.3"
 hex = "0.4.3"
 sha2 = "0.10.6"
 tempfile = "3.6.0"
-wasmtime = "28.0.0"
+wasmtime = "31.0.0"
 
 [[bin]]
 name = "sqlc-gen-ftl"

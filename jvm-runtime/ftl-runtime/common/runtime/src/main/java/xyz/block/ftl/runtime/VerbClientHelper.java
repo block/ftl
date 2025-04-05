@@ -133,9 +133,19 @@ public class VerbClientHelper {
     }
 
     private String getParamsJson(byte[] request, String[] fields) throws Exception {
-        if (fields == null || fields.length == 0 || request == null || request.toString().isEmpty()) {
+        if (request == null || request.length == 0) {
             return "[]";
         }
+
+        if (fields == null || fields.length == 0) {
+            JsonNode jsonNode = mapper.readTree(request);
+            if (jsonNode.isNull() || (jsonNode.isArray() && jsonNode.isEmpty())
+                    || (jsonNode.isObject() && jsonNode.isEmpty())) {
+                return "[]";
+            }
+            return mapper.writeValueAsString(List.of(jsonNode));
+        }
+
         Map<String, Object> requestJsonMap = mapper.readValue(request, new TypeReference<Map<String, Object>>() {
         });
         List<Object> params = new ArrayList<>();

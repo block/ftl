@@ -32,15 +32,15 @@ func init() {
 
 		reflection.ProvideResourcesForVerb(
 			TransactionInsert,
-			server.SinkClient[CreateRequestClient, CreateRequestQuery](),
-			server.SourceClient[GetRequestDataClient, []GetRequestDataResult](),
+			server.SinkClient[CreateRequestClient, ftl.Option[string]](),
+			server.SourceClient[GetRequestDataClient, []ftl.Option[string]](),
 		),
 
 		reflection.Transaction(TransactionRollback, "testdb"),
 
 		reflection.ProvideResourcesForVerb(
 			TransactionRollback,
-			server.SinkClient[CreateRequestClient, CreateRequestQuery](),
+			server.SinkClient[CreateRequestClient, ftl.Option[string]](),
 		),
 	)
 }

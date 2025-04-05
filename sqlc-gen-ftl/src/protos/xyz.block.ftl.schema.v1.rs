@@ -727,6 +727,17 @@ pub struct Position {
     #[prost(int64, tag="3")]
     pub column: i64,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Realm {
+    #[prost(message, optional, tag="1")]
+    pub pos: ::core::option::Option<Position>,
+    #[prost(bool, tag="2")]
+    pub external: bool,
+    #[prost(string, tag="3")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="4")]
+    pub modules: ::prost::alloc::vec::Vec<Module>,
+}
 /// Ref is an untyped reference to a symbol.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Ref {
@@ -776,7 +787,7 @@ pub struct Schema {
     #[prost(message, optional, tag="1")]
     pub pos: ::core::option::Option<Position>,
     #[prost(message, repeated, tag="2")]
-    pub modules: ::prost::alloc::vec::Vec<Module>,
+    pub realms: ::prost::alloc::vec::Vec<Realm>,
 }
 /// SchemaState is the schema service state as persisted in Raft
 #[derive(Clone, PartialEq, ::prost::Message)]

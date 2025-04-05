@@ -23,12 +23,12 @@ func init() {
 
 		reflection.ProvideResourcesForVerb(
 			Insert,
-			server.SinkClient[CreateRequestClient, CreateRequestQuery](),
+			server.SinkClient[CreateRequestClient, string](),
 		),
 
 		reflection.ProvideResourcesForVerb(
 			Query,
-			server.SourceClient[GetRequestDataClient, []GetRequestDataResult](),
+			server.SourceClient[GetRequestDataClient, []string](),
 		),
 	)
 }
