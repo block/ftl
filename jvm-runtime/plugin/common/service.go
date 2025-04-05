@@ -299,6 +299,10 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 	logger := log.FromContext(parentCtx)
 	ctx, cancel := context.WithCancelCause(parentCtx)
 	defer cancel(fmt.Errorf("stopping JVM language plugin (Quarkus dev mode): %w", context.Canceled))
+
+	output := &errorDetector{
+		logger: logger,
+	}
 	go func() {
 		<-ctx.Done()
 		// If the parent context is done we just return
@@ -310,6 +314,9 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 		}
 		// the context is done before we notified the build engine
 		// we need to send a build failure event
+
+		ers := langpb.ErrorsToProto(output.FinalizeCapture(true))
+		ers.Errors = append(ers.Errors, &langpb.Error{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER})
 		auto := firstResponseSent.Load()
 		if !auto {
 			firstResponseSent.Store(true)
@@ -317,7 +324,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 				BuildFailure: &langpb.BuildFailure{
 					IsAutomaticRebuild: auto,
 					ContextId:          s.buildContext.Load().ID,
-					Errors:             &langpb.ErrorList{Errors: []*langpb.Error{{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER}}},
+					Errors:             ers,
 				}}})
 			if err != nil {
 				logger.Errorf(err, "could not send build event")
@@ -357,9 +364,6 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 	if os.Getenv("FTL_SUSPEND") == "true" {
 		devModeBuild += " -Dsuspend "
 	}
-	output := &errorDetector{
-		logger: logger,
-	}
 	launchQuarkusProcessAsync(ctx, devModeBuild, buildCtx, bind, output, cancel)
 
 	// Wait for the plugin to start.
@@ -369,7 +373,6 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 		return err
 	}
 	logger.Debugf("Dev mode process started")
-	_ = output.FinalizeCapture()
 	reloadEvents := make(chan *buildResult, 32)
 
 	go rpc.RetryStreamingServerStream(ctx, "hot-reload", backoff.Backoff{Max: time.Millisecond * 100}, &hotreloadpb.WatchRequest{}, client.Watch, func(ctx context.Context, stream *hotreloadpb.WatchResponse) error { //nolint
@@ -573,7 +576,7 @@ func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint str
 		}
 		return nil, fmt.Errorf("timed out waiting for start %w", err)
 	}
-	_ = output.FinalizeCapture()
+	_ = output.FinalizeCapture(false)
 	return client, nil
 }
 
@@ -613,7 +616,7 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 	err = command.Run()
 
 	if err != nil {
-		buildErrs := output.FinalizeCapture()
+		buildErrs := output.FinalizeCapture(true)
 		if len(buildErrs) == 0 {
 			buildErrs = []builderrors.Error{{Msg: "Compile process unexpectedly exited without reporting any errors", Level: builderrors.ERROR, Type: builderrors.COMPILER}}
 		}
@@ -625,9 +628,11 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 	}
 
 	buildErrs, err := loadProtoErrors(config)
+	capturedErrors := output.FinalizeCapture(false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load build errors: %w", err)
 	}
+	buildErrs.Errors = append(buildErrs.Errors, langpb.ErrorsToProto(capturedErrors).Errors...)
 	if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(buildErrs)) {
 		// skip reading schema
 		return &langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
