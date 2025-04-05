@@ -12,10 +12,9 @@ import (
 	xslices "slices"
 	"strings"
 
+	"github.com/alecthomas/types/optional"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-
-	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -99,7 +98,7 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 			break
 		}
 	}
- 
+
 	// sort configs so they are processed deterministically.
 	// We may end up modifying the name of a generated decl to avoid conflicts when table names are the same
 	// across multiple datasources. Sorting by database name ensures that the schema produced is deterministic.
