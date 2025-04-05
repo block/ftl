@@ -8,6 +8,7 @@ import (
 )
 
 //protobuf:4
+//protobuf:14 Type
 type Enum struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
@@ -18,10 +19,32 @@ type Enum struct {
 	Variants []*EnumVariant `parser:"'{' @@* '}'" protobuf:"6"`
 }
 
+var _ Type = (*Enum)(nil)
 var _ Decl = (*Enum)(nil)
 var _ Symbol = (*Enum)(nil)
 
 func (e *Enum) Position() Position { return e.Pos }
+
+func (e *Enum) Equal(other Type) bool {
+	o, ok := other.(*Enum)
+	if !ok {
+		return false
+	}
+	if !e.Type.Equal(o.Type) {
+		return false
+	}
+	if len(e.Variants) != len(o.Variants) {
+		return false
+	}
+	for i, variant := range e.Variants {
+		if !variant.Equal(o.Variants[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (e *Enum) schemaType() {}
 
 func (e *Enum) String() string {
 	w := &strings.Builder{}
@@ -42,6 +65,7 @@ func (e *Enum) String() string {
 }
 func (*Enum) schemaDecl()   {}
 func (*Enum) schemaSymbol() {}
+func (*Enum) Kind() Kind    { return KindEnum }
 func (e *Enum) schemaChildren() []Node {
 	var children []Node
 	for _, v := range e.Variants {
@@ -72,6 +96,7 @@ func (e *Enum) VariantForName(name string) optional.Option[*EnumVariant] {
 	return optional.None[*EnumVariant]()
 }
 
+//protobuf:16 Type
 type EnumVariant struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
@@ -79,6 +104,23 @@ type EnumVariant struct {
 	Name     string   `parser:"@Ident" protobuf:"3"`
 	Value    Value    `parser:"(('=' @@) | @@)!" protobuf:"4"`
 }
+
+var _ Type = (*EnumVariant)(nil)
+
+// Equal implements Type.
+func (e *EnumVariant) Equal(other Type) bool {
+	o, ok := other.(*EnumVariant)
+	if !ok {
+		return false
+	}
+	if e.Name != o.Name {
+		return false
+	}
+	return true
+}
+
+func (e *EnumVariant) Kind() Kind  { return KindEnumVariant }
+func (e *EnumVariant) schemaType() {}
 
 func (e *EnumVariant) Position() Position { return e.Pos }
 

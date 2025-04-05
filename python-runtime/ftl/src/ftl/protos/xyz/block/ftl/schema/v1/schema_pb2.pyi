@@ -938,32 +938,46 @@ class TopicRuntime(_message.Message):
     def __init__(self, kafka_brokers: _Optional[_Iterable[str]] = ..., topic_id: _Optional[str] = ...) -> None: ...
 
 class Type(_message.Message):
-    __slots__ = ("any", "array", "bool", "bytes", "float", "int", "map", "optional", "ref", "string", "time", "unit")
+    __slots__ = ("any", "array", "bool", "bytes", "data", "enum", "enum_variant", "field", "float", "int", "int_value", "map", "optional", "ref", "string", "string_value", "time", "type_value", "unit")
     ANY_FIELD_NUMBER: _ClassVar[int]
     ARRAY_FIELD_NUMBER: _ClassVar[int]
     BOOL_FIELD_NUMBER: _ClassVar[int]
     BYTES_FIELD_NUMBER: _ClassVar[int]
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    ENUM_FIELD_NUMBER: _ClassVar[int]
+    ENUM_VARIANT_FIELD_NUMBER: _ClassVar[int]
+    FIELD_FIELD_NUMBER: _ClassVar[int]
     FLOAT_FIELD_NUMBER: _ClassVar[int]
     INT_FIELD_NUMBER: _ClassVar[int]
+    INT_VALUE_FIELD_NUMBER: _ClassVar[int]
     MAP_FIELD_NUMBER: _ClassVar[int]
     OPTIONAL_FIELD_NUMBER: _ClassVar[int]
     REF_FIELD_NUMBER: _ClassVar[int]
     STRING_FIELD_NUMBER: _ClassVar[int]
+    STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
     TIME_FIELD_NUMBER: _ClassVar[int]
+    TYPE_VALUE_FIELD_NUMBER: _ClassVar[int]
     UNIT_FIELD_NUMBER: _ClassVar[int]
     any: Any
     array: Array
     bool: Bool
     bytes: Bytes
+    data: Data
+    enum: Enum
+    enum_variant: EnumVariant
+    field: Field
     float: Float
     int: Int
+    int_value: IntValue
     map: Map
     optional: Optional
     ref: Ref
     string: String
+    string_value: StringValue
     time: Time
+    type_value: TypeValue
     unit: Unit
-    def __init__(self, any: _Optional[_Union[Any, _Mapping]] = ..., array: _Optional[_Union[Array, _Mapping]] = ..., bool: _Optional[_Union[Bool, _Mapping]] = ..., bytes: _Optional[_Union[Bytes, _Mapping]] = ..., float: _Optional[_Union[Float, _Mapping]] = ..., int: _Optional[_Union[Int, _Mapping]] = ..., map: _Optional[_Union[Map, _Mapping]] = ..., optional: _Optional[_Union[Optional, _Mapping]] = ..., ref: _Optional[_Union[Ref, _Mapping]] = ..., string: _Optional[_Union[String, _Mapping]] = ..., time: _Optional[_Union[Time, _Mapping]] = ..., unit: _Optional[_Union[Unit, _Mapping]] = ...) -> None: ...
+    def __init__(self, any: _Optional[_Union[Any, _Mapping]] = ..., array: _Optional[_Union[Array, _Mapping]] = ..., bool: _Optional[_Union[Bool, _Mapping]] = ..., bytes: _Optional[_Union[Bytes, _Mapping]] = ..., data: _Optional[_Union[Data, _Mapping]] = ..., enum: _Optional[_Union[Enum, _Mapping]] = ..., enum_variant: _Optional[_Union[EnumVariant, _Mapping]] = ..., field: _Optional[_Union[Field, _Mapping]] = ..., float: _Optional[_Union[Float, _Mapping]] = ..., int: _Optional[_Union[Int, _Mapping]] = ..., int_value: _Optional[_Union[IntValue, _Mapping]] = ..., map: _Optional[_Union[Map, _Mapping]] = ..., optional: _Optional[_Union[Optional, _Mapping]] = ..., ref: _Optional[_Union[Ref, _Mapping]] = ..., string: _Optional[_Union[String, _Mapping]] = ..., string_value: _Optional[_Union[StringValue, _Mapping]] = ..., time: _Optional[_Union[Time, _Mapping]] = ..., type_value: _Optional[_Union[TypeValue, _Mapping]] = ..., unit: _Optional[_Union[Unit, _Mapping]] = ...) -> None: ...
 
 class TypeAlias(_message.Message):
     __slots__ = ("pos", "comments", "export", "name", "type", "metadata")

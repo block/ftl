@@ -5,11 +5,24 @@ import (
 )
 
 //protobuf:1
+//protobuf:18 Type
 type StringValue struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
 	Value string `parser:"@String" protobuf:"2"`
 }
+
+func (x *StringValue) Equal(other Type) bool {
+	o, ok := other.(*StringValue)
+	if !ok {
+		return false
+	}
+	return x.Value == o.Value
+}
+
+func (x *StringValue) Kind() Kind { return KindStringValue }
+
+func (x *StringValue) schemaType() {}
 
 var _ Value = (*StringValue)(nil)
 
