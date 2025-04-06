@@ -43,6 +43,8 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 		in.Deploy("proxy"),
 		in.CopyModule("naughty"),
 		in.Deploy("naughty"),
+		in.CopyModule("types"),
+		in.Deploy("types"),
 		in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
 			assert.Equal(t, "Hello, Bob!!!", response)
 		}),
@@ -57,12 +59,16 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
 			deps, err := client.AppsV1().Deployments(namespace("echo")).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
+			typesDeployed := false
 			for _, dep := range deps.Items {
 				if strings.HasPrefix(dep.Name, "dpl-echo") {
 					echoDeployment["name"] = dep.Name
+				} else if strings.HasPrefix(dep.Name, "dpl-types") {
+					typesDeployed = true
 				}
 				assert.Equal(t, 1, *dep.Spec.Replicas)
 			}
+			assert.False(t, typesDeployed, "no kube deployment should have been created for types")
 			assert.NotEqual(t, "", echoDeployment["name"])
 		}),
 		in.Exec("ftl", "update", "echo", "-n", "2"),

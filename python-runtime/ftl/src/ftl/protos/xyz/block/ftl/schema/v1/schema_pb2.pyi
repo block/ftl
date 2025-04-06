@@ -746,10 +746,12 @@ class ModuleRuntimeDeployment(_message.Message):
     def __init__(self, deployment_key: _Optional[str] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., activated_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., state: _Optional[_Union[DeploymentState, str]] = ...) -> None: ...
 
 class ModuleRuntimeRunner(_message.Message):
-    __slots__ = ("endpoint",)
+    __slots__ = ("endpoint", "runner_not_required")
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
+    RUNNER_NOT_REQUIRED_FIELD_NUMBER: _ClassVar[int]
     endpoint: str
-    def __init__(self, endpoint: _Optional[str] = ...) -> None: ...
+    runner_not_required: bool
+    def __init__(self, endpoint: _Optional[str] = ..., runner_not_required: bool = ...) -> None: ...
 
 class ModuleRuntimeScaling(_message.Message):
     __slots__ = ("min_replicas",)

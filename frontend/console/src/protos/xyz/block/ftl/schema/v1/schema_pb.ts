@@ -3609,6 +3609,11 @@ export class ModuleRuntimeRunner extends Message<ModuleRuntimeRunner> {
    */
   endpoint = "";
 
+  /**
+   * @generated from field: bool runner_not_required = 2;
+   */
+  runnerNotRequired = false;
+
   constructor(data?: PartialMessage<ModuleRuntimeRunner>) {
     super();
     proto3.util.initPartial(data, this);
@@ -3618,6 +3623,7 @@ export class ModuleRuntimeRunner extends Message<ModuleRuntimeRunner> {
   static readonly typeName = "xyz.block.ftl.schema.v1.ModuleRuntimeRunner";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "runner_not_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeRunner {

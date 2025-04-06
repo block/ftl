@@ -120,7 +120,7 @@ func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb
 	allowed := map[string]bool{}
 	var modules []*consolepb.Module
 	for _, mod := range sch.InternalModules() {
-		if mod.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() || mod.GetRuntime().GetRunner().GetEndpoint() == "" {
+		if mod.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
 			continue
 		}
 		allowed[mod.Name] = true

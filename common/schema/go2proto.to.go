@@ -2332,7 +2332,8 @@ func (x *ModuleRuntimeRunner) ToProto() *destpb.ModuleRuntimeRunner {
 		return nil
 	}
 	return &destpb.ModuleRuntimeRunner{
-		Endpoint: orZero(ptr(string(x.Endpoint))),
+		Endpoint:          orZero(ptr(string(x.Endpoint))),
+		RunnerNotRequired: orZero(ptr(bool(x.RunnerNotRequired))),
 	}
 }
 
@@ -2344,6 +2345,9 @@ func ModuleRuntimeRunnerFromProto(v *destpb.ModuleRuntimeRunner) (out *ModuleRun
 	out = &ModuleRuntimeRunner{}
 	if out.Endpoint, err = orZeroR(result.From(ptr(string(v.Endpoint)), nil)).Result(); err != nil {
 		return nil, fmt.Errorf("Endpoint: %w", err)
+	}
+	if out.RunnerNotRequired, err = orZeroR(result.From(ptr(bool(v.RunnerNotRequired)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("RunnerNotRequired: %w", err)
 	}
 	return out, nil
 }

@@ -226,8 +226,8 @@ func verifyChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEve
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateReady {
 			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", dep.Name, schema.DeploymentStateReady, dep.Runtime.Deployment.State)
 		}
-		if dep.ModRuntime().ModRunner().Endpoint == "" {
-			return fmt.Errorf("deployment %s has no endpoint", dep.Name)
+		if !dep.ModRuntime().ModRunner().Provisioned() {
+			return fmt.Errorf("deployment %s has no endpoint, and an endpoint is required", dep.Name)
 		}
 	}
 	return nil
