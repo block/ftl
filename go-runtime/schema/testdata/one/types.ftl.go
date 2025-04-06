@@ -4,6 +4,7 @@ package one
 import (
 	"context"
 	ftlbuiltin "ftl/builtin"
+	ftltwo "ftl/two"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
 	stdtime "time"
@@ -49,6 +50,12 @@ func init() {
 			*new(InlineStruct),
 			*new(Option),
 			*new(ValueEnum),
+		),
+		reflection.SumType[ftltwo.TypeEnum](
+			*new(ftltwo.Exported),
+			*new(ftltwo.List),
+			*new(ftltwo.Scalar),
+			*new(ftltwo.WithoutDirective),
 		),
 
 		reflection.ProvideResourcesForVerb(

@@ -68,8 +68,8 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 			// Verb(context.Context, <request>, <resource1>, <resource2>, ...)
 			if r == nil || r.typ == common.VerbResourceTypeNone {
 				if idx > 1 {
-					common.Errorf(pass, param, "unsupported verb parameter type; verbs must have the "+
-						"signature func(Context, Request?, Resources...)")
+					common.Errorf(pass, param, "unsupported verb parameter type in verb %s at parameter %d; verbs must have the "+
+						"signature func(Context, Request?, Resources...)", verb.Name, idx)
 					continue
 				}
 				if idx == 1 {
@@ -104,8 +104,8 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 			case common.VerbResourceTypeSecret:
 				verb.AddSecret(r.ref)
 			default:
-				common.Errorf(pass, param, "unsupported verb parameter type; verbs must have the "+
-					"signature func(Context, Request?, Resources...)")
+				common.Errorf(pass, param, "unsupported verb parameter type in verb %s at parameter %d; verbs must have the "+
+					"signature func(Context, Request?, Resources...)", verb.Name, idx)
 			}
 			rt, err := r.toMetadataType()
 			if err != nil {

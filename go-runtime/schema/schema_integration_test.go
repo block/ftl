@@ -553,7 +553,7 @@ func testErrorReporting(t *testing.T) {
 		`24:2-17: unsupported type "uint64" for field "AnotherBadParam"`,
 		`27:3: unexpected directive "ftl:export" attached for verb, did you mean to use '//ftl:verb export' instead?`,
 		`33:45: unsupported request type "ftl/failing.Request"`,
-		`33:54-66: unsupported verb parameter type; verbs must have the signature func(Context, Request?, Resources...)`,
+		`33:54-66: unsupported verb parameter type in verb tooManyParams at parameter 2; verbs must have the signature func(Context, Request?, Resources...)`,
 		`33:69: unsupported response type "ftl/failing.Response"`,
 		`38:22-27: first parameter must be of type context.Context but is ftl/failing.Request`,
 		`38:53: unsupported response type "ftl/failing.Response"`,

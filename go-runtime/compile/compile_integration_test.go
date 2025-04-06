@@ -22,7 +22,7 @@ func TestNonExportedDecls(t *testing.T) {
 		in.CopyModule("notexportedverb"),
 		in.ExpectError(
 			in.ExecWithOutput("ftl", []string{"deploy", "notexportedverb"}, func(_ string) {}),
-			`unsupported verb parameter type; verbs must have the signature func(Context, Request?, Resources...)`,
+			`unsupported verb parameter type in verb shouldFail at parameter 2; verbs must have the signature func(Context, Request?, Resources...)`,
 		),
 	)
 }
