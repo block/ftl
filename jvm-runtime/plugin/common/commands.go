@@ -104,7 +104,7 @@ func (CmdService) GetModuleConfigDefaults(ctx context.Context, req *connect.Requ
 	buildGradleKts := filepath.Join(dir, "build.gradle.kts")
 	if fileExists(pom) {
 		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolMaven)
-		defaults.DevModeBuild = ptr("mvn -Dquarkus.console.enabled=false -q clean quarkus:dev")
+		defaults.DevModeBuild = ptr("mvn -Dquarkus.console.enabled=false clean quarkus:dev")
 		defaults.Build = ptr("mvn -B clean package")
 		defaults.DeployDir = "target"
 		defaults.Watch = append(defaults.Watch, "pom.xml")
