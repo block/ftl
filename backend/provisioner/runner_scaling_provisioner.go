@@ -41,8 +41,10 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		logger.Debugf("Provisioning runner: %s for deployment %s", module.Name, deployment)
 		cron := false
 		http := false
+		runner := false
 		for _, decl := range module.Decls {
 			if verb, ok := decl.(*schema.Verb); ok {
+				runner = true
 				for _, meta := range verb.Metadata {
 					switch meta.(type) {
 					case *schema.MetadataCronJob:
@@ -53,6 +55,14 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 					}
 				}
 			}
+		}
+		if !runner {
+			return &schema.RuntimeElement{
+				Deployment: deployment,
+				Element: &schema.ModuleRuntimeRunner{
+					RunnerNotRequired: true,
+				},
+			}, nil
 		}
 		endpointURI, err := scaling.StartDeployment(ctx, deployment.String(), module, cron, http)
 		if err != nil {
