@@ -1,7 +1,7 @@
 ---
 sidebar_position: 6
-title: Cron
-description: Cron Jobs
+title: Fixtures
+description: Fixtures
 ---
 
 # Fixtures
