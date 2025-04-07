@@ -335,7 +335,8 @@ public class ModuleBuilder {
         } catch (Exception e) {
             log.errorf(e, "Failed to process FTL method %s.%s", method.declaringClass().name(), method.name());
             validationFailures.add(new ValidationFailure(toError(methodPos),
-                    "Failed to process FTL method " + method.declaringClass().name() + "." + method.name()));
+                    "Failed to process FTL method " + method.declaringClass().name() + "." + method.name() + " "
+                            + e.getMessage()));
         }
     }
 
@@ -415,7 +416,8 @@ public class ModuleBuilder {
         } catch (ClassNotFoundException e) {
             log.errorf(e, "Failed to process FTL method %s.%s", method.declaringClass().name(), method.name());
             validationFailures.add(new ValidationFailure(toError(forMethod(method)),
-                    "Failed to process FTL method " + method.declaringClass().name() + "." + method.name()));
+                    "Failed to process FTL method " + method.declaringClass().name() + "." + method.name() + " "
+                            + e.getMessage()));
         }
     }
 
@@ -480,7 +482,11 @@ public class ModuleBuilder {
             }
             case CLASS -> {
                 var clazz = type.asClassType();
+                if (clazz.name().equals(FTLDotNames.KOTLIN_UNIT)) {
+                    return Type.newBuilder().setUnit(Unit.newBuilder().build()).build();
+                }
                 var info = index.getClassByName(clazz.name());
+
                 if (info != null && info.enclosingClass() != null && !Modifier.isStatic(info.flags())) {
                     // proceed as normal, we fail at the end
                     validationFailures.add(new ValidationFailure(toError(forClass(clazz.name().toString())),
@@ -536,7 +542,7 @@ public class ModuleBuilder {
                 var ref = Type.newBuilder().setRef(
                         Ref.newBuilder().setName(name).setModule(moduleName).build()).build();
 
-                if (info.isEnum() || info.hasAnnotation(ENUM)) {
+                if (info != null && (info.isEnum() || info.hasAnnotation(ENUM))) {
                     // Set only the name and export here. EnumProcessor will fill in the rest
                     xyz.block.ftl.schema.v1.Enum.Builder ennum = xyz.block.ftl.schema.v1.Enum.newBuilder()
                             .setName(name)
