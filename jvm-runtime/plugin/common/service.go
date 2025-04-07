@@ -200,11 +200,9 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 			logger.Errorf(err, "Dev mode process exited")
 		}
 		id := s.buildContext.Load().ID
-		logger.Infof("waiting for changes")
 		if !s.waitForFileChanges(ctx, fileEvents) {
 			return nil
 		}
-		logger.Infof("changes")
 		if id != s.buildContext.Load().ID {
 			// The build context was updated, we need to mark this as an explicit build
 			firstResponseSent.Store(false)
