@@ -13,10 +13,7 @@ var _ Runtime = (*DatabaseRuntime)(nil)
 
 func (m *DatabaseRuntime) runtimeElement() {}
 
-var _ Symbol = (*DatabaseRuntime)(nil)
-
 func (d *DatabaseRuntime) Position() Position { return d.Connections.Read.Position() }
-func (d *DatabaseRuntime) schemaSymbol()      {}
 func (d *DatabaseRuntime) String() string {
 	return fmt.Sprintf("read: %s, write: %s", d.Connections.Read, d.Connections.Write)
 }
@@ -29,10 +26,7 @@ type DatabaseRuntimeConnections struct {
 	Write DatabaseConnector `parser:"" protobuf:"2"`
 }
 
-var _ Symbol = (*DatabaseRuntimeConnections)(nil)
-
 func (d *DatabaseRuntimeConnections) Position() Position { return d.Read.Position() }
-func (d *DatabaseRuntimeConnections) schemaSymbol()      {}
 func (d *DatabaseRuntimeConnections) String() string {
 	return fmt.Sprintf("read: %s, write: %s", d.Read, d.Write)
 }

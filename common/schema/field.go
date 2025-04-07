@@ -7,6 +7,7 @@ import (
 	"github.com/alecthomas/types/optional"
 )
 
+//protobuf:15 Type
 type Field struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
@@ -16,7 +17,23 @@ type Field struct {
 	Metadata []Metadata `parser:"@@*" protobuf:"5"`
 }
 
+func (f *Field) Equal(other Type) bool {
+	o, ok := other.(*Field)
+	if !ok {
+		return false
+	}
+	if f.Name != o.Name || !f.Type.Equal(o.Type) {
+		return false
+	}
+	return true
+}
+
+func (f *Field) Kind() Kind { return KindField }
+
+func (f *Field) schemaType() {}
+
 var _ Node = (*Field)(nil)
+var _ Type = (*Field)(nil)
 
 func (f *Field) Position() Position { return f.Pos }
 func (f *Field) schemaChildren() []Node {

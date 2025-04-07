@@ -139,82 +139,83 @@ func validateJSONValue(fieldType Type, path path, value any, sch *Schema, opts *
 		if !ok {
 			return fmt.Errorf("unknown ref %v", fieldType)
 		}
+		typeDecl, ok := decl.(Type)
+		if !ok {
+			return fmt.Errorf("ref %v does not resolve to a type", fieldType)
+		}
+		return validateJSONValue()
 
-		switch d := decl.(type) {
-		case *Data:
-			if valueMap, ok := value.(map[string]any); ok {
-				transformedMap, err := TransformFromAliasedFields(fieldType, sch, valueMap)
-				if err != nil {
-					return fmt.Errorf("failed to transform aliased fields: %w", err)
-				}
-
-				if err := validateRequestMap(fieldType, path, transformedMap, sch, opts); err != nil {
-					return err
-				}
-				typeMatches = true
-			}
-		case *TypeAlias:
-			return validateJSONValue(d.Type, path, value, sch, opts)
-		case *Enum:
-			var inputName any
-			inputName = value
-			for _, v := range d.Variants {
-				switch t := v.Value.(type) {
-				case *StringValue:
-					if valueStr, ok := value.(string); ok {
-						if t.Value == valueStr {
-							typeMatches = true
-							break
-						}
-					}
-				case *IntValue:
-					switch value := value.(type) {
-					case int, int64:
-						if t.Value == value {
-							typeMatches = true
-							break
-						}
-					case float64:
-						if float64(t.Value) == value {
-							typeMatches = true
-							break
-						}
-					}
-				case *TypeValue:
-					if reqVariant, ok := value.(map[string]any); ok {
-						vName, ok := reqVariant["name"]
-						if !ok {
-							return fmt.Errorf(`missing name field in enum type %q: expected structure is `+
-								"{\"name\": \"<variant name>\", \"value\": <variant value>}", value)
-						}
-						vNameStr, ok := vName.(string)
-						if !ok {
-							return fmt.Errorf(`invalid type for enum %q; name field must be a string, was %T`,
-								fieldType, vName)
-						}
-						inputName = fmt.Sprintf("%q", vNameStr)
-
-						vValue, ok := reqVariant["value"]
-						if !ok {
-							return fmt.Errorf(`missing value field in enum type %q: expected structure is `+
-								"{\"name\": \"<variant name>\", \"value\": <variant value>}", value)
-						}
-
-						if v.Name == vNameStr {
-							return validateJSONValue(t.Value, path, vValue, sch, opts)
-						}
-					} else {
-						return fmt.Errorf(`malformed enum type %s: expected structure is `+
-							"{\"name\": \"<variant name>\", \"value\": <variant value>}", path)
-					}
-				}
-			}
-			if !typeMatches {
-				return fmt.Errorf("%s is not a valid variant of enum %s", inputName, fieldType)
+	case *Data:
+		if valueMap, ok := value.(map[string]any); ok {
+			transformedMap, err := TransformFromAliasedFields(fieldType, sch, valueMap)
+			if err != nil {
+				return fmt.Errorf("failed to transform aliased fields: %w", err)
 			}
 
-		case *Config, *Database, *Secret, *Verb, *Topic:
+			if err := validateRequestMap(fieldType, path, transformedMap, sch, opts); err != nil {
+				return err
+			}
+			typeMatches = true
+		}
+	case *TypeAlias:
+		return validateJSONValue(d.Type, path, value, sch, opts)
 
+	case *Enum:
+		var inputName any
+		inputName = value
+		for _, v := range d.Variants {
+			switch t := v.Value.(type) {
+			case *StringValue:
+				if valueStr, ok := value.(string); ok {
+					if t.Value == valueStr {
+						typeMatches = true
+						break
+					}
+				}
+			case *IntValue:
+				switch value := value.(type) {
+				case int, int64:
+					if t.Value == value {
+						typeMatches = true
+						break
+					}
+				case float64:
+					if float64(t.Value) == value {
+						typeMatches = true
+						break
+					}
+				}
+			case *TypeValue:
+				if reqVariant, ok := value.(map[string]any); ok {
+					vName, ok := reqVariant["name"]
+					if !ok {
+						return fmt.Errorf(`missing name field in enum type %q: expected structure is `+
+							"{\"name\": \"<variant name>\", \"value\": <variant value>}", value)
+					}
+					vNameStr, ok := vName.(string)
+					if !ok {
+						return fmt.Errorf(`invalid type for enum %q; name field must be a string, was %T`,
+							fieldType, vName)
+					}
+					inputName = fmt.Sprintf("%q", vNameStr)
+
+					vValue, ok := reqVariant["value"]
+					if !ok {
+						return fmt.Errorf(`missing value field in enum type %q: expected structure is `+
+							"{\"name\": \"<variant name>\", \"value\": <variant value>}", value)
+					}
+
+					if v.Name == vNameStr {
+						return validateJSONValue(t.Value, path, vValue, sch, opts)
+					}
+				} else {
+					return fmt.Errorf(`malformed enum type %s: expected structure is `+
+						"{\"name\": \"<variant name>\", \"value\": <variant value>}", path)
+				}
+			}
+		}
+		if !typeMatches {
+			return fmt.Errorf("%s is not a valid variant of enum %s", inputName, fieldType)
 		}
 
 	case *Bytes:
