@@ -180,6 +180,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 
 	firstResponseSent := &atomic.Value[bool]{}
 	firstResponseSent.Store(false)
+	logger := log.FromContext(ctx)
 	for {
 		select {
 		case <-ctx.Done():
@@ -196,13 +197,14 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 
 		err := s.runQuarkusDev(ctx, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
 		if err != nil {
-			log.FromContext(ctx).Errorf(err, "Dev mode process exited")
-			return err
+			logger.Errorf(err, "Dev mode process exited")
 		}
 		id := s.buildContext.Load().ID
+		logger.Infof("waiting for changes")
 		if !s.waitForFileChanges(ctx, fileEvents) {
 			return nil
 		}
+		logger.Infof("changes")
 		if id != s.buildContext.Load().ID {
 			// The build context was updated, we need to mark this as an explicit build
 			firstResponseSent.Store(false)
