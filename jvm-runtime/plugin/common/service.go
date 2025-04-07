@@ -318,17 +318,15 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 		ers := langpb.ErrorsToProto(output.FinalizeCapture(true))
 		ers.Errors = append(ers.Errors, &langpb.Error{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER})
 		auto := firstResponseSent.Load()
-		if !auto {
-			firstResponseSent.Store(true)
-			err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-				BuildFailure: &langpb.BuildFailure{
-					IsAutomaticRebuild: auto,
-					ContextId:          s.buildContext.Load().ID,
-					Errors:             ers,
-				}}})
-			if err != nil {
-				logger.Errorf(err, "could not send build event")
-			}
+		firstResponseSent.Store(true)
+		err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+			BuildFailure: &langpb.BuildFailure{
+				IsAutomaticRebuild: auto,
+				ContextId:          s.buildContext.Load().ID,
+				Errors:             ers,
+			}}})
+		if err != nil {
+			logger.Errorf(err, "could not send build event")
 		}
 	}()
 
