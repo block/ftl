@@ -6,15 +6,17 @@ description: Handling incoming HTTP requests
 
 # HTTP Ingress
 
-Verbs annotated with `ftl:ingress` will be exposed via HTTP (`http` is the default ingress type). These endpoints will then be available on one of our default `ingress` ports (local development defaults to `http://localhost:8891`).
-
-The following will be available at `http://localhost:8891/http/users/123/posts?postId=456`.
+HTTP ingress is different depending on the language you are using. The following sections describe how to define HTTP ingress in each language.
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 <Tabs groupId="languages">
 <TabItem value="go" label="Go" default>
+
+Verbs annotated with `ftl:ingress` will be exposed via HTTP (`http` is the default ingress type). These endpoints will then be available on one of our default `ingress` ports (local development defaults to `http://localhost:8891`).
+
+The following will be available at `http://localhost:8891/http/users/123/posts?postId=456`.
 
 ```go
 type GetRequestPathParams struct {
