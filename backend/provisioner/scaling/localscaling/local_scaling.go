@@ -54,7 +54,7 @@ type localScaling struct {
 	LogConfig log.Config
 }
 
-func (l *localScaling) StartDeployment(ctx context.Context, deployment string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
+func (l *localScaling) StartDeployment(ctx context.Context, deployment string, sch *schema.Module, hasCron bool, hasIngress bool, subscriptionProcessor bool) (url.URL, error) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	deploymentKey, err := key.ParseDeploymentKey(deployment)
@@ -89,12 +89,12 @@ func (l *localScaling) StartDeployment(ctx context.Context, deployment string, s
 	return url.URL{}, fmt.Errorf("runner not found")
 }
 
-func (l *localScaling) UpdateDeployment(ctx context.Context, deployment string, sch *schema.Module) error {
+func (l *localScaling) UpdateDeployment(ctx context.Context, deployment string, sch *schema.Module, subscriptionProcessor bool) error {
 	// NOOP for local
 	return nil
 }
 
-func (l *localScaling) TerminateDeployment(ctx context.Context, deployment string) error {
+func (l *localScaling) TerminateDeployment(ctx context.Context, deployment string, subscriptionProcessor bool) error {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	logger := log.FromContext(ctx)

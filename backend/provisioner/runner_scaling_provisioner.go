@@ -3,6 +3,7 @@ package provisioner
 import (
 	"context"
 	"fmt"
+	"math"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -42,9 +43,17 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		cron := false
 		http := false
 		runner := false
+		subscriptionCount := 0
 		for _, decl := range module.Decls {
 			if verb, ok := decl.(*schema.Verb); ok {
-				runner = true
+				// TODO: should cron be part of the subscription runner
+				if verb.Export || verb.GetMetadataIngress().Ok() || verb.GetMetadataCronJob().Ok() {
+					runner = true
+				}
+				if sub, ok := verb.GetMetadataSubscriber().Get(); ok {
+					// TODO: we need to get the partition count here
+					subscriptionCount = 1
+				}
 				for _, meta := range verb.Metadata {
 					switch meta.(type) {
 					case *schema.MetadataCronJob:
@@ -56,25 +65,18 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 				}
 			}
 		}
-		if !runner {
-			return &schema.RuntimeElement{
-				Deployment: deployment,
-				Element: &schema.ModuleRuntimeRunner{
-					RunnerNotRequired: true,
-				},
-			}, nil
-		}
-		endpointURI, err := scaling.StartDeployment(ctx, deployment.String(), module, cron, http)
-		if err != nil {
-			return nil, fmt.Errorf("failed to start deployment: %w", err)
+		element := &schema.ModuleRuntimeRunner{}
+		if runner {
+			endpointURI, err := scaling.StartDeployment(ctx, deployment.String(), module, cron, http, false)
+			if err != nil {
+				return nil, fmt.Errorf("failed to start deployment: %w", err)
+			}
+			element.Endpoint = endpointURI.String()
+		} else {
+			element.RunnerNotRequired = true
 		}
 
-		return &schema.RuntimeElement{
-			Deployment: deployment,
-			Element: &schema.ModuleRuntimeRunner{
-				Endpoint: endpointURI.String(),
-			},
-		}, nil
+		return &element, nil
 	}
 }
 

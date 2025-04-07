@@ -113,7 +113,7 @@ func (r *k8sScaling) Start(ctx context.Context) error {
 	return nil
 }
 
-func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string, sch *schema.Module) error {
+func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string, sch *schema.Module, subscriptionProcessor bool) error {
 	logger := log.FromContext(ctx)
 	module := sch.Name
 	logger = logger.Module(module)
@@ -127,7 +127,7 @@ func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string,
 	return r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
 }
 
-func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
+func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, sch *schema.Module, hasCron bool, hasIngress bool, subscriptionProcessor bool) (url.URL, error) {
 	logger := log.FromContext(ctx)
 	module := sch.Name
 	logger = logger.Module(module)
@@ -136,39 +136,40 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 	if err != nil {
 		return url.URL{}, fmt.Errorf("failed to parse deployment key: %w", err)
 	}
-	logger.Debugf("Creating deployment for %s", deploymentKey)
+	deploymentName := deploymentName(subscriptionProcessor, dk)
+	logger.Debugf("Creating deployment for %s", deploymentName)
 	namespace, err := r.ensureNamespace(ctx, sch)
 	if err != nil {
 		return url.URL{}, fmt.Errorf("failed to ensure namespace: %w", err)
 	}
 
 	deploymentClient := r.client.AppsV1().Deployments(namespace)
-	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
+	deployment, err := deploymentClient.Get(ctx, deploymentName, v1.GetOptions{})
 	deploymentExists := true
 	if err != nil {
 		if errors.IsNotFound(err) {
 			deploymentExists = false
 		} else {
-			return url.URL{}, fmt.Errorf("failed to check for existence of deployment %s: %w", deploymentKey, err)
+			return url.URL{}, fmt.Errorf("failed to check for existence of deployment %s: %w", deploymentName, err)
 		}
 	}
 
-	r.knownDeployments.Store(deploymentKey, true)
+	r.knownDeployments.Store(deploymentName, true)
 	if deploymentExists {
-		logger.Debugf("Updating deployment %s", deploymentKey)
+		logger.Debugf("Updating deployment %s", deploymentName)
 		err = r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
 		return r.GetEndpointForDeployment(dk), err
 
 	}
-	err = r.handleNewDeployment(ctx, module, deploymentKey, sch, hasCron, hasIngress)
+	err = r.handleNewDeployment(ctx, module, deploymentName, sch, hasCron, hasIngress, subscriptionProcessor)
 	if err != nil {
 		return url.URL{}, err
 	}
-	err = r.waitForDeploymentReady(ctx, namespace, deploymentKey, deployTimeout)
+	err = r.waitForDeploymentReady(ctx, namespace, deploymentName, deployTimeout)
 	if err != nil {
-		err2 := r.TerminateDeployment(ctx, deploymentKey)
+		err2 := r.TerminateDeployment(ctx, deploymentName, subscriptionProcessor)
 		if err2 != nil {
-			logger.Errorf(err2, "Failed to terminate deployment %s after failure", deploymentKey)
+			logger.Errorf(err2, "Failed to terminate deployment %s after failure", deploymentName)
 		}
 		return url.URL{}, err
 	}
@@ -191,18 +192,26 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 	}
 }
 
-func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey string) error {
+func deploymentName(subscriptionProcessor bool, dk key.Deployment) string {
+	if subscriptionProcessor {
+		return "dpl-sub-" + dk.Payload.Module + "-" + dk.Suffix
+	}
+	return dk.String()
+}
+
+func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey string, subscriptionProcessor bool) error {
 	logger := log.FromContext(ctx)
 	delCtx := log.ContextWithLogger(context.Background(), logger)
 	dk, err := key.ParseDeploymentKey(deploymentKey)
 	if err != nil {
 		return fmt.Errorf("failed to parse deployment key %s: %w", deploymentKey, err)
 	}
+	deploymentName := deploymentName(subscriptionProcessor, dk)
 	serviceClient := r.client.CoreV1().Services(r.namespaceMapper(dk.Payload.Module, r.systemNamespace))
-	err = serviceClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
+	err = serviceClient.Delete(delCtx, deploymentName, v1.DeleteOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete service %s: %w", deploymentKey, err)
+			return fmt.Errorf("failed to delete service %s: %w", deploymentName, err)
 		}
 	}
 	return nil
@@ -314,7 +323,7 @@ func (r *k8sScaling) thisContainerImage(ctx context.Context) (string, error) {
 	return thisDeployment.Spec.Template.Spec.Containers[0].Image, nil
 }
 
-func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, name string, sch *schema.Module, cron bool, ingress bool) error {
+func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, name string, sch *schema.Module, cron bool, ingress bool, subscriptionProcessor bool) error {
 	logger := log.FromContext(ctx)
 	userNamespace := r.namespaceMapper(module, r.systemNamespace)
 	cm, err := r.client.CoreV1().ConfigMaps(r.systemNamespace).Get(ctx, configMapName, v1.GetOptions{})
@@ -455,6 +464,8 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 
 		change(deployment)
 	}
+	envVar := kubecore.EnvVar{Name: "SUBSCRIPTION_PROCESSOR", Value: fmt.Sprintf("%v", subscriptionProcessor)}
+	deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, envVar)
 
 	addLabels(&deployment.ObjectMeta, module, name)
 	addLabels(&deployment.Spec.Template.ObjectMeta, module, name)

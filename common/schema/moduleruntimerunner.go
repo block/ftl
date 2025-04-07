@@ -5,6 +5,7 @@ type ModuleRuntimeRunner struct {
 	// Endpoint is the endpoint of the deployed module.
 	Endpoint          string `protobuf:"1"`
 	RunnerNotRequired bool   `protobuf:"2"`
+	RunnerNotRequired bool   `protobuf:"2"`
 }
 
 var _ Runtime = (*ModuleRuntimeRunner)(nil)

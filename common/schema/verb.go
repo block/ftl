@@ -150,6 +150,10 @@ func (v *Verb) GetMetadataCronJob() optional.Option[*MetadataCronJob] {
 	return optional.From(slices.FindVariant[*MetadataCronJob](v.Metadata))
 }
 
+func (v *Verb) GetMetadataSubscriber() optional.Option[*MetadataSubscriber] {
+	return optional.From(slices.FindVariant[*MetadataSubscriber](v.Metadata))
+}
+
 func (v *Verb) GetProvisioned() ResourceSet {
 	var result ResourceSet
 	for sub := range slices.FilterVariants[*MetadataSubscriber](v.Metadata) {
