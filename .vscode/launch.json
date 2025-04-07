@@ -1,6 +1,19 @@
 {
   "configurations": [
     {
+      "name": "FTL dev mode",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/ftl",
+      "cwd": "${workspaceFolder}/examples/go",
+      "args": [
+        "dev",
+        "time",
+        "echo"
+      ]
+    },
+    {
       "apiVersion": 2,
       "host": "127.0.0.1",
       "mode": "remote",

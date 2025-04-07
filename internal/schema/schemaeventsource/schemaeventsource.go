@@ -188,26 +188,37 @@ func (e *EventSource) Publish(event schema.Notification) error {
 	case *schema.ChangesetCommittedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		clone.activeChangesets[event.Changeset.Key] = event.Changeset
-		modules := clone.schema.InternalModules()
 		for _, realm := range event.Changeset.RealmChanges {
 			if realm.External {
 				continue
 			}
+
+			var origRealm *schema.Realm
+			if i := slices.IndexFunc(clone.schema.Realms, func(r *schema.Realm) bool { return r.Name == realm.Name }); i != -1 {
+				origRealm = clone.schema.Realms[i]
+			} else {
+				origRealm = &schema.Realm{
+					Name:     realm.Name,
+					External: realm.External,
+					Modules:  []*schema.Module{},
+				}
+				clone.schema.Realms = append(clone.schema.Realms, origRealm)
+			}
+
 			for _, module := range realm.Modules {
 				module.Runtime.Deployment.State = schema.DeploymentStateCanonical
-				if i := slices.IndexFunc(modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
-					modules[i] = module
+				if i := slices.IndexFunc(origRealm.Modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
+					origRealm.Modules[i] = module
 				} else {
-					modules = append(modules, module)
+					origRealm.Modules = append(origRealm.Modules, module)
 				}
 			}
 			for _, removed := range realm.RemovingModules {
-				modules = islices.Filter(modules, func(m *schema.Module) bool {
+				origRealm.Modules = islices.Filter(origRealm.Modules, func(m *schema.Module) bool {
 					return m.ModRuntime().ModDeployment().DeploymentKey != removed.ModRuntime().ModDeployment().DeploymentKey
 				})
 			}
 		}
-		clone.schema.Realms[0].Modules = modules
 		e.view.Store(clone)
 	case *schema.ChangesetDrainedNotification:
 		clone := reflect.DeepCopy(e.view.Load())

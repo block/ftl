@@ -543,6 +543,8 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
 		RealmChanges: islices.Map(req.Msg.RealmChanges, func(r *schemapb.RealmChange) *ftlv1.RealmChange {
 			return &ftlv1.RealmChange{
+				Name:     r.Name,
+				External: r.External,
 				Modules:  r.Modules,
 				ToRemove: r.ToRemove,
 			}

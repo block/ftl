@@ -308,16 +308,30 @@ export class GetDeploymentsResponse extends Message<GetDeploymentsResponse> {
  */
 export class RealmChange extends Message<RealmChange> {
   /**
+   * The realm name.
+   *
+   * @generated from field: string name = 1;
+   */
+  name = "";
+
+  /**
+   * Whether the realm is external.
+   *
+   * @generated from field: bool external = 2;
+   */
+  external = false;
+
+  /**
    * The modules to add or update.
    *
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 1;
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 3;
    */
   modules: Module[] = [];
 
   /**
    * The deployments to remove.
    *
-   * @generated from field: repeated string to_remove = 2;
+   * @generated from field: repeated string to_remove = 4;
    */
   toRemove: string[] = [];
 
@@ -329,8 +343,10 @@ export class RealmChange extends Message<RealmChange> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.RealmChange";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
-    { no: 2, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "external", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "modules", kind: "message", T: Module, repeated: true },
+    { no: 4, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RealmChange {

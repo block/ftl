@@ -56,12 +56,16 @@ class GetDeploymentsResponse(_message.Message):
     def __init__(self, schema: _Optional[_Iterable[_Union[DeployedSchema, _Mapping]]] = ...) -> None: ...
 
 class RealmChange(_message.Message):
-    __slots__ = ("modules", "to_remove")
+    __slots__ = ("name", "external", "modules", "to_remove")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    EXTERNAL_FIELD_NUMBER: _ClassVar[int]
     MODULES_FIELD_NUMBER: _ClassVar[int]
     TO_REMOVE_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    external: bool
     modules: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Module]
     to_remove: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ..., to_remove: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(self, name: _Optional[str] = ..., external: bool = ..., modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ..., to_remove: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class CreateChangesetRequest(_message.Message):
     __slots__ = ("realm_changes",)

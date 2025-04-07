@@ -214,16 +214,22 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 }
 
 func sendFullSchema(current *SchemaState) iter.Seq[*ftlv1.PullSchemaResponse] {
-	notification := &schema.FullSchemaNotification{
-		Schema: &schema.Schema{Realms: []*schema.Realm{{
-			Name:    "default", // TODO: implement
-			Modules: current.GetCanonicalDeploymentSchemas(),
-		}}},
-		Changesets: maps.Values(current.GetChangesets()),
+	for _, realm := range current.realms {
+		if realm.External {
+			continue
+		}
+		notification := &schema.FullSchemaNotification{
+			Schema: &schema.Schema{Realms: []*schema.Realm{{
+				Name:    realm.Name,
+				Modules: current.GetCanonicalDeploymentSchemas(),
+			}}},
+			Changesets: maps.Values(current.GetChangesets()),
+		}
+		full := &ftlv1.PullSchemaResponse{Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{
+			FullSchemaNotification: notification.ToProto(),
+		}}}
+		// Just return the initial schema event, we don't need any more as this has all the info
+		return iterops.Const(full)
 	}
-	full := &ftlv1.PullSchemaResponse{Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{
-		FullSchemaNotification: notification.ToProto(),
-	}}}
-	// Just return the initial schema event, we don't need any more as this has all the info
-	return iterops.Const(full)
+	return iterops.Empty[*ftlv1.PullSchemaResponse]()
 }

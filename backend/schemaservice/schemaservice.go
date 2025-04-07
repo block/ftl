@@ -134,12 +134,16 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 	modules = append(modules, slices.Map(schemas, func(d *schema.Module) *schemapb.Module { return d.ToProto() })...)
 	changesets := slices.Map(gslices.Collect(maps.Values(view.GetChangesets())), func(c *schema.Changeset) *schemapb.Changeset { return c.ToProto() })
 
-	realm := &schemapb.Realm{
-		Name:    "default", // TODO: implement
-		Modules: modules,
+	internalName, ok := view.InternalSchemaName().Get()
+	var realms []*schemapb.Realm
+	if ok {
+		realms = append(realms, &schemapb.Realm{
+			Name:    internalName,
+			Modules: modules,
+		})
 	}
 
-	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Realms: []*schemapb.Realm{realm}}, Changesets: changesets}), nil
+	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Realms: realms}, Changesets: changesets}), nil
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], stream *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
@@ -212,10 +216,13 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 			} else {
 				// Allocate a deployment key for the module.
 				out.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey(m.Name)
+				modules = append(modules, out)
 			}
 		}
 
 		return &schema.RealmChange{
+			Name:     r.Name,
+			External: r.External,
 			Modules:  modules,
 			ToRemove: r.ToRemove,
 		}, nil
@@ -422,11 +429,17 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 	modules := append([]*schema.Module{}, schema.Builtins())
 	modules = append(modules, gslices.Collect(maps.Values(view.GetCanonicalDeployments()))...)
 
-	notification := &schema.FullSchemaNotification{
-		Schema: &schema.Schema{Realms: []*schema.Realm{{
-			Name:    "default", // TODO: implement
+	internalName, ok := view.InternalSchemaName().Get()
+	var realms []*schema.Realm
+	if ok {
+		realms = append(realms, &schema.Realm{
+			Name:    internalName,
 			Modules: modules,
-		}}},
+		})
+	}
+
+	notification := &schema.FullSchemaNotification{
+		Schema:     &schema.Schema{Realms: realms},
 		Changesets: gslices.Collect(maps.Values(view.GetChangesets())),
 	}
 	err = sendChange(&ftlv1.PullSchemaResponse{

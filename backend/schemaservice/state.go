@@ -24,6 +24,7 @@ import (
 
 type SchemaState struct {
 	deployments        map[string]*schema.Module
+	realms             map[string]*schema.RealmState
 	changesets         map[key.Changeset]*schema.Changeset
 	changesetEvents    map[key.Changeset][]*schema.DeploymentRuntimeEvent
 	deploymentEvents   map[string][]*schema.DeploymentRuntimeEvent
@@ -33,6 +34,7 @@ type SchemaState struct {
 func NewSchemaState() SchemaState {
 	return SchemaState{
 		deployments:        map[string]*schema.Module{},
+		realms:             map[string]*schema.RealmState{},
 		changesets:         map[key.Changeset]*schema.Changeset{},
 		deploymentEvents:   map[string][]*schema.DeploymentRuntimeEvent{},
 		changesetEvents:    map[key.Changeset][]*schema.DeploymentRuntimeEvent{},
@@ -54,7 +56,27 @@ func newStateMachine(ctx context.Context) *schemaStateMachine {
 	}
 }
 
+func (r *SchemaState) Validate() error {
+	internalRealms := map[string]bool{}
+	for _, realm := range r.realms {
+		if realm.External {
+			continue
+		}
+		internalRealms[realm.Name] = true
+	}
+
+	if len(internalRealms) > 1 {
+		return fmt.Errorf("expected at most one internal realm, got %d", len(internalRealms))
+	}
+
+	return nil
+}
+
 func (r *SchemaState) Marshal() ([]byte, error) {
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+
 	changesets := slices.Collect(maps.Values(r.changesets))
 	changesets = append(changesets, r.archivedChangesets...)
 	dplEvents := []*schema.DeploymentRuntimeEvent{}
@@ -70,6 +92,7 @@ func (r *SchemaState) Marshal() ([]byte, error) {
 		Changesets:       changesets,
 		DeploymentEvents: dplEvents,
 		ChangesetEvents:  csEvents,
+		Realms:           slices.Collect(maps.Values(r.realms)),
 	}
 	stateProto := state.ToProto()
 	bytes, err := proto.Marshal(stateProto)
@@ -111,6 +134,10 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 			r.changesetEvents[cs] = append(r.changesetEvents[cs], a)
 		}
 	}
+	for _, realm := range state.Realms {
+		r.realms[realm.Name] = realm
+	}
+
 	return nil
 }
 
@@ -234,6 +261,15 @@ func (r *SchemaState) GetProvisioning(module string, cs key.Changeset) (*schema.
 		}
 	}
 	return nil, fmt.Errorf("provisioning for module %s not found", module)
+}
+
+func (r *SchemaState) InternalSchemaName() optional.Option[string] {
+	for _, realm := range r.realms {
+		if !realm.External {
+			return optional.Some(realm.Name)
+		}
+	}
+	return optional.None[string]()
 }
 
 type EventWrapper struct {

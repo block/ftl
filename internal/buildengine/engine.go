@@ -1250,7 +1250,7 @@ func (e *Engine) gatherSchemas(
 func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[string]*schema.Module, metasMap map[string]moduleMeta) error {
 	fullSchema := &schema.Schema{Realms: []*schema.Realm{{
 		Modules: maps.Values(newModules),
-		Name:    "default", // TODO: projectName,
+		Name:    e.projectConfig.Name,
 	}}} //nolint:exptostd
 	for _, module := range e.targetSchema.Load().InternalModules() {
 		if _, ok := newModules[module.Name]; !ok {

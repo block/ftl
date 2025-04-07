@@ -2592,6 +2592,31 @@ func RealmChangeFromProto(v *destpb.RealmChange) (out *RealmChange, err error) {
 	return out, nil
 }
 
+func (x *RealmState) ToProto() *destpb.RealmState {
+	if x == nil {
+		return nil
+	}
+	return &destpb.RealmState{
+		Name:     orZero(ptr(string(x.Name))),
+		External: orZero(ptr(bool(x.External))),
+	}
+}
+
+func RealmStateFromProto(v *destpb.RealmState) (out *RealmState, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &RealmState{}
+	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("Name: %w", err)
+	}
+	if out.External, err = orZeroR(result.From(ptr(bool(v.External)), nil)).Result(); err != nil {
+		return nil, fmt.Errorf("External: %w", err)
+	}
+	return out, nil
+}
+
 func (x *Ref) ToProto() *destpb.Ref {
 	if x == nil {
 		return nil
@@ -2744,6 +2769,7 @@ func (x *SchemaState) ToProto() *destpb.SchemaState {
 		Changesets:       sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
 		ChangesetEvents:  sliceMap(x.ChangesetEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
 		DeploymentEvents: sliceMap(x.DeploymentEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
+		Realms:           sliceMap(x.Realms, func(v *RealmState) *destpb.RealmState { return v.ToProto() }),
 	}
 }
 
@@ -2768,6 +2794,9 @@ func SchemaStateFromProto(v *destpb.SchemaState) (out *SchemaState, err error) {
 		return result.From(DeploymentRuntimeEventFromProto(v))
 	}).Result(); err != nil {
 		return nil, fmt.Errorf("DeploymentEvents: %w", err)
+	}
+	if out.Realms, err = sliceMapR(v.Realms, func(v *destpb.RealmState) result.Result[*RealmState] { return result.From(RealmStateFromProto(v)) }).Result(); err != nil {
+		return nil, fmt.Errorf("Realms: %w", err)
 	}
 	return out, nil
 }

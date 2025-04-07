@@ -37,10 +37,14 @@ message GetDeploymentsResponse {
 }
 
 message RealmChange {
+  // The realm name.
+  string name = 1;
+  // Whether the realm is external.
+  bool external = 2;
   // The modules to add or update.
-  repeated ftl.schema.v1.Module modules = 1;
+  repeated ftl.schema.v1.Module modules = 3;
   // The deployments to remove.
-  repeated string to_remove = 2;
+  repeated string to_remove = 4;
 }
 
 message CreateChangesetRequest {

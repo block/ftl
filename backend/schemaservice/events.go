@@ -269,7 +269,18 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 	changeset := t.changesets[e.Key]
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
+	internalRealmNameOpt := t.InternalSchemaName()
 	for _, realm := range changeset.RealmChanges {
+		internalRealmName, ok := internalRealmNameOpt.Get()
+		if ok && !realm.External && realm.Name != internalRealmName {
+			return fmt.Errorf("changeset %s creating a second internal realm %s. The internal realm must be named %s", e.Key, realm.Name, internalRealmName)
+		}
+
+		t.realms[realm.Name] = &schema.RealmState{
+			Name:     realm.Name,
+			External: realm.External,
+		}
+
 		if realm.External {
 			continue
 		}

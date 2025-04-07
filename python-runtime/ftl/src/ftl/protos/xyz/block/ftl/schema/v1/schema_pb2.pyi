@@ -831,6 +831,14 @@ class RealmChange(_message.Message):
     removing_modules: _containers.RepeatedCompositeFieldContainer[Module]
     def __init__(self, name: _Optional[str] = ..., external: bool = ..., modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., to_remove: _Optional[_Iterable[str]] = ..., removing_modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ...) -> None: ...
 
+class RealmState(_message.Message):
+    __slots__ = ("name", "external")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    EXTERNAL_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    external: bool
+    def __init__(self, name: _Optional[str] = ..., external: bool = ...) -> None: ...
+
 class Ref(_message.Message):
     __slots__ = ("pos", "module", "name", "type_parameters")
     POS_FIELD_NUMBER: _ClassVar[int]
@@ -878,16 +886,18 @@ class Schema(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., realms: _Optional[_Iterable[_Union[Realm, _Mapping]]] = ...) -> None: ...
 
 class SchemaState(_message.Message):
-    __slots__ = ("modules", "changesets", "changeset_events", "deployment_events")
+    __slots__ = ("modules", "changesets", "changeset_events", "deployment_events", "realms")
     MODULES_FIELD_NUMBER: _ClassVar[int]
     CHANGESETS_FIELD_NUMBER: _ClassVar[int]
     CHANGESET_EVENTS_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_EVENTS_FIELD_NUMBER: _ClassVar[int]
+    REALMS_FIELD_NUMBER: _ClassVar[int]
     modules: _containers.RepeatedCompositeFieldContainer[Module]
     changesets: _containers.RepeatedCompositeFieldContainer[Changeset]
     changeset_events: _containers.RepeatedCompositeFieldContainer[DeploymentRuntimeEvent]
     deployment_events: _containers.RepeatedCompositeFieldContainer[DeploymentRuntimeEvent]
-    def __init__(self, modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., changesets: _Optional[_Iterable[_Union[Changeset, _Mapping]]] = ..., changeset_events: _Optional[_Iterable[_Union[DeploymentRuntimeEvent, _Mapping]]] = ..., deployment_events: _Optional[_Iterable[_Union[DeploymentRuntimeEvent, _Mapping]]] = ...) -> None: ...
+    realms: _containers.RepeatedCompositeFieldContainer[RealmState]
+    def __init__(self, modules: _Optional[_Iterable[_Union[Module, _Mapping]]] = ..., changesets: _Optional[_Iterable[_Union[Changeset, _Mapping]]] = ..., changeset_events: _Optional[_Iterable[_Union[DeploymentRuntimeEvent, _Mapping]]] = ..., deployment_events: _Optional[_Iterable[_Union[DeploymentRuntimeEvent, _Mapping]]] = ..., realms: _Optional[_Iterable[_Union[RealmState, _Mapping]]] = ...) -> None: ...
 
 class Secret(_message.Message):
     __slots__ = ("pos", "comments", "name", "type")

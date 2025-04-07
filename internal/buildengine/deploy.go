@@ -53,6 +53,9 @@ type pendingModule struct {
 	name   string
 	module Module
 
+	realm    string
+	external bool
+
 	schemaPath string
 	schema     *schema.Module
 }
@@ -141,6 +144,8 @@ func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig
 	for _, m := range modules {
 		pendingModules[m.Config.Module] = &pendingModule{
 			name:       m.Config.Module,
+			realm:      projConfig.Name,
+			external:   false,
 			module:     m,
 			schemaPath: projConfig.SchemaPath(m.Config.Module),
 		}
@@ -169,7 +174,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 		c.SchemaUpdates <- SchemaUpdatedEvent{
 			schema: &schema.Schema{
 				Realms: []*schema.Realm{{
-					Name: "default", // TODO: projectName,
+					Name: c.projConfig.Name,
 					Modules: []*schema.Module{
 						schema.Builtins(),
 					},
@@ -499,6 +504,7 @@ func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendin
 func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Schema, deployment *pendingDeploy, modulesToCheck []string) map[string]bool {
 	out := map[string]bool{}
 	sch := &schema.Schema{}
+	realms := map[string]*schema.Realm{}
 	for _, realm := range originalSch.Realms {
 		newRealm := &schema.Realm{
 			Name:     realm.Name,
@@ -506,6 +512,7 @@ func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Sche
 			Modules:  []*schema.Module{},
 		}
 		sch.Realms = append(sch.Realms, newRealm)
+		realms[realm.Name] = newRealm
 		for _, module := range realm.Modules {
 			if _, ok := deployment.modules[module.Name]; ok {
 				continue
@@ -514,7 +521,14 @@ func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Sche
 		}
 	}
 	for _, m := range deployment.modules {
-		sch.Realms[0].Modules = append(sch.Realms[0].Modules, m.schema)
+		if _, ok := realms[m.realm]; !ok {
+			realms[m.realm] = &schema.Realm{
+				Name:     m.realm,
+				External: m.external,
+				Modules:  []*schema.Module{},
+			}
+		}
+		realms[m.realm].Modules = append(realms[m.realm].Modules, m.schema)
 	}
 	for _, mod := range modulesToCheck {
 		depSch, ok := slices.Find(sch.InternalModules(), func(m *schema.Module) bool {
@@ -535,7 +549,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	overridden := map[string]bool{}
 	toRemove := map[string]bool{}
 	realm := &schema.Realm{
-		Name:     "default", // TODO: implement
+		Name:     c.projConfig.Name,
 		External: false,
 		Modules:  []*schema.Module{},
 	}
