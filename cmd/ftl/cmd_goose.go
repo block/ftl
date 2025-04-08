@@ -27,10 +27,30 @@ import (
 var gooseInstructions string
 
 type gooseCmd struct {
-	Prompt []string `arg:"" required:"" help:"Ask Goose for help"`
+	Chat  gooseChatCmd  `cmd:"" default:"withargs" help:"Ask Goose for help"`
+	Reset gooseResetCmd `cmd:"" help:"Reset Goose's context"`
 }
 
-func (c *gooseCmd) Run(ctx context.Context, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+type gooseResetCmd struct {
+}
+
+func (c *gooseResetCmd) Run(projectConfig projectconfig.Config) error {
+	logPath := logPath(projectConfig)
+	if err := os.Remove(logPath); err != nil {
+		return fmt.Errorf("failed to remove Goose logs: %w", err)
+	}
+	return nil
+}
+
+func logPath(projectConfig projectconfig.Config) string {
+	return filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.jsonl")
+}
+
+type gooseChatCmd struct {
+	Prompt []string `arg:"" required:"" help:"Prompt for Goose"`
+}
+
+func (c *gooseChatCmd) Run(ctx context.Context, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient) error {
 	gooseName := "🔮 Goose"
 	terminal.UpdateModuleState(ctx, gooseName, terminal.BuildStateBuilding)
@@ -38,7 +58,7 @@ func (c *gooseCmd) Run(ctx context.Context, projectConfig projectconfig.Config, 
 
 	logger := log.FromContext(ctx)
 
-	logPath := filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.jsonl")
+	logPath := logPath(projectConfig)
 	logExists := false
 	if _, err := os.Stat(logPath); err == nil {
 		logExists = true
