@@ -9,6 +9,7 @@
     <artifactId>ftl-build-parent</artifactId>
     <packaging>pom</packaging>
     <name>FTL JVM Build Parent POM</name>
+
     <description>This pom.xml can be used as a parent pom to inherit all required configuration to build a FTL app.</description>
     <properties>
         <ftl.version>1.0-SNAPSHOT</ftl.version>
@@ -62,8 +63,6 @@
                         <goals>
                             <goal>build</goal>
                             <goal>generate-code</goal>
-                            <goal>generate-code-tests</goal>
-                            <goal>native-image-agent</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -110,18 +109,4 @@
         </plugins>
     </build>
 
-    <profiles>
-        <profile>
-            <id>native</id>
-            <activation>
-                <property>
-                    <name>native</name>
-                </property>
-            </activation>
-            <properties>
-                <skipITs>false</skipITs>
-                <quarkus.native.enabled>true</quarkus.native.enabled>
-            </properties>
-        </profile>
-    </profiles>
 </project>
