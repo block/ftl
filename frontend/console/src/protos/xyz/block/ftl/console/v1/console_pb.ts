@@ -1173,3 +1173,115 @@ export class GetInfoResponse extends Message<GetInfoResponse> {
   }
 }
 
+/**
+ * @generated from message xyz.block.ftl.console.v1.ExecuteGooseRequest
+ */
+export class ExecuteGooseRequest extends Message<ExecuteGooseRequest> {
+  /**
+   * @generated from field: string prompt = 1;
+   */
+  prompt = "";
+
+  constructor(data?: PartialMessage<ExecuteGooseRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.console.v1.ExecuteGooseRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "prompt", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteGooseRequest {
+    return new ExecuteGooseRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ExecuteGooseRequest {
+    return new ExecuteGooseRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ExecuteGooseRequest {
+    return new ExecuteGooseRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ExecuteGooseRequest | PlainMessage<ExecuteGooseRequest> | undefined, b: ExecuteGooseRequest | PlainMessage<ExecuteGooseRequest> | undefined): boolean {
+    return proto3.util.equals(ExecuteGooseRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.console.v1.ExecuteGooseResponse
+ */
+export class ExecuteGooseResponse extends Message<ExecuteGooseResponse> {
+  /**
+   * @generated from field: string response = 1;
+   */
+  response = "";
+
+  /**
+   * @generated from field: xyz.block.ftl.console.v1.ExecuteGooseResponse.Source source = 2;
+   */
+  source = ExecuteGooseResponse_Source.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<ExecuteGooseResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.console.v1.ExecuteGooseResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "response", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "source", kind: "enum", T: proto3.getEnumType(ExecuteGooseResponse_Source) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteGooseResponse {
+    return new ExecuteGooseResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ExecuteGooseResponse {
+    return new ExecuteGooseResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ExecuteGooseResponse {
+    return new ExecuteGooseResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ExecuteGooseResponse | PlainMessage<ExecuteGooseResponse> | undefined, b: ExecuteGooseResponse | PlainMessage<ExecuteGooseResponse> | undefined): boolean {
+    return proto3.util.equals(ExecuteGooseResponse, a, b);
+  }
+}
+
+/**
+ * @generated from enum xyz.block.ftl.console.v1.ExecuteGooseResponse.Source
+ */
+export enum ExecuteGooseResponse_Source {
+  /**
+   * @generated from enum value: SOURCE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SOURCE_STDOUT = 1;
+   */
+  STDOUT = 1,
+
+  /**
+   * @generated from enum value: SOURCE_STDERR = 2;
+   */
+  STDERR = 2,
+
+  /**
+   * @generated from enum value: SOURCE_COMPLETION = 3;
+   */
+  COMPLETION = 3,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ExecuteGooseResponse_Source)
+proto3.util.setEnumType(ExecuteGooseResponse_Source, "xyz.block.ftl.console.v1.ExecuteGooseResponse.Source", [
+  { no: 0, name: "SOURCE_UNSPECIFIED" },
+  { no: 1, name: "SOURCE_STDOUT" },
+  { no: 2, name: "SOURCE_STDERR" },
+  { no: 3, name: "SOURCE_COMPLETION" },
+]);
+

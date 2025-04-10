@@ -4,6 +4,7 @@ from xyz.block.ftl.timeline.v1 import timeline_pb2 as _timeline_pb2
 from xyz.block.ftl.v1 import ftl_pb2 as _ftl_pb2
 from xyz.block.ftl.v1 import verb_pb2 as _verb_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
@@ -232,3 +233,27 @@ class GetInfoResponse(_message.Message):
     version: str
     build_time: str
     def __init__(self, version: _Optional[str] = ..., build_time: _Optional[str] = ...) -> None: ...
+
+class ExecuteGooseRequest(_message.Message):
+    __slots__ = ("prompt",)
+    PROMPT_FIELD_NUMBER: _ClassVar[int]
+    prompt: str
+    def __init__(self, prompt: _Optional[str] = ...) -> None: ...
+
+class ExecuteGooseResponse(_message.Message):
+    __slots__ = ("response", "source")
+    class Source(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        SOURCE_UNSPECIFIED: _ClassVar[ExecuteGooseResponse.Source]
+        SOURCE_STDOUT: _ClassVar[ExecuteGooseResponse.Source]
+        SOURCE_STDERR: _ClassVar[ExecuteGooseResponse.Source]
+        SOURCE_COMPLETION: _ClassVar[ExecuteGooseResponse.Source]
+    SOURCE_UNSPECIFIED: ExecuteGooseResponse.Source
+    SOURCE_STDOUT: ExecuteGooseResponse.Source
+    SOURCE_STDERR: ExecuteGooseResponse.Source
+    SOURCE_COMPLETION: ExecuteGooseResponse.Source
+    RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_FIELD_NUMBER: _ClassVar[int]
+    response: str
+    source: ExecuteGooseResponse.Source
+    def __init__(self, response: _Optional[str] = ..., source: _Optional[_Union[ExecuteGooseResponse.Source, str]] = ...) -> None: ...

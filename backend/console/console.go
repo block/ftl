@@ -3,11 +3,14 @@ package console
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
 
 	"connectrpc.com/connect"
+
+	"github.com/block/ftl/backend/goose"
 
 	ftlversion "github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
@@ -628,4 +631,37 @@ func (s *service) GetInfo(ctx context.Context, _ *connect.Request[consolepb.GetI
 		Version:   ftlversion.Version,
 		BuildTime: ftlversion.Timestamp.Format(time.RFC3339),
 	}), nil
+}
+
+func (s *service) ExecuteGoose(ctx context.Context, req *connect.Request[consolepb.ExecuteGooseRequest], stream *connect.ServerStream[consolepb.ExecuteGooseResponse]) error {
+	if req.Msg.Prompt == "" {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("prompt cannot be empty"))
+	}
+
+	logger := log.FromContext(ctx).Scope("console")
+	client := goose.NewClient()
+
+	err := client.Execute(ctx, req.Msg.Prompt, func(msg goose.Message) {
+		var source consolepb.ExecuteGooseResponse_Source
+		switch msg.Source {
+		case goose.SourceStdout:
+			source = consolepb.ExecuteGooseResponse_SOURCE_STDOUT
+		case goose.SourceStderr:
+			source = consolepb.ExecuteGooseResponse_SOURCE_STDERR
+		case goose.SourceCompletion:
+			source = consolepb.ExecuteGooseResponse_SOURCE_COMPLETION
+		}
+
+		err := stream.Send(&consolepb.ExecuteGooseResponse{
+			Response: msg.Content,
+			Source:   source,
+		})
+		if err != nil {
+			logger.Debugf("failed to send response: %v", err)
+		}
+	})
+	if err != nil {
+		return fmt.Errorf("failed to execute goose: %w", err)
+	}
+	return nil
 }
