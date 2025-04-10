@@ -16,45 +16,46 @@ resource "helm_release" "ftl" {
 
   set {
     name  = "controller.controllersRoleArn"
-    value = aws_iam_role.ftl_controller_role.arn
+    value = var.controller_role_arn
   }
 
   set {
     name  = "controller.kmsUri"
-    value = "aws-kms://${aws_kms_key.ftl_db_kms_key.arn}"
+    value = "aws-kms://${var.kms_key_arn}"
   }
 
   set {
     name  = "provisioner.provisionersRoleArn"
-    value = aws_iam_role.ftl_provisioner_role.arn
+    value = var.provisioner_role_arn
   }
 
   set {
     name  = "provisioner.serviceAccountName"
-    value = local.provisioner_service_account_name
+    value = var.provisioner_service_account_name
   }
 
   set {
     name  = "admin.adminRoleArn"
-    value = aws_iam_role.ftl_admin_role.arn
+    value = var.admin_role_arn
   }
 
   set {
     name  = "runner.runnersRoleArn"
-    value = aws_iam_role.ftl_runner_role.arn
+    value = var.runner_role_arn
   }
 
   set {
     name  = "controller.serviceAccount"
-    value = local.controller_service_account_name
+    value = var.controller_service_account_name
   }
 
   set {
-    name  = "admin.serviceAccountName" #TODO: better service account handling
-    value = local.admin_service_account_name
+    name  = "admin.serviceAccountName"
+    value = var.admin_service_account_name
   }
+  
   set {
     name  = "registry.repository"
-    value = aws_ecr_repository.ftl_deployment_content_repo.repository_url
+    value = var.ecr_repository_url
   }
 }
