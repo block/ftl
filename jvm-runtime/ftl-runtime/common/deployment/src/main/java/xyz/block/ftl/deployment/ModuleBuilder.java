@@ -422,9 +422,9 @@ public class ModuleBuilder {
     }
 
     private Nullability nullability(org.jboss.jandex.AnnotationTarget type) {
-        if (type.hasAnnotation(NULLABLE)) {
+        if (type.hasDeclaredAnnotation(NULLABLE)) {
             return Nullability.NULLABLE;
-        } else if (type.hasAnnotation(NOT_NULL)) {
+        } else if (type.hasDeclaredAnnotation(NOT_NULL)) {
             return Nullability.NOT_NULL;
         }
         return Nullability.MISSING;

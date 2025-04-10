@@ -151,7 +151,7 @@ public class TestInvokeGoFromJava {
 
     @Export
     @Verb
-    public byte @Nullable [] optionalBytesVerb(byte @Nullable [] val, OptionalBytesVerbClient client) {
+    public @Nullable  byte[] optionalBytesVerb(@Nullable byte[] val, OptionalBytesVerbClient client) {
         return client.optionalBytesVerb(val);
     }
 
