@@ -1,6 +1,3 @@
-data aws_eks_cluster eks {
-  name = var.eks_cluster_name
-}
 
 resource "helm_release" "ftl" {
   name             = var.ftl_cluster_name
