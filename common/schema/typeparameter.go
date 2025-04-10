@@ -14,3 +14,4 @@ func (t *TypeParameter) String() string     { return t.Name }
 func (t *TypeParameter) schemaChildren() []Node { return nil }
 func (t *TypeParameter) schemaSymbol()          {}
 func (t *TypeParameter) GetName() string        { return t.Name }
+func (t *TypeParameter) Kind() Kind             { return KindTypeParameter }
