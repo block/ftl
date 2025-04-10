@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.ArrayType;
 import org.jboss.jandex.DotName;
+import org.jboss.jandex.MethodInfo;
 import org.jboss.jandex.PrimitiveType;
 import org.jboss.jandex.VoidType;
 import org.jboss.resteasy.reactive.common.model.MethodParameter;
@@ -32,6 +33,7 @@ import xyz.block.ftl.schema.v1.IngressPathLiteral;
 import xyz.block.ftl.schema.v1.IngressPathParameter;
 import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataIngress;
+import xyz.block.ftl.schema.v1.Position;
 import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.Unit;
@@ -78,6 +80,28 @@ public class HTTPProcessor {
     public SchemaContributorBuildItem registerHttpHandlers(
             FTLRecorder recorder,
             ResteasyReactiveResourceMethodEntriesBuildItem restEndpoints) {
+
+        List<Map.Entry<Position, String>> errors = new ArrayList<>();
+        for (var endpoint : restEndpoints.getEntries()) {
+            MethodInfo methodInfo = endpoint.getMethodInfo();
+            if (methodInfo.hasAnnotation(FTLDotNames.VERB) ||
+                    methodInfo.hasAnnotation(FTLDotNames.CRON) ||
+                    methodInfo.hasAnnotation(FTLDotNames.FIXTURE) ||
+                    methodInfo.hasAnnotation(FTLDotNames.SUBSCRIPTION)) {
+                errors.add(Map.entry(PositionUtils.forMethod(methodInfo),
+                        "HTTP handler " + methodInfo.name() + " should not be annotated with other verb defining annotations"));
+            }
+        }
+        if (!errors.isEmpty()) {
+            return new SchemaContributorBuildItem(new Consumer<ModuleBuilder>() {
+                @Override
+                public void accept(ModuleBuilder moduleBuilder) {
+                    for (var entry : errors) {
+                        moduleBuilder.registerValidationFailure(entry.getKey(), entry.getValue());
+                    }
+                }
+            });
+        }
         return new SchemaContributorBuildItem(new Consumer<ModuleBuilder>() {
             @Override
             public void accept(ModuleBuilder moduleBuilder) {
