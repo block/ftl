@@ -44,6 +44,10 @@ func TestEventExtractor(t *testing.T) {
 						},
 					},
 				},
+				// TODO: the state assumes one internal realm for now
+				realms: map[string]*schema.RealmState{
+					"default": {Name: "default"},
+				},
 			},
 			want: []*ftlv1.PullSchemaResponse{
 				{

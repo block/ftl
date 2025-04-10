@@ -14,6 +14,18 @@
       ]
     },
     {
+      "name": "FTL deploy",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/ftl",
+      "cwd": "${workspaceFolder}/examples/go",
+      "args": [
+        "deploy",
+        "http"
+      ]
+    },
+    {
       "apiVersion": 2,
       "host": "127.0.0.1",
       "mode": "remote",
