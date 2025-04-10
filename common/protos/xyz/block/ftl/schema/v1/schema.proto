@@ -475,6 +475,7 @@ message ModuleRuntimeDeployment {
 
 message ModuleRuntimeRunner {
   string endpoint = 1;
+  bool runner_not_required = 2;
 }
 
 message ModuleRuntimeScaling {
