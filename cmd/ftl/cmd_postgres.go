@@ -10,6 +10,6 @@ type newPostgresCmd struct {
 }
 
 func (c *newPostgresCmd) BeforeApply() error { //nolint:unparam
-	c.Datasource = newNewSQLCmd("postgres")
+	c.Datasource.engine = "postgres"
 	return nil
 }

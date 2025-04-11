@@ -10,6 +10,6 @@ type newMySQLCmd struct {
 }
 
 func (c *newMySQLCmd) BeforeApply() error { //nolint:unparam
-	c.Datasource = newNewSQLCmd("mysql")
+	c.Datasource.engine = "mysql"
 	return nil
 }
