@@ -1,6 +1,5 @@
 package xyz.block.ftl.deployment;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -8,16 +7,11 @@ import java.util.List;
 
 import org.jboss.logging.Logger;
 
-import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
-import io.quarkus.deployment.builditem.GeneratedResourceBuildItem;
-import io.quarkus.deployment.builditem.SystemPropertyBuildItem;
 import io.quarkus.deployment.pkg.builditem.OutputTargetBuildItem;
-import xyz.block.ftl.runtime.FTLDatasourceCredentials;
 import xyz.block.ftl.runtime.FTLRecorder;
-import xyz.block.ftl.runtime.config.FTLConfigSource;
 import xyz.block.ftl.schema.v1.Database;
 import xyz.block.ftl.schema.v1.Decl;
 import xyz.block.ftl.schema.v1.Module;
@@ -38,10 +32,8 @@ public class GeneratedSchemaProcessor {
     @BuildStep
     @Record(ExecutionTime.STATIC_INIT)
     public SchemaContributorBuildItem contributeGeneratedSchema(
-            BuildProducer<SystemPropertyBuildItem> systemPropProducer,
             ModuleNameBuildItem moduleNameBuildItem,
             OutputTargetBuildItem outputTargetBuildItem,
-            BuildProducer<GeneratedResourceBuildItem> generatedResourceBuildItemBuildProducer,
             FTLRecorder recorder) {
 
         String moduleName = moduleNameBuildItem.getModuleName();
@@ -72,18 +64,6 @@ public class GeneratedSchemaProcessor {
                             Database.newBuilder().setType(dbKind).setName(sanitizedName))
                             .build();
 
-                    if (dbName.equals("default")) {
-                        systemPropProducer.produce(new SystemPropertyBuildItem(
-                                "quarkus.datasource.credentials-provider", dbName));
-                        systemPropProducer.produce(new SystemPropertyBuildItem(
-                                "quarkus.datasource.credentials-provider-name", FTLDatasourceCredentials.NAME));
-                    } else {
-                        systemPropProducer.produce(new SystemPropertyBuildItem(
-                                "quarkus.datasource." + dbName + ".credentials-provider", dbName));
-                        systemPropProducer.produce(new SystemPropertyBuildItem(
-                                "quarkus.datasource." + dbName + ".credentials-provider-name",
-                                FTLDatasourceCredentials.NAME));
-                    }
                     if (dbKind.equals("postgres")) {
                         recorder.registerDatabase(dbName, GetDeploymentContextResponse.DbType.DB_TYPE_POSTGRES);
                     } else if (dbKind.equals("mysql")) {
@@ -100,8 +80,6 @@ public class GeneratedSchemaProcessor {
                 }
             }
         }
-        generatedResourceBuildItemBuildProducer.produce(new GeneratedResourceBuildItem(FTLConfigSource.DATASOURCE_NAMES,
-                String.join("\n", namedDatasources).getBytes(StandardCharsets.UTF_8)));
         return new SchemaContributorBuildItem(decls);
     }
 }
