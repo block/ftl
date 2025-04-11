@@ -1099,22 +1099,66 @@ export class ResetSubscriptionResponse extends Message<ResetSubscriptionResponse
 }
 
 /**
- * @generated from message xyz.block.ftl.admin.v1.ApplyChangesetRequest
+ * @generated from message xyz.block.ftl.admin.v1.RealmChange
  */
-export class ApplyChangesetRequest extends Message<ApplyChangesetRequest> {
+export class RealmChange extends Message<RealmChange> {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name = "";
+
   /**
    * The modules to add or update.
    *
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 1;
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 2;
    */
   modules: Module[] = [];
 
   /**
    * The deployments to remove.
    *
-   * @generated from field: repeated string to_remove = 2;
+   * @generated from field: repeated string to_remove = 3;
    */
   toRemove: string[] = [];
+
+  constructor(data?: PartialMessage<RealmChange>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.RealmChange";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "modules", kind: "message", T: Module, repeated: true },
+    { no: 3, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RealmChange {
+    return new RealmChange().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RealmChange {
+    return new RealmChange().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RealmChange {
+    return new RealmChange().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RealmChange | PlainMessage<RealmChange> | undefined, b: RealmChange | PlainMessage<RealmChange> | undefined): boolean {
+    return proto3.util.equals(RealmChange, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.ApplyChangesetRequest
+ */
+export class ApplyChangesetRequest extends Message<ApplyChangesetRequest> {
+  /**
+   * @generated from field: repeated xyz.block.ftl.admin.v1.RealmChange realm_changes = 1;
+   */
+  realmChanges: RealmChange[] = [];
 
   constructor(data?: PartialMessage<ApplyChangesetRequest>) {
     super();
@@ -1124,8 +1168,7 @@ export class ApplyChangesetRequest extends Message<ApplyChangesetRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.admin.v1.ApplyChangesetRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
-    { no: 2, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 1, name: "realm_changes", kind: "message", T: RealmChange, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ApplyChangesetRequest {

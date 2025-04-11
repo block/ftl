@@ -591,7 +591,10 @@ func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, modul
 
 	logger.Infof("Terminating deployment %s", key) //nolint:forbidigo
 	stream, err := c.adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
-		ToRemove: []string{key.String()},
+		RealmChanges: []*adminpb.RealmChange{{
+			Name:     "default",
+			ToRemove: []string{key.String()},
+		}},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to terminate deployment: %w", err)
@@ -641,9 +644,12 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 	defer closeStream(fmt.Errorf("function is complete: %w", context.Canceled))
 
 	stream, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
-		Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
-			return m.ToProto()
-		}),
+		RealmChanges: []*adminpb.RealmChange{{
+			Name: "default",
+			Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
+				return m.ToProto()
+			}),
+		}},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to deploy changeset: %w", err)

@@ -28,7 +28,10 @@ func (k *killCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceCli
 		dep = mod.Runtime.Deployment.DeploymentKey
 	}
 	_, err = client.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
-		ToRemove: []string{dep.String()},
+		RealmChanges: []*adminpb.RealmChange{{
+			Name:     "default",
+			ToRemove: []string{dep.String()},
+		}},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to kill deployment: %w", err)
