@@ -20,7 +20,7 @@ func TestChangesetState(t *testing.T) {
 		Name: "test",
 		Runtime: &schema.ModuleRuntime{
 			Deployment: &schema.ModuleRuntimeDeployment{
-				DeploymentKey: key.NewDeploymentKey("test"),
+				DeploymentKey: key.NewDeploymentKey("test", "test"),
 			},
 		},
 	}
