@@ -541,8 +541,11 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[adminpb.ApplyChangesetRequest], stream *connect.ServerStream[adminpb.ApplyChangesetResponse]) error {
 	events := s.source.Subscribe(ctx)
 	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
-		Modules:  req.Msg.Modules,
-		ToRemove: req.Msg.ToRemove,
+		RealmChanges: []*ftlv1.RealmChange{{
+			Name:     "default",
+			Modules:  req.Msg.Modules,
+			ToRemove: req.Msg.ToRemove,
+		}},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to create changeset: %w", err)
