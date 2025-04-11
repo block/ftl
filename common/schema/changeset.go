@@ -50,6 +50,8 @@ func (c *Changeset) ModulesAreCanonical() bool {
 }
 
 // InternalRealm returns the internal realm for the given changeset.
+//
+// For now, all changesets have exactly one internal realm change.
 func (c *Changeset) InternalRealm() *RealmChange {
 	for _, realm := range c.RealmChanges {
 		if !realm.External {
@@ -66,37 +68,4 @@ func (c *Changeset) OwnedModules(realm *RealmChange) []*Module {
 		return realm.Modules
 	}
 	return realm.RemovingModules
-}
-
-func (c *Changeset) InternalModules() []*Module {
-	var res []*Module
-	for _, realm := range c.RealmChanges {
-		if realm.External {
-			continue
-		}
-		res = append(res, realm.Modules...)
-	}
-	return res
-}
-
-func (c *Changeset) InternalToRemove() []string {
-	var res []string
-	for _, realm := range c.RealmChanges {
-		if realm.External {
-			continue
-		}
-		res = append(res, realm.ToRemove...)
-	}
-	return res
-}
-
-func (c *Changeset) InternalRemovingModules() []*Module {
-	var res []*Module
-	for _, realm := range c.RealmChanges {
-		if realm.External {
-			continue
-		}
-		res = append(res, realm.RemovingModules...)
-	}
-	return res
 }

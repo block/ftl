@@ -63,7 +63,7 @@ type ChangesetCreatedEvent struct {
 
 func (e *ChangesetCreatedEvent) DebugString() string {
 	ret := fmt.Sprintf("ChangesetCreatedEvent{key: %s", e.Changeset.Key.String())
-	for _, m := range e.Changeset.InternalModules() {
+	for _, m := range e.Changeset.InternalRealm().Modules {
 		if m.Runtime == nil || m.Runtime.Deployment == nil {
 			ret += fmt.Sprintf(", invalid module: %s", m.Name)
 		} else {
