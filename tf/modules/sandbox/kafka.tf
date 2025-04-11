@@ -14,7 +14,7 @@ resource "aws_msk_cluster" "ftl_msk_sandbox_cluster" {
   broker_node_group_info {
     instance_type = "kafka.t3.small"
     client_subnets = data.aws_subnets.selected.ids
-    security_groups = [aws_security_group.msk_sg.id]
+    security_groups = [aws_security_group.msk_sg[0].id]
     storage_info {
       ebs_storage_info {
         volume_size = 10
