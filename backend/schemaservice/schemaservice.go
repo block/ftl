@@ -438,8 +438,16 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 		})
 	}
 
+	sch, err := schema.ValidateModuleInSchema(
+		&schema.Schema{Realms: realms},
+		optional.None[*schema.Module](),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to validate schema: %w", err)
+	}
+
 	notification := &schema.FullSchemaNotification{
-		Schema:     &schema.Schema{Realms: realms},
+		Schema:     sch,
 		Changesets: gslices.Collect(maps.Values(view.GetChangesets())),
 	}
 	err = sendChange(&ftlv1.PullSchemaResponse{

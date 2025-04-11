@@ -612,8 +612,16 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 	for event := range channels.IterContext(ctx, events) {
 		switch e := event.(type) {
 		case *schema.FullSchemaNotification:
+			sch, err := schema.ValidateModuleInSchema(
+				e.Schema,
+				optional.None[*schema.Module](),
+			)
+			if err != nil {
+				return fmt.Errorf("failed to validate schema: %w", err)
+			}
+			e.Schema = sch
 			proto := e.ToProto()
-			err := resp.Send(&ftlv1.PullSchemaResponse{
+			err = resp.Send(&ftlv1.PullSchemaResponse{
 				Event: &schemapb.Notification{
 					Value: &schemapb.Notification_FullSchemaNotification{FullSchemaNotification: proto},
 				},

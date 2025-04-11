@@ -4,6 +4,7 @@ import (
 	"iter"
 	"slices"
 
+	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/tuple"
 	"golang.org/x/exp/maps"
 
@@ -218,11 +219,19 @@ func sendFullSchema(current *SchemaState) iter.Seq[*ftlv1.PullSchemaResponse] {
 		if realm.External {
 			continue
 		}
-		notification := &schema.FullSchemaNotification{
-			Schema: &schema.Schema{Realms: []*schema.Realm{{
+
+		sch, err := schema.ValidateModuleInSchema(
+			&schema.Schema{Realms: []*schema.Realm{{
 				Name:    realm.Name,
 				Modules: current.GetCanonicalDeploymentSchemas(),
 			}}},
+			optional.None[*schema.Module](),
+		)
+		if err != nil {
+			return iterops.Empty[*ftlv1.PullSchemaResponse]()
+		}
+		notification := &schema.FullSchemaNotification{
+			Schema:     sch,
 			Changesets: maps.Values(current.GetChangesets()),
 		}
 		full := &ftlv1.PullSchemaResponse{Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{

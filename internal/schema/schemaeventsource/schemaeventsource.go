@@ -77,7 +77,11 @@ func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification 
 	case <-e.initialSyncComplete:
 		// Initial sync is complete, we send an initial Full schema event
 		state := e.view.Load()
-		subscribe <- &schema.FullSchemaNotification{Schema: state.schema, Changesets: maps.Values(state.activeChangesets)}
+		sch, _ := schema.ValidateModuleInSchema(
+			state.schema,
+			optional.None[*schema.Module](),
+		)
+		subscribe <- &schema.FullSchemaNotification{Schema: sch, Changesets: maps.Values(state.activeChangesets)}
 	default:
 
 	}
@@ -114,7 +118,14 @@ func (e *EventSource) ActiveChangesets() map[key.Changeset]*schema.Changeset {
 }
 
 func (e *EventSource) PublishModuleForTest(module *schema.Module) error {
-	return e.Publish(&schema.FullSchemaNotification{Schema: &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{module}}}}})
+	sch, err := schema.ValidateModuleInSchema(
+		&schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{module}}}},
+		optional.None[*schema.Module](),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to validate schema: %w", err)
+	}
+	return e.Publish(&schema.FullSchemaNotification{Schema: sch})
 }
 
 // Publish an event to the EventSource.
