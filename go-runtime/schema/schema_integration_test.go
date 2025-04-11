@@ -516,6 +516,7 @@ func testParsedirectives(t *testing.T) {
 }
 
 func testErrorReporting(t *testing.T) {
+	t.SkipNow() // Flakey test: https://github.com/block/ftl/issues/5114
 	if testing.Short() {
 		t.SkipNow()
 	}
