@@ -37,6 +37,9 @@ type gooseResetCmd struct {
 func (c *gooseResetCmd) Run(projectConfig projectconfig.Config) error {
 	logPath := logPath(projectConfig)
 	if err := os.Remove(logPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return fmt.Errorf("failed to remove Goose logs: %w", err)
 	}
 	return nil
