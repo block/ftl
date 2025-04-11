@@ -44,7 +44,6 @@ func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig projectconfig
 		mcp.IncludeStatus()))
 	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "CallVerb", []string{"call"},
 		mcp.IncludeOptional("request"),
-		mcp.Pattern("request", optional.Some(`^(({.*})|(\[.*\])|(".*")|([\-0-9\.])|(true)|(false)|(null))$`)), // Give a hint that it should look like json
 		mcp.Args("-v")))
 	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "ResetSubscription", []string{"pubsub", "subscription", "reset"},
 		mcp.AddHelp("This does not return any info about the state of the subscription."),
