@@ -48,7 +48,7 @@ func TestDeployment_Progress(t *testing.T) {
 		dpl := registry.CreateDeployment(ctx, key.NewChangesetKey(), &schema.Module{
 			Name: "testModule",
 			Runtime: &schema.ModuleRuntime{
-				Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: key.NewDeploymentKey("test-module")},
+				Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: key.NewDeploymentKey("test", "testModule")},
 			},
 			Decls: []schema.Decl{
 				&schema.Database{Name: "a", Type: "mysql"},

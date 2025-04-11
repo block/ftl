@@ -61,9 +61,9 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 			assert.NoError(t, err)
 			typesDeployed := false
 			for _, dep := range deps.Items {
-				if strings.HasPrefix(dep.Name, "dpl-echo") {
+				if strings.HasPrefix(dep.Name, "dpl-default-echo") {
 					echoDeployment["name"] = dep.Name
-				} else if strings.HasPrefix(dep.Name, "dpl-types") {
+				} else if strings.HasPrefix(dep.Name, "dpl-default-types") {
 					typesDeployed = true
 				}
 				assert.Equal(t, 1, *dep.Spec.Replicas)
@@ -76,7 +76,7 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 			deps, err := client.AppsV1().Deployments(namespace("echo")).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			for _, dep := range deps.Items {
-				if strings.HasPrefix(dep.Name, "dpl-echo") {
+				if strings.HasPrefix(dep.Name, "dpl-default-echo") {
 					assert.Equal(t, 2, *dep.Spec.Replicas)
 				}
 			}
@@ -116,7 +116,7 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 			deps, err := client.AppsV1().Deployments(namespace("echo")).List(ctx, v1.ListOptions{})
 			assert.NoError(t, err)
 			for _, dep := range deps.Items {
-				if strings.HasPrefix(dep.Name, "dpl-echo") {
+				if strings.HasPrefix(dep.Name, "dpl-default-echo") {
 					// We should have inherited the scaling from the previous deployment
 					assert.Equal(t, 2, *dep.Spec.Replicas)
 				}
@@ -156,7 +156,7 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 			assert.NoError(t, err)
 			depCount := 0
 			for _, dep := range deps.Items {
-				if strings.HasPrefix(dep.Name, "dpl-echo") {
+				if strings.HasPrefix(dep.Name, "dpl-default-echo") {
 					t.Logf("Found deployment %s", dep.Name)
 					depCount++
 					service, err := client.CoreV1().Services(namespace("echo")).Get(ctx, dep.Name, v1.GetOptions{})
@@ -175,7 +175,7 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 			assert.NoError(t, err)
 			depCount := 0
 			for _, dep := range deps.Items {
-				if strings.HasPrefix(dep.Name, "dpl-echo") {
+				if strings.HasPrefix(dep.Name, "dpl-default-echo") {
 					t.Logf("Found deployment %s", dep.Name)
 					depCount++
 				}

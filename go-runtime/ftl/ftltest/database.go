@@ -43,7 +43,7 @@ func setupTestDatabase(ctx context.Context, state *OptionsState, dbType, dbName 
 	}
 	switch dbType {
 	case "postgres":
-		dsn, err := provisioner.ProvisionPostgresForTest(ctx, moduleGetter(), dbName)
+		dsn, err := provisioner.ProvisionPostgresForTest(ctx, moduleGetter(), "test", dbName)
 		if err != nil {
 			return fmt.Errorf("could not provision database %q: %w", dbName, err)
 		}
@@ -62,7 +62,7 @@ func setupTestDatabase(ctx context.Context, state *OptionsState, dbType, dbName 
 		}
 		state.databases[dbName] = replacementDB
 	case "mysql":
-		dsn, err := provisioner.ProvisionMySQLForTest(ctx, moduleGetter(), dbName)
+		dsn, err := provisioner.ProvisionMySQLForTest(ctx, moduleGetter(), "test", dbName)
 		if err != nil {
 			return fmt.Errorf("could not provision database %q: %w", dbName, err)
 		}

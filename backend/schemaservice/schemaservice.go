@@ -215,7 +215,7 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 			}
 		} else {
 			// Allocate a deployment key for the module.
-			out.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey(m.Name)
+			out.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey(realmChange.Name, m.Name)
 		}
 		return out, nil
 	})

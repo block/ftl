@@ -23,7 +23,7 @@ func TestRunnerState(t *testing.T) {
 	create := time.Now()
 	endpoint := "http://localhost:8080"
 	module := "test"
-	deploymentKey := key.NewDeploymentKey(module)
+	deploymentKey := key.NewDeploymentKey("test", module)
 
 	err = cs.Publish(ctx, &state.RunnerRegisteredEvent{
 		Key:        runnerkey,

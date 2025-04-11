@@ -44,7 +44,7 @@ func TestModel(t *testing.T) {
 	data, err := proto.Marshal(pb)
 	assert.NoError(t, err)
 	assert.True(t, bytes.Contains(data, []byte("http://127.0.0.1")), "missing url")
-	assert.True(t, bytes.Contains(data, []byte("dpl-echo-")), "missing deployment key")
+	assert.True(t, bytes.Contains(data, []byte("dpl-test-echo-")), "missing deployment key")
 	assert.True(t, bytes.Contains(data, []byte("bar")), "missing sum type value")
 	out := &testdatapb.Root{}
 	err = proto.Unmarshal(data, out)

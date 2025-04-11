@@ -41,7 +41,7 @@ func TestCron(t *testing.T) {
 		Name: "echo",
 		Runtime: &schema.ModuleRuntime{
 			Deployment: &schema.ModuleRuntimeDeployment{
-				DeploymentKey: key.NewDeploymentKey("echo"),
+				DeploymentKey: key.NewDeploymentKey("test", "echo"),
 			},
 		},
 		Decls: []schema.Decl{

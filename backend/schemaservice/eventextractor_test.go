@@ -20,7 +20,7 @@ func TestEventExtractor(t *testing.T) {
 
 	// TODO: lots of tests once we have new runtime events
 	empty := ""
-	newKey, err := key.ParseDeploymentKey("dpl-test-sjkfislfjslfae")
+	newKey, err := key.ParseDeploymentKey("dpl-test-test-sjkfislfjslfae")
 	assert.NoError(t, err)
 	tests := []struct {
 		name     string
