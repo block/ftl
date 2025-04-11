@@ -180,7 +180,7 @@ func New(
 		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
 		os:               runtime.GOOS,
 	}
-	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges)
+	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges, &e.projectConfig)
 	for _, option := range options {
 		option(e)
 	}
@@ -247,7 +247,15 @@ func New(
 	}
 	// Save initial schema
 	initialEvent := <-e.deployCoordinator.SchemaUpdates
-	e.targetSchema.Store(initialEvent.schema)
+	sch := initialEvent.schema
+	// if the initial schema has no realms yet, add the project realm with builtins
+	if len(sch.Realms) == 0 {
+		sch.Realms = []*schema.Realm{{
+			Name:    projectConfig.Name,
+			Modules: []*schema.Module{schema.Builtins()},
+		}}
+	}
+	e.targetSchema.Store(sch)
 	if adminClient == nil {
 		return e, nil
 	}
@@ -436,7 +444,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
-				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module)
+				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module, e.projectConfig.Name)
 				if err != nil {
 					logger.Errorf(err, "terminate %s failed", event.Config.Module)
 				}
@@ -1250,7 +1258,7 @@ func (e *Engine) gatherSchemas(
 func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[string]*schema.Module, metasMap map[string]moduleMeta) error {
 	fullSchema := &schema.Schema{Realms: []*schema.Realm{{
 		Modules: maps.Values(newModules),
-		Name:    "default", // TODO: projectName,
+		Name:    e.projectConfig.Name,
 	}}} //nolint:exptostd
 	for _, module := range e.targetSchema.Load().InternalModules() {
 		if _, ok := newModules[module.Name]; !ok {

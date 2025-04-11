@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
@@ -76,7 +77,11 @@ func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification 
 	case <-e.initialSyncComplete:
 		// Initial sync is complete, we send an initial Full schema event
 		state := e.view.Load()
-		subscribe <- &schema.FullSchemaNotification{Schema: state.schema, Changesets: maps.Values(state.activeChangesets)}
+		sch, _ := schema.ValidateModuleInSchema(
+			state.schema,
+			optional.None[*schema.Module](),
+		)
+		subscribe <- &schema.FullSchemaNotification{Schema: sch, Changesets: maps.Values(state.activeChangesets)}
 	default:
 
 	}
@@ -113,7 +118,14 @@ func (e *EventSource) ActiveChangesets() map[key.Changeset]*schema.Changeset {
 }
 
 func (e *EventSource) PublishModuleForTest(module *schema.Module) error {
-	return e.Publish(&schema.FullSchemaNotification{Schema: &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{module}}}}})
+	sch, err := schema.ValidateModuleInSchema(
+		&schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{module}}}},
+		optional.None[*schema.Module](),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to validate schema: %w", err)
+	}
+	return e.Publish(&schema.FullSchemaNotification{Schema: sch})
 }
 
 // Publish an event to the EventSource.
@@ -131,7 +143,11 @@ func (e *EventSource) Publish(event schema.Notification) error {
 		for _, cs := range event.Changesets {
 			changesets[cs.Key] = cs
 		}
-		e.view.Store(&currentState{schema: event.Schema, activeChangesets: changesets})
+		normalised, err := schema.ValidateModuleInSchema(event.Schema, optional.None[*schema.Module]())
+		if err != nil {
+			return fmt.Errorf("failed to validate schema: %w", err)
+		}
+		e.view.Store(&currentState{schema: normalised, activeChangesets: changesets})
 		if !e.initialSync {
 			e.initialSync = true
 			close(e.initialSyncComplete)
@@ -140,13 +156,18 @@ func (e *EventSource) Publish(event schema.Notification) error {
 		clone := reflect.DeepCopy(e.view.Load())
 		if event.Changeset != nil && !event.Changeset.IsZero() {
 			cs := clone.activeChangesets[*event.Changeset]
-			for _, m := range cs.Modules {
-				if m.Runtime.Deployment.DeploymentKey == event.Payload.Deployment {
-					err := event.Payload.ApplyToModule(m)
-					if err != nil {
-						return fmt.Errorf("failed to apply deployment runtime: %w", err)
+			for _, realm := range cs.RealmChanges {
+				if realm.External {
+					continue
+				}
+				for _, m := range realm.Modules {
+					if m.Runtime.Deployment.DeploymentKey == event.Payload.Deployment {
+						err := event.Payload.ApplyToModule(m)
+						if err != nil {
+							return fmt.Errorf("failed to apply deployment runtime: %w", err)
+						}
+						break
 					}
-					break
 				}
 			}
 		} else {
@@ -171,43 +192,73 @@ func (e *EventSource) Publish(event schema.Notification) error {
 	case *schema.ChangesetPreparedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		cs := clone.activeChangesets[event.Key]
-		for _, module := range cs.Modules {
-			module.Runtime.Deployment.State = schema.DeploymentStateCanary
+		for _, realm := range cs.RealmChanges {
+			if realm.External {
+				continue
+			}
+			for _, module := range realm.Modules {
+				module.Runtime.Deployment.State = schema.DeploymentStateCanary
+			}
 		}
 		e.view.Store(clone)
 	case *schema.ChangesetCommittedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		clone.activeChangesets[event.Changeset.Key] = event.Changeset
-		modules := clone.schema.InternalModules()
-		for _, module := range event.Changeset.Modules {
-			module.Runtime.Deployment.State = schema.DeploymentStateCanonical
-			if i := slices.IndexFunc(modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
-				modules[i] = module
+		for _, realm := range event.Changeset.RealmChanges {
+			if realm.External {
+				continue
+			}
+
+			var origRealm *schema.Realm
+			if i := slices.IndexFunc(clone.schema.Realms, func(r *schema.Realm) bool { return r.Name == realm.Name }); i != -1 {
+				origRealm = clone.schema.Realms[i]
 			} else {
-				modules = append(modules, module)
+				origRealm = &schema.Realm{
+					Name:     realm.Name,
+					External: realm.External,
+					Modules:  []*schema.Module{},
+				}
+				clone.schema.Realms = append(clone.schema.Realms, origRealm)
+			}
+
+			for _, module := range realm.Modules {
+				module.Runtime.Deployment.State = schema.DeploymentStateCanonical
+				if i := slices.IndexFunc(origRealm.Modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
+					origRealm.Modules[i] = module
+				} else {
+					origRealm.Modules = append(origRealm.Modules, module)
+				}
+			}
+			for _, removed := range realm.RemovingModules {
+				origRealm.Modules = islices.Filter(origRealm.Modules, func(m *schema.Module) bool {
+					return m.ModRuntime().ModDeployment().DeploymentKey != removed.ModRuntime().ModDeployment().DeploymentKey
+				})
 			}
 		}
-		for _, removed := range event.Changeset.RemovingModules {
-			modules = islices.Filter(modules, func(m *schema.Module) bool {
-				return m.ModRuntime().ModDeployment().DeploymentKey != removed.ModRuntime().ModDeployment().DeploymentKey
-			})
-
-		}
-		clone.schema.Realms[0].Modules = modules
 		e.view.Store(clone)
 	case *schema.ChangesetDrainedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		cs := clone.activeChangesets[event.Key]
-		for _, module := range cs.OwnedModules() {
-			module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
+		for _, realm := range cs.RealmChanges {
+			if realm.External {
+				continue
+			}
+			for _, module := range cs.OwnedModules(realm) {
+				module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
+			}
 		}
 		e.view.Store(clone)
 	case *schema.ChangesetRollingBackNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		clone.activeChangesets[event.Changeset.Key] = event.Changeset
 		cs := event.Changeset
-		for _, module := range cs.Modules {
-			module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
+		for _, realm := range cs.RealmChanges {
+			if realm.External {
+				continue
+			}
+			for _, module := range realm.Modules {
+				module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
+			}
 		}
 		cs.State = schema.ChangesetStateRollingBack
 		cs.Error = event.Error

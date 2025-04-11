@@ -183,9 +183,6 @@ func FromProto(s *schemapb.Schema) (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(realms) != 1 {
-		return nil, errors.New("expected exactly one realm in schema")
-	}
 	schema := &Schema{Realms: realms}
 	return schema.Validate()
 }
@@ -237,4 +234,10 @@ type SchemaState struct {
 	Changesets       []*Changeset              `protobuf:"2"`
 	ChangesetEvents  []*DeploymentRuntimeEvent `protobuf:"3"`
 	DeploymentEvents []*DeploymentRuntimeEvent `protobuf:"4"`
+	Realms           []*RealmState             `protobuf:"5"`
+}
+
+type RealmState struct {
+	Name     string `protobuf:"1"`
+	External bool   `protobuf:"2"`
 }

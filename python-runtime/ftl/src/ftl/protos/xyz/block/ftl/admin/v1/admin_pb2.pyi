@@ -225,13 +225,15 @@ class ResetSubscriptionResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
+class ApplyRealmChangeResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
 class ApplyChangesetRequest(_message.Message):
-    __slots__ = ("modules", "to_remove")
-    MODULES_FIELD_NUMBER: _ClassVar[int]
-    TO_REMOVE_FIELD_NUMBER: _ClassVar[int]
-    modules: _containers.RepeatedCompositeFieldContainer[_schema_pb2.Module]
-    to_remove: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, modules: _Optional[_Iterable[_Union[_schema_pb2.Module, _Mapping]]] = ..., to_remove: _Optional[_Iterable[str]] = ...) -> None: ...
+    __slots__ = ("realm_changes",)
+    REALM_CHANGES_FIELD_NUMBER: _ClassVar[int]
+    realm_changes: _containers.RepeatedCompositeFieldContainer[_schema_pb2.RealmChange]
+    def __init__(self, realm_changes: _Optional[_Iterable[_Union[_schema_pb2.RealmChange, _Mapping]]] = ...) -> None: ...
 
 class ApplyChangesetResponse(_message.Message):
     __slots__ = ("changeset",)
@@ -240,10 +242,12 @@ class ApplyChangesetResponse(_message.Message):
     def __init__(self, changeset: _Optional[_Union[_schema_pb2.Changeset, _Mapping]] = ...) -> None: ...
 
 class UpdateDeploymentRuntimeRequest(_message.Message):
-    __slots__ = ("element",)
+    __slots__ = ("realm", "element")
+    REALM_FIELD_NUMBER: _ClassVar[int]
     ELEMENT_FIELD_NUMBER: _ClassVar[int]
+    realm: str
     element: _schema_pb2.RuntimeElement
-    def __init__(self, element: _Optional[_Union[_schema_pb2.RuntimeElement, _Mapping]] = ...) -> None: ...
+    def __init__(self, realm: _Optional[str] = ..., element: _Optional[_Union[_schema_pb2.RuntimeElement, _Mapping]] = ...) -> None: ...
 
 class UpdateDeploymentRuntimeResponse(_message.Message):
     __slots__ = ()

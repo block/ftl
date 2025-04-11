@@ -274,12 +274,12 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change 
 			publishNewOrChangedJobs(ctx, moduleJobs, oldJobs, timelineClient)
 		}
 	case *schema.ChangesetCommittedNotification:
-		for _, removed := range change.Changeset.RemovingModules {
+		for _, removed := range change.Changeset.InternalRemovingModules() {
 			// These are modules that are properly deleted
 			logger.Debugf("Removing cron jobs for module %s", removed.Name)
 			delete(cronJobs, removed.Name)
 		}
-		for _, module := range change.Changeset.Modules {
+		for _, module := range change.Changeset.InternalModules() {
 			logger.Debugf("Updated cron jobs for module %s", module.Name)
 			moduleJobs, err := extractCronJobs(module)
 			if err != nil {

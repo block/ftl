@@ -828,7 +828,7 @@ func buildMainDeploymentContext(sch *schema.Schema, result extract.Result, goMod
 		ftlVersion = ftl.Version
 	}
 	realm := &schema.Realm{
-		Name:    "default", // TODO: projectName,
+		Name:    projectName,
 		Modules: append(sch.InternalModules(), result.Module),
 	}
 	combinedSch := &schema.Schema{Realms: []*schema.Realm{realm}}

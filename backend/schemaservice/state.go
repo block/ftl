@@ -24,6 +24,7 @@ import (
 
 type SchemaState struct {
 	deployments        map[string]*schema.Module
+	realms             map[string]*schema.RealmState
 	changesets         map[key.Changeset]*schema.Changeset
 	changesetEvents    map[key.Changeset][]*schema.DeploymentRuntimeEvent
 	deploymentEvents   map[string][]*schema.DeploymentRuntimeEvent
@@ -33,6 +34,7 @@ type SchemaState struct {
 func NewSchemaState() SchemaState {
 	return SchemaState{
 		deployments:        map[string]*schema.Module{},
+		realms:             map[string]*schema.RealmState{},
 		changesets:         map[key.Changeset]*schema.Changeset{},
 		deploymentEvents:   map[string][]*schema.DeploymentRuntimeEvent{},
 		changesetEvents:    map[key.Changeset][]*schema.DeploymentRuntimeEvent{},
@@ -54,7 +56,27 @@ func newStateMachine(ctx context.Context) *schemaStateMachine {
 	}
 }
 
+func (r *SchemaState) Validate() error {
+	internalRealms := map[string]bool{}
+	for _, realm := range r.realms {
+		if realm.External {
+			continue
+		}
+		internalRealms[realm.Name] = true
+	}
+
+	if len(internalRealms) > 1 {
+		return fmt.Errorf("expected at most one internal realm, got %d", len(internalRealms))
+	}
+
+	return nil
+}
+
 func (r *SchemaState) Marshal() ([]byte, error) {
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+
 	changesets := slices.Collect(maps.Values(r.changesets))
 	changesets = append(changesets, r.archivedChangesets...)
 	dplEvents := []*schema.DeploymentRuntimeEvent{}
@@ -70,6 +92,7 @@ func (r *SchemaState) Marshal() ([]byte, error) {
 		Changesets:       changesets,
 		DeploymentEvents: dplEvents,
 		ChangesetEvents:  csEvents,
+		Realms:           slices.Collect(maps.Values(r.realms)),
 	}
 	stateProto := state.ToProto()
 	bytes, err := proto.Marshal(stateProto)
@@ -111,6 +134,10 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 			r.changesetEvents[cs] = append(r.changesetEvents[cs], a)
 		}
 	}
+	for _, realm := range state.Realms {
+		r.realms[realm.Name] = realm
+	}
+
 	return nil
 }
 
@@ -119,10 +146,15 @@ func (r *SchemaState) GetDeployment(deployment key.Deployment, changeset optiona
 	if key, ok := changeset.Get(); ok {
 		cs, ok := r.changesets[key]
 		if ok {
-			modules := cs.OwnedModules()
-			for _, m := range modules {
-				if m.GetRuntime().Deployment.DeploymentKey == deployment {
-					return m, nil
+			for _, realm := range cs.RealmChanges {
+				if realm.External {
+					continue
+				}
+				modules := cs.OwnedModules(realm)
+				for _, m := range modules {
+					if m.GetRuntime().Deployment.DeploymentKey == deployment {
+						return m, nil
+					}
 				}
 			}
 		}
@@ -145,10 +177,15 @@ func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *
 		return d, optional.None[key.Changeset](), nil
 	}
 	for _, cs := range r.changesets {
-		modules := cs.OwnedModules()
-		for _, d := range modules {
-			if d.GetRuntime().Deployment.DeploymentKey == deploymentKey {
-				return d, optional.Some[key.Changeset](cs.Key), nil
+		for _, realm := range cs.RealmChanges {
+			if realm.External {
+				continue
+			}
+			modules := cs.OwnedModules(realm)
+			for _, d := range modules {
+				if d.GetRuntime().Deployment.DeploymentKey == deploymentKey {
+					return d, optional.Some[key.Changeset](cs.Key), nil
+				}
 			}
 		}
 	}
@@ -163,8 +200,13 @@ func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 	}
 	for _, cs := range r.changesets {
 		if cs.ModulesAreCanonical() {
-			for _, d := range cs.Modules {
-				ret[d.GetRuntime().Deployment.DeploymentKey] = d
+			for _, realm := range cs.RealmChanges {
+				if realm.External {
+					continue
+				}
+				for _, d := range realm.Modules {
+					ret[d.GetRuntime().Deployment.DeploymentKey] = d
+				}
 			}
 		}
 	}
@@ -186,8 +228,13 @@ func (r *SchemaState) GetAllActiveDeployments() map[key.Deployment]*schema.Modul
 	deployments := r.GetCanonicalDeployments()
 	for _, cs := range r.changesets {
 		if cs.State == schema.ChangesetStatePrepared {
-			for _, dep := range cs.Modules {
-				deployments[dep.GetRuntime().Deployment.DeploymentKey] = dep
+			for _, realm := range cs.RealmChanges {
+				if realm.External {
+					continue
+				}
+				for _, dep := range realm.Modules {
+					deployments[dep.GetRuntime().Deployment.DeploymentKey] = dep
+				}
 			}
 		}
 	}
@@ -203,12 +250,26 @@ func (r *SchemaState) GetProvisioning(module string, cs key.Changeset) (*schema.
 	if !ok {
 		return nil, fmt.Errorf("changeset %s not found", cs.String())
 	}
-	for _, m := range c.Modules {
-		if m.Name == module {
-			return m, nil
+	for _, realm := range c.RealmChanges {
+		if realm.External {
+			continue
+		}
+		for _, m := range realm.Modules {
+			if m.Name == module {
+				return m, nil
+			}
 		}
 	}
 	return nil, fmt.Errorf("provisioning for module %s not found", module)
+}
+
+func (r *SchemaState) InternalSchemaName() optional.Option[string] {
+	for _, realm := range r.realms {
+		if !realm.External {
+			return optional.Some(realm.Name)
+		}
+	}
+	return optional.None[string]()
 }
 
 type EventWrapper struct {

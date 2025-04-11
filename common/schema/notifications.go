@@ -36,6 +36,7 @@ func (r *FullSchemaNotification) notification() {
 type DeploymentRuntimeNotification struct {
 	Payload   *RuntimeElement `protobuf:"1"`
 	Changeset *key.Changeset  `protobuf:"2"`
+	Realm     string          `protobuf:"3"`
 }
 
 func (e *DeploymentRuntimeNotification) notification() {}

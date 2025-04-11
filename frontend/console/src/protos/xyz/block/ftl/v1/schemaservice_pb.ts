@@ -165,7 +165,12 @@ export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRunt
   changeset?: string;
 
   /**
-   * @generated from field: xyz.block.ftl.schema.v1.RuntimeElement update = 2;
+   * @generated from field: string realm = 2;
+   */
+  realm = "";
+
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.RuntimeElement update = 3;
    */
   update?: RuntimeElement;
 
@@ -178,7 +183,8 @@ export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRunt
   static readonly typeName = "xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "changeset", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 2, name: "update", kind: "message", T: RuntimeElement },
+    { no: 2, name: "realm", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "update", kind: "message", T: RuntimeElement },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateDeploymentRuntimeRequest {
@@ -298,22 +304,78 @@ export class GetDeploymentsResponse extends Message<GetDeploymentsResponse> {
 }
 
 /**
- * @generated from message xyz.block.ftl.v1.CreateChangesetRequest
+ * @generated from message xyz.block.ftl.v1.RealmChange
  */
-export class CreateChangesetRequest extends Message<CreateChangesetRequest> {
+export class RealmChange extends Message<RealmChange> {
+  /**
+   * The realm name.
+   *
+   * @generated from field: string name = 1;
+   */
+  name = "";
+
+  /**
+   * Whether the realm is external.
+   *
+   * @generated from field: bool external = 2;
+   */
+  external = false;
+
   /**
    * The modules to add or update.
    *
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 1;
+   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 3;
    */
   modules: Module[] = [];
 
   /**
    * The deployments to remove.
    *
-   * @generated from field: repeated string to_remove = 2;
+   * @generated from field: repeated string to_remove = 4;
    */
   toRemove: string[] = [];
+
+  constructor(data?: PartialMessage<RealmChange>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.v1.RealmChange";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "external", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "modules", kind: "message", T: Module, repeated: true },
+    { no: 4, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RealmChange {
+    return new RealmChange().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RealmChange {
+    return new RealmChange().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RealmChange {
+    return new RealmChange().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RealmChange | PlainMessage<RealmChange> | undefined, b: RealmChange | PlainMessage<RealmChange> | undefined): boolean {
+    return proto3.util.equals(RealmChange, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.v1.CreateChangesetRequest
+ */
+export class CreateChangesetRequest extends Message<CreateChangesetRequest> {
+  /**
+   * The realms changed in this changeset.
+   *
+   * @generated from field: repeated xyz.block.ftl.v1.RealmChange realm_changes = 1;
+   */
+  realmChanges: RealmChange[] = [];
 
   constructor(data?: PartialMessage<CreateChangesetRequest>) {
     super();
@@ -323,8 +385,7 @@ export class CreateChangesetRequest extends Message<CreateChangesetRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.v1.CreateChangesetRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
-    { no: 2, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 1, name: "realm_changes", kind: "message", T: RealmChange, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateChangesetRequest {

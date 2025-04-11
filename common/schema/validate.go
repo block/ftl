@@ -78,7 +78,9 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 			}
 		}
 		if !found {
-			schema.Realms[0].Modules = append(schema.Realms[0].Modules, m)
+			// TODO: we assume that the there is only one internal realm.
+			realm := schema.InternalRealms()[0]
+			realm.Modules = append(realm.Modules, m)
 		}
 	}
 

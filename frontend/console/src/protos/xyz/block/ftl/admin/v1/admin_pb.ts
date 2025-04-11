@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
-import { Changeset, Module, Ref, RuntimeElement } from "../../schema/v1/schema_pb.js";
+import { Changeset, RealmChange, Ref, RuntimeElement } from "../../schema/v1/schema_pb.js";
 import { TimelineQuery } from "../../timeline/v1/timeline_pb.js";
 import { LogEvent } from "../../timeline/v1/event_pb.js";
 
@@ -1099,22 +1099,44 @@ export class ResetSubscriptionResponse extends Message<ResetSubscriptionResponse
 }
 
 /**
+ * @generated from message xyz.block.ftl.admin.v1.ApplyRealmChangeResponse
+ */
+export class ApplyRealmChangeResponse extends Message<ApplyRealmChangeResponse> {
+  constructor(data?: PartialMessage<ApplyRealmChangeResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.ApplyRealmChangeResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ApplyRealmChangeResponse {
+    return new ApplyRealmChangeResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ApplyRealmChangeResponse {
+    return new ApplyRealmChangeResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ApplyRealmChangeResponse {
+    return new ApplyRealmChangeResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ApplyRealmChangeResponse | PlainMessage<ApplyRealmChangeResponse> | undefined, b: ApplyRealmChangeResponse | PlainMessage<ApplyRealmChangeResponse> | undefined): boolean {
+    return proto3.util.equals(ApplyRealmChangeResponse, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.admin.v1.ApplyChangesetRequest
  */
 export class ApplyChangesetRequest extends Message<ApplyChangesetRequest> {
   /**
-   * The modules to add or update.
-   *
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 1;
+   * @generated from field: repeated xyz.block.ftl.schema.v1.RealmChange realm_changes = 1;
    */
-  modules: Module[] = [];
-
-  /**
-   * The deployments to remove.
-   *
-   * @generated from field: repeated string to_remove = 2;
-   */
-  toRemove: string[] = [];
+  realmChanges: RealmChange[] = [];
 
   constructor(data?: PartialMessage<ApplyChangesetRequest>) {
     super();
@@ -1124,8 +1146,7 @@ export class ApplyChangesetRequest extends Message<ApplyChangesetRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.admin.v1.ApplyChangesetRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
-    { no: 2, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 1, name: "realm_changes", kind: "message", T: RealmChange, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ApplyChangesetRequest {
@@ -1189,9 +1210,14 @@ export class ApplyChangesetResponse extends Message<ApplyChangesetResponse> {
  */
 export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRuntimeRequest> {
   /**
+   * @generated from field: string realm = 1;
+   */
+  realm = "";
+
+  /**
    * The modules to add or update.
    *
-   * @generated from field: xyz.block.ftl.schema.v1.RuntimeElement element = 1;
+   * @generated from field: xyz.block.ftl.schema.v1.RuntimeElement element = 2;
    */
   element?: RuntimeElement;
 
@@ -1203,7 +1229,8 @@ export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRunt
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "element", kind: "message", T: RuntimeElement },
+    { no: 1, name: "realm", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "element", kind: "message", T: RuntimeElement },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateDeploymentRuntimeRequest {

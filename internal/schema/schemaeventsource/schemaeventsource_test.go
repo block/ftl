@@ -121,8 +121,10 @@ func TestSchemaEventSource(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
 			Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: &schemapb.ChangesetCommittedNotification{
 				Changeset: &schemapb.Changeset{
-					Key:     key.String(),
-					Modules: []*schemapb.Module{echo1.ToProto()},
+					Key: key.String(),
+					RealmChanges: []*schemapb.RealmChange{{
+						Modules: []*schemapb.Module{echo1.ToProto()},
+					}},
 				},
 			}}},
 		})
@@ -137,11 +139,13 @@ func TestSchemaEventSource(t *testing.T) {
 		assertEqual(t, expected, recv(t))
 
 		expected = &schema.ChangesetCommittedNotification{
-			Changeset: &schema.Changeset{Modules: []*schema.Module{echo1}, Key: key},
+			Changeset: &schema.Changeset{RealmChanges: []*schema.RealmChange{{
+				Modules: []*schema.Module{echo1},
+			}}, Key: key},
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time1, echo1}}}}, changes.CanonicalView())
+		assertSchemasEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time1, echo1}}}}, changes.CanonicalView())
 	})
 
 	t.Run("Mutation", func(t *testing.T) {
@@ -150,18 +154,22 @@ func TestSchemaEventSource(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
 			Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: &schemapb.ChangesetCommittedNotification{
 				Changeset: &schemapb.Changeset{
-					Key:     key.String(),
-					Modules: []*schemapb.Module{time2.ToProto()},
+					Key: key.String(),
+					RealmChanges: []*schemapb.RealmChange{{
+						Modules: []*schemapb.Module{time2.ToProto()},
+					}},
 				},
 			}}},
 		})
 
 		var expected schema.Notification = &schema.ChangesetCommittedNotification{
-			Changeset: &schema.Changeset{Modules: []*schema.Module{time2}, Key: key},
+			Changeset: &schema.Changeset{RealmChanges: []*schema.RealmChange{{
+				Modules: []*schema.Module{time2},
+			}}, Key: key},
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2, echo1}}}}, changes.CanonicalView())
+		assertSchemasEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2, echo1}}}}, changes.CanonicalView())
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -170,23 +178,27 @@ func TestSchemaEventSource(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
 			Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: &schemapb.ChangesetCommittedNotification{
 				Changeset: &schemapb.Changeset{
-					Key:             key.String(),
-					ToRemove:        []string{"echo"},
-					RemovingModules: []*schemapb.Module{echo1.ToProto()},
+					Key: key.String(),
+					RealmChanges: []*schemapb.RealmChange{{
+						ToRemove:        []string{"echo"},
+						RemovingModules: []*schemapb.Module{echo1.ToProto()},
+					}},
 				},
 			}}},
 		})
 
 		var expected schema.Notification = &schema.ChangesetCommittedNotification{
 			Changeset: &schema.Changeset{
-				Key:             key,
-				RemovingModules: []*schema.Module{echo1},
-				ToRemove:        []string{"echo"},
+				Key: key,
+				RealmChanges: []*schema.RealmChange{{
+					RemovingModules: []*schema.Module{echo1},
+					ToRemove:        []string{"echo"},
+				}},
 			},
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2}}}}, changes.CanonicalView())
+		assertSchemasEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2}}}}, changes.CanonicalView())
 	})
 }
 
@@ -213,4 +225,16 @@ func (m *mockSchemaService) PullSchema(ctx context.Context, req *connect.Request
 func assertEqual[T comparable](t testing.TB, expected, actual T) {
 	t.Helper()
 	assert.Equal(t, expected, actual, assert.Exclude[optional.Option[key.Deployment]](), assert.Exclude[*schema.Schema]())
+}
+
+func assertSchemasEqual(t testing.TB, expected, actual *schema.Schema) {
+	t.Helper()
+
+	normalisedExpected, err := schema.ValidateModuleInSchema(
+		expected,
+		optional.None[*schema.Module](),
+	)
+	assert.NoError(t, err)
+
+	assert.Equal(t, normalisedExpected, actual)
 }

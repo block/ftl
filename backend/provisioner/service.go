@@ -232,15 +232,20 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 	logger := log.FromContext(ctx).Changeset(cs)
 	changeset := s.eventSource.ActiveChangesets()[cs]
 
-	moduleNames := slices.Map(changeset.Modules, func(m *schema.Module) string {
+	moduleNames := slices.Map(changeset.InternalModules(), func(m *schema.Module) string {
 		return m.Name
 	})
-
-	err := s.deProvision(ctx, cs, changeset.RemovingModules)
-	if err != nil {
-		return err
+	for _, realm := range changeset.RealmChanges {
+		if realm.External {
+			continue
+		}
+		err := s.deProvision(ctx, cs, realm.Modules, realm.Name)
+		if err != nil {
+			return err
+		}
 	}
-	_, err = s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: cs.String()}))
+
+	_, err := s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: cs.String()}))
 	if err != nil {
 		return fmt.Errorf("error finalizing changeset: %w", err)
 	}
@@ -250,11 +255,16 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 
 func (s *Service) HandleChangesetRollingBack(ctx context.Context, changeset *schema.Changeset) error {
 	logger := log.FromContext(ctx).Changeset(changeset.Key)
-	err := s.deProvision(ctx, changeset.Key, changeset.Modules)
-	if err != nil {
-		logger.Errorf(err, "Error de-provisioning changeset")
+	for _, realm := range changeset.RealmChanges {
+		if realm.External {
+			continue
+		}
+		err := s.deProvision(ctx, changeset.Key, realm.Modules, realm.Name)
+		if err != nil {
+			logger.Errorf(err, "Error de-provisioning changeset")
+		}
 	}
-	_, err = s.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: changeset.Key.String()}))
+	_, err := s.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: changeset.Key.String()}))
 	if err != nil {
 		return fmt.Errorf("error finalizing changeset: %w", err)
 	}
@@ -262,7 +272,7 @@ func (s *Service) HandleChangesetRollingBack(ctx context.Context, changeset *sch
 	return nil
 }
 
-func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*schema.Module) error {
+func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*schema.Module, realm string) error {
 
 	logger := log.FromContext(ctx)
 	group := errgroup.Group{}
@@ -279,6 +289,7 @@ func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*
 				cs := cs.String()
 				_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
 					Changeset: &cs,
+					Realm:     realm,
 					Update:    element.ToProto(),
 				}))
 				if err != nil {
@@ -303,44 +314,51 @@ func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*
 
 func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Changeset) error {
 	mLogger := log.FromContext(ctx).Changeset(req.Key)
-	moduleNames := slices.Map(req.Modules, func(m *schema.Module) string {
+	moduleNames := slices.Map(req.InternalModules(), func(m *schema.Module) string {
 		return m.Name
 	})
 	mLogger.Debugf("Starting deployment for changeset %s [%s]", req.Key, strings.Join(moduleNames, ","))
 	group := errgroup.Group{}
 	// TODO: Block deployments to make sure only one module is modified at a time
-	for _, module := range req.Modules {
-		logger := mLogger.Module(module.Name)
-		ctx := log.ContextWithLogger(ctx, logger)
-		moduleName := module.Name
-
-		existingModule, _ := s.currentModules.Load(moduleName)
-
-		if existingModule != nil {
-			syncExistingRuntimes(existingModule, module)
+	for _, realm := range req.RealmChanges {
+		if realm.External {
+			continue
 		}
-		group.Go(func() error {
-			if err := s.registry.VerifyDeploymentSupported(ctx, module); err != nil {
-				return err
+
+		for _, module := range realm.Modules {
+			logger := mLogger.Module(module.Name)
+			ctx := log.ContextWithLogger(ctx, logger)
+			moduleName := module.Name
+
+			existingModule, _ := s.currentModules.Load(moduleName)
+
+			if existingModule != nil {
+				syncExistingRuntimes(existingModule, module)
 			}
-			deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(element *schema.RuntimeElement) error {
-				cs := req.Key.String()
-				_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
-					Changeset: &cs,
-					Update:    element.ToProto(),
-				}))
-				if err != nil {
-					return fmt.Errorf("error updating runtime: %w", err)
+			group.Go(func() error {
+				if err := s.registry.VerifyDeploymentSupported(ctx, module); err != nil {
+					return err
 				}
+				deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(element *schema.RuntimeElement) error {
+					cs := req.Key.String()
+					_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
+						Changeset: &cs,
+						Update:    element.ToProto(),
+						Realm:     realm.Name,
+					}))
+					if err != nil {
+						return fmt.Errorf("error updating runtime: %w", err)
+					}
+					return nil
+				})
+				if err := deployment.Run(ctx); err != nil {
+					return fmt.Errorf("error running deployment: %w", err)
+				}
+				logger.Debugf("Finished deployment for module %s", moduleName)
 				return nil
 			})
-			if err := deployment.Run(ctx); err != nil {
-				return fmt.Errorf("error running deployment: %w", err)
-			}
-			logger.Debugf("Finished deployment for module %s", moduleName)
-			return nil
-		})
 
+		}
 	}
 	err := group.Wait()
 	if err != nil {
@@ -348,11 +366,16 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 	}
 
 	changeset := req.Key.String()
-	for _, mod := range req.Modules {
-		element := &schema.RuntimeElement{Deployment: mod.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeDeployment{DeploymentKey: mod.Runtime.Deployment.DeploymentKey, State: schema.DeploymentStateReady}}
-		_, err = s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Changeset: &changeset, Update: element.ToProto()}))
-		if err != nil {
-			return fmt.Errorf("error preparing changeset: %w", err)
+	for _, realm := range req.RealmChanges {
+		if realm.External {
+			continue
+		}
+		for _, mod := range realm.Modules {
+			element := &schema.RuntimeElement{Deployment: mod.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeDeployment{DeploymentKey: mod.Runtime.Deployment.DeploymentKey, State: schema.DeploymentStateReady}}
+			_, err = s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Changeset: &changeset, Update: element.ToProto(), Realm: realm.Name}))
+			if err != nil {
+				return fmt.Errorf("error preparing changeset: %w", err)
+			}
 		}
 	}
 	_, err = s.schemaClient.PrepareChangeset(ctx, connect.NewRequest(&ftlv1.PrepareChangesetRequest{Changeset: req.Key.String()}))

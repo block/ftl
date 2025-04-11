@@ -10,6 +10,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -18,7 +19,7 @@ type updateCmd struct {
 	Deployment string `arg:"" help:"Deployment to update." predictor:"deployments"`
 }
 
-func (u *updateCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, source *schemaeventsource.EventSource) error {
+func (u *updateCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, source *schemaeventsource.EventSource, projConfig *projectconfig.Config) error {
 	dep, err := key.ParseDeploymentKey(u.Deployment)
 	if err != nil {
 		// Assume a module name
@@ -33,6 +34,7 @@ func (u *updateCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceC
 
 	_, err = client.UpdateDeploymentRuntime(ctx, connect.NewRequest(&adminpb.UpdateDeploymentRuntimeRequest{
 		Element: update.ToProto(),
+		Realm:   projConfig.Name,
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to update deployment: %w", err)

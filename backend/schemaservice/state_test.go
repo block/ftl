@@ -38,23 +38,25 @@ func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 	assert.NoError(t, state.ApplyEvent(ctx, &schema.ChangesetCreatedEvent{
 		Changeset: &schema.Changeset{
 			Key: changesetKey,
-			Modules: []*schema.Module{
-				&schema.Module{
+			RealmChanges: []*schema.RealmChange{{
+				Modules: []*schema.Module{{
 					Name: "test2",
 					Runtime: &schema.ModuleRuntime{
 						Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey},
 					},
-				},
-			},
+				}},
+			}},
 		},
 	}))
 	assert.NoError(t, state.ApplyEvent(ctx, &schema.DeploymentRuntimeEvent{
 		Payload:   &schema.RuntimeElement{Deployment: deploymentKey, Element: &schema.ModuleRuntimeRunner{Endpoint: "http://localhost:8080"}},
 		Changeset: &changesetKey,
+		Realm:     "test",
 	}))
 	assert.NoError(t, state.ApplyEvent(ctx, &schema.DeploymentRuntimeEvent{
 		Payload:   &schema.RuntimeElement{Deployment: deploymentKey, Element: &schema.ModuleRuntimeDeployment{State: schema.DeploymentStateReady}},
 		Changeset: &changesetKey,
+		Realm:     "test",
 	}))
 	assert.NoError(t, state.ApplyEvent(ctx, &schema.ChangesetPreparedEvent{
 		Key: changesetKey,
