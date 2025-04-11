@@ -121,8 +121,10 @@ func TestSchemaEventSource(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
 			Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: &schemapb.ChangesetCommittedNotification{
 				Changeset: &schemapb.Changeset{
-					Key:     key.String(),
-					Modules: []*schemapb.Module{echo1.ToProto()},
+					Key: key.String(),
+					RealmChanges: []*schemapb.RealmChange{{
+						Modules: []*schemapb.Module{echo1.ToProto()},
+					}},
 				},
 			}}},
 		})
@@ -137,7 +139,12 @@ func TestSchemaEventSource(t *testing.T) {
 		assertEqual(t, expected, recv(t))
 
 		expected = &schema.ChangesetCommittedNotification{
-			Changeset: &schema.Changeset{Modules: []*schema.Module{echo1}, Key: key},
+			Changeset: &schema.Changeset{
+				RealmChanges: []*schema.RealmChange{{
+					Modules: []*schema.Module{echo1},
+				}},
+				Key: key,
+			},
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
@@ -150,14 +157,21 @@ func TestSchemaEventSource(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
 			Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: &schemapb.ChangesetCommittedNotification{
 				Changeset: &schemapb.Changeset{
-					Key:     key.String(),
-					Modules: []*schemapb.Module{time2.ToProto()},
+					Key: key.String(),
+					RealmChanges: []*schemapb.RealmChange{{
+						Modules: []*schemapb.Module{time2.ToProto()},
+					}},
 				},
 			}}},
 		})
 
 		var expected schema.Notification = &schema.ChangesetCommittedNotification{
-			Changeset: &schema.Changeset{Modules: []*schema.Module{time2}, Key: key},
+			Changeset: &schema.Changeset{
+				RealmChanges: []*schema.RealmChange{{
+					Modules: []*schema.Module{time2},
+				}},
+				Key: key,
+			},
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
@@ -170,18 +184,22 @@ func TestSchemaEventSource(t *testing.T) {
 		send(t, &ftlv1.PullSchemaResponse{
 			Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: &schemapb.ChangesetCommittedNotification{
 				Changeset: &schemapb.Changeset{
-					Key:             key.String(),
-					ToRemove:        []string{"echo"},
-					RemovingModules: []*schemapb.Module{echo1.ToProto()},
+					Key: key.String(),
+					RealmChanges: []*schemapb.RealmChange{{
+						ToRemove:        []string{"echo"},
+						RemovingModules: []*schemapb.Module{echo1.ToProto()},
+					}},
 				},
 			}}},
 		})
 
 		var expected schema.Notification = &schema.ChangesetCommittedNotification{
 			Changeset: &schema.Changeset{
-				Key:             key,
-				RemovingModules: []*schema.Module{echo1},
-				ToRemove:        []string{"echo"},
+				Key: key,
+				RealmChanges: []*schema.RealmChange{{
+					ToRemove:        []string{"echo"},
+					RemovingModules: []*schema.Module{echo1},
+				}},
 			},
 		}
 		actual := recv(t)

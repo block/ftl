@@ -552,9 +552,12 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 		return fmt.Errorf("failed to parse changeset key: %w", err)
 	}
 	changeset := &schemapb.Changeset{
-		Key:      cs.Msg.Changeset,
-		Modules:  req.Msg.Modules,
-		ToRemove: req.Msg.ToRemove,
+		Key: cs.Msg.Changeset,
+		RealmChanges: []*schemapb.RealmChange{{
+			Name:     "default",
+			Modules:  req.Msg.Modules,
+			ToRemove: req.Msg.ToRemove,
+		}},
 	}
 	if err := stream.Send(&adminpb.ApplyChangesetResponse{
 		Changeset: changeset,

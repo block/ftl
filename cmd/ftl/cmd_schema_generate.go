@@ -114,10 +114,10 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 				case *schemapb.Notification_ChangesetCreatedNotification:
 				case *schemapb.Notification_ChangesetPreparedNotification:
 				case *schemapb.Notification_ChangesetCommittedNotification:
-					for _, m := range msg.ChangesetCommittedNotification.Changeset.RemovingModules {
+					for _, m := range msg.ChangesetCommittedNotification.Changeset.RealmChanges[0].RemovingModules {
 						delete(modules, m.Name)
 					}
-					for _, m := range msg.ChangesetCommittedNotification.Changeset.Modules {
+					for _, m := range msg.ChangesetCommittedNotification.Changeset.RealmChanges[0].Modules {
 						module, err := schema.ValidatedModuleFromProto(m)
 						if err != nil {
 							return fmt.Errorf("invalid module: %w", err)

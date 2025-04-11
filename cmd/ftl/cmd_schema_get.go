@@ -56,7 +56,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			}
 		case *schemapb.Notification_ChangesetCommittedNotification:
 			var modules []*schema.Module
-			for _, module := range e.ChangesetCommittedNotification.Changeset.Modules {
+			for _, module := range e.ChangesetCommittedNotification.Changeset.RealmChanges[0].Modules {
 				m, err := schema.ModuleFromProto(module)
 				if err != nil {
 					return fmt.Errorf("invalid module: %w", err)

@@ -80,7 +80,7 @@ func verifyDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEve
 		if !ok {
 			return fmt.Errorf("changeset %s not found", cs.String())
 		}
-		for _, m := range t.changesets[cs].Modules {
+		for _, m := range t.changesets[cs].InternalModules() {
 			if m.Name == e.DeploymentKey().Payload.Module {
 				return nil
 			}
@@ -101,7 +101,7 @@ func handleDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEve
 	if cs, ok := e.ChangesetKey().Get(); ok && !cs.IsZero() {
 		module := e.DeploymentKey().Payload.Module
 		c := t.changesets[cs]
-		for _, m := range c.Modules {
+		for _, m := range c.InternalModules() {
 			if m.Name == module {
 				err := e.Payload.ApplyToModule(m)
 				if err != nil {
@@ -134,14 +134,14 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	updatingModules := map[string]*schema.Module{}
 	for _, cs := range t.changesets {
 		if cs.ModulesAreCanonical() {
-			for _, mod := range cs.Modules {
+			for _, mod := range cs.InternalModules() {
 				existingModules[mod.Name] = cs.Key
 				updatingModules[mod.Name] = mod
 			}
 			activeCount++
 		}
 	}
-	for _, mod := range e.Changeset.Modules {
+	for _, mod := range e.Changeset.InternalModules() {
 		if cs, ok := existingModules[mod.Name]; ok {
 			return fmt.Errorf("module %s is already being updated in changeset %s", mod.Name, cs.String())
 		}
@@ -162,7 +162,7 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 		}
 	}
 	rem := map[string]bool{}
-	for _, mod := range e.Changeset.ToRemove {
+	for _, mod := range e.Changeset.InternalToRemove() {
 		rem[mod] = true
 	}
 	updatedDep := reflect.DeepCopy(t.deployments)
@@ -204,7 +204,7 @@ func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	if err := verifyChangesetCreatedEvent(t, e); err != nil {
 		return err
 	}
-	for _, dep := range e.Changeset.Modules {
+	for _, dep := range e.Changeset.InternalModules() {
 		if dep.Runtime.Scaling == nil {
 			if existing, ok := t.deployments[dep.Name]; ok {
 				dep.Runtime.ModScaling().MinReplicas = existing.Runtime.Scaling.MinReplicas
@@ -222,7 +222,7 @@ func verifyChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEve
 	if !ok {
 		return fmt.Errorf("changeset %s not found", e.Key)
 	}
-	for _, dep := range changeset.Modules {
+	for _, dep := range changeset.InternalModules() {
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateReady {
 			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", dep.Name, schema.DeploymentStateReady, dep.Runtime.Deployment.State)
 		}
@@ -241,7 +241,7 @@ func handleChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEve
 	changeset.State = schema.ChangesetStatePrepared
 	// TODO: what does this actually mean? Worry about it when we start implementing canaries, but it will be clunky
 	// If everything that cares about canaries needs to scan for prepared changesets
-	for _, dep := range changeset.Modules {
+	for _, dep := range changeset.InternalModules() {
 		dep.Runtime.Deployment.State = schema.DeploymentStateCanary
 	}
 	return nil
@@ -253,7 +253,7 @@ func verifyChangesetCommittedEvent(t *SchemaState, e *schema.ChangesetCommittedE
 		return fmt.Errorf("changeset %s not found", e.Key)
 	}
 
-	for _, dep := range changeset.Modules {
+	for _, dep := range changeset.InternalModules() {
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateCanary {
 			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", dep.Name, schema.DeploymentStateCanary, dep.Runtime.Deployment.State)
 		}
@@ -269,17 +269,17 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 	changeset := t.changesets[e.Key]
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
-	for _, dep := range changeset.Modules {
+	for _, dep := range changeset.InternalModules() {
 		logger.Debugf("activating deployment %s %s", dep.GetRuntime().GetDeployment().DeploymentKey.String(), dep.Runtime.GetRunner().Endpoint)
 		if old, ok := t.deployments[dep.Name]; ok {
 			old.Runtime.Deployment.State = schema.DeploymentStateDraining
-			changeset.RemovingModules = append(changeset.RemovingModules, old)
+			changeset.InternalRealm().RemovingModules = append(changeset.InternalRealm().RemovingModules, old)
 		}
 		t.deployments[dep.Name] = dep
 		delete(t.deploymentEvents, dep.Name)
 		dep.Runtime.Deployment.State = schema.DeploymentStateCanonical
 	}
-	for _, dep := range changeset.ToRemove {
+	for _, dep := range changeset.InternalToRemove() {
 		logger.Debugf("Removing deployment %s", dep)
 		dk, err := key.ParseDeploymentKey(dep)
 		if err != nil {
@@ -287,7 +287,7 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 		} else {
 			old := t.deployments[dk.Payload.Module]
 			old.Runtime.Deployment.State = schema.DeploymentStateDraining
-			changeset.RemovingModules = append(changeset.RemovingModules, old)
+			changeset.InternalRealm().RemovingModules = append(changeset.InternalRealm().RemovingModules, old)
 			delete(t.deployments, dk.Payload.Module)
 		}
 	}
@@ -303,7 +303,7 @@ func verifyChangesetDrainedEvent(t *SchemaState, e *schema.ChangesetDrainedEvent
 		return fmt.Errorf("changeset %v is not in the correct state", changeset.Key)
 	}
 
-	for _, dep := range changeset.RemovingModules {
+	for _, dep := range changeset.InternalRemovingModules() {
 		if dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDraining &&
 			dep.ModRuntime().ModDeployment().State != schema.DeploymentStateDeProvisioning {
 			return fmt.Errorf("deployment %s is not in correct state expected %v got %v", dep.Name, schema.DeploymentStateDeProvisioning, dep.Runtime.Deployment.State)
@@ -321,7 +321,7 @@ func handleChangesetDrainedEvent(ctx context.Context, t *SchemaState, e *schema.
 	changeset := t.changesets[e.Key]
 	logger.Debugf("Changeset %s drained", e.Key)
 
-	for _, dep := range changeset.RemovingModules {
+	for _, dep := range changeset.InternalRemovingModules() {
 		if dep.ModRuntime().ModDeployment().State == schema.DeploymentStateDraining {
 			dep.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
 		}
@@ -338,7 +338,7 @@ func verifyChangesetFinalizedEvent(t *SchemaState, e *schema.ChangesetFinalizedE
 		return fmt.Errorf("changeset %v is not in the correct state expected %v got %v", changeset.Key, schema.ChangesetStateDrained, changeset.State)
 	}
 
-	for _, dep := range changeset.RemovingModules {
+	for _, dep := range changeset.InternalRemovingModules() {
 		if dep.ModRuntime().ModDeployment().State == schema.DeploymentStateDeProvisioning {
 			continue
 		}
@@ -358,7 +358,7 @@ func handleChangesetFinalizedEvent(ctx context.Context, r *SchemaState, e *schem
 	changeset := r.changesets[e.Key]
 	logger.Debugf("Changeset %s de-provisioned", e.Key)
 
-	for _, dep := range changeset.RemovingModules {
+	for _, dep := range changeset.InternalRemovingModules() {
 		if dep.ModRuntime().ModDeployment().State == schema.DeploymentStateDeProvisioning {
 			dep.Runtime.Deployment.State = schema.DeploymentStateDeleted
 		}
@@ -416,7 +416,7 @@ func handleChangesetRollingBackEvent(t *SchemaState, e *schema.ChangesetRollingB
 	changeset := t.changesets[e.Key]
 	changeset.State = schema.ChangesetStateRollingBack
 	changeset.Error = e.Error
-	for _, module := range changeset.Modules {
+	for _, module := range changeset.InternalModules() {
 		module.Runtime.Deployment.State = schema.DeploymentStateDeProvisioning
 	}
 
@@ -427,7 +427,7 @@ func handleChangesetRollingBackEvent(t *SchemaState, e *schema.ChangesetRollingB
 func latestSchema(canonical *schema.Schema, changeset *schema.Changeset) *schema.Schema {
 	sch := reflect.DeepCopy(canonical)
 	for _, realm := range sch.InternalRealms() {
-		for _, module := range changeset.Modules {
+		for _, module := range changeset.InternalModules() {
 			if i := slices2.IndexFunc(realm.Modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
 				realm.Modules[i] = module
 			} else {

@@ -232,11 +232,11 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 	logger := log.FromContext(ctx).Changeset(cs)
 	changeset := s.eventSource.ActiveChangesets()[cs]
 
-	moduleNames := slices.Map(changeset.Modules, func(m *schema.Module) string {
+	moduleNames := slices.Map(changeset.InternalModules(), func(m *schema.Module) string {
 		return m.Name
 	})
 
-	err := s.deProvision(ctx, cs, changeset.RemovingModules)
+	err := s.deProvision(ctx, cs, changeset.InternalRemovingModules())
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 
 func (s *Service) HandleChangesetRollingBack(ctx context.Context, changeset *schema.Changeset) error {
 	logger := log.FromContext(ctx).Changeset(changeset.Key)
-	err := s.deProvision(ctx, changeset.Key, changeset.Modules)
+	err := s.deProvision(ctx, changeset.Key, changeset.InternalRemovingModules())
 	if err != nil {
 		logger.Errorf(err, "Error de-provisioning changeset")
 	}
@@ -303,13 +303,13 @@ func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*
 
 func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Changeset) error {
 	mLogger := log.FromContext(ctx).Changeset(req.Key)
-	moduleNames := slices.Map(req.Modules, func(m *schema.Module) string {
+	moduleNames := slices.Map(req.InternalModules(), func(m *schema.Module) string {
 		return m.Name
 	})
 	mLogger.Debugf("Starting deployment for changeset %s [%s]", req.Key, strings.Join(moduleNames, ","))
 	group := errgroup.Group{}
 	// TODO: Block deployments to make sure only one module is modified at a time
-	for _, module := range req.Modules {
+	for _, module := range req.InternalModules() {
 		logger := mLogger.Module(module.Name)
 		ctx := log.ContextWithLogger(ctx, logger)
 		moduleName := module.Name
@@ -348,7 +348,7 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 	}
 
 	changeset := req.Key.String()
-	for _, mod := range req.Modules {
+	for _, mod := range req.InternalModules() {
 		element := &schema.RuntimeElement{Deployment: mod.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeDeployment{DeploymentKey: mod.Runtime.Deployment.DeploymentKey, State: schema.DeploymentStateReady}}
 		_, err = s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Changeset: &changeset, Update: element.ToProto()}))
 		if err != nil {

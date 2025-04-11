@@ -24,11 +24,11 @@ func (g *listChangesetCmd) Run(ctx context.Context, client adminpbconnect.AdminS
 		switch e := msg.Event.Value.(type) {
 		case *schemapb.Notification_FullSchemaNotification:
 			for _, cs := range e.FullSchemaNotification.Changesets {
-				mods := make([]string, 0, len(cs.Modules))
-				for _, m := range cs.Modules {
+				mods := make([]string, 0, len(cs.RealmChanges[0].Modules))
+				for _, m := range cs.RealmChanges[0].Modules {
 					mods = append(mods, m.Name)
 				}
-				fmt.Printf("%s\tState: %s\tModules: %v\tRemoving %v\n", cs.Key, cs.State, mods, cs.ToRemove)
+				fmt.Printf("%s\tState: %s\tModules: %v\tRemoving %v\n", cs.Key, cs.State, mods, cs.RealmChanges[0].ToRemove)
 			}
 			return nil
 		default:

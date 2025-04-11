@@ -41,11 +41,9 @@ message Bytes {
 message Changeset {
   string key = 1;
   google.protobuf.Timestamp created_at = 2;
-  repeated Module modules = 3;
-  repeated string to_remove = 4;
-  repeated Module removing_modules = 5;
-  ChangesetState state = 6;
-  optional string error = 7;
+  repeated RealmChange realm_changes = 3;
+  ChangesetState state = 4;
+  optional string error = 5;
 }
 
 message ChangesetCommittedEvent {
@@ -520,6 +518,19 @@ message Realm {
   repeated Module modules = 4;
 }
 
+message RealmChange {
+  string name = 1;
+  bool external = 2;
+  repeated Module modules = 3;
+  repeated string to_remove = 4;
+  repeated Module removing_modules = 5;
+}
+
+message RealmState {
+  string name = 1;
+  bool external = 2;
+}
+
 // Ref is an untyped reference to a symbol.
 message Ref {
   optional Position pos = 1;
@@ -556,6 +567,7 @@ message SchemaState {
   repeated Changeset changesets = 2;
   repeated DeploymentRuntimeEvent changeset_events = 3;
   repeated DeploymentRuntimeEvent deployment_events = 4;
+  repeated RealmState realms = 5;
 }
 
 message Secret {
