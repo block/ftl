@@ -197,7 +197,13 @@ func (s *Service) GetDeployments(ctx context.Context, req *connect.Request[ftlv1
 func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv1.CreateChangesetRequest]) (*connect.Response[ftlv1.CreateChangesetResponse], error) {
 	s.creationLock.Lock()
 	defer s.creationLock.Unlock()
-	modules, err := slices.MapErr(req.Msg.Modules, func(m *schemapb.Module) (*schema.Module, error) {
+
+	if len(req.Msg.RealmChanges) != 1 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("exactly one realm change is required"))
+	}
+
+	realmChange := req.Msg.RealmChanges[0]
+	modules, err := slices.MapErr(realmChange.Modules, func(m *schemapb.Module) (*schema.Module, error) {
 		out, err := schema.ModuleFromProto(m)
 		if err != nil {
 			return nil, fmt.Errorf("invalid module %s: %w", m.Name, err)
@@ -220,10 +226,10 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 		Key:   key.NewChangesetKey(),
 		State: schema.ChangesetStatePreparing,
 		RealmChanges: []*schema.RealmChange{{
-			Name:     "default",
+			Name:     realmChange.Name,
 			External: false,
 			Modules:  modules,
-			ToRemove: req.Msg.ToRemove,
+			ToRemove: realmChange.ToRemove,
 		}},
 		CreatedAt: time.Now(),
 	}

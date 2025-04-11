@@ -539,10 +539,17 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 }
 
 func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[adminpb.ApplyChangesetRequest], stream *connect.ServerStream[adminpb.ApplyChangesetResponse]) error {
-	events := s.source.Subscribe(ctx)
+	if len(req.Msg.RealmChanges) != 1 {
+		return fmt.Errorf("exactly one realm change is required")
+	}
+	realmChange := req.Msg.RealmChanges[0]
+
 	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
-		Modules:  req.Msg.Modules,
-		ToRemove: req.Msg.ToRemove,
+		RealmChanges: []*ftlv1.RealmChange{{
+			Name:     realmChange.Name,
+			Modules:  realmChange.Modules,
+			ToRemove: realmChange.ToRemove,
+		}},
 	}))
 	if err != nil {
 		return fmt.Errorf("failed to create changeset: %w", err)
@@ -554,9 +561,9 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 	changeset := &schemapb.Changeset{
 		Key: cs.Msg.Changeset,
 		RealmChanges: []*schemapb.RealmChange{{
-			Name:     "default",
-			Modules:  req.Msg.Modules,
-			ToRemove: req.Msg.ToRemove,
+			Name:     realmChange.Name,
+			Modules:  realmChange.Modules,
+			ToRemove: realmChange.ToRemove,
 		}},
 	}
 	if err := stream.Send(&adminpb.ApplyChangesetResponse{
@@ -564,7 +571,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 	}); err != nil {
 		return fmt.Errorf("failed to send changeset: %w", err)
 	}
-	for e := range channels.IterContext(ctx, events) {
+	for e := range channels.IterContext(ctx, s.source.Subscribe(ctx)) {
 		switch event := e.(type) {
 		case *schema.ChangesetFinalizedNotification:
 			if event.Key != key {
