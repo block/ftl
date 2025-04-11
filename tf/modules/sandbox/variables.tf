@@ -11,3 +11,14 @@ variable "vpc_name" {
   default     = null
 }
 
+variable "kafka_enabled" {
+    description = "Enable Kafka for the FTL cluster"
+    type        = bool
+    default     = true
+}
+
+variable "cloudformation_enabled" {
+  description = "Enable Cloudformation postgres for the FTL cluster"
+  type        = bool
+  default     = true
+}
