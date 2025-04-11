@@ -22,10 +22,6 @@ type newSQLCmd struct {
 	DevDirs []string `help:"Module directories that FTL Dev is discovering modules in" env:"FTL_DEV_DIRS" hidden:""`
 }
 
-func newNewSQLCmd(engine string) newSQLCmd {
-	return newSQLCmd{engine: engine}
-}
-
 func (i newSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) error {
 	var searchDirs []string
 	if len(i.DevDirs) > 0 {
