@@ -9,6 +9,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/common/schema"
 )
 
 type listChangesetCmd struct {
@@ -23,12 +24,16 @@ func (g *listChangesetCmd) Run(ctx context.Context, client adminpbconnect.AdminS
 		msg := resp.Msg()
 		switch e := msg.Event.Value.(type) {
 		case *schemapb.Notification_FullSchemaNotification:
-			for _, cs := range e.FullSchemaNotification.Changesets {
-				mods := make([]string, 0, len(cs.RealmChanges[0].Modules))
-				for _, m := range cs.RealmChanges[0].Modules {
+			for _, cpb := range e.FullSchemaNotification.Changesets {
+				cs, err := schema.ChangesetFromProto(cpb)
+				if err != nil {
+					return fmt.Errorf("failed to parse changeset: %w", err)
+				}
+				mods := make([]string, 0, len(cs.InternalRealm().Modules))
+				for _, m := range cs.InternalRealm().Modules {
 					mods = append(mods, m.Name)
 				}
-				fmt.Printf("%s\tState: %s\tModules: %v\tRemoving %v\n", cs.Key, cs.State, mods, cs.RealmChanges[0].ToRemove)
+				fmt.Printf("%s\tState: %s\tModules: %v\tRemoving %v\n", cs.Key, cs.State, mods, cs.InternalRealm().ToRemove)
 			}
 			return nil
 		default:

@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/block/ftl/internal/key"
@@ -18,6 +19,29 @@ const (
 	ChangesetStateRollingBack
 	ChangesetStateFailed
 )
+
+func (s ChangesetState) String() string {
+	switch s {
+	case ChangesetStateUnspecified:
+		return "unspecified"
+	case ChangesetStatePreparing:
+		return "preparing"
+	case ChangesetStatePrepared:
+		return "prepared"
+	case ChangesetStateCommitted:
+		return "committed"
+	case ChangesetStateDrained:
+		return "drained"
+	case ChangesetStateFinalized:
+		return "finalized"
+	case ChangesetStateRollingBack:
+		return "rolling back"
+	case ChangesetStateFailed:
+		return "failed"
+	default:
+		return fmt.Sprintf("unknown(%d)", s)
+	}
+}
 
 //protobuf:export
 type Changeset struct {
