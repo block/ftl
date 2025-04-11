@@ -45,12 +45,9 @@ public class AnnotationProcessor implements Processor {
     private static final Pattern REMOVE_JAVADOC_TAGS = Pattern.compile(
             "^\\s*@(param|return|throws|exception|see|author)\\b[^\\n]*$\\n*",
             Pattern.MULTILINE);
-    public static final String META_INF_FTL_SQL_DATABASES_TXT = "META-INF/ftl-sql-databases.txt";
-
     private ProcessingEnvironment processingEnv;
 
     final Map<String, String> saved = new HashMap<>();
-    final Map<String, String> databases = new HashMap<>();
 
     @Override
     public Set<String> getSupportedOptions() {
@@ -106,10 +103,6 @@ public class AnnotationProcessor implements Processor {
         if (roundEnv.processingOver()) {
             write("META-INF/ftl-verbs.txt", saved.entrySet().stream().map(
                     e -> e.getKey() + "=" + Base64.getEncoder().encodeToString(e.getValue().getBytes(StandardCharsets.UTF_8)))
-                    .collect(Collectors.toSet()));
-
-            write(META_INF_FTL_SQL_DATABASES_TXT, databases.entrySet().stream().map(
-                    e -> e.getKey() + "=" + e.getValue().toLowerCase())
                     .collect(Collectors.toSet()));
         }
         return false;

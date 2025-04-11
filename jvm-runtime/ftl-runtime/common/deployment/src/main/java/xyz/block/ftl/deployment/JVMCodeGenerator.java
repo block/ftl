@@ -196,7 +196,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
             throws CodeGenException {
         List<Path> schemaFiles = new ArrayList<>();
         if (!Files.exists(generatedDir)) {
-            log.info("No generated clients found");
+            log.debug("No generated clients found");
             return List.of();
         }
         try (Stream<Path> pathStream = Files.list(generatedDir)) {

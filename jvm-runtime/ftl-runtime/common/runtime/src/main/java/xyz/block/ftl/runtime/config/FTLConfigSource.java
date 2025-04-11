@@ -2,23 +2,16 @@ package xyz.block.ftl.runtime.config;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
-import xyz.block.ftl.runtime.DatasourceDetails;
 import xyz.block.ftl.runtime.FTLController;
 
 public class FTLConfigSource implements ConfigSource {
-
-    public static final String DATASOURCE_NAMES = "ftl-datasource-names.txt";
 
     final static String SEPARATE_SERVER = "quarkus.grpc.server.use-separate-server";
     final static String PORT = "quarkus.http.port";
@@ -31,32 +24,12 @@ public class FTLConfigSource implements ConfigSource {
     final FTLController controller;
 
     private static final String OTEL_METRICS_DISABLED = "quarkus.otel.sdk.disabled";
-    private static final String DEFAULT_USER = "quarkus.datasource.username";
-    private static final String DEFAULT_PASSWORD = "quarkus.datasource.password";
-    private static final String DEFAULT_URL = "quarkus.datasource.jdbc.url";
-    private static final Pattern USER_PATTERN = Pattern.compile("^quarkus\\.datasource\\.\"?([^.]+?)\"?.jdbc.username$");
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^quarkus\\.datasource\\.\"?([^.]+?)\"?.jdbc.password$");
-    private static final Pattern URL_PATTERN = Pattern.compile("^quarkus\\.datasource\\.\"?([^.]+?)\"?.jdbc\\.url$");
 
     final Set<String> propertyNames;
 
     public FTLConfigSource(FTLController controller) {
         this.controller = controller;
         this.propertyNames = new HashSet<>(List.of(SEPARATE_SERVER, PORT, HOST, QUARKUS_LOG_LEVEL));
-        try (var in = Thread.currentThread().getContextClassLoader().getResourceAsStream(DATASOURCE_NAMES)) {
-            String s = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            for (String name : s.split("\n")) {
-                if (name.isEmpty()) {
-                    continue;
-                }
-                propertyNames.add("quarkus.datasource." + name + ".username");
-                propertyNames.add("quarkus.datasource." + name + ".password");
-                propertyNames.add("quarkus.datasource." + name + ".jdbc.url");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("failed to read datasource file, this should have been generated as part of the build",
-                    e);
-        }
     }
 
     @Override
@@ -107,39 +80,6 @@ public class FTLConfigSource implements ConfigSource {
                 } catch (URISyntaxException e) {
                     return null;
                 }
-            }
-        }
-        if (s.startsWith("quarkus.datasource")) {
-            switch (s) {
-                case DEFAULT_USER -> {
-                    return Optional.ofNullable(controller.getDatasource("default")).map(DatasourceDetails::username)
-                            .orElse(null);
-                }
-                case DEFAULT_PASSWORD -> {
-                    return Optional.ofNullable(controller.getDatasource("default")).map(DatasourceDetails::password)
-                            .orElse(null);
-                }
-                case DEFAULT_URL -> {
-                    return Optional.ofNullable(controller.getDatasource("default"))
-                            .map(DatasourceDetails::connectionString)
-                            .orElse(null);
-                }
-                //TODO: just support the default datasource for now
-            }
-            Matcher m = USER_PATTERN.matcher(s);
-            if (m.matches()) {
-                return Optional.ofNullable(controller.getDatasource(m.group(1))).map(DatasourceDetails::username)
-                        .orElse(null);
-            }
-            m = PASSWORD_PATTERN.matcher(s);
-            if (m.matches()) {
-                return Optional.ofNullable(controller.getDatasource(m.group(1))).map(DatasourceDetails::password)
-                        .orElse(null);
-            }
-            m = URL_PATTERN.matcher(s);
-            if (m.matches()) {
-                return Optional.ofNullable(controller.getDatasource(m.group(1))).map(DatasourceDetails::connectionString)
-                        .orElse(null);
             }
         }
         return null;
