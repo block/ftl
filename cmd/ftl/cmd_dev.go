@@ -14,6 +14,7 @@ import (
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/block/ftl/backend/goose"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/internal/bind"
@@ -64,6 +65,11 @@ func (d *devCmd) Run(
 
 	// Setup file based logging, which logs everything to a file
 	log.SetupDebugFileLogging(ctx, projConfig.Root(), maxLogs)
+
+	// Reset Goose context to ensure it doesn't have any stale state from previous runs.
+	if err := goose.ResetContext(projConfig.Root()); err != nil {
+		return fmt.Errorf("failed to reset Goose context: %w", err)
+	}
 
 	// Set environment variable so child processes know where modules are expected to be
 	// such as via the interactive console or goose.
