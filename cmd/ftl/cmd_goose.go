@@ -46,7 +46,7 @@ func (c *gooseResetCmd) Run(projectConfig projectconfig.Config) error {
 }
 
 func logPath(projectConfig projectconfig.Config) string {
-	return filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.jsonl")
+	return filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.json")
 }
 
 type gooseChatCmd struct {

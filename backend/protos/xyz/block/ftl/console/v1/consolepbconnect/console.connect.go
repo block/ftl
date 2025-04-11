@@ -69,6 +69,9 @@ const (
 	ConsoleServiceStreamEngineEventsProcedure = "/xyz.block.ftl.console.v1.ConsoleService/StreamEngineEvents"
 	// ConsoleServiceGetInfoProcedure is the fully-qualified name of the ConsoleService's GetInfo RPC.
 	ConsoleServiceGetInfoProcedure = "/xyz.block.ftl.console.v1.ConsoleService/GetInfo"
+	// ConsoleServiceExecuteGooseProcedure is the fully-qualified name of the ConsoleService's
+	// ExecuteGoose RPC.
+	ConsoleServiceExecuteGooseProcedure = "/xyz.block.ftl.console.v1.ConsoleService/ExecuteGoose"
 )
 
 // ConsoleServiceClient is a client for the xyz.block.ftl.console.v1.ConsoleService service.
@@ -86,6 +89,7 @@ type ConsoleServiceClient interface {
 	Call(context.Context, *connect.Request[v1.CallRequest]) (*connect.Response[v1.CallResponse], error)
 	StreamEngineEvents(context.Context, *connect.Request[v13.StreamEngineEventsRequest]) (*connect.ServerStreamForClient[v13.StreamEngineEventsResponse], error)
 	GetInfo(context.Context, *connect.Request[v11.GetInfoRequest]) (*connect.Response[v11.GetInfoResponse], error)
+	ExecuteGoose(context.Context, *connect.Request[v11.ExecuteGooseRequest]) (*connect.ServerStreamForClient[v11.ExecuteGooseResponse], error)
 }
 
 // NewConsoleServiceClient constructs a client for the xyz.block.ftl.console.v1.ConsoleService
@@ -172,6 +176,12 @@ func NewConsoleServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(consoleServiceMethods.ByName("GetInfo")),
 			connect.WithClientOptions(opts...),
 		),
+		executeGoose: connect.NewClient[v11.ExecuteGooseRequest, v11.ExecuteGooseResponse](
+			httpClient,
+			baseURL+ConsoleServiceExecuteGooseProcedure,
+			connect.WithSchema(consoleServiceMethods.ByName("ExecuteGoose")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -189,6 +199,7 @@ type consoleServiceClient struct {
 	call               *connect.Client[v1.CallRequest, v1.CallResponse]
 	streamEngineEvents *connect.Client[v13.StreamEngineEventsRequest, v13.StreamEngineEventsResponse]
 	getInfo            *connect.Client[v11.GetInfoRequest, v11.GetInfoResponse]
+	executeGoose       *connect.Client[v11.ExecuteGooseRequest, v11.ExecuteGooseResponse]
 }
 
 // Ping calls xyz.block.ftl.console.v1.ConsoleService.Ping.
@@ -251,6 +262,11 @@ func (c *consoleServiceClient) GetInfo(ctx context.Context, req *connect.Request
 	return c.getInfo.CallUnary(ctx, req)
 }
 
+// ExecuteGoose calls xyz.block.ftl.console.v1.ConsoleService.ExecuteGoose.
+func (c *consoleServiceClient) ExecuteGoose(ctx context.Context, req *connect.Request[v11.ExecuteGooseRequest]) (*connect.ServerStreamForClient[v11.ExecuteGooseResponse], error) {
+	return c.executeGoose.CallServerStream(ctx, req)
+}
+
 // ConsoleServiceHandler is an implementation of the xyz.block.ftl.console.v1.ConsoleService
 // service.
 type ConsoleServiceHandler interface {
@@ -267,6 +283,7 @@ type ConsoleServiceHandler interface {
 	Call(context.Context, *connect.Request[v1.CallRequest]) (*connect.Response[v1.CallResponse], error)
 	StreamEngineEvents(context.Context, *connect.Request[v13.StreamEngineEventsRequest], *connect.ServerStream[v13.StreamEngineEventsResponse]) error
 	GetInfo(context.Context, *connect.Request[v11.GetInfoRequest]) (*connect.Response[v11.GetInfoResponse], error)
+	ExecuteGoose(context.Context, *connect.Request[v11.ExecuteGooseRequest], *connect.ServerStream[v11.ExecuteGooseResponse]) error
 }
 
 // NewConsoleServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -349,6 +366,12 @@ func NewConsoleServiceHandler(svc ConsoleServiceHandler, opts ...connect.Handler
 		connect.WithSchema(consoleServiceMethods.ByName("GetInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
+	consoleServiceExecuteGooseHandler := connect.NewServerStreamHandler(
+		ConsoleServiceExecuteGooseProcedure,
+		svc.ExecuteGoose,
+		connect.WithSchema(consoleServiceMethods.ByName("ExecuteGoose")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/xyz.block.ftl.console.v1.ConsoleService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ConsoleServicePingProcedure:
@@ -375,6 +398,8 @@ func NewConsoleServiceHandler(svc ConsoleServiceHandler, opts ...connect.Handler
 			consoleServiceStreamEngineEventsHandler.ServeHTTP(w, r)
 		case ConsoleServiceGetInfoProcedure:
 			consoleServiceGetInfoHandler.ServeHTTP(w, r)
+		case ConsoleServiceExecuteGooseProcedure:
+			consoleServiceExecuteGooseHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -430,4 +455,8 @@ func (UnimplementedConsoleServiceHandler) StreamEngineEvents(context.Context, *c
 
 func (UnimplementedConsoleServiceHandler) GetInfo(context.Context, *connect.Request[v11.GetInfoRequest]) (*connect.Response[v11.GetInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.console.v1.ConsoleService.GetInfo is not implemented"))
+}
+
+func (UnimplementedConsoleServiceHandler) ExecuteGoose(context.Context, *connect.Request[v11.ExecuteGooseRequest], *connect.ServerStream[v11.ExecuteGooseResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.console.v1.ConsoleService.ExecuteGoose is not implemented"))
 }

@@ -1,9 +1,11 @@
 import { CellsIcon, Database01Icon, ListViewIcon, WorkflowSquare06Icon } from 'hugeicons-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { AIAgent } from '../../../features/ai-agent/AIAgent'
 import { CommandPalette } from '../../../features/command-pallete/CommandPalette'
 import { DarkModeSwitch } from '../../components'
 import { classNames } from '../../utils'
+import { AIInput } from './AIInput'
 import { SearchInput } from './SearchInput'
 import { Version } from './Version'
 
@@ -16,6 +18,7 @@ const navigation = [
 
 export const Navigation = ({ version }: { version?: string }) => {
   const [isCommandPalleteOpen, setIsCommandPalleteOpen] = useState(false)
+  const [isAIAgentOpen, setIsAIAgentOpen] = useState(false)
 
   return (
     <nav className='bg-indigo-600'>
@@ -42,14 +45,18 @@ export const Navigation = ({ version }: { version?: string }) => {
               </div>
             </div>
           </div>
-          <SearchInput onFocus={() => setIsCommandPalleteOpen(true)} />
-          <CommandPalette isOpen={isCommandPalleteOpen} onClose={() => setIsCommandPalleteOpen(false)} />
-          <div>
-            <div className='ml-2 flex items-center space-x-4'>
+          <div className='flex items-center'>
+            <div className='flex items-center mr-4'>
+              <SearchInput onFocus={() => setIsCommandPalleteOpen(true)} />
+              <AIInput isOpen={isAIAgentOpen} onToggle={() => setIsAIAgentOpen(!isAIAgentOpen)} />
+            </div>
+            <div className='flex items-center space-x-4'>
               <Version version={version} />
               <DarkModeSwitch />
             </div>
           </div>
+          <CommandPalette isOpen={isCommandPalleteOpen} onClose={() => setIsCommandPalleteOpen(false)} />
+          <AIAgent isOpen={isAIAgentOpen} onClose={() => setIsAIAgentOpen(false)} />
         </div>
       </div>
     </nav>

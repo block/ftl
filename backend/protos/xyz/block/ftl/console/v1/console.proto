@@ -144,6 +144,21 @@ message GetInfoResponse {
   string build_time = 4;
 }
 
+message ExecuteGooseRequest {
+  string prompt = 1;
+}
+
+message ExecuteGooseResponse {
+  string response = 1;
+  enum Source {
+    SOURCE_UNSPECIFIED = 0;
+    SOURCE_STDOUT = 1;
+    SOURCE_STDERR = 2;
+    SOURCE_COMPLETION = 3;
+  }
+  Source source = 2;
+}
+
 service ConsoleService {
   // Ping service for readiness.
   rpc Ping(ftl.v1.PingRequest) returns (ftl.v1.PingResponse) {
@@ -167,4 +182,6 @@ service ConsoleService {
   rpc StreamEngineEvents(ftl.buildengine.v1.StreamEngineEventsRequest) returns (stream ftl.buildengine.v1.StreamEngineEventsResponse);
 
   rpc GetInfo(GetInfoRequest) returns (GetInfoResponse);
+
+  rpc ExecuteGoose(ExecuteGooseRequest) returns (stream ExecuteGooseResponse);
 }
