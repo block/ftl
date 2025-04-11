@@ -147,9 +147,9 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 	}, nil
 }
 
-func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string) (string, error) {
+func ProvisionPostgresForTest(ctx context.Context, realm, module, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionPostgres(15432, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(moduleName), node, nil)
+	event, err := provisionPostgres(15432, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(realm, module), node, nil)
 	if err != nil {
 		return "", err
 	}
@@ -157,9 +157,9 @@ func ProvisionPostgresForTest(ctx context.Context, moduleName string, id string)
 	return event.Element.(*schema.DatabaseRuntime).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
 }
 
-func ProvisionMySQLForTest(ctx context.Context, moduleName string, id string) (string, error) {
+func ProvisionMySQLForTest(ctx context.Context, realm, module, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionMysql(13306, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(moduleName), node, nil)
+	event, err := provisionMysql(13306, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(realm, module), node, nil)
 	if err != nil {
 		return "", err
 	}
