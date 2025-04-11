@@ -217,11 +217,15 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	changeset := &schema.Changeset{
-		Key:       key.NewChangesetKey(),
-		State:     schema.ChangesetStatePreparing,
-		Modules:   modules,
+		Key:   key.NewChangesetKey(),
+		State: schema.ChangesetStatePreparing,
+		RealmChanges: []*schema.RealmChange{{
+			Name:     "default",
+			External: false,
+			Modules:  modules,
+			ToRemove: req.Msg.ToRemove,
+		}},
 		CreatedAt: time.Now(),
-		ToRemove:  req.Msg.ToRemove,
 	}
 
 	err = s.publishEvent(ctx, &schema.ChangesetCreatedEvent{Changeset: changeset})
@@ -335,15 +339,15 @@ func (s *Service) publishEvent(ctx context.Context, event schema.Event) error {
 
 	switch e := event.(type) {
 	case *schema.ChangesetCreatedEvent:
-		moduleNames := make([]string, 0, len(e.Changeset.Modules))
-		for _, module := range e.Changeset.Modules {
+		moduleNames := make([]string, 0, len(e.Changeset.InternalRealm().Modules))
+		for _, module := range e.Changeset.InternalRealm().Modules {
 			moduleNames = append(moduleNames, module.Name)
 		}
 		s.timelineClient.Publish(ctx, timelineclient.ChangesetCreated{
 			Key:       e.Changeset.Key,
 			CreatedAt: e.Changeset.CreatedAt,
 			Modules:   moduleNames,
-			ToRemove:  e.Changeset.ToRemove,
+			ToRemove:  e.Changeset.InternalRealm().ToRemove,
 		})
 	case *schema.ChangesetPreparedEvent:
 		s.timelineClient.Publish(ctx, timelineclient.ChangesetStateChanged{

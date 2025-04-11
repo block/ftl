@@ -53,7 +53,7 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 			// Check for runtime changes in the changeset
 			csEvents := current.changesetEvents[changeset.Key]
 			prEvents := previous.changesetEvents[changeset.Key]
-			for _, dep := range changeset.OwnedModules() {
+			for _, dep := range changeset.OwnedModules(changeset.InternalRealm()) {
 				handledDeployments[dep.Runtime.Deployment.DeploymentKey] = true
 				delete(disappearedDeployments, dep.Runtime.Deployment.DeploymentKey)
 			}
@@ -115,11 +115,11 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 						events = append(events, &ftlv1.PullSchemaResponse{
 							Event: &schemapb.Notification{Value: &schemapb.Notification_ChangesetCommittedNotification{ChangesetCommittedNotification: notification.ToProto()}},
 						})
-						for _, removing := range pc.RemovingModules {
+						for _, removing := range pc.InternalRealm().RemovingModules {
 							handledDeployments[removing.Runtime.Deployment.DeploymentKey] = true
 						}
 						// These modules were added as part of the committed changeset, we don't want to treat them as new ones
-						for _, dep := range changeset.Modules {
+						for _, dep := range changeset.InternalRealm().Modules {
 							handledDeployments[dep.Runtime.Deployment.DeploymentKey] = true
 						}
 					}

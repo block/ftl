@@ -114,14 +114,14 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 				case *schemapb.Notification_ChangesetCreatedNotification:
 				case *schemapb.Notification_ChangesetPreparedNotification:
 				case *schemapb.Notification_ChangesetCommittedNotification:
-					for _, m := range msg.ChangesetCommittedNotification.Changeset.RemovingModules {
+					cs, err := schema.ChangesetFromProto(msg.ChangesetCommittedNotification.Changeset)
+					if err != nil {
+						return fmt.Errorf("invalid changeset: %w", err)
+					}
+					for _, m := range cs.InternalRealm().RemovingModules {
 						delete(modules, m.Name)
 					}
-					for _, m := range msg.ChangesetCommittedNotification.Changeset.Modules {
-						module, err := schema.ValidatedModuleFromProto(m)
-						if err != nil {
-							return fmt.Errorf("invalid module: %w", err)
-						}
+					for _, module := range cs.InternalRealm().Modules {
 						modules[module.Name] = module
 					}
 

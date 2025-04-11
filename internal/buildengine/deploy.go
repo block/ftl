@@ -263,9 +263,9 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 			switch e := notification.(type) {
 			case *schema.ChangesetCommittedNotification:
 				key = e.Changeset.Key
-				updatedModules = slices.Map(e.Changeset.Modules, func(m *schema.Module) string { return m.Name })
+				updatedModules = slices.Map(e.Changeset.InternalRealm().Modules, func(m *schema.Module) string { return m.Name })
 
-				for _, m := range e.Changeset.RemovingModules {
+				for _, m := range e.Changeset.InternalRealm().RemovingModules {
 					if _, ok := slices.Find(updatedModules, func(s string) bool { return s == m.Name }); ok {
 						continue
 					}
@@ -280,7 +280,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 				}
 			case *schema.ChangesetRollingBackNotification:
 				key = e.Changeset.Key
-				updatedModules = slices.Map(e.Changeset.Modules, func(m *schema.Module) string { return m.Name })
+				updatedModules = slices.Map(e.Changeset.InternalRealm().Modules, func(m *schema.Module) string { return m.Name })
 			default:
 				continue
 			}
@@ -333,7 +333,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 		if cs.State >= schema.ChangesetStateCommitted {
 			continue
 		}
-		for _, mod := range cs.Modules {
+		for _, mod := range cs.InternalRealm().Modules {
 			if modules[mod.Name] || depModules[mod.Name] {
 				return false
 			}

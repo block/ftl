@@ -56,13 +56,11 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			}
 		case *schemapb.Notification_ChangesetCommittedNotification:
 			var modules []*schema.Module
-			for _, module := range e.ChangesetCommittedNotification.Changeset.Modules {
-				m, err := schema.ModuleFromProto(module)
-				if err != nil {
-					return fmt.Errorf("invalid module: %w", err)
-				}
-				modules = append(modules, m)
+			cs, err := schema.ChangesetFromProto(e.ChangesetCommittedNotification.Changeset)
+			if err != nil {
+				return fmt.Errorf("invalid changeset: %w", err)
 			}
+			modules = append(modules, cs.InternalRealm().Modules...)
 			realm := &schema.Realm{
 				Name:     "default", // TODO: implement
 				External: false,

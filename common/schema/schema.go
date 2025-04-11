@@ -237,4 +237,10 @@ type SchemaState struct {
 	Changesets       []*Changeset              `protobuf:"2"`
 	ChangesetEvents  []*DeploymentRuntimeEvent `protobuf:"3"`
 	DeploymentEvents []*DeploymentRuntimeEvent `protobuf:"4"`
+	Realms           []*RealmState             `protobuf:"5"`
+}
+
+type RealmState struct {
+	Name     string `protobuf:"1"`
+	External bool   `protobuf:"2"`
 }

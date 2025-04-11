@@ -3,6 +3,7 @@ package alpha
 
 import (
 	"context"
+	ftlanother "ftl/another"
 	ftlother "ftl/other"
 	"github.com/block/ftl/common/reflection"
 	lib "github.com/block/ftl/go-runtime/schema/testdata"
@@ -13,6 +14,14 @@ type EchoClient func(context.Context, EchoRequest) (EchoResponse, error)
 
 func init() {
 	reflection.Register(
+		reflection.SumType[ftlanother.SecondTypeEnum](
+			*new(ftlanother.One),
+			*new(ftlanother.Two),
+		),
+		reflection.SumType[ftlanother.TypeEnum](
+			*new(ftlanother.A),
+			*new(ftlanother.B),
+		),
 		reflection.ExternalType(*new(lib.AnotherNonFTLType)),
 
 		reflection.ProvideResourcesForVerb(
