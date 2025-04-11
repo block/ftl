@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec" //nolint:depguard
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -37,6 +38,17 @@ type Client struct {
 
 func NewClient() *Client {
 	return &Client{}
+}
+
+func ResetContext(projectRoot string) error {
+	gooseLogsPath := filepath.Join(projectRoot, ".ftl", "goose-logs.json")
+	if err := os.Remove(gooseLogsPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to remove Goose logs: %w", err)
+	}
+	return nil
 }
 
 // Execute runs a Goose command with the given prompt and streams cleaned messages
