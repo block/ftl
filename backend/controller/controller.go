@@ -452,6 +452,7 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 	lastChecksum := int64(-1)
 
 	callableModules := map[string]bool{}
+	egress := map[string]string{}
 	for _, decl := range deployment.Decls {
 		switch entry := decl.(type) {
 		case *schema.Verb:
@@ -459,6 +460,13 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 				if calls, ok := md.(*schema.MetadataCalls); ok {
 					for _, call := range calls.Calls {
 						callableModules[call.Module] = true
+					}
+				}
+			}
+			if entry.Runtime != nil {
+				if entry.Runtime.EgressRuntime != nil {
+					for _, er := range entry.Runtime.EgressRuntime.Targets {
+						egress[er.Expression] = er.Target
 					}
 				}
 			}
@@ -512,7 +520,7 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 
 		if checksum != lastChecksum {
 			logger.Debugf("Sending module context for: %s routes: %v", module, routeTable)
-			response := deploymentcontext.NewBuilder(module).AddConfigs(configs).AddSecrets(secrets).AddRoutes(routeTable).Build().ToProto()
+			response := deploymentcontext.NewBuilder(module).AddConfigs(configs).AddSecrets(secrets).AddEgress(egress).AddRoutes(routeTable).Build().ToProto()
 
 			if err := resp.Send(response); err != nil {
 				return connect.NewError(connect.CodeInternal, fmt.Errorf("could not send response: %w", err))

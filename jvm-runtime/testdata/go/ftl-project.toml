@@ -1,5 +1,4 @@
-name = "echo"
-
+name = "ftl"
 secrets-provider = "inline"
 config-provider = "inline"
 

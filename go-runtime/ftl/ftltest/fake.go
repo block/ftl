@@ -60,7 +60,12 @@ type fakeFTL struct {
 	allowMapCalls bool
 	configValues  map[string][]byte
 	secretValues  map[string][]byte
+	egressValues  map[string]string
 	pubSub        *fakePubSub
+}
+
+func (f *fakeFTL) GetEgress(ctx context.Context, name string) (string, error) {
+	return f.egressValues[name], nil
 }
 
 // mapImpl is a function that takes an object and returns an object of a potentially different
@@ -73,6 +78,7 @@ func contextWithFakeFTL(ctx context.Context, options ...Option) context.Context 
 		allowMapCalls: false,
 		configValues:  map[string][]byte{},
 		secretValues:  map[string][]byte{},
+		egressValues:  map[string]string{},
 		options:       options,
 	}
 	ctx = internal.WithContext(ctx, fake)

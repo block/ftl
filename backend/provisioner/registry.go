@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/plugin"
@@ -64,14 +65,14 @@ func (reg *ProvisionerRegistry) listBindings() []*ProvisionerBinding {
 	return result
 }
 
-func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling) (*ProvisionerRegistry, error) {
+func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient) (*ProvisionerRegistry, error) {
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("error validating provisioner config: %w", err)
 	}
 	for _, plugin := range cfg.Plugins {
-		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling)
+		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling, adminClient)
 		if err != nil {
 			return nil, err
 		}
@@ -81,11 +82,14 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 	return result, nil
 }
 
-func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling) (Plugin, error) {
+func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient) (Plugin, error) {
 	switch id {
 	case "kubernetes":
 		// TODO: move this into a plugin
 		return NewRunnerScalingProvisioner(scaling), nil
+	case "simple-egress":
+		// TODO: move this into a plugin
+		return NewEgressProvisioner(adminClient), nil
 	case "noop":
 		return NewPluginClient(&NoopProvisioner{}), nil
 	default:

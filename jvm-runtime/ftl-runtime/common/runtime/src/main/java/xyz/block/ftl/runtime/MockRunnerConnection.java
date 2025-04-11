@@ -79,4 +79,9 @@ public class MockRunnerConnection implements FTLRunnerConnection {
     public void close() {
 
     }
+
+    @Override
+    public String getEgress(String name) {
+        return "";
+    }
 }
