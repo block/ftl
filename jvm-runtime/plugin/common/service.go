@@ -191,7 +191,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 		if firstResponseSent.Load() {
 			err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
 			if err != nil {
-				return fmt.Errorf("could not send build event: %w", err)
+				logger.Errorf(err, "Could not send build event")
 			}
 		}
 
