@@ -104,13 +104,13 @@ func (CmdService) GetModuleConfigDefaults(ctx context.Context, req *connect.Requ
 	buildGradleKts := filepath.Join(dir, "build.gradle.kts")
 	if fileExists(pom) {
 		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolMaven)
-		defaults.DevModeBuild = ptr("mvn -Dquarkus.console.enabled=false clean quarkus:dev")
+		defaults.DevModeBuild = ptr("mvn clean quarkus:dev -Pdev")
 		defaults.Build = ptr("mvn -B clean package")
 		defaults.DeployDir = "target"
 		defaults.Watch = append(defaults.Watch, "pom.xml")
 	} else if fileExists(buildGradle) || fileExists(buildGradleKts) {
 		defaults.LanguageConfig.Fields["build-tool"] = structpb.NewStringValue(JavaBuildToolGradle)
-		defaults.DevModeBuild = ptr("gradle clean quarkusDev -Dquarkus.console.enabled=false")
+		defaults.DevModeBuild = ptr("gradle clean quarkusDev")
 		defaults.Build = ptr("gradle clean build")
 		defaults.DeployDir = "build"
 		defaults.Watch = append(defaults.Watch, "build.gradle", "build.gradle.kts", "settings.gradle", "gradle.properties")
