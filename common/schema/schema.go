@@ -183,9 +183,6 @@ func FromProto(s *schemapb.Schema) (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(realms) != 1 {
-		return nil, errors.New("expected exactly one realm in schema")
-	}
 	schema := &Schema{Realms: realms}
 	return schema.Validate()
 }

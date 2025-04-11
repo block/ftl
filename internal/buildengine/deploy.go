@@ -169,8 +169,8 @@ func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig
 func (c *DeployCoordinator) processEvents(ctx context.Context) {
 	logger := log.FromContext(ctx)
 	events := c.schemaSource.Subscribe(ctx)
-	if !c.schemaSource.Live() || len(c.schemaSource.CanonicalView().Realms) == 0 {
-		logger.Debugf("Schema source is not live or has not received any events, skipping initial sync.")
+	if !c.schemaSource.Live() {
+		logger.Debugf("Schema source is not live skipping initial sync.")
 		c.SchemaUpdates <- SchemaUpdatedEvent{
 			schema: &schema.Schema{
 				Realms: []*schema.Realm{{

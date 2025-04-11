@@ -247,7 +247,15 @@ func New(
 	}
 	// Save initial schema
 	initialEvent := <-e.deployCoordinator.SchemaUpdates
-	e.targetSchema.Store(initialEvent.schema)
+	sch := initialEvent.schema
+	// if the initial schema has no realms yet, add the project realm with builtins
+	if len(sch.Realms) == 0 {
+		sch.Realms = []*schema.Realm{{
+			Name:    projectConfig.Name,
+			Modules: []*schema.Module{schema.Builtins()},
+		}}
+	}
+	e.targetSchema.Store(sch)
 	if adminClient == nil {
 		return e, nil
 	}

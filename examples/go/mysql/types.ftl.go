@@ -2,67 +2,41 @@
 package mysql
 
 import (
-    "context"
-    "github.com/block/ftl/common/reflection"
-    "github.com/block/ftl/go-runtime/ftl"
-    "github.com/block/ftl/go-runtime/server"
+	"context"
+	"github.com/block/ftl/common/reflection"
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/server"
 )
 
-
-	
 type FixtureClient func(context.Context) error
-	
 
-
-
-
-
-
-	
 type InsertClient func(context.Context, InsertRequest) (InsertResponse, error)
-	
 
-	
 type QueryClient func(context.Context) ([]string, error)
-	
+
 //ftl:database mysql testdb
-type TestdbConfig struct {}
+type TestdbConfig struct{}
 
 type TestdbHandle = ftl.DatabaseHandle[TestdbConfig]
 
 func init() {
 	reflection.Register(
 		reflection.Database[TestdbConfig]("testdb", server.InitMySQL),
-	
-	
-	
-	
+
 		reflection.ProvideResourcesForVerb(
-            Fixture,
-            server.SinkClient[CreateRequestClient, ftl.Option[string]](),
-            server.SourceClient[GetRequestDataClient, []ftl.Option[string]](),
+			Fixture,
+			server.SinkClient[CreateRequestClient, ftl.Option[string]](),
+			server.SourceClient[GetRequestDataClient, []ftl.Option[string]](),
 		),
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
 		reflection.ProvideResourcesForVerb(
-            Insert,
-            server.SinkClient[CreateRequestClient, ftl.Option[string]](),
+			Insert,
+			server.SinkClient[CreateRequestClient, ftl.Option[string]](),
 		),
-	
-	
+
 		reflection.ProvideResourcesForVerb(
-            Query,
-            server.SourceClient[GetRequestDataClient, []ftl.Option[string]](),
+			Query,
+			server.SourceClient[GetRequestDataClient, []ftl.Option[string]](),
 		),
 	)
 }

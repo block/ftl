@@ -22,7 +22,7 @@
       "cwd": "${workspaceFolder}/examples/go",
       "args": [
         "deploy",
-        "http"
+        "http",
       ]
     },
     {

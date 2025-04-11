@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
@@ -131,7 +132,11 @@ func (e *EventSource) Publish(event schema.Notification) error {
 		for _, cs := range event.Changesets {
 			changesets[cs.Key] = cs
 		}
-		e.view.Store(&currentState{schema: event.Schema, activeChangesets: changesets})
+		normalised, err := schema.ValidateModuleInSchema(event.Schema, optional.None[*schema.Module]())
+		if err != nil {
+			return fmt.Errorf("failed to validate schema: %w", err)
+		}
+		e.view.Store(&currentState{schema: normalised, activeChangesets: changesets})
 		if !e.initialSync {
 			e.initialSync = true
 			close(e.initialSyncComplete)

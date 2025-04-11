@@ -145,7 +145,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time1, echo1}}}}, changes.CanonicalView())
+		assertSchemasEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time1, echo1}}}}, changes.CanonicalView())
 	})
 
 	t.Run("Mutation", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2, echo1}}}}, changes.CanonicalView())
+		assertSchemasEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2, echo1}}}}, changes.CanonicalView())
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -198,7 +198,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2}}}}, changes.CanonicalView())
+		assertSchemasEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2}}}}, changes.CanonicalView())
 	})
 }
 
@@ -225,4 +225,16 @@ func (m *mockSchemaService) PullSchema(ctx context.Context, req *connect.Request
 func assertEqual[T comparable](t testing.TB, expected, actual T) {
 	t.Helper()
 	assert.Equal(t, expected, actual, assert.Exclude[optional.Option[key.Deployment]](), assert.Exclude[*schema.Schema]())
+}
+
+func assertSchemasEqual(t testing.TB, expected, actual *schema.Schema) {
+	t.Helper()
+
+	normalisedExpected, err := schema.ValidateModuleInSchema(
+		expected,
+		optional.None[*schema.Module](),
+	)
+	assert.NoError(t, err)
+
+	assert.Equal(t, normalisedExpected, actual)
 }
