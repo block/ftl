@@ -9,7 +9,7 @@ class MySQLTest {
   fun testInsert() {
     val req = InsertRequest("data", 1L);
     val c = CreateRequestClient {
-      Assertions.assertEquals("data", it.data)
+      Assertions.assertEquals("data", it)
     }
     insert(req, c);
   }
@@ -17,7 +17,7 @@ class MySQLTest {
   @Test
   fun testQuery() {
     val ret = query(GetRequestDataClient {
-      listOf(GetRequestDataResult("data"))
+      listOf("data")
      })
     Assertions.assertEquals(1, ret.size)
     Assertions.assertEquals("data", ret[0].data)

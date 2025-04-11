@@ -9,12 +9,11 @@ data class QueryResult(val `data`: String, val id: Long)
 @Export
 @Verb
 fun insert(req: InsertRequest, c: CreateRequestClient) {
-    val request = CreateRequestQuery(req.`data`)
-    c.createRequest(request)
+    c.createRequest(req.data)
 }
 
 @Export
 @Verb
 fun query(c : GetRequestDataClient): List<QueryResult> {
-    return c.getRequestData().map { QueryResult(it.data, 0L) }
+    return c.getRequestData().map { QueryResult(it, 0L) }
 }
