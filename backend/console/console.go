@@ -10,10 +10,9 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/block/ftl/backend/goose"
-
 	ftlversion "github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
+	"github.com/block/ftl/backend/goose"
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
