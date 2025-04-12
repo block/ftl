@@ -20,5 +20,6 @@
   "go.testFlags": [
     "-race"
   ],
+  "ftl.automaticallyStartServer": "never",
   // "go.buildTags": "infrastructure"
 }
