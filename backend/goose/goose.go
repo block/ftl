@@ -91,16 +91,52 @@ func (c *Client) Execute(ctx context.Context, prompt string, callback func(Messa
 		defer reader.Close()
 		scanner := bufio.NewScanner(reader)
 		scanner.Buffer(make([]byte, 4096), 1024*1024)
+		var insideCodeBlock bool
+		var codeBlockContent string
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			if shouldFilterLine(line) {
 				continue
 			}
-			if cleaned := cleanMessage(line); cleaned != "" {
-				callback(Message{
-					Content: cleaned,
-					Source:  source,
-				})
+			// Strip ANSI codes before checking for markers
+			cleaned := stripAnsiCodes(line)
+			if strings.HasPrefix(strings.TrimLeft(cleaned, " "), "###") {
+				// Start of code block
+				insideCodeBlock = true
+			}
+
+			if insideCodeBlock && cleaned == `<\...>` || strings.Contains(cleaned, `<\...>`) {
+				// End of code block - send accumulated content
+				if codeBlockContent != "" {
+					callback(Message{
+						Content: codeBlockContent,
+						Source:  source,
+					})
+				}
+				insideCodeBlock = false
+				codeBlockContent = ""
+				continue
+			}
+
+			if insideCodeBlock {
+				if cleaned == "<...>" {
+					continue
+				}
+				// For code blocks, only strip ANSI codes but preserve whitespace
+				if codeBlockContent == "" {
+					codeBlockContent = line
+				} else {
+					codeBlockContent += "\n" + line
+				}
+			} else {
+				// For regular messages, apply full cleaning
+				if cleaned = cleanMessage(line); cleaned != "" {
+					callback(Message{
+						Content: cleaned,
+						Source:  source,
+					})
+				}
 			}
 		}
 		return scanner.Err()
@@ -154,7 +190,11 @@ func shouldFilterLine(line string) bool {
 		strings.Contains(line, "resuming session") ||
 		strings.Contains(line, "Session:") ||
 		strings.Contains(line, "working directory:") ||
-		strings.Contains(line, "logging to")
+		strings.Contains(line, "logging to") ||
+		strings.Contains(line, "Read contents of") ||
+		strings.Contains(line, "session |") ||
+		strings.Contains(line, "Tool not found:") ||
+		strings.Contains(line, "tool name:")
 }
 
 // cleanMessage cleans a message from Goose by:

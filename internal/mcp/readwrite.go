@@ -141,7 +141,7 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 
 			var userResult mcp.TextContent
 			if len(originalContent) == 0 {
-				userResult = annotateTextContent(mcp.NewTextContent("### "+path+"\n```\n"+fileContent+"\n```"), []mcp.Role{mcp.RoleUser}, 0.2)
+				userResult = annotateTextContent(mcp.NewTextContent("### "+path+"\n```\n"+fileContent+"\n<\\...>\n```"), []mcp.Role{mcp.RoleUser}, 0.2)
 			} else {
 				userResult = annotateTextContent(mcp.NewTextContent(prettyDiff(path, string(originalContent), fileContent)), []mcp.Role{mcp.RoleUser}, 0.2)
 			}
@@ -220,7 +220,7 @@ func prettyDiff(path, original, latest string) string {
 		d.Text = strings.Join(lines, "\n")
 		diffs[i] = d
 	}
-	return "###" + path + "\n\n" + dmp.DiffPrettyText(diffs) + "\n"
+	return "###" + path + "\n\n" + dmp.DiffPrettyText(diffs) + "\n\n<\\...>\n"
 
 }
 
