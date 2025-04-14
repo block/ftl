@@ -101,6 +101,64 @@ type Node interface {
 	schemaChildren() []Node
 }
 
+// Kind of a Symbol in the schema.
+type Kind int
+
+const (
+	KindData Kind = iota
+	KindInt
+	KindFloat
+	KindString
+	KindBool
+	KindBytes
+	KindOptional
+	KindMap
+	KindArray
+	KindRef
+	KindTime
+	KindAny
+	KindUnit
+	KindEnum
+	KindTypeAlias
+)
+
+func (k Kind) String() string {
+	switch k {
+	case KindData:
+		return "data"
+	case KindInt:
+		return "int"
+	case KindFloat:
+		return "float"
+	case KindString:
+		return "string"
+	case KindBool:
+		return "bool"
+	case KindBytes:
+		return "bytes"
+	case KindOptional:
+		return "optional"
+	case KindMap:
+		return "map"
+	case KindArray:
+		return "array"
+	case KindRef:
+		return "ref"
+	case KindTime:
+		return "time"
+	case KindAny:
+		return "any"
+	case KindUnit:
+		return "unit"
+	case KindEnum:
+		return "enum"
+	case KindTypeAlias:
+		return "type alias"
+	default:
+		return "unknown"
+	}
+}
+
 // Type represents a Type Node in the schema grammar.
 //
 //sumtype:decl
@@ -108,6 +166,8 @@ type Type interface {
 	Node
 	// Equal returns true if this type is equal to another type.
 	Equal(other Type) bool
+	// Kind of the Symbol.
+	Kind() Kind
 	// schemaType is a marker to ensure that all types implement the Type interface.
 	schemaType()
 }
@@ -125,6 +185,7 @@ type Metadata interface {
 //sumtype:decl
 type Value interface {
 	Node
+	Equal(other Value) bool
 	GetValue() any
 	schemaValueType() Type
 }

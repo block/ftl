@@ -11,6 +11,7 @@ import (
 // A Data structure.
 //
 //protobuf:1
+//protobuf:13 Type
 type Data struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
@@ -22,10 +23,37 @@ type Data struct {
 	Fields         []*Field         `parser:"@@* '}'" protobuf:"6"`
 }
 
+var _ Type = (*Data)(nil)
 var _ Decl = (*Data)(nil)
 var _ Symbol = (*Data)(nil)
 var _ Scoped = (*Data)(nil)
 
+func (d *Data) Equal(other Type) bool {
+	o, ok := other.(*Data)
+	if !ok {
+		return false
+	}
+	if d.Name != o.Name {
+		return false
+	}
+	if len(d.TypeParameters) != len(o.TypeParameters) {
+		return false
+	}
+	if len(d.Metadata) != len(o.Metadata) {
+		return false
+	}
+	if len(d.Fields) != len(o.Fields) {
+		return false
+	}
+	for _, f := range d.Fields {
+		fo := o.FieldByName(f.Name)
+		if fo == nil || f.Name != fo.Name || !f.Type.Equal(fo.Type) {
+			return false
+		}
+	}
+	return true
+}
+func (d *Data) schemaType() {}
 func (d *Data) Scope() Scope {
 	scope := Scope{}
 	for _, t := range d.TypeParameters {
@@ -34,6 +62,7 @@ func (d *Data) Scope() Scope {
 	return scope
 }
 
+// FieldByName returns the field with the given name, or nil if it doesn't exist.
 func (d *Data) FieldByName(name string) *Field {
 	for _, f := range d.Fields {
 		if f.Name == name {
@@ -181,6 +210,8 @@ func (d *Data) String() string {
 	fmt.Fprintf(w, "}")
 	return w.String()
 }
+
+func (d *Data) Kind() Kind { return KindData }
 
 // MonoType returns the monomorphised type of this data type if applicable, or returns the original type.
 func maybeMonomorphiseType(t Type, typeParameters map[string]Type) (Type, error) {

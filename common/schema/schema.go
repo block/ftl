@@ -136,6 +136,25 @@ func (s *Schema) Resolve(ref *Ref) optional.Option[Decl] {
 	return decl
 }
 
+// ResolveType resolves a Ref to a Type, or errors if the dereferenced declaration is not a Type.
+//
+// If the resolved Type is generic it will be monomorphised.
+func (s *Schema) ResolveType(ref *Ref) (Type, error) {
+	maybeDecl, _ := s.ResolveWithModule(ref)
+	decl, ok := maybeDecl.Get()
+	if !ok {
+		return nil, fmt.Errorf("%s: could not resolve reference %s: %w", ref.Pos, ref, ErrNotFound)
+	}
+	dt, ok := decl.(Type)
+	if !ok {
+		return nil, fmt.Errorf("%s: expected type, got %T", ref.Pos, decl)
+	}
+	if _, ok := dt.(*Data); ok {
+		return s.ResolveMonomorphised(ref)
+	}
+	return dt, nil
+}
+
 func (s *Schema) ResolveToType(ref *Ref, out Decl) error {
 	for _, realm := range s.Realms {
 		if realm.ContainsRef(ref) {

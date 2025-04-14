@@ -435,15 +435,15 @@ func SumTypeToProto(value SumType) *destpb.SumType {
 		}
 	case *SumTypeA:
 		return &destpb.SumType{
-			Value: &destpb.SumType_A{value.ToProto()},
+			Value: &destpb.SumType_SumTypeA{value.ToProto()},
 		}
 	case *SumTypeB:
 		return &destpb.SumType{
-			Value: &destpb.SumType_B{value.ToProto()},
+			Value: &destpb.SumType_SumTypeB{value.ToProto()},
 		}
 	case *SumTypeC:
 		return &destpb.SumType{
-			Value: &destpb.SumType_C{value.ToProto()},
+			Value: &destpb.SumType_SumTypeC{value.ToProto()},
 		}
 	default:
 		panic(fmt.Sprintf("unknown variant: %T", value))
@@ -459,12 +459,12 @@ func SumTypeFromProto(v *destpb.SumType) (SumType, error) {
 		return SubSumTypeAFromProto(v.GetSubSumTypeA())
 	case *destpb.SumType_SubSumTypeB:
 		return SubSumTypeBFromProto(v.GetSubSumTypeB())
-	case *destpb.SumType_A:
-		return SumTypeAFromProto(v.GetA())
-	case *destpb.SumType_B:
-		return SumTypeBFromProto(v.GetB())
-	case *destpb.SumType_C:
-		return SumTypeCFromProto(v.GetC())
+	case *destpb.SumType_SumTypeA:
+		return SumTypeAFromProto(v.GetSumTypeA())
+	case *destpb.SumType_SumTypeB:
+		return SumTypeBFromProto(v.GetSumTypeB())
+	case *destpb.SumType_SumTypeC:
+		return SumTypeCFromProto(v.GetSumTypeC())
 	default:
 		panic(fmt.Sprintf("unknown variant: %T", v.Value))
 	}

@@ -555,9 +555,9 @@ type SumType struct {
 	//
 	//	*SumType_SubSumTypeA
 	//	*SumType_SubSumTypeB
-	//	*SumType_A
-	//	*SumType_B
-	//	*SumType_C
+	//	*SumType_SumTypeA
+	//	*SumType_SumTypeB
+	//	*SumType_SumTypeC
 	Value         isSumType_Value `protobuf_oneof:"value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -618,28 +618,28 @@ func (x *SumType) GetSubSumTypeB() *SubSumTypeB {
 	return nil
 }
 
-func (x *SumType) GetA() *SumTypeA {
+func (x *SumType) GetSumTypeA() *SumTypeA {
 	if x != nil {
-		if x, ok := x.Value.(*SumType_A); ok {
-			return x.A
+		if x, ok := x.Value.(*SumType_SumTypeA); ok {
+			return x.SumTypeA
 		}
 	}
 	return nil
 }
 
-func (x *SumType) GetB() *SumTypeB {
+func (x *SumType) GetSumTypeB() *SumTypeB {
 	if x != nil {
-		if x, ok := x.Value.(*SumType_B); ok {
-			return x.B
+		if x, ok := x.Value.(*SumType_SumTypeB); ok {
+			return x.SumTypeB
 		}
 	}
 	return nil
 }
 
-func (x *SumType) GetC() *SumTypeC {
+func (x *SumType) GetSumTypeC() *SumTypeC {
 	if x != nil {
-		if x, ok := x.Value.(*SumType_C); ok {
-			return x.C
+		if x, ok := x.Value.(*SumType_SumTypeC); ok {
+			return x.SumTypeC
 		}
 	}
 	return nil
@@ -657,27 +657,27 @@ type SumType_SubSumTypeB struct {
 	SubSumTypeB *SubSumTypeB `protobuf:"bytes,5,opt,name=sub_sum_type_b,json=subSumTypeB,proto3,oneof"`
 }
 
-type SumType_A struct {
-	A *SumTypeA `protobuf:"bytes,1,opt,name=a,proto3,oneof"`
+type SumType_SumTypeA struct {
+	SumTypeA *SumTypeA `protobuf:"bytes,1,opt,name=sum_type_a,json=sumTypeA,proto3,oneof"`
 }
 
-type SumType_B struct {
-	B *SumTypeB `protobuf:"bytes,2,opt,name=b,proto3,oneof"`
+type SumType_SumTypeB struct {
+	SumTypeB *SumTypeB `protobuf:"bytes,2,opt,name=sum_type_b,json=sumTypeB,proto3,oneof"`
 }
 
-type SumType_C struct {
-	C *SumTypeC `protobuf:"bytes,3,opt,name=c,proto3,oneof"`
+type SumType_SumTypeC struct {
+	SumTypeC *SumTypeC `protobuf:"bytes,3,opt,name=sum_type_c,json=sumTypeC,proto3,oneof"`
 }
 
 func (*SumType_SubSumTypeA) isSumType_Value() {}
 
 func (*SumType_SubSumTypeB) isSumType_Value() {}
 
-func (*SumType_A) isSumType_Value() {}
+func (*SumType_SumTypeA) isSumType_Value() {}
 
-func (*SumType_B) isSumType_Value() {}
+func (*SumType_SumTypeB) isSumType_Value() {}
 
-func (*SumType_C) isSumType_Value() {}
+func (*SumType_SumTypeC) isSumType_Value() {}
 
 type SumTypeA struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -865,13 +865,16 @@ const file_model_proto_rawDesc = "" +
 	"\vSubSumTypeA\x12\f\n" +
 	"\x01a\x18\x01 \x01(\tR\x01a\"\x1b\n" +
 	"\vSubSumTypeB\x12\f\n" +
-	"\x01a\x18\x01 \x01(\tR\x01a\"\xd9\x02\n" +
+	"\x01a\x18\x01 \x01(\tR\x01a\"\x89\x03\n" +
 	"\aSumType\x12O\n" +
 	"\x0esub_sum_type_a\x18\x04 \x01(\v2(.xyz.block.ftl.go2proto.test.SubSumTypeAH\x00R\vsubSumTypeA\x12O\n" +
-	"\x0esub_sum_type_b\x18\x05 \x01(\v2(.xyz.block.ftl.go2proto.test.SubSumTypeBH\x00R\vsubSumTypeB\x125\n" +
-	"\x01a\x18\x01 \x01(\v2%.xyz.block.ftl.go2proto.test.SumTypeAH\x00R\x01a\x125\n" +
-	"\x01b\x18\x02 \x01(\v2%.xyz.block.ftl.go2proto.test.SumTypeBH\x00R\x01b\x125\n" +
-	"\x01c\x18\x03 \x01(\v2%.xyz.block.ftl.go2proto.test.SumTypeCH\x00R\x01cB\a\n" +
+	"\x0esub_sum_type_b\x18\x05 \x01(\v2(.xyz.block.ftl.go2proto.test.SubSumTypeBH\x00R\vsubSumTypeB\x12E\n" +
+	"\n" +
+	"sum_type_a\x18\x01 \x01(\v2%.xyz.block.ftl.go2proto.test.SumTypeAH\x00R\bsumTypeA\x12E\n" +
+	"\n" +
+	"sum_type_b\x18\x02 \x01(\v2%.xyz.block.ftl.go2proto.test.SumTypeBH\x00R\bsumTypeB\x12E\n" +
+	"\n" +
+	"sum_type_c\x18\x03 \x01(\v2%.xyz.block.ftl.go2proto.test.SumTypeCH\x00R\bsumTypeCB\a\n" +
 	"\x05value\"\x18\n" +
 	"\bSumTypeA\x12\f\n" +
 	"\x01a\x18\x01 \x01(\tR\x01a\"\x18\n" +
@@ -934,9 +937,9 @@ var file_model_proto_depIdxs = []int32{
 	6,  // 15: xyz.block.ftl.go2proto.test.SubSumType.b:type_name -> xyz.block.ftl.go2proto.test.SubSumTypeB
 	5,  // 16: xyz.block.ftl.go2proto.test.SumType.sub_sum_type_a:type_name -> xyz.block.ftl.go2proto.test.SubSumTypeA
 	6,  // 17: xyz.block.ftl.go2proto.test.SumType.sub_sum_type_b:type_name -> xyz.block.ftl.go2proto.test.SubSumTypeB
-	8,  // 18: xyz.block.ftl.go2proto.test.SumType.a:type_name -> xyz.block.ftl.go2proto.test.SumTypeA
-	9,  // 19: xyz.block.ftl.go2proto.test.SumType.b:type_name -> xyz.block.ftl.go2proto.test.SumTypeB
-	10, // 20: xyz.block.ftl.go2proto.test.SumType.c:type_name -> xyz.block.ftl.go2proto.test.SumTypeC
+	8,  // 18: xyz.block.ftl.go2proto.test.SumType.sum_type_a:type_name -> xyz.block.ftl.go2proto.test.SumTypeA
+	9,  // 19: xyz.block.ftl.go2proto.test.SumType.sum_type_b:type_name -> xyz.block.ftl.go2proto.test.SumTypeB
+	10, // 20: xyz.block.ftl.go2proto.test.SumType.sum_type_c:type_name -> xyz.block.ftl.go2proto.test.SumTypeC
 	12, // 21: xyz.block.ftl.go2proto.test.Root.MapEntry.value:type_name -> google.protobuf.Timestamp
 	22, // [22:22] is the sub-list for method output_type
 	22, // [22:22] is the sub-list for method input_type
@@ -959,9 +962,9 @@ func file_model_proto_init() {
 	file_model_proto_msgTypes[6].OneofWrappers = []any{
 		(*SumType_SubSumTypeA)(nil),
 		(*SumType_SubSumTypeB)(nil),
-		(*SumType_A)(nil),
-		(*SumType_B)(nil),
-		(*SumType_C)(nil),
+		(*SumType_SumTypeA)(nil),
+		(*SumType_SumTypeB)(nil),
+		(*SumType_SumTypeC)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

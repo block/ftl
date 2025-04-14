@@ -397,13 +397,13 @@ func TestEnumValidation(t *testing.T) {
 		{&schema.Ref{Name: "OptionalEnumRequest", Module: "test"}, obj{}, ""},
 		{&schema.Ref{Name: "OptionalEnumRequest", Module: "test"}, obj{"message": "Red"}, ""},
 		{&schema.Ref{Name: "StringEnumRequest", Module: "test"}, obj{"message": "akxznc"},
-			"akxznc is not a valid variant of enum test.Color"},
+			"akxznc is not a valid variant of enum Color"},
 		{&schema.Ref{Name: "TypeEnumRequest", Module: "test"}, obj{"message": obj{"name": "String", "value": "Hello"}}, ""},
 		{&schema.Ref{Name: "TypeEnumRequest", Module: "test"}, obj{"message": obj{"name": "String", "value": `["test1", "test2"]`}}, ""},
 		{&schema.Ref{Name: "TypeEnumRequest", Module: "test"}, obj{"message": obj{"name": "String", "value": 0}},
 			"test.TypeEnumRequest.message has wrong type, expected String found int"},
 		{&schema.Ref{Name: "TypeEnumRequest", Module: "test"}, obj{"message": obj{"name": "Invalid", "value": 0}},
-			"\"Invalid\" is not a valid variant of enum test.TypeEnum"},
+			"\"Invalid\" is not a valid variant of enum TypeEnum"},
 		{&schema.Ref{Name: "TypeEnumRequest", Module: "test"}, obj{"message": obj{"name": 0, "value": 0}},
 			`failed to transform aliased fields: 0:0: expected 'name' field to be a string, got int`},
 		{&schema.Ref{Name: "TypeEnumRequest", Module: "test"}, obj{"message": "Hello"},
@@ -411,11 +411,13 @@ func TestEnumValidation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := schema.ValidateJSONValue(test.validateRoot, []string{test.validateRoot.String()}, test.req, sch)
-		if test.err == "" {
-			assert.NoError(t, err)
-		} else {
-			assert.Contains(t, err.Error(), test.err)
-		}
+		t.Run(test.validateRoot.Name, func(t *testing.T) {
+			err := schema.ValidateJSONValue(test.validateRoot, []string{test.validateRoot.String()}, test.req, sch)
+			if test.err == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.Contains(t, err.Error(), test.err)
+			}
+		})
 	}
 }

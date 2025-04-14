@@ -176,8 +176,13 @@ func genType(module *schema.Module, t schema.Type) string {
 
 	case *schema.Bytes:
 		return "bytes"
+
+	case *schema.Data, *schema.Enum, *schema.TypeAlias:
+		panic(fmt.Sprintf("unsupported type %T", t))
+
+	default:
+		panic(fmt.Sprintf("unsupported type %T", t))
 	}
-	panic(fmt.Sprintf("unsupported type %T", t))
 }
 
 func imports(m *schema.Module) map[string]string {

@@ -17,3 +17,4 @@ func (u *Unit) schemaSymbol()          {}
 func (u *Unit) String() string         { return "Unit" }
 func (u *Unit) schemaChildren() []Node { return nil }
 func (u *Unit) GetName() string        { return "Unit" }
+func (u *Unit) Kind() Kind             { return KindUnit }

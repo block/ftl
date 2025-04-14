@@ -519,6 +519,7 @@ func schemaForType(t schema.Type) spec.Schema {
 		}
 	case *schema.Optional:
 		return schemaForType(typ.Type)
+
 	case *schema.Ref:
 		return spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -535,6 +536,10 @@ func schemaForType(t schema.Type) spec.Schema {
 		return spec.Schema{
 			SchemaProps: spec.SchemaProps{},
 		}
+
+	case *schema.Data, *schema.Enum, *schema.TypeAlias:
+		panic("not implemented")
+
 	default:
 		panic(fmt.Sprintf("unknown type: %T", t))
 	}

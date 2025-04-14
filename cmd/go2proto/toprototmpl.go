@@ -280,7 +280,7 @@ func {{ .Name }}ToProto(value {{ .Name }}) *destpb.{{ .Name }} {
 	{{- range $variant, $id := .Variants }}
 	case *{{ $variant }}:
 		return &destpb.{{ $sumtype.Name }}{
-			Value: &destpb.{{ $sumtype.Name | toUpperCamel }}_{{ sumTypeVariantName $sumtype.Name $variant }}{value.ToProto()},
+			Value: &destpb.{{$variant | $sumtype.TypeName }}{value.ToProto()},
 		}
 	{{- end }}
 	default:
@@ -294,8 +294,8 @@ func {{ $sumtype.Name }}FromProto(v *destpb.{{ $sumtype.Name }}) ({{ $sumtype.Na
 	}
 	switch v.Value.(type) {
 	{{- range $variant, $id := .Variants }}
-	case *destpb.{{ $sumtype.Name | toUpperCamel }}_{{ sumTypeVariantName $sumtype.Name $variant }}:
-		return {{ $variant }}FromProto(v.Get{{ sumTypeVariantName $sumtype.Name $variant }}())
+	case *destpb.{{ $sumtype.TypeName $variant }}:
+		return {{ $variant }}FromProto(v.{{ $variant | $sumtype.Getter }}())
 	{{- end }}
 	default:
 		panic(fmt.Sprintf("unknown variant: %T", v.Value))

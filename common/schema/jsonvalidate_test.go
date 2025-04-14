@@ -7,34 +7,39 @@ import (
 	"github.com/alecthomas/assert/v2"
 )
 
-func TestTransformFromAliasedFields(t *testing.T) {
-	schemaText := `
-		realm test {
-			module test {
-				enum TypeEnum {
-					A test.Inner
-					B String
-				}
-				
-				data Inner {
-					waz String +alias json "foo"
-				}
+const aliasSchemaText = `
+	realm test {
+		module test {
+			data Generic<T> {
+				inner T +alias json "foo"
+			}
 
-				data Test {
-					scalar String +alias json "bar"
-					inner test.Inner
-					array [test.Inner]
-					map {String: test.Inner}
-					optional test.Inner
-					typeEnum test.TypeEnum
-				}
+			enum TypeEnum {
+				A test.Inner
+				B String
+			}
+
+			data Inner {
+				waz String +alias json "foo"
+			}
+
+			data Test {
+				scalar String +alias json "bar"
+				inner test.Inner
+				array [test.Inner]
+				map {String: test.Inner}
+				optional test.Inner
+				typeEnum test.TypeEnum
+				generic Generic<String>
 			}
 		}
-		`
+	}
+	`
 
-	sch, err := ParseString("test", schemaText)
+func TestTransformFromAliasedFields(t *testing.T) {
+	sch, err := ParseString("test", aliasSchemaText)
 	assert.NoError(t, err)
-	actual, err := TransformFromAliasedFields(&Ref{Module: "test", Name: "Test"}, sch, map[string]any{
+	actual, err := TransformFromAliasedFields(sch, &Ref{Module: "test", Name: "Test"}, map[string]any{
 		"bar": "value",
 		"inner": map[string]any{
 			"foo": "value",
@@ -55,6 +60,9 @@ func TestTransformFromAliasedFields(t *testing.T) {
 		"typeEnum": map[string]any{
 			"name":  "A",
 			"value": map[string]any{"foo": "value"},
+		},
+		"generic": map[string]any{
+			"foo": "text",
 		},
 	})
 	expected := map[string]any{
@@ -78,6 +86,9 @@ func TestTransformFromAliasedFields(t *testing.T) {
 		"typeEnum": map[string]any{
 			"name":  "A",
 			"value": map[string]any{"waz": "value"},
+		},
+		"generic": map[string]any{
+			"inner": "text",
 		},
 	}
 	assert.NoError(t, err)
@@ -85,33 +96,9 @@ func TestTransformFromAliasedFields(t *testing.T) {
 }
 
 func TestTransformToAliasedFields(t *testing.T) {
-	schemaText := `
-		realm foo {	
-			module test {
-				enum TypeEnum {
-					A test.Inner
-					B String
-				}
-
-				data Inner {
-					waz String +alias json "foo"
-				}
-
-				data Test {
-					scalar String +alias json "bar"
-					inner test.Inner
-					array [test.Inner]
-					map {String: test.Inner}
-					optional test.Inner
-					typeEnum test.TypeEnum
-				}
-			}
-		}
-		`
-
-	sch, err := ParseString("test", schemaText)
+	sch, err := ParseString("test", aliasSchemaText)
 	assert.NoError(t, err)
-	actual, err := TransformToAliasedFields(&Ref{Module: "test", Name: "Test"}, sch, map[string]any{
+	actual, err := TransformToAliasedFields(sch, &Ref{Module: "test", Name: "Test"}, map[string]any{
 		"scalar": "value",
 		"inner": map[string]any{
 			"waz": "value",
@@ -132,6 +119,9 @@ func TestTransformToAliasedFields(t *testing.T) {
 		"typeEnum": map[string]any{
 			"name":  "A",
 			"value": map[string]any{"waz": "value"},
+		},
+		"generic": map[string]any{
+			"inner": "text",
 		},
 	})
 	expected := map[string]any{
@@ -155,6 +145,9 @@ func TestTransformToAliasedFields(t *testing.T) {
 		"typeEnum": map[string]any{
 			"name":  "A",
 			"value": map[string]any{"foo": "value"},
+		},
+		"generic": map[string]any{
+			"foo": "text",
 		},
 	}
 	assert.NoError(t, err)
@@ -165,6 +158,10 @@ func TestValidateJSONCall(t *testing.T) {
 	schemaText := `
 realm test {
 	module echo {
+		export data Generic<T> {
+			element T +alias json "inner"
+		}
+
 		export data EchoRequest {
 			name String? +alias json "name"
 			age Int? +alias json "age"
@@ -176,6 +173,8 @@ realm test {
 		}
 
 		export verb echo(echo.EchoRequest) echo.EchoResponse
+
+		export verb genericType(Generic<String>) Unit
 	}
 }`
 
@@ -209,6 +208,11 @@ realm test {
 			ref:     &Ref{Module: "echo", Name: "echo"},
 			input:   `{"name": "juho", "age": 123, "weight": "too much"}`,
 			wantErr: "weight has wrong type, expected Float found string",
+		},
+		{
+			name:  "generic input",
+			ref:   &Ref{Module: "echo", Name: "genericType"},
+			input: `{"inner": "text"}`,
 		},
 	}
 

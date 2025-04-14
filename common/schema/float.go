@@ -17,3 +17,4 @@ func (*Float) schemaType()             {}
 func (*Float) schemaSymbol()           {}
 func (*Float) String() string          { return "Float" }
 func (*Float) GetName() string         { return "Float" }
+func (*Float) Kind() Kind              { return KindFloat }

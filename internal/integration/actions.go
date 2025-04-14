@@ -18,8 +18,10 @@ import (
 	"time"
 	"unicode"
 
-	islices "github.com/block/ftl/common/slices"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/block/ftl/common/encoding"
+	islices "github.com/block/ftl/common/slices"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
@@ -530,7 +532,7 @@ func Call[Req any, Resp any](module, verb string, request Req, check func(t test
 	return func(t testing.TB, ic TestContext) {
 		Infof("Calling %s.%s", module, verb)
 		assert.False(t, unicode.IsUpper([]rune(verb)[0]), "verb %q must start with an lowercase letter", verb)
-		data, err := json.Marshal(request)
+		data, err := encoding.Marshal(request)
 		assert.NoError(t, err)
 		resp, err := ic.Verbs.Call(ic, connect.NewRequest(&ftlv1.CallRequest{
 			Verb: &schemapb.Ref{Module: module, Name: verb},
@@ -539,7 +541,7 @@ func Call[Req any, Resp any](module, verb string, request Req, check func(t test
 		assert.NoError(t, err)
 		var response Resp
 		assert.Zero(t, resp.Msg.GetError(), "verb failed: %s", resp.Msg.GetError().GetMessage())
-		err = json.Unmarshal(resp.Msg.GetBody(), &response)
+		err = encoding.Unmarshal(resp.Msg.GetBody(), &response)
 		assert.NoError(t, err)
 		if check != nil {
 			check(t, response)

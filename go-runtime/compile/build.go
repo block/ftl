@@ -1594,7 +1594,6 @@ var scaffoldFuncs = scaffolder.FuncMap{
 		}
 		return false
 	},
-	"schemaType": schemaType,
 	// A standalone enum variant is one that is purely an alias to a type and does not appear
 	// elsewhere in the schema.
 	"isStandaloneEnumVariant": func(v schema.EnumVariant) bool {
@@ -1706,22 +1705,6 @@ func nativeTypeForWidenedType(t *schema.TypeAlias) (nt nativeType, ok bool) {
 	return nt, false
 }
 
-func schemaType(t schema.Type) string {
-	switch t := t.(type) {
-	case *schema.Int, *schema.Bool, *schema.String, *schema.Float, *schema.Unit, *schema.Any, *schema.Bytes, *schema.Time:
-		return fmt.Sprintf("&%s{}", strings.TrimLeft(stdreflect.TypeOf(t).String(), "*"))
-	case *schema.Ref:
-		return fmt.Sprintf("&schema.Ref{Module: %q, Name: %q}", t.Module, t.Name)
-	case *schema.Array:
-		return fmt.Sprintf("&schema.Array{Element: %s}", schemaType(t.Element))
-	case *schema.Map:
-		return fmt.Sprintf("&schema.Map{Key: %s, Value: %s}", schemaType(t.Key), schemaType(t.Value))
-	case *schema.Optional:
-		return fmt.Sprintf("&schema.Optional{Type: %s}", schemaType(t.Type))
-	}
-	panic(fmt.Sprintf("unsupported type %T", t))
-}
-
 func genType(module *schema.Module, t schema.Type) string {
 	typ, err := genTypeWithNativeNames(module, t, nil)
 	if err != nil {
@@ -1813,6 +1796,9 @@ func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames ex
 
 	case *schema.Bytes:
 		return "[]byte", nil
+
+	case *schema.Data, *schema.Enum, *schema.TypeAlias:
+		panic(fmt.Sprintf("unsupported type %T, this should never be reached", t))
 	}
 	return "", fmt.Errorf("unsupported type %T", t)
 }
