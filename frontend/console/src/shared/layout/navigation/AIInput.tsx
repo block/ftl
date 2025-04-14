@@ -1,6 +1,7 @@
-import { Bot as BotIcon } from 'lucide-react'
 import type React from 'react'
 import { useEffect } from 'react'
+import { GooseIcon } from '../../../features/ai-agent/GooseIcon'
+import { HoverPopup } from '../../components/HoverPopup'
 import { classNames } from '../../utils'
 
 type AIInputProps = {
@@ -32,22 +33,18 @@ export const AIInput: React.FC<AIInputProps> = ({ isOpen, onToggle }) => {
   }, [onToggle])
 
   return (
-    <button
-      type='button'
-      onClick={onToggle}
-      className={classNames(
-        isOpen ? 'bg-indigo-700' : 'hover:bg-indigo-500 hover:bg-opacity-75',
-        'text-white rounded-md px-3 py-2 pr-16 ml-4 text-sm font-medium relative',
-      )}
-      aria-label='Toggle Goose assistant'
-    >
-      <div className='flex items-center'>
-        <BotIcon className='size-5' />
-        <span className='sr-only'>Goose AI Assistant</span>
-      </div>
-      <div className='absolute inset-y-0 right-2 flex items-center'>
-        <span className='text-indigo-200 text-xs bg-indigo-600 px-2 py-1 rounded-md'>{shortcutText}</span>
-      </div>
-    </button>
+    <HoverPopup popupContent={shortcutText} position='bottom'>
+      <button
+        type='button'
+        onClick={onToggle}
+        className={classNames(isOpen ? 'bg-indigo-700' : 'hover:bg-indigo-500 hover:bg-opacity-75', 'text-white rounded-md p-2 ml-4')}
+        aria-label='Toggle Goose assistant'
+      >
+        <div className='flex items-center justify-center'>
+          <GooseIcon size={20} fill='white' />
+          <span className='sr-only'>Goose AI Assistant</span>
+        </div>
+      </button>
+    </HoverPopup>
   )
 }

@@ -4,28 +4,30 @@ interface HoverPopupProps {
   children: ReactNode
   popupContent: ReactNode
   className?: string
+  position?: 'top' | 'bottom'
 }
 
-export const HoverPopup = ({ children, popupContent, className = '' }: HoverPopupProps) => {
+export const HoverPopup = ({ children, popupContent, className = '', position = 'top' }: HoverPopupProps) => {
   const [isHovering, setIsHovering] = useState(false)
   const elementRef = useRef<HTMLDivElement>(null)
-  const [popupStyle, setPopupStyle] = useState({ top: 0, left: 0 })
+  const [popupStyle, setPopupStyle] = useState<{ top: number; left: number; transform?: string }>({ top: 0, left: 0 })
 
   useEffect(() => {
     if (isHovering && elementRef.current) {
       const rect = elementRef.current.getBoundingClientRect()
       setPopupStyle({
-        top: rect.top - 40,
-        left: rect.left,
+        top: position === 'top' ? rect.top - 40 : rect.bottom + 8,
+        left: rect.left + rect.width / 2,
+        transform: 'translateX(-50%)',
       })
     }
-  }, [isHovering])
+  }, [isHovering, position])
 
   return (
     <div ref={elementRef} className={`relative ${className}`} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
       {children}
       {isHovering && (
-        <div className='fixed bg-gray-100 dark:bg-gray-700 text-xs p-2 rounded shadow-lg z-50 w-max whitespace-nowrap' style={popupStyle}>
+        <div className='fixed bg-gray-100 dark:bg-gray-700 text-xs p-2 rounded shadow-lg z-[100] w-max whitespace-nowrap' style={popupStyle}>
           {popupContent}
         </div>
       )}
