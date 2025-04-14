@@ -28,6 +28,7 @@ type SchemaState struct {
 	changesetEvents    map[key.Changeset][]*schema.DeploymentRuntimeEvent
 	deploymentEvents   map[string][]*schema.DeploymentRuntimeEvent
 	archivedChangesets []*schema.Changeset
+	realms             map[string]*schema.RealmState
 }
 
 func NewSchemaState() SchemaState {
@@ -37,6 +38,7 @@ func NewSchemaState() SchemaState {
 		deploymentEvents:   map[string][]*schema.DeploymentRuntimeEvent{},
 		changesetEvents:    map[key.Changeset][]*schema.DeploymentRuntimeEvent{},
 		archivedChangesets: []*schema.Changeset{},
+		realms:             map[string]*schema.RealmState{},
 	}
 }
 
@@ -70,6 +72,7 @@ func (r *SchemaState) Marshal() ([]byte, error) {
 		Changesets:       changesets,
 		DeploymentEvents: dplEvents,
 		ChangesetEvents:  csEvents,
+		Realms:           slices.Collect(maps.Values(r.realms)),
 	}
 	stateProto := state.ToProto()
 	bytes, err := proto.Marshal(stateProto)
@@ -110,6 +113,9 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 		if cs, ok := a.ChangesetKey().Get(); ok {
 			r.changesetEvents[cs] = append(r.changesetEvents[cs], a)
 		}
+	}
+	for _, a := range state.Realms {
+		r.realms[a.Name] = a
 	}
 	return nil
 }
