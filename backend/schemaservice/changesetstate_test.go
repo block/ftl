@@ -66,12 +66,13 @@ func TestChangesetState(t *testing.T) {
 	})
 
 	changesetKey := key.NewChangesetKey()
-	t.Run("test create changeset", func(t *testing.T) {
+	t.Run("test changeset with a new realm", func(t *testing.T) {
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.ChangesetCreatedEvent{
 			Changeset: &schema.Changeset{
 				Key:       changesetKey,
 				CreatedAt: time.Now(),
 				RealmChanges: []*schema.RealmChange{{
+					Name:    "testrealm",
 					Modules: []*schema.Module{module},
 				}},
 				Error: "",
@@ -82,9 +83,12 @@ func TestChangesetState(t *testing.T) {
 		view, err = state.View(ctx)
 		assert.NoError(t, err)
 		csd := changeset(t, view)
-		assert.Equal(t, 1, len(csd.InternalRealm().Modules))
-		for _, d := range csd.InternalRealm().Modules {
-			assert.NoError(t, err)
+
+		assert.Equal(t, 1, len(csd.RealmChanges))
+		assert.Equal(t, 1, len(csd.RealmChanges[0].Modules))
+		assert.Equal(t, "testrealm", csd.RealmChanges[0].Name)
+
+		for _, d := range csd.RealmChanges[0].Modules {
 			assert.Equal(t, schema.DeploymentStateProvisioning, d.Runtime.Deployment.State)
 			changesetKey = csd.Key
 		}

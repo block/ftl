@@ -16,6 +16,7 @@ import (
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/raft"
@@ -57,6 +58,10 @@ func newStateMachine(ctx context.Context) *schemaStateMachine {
 }
 
 func (r *SchemaState) Marshal() ([]byte, error) {
+	if err := r.validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate schema state: %w", err)
+	}
+
 	changesets := slices.Collect(maps.Values(r.changesets))
 	changesets = append(changesets, r.archivedChangesets...)
 	dplEvents := []*schema.DeploymentRuntimeEvent{}
@@ -116,6 +121,14 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 	}
 	for _, a := range state.Realms {
 		r.realms[a.Name] = a
+	}
+	return nil
+}
+
+func (r *SchemaState) validate() error {
+	internals := iterops.Count(maps.Values(r.realms), func(r *schema.RealmState) bool { return !r.External })
+	if internals > 1 {
+		return fmt.Errorf("only one internal realm is allowed, got %d", internals)
 	}
 	return nil
 }
