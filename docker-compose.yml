@@ -1,6 +1,6 @@
 services:
   localstack:
-    image: localstack/localstack@sha256:5548ad55a7f588ee233f1590f39c7a617668c3e4a47ce5e6382154bce3106cb7
+    image: localstack/localstack@sha256:2c21febcc93af17bea2a74a0c7c85a4f62668f55cc3e5d9a6e9aff8592f06611
     profiles:
       - infra
     ports:
