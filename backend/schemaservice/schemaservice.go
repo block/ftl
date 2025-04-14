@@ -118,19 +118,13 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 	if err != nil {
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
-	schemas := view.GetCanonicalDeploymentSchemas()
-	modules := []*schemapb.Module{
-		schema.Builtins().ToProto(),
-	}
-	modules = append(modules, slices.Map(schemas, func(d *schema.Module) *schemapb.Module { return d.ToProto() })...)
+
 	changesets := slices.Map(gslices.Collect(maps.Values(view.GetChangesets())), func(c *schema.Changeset) *schemapb.Changeset { return c.ToProto() })
 
-	realm := &schemapb.Realm{
-		Name:    "default", // TODO: implement
-		Modules: modules,
-	}
-
-	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Realms: []*schemapb.Realm{realm}}, Changesets: changesets}), nil
+	return connect.NewResponse(&ftlv1.GetSchemaResponse{
+		Schema:     view.GetCanonicalSchema().ToProto(),
+		Changesets: changesets,
+	}), nil
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], stream *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
@@ -412,18 +406,16 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 		return fmt.Errorf("failed to get schema state: %w", err)
 	}
 
-	modules := append([]*schema.Module{}, schema.Builtins())
-	modules = append(modules, gslices.Collect(maps.Values(view.GetCanonicalDeployments()))...)
-
 	notification := &schema.FullSchemaNotification{
-		Schema: &schema.Schema{Realms: []*schema.Realm{{
-			Name:    "default", // TODO: implement
-			Modules: modules,
-		}}},
+		Schema:     view.GetCanonicalSchema(),
 		Changesets: gslices.Collect(maps.Values(view.GetChangesets())),
 	}
 	err = sendChange(&ftlv1.PullSchemaResponse{
-		Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{notification.ToProto()}},
+		Event: &schemapb.Notification{
+			Value: &schemapb.Notification_FullSchemaNotification{
+				FullSchemaNotification: notification.ToProto(),
+			},
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to send initial schema: %w", err)

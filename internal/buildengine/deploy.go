@@ -98,6 +98,8 @@ type DeployCoordinator struct {
 	SchemaUpdates chan SchemaUpdatedEvent
 
 	logChanges bool // log changes from timeline
+
+	projectConfig projectconfig.Config
 }
 
 func NewDeployCoordinator(
@@ -107,6 +109,7 @@ func NewDeployCoordinator(
 	dependencyGrapher DependencyGrapher,
 	engineUpdates chan *buildenginepb.EngineEvent,
 	logChanges bool,
+	projectConfig projectconfig.Config,
 ) *DeployCoordinator {
 	c := &DeployCoordinator{
 		adminClient:       adminClient,
@@ -116,9 +119,10 @@ func NewDeployCoordinator(
 		deploymentQueue:   make(chan pendingDeploy, 128),
 		SchemaUpdates:     make(chan SchemaUpdatedEvent, 128),
 		logChanges:        logChanges,
+		projectConfig:     projectConfig,
 	}
 	// Start the deployment queue processor
-	go c.processEvents(ctx)
+	go c.processEvents(ctx, projectConfig.Name)
 
 	return c
 }
@@ -157,7 +161,7 @@ func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig
 
 // processEvents handles the deployment queue and groups pending deployments into changesets
 // It also maintains schema updates and constructing a target view of the schema for the build engine.
-func (c *DeployCoordinator) processEvents(ctx context.Context) {
+func (c *DeployCoordinator) processEvents(ctx context.Context, realmName string) {
 	logger := log.FromContext(ctx)
 	events := c.schemaSource.Subscribe(ctx)
 	if !c.schemaSource.Live() {
@@ -165,7 +169,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 		c.SchemaUpdates <- SchemaUpdatedEvent{
 			schema: &schema.Schema{
 				Realms: []*schema.Realm{{
-					Name: "default", // TODO: projectName,
+					Name: realmName,
 					Modules: []*schema.Module{
 						schema.Builtins(),
 					},
@@ -371,7 +375,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 	keyChan := make(chan result.Result[key.Changeset], 1)
 	go func() {
-		err := deploy(ctx, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan)
+		err := deploy(ctx, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan, c.projectConfig.Name)
 		if err != nil {
 			// Handle deployment failure
 			for _, module := range deployment.modules {
@@ -477,11 +481,15 @@ func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendin
 func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Schema, deployment *pendingDeploy, modulesToCheck []string) map[string]bool {
 	out := map[string]bool{}
 	sch := &schema.Schema{}
+	var internalRealm *schema.Realm
 	for _, realm := range originalSch.Realms {
 		newRealm := &schema.Realm{
 			Name:     realm.Name,
 			External: realm.External,
 			Modules:  []*schema.Module{},
+		}
+		if !realm.External {
+			internalRealm = newRealm
 		}
 		sch.Realms = append(sch.Realms, newRealm)
 		for _, module := range realm.Modules {
@@ -491,8 +499,15 @@ func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Sche
 			newRealm.Modules = append(newRealm.Modules, reflect.DeepCopy(module))
 		}
 	}
+	if internalRealm == nil {
+		internalRealm = &schema.Realm{
+			Name:    c.projectConfig.Name,
+			Modules: []*schema.Module{},
+		}
+		sch.Realms = append(sch.Realms, internalRealm)
+	}
 	for _, m := range deployment.modules {
-		sch.Realms[0].Modules = append(sch.Realms[0].Modules, m.schema)
+		internalRealm.Modules = append(internalRealm.Modules, m.schema)
 	}
 	for _, mod := range modulesToCheck {
 		depSch, ok := slices.Find(sch.InternalModules(), func(m *schema.Module) bool {
@@ -513,9 +528,8 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	overridden := map[string]bool{}
 	toRemove := map[string]bool{}
 	realm := &schema.Realm{
-		Name:     "default", // TODO: implement
-		External: false,
-		Modules:  []*schema.Module{},
+		Name:    c.projectConfig.Name,
+		Modules: []*schema.Module{},
 	}
 	sch := &schema.Schema{
 		Realms: []*schema.Realm{realm},
@@ -579,7 +593,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	}
 }
 
-func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, module string) error {
+func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, module string, projectName string) error {
 	logger := log.FromContext(ctx).Module(module).Scope("terminate")
 
 	mod, ok := c.schemaSource.CanonicalView().Module(module).Get()
@@ -592,7 +606,7 @@ func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, modul
 	logger.Infof("Terminating deployment %s", key) //nolint:forbidigo
 	stream, err := c.adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
 		RealmChanges: []*adminpb.RealmChange{{
-			Name:     "default",
+			Name:     projectName,
 			ToRemove: []string{key.String()},
 		}},
 	}))
@@ -627,7 +641,7 @@ func prepareForDeploy(ctx context.Context, modules map[string]*pendingModule, ad
 }
 
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClient, receivedKey chan result.Result[key.Changeset]) (err error) {
+func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClient, receivedKey chan result.Result[key.Changeset], projectName string) (err error) {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Deploying %v", strings.Join(slices.Map(modules, func(m *schema.Module) string { return m.Name }), ", "))
 	changesetKey := optional.Option[key.Changeset]{}
@@ -645,7 +659,7 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 
 	stream, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
 		RealmChanges: []*adminpb.RealmChange{{
-			Name: "default",
+			Name: projectName,
 			Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
 				return m.ToProto()
 			}),
