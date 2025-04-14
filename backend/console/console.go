@@ -33,7 +33,6 @@ import (
 )
 
 type Config struct {
-	ConsoleURL  *url.URL  `help:"The public URL of the console (for CORS)." env:"FTL_CONTROLLER_CONSOLE_URL"`
 	ContentTime time.Time `help:"Time to use for console resource timestamps." default:"${timestamp=1970-01-01T00:00:00Z}"`
 }
 

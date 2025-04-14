@@ -44,6 +44,6 @@ func main() {
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 	eventSource := schemaeventsource.New(ctx, "http-ingress", schemaClient)
 	routeManager := routing.NewVerbRouter(ctx, eventSource, timelineClient)
-	err = ingress.Start(ctx, cli.HTTPIngressConfig, eventSource, routeManager, timelineClient)
+	err = ingress.Start(ctx, cli.Bind, cli.HTTPIngressConfig, eventSource, routeManager, timelineClient)
 	kctx.FatalIfErrorf(err, "failed to start HTTP ingress")
 }

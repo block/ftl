@@ -95,7 +95,7 @@ func (s *serveCmd) Run(
 	if err != nil {
 		return fmt.Errorf("could not create bind allocator: %w", err)
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), bindAllocator, timelineClient, adminClient, buildEngineClient, nil)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), bindAllocator, timelineClient, adminClient, buildEngineClient, nil, nil)
 }
 
 //nolint:maintidx
@@ -110,10 +110,11 @@ func (s *serveCommonConfig) run(
 	adminClient adminpbconnect.AdminServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	devModeEndpoints <-chan dev.LocalEndpoint,
+	additionalServices []rpc.Service,
 ) error {
 
 	logger := log.FromContext(ctx)
-	services := []rpc.Service{}
+	services := additionalServices
 
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.Bind.String(), log.Error)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.Bind.String(), log.Error)

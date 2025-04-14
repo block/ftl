@@ -40,7 +40,7 @@ func (d *deployCmd) Run(
 		defer cancel(fmt.Errorf("stopping deploy: %w", context.Canceled))
 	}
 	engine, err := buildengine.New(
-		ctx, adminClient, schemaSource, projConfig, d.Build.Dirs, d.Build.UpdatesEndpoint, true,
+		ctx, adminClient, schemaSource, projConfig, d.Build.Dirs, true,
 		buildengine.BuildEnv(d.Build.BuildEnv),
 		buildengine.Parallelism(d.Build.Parallelism),
 	)

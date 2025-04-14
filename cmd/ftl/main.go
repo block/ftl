@@ -47,7 +47,7 @@ type SharedCLI struct {
 	Project          string           `short:"P" name:"project" help:"Path to FTL project root directory. The git root will be used if not found in the current directory." env:"FTL_PROJECT" placeholder:"DIR" default:""`
 	ConfigFlag       string           `name:"config" short:"C" help:"Path to FTL project configuration file." env:"FTL_CONFIG" placeholder:"FILE"`
 	TimelineEndpoint *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
-	LeaseEndpoint    *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
+	LeaseEndpoint    *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	AdminEndpoint    *url.URL         `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	Trace            string           `help:"File to write golang runtime/trace output to." hidden:""`
 
@@ -276,7 +276,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 		kctx.BindTo(adminClient, (*adminpbconnect.AdminServiceClient)(nil))
 
-		buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.Build.UpdatesEndpoint.String(), log.Error)
+		buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.AdminEndpoint.String(), log.Error)
 		kctx.BindTo(buildEngineClient, (*buildenginepbconnect.BuildEngineServiceClient)(nil))
 
 		err = kctx.BindToProvider(func() (*providers.Registry[configuration.Configuration], error) {
