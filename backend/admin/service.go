@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"runtime"
 	"slices"
 	"strings"
@@ -46,8 +45,7 @@ import (
 )
 
 type Config struct {
-	Bind              *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
-	ArtefactChunkSize int      `help:"Size of each chunk streamed to the client." default:"1048576"`
+	ArtefactChunkSize int `help:"Size of each chunk streamed to the client." default:"1048576"`
 }
 
 type Service struct {

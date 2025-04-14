@@ -23,7 +23,7 @@ public class DefaultRunnerDetails implements RunnerDetails {
             endpoint = testEndpoint;
         }
         if (endpoint == null) {
-            endpoint = "http://localhost:8893";
+            endpoint = "http://localhost:8892";
         }
         return endpoint;
     }

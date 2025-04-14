@@ -22,7 +22,7 @@ spec:
             service:
               name: ftl-http-ingress
               port:
-                number: 8891
+                number: 8892
         - path: /xyz.block.ftl.v1.VerbService/
           pathType: Prefix
           backend:

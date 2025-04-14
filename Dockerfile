@@ -29,7 +29,7 @@ ENV PATH="$PATH:/home/ubuntu"
 # Service-specific configurations
 EXPOSE 8891
 EXPOSE 8892
-EXPOSE 8893
+EXPOSE 8892
 
 # Environment variables for all (most) services
 ENV FTL_ENDPOINT="http://host.docker.internal:8892"

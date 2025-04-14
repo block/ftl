@@ -252,7 +252,7 @@ type testContext struct {
 func (bctx *testContext) startPlugin() in.Action {
 	return func(t testing.TB, ic in.TestContext) {
 		in.Infof("Starting plugin")
-		bctx.bindURL = must.Get(url.Parse("http://127.0.0.1:8893"))
+		bctx.bindURL = must.Get(url.Parse("http://127.0.0.1:8892"))
 		var err error
 		bctx.client, err = newClientImpl(ic.Context, ic.WorkingDir(), ic.Language, "test")
 		assert.NoError(t, err)

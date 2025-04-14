@@ -23,7 +23,6 @@ import (
 )
 
 type Config struct {
-	Bind         *url.URL `help:"Socket to bind to for ingress." default:"http://127.0.0.1:8891" env:"FTL_BIND"`
 	AllowOrigins []string `help:"Allow CORS requests to ingress endpoints from these origins." env:"FTL_INGRESS_ALLOW_ORIGIN"`
 	AllowHeaders []string `help:"Allow these headers in CORS requests. (Requires AllowOrigins)" env:"FTL_INGRESS_ALLOW_HEADERS"`
 }
@@ -44,7 +43,7 @@ type service struct {
 }
 
 // Start the HTTP ingress service. Blocks until the context is cancelled.
-func Start(ctx context.Context, config Config, eventSource *schemaeventsource.EventSource, client routing.CallClient, timelineClient *timelineclient.Client) error {
+func Start(ctx context.Context, bind *url.URL, config Config, eventSource *schemaeventsource.EventSource, client routing.CallClient, timelineClient *timelineclient.Client) error {
 	logger := log.FromContext(ctx).Scope("http-ingress")
 	ctx = log.ContextWithLogger(ctx, logger)
 	svc := &service{
@@ -64,8 +63,8 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 	}
 
 	// Start the HTTP server
-	logger.Infof("HTTP ingress server listening on: %s", config.Bind)
-	err := ftlhttp.Serve(ctx, config.Bind, ingressHandler)
+	logger.Infof("HTTP ingress server listening on: %s", bind)
+	err := ftlhttp.Serve(ctx, bind, ingressHandler)
 	if err != nil {
 		return fmt.Errorf("ingress service stopped: %w", err)
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,11 +32,10 @@ import (
 const maxLogs = 10
 
 type devCmd struct {
-	Watch       time.Duration     `help:"Watch template directory at this frequency and regenerate on change." default:"500ms"`
-	NoServe     bool              `help:"Do not start the FTL server." default:"false"`
-	ServeCmd    serveCommonConfig `embed:""`
-	Build       buildCmd          `embed:""`
-	DevEndpoint *url.URL          `help:"Admin endpoint." env:"FTL_DEV_ENDPOINT" default:"http://127.0.0.1:8892"`
+	Watch    time.Duration     `help:"Watch template directory at this frequency and regenerate on change." default:"500ms"`
+	NoServe  bool              `help:"Do not start the FTL server." default:"false"`
+	ServeCmd serveCommonConfig `embed:""`
+	Build    buildCmd          `embed:""`
 }
 
 func (d *devCmd) Run(
@@ -51,7 +49,7 @@ func (d *devCmd) Run(
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	csm *currentStatusManager,
 ) error {
-	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, d.DevEndpoint.String(), log.Error)
+	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, d.ServeCmd.Bind.String(), log.Error)
 
 	startTime := time.Now()
 	ctx, cancel := context.WithCancelCause(ctx)
@@ -113,7 +111,7 @@ func (d *devCmd) Run(
 	controllerReady := make(chan bool, 1)
 	if !d.NoServe {
 		if d.ServeCmd.Stop {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates)
 			if err != nil {
 				return fmt.Errorf("failed to stop server: %w", err)
 			}
@@ -121,7 +119,7 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, true, devModeEndpointUpdates)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates)
 			if err != nil {
 				cancel(fmt.Errorf("dev server failed: %w: %w", context.Canceled, err))
 			} else {

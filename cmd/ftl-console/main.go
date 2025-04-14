@@ -26,7 +26,7 @@ var cli struct {
 	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
 	LogConfig           log.Config           `embed:"" prefix:"log-"`
 	ConsoleConfig       console.Config       `embed:"" prefix:"console-"`
-	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
+	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	AdminEndpoint       *url.URL             `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	BuildEngineEndpoint *url.URL             `help:"Build engine endpoint." env:"FTL_BUILD_UPDATES_ENDPOINT" default:"http://127.0.0.1:8900"`
 }

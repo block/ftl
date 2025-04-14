@@ -147,8 +147,8 @@ cron:
       port: 8892
     raft:
       annotations: null
-      containerPort: 8893
-      port: 8893
+      containerPort: 8892
+      port: 8892
 
   env: null
   image:
@@ -163,8 +163,8 @@ cron:
 
   raft:
     annotations: null
-    containerPort: 8893
-    port: 8893
+    containerPort: 8892
+    port: 8892
 
   resources:
     requests:
@@ -221,10 +221,10 @@ ingress:
     type: ClusterIP
     annotations: null
     ports:
-      - name: "http-8891"
+      - name: "http-8892"
         port: 80
         protocol: TCP
-        targetPort: 8891
+        targetPort: 8892
 
   podAnnotations: null
   nodeSelector: null
@@ -302,7 +302,7 @@ schema:
       port: 8892
     raft:
       annotations: null
-      port: 8893
+      port: 8892
   podAnnotations: null
   nodeSelector: null
   affinity: null
