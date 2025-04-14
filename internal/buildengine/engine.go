@@ -317,7 +317,7 @@ func (e *Engine) buildGraph(moduleName string, out map[string][]string) error {
 			deps = append(deps, sch.Imports()...)
 		}
 	}
-	if !foundModule {
+	if !foundModule && moduleName != "builtin" {
 		return fmt.Errorf("module %q not found", moduleName)
 	}
 	deps = slices.Unique(deps)
@@ -880,6 +880,10 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 	mustBuildChan := make(chan moduleconfig.ModuleConfig, len(moduleNames))
 	wg := errgroup.Group{}
 	for _, name := range moduleNames {
+		if name == "builtin" {
+			continue
+		}
+
 		wg.Go(func() error {
 			meta, ok := e.moduleMetas.Load(name)
 			if !ok {
@@ -1093,6 +1097,10 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 
 func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, moduleName string, builtModules map[string]*schema.Module, schemas chan *schema.Module, callback buildCallback) error {
 	logger := log.FromContext(ctx)
+
+	if moduleName == "builtin" {
+		return nil
+	}
 
 	if !mustBuild[moduleName] {
 		return e.mustSchema(ctx, moduleName, builtModules, schemas)

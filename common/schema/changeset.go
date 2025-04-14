@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alecthomas/types/optional"
 	"github.com/block/ftl/internal/key"
 )
 
@@ -83,6 +84,16 @@ func (c *Changeset) InternalRealm() *RealmChange {
 		}
 	}
 	return nil
+}
+
+// Realm returns the realm change for the given name.
+func (c *Changeset) Realm(name string) optional.Option[*RealmChange] {
+	for _, realm := range c.RealmChanges {
+		if realm.Name == name {
+			return optional.Some(realm)
+		}
+	}
+	return optional.None[*RealmChange]()
 }
 
 // OwnedModules returns the modules that are owned by this changeset for the given realm.
