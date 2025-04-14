@@ -6,6 +6,37 @@ import { classNames } from '../../shared/utils'
 import { GooseIcon } from './GooseIcon'
 import { useGoose } from './use-goose'
 
+const GooseWithRain = ({ className = '' }: { className?: string }) => {
+  return (
+    <svg width='24' height='32' viewBox='0 0 24 32' fill='none' xmlns='http://www.w3.org/2000/svg' className={className}>
+      <title>Loading animation with goose and rain</title>
+      <g>
+        <g transform='translate(0, 0)'>
+          <GooseIcon size={24} />
+        </g>
+        <g className='rain-lines'>
+          <path d='M8 20L6 24' className='animate-rain-1' stroke='currentColor' strokeLinecap='round' />
+          <path d='M12 22L10 26' className='animate-rain-2' stroke='currentColor' strokeLinecap='round' />
+          <path d='M16 20L14 24' className='animate-rain-3' stroke='currentColor' strokeLinecap='round' />
+          <path d='M10 24L8 28' className='animate-rain-4' stroke='currentColor' strokeLinecap='round' />
+          <path d='M14 22L12 26' className='animate-rain-5' stroke='currentColor' strokeLinecap='round' />
+        </g>
+      </g>
+    </svg>
+  )
+}
+
+const LoadingGoose = () => {
+  return (
+    <div className='w-full'>
+      <div className='flex items-center text-sm text-gray-300 py-1 pl-2 animate-[appear_250ms_ease-in_forwards]'>
+        <GooseWithRain className='mr-2' />
+        <span>goose is working on it...</span>
+      </div>
+    </div>
+  )
+}
+
 type Message = {
   type: 'user' | 'assistant'
   content: string
@@ -495,7 +526,7 @@ export const AIAgent = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         ))}
         {isProcessing && (
           <div className='p-3 rounded-lg max-w-[80%] bg-gray-100 dark:bg-gray-700'>
-            <span className='animate-pulse text-lg'>...</span>
+            <LoadingGoose />
           </div>
         )}
         <div ref={messagesEndRef} />
