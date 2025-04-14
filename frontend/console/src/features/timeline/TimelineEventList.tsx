@@ -44,15 +44,7 @@ const moduleName = (event: Event) => {
   }
   const key = deploymentKey(event)
   const parts = key.split('-')
-  return parts.length >= 2 ? parts[1] : ''
-}
-
-const DeploymentCell = ({ entry }: { entry: Event }) => {
-  return (
-    <td className={`p-1 pr-2 w-24 items-center flex-none truncate ${deploymentTextColor(deploymentKey(entry))}`}>
-      <HoverPopup popupContent={deploymentKey(entry)}>{moduleName(entry)}</HoverPopup>
-    </td>
-  )
+  return parts.length >= 3 ? parts[2] : ''
 }
 
 export const TimelineEventList = ({ events, selectedEventId, handleEntryClicked }: EventTimelineProps) => {
@@ -80,7 +72,9 @@ export const TimelineEventList = ({ events, selectedEventId, handleEntryClicked 
                 <TimelineIcon event={entry} />
               </td>
               <td className='p-1 w-40 items-center flex-none text-gray-400 dark:text-gray-400'>{formatTimestampShort(entry.timestamp)}</td>
-              <DeploymentCell entry={entry} />
+              <td className={`p-1 pr-2 w-24 items-center flex-none truncate ${deploymentTextColor(deploymentKey(entry))}`}>
+                <HoverPopup popupContent={deploymentKey(entry)}>{moduleName(entry)}</HoverPopup>
+              </td>
               <td className='p-1 flex-grow truncate'>
                 {(() => {
                   switch (entry.entry.case) {
