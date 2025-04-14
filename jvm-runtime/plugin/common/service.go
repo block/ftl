@@ -147,8 +147,14 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		s.updatesTopic.Publish(buildContextUpdatedEvent{buildCtx: buildCtx, schemaChanged: changed})
 		return nil
 	}
+
+	sch, err := schema.FromProto(req.Msg.BuildContext.Schema)
+	if err != nil {
+		return fmt.Errorf("failed to parse schema from proto: %w", err)
+	}
+
 	if req.Msg.RebuildAutomatically {
-		return s.runDevMode(ctx, buildCtx, stream)
+		return s.runDevMode(ctx, buildCtx, sch.Realms[0].Name, stream)
 	}
 
 	// Initial build
@@ -159,7 +165,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	return nil
 }
 
-func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream *connect.ServerStream[langpb.BuildResponse]) error {
+func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, realm string, stream *connect.ServerStream[langpb.BuildResponse]) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(fmt.Errorf("stopping JVM language plugin (dev): %w", context.Canceled))
 
@@ -195,7 +201,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 			}
 		}
 
-		err := s.runQuarkusDev(ctx, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
+		err := s.runQuarkusDev(ctx, realm, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
 		if err != nil {
 			logger.Errorf(err, "Dev mode process exited")
 		}
@@ -295,7 +301,7 @@ type buildResult struct {
 	failed              bool
 }
 
-func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
+func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
 	logger := log.FromContext(parentCtx)
 	ctx, cancel := context.WithCancelCause(parentCtx)
 	defer cancel(fmt.Errorf("stopping JVM language plugin (Quarkus dev mode): %w", context.Canceled))
@@ -385,7 +391,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, module string, stream
 
 	errors := make(chan error)
 	for {
-		newKey := key.NewDeploymentKey(module)
+		newKey := key.NewDeploymentKey(realm, module)
 		select {
 		case err := <-errors:
 			return fmt.Errorf("hot reload failed %w", err)

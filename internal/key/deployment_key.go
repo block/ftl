@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding"
-	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -17,24 +17,28 @@ var _ interface {
 	encoding.TextMarshaler
 } = (*Deployment)(nil)
 
-func NewDeploymentKey(module string) Deployment { return newKey[DeploymentPayload](module) }
+func NewDeploymentKey(realm, module string) Deployment {
+	return newKey[DeploymentPayload](realm, module)
+}
 func ParseDeploymentKey(key string) (Deployment, error) {
 	return parseKey[DeploymentPayload](key)
 }
 
 type DeploymentPayload struct {
+	Realm  string
 	Module string
 }
 
 var _ KeyPayload = (*DeploymentPayload)(nil)
 
 func (d *DeploymentPayload) Kind() string   { return "dpl" }
-func (d *DeploymentPayload) String() string { return d.Module }
+func (d *DeploymentPayload) String() string { return fmt.Sprintf("%s-%s", d.Realm, d.Module) }
 func (d *DeploymentPayload) Parse(parts []string) error {
-	if len(parts) == 0 {
-		return errors.New("expected <module> but got empty string")
+	if len(parts) != 2 {
+		return fmt.Errorf("expected <realm>-<module> but got %s", strings.Join(parts, "-"))
 	}
-	d.Module = strings.Join(parts, "-")
+	d.Realm = parts[0]
+	d.Module = parts[1]
 	return nil
 }
 func (d *DeploymentPayload) RandomBytes() int { return 10 }

@@ -95,9 +95,9 @@ func TestSchemaEventSource(t *testing.T) {
 			},
 		},
 	}
-	time1.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("time")
-	echo1.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("echo")
-	time2.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("time")
+	time1.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("test", "time")
+	echo1.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("test", "echo")
+	time2.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("test", "time")
 	time1.ModRuntime().ModDeployment().State = schema.DeploymentStateCanonical
 	echo1.ModRuntime().ModDeployment().State = schema.DeploymentStateCanonical
 	time2.ModRuntime().ModDeployment().State = schema.DeploymentStateCanonical

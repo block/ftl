@@ -9,34 +9,32 @@ import (
 func TestDeploymentKey(t *testing.T) {
 	ensureDeterministicRand(t)
 	for _, test := range []struct {
-		key         Deployment
-		str         string
+		keyStr      string
 		expected    Deployment
 		expectedErr string
-	}{
-		{key: NewDeploymentKey("time"),
-			expected: Deployment{
-				Payload: DeploymentPayload{Module: "time"},
-				Suffix:  "17snepfuemu5iab",
-			},
+	}{{
+		keyStr: NewDeploymentKey("test", "time").String(),
+		expected: Deployment{
+			Payload: DeploymentPayload{Realm: "test", Module: "time"},
+			Suffix:  "17snepfuemu5iab",
 		},
-		{key: NewDeploymentKey("time"),
-			expected: Deployment{
-				Payload: DeploymentPayload{Module: "time"},
-				Suffix:  "5g5cadeqxpqe574v",
-			},
+	}, {
+		keyStr: NewDeploymentKey("test", "time").String(),
+		expected: Deployment{
+			Payload: DeploymentPayload{Realm: "test", Module: "time"},
+			Suffix:  "5g5cadeqxpqe574v",
 		},
-		{str: "-0011223344", expectedErr: `expected prefix "dpl" for key "-0011223344"`},
-		{key: NewDeploymentKey("module-with-hyphens"), expected: Deployment{
-			Payload: DeploymentPayload{Module: "module-with-hyphens"},
+	}, {
+		keyStr:      "-0011223344",
+		expectedErr: `expected prefix "dpl" for key "-0011223344"`,
+	}, {
+		keyStr: NewDeploymentKey("test", "module_without_hyphens").String(),
+		expected: Deployment{
+			Payload: DeploymentPayload{Realm: "test", Module: "module_without_hyphens"},
 			Suffix:  "59gwlv6lkyexwxf1",
-		},
-		},
+		}},
 	} {
-		keyStr := test.str
-		if keyStr == "" {
-			keyStr = test.key.String()
-		}
+		keyStr := test.keyStr
 		t.Run(keyStr, func(t *testing.T) {
 			decoded, err := ParseDeploymentKey(keyStr)
 			if test.expectedErr != "" {

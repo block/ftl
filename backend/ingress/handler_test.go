@@ -113,7 +113,7 @@ func TestIngress(t *testing.T) {
 				Name: "test",
 				Runtime: &schema.ModuleRuntime{
 					Deployment: &schema.ModuleRuntimeDeployment{
-						DeploymentKey: key.NewDeploymentKey("test"),
+						DeploymentKey: key.NewDeploymentKey("test", "test"),
 					},
 					Runner: &schema.ModuleRuntimeRunner{
 						Endpoint: "http://localhost:8080",

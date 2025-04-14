@@ -12,7 +12,7 @@ import (
 )
 
 func TestSchemaStateMarshalling(t *testing.T) {
-	k := key.NewDeploymentKey("test")
+	k := key.NewDeploymentKey("test", "test")
 	state := SchemaState{
 		deployments: map[string]*schema.Module{
 			"test": {
@@ -32,7 +32,7 @@ func TestSchemaStateMarshalling(t *testing.T) {
 func TestStateMarshallingAfterCommonEvents(t *testing.T) {
 	state := NewSchemaState()
 
-	deploymentKey := key.NewDeploymentKey("test2")
+	deploymentKey := key.NewDeploymentKey("test", "test2")
 	changesetKey := key.NewChangesetKey()
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 	assert.NoError(t, state.ApplyEvent(ctx, &schema.ChangesetCreatedEvent{
