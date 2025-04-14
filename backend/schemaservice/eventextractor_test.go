@@ -80,12 +80,3 @@ func TestEventExtractor(t *testing.T) {
 		})
 	}
 }
-
-func deploymentKey(t *testing.T, name string) key.Deployment {
-	t.Helper()
-	key, err := key.ParseDeploymentKey(name)
-	if err != nil {
-		t.Fatalf("failed to parse deployment key: %v", err)
-	}
-	return key
-}
