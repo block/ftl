@@ -73,7 +73,7 @@ func TestCron(t *testing.T) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	t.Cleanup(cancel)
 
-	schemaEndpoint, err := url.Parse("http://localhost:8897")
+	schemaEndpoint, err := url.Parse("http://localhost:8892")
 	assert.NoError(t, err)
 
 	cfg := Config{

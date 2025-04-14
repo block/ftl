@@ -63,6 +63,7 @@ type Service struct {
 
 var _ adminpbconnect.AdminServiceHandler = (*Service)(nil)
 var _ ftlv1connect.VerbServiceHandler = (*Service)(nil)
+var _ rpc.Service = (*Service)(nil)
 
 func NewSchemaRetriever(source *schemaeventsource.EventSource) SchemaClient {
 	return &streamSchemaRetriever{
@@ -83,7 +84,8 @@ func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, 
 // bindAllocator is optional and should be set if a local client is to be used that accesses schema from disk using language plugins.
 func NewAdminService(
 	config Config,
-	env *EnvironmentManager,
+	cm *manager.Manager[configuration.Configuration],
+	sm *manager.Manager[configuration.Secrets],
 	schr ftlv1connect.SchemaServiceClient,
 	source *schemaeventsource.EventSource,
 	storage *artefacts.OCIArtefactService,
@@ -93,7 +95,7 @@ func NewAdminService(
 ) *Service {
 	return &Service{
 		config:         config,
-		env:            env,
+		env:            &EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm},
 		schemaClient:   schr,
 		source:         source,
 		storage:        storage,
@@ -103,39 +105,9 @@ func NewAdminService(
 	}
 }
 
-func Start(
-	ctx context.Context,
-	config Config,
-	cm *manager.Manager[configuration.Configuration],
-	sm *manager.Manager[configuration.Secrets],
-	schr ftlv1connect.SchemaServiceClient,
-	source *schemaeventsource.EventSource,
-	timelineClient *timelineclient.Client,
-	storage *artefacts.OCIArtefactService,
-	waitFor []string) error {
-
-	logger := log.FromContext(ctx).Scope("admin")
-
-	svc := NewAdminService(
-		config,
-		&EnvironmentManager{schr: NewSchemaRetriever(source), cm: cm, sm: sm},
-		schr,
-		source,
-		storage,
-		routing.NewVerbRouter(ctx, source, timelineClient),
-		timelineClient,
-		waitFor,
-	)
-
-	logger.Debugf("Admin service listening on: %s", config.Bind)
-	err := rpc.Serve(ctx, config.Bind,
-		rpc.GRPC(adminpbconnect.NewAdminServiceHandler, svc),
-		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, svc),
-	)
-	if err != nil {
-		return fmt.Errorf("admin service stopped serving: %w", err)
-	}
-	return nil
+func (s *Service) Services(context.Context) ([]rpc.Option, error) {
+	return []rpc.Option{rpc.GRPC(adminpbconnect.NewAdminServiceHandler, s),
+		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s)}, nil
 }
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {

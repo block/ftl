@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/block/ftl/internal/routing"
 	"net/url"
 	"os"
 
@@ -30,7 +31,7 @@ var cli struct {
 	ObservabilityConfig observability.Config     `embed:"" prefix:"o11y-"`
 	LogConfig           log.Config               `embed:"" prefix:"log-"`
 	AdminConfig         admin.Config             `embed:"" prefix:"admin-"`
-	SchemaEndpoint      *url.URL                 `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
+	SchemaEndpoint      *url.URL                 `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
 	TimelineEndpoint    *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
 	Config              string                   `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
 	Secrets             string                   `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
@@ -46,7 +47,8 @@ func main() {
 		},
 	)
 
-	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig))
+	logger := log.Configure(os.Stderr, cli.LogConfig)
+	ctx := log.ContextWithLogger(context.Background(), logger)
 	err := observability.Init(ctx, false, "", "ftl-admin", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
@@ -67,6 +69,13 @@ func main() {
 
 	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
-	err = admin.Start(ctx, cli.AdminConfig, cm, sm, schemaClient, eventSource, timelineclient.NewClient(ctx, cli.TimelineEndpoint), storage, nil)
-	kctx.FatalIfErrorf(err, "failed to start timeline service")
+	client := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
+	svc := admin.NewAdminService(cli.AdminConfig, cm, sm, schemaClient, eventSource, storage, routing.NewVerbRouter(ctx, eventSource, client), client, []string{})
+
+	kctx.FatalIfErrorf(err, "failed to start admin service handlers")
+	logger.Debugf("Admin service listening on: %s", cli.AdminConfig.Bind)
+	err = rpc.Serve(ctx, cli.AdminConfig.Bind,
+		rpc.WithServices(svc),
+	)
+	kctx.FatalIfErrorf(err, "failed to start admin service")
 }

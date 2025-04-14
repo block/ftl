@@ -29,7 +29,7 @@ type callCmd struct {
 	Verb            reflection.Ref `arg:"" required:"" help:"Full path of Verb to call." predictor:"verbs"`
 	Request         string         `arg:"" optional:"" help:"JSON5 request payload." default:"{}"`
 	Verbose         bool           `flag:"" short:"v" help:"Print verbose information."`
-	ConsoleEndpoint *url.URL       `help:"Console endpoint." env:"FTL_CONTROLLER_CONSOLE_URL" default:"http://127.0.0.1:8899"`
+	ConsoleEndpoint *url.URL       `help:"Console endpoint." env:"FTL_CONTROLLER_CONSOLE_URL" default:"http://127.0.0.1:8892"`
 }
 
 func (c *callCmd) Run(
@@ -92,7 +92,7 @@ func callVerb(
 		}
 		if ok {
 			fmt.Printf("Request ID: %s\n", requestKey)
-			consoleURL := "http://localhost:8899"
+			consoleURL := "http://localhost:8892"
 			if cmd != nil && cmd.ConsoleEndpoint != nil {
 				consoleURL = cmd.ConsoleEndpoint.String()
 			}

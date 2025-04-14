@@ -2,19 +2,15 @@ package schemaservice
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"net/url"
-	"os/signal"
 	gslices "slices"
 	"sync"
-	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/types/optional"
-	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -36,7 +32,7 @@ type CommonSchemaServiceConfig struct {
 type Config struct {
 	CommonSchemaServiceConfig
 	Raft raft.RaftConfig `embed:"" prefix:"raft-"`
-	Bind *url.URL        `help:"Socket to bind to." default:"http://127.0.0.1:8897" env:"FTL_BIND"`
+	Bind *url.URL        `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 }
 
 type Service struct {
@@ -46,6 +42,9 @@ type Service struct {
 	devMode        bool
 	creationLock   sync.Mutex
 }
+
+var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
+var _ rpc.Service = (*Service)(nil)
 
 func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
 	v, err := s.State.View(ctx)
@@ -66,61 +65,49 @@ func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.Ge
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 
-func New(ctx context.Context, handle statemachine.Handle[struct{}, SchemaState, EventWrapper], config Config, timelineClient *timelineclient.Client) *Service {
+func NewLocalService(ctx context.Context, config Config, timelineClient *timelineclient.Client) *Service {
 	return &Service{
-		State:          statemachine.NewSingleQueryHandle(handle, struct{}{}),
+		State:          statemachine.NewSingleQueryHandle(statemachine.NewLocalHandle(newStateMachine(ctx)), struct{}{}),
 		Config:         config,
 		timelineClient: timelineClient,
 	}
 }
 
+func (s *Service) Services(context.Context) ([]rpc.Option, error) {
+	return []rpc.Option{rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, s)}, nil
+}
+
 // Start the SchemaService. Blocks until the context is cancelled.
-func Start(
+func New(
 	ctx context.Context,
 	config Config,
 	timelineClient *timelineclient.Client,
 	devMode bool,
-) error {
+) *Service {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Starting FTL schema service")
 
-	g, gctx := errgroup.WithContext(ctx)
-	gctx, cancel := signal.NotifyContext(gctx, syscall.SIGTERM)
-	defer cancel()
-
 	var rpcOpts []rpc.Option
 
-	var shard statemachine.Handle[struct{}, SchemaState, EventWrapper]
+	var svc *Service
 	if config.Raft.DataDir == "" {
 		// in local dev mode, use an inmemory state machine
-		shard = statemachine.NewLocalHandle(newStateMachine(ctx))
+		svc = NewLocalService(ctx, config, timelineClient)
 	} else {
 		clusterBuilder := raft.NewBuilder(&config.Raft)
-		schemaShard := raft.AddShard(gctx, clusterBuilder, 1, newStateMachine(ctx))
-		cluster := clusterBuilder.Build(gctx)
-		shard = schemaShard
-
+		schemaShard := raft.AddShard(ctx, clusterBuilder, 1, newStateMachine(ctx))
+		cluster := clusterBuilder.Build(ctx)
 		rpcOpts = append(rpcOpts, raft.RPCOption(cluster))
+		svc = &Service{
+			State:          statemachine.NewSingleQueryHandle(schemaShard, struct{}{}),
+			Config:         config,
+			timelineClient: timelineClient,
+		}
 	}
 
-	svc := New(ctx, shard, config, timelineClient)
 	svc.devMode = devMode
-	logger.Debugf("Listening on %s", config.Bind)
 
-	g.Go(func() error {
-		return rpc.Serve(gctx, config.Bind,
-			append(rpcOpts,
-				rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
-				rpc.PProf(),
-			)...,
-		)
-	})
-
-	err := g.Wait()
-	if err != nil && !errors.Is(err, context.Canceled) {
-		return fmt.Errorf("failed to run schema service: %w", err)
-	}
-	return nil
+	return svc
 }
 func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
 	view, err := s.State.View(ctx)

@@ -12,7 +12,7 @@ import (
 	in "github.com/block/ftl/internal/integration"
 )
 
-// GetModules calls console service GetModules and returns the response.
+// GetModules calls console Service GetModules and returns the response.
 //
 // This action is defined here vs. actions.go because it is only used in this test file.
 func GetModules(onResponse func(t testing.TB, resp *connect.Response[pbconsole.GetModulesResponse])) in.Action {
@@ -36,7 +36,7 @@ func TestConsoleGetModules(t *testing.T) {
 	)
 }
 
-// StreamModules calls console service GetModules and returns the response.
+// StreamModules calls console Service GetModules and returns the response.
 //
 // This action is defined here vs. actions.go because it is only used in this test file.
 func StreamModules(onResponse func(t testing.TB, resp *connect.ServerStreamForClient[pbconsole.StreamModulesResponse])) in.Action {

@@ -319,8 +319,8 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 	assert.Equal(t, *buildOnceOptions, opts, "Options changed between test runs")
 
 	adminPort := "8892"
-	consolePort := "8899"
-	schemaPort := "8897"
+	consolePort := "8892"
+	schemaPort := "8892"
 	if opts.kube {
 		adminPort = "8792"
 		consolePort = "8792"

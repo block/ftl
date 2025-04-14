@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"github.com/reugn/go-quartz/logger"
 	"net/url"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/alecthomas/kong"
 
@@ -31,13 +34,16 @@ func main() {
 			"version": ftl.FormattedVersion,
 		},
 	)
-
-	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig).Scope("schema"))
+	logger := log.Configure(os.Stderr, cli.LogConfig).Scope("schema")
+	ctx := log.ContextWithLogger(context.Background(), logger)
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM)
+	defer cancel()
 	err := observability.Init(ctx, false, "", "ftl-controller", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 
-	err = schemaservice.Start(ctx, cli.SchemaServiceConfig, timelineClient, false)
+	svc, err = schemaservice.New(ctx, cli.SchemaServiceConfig, timelineClient, false)
+	logger.Debugf("Listening on %s", cli.SchemaServiceConfig.Bind)
 	kctx.FatalIfErrorf(err)
 }

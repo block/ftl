@@ -18,7 +18,7 @@ const config: PlaywrightTestConfig = {
   timeout: 90 * 1000,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:8899',
+    baseURL: 'http://localhost:8892',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -39,7 +39,7 @@ const config: PlaywrightTestConfig = {
   ],
   webServer: {
     command: process.env.CI ? 'ftl dev -j 2' : 'ftl dev',
-    url: 'http://localhost:8899',
+    url: 'http://localhost:8892',
     reuseExistingServer: !process.env.CI,
     /* If the test ends up needing to pull the postgres docker image, this can take a while. Give it a few minutes. */
     timeout: 180000,
