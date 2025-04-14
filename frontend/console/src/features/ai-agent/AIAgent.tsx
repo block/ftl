@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, GripVertical, Send as SendIcon, X as XIcon } from 'lucide-react'
+import { ChevronDown, ChevronUp, Send as SendIcon, X as XIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Components } from 'react-markdown'
 import ReactMarkdown from 'react-markdown'
@@ -399,29 +399,38 @@ export const AIAgent = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
   // Resize handlers
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault()
+    if (!panelRef.current) return
+
     isDraggingRef.current = true
-    document.addEventListener('mousemove', handleResizeMove)
-    document.addEventListener('mouseup', handleResizeEnd)
-  }
+    const panel = panelRef.current
 
-  const handleResizeMove = (e: MouseEvent) => {
-    if (!isDraggingRef.current) return
-    const windowWidth = window.innerWidth
-    const newWidth = Math.min(Math.max(20, ((windowWidth - e.clientX) / windowWidth) * 100), 80)
-    setWidth(newWidth)
-  }
+    const handleMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return
+      const windowWidth = window.innerWidth
+      const newWidth = Math.min(Math.max(20, ((windowWidth - e.clientX) / windowWidth) * 100), 80)
+      panel.style.width = `${newWidth}%`
+    }
 
-  const handleResizeEnd = () => {
-    isDraggingRef.current = false
-    document.removeEventListener('mousemove', handleResizeMove)
-    document.removeEventListener('mouseup', handleResizeEnd)
+    const handleUp = () => {
+      isDraggingRef.current = false
+      document.removeEventListener('mousemove', handleMove)
+      document.removeEventListener('mouseup', handleUp)
+
+      // Update React state only after dragging ends
+      if (panel) {
+        const width = Number.parseFloat(panel.style.width)
+        setWidth(width)
+      }
+    }
+
+    document.addEventListener('mousemove', handleMove)
+    document.addEventListener('mouseup', handleUp)
   }
 
   // Cleanup event listeners on unmount
   useEffect(() => {
     return () => {
-      document.removeEventListener('mousemove', handleResizeMove)
-      document.removeEventListener('mouseup', handleResizeEnd)
+      isDraggingRef.current = false
     }
   }, [])
 
@@ -431,13 +440,12 @@ export const AIAgent = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
     <div
       ref={panelRef}
       style={{ width: `${width}%` }}
-      className='fixed right-0 top-16 bottom-0 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-xl flex flex-col z-50 overflow-hidden transition-width duration-75'
+      className='fixed right-0 top-16 bottom-0 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-xl flex flex-col z-50 overflow-hidden'
     >
-      <div className='absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-indigo-500 hover:opacity-50' onMouseDown={handleResizeStart}>
-        <div className='absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-8 bg-indigo-500 rounded flex items-center justify-center'>
-          <GripVertical className='size-3 text-white' />
-        </div>
-      </div>
+      <div
+        className='absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-indigo-500 hover:opacity-50 transition-colors duration-75'
+        onMouseDown={handleResizeStart}
+      />
       <div className='flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700'>
         <h2 className='text-lg font-semibold flex items-center gap-2'>
           <GooseIcon size={20} />
@@ -452,7 +460,7 @@ export const AIAgent = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         {messages.length === 0 && (
           <div className='text-gray-500 dark:text-gray-400 text-center p-4'>
             <div className='flex justify-center mb-3'>
-              <GooseIcon size={32} className='text-indigo-500' />
+              <GooseIcon size={32} />
             </div>
             <p className='mb-2'>Hi! I'm Goose, your FTL assistant.</p>
             <p>How can I help you today?</p>
@@ -500,7 +508,7 @@ export const AIAgent = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder='Ask anything about your FTL project...'
-            className='flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500'
+            className='flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500'
           />
           <button
             type='submit'

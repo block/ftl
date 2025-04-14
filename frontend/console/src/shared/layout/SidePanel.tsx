@@ -7,7 +7,7 @@ export const SidePanel = () => {
   const { isOpen, header, component } = useContext(SidePanelContext)
 
   return (
-    <div className={`absolute z-20 top-0 ${bgColor} ${textColor}`}>
+    <div className={`absolute z-[60] top-0 ${bgColor} ${textColor}`}>
       <Transition
         show={isOpen}
         as={Fragment}
