@@ -30,3 +30,14 @@ func TestDeploymentThroughDevProvisionerCreatePostgresDB(t *testing.T) {
 		}),
 	)
 }
+
+func TestProvisionedEgress(t *testing.T) {
+	in.Run(t,
+		in.WithFTLConfig("./ftl-project.toml"),
+		in.CopyModule("egress"),
+		in.Deploy("egress"),
+		in.Call("egress", "egress", map[string]string{}, func(t testing.TB, response string) {
+			assert.Equal(t, "https://github.com", response)
+		}),
+	)
+}

@@ -41,4 +41,6 @@ public interface FTLRunnerConnection extends Closeable {
 
     @Override
     void close();
+
+    String getEgress(String name);
 }

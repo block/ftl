@@ -6,10 +6,6 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
-	_ "github.com/amacneil/dbmate/v2/pkg/driver/mysql"
-	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"
-	_ "github.com/go-sql-driver/mysql" // SQL driver
-	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"

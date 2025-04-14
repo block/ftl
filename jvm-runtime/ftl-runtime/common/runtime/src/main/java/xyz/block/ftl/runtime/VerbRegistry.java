@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -245,6 +248,49 @@ public class VerbRegistry {
                 return mapper.createParser(secret).readValueAs(inputClass);
             } catch (IOException e) {
                 throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public Object extractParameter(ResteasyReactiveRequestContext context) {
+            return apply(Arc.container().instance(ObjectMapper.class).get(), null);
+        }
+
+        public Class<?> getInputClass() {
+            return inputClass;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+
+    public static class EgressSupplier implements ParameterSupplier, ParameterExtractor {
+
+        final String name;
+        final Class<?> inputClass;
+
+        public EgressSupplier(String name, Class<?> inputClass) {
+            this.name = name;
+            this.inputClass = inputClass;
+        }
+
+        @Override
+        public Object apply(ObjectMapper mapper, CallRequest in) {
+            var egress = FTLController.instance().getEgress(name);
+            if (inputClass == String.class) {
+                return egress;
+            } else if (inputClass == URI.class) {
+                return URI.create(egress);
+            } else if (inputClass == URL.class) {
+                try {
+                    return new URL(egress);
+                } catch (MalformedURLException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                // Should never happen
+                throw new RuntimeException("Unsupported input type: " + inputClass);
             }
         }
 

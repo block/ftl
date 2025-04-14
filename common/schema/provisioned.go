@@ -19,6 +19,7 @@ const (
 	ResourceTypeSQLMigration ResourceType = "sql-migration"
 	ResourceTypeTopic        ResourceType = "topic"
 	ResourceTypeSubscription ResourceType = "subscription"
+	ResourceTypeEgress       ResourceType = "egress"
 	ResourceTypeRunner       ResourceType = "runner"
 	ResourceTypeFixture      ResourceType = "fixture"
 )
