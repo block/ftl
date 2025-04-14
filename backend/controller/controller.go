@@ -68,7 +68,7 @@ func (c *Config) OpenDBAndInstrument(dsn string) (*sql.DB, error) {
 	return conn, nil
 }
 
-func (s *Service) Services(ctx context.Context) ([]rpc.Option, error) {
+func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
 	return []rpc.Option{rpc.GRPC(ftlv1connect.NewControllerServiceHandler, s)}, nil
 }
 

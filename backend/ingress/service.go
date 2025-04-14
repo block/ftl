@@ -63,7 +63,7 @@ func Start(ctx context.Context, bind *url.URL, config Config, eventSource *schem
 	}
 
 	// Start the HTTP server
-	logger.Infof("HTTP ingress server listening on: %s", bind)
+	logger.Infof("HTTP ingress server listening on: %s", bind) //nolint
 	err := ftlhttp.Serve(ctx, bind, ingressHandler)
 	if err != nil {
 		return fmt.Errorf("ingress service stopped: %w", err)

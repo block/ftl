@@ -24,7 +24,6 @@ import (
 	"github.com/block/ftl/backend/admin"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
@@ -47,7 +46,6 @@ type SharedCLI struct {
 	Project          string           `short:"P" name:"project" help:"Path to FTL project root directory. The git root will be used if not found in the current directory." env:"FTL_PROJECT" placeholder:"DIR" default:""`
 	ConfigFlag       string           `name:"config" short:"C" help:"Path to FTL project configuration file." env:"FTL_CONFIG" placeholder:"FILE"`
 	TimelineEndpoint *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
-	LeaseEndpoint    *url.URL         `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	AdminEndpoint    *url.URL         `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	Trace            string           `help:"File to write golang runtime/trace output to." hidden:""`
 
@@ -269,9 +267,6 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 
 		timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 		kctx.Bind(timelineClient)
-
-		leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, cli.LeaseEndpoint.String(), log.Error)
-		kctx.BindTo(leaseClient, (*leasepbconnect.LeaseServiceClient)(nil))
 
 		adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 		kctx.BindTo(adminClient, (*adminpbconnect.AdminServiceClient)(nil))

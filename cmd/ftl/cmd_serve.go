@@ -216,7 +216,6 @@ func (s *serveCommonConfig) run(
 	schemaCtx := log.ContextWithLogger(ctx, logger.Scope("schemaservice"))
 	schemaService := schemaservice.NewLocalService(schemaCtx, schemaservice.Config{
 		CommonSchemaServiceConfig: s.CommonSchemaServiceConfig,
-		Bind:                      s.Bind,
 	}, timelineClient)
 	services = append(services, schemaService)
 

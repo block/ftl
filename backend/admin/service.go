@@ -103,7 +103,7 @@ func NewAdminService(
 	}
 }
 
-func (s *Service) Services(context.Context) ([]rpc.Option, error) {
+func (s *Service) StartServices(context.Context) ([]rpc.Option, error) {
 	return []rpc.Option{rpc.GRPC(adminpbconnect.NewAdminServiceHandler, s),
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s)}, nil
 }

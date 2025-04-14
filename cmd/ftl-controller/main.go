@@ -39,7 +39,6 @@ func main() {
 			"version": ftl.FormattedVersion,
 		},
 	)
-	cli.ControllerConfig.SetDefaults()
 
 	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig))
 	err := observability.Init(ctx, false, "", "ftl-controller", ftl.Version, cli.ObservabilityConfig)
@@ -51,7 +50,7 @@ func main() {
 
 	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 
-	svc, err := controller.New(ctx, adminClient, schemaClient, leaseClient, cli.ControllerConfig, false)
+	svc, err := controller.New(ctx, cli.Bind, adminClient, schemaClient, leaseClient, cli.ControllerConfig, false)
 	kctx.FatalIfErrorf(err)
 	err = rpc.Serve(ctx, cli.Bind, rpc.WithServices(svc))
 	kctx.FatalIfErrorf(err)

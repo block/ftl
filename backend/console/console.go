@@ -68,18 +68,18 @@ func New(
 	}
 }
 
-func (svc *Service) Services(ctx context.Context) ([]rpc.Option, error) {
+func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
 	logger := log.FromContext(ctx).Scope("console")
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	consoleHandler, err := frontend.Server(ctx, svc.config.ContentTime, svc.bind)
+	consoleHandler, err := frontend.Server(ctx, s.config.ContentTime, s.bind)
 	if err != nil {
 		return nil, fmt.Errorf("could not start console: %w", err)
 	}
-	logger.Infof("Web console available at: %s", svc.bind) //nolint
+	logger.Infof("Web console available at: %s", s.bind) //nolint
 
 	return []rpc.Option{
-		rpc.GRPC(consolepbconnect.NewConsoleServiceHandler, svc),
+		rpc.GRPC(consolepbconnect.NewConsoleServiceHandler, s),
 		rpc.HTTP("/", consoleHandler),
 	}, nil
 }
@@ -379,14 +379,14 @@ func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string) (*c
 }
 
 func (s *Service) StreamModules(ctx context.Context, req *connect.Request[consolepb.StreamModulesRequest], stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
-	err := s.sendStreamModulesResp(ctx, stream)
+	err := s.sendStreamModulesResp(stream)
 	if err != nil {
 		return err
 	}
 
 	events := s.schemaEventSource.Subscribe(ctx)
 	for range channels.IterContext(ctx, events) {
-		err = s.sendStreamModulesResp(ctx, stream)
+		err = s.sendStreamModulesResp(stream)
 		if err != nil {
 			return err
 		}
@@ -416,7 +416,7 @@ func (s *Service) filterDeployments(unfilteredDeployments *schema.Realm) []*sche
 	return result
 }
 
-func (s *Service) sendStreamModulesResp(ctx context.Context, stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
+func (s *Service) sendStreamModulesResp(stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
 	unfilteredSchema := s.schemaEventSource.CanonicalView()
 
 	realms := []*schema.Realm{}

@@ -35,7 +35,7 @@ type serverOptions struct {
 type Option func(*serverOptions)
 
 type Service interface {
-	Services(ctx context.Context) ([]Option, error)
+	StartServices(ctx context.Context) ([]Option, error)
 }
 
 func WithServices(svcs ...Service) Option {
@@ -131,7 +131,7 @@ func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server
 		option(opts)
 	}
 	for _, svc := range opts.services {
-		services, err := svc.Services(ctx)
+		services, err := svc.StartServices(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to start services: %w", err)
 		}

@@ -3,7 +3,6 @@ package buildengine_test
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"path/filepath"
 	"testing"
 
@@ -29,9 +28,7 @@ func TestGraph(t *testing.T) {
 		Name: "test",
 	}
 
-	endpoint, err := url.Parse("http://localhost:8900")
-	assert.NoError(t, err)
-	engine, err := buildengine.New(ctx, nil, schemaeventsource.NewUnattached(), projConfig, []string{"testdata/alpha", "testdata/other", "testdata/another"}, endpoint, true)
+	engine, err := buildengine.New(ctx, nil, schemaeventsource.NewUnattached(), projConfig, []string{"testdata/alpha", "testdata/other", "testdata/another"}, true)
 	assert.NoError(t, err)
 
 	defer engine.Close()

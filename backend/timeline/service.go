@@ -58,7 +58,7 @@ func New(ctx context.Context, config Config) (*Service, error) {
 
 	return svc, nil
 }
-func (s *Service) Services(ctx context.Context) ([]rpc.Option, error) {
+func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
 	go s.reapCallEvents(ctx)
 	return []rpc.Option{rpc.GRPC(timelineconnect.NewTimelineServiceHandler, s)}, nil
 }

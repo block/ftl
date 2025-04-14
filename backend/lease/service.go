@@ -33,7 +33,7 @@ func New(ctx context.Context) *Service {
 	return svc
 }
 
-func (s *Service) Services(ctx context.Context) ([]rpc.Option, error) {
+func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
 	return []rpc.Option{rpc.GRPC(leaseconnect.NewLeaseServiceHandler, s)}, nil
 }
 

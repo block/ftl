@@ -2,12 +2,10 @@ package buildengine
 
 import (
 	"bytes"
-	"connectrpc.com/connect"
 	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/internal/rpc"
 	"runtime"
 	"sort"
@@ -15,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
@@ -23,6 +22,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/reflect"
@@ -119,8 +119,8 @@ type Engine struct {
 	updatesService rpc.Service
 }
 
-func (e *Engine) Services(ctx context.Context) ([]rpc.Option, error) {
-	services, err := e.updatesService.Services(ctx)
+func (e *Engine) StartServices(ctx context.Context) ([]rpc.Option, error) {
+	services, err := e.updatesService.StartServices(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start updates service: %w", err)
 	}
@@ -198,12 +198,65 @@ func New(
 	ctx, cancel := context.WithCancelCause(ctx)
 	e.cancel = cancel
 
+	configs, err := watch.DiscoverModules(ctx, moduleDirs)
+	if err != nil {
+		return nil, fmt.Errorf("could not find modules: %w", err)
+	}
+
+	err = CleanStubs(ctx, projectConfig.Root(), configs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to clean stubs: %w", err)
+	}
+
 	updateTerminalWithEngineEvents(ctx, e.EngineUpdates)
 
 	go e.watchForPluginEvents(ctx)
-	updates := e.startUpdatesService(ctx)
-	e.updatesService = updates
+	e.updatesService = e.startUpdatesService(ctx)
 
+	go e.watchForEventsToPublish(ctx, len(configs) > 0)
+
+	wg := &errgroup.Group{}
+	for _, config := range configs {
+		wg.Go(func() error {
+			meta, err := e.newModuleMeta(ctx, config)
+			if err != nil {
+				return err
+			}
+			meta, err = copyMetaWithUpdatedDependencies(ctx, meta)
+			if err != nil {
+				return err
+			}
+			e.moduleMetas.Store(config.Module, meta)
+			e.modulesToBuild.Store(config.Module, true)
+			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+				Timestamp: timestamppb.Now(),
+				Event: &buildenginepb.EngineEvent_ModuleAdded{
+					ModuleAdded: &buildenginepb.ModuleAdded{
+						Module: config.Module,
+					},
+				},
+			}
+			return nil
+		})
+	}
+	if err := wg.Wait(); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
+	if adminClient != nil {
+		info, err := adminClient.ClusterInfo(ctx, connect.NewRequest(&adminpb.ClusterInfoRequest{}))
+		if err != nil {
+			log.FromContext(ctx).Debugf("failed to get cluster info: %s", err)
+		} else {
+			e.os = info.Msg.Os
+			e.arch = info.Msg.Arch
+		}
+	}
+	// Save initial schema
+	initialEvent := <-e.deployCoordinator.SchemaUpdates
+	e.targetSchema.Store(initialEvent.schema)
+	if adminClient == nil {
+		return e, nil
+	}
 	return e, nil
 }
 
@@ -317,60 +370,6 @@ func (e *Engine) Modules() []string {
 
 // Dev builds and deploys all local modules and watches for changes, redeploying as necessary.
 func (e *Engine) Dev(ctx context.Context, period time.Duration) error {
-
-	configs, err := watch.DiscoverModules(ctx, e.moduleDirs)
-	if err != nil {
-		return fmt.Errorf("could not find modules: %w", err)
-	}
-
-	err = CleanStubs(ctx, e.projectConfig.Root(), configs)
-	if err != nil {
-		return fmt.Errorf("failed to clean stubs: %w", err)
-	}
-	wg := &errgroup.Group{}
-	for _, config := range configs {
-		wg.Go(func() error {
-			meta, err := e.newModuleMeta(ctx, config)
-			if err != nil {
-				return err
-			}
-			meta, err = copyMetaWithUpdatedDependencies(ctx, meta)
-			if err != nil {
-				return err
-			}
-			e.moduleMetas.Store(config.Module, meta)
-			e.modulesToBuild.Store(config.Module, true)
-			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
-				Timestamp: timestamppb.Now(),
-				Event: &buildenginepb.EngineEvent_ModuleAdded{
-					ModuleAdded: &buildenginepb.ModuleAdded{
-						Module: config.Module,
-					},
-				},
-			}
-			return nil
-		})
-	}
-	if err := wg.Wait(); err != nil {
-		return err //nolint:wrapcheck
-	}
-	if e.adminClient != nil {
-		info, err := e.adminClient.ClusterInfo(ctx, connect.NewRequest(&adminpb.ClusterInfoRequest{}))
-		if err != nil {
-			log.FromContext(ctx).Debugf("failed to get cluster info: %s", err)
-		} else {
-			e.os = info.Msg.Os
-			e.arch = info.Msg.Arch
-		}
-	}
-	// Save initial schema
-	initialEvent := <-e.deployCoordinator.SchemaUpdates
-	e.targetSchema.Store(initialEvent.schema)
-	if e.adminClient == nil {
-		return nil
-	}
-
-	go e.watchForEventsToPublish(ctx, len(configs) > 0)
 	return e.watchForModuleChanges(ctx, period)
 }
 

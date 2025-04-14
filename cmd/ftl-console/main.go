@@ -28,7 +28,6 @@ var cli struct {
 	ConsoleConfig       console.Config       `embed:"" prefix:"console-"`
 	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	AdminEndpoint       *url.URL             `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
-	BuildEngineEndpoint *url.URL             `help:"Build engine endpoint." env:"FTL_BUILD_UPDATES_ENDPOINT" default:"http://127.0.0.1:8900"`
 }
 
 func main() {
@@ -44,7 +43,7 @@ func main() {
 
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
-	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.BuildEngineEndpoint.String(), log.Error)
+	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.AdminEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "console", adminClient)
 
 	routeManager := routing.NewVerbRouter(ctx, eventSource, timelineClient)

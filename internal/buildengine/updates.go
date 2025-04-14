@@ -82,7 +82,7 @@ func (e *Engine) startUpdatesService(ctx context.Context) rpc.Service {
 	go svc.cleanupCache(ctx)
 	return svc
 }
-func (u *updatesService) Services(ctx context.Context) ([]rpc.Option, error) {
+func (u *updatesService) StartServices(ctx context.Context) ([]rpc.Option, error) {
 	return []rpc.Option{rpc.GRPC(enginepbconnect.NewBuildEngineServiceHandler, u)}, nil
 }
 

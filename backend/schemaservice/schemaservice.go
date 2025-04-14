@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"net/url"
 	gslices "slices"
 	"sync"
 	"time"
@@ -32,7 +31,6 @@ type CommonSchemaServiceConfig struct {
 type Config struct {
 	CommonSchemaServiceConfig
 	Raft raft.RaftConfig `embed:"" prefix:"raft-"`
-	Bind *url.URL        `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 }
 
 type Service struct {
@@ -73,7 +71,7 @@ func NewLocalService(ctx context.Context, config Config, timelineClient *timelin
 	}
 }
 
-func (s *Service) Services(context.Context) ([]rpc.Option, error) {
+func (s *Service) StartServices(context.Context) ([]rpc.Option, error) {
 	return []rpc.Option{rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, s)}, nil
 }
 

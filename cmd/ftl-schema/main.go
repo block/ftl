@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/reugn/go-quartz/logger"
+	"github.com/block/ftl/internal/rpc"
 	"net/url"
 	"os"
 	"os/signal"
@@ -20,6 +20,7 @@ import (
 
 var cli struct {
 	Version             kong.VersionFlag     `help:"Show version."`
+	Bind                *url.URL             `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
 	LogConfig           log.Config           `embed:"" prefix:"log-"`
 	SchemaServiceConfig schemaservice.Config `embed:""`
@@ -43,7 +44,8 @@ func main() {
 
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 
-	svc, err = schemaservice.New(ctx, cli.SchemaServiceConfig, timelineClient, false)
-	logger.Debugf("Listening on %s", cli.SchemaServiceConfig.Bind)
+	svc := schemaservice.New(ctx, cli.SchemaServiceConfig, timelineClient, false)
+	err = rpc.Serve(ctx, cli.Bind, rpc.WithServices(svc))
+	logger.Debugf("Listening on %s", cli.Bind)
 	kctx.FatalIfErrorf(err)
 }
