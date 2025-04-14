@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/block/ftl/internal/rpc"
 	"runtime"
 	"sort"
 	"strings"
@@ -33,6 +32,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/watch"
 )

@@ -95,7 +95,7 @@ func (s *serveCmd) Run(
 	if err != nil {
 		return fmt.Errorf("could not create bind allocator: %w", err)
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), bindAllocator, timelineClient, adminClient, buildEngineClient, nil, nil)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, timelineClient, adminClient, buildEngineClient, nil, nil)
 }
 
 //nolint:maintidx
@@ -105,6 +105,7 @@ func (s *serveCommonConfig) run(
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	initialised optional.Option[chan bool],
+	devMode bool,
 	bindAllocator *bind.BindAllocator,
 	timelineClient *timelineclient.Client,
 	adminClient adminpbconnect.AdminServiceClient,
@@ -216,7 +217,7 @@ func (s *serveCommonConfig) run(
 	schemaCtx := log.ContextWithLogger(ctx, logger.Scope("schemaservice"))
 	schemaService := schemaservice.NewLocalService(schemaCtx, schemaservice.Config{
 		CommonSchemaServiceConfig: s.CommonSchemaServiceConfig,
-	}, timelineClient)
+	}, timelineClient, devMode)
 	services = append(services, schemaService)
 
 	config := controller.Config{

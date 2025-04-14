@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/block/ftl/internal/rpc"
 	"net/url"
 	"os"
 	"os/signal"
@@ -15,6 +14,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
+	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/timelineclient"
 )
 

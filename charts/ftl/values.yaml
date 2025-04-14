@@ -147,8 +147,8 @@ cron:
       port: 8892
     raft:
       annotations: null
-      containerPort: 8892
-      port: 8892
+      containerPort: 8893
+      port: 8893
 
   env: null
   image:
@@ -163,8 +163,8 @@ cron:
 
   raft:
     annotations: null
-    containerPort: 8892
-    port: 8892
+    containerPort: 8893
+    port: 8893
 
   resources:
     requests:
@@ -302,7 +302,7 @@ schema:
       port: 8892
     raft:
       annotations: null
-      port: 8892
+      port: 8893
   podAnnotations: null
   nodeSelector: null
   affinity: null

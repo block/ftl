@@ -44,7 +44,7 @@ wait-for-kube:
   kubectl wait --for=condition=available deployment/ftl-http-ingress --timeout=5m
   kubectl wait --for=condition=available deployment/registry --timeout=5m
   sleep 1
-  ftl-k3d schema get || sleep 5 && FTL_ENDPOINT="http://localhost:8792" ftl-k3d schema get
+  ftl-k3d schema get || sleep 5 && ftl-k3d schema get
 
 # Wait for FTL version upgrade to complete
 wait-for-version-upgrade oldversion:

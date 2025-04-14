@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/block/ftl/internal/routing"
 	"net/url"
 	"os"
 
@@ -21,6 +20,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
+	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"

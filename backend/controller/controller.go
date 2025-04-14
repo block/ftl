@@ -14,6 +14,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/jellydator/ttlcache/v3"
+	"github.com/jpillora/backoff"
+	"golang.org/x/exp/maps"
+
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/controller/leases"
 	"github.com/block/ftl/backend/controller/observability"
@@ -34,9 +38,6 @@ import (
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
-	"github.com/jellydator/ttlcache/v3"
-	"github.com/jpillora/backoff"
-	"golang.org/x/exp/maps"
 )
 
 // CommonConfig between the production controller and development server.

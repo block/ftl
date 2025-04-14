@@ -115,7 +115,7 @@ func (d *devCmd) Run(
 	controllerReady := make(chan bool, 1)
 	if !d.NoServe {
 		if d.ServeCmd.Stop {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine})
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine})
 			if err != nil {
 				return fmt.Errorf("failed to stop server: %w", err)
 			}
@@ -123,7 +123,7 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine})
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine})
 			if err != nil {
 				cancel(fmt.Errorf("dev server failed: %w: %w", context.Canceled, err))
 			} else {

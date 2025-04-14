@@ -39,6 +39,7 @@ type Service struct {
 	timelineClient *timelineclient.Client
 	devMode        bool
 	creationLock   sync.Mutex
+	rpcOpts        []rpc.Option
 }
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
@@ -63,16 +64,19 @@ func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.Ge
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 
-func NewLocalService(ctx context.Context, config Config, timelineClient *timelineclient.Client) *Service {
-	return &Service{
+func NewLocalService(ctx context.Context, config Config, timelineClient *timelineclient.Client, devMode bool) *Service {
+	s := &Service{
 		State:          statemachine.NewSingleQueryHandle(statemachine.NewLocalHandle(newStateMachine(ctx)), struct{}{}),
 		Config:         config,
 		timelineClient: timelineClient,
+		devMode:        devMode,
 	}
+	s.rpcOpts = append(s.rpcOpts, rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, s))
+	return s
 }
 
 func (s *Service) StartServices(context.Context) ([]rpc.Option, error) {
-	return []rpc.Option{rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, s)}, nil
+	return s.rpcOpts, nil
 }
 
 // Start the SchemaService. Blocks until the context is cancelled.
@@ -90,7 +94,7 @@ func New(
 	var svc *Service
 	if config.Raft.DataDir == "" {
 		// in local dev mode, use an inmemory state machine
-		svc = NewLocalService(ctx, config, timelineClient)
+		svc = NewLocalService(ctx, config, timelineClient, devMode)
 	} else {
 		clusterBuilder := raft.NewBuilder(&config.Raft)
 		schemaShard := raft.AddShard(ctx, clusterBuilder, 1, newStateMachine(ctx))
@@ -100,7 +104,9 @@ func New(
 			State:          statemachine.NewSingleQueryHandle(schemaShard, struct{}{}),
 			Config:         config,
 			timelineClient: timelineClient,
+			rpcOpts:        rpcOpts,
 		}
+		svc.rpcOpts = append(svc.rpcOpts, rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc))
 	}
 
 	svc.devMode = devMode
