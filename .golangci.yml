@@ -58,18 +58,28 @@ linters:
     - whitespace
     - wsl
   settings:
+    wrapcheck:
+      ignore-sigs:
+        - errors.New
+        - errors.Errorf
+        - errors.Join
+        - errors.Wrap
+        - errors.Wrapf
+        - errors.WithStack
+        - errors.WithStack2
+        - errors.WithStack3
     depguard:
       rules:
         main:
           deny:
             - pkg: github.com/pkg/errors
-              desc: use fmt.Errorf or errors.New
+              desc: use github.com/alecthomas/errors
             - pkg: github.com/stretchr/testify
               desc: use github.com/alecthomas/assert/v2
-            - pkg: github.com/alecthomas/errors
-              desc: use fmt.Errorf or errors.New
+            - pkg: errors
+              desc: use github.com/alecthomas/errors
             - pkg: braces.dev/errtrace
-              desc: use fmt.Errorf or errors.New
+              desc: use github.com/alecthomas/errors
             - pkg: os/exec
               desc: use github.com/block/ftl/internal/exec
             - pkg: golang.design/x/reflect
@@ -84,6 +94,8 @@ linters:
       default-signifies-exhaustive: true
     forbidigo:
       forbid:
+        - pattern: ^fmt.Errorf$
+          msg: use github.com/alecthomas/errors.Errorf or Wrapf
         - pattern: ^context.WithCancel$
           msg: use context.WithCancelCause instead of context.WithCancel
         - pattern: ^context.CancelFunc$

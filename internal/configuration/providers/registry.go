@@ -2,9 +2,10 @@ package providers
 
 import (
 	"context"
-	"fmt"
 	"maps"
 	"slices"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal/configuration"
 )
@@ -53,7 +54,7 @@ func (r *Registry[R]) Get(ctx context.Context, name configuration.ProviderKey) (
 	factory, ok := r.factories[name]
 	if !ok {
 		var role R
-		return nil, fmt.Errorf("%s: %s provider not found", name, role)
+		return nil, errors.Errorf("%s: %s provider not found", name, role)
 	}
-	return factory(ctx)
+	return errors.WithStack2(factory(ctx))
 }

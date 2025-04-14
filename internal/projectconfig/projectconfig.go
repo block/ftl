@@ -2,13 +2,12 @@ package projectconfig
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl"
@@ -48,7 +47,7 @@ type Config struct {
 // Root directory of the project.
 func (c Config) Root() string {
 	if !filepath.IsAbs(c.Path) {
-		panic(fmt.Errorf("project config path must be absolute: %s", c.Path))
+		panic(errors.Errorf("project config path must be absolute: %s", c.Path))
 	}
 	return filepath.Dir(c.Path)
 }
@@ -62,18 +61,18 @@ func (c *Config) Validate() error {
 		c.ConfigProvider = "inline"
 	}
 	if c.Name == "" {
-		return fmt.Errorf("project name is required: %s", c.Path)
+		return errors.Errorf("project name is required: %s", c.Path)
 	}
 	if strings.Contains(c.Name, " ") {
-		return fmt.Errorf("project name %q includes spaces: %s", c.Name, c.Path)
+		return errors.Errorf("project name %q includes spaces: %s", c.Name, c.Path)
 	}
 	if c.FTLMinVersion != "" && !ftl.IsVersionAtLeastMin(ftl.Version, c.FTLMinVersion) {
-		return fmt.Errorf("FTL version %q predates the minimum version %q", ftl.Version, c.FTLMinVersion)
+		return errors.Errorf("FTL version %q predates the minimum version %q", ftl.Version, c.FTLMinVersion)
 	}
 	for _, dir := range c.ModuleDirs {
 		absDir := filepath.Clean(filepath.Join(c.Root(), dir))
 		if !strings.HasPrefix(absDir, c.Root()) {
-			return fmt.Errorf("module-dirs path %q is not within the project root %q", dir, c.Root())
+			return errors.Errorf("module-dirs path %q is not within the project root %q", dir, c.Root())
 		}
 	}
 	return nil
@@ -90,7 +89,7 @@ func (c Config) AbsModuleDirs() []string {
 	for i, dir := range c.ModuleDirs {
 		cleaned := filepath.Clean(filepath.Join(root, dir))
 		if !strings.HasPrefix(cleaned, root) {
-			panic(fmt.Errorf("module-dirs path %q is not within the project root %q", dir, root))
+			panic(errors.Errorf("module-dirs path %q is not within the project root %q", dir, root))
 		}
 		absDirs[i] = cleaned
 	}
@@ -136,24 +135,24 @@ func DefaultConfigPath() optional.Option[string] {
 // Create creates the ftl-project.toml file with the given Config into dir.
 func Create(ctx context.Context, config Config, dir string) error {
 	if err := config.Validate(); err != nil {
-		return fmt.Errorf("project config: %w", err)
+		return errors.Wrap(err, "project config")
 	}
 	logger := log.FromContext(ctx)
 	path, err := filepath.Abs(dir)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	path = filepath.Join(path, "ftl-project.toml")
 	_, err = os.Stat(path)
 	if err == nil {
-		return fmt.Errorf("project config file already exists at %q", path)
+		return errors.Errorf("project config file already exists at %q", path)
 	}
 	if !errors.Is(err, os.ErrNotExist) {
-		return err
+		return errors.WithStack(err)
 	}
 	logger.Debugf("Creating a new project config file at %q", path)
 	config.Path = path
-	return Save(config)
+	return errors.WithStack(Save(config))
 }
 
 // Load project config from a file.
@@ -169,24 +168,24 @@ func Load(ctx context.Context, configPath optional.Option[string]) (Config, erro
 	}
 	path, err := filepath.Abs(path)
 	if err != nil {
-		return Config{}, err
+		return Config{}, errors.WithStack(err)
 	}
 	config := Config{}
 	md, err := toml.DecodeFile(path, &config)
 	if err != nil {
-		return Config{}, err
+		return Config{}, errors.WithStack(err)
 	}
 	if len(md.Undecoded()) > 0 {
 		keys := make([]string, len(md.Undecoded()))
 		for i, key := range md.Undecoded() {
 			keys[i] = key.String()
 		}
-		return Config{}, fmt.Errorf("unknown configuration keys: %s", strings.Join(keys, ", "))
+		return Config{}, errors.Errorf("unknown configuration keys: %s", strings.Join(keys, ", "))
 	}
 	config.Path = path
 
 	if err := config.Validate(); err != nil {
-		return Config{}, fmt.Errorf("%s: %w", path, err)
+		return Config{}, errors.Wrapf(err, "%s", path)
 	}
 	return config, nil
 }
@@ -194,23 +193,23 @@ func Load(ctx context.Context, configPath optional.Option[string]) (Config, erro
 // Save project config to its file atomically.
 func Save(config Config) error {
 	if config.Path == "" {
-		return fmt.Errorf("project config path must be set")
+		return errors.Errorf("project config path must be set")
 	}
 	if !filepath.IsAbs(config.Path) {
-		panic(fmt.Errorf("project config path must be absolute: %s", config.Path))
+		panic(errors.Errorf("project config path must be absolute: %s", config.Path))
 	}
 	w, err := os.CreateTemp(filepath.Dir(config.Path), filepath.Base(config.Path))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	defer os.Remove(w.Name()) //nolint:errcheck
 	defer w.Close()           //nolint:errcheck
 
 	enc := toml.NewEncoder(w)
 	if err := enc.Encode(config); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
-	return os.Rename(w.Name(), config.Path)
+	return errors.WithStack(os.Rename(w.Name(), config.Path))
 }
 
 // SchemaPath returns the path to the schema file for the given module.

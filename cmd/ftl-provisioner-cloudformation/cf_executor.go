@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
@@ -43,15 +44,15 @@ func (e *CloudFormationExecutor) Prepare(ctx context.Context, input state.State)
 		case state.InputPostgres:
 			tmpl := &PostgresTemplater{input: r, config: e.config}
 			if err := tmpl.AddToTemplate(e.template); err != nil {
-				return fmt.Errorf("failed to add postgres template: %w", err)
+				return errors.Wrap(err, "failed to add postgres template")
 			}
 		case state.InputMySQL:
 			tmpl := &MySQLTemplater{input: r, config: e.config}
 			if err := tmpl.AddToTemplate(e.template); err != nil {
-				return fmt.Errorf("failed to add mysql template: %w", err)
+				return errors.Wrap(err, "failed to add mysql template")
 			}
 		default:
-			return fmt.Errorf("unknown resource type: %T", r)
+			return errors.Errorf("unknown resource type: %T", r)
 		}
 	}
 
@@ -68,10 +69,10 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]state.State, er
 	changeSet := generateChangeSetName(e.stack)
 	templateStr, err := e.template.JSON()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create cloudformation template: %w", err)
+		return nil, errors.Wrap(err, "failed to create cloudformation template")
 	}
 	if err := ensureStackExists(ctx, e.cfn, e.stack); err != nil {
-		return nil, fmt.Errorf("failed to verify the stack exists: %w", err)
+		return nil, errors.Wrap(err, "failed to verify the stack exists")
 	}
 
 	logger.Debugf("creating change-set to stack %s", e.stack)
@@ -81,12 +82,12 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]state.State, er
 		TemplateBody:  ptr(string(templateStr)),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create change-set: %w", err)
+		return nil, errors.Wrap(err, "failed to create change-set")
 	}
 	logger.Debugf("waiting for change-set %s to stack %s to become ready", *resp.Id, e.stack)
 	hadChanges, err := waitChangeSetReady(ctx, e.cfn, changeSet, e.stack)
 	if err != nil {
-		return nil, fmt.Errorf("failed to wait for change-set to become ready: %w", err)
+		return nil, errors.Wrap(err, "failed to wait for change-set to become ready")
 	}
 
 	if hadChanges {
@@ -96,7 +97,7 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]state.State, er
 			StackName:     &e.stack,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to execute change-set: %w", err)
+			return nil, errors.Wrap(err, "failed to execute change-set")
 		}
 	} else {
 		logger.Debugf("no changes to execute for change-set %s to stack %s", *resp.Id, e.stack)
@@ -105,12 +106,12 @@ func (e *CloudFormationExecutor) Execute(ctx context.Context) ([]state.State, er
 	logger.Debugf("waiting for stack %s to be ready", e.stack)
 	cfOutputs, err := getStackOutputs(ctx, e.stack, e.cfn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to wait for stack to be ready: %w", err)
+		return nil, errors.Wrap(err, "failed to wait for stack to be ready")
 	}
 
 	byResourceID, err := outputsByResourceID(cfOutputs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to group outputs by resource ID: %w", err)
+		return nil, errors.Wrap(err, "failed to group outputs by resource ID")
 	}
 
 	outputs := make([]state.State, 0, len(e.inputs))

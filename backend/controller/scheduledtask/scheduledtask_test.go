@@ -2,12 +2,12 @@ package scheduledtask
 
 import (
 	"context"
-	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/errors"
 	"github.com/benbjohnson/clock"
 	"github.com/jpillora/backoff"
 
@@ -20,7 +20,7 @@ func TestScheduledTask(t *testing.T) {
 	t.Parallel()
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 	ctx, cancel := context.WithCancelCause(ctx)
-	t.Cleanup(func() { cancel(fmt.Errorf("test ended: %w", context.Canceled)) })
+	t.Cleanup(func() { cancel(errors.Wrap(context.Canceled, "test ended")) })
 
 	var singletonCount atomic.Int64
 	var multiCount atomic.Int64

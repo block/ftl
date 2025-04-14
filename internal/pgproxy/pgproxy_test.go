@@ -2,11 +2,11 @@ package pgproxy_test
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/jackc/pgx/v5/pgproto3"
 
@@ -26,7 +26,7 @@ func TestPgProxy(t *testing.T) {
 	frontend := pgproto3.NewFrontend(client, client)
 
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("test complete: %w", context.Canceled))
+	defer cancel(errors.Wrap(context.Canceled, "test complete"))
 	go pgproxy.HandleConnection(ctx, proxy, func(ctx context.Context, parameters map[string]string) (string, error) {
 		return dsn, nil
 	})

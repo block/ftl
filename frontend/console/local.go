@@ -4,8 +4,6 @@ package console
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	glog "log"
 	"net/http"
 	"net/http/httputil"
@@ -14,6 +12,8 @@ import (
 	"path"
 	"path/filepath"
 	"time"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/cors"
@@ -37,23 +37,23 @@ func PrepareServer(ctx context.Context) error {
 	}()
 	gitRoot, ok := internal.GitRoot(os.Getenv("FTL_DIR")).Get()
 	if !ok {
-		return fmt.Errorf("failed to find Git root")
+		return errors.Errorf("failed to find Git root")
 	}
 
 	// Lock the frontend directory to prevent concurrent builds.
 	release, err := flock.Acquire(ctx, filepath.Join(gitRoot, ".frontend.lock"), 2*time.Minute)
 	if err != nil {
-		return fmt.Errorf("failed to acquire lock: %w", err)
+		return errors.Wrap(err, "failed to acquire lock")
 	}
 
 	log.FromContext(ctx).Scope("console").Infof("Building console...")
 
 	err = exec.Command(ctx, log.Debug, gitRoot, "just", "build-frontend").RunBuffered(ctx)
 	if lerr := release(); lerr != nil {
-		return errors.Join(fmt.Errorf("failed to release lock: %w", lerr))
+		return errors.WithStack(errors.Join(errors.Wrap(lerr, "failed to release lock")))
 	}
 	if err != nil {
-		return fmt.Errorf("failed to build frontend: %w", err)
+		return errors.Wrap(err, "failed to build frontend")
 	}
 
 	return nil
@@ -62,12 +62,12 @@ func PrepareServer(ctx context.Context) error {
 func Server(ctx context.Context, timestamp time.Time, allowOrigin *url.URL) (http.Handler, error) {
 	gitRoot, ok := internal.GitRoot(os.Getenv("FTL_DIR")).Get()
 	if !ok {
-		return nil, fmt.Errorf("failed to find Git root")
+		return nil, errors.Errorf("failed to find Git root")
 	}
 
 	err := exec.Command(ctx, log.Debug, path.Join(gitRoot, "frontend", "console"), "pnpm", "run", "dev").Start()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	if allowOrigin == nil {

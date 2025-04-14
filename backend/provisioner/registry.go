@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
+
 	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/plugin"
@@ -29,7 +31,7 @@ func (cfg *provisionerPluginConfig) Validate() error {
 	for _, plugin := range cfg.Plugins {
 		for _, r := range plugin.Resources {
 			if registeredResources[r] {
-				return fmt.Errorf("resource type %s is already registered. Trying to re-register for %s", r, plugin.ID)
+				return errors.Errorf("resource type %s is already registered. Trying to re-register for %s", r, plugin.ID)
 			}
 			registeredResources[r] = true
 		}
@@ -68,12 +70,12 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("error validating provisioner config: %w", err)
+		return nil, errors.Wrap(err, "error validating provisioner config")
 	}
 	for _, plugin := range cfg.Plugins {
 		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		binding := result.Register(plugin.ID, provisioner, plugin.Resources...)
 		logger.Debugf("Registered provisioner %s", binding)
@@ -99,7 +101,7 @@ func provisionerIDToProvisioner(ctx context.Context, id string, workingDir strin
 			provisionerconnect.NewProvisionerPluginServiceClient,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("error spawning plugin: %w", err)
+			return nil, errors.Wrap(err, "error spawning plugin")
 		}
 
 		return NewPluginClient(plugin.Client), nil
@@ -174,7 +176,7 @@ func (reg *ProvisionerRegistry) VerifyDeploymentSupported(ctx context.Context, m
 			}
 		}
 		if !supported {
-			return fmt.Errorf("resource type %s is not supported in this environment", r.Kind)
+			return errors.Errorf("resource type %s is not supported in this environment", r.Kind)
 		}
 	}
 	return nil

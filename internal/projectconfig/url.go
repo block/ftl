@@ -3,6 +3,8 @@ package projectconfig
 import (
 	"fmt"
 	"net/url"
+
+	errors "github.com/alecthomas/errors"
 )
 
 // A URL that supports marshalling and unmarshalling which is, very
@@ -12,7 +14,7 @@ type URL url.URL
 func ParseURL(rawurl string) (*URL, error) {
 	parsed, err := url.Parse(rawurl)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return (*URL)(parsed), nil
 }
@@ -28,7 +30,7 @@ func MustParseURL(rawurl string) *URL {
 func (u *URL) UnmarshalText(text []byte) error {
 	parsed, err := url.Parse(string(text))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	*u = URL(*parsed)
 	return nil

@@ -3,9 +3,10 @@ package raft
 import (
 	"context"
 	"encoding"
-	"fmt"
 	"io"
 	"iter"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal/eventstream"
 	sm "github.com/block/ftl/internal/statemachine"
@@ -24,7 +25,7 @@ type RaftEventView[V encoding.BinaryMarshaler, VPrt sm.Unmarshallable[V], E Raft
 
 func (s *RaftEventView[V, VPrt, E]) Publish(ctx context.Context, event E) error {
 	if err := s.shard.Publish(ctx, event); err != nil {
-		return fmt.Errorf("failed to update shard: %w", err)
+		return errors.Wrap(err, "failed to update shard")
 	}
 	return nil
 }
@@ -34,7 +35,7 @@ func (s *RaftEventView[V, VPrt, E]) View(ctx context.Context) (V, error) {
 
 	view, err := s.shard.Query(ctx, UnitQuery{})
 	if err != nil {
-		return zero, err
+		return zero, errors.WithStack(err)
 	}
 
 	return view, nil
@@ -43,7 +44,7 @@ func (s *RaftEventView[V, VPrt, E]) View(ctx context.Context) (V, error) {
 func (s *RaftEventView[V, VPrt, E]) Changes(ctx context.Context) (iter.Seq[V], error) {
 	res, err := s.shard.StateIter(ctx, UnitQuery{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get changes: %w", err)
+		return nil, errors.Wrap(err, "failed to get changes")
 	}
 
 	return res, nil
@@ -69,7 +70,7 @@ func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Lookup(key UnitQuery) (V, er
 func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Publish(msg E) error {
 	v, err := msg.Handle(s.view)
 	if err != nil {
-		return fmt.Errorf("failed to handle event: %w", err)
+		return errors.Wrap(err, "failed to handle event")
 	}
 	s.view = v
 	return nil
@@ -78,11 +79,11 @@ func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Publish(msg E) error {
 func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Save(writer io.Writer) error {
 	bytes, err := s.view.MarshalBinary()
 	if err != nil {
-		return fmt.Errorf("failed to marshal view: %w", err)
+		return errors.Wrap(err, "failed to marshal view")
 	}
 	_, err = writer.Write(bytes)
 	if err != nil {
-		return fmt.Errorf("failed to write view: %w", err)
+		return errors.Wrap(err, "failed to write view")
 	}
 	return nil
 }
@@ -90,10 +91,10 @@ func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Save(writer io.Writer) error
 func (s *eventStreamStateMachine[V, VPrt, E, EPtr]) Recover(reader io.Reader) error {
 	bytes, err := io.ReadAll(reader)
 	if err != nil {
-		return fmt.Errorf("failed to read view: %w", err)
+		return errors.Wrap(err, "failed to read view")
 	}
 	if err := (VPrt)(&s.view).UnmarshalBinary(bytes); err != nil {
-		return fmt.Errorf("failed to unmarshal view: %w", err)
+		return errors.Wrap(err, "failed to unmarshal view")
 	}
 	return nil
 }

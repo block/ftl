@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/tuple"
 
 	"github.com/block/ftl/common/reflection"
@@ -112,31 +113,31 @@ func getQueryFunc[Req, Resp any](
 		if reflect.TypeFor[Req]() != reflect.TypeFor[ftl.Unit]() {
 			fn = func(ctx context.Context, req Req) error {
 				params := paramsFn(req)
-				return query.Exec[Req](ctx, dbName, rawSQL, params, colToFieldName)
+				return errors.WithStack(query.Exec[Req](ctx, dbName, rawSQL, params, colToFieldName))
 			}
 		} else {
 			fn = func(ctx context.Context) error {
-				return query.Exec[Req](ctx, dbName, rawSQL, []any{}, colToFieldName)
+				return errors.WithStack(query.Exec[Req](ctx, dbName, rawSQL, []any{}, colToFieldName))
 			}
 		}
 	case reflection.CommandTypeOne:
 		if reflect.TypeFor[Req]() != reflect.TypeFor[ftl.Unit]() {
 			fn = func(ctx context.Context, req Req) (Resp, error) {
-				return query.One[Req, Resp](ctx, dbName, rawSQL, paramsFn(req), colToFieldName)
+				return errors.WithStack2(query.One[Req, Resp](ctx, dbName, rawSQL, paramsFn(req), colToFieldName))
 			}
 		} else {
 			fn = func(ctx context.Context) (Resp, error) {
-				return query.One[Req, Resp](ctx, dbName, rawSQL, []any{}, colToFieldName)
+				return errors.WithStack2(query.One[Req, Resp](ctx, dbName, rawSQL, []any{}, colToFieldName))
 			}
 		}
 	case reflection.CommandTypeMany:
 		if reflect.TypeFor[Req]() != reflect.TypeFor[ftl.Unit]() {
 			fn = func(ctx context.Context, req Req) ([]Resp, error) {
-				return query.Many[Req, Resp](ctx, dbName, rawSQL, paramsFn(req), colToFieldName)
+				return errors.WithStack2(query.Many[Req, Resp](ctx, dbName, rawSQL, paramsFn(req), colToFieldName))
 			}
 		} else {
 			fn = func(ctx context.Context) ([]Resp, error) {
-				return query.Many[Req, Resp](ctx, dbName, rawSQL, []any{}, colToFieldName)
+				return errors.WithStack2(query.Many[Req, Resp](ctx, dbName, rawSQL, []any{}, colToFieldName))
 			}
 		}
 	}

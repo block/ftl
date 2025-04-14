@@ -3,14 +3,13 @@ package download
 import (
 	"bytes"
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/controller/artefacts"
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
@@ -29,7 +28,7 @@ func Artefacts(ctx context.Context, client adminpbconnect.AdminServiceClient, ke
 		DeploymentKey: key.String(),
 	}))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	start := time.Now()
 	count := 0
@@ -44,12 +43,12 @@ func Artefacts(ctx context.Context, client adminpbconnect.AdminServiceClient, ke
 			}
 			count++
 			if !filepath.IsLocal(artefact.Path) {
-				return fmt.Errorf("path %q is not local", artefact.Path)
+				return errors.Errorf("path %q is not local", artefact.Path)
 			}
 			logger.Debugf("Downloading %s", filepath.Join(dest, artefact.Path))
 			err = os.MkdirAll(filepath.Join(dest, filepath.Dir(artefact.Path)), 0700)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			var mode os.FileMode = 0600
 			if artefact.Executable {
@@ -57,21 +56,21 @@ func Artefacts(ctx context.Context, client adminpbconnect.AdminServiceClient, ke
 			}
 			w, err = os.OpenFile(filepath.Join(dest, artefact.Path), os.O_CREATE|os.O_WRONLY, mode)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			digest = artefact.Digest
 		}
 
 		if _, err := w.Write(msg.Chunk); err != nil {
 			_ = w.Close()
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	if w != nil {
 		w.Close()
 	}
 	logger.Debugf("Downloaded %d artefacts in %s", count, time.Since(start))
-	return stream.Err()
+	return errors.WithStack(stream.Err())
 }
 
 // ArtefactsFromOCI downloads artefacts for a deployment from an OCI registry.
@@ -81,7 +80,7 @@ func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.SchemaServiceClie
 		DeploymentKey: key.String(),
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to get deployment when downloading artifacts %q: %w", key, err)
+		return errors.Wrapf(err, "failed to get deployment when downloading artifacts %q", key)
 	}
 	start := time.Now()
 	count := 0
@@ -89,20 +88,20 @@ func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.SchemaServiceClie
 		if artefact := metadata.GetArtefact(); artefact != nil {
 			parseSHA256, err := sha256.ParseSHA256(artefact.Digest)
 			if err != nil {
-				return fmt.Errorf("failed to parse SHA256 %q: %w", artefact.Digest, err)
+				return errors.Wrapf(err, "failed to parse SHA256 %q", artefact.Digest)
 			}
 			res, err := service.Download(ctx, parseSHA256)
 			if err != nil {
-				return fmt.Errorf("failed to download artifact %q: %w", artefact.Digest, err)
+				return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
 			}
 			count++
 			if !filepath.IsLocal(artefact.Path) {
-				return fmt.Errorf("path %q is not local", artefact.Path)
+				return errors.Errorf("path %q is not local", artefact.Path)
 			}
 			logger.Debugf("Downloading %s", filepath.Join(dest, artefact.Path))
 			err = os.MkdirAll(filepath.Join(dest, filepath.Dir(artefact.Path)), 0700)
 			if err != nil {
-				return fmt.Errorf("failed to download artifact %q: %w", artefact.Digest, err)
+				return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
 			}
 			var mode os.FileMode = 0600
 			if artefact.Executable {
@@ -110,7 +109,7 @@ func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.SchemaServiceClie
 			}
 			w, err := os.OpenFile(filepath.Join(dest, artefact.Path), os.O_CREATE|os.O_WRONLY, mode)
 			if err != nil {
-				return fmt.Errorf("failed to download artifact %q: %w", artefact.Digest, err)
+				return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
 			}
 			defer w.Close()
 			buf := make([]byte, 1024)
@@ -120,14 +119,14 @@ func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.SchemaServiceClie
 				if read > 0 {
 					_, e2 := w.Write(buf[:read])
 					if e2 != nil {
-						return fmt.Errorf("failed to download artifact %q: %w", artefact.Digest, err)
+						return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
 					}
 				}
 				if errors.Is(err, io.EOF) {
 					break
 				}
 				if err != nil {
-					return fmt.Errorf("failed to download artifact %q: %w", artefact.Digest, err)
+					return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
 				}
 			}
 		}

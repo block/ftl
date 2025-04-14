@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
@@ -31,7 +33,7 @@ func (i newSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) 
 	}
 	modules, err := watch.DiscoverModules(ctx, searchDirs)
 	if err != nil {
-		return fmt.Errorf("could not discover modules: %w", err)
+		return errors.Wrap(err, "could not discover modules")
 	}
 	var module *moduleconfig.UnvalidatedModuleConfig
 	parts := strings.Split(i.Datasource, ".")
@@ -48,27 +50,27 @@ func (i newSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) 
 		}
 		dsName = parts[1]
 	} else {
-		return fmt.Errorf("invalid datasource %q, must be in the form module.datasource", i.Datasource)
+		return errors.Errorf("invalid datasource %q, must be in the form module.datasource", i.Datasource)
 	}
 	if module == nil {
-		return fmt.Errorf("could not find module %q", parts[0])
+		return errors.Errorf("could not find module %q", parts[0])
 	}
 
 	// Validate engine type
 	_, err = moduleconfig.ToEngineType(i.engine)
 	if err != nil {
-		return fmt.Errorf("invalid engine type %q: %w", i.engine, err)
+		return errors.Wrapf(err, "invalid engine type %q", i.engine)
 	}
 
 	language := module.Language
 	defaults, err := languageplugin.GetModuleConfigDefaults(ctx, language, module.Dir)
 	if err != nil {
-		return fmt.Errorf("could not get module config defaults for language %q: %w", language, err)
+		return errors.Wrapf(err, "could not get module config defaults for language %q", language)
 	}
 
 	sqlRootDir := defaults.SQLRootDir
 	if sqlRootDir == "" {
-		return fmt.Errorf("no SQL root directory configured for language %q", language)
+		return errors.Errorf("no SQL root directory configured for language %q", language)
 	}
 
 	dbDir := filepath.Join(module.Dir, sqlRootDir, i.engine, dsName)
@@ -78,7 +80,7 @@ func (i newSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) 
 	if stat, err := os.Stat(schemaDir); err == nil && stat.IsDir() {
 		entries, err := os.ReadDir(schemaDir)
 		if err != nil {
-			return fmt.Errorf("could not read schema directory at %s: %w", schemaDir, err)
+			return errors.Wrapf(err, "could not read schema directory at %s", schemaDir)
 		}
 		for _, entry := range entries {
 			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
@@ -90,10 +92,10 @@ func (i newSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) 
 
 	// Create directories
 	if err := os.MkdirAll(schemaDir, 0750); err != nil {
-		return fmt.Errorf("could not create schema directory at %s: %w", schemaDir, err)
+		return errors.Wrapf(err, "could not create schema directory at %s", schemaDir)
 	}
 	if err := os.MkdirAll(queriesDir, 0750); err != nil {
-		return fmt.Errorf("could not create queries directory at %s: %w", queriesDir, err)
+		return errors.Wrapf(err, "could not create queries directory at %s", queriesDir)
 	}
 
 	// Create initial migration file
@@ -102,12 +104,12 @@ func (i newSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) 
 	migrationPath := filepath.Join(schemaDir, migrationName)
 	migrationFile, err := os.Create(migrationPath)
 	if err != nil {
-		return fmt.Errorf("could not create migration file at %s: %w", migrationPath, err)
+		return errors.Wrapf(err, "could not create migration file at %s", migrationPath)
 	}
 	defer migrationFile.Close()
 
 	if _, err := migrationFile.WriteString(migrationTemplate); err != nil {
-		return fmt.Errorf("could not write to migration file at %s: %w", migrationPath, err)
+		return errors.Wrapf(err, "could not write to migration file at %s", migrationPath)
 	}
 
 	logger := log.FromContext(ctx)

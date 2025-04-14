@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/key"
@@ -80,10 +81,10 @@ func (r *Realm) ContainsRef(ref *Ref) bool {
 func (r *Realm) ResolveToType(ref *Ref, out Decl) error {
 	// Programmer error.
 	if reflect.ValueOf(out).Kind() != reflect.Ptr {
-		panic(fmt.Errorf("out parameter is not a pointer"))
+		panic(errors.Errorf("out parameter is not a pointer"))
 	}
 	if reflect.ValueOf(out).Elem().Kind() == reflect.Invalid {
-		panic(fmt.Errorf("out parameter is a nil pointer"))
+		panic(errors.Errorf("out parameter is a nil pointer"))
 	}
 
 	for _, module := range r.Modules {
@@ -96,14 +97,14 @@ func (r *Realm) ResolveToType(ref *Ref, out Decl) error {
 						reflect.ValueOf(out).Elem().Set(reflect.ValueOf(decl).Elem())
 						return nil
 					}
-					return fmt.Errorf("resolved declaration is not of the expected type: want %s, got %s",
+					return errors.Errorf("resolved declaration is not of the expected type: want %s, got %s",
 						outType, declType)
 				}
 			}
 		}
 	}
 
-	return fmt.Errorf("could not resolve reference %v: %w", ref, ErrNotFound)
+	return errors.Wrapf(ErrNotFound, "could not resolve reference %v", ref)
 }
 
 // Module returns the named module if it exists.

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/admin"
@@ -62,7 +63,7 @@ func (s *configListCmd) Run(ctx context.Context, adminClient admin.EnvironmentCl
 		IncludeValues: &s.Values,
 	}))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	for _, config := range resp.Msg.Configs {
@@ -91,7 +92,7 @@ func (s *configGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 		Ref: configRefFromRef(s.Ref),
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to get config: %w", err)
+		return errors.Wrap(err, "failed to get config")
 	}
 	fmt.Printf("%s\n", resp.Msg.Value)
 	return nil
@@ -110,7 +111,7 @@ func (s *configSetCmd) Run(ctx context.Context, scmd *configCmd, adminClient adm
 	} else {
 		config, err = io.ReadAll(os.Stdin)
 		if err != nil {
-			return fmt.Errorf("failed to read config from stdin: %w", err)
+			return errors.Wrap(err, "failed to read config from stdin")
 		}
 	}
 
@@ -118,13 +119,13 @@ func (s *configSetCmd) Run(ctx context.Context, scmd *configCmd, adminClient adm
 	if s.JSON {
 		var jsonValue any
 		if err := json.Unmarshal(config, &jsonValue); err != nil {
-			return fmt.Errorf("config is not valid JSON: %w", err)
+			return errors.Wrap(err, "config is not valid JSON")
 		}
 		configJSON = config
 	} else {
 		configJSON, err = json.Marshal(string(config))
 		if err != nil {
-			return fmt.Errorf("failed to encode config as JSON: %w", err)
+			return errors.Wrap(err, "failed to encode config as JSON")
 		}
 	}
 
@@ -137,7 +138,7 @@ func (s *configSetCmd) Run(ctx context.Context, scmd *configCmd, adminClient adm
 	}
 	_, err = adminClient.ConfigSet(ctx, connect.NewRequest(req))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -155,7 +156,7 @@ func (s *configUnsetCmd) Run(ctx context.Context, scmd *configCmd, adminClient a
 	}
 	_, err := adminClient.ConfigUnset(ctx, connect.NewRequest(req))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -173,21 +174,21 @@ Imports configuration values from a JSON object.
 func (s *configImportCmd) Run(ctx context.Context, cmd *configCmd, adminClient admin.EnvironmentClient) error {
 	input, err := io.ReadAll(s.Input)
 	if err != nil {
-		return fmt.Errorf("failed to read input: %w", err)
+		return errors.Wrap(err, "failed to read input")
 	}
 	var entries map[string]json.RawMessage
 	err = json.Unmarshal(input, &entries)
 	if err != nil {
-		return fmt.Errorf("could not parse JSON: %w", err)
+		return errors.Wrap(err, "could not parse JSON")
 	}
 	for refPath, value := range entries {
 		ref, err := configuration.ParseRef(refPath)
 		if err != nil {
-			return fmt.Errorf("could not parse ref %q: %w", refPath, err)
+			return errors.Wrapf(err, "could not parse ref %q", refPath)
 		}
 		bytes, err := json.Marshal(value)
 		if err != nil {
-			return fmt.Errorf("could not marshal value for %q: %w", refPath, err)
+			return errors.Wrapf(err, "could not marshal value for %q", refPath)
 		}
 		req := &adminpb.ConfigSetRequest{
 			Ref:   configRefFromRef(ref),
@@ -198,7 +199,7 @@ func (s *configImportCmd) Run(ctx context.Context, cmd *configCmd, adminClient a
 		}
 		_, err = adminClient.ConfigSet(ctx, connect.NewRequest(req))
 		if err != nil {
-			return fmt.Errorf("could not import config for %q: %w", refPath, err)
+			return errors.Wrapf(err, "could not import config for %q", refPath)
 		}
 	}
 	return nil
@@ -222,21 +223,21 @@ func (s *configExportCmd) Run(ctx context.Context, cmd *configCmd, adminClient a
 	}
 	listResponse, err := adminClient.ConfigList(ctx, connect.NewRequest(req))
 	if err != nil {
-		return fmt.Errorf("could not retrieve configs: %w", err)
+		return errors.Wrap(err, "could not retrieve configs")
 	}
 	entries := make(map[string]json.RawMessage, 0)
 	for _, config := range listResponse.Msg.Configs {
 		var value json.RawMessage
 		err = json.Unmarshal(config.Value, &value)
 		if err != nil {
-			return fmt.Errorf("could not export %q: %w", config.RefPath, err)
+			return errors.Wrapf(err, "could not export %q", config.RefPath)
 		}
 		entries[config.RefPath] = value
 	}
 
 	output, err := json.Marshal(entries)
 	if err != nil {
-		return fmt.Errorf("could not build output: %w", err)
+		return errors.Wrap(err, "could not build output")
 	}
 	fmt.Println(string(output))
 	return nil

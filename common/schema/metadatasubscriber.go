@@ -3,6 +3,8 @@ package schema
 import (
 	"fmt"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 )
 
 type FromOffset int
@@ -20,7 +22,7 @@ func (o *FromOffset) Capture(values []string) error {
 	case "latest":
 		*o = FromOffsetLatest
 	default:
-		return fmt.Errorf("unexpected value %q", values[0])
+		return errors.Errorf("unexpected value %q", values[0])
 	}
 	return nil
 }

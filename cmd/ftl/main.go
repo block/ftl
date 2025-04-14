@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/url"
 	"os"
 	"os/signal"
@@ -15,6 +13,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	kongtoml "github.com/alecthomas/kong-toml"
 	"github.com/alecthomas/types/optional"
@@ -121,7 +120,7 @@ func main() {
 	var lg atomic.Value[*log.Logger]
 	go func() {
 		sig := <-sigch
-		cancel(fmt.Errorf("FTL terminating with signal %s: %w", sig, context.Canceled))
+		cancel(errors.Wrapf(context.Canceled, "FTL terminating with signal %s", sig))
 		logger := lg.Load()
 		if logger != nil {
 			logger.Debugf("FTL terminating with signal %s", sig)
@@ -256,7 +255,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		err := kctx.BindToProvider(func(cli *SharedCLI) (projectconfig.Config, error) {
 			config, err := projectconfig.Load(ctx, optional.Zero(cli.ConfigFlag))
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				return config, fmt.Errorf("%w", err)
+				return config, errors.WithStack(err)
 			}
 			return config, nil
 		})
@@ -304,7 +303,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		kctx.FatalIfErrorf(err)
 
 		err = kctx.BindToProvider(func(projectConfig projectconfig.Config, secretsRegistry *config.Registry[config.Secrets], configRegistry *config.Registry[config.Configuration]) (*profiles.Project, error) {
-			return profiles.Open(filepath.Dir(projectConfig.Path), secretsRegistry, configRegistry)
+			return errors.WithStack2(profiles.Open(filepath.Dir(projectConfig.Path), secretsRegistry, configRegistry))
 		})
 		kctx.FatalIfErrorf(err)
 
@@ -334,7 +333,7 @@ func provideAdminClient(
 ) (client admin.EnvironmentClient, err error) {
 	shouldUseLocalClient, err := admin.ShouldUseLocalClient(ctx, adminClient, cli.AdminEndpoint)
 	if err != nil {
-		return client, fmt.Errorf("could not create admin client: %w", err)
+		return client, errors.Wrap(err, "could not create admin client")
 	}
 	if shouldUseLocalClient {
 		return admin.NewLocalClient(projectConfig, cm, sm), nil

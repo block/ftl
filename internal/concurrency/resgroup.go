@@ -1,5 +1,7 @@
 package concurrency
 
+import errors "github.com/alecthomas/errors"
+
 type ResourceGroup[T any] struct {
 	funcs []func() (T, error)
 
@@ -27,7 +29,7 @@ func (r *ResourceGroup[T]) Wait() ([]T, error) {
 	for range r.funcs {
 		err := <-r.errchan
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		results = append(results, <-r.reschan)
 	}

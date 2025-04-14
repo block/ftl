@@ -3,13 +3,13 @@ package providers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/kballard/go-shellquote"
 
 	"github.com/block/ftl/internal/configuration"
@@ -61,12 +61,12 @@ func (o OnePassword) SyncInterval() time.Duration {
 func (o OnePassword) Sync(ctx context.Context) (map[configuration.Ref]configuration.SyncedValue, error) {
 	logger := log.FromContext(ctx)
 	if err := checkOpBinary(); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	values := map[configuration.Ref]configuration.SyncedValue{}
 	full, err := o.getItem(ctx, o.Vault)
 	if err != nil {
-		return nil, fmt.Errorf("get item failed: %w", err)
+		return nil, errors.Wrap(err, "get item failed")
 	}
 	for _, field := range full.Fields {
 		ref, err := configuration.ParseRef(field.Label)
@@ -89,13 +89,13 @@ var vaultRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-.]+$`)
 // Because of this, we need check if the item exists before creating it, and update it if it does.
 func (o OnePassword) Store(ctx context.Context, ref configuration.Ref, value []byte) (*url.URL, error) {
 	if err := checkOpBinary(); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if o.Vault == "" {
-		return nil, fmt.Errorf("vault missing, specify vault as a flag to the controller")
+		return nil, errors.Errorf("vault missing, specify vault as a flag to the controller")
 	}
 	if !vaultRegex.MatchString(o.Vault) {
-		return nil, fmt.Errorf("vault name %q contains invalid characters. a-z A-Z 0-9 _ . - are valid", o.Vault)
+		return nil, errors.Errorf("vault name %q contains invalid characters. a-z A-Z 0-9 _ . - are valid", o.Vault)
 	}
 
 	url := &url.URL{Scheme: string(OnePasswordProviderKey), Host: o.Vault}
@@ -105,15 +105,15 @@ func (o OnePassword) Store(ctx context.Context, ref configuration.Ref, value []b
 	if errors.As(err, new(itemNotFoundError)) {
 		err = o.createItem(ctx, o.Vault)
 		if err != nil {
-			return nil, fmt.Errorf("create item failed: %w", err)
+			return nil, errors.Wrap(err, "create item failed")
 		}
 	} else if err != nil {
-		return nil, fmt.Errorf("get item failed: %w", err)
+		return nil, errors.Wrap(err, "get item failed")
 	}
 
 	err = o.storeSecret(ctx, o.Vault, ref, value)
 	if err != nil {
-		return nil, fmt.Errorf("edit item failed: %w", err)
+		return nil, errors.Wrap(err, "edit item failed")
 	}
 
 	return url, nil
@@ -122,7 +122,7 @@ func (o OnePassword) Store(ctx context.Context, ref configuration.Ref, value []b
 func checkOpBinary() error {
 	_, err := exec.LookPath("op")
 	if err != nil {
-		return fmt.Errorf("1Password CLI tool \"op\" not found: %w", err)
+		return errors.Wrap(err, "1Password CLI tool \"op\" not found")
 	}
 	return nil
 }
@@ -160,23 +160,23 @@ func (o OnePassword) getItem(ctx context.Context, vault string) (*item, error) {
 	if err != nil {
 		// This is specifically not itemNotFoundError, to distinguish between vault not found and item not found.
 		if strings.Contains(string(output), "isn't a vault") {
-			return nil, fmt.Errorf("vault %q not found: %w", vault, err)
+			return nil, errors.Wrapf(err, "vault %q not found", vault)
 		}
 
 		// Item not found, seen two ways of reporting this:
 		if strings.Contains(string(output), "not found in vault") {
-			return nil, itemNotFoundError{vault, o.itemName()}
+			return nil, errors.WithStack(itemNotFoundError{vault, o.itemName()})
 		}
 		if strings.Contains(string(output), "isn't an item") {
-			return nil, itemNotFoundError{vault, o.itemName()}
+			return nil, errors.WithStack(itemNotFoundError{vault, o.itemName()})
 		}
 
-		return nil, fmt.Errorf("run `op` with args %s: %w", shellquote.Join(args...), err)
+		return nil, errors.Wrapf(err, "run `op` with args %s", shellquote.Join(args...))
 	}
 
 	var full item
 	if err := json.Unmarshal(output, &full); err != nil {
-		return nil, fmt.Errorf("error decoding op full response: %w", err)
+		return nil, errors.Wrap(err, "error decoding op full response")
 	}
 	return &full, nil
 }
@@ -192,7 +192,7 @@ func (o OnePassword) createItem(ctx context.Context, vault string) error {
 	}
 	_, err := exec.Capture(ctx, ".", "op", args...)
 	if err != nil {
-		return fmt.Errorf("create item failed in vault %q: %w", vault, err)
+		return errors.Wrapf(err, "create item failed in vault %q", vault)
 	}
 	return nil
 }
@@ -201,7 +201,7 @@ func (o OnePassword) createItem(ctx context.Context, vault string) error {
 func (o OnePassword) storeSecret(ctx context.Context, vault string, ref configuration.Ref, secret []byte) error {
 	module, ok := ref.Module.Get()
 	if !ok {
-		return fmt.Errorf("module is required for secret: %v", ref)
+		return errors.Errorf("module is required for secret: %v", ref)
 	}
 	args := []string{
 		"item", "edit", o.itemName(),
@@ -211,7 +211,7 @@ func (o OnePassword) storeSecret(ctx context.Context, vault string, ref configur
 	}
 	_, err := exec.Capture(ctx, ".", "op", args...)
 	if err != nil {
-		return fmt.Errorf("edit item failed in vault %q, ref %q: %w", vault, ref, err)
+		return errors.Wrapf(err, "edit item failed in vault %q, ref %q", vault, ref)
 	}
 	return nil
 }

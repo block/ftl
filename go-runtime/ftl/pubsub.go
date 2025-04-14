@@ -3,6 +3,8 @@ package ftl
 import (
 	"context"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/go-runtime/internal"
 )
@@ -30,5 +32,5 @@ type TopicHandle[E any, M TopicPartitionMap[E]] struct {
 // Publish publishes an event to a topic
 func (t TopicHandle[E, M]) Publish(ctx context.Context, event E) error {
 	var mapper M
-	return internal.FromContext(ctx).PublishEvent(ctx, t.Ref, event, mapper.PartitionKey(event)) //nolint:wrapcheck
+	return errors.WithStack(internal.FromContext(ctx).PublishEvent(ctx, t.Ref, event, mapper.PartitionKey(event))) //nolint:wrapcheck
 }

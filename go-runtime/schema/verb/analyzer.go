@@ -1,12 +1,12 @@
 package verb
 
 import (
-	"fmt"
 	"go/ast"
 	"go/types"
 	"strings"
 	"unicode"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl-golang-tools/go/analysis"
@@ -35,7 +35,7 @@ func (r resource) toMetadataType() (schema.Metadata, error) {
 	case common.VerbResourceTypeSecret:
 		return &schema.MetadataSecrets{}, nil
 	default:
-		return nil, fmt.Errorf("unsupported resource type")
+		return nil, errors.Errorf("unsupported resource type")
 	}
 }
 
@@ -165,52 +165,52 @@ func resolveResource(pass *analysis.Pass, typ ast.Expr) (*resource, error) {
 	case common.VerbResourceTypeVerbClient:
 		calleeRef, ok := common.ExtractSimpleRefWithCasing(pass, typ, strcase.ToLowerCamel).Get()
 		if !ok {
-			return nil, fmt.Errorf("unsupported verb parameter type")
+			return nil, errors.Errorf("unsupported verb parameter type")
 		}
 		calleeRef.Name = strings.TrimSuffix(calleeRef.Name, "Client")
 		ref = calleeRef
 	case common.VerbResourceTypeDatabaseHandle:
 		if !hasObj {
-			return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+			return nil, errors.Errorf("unsupported verb parameter type; expected generated database handle")
 		}
 		var dbObj types.Object
 		if alias, ok := obj.Type().(*types.Alias); ok {
 			named, ok := alias.Rhs().(*types.Named)
 			if !ok {
-				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+				return nil, errors.Errorf("unsupported verb parameter type; expected generated database handle")
 			}
 
 			typeArgs := named.TypeArgs()
 			if typeArgs.Len() == 0 {
-				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+				return nil, errors.Errorf("unsupported verb parameter type; expected generated database handle")
 			}
 			configType := typeArgs.At(0)
 			named, ok = configType.(*types.Named)
 			if !ok {
-				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+				return nil, errors.Errorf("unsupported verb parameter type; expected generated database handle")
 			}
 			dbObj = named.Obj()
 		} else {
 			idxExpr, ok := typ.(*ast.IndexExpr)
 			if !ok {
-				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+				return nil, errors.Errorf("unsupported verb parameter type; expected generated database handle")
 			}
 			ident, ok := idxExpr.Index.(*ast.Ident)
 			if !ok {
-				return nil, fmt.Errorf("unsupported verb parameter type; expected generated database handle")
+				return nil, errors.Errorf("unsupported verb parameter type; expected generated database handle")
 			}
 			dbObj, ok = common.GetObjectForNode(pass.TypesInfo, ident).Get()
 			if !ok {
-				return nil, fmt.Errorf("unsupported verb parameter type")
+				return nil, errors.Errorf("unsupported verb parameter type")
 			}
 		}
 		dbName, ok := common.GetFactForObject[*common.DatabaseConfig](pass, dbObj).Get()
 		if !ok {
-			return nil, fmt.Errorf("no database name found for verb parameter")
+			return nil, errors.Errorf("no database name found for verb parameter")
 		}
 		module, err := common.FtlModuleFromGoPackage(dbObj.Pkg().Path())
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve module for type: %w", err)
+			return nil, errors.Wrap(err, "failed to resolve module for type")
 		}
 		ref = &schema.Ref{
 			Module: module,
@@ -219,11 +219,11 @@ func resolveResource(pass *analysis.Pass, typ ast.Expr) (*resource, error) {
 	case common.VerbResourceTypeTopicHandle, common.VerbResourceTypeSecret, common.VerbResourceTypeConfig:
 		var ok bool
 		if ref, ok = common.ExtractSimpleRefWithCasing(pass, typ, strcase.ToLowerCamel).Get(); !ok {
-			return nil, fmt.Errorf("unsupported verb parameter type; expected ftl.TopicHandle[Event, PartitionMapper]")
+			return nil, errors.Errorf("unsupported verb parameter type; expected ftl.TopicHandle[Event, PartitionMapper]")
 		}
 	}
 	if ref == nil {
-		return nil, fmt.Errorf("unsupported verb parameter type")
+		return nil, errors.Errorf("unsupported verb parameter type")
 	}
 	return &resource{ref: ref, typ: rType}, nil
 }

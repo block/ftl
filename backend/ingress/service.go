@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
@@ -29,7 +30,7 @@ type Config struct {
 
 func (c *Config) Validate() error {
 	if len(c.AllowHeaders) > 0 && len(c.AllowOrigins) == 0 {
-		return fmt.Errorf("AllowOrigins must be set when AllowHeaders is used")
+		return errors.Errorf("AllowOrigins must be set when AllowHeaders is used")
 	}
 	return nil
 }
@@ -66,7 +67,7 @@ func Start(ctx context.Context, bind *url.URL, config Config, eventSource *schem
 	logger.Infof("HTTP ingress server listening on: %s", bind) //nolint
 	err := ftlhttp.Serve(ctx, bind, ingressHandler)
 	if err != nil {
-		return fmt.Errorf("ingress service stopped: %w", err)
+		return errors.Wrap(err, "ingress service stopped")
 	}
 	return nil
 }

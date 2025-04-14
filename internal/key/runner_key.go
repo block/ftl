@@ -2,6 +2,8 @@ package key
 
 import (
 	"strconv"
+
+	errors "github.com/alecthomas/errors"
 )
 
 type Runner = KeyType[RunnerPayload, *RunnerPayload]
@@ -14,7 +16,9 @@ func NewLocalRunnerKey(suffix int) Runner {
 	return newKey[RunnerPayload]("", strconv.Itoa(suffix))
 }
 
-func ParseRunnerKey(key string) (Runner, error) { return parseKey[RunnerPayload](key) }
+func ParseRunnerKey(key string) (Runner, error) {
+	return errors.WithStack2(parseKey[RunnerPayload](key))
+}
 
 type RunnerPayload struct {
 	HostPortMixin

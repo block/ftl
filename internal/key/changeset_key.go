@@ -4,7 +4,8 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding"
-	"errors"
+
+	errors "github.com/alecthomas/errors"
 )
 
 type Changeset = KeyType[ChangesetPayload, *ChangesetPayload]
@@ -18,7 +19,7 @@ var _ interface {
 
 func NewChangesetKey() Changeset { return newKey[ChangesetPayload]() }
 func ParseChangesetKey(key string) (Changeset, error) {
-	return parseKey[ChangesetPayload](key)
+	return errors.WithStack2(parseKey[ChangesetPayload](key))
 }
 
 type ChangesetPayload struct {
@@ -33,7 +34,7 @@ func (c *ChangesetPayload) Kind() string   { return "chs" }
 func (c *ChangesetPayload) String() string { return "" }
 func (c *ChangesetPayload) Parse(parts []string) error {
 	if len(parts) != 0 {
-		return errors.New("expected no content")
+		return errors.WithStack(errors.New("expected no content"))
 	}
 	return nil
 }

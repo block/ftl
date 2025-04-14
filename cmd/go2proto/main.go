@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -16,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"golang.org/x/tools/go/packages"
 
@@ -388,7 +388,7 @@ func run(cli Config) error {
 		var err error
 		out, err = os.Create(cli.Output + "~")
 		if err != nil {
-			return fmt.Errorf("failed to create output file: %w", err)
+			return errors.Wrap(err, "failed to create output file")
 		}
 		defer out.Close()
 		defer os.Remove(cli.Output + "~")
@@ -401,11 +401,11 @@ func run(cli Config) error {
 			packages.NeedFiles | packages.NeedName,
 	}, cli.Package)
 	if err != nil {
-		return fmt.Errorf("unable to load package %s: %w", cli.Package, err)
+		return errors.Wrapf(err, "unable to load package %s", cli.Package)
 	}
 
 	if len(pkgs) == 0 {
-		return fmt.Errorf("no packages found matching %s", cli.Package)
+		return errors.Errorf("no packages found matching %s", cli.Package)
 	}
 
 	pkg := pkgs[0]
@@ -414,12 +414,12 @@ func run(cli Config) error {
 	}
 
 	if pkg.Types == nil {
-		return fmt.Errorf("package %s had fatal errors, cannot continue", cli.Package)
+		return errors.Errorf("package %s had fatal errors, cannot continue", cli.Package)
 	}
 
 	exports := findExportedTypes(pkg)
 	if len(exports) == 0 {
-		return fmt.Errorf("no types found with //protobuf:export directive in package %s", cli.Package)
+		return errors.Errorf("no types found with //protobuf:export directive in package %s", cli.Package)
 	}
 
 	resolved := &PkgRefs{
@@ -430,21 +430,21 @@ func run(cli Config) error {
 
 	directives, err := parsePackageDirectives(pkgs)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	file, goImports, err := extract(cli, resolved)
 	if gerr := new(GenError); errors.As(err, &gerr) {
 		pos := fset.Position(gerr.pos)
-		return fmt.Errorf("%s:%d: %w", pos.Filename, pos.Line, err)
+		return errors.Wrapf(err, "%s:%d", pos.Filename, pos.Line)
 	} else if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if cli.JSON {
 		b, err := json.MarshalIndent(file, "", "  ")
 		if err != nil {
-			return fmt.Errorf("failed to marshal JSON: %w", err)
+			return errors.Wrap(err, "failed to marshal JSON")
 		}
 		fmt.Println(string(b))
 		return nil
@@ -452,30 +452,30 @@ func run(cli Config) error {
 
 	err = render(out, directives, file)
 	if err != nil {
-		return fmt.Errorf("failed to render template: %w", err)
+		return errors.Wrap(err, "failed to render template")
 	}
 
 	if cli.Mappers {
 		w, err := os.CreateTemp(cli.Package, "go2proto.to.go-*")
 		if err != nil {
-			return fmt.Errorf("create temp: %w", err)
+			return errors.Wrap(err, "create temp")
 		}
 		defer os.Remove(w.Name())
 		defer w.Close()
 		err = renderToProto(w, directives, file, goImports)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		err = os.Rename(w.Name(), filepath.Join(cli.Package, "go2proto.to.go"))
 		if err != nil {
-			return fmt.Errorf("rename: %w", err)
+			return errors.Wrap(err, "rename")
 		}
 	}
 
 	if cli.Output != "" {
 		err = os.Rename(cli.Output+"~", cli.Output)
 		if err != nil {
-			return fmt.Errorf("rename: %w", err)
+			return errors.Wrap(err, "rename")
 		}
 	}
 	return nil
@@ -506,12 +506,16 @@ type State struct {
 	*PkgRefs
 }
 
-func genErrorf(pos token.Pos, format string, args ...any) error {
-	err := fmt.Errorf(format, args...)
-	if gerr := new(GenError); errors.As(err, &gerr) {
-		return &GenError{pos: gerr.pos, err: err}
+func genErrorf(pos token.Pos, err error, format string, args ...any) error {
+	if err != nil {
+		err = errors.Wrapf(err, format, args...)
+	} else {
+		err = errors.Errorf(format, args...)
 	}
-	return &GenError{pos: pos, err: err}
+	if gerr := new(GenError); errors.As(err, &gerr) {
+		return errors.WithStack(&GenError{pos: gerr.pos, err: err})
+	}
+	return errors.WithStack(&GenError{pos: pos, err: err})
 }
 
 func extract(config Config, pkg *PkgRefs) (File, []string, error) {
@@ -525,24 +529,24 @@ func extract(config Config, pkg *PkgRefs) (File, []string, error) {
 	for _, sym := range pkg.Refs {
 		obj := pkg.Pkg.Types.Scope().Lookup(sym)
 		if obj == nil {
-			return File{}, nil, fmt.Errorf("%s: not found in package %s", sym, pkg.Pkg.ID)
+			return File{}, nil, errors.Errorf("%s: not found in package %s", sym, pkg.Pkg.ID)
 		}
 		if !strings.HasSuffix(pkg.Pkg.Name, "_test") {
 			state.Dest.GoPackage = pkg.Pkg.Name
 		}
 		named, ok := obj.Type().(*types.Named)
 		if !ok {
-			return File{}, nil, genErrorf(obj.Pos(), "%s: expected named type, got %T", sym, obj.Type())
+			return File{}, nil, errors.WithStack(genErrorf(obj.Pos(), nil, "%s: expected named type, got %T", sym, obj.Type()))
 		}
 		if err := state.extractDecl(obj, named); err != nil {
-			return File{}, nil, fmt.Errorf("%s: %w", sym, err)
+			return File{}, nil, errors.Wrapf(err, "%s", sym)
 		}
 	}
 	state.Pass++
 	// Second pass, populate the fields of messages.
 	for msg, n := range state.Messages {
 		if err := state.populateFields(msg, n); err != nil {
-			return File{}, nil, fmt.Errorf("%s: %w", msg.Name, err)
+			return File{}, nil, errors.Wrapf(err, "%s", msg.Name)
 		}
 	}
 
@@ -571,13 +575,13 @@ func (s *State) extractDecl(obj types.Object, named *types.Named) error {
 	if isOptional(named) {
 		u := named.TypeArgs().At(0)
 		if nt, ok := u.(*types.Named); ok {
-			return s.extractDecl(nt.Obj(), nt)
+			return errors.WithStack(s.extractDecl(nt.Obj(), nt))
 		}
 		return nil
 	}
 
 	if named.TypeParams() != nil {
-		return genErrorf(obj.Pos(), "generic types are not supported")
+		return errors.WithStack(genErrorf(obj.Pos(), nil, "generic types are not supported"))
 	}
 	if imp, ok := stdTypes[named.String()]; ok {
 		s.Dest.AddImport(imp.path)
@@ -586,21 +590,21 @@ func (s *State) extractDecl(obj types.Object, named *types.Named) error {
 	switch u := named.Underlying().(type) {
 	case *types.Struct:
 		if err := s.extractStruct(named); err != nil {
-			return genErrorf(obj.Pos(), "%w", err)
+			return errors.WithStack(genErrorf(obj.Pos(), err, ""))
 		}
 		return nil
 
 	case *types.Interface:
-		return s.extractSumType(named.Obj(), u)
+		return errors.WithStack(s.extractSumType(named.Obj(), u))
 
 	case *types.Basic:
-		return s.extractEnum(named)
+		return errors.WithStack(s.extractEnum(named))
 
 	default:
 		if implements(named, binaryMarshaler) || implements(named, textMarshaler) {
 			return nil
 		}
-		return genErrorf(obj.Pos(), "unsupported named type %T", u)
+		return errors.WithStack(genErrorf(obj.Pos(), nil, "unsupported named type %T", u))
 	}
 }
 
@@ -625,11 +629,11 @@ func (s *State) extractStruct(n *types.Named) error {
 	fields, errf := iterFields(n)
 	for rf := range fields {
 		if err := s.maybeExtractDecl(rf, rf.Type()); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	if err := errf(); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	s.Messages[decl] = n
 	s.Dest.Decls = append(s.Dest.Decls, decl)
@@ -639,23 +643,23 @@ func (s *State) extractStruct(n *types.Named) error {
 func (s *State) maybeExtractDecl(n types.Object, t types.Type) error {
 	switch t := t.(type) {
 	case *types.Named:
-		return s.extractDecl(n, t)
+		return errors.WithStack(s.extractDecl(n, t))
 
 	case *types.Array:
-		return s.maybeExtractDecl(n, t.Elem())
+		return errors.WithStack(s.maybeExtractDecl(n, t.Elem()))
 
 	case *types.Slice:
-		return s.maybeExtractDecl(n, t.Elem())
+		return errors.WithStack(s.maybeExtractDecl(n, t.Elem()))
 
 	case *types.Pointer:
-		return s.maybeExtractDecl(n, t.Elem())
+		return errors.WithStack(s.maybeExtractDecl(n, t.Elem()))
 
 	case *types.Interface:
-		return s.extractSumType(n, t)
+		return errors.WithStack(s.extractSumType(n, t))
 
 	case *types.Map:
 		if err := s.maybeExtractDecl(n, t.Elem()); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		return nil
 
@@ -677,16 +681,16 @@ func (s *State) populateFields(decl *Message, n *types.Named) error {
 			t = nt.TypeArgs().At(0)
 		}
 		if err := s.applyFieldType(t, field); err != nil {
-			return fmt.Errorf("%s: %w", rf.Name(), err)
+			return errors.Wrapf(err, "%s", rf.Name())
 		}
 		field.ID = tag.ID
 		field.Optional = tag.Optional || field.Optional
 		if field.Optional && field.Repeated {
-			return genErrorf(n.Obj().Pos(), "%s: repeated optional fields are not supported", rf.Name())
+			return errors.WithStack(genErrorf(n.Obj().Pos(), nil, "%s: repeated optional fields are not supported", rf.Name()))
 		}
 		if nt, ok := t.(*types.Named); ok {
 			if err := s.extractDecl(rf, nt); err != nil {
-				return fmt.Errorf("%s: %w", rf.Name(), err)
+				return errors.Wrapf(err, "%s", rf.Name())
 			}
 		}
 		if field.Kind == KindUnspecified {
@@ -696,7 +700,7 @@ func (s *State) populateFields(decl *Message, n *types.Named) error {
 		s.populateConverters(field)
 		decl.Fields = append(decl.Fields, field)
 	}
-	return errf()
+	return errors.WithStack(errf())
 }
 
 func (f *Field) ToProto() string {
@@ -891,7 +895,7 @@ func (s *State) extractSumType(obj types.Object, i *types.Interface) error {
 				if strings.HasPrefix(line.Text, "//protobuf:") {
 					tag, ok, err := parsePBTag(strings.TrimPrefix(line.Text, "//protobuf:"))
 					if err != nil {
-						return genErrorf(sym.Pos(), "invalid //protobuf: directive %q: %w", line.Text, err)
+						return errors.WithStack(genErrorf(sym.Pos(), err, "invalid //protobuf: directive %q", line.Text))
 					}
 					if !ok {
 						continue
@@ -903,11 +907,11 @@ func (s *State) extractSumType(obj types.Object, i *types.Interface) error {
 		if len(pbDirectives) == 0 {
 			// skip interface types. These would result into nested oneofs. We only include leafs as a flat list.
 			if !interfaceType {
-				return genErrorf(sym.Pos(), "sum type element is missing //protobuf:<id> directive: %s", sym.Name())
+				return errors.WithStack(genErrorf(sym.Pos(), nil, "sum type element is missing //protobuf:<id> directive: %s", sym.Name()))
 			}
 		}
 		if err := s.extractDecl(sym, sym.Type().(*types.Named)); err != nil { //nolint:forcetypeassert
-			return genErrorf(sym.Pos(), "%s: %w", name, err)
+			return errors.WithStack(genErrorf(sym.Pos(), err, "%s", name))
 		}
 		id := -1
 		for _, directive := range pbDirectives {
@@ -951,14 +955,14 @@ func (s *State) extractEnum(t *types.Named) error {
 		}
 		c, ok := sym.(*types.Const)
 		if !ok {
-			return genErrorf(sym.Pos(), "expected const")
+			return errors.WithStack(genErrorf(sym.Pos(), nil, "expected const"))
 		}
 		n, err := strconv.Atoi(c.Val().String())
 		if err != nil {
-			return genErrorf(sym.Pos(), "enum value %q must be a constant integer: %w", c.Val(), err)
+			return errors.WithStack(genErrorf(sym.Pos(), err, "enum value %q must be a constant integer", c.Val()))
 		}
 		if !strings.HasPrefix(name, enumName) {
-			return genErrorf(sym.Pos(), "enum value %q must start with %q", name, enumName)
+			return errors.WithStack(genErrorf(sym.Pos(), nil, "enum value %q must start with %q", name, enumName))
 		}
 		decl.Values[name] = n
 	}
@@ -1032,7 +1036,7 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 				return nil
 			}
 			if err := s.extractDecl(t.Obj(), t); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			field.ProtoType = t.Obj().Name()
 			field.ProtoGoType = "*destpb." + protoName(t.Obj().Name())
@@ -1044,7 +1048,7 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 			field.ProtoType = "bytes"
 		} else {
 			field.Repeated = true
-			return s.applyFieldType(t.Elem(), field)
+			return errors.WithStack(s.applyFieldType(t.Elem(), field))
 		}
 
 	case *types.Slice:
@@ -1052,15 +1056,15 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 			field.ProtoType = "bytes"
 		} else {
 			field.Repeated = true
-			return s.applyFieldType(t.Elem(), field)
+			return errors.WithStack(s.applyFieldType(t.Elem(), field))
 		}
 
 	case *types.Pointer:
 		field.Pointer = true
 		if _, ok := t.Elem().(*types.Slice); ok {
-			return fmt.Errorf("pointer to slice is not supported")
+			return errors.Errorf("pointer to slice is not supported")
 		}
-		return s.applyFieldType(t.Elem(), field)
+		return errors.WithStack(s.applyFieldType(t.Elem(), field))
 
 	case *types.Basic:
 		field.ProtoType = t.String()
@@ -1084,7 +1088,7 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 		case "string", "bool", "uint64", "int64", "uint32", "int32":
 
 		default:
-			return fmt.Errorf("unsupported basic type %s", t)
+			return errors.Errorf("unsupported basic type %s", t)
 
 		}
 	case *types.Map:
@@ -1095,10 +1099,10 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 		field.MapValue = &Field{}
 
 		if err := s.applyFieldType(keyType, field.MapKey); err != nil {
-			return fmt.Errorf("invalid map key type: %w", err)
+			return errors.Wrap(err, "invalid map key type")
 		}
 		if err := s.applyFieldType(valueType, field.MapValue); err != nil {
-			return fmt.Errorf("invalid map value type: %w", err)
+			return errors.Wrap(err, "invalid map value type")
 		}
 
 		// only integral or string types allowed as map keys (https://protobuf.dev/programming-guides/proto3/)
@@ -1106,7 +1110,7 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 		case "int32", "int64", "uint32", "uint64", "sint32", "sint64",
 			"fixed32", "fixed64", "sfixed32", "sfixed64", "string":
 		default:
-			return fmt.Errorf("invalid map key type %s: map keys must be integral or string types", field.MapKey.ProtoType)
+			return errors.Errorf("invalid map key type %s: map keys must be integral or string types", field.MapKey.ProtoType)
 		}
 
 		field.ProtoType = fmt.Sprintf("map<%s, %s>", field.MapKey.ProtoType, field.MapValue.ProtoType)
@@ -1116,7 +1120,7 @@ func (s *State) applyFieldType(t types.Type, field *Field) error {
 		field.Import = field.MapValue.Import
 
 	default:
-		return fmt.Errorf("unsupported type %s (%T)", t, t)
+		return errors.Errorf("unsupported type %s (%T)", t, t)
 	}
 	return nil
 }
@@ -1157,7 +1161,7 @@ func iterFields(n *types.Named) (iter.Seq2[*types.Var, pbTag], func() error) {
 	return func(yield func(*types.Var, pbTag) bool) {
 		t, ok := n.Underlying().(*types.Struct)
 		if !ok {
-			err = fmt.Errorf("expected struct, got %T", n.Underlying())
+			err = errors.Errorf("expected struct, got %T", n.Underlying())
 			return
 		}
 		for i := range t.NumFields() {
@@ -1166,13 +1170,13 @@ func iterFields(n *types.Named) (iter.Seq2[*types.Var, pbTag], func() error) {
 			if pb == "-" {
 				continue
 			} else if pb == "" {
-				err = genErrorf(n.Obj().Pos(), "%s: missing protobuf tag", rf.Name())
+				err = genErrorf(n.Obj().Pos(), nil, "%s: missing protobuf tag", rf.Name())
 				return
 			}
 			var pbt pbTag
 			pbt, ok, err = parsePBTag(pb)
 			if !ok {
-				err = genErrorf(rf.Pos(), "invalid protobuf tag")
+				err = genErrorf(rf.Pos(), nil, "invalid protobuf tag")
 			}
 			if err != nil {
 				return
@@ -1181,7 +1185,7 @@ func iterFields(n *types.Named) (iter.Seq2[*types.Var, pbTag], func() error) {
 				return
 			}
 		}
-	}, func() error { return err }
+	}, func() error { return errors.WithStack(err) }
 }
 
 type pbTag struct {
@@ -1193,7 +1197,7 @@ type pbTag struct {
 func parsePBTag(tag string) (pbTag, bool, error) {
 	parts := strings.Split(tag, ",")
 	if len(parts) == 0 {
-		return pbTag{}, false, fmt.Errorf("missing tag")
+		return pbTag{}, false, errors.Errorf("missing tag")
 	}
 
 	idParts := strings.Split(parts[0], " ")
@@ -1213,7 +1217,7 @@ func parsePBTag(tag string) (pbTag, bool, error) {
 			out.Optional = true
 
 		default:
-			return pbTag{}, false, fmt.Errorf("unknown tag: %s", tag)
+			return pbTag{}, false, errors.Errorf("unknown tag: %s", tag)
 		}
 	}
 	return out, true, nil
@@ -1268,17 +1272,17 @@ func parsePackageDirectives(pkgs []*packages.Package) (PackageDirectives, error)
 				case "option":
 					option := strings.SplitN(parts[1], "=", 2)
 					if len(option) != 2 {
-						return directives, genErrorf(comment.Pos(), "invalid option directive")
+						return directives, errors.WithStack(genErrorf(comment.Pos(), nil, "invalid option directive"))
 					}
 					directives.Options[option[0]] = option[1]
 				default:
-					return directives, genErrorf(comment.Pos(), "unknown directive %q", parts[0])
+					return directives, errors.WithStack(genErrorf(comment.Pos(), nil, "unknown directive %q", parts[0]))
 				}
 			}
 		}
 	}
 	if directives.Package == "" {
-		return directives, fmt.Errorf("missing //protobuf:package directive in package comments. Add a comment like '//protobuf:package xyz.block.ftl.schema.v1' to specify the protobuf package name")
+		return directives, errors.Errorf("missing //protobuf:package directive in package comments. Add a comment like '//protobuf:package xyz.block.ftl.schema.v1' to specify the protobuf package name")
 	}
 	return directives, nil
 }

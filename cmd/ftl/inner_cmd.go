@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"syscall"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl/internal/buildengine/languageplugin"
@@ -40,17 +40,17 @@ func runInnerCmd(ctx context.Context, k *kong.Kong, projConfig projectconfig.Con
 	// Dynamically update the kong app with language specific flags for the "ftl module new" command.
 	err := languageplugin.PrepareNewCmd(ctx, projConfig, k, args)
 	if err != nil {
-		return fmt.Errorf("could not prepare for command: %w", err)
+		return errors.Wrap(err, "could not prepare for command")
 	}
 	kctx, err := k.Parse(args)
 	if err != nil {
-		return err //nolint:wrapcheck
+		return errors.WithStack(err) //nolint:wrapcheck
 	}
 	subctx := binder(ctx, kctx)
 
 	err = kctx.Run(subctx)
 	if err != nil {
-		return err //nolint:wrapcheck
+		return errors.WithStack(err) //nolint:wrapcheck
 	}
 	return nil
 }

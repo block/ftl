@@ -3,12 +3,12 @@
 package leases_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -35,13 +35,13 @@ func setupLeaseTests() []in.ActionOrOption {
 					Body: []byte("{}"),
 				}))
 				if err != nil {
-					return err
+					return errors.WithStack(err)
 				}
 				assert.NoError(t, err)
 				if respErr := resp.Msg.GetError(); respErr != nil {
-					return fmt.Errorf("received error on first call: %v", respErr)
+					return errors.Errorf("received error on first call: %v", respErr)
 				}
-				return err
+				return errors.WithStack(err)
 			})
 
 			time.Sleep(time.Second)

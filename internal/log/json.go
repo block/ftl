@@ -3,10 +3,11 @@ package log
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"io"
 	"strings"
 	"time"
+
+	errors "github.com/alecthomas/errors"
 )
 
 var _ Sink = (*jsonSink)(nil)
@@ -41,7 +42,7 @@ func (j *jsonSink) Log(entry Entry) error {
 		Error: errStr,
 		Entry: entry,
 	}
-	return j.enc.Encode(jentry)
+	return errors.WithStack(j.enc.Encode(jentry))
 }
 
 // JSONStreamer reads a stream of JSON log entries from r and logs them to log.
@@ -91,5 +92,5 @@ func JSONStreamer(r io.Reader, log *Logger, defaultLevel Level) error {
 	if errors.Is(err, io.EOF) || (err != nil && strings.Contains(err.Error(), "already closed")) {
 		return nil
 	}
-	return err
+	return errors.WithStack(err)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -34,7 +35,7 @@ func init() {
 	var err error
 	Cron, err = initCronMetrics()
 	if err != nil {
-		panic(fmt.Errorf("could not initialize cron metrics: %w", err))
+		panic(errors.Wrap(err, "could not initialize cron metrics"))
 	}
 }
 
@@ -52,14 +53,14 @@ func initCronMetrics() (*CronMetrics, error) {
 	if result.jobsCompleted, err = meter.Int64Counter(
 		signalName,
 		metric.WithDescription("the number of cron jobs completed; successful or otherwise")); err != nil {
-		return nil, wrapErr(signalName, err)
+		return nil, errors.WithStack(wrapErr(signalName, err))
 	}
 
 	signalName = fmt.Sprintf("%s.jobs.active", cronMeterName)
 	if result.jobsActive, err = meter.Int64UpDownCounter(
 		signalName,
 		metric.WithDescription("the number of actively executing cron jobs")); err != nil {
-		return nil, wrapErr(signalName, err)
+		return nil, errors.WithStack(wrapErr(signalName, err))
 	}
 
 	signalName = fmt.Sprintf("%s.job.latency", cronMeterName)
@@ -67,7 +68,7 @@ func initCronMetrics() (*CronMetrics, error) {
 		signalName,
 		metric.WithDescription("the latency between the scheduled execution time of a cron job"),
 		metric.WithUnit("ms")); err != nil {
-		return nil, wrapErr(signalName, err)
+		return nil, errors.WithStack(wrapErr(signalName, err))
 	}
 
 	return result, nil
@@ -108,7 +109,7 @@ func cronAttributes(job model.CronJob, maybeStatus optional.Option[string]) metr
 }
 
 func wrapErr(signalName string, err error) error {
-	return fmt.Errorf("failed to create %q signal: %w", signalName, err)
+	return errors.Wrapf(err, "failed to create %q signal", signalName)
 }
 
 func timeSinceMS(start time.Time) int64 {

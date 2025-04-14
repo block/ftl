@@ -3,11 +3,11 @@ package mcp
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
@@ -28,11 +28,11 @@ func statusToolHandler(serverCtx context.Context, buildEngineClient buildenginep
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		output, err := GetStatusOutput(serverCtx, buildEngineClient, adminClient)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		data, err := json.Marshal(output)
 		if err != nil {
-			return nil, fmt.Errorf("could not marshal status: %w", err)
+			return nil, errors.Wrap(err, "could not marshal status")
 		}
 		return mcp.NewToolResultText(string(data)), nil
 	}
@@ -41,7 +41,7 @@ func statusToolHandler(serverCtx context.Context, buildEngineClient buildenginep
 func GetStatusOutput(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) (StatusOutput, error) {
 	result, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient)
 	if err != nil {
-		return StatusOutput{}, fmt.Errorf("could not get status: %w", err)
+		return StatusOutput{}, errors.Wrap(err, "could not get status")
 	}
 
 	sch := ireflect.DeepCopy(result.Schema)
@@ -57,49 +57,49 @@ func GetStatusOutput(ctx context.Context, buildEngineClient buildenginepbconnect
 			case *schema.Topic:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return StatusOutput{}, err
+					return StatusOutput{}, errors.WithStack(err)
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Verb:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return StatusOutput{}, err
+					return StatusOutput{}, errors.WithStack(err)
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Config:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return StatusOutput{}, err
+					return StatusOutput{}, errors.WithStack(err)
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Secret:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return StatusOutput{}, err
+					return StatusOutput{}, errors.WithStack(err)
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Database:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return StatusOutput{}, err
+					return StatusOutput{}, errors.WithStack(err)
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Data:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return StatusOutput{}, err
+					return StatusOutput{}, errors.WithStack(err)
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.Enum:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return StatusOutput{}, err
+					return StatusOutput{}, errors.WithStack(err)
 				}
 				decl.Comments = append(decl.Comments, c)
 			case *schema.TypeAlias:
 				c, err := commentForPath(decl.Pos, moduleState.Path)
 				if err != nil {
-					return StatusOutput{}, err
+					return StatusOutput{}, errors.WithStack(err)
 				}
 				decl.Comments = append(decl.Comments, c)
 			}
@@ -132,7 +132,7 @@ func commentForPath(pos schema.Position, modulePath string) (string, error) {
 		parts = parts[1:]
 		parts[0] = modulePath
 	} else {
-		return "", fmt.Errorf("unexpected path format: %s", pos.Filename)
+		return "", errors.Errorf("unexpected path format: %s", pos.Filename)
 	}
 	components := []string{
 		filepath.Join(parts...),

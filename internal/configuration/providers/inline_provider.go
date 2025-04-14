@@ -3,8 +3,9 @@ package providers
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"net/url"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal/configuration"
 )
@@ -32,7 +33,7 @@ func (Inline[R]) Key() configuration.ProviderKey { return InlineProviderKey }
 func (Inline[R]) Load(ctx context.Context, ref configuration.Ref, key *url.URL) ([]byte, error) {
 	data, err := base64.RawURLEncoding.DecodeString(key.Host)
 	if err != nil {
-		return nil, fmt.Errorf("invalid base64 data in inline configuration: %w", err)
+		return nil, errors.Wrap(err, "invalid base64 data in inline configuration")
 	}
 	return data, nil
 }

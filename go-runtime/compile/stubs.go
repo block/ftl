@@ -2,13 +2,12 @@ package compile
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/block/scaffolder"
 	"golang.org/x/exp/maps"
@@ -34,7 +33,7 @@ type ExternalDeploymentContext struct {
 
 func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, config moduleconfig.AbsModuleConfig, nativeConfig optional.Option[moduleconfig.AbsModuleConfig]) error {
 	if err := os.MkdirAll(dir, 0750); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", dir, err)
+		return errors.Wrapf(err, "failed to create directory %s", dir)
 	}
 
 	var goModVersion string
@@ -45,12 +44,12 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 	if config.Module == "builtin" || config.Language != "go" {
 		nativeConfig, ok := nativeConfig.Get()
 		if !ok {
-			return fmt.Errorf("no native module config provided")
+			return errors.Errorf("no native module config provided")
 		}
 		goModPath := filepath.Join(nativeConfig.Dir, "go.mod")
 		_, goModVersion, err = updateGoModule(goModPath, nativeConfig.Module, optional.None[watch.ModifyFilesTransaction]())
 		if err != nil {
-			return fmt.Errorf("could not read go.mod %s", goModPath)
+			return errors.Errorf("could not read go.mod %s", goModPath)
 		}
 		if goModVersion == "" {
 			// The best we can do here if we don't have a module to read from is to use the current Go version.
@@ -60,7 +59,7 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 		if !ftl.IsRelease(ftl.Version) {
 			path, err := os.Executable()
 			if err != nil {
-				return fmt.Errorf("failed to get executable path %w", err)
+				return errors.Wrap(err, "failed to get executable pat")
 			}
 			ftlpath := "block/ftl"
 			idx := strings.LastIndex(path, ftlpath)
@@ -72,13 +71,13 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 	} else {
 		replacements, goModVersion, err = updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module, optional.None[watch.ModifyFilesTransaction]())
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
 	goVersion := runtime.Version()[2:]
 	if semver.Compare("v"+goVersion, "v"+goModVersion) < 0 {
-		return fmt.Errorf("go version %q is not recent enough for this module, needs minimum version %q", goVersion, goModVersion)
+		return errors.Errorf("go version %q is not recent enough for this module, needs minimum version %q", goVersion, goModVersion)
 	}
 
 	ftlVersion := ""
@@ -96,11 +95,11 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 	funcs := maps.Clone(scaffoldFuncs)
 	err = internal.ScaffoldZip(externalModuleTemplateFiles(), dir, context, scaffolder.Exclude("^go.mod$"), scaffolder.Functions(funcs))
 	if err != nil {
-		return fmt.Errorf("failed to scaffold zip: %w", err)
+		return errors.Wrap(err, "failed to scaffold zip")
 	}
 
 	if err := exec.Command(ctx, log.Debug, dir, "go", "mod", "tidy").RunBuffered(ctx); err != nil {
-		return fmt.Errorf("failed to tidy go.mod: %w", err)
+		return errors.Wrap(err, "failed to tidy go.mod")
 	}
 	return nil
 }
@@ -109,7 +108,7 @@ func SyncGeneratedStubReferences(ctx context.Context, config moduleconfig.AbsMod
 	sharedModulePaths := []string{}
 	relativeStubsDir, err := filepath.Rel(config.Dir, stubsDir)
 	if err != nil {
-		return fmt.Errorf("failed to get relative path: %w", err)
+		return errors.Wrap(err, "failed to get relative path")
 	}
 	for _, mod := range stubbedModules {
 		if mod == config.Module {
@@ -120,7 +119,7 @@ func SyncGeneratedStubReferences(ctx context.Context, config moduleconfig.AbsMod
 
 	_, goModVersion, err := updateGoModule(filepath.Join(config.Dir, "go.mod"), config.Module, optional.None[watch.ModifyFilesTransaction]())
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	funcs := maps.Clone(scaffoldFuncs)
@@ -129,7 +128,7 @@ func SyncGeneratedStubReferences(ctx context.Context, config moduleconfig.AbsMod
 		SharedModulesPaths: sharedModulePaths,
 		IncludeMainPackage: mainPackageExists(config),
 	}, scaffolder.Exclude("^go.mod$"), scaffolder.Functions(funcs)); err != nil {
-		return fmt.Errorf("failed to scaffold zip: %w", err)
+		return errors.Wrap(err, "failed to scaffold zip")
 	}
 	return nil
 }

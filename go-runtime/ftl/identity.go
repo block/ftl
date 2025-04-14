@@ -2,9 +2,10 @@ package ftl
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 )
 
 type spiffeIDKey struct{}
@@ -37,7 +38,7 @@ func (r *SpiffeIdentity) SpiffeID() (url.URL, error) {
 	if id, ok := r.url.Get(); ok {
 		return id, nil
 	}
-	return url.URL{}, fmt.Errorf("no workload identity found")
+	return url.URL{}, errors.Errorf("no workload identity found")
 }
 
 // AppID returns the application ID of the workload, which is inferred from the namespace of the spiffe ID.
@@ -47,12 +48,12 @@ func (r *SpiffeIdentity) AppID() (string, error) {
 		elements := strings.Split(path, "/")
 		elementCount := len(elements)
 		if elementCount < 4 {
-			return "", fmt.Errorf("no app ID found, expected istio /ns/.../sa/... path")
+			return "", errors.Errorf("no app ID found, expected istio /ns/.../sa/... path")
 		}
 		if elements[elementCount-2] != "sa" && elements[elementCount-4] != "ns" {
-			return "", fmt.Errorf("no app ID found, expected istio /ns/.../sa/... path")
+			return "", errors.Errorf("no app ID found, expected istio /ns/.../sa/... path")
 		}
 		return elements[elementCount-3], nil
 	}
-	return "", fmt.Errorf("no workload identity found")
+	return "", errors.Errorf("no workload identity found")
 }

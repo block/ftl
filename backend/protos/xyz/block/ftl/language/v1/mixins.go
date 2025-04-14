@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -159,7 +160,7 @@ func ModuleConfigToProto(config moduleconfig.AbsModuleConfig) (*ModuleConfig, er
 
 	langConfigProto, err := structpb.NewStruct(config.LanguageConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal language config: %w", err)
+		return nil, errors.Wrap(err, "failed to marshal language config")
 	}
 	proto.LanguageConfig = langConfigProto
 	return proto, nil

@@ -3,8 +3,6 @@ package rpc
 import (
 	"context"
 	"crypto/tls"
-	"errors"
-	"fmt"
 	"iter"
 	"net"
 	"net/http"
@@ -14,6 +12,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/result"
 	"github.com/jpillora/backoff"
 	"golang.org/x/net/http2"
@@ -51,7 +50,7 @@ func InitialiseClients(authenticators map[string]string, allowInsecure bool) {
 			},
 			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
 				conn, err := dialer.Dial(network, addr)
-				return conn, err
+				return conn, errors.WithStack(err)
 			},
 		}, authenticators),
 	}
@@ -63,7 +62,7 @@ func InitialiseClients(authenticators map[string]string, allowInsecure bool) {
 			DialTLSContext: func(ctx context.Context, network, addr string, config *tls.Config) (net.Conn, error) {
 				tlsDialer := tls.Dialer{Config: config, NetDialer: dialer}
 				conn, err := tlsDialer.DialContext(ctx, network, addr)
-				return conn, err
+				return conn, errors.WithStack(err)
 			},
 		}, authenticators),
 	}
@@ -80,7 +79,7 @@ func InitialiseClients(authenticators map[string]string, allowInsecure bool) {
 
 				tlsDialer := tls.Dialer{NetDialer: dialer}
 				conn, err := tlsDialer.DialContext(ctx, network, addr)
-				return conn, fmt.Errorf("HTTP/1.1 TLS dial failed: %w", err)
+				return conn, errors.Wrap(err, "HTTP/1.1 TLS dial failed")
 			},
 		}, authenticators),
 	}
@@ -197,7 +196,7 @@ func Wait[Req any, Resp any, RespPtr PingResponse[Resp]](ctx context.Context, re
 					errChan <- nil
 					return
 				}
-				err = fmt.Errorf("service is not ready: %s", (RespPtr)(resp.Msg).GetNotReady())
+				err = errors.Errorf("service is not ready: %s", (RespPtr)(resp.Msg).GetNotReady())
 			}
 			delay := retry.Duration()
 			logger.Tracef("Ping failed waiting %s for client: %+v", delay, err)
@@ -210,7 +209,7 @@ func Wait[Req any, Resp any, RespPtr PingResponse[Resp]](ctx context.Context, re
 
 	err := <-errChan
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -361,10 +360,10 @@ func IterAsGrpc[T any](iter iter.Seq[result.Result[*T]], stream *connect.ServerS
 	for msg := range iter {
 		res, ok := msg.Get()
 		if !ok {
-			return msg.Err() //nolint:wrapcheck
+			return errors.WithStack(msg.Err()) //nolint:wrapcheck
 		}
 		if err := stream.Send(res); err != nil {
-			return err //nolint:wrapcheck
+			return errors.WithStack(err) //nolint:wrapcheck
 		}
 	}
 	return nil

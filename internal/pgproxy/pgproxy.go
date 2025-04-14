@@ -2,11 +2,10 @@ package pgproxy
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"net"
 
+	"github.com/alecthomas/errors"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgproto3"
 
@@ -50,7 +49,7 @@ func (p *PgProxy) Start(ctx context.Context, started chan<- Started) error {
 	logger.Debugf("starting pgproxy on %s", p.listenAddress)
 	listener, err := net.Listen("tcp", p.listenAddress)
 	if err != nil {
-		return fmt.Errorf("failed to listen on %s: %w", p.listenAddress, err)
+		return errors.Wrapf(err, "failed to listen on %s", p.listenAddress)
 	}
 	defer listener.Close()
 
@@ -80,7 +79,7 @@ func (p *PgProxy) Start(ctx context.Context, started chan<- Started) error {
 func HandleConnection(ctx context.Context, conn net.Conn, connectionFn DSNConstructor) {
 	defer conn.Close()
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("pgproxy: connection closed: %w", context.Canceled))
+	defer cancel(errors.Wrap(context.Canceled, "pgproxy: connection closed"))
 
 	logger := log.FromContext(ctx)
 	logger.Debugf("new connection established: %s", conn.RemoteAddr())
@@ -153,7 +152,7 @@ func connectBackend(ctx context.Context, conn net.Conn) (*pgproto3.Backend, *pgp
 			// some clients just terminate the connection and open a new one if it does not support SSL / GSS encryption
 			return nil, nil, nil
 		} else if err != nil {
-			return nil, nil, fmt.Errorf("failed to receive startup message from %s: %w", conn.RemoteAddr(), err)
+			return nil, nil, errors.Wrapf(err, "failed to receive startup message from %s", conn.RemoteAddr())
 		}
 
 		logger.Debugf("received startup message: %T from %s", startup, conn.RemoteAddr())
@@ -162,7 +161,7 @@ func connectBackend(ctx context.Context, conn net.Conn) (*pgproto3.Backend, *pgp
 		case *pgproto3.SSLRequest:
 			// The client is requesting SSL connection. We don't support it.
 			if _, err := conn.Write([]byte{'N'}); err != nil {
-				return nil, nil, fmt.Errorf("failed to write ssl request response: %w", err)
+				return nil, nil, errors.Wrap(err, "failed to write ssl request response")
 			}
 		case *pgproto3.CancelRequest:
 			// TODO: implement cancel requests
@@ -172,10 +171,10 @@ func connectBackend(ctx context.Context, conn net.Conn) (*pgproto3.Backend, *pgp
 		case *pgproto3.GSSEncRequest:
 			// The client is requesting GSS encryption. We don't support it.
 			if _, err := conn.Write([]byte{'N'}); err != nil {
-				return nil, nil, fmt.Errorf("failed to write gss encryption request response: %w", err)
+				return nil, nil, errors.Wrap(err, "failed to write gss encryption request response")
 			}
 		default:
-			return nil, nil, fmt.Errorf("unknown startup message: %T", startup)
+			return nil, nil, errors.Errorf("unknown startup message: %T", startup)
 		}
 	}
 }
@@ -183,16 +182,16 @@ func connectBackend(ctx context.Context, conn net.Conn) (*pgproto3.Backend, *pgp
 func connectFrontend(ctx context.Context, connectionFn DSNConstructor, startup *pgproto3.StartupMessage) (*pgconn.HijackedConn, error) {
 	dsn, err := connectionFn(ctx, startup.Parameters)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct dsn: %w", err)
+		return nil, errors.Wrap(err, "failed to construct dsn")
 	}
 
 	conn, err := pgconn.Connect(ctx, dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to backend: %w", err)
+		return nil, errors.Wrap(err, "failed to connect to backend")
 	}
 	hijacked, err := conn.Hijack()
 	if err != nil {
-		return nil, fmt.Errorf("failed to hijack backend: %w", err)
+		return nil, errors.Wrap(err, "failed to hijack backend")
 	}
 	return hijacked, nil
 }
@@ -210,14 +209,14 @@ func proxy(ctx context.Context, backend *pgproto3.Backend, frontend *pgproto3.Fr
 			default:
 			}
 			if err != nil {
-				errorsChan <- fmt.Errorf("failed to receive backend message: %w", err)
+				errorsChan <- errors.Wrap(err, "failed to receive backend message")
 				return
 			}
 			logger.Tracef("backend message: %T", msg)
 			frontend.Send(msg)
 			err = frontend.Flush()
 			if err != nil {
-				errorsChan <- fmt.Errorf("failed to receive backend message: %w", err)
+				errorsChan <- errors.Wrap(err, "failed to receive backend message")
 				return
 			}
 			if _, ok := msg.(*pgproto3.Terminate); ok {
@@ -240,14 +239,14 @@ func proxy(ctx context.Context, backend *pgproto3.Backend, frontend *pgproto3.Fr
 					errorsChan <- nil
 					return
 				}
-				errorsChan <- fmt.Errorf("failed to receive frontend message: %w", err)
+				errorsChan <- errors.Wrap(err, "failed to receive frontend message")
 				return
 			}
 			logger.Tracef("frontend message: %T", msg)
 			backend.Send(msg)
 			err = backend.Flush()
 			if err != nil {
-				errorsChan <- fmt.Errorf("failed to receive backend message: %w", err)
+				errorsChan <- errors.Wrap(err, "failed to receive backend message")
 				return
 			}
 		}
@@ -256,9 +255,9 @@ func proxy(ctx context.Context, backend *pgproto3.Backend, frontend *pgproto3.Fr
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("context done: %w", ctx.Err())
+			return errors.Wrap(ctx.Err(), "context done")
 		case err := <-errorsChan:
-			return err
+			return errors.WithStack(err)
 		}
 	}
 }

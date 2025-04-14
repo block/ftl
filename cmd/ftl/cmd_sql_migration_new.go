@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/amacneil/dbmate/v2/pkg/dbutil"
 
 	"github.com/block/ftl/internal/buildengine/languageplugin"
@@ -33,7 +34,7 @@ func (i migrationSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Co
 	}
 	modules, err := watch.DiscoverModules(ctx, searchDirs)
 	if err != nil {
-		return fmt.Errorf("could not discover modules: %w", err)
+		return errors.Wrap(err, "could not discover modules")
 	}
 	var module *moduleconfig.UnvalidatedModuleConfig
 	parts := strings.Split(i.Datasource, ".")
@@ -50,10 +51,10 @@ func (i migrationSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Co
 		}
 		dsName = parts[1]
 	} else {
-		return fmt.Errorf("invalid datasource %q, must be in the form module.datasource", i.Datasource)
+		return errors.Errorf("invalid datasource %q, must be in the form module.datasource", i.Datasource)
 	}
 	if module == nil {
-		return fmt.Errorf("could not find module %q", parts[0])
+		return errors.Errorf("could not find module %q", parts[0])
 	}
 	var migrationDir string
 	var found bool
@@ -64,20 +65,20 @@ func (i migrationSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Co
 		language := module.Language
 		defaults, err := languageplugin.GetModuleConfigDefaults(ctx, language, module.Dir)
 		if err != nil {
-			return fmt.Errorf("could not get module config defaults for language %q: %w", language, err)
+			return errors.Wrapf(err, "could not get module config defaults for language %q", language)
 		}
 		valid, databases, err := moduleconfig.ValidateSQLRoot(module.Dir, defaults.SQLRootDir)
 		if err != nil {
-			return fmt.Errorf("could not locate SQL migration directory for %q in %q: %w", dsName, defaults.SQLRootDir, err)
+			return errors.Wrapf(err, "could not locate SQL migration directory for %q in %q", dsName, defaults.SQLRootDir)
 		}
 		if !valid {
-			return fmt.Errorf("invalid SQL root directory %q", defaults.SQLRootDir)
+			return errors.Errorf("invalid SQL root directory %q", defaults.SQLRootDir)
 		}
 		if sqlDirs, ok := databases[dsName]; ok {
 			migrationDir, found = sqlDirs.SchemaDir.Get()
 		}
 		if migrationDir == "" || !found {
-			return fmt.Errorf("could not get SQL migration directory for datasource %q", dsName)
+			return errors.Errorf("could not get SQL migration directory for datasource %q", dsName)
 		}
 	}
 	migrationDir = filepath.Join(module.Dir, migrationDir)
@@ -86,7 +87,7 @@ func (i migrationSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Co
 	logger.Debugf("Creating DBMate SQL migration %s in module %q in %s", i.Name, module.Module, migrationDir)
 	migrationPath, err := newMigration(migrationDir, i.Name)
 	if err != nil {
-		return fmt.Errorf("failed to create migration: %w", err)
+		return errors.Wrap(err, "failed to create migration")
 	}
 	fmt.Printf("Created migration at %s\n", migrationPath)
 	return nil
@@ -101,25 +102,25 @@ func newMigration(dir, name string) (string, error) {
 	// new migration name
 	timestamp := time.Now().UTC().Format("20060102150405")
 	if name == "" {
-		return "", fmt.Errorf("migration name required")
+		return "", errors.Errorf("migration name required")
 	}
 	name = fmt.Sprintf("%s_%s.sql", timestamp, name)
 
 	// check file does not already exist
 	path := filepath.Join(dir, name)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		return "", fmt.Errorf("migration file already exists: %s", path)
+		return "", errors.Errorf("migration file already exists: %s", path)
 	}
 
 	// write new migration
 	file, err := os.Create(path)
 	if err != nil {
-		return "", fmt.Errorf("could not create migration file at %s: %w", path, err)
+		return "", errors.Wrapf(err, "could not create migration file at %s", path)
 	}
 
 	defer dbutil.MustClose(file)
 	if _, err := file.WriteString(migrationTemplate); err != nil {
-		return "", fmt.Errorf("could not write to migration file at %s: %w", path, err)
+		return "", errors.Wrapf(err, "could not write to migration file at %s", path)
 	}
 	return path, nil
 }

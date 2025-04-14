@@ -2,17 +2,16 @@ package buildengine
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/result"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/block/ftl/common/builderrors"
-	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
@@ -37,10 +36,10 @@ func build(ctx context.Context, projectConfig projectconfig.Config, m Module, pl
 
 	err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
 	if err != nil {
-		return nil, nil, errors.Join(errSQLError, err)
+		return nil, nil, errors.WithStack(errors.Join(errSQLError, err))
 	}
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
-	return handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints)
+	return errors.WithStack3(handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints))
 }
 
 // handleBuildResult processes the result of a build
@@ -50,17 +49,17 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 
 	result, err := eitherResult.Result()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to build module: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to build module")
 	}
 
 	if result.InvalidateDependencies {
-		return nil, nil, errInvalidateDependencies
+		return nil, nil, errors.WithStack(errInvalidateDependencies)
 	}
 
 	if m.SQLError != nil {
 		// Plugin has rebuilt automatically even though a SQL error occurred.
 		// The build needs to fail with the current sql error
-		return nil, nil, m.SQLError
+		return nil, nil, errors.WithStack(m.SQLError)
 	}
 
 	var errs []error
@@ -73,14 +72,14 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	}
 
 	if len(errs) > 0 {
-		return nil, nil, errors.Join(errs...)
+		return nil, nil, errors.WithStack(errors.Join(errs...))
 	}
 
 	logger.Infof("Module built (%.2fs)", time.Since(result.StartTime).Seconds())
 
 	migrationFiles, err := handleDatabaseMigrations(ctx, config, result.Schema)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to extract migrations %w", err)
+		return nil, nil, errors.Wrap(err, "failed to extract migration")
 	}
 	result.Deploy = append(result.Deploy, migrationFiles...)
 	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLRootDir)
@@ -101,15 +100,15 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	// write schema proto to deploy directory
 	schemaBytes, err := proto.Marshal(result.Schema.ToProto())
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to marshal schema: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to marshal schema")
 	}
 	schemaPath := projectConfig.SchemaPath(config.Module)
 	err = os.MkdirAll(filepath.Dir(schemaPath), 0700)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create schema directory: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to create schema directory")
 	}
 	if err := os.WriteFile(schemaPath, schemaBytes, 0600); err != nil {
-		return nil, nil, fmt.Errorf("failed to write schema: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to write schema")
 	}
 	return result.Schema, result.Deploy, nil
 }
@@ -131,15 +130,15 @@ func cleanFixtures(module *schema.Module) {
 func handleGitCommit(ctx context.Context, dir string, module *schema.Module) error {
 	commit, err := exec.Capture(ctx, dir, "git", "rev-parse", "HEAD")
 	if err != nil {
-		return fmt.Errorf("failed to get git commit: %w", err)
+		return errors.Wrap(err, "failed to get git commit")
 	}
 	status, err := exec.Capture(ctx, dir, "git", "status", "--porcelain")
 	if err != nil {
-		return fmt.Errorf("failed to get git status: %w", err)
+		return errors.Wrap(err, "failed to get git status")
 	}
 	origin, err := exec.Capture(ctx, dir, "git", "remote", "get-url", "origin")
 	if err != nil {
-		return fmt.Errorf("failed to get git origin url: %w", err)
+		return errors.Wrap(err, "failed to get git origin url")
 	}
 	module.Metadata = append(module.Metadata, &schema.MetadataGit{Repository: strings.TrimSpace(string(origin)), Commit: strings.TrimSpace(string(commit)), Dirty: strings.TrimSpace(string(status)) != ""})
 	return nil

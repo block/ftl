@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -48,7 +48,7 @@ func NewSandboxProvisioner(ctx context.Context, config Config) (context.Context,
 
 	secrets, err := createSecretsClient(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create secretsmanager client: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to create secretsmanager client")
 	}
 
 	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
@@ -71,7 +71,7 @@ func (c *SandboxProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingRe
 func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request[provisionerpb.ProvisionRequest]) (*connect.Response[provisionerpb.ProvisionResponse], error) {
 	module, err := schema.ModuleFromProto(req.Msg.DesiredModule)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert module from proto: %w", err)
+		return nil, errors.Wrap(err, "failed to convert module from proto")
 	}
 
 	logger := log.FromContext(ctx).Deployment(module.Runtime.Deployment.DeploymentKey).Module(module.Name)
@@ -102,7 +102,7 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 
 	task := runner.AsyncTask()
 	if _, ok := c.running.LoadOrStore(token, task); ok {
-		return nil, fmt.Errorf("provisioner already running: %s", token)
+		return nil, errors.Errorf("provisioner already running: %s", token)
 	}
 	logger.Debugf("Starting task %s", token)
 	task.Start(ctx, module.Name, module.Runtime.Deployment.DeploymentKey)
@@ -115,7 +115,7 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 func createSecretsClient(ctx context.Context) (*secretsmanager.Client, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load default aws config: %w", err)
+		return nil, errors.Wrap(err, "failed to load default aws config")
 	}
 	return secretsmanager.New(
 		secretsmanager.Options{

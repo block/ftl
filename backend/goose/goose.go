@@ -3,13 +3,15 @@ package goose
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"os/exec" //nolint:depguard
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/log"
@@ -39,6 +41,17 @@ func NewClient() *Client {
 	return &Client{}
 }
 
+func ResetContext(projectRoot string) error {
+	gooseLogsPath := filepath.Join(projectRoot, ".ftl", "goose-logs.json")
+	if err := os.Remove(gooseLogsPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return errors.Wrap(err, "failed to remove Goose logs")
+	}
+	return nil
+}
+
 // Execute runs a Goose command with the given prompt and streams cleaned messages
 // to the provided callback function. The callback is called for each cleaned message
 // and when execution completes.
@@ -47,7 +60,7 @@ func NewClient() *Client {
 // native Goose API calls when available.
 func (c *Client) Execute(ctx context.Context, prompt string, callback func(Message)) error {
 	if prompt == "" {
-		return fmt.Errorf("prompt cannot be empty")
+		return errors.Errorf("prompt cannot be empty")
 	}
 
 	logger := log.FromContext(ctx).Scope("goose")
@@ -67,7 +80,7 @@ func (c *Client) Execute(ctx context.Context, prompt string, callback func(Messa
 
 	gitRoot, ok := internal.GitRoot(os.Getenv("FTL_DIR")).Get()
 	if !ok {
-		return fmt.Errorf("failed to find Git root")
+		return errors.Errorf("failed to find Git root")
 	}
 
 	cmd := exec.CommandContext(ctx, "ftl", "goose", prompt)
@@ -127,14 +140,14 @@ func (c *Client) Execute(ctx context.Context, prompt string, callback func(Messa
 				}
 			}
 		}
-		return scanner.Err()
+		return errors.WithStack(scanner.Err())
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start goose command: %w", err)
+		return errors.Wrap(err, "failed to start goose command")
 	}
 
 	go func() {
@@ -161,7 +174,7 @@ func (c *Client) Execute(ctx context.Context, prompt string, callback func(Messa
 
 	wg.Wait()
 	if err != nil {
-		return fmt.Errorf("failed to execute goose command: %w", err)
+		return errors.Wrap(err, "failed to execute goose command")
 	}
 
 	callback(Message{

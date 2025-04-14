@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/internal"
 )
@@ -26,7 +28,7 @@ func (s Secret[T]) GoString() string {
 // Get returns the value of the secret from FTL.
 func (s Secret[T]) Get(ctx context.Context) (out T) {
 	if err := internal.FromContext(ctx).GetSecret(ctx, s.Name, &out); err != nil {
-		panic(fmt.Errorf("failed to get %s: %w", s, err))
+		panic(errors.Wrapf(err, "failed to get %s", s))
 	}
 	return
 }

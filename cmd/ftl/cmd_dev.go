@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
@@ -52,12 +51,12 @@ func (d *devCmd) Run(
 
 	startTime := time.Now()
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("stopping dev server: %w", context.Canceled))
+	defer cancel(errors.Wrap(context.Canceled, "stopping dev server"))
 	if len(d.Build.Dirs) == 0 {
 		d.Build.Dirs = projConfig.AbsModuleDirs()
 	}
 	if len(d.Build.Dirs) == 0 {
-		return errors.New("no directories specified")
+		return errors.WithStack(errors.New("no directories specified"))
 	}
 
 	// Setup file based logging, which logs everything to a file
@@ -65,7 +64,7 @@ func (d *devCmd) Run(
 
 	// Reset Goose context to ensure it doesn't have any stale state from previous runs.
 	if err := resetGooseSession(projConfig); err != nil {
-		return fmt.Errorf("failed to reset Goose context: %w", err)
+		return errors.Wrap(err, "failed to reset Goose context")
 	}
 
 	// Set environment variable so child processes know where modules are expected to be
@@ -74,14 +73,14 @@ func (d *devCmd) Run(
 	for i, dir := range d.Build.Dirs {
 		absDir, err := filepath.Abs(dir)
 		if err != nil {
-			return fmt.Errorf("could not create absolute path for %q: %w", dir, err)
+			return errors.Wrapf(err, "could not create absolute path for %q", dir)
 		}
 		absDirs[i] = absDir
 	}
 	os.Setenv("FTL_DEV_DIRS", strings.Join(absDirs, ","))
 
 	terminal.LaunchEmbeddedConsole(ctx, createKongApplication(&DevModeCLI{}, csm), schemaEventSource, func(ctx context.Context, k *kong.Kong, args []string, additionalExit func(int)) error {
-		return runInnerCmd(ctx, k, projConfig, bindContext, args, additionalExit)
+		return errors.WithStack(runInnerCmd(ctx, k, projConfig, bindContext, args, additionalExit))
 	})
 	var deployClient buildengine.AdminClient = adminClient
 
@@ -89,7 +88,7 @@ func (d *devCmd) Run(
 
 	if d.NoServe && d.ServeCmd.Stop {
 		logger := log.FromContext(ctx)
-		return KillBackgroundServe(logger)
+		return errors.WithStack(KillBackgroundServe(logger))
 	}
 
 	statusManager := terminal.FromContext(ctx)
@@ -98,7 +97,7 @@ func (d *devCmd) Run(
 
 	bindAllocator, err := bind.NewBindAllocator(d.ServeCmd.Bind, 2)
 	if err != nil {
-		return fmt.Errorf("could not create bind allocator: %w", err)
+		return errors.Wrap(err, "could not create bind allocator")
 	}
 
 	// Default to allowing all origins and headers for console requests in local dev mode.
@@ -116,7 +115,7 @@ func (d *devCmd) Run(
 		if d.ServeCmd.Stop {
 			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine})
 			if err != nil {
-				return fmt.Errorf("failed to stop server: %w", err)
+				return errors.Wrap(err, "failed to stop server")
 			}
 			d.ServeCmd.Stop = false
 		}
@@ -124,11 +123,11 @@ func (d *devCmd) Run(
 		g.Go(func() error {
 			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine})
 			if err != nil {
-				cancel(fmt.Errorf("dev server failed: %w: %w", context.Canceled, err))
+				cancel(errors.Wrap(errors.Join(err, context.Canceled), "dev server failed"))
 			} else {
-				cancel(fmt.Errorf("dev server stopped: %w", context.Canceled))
+				cancel(errors.Wrap(context.Canceled, "dev server stopped"))
 			}
-			return err
+			return errors.WithStack(err)
 		})
 	}
 
@@ -141,15 +140,15 @@ func (d *devCmd) Run(
 		starting.Close()
 
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
-		return engine.Dev(ctx, d.Watch)
+		return errors.WithStack(engine.Dev(ctx, d.Watch))
 	})
 
 	err = g.Wait()
 	if err != nil && !errors.Is(err, context.Canceled) {
-		return fmt.Errorf("error during dev: %w", err)
+		return errors.Wrap(err, "error during dev")
 	}
 	return nil
 }

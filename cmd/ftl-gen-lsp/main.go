@@ -11,6 +11,7 @@ import (
 	"strings"
 	"text/template"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/tliron/kutil/terminal"
 )
@@ -57,12 +58,12 @@ func scrapeDocs(hovers []hover) (map[string]map[string]string, error) {
 		path := filepath.Join(cli.DocRoot, hover.Source)
 		file, err := os.Open(path)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open %s: %w", path, err)
+			return nil, errors.Wrapf(err, "failed to open %s", path)
 		}
 
 		doc, err := getMarkdownWithTitle(file)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read %s: %w", path, err)
+			return nil, errors.Wrapf(err, "failed to read %s", path)
 		}
 
 		var content string
@@ -70,7 +71,7 @@ func scrapeDocs(hovers []hover) (map[string]map[string]string, error) {
 			for _, sel := range hover.Select {
 				chunk, err := selector(doc.Content, sel)
 				if err != nil {
-					return nil, fmt.Errorf("failed to select %s from %s: %w", sel, path, err)
+					return nil, errors.Wrapf(err, "failed to select %s from %s", sel, path)
 				}
 				content += chunk
 			}
@@ -105,13 +106,13 @@ func scrapeDocs(hovers []hover) (map[string]map[string]string, error) {
 func parseHoverConfig(path string) ([]hover, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open %s: %w", path, err)
+		return nil, errors.Wrapf(err, "failed to open %s", path)
 	}
 
 	var hovers []hover
 	err = json.NewDecoder(file).Decode(&hovers)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse JSON %s: %w", path, err)
+		return nil, errors.Wrapf(err, "failed to parse JSON %s", path)
 	}
 
 	return hovers, nil
@@ -125,7 +126,7 @@ type Doc struct {
 func getMarkdownWithTitle(file *os.File) (*Doc, error) {
 	content, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %w", file.Name(), err)
+		return nil, errors.Wrapf(err, "failed to read %s", file.Name())
 	}
 
 	// Find the frontmatter boundaries
@@ -145,7 +146,7 @@ func getMarkdownWithTitle(file *os.File) (*Doc, error) {
 	}
 
 	if !foundStart || frontmatterEnd == 0 {
-		return nil, fmt.Errorf("file %s does not contain frontmatter delimiters", file.Name())
+		return nil, errors.Errorf("file %s does not contain frontmatter delimiters", file.Name())
 	}
 
 	// Join the content after frontmatter
@@ -163,7 +164,7 @@ func selector(content, selector string) (string, error) {
 	// If the selector starts with ## (the only type of heading we have):
 	// Find the line, include it, and all lines until the next heading.
 	if !strings.HasPrefix(selector, "##") {
-		return "", fmt.Errorf("unsupported selector %s", selector)
+		return "", errors.Errorf("unsupported selector %s", selector)
 	}
 	include := false
 	for _, line := range lines {
@@ -190,7 +191,7 @@ func selector(content, selector string) (string, error) {
 	}
 
 	if len(collected) == 0 {
-		return "", fmt.Errorf("no content found for selector %s", selector)
+		return "", errors.Errorf("no content found for selector %s", selector)
 	}
 
 	return strings.TrimSpace(strings.Join(collected, "\n")) + "\n", nil
@@ -199,7 +200,7 @@ func selector(content, selector string) (string, error) {
 func writeGoFile(path string, items map[string]map[string]string) error {
 	file, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("failed to create %s: %w", path, err)
+		return errors.Wrapf(err, "failed to create %s", path)
 	}
 	defer file.Close()
 
@@ -217,12 +218,12 @@ var hoverMap = map[string]map[string]string{
 }
 `)
 	if err != nil {
-		return fmt.Errorf("failed to parse template: %w", err)
+		return errors.Wrap(err, "failed to parse template")
 	}
 
 	err = tmpl.Execute(file, items)
 	if err != nil {
-		return fmt.Errorf("failed to execute template: %w", err)
+		return errors.Wrap(err, "failed to execute template")
 	}
 
 	fmt.Printf("Generated %s\n", path)

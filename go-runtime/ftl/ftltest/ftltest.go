@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 
@@ -82,12 +83,12 @@ func newContext(ctx context.Context, module string, options ...Option) context.C
 	if state.allowDirectSQLVerbs {
 		querySvc, err := query.New(ctx, &schema.Module{Name: module}, xsync.NewMapOf[string, string]())
 		if err != nil {
-			panic(fmt.Errorf("failed to create in-process query service to execute query verbs: %w", err))
+			panic(errors.Wrap(err, "failed to create in-process query service to execute query verbs"))
 		}
 		for name, db := range state.databases {
 			err := querySvc.AddQueryConn(ctx, name, db)
 			if err != nil {
-				panic(fmt.Errorf("failed to create DB connection for %s: %w", name, err))
+				panic(errors.Wrapf(err, "failed to create DB connection for %s", name))
 			}
 		}
 		ctx = rpccontext.ContextWithClient[queryconnect.QueryServiceClient, ftlv1.PingRequest, ftlv1.PingResponse, *ftlv1.PingResponse](ctx, queryclient.NewInlineQueryClient(querySvc)) // yuck
@@ -136,49 +137,49 @@ func WithProjectFile(path string) Option {
 		var ok bool
 		path, ok = pc.DefaultConfigPath().Get()
 		if !ok {
-			preprocessingErr = fmt.Errorf("could not find default project file in $FTL_CONFIG or git")
+			preprocessingErr = errors.Errorf("could not find default project file in $FTL_CONFIG or git")
 		}
 	}
 	return Option{
 		rank: profile,
 		apply: func(ctx context.Context, state *OptionsState) error {
 			if preprocessingErr != nil {
-				return preprocessingErr
+				return errors.WithStack(preprocessingErr)
 			}
 			if _, err := os.Stat(path); err != nil {
-				return fmt.Errorf("error accessing project file: %w", err)
+				return errors.Wrap(err, "error accessing project file")
 			}
 			projectConfig, err := pc.Load(ctx, optional.Some(path))
 			if err != nil {
-				return fmt.Errorf("project: %w", err)
+				return errors.Wrap(err, "project")
 			}
 			cm, err := cf.NewDefaultConfigurationManagerFromConfig(ctx, providers.NewDefaultConfigRegistry(), projectConfig)
 			if err != nil {
-				return fmt.Errorf("could not set up configs: %w", err)
+				return errors.Wrap(err, "could not set up configs")
 			}
 			configs, err := cm.MapForModule(ctx, moduleGetter())
 			if err != nil {
-				return fmt.Errorf("could not read configs: %w", err)
+				return errors.Wrap(err, "could not read configs")
 			}
 
 			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
 			for name, data := range configs {
 				if err := fftl.setConfig(name, json.RawMessage(data)); err != nil {
-					return err
+					return errors.WithStack(err)
 				}
 			}
 
 			sm, err := cf.NewDefaultSecretsManagerFromConfig(ctx, providers.NewDefaultSecretsRegistry(), projectConfig)
 			if err != nil {
-				return fmt.Errorf("could not set up secrets: %w", err)
+				return errors.Wrap(err, "could not set up secrets")
 			}
 			secrets, err := sm.MapForModule(ctx, moduleGetter())
 			if err != nil {
-				return fmt.Errorf("could not read secrets: %w", err)
+				return errors.Wrap(err, "could not read secrets")
 			}
 			for name, data := range secrets {
 				if err := fftl.setSecret(name, json.RawMessage(data)); err != nil {
-					return err
+					return errors.WithStack(err)
 				}
 			}
 			return nil
@@ -200,11 +201,11 @@ func WithConfig[T ftl.ConfigType](config ftl.Config[T], value T) Option {
 		rank: other,
 		apply: func(ctx context.Context, state *OptionsState) error {
 			if config.Module != moduleGetter() {
-				return fmt.Errorf("config %v does not match current module %s", config.Module, moduleGetter())
+				return errors.Errorf("config %v does not match current module %s", config.Module, moduleGetter())
 			}
 			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
 			if err := fftl.setConfig(config.Name, value); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			return nil
 		},
@@ -224,11 +225,11 @@ func WithSecret[T ftl.SecretType](secret ftl.Secret[T], value T) Option {
 		rank: other,
 		apply: func(ctx context.Context, state *OptionsState) error {
 			if secret.Module != moduleGetter() {
-				return fmt.Errorf("secret %v does not match current module %s", secret.Module, moduleGetter())
+				return errors.Errorf("secret %v does not match current module %s", secret.Module, moduleGetter())
 			}
 			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
 			if err := fftl.setSecret(secret.Name, value); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			return nil
 		},
@@ -253,9 +254,9 @@ func WhenVerb[VerbClient, Req, Resp any](fake ftl.Verb[Req, Resp]) Option {
 			state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
 				request, ok := req.(Req)
 				if !ok {
-					return nil, fmt.Errorf("invalid request type %T for %v, expected %v", req, ref, reflect.TypeFor[Req]())
+					return nil, errors.Errorf("invalid request type %T for %v, expected %v", req, ref, reflect.TypeFor[Req]())
 				}
-				return fake(ctx, request)
+				return errors.WithStack2(fake(ctx, request))
 			}
 			return nil
 		},
@@ -278,7 +279,7 @@ func WhenSource[SourceClient, Resp any](fake ftl.Source[Resp]) Option {
 		apply: func(ctx context.Context, state *OptionsState) error {
 			ref := reflection.ClientRef[SourceClient]()
 			state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
-				return fake(ctx)
+				return errors.WithStack2(fake(ctx))
 			}
 			return nil
 		},
@@ -303,9 +304,9 @@ func WhenSink[SinkClient, Req any](fake ftl.Sink[Req]) Option {
 			state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
 				request, ok := req.(Req)
 				if !ok {
-					return nil, fmt.Errorf("invalid request type %T for %v, expected %v", req, ref, reflect.TypeFor[Req]())
+					return nil, errors.Errorf("invalid request type %T for %v, expected %v", req, ref, reflect.TypeFor[Req]())
 				}
-				return ftl.Unit{}, fake(ctx, request)
+				return ftl.Unit{}, errors.WithStack(fake(ctx, request))
 			}
 			return nil
 		},
@@ -327,7 +328,7 @@ func WhenEmpty[EmptyClient any](fake ftl.Empty) Option {
 		apply: func(ctx context.Context, state *OptionsState) error {
 			ref := reflection.ClientRef[EmptyClient]()
 			state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
-				return ftl.Unit{}, fake(ctx)
+				return ftl.Unit{}, errors.WithStack(fake(ctx))
 			}
 			return nil
 		},
@@ -395,38 +396,38 @@ func getDSNFromSecret(ftl internal.FTL, module, name string) (string, error) {
 	key := dsnSecretKey(module, name)
 	var dsn string
 	if err := ftl.GetSecret(context.Background(), key, &dsn); err != nil {
-		return "", fmt.Errorf("could not get DSN for database %q from secret %q: %w", name, key, err)
+		return "", errors.Wrapf(err, "could not get DSN for database %q from secret %q", name, key)
 	}
 	return dsn, nil
 }
 
 // Call a Verb inline, applying resources and test behavior.
 func Call[VerbClient, Req, Resp any](ctx context.Context, req Req) (Resp, error) {
-	return call[VerbClient, Req, Resp](ctx, req)
+	return errors.WithStack2(call[VerbClient, Req, Resp](ctx, req))
 }
 
 // CallSource calls a Source inline, applying resources and test behavior.
 func CallSource[VerbClient, Resp any](ctx context.Context) (Resp, error) {
-	return call[VerbClient, ftl.Unit, Resp](ctx, ftl.Unit{})
+	return errors.WithStack2(call[VerbClient, ftl.Unit, Resp](ctx, ftl.Unit{}))
 }
 
 // CallSink calls a Sink inline, applying resources and test behavior.
 func CallSink[VerbClient, Req any](ctx context.Context, req Req) error {
 	_, err := call[VerbClient, Req, ftl.Unit](ctx, req)
-	return err
+	return errors.WithStack(err)
 }
 
 // CallEmpty calls an Empty inline, applying resources and test behavior.
 func CallEmpty[VerbClient any](ctx context.Context) error {
 	_, err := call[VerbClient, ftl.Unit, ftl.Unit](ctx, ftl.Unit{})
-	return err
+	return errors.WithStack(err)
 }
 
 // GetDatabaseHandle returns a database handle using the given database config.
 func GetDatabaseHandle[T any]() (ftl.DatabaseHandle[T], error) {
 	reflectedDB := reflection.GetDatabase[T]()
 	if reflectedDB == nil {
-		return ftl.DatabaseHandle[T]{}, fmt.Errorf("could not find database for config")
+		return ftl.DatabaseHandle[T]{}, errors.Errorf("could not find database for config")
 	}
 
 	var dbType ftl.DatabaseType
@@ -436,7 +437,7 @@ func GetDatabaseHandle[T any]() (ftl.DatabaseHandle[T], error) {
 	case "mysql":
 		dbType = ftl.DatabaseTypeMysql
 	default:
-		return ftl.DatabaseHandle[T]{}, fmt.Errorf("unsupported database type %v", reflectedDB.DBType)
+		return ftl.DatabaseHandle[T]{}, errors.Errorf("unsupported database type %v", reflectedDB.DBType)
 	}
 	return ftl.NewDatabaseHandle[T](reflectedDB.Name, dbType, reflectedDB.DB), nil
 }
@@ -452,27 +453,27 @@ func call[VerbClient, Req, Resp any](ctx context.Context, req Req) (resp Resp, e
 	inline := server.InvokeVerb[Req, Resp](ref)
 	override, err := moduleCtx.BehaviorForVerb(schema.Ref{Module: ref.Module, Name: ref.Name})
 	if err != nil {
-		return resp, fmt.Errorf("test harness failed to retrieve behavior for verb %s: %w", ref, err)
+		return resp, errors.Wrapf(err, "test harness failed to retrieve behavior for verb %s", ref)
 	}
 	if behavior, ok := override.Get(); ok {
 		uncheckedResp, err := behavior.Call(ctx, deploymentcontext.Verb(widenVerb(inline)), req)
 		if err != nil {
-			return resp, fmt.Errorf("test harness failed to call verb %s: %w", ref, err)
+			return resp, errors.Wrapf(err, "test harness failed to call verb %s", ref)
 		}
 		if r, ok := uncheckedResp.(Resp); ok {
 			return r, nil
 		}
-		return resp, fmt.Errorf("%s: overridden verb had invalid response type %T, expected %v", ref, uncheckedResp, reflect.TypeFor[Resp]())
+		return resp, errors.Errorf("%s: overridden verb had invalid response type %T, expected %v", ref, uncheckedResp, reflect.TypeFor[Resp]())
 	}
-	return inline(ctx, req)
+	return errors.WithStack2(inline(ctx, req))
 }
 
 func widenVerb[Req, Resp any](verb ftl.Verb[Req, Resp]) ftl.Verb[any, any] {
 	return func(ctx context.Context, uncheckedReq any) (any, error) {
 		req, ok := uncheckedReq.(Req)
 		if !ok {
-			return nil, fmt.Errorf("invalid request type %T for %v, expected %v", uncheckedReq, reflection.FuncRef(verb), reflect.TypeFor[Req]())
+			return nil, errors.Errorf("invalid request type %T for %v, expected %v", uncheckedReq, reflection.FuncRef(verb), reflect.TypeFor[Req]())
 		}
-		return verb(ctx, req)
+		return errors.WithStack2(verb(ctx, req))
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -32,21 +33,21 @@ func initRunnerMetrics() (*RunnerMetrics, error) {
 	if result.startupFailures, err = meter.Int64Counter(
 		counter,
 		metric.WithDescription("the number of runner startup failures")); err != nil {
-		return nil, wrapErr(counter, err)
+		return nil, errors.WithStack(wrapErr(counter, err))
 	}
 
 	counter = fmt.Sprintf("%s.registration.heartbeats", runnerMeterName)
 	if result.registrationHeartbeats, err = meter.Int64Counter(
 		counter,
 		metric.WithDescription("the number of successful runner (re-)registrations")); err != nil {
-		return nil, wrapErr(counter, err)
+		return nil, errors.WithStack(wrapErr(counter, err))
 	}
 
 	counter = fmt.Sprintf("%s.registration.failures", runnerMeterName)
 	if result.registrationFailures, err = meter.Int64Counter(
 		counter,
 		metric.WithDescription("the number of failures encountered while attempting to register a runner")); err != nil {
-		return nil, wrapErr(counter, err)
+		return nil, errors.WithStack(wrapErr(counter, err))
 	}
 
 	return result, nil

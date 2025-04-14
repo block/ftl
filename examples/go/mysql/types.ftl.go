@@ -3,6 +3,7 @@ package mysql
 
 import (
 	"context"
+
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/server"

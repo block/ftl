@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/block/scaffolder"
 	"github.com/block/scaffolder/extensions/javascript"
 	"github.com/radovskyb/watcher"
@@ -32,21 +33,21 @@ type schemaGenerateCmd struct {
 
 func (s *schemaGenerateCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	if s.Watch == 0 {
-		return s.oneOffGenerate(ctx, client)
+		return errors.WithStack(s.oneOffGenerate(ctx, client))
 	}
-	return s.hotReload(ctx, client)
+	return errors.WithStack(s.hotReload(ctx, client))
 }
 
 func (s *schemaGenerateCmd) oneOffGenerate(ctx context.Context, schemaClient adminpbconnect.AdminServiceClient) error {
 	response, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
-		return fmt.Errorf("failed to get schema: %w", err)
+		return errors.Wrap(err, "failed to get schema")
 	}
 	sch, err := schema.SchemaFromProto(response.Msg.Schema)
 	if err != nil {
-		return fmt.Errorf("invalid schema: %w", err)
+		return errors.Wrap(err, "invalid schema")
 	}
-	return s.regenerateModules(log.FromContext(ctx), sch.InternalModules())
+	return errors.WithStack(s.regenerateModules(log.FromContext(ctx), sch.InternalModules()))
 }
 
 func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
@@ -55,22 +56,22 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 
 	absTemplatePath, err := filepath.Abs(s.Template)
 	if err != nil {
-		return fmt.Errorf("failed to get absolute path for template: %w", err)
+		return errors.Wrap(err, "failed to get absolute path for template")
 	}
 	absDestPath, err := filepath.Abs(s.Dest)
 	if err != nil {
-		return fmt.Errorf("failed to get absolute path for destination: %w", err)
+		return errors.Wrap(err, "failed to get absolute path for destination")
 	}
 
 	if strings.HasPrefix(absDestPath, absTemplatePath) {
-		return fmt.Errorf("destination directory %s must not be inside the template directory %s", absDestPath, absTemplatePath)
+		return errors.Errorf("destination directory %s must not be inside the template directory %s", absDestPath, absTemplatePath)
 	}
 
 	logger := log.FromContext(ctx)
 	logger.Debugf("Watching %s", s.Template)
 
 	if err := watch.AddRecursive(s.Template); err != nil {
-		return fmt.Errorf("failed to watch template directory: %w", err)
+		return errors.Wrap(err, "failed to watch template directory")
 	}
 
 	wg, ctx := errgroup.WithContext(ctx)
@@ -81,7 +82,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 		for {
 			stream, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-schema-generate"}))
 			if err != nil {
-				return fmt.Errorf("failed to pull schema: %w", err)
+				return errors.Wrap(err, "failed to pull schema")
 			}
 
 			modules := map[string]*schema.Module{}
@@ -91,7 +92,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 				case *schemapb.Notification_FullSchemaNotification:
 					sch, err := schema.SchemaFromProto(msg.FullSchemaNotification.Schema)
 					if err != nil {
-						return fmt.Errorf("invalid schema: %w", err)
+						return errors.Wrap(err, "invalid schema")
 					}
 
 					for _, module := range sch.InternalModules() {
@@ -100,14 +101,14 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 				case *schemapb.Notification_DeploymentRuntimeNotification:
 					not, err := schema.DeploymentRuntimeNotificationFromProto(msg.DeploymentRuntimeNotification)
 					if err != nil {
-						return fmt.Errorf("invalid deployment runtime notification: %w", err)
+						return errors.Wrap(err, "invalid deployment runtime notification")
 					}
 					if not.Changeset == nil || not.Changeset.IsZero() {
 						m, ok := modules[not.Payload.Deployment.Payload.Module]
 						if ok {
 							err := not.Payload.ApplyToModule(m)
 							if err != nil {
-								return fmt.Errorf("failed to apply deployment runtime: %w", err)
+								return errors.Wrap(err, "failed to apply deployment runtime")
 							}
 						}
 					}
@@ -116,7 +117,7 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 				case *schemapb.Notification_ChangesetCommittedNotification:
 					cs, err := schema.ChangesetFromProto(msg.ChangesetCommittedNotification.Changeset)
 					if err != nil {
-						return fmt.Errorf("invalid changeset: %w", err)
+						return errors.Wrap(err, "invalid changeset")
 					}
 					for _, m := range cs.InternalRealm().RemovingModules {
 						delete(modules, m.Name)
@@ -135,24 +136,24 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 		}
 	})
 
-	wg.Go(func() error { return watch.Start(s.Watch) })
+	wg.Go(func() error { return errors.WithStack(watch.Start(s.Watch)) })
 
 	var previousModules []*schema.Module
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("context cancelled: %w", wg.Wait())
+			return errors.Wrap(wg.Wait(), "context cancelled")
 
 		case event := <-watch.Event:
 			logger.Debugf("Template changed (%s), regenerating modules", event.Path)
 			if err := s.regenerateModules(logger, previousModules); err != nil {
-				return fmt.Errorf("failed to regenerate modules: %w", err)
+				return errors.Wrap(err, "failed to regenerate modules")
 			}
 
 		case modules := <-moduleChange:
 			previousModules = modules
 			if err := s.regenerateModules(logger, modules); err != nil {
-				return fmt.Errorf("failed to regenerate modules: %w", err)
+				return errors.Wrap(err, "failed to regenerate modules")
 			}
 		}
 	}
@@ -160,14 +161,14 @@ func (s *schemaGenerateCmd) hotReload(ctx context.Context, client adminpbconnect
 
 func (s *schemaGenerateCmd) regenerateModules(logger *log.Logger, modules []*schema.Module) error {
 	if err := os.RemoveAll(s.Dest); err != nil {
-		return fmt.Errorf("failed to remove destination directory: %w", err)
+		return errors.Wrap(err, "failed to remove destination directory")
 	}
 
 	for _, module := range modules {
 		if err := scaffolder.Scaffold(s.Template, s.Dest, module,
 			scaffolder.Extend(javascript.Extension("template.js", javascript.WithLogger(makeJSLoggerAdapter(logger)))),
 		); err != nil {
-			return fmt.Errorf("failed to scaffold module %s: %w", module.Name, err)
+			return errors.Wrapf(err, "failed to scaffold module %s", module.Name)
 		}
 	}
 	logger.Debugf("Generated %d modules in %s", len(modules), s.Dest)

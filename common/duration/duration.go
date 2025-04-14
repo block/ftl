@@ -1,10 +1,11 @@
 package duration
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"time"
+
+	errors "github.com/alecthomas/errors"
 )
 
 type Components struct {
@@ -24,7 +25,7 @@ func (c Components) Duration() time.Duration {
 func Parse(str string) (time.Duration, error) {
 	components, err := ParseComponents(str)
 	if err != nil {
-		return 0, err
+		return 0, errors.WithStack(err)
 	}
 
 	return components.Duration(), nil
@@ -39,11 +40,11 @@ func ParseComponents(str string) (*Components, error) {
 	for len(str) > 0 {
 		matches := re.FindStringSubmatchIndex(str)
 		if matches == nil {
-			return nil, fmt.Errorf("unable to parse duration %q - expected duration in format like '1m' or '30s'", str)
+			return nil, errors.Errorf("unable to parse duration %q - expected duration in format like '1m' or '30s'", str)
 		}
 		num, err := strconv.Atoi(str[matches[2]:matches[3]])
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse duration %q: %w", str, err)
+			return nil, errors.Wrapf(err, "unable to parse duration %q", str)
 		}
 
 		unitStr := str[matches[4]:matches[5]]
@@ -62,10 +63,10 @@ func ParseComponents(str string) (*Components, error) {
 			components.Seconds = num
 			unitDuration = time.Second
 		default:
-			return nil, fmt.Errorf("duration has unknown unit %q - use 'd', 'h', 'm' or 's', eg '1d' or '30s'", unitStr)
+			return nil, errors.Errorf("duration has unknown unit %q - use 'd', 'h', 'm' or 's', eg '1d' or '30s'", unitStr)
 		}
 		if previousUnitDuration != 0 && previousUnitDuration <= unitDuration {
-			return nil, fmt.Errorf("duration has unit %q out of order - units need to be ordered from largest to smallest - eg '1d3h2m'", unitStr)
+			return nil, errors.Errorf("duration has unit %q out of order - units need to be ordered from largest to smallest - eg '1d3h2m'", unitStr)
 		}
 		previousUnitDuration = unitDuration
 		str = str[matches[1]:]

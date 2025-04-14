@@ -2,8 +2,11 @@ package time
 
 import (
 	"context"
-	"github.com/block/ftl/go-runtime/ftl"
 	"time"
+
+	errors "github.com/alecthomas/errors"
+
+	"github.com/block/ftl/go-runtime/ftl"
 )
 
 // Simple string configuration
@@ -20,7 +23,7 @@ type TimeResponse struct {
 func Time(ctx context.Context, req TimeRequest, ic InternalClient) (TimeResponse, error) {
 	internalTime, err := ic(ctx, req)
 	if err != nil {
-		return TimeResponse{}, err
+		return TimeResponse{}, errors.WithStack(err)
 	}
 	return TimeResponse{Time: internalTime.Time}, nil
 }

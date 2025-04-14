@@ -2,8 +2,9 @@ package main
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
+
+	errors "github.com/alecthomas/errors"
 
 	sm "github.com/block/ftl/internal/statemachine"
 )
@@ -41,7 +42,7 @@ func (s IntStateMachine) Close() error {
 func (s IntStateMachine) Recover(reader io.Reader) error {
 	err := binary.Read(reader, binary.BigEndian, &s.sum)
 	if err != nil {
-		return fmt.Errorf("failed to recover from snapshot: %w", err)
+		return errors.Wrap(err, "failed to recover from snapshot")
 	}
 	return nil
 }
@@ -49,7 +50,7 @@ func (s IntStateMachine) Recover(reader io.Reader) error {
 func (s IntStateMachine) Save(writer io.Writer) error {
 	err := binary.Write(writer, binary.BigEndian, s.sum)
 	if err != nil {
-		return fmt.Errorf("failed to save snapshot: %w", err)
+		return errors.Wrap(err, "failed to save snapshot")
 	}
 	return nil
 }

@@ -3,12 +3,13 @@ package buildengine
 import (
 	"archive/tar"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"time"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
@@ -39,11 +40,11 @@ func extractSQLMigrations(ctx context.Context, cfg moduleconfig.AbsModuleConfig,
 		logger.Debugf("Reading migrations from %s", schemaDir)
 		err := createMigrationTarball(schemaDir, target)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create migration tar %s: %w", schemaDir, err)
+			return nil, errors.Wrapf(err, "failed to create migration tar %s", schemaDir)
 		}
 		digest, err := sha256.SumFile(target)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read migration tar for sha256 %s: %w", schemaDir, err)
+			return nil, errors.Wrapf(err, "failed to read migration tar for sha256 %s", schemaDir)
 		}
 		db.Metadata = append(db.Metadata, &schema.MetadataSQLMigration{Digest: digest.String()})
 		ret = append(ret, fileName)
@@ -55,7 +56,7 @@ func createMigrationTarball(migrationDir string, target string) error {
 	// Create the tar file
 	tarFile, err := os.Create(target)
 	if err != nil {
-		return fmt.Errorf("failed to create tar file: %w", err)
+		return errors.Wrap(err, "failed to create tar file")
 	}
 	defer tarFile.Close()
 
@@ -66,7 +67,7 @@ func createMigrationTarball(migrationDir string, target string) error {
 	// Read the directory
 	files, err := os.ReadDir(migrationDir)
 	if err != nil {
-		return fmt.Errorf("failed to read directory: %w", err)
+		return errors.Wrap(err, "failed to read directory")
 	}
 
 	// Sort files alphabetically
@@ -83,13 +84,13 @@ func createMigrationTarball(migrationDir string, target string) error {
 		filePath := filepath.Join(migrationDir, file.Name())
 		info, err := os.Stat(filePath)
 		if err != nil {
-			return fmt.Errorf("failed to stat file: %w", err)
+			return errors.Wrap(err, "failed to stat file")
 		}
 
 		// Create tar header
 		header, err := tar.FileInfoHeader(info, info.Name())
 		if err != nil {
-			return fmt.Errorf("failed to create tar header: %w", err)
+			return errors.Wrap(err, "failed to create tar header")
 		}
 		header.Name = file.Name()
 		header.ModTime = epoch
@@ -98,19 +99,19 @@ func createMigrationTarball(migrationDir string, target string) error {
 
 		// Write header
 		if err := tw.WriteHeader(header); err != nil {
-			return fmt.Errorf("failed to write header: %w", err)
+			return errors.Wrap(err, "failed to write header")
 		}
 
 		// Write file content
 		if !info.IsDir() {
 			fileContent, err := os.Open(filePath)
 			if err != nil {
-				return fmt.Errorf("failed to open file: %w", err)
+				return errors.Wrap(err, "failed to open file")
 			}
 			defer fileContent.Close()
 
 			if _, err := io.Copy(tw, fileContent); err != nil {
-				return fmt.Errorf("failed to write file content: %w", err)
+				return errors.Wrap(err, "failed to write file content")
 			}
 		}
 	}
@@ -121,13 +122,13 @@ func handleDatabaseMigrations(ctx context.Context, cfg moduleconfig.AbsModuleCon
 	target := filepath.Join(cfg.DeployDir, "migrations")
 	err := os.MkdirAll(target, 0770) // #nosec
 	if err != nil {
-		return nil, fmt.Errorf("failed to create migration directory: %w", err)
+		return nil, errors.Wrap(err, "failed to create migration directory")
 	}
 	logger := log.FromContext(ctx)
 	logger.Debugf("Extracting SQL migrations into %s", target)
 	migrations, err := extractSQLMigrations(ctx, cfg, module, target)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract migrations: %w", err)
+		return nil, errors.Wrap(err, "failed to extract migrations")
 	}
 	relativeFiles := []string{}
 	for _, file := range migrations {

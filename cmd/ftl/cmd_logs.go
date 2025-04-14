@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"strings"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -61,7 +60,7 @@ func (cmd *logsCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceC
 		Query: query,
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to stream logs: %w", err)
+		return errors.Wrap(err, "failed to stream logs")
 	}
 
 	for stream.Receive() {
@@ -80,7 +79,7 @@ func (cmd *logsCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceC
 	}
 
 	if err := stream.Err(); err != nil && errors.Is(err, io.EOF) {
-		return fmt.Errorf("error receiving logs: %w", err)
+		return errors.Wrap(err, "error receiving logs")
 	}
 
 	return nil

@@ -2,9 +2,9 @@ package leases
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
+
+	errors "github.com/alecthomas/errors"
 
 	leasepb "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
@@ -25,10 +25,10 @@ type clientLeaser struct {
 
 func (c clientLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Duration) (Lease, context.Context, error) {
 	if len(key) == 0 {
-		return nil, nil, errors.New("lease key must not be empty")
+		return nil, nil, errors.WithStack(errors.New("lease key must not be empty"))
 	}
 	if ttl.Seconds() < 5 {
-		return nil, nil, errors.New("ttl must be at least 5 seconds")
+		return nil, nil, errors.WithStack(errors.New("ttl must be at least 5 seconds"))
 	}
 	lease := c.client.AcquireLease(ctx)
 	// Send the initial request to acquire the lease.
@@ -36,11 +36,11 @@ func (c clientLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Durati
 		Key: key,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to send acquire lease request: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to send acquire lease request")
 	}
 	_, err = lease.Receive()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to send receive lease response: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to send receive lease response")
 	}
 	// We have got the lease, we need a goroutine to keep renewing the lease.
 	ret := &clientLease{}
@@ -61,12 +61,12 @@ func (c clientLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Durati
 					Key: key,
 				})
 				if err != nil {
-					done(fmt.Errorf("failed to send acquire lease request: %w: %w", context.Canceled, err))
+					done(errors.Wrap(errors.Join(context.Canceled, err), "failed to send acquire lease request"))
 					return
 				}
 				_, err = lease.Receive()
 				if err != nil {
-					done(fmt.Errorf("failed to receive lease response: %w: %w", context.Canceled, err))
+					done(errors.Wrap(errors.Join(context.Canceled, err), "failed to receive lease response"))
 					return
 				}
 			}

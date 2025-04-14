@@ -3,12 +3,11 @@ package config
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/encoding"
@@ -143,11 +142,11 @@ type SyncedValue struct {
 func Store[T any, R Role](ctx context.Context, provider Provider[R], ref Ref, value T) error {
 	data, err := encoding.Marshal(value)
 	if err != nil {
-		return fmt.Errorf("failed to marshal value: %w", err)
+		return errors.Wrap(err, "failed to marshal value")
 	}
 	err = provider.Store(ctx, ref, data)
 	if err != nil {
-		return fmt.Errorf("failed to store value: %w", err)
+		return errors.Wrap(err, "failed to store value")
 	}
 	return nil
 }
@@ -156,11 +155,11 @@ func Store[T any, R Role](ctx context.Context, provider Provider[R], ref Ref, va
 func Load[T any, R Role](ctx context.Context, provider Provider[R], ref Ref) (out T, err error) {
 	data, err := provider.Load(ctx, ref)
 	if err != nil {
-		return out, fmt.Errorf("failed to load value: %w", err)
+		return out, errors.Wrap(err, "failed to load value")
 	}
 	err = encoding.Unmarshal(data, &out)
 	if err != nil {
-		return out, fmt.Errorf("failed to marshal value: %w", err)
+		return out, errors.Wrap(err, "failed to marshal value")
 	}
 	return out, nil
 }

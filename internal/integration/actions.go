@@ -18,25 +18,22 @@ import (
 	"time"
 	"unicode"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/block/ftl/common/encoding"
-	islices "github.com/block/ftl/common/slices"
-
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	"github.com/block/scaffolder"
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 	"github.com/kballard/go-shellquote"
 	"github.com/otiai10/copy"
+	"golang.org/x/sync/errgroup"
 	"k8s.io/client-go/kubernetes"
-
-	"github.com/block/scaffolder"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
+	"github.com/block/ftl/common/encoding"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/devstate"
 	"github.com/block/ftl/internal/dsn"
 	ftlexec "github.com/block/ftl/internal/exec"

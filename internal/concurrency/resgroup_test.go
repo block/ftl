@@ -1,10 +1,10 @@
 package concurrency
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 )
 
 func TestResourceGroup(t *testing.T) {
@@ -38,7 +38,7 @@ func TestResourceGroup(t *testing.T) {
 		expectedErr := errors.New("test error")
 
 		rg.Go(func() (string, error) {
-			return "", expectedErr
+			return "", errors.WithStack(expectedErr)
 		})
 
 		rg.Go(func() (string, error) {
@@ -46,7 +46,7 @@ func TestResourceGroup(t *testing.T) {
 		})
 
 		results, err := rg.Wait()
-		assert.Equal(t, err, expectedErr)
+		assert.EqualError(t, err, expectedErr.Error())
 		assert.Equal(t, results, nil)
 	})
 }

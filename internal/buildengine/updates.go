@@ -2,12 +2,12 @@ package buildengine
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
@@ -105,7 +105,7 @@ func (u *updatesService) StreamEngineEvents(ctx context.Context, req *connect.Re
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to send engine event: %w", err)
+		return errors.Wrap(err, "failed to send engine event")
 	}
 	// Send cached events if replay_history is true
 	if req.Msg.ReplayHistory {
@@ -116,7 +116,7 @@ func (u *updatesService) StreamEngineEvents(ctx context.Context, req *connect.Re
 			})
 			if err != nil {
 				u.lock.RUnlock()
-				return fmt.Errorf("failed to send cached engine event: %w", err)
+				return errors.Wrap(err, "failed to send cached engine event")
 			}
 		}
 		u.lock.RUnlock()
@@ -128,7 +128,7 @@ func (u *updatesService) StreamEngineEvents(ctx context.Context, req *connect.Re
 			Event: event,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to send engine event: %w", err)
+			return errors.Wrap(err, "failed to send engine event")
 		}
 	}
 
@@ -173,8 +173,8 @@ func errorToLangError(err error) []*langpb.Error {
 	errs := []*langpb.Error{}
 
 	// Unwrap and deduplicate all nested errors
-	for _, e := range ftlerrors.DeduplicateErrors(ftlerrors.UnwrapAll(err)) {
-		if !ftlerrors.Innermost(e) {
+	for _, e := range ftlerrors.Deduplicate(errors.UnwrapAllInnermost(err)) {
+		if !errors.Innermost(e) {
 			continue
 		}
 

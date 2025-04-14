@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
@@ -93,7 +93,7 @@ func (s *serveCmd) Run(
 ) error {
 	bindAllocator, err := bind.NewBindAllocator(s.Bind, 2)
 	if err != nil {
-		return fmt.Errorf("could not create bind allocator: %w", err)
+		return errors.Wrap(err, "could not create bind allocator")
 	}
 	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, timelineClient, adminClient, buildEngineClient, nil, nil)
 }
@@ -135,21 +135,21 @@ func (s *serveCommonConfig) run(
 		_, err := controllerClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
 		if err == nil {
 			// The controller is already running, bail out.
-			return errors.New(ftlRunningErrorMsg)
+			return errors.WithStack(errors.New(ftlRunningErrorMsg))
 		}
 		if err := runInBackground(logger); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		if err := waitForControllerOnline(ctx, s.StartupTimeout, controllerClient); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		os.Exit(0)
 	}
 
 	if s.Stop {
-		return KillBackgroundServe(logger)
+		return errors.WithStack(KillBackgroundServe(logger))
 	}
 	if err := writePidFile(os.Getpid()); err != nil {
 		logger.Errorf(err, "Failed to write pid file")
@@ -157,7 +157,7 @@ func (s *serveCommonConfig) run(
 	_, err := controllerClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
 	if err == nil {
 		// The controller is already running, bail out.
-		return errors.New(ftlRunningErrorMsg)
+		return errors.WithStack(errors.New(ftlRunningErrorMsg))
 	}
 
 	if s.EnableGrafana && !bool(s.ObservabilityConfig.ExportOTEL) {
@@ -171,27 +171,27 @@ func (s *serveCommonConfig) run(
 		}
 	}
 	if err := observability.Init(ctx, false, "", "ftl-serve", ftl.Version, s.ObservabilityConfig); err != nil {
-		return fmt.Errorf("observability init failed: %w", err)
+		return errors.Wrap(err, "observability init failed")
 	}
 	// Bring up the image registry we use to store deployment content
 	if err := dev.SetupRegistry(ctx, s.RegistryImage, s.RegistryPort); err != nil {
-		return fmt.Errorf("registry init failed: %w", err)
+		return errors.Wrap(err, "registry init failed")
 	}
 	storage, err := artefacts.NewOCIRegistryStorage(ctx, artefacts.RegistryConfig{
 		AllowInsecure: true,
 		Registry:      fmt.Sprintf("127.0.0.1:%d/ftl", s.RegistryPort),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create OCI registry storage: %w", err)
+		return errors.Wrap(err, "failed to create OCI registry storage")
 	}
 
 	wg, ctx := errgroup.WithContext(ctx)
 
 	if _, err := bindAllocator.Next(); err != nil { // skip the first port, which is used by ingress
-		return fmt.Errorf("could not allocate port for ingress: %w", err)
+		return errors.Wrap(err, "could not allocate port for ingress")
 	}
 	if _, err := bindAllocator.Next(); err != nil {
-		return fmt.Errorf("could not allocate port for controller: %w", err)
+		return errors.Wrap(err, "could not allocate port for controller")
 	}
 
 	runnerScaling, err := localscaling.NewLocalScaling(
@@ -207,11 +207,11 @@ func (s *serveCommonConfig) run(
 		devModeEndpoints,
 	)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	err = runnerScaling.Start(ctx)
 	if err != nil {
-		return fmt.Errorf("runner scaling failed to start: %w", err)
+		return errors.Wrap(err, "runner scaling failed to start")
 	}
 
 	schemaCtx := log.ContextWithLogger(ctx, logger.Scope("schemaservice"))
@@ -230,7 +230,7 @@ func (s *serveCommonConfig) run(
 
 	controllerService, err := controller.New(controllerCtx, s.Bind, adminClient, schemaClient, leaseClient, config, true)
 	if err != nil {
-		return fmt.Errorf("controller failed: %w", err)
+		return errors.Wrap(err, "controller failed")
 	}
 	services = append(services, controllerService)
 
@@ -240,7 +240,7 @@ func (s *serveCommonConfig) run(
 		wg.Go(func() error {
 			ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
 			if err := consolefrontend.PrepareServer(ctx); err != nil {
-				return fmt.Errorf("failed to prepare console server: %w", err)
+				return errors.Wrap(err, "failed to prepare console server")
 			}
 			return nil
 		})
@@ -284,7 +284,7 @@ func (s *serveCommonConfig) run(
 	if s.PluginConfigFile != nil {
 		r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.WorkingDir, s.PluginConfigFile, runnerScaling)
 		if err != nil {
-			return fmt.Errorf("failed to create provisioner registry: %w", err)
+			return errors.Wrap(err, "failed to create provisioner registry")
 		}
 		provisionerRegistry = r
 	}
@@ -292,7 +292,7 @@ func (s *serveCommonConfig) run(
 	wg.Go(func() error {
 		if err := provisioner.Start(provisionerCtx, provisionerRegistry, schemaClient, timelineClient); err != nil {
 			logger.Errorf(err, "provisionerfailed: %v", err)
-			return fmt.Errorf("provisionerfailed: %w", err)
+			return errors.Wrap(err, "provisionerfailed")
 		}
 		return nil
 	})
@@ -300,7 +300,7 @@ func (s *serveCommonConfig) run(
 	// Start Timeline
 	timelineService, err := timeline.New(ctx, s.Timeline)
 	if err != nil {
-		return fmt.Errorf("failed to create timeline service: %w", err)
+		return errors.Wrap(err, "failed to create timeline service")
 	}
 	services = append(services, timelineService)
 	// Start Cron
@@ -312,7 +312,7 @@ func (s *serveCommonConfig) run(
 		}
 		err := cron.Start(ctx, c, schemaEventSource, router, timelineClient)
 		if err != nil {
-			return fmt.Errorf("cron failed: %w", err)
+			return errors.Wrap(err, "cron failed")
 		}
 		return nil
 	})
@@ -321,7 +321,7 @@ func (s *serveCommonConfig) run(
 		ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("http-ingress"))
 		err := ingress.Start(ctx, s.IngressBind, s.Ingress, schemaEventSource, router, timelineClient)
 		if err != nil {
-			return fmt.Errorf("ingress failed: %w", err)
+			return errors.Wrap(err, "ingress failed")
 		}
 		return nil
 	})
@@ -334,7 +334,7 @@ func (s *serveCommonConfig) run(
 	wg.Go(func() error {
 		err := rpc.Serve(ctx, s.Bind, rpc.WithServices(services...))
 		if err != nil {
-			return fmt.Errorf("admin serve failed: %w", err)
+			return errors.Wrap(err, "lease failed")
 		}
 		return nil
 	})
@@ -342,7 +342,7 @@ func (s *serveCommonConfig) run(
 	wg.Go(func() error {
 		start := time.Now()
 		if err := waitForControllerOnline(ctx, s.StartupTimeout, controllerClient); err != nil {
-			return fmt.Errorf("controller failed to start: %w", err)
+			return errors.Wrap(err, "controller failed to start")
 		}
 		logger.Infof("Controller started in %.2fs", time.Since(start).Seconds())
 
@@ -350,7 +350,7 @@ func (s *serveCommonConfig) run(
 			for _, cmd := range projConfig.Commands.Startup {
 				logger.Debugf("Executing startup command: %s", cmd)
 				if err := exec.Command(ctx, log.Info, ".", "bash", "-c", cmd).Run(); err != nil {
-					return fmt.Errorf("startup command failed: %w", err)
+					return errors.Wrap(err, "startup command failed")
 				}
 			}
 		}
@@ -362,7 +362,7 @@ func (s *serveCommonConfig) run(
 	})
 
 	if err := wg.Wait(); err != nil {
-		return fmt.Errorf("serve failed: %w", err)
+		return errors.Wrap(err, "serve failed")
 	}
 
 	return nil
@@ -370,7 +370,7 @@ func (s *serveCommonConfig) run(
 
 func runInBackground(logger *log.Logger) error {
 	if running, err := isServeRunning(logger); err != nil {
-		return fmt.Errorf("failed to check if FTL is running: %w", err)
+		return errors.Wrap(err, "failed to check if FTL is running")
 	} else if running {
 		logger.Warnf(ftlRunningErrorMsg)
 		return nil
@@ -389,13 +389,13 @@ func runInBackground(logger *log.Logger) error {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start background process: %w", err)
+		return errors.Wrap(err, "failed to start background process")
 	}
 
 	pid := cmd.Process.Pid
 	err := writePidFile(pid)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	logger.Infof("`ftl serve` running in background with pid: %d", pid)
@@ -405,14 +405,14 @@ func runInBackground(logger *log.Logger) error {
 func writePidFile(pid int) error {
 	pidFilePath, err := pidFilePath()
 	if err != nil {
-		return fmt.Errorf("failed to get pid file path: %w", err)
+		return errors.Wrap(err, "failed to get pid file path")
 	}
 	if err := os.MkdirAll(filepath.Dir(pidFilePath), 0750); err != nil {
-		return fmt.Errorf("failed to create directory for pid file: %w", err)
+		return errors.Wrap(err, "failed to create directory for pid file")
 	}
 
 	if err := os.WriteFile(pidFilePath, []byte(strconv.Itoa(pid)), 0600); err != nil {
-		return fmt.Errorf("failed to write pid file: %w", err)
+		return errors.Wrap(err, "failed to write pid file")
 	}
 	return nil
 }
@@ -421,7 +421,7 @@ func KillBackgroundServe(logger *log.Logger) error {
 	pidFilePath, err := pidFilePath()
 	if err != nil {
 		logger.Infof("No background process found")
-		return err
+		return errors.WithStack(err)
 	}
 
 	pid, err := getPIDFromPath(pidFilePath)
@@ -436,7 +436,7 @@ func KillBackgroundServe(logger *log.Logger) error {
 
 	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
 		if !errors.Is(err, syscall.ESRCH) {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
@@ -447,7 +447,7 @@ func KillBackgroundServe(logger *log.Logger) error {
 func pidFilePath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	return filepath.Join(homeDir, ".ftl", "ftl-serve.pid"), nil
 }
@@ -457,11 +457,11 @@ func getPIDFromPath(path string) (int, error) {
 	if os.IsNotExist(err) {
 		return 0, nil
 	} else if err != nil {
-		return 0, err
+		return 0, errors.WithStack(err)
 	}
 	pid, err := strconv.Atoi(string(pidBytes))
 	if err != nil {
-		return 0, err
+		return 0, errors.WithStack(err)
 	}
 	return pid, nil
 }
@@ -469,12 +469,12 @@ func getPIDFromPath(path string) (int, error) {
 func isServeRunning(logger *log.Logger) (bool, error) {
 	pidFilePath, err := pidFilePath()
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 
 	pid, err := getPIDFromPath(pidFilePath)
 	if err != nil || pid == 0 {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 
 	err = syscall.Kill(pid, 0)
@@ -487,7 +487,7 @@ func isServeRunning(logger *log.Logger) (bool, error) {
 			logger.Infof("Process with PID %d exists but no permission to signal it.", pid)
 			return true, nil
 		}
-		return false, err
+		return false, errors.WithStack(err)
 	}
 
 	return true, nil
@@ -520,5 +520,5 @@ func waitForControllerOnline(ctx context.Context, startupTimeout time.Duration, 
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		logger.Errorf(ctx.Err(), "Timeout reached while polling for controller status")
 	}
-	return fmt.Errorf("context cancelled: %w", ctx.Err())
+	return errors.Wrap(ctx.Err(), "context cancelled")
 }

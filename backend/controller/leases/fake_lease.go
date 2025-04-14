@@ -2,9 +2,9 @@ package leases
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/alecthomas/errors"
 	"github.com/puzpuzpuz/xsync/v3"
 )
 
@@ -30,8 +30,8 @@ func (f *FakeLeaser) AcquireLease(ctx context.Context, key Key, ttl time.Duratio
 		ttl:       ttl,
 	}
 	if _, loaded := f.leases.LoadOrStore(key.String(), newLease); loaded {
-		cancelCtx(fmt.Errorf("lease with key %q already exists: %w", key, ErrConflict))
-		return nil, nil, ErrConflict
+		cancelCtx(errors.Wrapf(ErrConflict, "lease with key %q already exists", key))
+		return nil, nil, errors.WithStack(ErrConflict)
 	}
 	return newLease, leaseCtx, nil
 }
@@ -45,7 +45,7 @@ type FakeLease struct {
 
 func (f *FakeLease) Release() error {
 	f.leaser.leases.Delete(f.key.String())
-	f.cancelCtx(fmt.Errorf("lease with key %q released", f.key))
+	f.cancelCtx(errors.Errorf("lease with key %q released", f.key))
 	return nil
 }
 

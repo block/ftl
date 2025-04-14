@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/swaggest/jsonschema-go"
 )
 
@@ -13,10 +14,10 @@ import (
 func RequestResponseToJSONSchema(sch *Schema, ref Ref) (*jsonschema.Schema, error) {
 	symbol, err := sch.ResolveRequestResponseType(&ref)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if symbol == nil {
-		return nil, fmt.Errorf("unknown request/response reference %s", ref)
+		return nil, errors.Errorf("unknown request/response reference %s", ref)
 	}
 
 	// Encode root, and collect all data types reachable from the root.
@@ -31,14 +32,14 @@ func RequestResponseToJSONSchema(sch *Schema, ref Ref) (*jsonschema.Schema, erro
 	for _, r := range refs {
 		decl, ok := sch.Resolve(r).Get()
 		if !ok {
-			return nil, fmt.Errorf("unknown ref %s", r)
+			return nil, errors.Errorf("unknown ref %s", r)
 		}
 		switch n := decl.(type) {
 		case *Data:
 			if len(r.TypeParameters) > 0 {
 				monomorphisedData, err := n.Monomorphise(r)
 				if err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 
 				ref := fmt.Sprintf("%s.%s", r.Module, refName(r))
@@ -53,7 +54,7 @@ func RequestResponseToJSONSchema(sch *Schema, ref Ref) (*jsonschema.Schema, erro
 			root.Definitions[r.String()] = jsonschema.SchemaOrBool{TypeObject: nodeToJSSchema(n.Type, refs)}
 
 		case *Config, *Database, *Secret, *Verb, *Topic:
-			return nil, fmt.Errorf("reference to unsupported node type %T", decl)
+			return nil, errors.Errorf("reference to unsupported node type %T", decl)
 		}
 	}
 	return root, nil

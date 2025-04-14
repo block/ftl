@@ -2,10 +2,10 @@ package reflection
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 )
 
@@ -42,7 +42,7 @@ type verbCall struct {
 // Exec executes the verb with the given context and request, adding any resources that were provided.
 func (v verbCall) Exec(ctx context.Context, req optional.Option[any]) (optional.Option[any], error) {
 	if v.fn.Kind() != reflect.Func {
-		return optional.None[any](), fmt.Errorf("error invoking verb %v", v.fn)
+		return optional.None[any](), errors.Errorf("error invoking verb %v", v.fn)
 	}
 
 	var args []reflect.Value
@@ -54,16 +54,16 @@ func (v verbCall) Exec(ctx context.Context, req optional.Option[any]) (optional.
 	tryCall := func(args []reflect.Value) (results []reflect.Value, err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("%v", r)
+				err = errors.Errorf("%v", r)
 			}
 		}()
 		results = v.fn.Call(args)
-		return results, err
+		return results, errors.WithStack(err)
 	}
 
 	results, err := tryCall(append(args, v.args...))
 	if err != nil {
-		return optional.None[any](), err
+		return optional.None[any](), errors.WithStack(err)
 	}
 
 	var resp optional.Option[any]
@@ -78,11 +78,11 @@ func (v verbCall) Exec(ctx context.Context, req optional.Option[any]) (optional.
 		resp = optional.Some(results[0].Interface())
 		errValue = results[1]
 	default:
-		return optional.None[any](), fmt.Errorf("unexpected number of return values from verb %s", v.ref)
+		return optional.None[any](), errors.Errorf("unexpected number of return values from verb %s", v.ref)
 	}
 	var fnError error
 	if e := errValue.Interface(); e != nil {
 		fnError = e.(error) //nolint:forcetypeassert
 	}
-	return resp, fnError
+	return resp, errors.WithStack(fnError)
 }

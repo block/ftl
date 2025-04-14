@@ -4,6 +4,8 @@ package goast
 import (
 	"fmt"
 	goast "go/ast"
+
+	errors "github.com/alecthomas/errors"
 )
 
 type VisitorFunc func(stack []goast.Node, next func() error) error
@@ -14,11 +16,11 @@ type VisitorFunc func(stack []goast.Node, next func() error) error
 //
 // Note that this is based on a direct copy of ast.Walk.
 func Visit(node goast.Node, v VisitorFunc) error {
-	return visitStack([]goast.Node{node}, v)
+	return errors.WithStack(visitStack([]goast.Node{node}, v))
 }
 
 func visitStack(stack []goast.Node, v VisitorFunc) error { //nolint:maintidx
-	return v(stack, func() error {
+	return errors.WithStack(v(stack, func() error {
 		// walk children
 		// (the order of the cases matches the order
 		// of the corresponding node sqltypes in ast.go)
@@ -362,10 +364,10 @@ func visitStack(stack []goast.Node, v VisitorFunc) error { //nolint:maintidx
 		for _, child := range children {
 			stack = append(stack, child)
 			if err := visitStack(stack, v); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			stack = stack[:len(stack)-1]
 		}
 		return nil
-	})
+	}))
 }

@@ -2,12 +2,12 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"runtime/debug"
 
 	"connectrpc.com/connect"
 	"connectrpc.com/otelconnect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/mod/semver"
 
@@ -64,7 +64,7 @@ func IsDirectRouted(ctx context.Context) bool {
 // TODO: Return an Option here instead of a bool.
 func RequestKeyFromContext(ctx context.Context) (optional.Option[key.Request], error) {
 	value := ctx.Value(requestIDKey{})
-	return requestKeyFromContextValue(value)
+	return errors.WithStack2(requestKeyFromContextValue(value))
 }
 
 // WithRequestKey adds the request key to the context.
@@ -74,7 +74,7 @@ func WithRequestKey(ctx context.Context, key key.Request) context.Context {
 
 func ParentRequestKeyFromContext(ctx context.Context) (optional.Option[key.Request], error) {
 	value := ctx.Value(parentRequestIDKey{})
-	return requestKeyFromContextValue(value)
+	return errors.WithStack2(requestKeyFromContextValue(value))
 }
 
 func WithParentRequestKey(ctx context.Context, key key.Request) context.Context {
@@ -88,7 +88,7 @@ func requestKeyFromContextValue(value any) (optional.Option[key.Request], error)
 	}
 	parsedKey, err := key.ParseRequestKey(keyStr)
 	if err != nil {
-		return optional.None[key.Request](), fmt.Errorf("invalid request key: %w", err)
+		return optional.None[key.Request](), errors.Wrap(err, "invalid request key")
 	}
 	return optional.Some(parsedKey), nil
 }
@@ -146,7 +146,7 @@ func handlePanic(ctx context.Context) {
 		if rerr, ok := r.(error); ok {
 			err = rerr
 		} else {
-			err = fmt.Errorf("%v", r)
+			err = errors.Errorf("%v", r)
 		}
 		stack := string(debug.Stack())
 		logger.Errorf(err, "panic in RPC: %s", stack)
@@ -164,14 +164,14 @@ func (*panicInterceptor) WrapStreamingClient(req connect.StreamingClientFunc) co
 func (*panicInterceptor) WrapStreamingHandler(req connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
 	return func(ctx context.Context, s connect.StreamingHandlerConn) error {
 		defer handlePanic(ctx)
-		return req(ctx, s)
+		return errors.WithStack(req(ctx, s))
 	}
 }
 
 func (*panicInterceptor) WrapUnary(uf connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		defer handlePanic(ctx)
-		return uf(ctx, req)
+		return errors.WithStack2(uf(ctx, req))
 	}
 }
 
@@ -203,7 +203,7 @@ func (m *metadataInterceptor) WrapStreamingHandler(req connect.StreamingHandlerF
 		logger.Tracef("%s (streaming handler)", s.Spec().Procedure)
 		ctx, err := propagateHeaders(ctx, s.Spec().IsClient, s.RequestHeader())
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		err = req(ctx, s)
 		if err != nil {
@@ -211,7 +211,7 @@ func (m *metadataInterceptor) WrapStreamingHandler(req connect.StreamingHandlerF
 				return nil
 			}
 			logger.Logf(m.errorLevel, "Streaming RPC failed: %s: %s", err, s.Spec().Procedure)
-			return err
+			return errors.WithStack(err)
 		}
 		return nil
 	}
@@ -223,12 +223,12 @@ func (m *metadataInterceptor) WrapUnary(uf connect.UnaryFunc) connect.UnaryFunc 
 		logger.Tracef("%s (unary)", req.Spec().Procedure)
 		ctx, err := propagateHeaders(ctx, req.Spec().IsClient, req.Header())
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		resp, err := uf(ctx, req)
 		if err != nil {
 			logger.Logf(m.errorLevel, "Unary RPC failed: %s: %s", err, req.Spec().Procedure)
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		return resp, nil
 	}
@@ -243,12 +243,12 @@ func propagateHeaders(ctx context.Context, isClient bool, header http.Header) (c
 			headers.SetCallers(header, verbs)
 		}
 		if key, err := RequestKeyFromContext(ctx); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		} else if key, ok := key.Get(); ok {
 			headers.SetRequestKey(header, key)
 		}
 		if key, err := ParentRequestKeyFromContext(ctx); err != nil {
-			return nil, fmt.Errorf("invalid parent request key in context: %w", err)
+			return nil, errors.Wrap(err, "invalid parent request key in context")
 		} else if key, ok := key.Get(); ok {
 			headers.SetParentRequestKey(header, key)
 		}
@@ -257,17 +257,17 @@ func propagateHeaders(ctx context.Context, isClient bool, header http.Header) (c
 			ctx = WithDirectRouting(ctx)
 		}
 		if verbs, err := headers.GetCallers(header); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		} else { //nolint:revive
 			ctx = WithVerbs(ctx, verbs)
 		}
 		if key, ok, err := headers.GetRequestKey(header); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		} else if ok {
 			ctx = WithRequestKey(ctx, key)
 		}
 		if key, ok, err := headers.GetParentRequestKey(header); err != nil {
-			return nil, fmt.Errorf("invalid parent request key in header: %w", err)
+			return nil, errors.Wrap(err, "invalid parent request key in header")
 		} else if ok {
 			ctx = WithParentRequestKey(ctx, key)
 		}
@@ -290,7 +290,7 @@ func (v versionInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc 
 	return func(ctx context.Context, ar connect.AnyRequest) (connect.AnyResponse, error) {
 		resp, err := next(ctx, ar)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if ar.Spec().IsClient {
 			if err := v.checkVersion(resp.Header()); err != nil {
@@ -306,7 +306,7 @@ func (v versionInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc 
 func (v versionInterceptor) checkVersion(header http.Header) error {
 	version := header.Get("X-Ftl-Version")
 	if semver.Compare(ftl.Version, version) < 0 {
-		return fmt.Errorf("FTL client (%s) is older than server (%s), consider upgrading: https://github.com/block/ftl/releases", ftl.Version, version)
+		return errors.Errorf("FTL client (%s) is older than server (%s), consider upgrading: https://github.com/block/ftl/releases", ftl.Version, version)
 	}
 	return nil
 }

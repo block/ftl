@@ -6,6 +6,8 @@ import (
 	"encoding"
 	"fmt"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 )
 
 type Deployment = KeyType[DeploymentPayload, *DeploymentPayload]
@@ -28,7 +30,7 @@ func NewDeploymentKey(realm, module string) Deployment {
 	return newKey[DeploymentPayload](realm, module)
 }
 func ParseDeploymentKey(key string) (Deployment, error) {
-	return parseKey[DeploymentPayload](key)
+	return errors.WithStack2(parseKey[DeploymentPayload](key))
 }
 
 type DeploymentPayload struct {
@@ -42,7 +44,7 @@ func (d *DeploymentPayload) Kind() string   { return "dpl" }
 func (d *DeploymentPayload) String() string { return fmt.Sprintf("%s-%s", d.Realm, d.Module) }
 func (d *DeploymentPayload) Parse(parts []string) error {
 	if len(parts) != 2 {
-		return fmt.Errorf("expected <realm>-<module> but got %s", strings.Join(parts, "-"))
+		return errors.Errorf("expected <realm>-<module> but got %s", strings.Join(parts, "-"))
 	}
 	d.Realm = parts[0]
 	d.Module = parts[1]

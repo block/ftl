@@ -5,11 +5,11 @@ package cron
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"sync"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"google.golang.org/protobuf/proto"
 
 	cronpb "github.com/block/ftl/backend/protos/xyz/block/ftl/cron/v1"
@@ -33,7 +33,7 @@ func (v *CronState) Marshal() ([]byte, error) {
 	stateProto := v.ToProto()
 	bytes, err := proto.Marshal(stateProto)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal schema state: %w", err)
+		return nil, errors.Wrap(err, "failed to marshal schema state")
 	}
 	return bytes, nil
 }
@@ -41,11 +41,11 @@ func (v *CronState) Marshal() ([]byte, error) {
 func (v *CronState) Unmarshal(data []byte) error {
 	stateProto := &cronpb.CronState{}
 	if err := proto.Unmarshal(data, stateProto); err != nil {
-		return fmt.Errorf("failed to unmarshal cron state: %w", err)
+		return errors.Wrap(err, "failed to unmarshal cron state")
 	}
 	out, err := CronStateFromProto(stateProto)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal cron state: %w", err)
+		return errors.Wrap(err, "failed to unmarshal cron state")
 	}
 	*v = *out
 	return nil
@@ -64,14 +64,14 @@ type CronEvent struct {
 func (e CronEvent) MarshalBinary() ([]byte, error) {
 	bytes, err := json.Marshal(e)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal cron event: %w", err)
+		return nil, errors.Wrap(err, "failed to marshal cron event")
 	}
 	return bytes, nil
 }
 
 func (e *CronEvent) UnmarshalBinary(data []byte) error {
 	if err := json.Unmarshal(data, e); err != nil {
-		return fmt.Errorf("failed to unmarshal cron event: %w", err)
+		return errors.Wrap(err, "failed to unmarshal cron event")
 	}
 	return nil
 }
@@ -145,10 +145,10 @@ func (s *cronStateMachine) Close() error {
 func (s *cronStateMachine) Recover(snapshot io.Reader) error {
 	snapshotBytes, err := io.ReadAll(snapshot)
 	if err != nil {
-		return fmt.Errorf("failed to read snapshot: %w", err)
+		return errors.Wrap(err, "failed to read snapshot")
 	}
 	if err := s.state.Unmarshal(snapshotBytes); err != nil {
-		return fmt.Errorf("failed to unmarshal snapshot: %w", err)
+		return errors.Wrap(err, "failed to unmarshal snapshot")
 	}
 	return nil
 }
@@ -156,11 +156,11 @@ func (s *cronStateMachine) Recover(snapshot io.Reader) error {
 func (s *cronStateMachine) Save(w io.Writer) error {
 	snapshotBytes, err := s.state.Marshal()
 	if err != nil {
-		return fmt.Errorf("failed to marshal snapshot: %w", err)
+		return errors.Wrap(err, "failed to marshal snapshot")
 	}
 	_, err = w.Write(snapshotBytes)
 	if err != nil {
-		return fmt.Errorf("failed to write snapshot: %w", err)
+		return errors.Wrap(err, "failed to write snapshot")
 	}
 	return nil
 }

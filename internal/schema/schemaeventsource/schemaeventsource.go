@@ -2,13 +2,13 @@ package schemaeventsource
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"sync"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
@@ -113,7 +113,7 @@ func (e *EventSource) ActiveChangesets() map[key.Changeset]*schema.Changeset {
 }
 
 func (e *EventSource) PublishModuleForTest(module *schema.Module) error {
-	return e.Publish(&schema.FullSchemaNotification{Schema: &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{module}}}}})
+	return errors.WithStack(e.Publish(&schema.FullSchemaNotification{Schema: &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{module}}}}}))
 }
 
 // Publish an event to the EventSource.
@@ -144,7 +144,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 				if m.Runtime.Deployment.DeploymentKey == event.Payload.Deployment {
 					err := event.Payload.ApplyToModule(m)
 					if err != nil {
-						return fmt.Errorf("failed to apply deployment runtime: %w", err)
+						return errors.Wrap(err, "failed to apply deployment runtime")
 					}
 					break
 				}
@@ -157,7 +157,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 				if m.Runtime.Deployment.DeploymentKey == event.Payload.Deployment {
 					err := event.Payload.ApplyToModule(m)
 					if err != nil {
-						return fmt.Errorf("failed to apply deployment runtime: %w", err)
+						return errors.Wrap(err, "failed to apply deployment runtime")
 					}
 					break
 				}
@@ -268,12 +268,12 @@ func New(ctx context.Context, subscriptionID string, client PullSchemaClient) *E
 
 		proto, err := schema.NotificationFromProto(resp.Event)
 		if err != nil {
-			return fmt.Errorf("failed to decode schema event: %w", err)
+			return errors.Wrap(err, "failed to decode schema event")
 		}
 		err = out.Publish(proto)
 		if err != nil {
 			logger.Errorf(err, "Failed to publish schema event")
-			return fmt.Errorf("failed to publish schema event: %w", err)
+			return errors.Wrap(err, "failed to publish schema event")
 		}
 		return nil
 	}, func(_ error) bool {

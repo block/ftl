@@ -3,7 +3,8 @@ package schema
 import (
 	"database/sql"
 	"database/sql/driver"
-	"fmt"
+
+	errors "github.com/alecthomas/errors"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )
@@ -21,7 +22,7 @@ func (r RefKey) Value() (driver.Value, error) { return r.String(), nil }
 func (r *RefKey) Scan(src any) error {
 	p, err := ParseRef(src.(string))
 	if err != nil {
-		return fmt.Errorf("%v: %w", src, err)
+		return errors.Wrapf(err, "%v", src)
 	}
 	*r = p.ToRefKey()
 	return nil
@@ -49,7 +50,7 @@ func (r Ref) Value() (driver.Value, error) { return r.String(), nil }
 func (r *Ref) Scan(src any) error {
 	p, err := ParseRef(src.(string))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	*r = *p
 	return nil
@@ -114,7 +115,7 @@ func (r *Ref) Kind() Kind { return KindRef }
 func ParseRef(ref string) (*Ref, error) {
 	out, err := refParser.ParseString("", ref)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	out.Pos = Position{}
 	return out, nil

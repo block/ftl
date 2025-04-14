@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/mattn/go-isatty"
 	"golang.org/x/term"
@@ -54,7 +55,7 @@ func (s *secretListCmd) Run(ctx context.Context, adminClient admin.EnvironmentCl
 		IncludeValues: &s.Values,
 	}))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	for _, secret := range resp.Msg.Secrets {
 		fmt.Printf("%s", secret.RefPath)
@@ -82,7 +83,7 @@ func (s *secretGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 		Ref: configRefFromRef(s.Ref),
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to get secret: %w", err)
+		return errors.Wrap(err, "failed to get secret")
 	}
 	fmt.Printf("%s\n", resp.Msg.Value)
 	return nil
@@ -104,12 +105,12 @@ func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 		secret, err = term.ReadPassword(0)
 		fmt.Println()
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	} else {
 		secret, err = io.ReadAll(os.Stdin)
 		if err != nil {
-			return fmt.Errorf("failed to read secret from stdin: %w", err)
+			return errors.Wrap(err, "failed to read secret from stdin")
 		}
 	}
 
@@ -117,13 +118,13 @@ func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 	if s.JSON {
 		var jsonValue any
 		if err := json.Unmarshal(secret, &jsonValue); err != nil {
-			return fmt.Errorf("secret is not valid JSON: %w", err)
+			return errors.Wrap(err, "secret is not valid JSON")
 		}
 		secretJSON = secret
 	} else {
 		secretJSON, err = json.Marshal(string(secret))
 		if err != nil {
-			return fmt.Errorf("failed to encode secret as JSON: %w", err)
+			return errors.Wrap(err, "failed to encode secret as JSON")
 		}
 	}
 
@@ -133,7 +134,7 @@ func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 	}
 	_, err = adminClient.SecretSet(ctx, connect.NewRequest(req))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -148,7 +149,7 @@ func (s *secretUnsetCmd) Run(ctx context.Context, adminClient admin.EnvironmentC
 	}
 	_, err = adminClient.SecretUnset(ctx, connect.NewRequest(req))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -166,21 +167,21 @@ Imports secrets from a JSON object.
 func (s *secretImportCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
 	input, err := io.ReadAll(s.Input)
 	if err != nil {
-		return fmt.Errorf("failed to read input: %w", err)
+		return errors.Wrap(err, "failed to read input")
 	}
 	var entries map[string]json.RawMessage
 	err = json.Unmarshal(input, &entries)
 	if err != nil {
-		return fmt.Errorf("could not parse JSON: %w", err)
+		return errors.Wrap(err, "could not parse JSON")
 	}
 	for refPath, value := range entries {
 		ref, err := cf.ParseRef(refPath)
 		if err != nil {
-			return fmt.Errorf("could not parse ref %q: %w", refPath, err)
+			return errors.Wrapf(err, "could not parse ref %q", refPath)
 		}
 		bytes, err := json.Marshal(value)
 		if err != nil {
-			return fmt.Errorf("could not marshal value for %q: %w", refPath, err)
+			return errors.Wrapf(err, "could not marshal value for %q", refPath)
 		}
 		req := &adminpb.SecretSetRequest{
 			Ref:   configRefFromRef(ref),
@@ -188,7 +189,7 @@ func (s *secretImportCmd) Run(ctx context.Context, adminClient admin.Environment
 		}
 		_, err = adminClient.SecretSet(ctx, connect.NewRequest(req))
 		if err != nil {
-			return fmt.Errorf("could not import secret for %q: %w", refPath, err)
+			return errors.Wrapf(err, "could not import secret for %q", refPath)
 		}
 	}
 	return nil
@@ -209,21 +210,21 @@ func (s *secretExportCmd) Run(ctx context.Context, adminClient admin.Environment
 	}
 	listResponse, err := adminClient.SecretsList(ctx, connect.NewRequest(req))
 	if err != nil {
-		return fmt.Errorf("could not retrieve secrets: %w", err)
+		return errors.Wrap(err, "could not retrieve secrets")
 	}
 	entries := make(map[string]json.RawMessage, 0)
 	for _, secret := range listResponse.Msg.Secrets {
 		var value json.RawMessage
 		err = json.Unmarshal(secret.Value, &value)
 		if err != nil {
-			return fmt.Errorf("could not export %q: %w", secret.RefPath, err)
+			return errors.Wrapf(err, "could not export %q", secret.RefPath)
 		}
 		entries[secret.RefPath] = value
 	}
 
 	output, err := json.Marshal(entries)
 	if err != nil {
-		return fmt.Errorf("could not build output: %w", err)
+		return errors.Wrap(err, "could not build output")
 	}
 	fmt.Println(string(output))
 	return nil

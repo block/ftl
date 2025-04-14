@@ -2,8 +2,6 @@ package rpc
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	"github.com/alecthomas/concurrency"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/pubsub"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -133,7 +132,7 @@ func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server
 	for _, svc := range opts.services {
 		services, err := svc.StartServices(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to start services: %w", err)
+			return nil, errors.Wrap(err, "failed to start services")
 		}
 		for _, opt := range services {
 			opt(opts)
@@ -167,7 +166,7 @@ func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server
 func (s *Server) Serve(ctx context.Context) error {
 	listener, err := net.Listen("tcp", s.listen.Host)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if s.listen.Port() == "0" {
 		s.listen.Host = listener.Addr().String()
@@ -189,7 +188,7 @@ func (s *Server) Serve(ctx context.Context) error {
 		err := s.Server.Shutdown(ctx)
 		if errors.Is(err, context.Canceled) {
 			_ = s.Server.Close()
-			return err
+			return errors.WithStack(err)
 		}
 
 		for i, hook := range s.shutdownHooks {
@@ -208,7 +207,7 @@ func (s *Server) Serve(ctx context.Context) error {
 		for i, hook := range s.startHooks {
 			logger.Debugf("Running start hook %d/%d", i+1, len(s.startHooks))
 			if err := hook(ctx); err != nil {
-				return fmt.Errorf("start hook failed: %w", err)
+				return errors.Wrap(err, "start hook failed")
 			}
 		}
 
@@ -216,12 +215,12 @@ func (s *Server) Serve(ctx context.Context) error {
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
-		return err
+		return errors.WithStack(err)
 	})
 
 	err = tree.Wait()
 	if err != nil && !errors.Is(err, context.Canceled) {
-		return fmt.Errorf("failed to start server: %w", err)
+		return errors.Wrap(err, "failed to start server")
 	}
 
 	return nil
@@ -233,7 +232,7 @@ func (s *Server) Serve(ctx context.Context) error {
 func Serve(ctx context.Context, listen *url.URL, options ...Option) error {
 	server, err := NewServer(ctx, listen, options...)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
-	return server.Serve(ctx)
+	return errors.WithStack(server.Serve(ctx))
 }

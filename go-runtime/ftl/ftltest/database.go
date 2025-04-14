@@ -2,8 +2,9 @@ package ftltest
 
 import (
 	"context"
-	"fmt"
 	"os"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/provisioner"
 	"github.com/block/ftl/common/reflection"
@@ -16,7 +17,7 @@ func WithDatabase[T any]() Option {
 		rank: other,
 		apply: func(ctx context.Context, state *OptionsState) error {
 			db := reflection.GetDatabase[T]()
-			return setupTestDatabase(ctx, state, db.DBType, db.Name)
+			return errors.WithStack(setupTestDatabase(ctx, state, db.DBType, db.Name))
 		},
 	}
 }
@@ -29,7 +30,7 @@ func WithAllDatabases() Option {
 			dbs := reflection.GetAllDatabases()
 			for _, db := range dbs {
 				if err := setupTestDatabase(ctx, state, db.DBType, db.Name); err != nil {
-					return err
+					return errors.WithStack(err)
 				}
 			}
 			return nil
@@ -45,39 +46,39 @@ func setupTestDatabase(ctx context.Context, state *OptionsState, dbType, dbName 
 	case "postgres":
 		dsn, err := provisioner.ProvisionPostgresForTest(ctx, moduleGetter(), "test", dbName)
 		if err != nil {
-			return fmt.Errorf("could not provision database %q: %w", dbName, err)
+			return errors.Wrapf(err, "could not provision database %q", dbName)
 		}
 		dir, err := os.Getwd()
 		if err != nil {
-			return fmt.Errorf("could not get working dir")
+			return errors.Errorf("could not get working dir")
 		}
 		err = provisioner.RunPostgresMigration(ctx, dsn, dir, dbName)
 		if err != nil {
-			return fmt.Errorf("could not migrate database %q: %w", dbName, err)
+			return errors.Wrapf(err, "could not migrate database %q", dbName)
 		}
 		// replace original database with test database
 		replacementDB, err := deploymentcontext.NewTestDatabase(deploymentcontext.DBTypePostgres, dsn)
 		if err != nil {
-			return fmt.Errorf("could not create database %q with DSN %q: %w", dbName, dsn, err)
+			return errors.Wrapf(err, "could not create database %q with DSN %q", dbName, dsn)
 		}
 		state.databases[dbName] = replacementDB
 	case "mysql":
 		dsn, err := provisioner.ProvisionMySQLForTest(ctx, moduleGetter(), "test", dbName)
 		if err != nil {
-			return fmt.Errorf("could not provision database %q: %w", dbName, err)
+			return errors.Wrapf(err, "could not provision database %q", dbName)
 		}
 		dir, err := os.Getwd()
 		if err != nil {
-			return fmt.Errorf("could not get working dir")
+			return errors.Errorf("could not get working dir")
 		}
 		err = provisioner.RunMySQLMigration(ctx, dsn, dir, dbName)
 		if err != nil {
-			return fmt.Errorf("could not migrate database %q: %w", dbName, err)
+			return errors.Wrapf(err, "could not migrate database %q", dbName)
 		}
 		// replace original database with test database
 		replacementDB, err := deploymentcontext.NewTestDatabase(deploymentcontext.DBTypeMySQL, dsn)
 		if err != nil {
-			return fmt.Errorf("could not create database %q with DSN %q: %w", dbName, dsn, err)
+			return errors.Wrapf(err, "could not create database %q with DSN %q", dbName, dsn)
 		}
 		state.databases[dbName] = replacementDB
 	}
@@ -93,7 +94,7 @@ func WithSQLVerbsEnabled() Option {
 			dbs := reflection.GetQueryVerbDatabases()
 			for _, db := range dbs {
 				if err := setupTestDatabase(ctx, state, db.DBType, db.Name); err != nil {
-					return err
+					return errors.WithStack(err)
 				}
 			}
 			return nil

@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
 
@@ -230,7 +231,7 @@ type typeParserGrammar struct {
 func ParseType(filename, input string) (Type, error) {
 	typ, err := typeParser.ParseString(filename, input)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if typ.Optional {
 		return &Optional{Type: typ.Type}, nil
@@ -241,7 +242,7 @@ func ParseType(filename, input string) (Type, error) {
 func ParseTypeWithLexer(pl *lexer.PeekingLexer) (Type, error) {
 	typ, err := typeParser.ParseFromLexer(pl, participle.AllowTrailing(true))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if typ.Optional {
 		return &Optional{Type: typ.Type}, nil
@@ -252,33 +253,33 @@ func ParseTypeWithLexer(pl *lexer.PeekingLexer) (Type, error) {
 func ParseString(filename, input string) (*Schema, error) {
 	mod, err := parser.ParseString(filename, input)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	return mod.Validate()
+	return errors.WithStack2(mod.Validate())
 }
 
 func ParseModuleString(filename, input string) (*Module, error) {
 	mod, err := moduleParser.ParseString(filename, input)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	return mod, mod.Validate()
+	return mod, errors.WithStack(mod.Validate())
 }
 
 func Parse(filename string, r io.Reader) (*Schema, error) {
 	mod, err := parser.Parse(filename, r)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	return mod.Validate()
+	return errors.WithStack2(mod.Validate())
 }
 
 func ParseModule(filename string, r io.Reader) (*Module, error) {
 	mod, err := moduleParser.Parse(filename, r)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	return mod, mod.Validate()
+	return mod, errors.WithStack(mod.Validate())
 }
 
 // EBNF grammar for the FTL schema.

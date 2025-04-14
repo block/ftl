@@ -7,6 +7,7 @@ import "encoding"
 import destpb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
+import "github.com/alecthomas/errors"
 import "github.com/alecthomas/types/optional"
 import "github.com/alecthomas/types/result"
 
@@ -198,16 +199,16 @@ func AWSIAMAuthDatabaseConnectorFromProto(v *destpb.AWSIAMAuthDatabaseConnector)
 
 	out = &AWSIAMAuthDatabaseConnector{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Username, err = orZeroR(result.From(ptr(string(v.Username)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Username: %w", err)
+		return nil, errors.Wrap(err, "Username")
 	}
 	if out.Endpoint, err = orZeroR(result.From(ptr(string(v.Endpoint)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Endpoint: %w", err)
+		return nil, errors.Wrap(err, "Endpoint")
 	}
 	if out.Database, err = orZeroR(result.From(ptr(string(v.Database)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Database: %w", err)
+		return nil, errors.Wrap(err, "Database")
 	}
 	return out, nil
 }
@@ -237,7 +238,7 @@ func AnyFromProto(v *destpb.Any) (out *Any, err error) {
 
 	out = &Any{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -259,10 +260,10 @@ func ArrayFromProto(v *destpb.Array) (out *Array, err error) {
 
 	out = &Array{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Element, err = orZeroR(ptrR(result.From(TypeFromProto(v.Element)))).Result(); err != nil {
-		return nil, fmt.Errorf("Element: %w", err)
+		return nil, errors.Wrap(err, "Element")
 	}
 	return out, nil
 }
@@ -283,7 +284,7 @@ func BoolFromProto(v *destpb.Bool) (out *Bool, err error) {
 
 	out = &Bool{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -304,7 +305,7 @@ func BytesFromProto(v *destpb.Bytes) (out *Bytes, err error) {
 
 	out = &Bytes{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -329,19 +330,19 @@ func ChangesetFromProto(v *destpb.Changeset) (out *Changeset, err error) {
 
 	out = &Changeset{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if out.CreatedAt, err = orZeroR(result.From(setNil(ptr(v.CreatedAt.AsTime()), v.CreatedAt), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("CreatedAt: %w", err)
+		return nil, errors.Wrap(err, "CreatedAt")
 	}
 	if out.RealmChanges, err = sliceMapR(v.RealmChanges, func(v *destpb.RealmChange) result.Result[*RealmChange] { return result.From(RealmChangeFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("RealmChanges: %w", err)
+		return nil, errors.Wrap(err, "RealmChanges")
 	}
 	if out.State, err = orZeroR(ptrR(result.From(ChangesetStateFromProto(v.State)))).Result(); err != nil {
-		return nil, fmt.Errorf("State: %w", err)
+		return nil, errors.Wrap(err, "State")
 	}
 	if out.Error, err = orZeroR(result.From(setNil(ptr(string(orZero(v.Error))), v.Error), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Error: %w", err)
+		return nil, errors.Wrap(err, "Error")
 	}
 	return out, nil
 }
@@ -362,7 +363,7 @@ func ChangesetCommittedEventFromProto(v *destpb.ChangesetCommittedEvent) (out *C
 
 	out = &ChangesetCommittedEvent{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -386,7 +387,7 @@ func ChangesetCommittedNotificationFromProto(v *destpb.ChangesetCommittedNotific
 
 	out = &ChangesetCommittedNotification{}
 	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
+		return nil, errors.Wrap(err, "Changeset")
 	}
 	return out, nil
 }
@@ -407,7 +408,7 @@ func ChangesetCreatedEventFromProto(v *destpb.ChangesetCreatedEvent) (out *Chang
 
 	out = &ChangesetCreatedEvent{}
 	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
+		return nil, errors.Wrap(err, "Changeset")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -431,7 +432,7 @@ func ChangesetCreatedNotificationFromProto(v *destpb.ChangesetCreatedNotificatio
 
 	out = &ChangesetCreatedNotification{}
 	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
+		return nil, errors.Wrap(err, "Changeset")
 	}
 	return out, nil
 }
@@ -452,7 +453,7 @@ func ChangesetDrainedEventFromProto(v *destpb.ChangesetDrainedEvent) (out *Chang
 
 	out = &ChangesetDrainedEvent{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -476,7 +477,7 @@ func ChangesetDrainedNotificationFromProto(v *destpb.ChangesetDrainedNotificatio
 
 	out = &ChangesetDrainedNotification{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	return out, nil
 }
@@ -497,7 +498,7 @@ func ChangesetFailedEventFromProto(v *destpb.ChangesetFailedEvent) (out *Changes
 
 	out = &ChangesetFailedEvent{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -522,10 +523,10 @@ func ChangesetFailedNotificationFromProto(v *destpb.ChangesetFailedNotification)
 
 	out = &ChangesetFailedNotification{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Error: %w", err)
+		return nil, errors.Wrap(err, "Error")
 	}
 	return out, nil
 }
@@ -546,7 +547,7 @@ func ChangesetFinalizedEventFromProto(v *destpb.ChangesetFinalizedEvent) (out *C
 
 	out = &ChangesetFinalizedEvent{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -570,7 +571,7 @@ func ChangesetFinalizedNotificationFromProto(v *destpb.ChangesetFinalizedNotific
 
 	out = &ChangesetFinalizedNotification{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	return out, nil
 }
@@ -591,7 +592,7 @@ func ChangesetPreparedEventFromProto(v *destpb.ChangesetPreparedEvent) (out *Cha
 
 	out = &ChangesetPreparedEvent{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -615,7 +616,7 @@ func ChangesetPreparedNotificationFromProto(v *destpb.ChangesetPreparedNotificat
 
 	out = &ChangesetPreparedNotification{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	return out, nil
 }
@@ -637,10 +638,10 @@ func ChangesetRollingBackEventFromProto(v *destpb.ChangesetRollingBackEvent) (ou
 
 	out = &ChangesetRollingBackEvent{}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Error: %w", err)
+		return nil, errors.Wrap(err, "Error")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -665,10 +666,10 @@ func ChangesetRollingBackNotificationFromProto(v *destpb.ChangesetRollingBackNot
 
 	out = &ChangesetRollingBackNotification{}
 	if out.Changeset, err = result.From(ChangesetFromProto(v.Changeset)).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
+		return nil, errors.Wrap(err, "Changeset")
 	}
 	if out.Error, err = orZeroR(result.From(ptr(string(v.Error)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Error: %w", err)
+		return nil, errors.Wrap(err, "Error")
 	}
 	return out, nil
 }
@@ -701,16 +702,16 @@ func ConfigFromProto(v *destpb.Config) (out *Config, err error) {
 
 	out = &Config{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
-		return nil, fmt.Errorf("Type: %w", err)
+		return nil, errors.Wrap(err, "Type")
 	}
 	return out, nil
 }
@@ -733,13 +734,13 @@ func DSNDatabaseConnectorFromProto(v *destpb.DSNDatabaseConnector) (out *DSNData
 
 	out = &DSNDatabaseConnector{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Database, err = orZeroR(result.From(ptr(string(v.Database)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Database: %w", err)
+		return nil, errors.Wrap(err, "Database")
 	}
 	if out.DSN, err = orZeroR(result.From(ptr(string(v.Dsn)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("DSN: %w", err)
+		return nil, errors.Wrap(err, "DSN")
 	}
 	return out, nil
 }
@@ -766,29 +767,29 @@ func DataFromProto(v *destpb.Data) (out *Data, err error) {
 
 	out = &Data{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Export: %w", err)
+		return nil, errors.Wrap(err, "Export")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.TypeParameters, err = sliceMapR(v.TypeParameters, func(v *destpb.TypeParameter) result.Result[*TypeParameter] {
 		return result.From(TypeParameterFromProto(v))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("TypeParameters: %w", err)
+		return nil, errors.Wrap(err, "TypeParameters")
 	}
 	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
 		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Metadata: %w", err)
+		return nil, errors.Wrap(err, "Metadata")
 	}
 	if out.Fields, err = sliceMapR(v.Fields, func(v *destpb.Field) result.Result[*Field] { return result.From(FieldFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Fields: %w", err)
+		return nil, errors.Wrap(err, "Fields")
 	}
 	return out, nil
 }
@@ -814,24 +815,24 @@ func DatabaseFromProto(v *destpb.Database) (out *Database, err error) {
 
 	out = &Database{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Runtime, err = result.From(DatabaseRuntimeFromProto(v.Runtime)).Result(); err != nil {
-		return nil, fmt.Errorf("Runtime: %w", err)
+		return nil, errors.Wrap(err, "Runtime")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Type, err = orZeroR(result.From(ptr(string(v.Type)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Type: %w", err)
+		return nil, errors.Wrap(err, "Type")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
 		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Metadata: %w", err)
+		return nil, errors.Wrap(err, "Metadata")
 	}
 	return out, nil
 }
@@ -884,7 +885,7 @@ func DatabaseRuntimeFromProto(v *destpb.DatabaseRuntime) (out *DatabaseRuntime, 
 
 	out = &DatabaseRuntime{}
 	if out.Connections, err = result.From(DatabaseRuntimeConnectionsFromProto(v.Connections)).Result(); err != nil {
-		return nil, fmt.Errorf("Connections: %w", err)
+		return nil, errors.Wrap(err, "Connections")
 	}
 	return out, nil
 }
@@ -906,10 +907,10 @@ func DatabaseRuntimeConnectionsFromProto(v *destpb.DatabaseRuntimeConnections) (
 
 	out = &DatabaseRuntimeConnections{}
 	if out.Read, err = orZeroR(ptrR(result.From(DatabaseConnectorFromProto(v.Read)))).Result(); err != nil {
-		return nil, fmt.Errorf("Read: %w", err)
+		return nil, errors.Wrap(err, "Read")
 	}
 	if out.Write, err = orZeroR(ptrR(result.From(DatabaseConnectorFromProto(v.Write)))).Result(); err != nil {
-		return nil, fmt.Errorf("Write: %w", err)
+		return nil, errors.Wrap(err, "Write")
 	}
 	return out, nil
 }
@@ -999,10 +1000,10 @@ func DeploymentRuntimeEventFromProto(v *destpb.DeploymentRuntimeEvent) (out *Dep
 
 	out = &DeploymentRuntimeEvent{}
 	if out.Payload, err = result.From(RuntimeElementFromProto(v.Payload)).Result(); err != nil {
-		return nil, fmt.Errorf("Payload: %w", err)
+		return nil, errors.Wrap(err, "Payload")
 	}
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
+		return nil, errors.Wrap(err, "Changeset")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -1027,10 +1028,10 @@ func DeploymentRuntimeNotificationFromProto(v *destpb.DeploymentRuntimeNotificat
 
 	out = &DeploymentRuntimeNotification{}
 	if out.Payload, err = result.From(RuntimeElementFromProto(v.Payload)).Result(); err != nil {
-		return nil, fmt.Errorf("Payload: %w", err)
+		return nil, errors.Wrap(err, "Payload")
 	}
 	if out.Changeset, err = unmarshallText([]byte(v.Changeset), out.Changeset).Result(); err != nil {
-		return nil, fmt.Errorf("Changeset: %w", err)
+		return nil, errors.Wrap(err, "Changeset")
 	}
 	return out, nil
 }
@@ -1065,22 +1066,22 @@ func EnumFromProto(v *destpb.Enum) (out *Enum, err error) {
 
 	out = &Enum{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Export: %w", err)
+		return nil, errors.Wrap(err, "Export")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
-		return nil, fmt.Errorf("Type: %w", err)
+		return nil, errors.Wrap(err, "Type")
 	}
 	if out.Variants, err = sliceMapR(v.Variants, func(v *destpb.EnumVariant) result.Result[*EnumVariant] { return result.From(EnumVariantFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Variants: %w", err)
+		return nil, errors.Wrap(err, "Variants")
 	}
 	return out, nil
 }
@@ -1104,16 +1105,16 @@ func EnumVariantFromProto(v *destpb.EnumVariant) (out *EnumVariant, err error) {
 
 	out = &EnumVariant{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Value, err = orZeroR(ptrR(result.From(ValueFromProto(v.Value)))).Result(); err != nil {
-		return nil, fmt.Errorf("Value: %w", err)
+		return nil, errors.Wrap(err, "Value")
 	}
 	return out, nil
 }
@@ -1206,21 +1207,21 @@ func FieldFromProto(v *destpb.Field) (out *Field, err error) {
 
 	out = &Field{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
-		return nil, fmt.Errorf("Type: %w", err)
+		return nil, errors.Wrap(err, "Type")
 	}
 	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
 		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Metadata: %w", err)
+		return nil, errors.Wrap(err, "Metadata")
 	}
 	return out, nil
 }
@@ -1241,7 +1242,7 @@ func FloatFromProto(v *destpb.Float) (out *Float, err error) {
 
 	out = &Float{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -1272,10 +1273,10 @@ func FullSchemaNotificationFromProto(v *destpb.FullSchemaNotification) (out *Ful
 
 	out = &FullSchemaNotification{}
 	if out.Schema, err = result.From(SchemaFromProto(v.Schema)).Result(); err != nil {
-		return nil, fmt.Errorf("Schema: %w", err)
+		return nil, errors.Wrap(err, "Schema")
 	}
 	if out.Changesets, err = sliceMapR(v.Changesets, func(v *destpb.Changeset) result.Result[*Changeset] { return result.From(ChangesetFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Changesets: %w", err)
+		return nil, errors.Wrap(err, "Changesets")
 	}
 	return out, nil
 }
@@ -1329,10 +1330,10 @@ func IngressPathLiteralFromProto(v *destpb.IngressPathLiteral) (out *IngressPath
 
 	out = &IngressPathLiteral{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Text, err = orZeroR(result.From(ptr(string(v.Text)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Text: %w", err)
+		return nil, errors.Wrap(err, "Text")
 	}
 	return out, nil
 }
@@ -1354,10 +1355,10 @@ func IngressPathParameterFromProto(v *destpb.IngressPathParameter) (out *Ingress
 
 	out = &IngressPathParameter{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	return out, nil
 }
@@ -1378,7 +1379,7 @@ func IntFromProto(v *destpb.Int) (out *Int, err error) {
 
 	out = &Int{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -1400,10 +1401,10 @@ func IntValueFromProto(v *destpb.IntValue) (out *IntValue, err error) {
 
 	out = &IntValue{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Value, err = orZeroR(result.From(ptr(int(v.Value)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Value: %w", err)
+		return nil, errors.Wrap(err, "Value")
 	}
 	return out, nil
 }
@@ -1426,13 +1427,13 @@ func MapFromProto(v *destpb.Map) (out *Map, err error) {
 
 	out = &Map{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Key, err = orZeroR(ptrR(result.From(TypeFromProto(v.Key)))).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if out.Value, err = orZeroR(ptrR(result.From(TypeFromProto(v.Value)))).Result(); err != nil {
-		return nil, fmt.Errorf("Value: %w", err)
+		return nil, errors.Wrap(err, "Value")
 	}
 	return out, nil
 }
@@ -1601,13 +1602,13 @@ func MetadataAliasFromProto(v *destpb.MetadataAlias) (out *MetadataAlias, err er
 
 	out = &MetadataAlias{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Kind, err = orZeroR(ptrR(result.From(AliasKindFromProto(v.Kind)))).Result(); err != nil {
-		return nil, fmt.Errorf("Kind: %w", err)
+		return nil, errors.Wrap(err, "Kind")
 	}
 	if out.Alias, err = orZeroR(result.From(ptr(string(v.Alias)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Alias: %w", err)
+		return nil, errors.Wrap(err, "Alias")
 	}
 	return out, nil
 }
@@ -1631,16 +1632,16 @@ func MetadataArtefactFromProto(v *destpb.MetadataArtefact) (out *MetadataArtefac
 
 	out = &MetadataArtefact{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Path, err = orZeroR(result.From(ptr(string(v.Path)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Path: %w", err)
+		return nil, errors.Wrap(err, "Path")
 	}
 	if out.Digest, err = orZeroR(unmarshallText([]byte(v.Digest), &out.Digest)).Result(); err != nil {
-		return nil, fmt.Errorf("Digest: %w", err)
+		return nil, errors.Wrap(err, "Digest")
 	}
 	if out.Executable, err = orZeroR(result.From(ptr(bool(v.Executable)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Executable: %w", err)
+		return nil, errors.Wrap(err, "Executable")
 	}
 	return out, nil
 }
@@ -1662,10 +1663,10 @@ func MetadataCallsFromProto(v *destpb.MetadataCalls) (out *MetadataCalls, err er
 
 	out = &MetadataCalls{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Calls, err = sliceMapR(v.Calls, func(v *destpb.Ref) result.Result[*Ref] { return result.From(RefFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Calls: %w", err)
+		return nil, errors.Wrap(err, "Calls")
 	}
 	return out, nil
 }
@@ -1687,10 +1688,10 @@ func MetadataConfigFromProto(v *destpb.MetadataConfig) (out *MetadataConfig, err
 
 	out = &MetadataConfig{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Config, err = sliceMapR(v.Config, func(v *destpb.Ref) result.Result[*Ref] { return result.From(RefFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Config: %w", err)
+		return nil, errors.Wrap(err, "Config")
 	}
 	return out, nil
 }
@@ -1712,10 +1713,10 @@ func MetadataCronJobFromProto(v *destpb.MetadataCronJob) (out *MetadataCronJob, 
 
 	out = &MetadataCronJob{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Cron, err = orZeroR(result.From(ptr(string(v.Cron)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Cron: %w", err)
+		return nil, errors.Wrap(err, "Cron")
 	}
 	return out, nil
 }
@@ -1737,10 +1738,10 @@ func MetadataDatabasesFromProto(v *destpb.MetadataDatabases) (out *MetadataDatab
 
 	out = &MetadataDatabases{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Uses, err = sliceMapR(v.Uses, func(v *destpb.Ref) result.Result[*Ref] { return result.From(RefFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Uses: %w", err)
+		return nil, errors.Wrap(err, "Uses")
 	}
 	return out, nil
 }
@@ -1763,13 +1764,13 @@ func MetadataEncodingFromProto(v *destpb.MetadataEncoding) (out *MetadataEncodin
 
 	out = &MetadataEncoding{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Type, err = orZeroR(result.From(ptr(string(v.Type)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Type: %w", err)
+		return nil, errors.Wrap(err, "Type")
 	}
 	if out.Lenient, err = orZeroR(result.From(ptr(bool(v.Lenient)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Lenient: %w", err)
+		return nil, errors.Wrap(err, "Lenient")
 	}
 	return out, nil
 }
@@ -1791,10 +1792,10 @@ func MetadataFixtureFromProto(v *destpb.MetadataFixture) (out *MetadataFixture, 
 
 	out = &MetadataFixture{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Manual, err = orZeroR(result.From(ptr(bool(v.Manual)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Manual: %w", err)
+		return nil, errors.Wrap(err, "Manual")
 	}
 	return out, nil
 }
@@ -1815,7 +1816,7 @@ func MetadataGeneratedFromProto(v *destpb.MetadataGenerated) (out *MetadataGener
 
 	out = &MetadataGenerated{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -1839,16 +1840,16 @@ func MetadataGitFromProto(v *destpb.MetadataGit) (out *MetadataGit, err error) {
 
 	out = &MetadataGit{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Repository, err = orZeroR(result.From(ptr(string(v.Repository)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Repository: %w", err)
+		return nil, errors.Wrap(err, "Repository")
 	}
 	if out.Commit, err = orZeroR(result.From(ptr(string(v.Commit)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Commit: %w", err)
+		return nil, errors.Wrap(err, "Commit")
 	}
 	if out.Dirty, err = orZeroR(result.From(ptr(bool(v.Dirty)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Dirty: %w", err)
+		return nil, errors.Wrap(err, "Dirty")
 	}
 	return out, nil
 }
@@ -1872,18 +1873,18 @@ func MetadataIngressFromProto(v *destpb.MetadataIngress) (out *MetadataIngress, 
 
 	out = &MetadataIngress{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Type, err = orZeroR(result.From(ptr(string(v.Type)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Type: %w", err)
+		return nil, errors.Wrap(err, "Type")
 	}
 	if out.Method, err = orZeroR(result.From(ptr(string(v.Method)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Method: %w", err)
+		return nil, errors.Wrap(err, "Method")
 	}
 	if out.Path, err = sliceMapR(v.Path, func(v *destpb.IngressPathComponent) result.Result[IngressPathComponent] {
 		return orZeroR(ptrR(result.From(IngressPathComponentFromProto(v))))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Path: %w", err)
+		return nil, errors.Wrap(err, "Path")
 	}
 	return out, nil
 }
@@ -1905,10 +1906,10 @@ func MetadataPartitionsFromProto(v *destpb.MetadataPartitions) (out *MetadataPar
 
 	out = &MetadataPartitions{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Partitions, err = orZeroR(result.From(ptr(int(v.Partitions)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Partitions: %w", err)
+		return nil, errors.Wrap(err, "Partitions")
 	}
 	return out, nil
 }
@@ -1930,10 +1931,10 @@ func MetadataPublisherFromProto(v *destpb.MetadataPublisher) (out *MetadataPubli
 
 	out = &MetadataPublisher{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Topics, err = sliceMapR(v.Topics, func(v *destpb.Ref) result.Result[*Ref] { return result.From(RefFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Topics: %w", err)
+		return nil, errors.Wrap(err, "Topics")
 	}
 	return out, nil
 }
@@ -1958,19 +1959,19 @@ func MetadataRetryFromProto(v *destpb.MetadataRetry) (out *MetadataRetry, err er
 
 	out = &MetadataRetry{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Count, err = result.From(setNil(ptr(int(orZero(v.Count))), v.Count), nil).Result(); err != nil {
-		return nil, fmt.Errorf("Count: %w", err)
+		return nil, errors.Wrap(err, "Count")
 	}
 	if out.MinBackoff, err = orZeroR(result.From(ptr(string(v.MinBackoff)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("MinBackoff: %w", err)
+		return nil, errors.Wrap(err, "MinBackoff")
 	}
 	if out.MaxBackoff, err = orZeroR(result.From(ptr(string(v.MaxBackoff)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("MaxBackoff: %w", err)
+		return nil, errors.Wrap(err, "MaxBackoff")
 	}
 	if out.Catch, err = result.From(RefFromProto(v.Catch)).Result(); err != nil {
-		return nil, fmt.Errorf("Catch: %w", err)
+		return nil, errors.Wrap(err, "Catch")
 	}
 	return out, nil
 }
@@ -1993,13 +1994,13 @@ func MetadataSQLColumnFromProto(v *destpb.MetadataSQLColumn) (out *MetadataSQLCo
 
 	out = &MetadataSQLColumn{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Table, err = orZeroR(result.From(ptr(string(v.Table)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Table: %w", err)
+		return nil, errors.Wrap(err, "Table")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	return out, nil
 }
@@ -2021,10 +2022,10 @@ func MetadataSQLMigrationFromProto(v *destpb.MetadataSQLMigration) (out *Metadat
 
 	out = &MetadataSQLMigration{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Digest, err = orZeroR(result.From(ptr(string(v.Digest)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Digest: %w", err)
+		return nil, errors.Wrap(err, "Digest")
 	}
 	return out, nil
 }
@@ -2047,13 +2048,13 @@ func MetadataSQLQueryFromProto(v *destpb.MetadataSQLQuery) (out *MetadataSQLQuer
 
 	out = &MetadataSQLQuery{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Command, err = orZeroR(result.From(ptr(string(v.Command)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Command: %w", err)
+		return nil, errors.Wrap(err, "Command")
 	}
 	if out.Query, err = orZeroR(result.From(ptr(string(v.Query)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Query: %w", err)
+		return nil, errors.Wrap(err, "Query")
 	}
 	return out, nil
 }
@@ -2075,10 +2076,10 @@ func MetadataSecretsFromProto(v *destpb.MetadataSecrets) (out *MetadataSecrets, 
 
 	out = &MetadataSecrets{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Secrets, err = sliceMapR(v.Secrets, func(v *destpb.Ref) result.Result[*Ref] { return result.From(RefFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Secrets: %w", err)
+		return nil, errors.Wrap(err, "Secrets")
 	}
 	return out, nil
 }
@@ -2102,16 +2103,16 @@ func MetadataSubscriberFromProto(v *destpb.MetadataSubscriber) (out *MetadataSub
 
 	out = &MetadataSubscriber{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Topic, err = result.From(RefFromProto(v.Topic)).Result(); err != nil {
-		return nil, fmt.Errorf("Topic: %w", err)
+		return nil, errors.Wrap(err, "Topic")
 	}
 	if out.FromOffset, err = orZeroR(ptrR(result.From(FromOffsetFromProto(v.FromOffset)))).Result(); err != nil {
-		return nil, fmt.Errorf("FromOffset: %w", err)
+		return nil, errors.Wrap(err, "FromOffset")
 	}
 	if out.DeadLetter, err = orZeroR(result.From(ptr(bool(v.DeadLetter)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("DeadLetter: %w", err)
+		return nil, errors.Wrap(err, "DeadLetter")
 	}
 	return out, nil
 }
@@ -2132,7 +2133,7 @@ func MetadataTransactionFromProto(v *destpb.MetadataTransaction) (out *MetadataT
 
 	out = &MetadataTransaction{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -2155,13 +2156,13 @@ func MetadataTypeMapFromProto(v *destpb.MetadataTypeMap) (out *MetadataTypeMap, 
 
 	out = &MetadataTypeMap{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Runtime, err = orZeroR(result.From(ptr(string(v.Runtime)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Runtime: %w", err)
+		return nil, errors.Wrap(err, "Runtime")
 	}
 	if out.NativeName, err = orZeroR(result.From(ptr(string(v.NativeName)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("NativeName: %w", err)
+		return nil, errors.Wrap(err, "NativeName")
 	}
 	return out, nil
 }
@@ -2188,27 +2189,27 @@ func ModuleFromProto(v *destpb.Module) (out *Module, err error) {
 
 	out = &Module{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Builtin, err = orZeroR(result.From(ptr(bool(v.Builtin)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Builtin: %w", err)
+		return nil, errors.Wrap(err, "Builtin")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
 		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Metadata: %w", err)
+		return nil, errors.Wrap(err, "Metadata")
 	}
 	if out.Decls, err = sliceMapR(v.Decls, func(v *destpb.Decl) result.Result[Decl] { return orZeroR(ptrR(result.From(DeclFromProto(v)))) }).Result(); err != nil {
-		return nil, fmt.Errorf("Decls: %w", err)
+		return nil, errors.Wrap(err, "Decls")
 	}
 	if out.Runtime, err = result.From(ModuleRuntimeFromProto(v.Runtime)).Result(); err != nil {
-		return nil, fmt.Errorf("Runtime: %w", err)
+		return nil, errors.Wrap(err, "Runtime")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -2235,16 +2236,16 @@ func ModuleRuntimeFromProto(v *destpb.ModuleRuntime) (out *ModuleRuntime, err er
 
 	out = &ModuleRuntime{}
 	if out.Base, err = orZeroR(result.From(ModuleRuntimeBaseFromProto(v.Base))).Result(); err != nil {
-		return nil, fmt.Errorf("Base: %w", err)
+		return nil, errors.Wrap(err, "Base")
 	}
 	if out.Scaling, err = result.From(ModuleRuntimeScalingFromProto(v.Scaling)).Result(); err != nil {
-		return nil, fmt.Errorf("Scaling: %w", err)
+		return nil, errors.Wrap(err, "Scaling")
 	}
 	if out.Deployment, err = result.From(ModuleRuntimeDeploymentFromProto(v.Deployment)).Result(); err != nil {
-		return nil, fmt.Errorf("Deployment: %w", err)
+		return nil, errors.Wrap(err, "Deployment")
 	}
 	if out.Runner, err = result.From(ModuleRuntimeRunnerFromProto(v.Runner)).Result(); err != nil {
-		return nil, fmt.Errorf("Runner: %w", err)
+		return nil, errors.Wrap(err, "Runner")
 	}
 	return out, nil
 }
@@ -2269,19 +2270,19 @@ func ModuleRuntimeBaseFromProto(v *destpb.ModuleRuntimeBase) (out *ModuleRuntime
 
 	out = &ModuleRuntimeBase{}
 	if out.CreateTime, err = orZeroR(result.From(setNil(ptr(v.CreateTime.AsTime()), v.CreateTime), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("CreateTime: %w", err)
+		return nil, errors.Wrap(err, "CreateTime")
 	}
 	if out.Language, err = orZeroR(result.From(ptr(string(v.Language)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Language: %w", err)
+		return nil, errors.Wrap(err, "Language")
 	}
 	if out.OS, err = orZeroR(result.From(setNil(ptr(string(orZero(v.Os))), v.Os), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("OS: %w", err)
+		return nil, errors.Wrap(err, "OS")
 	}
 	if out.Arch, err = orZeroR(result.From(setNil(ptr(string(orZero(v.Arch))), v.Arch), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Arch: %w", err)
+		return nil, errors.Wrap(err, "Arch")
 	}
 	if out.Image, err = orZeroR(result.From(setNil(ptr(string(orZero(v.Image))), v.Image), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Image: %w", err)
+		return nil, errors.Wrap(err, "Image")
 	}
 	return out, nil
 }
@@ -2305,16 +2306,16 @@ func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) (out *M
 
 	out = &ModuleRuntimeDeployment{}
 	if out.DeploymentKey, err = orZeroR(unmarshallText([]byte(v.DeploymentKey), &out.DeploymentKey)).Result(); err != nil {
-		return nil, fmt.Errorf("DeploymentKey: %w", err)
+		return nil, errors.Wrap(err, "DeploymentKey")
 	}
 	if out.CreatedAt, err = orZeroR(result.From(setNil(ptr(v.CreatedAt.AsTime()), v.CreatedAt), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("CreatedAt: %w", err)
+		return nil, errors.Wrap(err, "CreatedAt")
 	}
 	if out.ActivatedAt, err = optionalR(result.From(setNil(ptr(v.ActivatedAt.AsTime()), v.ActivatedAt), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("ActivatedAt: %w", err)
+		return nil, errors.Wrap(err, "ActivatedAt")
 	}
 	if out.State, err = orZeroR(ptrR(result.From(DeploymentStateFromProto(v.State)))).Result(); err != nil {
-		return nil, fmt.Errorf("State: %w", err)
+		return nil, errors.Wrap(err, "State")
 	}
 	return out, nil
 }
@@ -2336,10 +2337,10 @@ func ModuleRuntimeRunnerFromProto(v *destpb.ModuleRuntimeRunner) (out *ModuleRun
 
 	out = &ModuleRuntimeRunner{}
 	if out.Endpoint, err = orZeroR(result.From(ptr(string(v.Endpoint)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Endpoint: %w", err)
+		return nil, errors.Wrap(err, "Endpoint")
 	}
 	if out.RunnerNotRequired, err = orZeroR(result.From(ptr(bool(v.RunnerNotRequired)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("RunnerNotRequired: %w", err)
+		return nil, errors.Wrap(err, "RunnerNotRequired")
 	}
 	return out, nil
 }
@@ -2360,7 +2361,7 @@ func ModuleRuntimeScalingFromProto(v *destpb.ModuleRuntimeScaling) (out *ModuleR
 
 	out = &ModuleRuntimeScaling{}
 	if out.MinReplicas, err = orZeroR(result.From(ptr(int32(v.MinReplicas)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("MinReplicas: %w", err)
+		return nil, errors.Wrap(err, "MinReplicas")
 	}
 	return out, nil
 }
@@ -2456,10 +2457,10 @@ func OptionalFromProto(v *destpb.Optional) (out *Optional, err error) {
 
 	out = &Optional{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
-		return nil, fmt.Errorf("Type: %w", err)
+		return nil, errors.Wrap(err, "Type")
 	}
 	return out, nil
 }
@@ -2480,7 +2481,7 @@ func PlaintextKafkaSubscriptionConnectorFromProto(v *destpb.PlaintextKafkaSubscr
 
 	out = &PlaintextKafkaSubscriptionConnector{}
 	if out.KafkaBrokers, err = sliceMapR(v.KafkaBrokers, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("KafkaBrokers: %w", err)
+		return nil, errors.Wrap(err, "KafkaBrokers")
 	}
 	return out, nil
 }
@@ -2503,13 +2504,13 @@ func PositionFromProto(v *destpb.Position) (out *Position, err error) {
 
 	out = &Position{}
 	if out.Filename, err = orZeroR(result.From(ptr(string(v.Filename)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Filename: %w", err)
+		return nil, errors.Wrap(err, "Filename")
 	}
 	if out.Line, err = orZeroR(result.From(ptr(int(v.Line)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Line: %w", err)
+		return nil, errors.Wrap(err, "Line")
 	}
 	if out.Column, err = orZeroR(result.From(ptr(int(v.Column)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Column: %w", err)
+		return nil, errors.Wrap(err, "Column")
 	}
 	return out, nil
 }
@@ -2533,16 +2534,16 @@ func RealmFromProto(v *destpb.Realm) (out *Realm, err error) {
 
 	out = &Realm{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.External, err = orZeroR(result.From(ptr(bool(v.External)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("External: %w", err)
+		return nil, errors.Wrap(err, "External")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Modules: %w", err)
+		return nil, errors.Wrap(err, "Modules")
 	}
 	return out, nil
 }
@@ -2567,19 +2568,19 @@ func RealmChangeFromProto(v *destpb.RealmChange) (out *RealmChange, err error) {
 
 	out = &RealmChange{}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.External, err = orZeroR(result.From(ptr(bool(v.External)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("External: %w", err)
+		return nil, errors.Wrap(err, "External")
 	}
 	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Modules: %w", err)
+		return nil, errors.Wrap(err, "Modules")
 	}
 	if out.ToRemove, err = sliceMapR(v.ToRemove, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("ToRemove: %w", err)
+		return nil, errors.Wrap(err, "ToRemove")
 	}
 	if out.RemovingModules, err = sliceMapR(v.RemovingModules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("RemovingModules: %w", err)
+		return nil, errors.Wrap(err, "RemovingModules")
 	}
 	return out, nil
 }
@@ -2601,10 +2602,10 @@ func RealmStateFromProto(v *destpb.RealmState) (out *RealmState, err error) {
 
 	out = &RealmState{}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.External, err = orZeroR(result.From(ptr(bool(v.External)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("External: %w", err)
+		return nil, errors.Wrap(err, "External")
 	}
 	return out, nil
 }
@@ -2628,16 +2629,16 @@ func RefFromProto(v *destpb.Ref) (out *Ref, err error) {
 
 	out = &Ref{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Module, err = orZeroR(result.From(ptr(string(v.Module)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Module: %w", err)
+		return nil, errors.Wrap(err, "Module")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.TypeParameters, err = sliceMapR(v.TypeParameters, func(v *destpb.Type) result.Result[Type] { return orZeroR(ptrR(result.From(TypeFromProto(v)))) }).Result(); err != nil {
-		return nil, fmt.Errorf("TypeParameters: %w", err)
+		return nil, errors.Wrap(err, "TypeParameters")
 	}
 	return out, nil
 }
@@ -2716,13 +2717,13 @@ func RuntimeElementFromProto(v *destpb.RuntimeElement) (out *RuntimeElement, err
 
 	out = &RuntimeElement{}
 	if out.Element, err = orZeroR(ptrR(result.From(RuntimeFromProto(v.Element)))).Result(); err != nil {
-		return nil, fmt.Errorf("Element: %w", err)
+		return nil, errors.Wrap(err, "Element")
 	}
 	if out.Deployment, err = orZeroR(unmarshallText([]byte(v.Deployment), &out.Deployment)).Result(); err != nil {
-		return nil, fmt.Errorf("Deployment: %w", err)
+		return nil, errors.Wrap(err, "Deployment")
 	}
 	if out.Name, err = optionalR(result.From(setNil(ptr(string(orZero(v.Name))), v.Name), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	return out, nil
 }
@@ -2744,10 +2745,10 @@ func SchemaFromProto(v *destpb.Schema) (out *Schema, err error) {
 
 	out = &Schema{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Realms, err = sliceMapR(v.Realms, func(v *destpb.Realm) result.Result[*Realm] { return result.From(RealmFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Realms: %w", err)
+		return nil, errors.Wrap(err, "Realms")
 	}
 	return out, nil
 }
@@ -2772,23 +2773,23 @@ func SchemaStateFromProto(v *destpb.SchemaState) (out *SchemaState, err error) {
 
 	out = &SchemaState{}
 	if out.Modules, err = sliceMapR(v.Modules, func(v *destpb.Module) result.Result[*Module] { return result.From(ModuleFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Modules: %w", err)
+		return nil, errors.Wrap(err, "Modules")
 	}
 	if out.Changesets, err = sliceMapR(v.Changesets, func(v *destpb.Changeset) result.Result[*Changeset] { return result.From(ChangesetFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Changesets: %w", err)
+		return nil, errors.Wrap(err, "Changesets")
 	}
 	if out.ChangesetEvents, err = sliceMapR(v.ChangesetEvents, func(v *destpb.DeploymentRuntimeEvent) result.Result[*DeploymentRuntimeEvent] {
 		return result.From(DeploymentRuntimeEventFromProto(v))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("ChangesetEvents: %w", err)
+		return nil, errors.Wrap(err, "ChangesetEvents")
 	}
 	if out.DeploymentEvents, err = sliceMapR(v.DeploymentEvents, func(v *destpb.DeploymentRuntimeEvent) result.Result[*DeploymentRuntimeEvent] {
 		return result.From(DeploymentRuntimeEventFromProto(v))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("DeploymentEvents: %w", err)
+		return nil, errors.Wrap(err, "DeploymentEvents")
 	}
 	if out.Realms, err = sliceMapR(v.Realms, func(v *destpb.RealmState) result.Result[*RealmState] { return result.From(RealmStateFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Realms: %w", err)
+		return nil, errors.Wrap(err, "Realms")
 	}
 	return out, nil
 }
@@ -2812,16 +2813,16 @@ func SecretFromProto(v *destpb.Secret) (out *Secret, err error) {
 
 	out = &Secret{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
-		return nil, fmt.Errorf("Type: %w", err)
+		return nil, errors.Wrap(err, "Type")
 	}
 	return out, nil
 }
@@ -2842,7 +2843,7 @@ func StringFromProto(v *destpb.String) (out *String, err error) {
 
 	out = &String{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -2864,10 +2865,10 @@ func StringValueFromProto(v *destpb.StringValue) (out *StringValue, err error) {
 
 	out = &StringValue{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Value, err = orZeroR(result.From(ptr(string(v.Value)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Value: %w", err)
+		return nil, errors.Wrap(err, "Value")
 	}
 	return out, nil
 }
@@ -2914,7 +2915,7 @@ func TimeFromProto(v *destpb.Time) (out *Time, err error) {
 
 	out = &Time{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -2941,27 +2942,27 @@ func TopicFromProto(v *destpb.Topic) (out *Topic, err error) {
 
 	out = &Topic{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Runtime, err = result.From(TopicRuntimeFromProto(v.Runtime)).Result(); err != nil {
-		return nil, fmt.Errorf("Runtime: %w", err)
+		return nil, errors.Wrap(err, "Runtime")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Export: %w", err)
+		return nil, errors.Wrap(err, "Export")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Event, err = orZeroR(ptrR(result.From(TypeFromProto(v.Event)))).Result(); err != nil {
-		return nil, fmt.Errorf("Event: %w", err)
+		return nil, errors.Wrap(err, "Event")
 	}
 	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
 		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Metadata: %w", err)
+		return nil, errors.Wrap(err, "Metadata")
 	}
 	return out, nil
 }
@@ -2983,10 +2984,10 @@ func TopicRuntimeFromProto(v *destpb.TopicRuntime) (out *TopicRuntime, err error
 
 	out = &TopicRuntime{}
 	if out.KafkaBrokers, err = sliceMapR(v.KafkaBrokers, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("KafkaBrokers: %w", err)
+		return nil, errors.Wrap(err, "KafkaBrokers")
 	}
 	if out.TopicID, err = orZeroR(result.From(ptr(string(v.TopicId)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("TopicID: %w", err)
+		return nil, errors.Wrap(err, "TopicID")
 	}
 	return out, nil
 }
@@ -3122,24 +3123,24 @@ func TypeAliasFromProto(v *destpb.TypeAlias) (out *TypeAlias, err error) {
 
 	out = &TypeAlias{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Export: %w", err)
+		return nil, errors.Wrap(err, "Export")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
-		return nil, fmt.Errorf("Type: %w", err)
+		return nil, errors.Wrap(err, "Type")
 	}
 	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
 		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Metadata: %w", err)
+		return nil, errors.Wrap(err, "Metadata")
 	}
 	return out, nil
 }
@@ -3161,10 +3162,10 @@ func TypeParameterFromProto(v *destpb.TypeParameter) (out *TypeParameter, err er
 
 	out = &TypeParameter{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	return out, nil
 }
@@ -3186,10 +3187,10 @@ func TypeValueFromProto(v *destpb.TypeValue) (out *TypeValue, err error) {
 
 	out = &TypeValue{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Value, err = orZeroR(ptrR(result.From(TypeFromProto(v.Value)))).Result(); err != nil {
-		return nil, fmt.Errorf("Value: %w", err)
+		return nil, errors.Wrap(err, "Value")
 	}
 	return out, nil
 }
@@ -3210,7 +3211,7 @@ func UnitFromProto(v *destpb.Unit) (out *Unit, err error) {
 
 	out = &Unit{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	return out, nil
 }
@@ -3276,30 +3277,30 @@ func VerbFromProto(v *destpb.Verb) (out *Verb, err error) {
 
 	out = &Verb{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Comments: %w", err)
+		return nil, errors.Wrap(err, "Comments")
 	}
 	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Export: %w", err)
+		return nil, errors.Wrap(err, "Export")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Name: %w", err)
+		return nil, errors.Wrap(err, "Name")
 	}
 	if out.Request, err = orZeroR(ptrR(result.From(TypeFromProto(v.Request)))).Result(); err != nil {
-		return nil, fmt.Errorf("Request: %w", err)
+		return nil, errors.Wrap(err, "Request")
 	}
 	if out.Response, err = orZeroR(ptrR(result.From(TypeFromProto(v.Response)))).Result(); err != nil {
-		return nil, fmt.Errorf("Response: %w", err)
+		return nil, errors.Wrap(err, "Response")
 	}
 	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
 		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Metadata: %w", err)
+		return nil, errors.Wrap(err, "Metadata")
 	}
 	if out.Runtime, err = result.From(VerbRuntimeFromProto(v.Runtime)).Result(); err != nil {
-		return nil, fmt.Errorf("Runtime: %w", err)
+		return nil, errors.Wrap(err, "Runtime")
 	}
 	return out, nil
 }
@@ -3320,7 +3321,7 @@ func VerbRuntimeFromProto(v *destpb.VerbRuntime) (out *VerbRuntime, err error) {
 
 	out = &VerbRuntime{}
 	if out.SubscriptionConnector, err = orZeroR(ptrR(result.From(SubscriptionConnectorFromProto(v.SubscriptionConnector)))).Result(); err != nil {
-		return nil, fmt.Errorf("SubscriptionConnector: %w", err)
+		return nil, errors.Wrap(err, "SubscriptionConnector")
 	}
 	return out, nil
 }

@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/internal/buildengine"
@@ -29,12 +29,12 @@ func (b *buildCmd) Run(
 		b.Dirs = projConfig.AbsModuleDirs()
 	}
 	if len(b.Dirs) == 0 {
-		return errors.New("no directories specified")
+		return errors.WithStack(errors.New("no directories specified"))
 	}
 
 	// Cancel build engine context to ensure all language plugins are killed.
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("build stopped: %w", context.Canceled))
+	defer cancel(errors.Wrap(context.Canceled, "build stopped"))
 	engine, err := buildengine.New(
 		ctx,
 		adminClient,
@@ -46,14 +46,14 @@ func (b *buildCmd) Run(
 		buildengine.Parallelism(b.Parallelism),
 	)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if len(engine.Modules()) == 0 {
 		logger.Warnf("No modules were found to build")
 		return nil
 	}
 	if err := engine.Build(ctx); err != nil {
-		return fmt.Errorf("build failed: %w", err)
+		return errors.Wrap(err, "build failed")
 	}
 	return nil
 }

@@ -1,7 +1,6 @@
 package compile
 
 import (
-	"fmt"
 	"go/parser"
 	"go/token"
 	"io/fs"
@@ -9,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/internal/moduleconfig"
@@ -17,7 +17,7 @@ import (
 
 func ExtractDependencies(config moduleconfig.AbsModuleConfig) ([]string, error) {
 	deps, _, err := extractDependenciesAndImports(config)
-	return deps, err
+	return deps, errors.WithStack(err)
 }
 
 func extractDependenciesAndImports(config moduleconfig.AbsModuleConfig) (deps []string, imports []string, err error) {
@@ -29,11 +29,11 @@ func extractDependenciesAndImports(config moduleconfig.AbsModuleConfig) (deps []
 			return nil
 		}
 		if strings.HasPrefix(d.Name(), "_") || d.Name() == "testdata" {
-			return watch.ErrSkip
+			return errors.WithStack(watch.ErrSkip)
 		}
 		pkgs, err := parser.ParseDir(fset, path, isNotGenerated, parser.ImportsOnly)
 		if pkgs == nil {
-			return fmt.Errorf("could parse directory in search of dependencies: %w", err)
+			return errors.Wrap(err, "could parse directory in search of dependencies")
 		}
 		for _, pkg := range pkgs {
 			for _, file := range pkg.Files {
@@ -57,7 +57,7 @@ func extractDependenciesAndImports(config moduleconfig.AbsModuleConfig) (deps []
 		return nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: failed to extract dependencies from Go module: %w", config.Module, err)
+		return nil, nil, errors.Wrapf(err, "%s: failed to extract dependencies from Go module", config.Module)
 	}
 	modules := maps.Keys(dependencies)
 	sort.Strings(modules)

@@ -1,24 +1,20 @@
-//go:build integration
-
 package schema
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/participle/v2/lexer"
 
-	"github.com/block/ftl/go-runtime/schema/common"
-
 	"github.com/block/ftl/common/builderrors"
-	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/go-runtime/schema/common"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
 )
@@ -32,7 +28,7 @@ func prebuildTestModule(t *testing.T, args ...string) error {
 
 	dir, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
+		return errors.Wrap(err, "failed to get current directory")
 	}
 
 	ftlArgs := []string{"build"}
@@ -41,7 +37,7 @@ func prebuildTestModule(t *testing.T, args ...string) error {
 	cmd := exec.Command(ctx, log.Debug, dir, "ftl", ftlArgs...)
 	err = cmd.RunBuffered(ctx)
 	if err != nil {
-		return fmt.Errorf("ftl build failed: %w", err)
+		return errors.Wrap(err, "ftl build failed")
 	}
 	return nil
 }
@@ -57,6 +53,7 @@ func TestExtractSchema(t *testing.T) {
 	t.Run("TestErrorReporting", testErrorReporting)
 	t.Run("TestValidationFailures", testValidationFailures)
 }
+
 func testExtractModuleSchema(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -196,7 +193,7 @@ func testExtractModuleSchema(t *testing.T) {
 
   verb fixture(Unit) Unit
     +fixture
-  
+
   export verb http(builtin.HttpRequest<Unit, Unit, one.Req>) builtin.HttpResponse<one.Resp, Unit>
     +ingress http GET /get
 
@@ -614,15 +611,19 @@ func testValidationFailures(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = Extract("testdata/validation", &schema.Schema{})
 	assert.Error(t, err)
-	errs := errors.UnwrapAll(err)
+	errs := errors.UnwrapAllInnermost(err)
 
 	filename := filepath.Join(pwd, `testdata/validation/validation.go`)
 	actual := slices.Map(errs, func(e error) string {
 		return strings.TrimPrefix(e.Error(), filename+":")
 	})
 	expected := []string{
-		`11:3: verb badYear: invalid cron expression "* * * * * 9999": failed to parse cron expression syntax error in year field: '9999'`,
-		`16:3: verb allZeroes: invalid cron expression "0 0 0 0 0": failed to parse cron expression syntax error in day-of-month field: '0'`,
+		`11:3: verb badYear: invalid cron expression "* * * * * 9999": failed to parse cron expression: syntax error in year field: '9999'`,
+		`16:3: verb allZeroes: invalid cron expression "0 0 0 0 0": failed to parse cron expression: syntax error in day-of-month field: '0'`,
 	}
 	assert.Equal(t, expected, actual)
+}
+
+func normaliseString(s string) string {
+	return strings.TrimSpace(strings.Join(slices.Map(strings.Split(s, "\n"), strings.TrimSpace), "\n"))
 }

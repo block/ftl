@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/internal"
 )
@@ -27,7 +29,7 @@ func (c Config[T]) GoString() string {
 func (c Config[T]) Get(ctx context.Context) (out T) {
 	err := internal.FromContext(ctx).GetConfig(ctx, c.Name, &out)
 	if err != nil {
-		panic(fmt.Errorf("failed to get %s: %w", c, err))
+		panic(errors.Wrapf(err, "failed to get %s", c))
 	}
 	return
 }

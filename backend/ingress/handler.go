@@ -3,12 +3,12 @@ package ingress
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"

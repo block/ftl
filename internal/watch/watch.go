@@ -2,7 +2,6 @@ package watch
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 
@@ -100,7 +100,7 @@ func (w *Watcher) GetTransaction(moduleDir string) ModifyFilesTransaction {
 // existing modules, publishing a change event for each.
 func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []string) (*pubsub.Topic[WatchEvent], error) {
 	if w.isWatching {
-		return nil, fmt.Errorf("file watcher is already watching")
+		return nil, errors.Errorf("file watcher is already watching")
 	}
 	w.isWatching = true
 
@@ -235,7 +235,7 @@ var _ ModifyFilesTransaction = (*modifyFilesTransaction)(nil)
 
 func (t *modifyFilesTransaction) Begin() error {
 	if t.isActive {
-		return fmt.Errorf("transaction is already active")
+		return errors.Errorf("transaction is already active")
 	}
 	t.isActive = true
 
@@ -249,7 +249,7 @@ func (t *modifyFilesTransaction) Begin() error {
 
 func (t *modifyFilesTransaction) End() error {
 	if !t.isActive {
-		return fmt.Errorf("transaction is not active")
+		return errors.Errorf("transaction is not active")
 	}
 
 	t.watcher.mutex.Lock()
@@ -263,12 +263,12 @@ func (t *modifyFilesTransaction) End() error {
 		t.watcher.moduleTransactions[t.moduleDir] = append(t.watcher.moduleTransactions[t.moduleDir][:idx], t.watcher.moduleTransactions[t.moduleDir][idx+1:]...)
 		return nil
 	}
-	return fmt.Errorf("could not end transaction because it was not found")
+	return errors.Errorf("could not end transaction because it was not found")
 }
 
 func (t *modifyFilesTransaction) ModifiedFiles(paths ...string) error {
 	if !t.isActive {
-		return fmt.Errorf("can not modify file because transaction is not active: %v", paths)
+		return errors.Errorf("can not modify file because transaction is not active: %v", paths)
 	}
 
 	t.watcher.mutex.Lock()
@@ -287,7 +287,7 @@ func (t *modifyFilesTransaction) ModifiedFiles(paths ...string) error {
 		}
 		hash, matched, err := computeFileHash(moduleHashes.Config.Dir, path, t.watcher.patterns)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		if !matched {
 			continue

@@ -2,11 +2,11 @@ package ftltest
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/go-runtime/ftl"
 )

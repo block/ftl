@@ -2,11 +2,12 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal/log"
 )
@@ -41,5 +42,5 @@ func Serve(ctx context.Context, listen *url.URL, handler http.Handler) error {
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
-	return err
+	return errors.WithStack(err)
 }

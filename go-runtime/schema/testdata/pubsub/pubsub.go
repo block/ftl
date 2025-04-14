@@ -2,7 +2,8 @@ package pubsub
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
 )
@@ -25,7 +26,7 @@ type Payins = ftl.TopicHandle[PayinEvent, PartitionMapper]
 //ftl:verb
 func Payin(ctx context.Context, topic Payins) error {
 	if err := topic.Publish(ctx, PayinEvent{Name: "Test"}); err != nil {
-		return fmt.Errorf("failed to publish event: %w", err)
+		return errors.Wrap(err, "failed to publish event")
 	}
 	return nil
 }
@@ -47,7 +48,7 @@ type PublicBroadcast = ftl.TopicHandle[PayinEvent, ftl.SinglePartitionMap[PayinE
 //ftl:verb export
 func Broadcast(ctx context.Context, topic PublicBroadcast) error {
 	if err := topic.Publish(ctx, PayinEvent{Name: "Broadcast"}); err != nil {
-		return fmt.Errorf("failed to publish broadcast event: %w", err)
+		return errors.Wrap(err, "failed to publish broadcast event")
 	}
 	return nil
 }

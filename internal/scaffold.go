@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/block/scaffolder"
 
 	"github.com/block/ftl/common/schema"
@@ -15,14 +16,14 @@ import (
 func ScaffoldZip(source *zip.Reader, destination string, ctx any, options ...scaffolder.Option) error {
 	tmpDir, err := os.MkdirTemp("", "scaffold-")
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	defer os.RemoveAll(tmpDir)
 	if err := UnzipDir(source, tmpDir); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	options = append(options, scaffolder.Functions(scaffoldFuncs))
-	return scaffolder.Scaffold(tmpDir, destination, ctx, options...)
+	return errors.WithStack(scaffolder.Scaffold(tmpDir, destination, ctx, options...))
 }
 
 var scaffoldFuncs = scaffolder.FuncMap{

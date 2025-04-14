@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"golang.org/x/exp/rand"
 	"golang.org/x/sync/errgroup"
@@ -32,11 +33,11 @@ func (s *startCmd) Run() error {
 	cluster := builder.Build(ctx)
 
 	if err := cluster.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start cluster: %w", err)
+		return errors.Wrap(err, "failed to start cluster")
 	}
 	defer cluster.Stop(ctx)
 
-	return run(ctx, shard)
+	return errors.WithStack(run(ctx, shard))
 }
 
 type joinCmd struct {
@@ -51,11 +52,11 @@ func (j *joinCmd) Run() error {
 	cluster := builder.Build(ctx)
 
 	if err := cluster.Join(ctx, j.ControlAddress.String()); err != nil {
-		return fmt.Errorf("failed to join cluster: %w", err)
+		return errors.Wrap(err, "failed to join cluster")
 	}
 	defer cluster.Stop(ctx)
 
-	return run(ctx, shard)
+	return errors.WithStack(run(ctx, shard))
 }
 
 func run(ctx context.Context, shard sm.Handle[int64, int64, IntEvent]) error {
@@ -79,7 +80,7 @@ func run(ctx context.Context, shard sm.Handle[int64, int64, IntEvent]) error {
 
 	changes, err := shard.StateIter(ctx, 1)
 	if err != nil {
-		return fmt.Errorf("failed to get changes: %w", err)
+		return errors.Wrap(err, "failed to get changes")
 	}
 
 	wg.Go(func() error {
@@ -88,7 +89,7 @@ func run(ctx context.Context, shard sm.Handle[int64, int64, IntEvent]) error {
 			case msg := <-messages:
 				err := shard.Publish(ctx, IntEvent(msg))
 				if err != nil {
-					return fmt.Errorf("failed to propose event: %w", err)
+					return errors.Wrap(err, "failed to propose event")
 				}
 			case <-ctx.Done():
 				return nil
@@ -103,7 +104,7 @@ func run(ctx context.Context, shard sm.Handle[int64, int64, IntEvent]) error {
 	}()
 
 	if err := wg.Wait(); err != nil {
-		return fmt.Errorf("failed to run: %w", err)
+		return errors.Wrap(err, "failed to run")
 	}
 
 	return nil

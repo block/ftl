@@ -9,11 +9,12 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/result"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	sops "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/iterops"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func BenchmarkTimelineInsert(b *testing.B) {

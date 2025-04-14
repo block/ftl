@@ -1,12 +1,12 @@
 package bind
 
 import (
-	"fmt"
 	"net"
 	"net/url"
 	"strconv"
 
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 )
 
 type BindAllocator struct {
@@ -22,12 +22,12 @@ type BindAllocator struct {
 func NewBindAllocator(url *url.URL, staticPorts int) (*BindAllocator, error) {
 	_, portStr, err := net.SplitHostPort(url.Host)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return &BindAllocator{
@@ -51,7 +51,7 @@ func (b *BindAllocator) NextPort() (int, error) {
 
 		if err != nil {
 			if port < b.dynamicPortsAfter {
-				return 0, fmt.Errorf("failed to bind to port %d: %w", port, err)
+				return 0, errors.Wrapf(err, "failed to bind to port %d", port)
 			}
 			if tries >= maxTries {
 				panic("failed to find an open port: " + err.Error())
@@ -68,7 +68,7 @@ func (b *BindAllocator) Next() (*url.URL, error) {
 	newURL := *b.baseURL
 	nextPort, err := b.NextPort()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	newURL.Host = net.JoinHostPort(b.baseURL.Hostname(), strconv.Itoa(nextPort))
 	return &newURL, nil

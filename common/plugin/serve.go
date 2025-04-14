@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -112,7 +112,7 @@ func Start[Impl any, Iface any, Config any](
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	go pollParentExistence(cancel)
-	defer cancel(fmt.Errorf("plugin %s stopped", name))
+	defer cancel(errors.Errorf("plugin %s stopped", name))
 
 	// Configure logging to JSON on stderr. This will be read by the parent process.
 	logConfig := cli.LogConfig
@@ -130,7 +130,7 @@ func Start[Impl any, Iface any, Config any](
 	go func() {
 		sig := <-sigch
 		logger.Debugf("Terminated by signal %s", sig)
-		cancel(fmt.Errorf("stopping plugin %s due to signal %s: %w", name, sig, context.Canceled))
+		cancel(errors.Wrapf(context.Canceled, "stopping plugin %s due to signal %s", name, sig))
 		// We always kill our children with SIGINT rather than SIGTERM
 		// Maven subprocesses will not kill their children correctly if terminated with TERM
 		_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
@@ -176,7 +176,7 @@ func Start[Impl any, Iface any, Config any](
 func AllocatePort() (*net.TCPAddr, error) {
 	addresses, err := local.FreeTCPAddresses(1)
 	if err != nil {
-		return nil, fmt.Errorf("failed to allocate port: %w", err)
+		return nil, errors.Wrap(err, "failed to allocate port")
 	}
 	return addresses[0], nil
 }
@@ -186,14 +186,14 @@ func cleanup(logger *log.Logger, pidFile string) error {
 	if os.IsNotExist(err) {
 		return nil
 	} else if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if len(pidb) == 0 {
 		return nil
 	}
 	pid, err := strconv.Atoi(string(pidb))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	err = syscall.Kill(pid, syscall.SIGKILL)
 	if err != nil && !errors.Is(err, syscall.ESRCH) {
@@ -209,7 +209,7 @@ func pollParentExistence(cancel context.CancelCauseFunc) {
 	for {
 		// Check if the parent process is still running
 		if !isProcessRunning(ppid) {
-			cancel(fmt.Errorf("parent process %d is no longer running", ppid))
+			cancel(errors.Errorf("parent process %d is no longer running", ppid))
 			break
 		}
 		// Sleep for a while before checking again

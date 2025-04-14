@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/alecthomas/errors"
 )
 
 // DeepCopyOption represents an option to customize deep copied results.
@@ -211,7 +213,7 @@ func copySlice(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 func copyArray(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 	v := reflect.ValueOf(x)
 	if v.Kind() != reflect.Array {
-		panic(fmt.Errorf("reflect: internal error: must be an Array; got %v", v.Kind()))
+		panic(errors.Errorf("reflect: internal error: must be an Array; got %v", v.Kind()))
 	}
 	t := reflect.TypeOf(x)
 	size := t.Len()
@@ -226,7 +228,7 @@ func copyArray(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 func copyMap(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 	v := reflect.ValueOf(x)
 	if v.Kind() != reflect.Map {
-		panic(fmt.Errorf("reflect: internal error: must be a Map; got %v", v.Kind()))
+		panic(errors.Errorf("reflect: internal error: must be a Map; got %v", v.Kind()))
 	}
 	if v.IsNil() {
 		return x
@@ -248,7 +250,7 @@ func copyPointer(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 	t := reflect.TypeOf(x)
 
 	if v.Kind() != reflect.Pointer {
-		panic(fmt.Errorf("reflect: internal error: must be a Pointer; got %v", v.Kind()))
+		panic(errors.Errorf("reflect: internal error: must be a Pointer; got %v", v.Kind()))
 	}
 
 	if v.IsNil() {
@@ -277,7 +279,7 @@ func copyPointer(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 func copyStruct(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 	v := reflect.ValueOf(x)
 	if v.Kind() != reflect.Struct {
-		panic(fmt.Errorf("reflect: internal error: must be a Struct; got %v", v.Kind()))
+		panic(errors.Errorf("reflect: internal error: must be a Struct; got %v", v.Kind()))
 	}
 	t := reflect.TypeOf(x)
 	dc := reflect.New(t)
@@ -311,7 +313,7 @@ func copyStruct(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 func copyChan(x any, ptrs map[uintptr]any, copyConf *copyConfig) any {
 	v := reflect.ValueOf(x)
 	if v.Kind() != reflect.Chan {
-		panic(fmt.Errorf("reflect: internal error: must be a Chan; got %v", v.Kind()))
+		panic(errors.Errorf("reflect: internal error: must be a Chan; got %v", v.Kind()))
 	}
 	t := reflect.TypeOf(x)
 	dir := t.ChanDir()

@@ -2,10 +2,10 @@ package providers
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 
@@ -76,7 +76,7 @@ func (a *ASM) SyncInterval() time.Duration {
 func (a *ASM) Sync(ctx context.Context) (map[configuration.Ref]configuration.SyncedValue, error) {
 	values, err := a.client.sync(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", a.client.name(), err)
+		return nil, errors.Wrapf(err, "%s", a.client.name())
 	}
 	return values, nil
 }
@@ -85,7 +85,7 @@ func (a *ASM) Sync(ctx context.Context) (map[configuration.Ref]configuration.Syn
 func (a *ASM) Store(ctx context.Context, ref configuration.Ref, value []byte) (*url.URL, error) {
 	url, err := a.client.store(ctx, ref, value)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", a.client.name(), err)
+		return nil, errors.Wrapf(err, "%s", a.client.name())
 	}
 	return url, nil
 }
@@ -93,7 +93,7 @@ func (a *ASM) Store(ctx context.Context, ref configuration.Ref, value []byte) (*
 func (a *ASM) Delete(ctx context.Context, ref configuration.Ref) error {
 	err := a.client.delete(ctx, ref)
 	if err != nil {
-		return fmt.Errorf("%s: %w", a.client.name(), err)
+		return errors.Wrapf(err, "%s", a.client.name())
 	}
 	return nil
 }

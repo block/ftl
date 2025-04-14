@@ -1,10 +1,10 @@
 package headers
 
 import (
-	"fmt"
 	"net/http"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
@@ -65,12 +65,12 @@ func SetParentRequestKey(header http.Header, key key.Request) {
 // Will return ("", false, nil) if no request key is present.
 func GetRequestKey(header http.Header) (key.Request, bool, error) {
 	keyStr := header.Get(RequestIDHeader)
-	return getRequestKeyFromKeyStr(keyStr)
+	return errors.WithStack3(getRequestKeyFromKeyStr(keyStr))
 }
 
 func GetParentRequestKey(header http.Header) (key.Request, bool, error) {
 	keyStr := header.Get(ParentRequestIDHeader)
-	return getRequestKeyFromKeyStr(keyStr)
+	return errors.WithStack3(getRequestKeyFromKeyStr(keyStr))
 }
 
 func getRequestKeyFromKeyStr(keyStr string) (key.Request, bool, error) {
@@ -80,7 +80,7 @@ func getRequestKeyFromKeyStr(keyStr string) (key.Request, bool, error) {
 
 	parsedKey, err := key.ParseRequestKey(keyStr)
 	if err != nil {
-		return key.Request{}, false, fmt.Errorf("invalid %s header %q: %w", RequestIDHeader, keyStr, err)
+		return key.Request{}, false, errors.Wrapf(err, "invalid %s header %q", RequestIDHeader, keyStr)
 	}
 	return parsedKey, true, nil
 }
@@ -95,7 +95,7 @@ func GetCallers(header http.Header) ([]*schema.Ref, error) {
 	for i, header := range headers {
 		ref, err := schema.ParseRef(header)
 		if err != nil {
-			return nil, fmt.Errorf("invalid %s header %q: %w", VerbHeader, header, err)
+			return nil, errors.Wrapf(err, "invalid %s header %q", VerbHeader, header)
 		}
 		refs[i] = ref
 	}
@@ -112,7 +112,7 @@ func GetCaller(header http.Header) (optional.Option[*schema.Ref], error) {
 	}
 	ref, err := schema.ParseRef(headers[len(headers)-1])
 	if err != nil {
-		return optional.None[*schema.Ref](), err
+		return optional.None[*schema.Ref](), errors.WithStack(err)
 	}
 	return optional.Some(ref), nil
 }

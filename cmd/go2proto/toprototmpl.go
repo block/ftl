@@ -8,6 +8,8 @@ import (
 	"strings"
 	"text/template"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/common/strcase"
 )
 
@@ -28,7 +30,7 @@ var go2protoTmpl = template.Must(template.New("go2proto.to.go.tmpl").
 		"goProtoImport": func(g Go2ProtoContext) (string, error) {
 			unquoted, err := strconv.Unquote(g.Options["go_package"])
 			if err != nil {
-				return "", fmt.Errorf("go_package must be a quoted string: %w", err)
+				return "", errors.Wrap(err, "go_package must be a quoted string")
 			}
 			parts := strings.Split(unquoted, ";")
 			return parts[0], nil
@@ -53,6 +55,7 @@ import "encoding"
 import destpb "{{ . | goProtoImport }}"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
+import "github.com/alecthomas/errors"
 import "github.com/alecthomas/types/optional"
 import "github.com/alecthomas/types/result"
 {{ range .GoImports }}
@@ -250,7 +253,7 @@ func {{ .Name }}FromProto(v *destpb.{{ .Name }}) (out *{{ .Name }}, err error) {
 
 {{- range $field := .Fields }}
 	if out.{{ $field.Name }}, err = {{ $field.FromProto }}.Result(); err != nil {
-		return nil, fmt.Errorf("{{ $field.Name }}: %w", err)
+		return nil, errors.Wrap(err, "{{ $field.Name }}")
 	}
 {{- end}}
 {{- if .Validator }}
@@ -318,7 +321,7 @@ func renderToProto(out *os.File, directives PackageDirectives, file File, goImpo
 		GoImports:         goImports,
 	})
 	if err != nil {
-		return fmt.Errorf("template error: %w", err)
+		return errors.Wrap(err, "template error")
 	}
 	return nil
 }

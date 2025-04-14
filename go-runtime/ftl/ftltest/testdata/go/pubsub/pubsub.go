@@ -41,5 +41,5 @@ func ConsumeEvent(_ context.Context, _ Event) error {
 //ftl:subscribe topic1 from=beginning
 func ErrorsAfterASecond(ctx context.Context, event Event) error {
 	time.Sleep(1 * time.Second)
-	return fmt.Errorf("SubscriberThatFails always fails")
+	return errors.Errorf("SubscriberThatFails always fails")
 }

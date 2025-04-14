@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/block/scaffolder"
 	"google.golang.org/protobuf/proto"
 
@@ -46,27 +47,27 @@ func Build(ctx context.Context, projectRootDir, stubsRoot string, config modulec
 
 	// Execute the Python schema extractor
 	if err := exec.Command(ctx, log.Debug, config.Dir, "uv", "run", "-m", "ftl.cli.schema_extractor", ".").RunBuffered(ctx); err != nil {
-		return nil, nil, fmt.Errorf("failed to extract schema: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to extract schema")
 	}
 
 	outputFile := filepath.Join(buildDir, "schema.pb")
 	serializedData, err := os.ReadFile(outputFile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read serialized schema: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to read serialized schema")
 	}
 
 	var modulepb schemapb.Module
 	err = proto.Unmarshal(serializedData, &modulepb)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal module proto: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to unmarshal module proto")
 	}
 
 	module, err := schema.ValidatedModuleFromProto(&modulepb)
 	if err != nil {
-		return nil, nil, fmt.Errorf("invalid module: %w", err)
+		return nil, nil, errors.Wrap(err, "invalid module")
 	}
 	if err := internal.ScaffoldZip(buildTemplateFiles(), buildDir, mctx, scaffolder.Functions(scaffoldFuncs)); err != nil {
-		return moduleSch, nil, fmt.Errorf("failed to scaffold build template: %w", err)
+		return moduleSch, nil, errors.Wrap(err, "failed to scaffold build template")
 	}
 
 	return module, nil, nil
@@ -201,7 +202,7 @@ func imports(m *schema.Module) map[string]string {
 		// Will need more imports here for standard types
 		default:
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 
 	return imports
@@ -217,7 +218,7 @@ type nativeType struct {
 func nativeTypeFromQualifiedName(qualifiedName string) (nativeType, error) {
 	lastDotIndex := strings.LastIndex(qualifiedName, ".")
 	if lastDotIndex == -1 {
-		return nativeType{}, fmt.Errorf("invalid qualified type format %q", qualifiedName)
+		return nativeType{}, errors.Errorf("invalid qualified type format %q", qualifiedName)
 	}
 
 	pkgPath := qualifiedName[:lastDotIndex]

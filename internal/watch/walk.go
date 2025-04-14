@@ -2,13 +2,13 @@ package watch
 
 import (
 	"bufio"
-	"errors"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/bmatcuk/doublestar/v4"
 
 	"github.com/block/ftl/internal"
@@ -27,24 +27,24 @@ func WalkDir(dir string, skipGitIgnoredFiles bool, fn func(path string, d fs.Dir
 	if skipGitIgnoredFiles {
 		ignores = initGitIgnore(dir)
 	}
-	return walkDir(dir, ignores, fn)
+	return errors.WithStack(walkDir(dir, ignores, fn))
 }
 
 // Depth-first walk of dir executing fn after each entry.
 func walkDir(dir string, ignores []string, fn func(path string, d fs.DirEntry) error) error {
 	dirInfo, err := os.Stat(dir)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if err = fn(dir, fs.FileInfoToDirEntry(dirInfo)); err != nil {
 		if errors.Is(err, ErrSkip) {
 			return nil
 		}
-		return err
+		return errors.WithStack(err)
 	}
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	var dirs []os.DirEntry
@@ -58,7 +58,7 @@ func walkDir(dir string, ignores []string, fn func(path string, d fs.DirEntry) e
 		for _, pattern := range ignores {
 			match, err := doublestar.PathMatch(pattern, fullPath)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			if match {
 				shouldIgnore = true
@@ -78,7 +78,7 @@ func walkDir(dir string, ignores []string, fn func(path string, d fs.DirEntry) e
 					// If errSkip is found in a file, skip the remaining files in this directory
 					return nil
 				}
-				return err
+				return errors.WithStack(err)
 			}
 		}
 	}
@@ -89,9 +89,9 @@ func walkDir(dir string, ignores []string, fn func(path string, d fs.DirEntry) e
 		ignores = append(ignores, loadGitIgnore(dirPath)...)
 		if err := walkDir(dirPath, ignores, fn); err != nil {
 			if errors.Is(err, ErrSkip) {
-				return ErrSkip // Propagate errSkip upwards to stop this branch of recursion
+				return errors.WithStack(ErrSkip) // Propagate errSkip upwards to stop this branch of recursion
 			}
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	return nil

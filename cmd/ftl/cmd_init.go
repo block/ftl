@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/block/scaffolder"
 
 	"github.com/block/ftl"
@@ -56,11 +57,11 @@ func (i initCmd) Run(
 
 	logger.Debugf("Initializing FTL project in %s", i.Dir)
 	if err := os.MkdirAll(i.Dir, 0750); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
+		return errors.Wrap(err, "failed to create directory")
 	}
 
 	if err := scaffold(ctx, i.Hermit, projectinit.Files(), i.Dir, i); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	config := projectconfig.Config{
@@ -74,7 +75,7 @@ func (i initCmd) Run(
 		},
 	}
 	if err := projectconfig.Create(ctx, config, i.Dir); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	_, err := profiles.Init(profiles.ProjectConfig{
@@ -85,35 +86,35 @@ func (i initCmd) Run(
 		Root:          i.Dir,
 	}, secretsRegistry, configRegistry)
 	if err != nil {
-		return fmt.Errorf("initialize project: %w", err)
+		return errors.Wrap(err, "initialize project")
 	}
 	if i.Hermit {
 		if err := installHermitFTL(ctx, i.Dir); err != nil {
-			return fmt.Errorf("initialize Hermit FTL: %w", err)
+			return errors.Wrap(err, "initialize Hermit FTL")
 		}
 	}
 
 	if i.Git {
 		err := maybeGitInit(ctx, i.Dir)
 		if err != nil {
-			return fmt.Errorf("running git init: %w", err)
+			return errors.Wrap(err, "running git init")
 		}
 		logger.Debugf("Updating .gitignore")
 		if err := updateGitIgnore(ctx, i.Dir); err != nil {
-			return fmt.Errorf("update .gitignore: %w", err)
+			return errors.Wrap(err, "update .gitignore")
 		}
 		if err := maybeGitAdd(ctx, i.Dir, ".ftl-project"); err != nil {
-			return fmt.Errorf("git add .ftl-project: %w", err)
+			return errors.Wrap(err, "git add .ftl-project")
 		}
 		if err := maybeGitAdd(ctx, i.Dir, "ftl-project.toml"); err != nil {
-			return fmt.Errorf("git add ftl-project.toml: %w", err)
+			return errors.Wrap(err, "git add ftl-project.toml")
 		}
 		if err := maybeGitAdd(ctx, i.Dir, "README.md"); err != nil {
-			return fmt.Errorf("git add README.md: %w", err)
+			return errors.Wrap(err, "git add README.md")
 		}
 		if i.Hermit {
 			if err := maybeGitAdd(ctx, i.Dir, "bin"); err != nil {
-				return fmt.Errorf("git add bin: %w", err)
+				return errors.Wrap(err, "git add bin")
 			}
 		}
 	}
@@ -130,7 +131,7 @@ func (i initCmd) Run(
 func maybeGitAdd(ctx context.Context, dir string, paths ...string) error {
 	args := append([]string{"add"}, paths...)
 	if err := exec.Command(ctx, log.Debug, dir, "git", args...).RunBuffered(ctx); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -139,7 +140,7 @@ func installHermitFTL(ctx context.Context, dir string) error {
 	for _, install := range strings.Fields(userHermitPackages) {
 		args := []string{"install", install}
 		if err := exec.Command(ctx, log.Debug, dir, "./bin/hermit", args...).RunBuffered(ctx); err != nil {
-			return fmt.Errorf("unable to install hermit package %s %w", install, err)
+			return errors.Wrapf(err, "unable to install hermit package %s", install)
 		}
 	}
 	ftlVersion := ftl.Version
@@ -151,7 +152,7 @@ func installHermitFTL(ctx context.Context, dir string) error {
 	}
 	args := []string{"install", "ftl" + ftlVersion}
 	if err := exec.Command(ctx, log.Debug, dir, "./bin/hermit", args...).RunBuffered(ctx); err != nil {
-		return fmt.Errorf("unable to install hermit package ftl %w", err)
+		return errors.Wrap(err, "unable to install hermit package ft")
 	}
 	return nil
 }
@@ -159,7 +160,7 @@ func installHermitFTL(ctx context.Context, dir string) error {
 func maybeGitInit(ctx context.Context, dir string) error {
 	args := []string{"init"}
 	if err := exec.Command(ctx, log.Debug, dir, "git", args...).RunBuffered(ctx); err != nil {
-		return fmt.Errorf("git init: %w", err)
+		return errors.Wrap(err, "git init")
 	}
 	return nil
 }
@@ -167,7 +168,7 @@ func maybeGitInit(ctx context.Context, dir string) error {
 func updateGitIgnore(ctx context.Context, gitRoot string) error {
 	f, err := os.OpenFile(path.Join(gitRoot, ".gitignore"), os.O_RDWR|os.O_CREATE, 0644) //nolint:gosec
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	defer f.Close() //nolint:gosec
 
@@ -179,16 +180,16 @@ func updateGitIgnore(ctx context.Context, gitRoot string) error {
 	}
 
 	if scanner.Err() != nil {
-		return scanner.Err()
+		return errors.WithStack(scanner.Err())
 	}
 
 	// append if not already present
 	if _, err = f.WriteString("**/.ftl\n"); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	// Add .gitignore to git
-	return maybeGitAdd(ctx, gitRoot, ".gitignore")
+	return errors.WithStack(maybeGitAdd(ctx, gitRoot, ".gitignore"))
 }
 
 func scaffold(ctx context.Context, includeBinDir bool, source *zip.Reader, destination string, sctx any, options ...scaffolder.Option) error {
@@ -200,7 +201,7 @@ func scaffold(ctx context.Context, includeBinDir bool, source *zip.Reader, desti
 	}
 	opts = append(opts, options...)
 	if err := internal.ScaffoldZip(source, destination, sctx, opts...); err != nil {
-		return fmt.Errorf("failed to scaffold: %w", err)
+		return errors.Wrap(err, "failed to scaffold")
 	}
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -17,12 +18,12 @@ type psCmd struct {
 func (s *psCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	status, err := client.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	sch, err := schema.SchemaFromProto(status.Msg.Schema)
 	if err != nil {
-		return fmt.Errorf("failed to parse schema: %w", err)
+		return errors.Wrap(err, "failed to parse schema")
 	}
 
 	// Format: deployment, N/M replicas running

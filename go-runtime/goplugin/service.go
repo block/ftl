@@ -2,13 +2,13 @@ package goplugin
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 
@@ -56,7 +56,7 @@ type buildContext struct {
 func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 	sch, err := schema.FromProto(proto.Schema)
 	if err != nil {
-		return buildContext{}, fmt.Errorf("could not parse schema from proto: %w", err)
+		return buildContext{}, errors.Wrap(err, "could not parse schema from proto")
 	}
 	config := langpb.ModuleConfigFromProto(proto.ModuleConfig)
 	bc := buildContext{
@@ -108,7 +108,7 @@ func (s *Service) GetDependencies(ctx context.Context, req *connect.Request[lang
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
 	deps, err := compile.ExtractDependencies(config)
 	if err != nil {
-		return nil, fmt.Errorf("could not extract dependencies: %w", err)
+		return nil, errors.Wrap(err, "could not extract dependencies")
 	}
 	return connect.NewResponse(&langpb.GetDependenciesResponse{
 		Modules: deps,
@@ -121,7 +121,7 @@ func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb
 	ctx = log.ContextWithLogger(ctx, logger)
 	moduleSchema, err := schema.ValidatedModuleFromProto(req.Msg.Module)
 	if err != nil {
-		return nil, fmt.Errorf("invalid module: %w", err)
+		return nil, errors.Wrap(err, "invalid module")
 	}
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
 	var nativeConfig optional.Option[moduleconfig.AbsModuleConfig]
@@ -131,7 +131,7 @@ func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb
 
 	err = compile.GenerateStubs(ctx, req.Msg.Dir, moduleSchema, config, nativeConfig)
 	if err != nil {
-		return nil, fmt.Errorf("could not generate stubs: %w", err)
+		return nil, errors.Wrap(err, "could not generate stubs")
 	}
 	return connect.NewResponse(&langpb.GenerateStubsResponse{}), nil
 }
@@ -143,7 +143,7 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
 	err := compile.SyncGeneratedStubReferences(ctx, config, req.Msg.StubsRoot, req.Msg.Modules)
 	if err != nil {
-		return nil, fmt.Errorf("could not sync stub references: %w", err)
+		return nil, errors.Wrap(err, "could not sync stub references")
 	}
 	return connect.NewResponse(&langpb.SyncStubReferencesResponse{}), nil
 }
@@ -167,18 +167,18 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 
 	// cancel context when stream ends so that watcher can be stopped
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("build stream ended: %w", context.Canceled))
+	defer cancel(errors.Wrap(context.Canceled, "build stream ended"))
 
 	projectConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
 
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	watchPatterns, err := relativeWatchPatterns(buildCtx.Config.Dir, buildCtx.Config.Watch)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 
@@ -189,13 +189,13 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		defer s.acceptsContextUpdates.Store(false)
 
 		if err := watchFiles(ctx, watcher, buildCtx, events); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
 	// Initial build
 	if err := buildAndSend(ctx, stream, projectConfig, req.Msg.StubsRoot, buildCtx, false, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, req.Msg.RebuildAutomatically); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if !req.Msg.RebuildAutomatically {
 		return nil
@@ -214,11 +214,11 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("could not send auto rebuild started event: %w", err)
+				return errors.Wrap(err, "could not send auto rebuild started event")
 			}
 		}
 		if err = buildAndSend(ctx, stream, projectConfig, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, true); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	if ctx.Err() != nil {
@@ -233,11 +233,11 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 // event with the updated build context id with "is_automatic_rebuild" as false.
 func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[langpb.BuildContextUpdatedRequest]) (*connect.Response[langpb.BuildContextUpdatedResponse], error) {
 	if !s.acceptsContextUpdates.Load() {
-		return nil, fmt.Errorf("plugin does not accept context updates because these is no build stream allowing rebuilds")
+		return nil, errors.Errorf("plugin does not accept context updates because these is no build stream allowing rebuilds")
 	}
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s.updatesTopic.Publish(buildContextUpdatedEvent{
 		buildCtx: buildCtx,
@@ -249,7 +249,7 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	logger := log.FromContext(ctx)
 	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
-		return fmt.Errorf("could not watch for file changes: %w", err)
+		return errors.Wrap(err, "could not watch for file changes")
 	}
 	logger.Debugf("Watching for file changes: %s", buildCtx.Config.Dir)
 	watchEvents := make(chan watch.WatchEvent, 32)
@@ -260,12 +260,12 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	case e := <-watchEvents:
 		_, ok := e.(watch.WatchEventModuleAdded)
 		if !ok {
-			return fmt.Errorf("expected module added event, got: %T", e)
+			return errors.Errorf("expected module added event, got: %T", e)
 		}
 	case <-time.After(3 * time.Second):
-		return fmt.Errorf("expected module added event, got no event")
+		return errors.Errorf("expected module added event, got no event")
 	case <-ctx.Done():
-		return fmt.Errorf("context done: %w", ctx.Err())
+		return errors.Wrap(ctx.Err(), "context done")
 	}
 
 	go func() {
@@ -328,7 +328,7 @@ func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.Build
 		})
 	}
 	if err = stream.Send(buildEvent); err != nil {
-		return fmt.Errorf("could not send build event: %w", err)
+		return errors.Wrap(err, "could not send build event")
 	}
 	return nil
 }
@@ -337,7 +337,7 @@ func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	ongoingState *compile.OngoingState, devMode bool) (*langpb.BuildResponse, error) {
 	release, err := flock.Acquire(ctx, buildCtx.Config.BuildLock, BuildLockTimeout)
 	if err != nil {
-		return nil, fmt.Errorf("could not acquire build lock: %w", err)
+		return nil, errors.Wrap(err, "could not acquire build lock")
 	}
 	defer release() //nolint:errcheck
 
@@ -404,7 +404,7 @@ func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, err
 	for i, path := range watchPaths {
 		relative, err := filepath.Rel(moduleDir, path)
 		if err != nil {
-			return nil, fmt.Errorf("could create relative path for watch pattern: %w", err)
+			return nil, errors.Wrap(err, "could create relative path for watch pattern")
 		}
 		relativePaths[i] = relative
 	}

@@ -1,10 +1,9 @@
 package raft
 
 import (
-	"errors"
-	"fmt"
 	"io"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/lni/dragonboat/v4/statemachine"
 
 	sm "github.com/block/ftl/internal/statemachine"
@@ -31,12 +30,12 @@ func newStateMachineShim[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable
 func (s *stateMachineShim[Q, R, E, EPtr]) Lookup(key any) (any, error) {
 	typed, ok := key.(Q)
 	if !ok {
-		panic(fmt.Errorf("invalid key type: %T", key))
+		panic(errors.Errorf("invalid key type: %T", key))
 	}
 
 	res, err := s.sm.Lookup(typed)
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup: %w", err)
+		return nil, errors.Wrap(err, "failed to lookup")
 	}
 
 	return res, nil
@@ -47,7 +46,7 @@ func (s *stateMachineShim[Q, R, E, EPtr]) Update(entry statemachine.Entry) (stat
 	toptr := (EPtr)(&to)
 
 	if err := toptr.UnmarshalBinary(entry.Cmd); err != nil {
-		return statemachine.Result{}, fmt.Errorf("failed to unmarshal event: %w", err)
+		return statemachine.Result{}, errors.Wrap(err, "failed to unmarshal event")
 	}
 	if err := s.sm.Publish(to); err != nil {
 		if errors.Is(err, ErrInvalidEvent) {
@@ -55,7 +54,7 @@ func (s *stateMachineShim[Q, R, E, EPtr]) Update(entry statemachine.Entry) (stat
 				Value: InvalidEventValue,
 			}, nil
 		}
-		return statemachine.Result{}, fmt.Errorf("failed to update state machine: %w", err)
+		return statemachine.Result{}, errors.Wrap(err, "failed to update state machine")
 	}
 
 	return statemachine.Result{}, nil
@@ -63,7 +62,7 @@ func (s *stateMachineShim[Q, R, E, EPtr]) Update(entry statemachine.Entry) (stat
 
 func (s *stateMachineShim[Q, R, E, EPtr]) Close() error {
 	if err := s.sm.Close(); err != nil {
-		return fmt.Errorf("failed to close state machine: %w", err)
+		return errors.Wrap(err, "failed to close state machine")
 	}
 	return nil
 }
@@ -74,7 +73,7 @@ func (s *stateMachineShim[Q, R, E, EPtr]) RecoverFromSnapshot(
 	_ <-chan struct{}, // do not support snapshot recovery cancellation for now
 ) error {
 	if err := s.sm.Recover(reader); err != nil {
-		return fmt.Errorf("failed to recover from snapshot: %w", err)
+		return errors.Wrap(err, "failed to recover from snapshot")
 	}
 	return nil
 }
@@ -85,7 +84,7 @@ func (s *stateMachineShim[Q, R, E, EPtr]) SaveSnapshot(
 	_ <-chan struct{}, // do not support snapshot save cancellation for now
 ) error {
 	if err := s.sm.Save(writer); err != nil {
-		return fmt.Errorf("failed to save snapshot: %w", err)
+		return errors.Wrap(err, "failed to save snapshot")
 	}
 	return nil
 }

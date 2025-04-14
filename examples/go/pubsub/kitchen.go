@@ -3,7 +3,9 @@ package pubsub
 import (
 	"context"
 
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
+	errors "github.com/alecthomas/errors" // Import the FTL SDK.
+
+	"github.com/block/ftl/go-runtime/ftl"
 )
 
 type PizzaPartitionMapper struct{}
@@ -28,5 +30,5 @@ type Pizza struct {
 //ftl:subscribe newOrderTopic from=beginning
 func CookPizza(ctx context.Context, pizza Pizza, topic PizzaReadyTopic) error {
 	ftl.LoggerFromContext(ctx).Infof("Cooking pizza: %v", pizza)
-	return topic.Publish(ctx, pizza)
+	return errors.WithStack(topic.Publish(ctx, pizza))
 }

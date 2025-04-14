@@ -3,9 +3,9 @@ package mcp
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -77,7 +77,7 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 			if requestKeyStr, ok := request.Params.Arguments["requestKey"].(string); ok && requestKeyStr != "" {
 				requestKey, err := key.ParseRequestKey(requestKeyStr)
 				if err != nil {
-					return nil, fmt.Errorf("invalid request key: %w", err)
+					return nil, errors.Wrap(err, "invalid request key")
 				}
 				timelineReq.Query.Filters = append(timelineReq.Query.Filters, &timelinepb.TimelineQuery_Filter{
 					Filter: &timelinepb.TimelineQuery_Filter_Requests{
@@ -99,7 +99,7 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 				case "error":
 					level = timelinepb.LogLevel_LOG_LEVEL_ERROR
 				default:
-					return nil, fmt.Errorf("invalid log level: %s", levelStr)
+					return nil, errors.Errorf("invalid log level: %s", levelStr)
 				}
 				timelineReq.Query.Filters = append(timelineReq.Query.Filters, &timelinepb.TimelineQuery_Filter{
 					Filter: &timelinepb.TimelineQuery_Filter_LogLevel{
@@ -122,14 +122,14 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 
 			resp, err := timelineClient.GetTimeline(ctx, connect.NewRequest(timelineReq))
 			if err != nil {
-				return nil, fmt.Errorf("could not get timeline events: %w", err)
+				return nil, errors.Wrap(err, "could not get timeline events")
 			}
 
 			events := make([]timelineEvent, 0, len(resp.Msg.Events))
 			for _, event := range resp.Msg.Events {
 				out, err := newOutputEvent(event)
 				if err != nil {
-					return nil, fmt.Errorf("could not convert event: %w", err)
+					return nil, errors.Wrap(err, "could not convert event")
 				}
 				events = append(events, out)
 			}
@@ -139,7 +139,7 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 			}
 			data, err := json.Marshal(output)
 			if err != nil {
-				return nil, fmt.Errorf("could not marshal results: %w", err)
+				return nil, errors.Wrap(err, "could not marshal results")
 			}
 			return mcp.NewToolResultText(string(data)), nil
 		}
@@ -154,12 +154,12 @@ func newOutputEvent(raw *timelinepb.Event) (timelineEvent, error) {
 	entry := raw.GetEntry()
 	entryBytes, err := json.Marshal(entry)
 	if err != nil {
-		return nil, fmt.Errorf("could not marshal event entry: %w", err)
+		return nil, errors.Wrap(err, "could not marshal event entry")
 	}
 	var out timelineEvent
 	err = json.Unmarshal(entryBytes, &out)
 	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal event entry: %w", err)
+		return nil, errors.Wrap(err, "could not unmarshal event entry")
 	}
 	out["timestamp"] = raw.Timestamp.AsTime().Format("2006-01-02 15:04:05:000")
 	return out, nil

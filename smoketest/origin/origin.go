@@ -2,11 +2,12 @@ package origin
 
 import (
 	"context"
+	"ftl/builtin"
 	"time"
 
-	"ftl/builtin"
+	errors "github.com/alecthomas/errors" // Import the FTL SDK.
 
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
+	"github.com/block/ftl/go-runtime/ftl"
 )
 
 type Nonce = ftl.Config[string]
@@ -40,7 +41,7 @@ func PostAgent(ctx context.Context, req builtin.HttpRequest[Agent, ftl.Unit, ftl
 		return builtin.HttpResponse[PostAgentResponse, PostAgentErrorResponse]{
 			Status: 500,
 			Body:   ftl.None[PostAgentResponse](),
-		}, err
+		}, errors.WithStack(err)
 	}
 	return builtin.HttpResponse[PostAgentResponse, PostAgentErrorResponse]{
 		Status: 201,

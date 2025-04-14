@@ -2,8 +2,8 @@ package provisioner
 
 import (
 	"context"
-	"fmt"
 
+	errors "github.com/alecthomas/errors"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/block/ftl/backend/provisioner/scaling"
@@ -26,17 +26,17 @@ func NewRunnerScalingProvisioner(runners scaling.RunnerScaling) *InMemProvisione
 func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned, _ *schema.Module) (*schema.RuntimeElement, error) {
 		if changeset.IsZero() {
-			return nil, fmt.Errorf("changeset must be provided")
+			return nil, errors.Errorf("changeset must be provided")
 		}
 		logger := log.FromContext(ctx)
 
 		module, ok := rc.(*schema.Module)
 		if !ok {
-			return nil, fmt.Errorf("expected module, got %T", rc)
+			return nil, errors.Errorf("expected module, got %T", rc)
 		}
 
 		if deployment.IsZero() {
-			return nil, fmt.Errorf("failed to find deployment for runner")
+			return nil, errors.Errorf("failed to find deployment for runner")
 		}
 		logger.Debugf("Provisioning runner: %s for deployment %s", module.Name, deployment)
 		cron := false
@@ -66,7 +66,7 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 		}
 		endpointURI, err := scaling.StartDeployment(ctx, deployment.String(), module, cron, http)
 		if err != nil {
-			return nil, fmt.Errorf("failed to start deployment: %w", err)
+			return nil, errors.Wrap(err, "failed to start deployment")
 		}
 
 		return &schema.RuntimeElement{
@@ -81,22 +81,22 @@ func provisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 func deProvisionRunner(scaling scaling.RunnerScaling) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned, _ *schema.Module) (*schema.RuntimeElement, error) {
 		if changeset.IsZero() {
-			return nil, fmt.Errorf("changeset must be provided")
+			return nil, errors.Errorf("changeset must be provided")
 		}
 		logger := log.FromContext(ctx)
 
 		module, ok := rc.(*schema.Module)
 		if !ok {
-			return nil, fmt.Errorf("expected module, got %T", rc)
+			return nil, errors.Errorf("expected module, got %T", rc)
 		}
 
 		if deployment.IsZero() {
-			return nil, fmt.Errorf("failed to find deployment for runner")
+			return nil, errors.Errorf("failed to find deployment for runner")
 		}
 		logger.Debugf("Removing runner: %s for deployment %s", module.Name, deployment)
 		err := scaling.TerminateDeployment(ctx, deployment.String())
 		if err != nil {
-			return nil, fmt.Errorf("failed to start deployment: %w", err)
+			return nil, errors.Wrap(err, "failed to start deployment")
 		}
 		return nil, nil
 	}

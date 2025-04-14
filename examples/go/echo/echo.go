@@ -4,8 +4,9 @@ package echo
 import (
 	"context"
 	"fmt"
-
 	"ftl/time"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/go-runtime/ftl"
 )
@@ -27,7 +28,7 @@ type EchoResponse struct {
 func Echo(ctx context.Context, req EchoRequest, tc time.TimeClient, defaultName Default) (EchoResponse, error) {
 	tresp, err := tc(ctx, time.TimeRequest{})
 	if err != nil {
-		return EchoResponse{}, err
+		return EchoResponse{}, errors.WithStack(err)
 	}
 
 	return EchoResponse{Message: fmt.Sprintf("Hello, %s!!! It is %s!", req.Name.Default(defaultName.Get(ctx)), tresp.Time)}, nil

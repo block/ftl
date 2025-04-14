@@ -3,6 +3,8 @@ package deploymentcontext
 import (
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
+
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 )
 
@@ -24,7 +26,7 @@ func FromProto(response *ftlv1.GetDeploymentContextResponse) (DeploymentContext,
 	for name, entry := range response.Databases {
 		db, err := NewDatabase(DBTypeFromProto(entry.Type), entry.Dsn)
 		if err != nil {
-			return DeploymentContext{}, fmt.Errorf("could not create database %q with DSN %q: %w", name, entry.Dsn, err)
+			return DeploymentContext{}, errors.Wrapf(err, "could not create database %q with DSN %q", name, entry.Dsn)
 		}
 		databases[entry.Name] = db
 	}

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"runtime"
 	"sort"
@@ -14,6 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/puzpuzpuz/xsync/v3"
@@ -55,7 +55,7 @@ func copyMetaWithUpdatedDependencies(ctx context.Context, m moduleMeta) (moduleM
 
 	dependencies, err := m.plugin.GetDependencies(ctx, m.module.Config)
 	if err != nil {
-		return moduleMeta{}, fmt.Errorf("could not get dependencies for %v: %w", m.module.Config.Module, err)
+		return moduleMeta{}, errors.Wrapf(err, "could not get dependencies for %v", m.module.Config.Module)
 	}
 
 	m.module = m.module.CopyWithDependencies(dependencies)
@@ -122,7 +122,7 @@ type Engine struct {
 func (e *Engine) StartServices(ctx context.Context) ([]rpc.Option, error) {
 	services, err := e.updatesService.StartServices(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to start updates service: %w", err)
+		return nil, errors.Wrap(err, "failed to start updates service")
 	}
 	return services, nil
 }
@@ -200,12 +200,12 @@ func New(
 
 	configs, err := watch.DiscoverModules(ctx, moduleDirs)
 	if err != nil {
-		return nil, fmt.Errorf("could not find modules: %w", err)
+		return nil, errors.Wrap(err, "could not find modules")
 	}
 
 	err = CleanStubs(ctx, projectConfig.Root(), configs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to clean stubs: %w", err)
+		return nil, errors.Wrap(err, "failed to clean stubs")
 	}
 
 	updateTerminalWithEngineEvents(ctx, e.EngineUpdates)
@@ -220,11 +220,11 @@ func New(
 		wg.Go(func() error {
 			meta, err := e.newModuleMeta(ctx, config)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			meta, err = copyMetaWithUpdatedDependencies(ctx, meta)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			e.moduleMetas.Store(config.Module, meta)
 			e.modulesToBuild.Store(config.Module, true)
@@ -240,7 +240,7 @@ func New(
 		})
 	}
 	if err := wg.Wait(); err != nil {
-		return nil, err //nolint:wrapcheck
+		return nil, errors.WithStack(err) //nolint:wrapcheck
 	}
 	if adminClient != nil {
 		info, err := adminClient.ClusterInfo(ctx, connect.NewRequest(&adminpb.ClusterInfoRequest{}))
@@ -262,7 +262,7 @@ func New(
 
 // Close stops the Engine's schema sync.
 func (e *Engine) Close() error {
-	e.cancel(fmt.Errorf("build engine stopped: %w", context.Canceled))
+	e.cancel(errors.Wrap(context.Canceled, "build engine stopped"))
 	return nil
 }
 
@@ -294,7 +294,7 @@ func (e *Engine) Graph(moduleNames ...string) (map[string][]string, error) {
 	}
 	for _, name := range moduleNames {
 		if err := e.buildGraph(name, out); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 	return out, nil
@@ -318,13 +318,13 @@ func (e *Engine) buildGraph(moduleName string, out map[string][]string) error {
 		}
 	}
 	if !foundModule {
-		return fmt.Errorf("module %q not found", moduleName)
+		return errors.Errorf("module %q not found", moduleName)
 	}
 	deps = slices.Unique(deps)
 	out[moduleName] = deps
 	for _, dep := range deps {
 		if err := e.buildGraph(dep, out); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	return nil
@@ -349,18 +349,19 @@ func (e *Engine) Import(ctx context.Context, realmName string, moduleSch *schema
 
 // Build attempts to build all local modules.
 func (e *Engine) Build(ctx context.Context) error {
-	return e.buildWithCallback(ctx, nil)
+	return errors.WithStack(e.buildWithCallback(ctx, nil))
 }
 
 // Each iterates over all local modules.
 func (e *Engine) Each(fn func(Module) error) (err error) {
 	e.moduleMetas.Range(func(key string, value moduleMeta) bool {
 		if ferr := fn(value.module); ferr != nil {
-			err = fmt.Errorf("%s: %w", key, ferr)
+			err = errors.Wrapf(ferr, "%s", key)
 			return false
 		}
 		return true
 	})
+	err = errors.WithStack(err)
 	return
 }
 
@@ -376,7 +377,7 @@ func (e *Engine) Modules() []string {
 
 // Dev builds and deploys all local modules and watches for changes, redeploying as necessary.
 func (e *Engine) Dev(ctx context.Context, period time.Duration) error {
-	return e.watchForModuleChanges(ctx, period)
+	return errors.WithStack(e.watchForModuleChanges(ctx, period))
 }
 
 // watchForModuleChanges watches for changes and all build start and event state changes.
@@ -387,13 +388,13 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	ctx, cancel := context.WithCancelCause(ctx)
 	topic, err := e.watcher.Watch(ctx, period, e.moduleDirs)
 	if err != nil {
-		cancel(fmt.Errorf("watch failed: %w: %w", context.Canceled, err))
-		return err
+		cancel(errors.Wrap(errors.Join(err, context.Canceled), "watch failed"))
+		return errors.WithStack(err)
 	}
 	topic.Subscribe(watchEvents)
 	defer func() {
 		// Cancel will close the topic and channel
-		cancel(fmt.Errorf("watch stopped: %w", context.Canceled))
+		cancel(errors.Wrap(context.Canceled, "watch stopped"))
 	}()
 
 	// Build and deploy all modules first.
@@ -413,7 +414,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	for _, sch := range e.targetSchema.Load().InternalModules() {
 		hash, err := computeModuleHash(sch)
 		if err != nil {
-			return fmt.Errorf("compute hash for %s failed: %w", sch.Name, err)
+			return errors.Wrapf(err, "compute hash for %s failed", sch.Name)
 		}
 		moduleHashes[sch.Name] = hash
 	}
@@ -421,7 +422,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return errors.WithStack(ctx.Err())
 
 		case event := <-watchEvents:
 			switch event := event.(type) {
@@ -664,7 +665,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 					var errs []error
 					for module, errList := range moduleErrors {
 						if errList != nil && len(errList.Errors) > 0 {
-							moduleErr := fmt.Errorf("%s: %s", module, langpb.ErrorListString(errList))
+							moduleErr := errors.Errorf("%s: %s", module, langpb.ErrorListString(errList))
 							errs = append(errs, moduleErr)
 						}
 					}
@@ -740,7 +741,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 			case *buildenginepb.EngineEvent_ModuleBuildFailed:
 				moduleStates[rawEvent.ModuleBuildFailed.Config.Name] = moduleStateFailed
 				moduleErrors[rawEvent.ModuleBuildFailed.Config.Name] = rawEvent.ModuleBuildFailed.Errors
-				moduleErr := fmt.Errorf("%s", langpb.ErrorListString(rawEvent.ModuleBuildFailed.Errors))
+				moduleErr := errors.Errorf("%s", langpb.ErrorListString(rawEvent.ModuleBuildFailed.Errors))
 				logger.Module(rawEvent.ModuleBuildFailed.Config.Name).Scope("build").Errorf(moduleErr, "Build failed")
 			case *buildenginepb.EngineEvent_ModuleBuildSuccess:
 				moduleStates[rawEvent.ModuleBuildSuccess.Config.Name] = moduleStateBuilt
@@ -783,7 +784,7 @@ func computeModuleHash(module *schema.Module) ([]byte, error) {
 	hasher := sha256.New()
 	data := []byte(module.String())
 	if _, err := hasher.Write(data); err != nil {
-		return nil, err // Handle errors that might occur during the write
+		return nil, errors.WithStack(err) // Handle errors that might occur during the write
 	}
 	return hasher.Sum(nil), nil
 }
@@ -848,12 +849,12 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 			deployErr <- e.deployCoordinator.deploy(ctx, e.projectConfig, []Module{module}, replicas)
 		}()
 		if waitForDeployOnline {
-			return <-deployErr
+			return errors.WithStack(<-deployErr)
 		}
 		return nil
 	}, moduleNames...)
 	if buildErr != nil {
-		return buildErr
+		return errors.WithStack(buildErr)
 	}
 
 	deployGroup := &errgroup.Group{}
@@ -861,13 +862,13 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 		// Wait for all build attempts to complete
 		if singleChangeset {
 			// Queue the modules for deployment instead of deploying directly
-			return e.deployCoordinator.deploy(ctx, e.projectConfig, modulesToDeploy, replicas)
+			return errors.WithStack(e.deployCoordinator.deploy(ctx, e.projectConfig, modulesToDeploy, replicas))
 		}
 		return nil
 	})
 	if waitForDeployOnline {
 		err := deployGroup.Wait()
-		return err //nolint:wrapcheck
+		return errors.WithStack(err) //nolint:wrapcheck
 	}
 	return nil
 }
@@ -889,12 +890,12 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 		wg.Go(func() error {
 			meta, ok := e.moduleMetas.Load(name)
 			if !ok {
-				return fmt.Errorf("module %q not found", name)
+				return errors.Errorf("module %q not found", name)
 			}
 
 			meta, err := copyMetaWithUpdatedDependencies(ctx, meta)
 			if err != nil {
-				return fmt.Errorf("could not get dependencies for %s: %w", name, err)
+				return errors.Wrapf(err, "could not get dependencies for %s", name)
 			}
 
 			e.moduleMetas.Store(name, meta)
@@ -903,7 +904,7 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 		})
 	}
 	if err := wg.Wait(); err != nil {
-		return err //nolint:wrapcheck
+		return errors.WithStack(err) //nolint:wrapcheck
 	}
 	close(mustBuildChan)
 	mustBuild := map[string]bool{}
@@ -936,7 +937,7 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 
 	graph, err := e.Graph(moduleNames...)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	builtModules := map[string]*schema.Module{
 		"builtin": schema.Builtins(),
@@ -949,26 +950,26 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 	})
 	err = GenerateStubs(ctx, e.projectConfig.Root(), maps.Values(builtModules), metasMap)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	topology, topoErr := TopologicalSort(graph)
 	if topoErr != nil {
 		var dependencyCycleErr DependencyCycleError
 		if !errors.As(topoErr, &dependencyCycleErr) {
-			return topoErr
+			return errors.WithStack(topoErr)
 		}
 		if err := e.handleDependencyCycleError(ctx, dependencyCycleErr, graph, callback); err != nil {
-			return errors.Join(err, topoErr)
+			return errors.WithStack(errors.Join(err, topoErr))
 		}
-		return topoErr
+		return errors.WithStack(topoErr)
 	}
 	errCh := make(chan error, 1024)
 	for _, group := range topology {
 		knownSchemas := map[string]*schema.Module{}
 		err := e.gatherSchemas(builtModules, knownSchemas)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		// Collect schemas to be inserted into "built" map for subsequent groups.
@@ -992,7 +993,7 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 
 		err = wg.Wait()
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		// Now this group is built, collect all the schemas.
@@ -1005,13 +1006,13 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 
 		err = GenerateStubs(ctx, e.projectConfig.Root(), newSchemas, metasMap)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		// Sync references to stubs if needed by the runtime
 		err = e.syncNewStubReferences(ctx, builtModules, metasMap)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
@@ -1022,7 +1023,7 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 	}
 
 	if len(allErrors) > 0 {
-		return errors.Join(allErrors...)
+		return errors.WithStack(errors.Join(allErrors...))
 	}
 
 	return nil
@@ -1033,11 +1034,11 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 	for _, module := range depErr.Modules {
 		meta, ok := e.moduleMetas.Load(module)
 		if !ok {
-			return fmt.Errorf("module %q not found in dependency cycle", module)
+			return errors.Errorf("module %q not found in dependency cycle", module)
 		}
 		configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
 		if err != nil {
-			return fmt.Errorf("failed to marshal module config: %w", err)
+			return errors.Wrap(err, "failed to marshal module config")
 		}
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 			Timestamp: timestamppb.Now(),
@@ -1094,19 +1095,19 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 		}()
 	}
 	wg.Wait()
-	return remainingModulesErr
+	return errors.WithStack(remainingModulesErr)
 }
 
 func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, moduleName string, builtModules map[string]*schema.Module, schemas chan *schema.Module, callback buildCallback) error {
 	logger := log.FromContext(ctx)
 
 	if !mustBuild[moduleName] {
-		return e.mustSchema(ctx, moduleName, builtModules, schemas)
+		return errors.WithStack(e.mustSchema(ctx, moduleName, builtModules, schemas))
 	}
 
 	meta, ok := e.moduleMetas.Load(moduleName)
 	if !ok {
-		return fmt.Errorf("module %q not found", moduleName)
+		return errors.Errorf("module %q not found", moduleName)
 	}
 
 	for _, dep := range meta.module.Dependencies(Raw) {
@@ -1118,7 +1119,7 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 
 	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
 	if err != nil {
-		return fmt.Errorf("failed to marshal module config: %w", err)
+		return errors.Wrap(err, "failed to marshal module config")
 	}
 	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 		Timestamp: timestamppb.Now(),
@@ -1135,12 +1136,12 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 		// load latest meta as it may have been updated
 		meta, ok = e.moduleMetas.Load(moduleName)
 		if !ok {
-			return fmt.Errorf("module %q not found", moduleName)
+			return errors.Errorf("module %q not found", moduleName)
 		}
-		return callback(ctx, meta.module)
+		return errors.WithStack(callback(ctx, meta.module))
 	}
 
-	return err
+	return errors.WithStack(err)
 }
 
 // Publish either the schema from the FTL controller, or from a local build.
@@ -1149,7 +1150,7 @@ func (e *Engine) mustSchema(ctx context.Context, moduleName string, builtModules
 		schemas <- sch
 		return nil
 	}
-	return e.build(ctx, moduleName, builtModules, schemas)
+	return errors.WithStack(e.build(ctx, moduleName, builtModules, schemas))
 }
 
 // Build a module and publish its schema.
@@ -1158,14 +1159,14 @@ func (e *Engine) mustSchema(ctx context.Context, moduleName string, builtModules
 func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[string]*schema.Module, schemas chan<- *schema.Module) error {
 	meta, ok := e.moduleMetas.Load(moduleName)
 	if !ok {
-		return fmt.Errorf("module %q not found", moduleName)
+		return errors.Errorf("module %q not found", moduleName)
 	}
 
 	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(builtModules)}}} //nolint:exptostd
 
 	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
 	if err != nil {
-		return fmt.Errorf("failed to marshal module config: %w", err)
+		return errors.Wrap(err, "failed to marshal module config")
 	}
 	if meta.module.SQLError != nil {
 		meta.module = meta.module.CopyWithSQLErrors(nil)
@@ -1198,7 +1199,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 			// Do not start a build directly as we are already building out a graph of modules.
 			// Instead we send to a chan so that it can be processed after.
 			e.rebuildEvents <- rebuildRequestEvent{module: moduleName}
-			return err
+			return errors.WithStack(err)
 		}
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 			Timestamp: timestamppb.Now(),
@@ -1212,7 +1213,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 				},
 			},
 		}
-		return err
+		return errors.WithStack(err)
 	}
 
 	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
@@ -1281,17 +1282,17 @@ func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[strin
 		fullSchema.Realms = append(fullSchema.Realms, realm)
 	}
 
-	return SyncStubReferences(ctx,
+	return errors.WithStack(SyncStubReferences(ctx,
 		e.projectConfig.Root(),
 		slices.Map(fullSchema.InternalModules(), func(m *schema.Module) string { return m.Name }),
 		metasMap,
-		fullSchema)
+		fullSchema))
 }
 
 func (e *Engine) newModuleMeta(ctx context.Context, config moduleconfig.UnvalidatedModuleConfig) (moduleMeta, error) {
 	plugin, err := languageplugin.New(ctx, config.Dir, config.Language, config.Module)
 	if err != nil {
-		return moduleMeta{}, fmt.Errorf("could not create plugin for %s: %w", config.Module, err)
+		return moduleMeta{}, errors.Wrapf(err, "could not create plugin for %s", config.Module)
 	}
 	events := make(chan languageplugin.PluginEvent, 64)
 	plugin.Updates().Subscribe(events)
@@ -1316,11 +1317,11 @@ func (e *Engine) newModuleMeta(ctx context.Context, config moduleconfig.Unvalida
 	// update config with defaults
 	customDefaults, err := languageplugin.GetModuleConfigDefaults(ctx, config.Language, config.Dir)
 	if err != nil {
-		return moduleMeta{}, fmt.Errorf("could not get defaults provider for %s: %w", config.Module, err)
+		return moduleMeta{}, errors.Wrapf(err, "could not get defaults provider for %s", config.Module)
 	}
 	validConfig, err := config.FillDefaultsAndValidate(customDefaults)
 	if err != nil {
-		return moduleMeta{}, fmt.Errorf("could not apply defaults for %s: %w", config.Module, err)
+		return moduleMeta{}, errors.Wrapf(err, "could not apply defaults for %s", config.Module)
 	}
 	return moduleMeta{
 		module:         newModule(validConfig),

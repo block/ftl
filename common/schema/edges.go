@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/exp/maps"
 )
 
@@ -23,7 +24,7 @@ func Graph(s *Schema) map[RefKey]GraphNode {
 		Visit(module, func(s Node, next func() error) error { //nolint:errcheck
 			d, ok := s.(Decl)
 			if !ok {
-				return next()
+				return errors.WithStack(next())
 			}
 
 			// Ignore type parameters.
@@ -39,7 +40,7 @@ func Graph(s *Schema) map[RefKey]GraphNode {
 				Out:  outboundEdges(d, ignoredRefs),
 				In:   []RefKey{},
 			}
-			return next()
+			return errors.WithStack(next())
 		})
 	}
 	// Derive inbound edges.
@@ -73,7 +74,7 @@ func outboundEdges(n Node, ignoredRefs map[RefKey]bool) []RefKey {
 		if r, ok := n.(*Ref); ok && !ignoredRefs[r.ToRefKey()] {
 			out[r.ToRefKey()] = true
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 	return maps.Keys(out)
 }

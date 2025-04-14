@@ -16,6 +16,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/must"
 	"github.com/alecthomas/types/result"
 	"github.com/bmatcuk/doublestar/v4"
@@ -585,7 +586,7 @@ func (bctx *testContext) modifyVerbName(moduleName, old, new string) in.Action {
 
 func (bctx *testContext) walkWatchedFiles(t testing.TB, ic in.TestContext, moduleName string, visit func(path string)) error {
 	path := filepath.Join(ic.WorkingDir(), moduleName)
-	return watch.WalkDir(path, true, func(srcPath string, entry fs.DirEntry) error {
+	return errors.WithStack(watch.WalkDir(path, true, func(srcPath string, entry fs.DirEntry) error {
 		if entry.IsDir() {
 			return nil
 		}
@@ -601,7 +602,7 @@ func (bctx *testContext) walkWatchedFiles(t testing.TB, ic in.TestContext, modul
 			visit(srcPath)
 		}
 		return nil
-	})
+	}))
 }
 
 func (bctx *testContext) checkBuildLockLifecycle(childActions ...in.Action) in.Action {

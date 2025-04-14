@@ -3,11 +3,11 @@ package lsp
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/puzpuzpuz/xsync/v3"
 	_ "github.com/tliron/commonlog/simple"
 	"github.com/tliron/glsp"
@@ -65,7 +65,7 @@ func NewServer(ctx context.Context) *Server {
 func (s *Server) Run() error {
 	err := s.server.RunStdio()
 	if err != nil {
-		return fmt.Errorf("lsp: %w", err)
+		return errors.Wrap(err, "lsp")
 	}
 	return nil
 }
@@ -90,7 +90,7 @@ func (s *Server) HandleBuildEvent(ctx context.Context, response *buildenginepb.S
 		}
 		errs := []error{}
 		for module, e := range moduleErrors {
-			errs = append(errs, fmt.Errorf("%s: %v", module, e))
+			errs = append(errs, errors.Errorf("%s: %v", module, e))
 		}
 		s.publishBuildState(buildStateFailure, errors.Join(errs...))
 
@@ -340,7 +340,7 @@ func getLineOrWordLength(filePath string, lineNum, column int, wholeLine bool) (
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		return 0, err
+		return 0, errors.WithStack(err)
 	}
 	defer file.Close()
 
@@ -379,7 +379,7 @@ func getLineOrWordLength(filePath string, lineNum, column int, wholeLine bool) (
 		currentLine++
 	}
 	if err := scanner.Err(); err != nil {
-		return 0, err
+		return 0, errors.WithStack(err)
 	}
-	return 0, os.ErrNotExist
+	return 0, errors.WithStack(os.ErrNotExist)
 }

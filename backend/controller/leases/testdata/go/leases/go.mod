@@ -6,6 +6,7 @@ replace github.com/block/ftl => ./../../../../../..
 
 require (
 	github.com/alecthomas/assert/v2 v2.11.0
+	github.com/alecthomas/errors v0.7.0
 	github.com/block/ftl v0.0.0-00010101000000-000000000000
 	golang.org/x/sync v0.13.0
 )

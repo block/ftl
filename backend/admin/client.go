@@ -2,13 +2,12 @@ package admin
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net"
 	"net/url"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -63,7 +62,7 @@ type EnvironmentClient interface {
 func ShouldUseLocalClient(ctx context.Context, adminClient adminpbconnect.AdminServiceClient, endpoint *url.URL) (bool, error) {
 	isLocal, err := isEndpointLocal(endpoint)
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 	timeoutCtx, cancel := context.WithTimeout(ctx, time.Millisecond*500)
 	defer cancel()
@@ -88,7 +87,7 @@ func isEndpointLocal(endpoint *url.URL) (bool, error) {
 	h := endpoint.Hostname()
 	ips, err := net.LookupIP(h)
 	if err != nil {
-		return false, fmt.Errorf("failed to look up own IP: %w", err)
+		return false, errors.Wrap(err, "failed to look up own IP")
 	}
 	for _, netip := range ips {
 		if netip.IsLoopback() {

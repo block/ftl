@@ -13,6 +13,9 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
+	"golang.org/x/sync/errgroup"
+
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
 	"github.com/block/ftl/internal/iterops"
@@ -22,7 +25,6 @@ import (
 	"github.com/block/ftl/internal/retry"
 	"github.com/block/ftl/internal/rpc"
 	sm "github.com/block/ftl/internal/statemachine"
-	"golang.org/x/sync/errgroup"
 )
 
 type IntEvent int64
@@ -45,7 +47,7 @@ var _ sm.Snapshotting[int64, int64, IntEvent] = &IntStateMachine{}
 func (s *IntStateMachine) Publish(event IntEvent) error {
 	if event == 12345 {
 		// 12345 is not a valid number, so we return an error
-		return raft.ErrInvalidEvent
+		return errors.WithStack(raft.ErrInvalidEvent)
 	}
 
 	s.sum += int64(event)
@@ -102,8 +104,8 @@ func TestJoiningExistingCluster(t *testing.T) {
 	cluster2 := builder2.Build(ctx)
 
 	wg, wctx := errgroup.WithContext(ctx)
-	wg.Go(func() error { return cluster1.Start(wctx) })
-	wg.Go(func() error { return cluster2.Start(wctx) })
+	wg.Go(func() error { return errors.WithStack(cluster1.Start(wctx)) })
+	wg.Go(func() error { return errors.WithStack(cluster2.Start(wctx)) })
 	// set up the control endpoint to cluster 1
 	go func() {
 		assert.NoError(t, rpc.Serve(ctx, controlBind,
@@ -273,7 +275,7 @@ func startClusters[T any](ctx context.Context, t *testing.T, count int, builderF
 
 	wg, wctx := errgroup.WithContext(ctx)
 	for _, cluster := range clusters {
-		wg.Go(func() error { return cluster.Start(wctx) })
+		wg.Go(func() error { return errors.WithStack(cluster.Start(wctx)) })
 	}
 	assert.NoError(t, wg.Wait())
 

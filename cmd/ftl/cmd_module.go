@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl/common/schema"
@@ -37,7 +38,7 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 	logger := log.FromContext(ctx)
 	name, path, err := validateModule(i.Dir, i.Name)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if !i.Force && len(i.AllowedDirs) > 0 {
@@ -45,14 +46,14 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 		for i, d := range i.AllowedDirs {
 			absDir, err := filepath.Abs(d)
 			if err != nil {
-				return fmt.Errorf("could not make %q an absolute path: %w", d, err)
+				return errors.Wrapf(err, "could not make %q an absolute path", d)
 			}
 			allowedAbsDirs[i] = absDir
 		}
 		if _, ok := slices.Find(allowedAbsDirs, func(d string) bool {
 			return strings.HasPrefix(path, d)
 		}); !ok {
-			return fmt.Errorf("module directory %s is not within the expected module directories (%v). Please choose an appropriate path or force create the module outside of the expected directories by using the --force argument", path, strings.Join(allowedAbsDirs, ", "))
+			return errors.Errorf("module directory %s is not within the expected module directories (%v). Please choose an appropriate path or force create the module outside of the expected directories by using the --force argument", path, strings.Join(allowedAbsDirs, ", "))
 		}
 	}
 
@@ -71,31 +72,31 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 		}
 		flagValue, ok := f.Target.Interface().(string)
 		if !ok {
-			return fmt.Errorf("expected %v value to be a string but it was %T", f.Name, f.Target.Interface())
+			return errors.Errorf("expected %v value to be a string but it was %T", f.Name, f.Target.Interface())
 		}
 		flags[f.Name] = flagValue
 	}
 
 	lockPath := config.WatchModulesLockPath()
 	if err := os.MkdirAll(filepath.Dir(lockPath), 0700); err != nil {
-		return fmt.Errorf("could not create directory for file lock: %w", err)
+		return errors.Wrap(err, "could not create directory for file lock")
 	}
 	release, err := flock.Acquire(ctx, lockPath, 30*time.Second)
 	if err != nil {
-		return fmt.Errorf("could not acquire file lock: %w", err)
+		return errors.Wrap(err, "could not acquire file lock")
 	}
 	defer release() //nolint:errcheck
 
 	err = languageplugin.NewModule(ctx, i.Language, config, moduleConfig, flags)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	_, ok := internal.GitRoot(i.Dir).Get()
 	if !config.NoGit && ok {
 		logger.Debugf("Adding files to git")
 		if err := maybeGitAdd(ctx, i.Dir, filepath.Join(i.Name, "*")); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
@@ -107,24 +108,24 @@ func validateModule(dir string, name string) (string, string, error) {
 	if strings.Contains(name, string(filepath.Separator)) && (dir == "." || dir == "") {
 		components := strings.Split(name, string(filepath.Separator))
 		suggestedDir := strings.Join(components[:len(components)-1], string(filepath.Separator))
-		return "", "", fmt.Errorf("module name %q cannot contain path separators. Did you mean 'ftl module new %s %s'", name, components[len(components)-1], suggestedDir)
+		return "", "", errors.Errorf("module name %q cannot contain path separators. Did you mean 'ftl module new %s %s'", name, components[len(components)-1], suggestedDir)
 	}
 	if dir == "" {
-		return "", "", fmt.Errorf("directory is required")
+		return "", "", errors.Errorf("directory is required")
 	}
 	if name == "" {
 		name = filepath.Base(dir)
 	}
 	if !schema.ValidateModuleName(name) {
-		return "", "", fmt.Errorf("module name %q is invalid", name)
+		return "", "", errors.Errorf("module name %q is invalid", name)
 	}
 	path := filepath.Join(dir, name)
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return "", "", fmt.Errorf("could not make %q an absolute path: %w", path, err)
+		return "", "", errors.Wrapf(err, "could not make %q an absolute path", path)
 	}
 	if _, err := os.Stat(absPath); err == nil {
-		return "", "", fmt.Errorf("module directory %s already exists", path)
+		return "", "", errors.Errorf("module directory %s already exists", path)
 	}
 	return name, absPath, nil
 }

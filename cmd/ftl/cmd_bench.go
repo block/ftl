@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 	"github.com/titanous/json5"
 	"golang.org/x/sync/errgroup"
@@ -30,13 +31,13 @@ type benchCmd struct {
 
 func (c *benchCmd) Run(ctx context.Context, client ftlv1connect.VerbServiceClient) error {
 	if err := rpc.Wait(ctx, backoff.Backoff{Max: time.Second * 2}, c.Wait, client); err != nil {
-		return fmt.Errorf("FTL cluster did not become ready: %w", err)
+		return errors.Wrap(err, "FTL cluster did not become ready")
 	}
 	logger := log.FromContext(ctx)
 	request := map[string]any{}
 	err := json5.Unmarshal([]byte(c.Request), &request)
 	if err != nil {
-		return fmt.Errorf("invalid request: %w", err)
+		return errors.Wrap(err, "invalid request")
 	}
 
 	fmt.Printf("Starting benchmark\n")

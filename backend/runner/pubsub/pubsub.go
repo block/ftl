@@ -2,9 +2,9 @@ package pubsub
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
@@ -35,7 +35,7 @@ func New(module *schema.Module, deployment key.Deployment, verbClient VerbClient
 	for t := range sl.FilterVariants[*schema.Topic](module.Decls) {
 		publisher, err := newPublisher(module.Name, t, deployment, timelineClient)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		publishers[t.Name] = publisher
 	}
@@ -50,13 +50,13 @@ func New(module *schema.Module, deployment key.Deployment, verbClient VerbClient
 		if subscriber.DeadLetter {
 			p, ok := publishers[schema.DeadLetterNameForSubscriber(v.Name)]
 			if !ok {
-				return nil, fmt.Errorf("dead letter publisher not found for subscription %s", v.Name)
+				return nil, errors.Errorf("dead letter publisher not found for subscription %s", v.Name)
 			}
 			deadLetterPublisher = optional.Some(p)
 		}
 		consumer, err := newConsumer(module.Name, v, subscriber, deployment, deadLetterPublisher, verbClient, timelineClient)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		consumers[v.Name] = consumer
 	}
@@ -72,7 +72,7 @@ func (s *Service) Consume(ctx context.Context) error {
 	for _, c := range s.consumers {
 		err := c.Begin(ctx)
 		if err != nil {
-			return fmt.Errorf("could not begin consumer: %w", err)
+			return errors.Wrap(err, "could not begin consumer")
 		}
 	}
 	return nil
@@ -85,7 +85,7 @@ func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 func (s *Service) PublishEvent(ctx context.Context, req *connect.Request[pubsubpb.PublishEventRequest]) (*connect.Response[pubsubpb.PublishEventResponse], error) {
 	publisher, ok := s.publishers[req.Msg.Topic.Name]
 	if !ok {
-		return nil, fmt.Errorf("topic %s not found", req.Msg.Topic.Name)
+		return nil, errors.Errorf("topic %s not found", req.Msg.Topic.Name)
 	}
 	caller := schema.Ref{
 		Module: s.moduleName,
@@ -93,7 +93,7 @@ func (s *Service) PublishEvent(ctx context.Context, req *connect.Request[pubsubp
 	}
 	err := publisher.publish(ctx, req.Msg.Body, req.Msg.Key, caller)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return connect.NewResponse(&pubsubpb.PublishEventResponse{}), nil
 }
@@ -105,7 +105,7 @@ func (s *Service) ResetOffsetsOfSubscription(ctx context.Context, req *connect.R
 	}
 	partitions, err := consumer.ResetOffsetsForClaimedPartitions(ctx, req.Msg.Offset != adminpb.SubscriptionOffset_SUBSCRIPTION_OFFSET_EARLIEST)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return connect.NewResponse(&pubsubpb.ResetOffsetsOfSubscriptionResponse{
 		Partitions: sl.Map(partitions, func(p int) int32 {

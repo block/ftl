@@ -4,7 +4,10 @@ go 1.24.0
 
 replace github.com/block/ftl => ../../..
 
-require github.com/block/ftl v0.0.0-00010101000000-000000000000
+require (
+	github.com/alecthomas/errors v0.7.0
+	github.com/block/ftl v0.0.0-00010101000000-000000000000
+)
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect

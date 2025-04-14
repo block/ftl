@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
@@ -24,7 +25,7 @@ func getDiskSchema(t testing.TB, ctx context.Context) (*schema.Schema, error) {
 	projConfig, err := projectconfig.Load(ctx, optional.None[string]())
 	assert.NoError(t, err)
 	dsr := newDiskSchemaRetriever(projConfig)
-	return dsr.GetSchema(ctx)
+	return errors.WithStack2(dsr.GetSchema(ctx))
 }
 
 func TestDiskSchemaRetrieverWithBuildArtefact(t *testing.T) {

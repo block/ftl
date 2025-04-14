@@ -2,10 +2,10 @@ package provisioner
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 
@@ -31,7 +31,7 @@ func (t *inMemProvisioningTask) Done() (bool, error) {
 			done = false
 		}
 		if step.Err != nil {
-			return false, step.Err
+			return false, errors.WithStack(step.Err)
 		}
 	}
 	return done, nil
@@ -73,23 +73,23 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.Provi
 	logger := log.FromContext(ctx)
 	parsed, err := key.ParseChangesetKey(req.Changeset)
 	if err != nil {
-		err = fmt.Errorf("invalid changeset: %w", err)
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		err = errors.Wrap(err, "invalid changeset")
+		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, err))
 	}
 
 	var previousModule *schema.Module
 	if req.PreviousModule != nil {
 		pm, err := schema.ValidatedModuleFromProto(req.PreviousModule)
 		if err != nil {
-			err = fmt.Errorf("invalid previous module: %w", err)
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			err = errors.Wrap(err, "invalid previous module")
+			return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, err))
 		}
 		previousModule = pm
 	}
 	desiredModule, err := schema.ValidatedModuleFromProto(req.DesiredModule)
 	if err != nil {
-		err = fmt.Errorf("invalid desired module: %w", err)
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		err = errors.Wrap(err, "invalid desired module")
+		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, err))
 	}
 	kinds := slices.Map(req.Kinds, func(k string) schema.ResourceType { return schema.ResourceType(k) })
 	previousNodes := schema.GetProvisioned(previousModule)
@@ -118,8 +118,8 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.Provi
 					} else {
 						handler, ok = d.handlers[resource.Kind]
 						if !ok {
-							err := fmt.Errorf("unsupported resource type: %s", resource.Kind)
-							return nil, connect.NewError(connect.CodeInvalidArgument, err)
+							err := errors.Errorf("unsupported resource type: %s", resource.Kind)
+							return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, err))
 						}
 					}
 					step := &inMemProvisioningStep{Done: atomic.New(false)}
@@ -150,7 +150,7 @@ func (d *InMemProvisioner) Provision(ctx context.Context, req *provisioner.Provi
 			c.step.Done.Store(true)
 			done, err := task.Done()
 			if err != nil {
-				return nil, fmt.Errorf("provisioning failed: %w", err)
+				return nil, errors.Wrap(err, "provisioning failed")
 			}
 			if done {
 				break

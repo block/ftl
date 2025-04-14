@@ -3,6 +3,7 @@ package schema
 import (
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/key"
@@ -77,7 +78,7 @@ func (e *ChangesetCreatedEvent) event() {}
 
 func (e *ChangesetCreatedEvent) Validate() error {
 	if e.Changeset.Key.IsZero() {
-		return fmt.Errorf("changeset key is required")
+		return errors.Errorf("changeset key is required")
 	}
 	return nil
 }

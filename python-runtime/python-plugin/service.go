@@ -2,9 +2,9 @@ package pythonplugin
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
@@ -28,7 +28,7 @@ type buildContext struct {
 func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 	sch, err := schema.FromProto(proto.Schema)
 	if err != nil {
-		return buildContext{}, fmt.Errorf("could not parse schema from proto: %w", err)
+		return buildContext{}, errors.Wrap(err, "could not parse schema from proto")
 	}
 	config := langpb.ModuleConfigFromProto(proto.ModuleConfig)
 	return buildContext{
@@ -63,7 +63,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	_, _, err = compile.Build(ctx, projectConfig.Root(), req.Msg.StubsRoot, buildCtx.Config, nil, nil, false)
@@ -87,7 +87,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	}
 
 	if err := stream.Send(buildEvent); err != nil {
-		return fmt.Errorf("could not send build event: %w", err)
+		return errors.Wrap(err, "could not send build event")
 	}
 	return nil
 }
@@ -99,7 +99,7 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb.GenerateStubsRequest]) (*connect.Response[langpb.GenerateStubsResponse], error) {
 	moduleSchema, err := schema.ValidatedModuleFromProto(req.Msg.Module)
 	if err != nil {
-		return nil, fmt.Errorf("invalid module: %w", err)
+		return nil, errors.Wrap(err, "invalid module")
 	}
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
 	var nativeConfig optional.Option[moduleconfig.AbsModuleConfig]
@@ -109,7 +109,7 @@ func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb
 
 	err = compile.GenerateStubs(ctx, req.Msg.Dir, moduleSchema, config, nativeConfig)
 	if err != nil {
-		return nil, fmt.Errorf("could not generate stubs: %w", err)
+		return nil, errors.Wrap(err, "could not generate stubs")
 	}
 	return connect.NewResponse(&langpb.GenerateStubsResponse{}), nil
 }

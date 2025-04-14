@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 
@@ -59,7 +60,7 @@ func (l *localScaling) StartDeployment(ctx context.Context, deployment string, s
 	defer l.lock.Unlock()
 	deploymentKey, err := key.ParseDeploymentKey(deployment)
 	if err != nil {
-		return url.URL{}, fmt.Errorf("failed to parse deployment key: %w", err)
+		return url.URL{}, errors.Wrap(err, "failed to parse deployment key")
 	}
 
 	logger := log.FromContext(l.runnerContext).Scope("localScaling").Module(deploymentKey.Payload.Module)
@@ -80,13 +81,13 @@ func (l *localScaling) StartDeployment(ctx context.Context, deployment string, s
 
 	if err := l.startRunner(ctx, dep.key, dep); err != nil {
 		logger.Errorf(err, "Failed to start runner")
-		return url.URL{}, err
+		return url.URL{}, errors.WithStack(err)
 	}
 
 	if r, ok := dep.runner.Get(); ok {
 		return r.getURL(), nil
 	}
-	return url.URL{}, fmt.Errorf("runner not found")
+	return url.URL{}, errors.Errorf("runner not found")
 }
 
 func (l *localScaling) UpdateDeployment(ctx context.Context, deployment string, sch *schema.Module) error {
@@ -104,7 +105,7 @@ func (l *localScaling) TerminateDeployment(ctx context.Context, deployment strin
 		return nil
 	}
 	if r, ok := dep.runner.Get(); ok {
-		r.cancelFunc(fmt.Errorf("deployment terminated: %w", context.Canceled))
+		r.cancelFunc(errors.Wrap(context.Canceled, "deployment terminated"))
 	}
 	delete(l.runners, deployment)
 	return nil
@@ -185,7 +186,7 @@ func NewLocalScaling(
 ) (scaling.RunnerScaling, error) {
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	local := localScaling{
 		runnerContext:           ctx,
@@ -236,7 +237,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		var debug *localdebug.DebugInfo
 		debugBind, err := plugin.AllocatePort()
 		if err != nil {
-			return fmt.Errorf("failed to start runner: %w", err)
+			return errors.Wrap(err, "failed to start runner")
 		}
 		debug = &localdebug.DebugInfo{
 			Language: info.language,
@@ -251,7 +252,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 
 	bind, err := plugin.AllocatePort()
 	if err != nil {
-		return fmt.Errorf("failed to start runner: %w", err)
+		return errors.Wrap(err, "failed to start runner")
 	}
 
 	keySuffix := l.prevRunnerSuffix + 1
@@ -259,7 +260,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 
 	bindURL, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", bind.Port))
 	if err != nil {
-		return fmt.Errorf("failed to start runner: %w", err)
+		return errors.Wrap(err, "failed to start runner")
 	}
 	config := runner.Config{
 		Bind:                 bindURL,
@@ -280,7 +281,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		// TODO: This doesn't seem like it should be here.
 		"language": "go,kotlin,java",
 	}); err != nil {
-		return fmt.Errorf("failed to apply defaults: %w", err)
+		return errors.Wrap(err, "failed to apply defaults")
 	}
 	config.HeartbeatPeriod = time.Second
 	config.HeartbeatJitter = time.Millisecond * 100
@@ -294,7 +295,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	go func() {
 		err := runner.Start(runnerCtx, config, l.storage)
 		close(exit)
-		cancel(fmt.Errorf("runner exited %w", err))
+		cancel(errors.Wrap(err, "runner exited"))
 		l.lock.Lock()
 		defer l.lock.Unlock()
 		if devEndpoint != nil {
@@ -308,11 +309,11 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	for {
 		select {
 		case <-runnerCtx.Done():
-			return fmt.Errorf("context cancelled: %w", runnerCtx.Err())
+			return errors.Wrap(runnerCtx.Err(), "context cancelled")
 		case <-timeout:
-			return fmt.Errorf("timed out waiting for runner to be ready")
+			return errors.Errorf("timed out waiting for runner to be ready")
 		case <-exit:
-			return fmt.Errorf("runner exited")
+			return errors.Errorf("runner exited")
 		case <-time.After(time.Millisecond * 100):
 			_, err := client.Ping(runnerCtx, connect.NewRequest(&ftlv1.PingRequest{}))
 			if err == nil {

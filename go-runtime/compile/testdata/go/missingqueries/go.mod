@@ -16,6 +16,7 @@ require (
 	github.com/XSAM/otelsql v0.38.0 // indirect
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
 	github.com/alecthomas/concurrency v0.0.2 // indirect
+	github.com/alecthomas/errors v0.7.0 // indirect
 	github.com/alecthomas/kong v1.10.0 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect

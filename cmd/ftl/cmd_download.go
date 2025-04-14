@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/internal/download"
@@ -17,7 +18,7 @@ type downloadCmd struct {
 func (d *downloadCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	err := download.Artefacts(ctx, client, d.Deployment, d.Dest)
 	if err != nil {
-		return fmt.Errorf("failed to download artefacts: %w", err)
+		return errors.Wrap(err, "failed to download artefacts")
 	}
 	return nil
 }

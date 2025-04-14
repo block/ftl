@@ -3,8 +3,6 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/IBM/sarama"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
 	"github.com/jpillora/backoff"
@@ -81,19 +80,19 @@ type consumer struct {
 func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.MetadataSubscriber, deployment key.Deployment,
 	deadLetterPublisher optional.Option[*publisher], verbClient VerbClient, timelineClient *timelineclient.Client) (*consumer, error) {
 	if verb.Runtime == nil {
-		return nil, fmt.Errorf("subscription %s has no runtime", verb.Name)
+		return nil, errors.Errorf("subscription %s has no runtime", verb.Name)
 	}
 	if verb.Runtime.SubscriptionConnector == nil {
-		return nil, fmt.Errorf("subscription %s has no subscription connector", verb.Name)
+		return nil, errors.Errorf("subscription %s has no subscription connector", verb.Name)
 	}
 
 	connection, ok := verb.Runtime.SubscriptionConnector.(*schema.PlaintextKafkaSubscriptionConnector)
 	if !ok {
-		return nil, fmt.Errorf("only plaintext kafka subscription connector is supported, got %T", verb.Runtime.SubscriptionConnector)
+		return nil, errors.Errorf("only plaintext kafka subscription connector is supported, got %T", verb.Runtime.SubscriptionConnector)
 	}
 
 	if len(connection.KafkaBrokers) == 0 {
-		return nil, fmt.Errorf("subscription %s has no Kafka brokers", verb.Name)
+		return nil, errors.Errorf("subscription %s has no Kafka brokers", verb.Name)
 	}
 
 	config := sarama.NewConfig()
@@ -109,7 +108,7 @@ func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.Metada
 	groupID := kafkaConsumerGroupID(moduleName, verb)
 	group, err := sarama.NewConsumerGroup(connection.KafkaBrokers, groupID, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create consumer group for subscription %s: %w", verb.Name, err)
+		return nil, errors.Wrapf(err, "failed to create consumer group for subscription %s", verb.Name)
 	}
 
 	c := &consumer{
@@ -129,7 +128,7 @@ func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.Metada
 	if ok {
 		retryParams, err := retryMetada.RetryParams()
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse retry params for subscription %s: %w", verb.Name, err)
+			return nil, errors.Wrapf(err, "failed to parse retry params for subscription %s", verb.Name)
 		}
 		c.retryParams = retryParams
 	} else {
@@ -211,7 +210,7 @@ func (c *consumer) watchPartitions(ctx context.Context) {
 					}
 					err := <-resultChan
 					if err != nil {
-						results <- result.Err[int](fmt.Errorf("could not reset offset for %v partition %v: %w", c.verb.Name, partition.partition, err))
+						results <- result.Err[int](errors.Wrapf(err, "could not reset offset for %v partition %v", c.verb.Name, partition.partition))
 					} else {
 						results <- result.Ok(partition.partition)
 					}
@@ -285,7 +284,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			}
 			close(cmd.err)
 			// We have to exit because current events in claim.Messages() will not be relevant anymore
-			// return fmt.Errorf("cancelled due to offset reset")
+			// return errors.Errorf("cancelled due to offset reset")
 			return nil
 		case msg, ok := <-claim.Messages():
 			if !ok || msg == nil {
@@ -311,21 +310,21 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 					observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, publishedAt.Default(startTime), errors.New("cancelled due to offset reset"))
 
 					// Don't wait for call to end before resetting offsets as it may take a while.
-					callCancel(fmt.Errorf("cancelled due to offset reset: %w", context.Canceled))
+					callCancel(errors.Wrap(context.Canceled, "cancelled due to offset reset"))
 					if err := c.resetPartitionOffset(session, int(claim.Partition()), cmd.latest); err != nil {
 						cmd.err <- err
 					}
 					close(cmd.err)
 					// We have to exit because current events in claim.Messages() will not be relevant anymore
-					// return fmt.Errorf("cancelled due to offset reset")
+					// return errors.Errorf("cancelled due to offset reset")
 					return nil
 
 				case err = <-callChan:
 					// close call context now that the call is finished
-					if err == nil {
-						callCancel(fmt.Errorf("call failed: %w: %w", context.Canceled, err))
+					if err != nil {
+						callCancel(errors.Wrap(errors.Join(err, context.Canceled), "call failed"))
 					} else {
-						callCancel(fmt.Errorf("call succeeded: %w", context.Canceled))
+						callCancel(errors.Wrap(context.Canceled, "call succeeded"))
 					}
 				}
 				observability.PubSub.Consumed(ctx, c.subscriber.Topic.ToRefKey(), schema.RefKey{Module: c.moduleName, Name: c.verb.Name}, publishedAt.Default(startTime), err)
@@ -421,14 +420,14 @@ func (c *consumer) call(ctx context.Context, body []byte, partition, offset int,
 	resp, callErr := c.verbClient.Call(ctx, request)
 	if callErr == nil {
 		if errResp, ok := resp.Msg.Response.(*ftlv1.CallResponse_Error_); ok {
-			callErr = fmt.Errorf("verb call failed: %s", errResp.Error.Message)
+			callErr = errors.Errorf("verb call failed: %s", errResp.Error.Message)
 		}
 	}
 	if callErr != nil {
 		consumeEvent.Error = optional.Some(callErr.Error())
 		callEvent.Response = result.Err[*ftlv1.CallResponse](callErr)
 		cobservability.Calls.Request(ctx, req.Verb, start, optional.Some("verb call failed"))
-		return callErr
+		return errors.WithStack(callErr)
 	}
 	callEvent.Response = result.Ok(resp.Msg)
 	cobservability.Calls.Request(ctx, req.Verb, start, optional.None[string]())
@@ -451,7 +450,7 @@ func (c *consumer) publishToDeadLetterTopic(ctx context.Context, msg *sarama.Con
 		"error": callErr.Error(),
 	})
 	if err != nil {
-		panic(fmt.Errorf("failed to marshal dead letter event for %v on partition %v and offset %v: %w", c.kafkaTopicID(), msg.Partition, msg.Offset, err))
+		panic(errors.Wrapf(err, "failed to marshal dead letter event for %v on partition %v and offset %v", c.kafkaTopicID(), msg.Partition, msg.Offset))
 	}
 
 	bo := &backoff.Backoff{Min: time.Second, Max: 10 * time.Second}
@@ -480,7 +479,7 @@ func (c *consumer) ResetOffsetsForClaimedPartitions(ctx context.Context, latest 
 	c.claimedPartitionsChan <- resetOffsetsEvent{latest: latest, result: resultChan}
 	result, err := (<-resultChan).Result()
 	if err != nil {
-		return nil, err //nolint:wrapcheck
+		return nil, errors.WithStack(err) //nolint:wrapcheck
 	}
 	return result, nil
 }
@@ -488,13 +487,13 @@ func (c *consumer) ResetOffsetsForClaimedPartitions(ctx context.Context, latest 
 func (c *consumer) resetPartitionOffset(session sarama.ConsumerGroupSession, partition int, latest bool) error {
 	connection, ok := c.verb.Runtime.SubscriptionConnector.(*schema.PlaintextKafkaSubscriptionConnector)
 	if !ok {
-		return fmt.Errorf("only plaintext kafka subscription connector is supported, got %T", c.verb.Runtime.SubscriptionConnector)
+		return errors.Errorf("only plaintext kafka subscription connector is supported, got %T", c.verb.Runtime.SubscriptionConnector)
 	}
 
 	config := sarama.NewConfig()
 	client, err := sarama.NewClient(connection.KafkaBrokers, config)
 	if err != nil {
-		return fmt.Errorf("failed to create client for subscription %s: %w", c.verb.Name, err)
+		return errors.Wrapf(err, "failed to create client for subscription %s", c.verb.Name)
 	}
 
 	var offsetTime int64
@@ -505,7 +504,7 @@ func (c *consumer) resetPartitionOffset(session sarama.ConsumerGroupSession, par
 	}
 	newOffset, err := client.GetOffset(c.kafkaTopicID(), int32(partition), offsetTime)
 	if err != nil {
-		return fmt.Errorf("failed to get offset for %v partition %v: %w", c.verb.Name, partition, err)
+		return errors.Wrapf(err, "failed to get offset for %v partition %v", c.verb.Name, partition)
 	}
 
 	if latest {

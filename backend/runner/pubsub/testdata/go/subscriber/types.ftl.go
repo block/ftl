@@ -22,21 +22,27 @@ type PublishToExternalModuleClient func(context.Context) error
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
 			Consume,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			ConsumeButFailAndRetry,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			ConsumeFromDeadLetter,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			ConsumeFromLatest,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			ConsumeSlow,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			PublishToExternalModule,
 		),

@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -27,13 +28,13 @@ type getSchemaCmd struct {
 func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	resp, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-schema-get"}))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if g.Protobuf {
-		return g.generateProto(resp)
+		return errors.WithStack(g.generateProto(resp))
 	}
 	if g.JSON {
-		return g.generateJSON(resp)
+		return errors.WithStack(g.generateJSON(resp))
 	}
 	remainingNames := make(map[string]bool)
 	for _, name := range g.Modules {
@@ -45,11 +46,11 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 		case *schemapb.Notification_FullSchemaNotification:
 			sch, err := schema.SchemaFromProto(e.FullSchemaNotification.Schema)
 			if err != nil {
-				return fmt.Errorf("invalid schema: %w", err)
+				return errors.Wrap(err, "invalid schema")
 			}
 			err = g.handleSchema(sch)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			if !g.Watch {
 				return nil
@@ -58,7 +59,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			var modules []*schema.Module
 			cs, err := schema.ChangesetFromProto(e.ChangesetCommittedNotification.Changeset)
 			if err != nil {
-				return fmt.Errorf("invalid changeset: %w", err)
+				return errors.Wrap(err, "invalid changeset")
 			}
 			modules = append(modules, cs.InternalRealm().Modules...)
 			realm := &schema.Realm{
@@ -68,7 +69,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			}
 			err = g.handleSchema(&schema.Schema{Realms: []*schema.Realm{realm}})
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 		default:
 			// Ignore for now
@@ -76,7 +77,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 
 	}
 	if err := resp.Err(); err != nil {
-		return resp.Err()
+		return errors.WithStack(resp.Err())
 	}
 	return nil
 }
@@ -122,17 +123,17 @@ msgloop:
 		}
 	}
 	if err := resp.Err(); err != nil {
-		return fmt.Errorf("error receiving schema: %w", err)
+		return errors.Wrap(err, "error receiving schema")
 	}
 	data, err := protojson.Marshal(schema)
 	if err != nil {
-		return fmt.Errorf("error marshaling schema: %w", err)
+		return errors.Wrap(err, "error marshaling schema")
 	}
 	fmt.Printf("%s\n", data)
 	missingNames := maps.Keys(remainingNames)
 	slices.Sort(missingNames)
 	if len(missingNames) > 0 {
-		return fmt.Errorf("missing modules: %v", missingNames)
+		return errors.Errorf("missing modules: %v", missingNames)
 	}
 	return nil
 }
@@ -168,20 +169,20 @@ func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.P
 		}
 	}
 	if err := resp.Err(); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	pb, err := proto.Marshal(schema)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	_, err = os.Stdout.Write(pb)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	missingNames := maps.Keys(remainingNames)
 	slices.Sort(missingNames)
 	if len(missingNames) > 0 {
-		return fmt.Errorf("missing modules: %v", missingNames)
+		return errors.Errorf("missing modules: %v", missingNames)
 	}
 	return nil
 }

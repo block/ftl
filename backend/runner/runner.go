@@ -4,7 +4,6 @@ package runner
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -21,6 +20,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/jpillora/backoff"
 	"github.com/otiai10/copy"
@@ -78,11 +78,11 @@ type Config struct {
 
 func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService) error {
 	ctx, doneFunc := context.WithCancelCause(ctx)
-	defer doneFunc(fmt.Errorf("runner terminated: %w", context.Canceled))
+	defer doneFunc(errors.Wrap(context.Canceled, "runner terminated"))
 	hostname, err := os.Hostname()
 	if err != nil {
 		observability.Runner.StartupFailed(ctx)
-		return fmt.Errorf("failed to get hostname: %w", err)
+		return errors.Wrap(err, "failed to get hostname")
 	}
 	pid := os.Getpid()
 
@@ -98,7 +98,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	err = manageDeploymentDirectory(logger, config)
 	if err != nil {
 		observability.Runner.StartupFailed(ctx)
-		return err
+		return errors.WithStack(err)
 	}
 
 	logger.Debugf("Using FTL endpoint: %s", config.ControllerEndpoint)
@@ -116,7 +116,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	})
 	if err != nil {
 		observability.Runner.StartupFailed(ctx)
-		return fmt.Errorf("failed to marshal labels: %w", err)
+		return errors.Wrap(err, "failed to marshal labels")
 	}
 	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
 
@@ -136,7 +136,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 
 	module, err := svc.getModule(ctx, config.Deployment)
 	if err != nil {
-		return fmt.Errorf("failed to get module: %w", err)
+		return errors.Wrap(err, "failed to get module")
 	}
 	var git *schema.MetadataGit
 	for m := range slices.FilterVariants[*schema.MetadataGit, schema.Metadata](module.Metadata) {
@@ -153,26 +153,26 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	g, ctx := errgroup.WithContext(ctx)
 	dbAddresses := xsync.NewMapOf[string, string]()
 	g.Go(func() error {
-		return svc.startPgProxy(ctx, module, startedLatch, dbAddresses)
+		return errors.WithStack(svc.startPgProxy(ctx, module, startedLatch, dbAddresses))
 	})
 	g.Go(func() error {
-		return svc.startMySQLProxy(ctx, module, startedLatch, dbAddresses)
+		return errors.WithStack(svc.startMySQLProxy(ctx, module, startedLatch, dbAddresses))
 	})
 	g.Go(func() error {
 		startedLatch.Wait()
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return errors.WithStack(ctx.Err())
 		default:
 			svc.queryService, err = query.New(ctx, module, dbAddresses)
 			if err != nil {
-				return fmt.Errorf("failed to create query service: %w", err)
+				return errors.Wrap(err, "failed to create query service")
 			}
-			return svc.startDeployment(ctx, config.Deployment, module, dbAddresses)
+			return errors.WithStack(svc.startDeployment(ctx, config.Deployment, module, dbAddresses))
 		}
 	})
 
-	return fmt.Errorf("failure in runner: %w", g.Wait())
+	return errors.Wrap(g.Wait(), "failure in runner")
 }
 
 func (s *Service) startDeployment(ctx context.Context, key key.Deployment, module *schema.Module, dbAddresses *xsync.MapOf[string, string]) error {
@@ -182,19 +182,19 @@ func (s *Service) startDeployment(ctx context.Context, key key.Deployment, modul
 		// Kube or local scaling will start a new instance to continue
 		// This approach means we don't have to handle error states internally
 		// It is managed externally by the scaling system
-		return err
+		return errors.WithStack(err)
 	}
 	go s.timelineLogSink.RunLogLoop(ctx)
 	go func() {
 		go rpc.RetryStreamingClientStream(ctx, backoff.Backoff{}, s.controllerClient.RegisterRunner, s.registrationLoop)
 	}()
-	return fmt.Errorf("failure in runner: %w", rpc.Serve(ctx, s.config.Bind,
+	return errors.Wrap(rpc.Serve(ctx, s.config.Bind,
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s),
 		rpc.GRPC(querypbconnect.NewQueryServiceHandler, s.queryService),
 		rpc.GRPC(pubsubpbconnect.NewPubSubAdminServiceHandler, s.pubSub),
 		rpc.HTTP("/", s),
 		rpc.HealthCheck(s.healthCheck),
-	))
+	), "failure in runner")
 }
 
 // manageDeploymentDirectory ensures the deployment directory exists and removes old deployments.
@@ -202,13 +202,13 @@ func manageDeploymentDirectory(logger *log.Logger, config Config) error {
 	logger.Debugf("Deployment directory: %s", config.DeploymentDir)
 	err := os.MkdirAll(config.DeploymentDir, 0700)
 	if err != nil {
-		return fmt.Errorf("failed to create deployment directory: %w", err)
+		return errors.Wrap(err, "failed to create deployment directory")
 	}
 
 	// Clean up old deployments.
 	modules, err := os.ReadDir(config.DeploymentDir)
 	if err != nil {
-		return fmt.Errorf("failed to read deployment directory: %w", err)
+		return errors.Wrap(err, "failed to read deployment directory")
 	}
 
 	for _, module := range modules {
@@ -219,7 +219,7 @@ func manageDeploymentDirectory(logger *log.Logger, config Config) error {
 		moduleDir := filepath.Join(config.DeploymentDir, module.Name())
 		deployments, err := os.ReadDir(moduleDir)
 		if err != nil {
-			return fmt.Errorf("failed to read module directory: %w", err)
+			return errors.Wrap(err, "failed to read module directory")
 		}
 
 		if len(deployments) < config.DeploymentKeepHistory {
@@ -227,10 +227,10 @@ func manageDeploymentDirectory(logger *log.Logger, config Config) error {
 		}
 
 		stats, err := slices.MapErr(deployments, func(d os.DirEntry) (os.FileInfo, error) {
-			return d.Info()
+			return errors.WithStack2(d.Info())
 		})
 		if err != nil {
-			return fmt.Errorf("failed to stat deployments: %w", err)
+			return errors.Wrap(err, "failed to stat deployments")
 		}
 
 		// Sort deployments by modified time, remove anything past the history limit.
@@ -292,18 +292,18 @@ type Service struct {
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
 	deployment, ok := s.deployment.Load().Get()
 	if !ok {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("no deployment"))
+		return nil, errors.WithStack(connect.NewError(connect.CodeUnavailable, errors.New("no deployment")))
 	}
 	response, err := deployment.client.Call(ctx, req)
 	if err != nil {
 		deploymentLogger := s.getDeploymentLogger(ctx, deployment.key)
 		deploymentLogger.Errorf(err, "Call to deployments %s failed to perform gRPC call", deployment.key)
-		return nil, connect.NewError(connect.CodeOf(err), err)
+		return nil, errors.WithStack(connect.NewError(connect.CodeOf(err), err))
 	} else if response.Msg.GetError() != nil {
 		// This is a user level error (i.e. something wrong in the users app)
 		// Log it to the deployment logger
 		deploymentLogger := s.getDeploymentLogger(ctx, deployment.key)
-		deploymentLogger.Errorf(fmt.Errorf("%v", response.Msg.GetError().GetMessage()), "Call to deployments %s failed", deployment.key)
+		deploymentLogger.Errorf(errors.Errorf("%v", response.Msg.GetError().GetMessage()), "Call to deployments %s failed", deployment.key)
 	}
 
 	return connect.NewResponse(response.Msg), nil
@@ -317,12 +317,12 @@ func (s *Service) getModule(ctx context.Context, key key.Deployment) (*schema.Mo
 	gdResp, err := s.schemaClient.GetDeployment(ctx, connect.NewRequest(&ftlv1.GetDeploymentRequest{DeploymentKey: s.config.Deployment.String()}))
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
-		return nil, fmt.Errorf("failed to get deployment from schema service: %w", err)
+		return nil, errors.Wrap(err, "failed to get deployment from schema service")
 	}
 
 	module, err := schema.ValidatedModuleFromProto(gdResp.Msg.Schema)
 	if err != nil {
-		return nil, fmt.Errorf("invalid module: %w", err)
+		return nil, errors.Wrap(err, "invalid module")
 	}
 	return module, nil
 }
@@ -332,7 +332,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	if err, ok := s.registrationFailure.Load().Get(); ok {
 		observability.Deployment.Failure(ctx, optional.None[string]())
-		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to register runner: %w", err))
+		return errors.WithStack(connect.NewError(connect.CodeUnavailable, errors.Wrap(err, "failed to register runner")))
 	}
 
 	observability.Deployment.Started(ctx, key.String())
@@ -342,7 +342,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	defer s.lock.Unlock()
 	if s.deployment.Load().Ok() {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
-		return errors.New("already deployed")
+		return errors.WithStack(errors.New("already deployed"))
 	}
 
 	deploymentLogger := s.getDeploymentLogger(ctx, key)
@@ -353,13 +353,13 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 		err := copy.Copy(s.config.TemplateDir, deploymentDir)
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
-			return fmt.Errorf("failed to copy template directory: %w", err)
+			return errors.Wrap(err, "failed to copy template directory")
 		}
 	} else {
 		err := os.MkdirAll(deploymentDir, 0700)
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
-			return fmt.Errorf("failed to create deployment directory: %w", err)
+			return errors.Wrap(err, "failed to create deployment directory")
 		}
 	}
 
@@ -371,13 +371,13 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
-		return fmt.Errorf("failed to set up pubsub: %w", err)
+		return errors.Wrap(err, "failed to set up pubsub")
 	}
 	s.pubSub = pubSub
 
 	parse, err := url.Parse("http://127.0.0.1:0")
 	if err != nil {
-		return fmt.Errorf("failed to parse url: %w", err)
+		return errors.Wrap(err, "failed to parse url")
 	}
 	proxyServer, err := rpc.NewServer(ctx, parse,
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s.proxy),
@@ -387,7 +387,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 		rpc.GRPC(querypbconnect.NewQueryServiceHandler, s.queryService),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create server: %w", err)
+		return errors.Wrap(err, "failed to create server")
 	}
 	urls := proxyServer.Bind.Subscribe(nil)
 	go func() {
@@ -405,17 +405,17 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, proxyPingClient)
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
-		return fmt.Errorf("failed to ping proxy: %w", err)
+		return errors.Wrap(err, "failed to ping proxy")
 	}
 	var dep *deployment
 	if ep, ok := s.devEndpoint.Get(); ok {
 		pingCtx, cancel := context.WithCancelCause(ctx)
-		defer cancel(fmt.Errorf("complete"))
+		defer cancel(errors.Errorf("complete"))
 		if hotRelaodEp, ok := s.devHotReloadEndpoint.Get(); ok {
 			hotReloadClient := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotRelaodEp, log.Error)
 			err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, hotReloadClient)
 			if err != nil {
-				return fmt.Errorf("failed to ping hot reload endpoint: %w", err)
+				return errors.Wrap(err, "failed to ping hot reload endpoint")
 			}
 			var databases []*hotreloadpb.Database
 			dbAddresses.Range(func(key string, value string) bool {
@@ -427,7 +427,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			})
 
 			if err := s.queryService.UpdateConnections(ctx, module, dbAddresses); err != nil {
-				return fmt.Errorf("failed to update query service connections: %w", err)
+				return errors.Wrap(err, "failed to update query service connections")
 			}
 
 			go func() {
@@ -444,7 +444,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 						if err == nil {
 							if info.Msg.Outdated {
 								logger.Warnf("Runner is outdated, exiting")
-								cancel(fmt.Errorf("runner is outdated, exiting"))
+								cancel(errors.Errorf("runner is outdated, exiting"))
 							}
 						}
 					}
@@ -463,13 +463,13 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 		}
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
-			return fmt.Errorf("failed to ping dev endpoint: %w", err)
+			return errors.Wrap(err, "failed to ping dev endpoint")
 		}
 	} else {
 		err := download.ArtefactsFromOCI(ctx, s.schemaClient, key, deploymentDir, s.storage)
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
-			return fmt.Errorf("failed to download artefacts: %w", err)
+			return errors.Wrap(err, "failed to download artefacts")
 		}
 
 		logger.Debugf("Setting FTL_CONTROLLER_ENDPOINT to %s", s.proxyBindAddress.String())
@@ -496,7 +496,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 		)
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
-			return fmt.Errorf("failed to spawn plugin: %w", err)
+			return errors.Wrap(err, "failed to spawn plugin")
 		}
 		dep = s.makeDeployment(cmdCtx, key, deployment)
 	}
@@ -508,7 +508,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	err = s.pubSub.Consume(ctx)
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
-		return fmt.Errorf("failed to set up pubsub consumption: %w", err)
+		return errors.Wrap(err, "failed to set up pubsub consumption")
 	}
 
 	context.AfterFunc(ctx, func() {
@@ -533,13 +533,13 @@ func (s *Service) Close() error {
 
 	depl, ok := s.deployment.Load().Get()
 	if !ok {
-		return connect.NewError(connect.CodeNotFound, errors.New("no deployment"))
+		return errors.WithStack(connect.NewError(connect.CodeNotFound, errors.New("no deployment")))
 	}
 	if cmd, ok := depl.cmd.Get(); ok {
 		// Soft kill.
 		err := cmd.Kill(syscall.SIGTERM)
 		if err != nil {
-			return fmt.Errorf("failed to kill plugin: %w", err)
+			return errors.Wrap(err, "failed to kill plugin")
 		}
 		done := make(chan struct{})
 		go func() {
@@ -558,7 +558,7 @@ func (s *Service) Close() error {
 			if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
 				err := cmd.Kill(syscall.SIGKILL)
 				if err != nil {
-					return fmt.Errorf("failed to kill plugin: %w", err)
+					return errors.Wrap(err, "failed to kill plugin")
 				}
 			}
 		}
@@ -604,7 +604,7 @@ func (s *Service) registrationLoop(ctx context.Context, send func(request *ftlv1
 			err := context.Cause(depl.ctx)
 			s.getDeploymentLogger(ctx, depl.key).Errorf(err, "Deployment terminated")
 			s.deployment.Store(optional.None[*deployment]())
-			s.cancelFunc(fmt.Errorf("deployment %s terminated: %w", depl.key, err))
+			s.cancelFunc(errors.Wrapf(err, "deployment %s terminated", depl.key))
 			return nil
 		default:
 		}
@@ -620,7 +620,7 @@ func (s *Service) registrationLoop(ctx context.Context, send func(request *ftlv1
 	if err != nil {
 		s.registrationFailure.Store(optional.Some(err))
 		observability.Runner.RegistrationFailure(ctx, optional.Ptr(deploymentKey))
-		return fmt.Errorf("failed to register with Controller: %w", err)
+		return errors.Wrap(err, "failed to register with Controller")
 	}
 
 	// Wait for the next heartbeat.
@@ -632,7 +632,7 @@ func (s *Service) registrationLoop(ctx context.Context, send func(request *ftlv1
 		err = context.Cause(ctx)
 		s.registrationFailure.Store(optional.Some(err))
 		observability.Runner.RegistrationFailure(ctx, optional.Ptr(deploymentKey))
-		return err
+		return errors.WithStack(err)
 
 	case <-time.After(delay):
 	}
@@ -694,18 +694,18 @@ func (s *Service) startPgProxy(ctx context.Context, module *schema.Module, start
 	if err := pgproxy.New("127.0.0.1:0", func(ctx context.Context, params map[string]string) (string, error) {
 		db, ok := databases[params["database"]]
 		if !ok {
-			return "", fmt.Errorf("database %s not found", params["database"])
+			return "", errors.Errorf("database %s not found", params["database"])
 		}
 
 		dsn, err := dsn.ResolvePostgresDSN(ctx, db.Runtime.Connections.Write)
 		if err != nil {
-			return "", fmt.Errorf("failed to resolve postgres DSN: %w", err)
+			return "", errors.Wrap(err, "failed to resolve postgres DSN")
 		}
 
 		return dsn, nil
 	}).Start(ctx, channel); err != nil {
 		started.Done()
-		return fmt.Errorf("failed to start pgproxy: %w", err)
+		return errors.Wrap(err, "failed to start pgproxy")
 	}
 
 	return nil
@@ -734,7 +734,7 @@ func (s *Service) startMySQLProxy(ctx context.Context, module *schema.Module, la
 		proxy := mysql.NewProxy("localhost", 0, func(ctx context.Context) (*mysql.Config, error) {
 			cfg, err := dsn.ResolveMySQLConfig(ctx, databaseRuntime.Connections.Write)
 			if err != nil {
-				return nil, fmt.Errorf("failed to resolve MySQL DSN: %w", err)
+				return nil, errors.Wrap(err, "failed to resolve MySQL DSN")
 			}
 			return cfg, nil
 		}, &mysqlLogger{logger: logger}, portC)
@@ -747,7 +747,7 @@ func (s *Service) startMySQLProxy(ctx context.Context, module *schema.Module, la
 		port := 0
 		select {
 		case err := <-errorC:
-			return fmt.Errorf("error: %w", err)
+			return errors.Wrap(err, "error")
 		case port = <-portC:
 		}
 

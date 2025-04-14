@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 )
 
 const _AliasKindName = "unspecifiedjson"
@@ -53,7 +55,7 @@ func AliasKindString(s string) (AliasKind, error) {
 	if val, ok := _AliasKindNameToValueMap[strings.ToLower(s)]; ok {
 		return val, nil
 	}
-	return 0, fmt.Errorf("%s does not belong to AliasKind values", s)
+	return 0, errors.Errorf("%s does not belong to AliasKind values", s)
 }
 
 // AliasKindValues returns all values of the enum
@@ -80,19 +82,19 @@ func (i AliasKind) IsAAliasKind() bool {
 
 // MarshalJSON implements the json.Marshaler interface for AliasKind
 func (i AliasKind) MarshalJSON() ([]byte, error) {
-	return json.Marshal(i.String())
+	return errors.WithStack2(json.Marshal(i.String()))
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface for AliasKind
 func (i *AliasKind) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
-		return fmt.Errorf("AliasKind should be a string, got %s", data)
+		return errors.Errorf("AliasKind should be a string, got %s", data)
 	}
 
 	var err error
 	*i, err = AliasKindString(s)
-	return err
+	return errors.WithStack(err)
 }
 
 // MarshalText implements the encoding.TextMarshaler interface for AliasKind
@@ -104,5 +106,5 @@ func (i AliasKind) MarshalText() ([]byte, error) {
 func (i *AliasKind) UnmarshalText(text []byte) error {
 	var err error
 	*i, err = AliasKindString(string(text))
-	return err
+	return errors.WithStack(err)
 }

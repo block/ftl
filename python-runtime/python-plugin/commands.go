@@ -2,10 +2,10 @@ package pythonplugin
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/block/scaffolder"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
@@ -44,7 +44,7 @@ func (CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.New
 	// scaffold at one directory above the module directory
 	parentPath := filepath.Dir(req.Msg.Dir)
 	if err := internal.ScaffoldZip(pythonruntime.Files(), parentPath, sctx, opts...); err != nil {
-		return nil, fmt.Errorf("failed to scaffold: %w", err)
+		return nil, errors.Wrap(err, "failed to scaffold")
 	}
 	return connect.NewResponse(&langpb.NewModuleResponse{}), nil
 }

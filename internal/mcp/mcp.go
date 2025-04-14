@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -42,7 +43,7 @@ func (s *Server) AddTool(tool mcp.Tool, handler server.ToolHandlerFunc) {
 // Serve starts the mcp server
 func (s *Server) Serve() error {
 	if err := server.ServeStdio(s.mcpServer); err != nil {
-		return fmt.Errorf("could not serve: %w", err)
+		return errors.Wrap(err, "could not serve")
 	}
 	return nil
 }

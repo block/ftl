@@ -3,8 +3,6 @@ package buildengine
 import (
 	"context"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"io"
 	"maps"
 	"os"
@@ -13,6 +11,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
 	"golang.org/x/sync/errgroup"
@@ -149,9 +148,9 @@ func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig
 		err:      errChan}
 	select {
 	case <-ctx.Done():
-		return ctx.Err() //nolint:wrapcheck
+		return errors.WithStack(ctx.Err()) //nolint:wrapcheck
 	case err := <-errChan:
-		return err
+		return errors.WithStack(err)
 	}
 }
 
@@ -450,7 +449,7 @@ func (c *DeployCoordinator) runChangeLogger(ctx context.Context, key key.Changes
 
 func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendingDeploy) (*pendingDeploy, error) {
 	if d.replicas != old.replicas {
-		return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: replicas were different %d != %d", maps.Keys(d.modules), maps.Keys(old.modules), d.replicas.Default(-1), old.replicas.Default(-1))
+		return nil, errors.Errorf("could not deploy %v with pending deployment of %v: replicas were different %d != %d", maps.Keys(d.modules), maps.Keys(old.modules), d.replicas.Default(-1), old.replicas.Default(-1))
 	}
 	out := reflect.DeepCopy(d)
 	addedModules := []string{}
@@ -463,7 +462,7 @@ func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendin
 	}
 	if len(addedModules) > 0 {
 		if invalid := c.invalidModulesForDeployment(c.schemaSource.CanonicalView(), out, addedModules); len(invalid) > 0 {
-			return nil, fmt.Errorf("could not deploy %v with pending deployment of %v: modules were incompatible %v", maps.Keys(d.modules), maps.Keys(old.modules), maps.Keys(invalid))
+			return nil, errors.Errorf("could not deploy %v with pending deployment of %v: modules were incompatible %v", maps.Keys(d.modules), maps.Keys(old.modules), maps.Keys(invalid))
 		}
 	}
 	out.publishInSchema = out.publishInSchema || old.publishInSchema
@@ -597,7 +596,7 @@ func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, modul
 	mod, ok := c.schemaSource.CanonicalView().Module(module).Get()
 
 	if !ok {
-		return fmt.Errorf("deployment for module %s not found", module)
+		return errors.Errorf("deployment for module %s not found", module)
 	}
 	key := mod.Runtime.Deployment.DeploymentKey
 
@@ -609,13 +608,13 @@ func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, modul
 		}},
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to terminate deployment: %w", err)
+		return errors.Wrap(err, "failed to terminate deployment")
 	}
 	for stream.Receive() {
 		// Not interested in progress
 	}
 	if err := stream.Err(); err != nil {
-		return fmt.Errorf("failed to terminate deployment: %w", err)
+		return errors.Wrap(err, "failed to terminate deployment")
 	}
 	return nil
 }
@@ -626,14 +625,14 @@ func prepareForDeploy(ctx context.Context, modules map[string]*pendingModule, ad
 		uploadGroup.Go(func() error {
 			sch, err := uploadArtefacts(ctx, module, adminClient)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			module.schema = sch
 			return nil
 		})
 	}
 	if err := uploadGroup.Wait(); err != nil {
-		return fmt.Errorf("failed to upload artefacts: %w", err)
+		return errors.Wrap(err, "failed to upload artefacts")
 	}
 	return nil
 }
@@ -653,7 +652,7 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 	}()
 
 	ctx, closeStream := context.WithCancelCause(ctx)
-	defer closeStream(fmt.Errorf("function is complete: %w", context.Canceled))
+	defer closeStream(errors.Wrap(context.Canceled, "function is complete"))
 
 	stream, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
 		RealmChanges: []*adminpb.RealmChange{{
@@ -664,14 +663,14 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 		}},
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to deploy changeset: %w", err)
+		return errors.Wrap(err, "failed to deploy changeset")
 	}
 
 	for stream.Receive() {
 		if !changesetKey.Ok() {
 			k, err := key.ParseChangesetKey(stream.Msg().Changeset.Key)
 			if err != nil {
-				return fmt.Errorf("failed to parse changeset key: %w", err)
+				return errors.Wrap(err, "failed to parse changeset key")
 			}
 			changesetKey = optional.Some(k)
 			receivedKey <- result.Ok(k)
@@ -679,7 +678,7 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 	}
 
 	if err := stream.Err(); err != nil {
-		return fmt.Errorf("failed to deploy changeset: %w", err)
+		return errors.Wrap(err, "failed to deploy changeset")
 	}
 	return nil
 }
@@ -698,29 +697,29 @@ func uploadArtefacts(ctx context.Context, module *pendingModule, client AdminCli
 	files, err := findFilesToDeploy(moduleConfig, module.module.Deploy)
 	if err != nil {
 		logger.Errorf(err, "failed to find files in %s", moduleConfig)
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	filesByHash, err := hashFiles(moduleConfig.DeployDir, files)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	gadResp, err := client.GetArtefactDiffs(ctx, connect.NewRequest(&adminpb.GetArtefactDiffsRequest{ClientDigests: stdslices.Collect(maps.Keys(filesByHash))}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get artefact diffs: %w", err)
+		return nil, errors.Wrap(err, "failed to get artefact diffs")
 	}
 
 	moduleSchema, err := loadProtoSchema(moduleConfig, module.schemaPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	logger.Debugf("Uploading %d/%d files", len(gadResp.Msg.MissingDigests), len(files))
 	for _, missing := range gadResp.Msg.MissingDigests {
 		file := filesByHash[missing]
 		if err := uploadDeploymentArtefact(ctx, client, file); err != nil {
-			return nil, fmt.Errorf("failed to upload deployment artefact: %w", err)
+			return nil, errors.Wrap(err, "failed to upload deployment artefact")
 		}
 	}
 
@@ -737,7 +736,7 @@ func uploadArtefacts(ctx context.Context, module *pendingModule, client AdminCli
 	}
 	parsedSchema, err := schema.ModuleFromProto(moduleSchema)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse schema to upload: %w", err)
+		return nil, errors.Wrap(err, "could not parse schema to upload")
 	}
 	return parsedSchema, nil
 }
@@ -746,16 +745,16 @@ func uploadDeploymentArtefact(ctx context.Context, client AdminClient, file depl
 	logger := log.FromContext(ctx).Scope("upload:" + hex.EncodeToString(file.Digest))
 	f, err := os.Open(file.localPath)
 	if err != nil {
-		return fmt.Errorf("failed to read file %w", err)
+		return errors.Wrap(err, "failed to read fil")
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil {
-		return fmt.Errorf("failed to get file info: %w", err)
+		return errors.Wrap(err, "failed to get file info")
 	}
 	digest, err := sha256.ParseBytes(file.Digest)
 	if err != nil {
-		return fmt.Errorf("failed to parse SHA256 digest: %w", err)
+		return errors.Wrap(err, "failed to parse SHA256 digest")
 	}
 	logger.Debugf("Uploading %s", relToCWD(file.localPath))
 	stream := client.UploadArtefact(ctx)
@@ -767,7 +766,7 @@ func uploadDeploymentArtefact(ctx context.Context, client AdminClient, file depl
 		if errors.Is(err, io.EOF) {
 			break
 		} else if err != nil {
-			return fmt.Errorf("failed to read file %w", err)
+			return errors.Wrap(err, "failed to read fil")
 		}
 		err = stream.Send(&adminpb.UploadArtefactRequest{
 			Chunk:  data[:n],
@@ -775,12 +774,12 @@ func uploadDeploymentArtefact(ctx context.Context, client AdminClient, file depl
 			Size:   info.Size(),
 		})
 		if err != nil {
-			return fmt.Errorf("failed to upload artefact: %w", err)
+			return errors.Wrap(err, "failed to upload artefact")
 		}
 	}
 	_, err = stream.CloseAndReceive()
 	if err != nil {
-		return fmt.Errorf("failed to upload artefact: %w", err)
+		return errors.Wrap(err, "failed to upload artefact")
 	}
 	logger.Debugf("Uploaded %s as %s:%s", relToCWD(file.localPath), digest, file.Path)
 	return nil
@@ -789,12 +788,12 @@ func uploadDeploymentArtefact(ctx context.Context, client AdminClient, file depl
 func loadProtoSchema(config moduleconfig.AbsModuleConfig, schPath string) (*schemapb.Module, error) {
 	content, err := os.ReadFile(schPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load protobuf schema from %q: %w", schPath, err)
+		return nil, errors.Wrapf(err, "failed to load protobuf schema from %q", schPath)
 	}
 	module := &schemapb.Module{}
 	err = proto.Unmarshal(content, module)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load protobuf schema from %q: %w", schPath, err)
+		return nil, errors.Wrapf(err, "failed to load protobuf schema from %q", schPath)
 	}
 	runtime := module.Runtime
 	if runtime == nil {
@@ -818,16 +817,16 @@ func findFilesToDeploy(config moduleconfig.AbsModuleConfig, deploy []string) ([]
 	for _, f := range deploy {
 		file := filepath.Clean(filepath.Join(config.DeployDir, f))
 		if !strings.HasPrefix(file, config.DeployDir) {
-			return nil, fmt.Errorf("deploy path %q is not beneath deploy directory %q", file, config.DeployDir)
+			return nil, errors.Errorf("deploy path %q is not beneath deploy directory %q", file, config.DeployDir)
 		}
 		info, err := os.Stat(file)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if info.IsDir() {
 			dirFiles, err := findFilesInDir(file)
 			if err != nil {
-				return nil, err
+				return nil, errors.WithStack(err)
 			}
 			out = append(out, dirFiles...)
 		} else {
@@ -839,16 +838,16 @@ func findFilesToDeploy(config moduleconfig.AbsModuleConfig, deploy []string) ([]
 
 func findFilesInDir(dir string) ([]string, error) {
 	var out []string
-	return out, filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	return out, errors.WithStack(filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		if info.IsDir() {
 			return nil
 		}
 		out = append(out, path)
 		return nil
-	})
+	}))
 }
 
 func hashFiles(base string, files []string) (filesByHash map[string]deploymentArtefact, err error) {
@@ -856,21 +855,21 @@ func hashFiles(base string, files []string) (filesByHash map[string]deploymentAr
 	for _, file := range files {
 		r, err := os.Open(file)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		defer r.Close() //nolint:gosec
 		hash, err := sha256.SumReader(r)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		info, err := r.Stat()
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		isExecutable := info.Mode()&0111 != 0
 		path, err := filepath.Rel(base, file)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		filesByHash[hash.String()] = deploymentArtefact{
 			DeploymentArtefact: &adminpb.DeploymentArtefact{

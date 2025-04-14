@@ -12,6 +12,7 @@ import (
 	xslices "slices"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -46,7 +47,7 @@ type ConfigContext struct {
 func (c ConfigContext) scaffoldFile() error {
 	err := internal.ScaffoldZip(Files(), c.OutDir, c)
 	if err != nil {
-		return fmt.Errorf("failed to scaffold SQLC config file: %w", err)
+		return errors.Wrap(err, "failed to scaffold SQLC config file")
 	}
 	return nil
 }
@@ -69,7 +70,7 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 	for dbName, content := range mc.SQLDatabases {
 		maybeCfg, err := newConfigContext(projectRoot, mc, dbName, content)
 		if err != nil {
-			return fmt.Errorf("failed to extract database %s from the file system: %w", dbName, err)
+			return errors.Wrapf(err, "failed to extract database %s from the file system", dbName)
 		}
 		cfg, ok := maybeCfg.Get()
 		if !ok {
@@ -77,7 +78,7 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 		}
 		if len(cfg.SchemaPaths) > 0 && len(cfg.QueryPaths) > 0 {
 			if err := cfg.scaffoldFile(); err != nil {
-				return fmt.Errorf("failed to scaffold SQLC config file: %w", err)
+				return errors.Wrap(err, "failed to scaffold SQLC config file")
 			}
 		}
 		cfgs = append(cfgs, cfg)
@@ -112,18 +113,18 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 		var err error
 		if len(cfg.QueryPaths) > 0 {
 			if err = exec.Command(ctx, log.Debug, ".", "ftl-sqlc", "generate", "--file", cfg.getSQLCConfigPath()).RunStderrError(ctx); err != nil {
-				return fmt.Errorf("sqlc generate failed for database %s: %w", cfg.Engine, err)
+				return errors.Wrapf(err, "sqlc generate failed for database %s", cfg.Engine)
 			}
 			sch, err = schema.ModuleFromProtoFile(filepath.Join(cfg.OutDir, "queries.pb"))
 			if err != nil {
-				return fmt.Errorf("failed to parse generated schema: %w", err)
+				return errors.Wrap(err, "failed to parse generated schema")
 			}
 		}
 		if err = populatePositions(sch, cfg); err != nil {
-			return fmt.Errorf("failed to populate positions: %w", err)
+			return errors.Wrap(err, "failed to populate positions")
 		}
 		if err = updateSchema(out, sch, cfg, declUniqueness); err != nil {
-			return fmt.Errorf("failed to add queries to schema: %w", err)
+			return errors.Wrap(err, "failed to add queries to schema")
 		}
 	}
 	return nil
@@ -133,7 +134,7 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 func updateSchema(out *schema.Schema, queries *schema.Module, cfg ConfigContext, declUniqueness map[string]declUniquenessData) error {
 	dbType, err := toDatabaseType(cfg.Engine)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	db := &schema.Database{
 		Name: cfg.Database,
@@ -141,13 +142,13 @@ func updateSchema(out *schema.Schema, queries *schema.Module, cfg ConfigContext,
 	}
 
 	if err := updateDuplicateDeclNames(queries, cfg.Database, declUniqueness); err != nil {
-		return fmt.Errorf("failed to update duplicate declaration names: %w", err)
+		return errors.Wrap(err, "failed to update duplicate declaration names")
 	}
 	queries.Decls = append(queries.Decls, db)
 
 	_, err = schema.ValidateModuleInSchema(out, optional.Some(queries))
 	if err != nil {
-		return fmt.Errorf("failed to validate module %s: %w", queries.Name, err)
+		return errors.Wrapf(err, "failed to validate module %s", queries.Name)
 	}
 	found := false
 	for i, m := range out.InternalModules() {
@@ -177,14 +178,14 @@ func toDatabaseType(engine string) (string, error) {
 	case moduleconfig.EngineMySQL:
 		return schema.MySQLDatabaseType, nil
 	}
-	return "", fmt.Errorf("invalid engine %s", engine)
+	return "", errors.Errorf("invalid engine %s", engine)
 }
 
 func newConfigContext(projectRoot string, mc moduleconfig.AbsModuleConfig, dbName string, dbContent moduleconfig.DatabaseContent) (optional.Option[ConfigContext], error) {
 	outDir := filepath.Join(mc.DeployDir, dbName)
 	err := os.MkdirAll(outDir, 0750)
 	if err != nil {
-		return optional.None[ConfigContext](), fmt.Errorf("failed to create output directory %s: %w", outDir, err)
+		return optional.None[ConfigContext](), errors.Wrapf(err, "failed to create output directory %s", outDir)
 	}
 
 	schemaDir, ok := dbContent.SchemaDir.Get()
@@ -193,14 +194,14 @@ func newConfigContext(projectRoot string, mc moduleconfig.AbsModuleConfig, dbNam
 	}
 	schemaPaths, err := findSQLFiles(filepath.Join(mc.Dir, schemaDir), outDir)
 	if err != nil {
-		return optional.None[ConfigContext](), fmt.Errorf("no SQL migration files found in schema directory: %w", err)
+		return optional.None[ConfigContext](), errors.Wrap(err, "no SQL migration files found in schema directory")
 	}
 
 	var queryPaths []string
 	if queriesDir, ok := dbContent.QueriesDir.Get(); ok {
 		queryPaths, err = findSQLFiles(filepath.Join(mc.Dir, queriesDir), outDir)
 		if err != nil {
-			return optional.None[ConfigContext](), fmt.Errorf("no SQL query files found in queries directory: %w", err)
+			return optional.None[ConfigContext](), errors.Wrap(err, "no SQL query files found in queries directory")
 		}
 	}
 
@@ -209,7 +210,7 @@ func newConfigContext(projectRoot string, mc moduleconfig.AbsModuleConfig, dbNam
 	if len(queryPaths) > 0 {
 		plugin, err = getCachedWASMPlugin(projectRoot)
 		if err != nil {
-			return optional.None[ConfigContext](), err
+			return optional.None[ConfigContext](), errors.WithStack(err)
 		}
 	}
 	return optional.Some(ConfigContext{
@@ -227,18 +228,18 @@ func newConfigContext(projectRoot string, mc moduleconfig.AbsModuleConfig, dbNam
 func getCachedWASMPlugin(projectRoot string) (WASMPlugin, error) {
 	pluginPath := filepath.Join(projectRoot, ".ftl", "resources", "sqlc-gen-ftl.wasm")
 	if _, err := os.Stat(pluginPath); err == nil {
-		return toWASMPlugin(pluginPath)
+		return errors.WithStack2(toWASMPlugin(pluginPath))
 	}
 	if err := extractEmbeddedFile("sqlc-gen-ftl.wasm", pluginPath); err != nil {
-		return WASMPlugin{}, err
+		return WASMPlugin{}, errors.WithStack(err)
 	}
-	return toWASMPlugin(pluginPath)
+	return errors.WithStack2(toWASMPlugin(pluginPath))
 }
 
 func toWASMPlugin(path string) (WASMPlugin, error) {
 	sha256, err := computeSHA256(path)
 	if err != nil {
-		return WASMPlugin{}, err
+		return WASMPlugin{}, errors.WithStack(err)
 	}
 	return WASMPlugin{
 		URL:    fmt.Sprintf("file://%s", path),
@@ -249,12 +250,12 @@ func toWASMPlugin(path string) (WASMPlugin, error) {
 func computeSHA256(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return "", fmt.Errorf("failed to open file: %w", err)
+		return "", errors.Wrap(err, "failed to open file")
 	}
 	defer file.Close()
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
-		return "", fmt.Errorf("failed to compute hash: %w", err)
+		return "", errors.Wrap(err, "failed to compute hash")
 	}
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
@@ -265,12 +266,12 @@ func findSQLFiles(dir string, relativeToDir string) ([]string, error) {
 	}
 	relDir, err := filepath.Rel(relativeToDir, dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get SQL directory relative to %s: %w", relativeToDir, err)
+		return nil, errors.Wrapf(err, "failed to get SQL directory relative to %s", relativeToDir)
 	}
 	var sqlFiles []string
 	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		if !d.IsDir() && strings.HasSuffix(path, ".sql") {
 			sqlFiles = append(sqlFiles, filepath.Join(relDir, strings.TrimPrefix(path, dir)))
@@ -278,7 +279,7 @@ func findSQLFiles(dir string, relativeToDir string) ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to walk SQL files: %w", err)
+		return nil, errors.Wrap(err, "failed to walk SQL files")
 	}
 	return sqlFiles, nil
 }
@@ -292,11 +293,11 @@ func populatePositions(m *schema.Module, cfg ConfigContext) error {
 	for _, sqlPath := range cfg.QueryPaths {
 		absPath, err := filepath.Abs(filepath.Join(cfg.OutDir, sqlPath))
 		if err != nil {
-			return fmt.Errorf("failed to get absolute path for %s: %w", sqlPath, err)
+			return errors.Wrapf(err, "failed to get absolute path for %s", sqlPath)
 		}
 		sql, err := os.ReadFile(absPath)
 		if err != nil {
-			return fmt.Errorf("failed to read %s: %w", absPath, err)
+			return errors.Wrapf(err, "failed to read %s", absPath)
 		}
 		lines := strings.Split(string(sql), "\n")
 		for i, line := range lines {
@@ -321,19 +322,19 @@ func populatePositions(m *schema.Module, cfg ConfigContext) error {
 		_ = schema.Visit(verb, func(n schema.Node, next func() error) error { //nolint:errcheck
 			ref, ok := n.(*schema.Ref)
 			if !ok {
-				return next()
+				return errors.WithStack(next())
 			}
 			data, ok := dataTypes[ref.Name]
 			if !ok {
-				return next()
+				return errors.WithStack(next())
 			}
 			if data.Pos.Filename != "" && data.Pos.String() <= pos.String() {
 				// multiple verbs can refer to the same data type
 				// keep existing pos as it is ordered first
-				return next()
+				return errors.WithStack(next())
 			}
 			data.Pos = pos
-			return next()
+			return errors.WithStack(next())
 		})
 	}
 	return nil
@@ -354,12 +355,12 @@ func updateDuplicateDeclNames(module *schema.Module, dbName string, declUniquene
 			case *schema.Verb:
 				t.Name = strings.ToLower(dbName) + cases.Title(language.English).String(t.Name)
 			case *schema.Database:
-				return fmt.Errorf("database %s is duplicated in module %s", t.Name, module.Name)
+				return errors.Errorf("database %s is duplicated in module %s", t.Name, module.Name)
 			default:
-				return fmt.Errorf("unsupported declaration %q of type %T was generated in module %s", t.GetName(), t, module.Name)
+				return errors.Errorf("unsupported declaration %q of type %T was generated in module %s", t.GetName(), t, module.Name)
 			}
 			if err := updateRefs(module, schema.RefKey{Module: module.Name, Name: oldName}, d.GetName()); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			declUniqueness[d.GetName()] = declUniquenessData{
 				decl:   d,
@@ -379,15 +380,15 @@ func updateRefs(module *schema.Module, ref schema.RefKey, newName string) error 
 	err := schema.Visit(module, func(n schema.Node, next func() error) error {
 		r, ok := n.(*schema.Ref)
 		if !ok {
-			return next()
+			return errors.WithStack(next())
 		}
 		if r.ToRefKey() == ref {
 			r.Name = newName
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update refs to duplicated generated declaration %s: %w", ref.Name, err)
+		return errors.Wrapf(err, "failed to update refs to duplicated generated declaration %s", ref.Name)
 	}
 	return nil
 }

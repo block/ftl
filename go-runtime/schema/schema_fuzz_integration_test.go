@@ -12,12 +12,10 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/alecthomas/assert/v2"
 	"github.com/otiai10/copy"
 
-	"github.com/alecthomas/assert/v2"
-
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
@@ -247,11 +245,9 @@ func FuzzExtract(f *testing.F) {
 	}
 	typenames := generateSymbolTypeStrings(allSymbols)
 
-	tmpDir, err := os.MkdirTemp("", "fuzz_test")
-	assert.NoError(f, err)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := f.TempDir()
 
-	err = copy.Copy("testdata/fuzz", tmpDir)
+	err := copy.Copy("testdata/fuzz", tmpDir)
 	assert.NoError(f, err)
 
 	first := true
@@ -381,8 +377,4 @@ module test {
 	}
 
 	return result.String()
-}
-
-func normaliseString(s string) string {
-	return strings.TrimSpace(strings.Join(slices.Map(strings.Split(s, "\n"), strings.TrimSpace), "\n"))
 }

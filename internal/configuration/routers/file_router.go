@@ -3,12 +3,11 @@ package routers
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/url"
 	"os"
 	"sort"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/configuration"
@@ -28,14 +27,14 @@ func NewFileRouter[R configuration.Role](path string) *FileRouter[R] {
 func (f *FileRouter[R]) Get(ctx context.Context, ref configuration.Ref) (key *url.URL, err error) {
 	conf, err := f.load()
 	if err != nil {
-		return nil, fmt.Errorf("get %s: %w", ref, err)
+		return nil, errors.Wrapf(err, "get %s", ref)
 	}
 	key, ok := conf[ref]
 	if !ok {
 		ref.Module = optional.None[string]()
 		key, ok = conf[ref]
 		if !ok {
-			return nil, fmt.Errorf("get %s: %w", ref, configuration.ErrNotFound)
+			return nil, errors.Wrapf(configuration.ErrNotFound, "get %s", ref)
 		}
 	}
 	return key, nil
@@ -44,7 +43,7 @@ func (f *FileRouter[R]) Get(ctx context.Context, ref configuration.Ref) (key *ur
 func (f *FileRouter[R]) List(ctx context.Context) ([]configuration.Entry, error) {
 	conf, err := f.load()
 	if err != nil {
-		return nil, fmt.Errorf("list: %w", err)
+		return nil, errors.Wrap(err, "list")
 	}
 	out := make([]configuration.Entry, 0, len(conf))
 	for ref, key := range conf {
@@ -59,11 +58,11 @@ func (f *FileRouter[R]) Role() (role R) { return }
 func (f *FileRouter[R]) Set(ctx context.Context, ref configuration.Ref, key *url.URL) error {
 	conf, err := f.load()
 	if err != nil {
-		return fmt.Errorf("set %s: %w", ref, err)
+		return errors.Wrapf(err, "set %s", ref)
 	}
 	conf[ref] = key
 	if err = f.save(conf); err != nil {
-		return fmt.Errorf("set %s: %w", ref, err)
+		return errors.Wrapf(err, "set %s", ref)
 	}
 	return nil
 }
@@ -71,11 +70,11 @@ func (f *FileRouter[R]) Set(ctx context.Context, ref configuration.Ref, key *url
 func (f *FileRouter[R]) Unset(ctx context.Context, ref configuration.Ref) error {
 	conf, err := f.load()
 	if err != nil {
-		return fmt.Errorf("unset %s: %w", ref, err)
+		return errors.Wrapf(err, "unset %s", ref)
 	}
 	delete(conf, ref)
 	if err = f.save(conf); err != nil {
-		return fmt.Errorf("unset %s: %w", ref, err)
+		return errors.Wrapf(err, "unset %s", ref)
 	}
 	return nil
 }
@@ -86,23 +85,23 @@ func (f *FileRouter[R]) load() (map[configuration.Ref]*url.URL, error) {
 		return map[configuration.Ref]*url.URL{}, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
+		return nil, errors.Wrap(err, "failed to open file")
 	}
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
 	serialisable := map[string]string{}
 	if err = dec.Decode(&serialisable); err != nil {
-		return nil, fmt.Errorf("failed to decode %s: %w", f.path, err)
+		return nil, errors.Wrapf(err, "failed to decode %s", f.path)
 	}
 	out := map[configuration.Ref]*url.URL{}
 	for refStr, keyStr := range serialisable {
 		ref, err := configuration.ParseRef(refStr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse ref %s: %w", refStr, err)
+			return nil, errors.Wrapf(err, "failed to parse ref %s", refStr)
 		}
 		key, err := url.Parse(keyStr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse key %s: %w", keyStr, err)
+			return nil, errors.Wrapf(err, "failed to parse key %s", keyStr)
 		}
 		out[ref] = key
 	}
@@ -112,7 +111,7 @@ func (f *FileRouter[R]) load() (map[configuration.Ref]*url.URL, error) {
 func (f *FileRouter[R]) save(data map[configuration.Ref]*url.URL) error {
 	w, err := os.Create(f.path)
 	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
+		return errors.Wrap(err, "failed to create file")
 	}
 	serialisable := map[string]string{}
 	for ref, key := range data {
@@ -121,7 +120,7 @@ func (f *FileRouter[R]) save(data map[configuration.Ref]*url.URL) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	if err = enc.Encode(serialisable); err != nil {
-		return fmt.Errorf("failed to encode %s: %w", f.path, err)
+		return errors.Wrapf(err, "failed to encode %s", f.path)
 	}
 	return nil
 }

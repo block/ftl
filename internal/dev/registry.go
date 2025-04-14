@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/container"
@@ -21,11 +22,11 @@ func SetupRegistry(ctx context.Context, image string, port int) error {
 		"FTL_REGISTRY_IMAGE="+image,
 		"FTL_REGISTRY_PORT="+strconv.Itoa(port))
 	if err != nil {
-		return fmt.Errorf("could not start registry: %w", err)
+		return errors.Wrap(err, "could not start registry")
 	}
 	err = WaitForPortReady(ctx, port)
 	if err != nil {
-		return fmt.Errorf("registry container failed to be healthy: %w", err)
+		return errors.Wrap(err, "registry container failed to be healthy")
 	}
 	return nil
 }
@@ -36,9 +37,9 @@ func WaitForPortReady(ctx context.Context, port int) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("context cancelled waiting for container")
+			return errors.Errorf("context cancelled waiting for container")
 		case <-timeout:
-			return fmt.Errorf("timed out waiting for container to be healthy")
+			return errors.Errorf("timed out waiting for container to be healthy")
 		case <-retry.C:
 			url := fmt.Sprintf("http://127.0.0.1:%d", port)
 

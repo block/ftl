@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -15,5 +16,5 @@ type pingCmd struct {
 }
 
 func (c *pingCmd) Run(ctx context.Context, controller adminpbconnect.AdminServiceClient) error {
-	return rpc.Wait(ctx, backoff.Backoff{Max: time.Second}, c.Wait, controller) //nolint:wrapcheck
+	return errors.WithStack(rpc.Wait(ctx, backoff.Backoff{Max: time.Second}, c.Wait, controller)) //nolint:wrapcheck
 }

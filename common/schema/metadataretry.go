@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/duration"
@@ -60,13 +61,13 @@ func (m *MetadataRetry) String() string {
 func parseRetryDuration(str string) (time.Duration, error) {
 	dur, err := duration.Parse(str)
 	if err != nil {
-		return 0, fmt.Errorf("could not parse retry duration: %w", err)
+		return 0, errors.Wrap(err, "could not parse retry duration")
 	}
 	if dur < MinBackoffLimit {
-		return 0, fmt.Errorf("retry must have a minimum backoff of %v", MinBackoffLimitStr)
+		return 0, errors.Errorf("retry must have a minimum backoff of %v", MinBackoffLimitStr)
 	}
 	if dur > MaxBackoffLimit {
-		return 0, fmt.Errorf("retry backoff can not be larger than %v", MaxBackoffLimitStr)
+		return 0, errors.Errorf("retry backoff can not be larger than %v", MaxBackoffLimitStr)
 	}
 	return dur, nil
 }
@@ -90,13 +91,13 @@ func (m *MetadataRetry) RetryParams() (RetryParams, error) {
 	// min backoff
 	if m.MinBackoff == "" {
 		if params.Count != 0 {
-			return RetryParams{}, fmt.Errorf("retry must have a minimum backoff")
+			return RetryParams{}, errors.Errorf("retry must have a minimum backoff")
 		}
 		params.MinBackoff = MinBackoffLimit
 	} else {
 		minBackoff, err := parseRetryDuration(m.MinBackoff)
 		if err != nil {
-			return RetryParams{}, fmt.Errorf("could not parse min backoff duration: %w", err)
+			return RetryParams{}, errors.Wrap(err, "could not parse min backoff duration")
 		}
 		params.MinBackoff = minBackoff
 	}
@@ -107,7 +108,7 @@ func (m *MetadataRetry) RetryParams() (RetryParams, error) {
 	} else {
 		maxBackoff, err := parseRetryDuration(m.MaxBackoff)
 		if err != nil {
-			return RetryParams{}, fmt.Errorf("could not parse max backoff duration: %w", err)
+			return RetryParams{}, errors.Wrap(err, "could not parse max backoff duration")
 		}
 		params.MaxBackoff = maxBackoff
 	}

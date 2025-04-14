@@ -4,6 +4,8 @@ import (
 	"cmp"
 	"iter"
 	"sort"
+
+	errors "github.com/alecthomas/errors"
 )
 
 func Map[T, U any](slice []T, fn func(T) U) []U {
@@ -20,7 +22,7 @@ func MapErr[T, U any](slice []T, fn func(T) (U, error)) ([]U, error) {
 		var err error
 		result[i], err = fn(v)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 	return result, nil

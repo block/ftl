@@ -3,11 +3,11 @@ package server
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/XSAM/otelsql"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/once"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
@@ -44,13 +44,13 @@ func InitDatabase(ref reflection.Ref, dbtype string, protoDBtype deploymentconte
 			provider := deploymentcontext.FromContext(ctx).CurrentContext()
 			dsn, testDB, err := provider.GetDatabase(ref.Name, protoDBtype)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get database %q: %w", ref.Name, err)
+				return nil, errors.Wrapf(err, "failed to get database %q", ref.Name)
 			}
 
 			logger.Debugf("Opening database: %s", ref.Name)
 			db, err := otelsql.Open(driver, dsn)
 			if err != nil {
-				return nil, fmt.Errorf("failed to open database %q: %w", ref.Name, err)
+				return nil, errors.Wrapf(err, "failed to open database %q", ref.Name)
 			}
 
 			// sets db.system and db.name attributes
@@ -61,7 +61,7 @@ func InitDatabase(ref reflection.Ref, dbtype string, protoDBtype deploymentconte
 			)
 			err = otelsql.RegisterDBStatsMetrics(db, metricAttrs)
 			if err != nil {
-				return nil, fmt.Errorf("failed to register database metrics: %w", err)
+				return nil, errors.Wrap(err, "failed to register database metrics")
 			}
 			db.SetConnMaxIdleTime(time.Minute)
 			if testDB {
@@ -82,7 +82,7 @@ func maybeBeginTransaction(ctx context.Context, ref reflection.Ref) (string, err
 	}
 	txID, err := query.BeginTransaction(ctx, db.Name)
 	if err != nil {
-		return "", fmt.Errorf("failed to begin transaction: %w", err)
+		return "", errors.Wrap(err, "failed to begin transaction")
 	}
 	return txID, nil
 }
@@ -95,7 +95,7 @@ func maybeRollbackTransaction(ctx context.Context, ref reflection.Ref) error {
 	}
 	err := query.RollbackCurrentTransaction(ctx, db.Name)
 	if err != nil {
-		return fmt.Errorf("failed to rollback transaction: %w", err)
+		return errors.Wrap(err, "failed to rollback transaction")
 	}
 	return nil
 }
@@ -108,7 +108,7 @@ func maybeCommitTransaction(ctx context.Context, ref reflection.Ref) error {
 	}
 	err := query.CommitCurrentTransaction(ctx, db.Name)
 	if err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return errors.Wrap(err, "failed to commit transaction")
 	}
 	return nil
 }

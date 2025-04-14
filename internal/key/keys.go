@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/multiformats/go-base36"
 )
 
@@ -63,7 +64,7 @@ func (d KeyType[T, TP]) Value() (driver.Value, error) {
 func (d *KeyType[T, TP]) Scan(src any) error {
 	input, ok := src.(string)
 	if !ok {
-		return fmt.Errorf("expected key to be a string but it's a %T", src)
+		return errors.Errorf("expected key to be a string but it's a %T", src)
 	}
 	if input == "" {
 		var zero KeyType[T, TP]
@@ -72,7 +73,7 @@ func (d *KeyType[T, TP]) Scan(src any) error {
 	}
 	key, err := parseKey[T, TP](input)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	*d = key
 	return nil
@@ -118,7 +119,7 @@ func (d *KeyType[T, TP]) UnmarshalText(bytes []byte) error {
 	}
 	id, err := parseKey[T, TP](string(bytes))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	*d = id
 	return nil
@@ -131,7 +132,7 @@ func suffixFromBytes(bytes []byte) string {
 func bytesFromSuffix(suffix string) ([]byte, error) {
 	bytes, err := base36.DecodeString(suffix)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode suffix %q: %w", suffix, err)
+		return nil, errors.Wrapf(err, "failed to decode suffix %q", suffix)
 	}
 	return bytes, nil
 }
@@ -143,12 +144,12 @@ func bytesFromSuffix(suffix string) ([]byte, error) {
 func newKey[T comparable, TP keyPayloadConstraint[T]](components ...string) (kt KeyType[T, TP]) {
 	var payload TP = &kt.Payload
 	if err := payload.Parse(components); err != nil {
-		panic(fmt.Errorf("failed to parse payload %q: %w", strings.Join(components, "-"), err))
+		panic(errors.Wrapf(err, "failed to parse payload %q", strings.Join(components, "-")))
 	}
 	if randomness := payload.RandomBytes(); randomness > 0 {
 		bytes := make([]byte, randomness)
 		if _, err := randRead(bytes); err != nil {
-			panic(fmt.Errorf("failed to generate random suffix: %w", err))
+			panic(errors.Wrap(err, "failed to generate random suffix"))
 		}
 		kt.Suffix = suffixFromBytes(bytes)
 	}
@@ -161,13 +162,13 @@ func newKey[T comparable, TP keyPayloadConstraint[T]](components ...string) (kt 
 func parseKey[T comparable, TP keyPayloadConstraint[T]](key string) (kt KeyType[T, TP], err error) {
 	components := strings.Split(key, "-")
 	if len(components) == 0 {
-		return kt, fmt.Errorf("expected a prefix for key %q", key)
+		return kt, errors.Errorf("expected a prefix for key %q", key)
 	}
 
 	// Validate and strip kind.
 	var payload TP = &kt.Payload
 	if components[0] != payload.Kind() {
-		return kt, fmt.Errorf("expected prefix %q for key %q", payload.Kind(), key)
+		return kt, errors.Errorf("expected prefix %q for key %q", payload.Kind(), key)
 	}
 	components = components[1:]
 
@@ -175,21 +176,21 @@ func parseKey[T comparable, TP keyPayloadConstraint[T]](key string) (kt KeyType[
 	randomness := payload.RandomBytes()
 	if randomness > 0 {
 		if len(components) == 0 {
-			return kt, fmt.Errorf("expected a suffix for key %q", key)
+			return kt, errors.Errorf("expected a suffix for key %q", key)
 		}
 		kt.Suffix = components[len(components)-1]
 		bytes, err := bytesFromSuffix(kt.Suffix)
 		if err != nil {
-			return kt, fmt.Errorf("expected a base36 suffix for key %q: %w", key, err)
+			return kt, errors.Wrapf(err, "expected a base36 suffix for key %q", key)
 		}
 		if len(bytes) != randomness {
-			return kt, fmt.Errorf("expected a suffix of %d bytes for key %q, not %d", randomness, key, len(kt.Suffix))
+			return kt, errors.Errorf("expected a suffix of %d bytes for key %q, not %d", randomness, key, len(kt.Suffix))
 		}
 		components = components[:len(components)-1]
 	}
 
 	if err := payload.Parse(components); err != nil {
-		return kt, fmt.Errorf("failed to parse payload for key %q: %w", key, err)
+		return kt, errors.Wrapf(err, "failed to parse payload for key %q", key)
 	}
 
 	return kt, nil

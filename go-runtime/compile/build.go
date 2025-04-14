@@ -2,7 +2,6 @@ package compile
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -15,6 +14,7 @@ import (
 	"strings"
 	"unicode"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
 	"github.com/block/scaffolder"
@@ -486,16 +486,16 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	if ongoingState.IsEmpty() {
 		buildDir := buildDir(config.Dir)
 		if err := os.RemoveAll(buildDir); err != nil {
-			return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("failed to clean build directory: %w", err))}
+			return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Wrap(err, "failed to clean build directory"))}
 		}
 	}
 
 	if err := filesTransaction.Begin(); err != nil {
-		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("could not start a file transaction: %w", err))}
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Wrap(err, "could not start a file transaction"))}
 	}
 	defer func() {
 		if terr := filesTransaction.End(); terr != nil {
-			buildErrors = append(buildErrors, buildErrorFromError(fmt.Errorf("failed to end file transaction: %w", terr)))
+			buildErrors = append(buildErrors, buildErrorFromError(errors.Wrap(terr, "failed to end file transaction")))
 		}
 		if _, hasErrs := islices.Find(buildErrors, func(berr builderrors.Error) bool { //nolint:errcheck
 			return berr.Level == builderrors.ERROR
@@ -509,7 +509,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	// Check dependencies
 	newDeps, imports, err := extractDependenciesAndImports(config)
 	if err != nil {
-		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("could not extract dependencies: %w", err))}
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Wrap(err, "could not extract dependencies"))}
 	}
 	importsChanged := ongoingState.checkIfImportsChanged(imports)
 	if !slices.Equal(islices.Sort(newDeps), islices.Sort(deps)) {
@@ -524,7 +524,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 
 	goVersion := runtime.Version()[2:]
 	if semver.Compare("v"+goVersion, "v"+goModVersion) < 0 {
-		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("go version %q is not recent enough for this module, needs minimum version %q", goVersion, goModVersion))}
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Errorf("go version %q is not recent enough for this module, needs minimum version %q", goVersion, goModVersion))}
 	}
 
 	funcs := maps.Clone(scaffoldFuncs)
@@ -533,7 +533,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 
 	err = os.MkdirAll(buildDir(config.Dir), 0750)
 	if err != nil {
-		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("failed to create build directory: %w", err))}
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Wrap(err, "failed to create build directory"))}
 	}
 
 	var sharedModulesPaths []string
@@ -549,7 +549,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		SharedModulesPaths: sharedModulesPaths,
 		IncludeMainPackage: mainPackageExists(config),
 	}, scaffolder.Exclude("^go.mod$"), scaffolder.Functions(funcs)); err != nil {
-		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("failed to scaffold zip: %w", err))}
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Wrap(err, "failed to scaffold zip"))}
 	}
 
 	// In parallel, extract schema and optimistically compile.
@@ -579,7 +579,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	// wait for schema extraction to complete
 	extractResult, err := (<-extractResultChan).Result()
 	if err != nil {
-		return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("could not extract schema: %w", err))}
+		return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Wrap(err, "could not extract schema"))}
 	}
 	// We do not fail yet if result has terminal errors. These errors may be due to missing templated files (queries.ftl.go).
 	// Instead we scaffold if needed and then re-extract the schema to see if the errors are resolved.
@@ -602,7 +602,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		logger.Debugf("Re-extracting schema after scaffolding")
 		extractResult, err = extract.Extract(config.Dir, sch)
 		if err != nil {
-			return moduleSch, false, []builderrors.Error{buildErrorFromError(fmt.Errorf("could not extract schema: %w", err))}
+			return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Wrap(err, "could not extract schema"))}
 		}
 	}
 	if builderrors.ContainsTerminalError(extractResult.Errors) {
@@ -646,10 +646,10 @@ func fileHashesForOptimisticCompilation(config moduleconfig.AbsModuleConfig) (wa
 	// Include every file that may change while scaffolding the build template or tidying.
 	hashes, err := watch.ComputeFileHashes(config.Dir, false, []string{filepath.Join(buildDirName, "go", "main", "*"), "go.mod", "go.tidy", ftlTypesFilename, ftlQueriesFilename})
 	if err != nil {
-		return nil, fmt.Errorf("could not calculate hashes for optimistic compilation: %w", err)
+		return nil, errors.Wrap(err, "could not calculate hashes for optimistic compilation")
 	}
 	if _, ok := hashes[filepath.Join(config.Dir, buildDirName, "go", "main", "main.go")]; !ok {
-		return nil, fmt.Errorf("main package not scaffolded yet")
+		return nil, errors.Errorf("main package not scaffolded yet")
 	}
 	return hashes, nil
 }
@@ -739,26 +739,26 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 	if mainModuleCtxChanged {
 		if err := internal.ScaffoldZip(buildTemplateFiles(), config.Dir, mctx, scaffolder.Exclude("^go.mod$"),
 			scaffolder.Functions(funcs)); err != nil {
-			return fmt.Errorf("failed to scaffold build template: %w", err)
+			return errors.Wrap(err, "failed to scaffold build template")
 		}
 		if len(mctx.QueriesCtx.Verbs) > 0 {
 			if err := internal.ScaffoldZip(queriesTemplateFiles(), config.Dir, mctx, scaffolder.Exclude("^go.mod$"),
 				scaffolder.Functions(funcs)); err != nil {
-				return fmt.Errorf("failed to scaffold queries template: %w", err)
+				return errors.Wrap(err, "failed to scaffold queries template")
 			}
 			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
-				return fmt.Errorf("failed to mark %s as modified: %w", ftlQueriesFilename, err)
+				return errors.Wrapf(err, "failed to mark %s as modified", ftlQueriesFilename)
 			}
 		} else if _, err := os.Stat(filepath.Join(config.Dir, ftlQueriesFilename)); err == nil && len(mctx.QueriesCtx.Verbs) == 0 && len(mctx.QueriesCtx.Data) == 0 {
 			if err := os.Remove(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
-				return fmt.Errorf("failed to delete %s: %w", ftlQueriesFilename, err)
+				return errors.Wrapf(err, "failed to delete %s", ftlQueriesFilename)
 			}
 			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
-				return fmt.Errorf("failed to mark %s as deleted: %w", ftlQueriesFilename, err)
+				return errors.Wrapf(err, "failed to mark %s as deleted", ftlQueriesFilename)
 			}
 		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlTypesFilename)); err != nil {
-			return fmt.Errorf("failed to mark %s as modified: %w", ftlTypesFilename, err)
+			return errors.Wrapf(err, "failed to mark %s as modified", ftlTypesFilename)
 		}
 	} else {
 		logger.Debugf("Skipped scaffolding build template")
@@ -772,7 +772,7 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 			return nil
 		}
 		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "mod", "tidy").RunStderrError(wgctx); err != nil {
-			return fmt.Errorf("%s: failed to tidy go.mod: %w", config.Dir, err)
+			return errors.Wrapf(err, "%s: failed to tidy go.mod", config.Dir)
 		}
 		fmtFiles := []string{ftlTypesFilename}
 		if _, err := os.Stat(filepath.Join(config.Dir, ftlQueriesFilename)); err == nil {
@@ -781,14 +781,14 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 		args := []string{"fmt"}
 		args = append(args, fmtFiles...)
 		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", args...).RunStderrError(wgctx); err != nil {
-			return fmt.Errorf("%s: failed to format module dir: %w", config.Dir, err)
+			return errors.Wrapf(err, "%s: failed to format module dir", config.Dir)
 		}
 		updatedFiles := []string{filepath.Join(config.Dir, "go.mod"), filepath.Join(config.Dir, "go.sum")}
 		for _, file := range fmtFiles {
 			updatedFiles = append(updatedFiles, filepath.Join(config.Dir, file))
 		}
 		if err := filesTransaction.ModifiedFiles(updatedFiles...); err != nil {
-			return fmt.Errorf("could not files as modified after tidying module package: %w", err)
+			return errors.Wrap(err, "could not files as modified after tidying module package")
 		}
 		return nil
 	})
@@ -798,17 +798,17 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 			return nil
 		}
 		if err := exec.Command(wgctx, log.Debug, mainDir, "go", "mod", "tidy").RunStderrError(wgctx); err != nil {
-			return fmt.Errorf("%s: failed to tidy go.mod: %w", mainDir, err)
+			return errors.Wrapf(err, "%s: failed to tidy go.mod", mainDir)
 		}
 		if err := exec.Command(wgctx, log.Debug, mainDir, "go", "fmt", "./...").RunStderrError(wgctx); err != nil {
-			return fmt.Errorf("%s: failed to format main dir: %w", mainDir, err)
+			return errors.Wrapf(err, "%s: failed to format main dir", mainDir)
 		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(mainDir, "go.mod"), filepath.Join(mainDir, "go.sum")); err != nil {
-			return fmt.Errorf("could not files as modified after tidying main package: %w", err)
+			return errors.Wrap(err, "could not files as modified after tidying main package")
 		}
 		return nil
 	})
-	return wg.Wait() //nolint:wrapcheck
+	return errors.WithStack(wg.Wait()) //nolint:wrapcheck
 }
 
 type mainDeploymentContextBuilder struct {
@@ -841,7 +841,7 @@ func buildMainDeploymentContext(sch *schema.Schema, result extract.Result, goMod
 		imports:                 imports(result.Module, false),
 		visited:                 sets.NewSet[string](),
 	}
-	return builder.build(goModVersion, ftlVersion, projectName, sharedModulesPaths, replacements)
+	return errors.WithStack2(builder.build(goModVersion, ftlVersion, projectName, sharedModulesPaths, replacements))
 }
 
 func (b *mainDeploymentContextBuilder) build(goModVersion, ftlVersion, projectName string,
@@ -870,7 +870,7 @@ func (b *mainDeploymentContextBuilder) build(goModVersion, ftlVersion, projectNa
 
 	err := b.visit(ctx, b.mainModule, b.mainModule, []schema.Node{})
 	if err != nil {
-		return mainDeploymentContext{}, err
+		return mainDeploymentContext{}, errors.WithStack(err)
 	}
 
 	slices.SortFunc(ctx.TypesCtx.SumTypes, func(a, b goSumType) int {
@@ -904,7 +904,7 @@ func writeLaunchScript(buildDir string) error {
 	fi
 	`), 0770) // #nosec
 	if err != nil {
-		return fmt.Errorf("failed to write launch script: %w", err)
+		return errors.Wrap(err, "failed to write launch script")
 	}
 	return nil
 }
@@ -921,20 +921,20 @@ func (b *mainDeploymentContextBuilder) visit(
 			if _, isQuery := n.GetQuery(); isQuery {
 				refName := module.Name + "." + n.Name
 				if b.visited.Contains(refName) {
-					return next()
+					return errors.WithStack(next())
 				}
 				b.visited.Add(refName)
 				isLocal := b.visitingMainModule(module.Name)
 				if isLocal {
 					verbs, data, err := b.getQueryDecls(n)
 					if err != nil {
-						return err
+						return errors.WithStack(err)
 					}
 					ctx.QueriesCtx.Verbs = append(ctx.QueriesCtx.Verbs, verbs...)
 					ctx.QueriesCtx.Data = append(ctx.QueriesCtx.Data, data...)
 					verb, err := b.getGoVerb(fmt.Sprintf("ftl/%s.%s", b.mainModule.Name, n.Name), n)
 					if err != nil {
-						return err
+						return errors.WithStack(err)
 					}
 					ctx.Verbs = append(ctx.Verbs, verb)
 				}
@@ -943,17 +943,17 @@ func (b *mainDeploymentContextBuilder) visit(
 			maybeResolved, maybeModule := b.sch.ResolveWithModule(n)
 			resolved, ok := maybeResolved.Get()
 			if !ok {
-				return next()
+				return errors.WithStack(next())
 			}
 			m, ok := maybeModule.Get()
 			if !ok {
-				return next()
+				return errors.WithStack(next())
 			}
 			// Check for infinite loop
 			for i, p := range parents {
 				if p == resolved {
 					named := slices.Collect(islices.FilterVariants[schema.Named](parents[i : len(parents)-1]))
-					return fmt.Errorf("cyclic references are not allowed: %s%s", strings.Join(islices.Map(named,
+					return errors.Errorf("cyclic references are not allowed: %s%s", strings.Join(islices.Map(named,
 						func(n schema.Named) string {
 							return module.Name + "." + n.GetName() + " refers to "
 						}), ""), n.String())
@@ -961,22 +961,22 @@ func (b *mainDeploymentContextBuilder) visit(
 			}
 			err := b.visit(ctx, m, resolved, parents)
 			if err != nil {
-				return err //nolint:wrapcheck
+				return errors.WithStack(err) //nolint:wrapcheck
 			}
-			return next()
+			return errors.WithStack(next())
 		default:
 		}
 
 		maybeGoType, _, err := b.getGoType(module, node)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		gotype, ok := maybeGoType.Get()
 		if !ok {
-			return next()
+			return errors.WithStack(next())
 		}
 		if b.visited.Contains(gotype.getNativeType().TypeName()) {
-			return next()
+			return errors.WithStack(next())
 		}
 		b.visited.Add(gotype.getNativeType().TypeName())
 
@@ -990,10 +990,10 @@ func (b *mainDeploymentContextBuilder) visit(
 		case goDBHandle:
 			ctx.Databases = append(ctx.Databases, n)
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 	if err != nil {
-		return err //nolint:wrapcheck
+		return errors.WithStack(err) //nolint:wrapcheck
 	}
 	return nil
 }
@@ -1006,13 +1006,13 @@ func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]queryV
 		case *schema.Verb:
 			verb, err := b.toQueryVerb(n)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			verbs = append(verbs, verb)
 		case *schema.Data:
 			refName := b.mainModule.Name + "." + n.Name
 			if b.visited.Contains(refName) {
-				return next()
+				return errors.WithStack(next())
 			}
 			b.visited.Add(refName)
 			data = append(data, n)
@@ -1020,21 +1020,21 @@ func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]queryV
 			maybeResolved, _ := b.sch.ResolveWithModule(n)
 			resolved, ok := maybeResolved.Get()
 			if !ok {
-				return next()
+				return errors.WithStack(next())
 			}
 			nestedVerbs, nestedData, err := b.getQueryDecls(resolved)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			verbs = append(verbs, nestedVerbs...)
 			data = append(data, nestedData...)
 		default:
 
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get query decls: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to get query decls")
 	}
 	return verbs, data, nil
 }
@@ -1050,16 +1050,16 @@ func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) (queryVerb
 		}
 	}
 	if dbRef == nil || dbRef.Name == "" {
-		return queryVerb{}, fmt.Errorf("missing database call for query verb %s", verb.Name)
+		return queryVerb{}, errors.Errorf("missing database call for query verb %s", verb.Name)
 	}
 
 	decl, ok := b.sch.Resolve(dbRef).Get()
 	if !ok {
-		return queryVerb{}, fmt.Errorf("could not resolve database %s used by query verb %s", dbRef.String(), verb.Name)
+		return queryVerb{}, errors.Errorf("could not resolve database %s used by query verb %s", dbRef.String(), verb.Name)
 	}
 	db, ok := decl.(*schema.Database)
 	if !ok {
-		return queryVerb{}, fmt.Errorf("declaration %s referenced by query verb %s is not a database", dbRef.String(), verb.Name)
+		return queryVerb{}, errors.Errorf("declaration %s referenced by query verb %s is not a database", dbRef.String(), verb.Name)
 	}
 
 	var params []string
@@ -1118,7 +1118,7 @@ func (b *mainDeploymentContextBuilder) getGoType(module *schema.Module, node sch
 		}
 		goverb, err := b.processVerb(n)
 		if err != nil {
-			return optional.None[goType](), isLocal, err
+			return optional.None[goType](), isLocal, errors.WithStack(err)
 		}
 		return optional.Some[goType](goverb), isLocal, nil
 
@@ -1128,7 +1128,7 @@ func (b *mainDeploymentContextBuilder) getGoType(module *schema.Module, node sch
 		}
 		st, err := b.processSumType(module, n)
 		if err != nil {
-			return optional.None[goType](), isLocal, err
+			return optional.None[goType](), isLocal, errors.WithStack(err)
 		}
 		return optional.Some[goType](st), isLocal, nil
 
@@ -1143,7 +1143,7 @@ func (b *mainDeploymentContextBuilder) getGoType(module *schema.Module, node sch
 		}
 		db, err := b.processDatabase(module.Name, n)
 		if err != nil {
-			return optional.None[goType](), isLocal, err
+			return optional.None[goType](), isLocal, errors.WithStack(err)
 		}
 		return optional.Some[goType](db), isLocal, nil
 
@@ -1158,7 +1158,7 @@ func (b *mainDeploymentContextBuilder) visitingMainModule(moduleName string) boo
 
 func (b *mainDeploymentContextBuilder) processSumType(module *schema.Module, enum *schema.Enum) (out goSumType, err error) {
 	defer func() {
-		err = wrapErrWithPos(err, enum.Pos, "")
+		err = errors.WithStack(wrapErrWithPos(err, enum.Pos, ""))
 	}()
 	moduleName := module.Name
 	var nt nativeType
@@ -1167,10 +1167,10 @@ func (b *mainDeploymentContextBuilder) processSumType(module *schema.Module, enu
 	} else if nn, ok := b.nativeNames[enum]; ok {
 		nt, err = b.getNativeType(nn)
 	} else {
-		return goSumType{}, fmt.Errorf("missing native name for enum %s", enum.Name)
+		return goSumType{}, errors.Errorf("missing native name for enum %s", enum.Name)
 	}
 	if err != nil {
-		return goSumType{}, err
+		return goSumType{}, errors.WithStack(err)
 	}
 
 	variants := make([]goSumTypeVariant, 0, len(enum.Variants))
@@ -1181,15 +1181,15 @@ func (b *mainDeploymentContextBuilder) processSumType(module *schema.Module, enu
 		} else if nn, ok := b.nativeNames[v]; ok {
 			vnt, err = b.getNativeType(nn)
 		} else {
-			return goSumType{}, wrapErrWithPos(fmt.Errorf("missing native name for enum variant %s", enum.Name), v.Pos, "")
+			return goSumType{}, errors.WithStack(wrapErrWithPos(errors.Errorf("missing native name for enum variant %s", enum.Name), v.Pos, ""))
 		}
 		if err != nil {
-			return goSumType{}, wrapErrWithPos(err, v.Pos, "")
+			return goSumType{}, errors.WithStack(wrapErrWithPos(err, v.Pos, ""))
 		}
 
 		typ, err := b.getGoSchemaType(v.Value.(*schema.TypeValue).Value)
 		if err != nil {
-			return goSumType{}, wrapErrWithPos(err, v.Pos, "")
+			return goSumType{}, errors.WithStack(wrapErrWithPos(err, v.Pos, ""))
 		}
 		variants = append(variants, goSumTypeVariant{
 			Type:       typ,
@@ -1222,27 +1222,27 @@ func (b *mainDeploymentContextBuilder) processVerb(verb *schema.Verb) (goVerb, e
 	var resources []verbResource
 	verbResourceParams, ok := b.verbResourceParamOrders[verb]
 	if !ok {
-		return goVerb{}, fmt.Errorf("missing verb resource param order for %s", verb.Name)
+		return goVerb{}, errors.Errorf("missing verb resource param order for %s", verb.Name)
 	}
 	for _, m := range verbResourceParams {
 		resource, err := b.getVerbResource(verb, m)
 		if err != nil {
-			return goVerb{}, err
+			return goVerb{}, errors.WithStack(err)
 		}
 		resources = append(resources, resource)
 	}
 	nativeName, ok := b.nativeNames[verb]
 	if !ok {
-		return goVerb{}, fmt.Errorf("missing native name for verb %s", verb.Name)
+		return goVerb{}, errors.Errorf("missing native name for verb %s", verb.Name)
 	}
-	return b.getGoVerb(nativeName, verb, resources...)
+	return errors.WithStack2(b.getGoVerb(nativeName, verb, resources...))
 }
 
 func (b *mainDeploymentContextBuilder) getVerbResource(verb *schema.Verb, param common.VerbResourceParam) (verbResource, error) {
 	ref := param.Ref
 	resolved, ok := b.sch.Resolve(ref).Get()
 	if !ok {
-		return nil, fmt.Errorf("failed to resolve %s resource, used by %s.%s", ref,
+		return nil, errors.Errorf("failed to resolve %s resource, used by %s.%s", ref,
 			b.mainModule.Name, verb.Name)
 	}
 
@@ -1250,16 +1250,16 @@ func (b *mainDeploymentContextBuilder) getVerbResource(verb *schema.Verb, param 
 	case *schema.MetadataCalls:
 		callee, ok := resolved.(*schema.Verb)
 		if !ok {
-			return verbClient{}, fmt.Errorf("%s.%s uses %s client, but %s is not a verb",
+			return verbClient{}, errors.Errorf("%s.%s uses %s client, but %s is not a verb",
 				b.mainModule.Name, verb.Name, ref, ref)
 		}
 		calleeNativeName, ok := b.nativeNames[ref]
 		if !ok {
-			return verbClient{}, fmt.Errorf("missing native name for verb client %s", ref)
+			return verbClient{}, errors.Errorf("missing native name for verb client %s", ref)
 		}
 		calleeverb, err := b.getGoVerb(calleeNativeName, callee)
 		if err != nil {
-			return verbClient{}, err
+			return verbClient{}, errors.WithStack(err)
 		}
 		return verbClient{
 			calleeverb,
@@ -1267,54 +1267,54 @@ func (b *mainDeploymentContextBuilder) getVerbResource(verb *schema.Verb, param 
 	case *schema.MetadataDatabases:
 		db, ok := resolved.(*schema.Database)
 		if !ok {
-			return goDBHandle{}, fmt.Errorf("%s.%s uses %s database handle, but %s is not a database",
+			return goDBHandle{}, errors.Errorf("%s.%s uses %s database handle, but %s is not a database",
 				b.mainModule.Name, verb.Name, ref, ref)
 		}
-		return b.processDatabase(ref.Module, db)
+		return errors.WithStack2(b.processDatabase(ref.Module, db))
 	case *schema.MetadataPublisher:
 		topic, ok := resolved.(*schema.Topic)
 		if !ok {
-			return goTopicHandle{}, fmt.Errorf("%s.%s uses %s topic handle, but %s is not a topic",
+			return goTopicHandle{}, errors.Errorf("%s.%s uses %s topic handle, but %s is not a topic",
 				b.mainModule.Name, verb.Name, ref, ref)
 		}
-		return b.processTopic(ref.Module, ref, topic)
+		return errors.WithStack2(b.processTopic(ref.Module, ref, topic))
 	case *schema.MetadataConfig:
 		cfg, ok := resolved.(*schema.Config)
 		if !ok {
-			return goConfigHandle{}, fmt.Errorf("%s.%s uses %s config handle, but %s is not a config",
+			return goConfigHandle{}, errors.Errorf("%s.%s uses %s config handle, but %s is not a config",
 				b.mainModule.Name, verb.Name, ref, ref)
 		}
-		return b.processConfig(ref.Module, ref, cfg)
+		return errors.WithStack2(b.processConfig(ref.Module, ref, cfg))
 	case *schema.MetadataSecrets:
 		secret, ok := resolved.(*schema.Secret)
 		if !ok {
-			return goSecretHandle{}, fmt.Errorf("%s.%s uses %s secret handle, but %s is not a secret",
+			return goSecretHandle{}, errors.Errorf("%s.%s uses %s secret handle, but %s is not a secret",
 				b.mainModule.Name, verb.Name, ref, ref)
 		}
-		return b.processSecret(ref.Module, ref, secret)
+		return errors.WithStack2(b.processSecret(ref.Module, ref, secret))
 
 	default:
-		return nil, fmt.Errorf("unsupported resource type for verb %q", verb.Name)
+		return nil, errors.Errorf("unsupported resource type for verb %q", verb.Name)
 	}
 }
 
 func (b *mainDeploymentContextBuilder) processConfig(moduleName string, ref *schema.Ref, config *schema.Config) (out goConfigHandle, err error) {
 	defer func() {
-		err = wrapErrWithPos(err, config.Pos, "")
+		err = errors.WithStack(wrapErrWithPos(err, config.Pos, ""))
 	}()
 	nn, ok := b.nativeNames[ref]
 	if !ok {
-		return goConfigHandle{}, fmt.Errorf("missing native name for config %s.%s", moduleName, config.Name)
+		return goConfigHandle{}, errors.Errorf("missing native name for config %s.%s", moduleName, config.Name)
 	}
 
 	nt, err := b.getNativeType(nn)
 	if err != nil {
-		return goConfigHandle{}, err
+		return goConfigHandle{}, errors.WithStack(err)
 	}
 
 	ct, err := b.getGoSchemaType(config.Type)
 	if err != nil {
-		return goConfigHandle{}, fmt.Errorf("failed to get config type for %s.%s: %w", moduleName, config.Name, err)
+		return goConfigHandle{}, errors.Wrapf(err, "failed to get config type for %s.%s", moduleName, config.Name)
 	}
 	return goConfigHandle{
 		Name:       config.Name,
@@ -1326,21 +1326,21 @@ func (b *mainDeploymentContextBuilder) processConfig(moduleName string, ref *sch
 
 func (b *mainDeploymentContextBuilder) processSecret(moduleName string, ref *schema.Ref, secret *schema.Secret) (out goSecretHandle, err error) {
 	defer func() {
-		err = wrapErrWithPos(err, secret.Pos, "")
+		err = errors.WithStack(wrapErrWithPos(err, secret.Pos, ""))
 	}()
 	nn, ok := b.nativeNames[ref]
 	if !ok {
-		return goSecretHandle{}, fmt.Errorf("missing native name for secret %s.%s", moduleName, secret.Name)
+		return goSecretHandle{}, errors.Errorf("missing native name for secret %s.%s", moduleName, secret.Name)
 	}
 
 	nt, err := b.getNativeType(nn)
 	if err != nil {
-		return goSecretHandle{}, err
+		return goSecretHandle{}, errors.WithStack(err)
 	}
 
 	st, err := b.getGoSchemaType(secret.Type)
 	if err != nil {
-		return goSecretHandle{}, fmt.Errorf("failed to get secret type for %s.%s: %w", moduleName, secret.Name, err)
+		return goSecretHandle{}, errors.Wrapf(err, "failed to get secret type for %s.%s", moduleName, secret.Name)
 	}
 	return goSecretHandle{
 		Name:       secret.Name,
@@ -1353,7 +1353,7 @@ func (b *mainDeploymentContextBuilder) processSecret(moduleName string, ref *sch
 func (b *mainDeploymentContextBuilder) processDatabase(moduleName string, db *schema.Database) (goDBHandle, error) {
 	nt, err := b.getNativeType(fmt.Sprintf("ftl/%s.%s", b.mainModule.Name, fmt.Sprintf("%sConfig", strings.Title(db.Name))))
 	if err != nil {
-		return goDBHandle{}, err
+		return goDBHandle{}, errors.WithStack(err)
 	}
 	return goDBHandle{
 		Name:       db.Name,
@@ -1365,35 +1365,35 @@ func (b *mainDeploymentContextBuilder) processDatabase(moduleName string, db *sc
 
 func (b *mainDeploymentContextBuilder) processTopic(moduleName string, ref *schema.Ref, topic *schema.Topic) (out goTopicHandle, err error) {
 	defer func() {
-		err = wrapErrWithPos(err, topic.Pos, "")
+		err = errors.WithStack(wrapErrWithPos(err, topic.Pos, ""))
 	}()
 	nn, ok := b.nativeNames[ref]
 	if !ok {
-		return goTopicHandle{}, fmt.Errorf("missing native name for topic %s.%s", moduleName, topic.Name)
+		return goTopicHandle{}, errors.Errorf("missing native name for topic %s.%s", moduleName, topic.Name)
 	}
 
 	nt, err := b.getNativeType(nn)
 	if err != nil {
-		return goTopicHandle{}, err
+		return goTopicHandle{}, errors.WithStack(err)
 	}
 
 	et, err := b.getGoSchemaType(topic.Event)
 	if err != nil {
-		return goTopicHandle{}, fmt.Errorf("failed to get event type for topic %s.%s: %w", moduleName, topic.Name, err)
+		return goTopicHandle{}, errors.Wrapf(err, "failed to get event type for topic %s.%s", moduleName, topic.Name)
 	}
 	mapperQualifiedNames, ok := b.topicMapperNames[topic]
 	if !ok {
-		return goTopicHandle{}, fmt.Errorf("missing topic partition mapper name for topic %s.%s", moduleName, topic.Name)
+		return goTopicHandle{}, errors.Errorf("missing topic partition mapper name for topic %s.%s", moduleName, topic.Name)
 	}
 	mt, err := b.getNativeType(mapperQualifiedNames.Mapper)
 	if err != nil {
-		return goTopicHandle{}, fmt.Errorf("failed to get event type for topic partition mapper %s.%s: %w", moduleName, topic.Name, err)
+		return goTopicHandle{}, errors.Wrapf(err, "failed to get event type for topic partition mapper %s.%s", moduleName, topic.Name)
 	}
 	var mapperAssociatedType optional.Option[nativeType]
 	if a, ok := mapperQualifiedNames.AssociatedType.Get(); ok {
 		at, err := b.getNativeType(a)
 		if err != nil {
-			return goTopicHandle{}, fmt.Errorf("failed to get associated type for topic partition mapper %s.%s: %w", moduleName, topic.Name, err)
+			return goTopicHandle{}, errors.Wrapf(err, "failed to get associated type for topic partition mapper %s.%s", moduleName, topic.Name)
 		}
 		mapperAssociatedType = optional.Some(at)
 	}
@@ -1411,26 +1411,26 @@ func (b *mainDeploymentContextBuilder) processTopic(moduleName string, ref *sche
 func (b *mainDeploymentContextBuilder) getGoVerb(nativeName string, verb *schema.Verb, resources ...verbResource) (out goVerb, err error) {
 	nt, err := b.getNativeType(nativeName)
 	if err != nil {
-		return goVerb{}, wrapErrWithPos(err, verb.Pos, "")
+		return goVerb{}, errors.WithStack(wrapErrWithPos(err, verb.Pos, ""))
 	}
 	req, err := b.getGoSchemaType(verb.Request)
 	if err != nil {
-		return goVerb{}, wrapErrWithPos(err, verb.Pos, "could not parse request type")
+		return goVerb{}, errors.WithStack(wrapErrWithPos(err, verb.Pos, "could not parse request type"))
 	}
 	resp, err := b.getGoSchemaType(verb.Response)
 	if err != nil {
-		return goVerb{}, wrapErrWithPos(err, verb.Pos, "could not parse response type")
+		return goVerb{}, errors.WithStack(wrapErrWithPos(err, verb.Pos, "could not parse response type"))
 	}
 	txn := optional.None[string]()
 	if verb.IsTransaction() {
 		dbSet := verb.ResolveDatabaseUses(b.sch, b.mainModule.Name)
 		dbs := dbSet.ToSlice()
 		if len(dbs) == 0 {
-			return goVerb{}, fmt.Errorf("transaction verbs must access a datasource; %s.%s does not access any",
+			return goVerb{}, errors.Errorf("transaction verbs must access a datasource; %s.%s does not access any",
 				b.mainModule.Name, verb.Name)
 		}
 		if len(dbs) > 1 {
-			return goVerb{}, fmt.Errorf("transaction verbs can only access a single datasource; %s.%s accesses %d: %v",
+			return goVerb{}, errors.Errorf("transaction verbs can only access a single datasource; %s.%s accesses %d: %v",
 				b.mainModule.Name, verb.Name, len(dbs), dbs)
 		}
 		txn = optional.Some(dbs[0].Name)
@@ -1449,16 +1449,16 @@ func (b *mainDeploymentContextBuilder) getGoVerb(nativeName string, verb *schema
 func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goSchemaType, err error) {
 	defer func() {
 		if typ != nil {
-			err = wrapErrWithPos(err, typ.Position(), "")
+			err = errors.WithStack(wrapErrWithPos(err, typ.Position(), ""))
 		}
 	}()
 	typeName, err := genTypeWithNativeNames(nil, typ, b.nativeNames)
 	if err != nil {
-		return goSchemaType{}, err
+		return goSchemaType{}, errors.WithStack(err)
 	}
 	localTypeName, err := genTypeWithNativeNames(b.mainModule, typ, b.nativeNames)
 	if err != nil {
-		return goSchemaType{}, err
+		return goSchemaType{}, errors.WithStack(err)
 	}
 	result := goSchemaType{
 		TypeName:      typeName,
@@ -1472,7 +1472,7 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 	if ok {
 		nt, err := b.getNativeType(nn)
 		if err != nil {
-			return goSchemaType{}, err
+			return goSchemaType{}, errors.WithStack(err)
 		}
 		result.nativeType = optional.Some(nt)
 	}
@@ -1486,7 +1486,7 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 		if !result.nativeType.Ok() {
 			nt, err := b.getNativeType("ftl/" + t.Module + "." + t.Name)
 			if err != nil {
-				return goSchemaType{}, err
+				return goSchemaType{}, errors.WithStack(err)
 			}
 			result.nativeType = optional.Some(nt)
 		}
@@ -1494,7 +1494,7 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 			for _, tp := range t.TypeParameters {
 				_r, err := b.getGoSchemaType(tp)
 				if err != nil {
-					return goSchemaType{}, err
+					return goSchemaType{}, errors.WithStack(err)
 				}
 				result.children = append(result.children, _r)
 			}
@@ -1502,31 +1502,31 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 	case *schema.Time:
 		nt, err := b.getNativeType("time.Time")
 		if err != nil {
-			return goSchemaType{}, err
+			return goSchemaType{}, errors.WithStack(err)
 		}
 		result.nativeType = optional.Some(nt)
 	case *schema.Array:
 		e, err := b.getGoSchemaType(t.Element)
 		if err != nil {
-			return goSchemaType{}, err
+			return goSchemaType{}, errors.WithStack(err)
 		}
 		result.children = append(result.children, e)
 	case *schema.Map:
 		k, err := b.getGoSchemaType(t.Key)
 		if err != nil {
-			return goSchemaType{}, err
+			return goSchemaType{}, errors.WithStack(err)
 		}
 		result.children = append(result.children, k)
 
 		v, err := b.getGoSchemaType(t.Value)
 		if err != nil {
-			return goSchemaType{}, err
+			return goSchemaType{}, errors.WithStack(err)
 		}
 		result.children = append(result.children, v)
 	case *schema.Optional:
 		e, err := b.getGoSchemaType(t.Type)
 		if err != nil {
-			return goSchemaType{}, err
+			return goSchemaType{}, errors.WithStack(err)
 		}
 		result.children = append(result.children, e)
 	default:
@@ -1538,7 +1538,7 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 func (b *mainDeploymentContextBuilder) getNativeType(qualifiedName string) (nativeType, error) {
 	nt, err := nativeTypeFromQualifiedName(qualifiedName)
 	if err != nil {
-		return nativeType{}, err
+		return nativeType{}, errors.WithStack(err)
 	}
 	// we already have an alias name for this import path
 	if alias, ok := b.imports[nt.importPath]; ok {
@@ -1746,7 +1746,7 @@ func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames ex
 				}
 				tpDesc, err := genTypeWithNativeNames(module, tp, nativeNames)
 				if err != nil {
-					return "", err
+					return "", errors.WithStack(err)
 				}
 				desc += tpDesc
 			}
@@ -1766,25 +1766,25 @@ func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames ex
 	case *schema.Array:
 		element, err := genTypeWithNativeNames(module, t.Element, nativeNames)
 		if err != nil {
-			return "", err
+			return "", errors.WithStack(err)
 		}
 		return "[]" + element, nil
 
 	case *schema.Map:
 		key, err := genTypeWithNativeNames(module, t.Key, nativeNames)
 		if err != nil {
-			return "", err
+			return "", errors.WithStack(err)
 		}
 		value, err := genTypeWithNativeNames(module, t.Value, nativeNames)
 		if err != nil {
-			return "", err
+			return "", errors.WithStack(err)
 		}
 		return "map[" + key + "]" + value, nil
 
 	case *schema.Optional:
 		typ, err := genTypeWithNativeNames(module, t.Type, nativeNames)
 		if err != nil {
-			return "", err
+			return "", errors.WithStack(err)
 		}
 		return "ftl.Option[" + typ + "]", nil
 
@@ -1800,19 +1800,19 @@ func genTypeWithNativeNames(module *schema.Module, t schema.Type, nativeNames ex
 	case *schema.Data, *schema.Enum, *schema.TypeAlias:
 		panic(fmt.Sprintf("unsupported type %T, this should never be reached", t))
 	}
-	return "", fmt.Errorf("unsupported type %T", t)
+	return "", errors.Errorf("unsupported type %T", t)
 }
 
 // Update go.mod file to include the FTL version and return the Go version and any replace directives.
 func updateGoModule(goModPath string, expectedModule string, transaction optional.Option[watch.ModifyFilesTransaction]) (replacements []*modfile.Replace, goVersion string, err error) {
 	goModFile, replacements, err := goModFileWithReplacements(goModPath)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to update %s: %w", goModPath, err)
+		return nil, "", errors.Wrapf(err, "failed to update %s", goModPath)
 	}
 
 	// Validate module name matches
 	if !strings.HasPrefix(goModFile.Module.Mod.Path, "ftl/"+expectedModule) {
-		return nil, "", fmt.Errorf("module name mismatch: expected 'ftl/%s' but got '%s' in go.mod",
+		return nil, "", errors.Errorf("module name mismatch: expected 'ftl/%s' but got '%s' in go.mod",
 			expectedModule, goModFile.Module.Mod.Path)
 	}
 
@@ -1823,27 +1823,27 @@ func updateGoModule(goModPath string, expectedModule string, transaction optiona
 	if tx, ok := transaction.Get(); ok {
 		err := tx.ModifiedFiles(goModPath)
 		if err != nil {
-			return nil, "", fmt.Errorf("failed to add go.mod to transaction %w", err)
+			return nil, "", errors.Wrap(err, "failed to add go.mod to transactio")
 		}
 	}
 
 	if err := goModFile.AddRequire("github.com/block/ftl", "v"+ftl.Version); err != nil {
-		return nil, "", fmt.Errorf("failed to add github.com/block/ftl to %s: %w", goModPath, err)
+		return nil, "", errors.Wrapf(err, "failed to add github.com/block/ftl to %s", goModPath)
 	}
 
 	// Atomically write the updated go.mod file.
 	tmpFile, err := os.CreateTemp(filepath.Dir(goModPath), ".go.mod-")
 	if err != nil {
-		return nil, "", fmt.Errorf("update %s: %w", goModPath, err)
+		return nil, "", errors.Wrapf(err, "update %s", goModPath)
 	}
 	defer os.Remove(tmpFile.Name()) // Delete the temp file if we error.
 	defer tmpFile.Close()
 	goModBytes := modfile.Format(goModFile.Syntax)
 	if _, err := tmpFile.Write(goModBytes); err != nil {
-		return nil, "", fmt.Errorf("update %s: %w", goModPath, err)
+		return nil, "", errors.Wrapf(err, "update %s", goModPath)
 	}
 	if err := os.Rename(tmpFile.Name(), goModPath); err != nil {
-		return nil, "", fmt.Errorf("update %s: %w", goModPath, err)
+		return nil, "", errors.Wrapf(err, "update %s", goModPath)
 	}
 	return replacements, goModFile.Go.Version, nil
 }
@@ -1851,11 +1851,11 @@ func updateGoModule(goModPath string, expectedModule string, transaction optiona
 func goModFileWithReplacements(goModPath string) (*modfile.File, []*modfile.Replace, error) {
 	goModBytes, err := os.ReadFile(goModPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read %s: %w", goModPath, err)
+		return nil, nil, errors.Wrapf(err, "failed to read %s", goModPath)
 	}
 	goModFile, err := modfile.Parse(goModPath, goModBytes, nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse %s: %w", goModPath, err)
+		return nil, nil, errors.Wrapf(err, "failed to parse %s", goModPath)
 	}
 
 	replacements := reflect.DeepCopy(goModFile.Replace)
@@ -1863,7 +1863,7 @@ func goModFileWithReplacements(goModPath string) (*modfile.File, []*modfile.Repl
 		if strings.HasPrefix(r.New.Path, ".") {
 			abs, err := filepath.Abs(filepath.Join(filepath.Dir(goModPath), r.New.Path))
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, errors.WithStack(err)
 			}
 			replacements[i].New.Path = abs
 		}
@@ -1886,7 +1886,7 @@ func shouldUpdateVersion(goModfile *modfile.File) bool {
 func nativeTypeFromQualifiedName(qualifiedName string) (nativeType, error) {
 	lastDotIndex := strings.LastIndex(qualifiedName, ".")
 	if lastDotIndex == -1 {
-		return nativeType{}, fmt.Errorf("invalid qualified type format %q", qualifiedName)
+		return nativeType{}, errors.Errorf("invalid qualified type format %q", qualifiedName)
 	}
 
 	pkgPath := qualifiedName[:lastDotIndex]
@@ -1964,7 +1964,7 @@ func imports(m *schema.Module, aliasesMustBeExported bool) map[string]string {
 
 		case *schema.TypeAlias:
 			if aliasesMustBeExported && !n.IsExported() {
-				return next()
+				return errors.WithStack(next())
 			}
 			if nt, ok := nativeTypeForWidenedType(n); ok {
 				if existing, ok := extraImports[nt.importPath]; !ok || !existing.importAlias {
@@ -1973,7 +1973,7 @@ func imports(m *schema.Module, aliasesMustBeExported bool) map[string]string {
 			}
 		default:
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 
 	return addImports(imports, maps.Values(extraImports)...)
@@ -2049,7 +2049,7 @@ func wrapErrWithPos(err error, pos schema.Position, format string) error {
 	}
 	var zero = schema.Position{}
 	if pos == zero {
-		return err
+		return errors.WithStack(err)
 	}
-	return builderrors.Wrapf(err, pos.ToErrorPos(), format)
+	return errors.WithStack(builderrors.Wrapf(err, pos.ToErrorPos(), format))
 }

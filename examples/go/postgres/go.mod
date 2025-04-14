@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/alecthomas/assert/v2 v2.11.0
+	github.com/alecthomas/errors v0.7.0
 	github.com/block/ftl v0.189.0
 )
 

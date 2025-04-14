@@ -3,10 +3,10 @@
 package testdata
 
 import (
-	"errors"
 	"net/url"
 	"time"
 
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/cmd/go2proto/testdata/external"

@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl"
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/profiles"
@@ -37,7 +39,7 @@ func (p profileInitCmd) Run(
 		Root:          p.Dir,
 	}, secretsRegistry, configRegistry)
 	if err != nil {
-		return fmt.Errorf("init project: %w", err)
+		return errors.Wrap(err, "init project")
 	}
 	fmt.Printf("Project initialized in %s.\n", p.Dir)
 	return nil
@@ -48,11 +50,11 @@ type profileListCmd struct{}
 func (profileListCmd) Run(project *profiles.Project) error {
 	active, err := project.ActiveProfile()
 	if err != nil {
-		return fmt.Errorf("active profile: %w", err)
+		return errors.Wrap(err, "active profile")
 	}
 	p, err := project.List()
 	if err != nil {
-		return fmt.Errorf("list profiles: %w", err)
+		return errors.Wrap(err, "list profiles")
 	}
 	for _, profile := range p {
 		attrs := []string{}
@@ -80,7 +82,7 @@ type profileDefaultCmd struct {
 func (p profileDefaultCmd) Run(project *profiles.Project) error {
 	err := project.SetDefault(p.Profile)
 	if err != nil {
-		return fmt.Errorf("set default profile: %w", err)
+		return errors.Wrap(err, "set default profile")
 	}
 	return nil
 }
@@ -92,7 +94,7 @@ type profileSwitchCmd struct {
 func (p profileSwitchCmd) Run(project *profiles.Project) error {
 	err := project.Switch(p.Profile)
 	if err != nil {
-		return fmt.Errorf("switch profile: %w", err)
+		return errors.Wrap(err, "switch profile")
 	}
 	return nil
 }
@@ -147,7 +149,7 @@ func (p profileNewCmd) Run(project *profiles.Project) error {
 		Config: config,
 	})
 	if err != nil {
-		return fmt.Errorf("new profile: %w", err)
+		return errors.Wrap(err, "new profile")
 	}
 	return nil
 }

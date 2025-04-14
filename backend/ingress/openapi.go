@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/go-openapi/spec"
 
 	"github.com/block/ftl/common/schema"
@@ -66,7 +67,7 @@ func SchemaToOpenAPI(sch *schema.Schema) (*spec.Swagger, error) {
 
 			// Add path to OpenAPI spec
 			if err := addPathFromVerb(swagger, sch, module.Name, verb, ingressMeta); err != nil {
-				return nil, fmt.Errorf("failed to add path for verb %s.%s: %w", module.Name, verb.Name, err)
+				return nil, errors.Wrapf(err, "failed to add path for verb %s.%s", module.Name, verb.Name)
 			}
 		}
 	}
@@ -108,12 +109,12 @@ func addPathFromVerb(swagger *spec.Swagger, sch *schema.Schema, moduleName strin
 
 	// Process request parameters
 	if err := processRequestParameters(operation, sch, verb); err != nil {
-		return fmt.Errorf("failed to process request parameters: %w", err)
+		return errors.Wrap(err, "failed to process request parameters")
 	}
 
 	// Process response
 	if err := processResponse(operation, sch, verb); err != nil {
-		return fmt.Errorf("failed to process response: %w", err)
+		return errors.Wrap(err, "failed to process response")
 	}
 
 	// Add the operation to the path item based on the HTTP method
@@ -127,7 +128,7 @@ func addPathFromVerb(swagger *spec.Swagger, sch *schema.Schema, moduleName strin
 	case "DELETE":
 		pathItem.Delete = operation
 	default:
-		return fmt.Errorf("unsupported HTTP method: %s", ingressMeta.Method)
+		return errors.Errorf("unsupported HTTP method: %s", ingressMeta.Method)
 	}
 
 	// Update the path in the swagger spec
@@ -140,13 +141,13 @@ func processRequestParameters(operation *spec.Operation, sch *schema.Schema, ver
 	// Get the request type
 	requestRef, ok := verb.Request.(*schema.Ref)
 	if !ok {
-		return fmt.Errorf("request type must be a reference")
+		return errors.Errorf("request type must be a reference")
 	}
 
 	// Resolve the request type
 	httpRequestData, err := sch.ResolveMonomorphised(requestRef)
 	if err != nil {
-		return fmt.Errorf("failed to resolve request type: %w", err)
+		return errors.Wrap(err, "failed to resolve request type")
 	}
 
 	// Process path parameters
@@ -154,7 +155,7 @@ func processRequestParameters(operation *spec.Operation, sch *schema.Schema, ver
 	if pathParamsField != nil && !isUnitType(pathParamsField.Type) {
 		pathParamsType, err := resolveType(sch, pathParamsField.Type)
 		if err != nil {
-			return fmt.Errorf("failed to resolve path parameters type: %w", err)
+			return errors.Wrap(err, "failed to resolve path parameters type")
 		}
 		if pathParamsData, ok := pathParamsType.(*schema.Data); ok {
 			for _, field := range pathParamsData.Fields {
@@ -178,7 +179,7 @@ func processRequestParameters(operation *spec.Operation, sch *schema.Schema, ver
 	if queryParamsField != nil && !isUnitType(queryParamsField.Type) {
 		queryParamsType, err := resolveType(sch, queryParamsField.Type)
 		if err != nil {
-			return fmt.Errorf("failed to resolve query parameters type: %w", err)
+			return errors.Wrap(err, "failed to resolve query parameters type")
 		}
 		if queryParamsData, ok := queryParamsType.(*schema.Data); ok {
 			for _, field := range queryParamsData.Fields {
@@ -220,13 +221,13 @@ func processResponse(operation *spec.Operation, sch *schema.Schema, verb *schema
 	// Get the response type
 	responseRef, ok := verb.Response.(*schema.Ref)
 	if !ok {
-		return fmt.Errorf("response type must be a reference")
+		return errors.Errorf("response type must be a reference")
 	}
 
 	// Resolve the response type
 	httpResponseData, err := sch.ResolveMonomorphised(responseRef)
 	if err != nil {
-		return fmt.Errorf("failed to resolve response type: %w", err)
+		return errors.Wrap(err, "failed to resolve response type")
 	}
 
 	// Process success response
@@ -565,12 +566,12 @@ func resolveType(sch *schema.Schema, t schema.Type) (schema.Node, error) {
 	if ref, ok := t.(*schema.Ref); ok {
 		node, ok := sch.Resolve(ref).Get()
 		if !ok {
-			return nil, fmt.Errorf("failed to resolve reference %s", ref)
+			return nil, errors.Errorf("failed to resolve reference %s", ref)
 		}
 		return node, nil
 	}
 	if opt, ok := t.(*schema.Optional); ok {
-		return resolveType(sch, opt.Type)
+		return errors.WithStack2(resolveType(sch, opt.Type))
 	}
-	return nil, fmt.Errorf("cannot resolve type %T", t)
+	return nil, errors.Errorf("cannot resolve type %T", t)
 }

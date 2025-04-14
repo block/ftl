@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 
@@ -187,7 +188,7 @@ func ExtractFuncForDecl(t schema.Decl) (ExtractDeclFunc[schema.Decl, ast.Node], 
 	if f, ok := extractorRegistery.Load(reflect.TypeOf(t)); ok {
 		return f, nil
 	}
-	return nil, fmt.Errorf("no extractor registered for %T", t)
+	return nil, errors.Errorf("no extractor registered for %T", t)
 }
 
 // GoPosToSchemaPos converts a Go token.Pos to a schema.Position.
@@ -200,7 +201,7 @@ func GoPosToSchemaPos(fset *token.FileSet, pos token.Pos) schema.Position {
 func FtlModuleFromGoPackage(pkgPath string) (string, error) {
 	parts := strings.Split(pkgPath, "/")
 	if parts[0] != "ftl" {
-		return "", fmt.Errorf("package %q is not in the ftl namespace", pkgPath)
+		return "", errors.Errorf("package %q is not in the ftl namespace", pkgPath)
 	}
 	return strings.TrimSuffix(parts[1], "_test"), nil
 }

@@ -2,9 +2,9 @@ package compile
 
 import (
 	"context"
-	"fmt"
 	"maps"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/block/scaffolder"
 
@@ -29,11 +29,11 @@ func GenerateStubs(ctx context.Context, dir string, moduleSch *schema.Module, co
 	funcs := maps.Clone(scaffoldFuncs)
 	err := internal.ScaffoldZip(externalModuleTemplateFiles(), dir, context, scaffolder.Functions(funcs))
 	if err != nil {
-		return fmt.Errorf("failed to scaffold zip: %w", err)
+		return errors.Wrap(err, "failed to scaffold zip")
 	}
 
 	if err := exec.Command(ctx, log.Debug, dir, "go", "mod", "tidy").RunBuffered(ctx); err != nil {
-		return fmt.Errorf("failed to tidy go.mod: %w", err)
+		return errors.Wrap(err, "failed to tidy go.mod")
 	}
 	return nil
 }

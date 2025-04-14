@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -48,19 +49,19 @@ func initPubSubMetrics() (*PubSubMetrics, error) {
 		counterName,
 		metric.WithUnit("1"),
 		metric.WithDescription("the number of times that an event is published to a topic")); err != nil {
-		return nil, wrapErr(counterName, err)
+		return nil, errors.WithStack(wrapErr(counterName, err))
 	}
 
 	signalName := fmt.Sprintf("%s.consumed", meterName)
 	if result.consumed, err = meter.Int64Counter(signalName, metric.WithUnit("1"),
 		metric.WithDescription("the number of times that the controller tries completing an async call")); err != nil {
-		return nil, wrapErr(signalName, err)
+		return nil, errors.WithStack(wrapErr(signalName, err))
 	}
 
 	signalName = fmt.Sprintf("%s.ms_to_consume", meterName)
 	if result.msToConsume, err = meter.Int64Histogram(signalName, metric.WithUnit("ms"),
 		metric.WithDescription("duration in ms to complete an async call, from the earliest time it was scheduled to execute")); err != nil {
-		return nil, wrapErr(signalName, err)
+		return nil, errors.WithStack(wrapErr(signalName, err))
 	}
 
 	return result, nil
@@ -94,7 +95,7 @@ func (m *PubSubMetrics) Consumed(ctx context.Context, topic, subscription schema
 }
 
 func wrapErr(signalName string, err error) error {
-	return fmt.Errorf("failed to create %q signal: %w", signalName, err)
+	return errors.Wrapf(err, "failed to create %q signal", signalName)
 }
 
 func pubsubLogBucket(msToComplete int64) string {

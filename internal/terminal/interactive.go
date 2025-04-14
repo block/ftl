@@ -2,7 +2,6 @@ package terminal
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -10,6 +9,7 @@ import (
 	"sync"
 	"syscall"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/chzyer/readline"
 	kongcompletion "github.com/jotaen/kong-completion"
@@ -44,7 +44,7 @@ func newInteractiveConsole(k *kong.Kong, eventSource *schemaeventsource.EventSou
 	})
 	it.l = l
 	if err != nil {
-		return nil, fmt.Errorf("init readline: %w", err)
+		return nil, errors.Wrap(err, "init readline")
 	}
 
 	it.closeWait.Add(1)
@@ -69,12 +69,12 @@ func RunInteractiveConsole(ctx context.Context, k *kong.Kong, eventSource *schem
 	}
 	ic, err := newInteractiveConsole(k, eventSource)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	defer ic.Close()
 	err = ic.run(ctx, executor)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }

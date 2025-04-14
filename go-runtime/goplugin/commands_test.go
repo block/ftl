@@ -1,15 +1,15 @@
 package goplugin
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 
-	"os"
-
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
+
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/moduleconfig"

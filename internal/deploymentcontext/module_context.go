@@ -3,8 +3,6 @@ package deploymentcontext
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -12,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/jpillora/backoff"
 	"golang.org/x/sync/errgroup"
@@ -147,9 +146,9 @@ func (b *Builder) Build() DeploymentContext {
 func (m DeploymentContext) GetConfig(name string, value any) error {
 	data, ok := m.configs[name]
 	if !ok {
-		return fmt.Errorf("no config value for %q", name)
+		return errors.Errorf("no config value for %q", name)
 	}
-	return json.Unmarshal(data, value)
+	return errors.WithStack(json.Unmarshal(data, value))
 }
 
 // GetSecret reads a secret value for the module.
@@ -158,9 +157,9 @@ func (m DeploymentContext) GetConfig(name string, value any) error {
 func (m DeploymentContext) GetSecret(name string, value any) error {
 	data, ok := m.secrets[name]
 	if !ok {
-		return fmt.Errorf("no secret value for %q", name)
+		return errors.Errorf("no secret value for %q", name)
 	}
-	return json.Unmarshal(data, value)
+	return errors.WithStack(json.Unmarshal(data, value))
 }
 
 // GetDatabase gets a database DSN by name and type.
@@ -179,13 +178,13 @@ func (m DeploymentContext) GetDatabase(name string, dbType DBType) (string, bool
 			proxyAddress := os.Getenv("FTL_PROXY_MYSQL_ADDRESS_" + strings.ToUpper(name))
 			return "ftl:ftl@tcp(" + proxyAddress + ")/" + name, false, nil
 		}
-		return "", false, fmt.Errorf("missing DSN for database %s", name)
+		return "", false, errors.Errorf("missing DSN for database %s", name)
 	}
 	if db.DBType != dbType {
-		return "", false, fmt.Errorf("database %s does not match expected type of %s", name, dbType)
+		return "", false, errors.Errorf("database %s does not match expected type of %s", name, dbType)
 	}
 	if m.isTesting && !db.isTestDB {
-		return "", false, fmt.Errorf("accessing non-test database %q while testing: try adding ftltest.WithDatabase[MyConfig]() as an option with ftltest.Context(...)", name)
+		return "", false, errors.Errorf("accessing non-test database %q while testing: try adding ftltest.WithDatabase[MyConfig]() as an option with ftltest.Context(...)", name)
 	}
 	return db.DSN, db.isTestDB, nil
 }
@@ -215,16 +214,16 @@ func (m DeploymentContext) BehaviorForVerb(ref schema.Ref) (optional.Option[Verb
 			return optional.Some(VerbBehavior(DirectBehavior{})), nil
 		}
 		if ref.Module == m.module {
-			return optional.None[VerbBehavior](), fmt.Errorf("no mock found: provide a mock with ftltest.WhenVerb(%s, ...) or enable all SQL verbs to execute directly with ftltest.WithSQLVerbsEnabled()", strings.ToUpper(ref.Name[:1])+ref.Name[1:])
+			return optional.None[VerbBehavior](), errors.Errorf("no mock found: provide a mock with ftltest.WhenVerb(%s, ...) or enable all SQL verbs to execute directly with ftltest.WithSQLVerbsEnabled()", strings.ToUpper(ref.Name[:1])+ref.Name[1:])
 		}
-		return optional.None[VerbBehavior](), fmt.Errorf("no mock found: query verbs must be mocked with ftltest.WhenVerb(%s.%s, ...)", ref.Module, strings.ToUpper(ref.Name[:1])+ref.Name[1:])
+		return optional.None[VerbBehavior](), errors.Errorf("no mock found: query verbs must be mocked with ftltest.WhenVerb(%s.%s, ...)", ref.Module, strings.ToUpper(ref.Name[:1])+ref.Name[1:])
 	} else if (m.allowDirectVerbBehaviorGlobal || m.allowDirectVerb == ref.ToRefKey()) && ref.Module == m.module {
 		return optional.Some(VerbBehavior(DirectBehavior{})), nil
 	} else if m.isTesting {
 		if ref.Module == m.module {
-			return optional.None[VerbBehavior](), fmt.Errorf("no mock found: provide a mock with ftltest.WhenVerb(%s, ...) or enable all calls within the module with ftltest.WithCallsAllowedWithinModule()", strings.ToUpper(ref.Name[:1])+ref.Name[1:])
+			return optional.None[VerbBehavior](), errors.Errorf("no mock found: provide a mock with ftltest.WhenVerb(%s, ...) or enable all calls within the module with ftltest.WithCallsAllowedWithinModule()", strings.ToUpper(ref.Name[:1])+ref.Name[1:])
 		}
-		return optional.None[VerbBehavior](), fmt.Errorf("no mock found: provide a mock with ftltest.WhenVerb(%s.%s, ...)", ref.Module, strings.ToUpper(ref.Name[:1])+ref.Name[1:])
+		return optional.None[VerbBehavior](), errors.Errorf("no mock found: provide a mock with ftltest.WhenVerb(%s.%s, ...)", ref.Module, strings.ToUpper(ref.Name[:1])+ref.Name[1:])
 	}
 	return optional.None[VerbBehavior](), nil
 }
@@ -246,7 +245,7 @@ func (g grpcDeploymentContextSupplier) Subscribe(ctx context.Context, deployment
 	callback := func(_ context.Context, resp *ftlv1.GetDeploymentContextResponse) error {
 		mc, err := FromProto(resp)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		sink(ctx, mc)
 		return nil
@@ -286,7 +285,7 @@ func NewDynamicContext(ctx context.Context, supplier DeploymentContextSupplier, 
 			var connectErr *connect.Error
 
 			if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeInternal {
-				cancel(fmt.Errorf("%w: %w", context.Canceled, err))
+				cancel(errors.Join(err, context.Canceled))
 				releaseOnce.Do(func() {
 					await.Done()
 				})
@@ -302,14 +301,14 @@ func NewDynamicContext(ctx context.Context, supplier DeploymentContextSupplier, 
 		await.Wait()
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return errors.WithStack(ctx.Err())
 		default:
 			return nil
 		}
 	})
 
 	if err := g.Wait(); err != nil {
-		return nil, fmt.Errorf("error waiting for first DeploymentContext: %w", err)
+		return nil, errors.Wrap(err, "error waiting for first DeploymentContext")
 	}
 
 	return result, nil
@@ -343,7 +342,7 @@ type VerbBehavior interface {
 type DirectBehavior struct{}
 
 func (DirectBehavior) Call(ctx context.Context, verb Verb, req any) (any, error) {
-	return verb(ctx, req)
+	return errors.WithStack2(verb(ctx, req))
 }
 
 var _ VerbBehavior = DirectBehavior{}
@@ -354,5 +353,5 @@ type MockBehavior struct {
 }
 
 func (b MockBehavior) Call(ctx context.Context, _ Verb, req any) (any, error) {
-	return b.Mock(ctx, req)
+	return errors.WithStack2(b.Mock(ctx, req))
 }

@@ -2,10 +2,9 @@ package config
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -29,7 +28,7 @@ func NewASMFactory(client ASMClient) (ProviderKind, Factory[Secrets]) {
 	return ASMProviderKind, func(ctx context.Context, projectRoot string, key ProviderKey) (BaseProvider[Secrets], error) {
 		payload := key.Payload()
 		if len(payload) != 1 {
-			return nil, fmt.Errorf("expected asm:<realm> not %q", key)
+			return nil, errors.Errorf("expected asm:<realm> not %q", key)
 		}
 		return NewASM(payload[0], client), nil
 	}
@@ -66,7 +65,7 @@ func (a *ASM) Delete(ctx context.Context, ref Ref) error {
 		ForceDeleteWithoutRecovery: aws.Bool(true),
 	})
 	if err != nil {
-		return fmt.Errorf("asm: failed to delete secret: %w", err)
+		return errors.Wrap(err, "asm: failed to delete secret")
 	}
 	return nil
 }
@@ -88,11 +87,11 @@ func (a *ASM) Store(ctx context.Context, ref Ref, value []byte) error {
 			SecretString: aws.String(string(value)),
 		})
 		if err != nil {
-			return fmt.Errorf("asm: unable to update secret in ASM: %w", err)
+			return errors.Wrap(err, "asm: unable to update secret in ASM")
 		}
 
 	} else if err != nil {
-		return fmt.Errorf("asm: failed to create secret: %w", err)
+		return errors.Wrap(err, "asm: failed to create secret")
 	}
 	return nil
 }
@@ -111,7 +110,7 @@ func (a *ASM) Sync(ctx context.Context) (map[Ref]SyncedValue, error) {
 			},
 		})
 		if err != nil {
-			return nil, fmt.Errorf("unable to get list of secrets from ASM: %w", err)
+			return nil, errors.Wrap(err, "unable to get list of secrets from ASM")
 		}
 		activeSecrets := slices.Filter(out.SecretList, func(s types.SecretListEntry) bool {
 			return s.DeletedDate == nil
@@ -142,14 +141,14 @@ func (a *ASM) Sync(ctx context.Context) (map[Ref]SyncedValue, error) {
 		}
 		out, err := a.client.BatchGetSecretValue(ctx, &secretsmanager.BatchGetSecretValueInput{SecretIdList: secretIDs})
 		if err != nil {
-			return nil, fmt.Errorf("unable to get batch of secret values from ASM: %w", err)
+			return nil, errors.Wrap(err, "unable to get batch of secret values from ASM")
 		}
 		before := len(refsToLoad)
 		for _, s := range out.SecretValues {
 			ref := ParseRef(*s.Name)
 			// Expect secrets to be strings, not binary
 			if s.SecretBinary != nil {
-				return nil, fmt.Errorf("secret for %s in ASM is not a string", ref)
+				return nil, errors.Errorf("secret for %s in ASM is not a string", ref)
 			}
 			values[ref] = SyncedValue{
 				Value:        []byte(aws.ToString(s.SecretString)),
@@ -158,7 +157,7 @@ func (a *ASM) Sync(ctx context.Context) (map[Ref]SyncedValue, error) {
 			delete(refsToLoad, ref)
 		}
 		if len(refsToLoad) == before {
-			return nil, fmt.Errorf("asm: new value of secret not loaded")
+			return nil, errors.Errorf("asm: new value of secret not loaded")
 		}
 	}
 	return values, nil

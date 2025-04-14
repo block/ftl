@@ -1,6 +1,10 @@
 package schema
 
-import "github.com/block/ftl/common/reflect"
+import (
+	errors "github.com/alecthomas/errors"
+
+	"github.com/block/ftl/common/reflect"
+)
 
 type Redactable interface {
 	Redact()
@@ -15,7 +19,7 @@ func Redact[T Node](n T) T {
 		if redactable, ok := n.(Redactable); ok {
 			redactable.Redact()
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 	return n
 }

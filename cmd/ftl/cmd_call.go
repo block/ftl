@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 	"github.com/titanous/json5"
 
@@ -38,23 +38,23 @@ func (c *callCmd) Run(
 	schemaClient *schemaeventsource.EventSource,
 ) error {
 	if err := rpc.Wait(ctx, backoff.Backoff{Max: time.Second * 2}, c.Wait, verbClient); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	logger := log.FromContext(ctx)
 	var request any
 	err := json5.Unmarshal([]byte(c.Request), &request)
 	if err != nil {
-		return fmt.Errorf("invalid request: %w", err)
+		return errors.Wrap(err, "invalid request")
 	}
 	requestJSON, err := json.Marshal(request)
 	if err != nil {
-		return fmt.Errorf("invalid request: %w", err)
+		return errors.Wrap(err, "invalid request")
 	}
 
 	logger.Debugf("Calling %s", c.Verb)
 
-	return callVerb(ctx, verbClient, schemaClient, c.Verb, requestJSON, c.Verbose, c)
+	return errors.WithStack(callVerb(ctx, verbClient, schemaClient, c.Verb, requestJSON, c.Verbose, c))
 }
 
 func callVerb(
@@ -78,17 +78,17 @@ func callVerb(
 
 		// If we have suggestions, return a helpful error message, otherwise continue to the original error.
 		if err == nil {
-			return fmt.Errorf("verb not found: %s\n\nDid you mean one of these?\n%s", verb, strings.Join(suggestions, "\n"))
+			return errors.Errorf("verb not found: %s\n\nDid you mean one of these?\n%s", verb, strings.Join(suggestions, "\n"))
 		}
 	}
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if verbose {
 		requestKey, ok, err := headers.GetRequestKey(resp.Header())
 		if err != nil {
-			return fmt.Errorf("could not get request key: %w", err)
+			return errors.Wrap(err, "could not get request key")
 		}
 		if ok {
 			fmt.Printf("Request ID: %s\n", requestKey)
@@ -107,7 +107,7 @@ func callVerb(
 		if resp.Error.Stack != nil && logger.GetLevel() <= log.Debug {
 			fmt.Println(*resp.Error.Stack)
 		}
-		return fmt.Errorf("verb error: %s", resp.Error.Message)
+		return errors.Errorf("verb error: %s", resp.Error.Message)
 
 	case *ftlv1.CallResponse_Body:
 		status.PrintJSON(ctx, resp.Body)
@@ -162,7 +162,7 @@ func findSuggestions(
 		return suggestions, nil
 	}
 
-	return nil, fmt.Errorf("no suggestions found")
+	return nil, errors.Errorf("no suggestions found")
 }
 
 // Levenshtein computes the Levenshtein distance between two strings.

@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
@@ -40,7 +41,7 @@ var _ Provisioned = (*Module)(nil)
 func (m *Module) Value() (driver.Value, error) {
 	value, err := proto.Marshal(Redact(m).ToProto())
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal Module to proto: %w", err)
+		return nil, errors.Wrap(err, "failed to marshal Module to proto")
 	}
 	return value, nil
 }
@@ -49,12 +50,12 @@ func (m *Module) Scan(src any) error {
 	case []byte:
 		module, err := ModuleFromBytes(src)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		*m = *module
 		return nil
 	default:
-		return fmt.Errorf("cannot scan %T", src)
+		return errors.Errorf("cannot scan %T", src)
 	}
 }
 
@@ -80,7 +81,7 @@ func (m *Module) GetProvisioned() ResourceSet {
 func (m *Module) Hash() (sha256.SHA256, error) {
 	pb, err := ModuleToBytes(m)
 	if err != nil {
-		return sha256.SHA256{}, fmt.Errorf("failed to marshal module to bytes: %w", err)
+		return sha256.SHA256{}, errors.Wrap(err, "failed to marshal module to bytes")
 	}
 	return sha256.Sum(pb), nil
 }
@@ -256,7 +257,7 @@ func (m *Module) Imports() []string {
 
 		default:
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 
 	importStrs := maps.Keys(imports)
@@ -273,11 +274,11 @@ func (m *Module) provisioned() {}
 func ModuleFromProtoFile(filename string) (*Module, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	module, err := ModuleFromBytes(data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal module from %s: %w", filename, err)
+		return nil, errors.Wrapf(err, "failed to unmarshal module from %s", filename)
 	}
 	return module, nil
 }
@@ -285,17 +286,17 @@ func ModuleFromProtoFile(filename string) (*Module, error) {
 func ModuleFromBytes(b []byte) (*Module, error) {
 	s := &schemapb.Module{}
 	if err := proto.Unmarshal(b, s); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	module, err := ModuleFromProto(s)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal module: %w", err)
+		return nil, errors.Wrap(err, "failed to unmarshal module")
 	}
 	return module, nil
 }
 
 func ModuleToBytes(m *Module) ([]byte, error) {
-	return proto.Marshal(m.ToProto())
+	return errors.WithStack2(proto.Marshal(m.ToProto()))
 }
 
 func moduleListToSchema(s []*schemapb.Module) ([]*Module, error) {
@@ -303,7 +304,7 @@ func moduleListToSchema(s []*schemapb.Module) ([]*Module, error) {
 	for _, n := range s {
 		module, err := ModuleFromProto(n)
 		if err != nil {
-			return nil, fmt.Errorf("%w", err)
+			return nil, errors.WithStack(err)
 		}
 		out = append(out, module)
 	}
@@ -315,7 +316,7 @@ func realmListToSchema(s []*schemapb.Realm) ([]*Realm, error) {
 	for _, n := range s {
 		realm, err := RealmFromProto(n)
 		if err != nil {
-			return nil, fmt.Errorf("%w", err)
+			return nil, errors.WithStack(err)
 		}
 		out = append(out, realm)
 	}

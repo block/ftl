@@ -1,11 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"strings"
 	"text/template"
+
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/strcase"
 )
@@ -75,7 +76,7 @@ func render(out *os.File, directives PackageDirectives, file File) error {
 		File:              file,
 	})
 	if err != nil {
-		return fmt.Errorf("template error: %w", err)
+		return errors.Wrap(err, "template error")
 	}
 	return nil
 }

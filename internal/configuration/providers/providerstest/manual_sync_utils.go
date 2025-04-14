@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/configuration"
@@ -41,7 +42,7 @@ func (a *ManualSyncProvider[R]) SyncAndWait() error {
 	a.syncRequested.Store(optional.Some(block))
 	err := <-block.sync
 	if err, hasErr := err.Get(); hasErr {
-		return err //nolint:wrapcheck
+		return errors.WithStack(err) //nolint:wrapcheck
 	}
 	return nil
 }
@@ -55,11 +56,11 @@ func (a *ManualSyncProvider[R]) Key() configuration.ProviderKey {
 }
 
 func (a *ManualSyncProvider[R]) Store(ctx context.Context, ref configuration.Ref, value []byte) (*url.URL, error) {
-	return a.provider.Store(ctx, ref, value) //nolint:wrapcheck
+	return errors.WithStack2(a.provider.Store(ctx, ref, value)) //nolint:wrapcheck
 }
 
 func (a *ManualSyncProvider[R]) Delete(ctx context.Context, ref configuration.Ref) error {
-	return a.provider.Delete(ctx, ref) //nolint:wrapcheck
+	return errors.WithStack(a.provider.Delete(ctx, ref)) //nolint:wrapcheck
 }
 
 func (a *ManualSyncProvider[R]) SyncInterval() time.Duration {
@@ -78,5 +79,5 @@ func (a *ManualSyncProvider[R]) Sync(ctx context.Context) (map[configuration.Ref
 		a.syncRequested.Store(optional.None[manualSyncBlock]())
 		block.sync <- optional.Zero(err)
 	}
-	return values, err //nolint:wrapcheck
+	return values, errors.WithStack(err) //nolint:wrapcheck
 }

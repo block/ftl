@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net/url"
 	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	goformation "github.com/awslabs/goformation/v7/cloudformation"
@@ -63,11 +63,11 @@ func NewCloudformationProvisioner(ctx context.Context, config Config) (context.C
 
 	client, err := createClient(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create cloudformation client: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to create cloudformation client")
 	}
 	secrets, err := createSecretsClient(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create secretsmanager client: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to create secretsmanager client")
 	}
 
 	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
@@ -91,7 +91,7 @@ func (c *CloudformationProvisioner) Ping(context.Context, *connect.Request[ftlv1
 func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.Request[provisionerpb.ProvisionRequest]) (*connect.Response[provisionerpb.ProvisionResponse], error) {
 	module, err := schema.ModuleFromProto(req.Msg.DesiredModule)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert module from proto: %w", err)
+		return nil, errors.Wrap(err, "failed to convert module from proto")
 	}
 
 	logger := log.FromContext(ctx).Deployment(module.Runtime.Deployment.DeploymentKey).Module(module.Name)
@@ -129,7 +129,7 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 
 	task := runner.AsyncTask()
 	if _, ok := c.running.LoadOrStore(stackID, task); ok {
-		return nil, fmt.Errorf("provisioner already running: %s", stackID)
+		return nil, errors.Errorf("provisioner already running: %s", stackID)
 	}
 	logger.Debugf("Starting task for module %s: %s", req.Msg.DesiredModule.Name, stackID)
 	task.Start(ctx, module.Name, module.Runtime.Deployment.DeploymentKey)

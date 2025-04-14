@@ -3,7 +3,6 @@ package provisioner
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -12,6 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/BurntSushi/toml"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"
@@ -90,7 +90,7 @@ func Start(
 
 	svc, err := New(ctx, registry, schemaClient)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	for event := range channels.IterContext(ctx, svc.eventSource.Subscribe(ctx)) {
@@ -194,15 +194,15 @@ func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.Fil
 	config := provisionerPluginConfig{}
 	bytes, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil {
-		return nil, fmt.Errorf("error reading plugin configuration from %s: %w", file.Name(), err)
+		return nil, errors.Wrapf(err, "error reading plugin configuration from %s", file.Name())
 	}
 	if err := toml.Unmarshal(bytes, &config); err != nil {
-		return nil, fmt.Errorf("error parsing plugin configuration: %w", err)
+		return nil, errors.Wrap(err, "error parsing plugin configuration")
 	}
 
 	registry, err := registryFromConfig(ctx, workingDir, &config, scaling)
 	if err != nil {
-		return nil, fmt.Errorf("error creating provisioner registry: %w", err)
+		return nil, errors.Wrap(err, "error creating provisioner registry")
 	}
 
 	return registry, nil
@@ -212,7 +212,7 @@ func (s *Service) HandleChangesetPrepared(ctx context.Context, req key.Changeset
 
 	_, err := s.schemaClient.CommitChangeset(ctx, connect.NewRequest(&ftlv1.CommitChangesetRequest{Changeset: req.String()}))
 	if err != nil {
-		return fmt.Errorf("error committing changeset: %w", err)
+		return errors.Wrap(err, "error committing changeset")
 	}
 	return nil
 }
@@ -238,11 +238,11 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 
 	err := s.deProvision(ctx, cs, changeset.InternalRealm().RemovingModules)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	_, err = s.schemaClient.FinalizeChangeset(ctx, connect.NewRequest(&ftlv1.FinalizeChangesetRequest{Changeset: cs.String()}))
 	if err != nil {
-		return fmt.Errorf("error finalizing changeset: %w", err)
+		return errors.Wrap(err, "error finalizing changeset")
 	}
 	logger.Debugf("Successfully completed deployment for changeset %s [%s]", cs, strings.Join(moduleNames, ","))
 	return nil
@@ -256,7 +256,7 @@ func (s *Service) HandleChangesetRollingBack(ctx context.Context, changeset *sch
 	}
 	_, err = s.schemaClient.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: changeset.Key.String()}))
 	if err != nil {
-		return fmt.Errorf("error finalizing changeset: %w", err)
+		return errors.Wrap(err, "error finalizing changeset")
 	}
 	logger.Debugf("Completed rollback for changeset %s", changeset.Key)
 	return nil
@@ -282,12 +282,12 @@ func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*
 					Update:    element.ToProto(),
 				}))
 				if err != nil {
-					return fmt.Errorf("error updating runtime: %w", err)
+					return errors.Wrap(err, "error updating runtime")
 				}
 				return nil
 			})
 			if err := deployment.Run(ctx); err != nil {
-				return fmt.Errorf("error running deployment: %w", err)
+				return errors.Wrap(err, "error running deployment")
 			}
 			logger.Debugf("Finished deployment for module %s", moduleName)
 			return nil
@@ -296,7 +296,7 @@ func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*
 	}
 	err := group.Wait()
 	if err != nil {
-		return fmt.Errorf("error running deployments: %w", err)
+		return errors.Wrap(err, "error running deployments")
 	}
 	return nil
 }
@@ -321,7 +321,7 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 		}
 		group.Go(func() error {
 			if err := s.registry.VerifyDeploymentSupported(ctx, module); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			deployment := s.registry.CreateDeployment(ctx, req.Key, module, existingModule, func(element *schema.RuntimeElement) error {
 				cs := req.Key.String()
@@ -330,12 +330,12 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 					Update:    element.ToProto(),
 				}))
 				if err != nil {
-					return fmt.Errorf("error updating runtime: %w", err)
+					return errors.Wrap(err, "error updating runtime")
 				}
 				return nil
 			})
 			if err := deployment.Run(ctx); err != nil {
-				return fmt.Errorf("error running deployment: %w", err)
+				return errors.Wrap(err, "error running deployment")
 			}
 			logger.Debugf("Finished deployment for module %s", moduleName)
 			return nil
@@ -344,7 +344,7 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 	}
 	err := group.Wait()
 	if err != nil {
-		return fmt.Errorf("error running deployments: %w", err)
+		return errors.Wrap(err, "error running deployments")
 	}
 
 	changeset := req.Key.String()
@@ -352,12 +352,12 @@ func (s *Service) HandleChangesetPreparing(ctx context.Context, req *schema.Chan
 		element := &schema.RuntimeElement{Deployment: mod.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeDeployment{DeploymentKey: mod.Runtime.Deployment.DeploymentKey, State: schema.DeploymentStateReady}}
 		_, err = s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Changeset: &changeset, Update: element.ToProto()}))
 		if err != nil {
-			return fmt.Errorf("error preparing changeset: %w", err)
+			return errors.Wrap(err, "error preparing changeset")
 		}
 	}
 	_, err = s.schemaClient.PrepareChangeset(ctx, connect.NewRequest(&ftlv1.PrepareChangesetRequest{Changeset: req.Key.String()}))
 	if err != nil {
-		return fmt.Errorf("error preparing changeset: %w", err)
+		return errors.Wrap(err, "error preparing changeset")
 	}
 	return nil
 }
@@ -371,19 +371,19 @@ func (s *Service) handleScalingUpdate(ctx context.Context, dk key.Deployment, el
 
 	existingModule := s.eventSource.CanonicalView().Deployment(dk)
 	if !existingModule.Ok() {
-		return fmt.Errorf("deployment %s not found", dk.String())
+		return errors.Errorf("deployment %s not found", dk.String())
 	}
 	module := reflect.DeepCopy(existingModule.MustGet())
 	module.Runtime.Scaling = element
 	if err := s.registry.VerifyDeploymentSupported(ctx, module); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	// TODO: fake changeset key
 	deployment := s.registry.CreateDeployment(ctx, key.NewChangesetKey(), module, existingModule.MustGet(), func(element *schema.RuntimeElement) error {
 		return nil
 	})
 	if err := deployment.Run(ctx); err != nil {
-		return fmt.Errorf("error running deployment: %w", err)
+		return errors.Wrap(err, "error running deployment")
 	}
 	logger.Debugf("Finished deployment for module %s", moduleName)
 	return nil
