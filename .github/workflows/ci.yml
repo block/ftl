@@ -275,12 +275,7 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
       - name: Init Hermit
-        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 
-      - name: Log in to DockerHub to avoid rate limiting
-        env:
-          DOCKER_HUB_PULL_TOKEN: ${{ secrets.DOCKER_HUB_PULL_TOKEN }}
-        run: |
-          echo "${DOCKER_HUB_PULL_TOKEN}" | docker login --username "blockossreleases" --password-stdin
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Download Go Modules
         run: go mod download
       - name: Build Language Plugins
