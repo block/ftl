@@ -9,7 +9,7 @@ import (
 
 func TestLeaseService(t *testing.T) {
 	t.Parallel()
-	service := &service{
+	service := &Service{
 		leases: map[string]*time.Time{},
 	}
 

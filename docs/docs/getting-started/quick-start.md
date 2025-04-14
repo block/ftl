@@ -169,7 +169,7 @@ This will build and deploy all local modules. Modifying the code will cause `ftl
 
 ### Open the console
 
-FTL has a console that allows interaction with the cluster topology, logs, traces, and more. Open a browser window at [http://localhost:8899](http://localhost:8899) to view it:
+FTL has a console that allows interaction with the cluster topology, logs, traces, and more. Open a browser window at [http://localhost:8899](http://localhost:8892) to view it:
 
 ![FTL Console](/img/quick-start/console.png)
 

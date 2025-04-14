@@ -243,7 +243,7 @@ func readEventIDs(t *testing.T, n int, iter iter.Seq[result.Result[*timelinepb.S
 	return eventsIDs
 }
 
-func createTestService(t testing.TB, dataFixture *timelinepb.CreateEventsRequest) *service {
+func createTestService(t testing.TB, dataFixture *timelinepb.CreateEventsRequest) *Service {
 	t.Helper()
 
 	service, err := newService(t.Context(), Config{})

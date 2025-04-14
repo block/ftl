@@ -33,51 +33,58 @@ import (
 )
 
 type Config struct {
-	ConsoleURL  *url.URL  `help:"The public URL of the console (for CORS)." env:"FTL_CONTROLLER_CONSOLE_URL"`
 	ContentTime time.Time `help:"Time to use for console resource timestamps." default:"${timestamp=1970-01-01T00:00:00Z}"`
-	Bind        *url.URL  `help:"Socket to bind to." default:"http://127.0.0.1:8899" env:"FTL_BIND"`
 }
 
-type service struct {
+type Service struct {
 	schemaEventSource *schemaeventsource.EventSource
 	timelineClient    *timelineclient.Client
 	adminClient       admin.EnvironmentClient
 	callClient        routing.CallClient
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient
+	bind              *url.URL
+	config            Config
 }
 
-var _ consolepbconnect.ConsoleServiceHandler = (*service)(nil)
+var _ consolepbconnect.ConsoleServiceHandler = (*Service)(nil)
 
-func Start(ctx context.Context, config Config, eventSource *schemaeventsource.EventSource, timelineClient *timelineclient.Client, adminClient admin.EnvironmentClient, client routing.CallClient, buildEngineClient buildenginepbconnect.BuildEngineServiceClient) error {
-	logger := log.FromContext(ctx).Scope("console")
-	ctx = log.ContextWithLogger(ctx, logger)
+func New(
+	eventSource *schemaeventsource.EventSource,
+	timelineClient *timelineclient.Client,
+	adminClient admin.EnvironmentClient,
+	client routing.CallClient,
+	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+	bind *url.URL,
+	config Config) *Service {
 
-	svc := &service{
+	return &Service{
 		schemaEventSource: eventSource,
 		timelineClient:    timelineClient,
 		adminClient:       adminClient,
 		callClient:        client,
 		buildEngineClient: buildEngineClient,
+		bind:              bind,
+		config:            config,
 	}
-
-	consoleHandler, err := frontend.Server(ctx, config.ContentTime, config.Bind)
-	if err != nil {
-		return fmt.Errorf("could not start console: %w", err)
-	}
-	logger.Infof("Web console available at: %s", config.Bind)
-
-	logger.Debugf("Console service listening on: %s", config.Bind)
-	err = rpc.Serve(ctx, config.Bind,
-		rpc.GRPC(consolepbconnect.NewConsoleServiceHandler, svc),
-		rpc.HTTP("/", consoleHandler),
-	)
-	if err != nil {
-		return fmt.Errorf("console service stopped serving: %w", err)
-	}
-	return nil
 }
 
-func (s *service) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
+func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
+	logger := log.FromContext(ctx).Scope("console")
+	ctx = log.ContextWithLogger(ctx, logger)
+
+	consoleHandler, err := frontend.Server(ctx, s.config.ContentTime, s.bind)
+	if err != nil {
+		return nil, fmt.Errorf("could not start console: %w", err)
+	}
+	logger.Infof("Web console available at: %s", s.bind) //nolint
+
+	return []rpc.Option{
+		rpc.GRPC(consolepbconnect.NewConsoleServiceHandler, s),
+		rpc.HTTP("/", consoleHandler),
+	}, nil
+}
+
+func (s *Service) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
 }
 
@@ -116,7 +123,7 @@ func verbSchemaString(sch *schema.Schema, verb *schema.Verb) (string, error) {
 	return verbString, nil
 }
 
-func (s *service) GetModules(ctx context.Context, req *connect.Request[consolepb.GetModulesRequest]) (*connect.Response[consolepb.GetModulesResponse], error) {
+func (s *Service) GetModules(ctx context.Context, req *connect.Request[consolepb.GetModulesRequest]) (*connect.Response[consolepb.GetModulesResponse], error) {
 	sch := s.schemaEventSource.CanonicalView()
 
 	allowed := map[string]bool{}
@@ -371,15 +378,15 @@ func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string) (*c
 	}, nil
 }
 
-func (s *service) StreamModules(ctx context.Context, req *connect.Request[consolepb.StreamModulesRequest], stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
-	err := s.sendStreamModulesResp(ctx, stream)
+func (s *Service) StreamModules(ctx context.Context, req *connect.Request[consolepb.StreamModulesRequest], stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
+	err := s.sendStreamModulesResp(stream)
 	if err != nil {
 		return err
 	}
 
 	events := s.schemaEventSource.Subscribe(ctx)
 	for range channels.IterContext(ctx, events) {
-		err = s.sendStreamModulesResp(ctx, stream)
+		err = s.sendStreamModulesResp(stream)
 		if err != nil {
 			return err
 		}
@@ -389,7 +396,7 @@ func (s *service) StreamModules(ctx context.Context, req *connect.Request[consol
 
 // filterDeployments removes any duplicate modules by selecting the deployment with the
 // latest CreatedAt.
-func (s *service) filterDeployments(unfilteredDeployments *schema.Realm) []*schema.Module {
+func (s *Service) filterDeployments(unfilteredDeployments *schema.Realm) []*schema.Module {
 	latest := make(map[string]*schema.Module)
 
 	for _, deployment := range unfilteredDeployments.Modules {
@@ -409,7 +416,7 @@ func (s *service) filterDeployments(unfilteredDeployments *schema.Realm) []*sche
 	return result
 }
 
-func (s *service) sendStreamModulesResp(ctx context.Context, stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
+func (s *Service) sendStreamModulesResp(stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
 	unfilteredSchema := s.schemaEventSource.CanonicalView()
 
 	realms := []*schema.Realm{}
@@ -499,7 +506,7 @@ func buildGraph(sch *schema.Schema, module *schema.Module, out map[string][]stri
 	}
 }
 
-func (s *service) GetConfig(ctx context.Context, req *connect.Request[consolepb.GetConfigRequest]) (*connect.Response[consolepb.GetConfigResponse], error) {
+func (s *Service) GetConfig(ctx context.Context, req *connect.Request[consolepb.GetConfigRequest]) (*connect.Response[consolepb.GetConfigResponse], error) {
 	resp, err := s.adminClient.ConfigGet(ctx, connect.NewRequest(&adminpb.ConfigGetRequest{
 		Ref: &adminpb.ConfigRef{
 			Module: req.Msg.Module,
@@ -514,7 +521,7 @@ func (s *service) GetConfig(ctx context.Context, req *connect.Request[consolepb.
 	}), nil
 }
 
-func (s *service) SetConfig(ctx context.Context, req *connect.Request[consolepb.SetConfigRequest]) (*connect.Response[consolepb.SetConfigResponse], error) {
+func (s *Service) SetConfig(ctx context.Context, req *connect.Request[consolepb.SetConfigRequest]) (*connect.Response[consolepb.SetConfigResponse], error) {
 	_, err := s.adminClient.ConfigSet(ctx, connect.NewRequest(&adminpb.ConfigSetRequest{
 		Ref: &adminpb.ConfigRef{
 			Module: req.Msg.Module,
@@ -528,7 +535,7 @@ func (s *service) SetConfig(ctx context.Context, req *connect.Request[consolepb.
 	return connect.NewResponse(&consolepb.SetConfigResponse{}), nil
 }
 
-func (s *service) GetSecret(ctx context.Context, req *connect.Request[consolepb.GetSecretRequest]) (*connect.Response[consolepb.GetSecretResponse], error) {
+func (s *Service) GetSecret(ctx context.Context, req *connect.Request[consolepb.GetSecretRequest]) (*connect.Response[consolepb.GetSecretResponse], error) {
 	resp, err := s.adminClient.SecretGet(ctx, connect.NewRequest(&adminpb.SecretGetRequest{
 		Ref: &adminpb.ConfigRef{
 			Name:   req.Msg.Name,
@@ -543,7 +550,7 @@ func (s *service) GetSecret(ctx context.Context, req *connect.Request[consolepb.
 	}), nil
 }
 
-func (s *service) SetSecret(ctx context.Context, req *connect.Request[consolepb.SetSecretRequest]) (*connect.Response[consolepb.SetSecretResponse], error) {
+func (s *Service) SetSecret(ctx context.Context, req *connect.Request[consolepb.SetSecretRequest]) (*connect.Response[consolepb.SetSecretResponse], error) {
 	_, err := s.adminClient.SecretSet(ctx, connect.NewRequest(&adminpb.SecretSetRequest{
 		Ref: &adminpb.ConfigRef{
 			Name:   req.Msg.Name,
@@ -558,18 +565,18 @@ func (s *service) SetSecret(ctx context.Context, req *connect.Request[consolepb.
 	return connect.NewResponse(&consolepb.SetSecretResponse{}), nil
 }
 
-func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timelinepb.GetTimelineRequest]) (*connect.Response[timelinepb.GetTimelineResponse], error) {
+func (s *Service) GetTimeline(ctx context.Context, req *connect.Request[timelinepb.GetTimelineRequest]) (*connect.Response[timelinepb.GetTimelineResponse], error) {
 	resp, err := s.timelineClient.GetTimeline(ctx, connect.NewRequest(req.Msg))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get timeline from service: %w", err)
+		return nil, fmt.Errorf("failed to get timeline from Service: %w", err)
 	}
 	return connect.NewResponse(resp.Msg), nil
 }
 
-func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], out *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
+func (s *Service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], out *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
 	stream, err := s.timelineClient.StreamTimeline(ctx, connect.NewRequest(req.Msg))
 	if err != nil {
-		return fmt.Errorf("failed to stream timeline from service: %w", err)
+		return fmt.Errorf("failed to stream timeline from Service: %w", err)
 	}
 	defer stream.Close()
 	for stream.Receive() {
@@ -580,12 +587,12 @@ func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timel
 		}
 	}
 	if stream.Err() != nil {
-		return fmt.Errorf("error streaming timeline from service: %w", stream.Err())
+		return fmt.Errorf("error streaming timeline from Service: %w", stream.Err())
 	}
 	return nil
 }
 
-func (s *service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
+func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
 	ref, err := schema.RefFromProto(req.Msg.Verb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse verb: %w", err)
@@ -603,7 +610,7 @@ func (s *service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 }
 
 // StreamEngineEvents implements consolepbconnect.ConsoleServiceHandler.
-func (s *service) StreamEngineEvents(ctx context.Context, req *connect.Request[buildenginepb.StreamEngineEventsRequest], stream *connect.ServerStream[buildenginepb.StreamEngineEventsResponse]) error {
+func (s *Service) StreamEngineEvents(ctx context.Context, req *connect.Request[buildenginepb.StreamEngineEventsRequest], stream *connect.ServerStream[buildenginepb.StreamEngineEventsResponse]) error {
 	engineEvents, err := s.buildEngineClient.StreamEngineEvents(ctx, connect.NewRequest(&buildenginepb.StreamEngineEventsRequest{
 		ReplayHistory: req.Msg.ReplayHistory,
 	}))
@@ -625,14 +632,14 @@ func (s *service) StreamEngineEvents(ctx context.Context, req *connect.Request[b
 	return nil
 }
 
-func (s *service) GetInfo(ctx context.Context, _ *connect.Request[consolepb.GetInfoRequest]) (*connect.Response[consolepb.GetInfoResponse], error) {
+func (s *Service) GetInfo(ctx context.Context, _ *connect.Request[consolepb.GetInfoRequest]) (*connect.Response[consolepb.GetInfoResponse], error) {
 	return connect.NewResponse(&consolepb.GetInfoResponse{
 		Version:   ftlversion.Version,
 		BuildTime: ftlversion.Timestamp.Format(time.RFC3339),
 	}), nil
 }
 
-func (s *service) ExecuteGoose(ctx context.Context, req *connect.Request[consolepb.ExecuteGooseRequest], stream *connect.ServerStream[consolepb.ExecuteGooseResponse]) error {
+func (s *Service) ExecuteGoose(ctx context.Context, req *connect.Request[consolepb.ExecuteGooseRequest], stream *connect.ServerStream[consolepb.ExecuteGooseResponse]) error {
 	if req.Msg.Prompt == "" {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("prompt cannot be empty"))
 	}

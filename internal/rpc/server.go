@@ -29,9 +29,20 @@ type serverOptions struct {
 	healthCheck     http.HandlerFunc
 	startHooks      []func(ctx context.Context) error
 	shutdownHooks   []func(ctx context.Context) error
+	services        []Service
 }
 
 type Option func(*serverOptions)
+
+type Service interface {
+	StartServices(ctx context.Context) ([]Option, error)
+}
+
+func WithServices(svcs ...Service) Option {
+	return func(options *serverOptions) {
+		options.services = append(options.services, svcs...)
+	}
+}
 
 type GRPCServerConstructor[Iface Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr PingResponse[Resp]] func(svc Iface, opts ...connect.HandlerOption) (string, http.Handler)
 type RawGRPCServerConstructor[Iface any] func(svc Iface, opts ...connect.HandlerOption) (string, http.Handler)
@@ -118,6 +129,15 @@ func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server
 
 	for _, option := range options {
 		option(opts)
+	}
+	for _, svc := range opts.services {
+		services, err := svc.StartServices(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to start services: %w", err)
+		}
+		for _, opt := range services {
+			opt(opts)
+		}
 	}
 
 	opts.mux.Handle("/healthz", opts.healthCheck)

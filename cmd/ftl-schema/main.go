@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/url"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/alecthomas/kong"
 
@@ -12,11 +14,13 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
+	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
 	Version             kong.VersionFlag     `help:"Show version."`
+	Bind                *url.URL             `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
 	LogConfig           log.Config           `embed:"" prefix:"log-"`
 	SchemaServiceConfig schemaservice.Config `embed:""`
@@ -31,13 +35,17 @@ func main() {
 			"version": ftl.FormattedVersion,
 		},
 	)
-
-	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig).Scope("schema"))
+	logger := log.Configure(os.Stderr, cli.LogConfig).Scope("schema")
+	ctx := log.ContextWithLogger(context.Background(), logger)
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM)
+	defer cancel()
 	err := observability.Init(ctx, false, "", "ftl-controller", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 
-	err = schemaservice.Start(ctx, cli.SchemaServiceConfig, timelineClient, false)
+	svc := schemaservice.New(ctx, cli.SchemaServiceConfig, timelineClient, false)
+	err = rpc.Serve(ctx, cli.Bind, rpc.WithServices(svc))
+	logger.Debugf("Listening on %s", cli.Bind)
 	kctx.FatalIfErrorf(err)
 }

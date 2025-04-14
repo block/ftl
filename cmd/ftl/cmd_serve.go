@@ -56,9 +56,8 @@ type serveCmd struct {
 }
 
 type serveCommonConfig struct {
-	Bind                *url.URL             `help:"Starting endpoint to bind to and advertise to. Each controller, ingress, runner and language plugin will increment the port by 1" default:"http://127.0.0.1:8891"`
-	ControllerEndpoint  *url.URL             `default:"http://127.0.0.1:8893" help:"FTL controller endpoint to bind/connect to." env:"FTL_CONTROLLER_ENDPOINT"`
-	SchemaEndpoint      *url.URL             `help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
+	IngressBind         *url.URL             `help:"HTTP Ingress bind" default:"http://127.0.0.1:8891"`
+	Bind                *url.URL             `help:"Starting endpoint to bind to and advertise to for all FTL services" default:"http://127.0.0.1:8892"`
 	DBPort              int                  `help:"Port to use for the database." env:"FTL_DB_PORT" default:"15432"`
 	MysqlPort           int                  `help:"Port to use for the MySQL database, if one is required." env:"FTL_MYSQL_PORT" default:"13306"`
 	RegistryPort        int                  `help:"Port to use for the registry." env:"FTL_OCI_REGISTRY_PORT" default:"15000"`
@@ -74,7 +73,6 @@ type serveCommonConfig struct {
 	Ingress             ingress.Config       `embed:"" prefix:"ingress-"`
 	Timeline            timeline.Config      `embed:"" prefix:"timeline-"`
 	Console             console.Config       `embed:"" prefix:"console-"`
-	Lease               lease.Config         `embed:"" prefix:"lease-"`
 	Admin               admin.Config         `embed:"" prefix:"admin-"`
 	Recreate            bool                 `help:"Recreate any stateful resources if they already exist." default:"false"`
 	controller.CommonConfig
@@ -97,7 +95,7 @@ func (s *serveCmd) Run(
 	if err != nil {
 		return fmt.Errorf("could not create bind allocator: %w", err)
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, timelineClient, adminClient, buildEngineClient, s.Recreate, nil)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, timelineClient, adminClient, buildEngineClient, nil, nil)
 }
 
 //nolint:maintidx
@@ -112,20 +110,22 @@ func (s *serveCommonConfig) run(
 	timelineClient *timelineclient.Client,
 	adminClient adminpbconnect.AdminServiceClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
-	recreate bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,
+	additionalServices []rpc.Service,
 ) error {
 
 	logger := log.FromContext(ctx)
+	services := additionalServices
 
-	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.ControllerEndpoint.String(), log.Error)
-	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.SchemaEndpoint.String(), log.Error)
-	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, s.Lease.Bind.String(), log.Error)
+	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.Bind.String(), log.Error)
+	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.Bind.String(), log.Error)
+	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, s.Bind.String(), log.Error)
 
 	// We must use our own event source here
 	// The injected one is connected to the admin client for CLI commands, we need this one to connect directly
 	// to the schema service as it is used by the Admin service
 	schemaEventSource := schemaeventsource.New(ctx, "serve", schemaClient)
+	router := routing.NewVerbRouter(ctx, schemaEventSource, timelineClient)
 
 	if s.Background {
 		if s.Stop {
@@ -194,16 +194,11 @@ func (s *serveCommonConfig) run(
 		return fmt.Errorf("could not allocate port for controller: %w", err)
 	}
 
-	schemaBind, err := url.Parse("http://localhost:8897")
-	if err != nil {
-		return fmt.Errorf("failed to parse bind URL: %w", err)
-	}
-
 	runnerScaling, err := localscaling.NewLocalScaling(
 		ctx,
-		s.ControllerEndpoint,
-		schemaBind,
-		s.Lease.Bind,
+		s.Bind,
+		s.Bind,
+		s.Bind,
 		projConfig.Path,
 		!projConfig.DisableIDEIntegration && !projConfig.DisableVSCodeIntegration,
 		!projConfig.DisableIDEIntegration && !projConfig.DisableIntellijIntegration,
@@ -220,47 +215,32 @@ func (s *serveCommonConfig) run(
 	}
 
 	schemaCtx := log.ContextWithLogger(ctx, logger.Scope("schemaservice"))
-	wg.Go(func() error {
-		// TODO: Allocate properly, and support multiple instances
-		config := schemaservice.Config{
-			CommonSchemaServiceConfig: s.CommonSchemaServiceConfig,
-			Bind:                      schemaBind,
-		}
-		if err := schemaservice.Start(schemaCtx, config, timelineClient, devMode); err != nil {
-			logger.Errorf(err, "schemaservice failed: %v", err)
-			return fmt.Errorf("schemaservice failed: %w", err)
-		}
-		return nil
-	})
+	schemaService := schemaservice.NewLocalService(schemaCtx, schemaservice.Config{
+		CommonSchemaServiceConfig: s.CommonSchemaServiceConfig,
+	}, timelineClient, devMode)
+	services = append(services, schemaService)
 
 	config := controller.Config{
 		CommonConfig: s.CommonConfig,
-		Bind:         s.ControllerEndpoint,
 		Key:          key.NewLocalControllerKey(1),
 	}
-	config.SetDefaults()
 	config.ModuleUpdateFrequency = time.Second * 1
 
 	controllerCtx := log.ContextWithLogger(ctx, logger.Scope("controller"))
 
-	wg.Go(func() error {
-		if err := controller.Start(controllerCtx, config, adminClient, schemaClient, leaseClient, true); err != nil {
-			logger.Errorf(err, "controller failed: %v", err)
-			return fmt.Errorf("controller failed: %w", err)
-		}
-		return nil
-	})
+	controllerService, err := controller.New(controllerCtx, s.Bind, adminClient, schemaClient, leaseClient, config, true)
+	if err != nil {
+		return fmt.Errorf("controller failed: %w", err)
+	}
+	services = append(services, controllerService)
 
 	if !s.NoConsole {
+		svc := console.New(schemaEventSource, timelineClient, adminClient, router, buildEngineClient, s.Bind, s.Console)
+		services = append(services, svc)
 		wg.Go(func() error {
+			ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
 			if err := consolefrontend.PrepareServer(ctx); err != nil {
 				return fmt.Errorf("failed to prepare console server: %w", err)
-			}
-			// Deliberately start Console in the foreground.
-			ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
-			err := console.Start(ctx, s.Console, schemaEventSource, timelineClient, adminClient, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), buildEngineClient)
-			if err != nil {
-				return fmt.Errorf("failed to start console server: %w", err)
 			}
 			return nil
 		})
@@ -318,21 +298,19 @@ func (s *serveCommonConfig) run(
 	})
 
 	// Start Timeline
-	wg.Go(func() error {
-		err := timeline.Start(ctx, s.Timeline)
-		if err != nil {
-			return fmt.Errorf("timeline failed: %w", err)
-		}
-		return nil
-	})
+	timelineService, err := timeline.New(ctx, s.Timeline)
+	if err != nil {
+		return fmt.Errorf("failed to create timeline service: %w", err)
+	}
+	services = append(services, timelineService)
 	// Start Cron
 	wg.Go(func() error {
 		ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("cron"))
 		c := cron.Config{
-			SchemaServiceEndpoint: s.SchemaEndpoint,
-			TimelineEndpoint:      s.Timeline.Bind,
+			SchemaServiceEndpoint: s.Bind,
+			TimelineEndpoint:      s.Bind,
 		}
-		err := cron.Start(ctx, c, schemaEventSource, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), timelineClient)
+		err := cron.Start(ctx, c, schemaEventSource, router, timelineClient)
 		if err != nil {
 			return fmt.Errorf("cron failed: %w", err)
 		}
@@ -341,25 +319,22 @@ func (s *serveCommonConfig) run(
 	// Start Ingress
 	wg.Go(func() error {
 		ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("http-ingress"))
-		err := ingress.Start(ctx, s.Ingress, schemaEventSource, routing.NewVerbRouter(ctx, schemaEventSource, timelineClient), timelineClient)
+		err := ingress.Start(ctx, s.IngressBind, s.Ingress, schemaEventSource, router, timelineClient)
 		if err != nil {
 			return fmt.Errorf("ingress failed: %w", err)
 		}
 		return nil
 	})
-	// Start Leases
-	wg.Go(func() error {
-		err := lease.Start(ctx, s.Lease)
-		if err != nil {
-			return fmt.Errorf("lease failed: %w", err)
-		}
-		return nil
-	})
+	services = append(services, lease.New(ctx))
 	// Start Admin
+	adminService := admin.NewAdminService(s.Admin, cm, sm, schemaClient, schemaEventSource, storage, router, timelineClient, s.WaitFor)
+	services = append(services, adminService)
+
+	// Start the common server
 	wg.Go(func() error {
-		err := admin.Start(ctx, s.Admin, cm, sm, schemaClient, schemaEventSource, timelineClient, storage, s.WaitFor)
+		err := rpc.Serve(ctx, s.Bind, rpc.WithServices(services...))
 		if err != nil {
-			return fmt.Errorf("lease failed: %w", err)
+			return fmt.Errorf("admin serve failed: %w", err)
 		}
 		return nil
 	})

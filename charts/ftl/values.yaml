@@ -221,10 +221,10 @@ ingress:
     type: ClusterIP
     annotations: null
     ports:
-      - name: "http-8891"
+      - name: "http-8892"
         port: 80
         protocol: TCP
-        targetPort: 8891
+        targetPort: 8892
 
   podAnnotations: null
   nodeSelector: null

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"sync"
 	"time"
 
@@ -37,7 +36,7 @@ type updatesService struct {
 
 var _ enginepbconnect.BuildEngineServiceHandler = &updatesService{}
 
-func (e *Engine) startUpdatesService(ctx context.Context, endpoint *url.URL) error {
+func (e *Engine) startUpdatesService(ctx context.Context) rpc.Service {
 	logger := log.FromContext(ctx).Scope("build:updates")
 
 	svc := &updatesService{
@@ -81,16 +80,10 @@ func (e *Engine) startUpdatesService(ctx context.Context, endpoint *url.URL) err
 
 	// Start cache cleanup goroutine
 	go svc.cleanupCache(ctx)
-
-	logger.Debugf("Build updates service listening on: %s", endpoint)
-	err := rpc.Serve(ctx, endpoint,
-		rpc.GRPC(enginepbconnect.NewBuildEngineServiceHandler, svc),
-	)
-
-	if err != nil {
-		return fmt.Errorf("build updates service stopped serving: %w", err)
-	}
-	return nil
+	return svc
+}
+func (u *updatesService) StartServices(ctx context.Context) ([]rpc.Option, error) {
+	return []rpc.Option{rpc.GRPC(enginepbconnect.NewBuildEngineServiceHandler, u)}, nil
 }
 
 func (u *updatesService) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {

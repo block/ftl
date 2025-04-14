@@ -9,7 +9,7 @@ const globalSetup = async (config: FullConfig) => {
   const page = await context.newPage()
 
   try {
-    await page.goto('http://localhost:8899/modules')
+    await page.goto('http://localhost:8892/modules')
     console.log(`Server available after ${(Date.now() - startTime) / 1000}s`)
 
     console.log('Waiting for modules to be ready...')

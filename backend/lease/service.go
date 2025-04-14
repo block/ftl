@@ -4,14 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/kong"
 
 	ftllease "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1"
 	leaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
@@ -20,47 +17,32 @@ import (
 	"github.com/block/ftl/internal/rpc"
 )
 
-type Config struct {
-	Bind *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8895" env:"FTL_BIND"`
-}
+var _ rpc.Service = (*Service)(nil)
 
-func (c *Config) SetDefaults() {
-	if err := kong.ApplyDefaults(c); err != nil {
-		panic(err)
-	}
-}
-
-type service struct {
+type Service struct {
 	lock   sync.Mutex
 	leases map[string]*time.Time
 }
 
-func Start(ctx context.Context, config Config) error {
-	config.SetDefaults()
+func New(ctx context.Context) *Service {
 
 	logger := log.FromContext(ctx).Scope("lease")
-	svc := &service{
+	svc := &Service{
 		leases: make(map[string]*time.Time),
 	}
 	ctx = log.ContextWithLogger(ctx, logger)
-
-	logger.Debugf("Lease service listening on: %s", config.Bind)
-	err := rpc.Serve(ctx, config.Bind,
-		rpc.GRPC(leaseconnect.NewLeaseServiceHandler, svc),
-		rpc.HTTP("/", http.NotFoundHandler()),
-		rpc.PProf(),
-	)
-	if err != nil {
-		return fmt.Errorf("lease service stopped serving: %w", err)
-	}
-	return nil
+	return svc
 }
 
-func (s *service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
+func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
+	return []rpc.Option{rpc.GRPC(leaseconnect.NewLeaseServiceHandler, s)}, nil
+}
+
+func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
 }
 
-func (s *service) AcquireLease(ctx context.Context, stream *connect.BidiStream[ftllease.AcquireLeaseRequest, ftllease.AcquireLeaseResponse]) error {
+func (s *Service) AcquireLease(ctx context.Context, stream *connect.BidiStream[ftllease.AcquireLeaseRequest, ftllease.AcquireLeaseResponse]) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("AcquireLease called")
 	c := &leaseClient{
@@ -147,5 +129,5 @@ func toKey(key []string) string {
 type leaseClient struct {
 	// A local record of all leases held by this client, my diverge if they are not renewed in time
 	leases  map[string]*time.Time
-	service *service
+	service *Service
 }

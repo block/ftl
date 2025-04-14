@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"iter"
-	"net/url"
 	"sort"
 	"sync"
 	"time"
@@ -26,7 +25,6 @@ import (
 )
 
 type Config struct {
-	Bind              *url.URL       `help:"Socket to bind to." default:"http://127.0.0.1:8894" env:"FTL_BIND"`
 	EventLogRetention *time.Duration `help:"Delete call logs after this time period. 0 to disable" env:"FTL_EVENT_LOG_RETENTION" default:"24h"`
 }
 
@@ -36,7 +34,7 @@ func (c *Config) SetDefaults() {
 	}
 }
 
-type service struct {
+type Service struct {
 	config Config
 	lock   sync.RWMutex
 	nextID int
@@ -45,31 +43,28 @@ type service struct {
 	notifier *channels.Notifier
 }
 
-var _ timelineconnect.TimelineServiceHandler = (*service)(nil)
+var _ timelineconnect.TimelineServiceHandler = (*Service)(nil)
+var _ rpc.Service = (*Service)(nil)
 
-func Start(ctx context.Context, config Config) error {
+func New(ctx context.Context, config Config) (*Service, error) {
 	config.SetDefaults()
 
 	logger := log.FromContext(ctx).Scope("timeline")
 	ctx = log.ContextWithLogger(ctx, logger)
 	svc, err := newService(ctx, config)
 	if err != nil {
-		return fmt.Errorf("failed to create timeline service: %w", err)
+		return nil, fmt.Errorf("failed to create timeline Service: %w", err)
 	}
 
-	go svc.reapCallEvents(ctx)
-
-	logger.Debugf("Timeline service listening on: %s", config.Bind)
-	if err := rpc.Serve(ctx, config.Bind,
-		rpc.GRPC(timelineconnect.NewTimelineServiceHandler, svc),
-	); err != nil {
-		return fmt.Errorf("timeline service stopped serving: %w", err)
-	}
-	return nil
+	return svc, nil
+}
+func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
+	go s.reapCallEvents(ctx)
+	return []rpc.Option{rpc.GRPC(timelineconnect.NewTimelineServiceHandler, s)}, nil
 }
 
-func newService(ctx context.Context, config Config) (*service, error) {
-	return &service{
+func newService(ctx context.Context, config Config) (*Service, error) {
+	return &Service{
 		config:   config,
 		nextID:   0,
 		notifier: channels.NewNotifier(ctx),
@@ -77,11 +72,11 @@ func newService(ctx context.Context, config Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
+func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
 }
 
-func (s *service) CreateEvents(ctx context.Context, req *connect.Request[timelinepb.CreateEventsRequest]) (*connect.Response[timelinepb.CreateEventsResponse], error) {
+func (s *Service) CreateEvents(ctx context.Context, req *connect.Request[timelinepb.CreateEventsRequest]) (*connect.Response[timelinepb.CreateEventsResponse], error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -144,7 +139,7 @@ func (s *service) CreateEvents(ctx context.Context, req *connect.Request[timelin
 	return connect.NewResponse(&timelinepb.CreateEventsResponse{}), nil
 }
 
-func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timelinepb.GetTimelineRequest]) (*connect.Response[timelinepb.GetTimelineResponse], error) {
+func (s *Service) GetTimeline(ctx context.Context, req *connect.Request[timelinepb.GetTimelineRequest]) (*connect.Response[timelinepb.GetTimelineResponse], error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -199,7 +194,7 @@ func (s *service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 	}), nil
 }
 
-func (s *service) findIndexWithLargerID(id int64) int {
+func (s *Service) findIndexWithLargerID(id int64) int {
 	idx := sort.Search(len(s.events), func(i int) bool {
 		return s.events[i].Id >= id
 	})
@@ -209,7 +204,7 @@ func (s *service) findIndexWithLargerID(id int64) int {
 // We want to throttle the number of updates we send to the client via the stream.
 const minUpdateInterval = 50 * time.Millisecond
 
-func (s *service) streamTimelineIter(ctx context.Context, req *timelinepb.StreamTimelineRequest) (iter.Seq[result.Result[*timelinepb.StreamTimelineResponse]], error) {
+func (s *Service) streamTimelineIter(ctx context.Context, req *timelinepb.StreamTimelineRequest) (iter.Seq[result.Result[*timelinepb.StreamTimelineResponse]], error) {
 	sub := s.notifier.Subscribe(ctx)
 	lastUpdate := time.Now()
 	query := req.Query
@@ -309,7 +304,7 @@ func updatedMaxEventID(events []*timelinepb.Event, prevMaxEventID optional.Optio
 	return optional.Some(events[0].Id)
 }
 
-func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
+func (s *Service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
 	iter, err := s.streamTimelineIter(ctx, req.Msg)
 	if err != nil {
 		return err
@@ -321,7 +316,7 @@ func (s *service) StreamTimeline(ctx context.Context, req *connect.Request[timel
 	return nil
 }
 
-func (s *service) DeleteOldEvents(ctx context.Context, req *connect.Request[timelinepb.DeleteOldEventsRequest]) (*connect.Response[timelinepb.DeleteOldEventsResponse], error) {
+func (s *Service) DeleteOldEvents(ctx context.Context, req *connect.Request[timelinepb.DeleteOldEventsRequest]) (*connect.Response[timelinepb.DeleteOldEventsResponse], error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	// Events that match all these filters will be deleted
@@ -353,7 +348,7 @@ func (s *service) DeleteOldEvents(ctx context.Context, req *connect.Request[time
 	}), nil
 }
 
-func (s *service) reapCallEvents(ctx context.Context) {
+func (s *Service) reapCallEvents(ctx context.Context) {
 	logger := log.FromContext(ctx)
 	var interval time.Duration
 	if s.config.EventLogRetention == nil {

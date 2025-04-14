@@ -20,12 +20,13 @@ import (
 )
 
 var cli struct {
+	Bind                 *url.URL             `help:"Socket to bind to for ingress." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 	Version              kong.VersionFlag     `help:"Show version."`
 	ObservabilityConfig  observability.Config `embed:"" prefix:"o11y-"`
 	LogConfig            log.Config           `embed:"" prefix:"log-"`
 	HTTPIngressConfig    ingress.Config       `embed:""`
 	SchemaServerEndpoint *url.URL             `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
-	TimelineEndpoint     *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
+	TimelineEndpoint     *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 }
 
 func main() {
@@ -43,6 +44,6 @@ func main() {
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 	eventSource := schemaeventsource.New(ctx, "http-ingress", schemaClient)
 	routeManager := routing.NewVerbRouter(ctx, eventSource, timelineClient)
-	err = ingress.Start(ctx, cli.HTTPIngressConfig, eventSource, routeManager, timelineClient)
+	err = ingress.Start(ctx, cli.Bind, cli.HTTPIngressConfig, eventSource, routeManager, timelineClient)
 	kctx.FatalIfErrorf(err, "failed to start HTTP ingress")
 }

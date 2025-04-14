@@ -27,7 +27,8 @@ var cli struct {
 	DisableIstio        bool                 `help:"Disable Istio integration. This will prevent the creation of Istio policies to limit network traffic." env:"FTL_DISABLE_ISTIO"`
 	LeaseEndpoint       *url.URL             `help:"Lease endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	AdminEndpoint       *url.URL             `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
-	SchemaEndpoint      *url.URL             `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
+	SchemaEndpoint      *url.URL             `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
+	Bind                *url.URL             `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 }
 
 func main() {
@@ -38,7 +39,6 @@ func main() {
 			"version": ftl.FormattedVersion,
 		},
 	)
-	cli.ControllerConfig.SetDefaults()
 
 	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig))
 	err := observability.Init(ctx, false, "", "ftl-controller", ftl.Version, cli.ObservabilityConfig)
@@ -50,6 +50,9 @@ func main() {
 
 	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 
-	err = controller.Start(ctx, cli.ControllerConfig, adminClient, schemaClient, leaseClient, false)
+	svc, err := controller.New(ctx, cli.Bind, adminClient, schemaClient, leaseClient, cli.ControllerConfig, false)
 	kctx.FatalIfErrorf(err)
+	err = rpc.Serve(ctx, cli.Bind, rpc.WithServices(svc))
+	kctx.FatalIfErrorf(err)
+
 }

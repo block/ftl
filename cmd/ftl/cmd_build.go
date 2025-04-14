@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/internal/buildengine"
@@ -14,10 +13,9 @@ import (
 )
 
 type buildCmd struct {
-	Parallelism     int      `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
-	Dirs            []string `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
-	BuildEnv        []string `help:"Environment variables to set for the build."`
-	UpdatesEndpoint *url.URL `help:"Socket to bind to." default:"http://127.0.0.1:8900" env:"FTL_BUILD_UPDATES_ENDPOINT"`
+	Parallelism int      `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
+	Dirs        []string `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
+	BuildEnv    []string `help:"Environment variables to set for the build."`
 }
 
 func (b *buildCmd) Run(
@@ -43,7 +41,6 @@ func (b *buildCmd) Run(
 		schemaSource,
 		projConfig,
 		b.Dirs,
-		b.UpdatesEndpoint,
 		false,
 		buildengine.BuildEnv(b.BuildEnv),
 		buildengine.Parallelism(b.Parallelism),

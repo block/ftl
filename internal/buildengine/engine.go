@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"net/url"
 	"runtime"
 	"sort"
 	"strings"
@@ -33,9 +32,12 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/watch"
 )
+
+var _ rpc.Service = (*Engine)(nil)
 
 // moduleMeta is a wrapper around a module that includes the last build's start time.
 type moduleMeta struct {
@@ -112,8 +114,17 @@ type Engine struct {
 	devModeEndpointUpdates chan dev.LocalEndpoint
 	devMode                bool
 
-	os   string
-	arch string
+	os             string
+	arch           string
+	updatesService rpc.Service
+}
+
+func (e *Engine) StartServices(ctx context.Context) ([]rpc.Option, error) {
+	services, err := e.updatesService.StartServices(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start updates service: %w", err)
+	}
+	return services, nil
 }
 
 type Option func(o *Engine)
@@ -158,7 +169,6 @@ func New(
 	schemaSource *schemaeventsource.EventSource,
 	projectConfig projectconfig.Config,
 	moduleDirs []string,
-	updatesEndpoint *url.URL,
 	logChanges bool,
 	options ...Option,
 ) (*Engine, error) {
@@ -201,11 +211,7 @@ func New(
 	updateTerminalWithEngineEvents(ctx, e.EngineUpdates)
 
 	go e.watchForPluginEvents(ctx)
-	go func() {
-		if err := e.startUpdatesService(ctx, updatesEndpoint); err != nil && !errors.Is(err, context.Canceled) {
-			log.FromContext(ctx).Errorf(err, "updates service failed")
-		}
-	}()
+	e.updatesService = e.startUpdatesService(ctx)
 
 	go e.watchForEventsToPublish(ctx, len(configs) > 0)
 

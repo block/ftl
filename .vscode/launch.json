@@ -8,24 +8,6 @@
       "port": 2345,
       "request": "attach",
       "type": "go"
-    },
-    {
-      "apiVersion": 2,
-      "host": "127.0.0.1",
-      "mode": "remote",
-      "name": "FT𝝺 GO - time",
-      "port": 8894,
-      "request": "attach",
-      "type": "go"
-    },
-    {
-      "apiVersion": 2,
-      "host": "127.0.0.1",
-      "mode": "remote",
-      "name": "FT𝝺 GO - echo",
-      "port": 8896,
-      "request": "attach",
-      "type": "go"
     }
   ],
   "version": "0.2.0"

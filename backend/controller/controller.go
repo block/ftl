@@ -17,7 +17,6 @@ import (
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/controller/leases"
@@ -49,7 +48,6 @@ type CommonConfig struct {
 }
 
 type Config struct {
-	Bind                         *url.URL       `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 	Key                          key.Controller `help:"Controller key (auto)." placeholder:"KEY"`
 	Advertise                    *url.URL       `help:"Endpoint the Controller should advertise (must be unique across the cluster, defaults to --bind if omitted)." env:"FTL_ADVERTISE"`
 	RunnerTimeout                time.Duration  `help:"Runner heartbeat timeout." default:"10s"`
@@ -59,11 +57,7 @@ type Config struct {
 	CommonConfig
 }
 
-func (c *Config) SetDefaults() {
-	if c.Advertise == nil {
-		c.Advertise = c.Bind
-	}
-}
+var _ rpc.Service = (*Service)(nil)
 
 func (c *Config) OpenDBAndInstrument(dsn string) (*sql.DB, error) {
 	conn, err := internalobservability.OpenDBAndInstrument(dsn)
@@ -75,37 +69,8 @@ func (c *Config) OpenDBAndInstrument(dsn string) (*sql.DB, error) {
 	return conn, nil
 }
 
-// Start the Controller. Blocks until the context is cancelled.
-func Start(
-	ctx context.Context,
-	config Config,
-	adminClient adminpbconnect.AdminServiceClient,
-	schemaClient ftlv1connect.SchemaServiceClient,
-	leaseClient leasepbconnect.LeaseServiceClient,
-	devel bool,
-) error {
-	config.SetDefaults()
-
-	logger := log.FromContext(ctx)
-	logger.Debugf("Starting FTL controller")
-
-	svc, err := New(ctx, adminClient, schemaClient, leaseClient, config, devel)
-	if err != nil {
-		return err
-	}
-	logger.Debugf("Listening on %s", config.Bind)
-	logger.Debugf("Advertising as %s", config.Advertise)
-
-	g, ctx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		return rpc.Serve(ctx, config.Bind,
-			rpc.GRPC(ftlv1connect.NewControllerServiceHandler, svc),
-			rpc.PProf(),
-		)
-	})
-
-	return g.Wait()
+func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
+	return []rpc.Option{rpc.GRPC(ftlv1connect.NewControllerServiceHandler, s)}, nil
 }
 
 var _ ftlv1connect.ControllerServiceHandler = (*Service)(nil)
@@ -118,6 +83,7 @@ type Service struct {
 	leaser      leases.Leaser
 	key         key.Controller
 	adminClient adminpbconnect.AdminServiceClient
+	bind        *url.URL
 
 	tasks *scheduledtask.Scheduler
 
@@ -134,20 +100,21 @@ type Service struct {
 
 func New(
 	ctx context.Context,
+	bind *url.URL,
 	adminClient adminpbconnect.AdminServiceClient,
 	schemaClient ftlv1connect.SchemaServiceClient,
 	leaserClient leasepbconnect.LeaseServiceClient,
 	config Config,
 	devel bool,
+
 ) (*Service, error) {
 	logger := log.FromContext(ctx)
 	logger = logger.Scope("controller")
 	ctx = log.ContextWithLogger(ctx, logger)
 	controllerKey := config.Key
 	if config.Key.IsZero() {
-		controllerKey = key.NewControllerKey(config.Bind.Hostname(), config.Bind.Port())
+		controllerKey = key.NewControllerKey(bind.Hostname(), bind.Port())
 	}
-	config.SetDefaults()
 
 	// Override some defaults during development mode.
 	if devel {
@@ -171,6 +138,7 @@ func New(
 		schemaClient: schemaClient,
 		runnerState:  state.NewInMemoryRunnerState(ctx),
 		adminClient:  adminClient,
+		bind:         bind,
 	}
 
 	// Use min, max backoff if we are running in production, otherwise use
@@ -320,7 +288,7 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 	resp := &ftlv1.StatusResponse{
 		Controllers: []*ftlv1.StatusResponse_Controller{{
 			Key:      s.key.String(),
-			Endpoint: s.config.Bind.String(),
+			Endpoint: s.bind.String(),
 			Version:  ftl.Version,
 		}},
 		Runners:     protoRunners,

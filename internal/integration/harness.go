@@ -319,8 +319,8 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 	assert.Equal(t, *buildOnceOptions, opts, "Options changed between test runs")
 
 	adminPort := "8892"
-	consolePort := "8899"
-	schemaPort := "8897"
+	consolePort := "8892"
+	schemaPort := "8892"
 	if opts.kube {
 		adminPort = "8792"
 		consolePort = "8792"
@@ -398,17 +398,13 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			}
 
 			if opts.startTimeline {
-				if opts.kube {
-					ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:8792", log.Debug)
-				} else {
-					ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:8894", log.Debug)
-				}
+				ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:"+adminPort, log.Debug)
 				Infof("Waiting for timeline to be ready")
 				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Timeline))
 			}
 
 			if opts.devMode {
-				ic.BuildEngine = rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, "http://localhost:8900", log.Debug)
+				ic.BuildEngine = rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, "http://localhost:"+adminPort, log.Debug)
 
 				Infof("Waiting for build engine client to be ready")
 				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Timeline))

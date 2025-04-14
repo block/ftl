@@ -20,18 +20,20 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
+	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
+	Bind                *url.URL                 `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 	Version             kong.VersionFlag         `help:"Show version."`
 	ObservabilityConfig observability.Config     `embed:"" prefix:"o11y-"`
 	LogConfig           log.Config               `embed:"" prefix:"log-"`
 	AdminConfig         admin.Config             `embed:"" prefix:"admin-"`
-	SchemaEndpoint      *url.URL                 `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8897"`
-	TimelineEndpoint    *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8894"`
+	SchemaEndpoint      *url.URL                 `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
+	TimelineEndpoint    *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	Config              string                   `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
 	Secrets             string                   `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
 	RegistryConfig      artefacts.RegistryConfig `embed:"" prefix:"oci-"`
@@ -46,7 +48,8 @@ func main() {
 		},
 	)
 
-	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, cli.LogConfig))
+	logger := log.Configure(os.Stderr, cli.LogConfig)
+	ctx := log.ContextWithLogger(context.Background(), logger)
 	err := observability.Init(ctx, false, "", "ftl-admin", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
@@ -67,6 +70,13 @@ func main() {
 
 	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
-	err = admin.Start(ctx, cli.AdminConfig, cm, sm, schemaClient, eventSource, timelineclient.NewClient(ctx, cli.TimelineEndpoint), storage, nil)
-	kctx.FatalIfErrorf(err, "failed to start timeline service")
+	client := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
+	svc := admin.NewAdminService(cli.AdminConfig, cm, sm, schemaClient, eventSource, storage, routing.NewVerbRouter(ctx, eventSource, client), client, []string{})
+
+	kctx.FatalIfErrorf(err, "failed to start admin service handlers")
+	logger.Debugf("Admin service listening on: %s", cli.Bind)
+	err = rpc.Serve(ctx, cli.Bind,
+		rpc.WithServices(svc),
+	)
+	kctx.FatalIfErrorf(err, "failed to start admin service")
 }
