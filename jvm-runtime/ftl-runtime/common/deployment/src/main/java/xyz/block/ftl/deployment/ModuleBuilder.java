@@ -735,6 +735,10 @@ public class ModuleBuilder {
         externalRefs.put(name, ref);
     }
 
+    public void registerValidationFailure(Position position, String message) {
+        validationFailures.add(new ValidationFailure(toError(position), message));
+    }
+
     private void addDecl(Decl decl, Position pos, String name) {
         validateName(pos, name);
         var existing = decls.get(name);
