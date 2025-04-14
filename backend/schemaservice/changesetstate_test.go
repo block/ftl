@@ -15,7 +15,6 @@ import (
 )
 
 func TestChangesetState(t *testing.T) {
-
 	module := &schema.Module{
 		Name: "test",
 		Runtime: &schema.ModuleRuntime{
@@ -43,8 +42,7 @@ func TestChangesetState(t *testing.T) {
 			},
 		}
 		sm := schemaservice.SchemaState{}
-		err = sm.ApplyEvent(ctx, event)
-		assert.Error(t, err)
+		assert.Error(t, sm.ApplyEvent(ctx, event))
 	})
 
 	t.Run("deployment must must have deployment key", func(t *testing.T) {
@@ -60,13 +58,25 @@ func TestChangesetState(t *testing.T) {
 				Error: "",
 			},
 		}
-		sm := schemaservice.SchemaState{}
-		err = sm.ApplyEvent(ctx, event)
-		assert.Error(t, err)
+		sm := schemaservice.NewSchemaState()
+		assert.Error(t, sm.ApplyEvent(ctx, event))
+	})
+
+	t.Run("changeset with two internal realms is rejected", func(t *testing.T) {
+		event := &schema.ChangesetCreatedEvent{
+			Changeset: &schema.Changeset{
+				Key:          key.NewChangesetKey(),
+				CreatedAt:    time.Now(),
+				RealmChanges: []*schema.RealmChange{{Name: "testrealm1"}, {Name: "testrealm2"}},
+			},
+		}
+
+		sm := schemaservice.NewSchemaState()
+		assert.Error(t, sm.ApplyEvent(ctx, event))
 	})
 
 	changesetKey := key.NewChangesetKey()
-	t.Run("test changeset with a new realm", func(t *testing.T) {
+	t.Run("changeset with a new realm", func(t *testing.T) {
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.ChangesetCreatedEvent{
 			Changeset: &schema.Changeset{
 				Key:       changesetKey,
@@ -94,11 +104,14 @@ func TestChangesetState(t *testing.T) {
 		}
 	})
 
-	t.Run("test update module schema", func(t *testing.T) {
+	t.Run("update module schema", func(t *testing.T) {
 		newState := reflect.DeepCopy(module)
 		newState.ModRuntime().ModRunner().Endpoint = "http://localhost:8080"
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentRuntimeEvent{
-			Payload:   &schema.RuntimeElement{Deployment: module.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeRunner{Endpoint: "http://localhost:8080"}},
+			Payload: &schema.RuntimeElement{
+				Deployment: module.Runtime.Deployment.DeploymentKey,
+				Element:    &schema.ModuleRuntimeRunner{Endpoint: "http://localhost:8080"},
+			},
 			Changeset: &changesetKey,
 		}})
 		assert.NoError(t, err)
@@ -112,7 +125,7 @@ func TestChangesetState(t *testing.T) {
 		}
 	})
 
-	t.Run("test commit changeset in bad state", func(t *testing.T) {
+	t.Run("commit changeset in bad state", func(t *testing.T) {
 		// The deployment is not provisioned yet, this should fail
 		event := &schema.ChangesetCommittedEvent{
 			Key: changesetKey,
@@ -122,7 +135,7 @@ func TestChangesetState(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("test prepare changeset in bad state", func(t *testing.T) {
+	t.Run("prepare changeset in bad state", func(t *testing.T) {
 		// The deployment is not provisioned yet, this should fail
 		event := &schema.ChangesetPreparedEvent{
 			Key: changesetKey,
@@ -132,11 +145,16 @@ func TestChangesetState(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("test prepare changeset", func(t *testing.T) {
+	t.Run("prepare changeset", func(t *testing.T) {
 		newState := reflect.DeepCopy(module)
 		newState.Runtime.Deployment.State = schema.DeploymentStateReady
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.DeploymentRuntimeEvent{
-			Payload:   &schema.RuntimeElement{Deployment: module.Runtime.Deployment.DeploymentKey, Element: &schema.ModuleRuntimeDeployment{State: schema.DeploymentStateReady}},
+			Payload: &schema.RuntimeElement{
+				Deployment: module.Runtime.Deployment.DeploymentKey,
+				Element: &schema.ModuleRuntimeDeployment{
+					State: schema.DeploymentStateReady,
+				},
+			},
 			Changeset: &changesetKey,
 		}})
 		assert.NoError(t, err)
@@ -154,7 +172,7 @@ func TestChangesetState(t *testing.T) {
 		assert.Equal(t, 0, len(view.GetCanonicalDeployments()))
 	})
 
-	t.Run("test commit changeset", func(t *testing.T) {
+	t.Run("commit changeset", func(t *testing.T) {
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.ChangesetCommittedEvent{
 			Key: changesetKey,
 		}})
@@ -166,7 +184,7 @@ func TestChangesetState(t *testing.T) {
 		assert.Equal(t, 1, len(view.GetCanonicalDeployments()))
 	})
 
-	t.Run("test archive first changeset", func(t *testing.T) {
+	t.Run("archive first changeset", func(t *testing.T) {
 		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.ChangesetDrainedEvent{
 			Key: changesetKey,
 		}})
@@ -186,6 +204,16 @@ func TestChangesetState(t *testing.T) {
 		assert.Equal(t, 0, len(view.GetChangesets()))
 	})
 
+	t.Run("changeset with a different intrnal realm is rejected", func(t *testing.T) {
+		err = state.Publish(ctx, schemaservice.EventWrapper{Event: &schema.ChangesetCreatedEvent{
+			Changeset: &schema.Changeset{
+				Key:          changesetKey,
+				RealmChanges: []*schema.RealmChange{{Name: "testrealm2"}},
+				Error:        "",
+			},
+		}})
+		assert.Error(t, err)
+	})
 }
 
 func changeset(t *testing.T, view schemaservice.SchemaState) *schema.Changeset {

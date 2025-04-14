@@ -3,7 +3,7 @@ package schemaservice
 import (
 	"context"
 	"fmt"
-	slices2 "slices"
+	goslices "slices"
 
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
@@ -132,6 +132,27 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	activeCount := 0
 	existingModules := map[string]key.Changeset{}
 	updatingModules := map[string]*schema.Module{}
+
+	// validate there is at most one internal realm, and it matches the name of the realm in the state
+	hasInternalRealm := false
+	for _, rc := range e.Changeset.RealmChanges {
+		if rc.External {
+			continue
+		}
+		if hasInternalRealm {
+			return fmt.Errorf("changeset can have at most one internal realm")
+		}
+		hasInternalRealm = true
+		for _, sr := range t.realms {
+			if sr.External {
+				continue
+			}
+			if sr.Name != rc.Name {
+				return fmt.Errorf("internal realm must be called %s, got %s", sr.Name, rc.Name)
+			}
+		}
+	}
+
 	for _, cs := range t.changesets {
 		if cs.ModulesAreCanonical() {
 			for _, mod := range cs.InternalRealm().Modules {
@@ -269,6 +290,12 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 	changeset := t.changesets[e.Key]
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
+	for _, realm := range changeset.RealmChanges {
+		t.realms[realm.Name] = &schema.RealmState{
+			Name:     realm.Name,
+			External: realm.External,
+		}
+	}
 	for _, dep := range changeset.InternalRealm().Modules {
 		logger.Debugf("activating deployment %s %s", dep.GetRuntime().GetDeployment().DeploymentKey.String(), dep.Runtime.GetRunner().Endpoint)
 		if old, ok := t.deployments[dep.Name]; ok {
@@ -428,7 +455,7 @@ func latestSchema(canonical *schema.Schema, changeset *schema.Changeset) *schema
 	sch := reflect.DeepCopy(canonical)
 	for _, realm := range sch.InternalRealms() {
 		for _, module := range changeset.InternalRealm().Modules {
-			if i := slices2.IndexFunc(realm.Modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
+			if i := goslices.IndexFunc(realm.Modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
 				realm.Modules[i] = module
 			} else {
 				realm.Modules = append(realm.Modules, module)
