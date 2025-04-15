@@ -14,7 +14,6 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/block/ftl/backend/goose"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/internal/exec"
@@ -36,14 +35,22 @@ type gooseResetCmd struct {
 }
 
 func (c *gooseResetCmd) Run(projectConfig projectconfig.Config) error {
-	if err := goose.ResetContext(projectConfig.Root()); err != nil {
-		return fmt.Errorf("failed to reset Goose context: %w", err)
-	}
-	return nil
+	return resetGooseSession(projectConfig)
 }
 
 func logPath(projectConfig projectconfig.Config) string {
-	return filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.json")
+	return filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.jsonl")
+}
+
+func resetGooseSession(projectConfig projectconfig.Config) error {
+	gooseLogsPath := logPath(projectConfig)
+	if err := os.Remove(gooseLogsPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to remove Goose logs: %w", err)
+	}
+	return nil
 }
 
 type gooseChatCmd struct {
