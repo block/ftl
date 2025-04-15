@@ -56,7 +56,7 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	}
-	engine.Import(ctx, otherSchema)
+	engine.Import(ctx, "test", otherSchema)
 
 	expected := map[string][]string{
 		"alpha":   {"another", "other", "builtin"},

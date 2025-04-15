@@ -492,7 +492,13 @@ func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Sche
 		}
 	}
 	for _, m := range deployment.modules {
-		sch.Realms[0].Modules = append(sch.Realms[0].Modules, m.schema)
+		for _, realm := range sch.Realms {
+			if realm.External {
+				continue
+			}
+			realm.Modules = append(realm.Modules, m.schema)
+			break
+		}
 	}
 	for _, mod := range modulesToCheck {
 		depSch, ok := slices.Find(sch.InternalModules(), func(m *schema.Module) bool {
@@ -560,9 +566,15 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 			break
 		}
 	}
-	sch.Realms[0].Modules = slices.Filter(sch.Realms[0].Modules, func(m *schema.Module) bool {
-		return !toRemove[m.Name]
-	})
+	for _, realm := range sch.Realms {
+		if realm.External {
+			continue
+		}
+		realm.Modules = slices.Filter(realm.Modules, func(m *schema.Module) bool {
+			return !toRemove[m.Name]
+		})
+		break
+	}
 
 	sch, err := sch.Validate()
 	if err != nil {

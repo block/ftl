@@ -54,15 +54,22 @@ func (d *schemaDiffCmd) Run(
 		return fmt.Errorf("failed to get current schema: %w", err)
 	}
 	if sameModulesOnly {
-		tempModules := current.Realms[0].Modules
-		current.Realms[0].Modules = []*schema.Module{}
-		moduleMap := map[string]*schema.Module{}
-		for _, i := range tempModules {
-			moduleMap[i.Name] = i
-		}
-		for _, i := range other.InternalModules() {
-			if mod, ok := moduleMap[i.Name]; ok {
-				current.Realms[0].Modules = append(current.Realms[0].Modules, mod)
+		for _, realm := range current.Realms {
+			tempModules := realm.Modules
+			realm.Modules = []*schema.Module{}
+			moduleMap := map[string]*schema.Module{}
+			for _, i := range tempModules {
+				moduleMap[i.Name] = i
+			}
+			for _, r := range other.Realms {
+				if r.Name != realm.Name {
+					continue
+				}
+				for _, i := range r.Modules {
+					if mod, ok := moduleMap[i.Name]; ok {
+						realm.Modules = append(realm.Modules, mod)
+					}
+				}
 			}
 		}
 	}

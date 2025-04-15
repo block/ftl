@@ -78,7 +78,14 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 			}
 		}
 		if !found {
-			schema.Realms[0].Modules = append(schema.Realms[0].Modules, m)
+			// place the new mudule to the internal realm
+			for _, realm := range schema.Realms {
+				if realm.External {
+					continue
+				}
+				realm.Modules = append(realm.Modules, m)
+				break
+			}
 		}
 	}
 
