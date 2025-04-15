@@ -178,22 +178,41 @@ func (e *EventSource) Publish(event schema.Notification) error {
 	case *schema.ChangesetCommittedNotification:
 		clone := reflect.DeepCopy(e.view.Load())
 		clone.activeChangesets[event.Changeset.Key] = event.Changeset
-		modules := clone.schema.InternalModules()
-		for _, module := range event.Changeset.InternalRealm().Modules {
-			module.Runtime.Deployment.State = schema.DeploymentStateCanonical
-			if i := slices.IndexFunc(modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
-				modules[i] = module
-			} else {
-				modules = append(modules, module)
-			}
-		}
-		for _, removed := range event.Changeset.InternalRealm().RemovingModules {
-			modules = islices.Filter(modules, func(m *schema.Module) bool {
-				return m.ModRuntime().ModDeployment().DeploymentKey != removed.ModRuntime().ModDeployment().DeploymentKey
-			})
 
+		realms := map[string]*schema.Realm{}
+		for _, realm := range clone.schema.Realms {
+			realms[realm.Name] = realm
 		}
-		clone.schema.Realms[0].Modules = modules
+
+		for _, realm := range event.Changeset.RealmChanges {
+			var modules []*schema.Module
+			var existingRealm *schema.Realm
+
+			er, ok := realms[realm.Name]
+			if ok {
+				modules = er.Modules
+				existingRealm = er
+			} else {
+				existingRealm = &schema.Realm{Name: realm.Name, External: realm.External}
+				clone.schema.Realms = append(clone.schema.Realms, existingRealm)
+				realms[realm.Name] = existingRealm
+			}
+
+			for _, module := range realm.Modules {
+				module.Runtime.Deployment.State = schema.DeploymentStateCanonical
+				if i := slices.IndexFunc(modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
+					modules[i] = module
+				} else {
+					modules = append(modules, module)
+				}
+			}
+			for _, removed := range realm.RemovingModules {
+				modules = islices.Filter(modules, func(m *schema.Module) bool {
+					return m.ModRuntime().ModDeployment().DeploymentKey != removed.ModRuntime().ModDeployment().DeploymentKey
+				})
+			}
+			existingRealm.Modules = modules
+		}
 		e.view.Store(clone)
 	case *schema.ChangesetDrainedNotification:
 		clone := reflect.DeepCopy(e.view.Load())

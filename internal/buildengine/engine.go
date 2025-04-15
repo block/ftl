@@ -190,7 +190,7 @@ func New(
 		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
 		os:               runtime.GOOS,
 	}
-	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges)
+	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges, projectConfig)
 	for _, option := range options {
 		option(e)
 	}
@@ -317,7 +317,7 @@ func (e *Engine) buildGraph(moduleName string, out map[string][]string) error {
 			deps = append(deps, sch.Imports()...)
 		}
 	}
-	if !foundModule {
+	if !foundModule && moduleName != "builtin" {
 		return fmt.Errorf("module %q not found", moduleName)
 	}
 	deps = slices.Unique(deps)
@@ -442,7 +442,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module) //nolint:errcheck
 				}
 			case watch.WatchEventModuleRemoved:
-				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module)
+				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module, e.projectConfig.Name)
 				if err != nil {
 					logger.Errorf(err, "terminate %s failed", event.Config.Module)
 				}
@@ -880,6 +880,10 @@ func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, 
 	mustBuildChan := make(chan moduleconfig.ModuleConfig, len(moduleNames))
 	wg := errgroup.Group{}
 	for _, name := range moduleNames {
+		if name == "builtin" {
+			continue
+		}
+
 		wg.Go(func() error {
 			meta, ok := e.moduleMetas.Load(name)
 			if !ok {
@@ -1094,6 +1098,10 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, moduleName string, builtModules map[string]*schema.Module, schemas chan *schema.Module, callback buildCallback) error {
 	logger := log.FromContext(ctx)
 
+	if moduleName == "builtin" {
+		return nil
+	}
+
 	if !mustBuild[moduleName] {
 		return e.mustSchema(ctx, moduleName, builtModules, schemas)
 	}
@@ -1256,7 +1264,7 @@ func (e *Engine) gatherSchemas(
 func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[string]*schema.Module, metasMap map[string]moduleMeta) error {
 	fullSchema := &schema.Schema{Realms: []*schema.Realm{{
 		Modules: maps.Values(newModules),
-		Name:    "default", // TODO: projectName,
+		Name:    e.projectConfig.Name,
 	}}} //nolint:exptostd
 	for _, module := range e.targetSchema.Load().InternalModules() {
 		if _, ok := newModules[module.Name]; !ok {

@@ -35,9 +35,9 @@ func TestChangesetState(t *testing.T) {
 			Changeset: &schema.Changeset{
 				CreatedAt: time.Now(),
 				RealmChanges: []*schema.RealmChange{{
+					Name:    "test",
 					Modules: []*schema.Module{module},
 				}},
-				Error: "",
 			},
 		}
 		sm := schemaservice.SchemaState{}
@@ -52,9 +52,9 @@ func TestChangesetState(t *testing.T) {
 				Key:       key.NewChangesetKey(),
 				CreatedAt: time.Now(),
 				RealmChanges: []*schema.RealmChange{{
+					Name:    "test",
 					Modules: []*schema.Module{nm},
 				}},
-				Error: "",
 			},
 		}
 		sm := schemaservice.NewSchemaState()
@@ -81,7 +81,7 @@ func TestChangesetState(t *testing.T) {
 				Key:       changesetKey,
 				CreatedAt: time.Now(),
 				RealmChanges: []*schema.RealmChange{{
-					Name:    "testrealm",
+					Name:    "test",
 					Modules: []*schema.Module{module},
 				}},
 				Error: "",
@@ -93,7 +93,7 @@ func TestChangesetState(t *testing.T) {
 
 		assert.Equal(t, 1, len(csd.RealmChanges))
 		assert.Equal(t, 1, len(csd.RealmChanges[0].Modules))
-		assert.Equal(t, "testrealm", csd.RealmChanges[0].Name)
+		assert.Equal(t, "test", csd.RealmChanges[0].Name)
 
 		for _, d := range csd.RealmChanges[0].Modules {
 			assert.Equal(t, schema.DeploymentStateProvisioning, d.Runtime.Deployment.State)
@@ -169,6 +169,10 @@ func TestChangesetState(t *testing.T) {
 		csd := changeset(t, state)
 		assert.Equal(t, schema.ChangesetStateCommitted, csd.State)
 		assert.Equal(t, 1, len(state.GetCanonicalDeployments()))
+
+		sch := state.GetCanonicalSchema()
+		assert.Equal(t, 1, len(sch.Realms))
+		assert.Equal(t, 1, len(sch.Realms[0].Modules))
 	})
 
 	t.Run("archive first changeset", func(t *testing.T) {

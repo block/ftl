@@ -44,6 +44,9 @@ func TestEventExtractor(t *testing.T) {
 						},
 					},
 				},
+				realms: map[string]*schema.RealmState{
+					"test": {Name: "test"},
+				},
 			},
 			want: []*ftlv1.PullSchemaResponse{
 				{
@@ -53,7 +56,7 @@ func TestEventExtractor(t *testing.T) {
 								Pos: &schemapb.Position{},
 								Realms: []*schemapb.Realm{{
 									Pos:  &schemapb.Position{},
-									Name: "default",
+									Name: "test",
 									Modules: []*schemapb.Module{{Name: "test",
 										Pos: &schemapb.Position{},
 										Runtime: &schemapb.ModuleRuntime{
