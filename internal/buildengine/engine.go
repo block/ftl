@@ -768,7 +768,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 		}
 		if !idle && isIdle(moduleStates) {
 			endTime = time.Now()
-			becomeIdleTimer = time.After(time.Second * 2)
+			becomeIdleTimer = time.After(time.Millisecond * 500)
 		}
 	}
 }
