@@ -97,6 +97,11 @@
     <profiles>
         <profile>
             <id>dev</id>
+            <activation>
+                <property>
+                    <name>dev</name>
+                </property>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
