@@ -118,19 +118,18 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 	if err != nil {
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
-	schemas := view.GetCanonicalDeploymentSchemas()
-	modules := []*schemapb.Module{
-		schema.Builtins().ToProto(),
-	}
-	modules = append(modules, slices.Map(schemas, func(d *schema.Module) *schemapb.Module { return d.ToProto() })...)
-	changesets := slices.Map(gslices.Collect(maps.Values(view.GetChangesets())), func(c *schema.Changeset) *schemapb.Changeset { return c.ToProto() })
 
-	realm := &schemapb.Realm{
-		Name:    "default", // TODO: implement
-		Modules: modules,
-	}
+	changesets := slices.Map(
+		gslices.Collect(maps.Values(view.GetChangesets())),
+		func(c *schema.Changeset) *schemapb.Changeset {
+			return c.ToProto()
+		},
+	)
 
-	return connect.NewResponse(&ftlv1.GetSchemaResponse{Schema: &schemapb.Schema{Realms: []*schemapb.Realm{realm}}, Changesets: changesets}), nil
+	return connect.NewResponse(&ftlv1.GetSchemaResponse{
+		Schema:     view.GetCanonicalSchema().IncludeBuiltins().ToProto(),
+		Changesets: changesets,
+	}), nil
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], stream *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
