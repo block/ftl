@@ -222,6 +222,9 @@ func (r *SchemaState) GetCanonicalSchema() *schema.Schema {
 		}
 	}
 	for key, module := range deployments {
+		if _, ok := realmMap[key.Payload.Realm]; !ok {
+			panic(fmt.Sprintf("realm %s not found for deployment %s", key.Payload.Realm, key.String()))
+		}
 		realmMap[key.Payload.Realm].Modules = append(realmMap[key.Payload.Realm].Modules, module)
 	}
 

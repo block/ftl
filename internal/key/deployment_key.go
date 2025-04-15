@@ -18,6 +18,13 @@ var _ interface {
 } = (*Deployment)(nil)
 
 func NewDeploymentKey(realm, module string) Deployment {
+	if realm == "" {
+		panic("realm is required")
+	}
+	if module == "" {
+		panic("module is required")
+	}
+
 	return newKey[DeploymentPayload](realm, module)
 }
 func ParseDeploymentKey(key string) (Deployment, error) {

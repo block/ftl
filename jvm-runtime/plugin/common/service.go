@@ -148,13 +148,10 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		return nil
 	}
 
-	sch, err := schema.FromProto(req.Msg.BuildContext.Schema)
-	if err != nil {
-		return fmt.Errorf("failed to parse schema from proto: %w", err)
-	}
+	realm := "default" // TODO: correct realm name
 
 	if req.Msg.RebuildAutomatically {
-		return s.runDevMode(ctx, buildCtx, sch.Realms[0].Name, stream)
+		return s.runDevMode(ctx, buildCtx, realm, stream)
 	}
 
 	// Initial build
