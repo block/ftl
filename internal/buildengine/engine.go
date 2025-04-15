@@ -332,12 +332,18 @@ func (e *Engine) buildGraph(moduleName string, out map[string][]string) error {
 
 // Import manually imports a schema for a module as if it were retrieved from
 // the FTL controller.
-func (e *Engine) Import(ctx context.Context, moduleSch *schema.Module) {
+func (e *Engine) Import(ctx context.Context, realmName string, moduleSch *schema.Module) {
 	sch := reflect.DeepCopy(e.targetSchema.Load())
-	sch.Realms[0].Modules = slices.Filter(sch.Realms[0].Modules, func(m *schema.Module) bool {
-		return m.Name != moduleSch.Name
-	})
-	sch.Realms[0].Modules = append(sch.Realms[0].Modules, moduleSch)
+	for _, realm := range sch.Realms {
+		if realm.Name != realmName {
+			continue
+		}
+		realm.Modules = slices.Filter(realm.Modules, func(m *schema.Module) bool {
+			return m.Name != moduleSch.Name
+		})
+		realm.Modules = append(realm.Modules, moduleSch)
+		break
+	}
 	e.targetSchema.Store(sch)
 }
 
@@ -1254,18 +1260,26 @@ func (e *Engine) gatherSchemas(
 }
 
 func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[string]*schema.Module, metasMap map[string]moduleMeta) error {
-	fullSchema := &schema.Schema{Realms: []*schema.Realm{{
-		Modules: maps.Values(newModules),
-		Name:    "default", // TODO: projectName,
-	}}} //nolint:exptostd
-	for _, module := range e.targetSchema.Load().InternalModules() {
-		if _, ok := newModules[module.Name]; !ok {
-			fullSchema.Realms[0].Modules = append(fullSchema.Realms[0].Modules, module)
+	fullSchema := &schema.Schema{} //nolint:exptostd
+	for _, r := range e.targetSchema.Load().Realms {
+		realm := &schema.Realm{
+			Name:     r.Name,
+			External: r.External,
 		}
+		if !realm.External {
+			realm.Modules = maps.Values(newModules)
+		}
+
+		for _, module := range realm.Modules {
+			if _, ok := newModules[module.Name]; !ok || realm.External {
+				realm.Modules = append(realm.Modules, module)
+			}
+		}
+		sort.SliceStable(realm.Modules, func(i, j int) bool {
+			return realm.Modules[i].Name < realm.Modules[j].Name
+		})
+		fullSchema.Realms = append(fullSchema.Realms, realm)
 	}
-	sort.SliceStable(fullSchema.Realms[0].Modules, func(i, j int) bool {
-		return fullSchema.Realms[0].Modules[i].Name < fullSchema.Realms[0].Modules[j].Name
-	})
 
 	return SyncStubReferences(ctx,
 		e.projectConfig.Root(),

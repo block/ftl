@@ -158,7 +158,13 @@ func updateSchema(out *schema.Schema, queries *schema.Module, cfg ConfigContext,
 		}
 	}
 	if !found {
-		out.Realms[0].Modules = append(out.Realms[0].Modules, queries)
+		for _, realm := range out.Realms {
+			if realm.External {
+				continue
+			}
+			realm.Modules = append(realm.Modules, queries)
+			break
+		}
 	}
 
 	return nil
