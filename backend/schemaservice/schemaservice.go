@@ -119,10 +119,15 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 		return nil, fmt.Errorf("failed to get controller state: %w", err)
 	}
 
-	changesets := slices.Map(gslices.Collect(maps.Values(view.GetChangesets())), func(c *schema.Changeset) *schemapb.Changeset { return c.ToProto() })
+	changesets := slices.Map(
+		gslices.Collect(maps.Values(view.GetChangesets())),
+		func(c *schema.Changeset) *schemapb.Changeset {
+			return c.ToProto()
+		},
+	)
 
 	return connect.NewResponse(&ftlv1.GetSchemaResponse{
-		Schema:     view.GetCanonicalSchema().ToProto(),
+		Schema:     view.GetCanonicalSchema().IncludeBuiltins().ToProto(),
 		Changesets: changesets,
 	}), nil
 }
@@ -407,7 +412,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 	}
 
 	notification := &schema.FullSchemaNotification{
-		Schema:     view.GetCanonicalSchema(),
+		Schema:     view.GetCanonicalSchema().IncludeBuiltins(),
 		Changesets: gslices.Collect(maps.Values(view.GetChangesets())),
 	}
 	err = sendChange(&ftlv1.PullSchemaResponse{
