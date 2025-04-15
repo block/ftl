@@ -89,7 +89,7 @@ func (c *Client) Execute(ctx context.Context, prompt string, callback func(Messa
 			}
 			// Strip ANSI codes before checking for markers
 			cleaned := stripAnsiCodes(line)
-			if strings.HasPrefix(strings.TrimLeft(cleaned, " "), "###") {
+			if strings.HasPrefix(strings.TrimLeft(cleaned, " "), "###CODEBLOCK###") {
 				// Start of code block
 				insideCodeBlock = true
 			}
