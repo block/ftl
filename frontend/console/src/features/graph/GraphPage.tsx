@@ -7,6 +7,8 @@ import { GraphPane } from './GraphPane'
 import { headerForNode } from './RightPanelHeader'
 import { type FTLNode, panelsForNode } from './graph-utils'
 
+const SHOW_TIMELINE = false
+
 export const GraphPage = () => {
   const { data, isLoading } = useStreamModules()
   const [selectedNode, setSelectedNode] = useState<FTLNode | null>(null)
@@ -31,7 +33,7 @@ export const GraphPage = () => {
         mainContent={<GraphPane modules={data} onTapped={handleNodeTapped} />}
         rightPanelHeader={headerForNode(selectedNode, selectedModuleName)}
         rightPanelPanels={panelsForNode(selectedNode, selectedModuleName)}
-        bottomPanelContent={<Timeline timeSettings={{ isTailing: true, isPaused: false }} filters={[]} />}
+        bottomPanelContent={SHOW_TIMELINE ? <Timeline timeSettings={{ isTailing: true, isPaused: false }} filters={[]} /> : undefined}
       />
     </div>
   )
