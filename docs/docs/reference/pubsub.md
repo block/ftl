@@ -44,6 +44,11 @@ Note that the name of the topic as represented in the FTL schema is the lower ca
 
 The `Invoices` type is a handle to the topic. It is a generic type that takes two arguments: the event type and the partition map type. The partition map type is used to map events to partitions.
 
+To export a topic, add `export` to the directive like this:
+```go
+//ftl:topic export partitions=1
+```
+
 </TabItem>
 <TabItem value="kotlin" label="Kotlin">
 
