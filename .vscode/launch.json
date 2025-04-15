@@ -3,6 +3,20 @@
     {
       "apiVersion": 2,
       "host": "127.0.0.1",
+      "mode": "auto",
+      "name": "FTL dev",
+      "request": "launch",
+      "type": "go",
+      "program": "${workspaceFolder}/cmd/ftl",
+      "cwd": "${workspaceFolder}/examples/go",
+      "args": [
+        "dev",
+        "time"
+      ]
+    },
+    {
+      "apiVersion": 2,
+      "host": "127.0.0.1",
       "mode": "remote",
       "name": "Debug FTL",
       "port": 2345,

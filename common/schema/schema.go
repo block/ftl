@@ -248,6 +248,24 @@ func (s *Schema) InternalModules() []*Module {
 	return out
 }
 
+func (s *Schema) IncludeBuiltins() *Schema {
+	builtins := Builtins()
+	for _, r := range s.Realms {
+		if !r.External {
+			hasBuiltin := false
+			for _, m := range r.Modules {
+				if m.Name == builtins.Name {
+					hasBuiltin = true
+				}
+			}
+			if !hasBuiltin {
+				r.Modules = append([]*Module{builtins}, r.Modules...)
+			}
+		}
+	}
+	return s
+}
+
 // SchemaState is the schema service state as persisted in Raft
 //
 //protobuf:export
