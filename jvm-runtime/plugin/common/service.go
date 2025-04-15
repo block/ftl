@@ -148,9 +148,8 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		return nil
 	}
 
-	realm := "default" // TODO: correct realm name
-
 	if req.Msg.RebuildAutomatically {
+		realm := s.buildContext.Load().Config.Realm
 		return s.runDevMode(ctx, buildCtx, realm, stream)
 	}
 

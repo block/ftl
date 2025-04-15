@@ -528,7 +528,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	overridden := map[string]bool{}
 	toRemove := map[string]bool{}
 	realm := &schema.Realm{
-		Name:    "default", // TODO: c.projectConfig.Name,
+		Name:    c.projectConfig.Name,
 		Modules: []*schema.Module{},
 	}
 	sch := &schema.Schema{
@@ -659,7 +659,7 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 
 	stream, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
 		RealmChanges: []*adminpb.RealmChange{{
-			Name: "default",
+			Name: projectName,
 			Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
 				return m.ToProto()
 			}),
