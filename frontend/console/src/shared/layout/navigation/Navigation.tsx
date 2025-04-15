@@ -22,27 +22,36 @@ export const Navigation = ({ version }: { version?: string }) => {
 
   return (
     <nav className='bg-indigo-600'>
-      <div className='mx-auto pl-3 pr-4'>
+      <div className='mx-auto px-4'>
         <div className='flex h-16 items-center justify-between'>
-          <div className='flex items-center'>
-            <div>
-              <div className='flex items-baseline space-x-4'>
-                {navigation.map((item) => (
-                  <NavLink
-                    key={item.name}
-                    to={item.href}
-                    className={({ isActive }) =>
-                      classNames(
-                        isActive ? 'bg-indigo-700 text-white' : 'text-white hover:bg-indigo-500 hover:bg-opacity-75',
-                        'rounded-md px-3 py-2 text-sm font-medium flex items-center space-x-2',
-                      )
-                    }
-                  >
-                    <item.icon className='text-lg size-5' />
-                    <span className='hidden md:inline'>{item.name}</span>
-                  </NavLink>
-                ))}
-              </div>
+          <div className='flex items-center space-x-2'>
+            <NavLink
+              to='/'
+              className={({ isActive }) =>
+                classNames(
+                  isActive ? 'bg-indigo-700 text-white' : 'text-white hover:bg-indigo-500 hover:bg-opacity-75',
+                  'rounded-md px-4 py-0.5 text-2xl font-bold flex items-center',
+                )
+              }
+            >
+              FTL
+            </NavLink>
+            <div className='flex items-center space-x-2'>
+              {navigation.map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  className={({ isActive }) =>
+                    classNames(
+                      isActive ? 'bg-indigo-700 text-white' : 'text-white hover:bg-indigo-500 hover:bg-opacity-75',
+                      'rounded-md px-4 py-2 text-sm font-medium flex items-center space-x-2',
+                    )
+                  }
+                >
+                  <item.icon className='text-lg size-5' />
+                  <span className='hidden lg:inline'>{item.name}</span>
+                </NavLink>
+              ))}
             </div>
           </div>
           <div className='flex items-center'>

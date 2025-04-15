@@ -26,7 +26,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({ onFocus }) => {
 
   return (
     <div className='flex items-center'>
-      <div className='w-64'>
+      <div className='w-48 lg:w-64'>
         <div
           id='command-palette-search'
           className='relative block w-full cursor-pointer rounded-md border border-indigo-700 bg-indigo-700/50 py-1.5 pl-10 pr-3 text-indigo-200 placeholder:text-indigo-300 sm:text-sm sm:leading-6 hover:border-indigo-500 hover:ring-indigo-500 focus-within:border-indigo-400 focus-within:ring-indigo-400'
