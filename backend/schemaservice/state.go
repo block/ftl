@@ -167,7 +167,7 @@ func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *
 		modules := cs.OwnedModules(cs.InternalRealm())
 		for _, d := range modules {
 			if d.GetRuntime().Deployment.DeploymentKey == deploymentKey {
-				return d, optional.Some[key.Changeset](cs.Key), nil
+				return d, optional.Some(cs.Key), nil
 			}
 		}
 	}
@@ -197,6 +197,35 @@ func (r *SchemaState) GetCanonicalDeployments() map[key.Deployment]*schema.Modul
 		deployments[dep.GetRuntime().Deployment.DeploymentKey] = dep
 	}
 	return deployments
+}
+
+// GetCanonicalRealms returns all active realms (excluding those in changesets).
+func (r *SchemaState) GetCanonicalRealms() map[string]*schema.RealmState {
+	realms := map[string]*schema.RealmState{}
+	for _, realm := range r.realms {
+		realms[realm.Name] = realm
+	}
+	return realms
+}
+
+// GetCanonicalSchema returns the canonical schema for the active deployments and realms.
+func (r *SchemaState) GetCanonicalSchema() *schema.Schema {
+	realms := r.GetCanonicalRealms()
+	deployments := r.GetCanonicalDeployments()
+	realmMap := map[string]*schema.Realm{}
+
+	for _, realm := range realms {
+		realmMap[realm.Name] = &schema.Realm{
+			Name:     realm.Name,
+			External: realm.External,
+			Modules:  []*schema.Module{},
+		}
+	}
+	for key, module := range deployments {
+		realmMap[key.Payload.Realm].Modules = append(realmMap[key.Payload.Realm].Modules, module)
+	}
+
+	return &schema.Schema{Realms: expmaps.Values(realmMap)}
 }
 
 // GetAllActiveDeployments returns all active deployments, including those in changesets that are prepared
