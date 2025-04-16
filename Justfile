@@ -1,6 +1,8 @@
 set positional-arguments
 set shell := ["bash", "-c"]
 
+# This is used by scripts/* use release binaries, when set to "1"
+export USE_RELEASE_BINARIES := "0"
 WATCHEXEC_ARGS := "-d 1s -e proto -e go --ignore **/types.ftl.go"
 RELEASE := "build/release"
 VERSION := `git describe --tags --always | sed -e 's/^v//'`
@@ -277,6 +279,7 @@ test-integration *test:
 # Run integration test(s)
 integration-tests *test:
   #!/bin/bash
+  echo "$PATH"
   retry 3 /bin/bash -c "go test -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
 
 # Alias for infrastructure-tests
