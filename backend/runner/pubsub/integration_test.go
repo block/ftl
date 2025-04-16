@@ -97,10 +97,10 @@ func TestConsumerGroupMembership(t *testing.T) {
 			in.Infof("Waiting for old deployment to be killed")
 			start := time.Now()
 			for {
-				assert.True(t, time.Since(start) < 15*time.Second)
 				ps, err := exec.Capture(ic.Context, ".", "ftl", "ps")
+				assert.True(t, time.Since(start) < 15*time.Second, "old deployment should have been killed by now, we have ", string(ps))
 				assert.NoError(t, err)
-				if strings.Count(string(ps), "dpl-default-subscriber-") == 1 {
+				if strings.Count(string(ps), "dpl-integration-subscriber-") == 1 {
 					// original deployment has ended
 					now := time.Now()
 					deploymentKilledTime = &now
