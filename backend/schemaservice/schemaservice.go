@@ -411,18 +411,16 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 		return errors.Wrap(err, "failed to get schema state")
 	}
 
-	modules := append([]*schema.Module{}, schema.Builtins())
-	modules = append(modules, gslices.Collect(maps.Values(view.GetCanonicalDeployments()))...)
-
 	notification := &schema.FullSchemaNotification{
-		Schema: &schema.Schema{Realms: []*schema.Realm{{
-			Name:    "default", // TODO: implement
-			Modules: modules,
-		}}},
+		Schema:     view.GetCanonicalSchema().IncludeBuiltins(),
 		Changesets: gslices.Collect(maps.Values(view.GetChangesets())),
 	}
 	err = sendChange(&ftlv1.PullSchemaResponse{
-		Event: &schemapb.Notification{Value: &schemapb.Notification_FullSchemaNotification{notification.ToProto()}},
+		Event: &schemapb.Notification{
+			Value: &schemapb.Notification_FullSchemaNotification{
+				FullSchemaNotification: notification.ToProto(),
+			},
+		},
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to send initial schema")

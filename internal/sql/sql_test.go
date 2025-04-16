@@ -13,6 +13,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 func TestAddDatabaseDeclsToSchema(t *testing.T) {
@@ -25,7 +26,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 		Module:     "test",
 		SQLRootDir: "db",
 		DeployDir:  ".ftl",
-	}.FillDefaultsAndValidate(moduleconfig.CustomDefaults{})
+	}.FillDefaultsAndValidate(moduleconfig.CustomDefaults{}, projectconfig.Config{Name: "test"})
 	assert.NoError(t, err)
 
 	ctx := log.ContextWithNewDefaultLogger(context.Background())

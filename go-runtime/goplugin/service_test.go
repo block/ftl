@@ -11,6 +11,7 @@ import (
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 func TestParseImportsFromTestData(t *testing.T) {
@@ -41,7 +42,7 @@ func TestExtractModuleDepsGo(t *testing.T) {
 	}))
 	assert.NoError(t, err)
 
-	config, err := uncheckedConfig.FillDefaultsAndValidate(defaultsFromProto(customDefaultsResp.Msg))
+	config, err := uncheckedConfig.FillDefaultsAndValidate(defaultsFromProto(customDefaultsResp.Msg), projectconfig.Config{Name: "test"})
 	assert.NoError(t, err)
 
 	configProto, err := langpb.ModuleConfigToProto(config.Abs())

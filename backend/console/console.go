@@ -123,7 +123,7 @@ func verbSchemaString(sch *schema.Schema, verb *schema.Verb) (string, error) {
 }
 
 func (s *Service) GetModules(ctx context.Context, req *connect.Request[consolepb.GetModulesRequest]) (*connect.Response[consolepb.GetModulesResponse], error) {
-	sch := s.schemaEventSource.CanonicalView()
+	sch := s.schemaEventSource.CanonicalView().IncludeBuiltins()
 
 	allowed := map[string]bool{}
 	var modules []*consolepb.Module

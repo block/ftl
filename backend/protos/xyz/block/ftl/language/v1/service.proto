@@ -35,6 +35,9 @@ message ModuleConfig {
 
   // The root directory containing the SQL files, relative to the module directory.
   string sql_root_dir = 11;
+
+  // The realm of the module
+  string realm = 12;
 }
 
 // ProjectConfig contains the configuration for a project, found in the ftl-project.toml file.

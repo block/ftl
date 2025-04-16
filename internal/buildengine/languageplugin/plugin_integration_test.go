@@ -30,6 +30,7 @@ import (
 	in "github.com/block/ftl/internal/integration"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -293,7 +294,7 @@ func (bctx *testContext) setUpModuleConfig(moduleName string) in.Action {
 		unvalidatedConfig, err := moduleconfig.LoadConfig(path)
 		assert.NoError(t, err)
 
-		bctx.config, err = unvalidatedConfig.FillDefaultsAndValidate(defaults)
+		bctx.config, err = unvalidatedConfig.FillDefaultsAndValidate(defaults, projectconfig.Config{Name: "test"})
 		assert.NoError(t, err)
 	}
 }

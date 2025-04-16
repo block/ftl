@@ -148,10 +148,8 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		return nil
 	}
 
-	realm := "default" // TODO: correct realm name
-
 	if req.Msg.RebuildAutomatically {
-		return s.runDevMode(ctx, buildCtx, realm, stream)
+		return s.runDevMode(ctx, buildCtx, stream)
 	}
 
 	// Initial build
@@ -162,7 +160,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	return nil
 }
 
-func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, realm string, stream *connect.ServerStream[langpb.BuildResponse]) error {
+func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream *connect.ServerStream[langpb.BuildResponse]) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(errors.Wrap(context.Canceled, "stopping JVM language plugin (devw"))
 
@@ -198,7 +196,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, realm s
 			}
 		}
 
-		err := s.runQuarkusDev(ctx, realm, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
+		err := s.runQuarkusDev(ctx, buildCtx.Config.Realm, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
 		if err != nil {
 			logger.Errorf(err, "Dev mode process exited")
 		}

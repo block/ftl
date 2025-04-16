@@ -88,5 +88,5 @@ func (s *service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		metrics.Request(r.Context(), r.Method, r.URL.Path, optional.None[*schemapb.Ref](), start, optional.Some("route not found in dal"))
 		return
 	}
-	s.handleHTTP(start, state.schema, requestKey, routes, w, r, s.client)
+	s.handleHTTP(start, state.schema.IncludeBuiltins(), requestKey, routes, w, r, s.client)
 }
