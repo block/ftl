@@ -12,7 +12,6 @@ import (
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 )
 
