@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 
@@ -31,7 +32,7 @@ func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig projectconfig
 	s := mcp.New()
 
 	executor := func(ctx context.Context, k *kong.Kong, args []string) error {
-		return runInnerCmd(ctx, k, projectConfig, bindContext, args, nil)
+		return errors.WithStack(runInnerCmd(ctx, k, projectConfig, bindContext, args, nil))
 	}
 
 	s.AddTool(mcp.StatusTool(ctx, buildEngineClient, adminClient))

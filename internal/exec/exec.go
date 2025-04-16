@@ -3,13 +3,12 @@ package exec
 import (
 	"bytes"
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"os/exec" //nolint:depguard
 	"strings"
 	"syscall"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/kballard/go-shellquote"
 
 	"github.com/block/ftl/internal/log"
@@ -22,7 +21,7 @@ type Cmd struct {
 
 func LookPath(exe string) (string, error) {
 	path, err := exec.LookPath(exe)
-	return path, err
+	return path, errors.WithStack(err)
 }
 
 func Capture(ctx context.Context, dir, exe string, args ...string) ([]byte, error) {
@@ -30,7 +29,7 @@ func Capture(ctx context.Context, dir, exe string, args ...string) ([]byte, erro
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	out, err := cmd.CombinedOutput()
-	return out, err
+	return out, errors.WithStack(err)
 }
 
 func Command(ctx context.Context, level log.Level, dir, exe string, args ...string) *Cmd {
@@ -71,7 +70,7 @@ func (c *Cmd) RunBuffered(ctx context.Context) error {
 			// Don't log on context cancellation
 			log.FromContext(ctx).Errorf(err, "%s", outputBuffer.Bytes())
 		}
-		return fmt.Errorf("command failed: %w", err)
+		return errors.Wrap(err, "command failed")
 	}
 
 	return nil
@@ -85,7 +84,7 @@ func (c *Cmd) RunStderrError(ctx context.Context) error {
 	c.Cmd.Stderr = errorBuffer.WriterAt(ctx, c.level)
 
 	if err := c.Run(); err != nil {
-		return errors.New(strings.TrimSpace(string(errorBuffer.Bytes())))
+		return errors.WithStack(errors.New(strings.TrimSpace(string(errorBuffer.Bytes()))))
 	}
 
 	return nil
@@ -100,7 +99,7 @@ func (c *Cmd) Capture(ctx context.Context) ([]byte, error) {
 	c.Stderr = errorBuffer.WriterAt(ctx, c.level)
 
 	if err := c.Run(); err != nil {
-		return nil, errors.New(strings.TrimSpace(string(errorBuffer.Bytes())))
+		return nil, errors.WithStack(errors.New(strings.TrimSpace(string(errorBuffer.Bytes()))))
 	}
 
 	return outBuffer.Bytes(), nil
@@ -111,5 +110,5 @@ func (c *Cmd) Kill(signal syscall.Signal) error {
 	if c.Process == nil {
 		return nil
 	}
-	return syscall.Kill(c.Process.Pid, signal)
+	return errors.WithStack(syscall.Kill(c.Process.Pid, signal))
 }

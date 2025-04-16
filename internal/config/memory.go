@@ -2,10 +2,10 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 )
@@ -43,7 +43,7 @@ func (m *MemoryProvider[R]) Store(ctx context.Context, ref Ref, value []byte) er
 func (m *MemoryProvider[R]) Load(ctx context.Context, ref Ref) ([]byte, error) {
 	data, ok := m.config.Load(ref)
 	if !ok {
-		return nil, fmt.Errorf("%s: %w", ref, ErrNotFound)
+		return nil, errors.Wrapf(ErrNotFound, "could not load %s", ref)
 	}
 	return data, nil
 }

@@ -2,9 +2,9 @@ package query
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/tuple"
 
 	querypb "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1"
@@ -34,10 +34,10 @@ func BeginTransaction(ctx context.Context, dbName string) (string, error) {
 		DatabaseName: dbName,
 	}))
 	if err != nil {
-		return "", fmt.Errorf("failed to begin transaction: %w", err)
+		return "", errors.Wrap(err, "failed to begin transaction")
 	}
 	if resp.Msg.Status != querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS {
-		return "", fmt.Errorf("transaction on %s was not started", dbName)
+		return "", errors.Errorf("transaction on %s was not started", dbName)
 	}
 	return resp.Msg.TransactionId, nil
 }
@@ -46,17 +46,17 @@ func RollbackCurrentTransaction(ctx context.Context, dbName string) error {
 	client := rpccontext.ClientFromContext[queryconnect.QueryServiceClient](ctx)
 	txID, ok := internal.CallMetadataFromContext(ctx)[TransactionMetadataKey]
 	if !ok {
-		return fmt.Errorf("no active transaction found")
+		return errors.Errorf("no active transaction found")
 	}
 	resp, err := client.RollbackTransaction(ctx, connect.NewRequest(&querypb.RollbackTransactionRequest{
 		DatabaseName:  dbName,
 		TransactionId: txID,
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to rollback transaction: %w", err)
+		return errors.Wrap(err, "failed to rollback transaction")
 	}
 	if resp.Msg.Status != querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS {
-		return fmt.Errorf("transaction %s was not rolled back", txID)
+		return errors.Errorf("transaction %s was not rolled back", txID)
 	}
 	return nil
 }
@@ -65,17 +65,17 @@ func CommitCurrentTransaction(ctx context.Context, dbName string) error {
 	client := rpccontext.ClientFromContext[queryconnect.QueryServiceClient](ctx)
 	txID, ok := internal.CallMetadataFromContext(ctx)[TransactionMetadataKey]
 	if !ok {
-		return fmt.Errorf("no active transaction found")
+		return errors.Errorf("no active transaction found")
 	}
 	resp, err := client.CommitTransaction(ctx, connect.NewRequest(&querypb.CommitTransactionRequest{
 		DatabaseName:  dbName,
 		TransactionId: txID,
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return errors.Wrap(err, "failed to commit transaction")
 	}
 	if resp.Msg.Status != querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS {
-		return fmt.Errorf("transaction %s was not committed", txID)
+		return errors.Errorf("transaction %s was not committed", txID)
 	}
 	return nil
 }
@@ -83,21 +83,21 @@ func CommitCurrentTransaction(ctx context.Context, dbName string) error {
 func One[Req, Resp any](ctx context.Context, dbName string, rawSQL string, params []any, colFieldNames []tuple.Pair[string, string]) (resp Resp, err error) {
 	results, err := performQuery[Resp](ctx, dbName, querypb.CommandType_COMMAND_TYPE_ONE, rawSQL, params, colFieldNames)
 	if err != nil {
-		return resp, err
+		return resp, errors.WithStack(err)
 	}
 	if len(results) == 0 {
-		return resp, fmt.Errorf("no results found")
+		return resp, errors.Errorf("no results found")
 	}
 	return results[0], nil
 }
 
 func Many[Req, Resp any](ctx context.Context, dbName string, rawSQL string, params []any, colFieldNames []tuple.Pair[string, string]) ([]Resp, error) {
-	return performQuery[Resp](ctx, dbName, querypb.CommandType_COMMAND_TYPE_MANY, rawSQL, params, colFieldNames)
+	return errors.WithStack2(performQuery[Resp](ctx, dbName, querypb.CommandType_COMMAND_TYPE_MANY, rawSQL, params, colFieldNames))
 }
 
 func Exec[Req any](ctx context.Context, dbName string, rawSQL string, params []any, colFieldNames []tuple.Pair[string, string]) error {
 	_, err := performQuery[any](ctx, dbName, querypb.CommandType_COMMAND_TYPE_EXEC, rawSQL, params, colFieldNames)
-	return err
+	return errors.WithStack(err)
 }
 
 // performQuery performs a SQL query and returns the results.
@@ -108,7 +108,7 @@ func performQuery[T any](ctx context.Context, dbName string, commandType querypb
 
 	paramsJSON, err := encoding.Marshal(params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal parameters: %w", err)
+		return nil, errors.Wrap(err, "failed to marshal parameters")
 	}
 
 	resultCols := make([]*querypb.ResultColumn, 0, len(colFieldNames))
@@ -133,7 +133,7 @@ func performQuery[T any](ctx context.Context, dbName string, commandType querypb
 	}
 	stream, err := client.ExecuteQuery(ctx, connect.NewRequest(req))
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute query: %w", err)
+		return nil, errors.Wrap(err, "failed to execute query")
 	}
 
 	responses := []*querypb.ExecuteQueryResponse{}
@@ -145,7 +145,7 @@ func performQuery[T any](ctx context.Context, dbName string, commandType querypb
 			responses = append(responses, resp)
 		}
 		if err := stream.Err(); err != nil {
-			return nil, fmt.Errorf("failed to receive query results: %w", err)
+			return nil, errors.Wrap(err, "failed to receive query results")
 		}
 	}
 
@@ -160,7 +160,7 @@ func performQuery[T any](ctx context.Context, dbName string, commandType querypb
 			}
 			var result T
 			if err := encoding.Unmarshal([]byte(r.RowResults.JsonRows), &result); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal row data: %w", err)
+				return nil, errors.Wrap(err, "failed to unmarshal row data")
 			}
 			results = append(results, result)
 		}
@@ -195,10 +195,10 @@ func (c *InlineQueryClient) ExecuteQuery(
 	req *connect.Request[querypb.ExecuteQueryRequest],
 ) (*connect.ServerStreamForClient[querypb.ExecuteQueryResponse], error) {
 	if c.service == nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("query service not initialized"))
+		return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Errorf("query service not initialized")))
 	}
 	if err := c.service.ExecuteQueryInternal(ctx, req, c.collector); err != nil {
-		return nil, fmt.Errorf("failed to execute query: %w", err)
+		return nil, errors.Wrap(err, "failed to execute query")
 	}
 	return nil, nil
 }
@@ -208,9 +208,9 @@ func (c *InlineQueryClient) BeginTransaction(
 	req *connect.Request[querypb.BeginTransactionRequest],
 ) (*connect.Response[querypb.BeginTransactionResponse], error) {
 	if c.service == nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("query service not initialized"))
+		return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Errorf("query service not initialized")))
 	}
-	return c.service.BeginTransaction(ctx, req)
+	return errors.WithStack2(c.service.BeginTransaction(ctx, req))
 }
 
 func (c *InlineQueryClient) CommitTransaction(
@@ -218,9 +218,9 @@ func (c *InlineQueryClient) CommitTransaction(
 	req *connect.Request[querypb.CommitTransactionRequest],
 ) (*connect.Response[querypb.CommitTransactionResponse], error) {
 	if c.service == nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("query service not initialized"))
+		return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Errorf("query service not initialized")))
 	}
-	return c.service.CommitTransaction(ctx, req)
+	return errors.WithStack2(c.service.CommitTransaction(ctx, req))
 }
 
 func (c *InlineQueryClient) RollbackTransaction(
@@ -228,13 +228,13 @@ func (c *InlineQueryClient) RollbackTransaction(
 	req *connect.Request[querypb.RollbackTransactionRequest],
 ) (*connect.Response[querypb.RollbackTransactionResponse], error) {
 	if c.service == nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("query service not initialized"))
+		return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Errorf("query service not initialized")))
 	}
-	return c.service.RollbackTransaction(ctx, req)
+	return errors.WithStack2(c.service.RollbackTransaction(ctx, req))
 }
 
 func (c *InlineQueryClient) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("query connection should not be pinged directly"))
+	return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Errorf("query connection should not be pinged directly")))
 }
 
 type responseCollector struct {

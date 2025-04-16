@@ -1,8 +1,9 @@
 package reflection
 
 import (
-	"fmt"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
@@ -17,7 +18,7 @@ type Ref struct {
 func ParseRef(ref string) (Ref, error) {
 	var out Ref
 	if err := out.UnmarshalText([]byte(ref)); err != nil {
-		return out, err
+		return out, errors.WithStack(err)
 	}
 	return out, nil
 }
@@ -25,7 +26,7 @@ func ParseRef(ref string) (Ref, error) {
 func (v *Ref) UnmarshalText(text []byte) error {
 	parts := strings.Split(string(text), ".")
 	if len(parts) != 2 {
-		return fmt.Errorf("invalid reference %q", string(text))
+		return errors.Errorf("invalid reference %q", string(text))
 	}
 	v.Module = parts[0]
 	v.Name = parts[1]

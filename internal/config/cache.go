@@ -2,12 +2,12 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
 	"sync"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/log"
@@ -49,14 +49,14 @@ func (c *CacheDecorator[R]) Load(ctx context.Context, ref Ref) ([]byte, error) {
 	if ok {
 		return value, nil
 	}
-	return nil, fmt.Errorf("cache: %w", ErrNotFound)
+	return nil, errors.Wrap(ErrNotFound, "cache")
 }
 
 func (c *CacheDecorator[R]) Store(ctx context.Context, ref Ref, value []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.asyncProvider.Store(ctx, ref, value); err != nil {
-		return fmt.Errorf("cache: %w", err)
+		return errors.Wrap(err, "cache")
 	}
 	c.cache[ref] = value
 	return nil
@@ -66,7 +66,7 @@ func (c *CacheDecorator[R]) Delete(ctx context.Context, ref Ref) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.asyncProvider.Delete(ctx, ref); err != nil {
-		return fmt.Errorf("cache: %w", err)
+		return errors.Wrap(err, "cache")
 	}
 	delete(c.cache, ref)
 	return nil
@@ -87,7 +87,7 @@ func (c *CacheDecorator[R]) List(ctx context.Context, withValues bool) ([]Value,
 
 func (c *CacheDecorator[R]) Close(ctx context.Context) error {
 	if err := c.asyncProvider.Close(ctx); err != nil {
-		return fmt.Errorf("cache: %w", err)
+		return errors.Wrap(err, "cache")
 	}
 	c.cache = map[Ref][]byte{}
 	close(c.close)

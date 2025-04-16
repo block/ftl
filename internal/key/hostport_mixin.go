@@ -1,9 +1,9 @@
 package key
 
 import (
-	"fmt"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 )
 
@@ -22,7 +22,7 @@ func (h *HostPortMixin) String() string {
 
 func (h *HostPortMixin) Parse(parts []string) error {
 	if len(parts) == 0 {
-		return fmt.Errorf("expected <hostname>-<port> but got %q", strings.Join(parts, "-"))
+		return errors.Errorf("expected <hostname>-<port> but got %q", strings.Join(parts, "-"))
 	}
 	h.Hostname = optional.Zero(strings.Join(parts[:len(parts)-1], "-"))
 	h.Port = parts[len(parts)-1]

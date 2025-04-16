@@ -1,8 +1,7 @@
 package schema
 
 import (
-	"fmt"
-
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/key"
@@ -29,19 +28,19 @@ func (x *RuntimeElement) ApplyToModule(state *Module) error {
 	case *VerbRuntime:
 		d, err := findDecl[*Verb](state, x)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		(*d).Runtime = v
 	case *TopicRuntime:
 		d, err := findDecl[*Topic](state, x)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		(*d).Runtime = v
 	case *DatabaseRuntime:
 		d, err := findDecl[*Database](state, x)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		(*d).Runtime = v
 	}
@@ -51,15 +50,15 @@ func (x *RuntimeElement) ApplyToModule(state *Module) error {
 func findDecl[T any](module *Module, x *RuntimeElement) (*T, error) {
 	name, ok := x.Name.Get()
 	if !ok {
-		return nil, fmt.Errorf("missing name in element")
+		return nil, errors.Errorf("missing name in element")
 	}
 	for _, decl := range module.Decls {
 		if decl.GetName() == name {
 			if d, ok := decl.(T); ok {
 				return &d, nil
 			}
-			return nil, fmt.Errorf("unexpected decl type %T", decl)
+			return nil, errors.Errorf("unexpected decl type %T", decl)
 		}
 	}
-	return nil, fmt.Errorf("decl %s not found", name)
+	return nil, errors.Errorf("decl %s not found", name)
 }

@@ -2,18 +2,17 @@ package languageplugin
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
-
-	"connectrpc.com/connect"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/builderrors"
@@ -56,7 +55,7 @@ func (p *mockPluginClient) getDependencies(context.Context, *connect.Request[lan
 func buildContextFromProto(proto *langpb.BuildContext) (BuildContext, error) {
 	sch, err := schema.FromProto(proto.Schema)
 	if err != nil {
-		return BuildContext{}, fmt.Errorf("could not load schema from build context proto: %w", err)
+		return BuildContext{}, errors.Wrap(err, "could not load schema from build context proto")
 	}
 	return BuildContext{
 		Schema:       sch,
@@ -90,7 +89,7 @@ func (p *mockPluginClient) build(ctx context.Context, req *connect.Request[langp
 
 	bctx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.WithStack(err)
 	}
 	p.latestBuildContext.Store(testBuildContext{
 		BuildContext: bctx,
@@ -103,7 +102,7 @@ func (p *mockPluginClient) build(ctx context.Context, req *connect.Request[langp
 func (p *mockPluginClient) buildContextUpdated(ctx context.Context, req *connect.Request[langpb.BuildContextUpdatedRequest]) (*connect.Response[langpb.BuildContextUpdatedResponse], error) {
 	bctx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	p.latestBuildContext.Store(testBuildContext{
 		BuildContext: bctx,
@@ -425,7 +424,7 @@ func beginBuild(ctx context.Context, plugin *LanguagePlugin, bctx BuildContext, 
 func (p *mockPluginClient) breakStream() {
 	p.buildEventsLock.Lock()
 	defer p.buildEventsLock.Unlock()
-	p.buildEvents <- result.Err[*langpb.BuildResponse](fmt.Errorf("fake a broken stream"))
+	p.buildEvents <- result.Err[*langpb.BuildResponse](errors.Errorf("fake a broken stream"))
 	close(p.buildEvents)
 	p.buildEvents = make(chan result.Result[*langpb.BuildResponse], 64)
 }

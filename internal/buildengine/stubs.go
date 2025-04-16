@@ -2,10 +2,10 @@ package buildengine
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
@@ -22,7 +22,7 @@ var buildDirName = ".ftl"
 func GenerateStubs(ctx context.Context, projectRoot string, modules []*schema.Module, metas map[string]moduleMeta) error {
 	err := generateStubsForEachLanguage(ctx, projectRoot, modules, metas)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -36,7 +36,7 @@ func CleanStubs(ctx context.Context, projectRoot string, configs []moduleconfig.
 	resourcesDir := filepath.Join(sharedFtlDir, "resources")
 	err := os.RemoveAll(resourcesDir)
 	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to remove %s: %w", resourcesDir, err)
+		return errors.Wrapf(err, "failed to remove %s", resourcesDir)
 	}
 
 	// Figure out which languages we need to clean.
@@ -49,7 +49,7 @@ func CleanStubs(ctx context.Context, projectRoot string, configs []moduleconfig.
 		stubsDir := filepath.Join(sharedFtlDir, lang, "modules")
 		err := os.RemoveAll(stubsDir)
 		if err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("failed to remove %s: %w", stubsDir, err)
+			return errors.Wrapf(err, "failed to remove %s", stubsDir)
 		}
 	}
 
@@ -65,14 +65,14 @@ func SyncStubReferences(ctx context.Context, projectRoot string, moduleNames []s
 		wg.Go(func() error {
 			stubsRoot := stubsLanguageDir(projectRoot, meta.module.Config.Language)
 			if err := meta.plugin.SyncStubReferences(wgctx, meta.module.Config, stubsRoot, moduleNames, view); err != nil {
-				return fmt.Errorf("failed to sync go stub references for %s: %w", meta.module.Config.Module, err)
+				return errors.Wrapf(err, "failed to sync go stub references for %s", meta.module.Config.Module)
 			}
 			return nil
 		})
 	}
 	err := wg.Wait()
 	if err != nil {
-		return fmt.Errorf("failed to sync go stub references: %w", err)
+		return errors.Wrap(err, "failed to sync go stub references")
 	}
 	return nil
 }
@@ -107,7 +107,7 @@ func generateStubsForEachLanguage(ctx context.Context, projectRoot string, modul
 					nativeConfig = optional.Some(assignedMeta.module.Config)
 				}
 				if err := assignedMeta.plugin.GenerateStubs(wgctx, path, module, config, nativeConfig); err != nil {
-					return err //nolint:wrapcheck
+					return errors.WithStack(err) //nolint:wrapcheck
 				}
 				return nil
 			})
@@ -115,7 +115,7 @@ func generateStubsForEachLanguage(ctx context.Context, projectRoot string, modul
 	}
 	err := wg.Wait()
 	if err != nil {
-		return fmt.Errorf("failed to generate language stubs: %w", err)
+		return errors.Wrap(err, "failed to generate language stubs")
 	}
 	return nil
 }

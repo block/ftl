@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
@@ -85,7 +86,7 @@ func contextWithFakeFTL(ctx context.Context, options ...Option) context.Context 
 func (f *fakeFTL) setConfig(name string, value any) error {
 	data, err := json.Marshal(value)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	f.configValues[name] = data
 	return nil
@@ -94,15 +95,15 @@ func (f *fakeFTL) setConfig(name string, value any) error {
 func (f *fakeFTL) GetConfig(ctx context.Context, name string, dest any) error {
 	data, ok := f.configValues[name]
 	if !ok {
-		return fmt.Errorf("config value %q not found, did you remember to ctx := ftltest.Context(ftltest.WithDefaultProjectFile()) ?: %w", name, configuration.ErrNotFound)
+		return errors.Wrapf(configuration.ErrNotFound, "config value %q not found, did you remember to ctx := ftltest.Context(ftltest.WithDefaultProjectFile()) ?", name)
 	}
-	return json.Unmarshal(data, dest)
+	return errors.WithStack(json.Unmarshal(data, dest))
 }
 
 func (f *fakeFTL) setSecret(name string, value any) error {
 	data, err := json.Marshal(value)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	f.secretValues[name] = data
 	return nil
@@ -111,9 +112,9 @@ func (f *fakeFTL) setSecret(name string, value any) error {
 func (f *fakeFTL) GetSecret(ctx context.Context, name string, dest any) error {
 	data, ok := f.secretValues[name]
 	if !ok {
-		return fmt.Errorf("config value %q not found, did you remember to ctx := ftltest.Context(ftltest.WithDefaultProjectFile()) ?: %w", name, configuration.ErrNotFound)
+		return errors.Wrapf(configuration.ErrNotFound, "config value %q not found, did you remember to ctx := ftltest.Context(ftltest.WithDefaultProjectFile()) ?", name)
 	}
-	return json.Unmarshal(data, dest)
+	return errors.WithStack(json.Unmarshal(data, dest))
 }
 
 // addMapMock saves a new mock of ftl.Map to the internal map in fakeFTL.
@@ -123,7 +124,7 @@ func (f *fakeFTL) GetSecret(ctx context.Context, name string, dest any) error {
 func addMapMock[T, U any](f *fakeFTL, mapper *ftl.MapHandle[T, U], mockMap func(context.Context) (U, error)) {
 	key := makeMapKey(mapper)
 	f.mockMaps[key] = func(ctx context.Context) (any, error) {
-		return mockMap(ctx)
+		return errors.WithStack2(mockMap(ctx))
 	}
 }
 
@@ -164,5 +165,5 @@ func actuallyCallMap(ctx context.Context, impl mapImpl) any {
 }
 
 func (f *fakeFTL) PublishEvent(ctx context.Context, topic *schema.Ref, event any, key string) error {
-	return f.pubSub.publishEvent(topic, event)
+	return errors.WithStack(f.pubSub.publishEvent(topic, event))
 }

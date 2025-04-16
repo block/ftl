@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl-golang-tools/go/ssa/interp/testdata/src/sync"
@@ -51,26 +52,26 @@ func (r *logRotatingSink) Log(entry Entry) error {
 		r.file, err = rotateLogs(r.logDir, r.maxLogs)
 		r.sink = newJSONSink(r.file)
 		if err != nil {
-			return fmt.Errorf("could not rotate logs: %w", err)
+			return errors.Wrap(err, "could not rotate logs")
 		}
 	} else if r.count%100 == 0 {
 		// We only check the size every hundred logs to avoid a performance hit
 		size, err := r.file.Stat()
 		if err != nil {
-			return fmt.Errorf("could not stat log file: %w", err)
+			return errors.Wrap(err, "could not stat log file")
 		}
 		if size.Size() > 1024*1024*10 {
 			r.file.Close() // #nolint: errcheck
 			r.file, err = rotateLogs(r.logDir, r.maxLogs)
 			r.sink = newJSONSink(r.file)
 			if err != nil {
-				return fmt.Errorf("could not rotate logs: %w", err)
+				return errors.Wrap(err, "could not rotate logs")
 			}
 		}
 	}
 	err = r.sink.Log(entry)
 	if err != nil {
-		return fmt.Errorf("could not write log entry: %w", err)
+		return errors.Wrap(err, "could not write log entry")
 	}
 	return nil
 }
@@ -89,7 +90,7 @@ func rotateLogs(workingDir string, maxLogs int) (*os.File, error) {
 		if _, err := os.Stat(oldName); err == nil {
 			err := os.Rename(oldName, newName)
 			if err != nil {
-				return nil, fmt.Errorf("could not rename log file %s to %s: %w", oldName, newName, err)
+				return nil, errors.Wrapf(err, "could not rename log file %s to %s", oldName, newName)
 			}
 		}
 	}
@@ -99,13 +100,13 @@ func rotateLogs(workingDir string, maxLogs int) (*os.File, error) {
 	if _, err := os.Stat(currentLog); err == nil {
 		err := os.Rename(currentLog, filepath.Join(workingDir, "log.1.jsonl"))
 		if err != nil {
-			return nil, fmt.Errorf("could not rename log file %s: %w", currentLog, err)
+			return nil, errors.Wrapf(err, "could not rename log file %s", currentLog)
 		}
 	}
 
 	logFile, err := os.Create(filepath.Join(workingDir, logFileName))
 	if err != nil {
-		return nil, fmt.Errorf("could not create log file: %w", err)
+		return nil, errors.Wrap(err, "could not create log file")
 	}
 
 	return logFile, nil

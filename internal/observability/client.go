@@ -2,10 +2,10 @@ package observability
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -57,12 +57,12 @@ func Init(ctx context.Context, isUserService bool, projectName, serviceName, ser
 			attribute.String("ftl.project_name", projectName),
 		))
 	if err != nil {
-		return fmt.Errorf("failed to create OTEL resource: %w", err)
+		return errors.Wrap(err, "failed to create OTEL resource")
 	}
 
 	otelMetricExporter, err := otlpmetricgrpc.New(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to create OTEL metric exporter: %w", err)
+		return errors.Wrap(err, "failed to create OTEL metric exporter")
 	}
 
 	meterProvider := metric.NewMeterProvider(metric.WithReader(metric.NewPeriodicReader(otelMetricExporter)), metric.WithResource(res))
@@ -70,7 +70,7 @@ func Init(ctx context.Context, isUserService bool, projectName, serviceName, ser
 
 	otelTraceExporter, err := otlptracegrpc.New(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to create OTEL trace exporter: %w", err)
+		return errors.Wrap(err, "failed to create OTEL trace exporter")
 	}
 
 	traceProvider := sdktrace.NewTracerProvider(

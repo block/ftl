@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-
 	"time"
 
 	"github.com/alecthomas/assert/v2"
@@ -91,14 +90,14 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 		//	go func() {
 		//		defer func() {
 		//			if r := recover(); r != nil {
-		//				failure.Store(fmt.Errorf("panic calling verb: %v at %v", r, time.Now()))
+		//				failure.Store(errors.Errorf("panic calling verb: %v at %v", r, time.Now()))
 		//			}
 		//			routineStopped.Done()
 		//		}()
 		//		for !done.Load() {
 		//			in.Call("echo", "echo", "Bob", func(t testing.TB, response string) {
 		//				if !strings.Contains(response, "Bob") {
-		//					failure.Store(fmt.Errorf("unexpected response: %s", response))
+		//					failure.Store(errors.Errorf("unexpected response: %s", response))
 		//					return
 		//				}
 		//			})(t, ic)

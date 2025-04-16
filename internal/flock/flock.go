@@ -2,13 +2,12 @@ package flock
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/sys/unix"
 
 	"github.com/block/ftl/internal/log"
@@ -24,7 +23,7 @@ func Acquire(ctx context.Context, path string, timeout time.Duration) (release f
 	logger.Tracef("Acquiring lock %s", path)
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	end := time.Now().Add(timeout)
 	for {
@@ -33,19 +32,19 @@ func Acquire(ctx context.Context, path string, timeout time.Duration) (release f
 			logger.Tracef("Locked %s", path)
 			return func() error {
 				logger.Tracef("Releasing lock %s", path)
-				return release()
+				return errors.WithStack(release())
 			}, nil
 		}
 		if !errors.Is(err, ErrLocked) {
-			return nil, fmt.Errorf("failed to acquire lock %s: %w", absPath, err)
+			return nil, errors.Wrapf(err, "failed to acquire lock %s", absPath)
 		}
 		if time.Now().After(end) {
 			pid, _ := os.ReadFile(absPath) //nolint:errcheck
-			return nil, fmt.Errorf("timed out acquiring lock %s, locked by pid %s: %w", absPath, pid, err)
+			return nil, errors.Wrapf(err, "timed out acquiring lock %s, locked by pid %s", absPath, pid)
 		}
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, errors.WithStack(ctx.Err())
 		case <-time.After(time.Second):
 		}
 	}
@@ -55,20 +54,20 @@ func acquire(path string) (release func() error, err error) {
 	pid := os.Getpid()
 	fd, err := unix.Open(path, unix.O_CREAT|unix.O_RDWR|unix.O_CLOEXEC|unix.O_SYNC, 0600)
 	if err != nil {
-		return nil, fmt.Errorf("open failed: %w", err)
+		return nil, errors.Wrap(err, "open failed")
 	}
 
 	err = unix.Flock(fd, unix.LOCK_EX|unix.LOCK_NB)
 	if err != nil {
 		_ = unix.Close(fd)
-		return nil, fmt.Errorf("%w: %w", ErrLocked, err)
+		return nil, errors.Join(err, ErrLocked)
 	}
 
 	_, err = unix.Write(fd, []byte(strconv.Itoa(pid)))
 	if err != nil {
-		return nil, fmt.Errorf("write failed: %w", err)
+		return nil, errors.Wrap(err, "write failed")
 	}
 	return func() error {
-		return errors.Join(unix.Flock(fd, unix.LOCK_UN), unix.Close(fd), os.Remove(path))
+		return errors.WithStack(errors.Join(unix.Flock(fd, unix.LOCK_UN), unix.Close(fd), os.Remove(path)))
 	}, nil
 }

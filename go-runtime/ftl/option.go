@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+
+	errors "github.com/alecthomas/errors"
 )
 
 // Stdlib interfaces types implement.
@@ -42,7 +44,7 @@ func (o *Option[T]) Scan(src any) error {
 	switch scan := any(&value).(type) {
 	case sql.Scanner:
 		if err := scan.Scan(src); err != nil {
-			return fmt.Errorf("cannot scan %T into Option[%T]: %w", src, o.value, err)
+			return errors.Wrapf(err, "cannot scan %T into Option[%T]", src, o.value)
 		}
 		o.value = value
 		o.ok = true
@@ -51,24 +53,24 @@ func (o *Option[T]) Scan(src any) error {
 		switch src := src.(type) {
 		case string:
 			if err := scan.UnmarshalText([]byte(src)); err != nil {
-				return fmt.Errorf("unmarshal from %T into Option[%T] failed: %w", src, o.value, err)
+				return errors.Wrapf(err, "unmarshal from %T into Option[%T] failed", src, o.value)
 			}
 			o.value = value
 			o.ok = true
 
 		case []byte:
 			if err := scan.UnmarshalText(src); err != nil {
-				return fmt.Errorf("cannot scan %T into Option[%T]: %w", src, o.value, err)
+				return errors.Wrapf(err, "cannot scan %T into Option[%T]", src, o.value)
 			}
 			o.value = value
 			o.ok = true
 
 		default:
-			return fmt.Errorf("cannot unmarshal %T into Option[%T]", src, o.value)
+			return errors.Errorf("cannot unmarshal %T into Option[%T]", src, o.value)
 		}
 
 	default:
-		return fmt.Errorf("no decoding mechanism found for %T into Option[%T]", src, o.value)
+		return errors.Errorf("no decoding mechanism found for %T into Option[%T]", src, o.value)
 	}
 	return nil
 }
@@ -79,10 +81,10 @@ func (o Option[T]) Value() (driver.Value, error) {
 	}
 	switch value := any(o.value).(type) {
 	case driver.Valuer:
-		return value.Value()
+		return errors.WithStack2(value.Value())
 
 	case encoding.TextMarshaler:
-		return value.MarshalText()
+		return errors.WithStack2(value.MarshalText())
 	}
 	return o.value, nil
 }
@@ -166,7 +168,7 @@ func (o Option[T]) Default(value T) T {
 
 func (o Option[T]) MarshalJSON() ([]byte, error) {
 	if o.ok {
-		return json.Marshal(o.value)
+		return errors.WithStack2(json.Marshal(o.value))
 	}
 	return []byte("null"), nil
 }
@@ -177,7 +179,7 @@ func (o *Option[T]) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	if err := json.Unmarshal(data, &o.value); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	o.ok = true
 	return nil
@@ -202,7 +204,7 @@ func (o Option[T]) Marshal(
 	encode func(v reflect.Value, w *bytes.Buffer) error,
 ) error {
 	if o.ok {
-		return encode(reflect.ValueOf(&o.value).Elem(), w)
+		return errors.WithStack(encode(reflect.ValueOf(&o.value).Elem(), w))
 	}
 	w.WriteString("null")
 	return nil
@@ -218,7 +220,7 @@ func (o *Option[T]) Unmarshal(
 		return nil
 	}
 	if err := decode(d, reflect.ValueOf(&o.value).Elem()); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	o.ok = true
 	return nil

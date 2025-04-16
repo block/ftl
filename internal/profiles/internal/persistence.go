@@ -17,13 +17,13 @@ package internal
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/internal/config"
@@ -47,7 +47,7 @@ type Profile struct {
 func (p *Profile) EndpointURL() (*url.URL, error) {
 	u, err := url.Parse(p.Endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("profile endpoint: %w", err)
+		return nil, errors.Wrap(err, "profile endpoint")
 	}
 	return u, nil
 }
@@ -67,7 +67,7 @@ type Project struct {
 func (p Project) ProfileRoot() (string, error) {
 	profile, err := p.ActiveProfile()
 	if err != nil {
-		return "", fmt.Errorf("profile root: %w", err)
+		return "", errors.Wrap(err, "profile root")
 	}
 	return filepath.Join(p.Root, ".ftl-project", "profiles", profile), nil
 }
@@ -78,14 +78,14 @@ func (p Project) ProfileRoot() (string, error) {
 func (p Project) ActiveProfile() (string, error) {
 	cacheDir, err := p.ensureUserProjectDir()
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	profile, err := os.ReadFile(filepath.Join(cacheDir, "active-profile"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return p.DefaultProfile, nil
 		}
-		return "", fmt.Errorf("read active profile: %w", err)
+		return "", errors.Wrap(err, "read active profile")
 	}
 	return strings.TrimSpace(string(profile)), nil
 }
@@ -93,11 +93,11 @@ func (p Project) ActiveProfile() (string, error) {
 func (p Project) SetActiveProfile(profile string) error {
 	cacheDir, err := p.ensureUserProjectDir()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	err = os.WriteFile(filepath.Join(cacheDir, "active-profile"), []byte(profile), 0600)
 	if err != nil {
-		return fmt.Errorf("write active profile: %w", err)
+		return errors.Wrap(err, "write active profile")
 	}
 	return nil
 }
@@ -105,12 +105,12 @@ func (p Project) SetActiveProfile(profile string) error {
 func (p Project) ensureUserProjectDir() (string, error) {
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
-		return "", fmt.Errorf("user cache dir: %w", err)
+		return "", errors.Wrap(err, "user cache dir")
 	}
 
 	cacheDir = filepath.Join(cacheDir, "ftl-projects", sha256.Sum([]byte(p.Root)).String())
 	if err = os.MkdirAll(cacheDir, 0700); err != nil {
-		return "", fmt.Errorf("mkdir cache dir: %w", err)
+		return "", errors.Wrap(err, "mkdir cache dir")
 	}
 	return cacheDir, nil
 }
@@ -120,14 +120,14 @@ func (p Project) ListProfiles() ([]Profile, error) {
 	profileDir := filepath.Join(p.Root, ".ftl-project", "profiles")
 	profiles, err := filepath.Glob(filepath.Join(profileDir, "*", "profile.json"))
 	if err != nil {
-		return nil, fmt.Errorf("profiles: %s: %w", profileDir, err)
+		return nil, errors.Wrapf(err, "profiles: %s", profileDir)
 	}
 	out := make([]Profile, 0, len(profiles))
 	for _, profile := range profiles {
 		name := filepath.Base(filepath.Dir(profile))
 		profile, err := p.LoadProfile(name)
 		if err != nil {
-			return nil, fmt.Errorf("%s: load profile: %w", name, err)
+			return nil, errors.Wrapf(err, "%s: load profile", name)
 		}
 		out = append(out, profile)
 	}
@@ -139,7 +139,7 @@ func (p Project) LoadProfile(name string) (Profile, error) {
 	profilePath := filepath.Join(p.Root, ".ftl-project", "profiles", name, "profile.json")
 	r, err := os.Open(profilePath)
 	if err != nil {
-		return Profile{}, fmt.Errorf("open %s: %w", profilePath, err)
+		return Profile{}, errors.Wrapf(err, "open %s", profilePath)
 	}
 	defer r.Close() //nolint:errcheck
 
@@ -147,7 +147,7 @@ func (p Project) LoadProfile(name string) (Profile, error) {
 	dec.DisallowUnknownFields()
 	profile := Profile{}
 	if err = dec.Decode(&profile); err != nil {
-		return Profile{}, fmt.Errorf("decoding %s: %w", profilePath, err)
+		return Profile{}, errors.Wrapf(err, "decoding %s", profilePath)
 	}
 	return profile, nil
 }
@@ -156,19 +156,19 @@ func (p Project) LoadProfile(name string) (Profile, error) {
 func (p Project) SaveProfile(profile Profile) error {
 	profilePath := filepath.Join(p.Root, ".ftl-project", "profiles", profile.Name, "profile.json")
 	if err := os.MkdirAll(filepath.Dir(profilePath), 0700); err != nil {
-		return fmt.Errorf("mkdir %s: %w", filepath.Dir(profilePath), err)
+		return errors.Wrapf(err, "mkdir %s", filepath.Dir(profilePath))
 	}
 
 	w, err := os.Create(profilePath)
 	if err != nil {
-		return fmt.Errorf("create %s: %w", profilePath, err)
+		return errors.Wrapf(err, "create %s", profilePath)
 	}
 	defer w.Close() //nolint:errcheck
 
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(profile); err != nil {
-		return fmt.Errorf("encoding %s: %w", profilePath, err)
+		return errors.Wrapf(err, "encoding %s", profilePath)
 	}
 	return nil
 }
@@ -176,45 +176,45 @@ func (p Project) SaveProfile(profile Profile) error {
 func (p Project) Save() error {
 	profilePath := filepath.Join(p.Root, ".ftl-project", "project.json")
 	if err := os.MkdirAll(filepath.Dir(profilePath), 0700); err != nil {
-		return fmt.Errorf("mkdir %s: %w", filepath.Dir(profilePath), err)
+		return errors.Wrapf(err, "mkdir %s", filepath.Dir(profilePath))
 	}
 
 	w, err := os.Create(profilePath)
 	if err != nil {
-		return fmt.Errorf("create %s: %w", profilePath, err)
+		return errors.Wrapf(err, "create %s", profilePath)
 	}
 	defer w.Close() //nolint:errcheck
 
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(p); err != nil {
-		return fmt.Errorf("encoding %s: %w", profilePath, err)
+		return errors.Wrapf(err, "encoding %s", profilePath)
 	}
 	return nil
 }
 
 func Init(project Project) error {
 	if project.Root == "" {
-		return errors.New("project root is empty")
+		return errors.WithStack(errors.New("project root is empty"))
 	}
 	if project.DefaultProfile == "" {
 		project.DefaultProfile = "local"
 	}
 	profilePath := filepath.Join(project.Root, ".ftl-project", "project.json")
 	if err := os.MkdirAll(filepath.Dir(profilePath), 0700); err != nil {
-		return fmt.Errorf("mkdir %s: %w", filepath.Dir(profilePath), err)
+		return errors.Wrapf(err, "mkdir %s", filepath.Dir(profilePath))
 	}
 
 	w, err := os.Create(profilePath)
 	if err != nil {
-		return fmt.Errorf("create %s: %w", profilePath, err)
+		return errors.Wrapf(err, "create %s", profilePath)
 	}
 	defer w.Close() //nolint:errcheck
 
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(project); err != nil {
-		return fmt.Errorf("encoding %s: %w", profilePath, err)
+		return errors.Wrapf(err, "encoding %s", profilePath)
 	}
 
 	if err = project.SaveProfile(Profile{
@@ -224,7 +224,7 @@ func Init(project Project) error {
 		SecretsProvider: config.NewProviderKey(config.FileProviderKind, "local"),
 		ConfigProvider:  config.NewProviderKey(config.FileProviderKind, "local"),
 	}); err != nil {
-		return fmt.Errorf("save profile: %w", err)
+		return errors.Wrap(err, "save profile")
 	}
 
 	return nil
@@ -234,7 +234,7 @@ func Init(project Project) error {
 func Load(root string) (Project, error) {
 	root, err := filepath.Abs(root)
 	if err != nil {
-		return Project{}, fmt.Errorf("failed to get absolute path: %w", err)
+		return Project{}, errors.Wrap(err, "failed to get absolute path")
 	}
 	profilePath := filepath.Join(root, ".ftl-project", "project.json")
 	r, err := os.Open(profilePath)
@@ -243,7 +243,7 @@ func Load(root string) (Project, error) {
 			Root: root,
 		}, nil
 	} else if err != nil {
-		return Project{}, fmt.Errorf("open %s: %w", profilePath, err)
+		return Project{}, errors.Wrapf(err, "open %s", profilePath)
 	}
 	defer r.Close() //nolint:errcheck
 
@@ -251,7 +251,7 @@ func Load(root string) (Project, error) {
 	dec.DisallowUnknownFields()
 	project := Project{}
 	if err = dec.Decode(&project); err != nil {
-		return Project{}, fmt.Errorf("decoding %s: %w", profilePath, err)
+		return Project{}, errors.Wrapf(err, "decoding %s", profilePath)
 	}
 	project.Root = root
 	return project, nil

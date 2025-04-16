@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/exp/maps"
 )
 
@@ -62,5 +63,5 @@ func TopologicalSort(graph map[string][]string) (groups [][]string, cycleError e
 		}
 		groups = append(groups, orderedGroup)
 	}
-	return groups, cycleError
+	return groups, errors.WithStack(cycleError)
 }

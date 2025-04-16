@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl-golang-tools/go/analysis"
@@ -61,7 +62,7 @@ type FunctionCall struct {
 func Run(pass *analysis.Pass) (interface{}, error) {
 	moduleName, err := common.FtlModuleFromGoPackage(pass.Pkg.Path())
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	extracted := make(map[schema.Decl]types.Object)
 	failed := make(map[schema.RefKey]types.Object)

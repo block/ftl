@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/exp/maps"
@@ -20,7 +21,7 @@ import (
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	kubeapps "k8s.io/api/apps/v1"
 	kubecore "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -78,27 +79,27 @@ func (r *k8sScaling) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx).Scope("K8sScaling")
 	clientset, err := CreateClientSet()
 	if err != nil {
-		return fmt.Errorf("failed to create clientset: %w", err)
+		return errors.Wrap(err, "failed to create clientset")
 	}
 
 	namespace, err := GetCurrentNamespace()
 	if err != nil {
 		// Nothing we can do here, if we don't have a namespace we have no runners
-		return fmt.Errorf("failed to get current namespace: %w", err)
+		return errors.Wrap(err, "failed to get current namespace")
 	}
 
 	var sec *istioclient.Clientset
 	if !r.disableIstio {
 		groups, err := clientset.Discovery().ServerGroups()
 		if err != nil {
-			return fmt.Errorf("failed to get server groups: %w", err)
+			return errors.Wrap(err, "failed to get server groups")
 		}
 		// If istio is present and not explicitly disabled we create the client
 		for _, group := range groups.Groups {
 			if group.Name == "security.istio.io" {
 				sec, err = CreateIstioClientSet()
 				if err != nil {
-					return fmt.Errorf("failed to create istio clientset: %w", err)
+					return errors.Wrap(err, "failed to create istio clientset")
 				}
 				break
 			}
@@ -122,9 +123,9 @@ func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string,
 	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(sch.Name, r.systemNamespace))
 	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get deployment %s for update: %w", deploymentKey, err)
+		return errors.Wrapf(err, "failed to get deployment %s for update", deploymentKey)
 	}
-	return r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
+	return errors.WithStack(r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas))
 }
 
 func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
@@ -134,22 +135,22 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 	ctx = log.ContextWithLogger(ctx, logger)
 	dk, err := key.ParseDeploymentKey(deploymentKey)
 	if err != nil {
-		return url.URL{}, fmt.Errorf("failed to parse deployment key: %w", err)
+		return url.URL{}, errors.Wrap(err, "failed to parse deployment key")
 	}
 	logger.Debugf("Creating deployment for %s", deploymentKey)
 	namespace, err := r.ensureNamespace(ctx, sch)
 	if err != nil {
-		return url.URL{}, fmt.Errorf("failed to ensure namespace: %w", err)
+		return url.URL{}, errors.Wrap(err, "failed to ensure namespace")
 	}
 
 	deploymentClient := r.client.AppsV1().Deployments(namespace)
 	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
 	deploymentExists := true
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			deploymentExists = false
 		} else {
-			return url.URL{}, fmt.Errorf("failed to check for existence of deployment %s: %w", deploymentKey, err)
+			return url.URL{}, errors.Wrapf(err, "failed to check for existence of deployment %s", deploymentKey)
 		}
 	}
 
@@ -157,12 +158,12 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 	if deploymentExists {
 		logger.Debugf("Updating deployment %s", deploymentKey)
 		err = r.handleExistingDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
-		return r.GetEndpointForDeployment(dk), err
+		return r.GetEndpointForDeployment(dk), errors.WithStack(err)
 
 	}
 	err = r.handleNewDeployment(ctx, module, deploymentKey, sch, hasCron, hasIngress)
 	if err != nil {
-		return url.URL{}, err
+		return url.URL{}, errors.WithStack(err)
 	}
 	err = r.waitForDeploymentReady(ctx, namespace, deploymentKey, deployTimeout)
 	if err != nil {
@@ -170,7 +171,7 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 		if err2 != nil {
 			logger.Errorf(err2, "Failed to terminate deployment %s after failure", deploymentKey)
 		}
-		return url.URL{}, err
+		return url.URL{}, errors.WithStack(err)
 	}
 
 	endpoint := r.GetEndpointForDeployment(dk)
@@ -179,9 +180,9 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 	for {
 		select {
 		case <-ctx.Done():
-			return url.URL{}, fmt.Errorf("context cancelled: %w", ctx.Err())
+			return url.URL{}, errors.Wrap(ctx.Err(), "context cancelled")
 		case <-timeout:
-			return url.URL{}, fmt.Errorf("timed out waiting for runner to be ready")
+			return url.URL{}, errors.Errorf("timed out waiting for runner to be ready")
 		case <-time.After(time.Millisecond * 100):
 			_, err := client.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
 			if err == nil {
@@ -196,13 +197,13 @@ func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey stri
 	delCtx := log.ContextWithLogger(context.Background(), logger)
 	dk, err := key.ParseDeploymentKey(deploymentKey)
 	if err != nil {
-		return fmt.Errorf("failed to parse deployment key %s: %w", deploymentKey, err)
+		return errors.Wrapf(err, "failed to parse deployment key %s", deploymentKey)
 	}
 	serviceClient := r.client.CoreV1().Services(r.namespaceMapper(dk.Payload.Module, r.systemNamespace))
 	err = serviceClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete service %s: %w", deploymentKey, err)
+		if !k8serrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to delete service %s", deploymentKey)
 		}
 	}
 	return nil
@@ -211,12 +212,12 @@ func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey stri
 func CreateClientSet() (*kubernetes.Clientset, error) {
 	config, err := getKubeConfig()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client set: %w", err)
+		return nil, errors.Wrap(err, "failed to create client set")
 	}
 	return clientset, nil
 }
@@ -224,12 +225,12 @@ func CreateClientSet() (*kubernetes.Clientset, error) {
 func CreateIstioClientSet() (*istioclient.Clientset, error) {
 	config, err := getKubeConfig()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	// creates the clientset
 	clientset, err := istioclient.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client set: %w", err)
+		return nil, errors.Wrap(err, "failed to create client set")
 	}
 	return clientset, nil
 }
@@ -241,7 +242,7 @@ func getKubeConfig() (*rest.Config, error) {
 		// if we're not in a cluster, use the kubeconfig
 		config, err = clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
+			return nil, errors.Wrap(err, "failed to get kubeconfig")
 		}
 	}
 	return config, nil
@@ -258,7 +259,7 @@ func GetCurrentNamespace() (string, error) {
 	namespaceFile := "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 	namespace, err := os.ReadFile(namespaceFile)
 	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read namespace file: %w", err)
+		return "", errors.Wrap(err, "failed to read namespace file")
 	} else if err == nil {
 		return string(namespace), nil
 	}
@@ -267,17 +268,17 @@ func GetCurrentNamespace() (string, error) {
 	configAccess := clientcmd.NewDefaultPathOptions()
 	config, err := configAccess.GetStartingConfig()
 	if err != nil {
-		return "", fmt.Errorf("failed to get kubeconfig: %w", err)
+		return "", errors.Wrap(err, "failed to get kubeconfig")
 	}
 
 	currentContext := config.CurrentContext
 	if currentContext == "" {
-		return "", fmt.Errorf("no current context found in kubeconfig")
+		return "", errors.Errorf("no current context found in kubeconfig")
 	}
 
 	c, exists := config.Contexts[currentContext]
 	if !exists {
-		return "", fmt.Errorf("context %s not found in kubeconfig", currentContext)
+		return "", errors.Errorf("context %s not found in kubeconfig", currentContext)
 	}
 
 	return c.Namespace, nil
@@ -289,27 +290,27 @@ func (r *k8sScaling) updateDeployment(ctx context.Context, namespace string, nam
 
 		get, err := deploymentClient.Get(ctx, name, v1.GetOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to get deployment %s to apply update: %w", name, err)
+			return errors.Wrapf(err, "failed to get deployment %s to apply update", name)
 		}
 		mod(get)
 		_, err = deploymentClient.Update(ctx, get, v1.UpdateOptions{})
 		if err != nil {
-			if errors.IsConflict(err) {
+			if k8serrors.IsConflict(err) {
 				time.Sleep(time.Second)
 				continue
 			}
-			return fmt.Errorf("failed to update deployment %s: %w", name, err)
+			return errors.Wrapf(err, "failed to update deployment %s", name)
 		}
 		return nil
 	}
-	return fmt.Errorf("failed to update deployment %s, 10 clonflicts in a row", name)
+	return errors.Errorf("failed to update deployment %s, 10 clonflicts in a row", name)
 }
 
 func (r *k8sScaling) thisContainerImage(ctx context.Context) (string, error) {
 	deploymentClient := r.client.AppsV1().Deployments(r.systemNamespace)
 	thisDeployment, err := deploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get admin deployment %s: %w", provisionerDeploymentName, err)
+		return "", errors.Wrapf(err, "failed to get admin deployment %s", provisionerDeploymentName)
 	}
 	return thisDeployment.Spec.Template.Spec.Containers[0].Image, nil
 }
@@ -319,33 +320,33 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	userNamespace := r.namespaceMapper(module, r.systemNamespace)
 	cm, err := r.client.CoreV1().ConfigMaps(r.systemNamespace).Get(ctx, configMapName, v1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get configMap %s: %w", configMapName, err)
+		return errors.Wrapf(err, "failed to get configMap %s", configMapName)
 	}
 	systemDeploymentClient := r.client.AppsV1().Deployments(r.systemNamespace)
 	userDeploymentClient := r.client.AppsV1().Deployments(userNamespace)
 	provisionerDeployment, err := systemDeploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get this provisioner deployment %s: %w", provisionerDeploymentName, err)
+		return errors.Wrapf(err, "failed to get this provisioner deployment %s", provisionerDeploymentName)
 	}
 	// First create a Service, this will be the root owner of all the other resources
 	// Only create if it does not exist already
 	servicesClient := r.client.CoreV1().Services(userNamespace)
 	service, err := servicesClient.Get(ctx, name, v1.GetOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("failed to get service %s: %w", name, err)
+		if !k8serrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get service %s", name)
 		}
 		logger.Debugf("Creating new kube service %s", name)
 		err = decodeBytesToObject([]byte(cm.Data[serviceTemplate]), service)
 		if err != nil {
-			return fmt.Errorf("failed to decode service from configMap %s: %w", configMapName, err)
+			return errors.Wrapf(err, "failed to decode service from configMap %s", configMapName)
 		}
 		service.Name = name
 		service.Spec.Selector = map[string]string{"app": name}
 		addLabels(&service.ObjectMeta, module, name)
 		service, err = servicesClient.Create(ctx, service, v1.CreateOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to create service %s: %w", name, err)
+			return errors.Wrapf(err, "failed to create service %s", name)
 		}
 		logger.Debugf("Created kube service %s", name)
 	} else {
@@ -357,13 +358,13 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	serviceAccountClient := r.client.CoreV1().ServiceAccounts(userNamespace)
 	serviceAccount, err := serviceAccountClient.Get(ctx, module, v1.GetOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("failed to get service account %s: %w", name, err)
+		if !k8serrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get service account %s", name)
 		}
 		logger.Debugf("Creating new kube service account %s", name)
 		err = decodeBytesToObject([]byte(cm.Data[serviceAccountTemplate]), serviceAccount)
 		if err != nil {
-			return fmt.Errorf("failed to decode service account from configMap %s: %w", configMapName, err)
+			return errors.Wrapf(err, "failed to decode service account from configMap %s", configMapName)
 		}
 		serviceAccount.Name = module
 		if serviceAccount.Labels == nil {
@@ -373,7 +374,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		serviceAccount.Labels[moduleLabel] = module
 		_, err = serviceAccountClient.Create(ctx, serviceAccount, v1.CreateOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to create service account%s: %w", name, err)
+			return errors.Wrapf(err, "failed to create service account%s", name)
 		}
 		logger.Debugf("Created kube service  account%s", name)
 	} else {
@@ -381,7 +382,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		serviceAccount.OwnerReferences = append(serviceAccount.OwnerReferences, v1.OwnerReference{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID})
 		_, err = serviceAccountClient.Update(ctx, serviceAccount, v1.UpdateOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to update service account %s: %w", name, err)
+			return errors.Wrapf(err, "failed to update service account %s", name)
 		}
 	}
 
@@ -389,7 +390,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	if sec, ok := r.istioSecurity.Get(); ok {
 		err = r.syncIstioPolicy(ctx, sec, userNamespace, module, name, service, provisionerDeployment, sch, cron, ingress)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
@@ -398,21 +399,21 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	logger.Debugf("Creating new kube deployment %s", name)
 	thisImage, err := r.thisContainerImage(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get container image: %w", err)
+		return errors.Wrap(err, "failed to get container image")
 	}
 	data := cm.Data[deploymentTemplate]
 	deployment := &kubeapps.Deployment{}
 	err = decodeBytesToObject([]byte(data), deployment)
 	if err != nil {
-		return fmt.Errorf("failed to decode deployment from configMap %s: %w", configMapName, err)
+		return errors.Wrapf(err, "failed to decode deployment from configMap %s", configMapName)
 	}
 	ourVersion, err := extractTag(thisImage)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	ourImage, err := extractBase(thisImage)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	// runner images use the same tag as the controller
@@ -422,7 +423,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	}
 	var runnerImage string
 	if len(strings.Split(rawRunnerImage, ":")) != 1 {
-		return fmt.Errorf("module runtime's image should not contain a tag: %s", rawRunnerImage)
+		return errors.Errorf("module runtime's image should not contain a tag: %s", rawRunnerImage)
 	}
 	if strings.HasPrefix(rawRunnerImage, "ftl0/") {
 		// Images in the ftl0 namespace should use the same tag as the controller and use the same namespace as ourImage
@@ -431,7 +432,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 		// Images outside of the ftl0 namespace should use the same tag as the controller
 		ourImageComponents := strings.Split(ourImage, ":")
 		if len(ourImageComponents) != 2 {
-			return fmt.Errorf("expected <name>:<tag> for image name %q", ourImage)
+			return errors.Errorf("expected <name>:<tag> for image name %q", ourImage)
 		}
 		runnerImage = rawRunnerImage + ":" + ourImageComponents[1]
 	}
@@ -449,7 +450,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	changes, err := r.syncDeployment(ctx, thisImage, deployment, sch.Runtime.Scaling.MinReplicas)
 
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	for _, change := range changes {
 
@@ -460,7 +461,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 	addLabels(&deployment.Spec.Template.ObjectMeta, module, name)
 	_, err = userDeploymentClient.Create(ctx, deployment, v1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to create deployment %s: %w", name, err)
+		return errors.Wrapf(err, "failed to create deployment %s", name)
 	}
 	logger.Debugf("Created kube deployment %s", name)
 
@@ -482,7 +483,7 @@ func decodeBytesToObject(bytes []byte, deployment runtime.Object) error {
 	decoder := decoderCodecFactory.UniversalDecoder()
 	err := runtime.DecodeInto(decoder, bytes, deployment)
 	if err != nil {
-		return fmt.Errorf("failed to decode deployment: %w", err)
+		return errors.Wrap(err, "failed to decode deployment")
 	}
 	return nil
 }
@@ -491,11 +492,11 @@ func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *k
 
 	thisContainerImage, err := r.thisContainerImage(ctx)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	changes, err := r.syncDeployment(ctx, thisContainerImage, deployment, replicas)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	// If we have queued changes we apply them here. Changes can fail and need to be retried
@@ -507,7 +508,7 @@ func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *k
 			}
 		})
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	return nil
@@ -518,11 +519,11 @@ func (r *k8sScaling) syncDeployment(ctx context.Context, thisImage string, deplo
 	changes := []func(*kubeapps.Deployment){}
 	ourVersion, err := extractTag(thisImage)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	deploymentVersion, err := extractTag(deployment.Spec.Template.Spec.Containers[0].Image)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if ourVersion != deploymentVersion {
 		// This means there has been an FTL upgrade
@@ -633,7 +634,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 		}
 	})
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	// Setup policies for the modules we call
@@ -673,10 +674,10 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 			}
 		})
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
-	return err
+	return errors.WithStack(err)
 }
 
 func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, sec istioclient.Clientset, namespace string, name string, modify func(policy *istiosec.AuthorizationPolicy)) error {
@@ -685,8 +686,8 @@ func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, sec istiocli
 	policiesClient := sec.SecurityV1().AuthorizationPolicies(namespace)
 	policy, err := policiesClient.Get(ctx, name, v1.GetOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("failed to get istio policy %s: %w", name, err)
+		if !k8serrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get istio policy %s", name)
 		}
 		logger.Debugf("Creating Istio policy for %s/%s", namespace, name)
 		policy = &istiosec.AuthorizationPolicy{}
@@ -695,7 +696,7 @@ func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, sec istiocli
 		update = func(policy *istiosec.AuthorizationPolicy) error {
 			_, err := policiesClient.Create(ctx, policy, v1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("failed to create istio policy %s: %w", name, err)
+				return errors.Wrapf(err, "failed to create istio policy %s", name)
 			}
 			return nil
 		}
@@ -704,14 +705,14 @@ func (r *k8sScaling) createOrUpdateIstioPolicy(ctx context.Context, sec istiocli
 		update = func(policy *istiosec.AuthorizationPolicy) error {
 			_, err := policiesClient.Update(ctx, policy, v1.UpdateOptions{})
 			if err != nil {
-				return fmt.Errorf("failed to update istio policy %s: %w", name, err)
+				return errors.Wrapf(err, "failed to update istio policy %s", name)
 			}
 			return nil
 		}
 	}
 	modify(policy)
 
-	return update(policy)
+	return errors.WithStack(update(policy))
 }
 
 func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, namespace string, key string, timeout time.Duration) error {
@@ -721,17 +722,17 @@ func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, namespace strin
 	watch, err := deploymentClient.Watch(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
 	podWatch, err := podClient.Watch(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
 	if err != nil {
-		return fmt.Errorf("failed to watch deployment %s: %w", key, err)
+		return errors.Wrapf(err, "failed to watch deployment %s", key)
 	}
 	end := time.After(timeout)
 	for {
 		select {
 		case <-end:
-			return fmt.Errorf("deployment %s did not become ready in time \n%s", key, r.findPodLogs(ctx, key, podClient))
+			return errors.Errorf("deployment %s did not become ready in time \n%s", key, r.findPodLogs(ctx, key, podClient))
 		case <-watch.ResultChan():
 			deployment, err := deploymentClient.Get(ctx, key, v1.GetOptions{})
 			if err != nil {
-				return fmt.Errorf("failed to get deployment %s to check readiness: %w\n%s", key, err, r.findPodLogs(ctx, key, podClient))
+				return errors.Wrapf(err, "failed to get deployment %s to check readiness:\n%s", key, r.findPodLogs(ctx, key, podClient))
 			}
 			if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 				logger.Debugf("Deployment %s is ready", key)
@@ -739,29 +740,29 @@ func (r *k8sScaling) waitForDeploymentReady(ctx context.Context, namespace strin
 			}
 			for _, condition := range deployment.Status.Conditions {
 				if condition.Type == kubeapps.DeploymentReplicaFailure && condition.Status == kubecore.ConditionTrue {
-					return fmt.Errorf("deployment %s is in error state: %s \n%s", deployment, condition.Message, r.findPodLogs(ctx, key, podClient))
+					return errors.Errorf("deployment %s is in error state: %s \n%s", deployment, condition.Message, r.findPodLogs(ctx, key, podClient))
 				}
 			}
 		case <-podWatch.ResultChan():
 			pods, err := podClient.List(ctx, v1.ListOptions{LabelSelector: deploymentLabel + "=" + key})
 			if err != nil {
-				return fmt.Errorf("failed to get pods for deployment %s: %w", key, err)
+				return errors.Wrapf(err, "failed to get pods for deployment %s", key)
 			}
 			for _, p := range pods.Items {
 				if p.Status.Phase == kubecore.PodFailed {
-					return fmt.Errorf("pod %s failed: %s", p.Name, p.Status.Message)
+					return errors.Errorf("pod %s failed: %s", p.Name, p.Status.Message)
 				}
 				for _, container := range p.Status.ContainerStatuses {
 					if container.State.Waiting != nil {
 						if container.State.Waiting.Reason == "ImagePullBackOff" {
-							return fmt.Errorf("pod %s is in ImagePullBackOff state", p.Name)
+							return errors.Errorf("pod %s is in ImagePullBackOff state", p.Name)
 						}
 						if container.State.Waiting.Reason == "CrashLoopBackOff" {
 							logs, err := readPodLogs(ctx, podClient, &p)
 							if err != nil {
-								return fmt.Errorf("pod %s is in CrashLoopBackOff state and reading logs failed %w", p.Name, err)
+								return errors.Wrapf(err, "pod %s is in CrashLoopBackOff state and reading logs faile", p.Name)
 							}
-							return fmt.Errorf("pod %s is in CrashLoopBackOff state, logs:\n%s", p.Name, logs)
+							return errors.Errorf("pod %s is in CrashLoopBackOff state, logs:\n%s", p.Name, logs)
 						}
 					}
 				}
@@ -801,15 +802,15 @@ func (r *k8sScaling) ensureNamespace(ctx context.Context, sch *schema.Module) (s
 			if ns.Labels["app.kubernetes.io/managed-by"] == "ftl" {
 				if part, ok := ns.Labels["app.kubernetes.io/part-of"]; ok {
 					if part != r.instanceName {
-						return "", fmt.Errorf("namespace %s is managed by a different ftl instance: %s, this instance is %s", namespace, part, r.instanceName)
+						return "", errors.Errorf("namespace %s is managed by a different ftl instance: %s, this instance is %s", namespace, part, r.instanceName)
 					}
 				}
 			}
 		}
 		return namespace, nil
 	}
-	if !errors.IsNotFound(err) {
-		return "", fmt.Errorf("failed to get namespace %s: %w", namespace, err)
+	if !k8serrors.IsNotFound(err) {
+		return "", errors.Wrapf(err, "failed to get namespace %s", namespace)
 	}
 	ns = &kubecore.Namespace{
 		Spec: kubecore.NamespaceSpec{},
@@ -820,7 +821,7 @@ func (r *k8sScaling) ensureNamespace(ctx context.Context, sch *schema.Module) (s
 	}
 	_, err = r.client.CoreV1().Namespaces().Create(ctx, ns, v1.CreateOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to create namespace %s: %w", namespace, err)
+		return "", errors.Wrapf(err, "failed to create namespace %s", namespace)
 	}
 	return namespace, nil
 }
@@ -834,7 +835,7 @@ func readPodLogs(ctx context.Context, client v3.PodInterface, pod *kubecore.Pod)
 		req := client.GetLogs(pod.Name, &kubecore.PodLogOptions{Container: container.Name, Previous: false})
 		podLogs, err := req.Stream(ctx)
 		if err != nil {
-			return "", fmt.Errorf("failed to read logs for pod %s: %w", pod.Name, err)
+			return "", errors.Wrapf(err, "failed to read logs for pod %s", pod.Name)
 		}
 		defer func() {
 			_ = podLogs.Close()
@@ -842,7 +843,7 @@ func readPodLogs(ctx context.Context, client v3.PodInterface, pod *kubecore.Pod)
 		buf := new(bytes.Buffer)
 		_, err = io.Copy(buf, podLogs)
 		if err != nil {
-			return "", fmt.Errorf("failed to read logs for pod %s: %w", pod.Name, err)
+			return "", errors.Wrapf(err, "failed to read logs for pod %s", pod.Name)
 		}
 		logs += buf.String()
 	}
@@ -852,7 +853,7 @@ func readPodLogs(ctx context.Context, client v3.PodInterface, pod *kubecore.Pod)
 func extractTag(image string) (string, error) {
 	idx := strings.LastIndex(image, ":")
 	if idx == -1 {
-		return "", fmt.Errorf("no tag found in image %s", image)
+		return "", errors.Errorf("no tag found in image %s", image)
 	}
 	ret := image[idx+1:]
 	at := strings.LastIndex(ret, "@")
@@ -865,7 +866,7 @@ func extractTag(image string) (string, error) {
 func extractBase(image string) (string, error) {
 	idx := strings.LastIndex(image, ":")
 	if idx == -1 {
-		return "", fmt.Errorf("no tag found in image %s", image)
+		return "", errors.Errorf("no tag found in image %s", image)
 	}
 	return image[:idx], nil
 }

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/tuple"
 	sets "github.com/deckarep/golang-set/v2"
@@ -122,20 +123,20 @@ func Extract(moduleDir string, sch *schema.Schema) (Result, error) {
 	}
 	pkgs, err := packages.Load(&pkgConfig, "./...")
 	if err != nil {
-		return Result{}, fmt.Errorf("failed to load packages: %w", err)
+		return Result{}, errors.Wrap(err, "failed to load packages")
 	}
 	graph, err := checker.Analyze(orderedAnalyzers, pkgs, &checker.Options{
 		ReverseImportExecutionOrder: true,
 	})
 	if err != nil {
-		return Result{}, fmt.Errorf("failed to analyze module packages: %w", err)
+		return Result{}, errors.Wrap(err, "failed to analyze module packages")
 	}
 
-	var errors []builderrors.Error
+	var errs []builderrors.Error
 	finalizeResults := []finalize.Result{}
 	for act := range graph.All() {
 		for _, d := range act.Diagnostics {
-			errors = append(errors, builderrors.Error{
+			errs = append(errs, builderrors.Error{
 				Pos:   optional.Some(toErrorPos(act.Package.Fset.Position(d.Pos), act.Package.Fset.Position(d.End))),
 				Msg:   d.Message,
 				Level: common.DiagnosticCategory(d.Category).ToErrorLevel(),
@@ -144,16 +145,16 @@ func Extract(moduleDir string, sch *schema.Schema) (Result, error) {
 		if act.Analyzer == finalize.Analyzer {
 			fr, ok := act.Result.(finalize.Result)
 			if !ok {
-				return Result{}, fmt.Errorf("unexpected schema extraction result type: %T", act.Result)
+				return Result{}, errors.Errorf("unexpected schema extraction result type: %T", act.Result)
 			}
 			finalizeResults = append(finalizeResults, fr)
 		}
 	}
 	if len(finalizeResults) == 0 {
-		return Result{}, fmt.Errorf("schema extraction finalizer result not found")
+		return Result{}, errors.Errorf("schema extraction finalizer result not found")
 	}
 
-	return combineAllPackageResults(sch, finalizeResults, errors)
+	return errors.WithStack2(combineAllPackageResults(sch, finalizeResults, errs))
 }
 
 type refResultType int
@@ -239,7 +240,7 @@ func (cd *combinedData) updateModule(fr finalize.Result) error {
 		cd.module = &schema.Module{Name: fr.ModuleName, Comments: fr.ModuleComments}
 	} else {
 		if cd.module.Name != fr.ModuleName {
-			return fmt.Errorf("unexpected schema extraction result module name: %s", fr.ModuleName)
+			return errors.Errorf("unexpected schema extraction result module name: %s", fr.ModuleName)
 		}
 		if len(cd.module.Comments) == 0 {
 			cd.module.Comments = fr.ModuleComments
@@ -297,17 +298,17 @@ func (cd *combinedData) updateDeclVisibility() {
 func (cd *combinedData) propagateTypeErrors() {
 	_ = schema.VisitWithParents(cd.module, nil, func(n schema.Node, ps []schema.Node, next func() error) error { //nolint:errcheck
 		if len(ps) == 0 {
-			return next()
+			return errors.WithStack(next())
 		}
 		p := ps[len(ps)-1]
 		ref, ok := n.(*schema.Ref)
 		if !ok {
-			return next()
+			return errors.WithStack(next())
 		}
 
 		result, ok := cd.refResults[ref.ToRefKey()]
 		if !ok {
-			return next()
+			return errors.WithStack(next())
 		}
 
 		switch result.typ {
@@ -335,7 +336,7 @@ func (cd *combinedData) propagateTypeErrors() {
 				"widened to Any", result.fqName.MustGet()))
 		}
 
-		return next()
+		return errors.WithStack(next())
 	})
 }
 
@@ -347,12 +348,12 @@ func dependenciesBeforeIndex(idx int) []*analysis.Analyzer {
 	return deps
 }
 
-func combineAllPackageResults(sch *schema.Schema, finalizeResults []finalize.Result, errors []builderrors.Error) (Result, error) {
-	cd := newCombinedData(errors)
+func combineAllPackageResults(sch *schema.Schema, finalizeResults []finalize.Result, errs []builderrors.Error) (Result, error) {
+	cd := newCombinedData(errs)
 
 	for _, fr := range finalizeResults {
 		if err := cd.updateModule(fr); err != nil {
-			return Result{}, err
+			return Result{}, errors.WithStack(err)
 		}
 		cd.update(fr)
 	}
@@ -398,7 +399,7 @@ func combineAllPackageResults(sch *schema.Schema, finalizeResults []finalize.Res
 					case *schema.Database:
 						genType = "database"
 					default:
-						return Result{}, fmt.Errorf("%q is an unsupported generated type: %T", decl.GetName(), decl)
+						return Result{}, errors.Errorf("%q is an unsupported generated type: %T", decl.GetName(), decl)
 					}
 
 					typeKey := getTypeUniquenessKey(decl)
@@ -417,7 +418,7 @@ func combineAllPackageResults(sch *schema.Schema, finalizeResults []finalize.Res
 	if builderrors.ContainsTerminalError(result.Errors) {
 		return result, nil
 	}
-	return result, result.Module.Validate() //nolint:wrapcheck
+	return result, errors.WithStack(result.Module.Validate()) //nolint:wrapcheck
 }
 
 // updateTransitiveVisibility updates any decls that are transitively visible from d.
@@ -430,12 +431,12 @@ func updateTransitiveVisibility(d schema.Decl, module *schema.Module) {
 	_ = schema.VisitExcludingMetadataChildren(d, func(n schema.Node, next func() error) error { //nolint:errcheck
 		ref, ok := n.(*schema.Ref)
 		if !ok {
-			return next()
+			return errors.WithStack(next())
 		}
 
 		resolved := module.Resolve(*ref)
 		if resolved == nil || resolved.Symbol == nil {
-			return next()
+			return errors.WithStack(next())
 		}
 
 		if decl, ok := resolved.Symbol.(schema.Decl); ok {
@@ -454,7 +455,7 @@ func updateTransitiveVisibility(d schema.Decl, module *schema.Module) {
 			}
 			updateTransitiveVisibility(decl, module)
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 }
 
@@ -469,13 +470,13 @@ func goQualifiedNameForWidenedType(obj types.Object, metadata []schema.Metadata)
 	for _, m := range metadata {
 		if m, ok := m.(*schema.MetadataTypeMap); ok && m.Runtime == "go" {
 			if nativeName != "" {
-				return "", fmt.Errorf("multiple Go type mappings found for %q", common.GetNativeName(obj))
+				return "", errors.Errorf("multiple Go type mappings found for %q", common.GetNativeName(obj))
 			}
 			nativeName = m.NativeName
 		}
 	}
 	if len(metadata) > 0 && nativeName == "" {
-		return "", fmt.Errorf("missing Go native name in typemapped alias for %q",
+		return "", errors.Errorf("missing Go native name in typemapped alias for %q",
 			common.GetNativeName(obj))
 	}
 	return nativeName, nil

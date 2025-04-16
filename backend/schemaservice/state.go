@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sync"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	expmaps "golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
@@ -59,7 +60,7 @@ func newStateMachine(ctx context.Context) *schemaStateMachine {
 
 func (r *SchemaState) Marshal() ([]byte, error) {
 	if err := r.validate(); err != nil {
-		return nil, fmt.Errorf("failed to validate schema state: %w", err)
+		return nil, errors.Wrap(err, "failed to validate schema state")
 	}
 
 	changesets := slices.Collect(maps.Values(r.changesets))
@@ -82,7 +83,7 @@ func (r *SchemaState) Marshal() ([]byte, error) {
 	stateProto := state.ToProto()
 	bytes, err := proto.Marshal(stateProto)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal schema state: %w", err)
+		return nil, errors.Wrap(err, "failed to marshal schema state")
 	}
 	return bytes, nil
 }
@@ -90,12 +91,12 @@ func (r *SchemaState) Marshal() ([]byte, error) {
 func (r *SchemaState) Unmarshal(data []byte) error {
 	stateProto := &schemapb.SchemaState{}
 	if err := proto.Unmarshal(data, stateProto); err != nil {
-		return fmt.Errorf("failed to unmarshal schema state: %w", err)
+		return errors.Wrap(err, "failed to unmarshal schema state")
 	}
 
 	state, err := schema.SchemaStateFromProto(stateProto)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal schema state: %w", err)
+		return errors.Wrap(err, "failed to unmarshal schema state")
 	}
 	activeDeployments := map[key.Deployment]bool{}
 	for _, module := range state.Modules {
@@ -128,7 +129,7 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 func (r *SchemaState) validate() error {
 	internals := iterops.Count(maps.Values(r.realms), func(r *schema.RealmState) bool { return !r.External })
 	if internals > 1 {
-		return fmt.Errorf("only one internal realm is allowed, got %d", internals)
+		return errors.Errorf("only one internal realm is allowed, got %d", internals)
 	}
 	return nil
 }
@@ -148,7 +149,7 @@ func (r *SchemaState) GetDeployment(deployment key.Deployment, changeset optiona
 	}
 	d, ok := r.deployments[deployment.Payload.Module]
 	if !ok {
-		return nil, fmt.Errorf("deployment %s not found", deployment)
+		return nil, errors.Errorf("deployment %s not found", deployment)
 	}
 	return d, nil
 }
@@ -171,7 +172,7 @@ func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *
 			}
 		}
 	}
-	return nil, optional.None[key.Changeset](), fmt.Errorf("deployment %s not found", deploymentKey)
+	return nil, optional.None[key.Changeset](), errors.Errorf("deployment %s not found", deploymentKey)
 }
 
 func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
@@ -252,14 +253,14 @@ func (r *SchemaState) GetCanonicalDeploymentSchemas() []*schema.Module {
 func (r *SchemaState) GetProvisioning(module string, cs key.Changeset) (*schema.Module, error) {
 	c, ok := r.changesets[cs]
 	if !ok {
-		return nil, fmt.Errorf("changeset %s not found", cs.String())
+		return nil, errors.Errorf("changeset %s not found", cs.String())
 	}
 	for _, m := range c.InternalRealm().Modules {
 		if m.Name == module {
 			return m, nil
 		}
 	}
-	return nil, fmt.Errorf("provisioning for module %s not found", module)
+	return nil, errors.Errorf("provisioning for module %s not found", module)
 }
 
 type EventWrapper struct {
@@ -276,7 +277,7 @@ func (e EventWrapper) MarshalBinary() ([]byte, error) {
 	pb := schema.EventToProto(e.Event)
 	bytes, err := proto.Marshal(pb)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal event: %w", err)
+		return nil, errors.Wrap(err, "failed to marshal event")
 	}
 	return bytes, nil
 }
@@ -284,11 +285,11 @@ func (e EventWrapper) MarshalBinary() ([]byte, error) {
 func (e *EventWrapper) UnmarshalBinary(bts []byte) error {
 	pb := schemapb.Event{}
 	if err := proto.Unmarshal(bts, &pb); err != nil {
-		return fmt.Errorf("error unmarshalling event proto: %w", err)
+		return errors.Wrap(err, "error unmarshalling event proto")
 	}
 	event, err := schema.EventFromProto(&pb)
 	if err != nil {
-		return fmt.Errorf("error decoding event proto: %w", err)
+		return errors.Wrap(err, "error decoding event proto")
 	}
 	e.Event = event
 	return nil
@@ -323,7 +324,7 @@ func (c *schemaStateMachine) Publish(msg EventWrapper) error {
 		// TODO: we need to validate the events before they are
 		// committed to the log
 		logger.Errorf(err, "failed to apply event")
-		return raft.ErrInvalidEvent
+		return errors.WithStack(raft.ErrInvalidEvent)
 	}
 	// Notify all subscribers using broadcaster
 	c.notifier.Notify(c.runningCtx)
@@ -341,10 +342,10 @@ func (c *schemaStateMachine) Close() error {
 func (c *schemaStateMachine) Recover(snapshot io.Reader) error {
 	snapshotBytes, err := io.ReadAll(snapshot)
 	if err != nil {
-		return fmt.Errorf("failed to read snapshot: %w", err)
+		return errors.Wrap(err, "failed to read snapshot")
 	}
 	if err := c.state.Unmarshal(snapshotBytes); err != nil {
-		return fmt.Errorf("failed to unmarshal snapshot: %w", err)
+		return errors.Wrap(err, "failed to unmarshal snapshot")
 	}
 	return nil
 }
@@ -352,11 +353,11 @@ func (c *schemaStateMachine) Recover(snapshot io.Reader) error {
 func (c *schemaStateMachine) Save(w io.Writer) error {
 	snapshotBytes, err := c.state.Marshal()
 	if err != nil {
-		return fmt.Errorf("failed to marshal snapshot: %w", err)
+		return errors.Wrap(err, "failed to marshal snapshot")
 	}
 	_, err = w.Write(snapshotBytes)
 	if err != nil {
-		return fmt.Errorf("failed to write snapshot: %w", err)
+		return errors.Wrap(err, "failed to write snapshot")
 	}
 	return nil
 }

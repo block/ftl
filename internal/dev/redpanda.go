@@ -3,10 +3,10 @@ package dev
 import (
 	"context"
 	_ "embed"
-	"fmt"
 	"os"
 	"sync"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/container"
@@ -33,7 +33,7 @@ func SetUpRedPanda(ctx context.Context) error {
 	}
 	_, err := container.ComposeUp(ctx, "redpanda", redpandaDockerCompose, profile)
 	if err != nil {
-		return fmt.Errorf("could not start redpanda: %w", err)
+		return errors.Wrap(err, "could not start redpanda")
 	}
 	redPandaRunning = true
 	return nil

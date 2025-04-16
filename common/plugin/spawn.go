@@ -2,8 +2,6 @@ package plugin
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -12,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -97,26 +96,26 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	}
 	for _, opt := range options {
 		if err = opt(&opts); err != nil {
-			return nil, nil, err
+			return nil, nil, errors.WithStack(err)
 		}
 	}
 	workingDir := filepath.Join(dir, ".ftl")
 	err = os.Mkdir(workingDir, 0700)
 	if err != nil && !errors.Is(err, os.ErrExist) {
-		return nil, nil, err
+		return nil, nil, errors.WithStack(err)
 	}
 
 	// Clean up previous process.
 	pidFile := filepath.Join(workingDir, filepath.Base(exe)+".pid")
 	err = cleanup(logger, pidFile)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.WithStack(err)
 	}
 
 	// Find a free port.
 	addr, err := AllocatePort()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.WithStack(err)
 	}
 
 	// Start the plugin process.
@@ -128,12 +127,12 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	cmd.Stderr = nil
 	epipe, err := cmd.StderrPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create stderr pipe: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to create stderr pipe")
 	}
 	cmd.Stdout = nil
 	opipe, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create stdout pipe: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to create stdout pipe")
 	}
 	cmd.Env = append(cmd.Env, "FTL_BIND="+pluginEndpoint.String())
 	cmd.Env = append(cmd.Env, "FTL_WORKING_DIR="+workingDir)
@@ -147,7 +146,7 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	}
 	cmd.Env = append(cmd.Env, opts.envars...)
 	if err = cmd.Start(); err != nil {
-		return nil, nil, err
+		return nil, nil, errors.WithStack(err)
 	}
 	// Cancel the context if the command exits - this will terminate the Dial immediately.
 	var cancelWithCause context.CancelCauseFunc
@@ -177,7 +176,7 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	// Write the PID file.
 	err = os.WriteFile(pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0600)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.WithStack(err)
 	}
 
 	// Wait for the plugin to start.
@@ -192,11 +191,11 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 
 	select {
 	case <-cmdCtx.Done():
-		return nil, nil, fmt.Errorf("plugin process died: %w", cmdCtx.Err())
+		return nil, nil, errors.Wrap(cmdCtx.Err(), "plugin process died")
 
 	case err = <-pingErr:
 		if err != nil {
-			return nil, nil, fmt.Errorf("plugin failed to respond to ping: %w", err)
+			return nil, nil, errors.Wrap(err, "plugin failed to respond to ping")
 		}
 	}
 

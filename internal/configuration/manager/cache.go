@@ -2,11 +2,11 @@ package manager
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"sync"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 
@@ -67,11 +67,11 @@ func newCache[R configuration.Role](ctx context.Context, provider optional.Optio
 // load is called by the manager to get a value from the cache
 func (c *cache[R]) load(ref configuration.Ref, key *url.URL) ([]byte, error) {
 	if err := c.provider.waitForInitialSync(); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	value, ok := c.provider.load(ref)
 	if !ok {
-		return nil, fmt.Errorf("secret not found: %s", ref)
+		return nil, errors.Errorf("secret not found: %s", ref)
 	}
 	return value.Value, nil
 }
@@ -170,7 +170,7 @@ func (c *cacheProvider[R]) waitForInitialSync() error {
 	case <-c.loaded:
 		return nil
 	case <-time.After(waitForCacheTimeout):
-		return fmt.Errorf("%s has not completed sync yet", provider.Key())
+		return errors.Errorf("%s has not completed sync yet", provider.Key())
 	}
 }
 

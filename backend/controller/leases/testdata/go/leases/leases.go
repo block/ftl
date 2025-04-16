@@ -2,8 +2,9 @@ package leases
 
 import (
 	"context"
-	"fmt"
 	"time"
+
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/go-runtime/ftl"
 )
@@ -17,7 +18,7 @@ func Acquire(ctx context.Context) error {
 	lease, err := ftl.Lease(ctx, 10*time.Second, "lease")
 	if err != nil {
 		logger.Warnf("Failed to acquire lease: %s", err)
-		return fmt.Errorf("failed to acquire lease: %w", err)
+		return errors.Wrap(err, "failed to acquire lease")
 	}
 	logger.Infof("Acquired lease!")
 	time.Sleep(time.Second * 5)

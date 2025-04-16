@@ -2,10 +2,10 @@ package routing
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
 	"github.com/puzpuzpuz/xsync/v3"
@@ -42,19 +42,19 @@ func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.Ca
 	client, deployment, ok := s.LookupClient(ctx, req.Msg.Verb.Module)
 	if !ok {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to find deployment for module"))
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found"))
+		return nil, errors.WithStack(connect.NewError(connect.CodeNotFound, errors.Errorf("deployment not found")))
 	}
 
 	callers, err := headers.GetCallers(req.Header())
 	if err != nil {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get callers"))
-		return nil, fmt.Errorf("could not get callers from headers: %w", err)
+		return nil, errors.Wrap(err, "could not get callers from headers")
 	}
 
 	requestKey, ok, err := headers.GetRequestKey(req.Header())
 	if err != nil {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get request key"))
-		return nil, fmt.Errorf("could not process headers for request key: %w", err)
+		return nil, errors.Wrap(err, "could not process headers for request key")
 	} else if !ok {
 		requestKey = key.NewRequestKey(key.OriginIngress, "grpc")
 		headers.SetRequestKey(req.Header(), requestKey)
@@ -63,7 +63,7 @@ func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.Ca
 	verb, err := schema.RefFromProto(req.Msg.Verb)
 	if err != nil {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get verb ref"))
-		return nil, fmt.Errorf("could not get verb ref: %w", err)
+		return nil, errors.Wrap(err, "could not get verb ref")
 	}
 	callEvent := &timelineclient.Call{
 		DeploymentKey: deployment,
@@ -79,7 +79,7 @@ func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.Ca
 		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
 		s.timelineClient.Publish(ctx, callEvent)
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("verb call failed"))
-		return nil, fmt.Errorf("failed to call %s: %w", callEvent.DestVerb, err)
+		return nil, errors.Wrapf(err, "failed to call %s", callEvent.DestVerb)
 	}
 	resp := connect.NewResponse(originalResp.Msg)
 	callEvent.Response = result.Ok(resp.Msg)

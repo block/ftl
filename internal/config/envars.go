@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 )
 
@@ -27,7 +28,7 @@ func (e *EnvarDecorator[R]) Store(ctx context.Context, ref Ref, value []byte) er
 	_ = os.Unsetenv(e.envarName(ref))
 	err := e.Provider.Store(ctx, ref, value)
 	if err != nil {
-		return fmt.Errorf("failed to store value: %w", err)
+		return errors.Wrap(err, "failed to store value")
 	}
 	return nil
 }
@@ -36,7 +37,7 @@ func (e *EnvarDecorator[R]) Delete(ctx context.Context, ref Ref) error {
 	_ = os.Unsetenv(e.envarName(ref))
 	err := e.Provider.Delete(ctx, ref)
 	if err != nil {
-		return fmt.Errorf("failed to delete value: %w", err)
+		return errors.Wrap(err, "failed to delete value")
 	}
 	return nil
 }
@@ -47,7 +48,7 @@ func (e *EnvarDecorator[R]) Load(ctx context.Context, ref Ref) ([]byte, error) {
 	}
 	value, err := e.Provider.Load(ctx, ref)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load value: %w", err)
+		return nil, errors.Wrap(err, "failed to load value")
 	}
 	return value, nil
 }
@@ -55,7 +56,7 @@ func (e *EnvarDecorator[R]) Load(ctx context.Context, ref Ref) ([]byte, error) {
 func (e *EnvarDecorator[R]) List(ctx context.Context, withValues bool) ([]Value, error) {
 	values, err := e.Provider.List(ctx, withValues)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list: %w", err)
+		return nil, errors.Wrap(err, "failed to list")
 	}
 	// If values are requested, also try to load from environment variables.
 	if withValues {

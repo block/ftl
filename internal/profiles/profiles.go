@@ -2,12 +2,12 @@ package profiles
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/config"
@@ -39,7 +39,7 @@ func (c ProjectConfig) AbsModuleDirs() []string {
 	for i, dir := range c.ModuleRoots {
 		cleaned := filepath.Clean(filepath.Join(c.Root, dir))
 		if !strings.HasPrefix(cleaned, c.Root) {
-			panic(fmt.Errorf("module-dirs path %q is not within the project root %q", dir, c.Root))
+			panic(errors.Errorf("module-dirs path %q is not within the project root %q", dir, c.Root))
 		}
 		absDirs[i] = cleaned
 	}
@@ -103,7 +103,7 @@ func Open(
 ) (*Project, error) {
 	project, err := internal.Load(root)
 	if err != nil {
-		return nil, fmt.Errorf("open project: %w", err)
+		return nil, errors.Wrap(err, "open project")
 	}
 	return &Project{
 		project:         project,
@@ -124,7 +124,7 @@ func Init(
 ) (*Project, error) {
 	err := internal.Init(internal.Project(project))
 	if err != nil {
-		return nil, fmt.Errorf("init project: %w", err)
+		return nil, errors.Wrap(err, "init project")
 	}
 	return &Project{
 		project:         internal.Project(project),
@@ -138,14 +138,14 @@ func (p *Project) SetDefault(profile string) error {
 	_, err := p.project.LoadProfile(profile)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("%s: profile does not exist", profile)
+			return errors.Errorf("%s: profile does not e", profile)
 		}
-		return fmt.Errorf("%s: load profile: %w", profile, err)
+		return errors.Wrapf(err, "%s: load profile", profile)
 	}
 	p.project.DefaultProfile = profile
 	err = p.project.Save()
 	if err != nil {
-		return fmt.Errorf("%s: save project: %w", profile, err)
+		return errors.Wrapf(err, "%s: save project", profile)
 	}
 	return nil
 }
@@ -155,13 +155,13 @@ func (p *Project) Switch(profile string) error {
 	_, err := p.project.LoadProfile(profile)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("%s: profile does not exist", profile)
+			return errors.Errorf("%s: profile does not e", profile)
 		}
-		return fmt.Errorf("%s: load profile: %w", profile, err)
+		return errors.Wrapf(err, "%s: load profile", profile)
 	}
 	err = p.project.SetActiveProfile(profile)
 	if err != nil {
-		return fmt.Errorf("set active profile: %w", err)
+		return errors.Wrap(err, "set active profile")
 	}
 	return nil
 }
@@ -172,7 +172,7 @@ func (p *Project) Switch(profile string) error {
 func (p *Project) ActiveProfile() (string, error) {
 	profile, err := p.project.ActiveProfile()
 	if err != nil {
-		return "", fmt.Errorf("active profile: %w", err)
+		return "", errors.Wrap(err, "active profile")
 	}
 	return profile, nil
 }
@@ -185,7 +185,7 @@ func (p *Project) Realm() string { return p.project.Realm }
 func (p *Project) ProfileRoot() (string, error) {
 	root, err := p.project.ProfileRoot()
 	if err != nil {
-		return "", fmt.Errorf("profile root: %w", err)
+		return "", errors.Wrap(err, "profile root")
 	}
 	return root, nil
 }
@@ -194,7 +194,7 @@ func (p *Project) ProfileRoot() (string, error) {
 func (p *Project) List() ([]ProfileConfig, error) {
 	profiles, err := p.project.ListProfiles()
 	if err != nil {
-		return nil, fmt.Errorf("load profiles: %w", err)
+		return nil, errors.Wrap(err, "load profiles")
 	}
 	configs, err := slices.MapErr(profiles, func(profile internal.Profile) (ProfileConfig, error) {
 		var config ProfileConfigKind
@@ -207,7 +207,7 @@ func (p *Project) List() ([]ProfileConfig, error) {
 		case internal.ProfileTypeRemote:
 			endpoint, err := profile.EndpointURL()
 			if err != nil {
-				return ProfileConfig{}, fmt.Errorf("profile endpoint: %w", err)
+				return ProfileConfig{}, errors.Wrap(err, "profile endpoint")
 			}
 			config = RemoteProfileConfig{
 				Endpoint: endpoint,
@@ -219,7 +219,7 @@ func (p *Project) List() ([]ProfileConfig, error) {
 		}, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("map profiles: %w", err)
+		return nil, errors.Wrap(err, "map profiles")
 	}
 	return configs, nil
 }
@@ -229,10 +229,10 @@ func (p *Project) New(profileConfig ProfileConfig) error {
 	_, err := p.project.LoadProfile(profileConfig.Name)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("load profile: %w", err)
+			return errors.Wrap(err, "load profile")
 		}
 	} else {
-		return fmt.Errorf("profile %s already exists", profileConfig.Name)
+		return errors.Errorf("profile %s already exists", profileConfig.Name)
 	}
 	var profile internal.Profile
 	switch config := profileConfig.Config.(type) {
@@ -252,11 +252,11 @@ func (p *Project) New(profileConfig ProfileConfig) error {
 		}
 
 	case nil:
-		return fmt.Errorf("profile config is nil")
+		return errors.Errorf("profile config is nil")
 	}
 	err = p.project.SaveProfile(profile)
 	if err != nil {
-		return fmt.Errorf("save profile: %w", err)
+		return errors.Wrap(err, "save profile")
 	}
 	return nil
 }
@@ -265,11 +265,11 @@ func (p *Project) New(profileConfig ProfileConfig) error {
 func (p *Project) Load(ctx context.Context, profile string) (Profile, error) {
 	prof, err := p.project.LoadProfile(profile)
 	if err != nil {
-		return Profile{}, fmt.Errorf("load profile: %w", err)
+		return Profile{}, errors.Wrap(err, "load profile")
 	}
 	profileEndpoint, err := prof.EndpointURL()
 	if err != nil {
-		return Profile{}, fmt.Errorf("profile endpoint: %w", err)
+		return Profile{}, errors.Wrap(err, "profile endpoint")
 	}
 
 	var sm config.Provider[config.Secrets]
@@ -279,19 +279,19 @@ func (p *Project) Load(ctx context.Context, profile string) (Profile, error) {
 		var err error
 		sm, err = p.secretsRegistry.Get(ctx, p.project.Root, prof.SecretsProvider)
 		if err != nil {
-			return Profile{}, fmt.Errorf("get secrets provider: %w", err)
+			return Profile{}, errors.Wrap(err, "get secrets provider")
 		}
 
 		cm, err = p.configRegistry.Get(ctx, p.project.Root, prof.ConfigProvider)
 		if err != nil {
-			return Profile{}, fmt.Errorf("get config provider: %w", err)
+			return Profile{}, errors.Wrap(err, "get config provider")
 		}
 
 	case internal.ProfileTypeRemote:
 		panic("not implemented")
 
 	default:
-		return Profile{}, fmt.Errorf("%s: unknown profile type: %q", profile, prof.Type)
+		return Profile{}, errors.Errorf("%s: unknown profile type: %q", profile, prof.Type)
 	}
 	return Profile{
 		shared:   ProjectConfig(p.project),

@@ -1,8 +1,7 @@
 package observability
 
 import (
-	"errors"
-	"fmt"
+	errors "github.com/alecthomas/errors"
 )
 
 var (
@@ -20,10 +19,10 @@ func init() {
 	errs = errors.Join(errs, err)
 
 	if errs != nil {
-		panic(fmt.Errorf("could not initialize runner metrics: %w", err))
+		panic(errors.Wrap(err, "could not initialize runner metrics"))
 	}
 }
 
 func wrapErr(signalName string, err error) error {
-	return fmt.Errorf("failed to create %q signal: %w", signalName, err)
+	return errors.Wrapf(err, "failed to create %q signal", signalName)
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/go-runtime/ftl/ftltest"
 )
@@ -38,11 +39,11 @@ func TestDatabase(t *testing.T) {
 func queryDBDirectly(ctx context.Context) ([]string, error) {
 	db, err := ftltest.GetDatabaseHandle[TestdbConfig]()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	rows, err := db.Get(ctx).Query("SELECT data FROM requests ORDER BY created_at;")
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -51,7 +52,7 @@ func queryDBDirectly(ctx context.Context) ([]string, error) {
 		var data string
 		err := rows.Scan(&data)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		list = append(list, data)
 	}

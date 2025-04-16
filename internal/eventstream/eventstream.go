@@ -2,10 +2,10 @@ package eventstream
 
 import (
 	"context"
-	"fmt"
 	"iter"
 	"sync"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/pubsub"
 
 	"github.com/block/ftl/common/reflect"
@@ -68,7 +68,7 @@ func (i *inMemoryEventStream[T, E]) Publish(ctx context.Context, e E) error {
 	}
 	newView, err := e.Handle(reflect.DeepCopy(i.view))
 	if err != nil {
-		return fmt.Errorf("failed to handle event: %w", err)
+		return errors.Wrap(err, "failed to handle event")
 	}
 	i.view = newView
 	i.topic.Publish(e)

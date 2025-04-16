@@ -3,11 +3,11 @@ package common
 import (
 	"archive/zip"
 	"context"
-	"fmt"
 	"path/filepath"
 	"strings"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/block/scaffolder"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -52,7 +52,7 @@ func (c CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.N
 	}
 	group, ok := groupAny.(string)
 	if !ok {
-		return nil, fmt.Errorf("group not a string")
+		return nil, errors.Errorf("group not a string")
 	}
 	if group == "" {
 		group = "ftl." + req.Msg.Name
@@ -87,7 +87,7 @@ func (c CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.N
 	// scaffold at one directory above the module directory
 	parentPath := filepath.Dir(req.Msg.Dir)
 	if err := internal.ScaffoldZip(c.ScaffoldFiles, parentPath, sctx, opts...); err != nil {
-		return nil, fmt.Errorf("failed to scaffold: %w", err)
+		return nil, errors.Wrap(err, "failed to scaffold")
 	}
 	return connect.NewResponse(&langpb.NewModuleResponse{}), nil
 }
@@ -115,7 +115,7 @@ func (CmdService) GetModuleConfigDefaults(ctx context.Context, req *connect.Requ
 		defaults.DeployDir = "build"
 		defaults.Watch = append(defaults.Watch, "build.gradle", "build.gradle.kts", "settings.gradle", "gradle.properties")
 	} else {
-		return nil, fmt.Errorf("could not find JVM build file in %s", dir)
+		return nil, errors.Errorf("could not find JVM build file in %s", dir)
 	}
 
 	return connect.NewResponse(defaults), nil

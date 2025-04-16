@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"sort"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 
@@ -28,15 +29,15 @@ func (p ProjectConfig[R]) Role() R { var r R; return r }
 func (p ProjectConfig[R]) Get(ctx context.Context, ref configuration.Ref) (*url.URL, error) {
 	config, err := pc.Load(ctx, optional.Zero(p.Config))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	mapping, err := p.getMapping(config, ref.Module)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	key, ok := mapping[ref.Name]
 	if !ok {
-		return nil, configuration.ErrNotFound
+		return nil, errors.WithStack(configuration.ErrNotFound)
 	}
 	return (*url.URL)(key), nil
 }
@@ -44,7 +45,7 @@ func (p ProjectConfig[R]) Get(ctx context.Context, ref configuration.Ref) (*url.
 func (p ProjectConfig[R]) List(ctx context.Context) ([]configuration.Entry, error) {
 	config, err := pc.Load(ctx, optional.Zero(p.Config))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	entries := []configuration.Entry{}
 	moduleNames := maps.Keys(config.Modules)
@@ -53,7 +54,7 @@ func (p ProjectConfig[R]) List(ctx context.Context) ([]configuration.Entry, erro
 		module := optional.Zero(moduleName)
 		mapping, err := p.getMapping(config, module)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		for name, key := range mapping {
 			entries = append(entries, configuration.Entry{
@@ -73,27 +74,27 @@ func (p ProjectConfig[R]) List(ctx context.Context) ([]configuration.Entry, erro
 func (p ProjectConfig[R]) Set(ctx context.Context, ref configuration.Ref, key *url.URL) error {
 	config, err := pc.Load(ctx, optional.Zero(p.Config))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	mapping, err := p.getMapping(config, ref.Module)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	mapping[ref.Name] = (*pc.URL)(key)
-	return p.setMapping(config, ref.Module, mapping)
+	return errors.WithStack(p.setMapping(config, ref.Module, mapping))
 }
 
 func (p ProjectConfig[From]) Unset(ctx context.Context, ref configuration.Ref) error {
 	config, err := pc.Load(ctx, optional.Zero(p.Config))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	mapping, err := p.getMapping(config, ref.Module)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	delete(mapping, ref.Name)
-	return p.setMapping(config, ref.Module, mapping)
+	return errors.WithStack(p.setMapping(config, ref.Module, mapping))
 }
 
 func (p ProjectConfig[R]) getMapping(config pc.Config, module optional.Option[string]) (map[string]*pc.URL, error) {
@@ -149,5 +150,5 @@ func (p ProjectConfig[R]) setMapping(config pc.Config, module optional.Option[st
 	} else {
 		set(&config.Global, mapping)
 	}
-	return pc.Save(config)
+	return errors.WithStack(pc.Save(config))
 }

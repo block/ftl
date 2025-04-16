@@ -1,14 +1,13 @@
 package goplugin
 
 import (
-	"errors"
-	"fmt"
 	"go/parser"
 	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/mod/modfile"
 )
 
@@ -19,11 +18,11 @@ func replacementWatches(moduleDir, deployDir string) ([]string, error) {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to read %s: %w", goModPath, err)
+		return nil, errors.Wrapf(err, "failed to read %s", goModPath)
 	}
 	goModFile, err := modfile.Parse(goModPath, goModBytes, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse %s: %w", goModPath, err)
+		return nil, errors.Wrapf(err, "failed to parse %s", goModPath)
 	}
 
 	replacements := make(map[string]string)
@@ -32,7 +31,7 @@ func replacementWatches(moduleDir, deployDir string) ([]string, error) {
 		if strings.HasPrefix(r.New.Path, ".") {
 			relPath, err := filepath.Rel(filepath.Dir(goModPath), filepath.Join(filepath.Dir(goModPath), r.New.Path))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get relative path for %s: %w", r.New.Path, err)
+				return nil, errors.Wrapf(err, "failed to get relative path for %s", r.New.Path)
 			}
 			replacements[r.Old.Path] = relPath
 		}
@@ -40,7 +39,7 @@ func replacementWatches(moduleDir, deployDir string) ([]string, error) {
 
 	files, err := findReplacedImports(moduleDir, deployDir, replacements)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	uniquePatterns := make(map[string]struct{})
@@ -63,12 +62,12 @@ func findReplacedImports(moduleDir, deployDir string, replacements map[string]st
 
 	err := filepath.WalkDir(moduleDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		if !d.IsDir() && !strings.Contains(path, deployDir) && strings.HasSuffix(path, ".go") {
 			imports, err := parseImports(path)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
 			for _, imp := range imports {
@@ -84,7 +83,7 @@ func findReplacedImports(moduleDir, deployDir string, replacements map[string]st
 		return nil
 	})
 
-	return deduplicateLibPaths(libPaths), err
+	return deduplicateLibPaths(libPaths), errors.WithStack(err)
 }
 
 func deduplicateLibPaths(libPaths map[string]bool) []string {
@@ -110,7 +109,7 @@ func parseImports(filePath string) ([]string, error) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, filePath, nil, parser.ImportsOnly)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse imports in %s: %w", filePath, err)
+		return nil, errors.Wrapf(err, "failed to parse imports in %s", filePath)
 	}
 
 	var imports []string

@@ -2,11 +2,10 @@ package providers
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/url"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/zalando/go-keyring"
 
 	"github.com/block/ftl/internal/configuration"
@@ -35,9 +34,9 @@ func (k Keychain) Load(ctx context.Context, ref configuration.Ref, key *url.URL)
 	value, err := keyring.Get(k.serviceName(ref), key.Host)
 	if err != nil {
 		if errors.Is(err, keyring.ErrNotFound) {
-			return nil, fmt.Errorf("no keychain entry for %q: %w", key.Host, configuration.ErrNotFound)
+			return nil, errors.Wrapf(configuration.ErrNotFound, "no keychain entry for %q", key.Host)
 		}
-		return nil, fmt.Errorf("failed to get keychain entry for %q: %w", key.Host, err)
+		return nil, errors.Wrapf(err, "failed to get keychain entry for %q", key.Host)
 	}
 	return []byte(value), nil
 }
@@ -45,7 +44,7 @@ func (k Keychain) Load(ctx context.Context, ref configuration.Ref, key *url.URL)
 func (k Keychain) Store(ctx context.Context, ref configuration.Ref, value []byte) (*url.URL, error) {
 	err := keyring.Set(k.serviceName(ref), ref.Name, string(value))
 	if err != nil {
-		return nil, fmt.Errorf("failed to set keychain entry for %q: %w", ref, err)
+		return nil, errors.Wrapf(errors.Join(err, configuration.ErrNotFound), "failed to set keychain entry for %q", ref)
 	}
 	return &url.URL{Scheme: string(KeychainProviderKey), Host: ref.Name}, nil
 }
@@ -54,9 +53,9 @@ func (k Keychain) Delete(ctx context.Context, ref configuration.Ref) error {
 	err := keyring.Delete(k.serviceName(ref), ref.Name)
 	if err != nil {
 		if errors.Is(err, keyring.ErrNotFound) {
-			return fmt.Errorf("no keychain entry for %q: %w", ref, configuration.ErrNotFound)
+			return errors.Wrapf(configuration.ErrNotFound, "no keychain entry for %q", ref)
 		}
-		return fmt.Errorf("failed to delete keychain entry for %q: %w", ref, err)
+		return errors.Wrapf(err, "failed to delete keychain entry for %q", ref)
 	}
 	return nil
 }

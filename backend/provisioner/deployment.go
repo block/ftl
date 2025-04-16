@@ -2,7 +2,8 @@ package provisioner
 
 import (
 	"context"
-	"fmt"
+
+	errors "github.com/alecthomas/errors"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -41,20 +42,20 @@ func (t *Task) Run(ctx context.Context) error {
 		Kinds:          slices.Map(t.binding.Types, func(x schema.ResourceType) string { return string(x) }),
 	})
 	if err != nil {
-		return fmt.Errorf("error provisioning resources: %w", err)
+		return errors.Wrap(err, "error provisioning resources")
 	}
 	for _, r := range result {
 		element, err := schema.RuntimeElementFromProto(r)
 		if err != nil {
-			return fmt.Errorf("error converting runtime: %w", err)
+			return errors.Wrap(err, "error converting runtime")
 		}
 		err = element.ApplyToModule(t.deployment.DeploymentState)
 		if err != nil {
-			return fmt.Errorf("error applying runtime: %w", err)
+			return errors.Wrap(err, "error applying runtime")
 		}
 		err = t.deployment.UpdateHandler(element)
 		if err != nil {
-			return fmt.Errorf("error updating runtime: %w", err)
+			return errors.Wrap(err, "error updating runtime")
 		}
 	}
 
@@ -78,7 +79,7 @@ func (d *Deployment) Run(ctx context.Context) error {
 	for _, t := range d.Tasks {
 		logger.Tracef("Running task %s: %s", t.module, t.binding.ID)
 		if err := t.Run(ctx); err != nil {
-			return fmt.Errorf("error running task %s: %w", t.module, err)
+			return errors.Wrapf(err, "error running task %s", t.module)
 		}
 	}
 	return nil

@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
+
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 )
 
@@ -30,7 +32,7 @@ func NewDatabase(dbType DBType, dsn string) (Database, error) {
 func NewTestDatabase(dbType DBType, dsn string) (Database, error) {
 	db, err := NewDatabase(dbType, dsn)
 	if err != nil {
-		return Database{}, err
+		return Database{}, errors.WithStack(err)
 	}
 	db.isTestDB = true
 	return db, nil
@@ -51,7 +53,7 @@ func DBTypeFromString(dt string) (DBType, error) {
 	} else if dt == "mysql" {
 		return DBTypeMySQL, nil
 	}
-	return DBTypeUnspecified, fmt.Errorf("unknown DB type: %s", dt)
+	return DBTypeUnspecified, errors.Errorf("unknown DB type: %s", dt)
 }
 
 func (x DBType) String() string {

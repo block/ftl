@@ -2,13 +2,13 @@ package goplugin
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/block/scaffolder"
 	"golang.org/x/mod/modfile"
@@ -100,12 +100,12 @@ func (CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.New
 	if replaceValue, ok := flags["replace"]; ok && replaceValue != "" {
 		replaceStr, ok := replaceValue.(string)
 		if !ok {
-			return nil, fmt.Errorf("invalid replace flag is not a string: %v", replaceValue)
+			return nil, errors.Errorf("invalid replace flag is not a string: %v", replaceValue)
 		}
 		for _, replace := range strings.Split(replaceStr, ",") {
 			parts := strings.Split(replace, "=")
 			if len(parts) != 2 {
-				return nil, fmt.Errorf("invalid replace flag (format: A=B,C=D): %q", replace)
+				return nil, errors.Errorf("invalid replace flag (format: A=B,C=D): %q", replace)
 			}
 			sctx.Replace[parts[0]] = parts[1]
 		}
@@ -114,11 +114,11 @@ func (CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.New
 	// scaffold at one directory above the module directory
 	parentPath := filepath.Dir(req.Msg.Dir)
 	if err := internal.ScaffoldZip(goruntime.Files(), parentPath, sctx, opts...); err != nil {
-		return nil, fmt.Errorf("failed to scaffold: %w", err)
+		return nil, errors.Wrap(err, "failed to scaffold")
 	}
 	logger.Debugf("Running go mod tidy: %s", req.Msg.Dir)
 	if err := exec.Command(ctx, log.Debug, req.Msg.Dir, "go", "mod", "tidy").RunBuffered(ctx); err != nil {
-		return nil, fmt.Errorf("could not tidy: %w", err)
+		return nil, errors.Wrap(err, "could not tidy")
 	}
 	return connect.NewResponse(&langpb.NewModuleResponse{}), nil
 }
@@ -130,7 +130,7 @@ func (CmdService) GetModuleConfigDefaults(ctx context.Context, req *connect.Requ
 	additionalWatch, err := replacementWatches(req.Msg.Dir, deployDir)
 	watch = append(watch, additionalWatch...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return connect.NewResponse(&langpb.GetModuleConfigDefaultsResponse{
 		Watch:      watch,

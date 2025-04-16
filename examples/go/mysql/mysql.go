@@ -2,9 +2,10 @@ package mysql
 
 import (
 	"context"
-	"errors"
 
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
+	errors "github.com/alecthomas/errors" // Import the FTL SDK.
+
+	"github.com/block/ftl/go-runtime/ftl"
 )
 
 type InsertRequest struct {
@@ -17,7 +18,7 @@ type InsertResponse struct{}
 func Insert(ctx context.Context, req InsertRequest, insert CreateRequestClient) (InsertResponse, error) {
 	err := insert(ctx, ftl.Some(req.Data))
 	if err != nil {
-		return InsertResponse{}, err
+		return InsertResponse{}, errors.WithStack(err)
 	}
 
 	return InsertResponse{}, nil
@@ -27,7 +28,7 @@ func Insert(ctx context.Context, req InsertRequest, insert CreateRequestClient) 
 func Query(ctx context.Context, query GetRequestDataClient) ([]string, error) {
 	rows, err := query(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	var items []string
 	for _, row := range rows {
@@ -42,13 +43,13 @@ func Query(ctx context.Context, query GetRequestDataClient) ([]string, error) {
 func Fixture(ctx context.Context, insert CreateRequestClient, query GetRequestDataClient) error {
 	rows, err := query(ctx)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if len(rows) > 0 {
 		return nil
 	}
-	return errors.Join(
+	return errors.WithStack(errors.Join(
 		insert(ctx, ftl.Some("foo")),
 		insert(ctx, ftl.Some("bar")),
-	)
+	))
 }

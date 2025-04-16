@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
 	"github.com/hashicorp/cronexpr"
@@ -62,11 +63,11 @@ func (p Pattern) standardizedComponents() ([]Component, error) {
 	if p.Duration != nil {
 		parsed, err := duration.ParseComponents(*p.Duration)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		// Do not allow durations with days, as it is confusing for the user.
 		if parsed.Days > 0 {
-			return nil, fmt.Errorf("durations with days are not allowed")
+			return nil, errors.Errorf("durations with days are not allowed")
 		}
 
 		ss := newShortState()
@@ -77,13 +78,13 @@ func (p Pattern) standardizedComponents() ([]Component, error) {
 		ss.full() // Month
 		ss.full() // Day of week
 		ss.full() // Year
-		return ss.done()
+		return errors.WithStack2(ss.done())
 	}
 
 	if p.DayOfWeek != nil {
 		dayOfWeekInt, err := p.DayOfWeek.toInt()
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		components := newComponentsFilled()
@@ -124,7 +125,7 @@ func (p Pattern) standardizedComponents() ([]Component, error) {
 	case 7:
 		return p.Components, nil
 	default:
-		return nil, fmt.Errorf("expected 5-7 components, got %d", len(p.Components))
+		return nil, errors.Errorf("expected 5-7 components, got %d", len(p.Components))
 	}
 }
 
@@ -222,11 +223,11 @@ func (r *ValueRange) String() string {
 func Parse(text string) (Pattern, error) {
 	pattern, err := parser.ParseString("", text)
 	if err != nil {
-		return Pattern{}, err
+		return Pattern{}, errors.WithStack(err)
 	}
 	components, err := pattern.standardizedComponents()
 	if err != nil {
-		return Pattern{}, err
+		return Pattern{}, errors.WithStack(err)
 	}
 	cron := ""
 	for _, comp := range components {
@@ -237,13 +238,13 @@ func Parse(text string) (Pattern, error) {
 	}
 	parsed, err := cronexpr.Parse(cron)
 	if err != nil {
-		return Pattern{}, fmt.Errorf("failed to parse cron expression %w", err)
+		return Pattern{}, errors.Wrap(err, "failed to parse cron expression")
 	}
 	pattern.expression = parsed
 	// Validate to make sure that a pattern has no mistakes in the cron format, and that there is a valid next value from a set point in time
 	_, err = NextAfter(*pattern, time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC), true)
 	if err != nil {
-		return Pattern{}, err
+		return Pattern{}, errors.WithStack(err)
 	}
 	return *pattern, nil
 }
@@ -272,7 +273,7 @@ func (ss *shortState) push(value int) {
 		}
 	} else {
 		if ss.seenNonZero {
-			ss.err = fmt.Errorf("only one non-zero component is allowed")
+			ss.err = errors.Errorf("only one non-zero component is allowed")
 		}
 		ss.seenNonZero = true
 		component = newComponentWithStep(value)
@@ -287,7 +288,7 @@ func (ss *shortState) full() {
 
 func (ss shortState) done() ([]Component, error) {
 	if ss.err != nil {
-		return nil, ss.err
+		return nil, errors.WithStack(ss.err)
 	}
 	return ss.components, nil
 }
@@ -313,6 +314,6 @@ func (d *DayOfWeek) toInt() (int, error) {
 	case "sat":
 		return 6, nil
 	default:
-		return 0, fmt.Errorf("invalid day of week: %q", *d)
+		return 0, errors.Errorf("invalid day of week: %q", *d)
 	}
 }

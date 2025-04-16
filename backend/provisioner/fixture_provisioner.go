@@ -2,10 +2,9 @@ package provisioner
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/mysql"
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"
 	_ "github.com/go-sql-driver/mysql" // SQL driver
@@ -34,7 +33,7 @@ func provisionFixture() InMemResourceProvisionerFn {
 
 		verb, ok := resource.(*schema.Verb)
 		if !ok {
-			return nil, fmt.Errorf("expected verb, got %T", resource)
+			return nil, errors.Errorf("expected verb, got %T", resource)
 		}
 		fixtures := []*schema.MetadataFixture{}
 		for fixture := range slices.FilterVariants[*schema.MetadataFixture](verb.Metadata) {
@@ -47,14 +46,14 @@ func provisionFixture() InMemResourceProvisionerFn {
 		}
 		endpoint := module.GetRuntime().GetRunner().GetEndpoint()
 		if endpoint == "" {
-			return nil, errors.New("runner endpoint is required")
+			return nil, errors.WithStack(errors.New("runner endpoint is required"))
 		}
 		client := rpc.Dial(ftlv1connect.NewVerbServiceClient, endpoint, log.Debug)
 		// We should not need to wait here, the runner should already be up
 		logger.Debugf("Calling fixture verb %s", verb.Name)
 		_, err := client.Call(ctx, connect.NewRequest(&ftlv1.CallRequest{Verb: &schemapb.Ref{Module: module.Name, Name: verb.Name}, Body: []byte("{}")}))
 		if err != nil {
-			return nil, fmt.Errorf("failed to call verb: %w", err)
+			return nil, errors.Wrap(err, "failed to call verb")
 		}
 		return nil, nil
 	}

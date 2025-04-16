@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"
@@ -62,7 +63,7 @@ var _ rpc.Service = (*Service)(nil)
 func (c *Config) OpenDBAndInstrument(dsn string) (*sql.DB, error) {
 	conn, err := internalobservability.OpenDBAndInstrument(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open DB connection: %w", err)
+		return nil, errors.Wrap(err, "failed to open DB connection")
 	}
 	conn.SetMaxIdleConns(10)
 	conn.SetMaxOpenConns(10)
@@ -154,7 +155,7 @@ func New(
 		job = func(ctx context.Context) (time.Duration, error) {
 			ctx, span := observability.Controller.BeginSpan(ctx, name)
 			defer span.End()
-			return chain(ctx)
+			return errors.WithStack2(chain(ctx))
 		}
 
 		if devel {
@@ -162,7 +163,7 @@ func New(
 			job = func(ctx context.Context) (time.Duration, error) {
 				next, err := chain(ctx)
 				// Cap at 1s in development mode.
-				return min(next, maxNext), err
+				return min(next, maxNext), errors.WithStack(err)
 			}
 			if len(develBackoff) == 1 {
 				return develBackoff[0], job
@@ -186,13 +187,13 @@ func New(
 func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.ProcessListRequest]) (*connect.Response[ftlv1.ProcessListResponse], error) {
 	currentState, err := s.runnerState.View(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get runner state: %w", err)
+		return nil, errors.Wrap(err, "failed to get runner state")
 	}
 	runners := currentState.Runners()
 
 	deployments, err := s.schemaClient.GetDeployments(ctx, connect.NewRequest(&ftlv1.GetDeploymentsRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get schema deployments: %w", err)
+		return nil, errors.Wrap(err, "failed to get schema deployments")
 	}
 
 	deploymentMap := map[string]*ftlv1.DeployedSchema{}
@@ -217,7 +218,7 @@ func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.Pr
 		}, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return connect.NewResponse(&ftlv1.ProcessListResponse{Processes: out}), nil
 }
@@ -225,20 +226,20 @@ func (s *Service) ProcessList(ctx context.Context, req *connect.Request[ftlv1.Pr
 func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error) {
 	currentRunnerState, err := s.runnerState.View(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get runner state: %w", err)
+		return nil, errors.Wrap(err, "failed to get runner state")
 	}
 
 	runners := currentRunnerState.Runners()
 	deploymentsResponse, err := s.schemaClient.GetDeployments(ctx, connect.NewRequest(&ftlv1.GetDeploymentsRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get schema deployments: %w", err)
+		return nil, errors.Wrap(err, "failed to get schema deployments")
 	}
 	activeDeployments := map[string]*schema.Module{}
 	for _, deployment := range deploymentsResponse.Msg.Schema {
 		if deployment.IsActive {
 			module, err := schema.ModuleFromProto(deployment.Schema)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get schema module: %w", err)
+				return nil, errors.Wrap(err, "failed to get schema module")
 			}
 			activeDeployments[deployment.DeploymentKey] = module
 		}
@@ -268,7 +269,7 @@ func (s *Service) Status(ctx context.Context, req *connect.Request[ftlv1.StatusR
 		}, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	var deployments []*ftlv1.StatusResponse_Deployment
 	for key, deployment := range activeDeployments {
@@ -306,14 +307,14 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 		msg := stream.Msg()
 		endpoint, err := url.Parse(msg.Endpoint)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid endpoint: %w", err))
+			return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "invalid endpoint")))
 		}
 		if endpoint.Scheme != "http" && endpoint.Scheme != "https" {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid endpoint scheme %q", endpoint.Scheme))
+			return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("invalid endpoint scheme %q", endpoint.Scheme)))
 		}
 		runnerKey, err := key.ParseRunnerKey(msg.Key)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid key: %w", err))
+			return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "invalid key")))
 		}
 
 		runnerStr := fmt.Sprintf("%s (%s)", endpoint, runnerKey)
@@ -321,7 +322,7 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 
 		deploymentKey, err := key.ParseDeploymentKey(msg.Deployment)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, err))
 		}
 		// The created event does not matter if it is a new runner or not.
 		err = s.runnerState.Publish(ctx, &state.RunnerRegisteredEvent{
@@ -331,7 +332,7 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 			Time:       time.Now(),
 		})
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if !deferredDeregistration {
 			// Deregister the runner if the Runner disconnects.
@@ -345,7 +346,7 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 		}
 	}
 	if stream.Err() != nil {
-		return nil, stream.Err()
+		return nil, errors.WithStack(stream.Err())
 	}
 	return connect.NewResponse(&ftlv1.RegisterRunnerResponse{}), nil
 }
@@ -353,12 +354,12 @@ func (s *Service) RegisterRunner(ctx context.Context, stream *connect.ClientStre
 func (s *Service) GetDeployment(ctx context.Context, req *connect.Request[ftlv1.GetDeploymentRequest]) (*connect.Response[ftlv1.GetDeploymentResponse], error) {
 	dkey, err := key.ParseDeploymentKey(req.Msg.DeploymentKey)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
+		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "invalid deployment key")))
 	}
 
 	deployment, err := s.getDeployment(ctx, dkey)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	logger := log.FromContext(ctx)
@@ -407,12 +408,12 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 	depName := req.Msg.Deployment
 	key, err := key.ParseDeploymentKey(depName)
 	if err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
+		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "invalid deployment key")))
 	}
 
 	deployment, err := s.getDeployment(ctx, key)
 	if err != nil {
-		return fmt.Errorf("could not get deployment: %w", err)
+		return errors.Wrap(err, "could not get deployment")
 	}
 	module := deployment.Name
 
@@ -443,7 +444,7 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 		routeView := s.routeTable.Current()
 		configsResp, err := s.adminClient.MapConfigsForModule(ctx, &connect.Request[adminpb.MapConfigsForModuleRequest]{Msg: &adminpb.MapConfigsForModuleRequest{Module: module}})
 		if err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("could not get configs: %w", err))
+			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "could not get configs")))
 		}
 		configs := configsResp.Msg.Values
 		routeTable := map[string]string{}
@@ -462,18 +463,18 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 
 		secretsResp, err := s.adminClient.MapSecretsForModule(ctx, &connect.Request[adminpb.MapSecretsForModuleRequest]{Msg: &adminpb.MapSecretsForModuleRequest{Module: module}})
 		if err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("could not get secrets: %w", err))
+			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "could not get secrets")))
 		}
 		secrets := secretsResp.Msg.Values
 
 		if err := hashConfigurationMap(h, configs); err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("could not detect change on configs: %w", err))
+			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "could not detect change on configs")))
 		}
 		if err := hashConfigurationMap(h, secrets); err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("could not detect change on secrets: %w", err))
+			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "could not detect change on secrets")))
 		}
 		if err := hashRoutesTable(h, routeTable); err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("could not detect change on routes: %w", err))
+			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "could not detect change on routes")))
 		}
 
 		checksum := int64(binary.BigEndian.Uint64((h.Sum(nil))[0:8]))
@@ -483,7 +484,7 @@ func (s *Service) GetDeploymentContext(ctx context.Context, req *connect.Request
 			response := deploymentcontext.NewBuilder(module).AddConfigs(configs).AddSecrets(secrets).AddRoutes(routeTable).Build().ToProto()
 
 			if err := resp.Send(response); err != nil {
-				return connect.NewError(connect.CodeInternal, fmt.Errorf("could not send response: %w", err))
+				return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "could not send response")))
 			}
 
 			lastChecksum = checksum
@@ -507,7 +508,7 @@ func hashConfigurationMap(h hash.Hash, m map[string][]byte) error {
 	for _, k := range keys {
 		_, err := h.Write(append([]byte(k), m[k]...))
 		if err != nil {
-			return fmt.Errorf("error hashing configuration: %w", err)
+			return errors.Wrap(err, "error hashing configuration")
 		}
 	}
 	return nil
@@ -520,7 +521,7 @@ func hashRoutesTable(h hash.Hash, m map[string]string) error {
 	for _, k := range keys {
 		_, err := h.Write(append([]byte(k), m[k]...))
 		if err != nil {
-			return fmt.Errorf("error hashing routes: %w", err)
+			return errors.Wrap(err, "error hashing routes")
 		}
 	}
 	return nil
@@ -529,20 +530,20 @@ func hashRoutesTable(h hash.Hash, m map[string]string) error {
 func (s *Service) getDeployment(ctx context.Context, dkey key.Deployment) (*schema.Module, error) {
 	deployments, err := s.schemaClient.GetDeployments(ctx, &connect.Request[ftlv1.GetDeploymentsRequest]{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get deployments: %w", err)
+		return nil, errors.Wrap(err, "failed to get deployments")
 	}
 	deploymentMap := map[string]*schema.Module{}
 	for _, deployment := range deployments.Msg.Schema {
 		module, err := schema.ModuleFromProto(deployment.Schema)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get module from proto: %w", err)
+			return nil, errors.Wrap(err, "failed to get module from proto")
 		}
 		deploymentMap[deployment.DeploymentKey] = module
 	}
 
 	deployment, ok := deploymentMap[dkey.String()]
 	if !ok {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not retrieve deployment: %s", dkey))
+		return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Errorf("could not retrieve deployment: %s", dkey)))
 	}
 	return deployment, nil
 }
@@ -572,7 +573,7 @@ func (s *Service) reapStaleRunners(ctx context.Context) (time.Duration, error) {
 	logger := log.FromContext(ctx)
 	cs, err := s.runnerState.View(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get runner state: %w", err)
+		return 0, errors.Wrap(err, "failed to get runner state")
 	}
 
 	for _, runner := range cs.Runners() {
@@ -580,7 +581,7 @@ func (s *Service) reapStaleRunners(ctx context.Context) (time.Duration, error) {
 			runnerKey := runner.Key
 			logger.Debugf("Reaping stale runner %s with last seen %v", runnerKey, runner.LastSeen.String())
 			if err := s.runnerState.Publish(ctx, &state.RunnerDeletedEvent{Key: runnerKey}); err != nil {
-				return 0, fmt.Errorf("failed to publish runner deleted event: %w", err)
+				return 0, errors.Wrap(err, "failed to publish runner deleted event")
 			}
 		}
 	}

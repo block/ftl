@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/sync/errgroup"
 
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
@@ -28,14 +28,14 @@ func (l *lspCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect
 
 	l.languageServer = lsp.NewServer(ctx)
 	g.Go(func() error {
-		return l.languageServer.Run()
+		return errors.WithStack(l.languageServer.Run())
 	})
 
 	g.Go(func() error {
 		for {
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				return errors.WithStack(ctx.Err())
 			default:
 				logger.Debugf("Connecting to build updates service")
 				if err := l.streamBuildEvents(ctx, buildEngineClient); err != nil {
@@ -50,7 +50,7 @@ func (l *lspCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect
 	})
 
 	if err := g.Wait(); err != nil {
-		return fmt.Errorf("error waiting for build events: %w", err)
+		return errors.Wrap(err, "error waiting for build events")
 	}
 	return nil
 }
@@ -58,7 +58,7 @@ func (l *lspCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect
 func (l *lspCmd) streamBuildEvents(ctx context.Context, client buildenginepbconnect.BuildEngineServiceClient) error {
 	stream, err := client.StreamEngineEvents(ctx, connect.NewRequest(&buildenginepb.StreamEngineEventsRequest{}))
 	if err != nil {
-		return fmt.Errorf("failed to start build events stream: %w", err)
+		return errors.Wrap(err, "failed to start build events stream")
 	}
 
 	for stream.Receive() {
@@ -67,7 +67,7 @@ func (l *lspCmd) streamBuildEvents(ctx context.Context, client buildenginepbconn
 	}
 
 	if err := stream.Err(); err != nil {
-		return fmt.Errorf("error streaming build events: %w", err)
+		return errors.Wrap(err, "error streaming build events")
 	}
 	return nil
 }

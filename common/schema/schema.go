@@ -5,11 +5,11 @@ package schema
 
 import (
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -55,7 +55,7 @@ func (s *Schema) Hash() [sha256.Size]byte {
 func (s *Schema) ResolveRequestResponseType(ref *Ref) (Symbol, error) {
 	decl, ok := s.Resolve(ref).Get()
 	if !ok {
-		return nil, fmt.Errorf("unknown ref %s", ref)
+		return nil, errors.Errorf("unknown ref %s", ref)
 	}
 
 	if ta, ok := decl.(*TypeAlias); ok {
@@ -64,7 +64,7 @@ func (s *Schema) ResolveRequestResponseType(ref *Ref) (Symbol, error) {
 		}
 	}
 
-	return s.resolveToSymbolMonomorphised(ref, nil)
+	return errors.WithStack2(s.resolveToSymbolMonomorphised(ref, nil))
 }
 
 // ResolveMonomorphised resolves a reference to a monomorphised Data type.
@@ -72,7 +72,7 @@ func (s *Schema) ResolveRequestResponseType(ref *Ref) (Symbol, error) {
 //
 // If a Ref is not found, returns ErrNotFound.
 func (s *Schema) ResolveMonomorphised(ref *Ref) (*Data, error) {
-	return s.resolveToDataMonomorphised(ref, nil)
+	return errors.WithStack2(s.resolveToDataMonomorphised(ref, nil))
 }
 
 func (s *Schema) resolveToDataMonomorphised(n Node, parent Node) (*Data, error) {
@@ -80,19 +80,19 @@ func (s *Schema) resolveToDataMonomorphised(n Node, parent Node) (*Data, error) 
 	case *Ref:
 		resolved, ok := s.Resolve(typ).Get()
 		if !ok {
-			return nil, fmt.Errorf("unknown ref %s", typ)
+			return nil, errors.Errorf("unknown ref %s", typ)
 		}
-		return s.resolveToDataMonomorphised(resolved, typ)
+		return errors.WithStack2(s.resolveToDataMonomorphised(resolved, typ))
 	case *Data:
 		p, ok := parent.(*Ref)
 		if !ok {
-			return nil, fmt.Errorf("expected data node parent to be a ref, got %T", p)
+			return nil, errors.Errorf("expected data node parent to be a ref, got %T", p)
 		}
-		return typ.Monomorphise(p)
+		return errors.WithStack2(typ.Monomorphise(p))
 	case *TypeAlias:
-		return s.resolveToDataMonomorphised(typ.Type, typ)
+		return errors.WithStack2(s.resolveToDataMonomorphised(typ.Type, typ))
 	default:
-		return nil, fmt.Errorf("expected data or type alias of data, got %T", typ)
+		return nil, errors.Errorf("expected data or type alias of data, got %T", typ)
 	}
 }
 
@@ -101,21 +101,21 @@ func (s *Schema) resolveToSymbolMonomorphised(n Node, parent Node) (Symbol, erro
 	case *Ref:
 		resolved, ok := s.Resolve(typ).Get()
 		if !ok {
-			return nil, fmt.Errorf("unknown ref %s", typ)
+			return nil, errors.Errorf("unknown ref %s", typ)
 		}
-		return s.resolveToSymbolMonomorphised(resolved, typ)
+		return errors.WithStack2(s.resolveToSymbolMonomorphised(resolved, typ))
 	case *Data:
 		p, ok := parent.(*Ref)
 		if !ok {
-			return nil, fmt.Errorf("expected data node parent to be a ref, got %T", p)
+			return nil, errors.Errorf("expected data node parent to be a ref, got %T", p)
 		}
-		return typ.Monomorphise(p)
+		return errors.WithStack2(typ.Monomorphise(p))
 	case *TypeAlias:
-		return s.resolveToSymbolMonomorphised(typ.Type, typ)
+		return errors.WithStack2(s.resolveToSymbolMonomorphised(typ.Type, typ))
 	case Symbol:
 		return typ, nil
 	default:
-		return nil, fmt.Errorf("expected data or type alias of data, got %T", typ)
+		return nil, errors.Errorf("expected data or type alias of data, got %T", typ)
 	}
 }
 
@@ -143,14 +143,14 @@ func (s *Schema) ResolveType(ref *Ref) (Type, error) {
 	maybeDecl, _ := s.ResolveWithModule(ref)
 	decl, ok := maybeDecl.Get()
 	if !ok {
-		return nil, fmt.Errorf("%s: could not resolve reference %s: %w", ref.Pos, ref, ErrNotFound)
+		return nil, errors.Wrapf(ErrNotFound, "could not resolve reference %s", ref)
 	}
 	dt, ok := decl.(Type)
 	if !ok {
-		return nil, fmt.Errorf("%s: expected type, got %T", ref.Pos, decl)
+		return nil, errors.Errorf("%s: expected type, got %T", ref.Pos, decl)
 	}
 	if _, ok := dt.(*Data); ok {
-		return s.ResolveMonomorphised(ref)
+		return errors.WithStack2(s.ResolveMonomorphised(ref))
 	}
 	return dt, nil
 }
@@ -158,10 +158,10 @@ func (s *Schema) ResolveType(ref *Ref) (Type, error) {
 func (s *Schema) ResolveToType(ref *Ref, out Decl) error {
 	for _, realm := range s.Realms {
 		if realm.ContainsRef(ref) {
-			return realm.ResolveToType(ref, out)
+			return errors.WithStack(realm.ResolveToType(ref, out))
 		}
 	}
-	return fmt.Errorf("could not resolve reference %v: %w", ref, ErrNotFound)
+	return errors.Wrapf(ErrNotFound, "could not resolve reference %s", ref)
 }
 
 func (s *Schema) Module(name string) optional.Option[*Module] {
@@ -200,10 +200,13 @@ func TypeName(v any) string {
 func FromProto(s *schemapb.Schema) (*Schema, error) {
 	realms, err := realmListToSchema(s.Realms)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
+	}
+	if len(realms) != 1 {
+		return nil, errors.WithStack(errors.New("expected exactly one realm in schema"))
 	}
 	schema := &Schema{Realms: realms}
-	return schema.Validate()
+	return errors.WithStack2(schema.Validate())
 }
 
 func (s *Schema) ModuleDependencies(module string) map[string]*Module {
@@ -219,10 +222,10 @@ func (s *Schema) ModuleDependencies(module string) map[string]*Module {
 func ValidatedModuleFromProto(v *schemapb.Module) (*Module, error) {
 	module, err := ModuleFromProto(v)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal module: %w", err)
+		return nil, errors.Wrap(err, "failed to unmarshal module")
 	}
 	if err := module.Validate(); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return module, nil
 }

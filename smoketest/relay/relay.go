@@ -3,12 +3,13 @@ package relay
 import (
 	"context"
 	"fmt"
+	"ftl/origin"
 	"os"
 	"time"
 
-	"ftl/origin"
+	errors "github.com/alecthomas/errors" // Import the FTL SDK.
 
-	"github.com/block/ftl/go-runtime/ftl" // Import the FTL SDK.
+	"github.com/block/ftl/go-runtime/ftl"
 )
 
 type LogFile = ftl.Config[string]
@@ -17,7 +18,7 @@ type LogFile = ftl.Config[string]
 //ftl:subscribe origin.agentBroadcast from=beginning
 func ConsumeAgentBroadcast(ctx context.Context, agent origin.Agent, client BriefedClient) error {
 	ftl.LoggerFromContext(ctx).Infof("Received agent %v", agent.Id)
-	return client(ctx, agent)
+	return errors.WithStack(client(ctx, agent))
 }
 
 type AgentDeployment struct {
@@ -42,25 +43,25 @@ func Briefed(ctx context.Context, agent origin.Agent, deployed DeployedClient) e
 		Agent:  agent,
 		Target: "villain",
 	}
-	return deployed(ctx, d)
+	return errors.WithStack(deployed(ctx, d))
 }
 
 //ftl:verb
 func Deployed(ctx context.Context, d AgentDeployment, logFile LogFile) error {
 	ftl.LoggerFromContext(ctx).Infof("Deployed agent %v to %s", d.Agent.Id, d.Target)
-	return appendLog(ctx, logFile, "deployed %d", d.Agent.Id)
+	return errors.WithStack(appendLog(ctx, logFile, "deployed %d", d.Agent.Id))
 }
 
 //ftl:verb
 func Succeeded(ctx context.Context, s MissionSuccess, logFile LogFile) error {
 	ftl.LoggerFromContext(ctx).Infof("Agent %d succeeded at %s\n", s.AgentID, s.SuccessAt)
-	return appendLog(ctx, logFile, "succeeded %d", s.AgentID)
+	return errors.WithStack(appendLog(ctx, logFile, "succeeded %d", s.AgentID))
 }
 
 //ftl:verb
 func Terminated(ctx context.Context, t AgentTerminated, logFile LogFile) error {
 	ftl.LoggerFromContext(ctx).Infof("Agent %d terminated at %s\n", t.AgentID, t.TerminatedAt)
-	return appendLog(ctx, logFile, "terminated %d", t.AgentID)
+	return errors.WithStack(appendLog(ctx, logFile, "terminated %d", t.AgentID))
 }
 
 // Exported verbs
@@ -84,7 +85,7 @@ func MissionResult(ctx context.Context, req MissionResultRequest, success Succee
 		}
 		err := success(ctx, event.(MissionSuccess)) //nolint:forcetypeassert
 		if err != nil {
-			return MissionResultResponse{}, err
+			return MissionResultResponse{}, errors.WithStack(err)
 		}
 	} else {
 		event = AgentTerminated{
@@ -93,7 +94,7 @@ func MissionResult(ctx context.Context, req MissionResultRequest, success Succee
 		}
 		err := failure(ctx, event.(AgentTerminated)) //nolint:forcetypeassert
 		if err != nil {
-			return MissionResultResponse{}, err
+			return MissionResultResponse{}, errors.WithStack(err)
 		}
 	}
 	ftl.LoggerFromContext(ctx).Infof("Sending event %v\n", event)
@@ -115,18 +116,18 @@ type FetchLogsResponse struct {
 //ftl:verb export
 func AppendLog(ctx context.Context, req AppendLogRequest, logFile LogFile) error {
 	ftl.LoggerFromContext(ctx).Infof("Appending message: %s", req.Message)
-	return appendLog(ctx, logFile, req.Message)
+	return errors.WithStack(appendLog(ctx, logFile, req.Message))
 }
 
 //ftl:verb export
 func FetchLogs(ctx context.Context, req FetchLogsRequest, logFile LogFile) (FetchLogsResponse, error) {
 	path := logFile.Get(ctx)
 	if path == "" {
-		return FetchLogsResponse{}, fmt.Errorf("logFile config not set")
+		return FetchLogsResponse{}, errors.Errorf("logFile config not set")
 	}
 	r, err := os.Open(path)
 	if err != nil {
-		return FetchLogsResponse{}, fmt.Errorf("failed to open log file %q: %w", path, err)
+		return FetchLogsResponse{}, errors.Wrapf(err, "failed to open log file %q", path)
 	}
 	defer r.Close()
 	var messages []string
@@ -146,16 +147,16 @@ func FetchLogs(ctx context.Context, req FetchLogsRequest, logFile LogFile) (Fetc
 func appendLog(ctx context.Context, logFile LogFile, msg string, args ...interface{}) error {
 	path := logFile.Get(ctx)
 	if path == "" {
-		return fmt.Errorf("logFile config not set")
+		return errors.Errorf("logFile config not set")
 	}
 	w, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to open log file %q: %w", path, err)
+		return errors.Wrapf(err, "failed to open log file %q", path)
 	}
 	fmt.Fprintf(w, msg+"\n", args...)
 	err = w.Close()
 	if err != nil {
-		return fmt.Errorf("failed to close log file %q: %w", path, err)
+		return errors.Wrapf(err, "failed to close log file %q", path)
 	}
 	return nil
 }

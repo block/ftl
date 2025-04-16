@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/slices"
 )
@@ -80,7 +82,7 @@ func (d *Data) FieldByName(name string) *Field {
 // the given types.
 func (d *Data) Monomorphise(ref *Ref) (*Data, error) {
 	if len(d.TypeParameters) != len(ref.TypeParameters) {
-		return nil, fmt.Errorf("%s: expected %d type arguments, got %d", ref.Pos, len(d.TypeParameters), len(ref.TypeParameters))
+		return nil, errors.Errorf("%s: expected %d type arguments, got %d", ref.Pos, len(d.TypeParameters), len(ref.TypeParameters))
 	}
 	if len(d.TypeParameters) == 0 {
 		return d, nil
@@ -102,11 +104,11 @@ func (d *Data) Monomorphise(ref *Ref) (*Data, error) {
 		case *Map:
 			k, err := maybeMonomorphiseType(n.Key, names)
 			if err != nil {
-				return fmt.Errorf("%s: map key: %w", n.Key.Position(), err)
+				return errors.Wrapf(err, "%s: map key", n.Key.Position())
 			}
 			v, err := maybeMonomorphiseType(n.Value, names)
 			if err != nil {
-				return fmt.Errorf("%s: map value: %w", n.Value.Position(), err)
+				return errors.Wrapf(err, "%s: map value", n.Value.Position())
 			}
 			n.Key = k
 			n.Value = v
@@ -114,35 +116,35 @@ func (d *Data) Monomorphise(ref *Ref) (*Data, error) {
 		case *Array:
 			t, err := maybeMonomorphiseType(n.Element, names)
 			if err != nil {
-				return fmt.Errorf("%s: array element: %w", n.Element.Position(), err)
+				return errors.Wrapf(err, "%s: array element", n.Element.Position())
 			}
 			n.Element = t
 
 		case *Field:
 			t, err := maybeMonomorphiseType(n.Type, names)
 			if err != nil {
-				return fmt.Errorf("%s: field type: %w", n.Type.Position(), err)
+				return errors.Wrapf(err, "%s: field type", n.Type.Position())
 			}
 			n.Type = t
 
 		case *Optional:
 			t, err := maybeMonomorphiseType(n.Type, names)
 			if err != nil {
-				return fmt.Errorf("%s: optional type: %w", n.Type.Position(), err)
+				return errors.Wrapf(err, "%s: optional type", n.Type.Position())
 			}
 			n.Type = t
 
 		case *Config:
 			t, err := maybeMonomorphiseType(n.Type, names)
 			if err != nil {
-				return fmt.Errorf("%s: config type: %w", n.Type.Position(), err)
+				return errors.Wrapf(err, "%s: config type", n.Type.Position())
 			}
 			n.Type = t
 
 		case *Secret:
 			t, err := maybeMonomorphiseType(n.Type, names)
 			if err != nil {
-				return fmt.Errorf("%s: secret type: %w", n.Type.Position(), err)
+				return errors.Wrapf(err, "%s: secret type", n.Type.Position())
 			}
 			n.Type = t
 
@@ -150,10 +152,10 @@ func (d *Data) Monomorphise(ref *Ref) (*Data, error) {
 			*Module, *Schema, *TypeParameter, *Verb, *Enum, *TypeAlias, *Topic, *Database,
 			*DatabaseRuntimeConnections, *Data, *EnumVariant, *DatabaseRuntime, *Realm:
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to monomorphise: %w", d.Pos, err)
+		return nil, errors.Wrapf(err, "%s: failed to monomorphise", d.Pos)
 	}
 	return monomorphised, nil
 }
@@ -219,7 +221,7 @@ func maybeMonomorphiseType(t Type, typeParameters map[string]Type) (Type, error)
 		if tp, ok := typeParameters[t.Name]; ok {
 			return tp, nil
 		}
-		return nil, fmt.Errorf("%s: unknown type parameter %q", t.Position(), t)
+		return nil, errors.Errorf("%s: unknown type parameter %q", t.Position(), t)
 	}
 	return t, nil
 }

@@ -9,10 +9,10 @@ package providers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/configuration"
@@ -29,15 +29,15 @@ func createVault(ctx context.Context) (string, error) {
 	}
 	output, err := exec.Capture(ctx, ".", "op", args...)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal(output, &parsed); err != nil {
-		return "", fmt.Errorf("could not decode 1Password create vault response: %w", err)
+		return "", errors.Wrap(err, "could not decode 1Password create vault response")
 	}
 	id, ok := parsed["id"].(string)
 	if !ok {
-		return "", fmt.Errorf("could not find id in 1Password create vault response: %w", err)
+		return "", errors.Wrap(err, "could not find id in 1Password create vault response")
 	}
 	return id, nil
 }

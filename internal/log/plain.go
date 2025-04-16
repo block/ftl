@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/once"
 	"github.com/mattn/go-isatty"
 )
@@ -133,7 +134,7 @@ func (t *plainSink) Log(entry Entry) error {
 				_, err = fmt.Fprintf(t.w, "%s%s%s%s", levelColours[entry.Level], prefix, levelColours[entry.Level], line)
 			}
 			if err != nil {
-				return fmt.Errorf("failed to write log entry: %w", err)
+				return errors.Wrap(err, "failed to write log entry")
 			}
 		}
 		_, err = fmt.Fprintf(t.w, "\x1b[0m\n")
@@ -141,7 +142,7 @@ func (t *plainSink) Log(entry Entry) error {
 		_, err = fmt.Fprintf(t.w, "%s%s\n", prefix, entry.Message)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to write log entry: %w", err)
+		return errors.Wrap(err, "failed to write log entry")
 	}
 	return nil
 }

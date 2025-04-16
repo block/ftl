@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/go-sql-driver/mysql"
 
@@ -59,11 +60,11 @@ func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error
 
 					adminDSN, err := mysqlAdminDSN(ctx, e.secrets, arn, connector)
 					if err != nil {
-						return nil, err
+						return nil, errors.WithStack(err)
 					}
 
 					if err := mysqlSetup(ctx, adminDSN, connector); err != nil {
-						return nil, err
+						return nil, errors.WithStack(err)
 					}
 
 					return state.OutputMySQL{
@@ -75,7 +76,7 @@ func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error
 				}
 				dsn, err := mysqlDSNSetup(ctx, input.WriteEndpoint, databaseName)
 				if err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 				return state.OutputMySQL{
 					Module:     input.Module,
@@ -92,7 +93,7 @@ func (e *ARNSecretMySQLSetup) Execute(ctx context.Context) ([]state.State, error
 
 	res, err := rg.Wait()
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute MySQL setup: %w", err)
+		return nil, errors.Wrap(err, "failed to execute MySQL setup")
 	}
 
 	return res, nil
@@ -108,16 +109,16 @@ func createDatabaseName(module string, resourceID string) string {
 func mysqlAdminDSN(ctx context.Context, secrets *secretsmanager.Client, secretARN string, connector *schema.AWSIAMAuthDatabaseConnector) (string, error) {
 	adminUsername, adminPassword, err := secretARNToUsernamePassword(ctx, secrets, secretARN)
 	if err != nil {
-		return "", fmt.Errorf("failed to get username and password from secret ARN: %w", err)
+		return "", errors.Wrap(err, "failed to get username and password from secret ARN")
 	}
 
 	host, port, err := net.SplitHostPort(connector.Endpoint)
 	if err != nil {
-		return "", fmt.Errorf("failed to split host and port: %w", err)
+		return "", errors.Wrap(err, "failed to split host and port")
 	}
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		return "", fmt.Errorf("failed to convert port to int: %w", err)
+		return "", errors.Wrap(err, "failed to convert port to int")
 	}
 
 	return dsn.MySQLDSN("", dsn.Host(host), dsn.Port(portInt), dsn.Username(adminUsername), dsn.Password(adminPassword)), nil
@@ -131,17 +132,17 @@ func mysqlSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAu
 
 	db, err := sql.Open("mysql", adminDSN)
 	if err != nil {
-		return fmt.Errorf("failed to connect to mysql: %w", err)
+		return errors.Wrap(err, "failed to connect to mysql")
 	}
 	defer db.Close()
 
 	res, err := db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS "+database)
 	if err != nil {
-		return fmt.Errorf("failed to create database: %w", err)
+		return errors.Wrap(err, "failed to create database")
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		return errors.Wrap(err, "failed to get rows affected")
 	}
 	if rows > 0 {
 		logger.Infof("MySQL database created: %s", database) //nolint:forbidigo
@@ -151,11 +152,11 @@ func mysqlSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAu
 
 	res, err = db.ExecContext(ctx, "CREATE USER IF NOT EXISTS "+username+"@'%' IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS';")
 	if err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+		return errors.Wrap(err, "failed to create user")
 	}
 	rows, err = res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		return errors.Wrap(err, "failed to get rows affected")
 	}
 	if rows > 0 {
 		logger.Debugf("MySQL user created: %s", username)
@@ -164,15 +165,15 @@ func mysqlSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAu
 	}
 
 	if _, err := db.ExecContext(ctx, "ALTER USER "+username+"@'%' REQUIRE SSL;"); err != nil {
-		return fmt.Errorf("failed to require ssl: %w", err)
+		return errors.Wrap(err, "failed to require ssl")
 	}
 
 	if _, err := db.ExecContext(ctx, "USE "+database+";"); err != nil {
-		return fmt.Errorf("failed to use database: %w", err)
+		return errors.Wrap(err, "failed to use database")
 	}
 
 	if _, err := db.ExecContext(ctx, "GRANT ALL PRIVILEGES ON "+database+".* TO "+username+"@'%';"); err != nil {
-		return fmt.Errorf("failed to grant privileges: %w", err)
+		return errors.Wrap(err, "failed to grant privileges")
 	}
 
 	return nil
@@ -181,38 +182,38 @@ func mysqlSetup(ctx context.Context, adminDSN string, connector *schema.AWSIAMAu
 func mysqlDSNSetup(ctx context.Context, adminDSN string, database string) (string, error) {
 	parsed, err := mysql.ParseDSN(adminDSN)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse dsn: %w", err)
+		return "", errors.Wrap(err, "failed to parse dsn")
 	}
 
 	db, err := sql.Open("mysql", adminDSN)
 	if err != nil {
-		return "", fmt.Errorf("failed to connect to mysql: %w", err)
+		return "", errors.Wrap(err, "failed to connect to mysql")
 	}
 	defer db.Close()
 
 	_, err = db.ExecContext(ctx, "CREATE DATABASE IF NOT EXISTS "+database)
 	if err != nil {
-		return "", fmt.Errorf("failed to create database: %w", err)
+		return "", errors.Wrap(err, "failed to create database")
 	}
 	pw, err := generatePassword(16, passwordChars)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate password: %w", err)
+		return "", errors.Wrap(err, "failed to generate password")
 	}
 	username, err := generatePassword(8, usernameChars)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate username: %w", err)
+		return "", errors.Wrap(err, "failed to generate username")
 	}
 	_, err = db.ExecContext(ctx, "CREATE USER IF NOT EXISTS "+username+"@'%' IDENTIFIED BY '"+pw+"';")
 	if err != nil {
-		return "", fmt.Errorf("failed to create user: %w", err)
+		return "", errors.Wrap(err, "failed to create user")
 	}
 
 	if _, err := db.ExecContext(ctx, "USE "+database+";"); err != nil {
-		return "", fmt.Errorf("failed to use database: %w", err)
+		return "", errors.Wrap(err, "failed to use database")
 	}
 
 	if _, err := db.ExecContext(ctx, "GRANT ALL PRIVILEGES ON "+database+".* TO "+username+"@'%';"); err != nil {
-		return "", fmt.Errorf("failed to grant privileges: %w", err)
+		return "", errors.Wrap(err, "failed to grant privileges")
 	}
 	parsed.User = username
 	parsed.Passwd = pw
@@ -227,7 +228,7 @@ func generatePassword(length int, alphabet string) (string, error) {
 	for i := range length {
 		index, err := rand.Int(rand.Reader, charCount)
 		if err != nil {
-			return "", fmt.Errorf("failed to generate password: %w", err)
+			return "", errors.Wrap(err, "failed to generate password")
 		}
 		password[i] = alphabet[index.Int64()]
 	}

@@ -2,8 +2,9 @@ package statemachine
 
 import (
 	"context"
-	"fmt"
 	"iter"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/iterops"
@@ -46,7 +47,7 @@ func NewLocalHandle[Q any, R any, E any](sm Listenable[Q, R, E]) Handle[Q, R, E]
 
 func (l *localHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 	if err := l.sm.Publish(msg); err != nil {
-		return fmt.Errorf("update: %w", err)
+		return errors.Wrap(err, "update")
 	}
 	return nil
 }
@@ -56,7 +57,7 @@ func (l *localHandle[Q, R, E]) Query(ctx context.Context, query Q) (R, error) {
 
 	r, err := l.sm.Lookup(query)
 	if err != nil {
-		return zero, fmt.Errorf("query: %w", err)
+		return zero, errors.Wrap(err, "query")
 	}
 	return r, nil
 }
@@ -66,11 +67,11 @@ func (l *localHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 
 	subs, err := l.sm.Subscribe(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("subscribe: %w", err)
+		return nil, errors.Wrap(err, "subscribe")
 	}
 	previous, err := l.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return iterops.Concat(
@@ -105,7 +106,7 @@ func NewSingleQueryHandle[Q any, R any, E any](underlying Handle[Q, R, E], query
 func (h *SingleQueryHandle[Q, R, E]) View(ctx context.Context) (R, error) {
 	res, err := h.underlying.Query(ctx, h.query)
 	if err != nil {
-		return res, fmt.Errorf("query: %w", err)
+		return res, errors.Wrap(err, "query")
 	}
 	return res, nil
 }
@@ -114,7 +115,7 @@ func (h *SingleQueryHandle[Q, R, E]) View(ctx context.Context) (R, error) {
 func (h *SingleQueryHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 	err := h.underlying.Publish(ctx, msg)
 	if err != nil {
-		return fmt.Errorf("publish: %w", err)
+		return errors.Wrap(err, "publish")
 	}
 	return nil
 }
@@ -127,7 +128,7 @@ func (h *SingleQueryHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 func (h *SingleQueryHandle[Q, R, E]) StateIter(ctx context.Context) (iter.Seq[R], error) {
 	res, err := h.underlying.StateIter(ctx, h.query)
 	if err != nil {
-		return nil, fmt.Errorf("changes: %w", err)
+		return nil, errors.Wrap(err, "changes")
 	}
 	return res, nil
 }

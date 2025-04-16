@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
@@ -137,7 +138,7 @@ func (s *Server) completionItemResolve() protocol.CompletionItemResolveFunc {
 		if path, ok := params.Data.(string); ok {
 			content, err := os.ReadFile(path)
 			if err != nil {
-				return nil, err
+				return nil, errors.WithStack(err)
 			}
 
 			params.Documentation = &protocol.MarkupContent{

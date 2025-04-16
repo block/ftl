@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
@@ -46,7 +47,7 @@ func (s *RemoteProvider[R]) Delete(ctx context.Context, ref Ref) error {
 				Name:   ref.Name,
 			},
 		}))
-		return fmt.Errorf("%s delete: %w", r, err)
+		return errors.Wrapf(err, "%s delete", r)
 
 	case Secrets:
 		_, err := s.client.SecretUnset(ctx, connect.NewRequest(&adminpb.SecretUnsetRequest{
@@ -55,7 +56,7 @@ func (s *RemoteProvider[R]) Delete(ctx context.Context, ref Ref) error {
 				Name:   ref.Name,
 			},
 		}))
-		return fmt.Errorf("%s delete: %w", r, err)
+		return errors.Wrapf(err, "%s delete", r)
 
 	default:
 		panic(fmt.Sprintf("unsupported role %T", r))
@@ -70,7 +71,7 @@ func (s *RemoteProvider[R]) List(ctx context.Context, withValues bool) ([]Value,
 			IncludeValues: &withValues,
 		}))
 		if err != nil {
-			return nil, fmt.Errorf("%s list: %w", r, err)
+			return nil, errors.Wrapf(err, "%s list", r)
 		}
 		return slices.Map(resp.Msg.Configs, func(config *adminpb.ConfigListResponse_Config) Value {
 			return Value{
@@ -84,7 +85,7 @@ func (s *RemoteProvider[R]) List(ctx context.Context, withValues bool) ([]Value,
 			IncludeValues: &withValues,
 		}))
 		if err != nil {
-			return nil, fmt.Errorf("%s list: %w", r, err)
+			return nil, errors.Wrapf(err, "%s list", r)
 		}
 		return slices.Map(resp.Msg.Secrets, func(secret *adminpb.SecretsListResponse_Secret) Value {
 			return Value{

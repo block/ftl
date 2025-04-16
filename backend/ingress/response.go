@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"maps"
 	"net/http"
 	"strconv"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/schema"
 )
@@ -29,7 +30,7 @@ func ResponseForVerb(sch *schema.Schema, verb *schema.Verb, response HTTPRespons
 
 	bodyData, err := sch.ResolveMonomorphised(responseRef)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to resolve response data type: %w", err)
+		return nil, nil, errors.Wrap(err, "failed to resolve response data type")
 	}
 
 	haveBody := response.Body != nil && !bytes.Equal(response.Body, []byte("null"))
@@ -40,7 +41,7 @@ func ResponseForVerb(sch *schema.Schema, verb *schema.Verb, response HTTPRespons
 
 	switch {
 	case haveBody == haveError:
-		return nil, nil, fmt.Errorf("response must have either a body or an error")
+		return nil, nil, errors.Errorf("response must have either a body or an error")
 
 	case haveBody:
 		fieldType = bodyData.FieldByName("body").Type.(*schema.Optional).Type //nolint:forcetypeassert
@@ -67,7 +68,7 @@ func ResponseForVerb(sch *schema.Schema, verb *schema.Verb, response HTTPRespons
 	}
 
 	outBody, err := bodyForType(fieldType, sch, body)
-	return outBody, headers, err
+	return outBody, headers, errors.WithStack(err)
 }
 
 func bodyForType(typ schema.Type, sch *schema.Schema, data []byte) ([]byte, error) {
@@ -76,7 +77,7 @@ func bodyForType(typ schema.Type, sch *schema.Schema, data []byte) ([]byte, erro
 		var response any
 		err := json.Unmarshal(data, &response)
 		if err != nil {
-			return nil, fmt.Errorf("HTTP response body is not valid JSON: %w", err)
+			return nil, errors.Wrap(err, "HTTP response body is not valid JSON")
 		}
 
 		err = schema.TransformAliasedFields(sch, t, response, func(obj map[string]any, field *schema.Field) string {
@@ -88,47 +89,47 @@ func bodyForType(typ schema.Type, sch *schema.Schema, data []byte) ([]byte, erro
 			return field.Name
 		})
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		outBody, err := json.Marshal(response)
-		return outBody, err
+		return outBody, errors.WithStack(err)
 
 	case *schema.Bytes:
 		var base64String string
 		if err := json.Unmarshal(data, &base64String); err != nil {
-			return nil, fmt.Errorf("HTTP response body is not valid base64: %w", err)
+			return nil, errors.Wrap(err, "HTTP response body is not valid base64")
 		}
 		decodedBody, err := base64.StdEncoding.DecodeString(base64String)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode base64 response body: %w", err)
+			return nil, errors.Wrap(err, "failed to decode base64 response body")
 		}
 		return decodedBody, nil
 
 	case *schema.String:
 		var responseString string
 		if err := json.Unmarshal(data, &responseString); err != nil {
-			return nil, fmt.Errorf("HTTP response body is not a valid string: %w", err)
+			return nil, errors.Wrap(err, "HTTP response body is not a valid string")
 		}
 		return []byte(responseString), nil
 
 	case *schema.Int:
 		var responseInt int
 		if err := json.Unmarshal(data, &responseInt); err != nil {
-			return nil, fmt.Errorf("HTTP response body is not a valid int: %w", err)
+			return nil, errors.Wrap(err, "HTTP response body is not a valid int")
 		}
 		return []byte(strconv.Itoa(responseInt)), nil
 
 	case *schema.Float:
 		var responseFloat float64
 		if err := json.Unmarshal(data, &responseFloat); err != nil {
-			return nil, fmt.Errorf("HTTP response body is not a valid float: %w", err)
+			return nil, errors.Wrap(err, "HTTP response body is not a valid float")
 		}
 		return []byte(strconv.FormatFloat(responseFloat, 'f', -1, 64)), nil
 
 	case *schema.Bool:
 		var responseBool bool
 		if err := json.Unmarshal(data, &responseBool); err != nil {
-			return nil, fmt.Errorf("HTTP response body is not a valid bool: %w", err)
+			return nil, errors.Wrap(err, "HTTP response body is not a valid bool")
 		}
 		return []byte(strconv.FormatBool(responseBool)), nil
 

@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/chroma/v2/quick"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/either"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
@@ -47,11 +47,11 @@ func (d *schemaDiffCmd) Run(
 		other, err = schemaForURL(ctx, schemaClient, d.OtherEndpoint)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to get other schema: %w", err)
+		return errors.Wrap(err, "failed to get other schema")
 	}
 	current, err := schemaForURL(ctx, schemaClient, *currentURL)
 	if err != nil {
-		return fmt.Errorf("failed to get current schema: %w", err)
+		return errors.Wrap(err, "failed to get current schema")
 	}
 	if sameModulesOnly {
 		for _, realm := range current.Realms {
@@ -81,7 +81,7 @@ func (d *schemaDiffCmd) Run(
 	if color {
 		err = quick.Highlight(os.Stdout, diff, "diff", "terminal256", "solarized-dark")
 		if err != nil {
-			return fmt.Errorf("failed to highlight diff: %w", err)
+			return errors.Wrap(err, "failed to highlight diff")
 		}
 	} else {
 		fmt.Print(diff)
@@ -102,7 +102,7 @@ func localSchema(ctx context.Context, projectConfig projectconfig.Config) (*sche
 	errs := []error{}
 	modules, err := watch.DiscoverModules(ctx, projectConfig.AbsModuleDirs())
 	if err != nil {
-		return nil, fmt.Errorf("failed to discover modules %w", err)
+		return nil, errors.Wrap(err, "failed to discover module")
 	}
 
 	moduleSchemas := make(chan either.Either[*schema.Module, error], len(modules))
@@ -137,19 +137,19 @@ func localSchema(ctx context.Context, projectConfig projectconfig.Config) (*sche
 	}
 	// we want schema even if there are errors as long as we have some modules
 	if len(sch.InternalModules()) == 0 && len(errs) > 0 {
-		return nil, fmt.Errorf("failed to read schema, possibly due to not building: %w", errors.Join(errs...))
+		return nil, errors.Wrap(errors.Join(errs...), "failed to read schema, possibly due to not building")
 	}
 	return sch, nil
 }
 func schemaForURL(ctx context.Context, schemaClient admin.EnvironmentClient, url url.URL) (*schema.Schema, error) {
 	resp, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("url %s: failed to get schema: %w", url.String(), err)
+		return nil, errors.Wrapf(err, "url %s: failed to get schema", url.String())
 	}
 
 	s, err := schema.FromProto(resp.Msg.Schema)
 	if err != nil {
-		return nil, fmt.Errorf("url %s: failed to parse schema: %w", url.String(), err)
+		return nil, errors.Wrapf(err, "url %s: failed to parse schema", url.String())
 	}
 
 	return s, nil

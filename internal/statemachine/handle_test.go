@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/log"
 )
@@ -53,7 +55,7 @@ func (m *mockStateMachine) Lookup(_ string) (string, error) {
 	defer m.mu.Unlock()
 
 	if m.queryErr != nil {
-		return "", m.queryErr
+		return "", errors.WithStack(m.queryErr)
 	}
 	return m.value, nil
 }

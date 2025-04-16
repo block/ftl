@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/binary"
-	"errors"
-	"fmt"
 	"iter"
 	"net/http"
 	"net/url"
@@ -17,6 +15,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 	"github.com/lni/dragonboat/v4"
 	"github.com/lni/dragonboat/v4/client"
@@ -171,19 +170,19 @@ func (s *ShardHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 
 	msgBytes, err := msg.MarshalBinary()
 	if err != nil {
-		return fmt.Errorf("failed to marshal event: %w", err)
+		return errors.Wrap(err, "failed to marshal event")
 	}
 	if s.session == nil {
 		if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.runtimeReplicaID, func(ctx context.Context) error {
 			logger.Debugf("Getting session for shard %d on replica %d", s.shardID, s.cluster.runtimeReplicaID)
 			s.session, err = s.cluster.nh.SyncGetSession(ctx, s.shardID)
 			if err != nil {
-				return err //nolint:wrapcheck
+				return errors.WithStack(err) //nolint:wrapcheck
 			}
 			logger.Debugf("Got clientID %d for shard %d on replica %d", s.session.ClientID, s.shardID, s.cluster.runtimeReplicaID)
 			return nil
 		}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout, dragonboat.ErrRejected); err != nil {
-			return fmt.Errorf("failed to get session: %w", err)
+			return errors.Wrap(err, "failed to get session")
 		}
 	}
 
@@ -191,16 +190,16 @@ func (s *ShardHandle[Q, R, E]) Publish(ctx context.Context, msg E) error {
 		logger.Debugf("Proposing event to shard %d on replica %d", s.shardID, s.cluster.runtimeReplicaID)
 		res, err := s.cluster.nh.SyncPropose(ctx, s.session, msgBytes)
 		if err != nil {
-			return err //nolint:wrapcheck
+			return errors.WithStack(err) //nolint:wrapcheck
 		}
 		s.session.ProposalCompleted()
 
 		if res.Value == InvalidEventValue {
-			return ErrInvalidEvent
+			return errors.WithStack(ErrInvalidEvent)
 		}
 		return nil
 	}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
-		return fmt.Errorf("failed to propose event: %w", err)
+		return errors.Wrap(err, "failed to propose event")
 	}
 
 	return nil
@@ -217,16 +216,16 @@ func (s *ShardHandle[Q, R, E]) Query(ctx context.Context, query Q) (R, error) {
 	if err := s.cluster.withRetry(ctx, s.shardID, s.cluster.runtimeReplicaID, func(ctx context.Context) error {
 		res, err := s.cluster.nh.SyncRead(ctx, s.shardID, query)
 		if err != nil {
-			return err //nolint:wrapcheck
+			return errors.WithStack(err) //nolint:wrapcheck
 		}
 		r, ok := res.(R)
 		if !ok {
-			return fmt.Errorf("invalid response type: %T", res)
+			return errors.Errorf("invalid response type: %T", res)
 		}
 		response = r
 		return nil
 	}, dragonboat.ErrShardNotReady); err != nil {
-		return response, err
+		return response, errors.WithStack(err)
 	}
 
 	return response, nil
@@ -256,7 +255,7 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 
 	previous, err := s.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	result <- previous
@@ -305,7 +304,7 @@ func RPCOption(cluster *Cluster) rpc.Option {
 	return rpc.Options(
 		rpc.StartHook(func(ctx context.Context) error {
 			if err := cluster.Start(ctx); err != nil {
-				return fmt.Errorf("failed to start raft cluster: %w", err)
+				return errors.Wrap(err, "failed to start raft cluster")
 			}
 			return nil
 		}),
@@ -324,7 +323,7 @@ func (s *ShardHandle[Q, R, E]) getLastIndex() (uint64, error) {
 
 	reader, err := s.cluster.nh.GetLogReader(s.shardID)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get log reader: %w", err)
+		return 0, errors.Wrap(err, "failed to get log reader")
 	}
 	_, last := reader.GetRange()
 	return last, nil
@@ -348,17 +347,17 @@ func (c *Cluster) Start(ctx context.Context) error {
 
 	if c.initialMemberIndex() < 0 {
 		logger.Infof("joining cluster as a new member")
-		return c.Join(ctx, c.config.ControlAddress.String())
+		return errors.WithStack(c.Join(ctx, c.config.ControlAddress.String()))
 	}
 
 	r, err := c.getOrGenerateReplicaID(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get or generate replica ID: %w", err)
+		return errors.Wrap(err, "failed to get or generate replica ID")
 	}
 	c.runtimeReplicaID = r
 
 	logger.Infof("joining cluster as an initial member")
-	return c.start(ctx, false)
+	return errors.WithStack(c.start(ctx, false))
 }
 
 func (c *Cluster) initialMemberIndex() int {
@@ -380,7 +379,7 @@ func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
 
 	r, err := c.getOrGenerateReplicaID(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get or generate replica ID: %w", err)
+		return errors.Wrap(err, "failed to get or generate replica ID")
 	}
 	c.runtimeReplicaID = r
 
@@ -401,7 +400,7 @@ func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
 		}))
 		if err != nil {
 			if i >= maxJoinAttempts {
-				return fmt.Errorf("failed to join cluster: %w", err)
+				return errors.Wrap(err, "failed to join cluster")
 			}
 
 			duration := retry.Duration()
@@ -412,7 +411,7 @@ func (c *Cluster) Join(ctx context.Context, controlAddress string) error {
 		break
 	}
 
-	return c.start(ctx, true)
+	return errors.WithStack(c.start(ctx, true))
 }
 
 func (c *Cluster) getOrGenerateReplicaID(ctx context.Context) (uint64, error) {
@@ -427,7 +426,7 @@ func (c *Cluster) getOrGenerateReplicaID(ctx context.Context) (uint64, error) {
 		if _, err := os.Stat(replicaIDFile); os.IsNotExist(err) {
 			replicaID, err := randint64()
 			if err != nil {
-				return 0, fmt.Errorf("failed to generate replica ID: %w", err)
+				return 0, errors.Wrap(err, "failed to generate replica ID")
 			}
 			logger.Infof("generated new replica ID %d", replicaID)
 			return replicaID, nil
@@ -435,11 +434,11 @@ func (c *Cluster) getOrGenerateReplicaID(ctx context.Context) (uint64, error) {
 
 		replicaIDBytes, err := os.ReadFile(replicaIDFile)
 		if err != nil {
-			return 0, fmt.Errorf("failed to read replica ID file: %w", err)
+			return 0, errors.Wrap(err, "failed to read replica ID file")
 		}
 		replicaID, err := strconv.ParseUint(string(replicaIDBytes), 10, 64)
 		if err != nil {
-			return 0, fmt.Errorf("failed to parse replica ID: %w", err)
+			return 0, errors.Wrap(err, "failed to parse replica ID")
 		}
 
 		logger.Infof("using existing replica ID %d", replicaID)
@@ -452,11 +451,11 @@ func (c *Cluster) getOrGenerateReplicaID(ctx context.Context) (uint64, error) {
 func (c *Cluster) writeReplicaID(replicaID uint64) error {
 	replicaIDFile := filepath.Join(c.config.DataDir, "replica_id")
 	if err := os.MkdirAll(c.config.DataDir, 0750); err != nil {
-		return fmt.Errorf("failed to create data directory: %w", err)
+		return errors.Wrap(err, "failed to create data directory")
 	}
 
 	if err := os.WriteFile(replicaIDFile, []byte(strconv.FormatUint(replicaID, 10)), 0600); err != nil {
-		return fmt.Errorf("failed to write replica ID file: %w", err)
+		return errors.Wrap(err, "failed to write replica ID file")
 	}
 
 	return nil
@@ -477,14 +476,14 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 	// Create node host
 	nh, err := dragonboat.NewNodeHost(nhc)
 	if err != nil {
-		return fmt.Errorf("failed to create node host: %w", err)
+		return errors.Wrap(err, "failed to create node host")
 	}
 	c.nh = nh
 
 	// Start replicas for each shard
 	for shardID, sm := range c.shards {
 		if err := c.startShard(nh, shardID, sm, join); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
@@ -492,13 +491,13 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 	for shardID := range c.shards {
 		err := c.waitReady(ctx, shardID)
 		if err != nil {
-			return fmt.Errorf("failed to wait for shard %d to be ready on replica %d: %w", shardID, c.runtimeReplicaID, err)
+			return errors.Wrapf(err, "failed to wait for shard %d to be ready on replica %d", shardID, c.runtimeReplicaID)
 		}
 	}
 	logger.Infof("All shards are ready")
 
 	if err := c.writeReplicaID(c.runtimeReplicaID); err != nil {
-		return fmt.Errorf("failed to write replica ID: %w", err)
+		return errors.Wrap(err, "failed to write replica ID")
 	}
 
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
@@ -510,7 +509,7 @@ func (c *Cluster) start(ctx context.Context, join bool) error {
 
 func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statemachine.CreateStateMachineFunc, join bool) error {
 	if len(c.config.InitialReplicaIDs) != len(c.config.InitialMembers) {
-		return fmt.Errorf("initial replica IDs and initial members must be the same length")
+		return errors.Errorf("initial replica IDs and initial members must be the same length")
 	}
 
 	cfg := config.Config{
@@ -533,7 +532,7 @@ func (c *Cluster) startShard(nh *dragonboat.NodeHost, shardID uint64, sm statema
 
 	// Start the raft node for this shard
 	if err := nh.StartReplica(peers, join, sm, cfg); err != nil {
-		return fmt.Errorf("failed to start replica %d for shard %d: %w", c.runtimeReplicaID, shardID, err)
+		return errors.Wrapf(err, "failed to start replica %d for shard %d", c.runtimeReplicaID, shardID)
 	}
 	return nil
 }
@@ -549,7 +548,7 @@ func (c *Cluster) Stop(ctx context.Context) {
 				logger.Errorf(err, "failed to remove from shards")
 			}
 		}
-		c.runningCtxCancel(fmt.Errorf("stopping raft cluster: %w", context.Canceled))
+		c.runningCtxCancel(errors.Wrap(context.Canceled, "stopping raft cluster"))
 		c.nh.Close()
 		c.nh = nil
 		c.shards = nil
@@ -561,7 +560,7 @@ func (c *Cluster) Stop(ctx context.Context) {
 func (c *Cluster) removeFromAllShards(ctx context.Context) error {
 	for shardID := range c.shards {
 		if err := c.removeShardMember(ctx, shardID, c.runtimeReplicaID); err != nil {
-			return fmt.Errorf("failed to remove replica %d from shard %d: %w", c.runtimeReplicaID, shardID, err)
+			return errors.Wrapf(err, "failed to remove replica %d from shard %d", c.runtimeReplicaID, shardID)
 		}
 	}
 	return nil
@@ -586,7 +585,7 @@ func (c *Cluster) withRetry(octx context.Context, shardID, replicaID uint64, f f
 
 		if err != nil {
 			if octx.Err() != nil {
-				return fmt.Errorf("context cancelled: %w", octx.Err())
+				return errors.Wrap(octx.Err(), "context cancelled")
 			}
 			retried := false
 			for _, retryError := range retryErrors {
@@ -604,7 +603,7 @@ func (c *Cluster) withRetry(octx context.Context, shardID, replicaID uint64, f f
 			if retried {
 				continue
 			}
-			return fmt.Errorf("failed to submit request to shard %d on replica %d: %w", shardID, replicaID, err)
+			return errors.Wrapf(err, "failed to submit request to shard %d on replica %d", shardID, replicaID)
 		}
 		return nil
 	}
@@ -622,7 +621,7 @@ func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
 		wait := retry.Duration()
 		rs, err := c.nh.ReadIndex(shardID, wait)
 		if err != nil || rs == nil {
-			return fmt.Errorf("failed to read index: %w", err)
+			return errors.Wrap(err, "failed to read index")
 		}
 		res := <-rs.ResultC()
 		rs.Release()
@@ -630,7 +629,7 @@ func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
 			logger.Debugf("Waiting for shard %d to be ready on replica %d: %s", shardID, c.runtimeReplicaID, wait)
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("context cancelled: %w", ctx.Err())
+				return errors.Wrap(ctx.Err(), "context cancelled")
 			case <-time.After(wait):
 			}
 			continue
@@ -644,7 +643,7 @@ func (c *Cluster) waitReady(ctx context.Context, shardID uint64) error {
 func randint64() (uint64, error) {
 	var b [8]byte
 	if _, err := rand.Read(b[:]); err != nil {
-		return 0, fmt.Errorf("failed to read random bytes: %w", err)
+		return 0, errors.Wrap(err, "failed to read random bytes")
 	}
 	return binary.LittleEndian.Uint64(b[:]), nil
 }
@@ -680,9 +679,9 @@ func (d DragonBoatLoggingAdaptor) Warningf(format string, args ...interface{}) {
 }
 
 func (d DragonBoatLoggingAdaptor) Errorf(format string, args ...interface{}) {
-	d.logger.Errorf(fmt.Errorf(format, args...), "Error in dragonboat")
+	d.logger.Errorf(errors.Errorf(format, args...), "Error in dragonboat")
 }
 
 func (d DragonBoatLoggingAdaptor) Panicf(format string, args ...interface{}) {
-	d.logger.Errorf(fmt.Errorf(format, args...), "Panic in dragonboat")
+	d.logger.Errorf(errors.Errorf(format, args...), "Panic in dragonboat")
 }

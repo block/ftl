@@ -2,10 +2,11 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/internal/log"
@@ -23,7 +24,7 @@ func addWorkloadIdentity(ctx context.Context, metadata http.Header) (context.Con
 		if strings.ToLower(k) == "uri" {
 			parse, err := url.Parse(v)
 			if err != nil {
-				return ctx, fmt.Errorf("failed to parse URI: %w", err)
+				return ctx, errors.Wrap(err, "failed to parse URI")
 			}
 			return ftl.ContextWithSpiffeIdentity(ctx, parse), nil
 		}

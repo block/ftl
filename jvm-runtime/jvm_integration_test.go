@@ -9,9 +9,8 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
-	"github.com/alecthomas/types/must"
-
 	"github.com/alecthomas/repr"
+	"github.com/alecthomas/types/must"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"

@@ -3,6 +3,8 @@ package log
 import (
 	"context"
 	"os"
+
+	errors "github.com/alecthomas/errors"
 )
 
 type Sink interface {
@@ -45,7 +47,7 @@ func (l Level) Severity() int {
 func ParseLevel(input string) (Level, error) {
 	var level Level
 	err := level.UnmarshalText([]byte(input))
-	return level, err
+	return level, errors.WithStack(err)
 }
 
 type contextKey struct{}

@@ -2,8 +2,9 @@ package leases
 
 import (
 	"context"
-	"errors"
 	"time"
+
+	"github.com/alecthomas/errors"
 )
 
 // ErrConflict is returned when a lease is already held.

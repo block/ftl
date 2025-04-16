@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sort"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 )
@@ -20,7 +22,7 @@ func DiscoverModules(ctx context.Context, moduleDirs []string) ([]moduleconfig.U
 	modules, err := discoverModules(moduleDirs...)
 	if err != nil {
 		logger.Tracef("error discovering modules: %v", err)
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	out = append(out, modules...)
@@ -34,7 +36,7 @@ func discoverModules(dirs ...string) ([]moduleconfig.UnvalidatedModuleConfig, er
 	if len(dirs) == 0 {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		dirs = []string{cwd}
 	}
@@ -47,13 +49,13 @@ func discoverModules(dirs ...string) ([]moduleconfig.UnvalidatedModuleConfig, er
 			moduleDir := filepath.Dir(path)
 			config, err := moduleconfig.LoadConfig(moduleDir)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			out = append(out, config)
-			return ErrSkip
+			return errors.WithStack(ErrSkip)
 		})
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 	sort.Slice(out, func(i, j int) bool {

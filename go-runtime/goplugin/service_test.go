@@ -7,11 +7,9 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-
-	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
-
 	"github.com/alecthomas/assert/v2"
 
+	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/internal/moduleconfig"
 )
 

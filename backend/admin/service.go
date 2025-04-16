@@ -3,7 +3,6 @@ package admin
 import (
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"runtime"
@@ -14,6 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/IBM/sarama"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
@@ -130,52 +130,52 @@ func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingReque
 
 // ConfigList returns the list of configuration values, optionally filtered by module.
 func (s *Service) ConfigList(ctx context.Context, req *connect.Request[adminpb.ConfigListRequest]) (*connect.Response[adminpb.ConfigListResponse], error) {
-	return s.env.ConfigList(ctx, req)
+	return errors.WithStack2(s.env.ConfigList(ctx, req))
 }
 
 // ConfigGet returns the configuration value for a given ref string.
 func (s *Service) ConfigGet(ctx context.Context, req *connect.Request[adminpb.ConfigGetRequest]) (*connect.Response[adminpb.ConfigGetResponse], error) {
-	return s.env.ConfigGet(ctx, req)
+	return errors.WithStack2(s.env.ConfigGet(ctx, req))
 }
 
 // ConfigSet sets the configuration at the given ref to the provided value.
 func (s *Service) ConfigSet(ctx context.Context, req *connect.Request[adminpb.ConfigSetRequest]) (*connect.Response[adminpb.ConfigSetResponse], error) {
-	return s.env.ConfigSet(ctx, req)
+	return errors.WithStack2(s.env.ConfigSet(ctx, req))
 }
 
 // ConfigUnset unsets the config value at the given ref.
 func (s *Service) ConfigUnset(ctx context.Context, req *connect.Request[adminpb.ConfigUnsetRequest]) (*connect.Response[adminpb.ConfigUnsetResponse], error) {
-	return s.env.ConfigUnset(ctx, req)
+	return errors.WithStack2(s.env.ConfigUnset(ctx, req))
 }
 
 // SecretsList returns the list of secrets, optionally filtered by module.
 func (s *Service) SecretsList(ctx context.Context, req *connect.Request[adminpb.SecretsListRequest]) (*connect.Response[adminpb.SecretsListResponse], error) {
-	return s.env.SecretsList(ctx, req)
+	return errors.WithStack2(s.env.SecretsList(ctx, req))
 }
 
 // SecretGet returns the secret value for a given ref string.
 func (s *Service) SecretGet(ctx context.Context, req *connect.Request[adminpb.SecretGetRequest]) (*connect.Response[adminpb.SecretGetResponse], error) {
-	return s.env.SecretGet(ctx, req)
+	return errors.WithStack2(s.env.SecretGet(ctx, req))
 }
 
 // SecretSet sets the secret at the given ref to the provided value.
 func (s *Service) SecretSet(ctx context.Context, req *connect.Request[adminpb.SecretSetRequest]) (*connect.Response[adminpb.SecretSetResponse], error) {
-	return s.env.SecretSet(ctx, req)
+	return errors.WithStack2(s.env.SecretSet(ctx, req))
 }
 
 // SecretUnset unsets the secret value at the given ref.
 func (s *Service) SecretUnset(ctx context.Context, req *connect.Request[adminpb.SecretUnsetRequest]) (*connect.Response[adminpb.SecretUnsetResponse], error) {
-	return s.env.SecretUnset(ctx, req)
+	return errors.WithStack2(s.env.SecretUnset(ctx, req))
 }
 
 // MapConfigsForModule combines all configuration values visible to the module.
 func (s *Service) MapConfigsForModule(ctx context.Context, req *connect.Request[adminpb.MapConfigsForModuleRequest]) (*connect.Response[adminpb.MapConfigsForModuleResponse], error) {
-	return s.env.MapConfigsForModule(ctx, req)
+	return errors.WithStack2(s.env.MapConfigsForModule(ctx, req))
 }
 
 // MapSecretsForModule combines all secrets visible to the module.
 func (s *Service) MapSecretsForModule(ctx context.Context, req *connect.Request[adminpb.MapSecretsForModuleRequest]) (*connect.Response[adminpb.MapSecretsForModuleResponse], error) {
-	return s.env.MapSecretsForModule(ctx, req)
+	return errors.WithStack2(s.env.MapSecretsForModule(ctx, req))
 }
 
 func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[adminpb.ResetSubscriptionRequest]) (*connect.Response[adminpb.ResetSubscriptionResponse], error) {
@@ -186,32 +186,32 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ad
 		return m.Name == req.Msg.Subscription.Module
 	})
 	if !ok {
-		return nil, fmt.Errorf("module %q not found", req.Msg.Subscription.Module)
+		return nil, errors.Errorf("module %q not found", req.Msg.Subscription.Module)
 	}
 	verb, ok := islices.Find(slices.Collect(islices.FilterVariants[*schema.Verb](module.Decls)), func(v *schema.Verb) bool {
 		return v.Name == req.Msg.Subscription.Name
 	})
 	if !ok {
-		return nil, fmt.Errorf("verb %q not found in module %q", req.Msg.Subscription.Name, req.Msg.Subscription.Module)
+		return nil, errors.Errorf("verb %q not found in module %q", req.Msg.Subscription.Name, req.Msg.Subscription.Module)
 	}
 	subscriber, ok := islices.FindVariant[*schema.MetadataSubscriber](verb.Metadata)
 	if !ok {
-		return nil, fmt.Errorf("%q is not a subscriber", req.Msg.Subscription)
+		return nil, errors.Errorf("%q is not a subscriber", req.Msg.Subscription)
 	}
 	connection, ok := verb.Runtime.SubscriptionConnector.(*schema.PlaintextKafkaSubscriptionConnector)
 	if !ok {
-		return nil, fmt.Errorf("only plaintext kafka subscription connector is supported, got %T", verb.Runtime.SubscriptionConnector)
+		return nil, errors.Errorf("only plaintext kafka subscription connector is supported, got %T", verb.Runtime.SubscriptionConnector)
 	}
 	if len(connection.KafkaBrokers) == 0 {
-		return nil, fmt.Errorf("no Kafka brokers for subscription %q", req.Msg.Subscription)
+		return nil, errors.Errorf("no Kafka brokers for subscription %q", req.Msg.Subscription)
 	}
 	if module.GetRuntime().GetDeployment().GetDeploymentKey().IsZero() {
-		return nil, fmt.Errorf("no deployment for module %s", req.Msg.Subscription.Module)
+		return nil, errors.Errorf("no deployment for module %s", req.Msg.Subscription.Module)
 	}
 	topicID := subscriber.Topic.String()
 	totalPartitions, err := kafkaPartitionCount(optional.None[sarama.ClusterAdmin](), connection.KafkaBrokers, topicID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get partition count for topic %s: %w", topicID, err)
+		return nil, errors.Wrapf(err, "failed to get partition count for topic %s", topicID)
 	}
 
 	client := rpc.Dial(pubsubpbconnect.NewPubSubAdminServiceClient, module.Runtime.Runner.Endpoint, log.Error)
@@ -220,7 +220,7 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ad
 		Offset:       req.Msg.Offset,
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to reset subscription: %w", err)
+		return nil, errors.Wrap(err, "failed to reset subscription")
 	}
 
 	var successfulPartitions = resp.Msg.Partitions
@@ -232,7 +232,7 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ad
 		}
 	}
 	if len(failedPartitions) > 0 {
-		return nil, fmt.Errorf("failed to reset partitions %v: no runner had partition claim", failedPartitions)
+		return nil, errors.Errorf("failed to reset partitions %v: no runner had partition claim", failedPartitions)
 	}
 	return connect.NewResponse(&adminpb.ResetSubscriptionResponse{}), nil
 }
@@ -240,29 +240,29 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ad
 func (s *Service) GetTopicInfo(ctx context.Context, req *connect.Request[adminpb.GetTopicInfoRequest]) (*connect.Response[adminpb.GetTopicInfoResponse], error) {
 	ref, err := schema.RefFromProto(req.Msg.Topic)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse topic: %w", err)
+		return nil, errors.Wrap(err, "failed to parse topic")
 	}
 	sch := s.source.ViewOnly().GetCanonical()
 	t, ok := sch.Resolve(ref).Get()
 	if !ok {
-		return nil, fmt.Errorf("failed to resolve topic %s", ref)
+		return nil, errors.Errorf("failed to resolve topic %s", ref)
 	}
 	topic, ok := t.(*schema.Topic)
 	if !ok {
-		return nil, fmt.Errorf("expected topic instead of %T", t)
+		return nil, errors.Errorf("expected topic instead of %T", t)
 	}
 	if topic.Runtime == nil {
-		return nil, fmt.Errorf("topic %s has no runtime", ref)
+		return nil, errors.Errorf("topic %s has no runtime", ref)
 	}
 	config := sarama.NewConfig()
 	client, err := sarama.NewClient(topic.Runtime.KafkaBrokers, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create kakfa client: %w", err)
+		return nil, errors.Wrap(err, "failed to create kakfa client")
 	}
 	defer client.Close()
 	partitionCount, err := kafkaPartitionCount(optional.None[sarama.ClusterAdmin](), topic.Runtime.KafkaBrokers, topic.Runtime.TopicID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get partition count: %w", err)
+		return nil, errors.Wrap(err, "failed to get partition count")
 	}
 	partitions := make(chan *adminpb.GetTopicInfoResponse_PartitionInfo, partitionCount)
 	wg := &errgroup.Group{}
@@ -270,11 +270,11 @@ func (s *Service) GetTopicInfo(ctx context.Context, req *connect.Request[adminpb
 		wg.Go(func() error {
 			oldestOffset, err := client.GetOffset(topic.Runtime.TopicID, i, sarama.OffsetOldest)
 			if err != nil {
-				return fmt.Errorf("failed to get offset for partition %d: %w", i, err)
+				return errors.Wrapf(err, "failed to get offset for partition %d", i)
 			}
 			offset, err := client.GetOffset(topic.Runtime.TopicID, i, sarama.OffsetNewest)
 			if err != nil {
-				return fmt.Errorf("failed to get offset for partition %d: %w", i, err)
+				return errors.Wrapf(err, "failed to get offset for partition %d", i)
 			}
 			info := &adminpb.GetTopicInfoResponse_PartitionInfo{
 				Partition: i,
@@ -288,14 +288,14 @@ func (s *Service) GetTopicInfo(ctx context.Context, req *connect.Request[adminpb
 			headOffset := offset - 1
 			info.Head, err = getEventMetadata(ctx, topic.Runtime.KafkaBrokers, topic.Runtime.TopicID, i, headOffset)
 			if err != nil {
-				return fmt.Errorf("failed to get event info for partition %d and offset %d: %w", i, headOffset, err)
+				return errors.Wrapf(err, "failed to get event info for partition %d and offset %d", i, headOffset)
 			}
 			partitions <- info
 			return nil
 		})
 	}
 	if err := wg.Wait(); err != nil {
-		return nil, fmt.Errorf("failed to get partition info: %w", err)
+		return nil, errors.Wrap(err, "failed to get partition info")
 	}
 	close(partitions)
 	outPartitions := make([]*adminpb.GetTopicInfoResponse_PartitionInfo, partitionCount)
@@ -310,43 +310,43 @@ func (s *Service) GetTopicInfo(ctx context.Context, req *connect.Request[adminpb
 func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[adminpb.GetSubscriptionInfoRequest]) (*connect.Response[adminpb.GetSubscriptionInfoResponse], error) {
 	ref, err := schema.RefFromProto(req.Msg.Subscription)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse topic: %w", err)
+		return nil, errors.Wrap(err, "failed to parse topic")
 	}
 	sch := s.source.ViewOnly().GetCanonical()
 	v, ok := sch.Resolve(ref).Get()
 	if !ok {
-		return nil, fmt.Errorf("failed to resolve topic %s", ref)
+		return nil, errors.Errorf("failed to resolve topic %s", ref)
 	}
 	verb, ok := v.(*schema.Verb)
 	if !ok {
-		return nil, fmt.Errorf("expected subscription instead of %T", v)
+		return nil, errors.Errorf("expected subscription instead of %T", v)
 	}
 	subscription, ok := islices.FindVariant[*schema.MetadataSubscriber](verb.Metadata)
 	if !ok {
-		return nil, fmt.Errorf("verb %s is not a subscriber", ref)
+		return nil, errors.Errorf("verb %s is not a subscriber", ref)
 	}
 	if verb.Runtime == nil || verb.Runtime.SubscriptionConnector == nil {
-		return nil, fmt.Errorf("verb %s has no runtime info for subscription", ref)
+		return nil, errors.Errorf("verb %s has no runtime info for subscription", ref)
 	}
 	connector, ok := verb.Runtime.SubscriptionConnector.(*schema.PlaintextKafkaSubscriptionConnector)
 	if !ok {
-		return nil, fmt.Errorf("unsupported subscription connector %T", verb.Runtime.SubscriptionConnector)
+		return nil, errors.Errorf("unsupported subscription connector %T", verb.Runtime.SubscriptionConnector)
 	}
 
 	config := sarama.NewConfig()
 	client, err := sarama.NewClient(connector.KafkaBrokers, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create kakfa client: %w", err)
+		return nil, errors.Wrap(err, "failed to create kakfa client")
 	}
 	defer client.Close()
 
 	admin, err := sarama.NewClusterAdmin(connector.KafkaBrokers, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create kafka admin client: %w", err)
+		return nil, errors.Wrap(err, "failed to create kafka admin client")
 	}
 	partitionCount, err := kafkaPartitionCount(optional.Some(admin), connector.KafkaBrokers, subscription.Topic.String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get partition count: %w", err)
+		return nil, errors.Wrap(err, "failed to get partition count")
 	}
 	partitionIDs := make([]int32, partitionCount)
 	for i := range partitionCount {
@@ -354,11 +354,11 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 	}
 	offsetResp, err := admin.ListConsumerGroupOffsets(ref.String(), map[string][]int32{subscription.Topic.String(): partitionIDs})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get consumer group offsets: %w", err)
+		return nil, errors.Wrap(err, "failed to get consumer group offsets")
 	}
 	consumerOffsets, ok := offsetResp.Blocks[subscription.Topic.String()]
 	if !ok {
-		return nil, fmt.Errorf("no consumer offsets found for topic %s", subscription.Topic.String())
+		return nil, errors.Errorf("no consumer offsets found for topic %s", subscription.Topic.String())
 	}
 
 	partitions := make(chan *adminpb.GetSubscriptionInfoResponse_PartitionInfo, partitionCount)
@@ -367,11 +367,11 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 		wg.Go(func() error {
 			oldestOffset, err := client.GetOffset(subscription.Topic.String(), i, sarama.OffsetOldest)
 			if err != nil {
-				return fmt.Errorf("failed to get offset for partition %d: %w", i, err)
+				return errors.Wrapf(err, "failed to get offset for partition %d", i)
 			}
 			highwaterMark, err := client.GetOffset(subscription.Topic.String(), i, sarama.OffsetNewest)
 			if err != nil {
-				return fmt.Errorf("failed to get offset for partition %d: %w", i, err)
+				return errors.Wrapf(err, "failed to get offset for partition %d", i)
 			}
 			info := &adminpb.GetSubscriptionInfoResponse_PartitionInfo{
 				Partition: i,
@@ -385,7 +385,7 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 			headOffset := highwaterMark - 1
 			info.Head, err = getEventMetadata(ctx, connector.KafkaBrokers, subscription.Topic.String(), i, headOffset)
 			if err != nil {
-				return fmt.Errorf("failed to get event info for partition %d and offset %d: %w", i, headOffset, err)
+				return errors.Wrapf(err, "failed to get event info for partition %d and offset %d", i, headOffset)
 			}
 
 			offsetBlock, ok := consumerOffsets[i]
@@ -397,13 +397,13 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 			if offsetBlock.Offset-1 >= oldestOffset {
 				info.Consumed, err = getEventMetadata(ctx, connector.KafkaBrokers, subscription.Topic.String(), i, offsetBlock.Offset-1)
 				if err != nil {
-					return fmt.Errorf("failed to get event info for partition %d and offset %d: %w", i, offsetBlock.Offset-1, err)
+					return errors.Wrapf(err, "failed to get event info for partition %d and offset %d", i, offsetBlock.Offset-1)
 				}
 			}
 			if offsetBlock.Offset <= headOffset && offsetBlock.Offset >= oldestOffset {
 				info.Next, err = getEventMetadata(ctx, connector.KafkaBrokers, subscription.Topic.String(), i, offsetBlock.Offset)
 				if err != nil {
-					return fmt.Errorf("failed to get event info for partition %d and offset %d: %w", i, offsetBlock.Offset, err)
+					return errors.Wrapf(err, "failed to get event info for partition %d and offset %d", i, offsetBlock.Offset)
 				}
 			}
 
@@ -412,7 +412,7 @@ func (s *Service) GetSubscriptionInfo(ctx context.Context, req *connect.Request[
 		})
 	}
 	if err := wg.Wait(); err != nil {
-		return nil, fmt.Errorf("failed to get partition info: %w", err)
+		return nil, errors.Wrap(err, "failed to get partition info")
 	}
 	close(partitions)
 	outPartitions := make([]*adminpb.GetSubscriptionInfoResponse_PartitionInfo, partitionCount)
@@ -433,22 +433,22 @@ func kafkaPartitionCount(adminClient optional.Option[sarama.ClusterAdmin], broke
 		var err error
 		admin, err = sarama.NewClusterAdmin(brokers, config)
 		if err != nil {
-			return 0, fmt.Errorf("failed to create kafka admin client: %w", err)
+			return 0, errors.Wrap(err, "failed to create kafka admin client")
 		}
 		defer admin.Close()
 	}
 
 	topicMetas, err := admin.DescribeTopics([]string{topicID})
 	if err != nil {
-		return 0, fmt.Errorf("failed to describe topic %s: %w", topicID, err)
+		return 0, errors.Wrapf(err, "failed to describe topic %s", topicID)
 	}
 	if len(topicMetas) != 1 {
-		return 0, fmt.Errorf("expected topic metadata for %s from kafka but received none", topicID)
+		return 0, errors.Errorf("expected topic metadata for %s from kafka but received none", topicID)
 	}
 	if topicMetas[0].Err == sarama.ErrUnknownTopicOrPartition {
-		return 0, fmt.Errorf("can not reset subscription for topic %s that does not exist yet: %w", topicID, err)
+		return 0, errors.Wrapf(err, "can not reset subscription for topic %s that does not exist yet", topicID)
 	} else if topicMetas[0].Err != sarama.ErrNoError {
-		return 0, fmt.Errorf("failed to describe topic %s: %w", topicID, topicMetas[0].Err)
+		return 0, errors.Wrapf(topicMetas[0].Err, "failed to describe topic %s", topicID)
 	}
 	return int32(len(topicMetas[0].Partitions)), nil //nolint:gosec
 }
@@ -458,23 +458,23 @@ func getEventMetadata(ctx context.Context, brokers []string, topicID string, par
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	consumer, err := sarama.NewConsumer(brokers, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create kafka consumer: %w", err)
+		return nil, errors.Wrap(err, "failed to create kafka consumer")
 	}
 	defer consumer.Close()
 
 	partitionConsumer, err := consumer.ConsumePartition(topicID, partition, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create partition consumer: %w", err)
+		return nil, errors.Wrap(err, "failed to create partition consumer")
 	}
 	defer partitionConsumer.Close()
 
 	select {
 	case <-ctx.Done():
-		return nil, fmt.Errorf("context cancelled")
+		return nil, errors.New("context cancelled")
 	case <-time.After(5 * time.Second):
-		return nil, fmt.Errorf("timeout waiting for message")
+		return nil, errors.New("timeout waiting for message")
 	case err := <-partitionConsumer.Errors():
-		return nil, fmt.Errorf("failed to consume partition: %w", err)
+		return nil, errors.Wrap(err, "failed to consume partition")
 	case message := <-partitionConsumer.Messages():
 		var requestKey key.Request
 		found := false
@@ -485,11 +485,11 @@ func getEventMetadata(ctx context.Context, brokers []string, topicID string, par
 			found = true
 			requestKey, err = key.ParseRequestKey(string(header.Value))
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse request key: %w", err)
+				return nil, errors.Wrap(err, "failed to parse request key")
 			}
 		}
 		if !found {
-			return nil, errors.New("request key not found")
+			return nil, errors.WithStack(errors.New("request key not found"))
 		}
 
 		return &adminpb.PubSubEventMetadata{
@@ -503,14 +503,14 @@ func getEventMetadata(ctx context.Context, brokers []string, topicID string, par
 func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
 	sch, err := s.schemaClient.GetSchema(ctx, connect.NewRequest(c.Msg))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get latest schema: %w", err)
+		return nil, errors.Wrap(err, "failed to get latest schema")
 	}
 	return connect.NewResponse(sch.Msg), nil
 }
 
 func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[adminpb.ApplyChangesetRequest], stream *connect.ServerStream[adminpb.ApplyChangesetResponse]) error {
 	if len(req.Msg.RealmChanges) != 1 {
-		return fmt.Errorf("exactly one realm change is required")
+		return errors.Errorf("exactly one realm change is required")
 	}
 	realmChange := req.Msg.RealmChanges[0]
 
@@ -522,11 +522,11 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 		}},
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to create changeset: %w", err)
+		return errors.Wrap(err, "failed to create changeset")
 	}
 	key, err := key.ParseChangesetKey(cs.Msg.Changeset)
 	if err != nil {
-		return fmt.Errorf("failed to parse changeset key: %w", err)
+		return errors.Wrap(err, "failed to parse changeset key")
 	}
 	changeset := &schemapb.Changeset{
 		Key: cs.Msg.Changeset,
@@ -539,7 +539,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 	if err := stream.Send(&adminpb.ApplyChangesetResponse{
 		Changeset: changeset,
 	}); err != nil {
-		return fmt.Errorf("failed to send changeset: %w", err)
+		return errors.Wrap(err, "failed to send changeset")
 	}
 	for e := range channels.IterContext(ctx, s.source.Subscribe(ctx)) {
 		switch event := e.(type) {
@@ -550,14 +550,14 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 			if err := stream.Send(&adminpb.ApplyChangesetResponse{
 				Changeset: changeset,
 			}); err != nil {
-				return fmt.Errorf("failed to send changeset: %w", err)
+				return errors.Wrap(err, "failed to send changeset")
 			}
 			return nil
 		case *schema.ChangesetFailedNotification:
 			if event.Key != key {
 				continue
 			}
-			return fmt.Errorf("failed to apply changeset: %s", event.Error)
+			return errors.Errorf("failed to apply changeset: %s", event.Error)
 		case *schema.ChangesetCommittedNotification:
 			if event.Changeset.Key != key {
 				continue
@@ -567,7 +567,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 			if err := stream.Send(&adminpb.ApplyChangesetResponse{
 				Changeset: changeset,
 			}); err != nil {
-				return fmt.Errorf("failed to send changeset: %w", err)
+				return errors.Wrap(err, "failed to send changeset")
 			}
 			return nil
 		case *schema.ChangesetRollingBackNotification:
@@ -579,7 +579,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 
 		}
 	}
-	return fmt.Errorf("failed to apply changeset: context cancelled")
+	return errors.Errorf("failed to apply changeset: context cancelled")
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], resp *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
@@ -594,7 +594,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("failed to send: %w", err)
+				return errors.Wrap(err, "failed to send")
 			}
 		case *schema.DeploymentRuntimeNotification:
 			proto := e.ToProto()
@@ -604,7 +604,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("failed to send: %w", err)
+				return errors.Wrap(err, "failed to send")
 			}
 		case *schema.ChangesetCreatedNotification:
 			proto := e.ToProto()
@@ -614,7 +614,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("failed to send: %w", err)
+				return errors.Wrap(err, "failed to send")
 			}
 		case *schema.ChangesetPreparedNotification:
 			proto := e.ToProto()
@@ -624,7 +624,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("failed to send: %w", err)
+				return errors.Wrap(err, "failed to send")
 			}
 		case *schema.ChangesetCommittedNotification:
 			proto := e.ToProto()
@@ -634,7 +634,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("failed to send: %w", err)
+				return errors.Wrap(err, "failed to send")
 			}
 		case *schema.ChangesetDrainedNotification:
 			proto := e.ToProto()
@@ -644,7 +644,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("failed to send: %w", err)
+				return errors.Wrap(err, "failed to send")
 			}
 		case *schema.ChangesetFinalizedNotification:
 			proto := e.ToProto()
@@ -654,7 +654,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("failed to send: %w", err)
+				return errors.Wrap(err, "failed to send")
 			}
 		case *schema.ChangesetRollingBackNotification:
 			proto := e.ToProto()
@@ -664,7 +664,7 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("failed to send: %w", err)
+				return errors.Wrap(err, "failed to send")
 			}
 		case *schema.ChangesetFailedNotification:
 			proto := e.ToProto()
@@ -674,22 +674,22 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 				},
 			})
 			if err != nil {
-				return fmt.Errorf("failed to send: %w", err)
+				return errors.Wrap(err, "failed to send")
 			}
 		}
 
 	}
-	return fmt.Errorf("context cancelled %w", ctx.Err())
+	return errors.Wrap(ctx.Err(), "context cancelled")
 }
 
 func (s *Service) GetArtefactDiffs(ctx context.Context, req *connect.Request[adminpb.GetArtefactDiffsRequest]) (*connect.Response[adminpb.GetArtefactDiffsResponse], error) {
 	byteDigests, err := islices.MapErr(req.Msg.ClientDigests, sha256.ParseSHA256)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse digests: %w", err)
+		return nil, errors.Wrap(err, "failed to parse digests")
 	}
 	_, need, err := s.storage.GetDigestsKeys(ctx, byteDigests)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get digests: %w", err)
+		return nil, errors.Wrap(err, "failed to get digests")
 	}
 	return connect.NewResponse(&adminpb.GetArtefactDiffsResponse{
 		MissingDigests: islices.Map(need, func(s sha256.SHA256) string { return s.String() }),
@@ -711,11 +711,11 @@ func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStre
 			return nil
 		}
 		if msg.Size == 0 {
-			return fmt.Errorf("artefact size must be specified")
+			return errors.Errorf("artefact size must be specified")
 		}
 		digest, err := sha256.ParseSHA256(hex.EncodeToString(msg.Digest))
 		if err != nil {
-			return fmt.Errorf("failed to parse digest: %w", err)
+			return errors.Wrap(err, "failed to parse digest")
 		}
 		logger = logger.Scope("uploadArtefact:" + digest.String())
 		logger.Debugf("Starting upload to OCI")
@@ -725,7 +725,7 @@ func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStre
 			Content: r,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to upload artefact: %w", err)
+			return errors.Wrap(err, "failed to upload artefact")
 		}
 		logger.Debugf("Created new artefact %s", digest)
 		return nil
@@ -737,21 +737,21 @@ func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStre
 		for stream.Receive() {
 			msg := stream.Msg()
 			if len(msg.Chunk) == 0 {
-				return fmt.Errorf("zero length chunk received")
+				return errors.Errorf("zero length chunk received")
 			}
 			firstMsg.Set(msg)
 			if _, err := w.Write(msg.Chunk); err != nil {
-				return fmt.Errorf("failed to write chunk: %w", err)
+				return errors.Wrap(err, "failed to write chunk")
 			}
 		}
 		if err := stream.Err(); err != nil {
-			return fmt.Errorf("failed to upload artefact: %w", err)
+			return errors.Wrap(err, "failed to upload artefact")
 		}
 		return nil
 	})
 	err := wg.Wait()
 	if err != nil {
-		return nil, fmt.Errorf("failed to upload artefact: %w", err)
+		return nil, errors.Wrap(err, "failed to upload artefact")
 	}
 	return connect.NewResponse(&adminpb.UploadArtefactResponse{}), nil
 }
@@ -759,13 +759,13 @@ func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStre
 func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Request[adminpb.GetDeploymentArtefactsRequest], resp *connect.ServerStream[adminpb.GetDeploymentArtefactsResponse]) error {
 	dkey, err := key.ParseDeploymentKey(req.Msg.DeploymentKey)
 	if err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid deployment key: %w", err))
+		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "invalid deployment key")))
 	}
 
 	deploymentOpt := s.source.CanonicalView().Deployment(dkey)
 	deployment, ok := deploymentOpt.Get()
 	if !ok {
-		return fmt.Errorf("could not get deployment: %s", req.Msg.DeploymentKey)
+		return errors.Errorf("could not get deployment: %s", req.Msg.DeploymentKey)
 	}
 
 	logger := log.FromContext(ctx)
@@ -786,7 +786,7 @@ nextArtefact:
 		}
 		reader, err := s.storage.Download(ctx, artefact.Digest)
 		if err != nil {
-			return fmt.Errorf("could not download artefact: %w", err)
+			return errors.Wrap(err, "could not download artefact")
 		}
 		defer reader.Close()
 		for {
@@ -797,13 +797,13 @@ nextArtefact:
 					Artefact: adminpb.ArtefactToProto(deploymentArtefact),
 					Chunk:    chunk[:n],
 				}); err != nil {
-					return fmt.Errorf("could not send artefact chunk: %w", err)
+					return errors.Wrap(err, "could not send artefact chunk")
 				}
 			}
 			if errors.Is(err, io.EOF) {
 				break
 			} else if err != nil {
-				return fmt.Errorf("could not read artefact chunk: %w", err)
+				return errors.Wrap(err, "could not read artefact chunk")
 			}
 		}
 	}
@@ -817,16 +817,16 @@ func (s *Service) ClusterInfo(ctx context.Context, req *connect.Request[adminpb.
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
 	ref, err := schema.RefFromProto(req.Msg.Verb)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse verb: %w", err)
+		return nil, errors.Wrap(err, "failed to parse verb")
 	}
 
 	if err := schema.ValidateJSONCall(req.Msg.Body, ref, s.source.CanonicalView()); err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
+		return nil, errors.Wrap(err, "invalid request")
 	}
 
 	call, err := s.routeTable.Call(ctx, headers.CopyRequestForForwarding(req))
 	if err != nil {
-		return nil, fmt.Errorf("failed to call verb: %w", err)
+		return nil, errors.Wrap(err, "failed to call verb")
 	}
 	return call, nil
 }
@@ -834,7 +834,7 @@ func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 func (s *Service) RollbackChangeset(ctx context.Context, c *connect.Request[ftlv1.RollbackChangesetRequest]) (*connect.Response[ftlv1.RollbackChangesetResponse], error) {
 	res, err := s.schemaClient.RollbackChangeset(ctx, connect.NewRequest(c.Msg))
 	if err != nil {
-		return nil, fmt.Errorf("failed to rollback changeset: %w", err)
+		return nil, errors.Wrap(err, "failed to rollback changeset")
 	}
 	return connect.NewResponse(res.Msg), nil
 }
@@ -842,7 +842,7 @@ func (s *Service) RollbackChangeset(ctx context.Context, c *connect.Request[ftlv
 func (s *Service) FailChangeset(ctx context.Context, c *connect.Request[ftlv1.FailChangesetRequest]) (*connect.Response[ftlv1.FailChangesetResponse], error) {
 	res, err := s.schemaClient.FailChangeset(ctx, connect.NewRequest(c.Msg))
 	if err != nil {
-		return nil, fmt.Errorf("failed to fail changeset: %w", err)
+		return nil, errors.Wrap(err, "failed to fail changeset")
 	}
 	return connect.NewResponse(res.Msg), nil
 }
@@ -861,7 +861,7 @@ func (s *Service) StreamLogs(ctx context.Context, req *connect.Request[adminpb.S
 		Query: query,
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to get timeline: %w", err)
+		return errors.Wrap(err, "failed to get timeline")
 	}
 
 	for timeline.Receive() {
@@ -875,7 +875,7 @@ func (s *Service) StreamLogs(ctx context.Context, req *connect.Request[adminpb.S
 		if err := resp.Send(&adminpb.StreamLogsResponse{
 			Logs: logs,
 		}); err != nil {
-			return fmt.Errorf("failed to send logs: %w", err)
+			return errors.Wrap(err, "failed to send logs")
 		}
 	}
 	return nil
@@ -913,7 +913,7 @@ func (o *OnceValue[T]) Get(ctx context.Context) (T, bool) {
 func (s *Service) UpdateDeploymentRuntime(ctx context.Context, c *connect.Request[adminpb.UpdateDeploymentRuntimeRequest]) (*connect.Response[adminpb.UpdateDeploymentRuntimeResponse], error) {
 	_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{Update: c.Msg.Element}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to update deployment runtime: %w", err)
+		return nil, errors.Wrap(err, "failed to update deployment runtime")
 	}
 	return connect.NewResponse(&adminpb.UpdateDeploymentRuntimeResponse{}), nil
 }

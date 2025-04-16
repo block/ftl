@@ -5,7 +5,6 @@ package integration
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -18,17 +17,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jpillora/backoff"
-
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
+	"github.com/jpillora/backoff"
 	"github.com/otiai10/copy"
-	"k8s.io/client-go/kubernetes"
-
 	kubecore "k8s.io/api/core/v1"
 	kubemeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -331,7 +328,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			t.Helper()
 
 			ctx, done := context.WithCancelCause(ctx)
-			defer done(fmt.Errorf("test complete"))
+			defer done(errors.Errorf("test complete"))
 			tmpDir := initWorkDir(t, cwd, opts)
 
 			verbs := rpc.Dial(ftlv1connect.NewVerbServiceClient, "http://localhost:"+adminPort, log.Debug)
@@ -449,7 +446,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 func attemptToResetPubSub(admin sarama.ClusterAdmin) error {
 	groups, err := admin.ListConsumerGroups()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	for name := range groups {
 		if strings.HasPrefix(name, "_") {
@@ -457,12 +454,12 @@ func attemptToResetPubSub(admin sarama.ClusterAdmin) error {
 		}
 		err = admin.DeleteConsumerGroup(name)
 		if err != nil {
-			return fmt.Errorf("could not delete consumer group %s: %w", name, err)
+			return errors.Wrapf(err, "could not delete consumer group %s", name)
 		}
 	}
 	topics, err := admin.ListTopics()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	for name := range topics {
 		if strings.HasPrefix(name, "_") {
@@ -470,7 +467,7 @@ func attemptToResetPubSub(admin sarama.ClusterAdmin) error {
 		}
 		err = admin.DeleteTopic(name)
 		if err != nil {
-			return fmt.Errorf("could not delete topic %s: %w", name, err)
+			return errors.Wrapf(err, "could not delete topic %s", name)
 		}
 	}
 	return nil
@@ -570,7 +567,7 @@ func (i TestContext) runAssertionOnce(t testing.TB, assertion Action) (err error
 	defer func() {
 		switch r := recover().(type) {
 		case TestingError:
-			err = errors.New(string(r))
+			err = errors.WithStack(errors.New(string(r)))
 			fmt.Println(string(r))
 
 		case nil:
@@ -629,7 +626,7 @@ func startProcess(ctx context.Context, t testing.TB, tempDir string, devMode boo
 		select {
 		case <-terminated:
 		default:
-			cancel(fmt.Errorf("process terminated: %w", err))
+			cancel(errors.Wrap(err, "process terminated"))
 			assert.NoError(t, err)
 		}
 	}()
@@ -637,7 +634,7 @@ func startProcess(ctx context.Context, t testing.TB, tempDir string, devMode boo
 		close(terminated)
 		err := cmd.Kill(syscall.SIGTERM)
 		assert.NoError(t, err)
-		cancel(fmt.Errorf("test complete"))
+		cancel(errors.Errorf("test complete"))
 	})
 	return ctx
 }

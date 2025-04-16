@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/slices"
 )
 
@@ -385,7 +385,7 @@ func TestValidate(t *testing.T) {
 				topic subWithExistingDeadLetterFailed builtin.FailedEvent<test.eventB>
 				verb subWithExistingDeadLetter(test.eventA) Unit
 					+subscribe test.topicA from=beginning deadletter
-				
+
 				data subWithClashingDeadLetterFailed {}
 				verb subWithClashingDeadLetter(test.eventA) Unit
 					+subscribe topicA from=beginning deadletter
@@ -495,7 +495,7 @@ func TestValidate(t *testing.T) {
 				assert.NoError(t, err)
 			} else {
 				assert.Error(t, err, "expected errors:\n%v", strings.Join(test.errs, "\n"))
-				errs := slices.Map(errors.UnwrapAll(err), func(e error) string { return e.Error() })
+				errs := slices.Map(errors.UnwrapAllInnermost(err), func(e error) string { return e.Error() })
 				assert.Equal(t, test.errs, errs)
 			}
 		})
@@ -549,7 +549,7 @@ func TestValidateModuleWithSchema(t *testing.T) {
 			if test.errs == nil {
 				assert.NoError(t, err)
 			} else {
-				errs := slices.Map(errors.UnwrapAll(err), func(e error) string { return e.Error() })
+				errs := slices.Map(errors.UnwrapAllInnermost(err), func(e error) string { return e.Error() })
 				assert.Equal(t, test.errs, errs)
 			}
 		})

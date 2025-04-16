@@ -1,11 +1,11 @@
 package log
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/errors"
 	"github.com/benbjohnson/clock"
 )
 

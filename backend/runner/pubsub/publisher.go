@@ -2,10 +2,10 @@ package pubsub
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/IBM/sarama"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/runner/pubsub/observability"
@@ -32,20 +32,20 @@ type publisher struct {
 
 func newPublisher(module string, t *schema.Topic, deployment key.Deployment, timelineClient *timelineclient.Client) (*publisher, error) {
 	if t.Runtime == nil {
-		return nil, fmt.Errorf("topic %s has no runtime", t.Name)
+		return nil, errors.Errorf("topic %s has no runtime", t.Name)
 	}
 	if len(t.Runtime.KafkaBrokers) == 0 {
-		return nil, fmt.Errorf("topic %s has no Kafka brokers", t.Name)
+		return nil, errors.Errorf("topic %s has no Kafka brokers", t.Name)
 	}
 	if t.Runtime.TopicID == "" {
-		return nil, fmt.Errorf("topic %s has no topic ID", t.Name)
+		return nil, errors.Errorf("topic %s has no topic ID", t.Name)
 	}
 	config := sarama.NewConfig()
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
 	producer, err := sarama.NewSyncProducer(t.Runtime.KafkaBrokers, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create producer for topic %s: %w", t.Name, err)
+		return nil, errors.Wrapf(err, "failed to create producer for topic %s", t.Name)
 	}
 	return &publisher{
 		module:     module,
@@ -61,7 +61,7 @@ func (p *publisher) publish(ctx context.Context, data []byte, key string, caller
 	logger := log.FromContext(ctx)
 	requestKey, err := rpc.RequestKeyFromContext(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get request key: %w", err)
+		return errors.Wrap(err, "failed to get request key")
 	}
 	var requestKeyStr optional.Option[string]
 	if r, ok := requestKey.Get(); ok {
@@ -88,7 +88,7 @@ func (p *publisher) publish(ctx context.Context, data []byte, key string, caller
 	if err != nil {
 		timelineEvent.Error = optional.Some(err.Error())
 		logger.Errorf(err, "Failed to publish message to %s", p.topic.Name)
-		return fmt.Errorf("failed to publish message to %s: %w", p.topic.Name, err)
+		return errors.Wrapf(err, "failed to publish message to %s", p.topic.Name)
 	}
 	timelineEvent.Partition = int(partition)
 	timelineEvent.Offset = int(offset)

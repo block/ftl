@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 )
 
@@ -122,7 +123,7 @@ func (s Scopes) Push() Scopes {
 func (s *Scopes) Add(owner optional.Option[*Module], name string, symbol Symbol) error {
 	end := len(*s) - 1
 	if prev, ok := (*s)[end][name]; ok {
-		return fmt.Errorf("%s: duplicate declaration of %q at %s", symbol.Position(), name, prev.Symbol.Position())
+		return errors.Errorf("%s: duplicate declaration of %q at %s", symbol.Position(), name, prev.Symbol.Position())
 	}
 	(*s)[end][name] = ModuleDecl{owner, symbol}
 	return nil

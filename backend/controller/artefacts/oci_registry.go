@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -124,7 +124,7 @@ func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArte
 	}
 	puller, err := googleremote.NewPuller(googleremote.WithAuth(o))
 	if err != nil {
-		return nil, fmt.Errorf("unable to create puller for registry '%s': %w", config.Registry, err)
+		return nil, errors.Wrapf(err, "unable to create puller for registry '%s'", config.Registry)
 	}
 	o.puller = puller
 
@@ -132,7 +132,7 @@ func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArte
 
 		username, password, err := getECRCredentials(ctx)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		logger.Debugf("Using ECR credentials for registry '%s'", config.Registry)
 		o.auth.Store(authn.AuthConfig{Username: username, Password: password})
@@ -160,7 +160,7 @@ func getECRCredentials(ctx context.Context) (string, string, error) {
 	// Load AWS Config
 	cfg, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to load AWS config: %w", err)
+		return "", "", errors.Wrap(err, "failed to load AWS config")
 	}
 
 	// Create ECR client
@@ -168,21 +168,21 @@ func getECRCredentials(ctx context.Context) (string, string, error) {
 	// Get authorization token
 	resp, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get authorization token: %w", err)
+		return "", "", errors.Wrap(err, "failed to get authorization token")
 	}
 
 	if len(resp.AuthorizationData) == 0 {
-		return "", "", fmt.Errorf("no authorization data: %w", err)
+		return "", "", errors.Wrap(err, "no authorization data")
 	}
 	authData := resp.AuthorizationData[0]
 	token, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to decode auth token: %w", err)
+		return "", "", errors.Wrap(err, "failed to decode auth token")
 	}
 
 	splitToken := strings.SplitN(string(token), ":", 2)
 	if len(splitToken) != 2 {
-		return "", "", fmt.Errorf("failed to decode auth token due to invalid format: %w", err)
+		return "", "", errors.Wrap(err, "failed to decode auth token due to invalid format")
 	}
 
 	username := splitToken[0]
@@ -193,7 +193,7 @@ func getECRCredentials(ctx context.Context) (string, string, error) {
 func (s *OCIArtefactService) GetDigestsKeys(ctx context.Context, digests []sha256.SHA256) (keys []ArtefactKey, missing []sha256.SHA256, err error) {
 	repo, err := s.repoFactory()
 	if err != nil {
-		return nil, nil, fmt.Errorf("unable to connect to container registry '%s': %w", s.registry, err)
+		return nil, nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.registry)
 	}
 	set := make(map[sha256.SHA256]bool)
 	for _, d := range digests {
@@ -207,7 +207,7 @@ func (s *OCIArtefactService) GetDigestsKeys(ctx context.Context, digests []sha25
 			if errors.Is(err, errdef.ErrNotFound) {
 				continue
 			}
-			return nil, nil, fmt.Errorf("unable to resolve digest '%s': %w", d, err)
+			return nil, nil, errors.Wrapf(err, "unable to resolve digest '%s'", d)
 		}
 		keys = append(keys, ArtefactKey{Digest: d})
 		delete(set, d)
@@ -224,12 +224,12 @@ func (s *OCIArtefactService) Upload(ctx context.Context, artefact ArtefactUpload
 	repo, err := s.repoFactory()
 	logger := log.FromContext(ctx).Scope("oci:" + artefact.Digest.String())
 	if err != nil {
-		return fmt.Errorf("unable to connect to repository '%s': %w", s.registry, err)
+		return errors.Wrapf(err, "unable to connect to repository '%s'", s.registry)
 	}
 
 	parseSHA256, err := sha256.ParseSHA256(artefact.Digest.String())
 	if err != nil {
-		return fmt.Errorf("unable to parse sha %w", err)
+		return errors.Wrap(err, "unable to parse sh")
 	}
 
 	logger.Debugf("Pushing artefact blob")
@@ -240,7 +240,7 @@ func (s *OCIArtefactService) Upload(ctx context.Context, artefact ArtefactUpload
 	}
 	err = repo.Push(ctx, contentDesc, artefact.Content)
 	if err != nil {
-		return fmt.Errorf("unable to push to in memory repository %w", err)
+		return errors.Wrap(err, "unable to push to in memory repositor")
 	}
 
 	tag := contentDesc.Digest.Hex()
@@ -252,23 +252,23 @@ func (s *OCIArtefactService) Upload(ctx context.Context, artefact ArtefactUpload
 	config.Labels = map[string]string{"type": "ftl-artifact"}
 	configBlob, err := json.Marshal(config) // Marshal the config to json
 	if err != nil {
-		return fmt.Errorf("unable to marshal OCI image config: %w", err)
+		return errors.Wrap(err, "unable to marshal OCI image config")
 	}
 	configDesc, err := pushBlob(ctx, ocispec.MediaTypeImageConfig, configBlob, repo) // push config blob
 	if err != nil {
-		return fmt.Errorf("unable to push OCI image config to OCI registry: %w", err)
+		return errors.Wrap(err, "unable to push OCI image config to OCI registry")
 	}
 
 	manifestBlob, err := generateManifestContent(configDesc, fileDescriptors...)
 	if err != nil {
-		return fmt.Errorf("unable to generate manifest content: %w", err)
+		return errors.Wrap(err, "unable to generate manifest content")
 	}
 	manifestDesc, err := pushBlob(ctx, ocispec.MediaTypeImageManifest, manifestBlob, repo) // push manifest blob
 	if err != nil {
-		return fmt.Errorf("unable to push manifest to OCI registry: %w", err)
+		return errors.Wrap(err, "unable to push manifest to OCI registry")
 	}
 	if err = repo.Tag(ctx, manifestDesc, tag); err != nil {
-		return fmt.Errorf("unable to tag OCI registry: %w", err)
+		return errors.Wrap(err, "unable to tag OCI registry")
 	}
 
 	return nil
@@ -284,16 +284,16 @@ func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io
 	}
 	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", s.registry, dg.String()), opts...)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create digest '%s': %w", dg, err)
+		return nil, errors.Wrapf(err, "unable to create digest '%s'", dg)
 	}
 	auth := s.auth.Load()
 	layer, err := googleremote.Layer(newDigest, googleremote.WithAuth(authn.FromConfig(auth)), googleremote.Reuse(s.puller))
 	if err != nil {
-		return nil, fmt.Errorf("unable to read layer '%s': %w", newDigest, err)
+		return nil, errors.Wrapf(err, "unable to read layer '%s'", newDigest)
 	}
 	uncompressed, err := layer.Uncompressed()
 	if err != nil {
-		return nil, fmt.Errorf("unable to read uncompressed layer '%s': %w", newDigest, err)
+		return nil, errors.Wrapf(err, "unable to read uncompressed layer '%s'", newDigest)
 	}
 	return uncompressed, nil
 }
@@ -301,7 +301,7 @@ func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io
 func (s *OCIArtefactService) repoFactory() (*remote.Repository, error) {
 	reg, err := remote.NewRepository(s.registry)
 	if err != nil {
-		return nil, fmt.Errorf("unable to connect to container registry '%s': %w", s.registry, err)
+		return nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.registry)
 	}
 
 	a := s.auth.Load()
@@ -328,7 +328,7 @@ func pushBlob(ctx context.Context, mediaType string, blob []byte, target oras.Ta
 	}
 	err = target.Push(ctx, desc, bytes.NewReader(blob)) // Push the blob to the registry target
 	if err != nil {
-		return desc, fmt.Errorf("unable to push blob: %w", err)
+		return desc, errors.Wrap(err, "unable to push blob")
 	}
 	return desc, nil
 }
@@ -341,7 +341,7 @@ func generateManifestContent(config ocispec.Descriptor, layers ...ocispec.Descri
 	}
 	json, err := json.Marshal(content)
 	if err != nil {
-		return nil, fmt.Errorf("unable to marshal manifest content: %w", err)
+		return nil, errors.Wrap(err, "unable to marshal manifest content")
 	}
 	return json, nil // Get json content
 }

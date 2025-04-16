@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -32,12 +32,12 @@ func (d *deployCmd) Run(
 	// Cancel build engine context to ensure all language plugins are killed.
 	if d.Timeout > 0 {
 		var cancel context.CancelFunc //nolint: forbidigo
-		ctx, cancel = context.WithTimeoutCause(ctx, d.Timeout, fmt.Errorf("terminating deploy due to timeout of %s", d.Timeout))
+		ctx, cancel = context.WithTimeoutCause(ctx, d.Timeout, errors.Errorf("terminating deploy due to timeout of %s", d.Timeout))
 		defer cancel()
 	} else {
 		var cancel context.CancelCauseFunc
 		ctx, cancel = context.WithCancelCause(ctx)
-		defer cancel(fmt.Errorf("stopping deploy: %w", context.Canceled))
+		defer cancel(errors.Wrap(context.Canceled, "stopping deploy"))
 	}
 	engine, err := buildengine.New(
 		ctx, adminClient, schemaSource, projConfig, d.Build.Dirs, true,
@@ -45,7 +45,7 @@ func (d *deployCmd) Run(
 		buildengine.Parallelism(d.Build.Parallelism),
 	)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if len(engine.Modules()) == 0 {
 		logger.Warnf("No modules were found to deploy")
@@ -53,7 +53,7 @@ func (d *deployCmd) Run(
 	}
 	err = engine.BuildAndDeploy(ctx, d.Replicas, !d.NoWait, true)
 	if err != nil {
-		return fmt.Errorf("failed to deploy: %w", err)
+		return errors.Wrap(err, "failed to deploy")
 	}
 	logger.Infof("Deployed modules %v", engine.Modules()) //nolint
 	terminal.FromContext(ctx).Close()

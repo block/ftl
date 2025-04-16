@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/either"
 
-	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/schema"
 	cf "github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
@@ -30,7 +30,7 @@ func NewLocalClient(projConfig projectconfig.Config, cm *manager.Manager[cf.Conf
 func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, error) {
 	modules, err := watch.DiscoverModules(ctx, s.projConfig.AbsModuleDirs())
 	if err != nil {
-		return nil, fmt.Errorf("could not discover modules: %w", err)
+		return nil, errors.Wrap(err, "could not discover modules")
 	}
 
 	moduleSchemas := make(chan either.Either[*schema.Module, error], 32)
@@ -40,7 +40,7 @@ func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, er
 		go func() {
 			module, err := schema.ModuleFromProtoFile(s.projConfig.SchemaPath(m.Module))
 			if err != nil {
-				moduleSchemas <- either.RightOf[*schema.Module](fmt.Errorf("could not load module schema: %w", err))
+				moduleSchemas <- either.RightOf[*schema.Module](errors.Wrap(err, "could not load module schema"))
 				return
 			}
 			moduleSchemas <- either.LeftOf[error](module)
@@ -64,7 +64,7 @@ func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, er
 		}
 	}
 	if len(errs) > 0 {
-		return nil, errors.Join(errs...)
+		return nil, errors.WithStack(errors.Join(errs...))
 	}
 	return sch, nil
 }

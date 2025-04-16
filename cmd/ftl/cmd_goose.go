@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -48,7 +49,7 @@ func resetGooseSession(projectConfig projectconfig.Config) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("failed to remove Goose logs: %w", err)
+		return errors.Wrap(err, "failed to remove Goose logs")
 	}
 	return nil
 }
@@ -80,23 +81,23 @@ func (c *gooseChatCmd) Run(ctx context.Context, projectConfig projectconfig.Conf
 		wg.Go(func() error {
 			var err error
 			docs, err = downloadDocs(ctx)
-			return err
+			return errors.WithStack(err)
 		})
 		wg.Go(func() error {
 			var err error
 			statusObj, err := mcp.GetStatusOutput(ctx, buildEngineClient, adminClient)
 			if err != nil {
-				return fmt.Errorf("failed to get status: %w", err)
+				return errors.Wrap(err, "failed to get status")
 			}
 			statusBytes, err := json.Marshal(statusObj)
 			if err != nil {
-				return fmt.Errorf("failed to marshal status: %w", err)
+				return errors.Wrap(err, "failed to marshal status")
 			}
 			status = string(statusBytes)
 			return nil
 		})
 		if err := wg.Wait(); err != nil {
-			return err //nolint:wrapcheck
+			return errors.WithStack(err) //nolint:wrapcheck
 		}
 
 		// Run introduction instructions
@@ -136,7 +137,7 @@ func (c *gooseChatCmd) Run(ctx context.Context, projectConfig projectconfig.Conf
 	cmd.Stderr = out
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("goose failed: %w", err)
+		return errors.Wrap(err, "goose failed")
 	}
 	return nil
 }
@@ -144,22 +145,22 @@ func (c *gooseChatCmd) Run(ctx context.Context, projectConfig projectconfig.Conf
 func downloadDocs(ctx context.Context) ([]string, error) {
 	baseReq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/repos/block/ftl/contents/docs/docs/reference", nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, errors.Wrap(err, "failed to create request")
 	}
 	resp, err := http.DefaultClient.Do(baseReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch docs: %w", err)
+		return nil, errors.Wrap(err, "failed to fetch docs")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch docs: status code %d", resp.StatusCode)
+		return nil, errors.Errorf("failed to fetch docs: status code %d", resp.StatusCode)
 	}
 
 	var referenceList []map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&referenceList)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode response body: %w", err)
+		return nil, errors.Wrap(err, "failed to decode response body")
 	}
 
 	errGroup := &errgroup.Group{}
@@ -172,25 +173,25 @@ func downloadDocs(ctx context.Context) ([]string, error) {
 		errGroup.Go(func() error {
 			urlPath, ok := i["download_url"].(string)
 			if !ok {
-				return fmt.Errorf("failed to parse response: %v", i)
+				return errors.Errorf("failed to parse response: %v", i)
 			}
 			contentReq, err := http.NewRequestWithContext(ctx, http.MethodGet, urlPath, nil)
 			if err != nil {
-				return fmt.Errorf("failed to create request: %w", err)
+				return errors.Wrap(err, "failed to create request")
 			}
 			contentResp, err := http.DefaultClient.Do(contentReq)
 			if err != nil {
-				return fmt.Errorf("failed to fetch doc: %w", err)
+				return errors.Wrap(err, "failed to fetch doc")
 			}
 			defer contentResp.Body.Close()
 
 			if contentResp.StatusCode != http.StatusOK {
-				return fmt.Errorf("failed to fetch doc %s: status code %d", urlPath, contentResp.StatusCode)
+				return errors.Errorf("failed to fetch doc %s: status code %d", urlPath, contentResp.StatusCode)
 			}
 
 			body, err := io.ReadAll(contentResp.Body)
 			if err != nil {
-				return fmt.Errorf("failed to read doc body: %w", err)
+				return errors.Wrap(err, "failed to read doc body")
 			}
 
 			pages <- string(body)
@@ -199,7 +200,7 @@ func downloadDocs(ctx context.Context) ([]string, error) {
 	}
 
 	if err := errGroup.Wait(); err != nil {
-		return nil, fmt.Errorf("failed to fetch docs: %w", err)
+		return nil, errors.Wrap(err, "failed to fetch docs")
 	}
 	pagesSlice := make([]string, 0, len(referenceList))
 	close(pages)
@@ -228,7 +229,7 @@ func downloadDocs(ctx context.Context) ([]string, error) {
 func getGoRuntimeDocs(ctx context.Context) (string, error) {
 	output, err := exec.Capture(ctx, ".", "go", "doc", "github.com/block/ftl/go-runtime/ftl")
 	if err != nil {
-		return "", fmt.Errorf("failed to get Go runtime docs: %w", err)
+		return "", errors.Wrap(err, "failed to get Go runtime docs")
 	}
 	return string(output), nil
 }

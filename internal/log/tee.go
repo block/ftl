@@ -1,7 +1,7 @@
 package log
 
 import (
-	"errors"
+	errors "github.com/alecthomas/errors"
 )
 
 // Tee returns a sink that writes to all of the given sinks.
@@ -21,7 +21,7 @@ func (t *tee) Log(entry Entry) error {
 		}
 	}
 	if len(errs) > 0 {
-		return errors.Join(errs...)
+		return errors.WithStack(errors.Join(errs...))
 	}
 	return nil
 }

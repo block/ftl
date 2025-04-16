@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 
 	timelinev1 "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
@@ -37,11 +37,11 @@ func (c *replayCmd) Run(
 	startTime := time.Now()
 
 	if err := rpc.Wait(ctx, backoff.Backoff{Max: time.Second * 2}, c.Wait, verbClient); err != nil {
-		return fmt.Errorf("failed to wait for client: %w", err)
+		return errors.Wrap(err, "failed to wait for client")
 	}
 
 	if err := rpc.Wait(ctx, backoff.Backoff{Max: time.Second * 2}, c.Wait-time.Since(startTime), timelineClient); err != nil {
-		return fmt.Errorf("failed to wait for console service client: %w", err)
+		return errors.Wrap(err, "failed to wait for console service client")
 	}
 
 	logger := log.FromContext(ctx)
@@ -65,9 +65,9 @@ func (c *replayCmd) Run(
 		suggestions, err := findSuggestions(ctx, eventSource, c.Verb)
 		// if we have suggestions, return a helpful error message. otherwise continue to the original error
 		if err == nil {
-			return fmt.Errorf("verb not found: %s\n\nDid you mean one of these?\n%s", c.Verb, strings.Join(suggestions, "\n"))
+			return errors.Errorf("verb not found: %s\n\nDid you mean one of these?\n%s", c.Verb, strings.Join(suggestions, "\n"))
 		}
-		return fmt.Errorf("verb not found: %s", c.Verb)
+		return errors.Errorf("verb not found: %s", c.Verb)
 	}
 
 	events, err := timelineClient.GetTimeline(ctx, connect.NewRequest(&timelinev1.GetTimelineRequest{
@@ -93,10 +93,10 @@ func (c *replayCmd) Run(
 		},
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to get events: %w", err)
+		return errors.Wrap(err, "failed to get events")
 	}
 	if len(events.Msg.GetEvents()) == 0 {
-		return fmt.Errorf("no events found for %v", c.Verb)
+		return errors.Errorf("no events found for %v", c.Verb)
 	}
 	requestJSON := events.Msg.GetEvents()[0].GetCall().Request
 
@@ -109,5 +109,5 @@ func (c *replayCmd) Run(
 		ConsoleEndpoint: c.ConsoleEndpoint,
 		Verbose:         c.Verbose,
 	}
-	return callVerb(ctx, verbClient, eventSource, c.Verb, []byte(requestJSON), c.Verbose, cmd)
+	return errors.WithStack(callVerb(ctx, verbClient, eventSource, c.Verb, []byte(requestJSON), c.Verbose, cmd))
 }

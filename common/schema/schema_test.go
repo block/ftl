@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/exp/maps"
 
-	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
 )
@@ -20,10 +20,10 @@ func TestIndent(t *testing.T) {
 
 func TestSchemaString(t *testing.T) {
 	expected := `
-realm foo {  
+realm foo {
 ` + Builtins().String() +
 		`
-		
+
   // A comment
   module todo {
     +git "https://github/com/fake" "1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167"
@@ -289,7 +289,7 @@ Module
 		fmt.Fprintf(actual, "%s%s\n", prefix, TypeName(n))
 		i += 2
 		defer func() { i -= 2 }()
-		return next()
+		return errors.WithStack(next())
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(actual.String()))
@@ -831,7 +831,7 @@ realm foo {
 			if test.errors != nil {
 				assert.Error(t, err, "expected errors")
 				actual := []string{}
-				errs := errors.UnwrapAll(err)
+				errs := errors.UnwrapAllInnermost(err)
 				for _, err := range errs {
 					if errors.Innermost(err) {
 						actual = append(actual, err.Error())

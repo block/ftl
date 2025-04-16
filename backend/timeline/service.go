@@ -2,14 +2,13 @@ package timeline
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"iter"
 	"sort"
 	"sync"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
@@ -53,7 +52,7 @@ func New(ctx context.Context, config Config) (*Service, error) {
 	ctx = log.ContextWithLogger(ctx, logger)
 	svc, err := newService(ctx, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create timeline Service: %w", err)
+		return nil, errors.Wrap(err, "failed to create timeline service")
 	}
 
 	return svc, nil
@@ -88,7 +87,7 @@ func (s *Service) CreateEvents(ctx context.Context, req *connect.Request[timelin
 
 	for _, entry := range entries {
 		if entry.Timestamp == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("timestamp is required"))
+			return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.New("timestamp is required")))
 		}
 		event := &timelinepb.Event{
 			Id:        int64(s.nextID),
@@ -146,7 +145,7 @@ func (s *Service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 	ascending := isAscending(req.Msg.Query)
 	fctx := filtersFromQuery(req.Msg.Query)
 	if req.Msg.Query.Limit == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
+		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0")))
 	}
 	// Get 1 more than the requested limit to determine if there are more results.
 	limit := int(req.Msg.Query.Limit)
@@ -220,7 +219,7 @@ func (s *Service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 	}
 
 	if query.Limit == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0"))
+		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0")))
 	}
 
 	first := true
@@ -238,7 +237,7 @@ func (s *Service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 				Filters: query.Filters,
 			}}))
 			if err != nil {
-				yield(result.Err[*timelinepb.StreamTimelineResponse](fmt.Errorf("failed to get timeline: %w", err)))
+				yield(result.Err[*timelinepb.StreamTimelineResponse](errors.Wrap(err, "failed to get timeline")))
 				return
 			}
 			events = resp.Msg.Events
@@ -265,7 +264,7 @@ func (s *Service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 
 			resp, err := s.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{Query: newQuery}))
 			if err != nil {
-				yield(result.Err[*timelinepb.StreamTimelineResponse](fmt.Errorf("failed to get timeline: %w", err)))
+				yield(result.Err[*timelinepb.StreamTimelineResponse](errors.Wrap(err, "failed to get timeline")))
 				return
 			}
 
@@ -307,11 +306,11 @@ func updatedMaxEventID(events []*timelinepb.Event, prevMaxEventID optional.Optio
 func (s *Service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
 	iter, err := s.streamTimelineIter(ctx, req.Msg)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := rpc.IterAsGrpc(iter, stream); err != nil {
-		return fmt.Errorf("failed to stream timeline: %w", err)
+		return errors.Wrap(err, "failed to stream timeline")
 	}
 	return nil
 }

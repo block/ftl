@@ -2,8 +2,9 @@ package deploymentcontext
 
 import (
 	"context"
-	"fmt"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/encoding"
 )
@@ -20,7 +21,7 @@ func DatabasesFromSecrets(ctx context.Context, module string, secrets map[string
 		// FTL_DSN_<MODULE>_<DBNAME>
 		parts := strings.Split(sName, "_")
 		if len(parts) != 4 {
-			return nil, fmt.Errorf("invalid DSN secret key %q should have format FTL_DSN_<MODULE>_<DBNAME>", sName)
+			return nil, errors.Errorf("invalid DSN secret key %q should have format FTL_DSN_<MODULE>_<DBNAME>", sName)
 		}
 		moduleName := strings.ToLower(parts[2])
 		dbName := strings.ToLower(parts[3])
@@ -29,11 +30,11 @@ func DatabasesFromSecrets(ctx context.Context, module string, secrets map[string
 		}
 		var dsn string
 		if err := encoding.Unmarshal(maybeDSN, &dsn); err != nil {
-			return nil, fmt.Errorf("could not unmarshal DSN %q: %w", maybeDSN, err)
+			return nil, errors.Wrapf(err, "could not unmarshal DSN %q", maybeDSN)
 		}
 		db, err := NewDatabase(types[dbName], dsn)
 		if err != nil {
-			return nil, fmt.Errorf("could not create database %q with DSN %q: %w", dbName, maybeDSN, err)
+			return nil, errors.Wrapf(err, "could not create database %q with DSN %q", dbName, maybeDSN)
 		}
 		databases[dbName] = db
 	}

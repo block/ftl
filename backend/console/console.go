@@ -3,12 +3,11 @@ package console
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/url"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/errors"
 
 	ftlversion "github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
@@ -74,7 +73,7 @@ func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
 
 	consoleHandler, err := frontend.Server(ctx, s.config.ContentTime, s.bind)
 	if err != nil {
-		return nil, fmt.Errorf("could not start console: %w", err)
+		return nil, errors.Wrap(err, "could not start console")
 	}
 	logger.Infof("Web console available at: %s", s.bind) //nolint
 
@@ -89,34 +88,34 @@ func (s *Service) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*c
 }
 
 func visitNode(sch *schema.Schema, n schema.Node, verbString *string) error {
-	return schema.Visit(n, func(n schema.Node, next func() error) error {
+	return errors.WithStack(schema.Visit(n, func(n schema.Node, next func() error) error {
 		switch n := n.(type) {
 		case *schema.Ref:
 			if decl, ok := sch.Resolve(n).Get(); ok {
 				*verbString += decl.String() + "\n\n"
 				err := visitNode(sch, decl, verbString)
 				if err != nil {
-					return err
+					return errors.WithStack(err)
 				}
 			}
 
 		default:
 		}
-		return next()
-	})
+		return errors.WithStack(next())
+	}))
 }
 
 func verbSchemaString(sch *schema.Schema, verb *schema.Verb) (string, error) {
 	var verbString string
 	err := visitNode(sch, verb.Request, &verbString)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	// Don't print the response if it's the same as the request.
 	if !verb.Response.Equal(verb.Request) {
 		err = visitNode(sch, verb.Response, &verbString)
 		if err != nil {
-			return "", err
+			return "", errors.WithStack(err)
 		}
 	}
 	verbString += verb.String()
@@ -143,7 +142,7 @@ func (s *Service) GetModules(ctx context.Context, req *connect.Request[consolepb
 			case *schema.Verb:
 				verb, err := verbFromDecl(decl, sch, mod.Name)
 				if err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 				verbs = append(verbs, verb)
 
@@ -173,7 +172,7 @@ func (s *Service) GetModules(ctx context.Context, req *connect.Request[consolepb
 
 	sorted, err := buildengine.TopologicalSort(graph(sch))
 	if err != nil {
-		return nil, fmt.Errorf("failed to sort modules: %w", err)
+		return nil, errors.Wrap(err, "failed to sort modules")
 	}
 	topology := &consolepb.Topology{
 		Levels: make([]*consolepb.TopologyGroup, len(sorted)),
@@ -284,11 +283,11 @@ func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string) (*consol
 		if requestData, ok := decl.Request.(*schema.Ref); ok {
 			jsonSchema, err := schema.RequestResponseToJSONSchema(sch, *requestData)
 			if err != nil {
-				return nil, fmt.Errorf("failed to retrieve JSON schema: %w", err)
+				return nil, errors.Wrap(err, "failed to retrieve JSON schema")
 			}
 			jsonData, err := json.MarshalIndent(jsonSchema, "", "  ")
 			if err != nil {
-				return nil, fmt.Errorf("failed to indent JSON schema: %w", err)
+				return nil, errors.Wrap(err, "failed to indent JSON schema")
 			}
 			jsonRequestSchema = string(jsonData)
 		}
@@ -296,7 +295,7 @@ func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string) (*consol
 
 	schemaString, err := verbSchemaString(sch, decl)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &consolepb.Verb{
 		Verb:              v,
@@ -309,7 +308,7 @@ func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string) (*consol
 func moduleFromDeployment(deployment *schema.Module, sch *schema.Schema) (*consolepb.Module, error) {
 	module, err := moduleFromDecls(deployment.Decls, sch, deployment.Name)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	module.Name = deployment.Name
@@ -360,7 +359,7 @@ func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string) (*c
 		case *schema.Verb:
 			verb, err := verbFromDecl(decl, sch, module)
 			if err != nil {
-				return nil, err
+				return nil, errors.WithStack(err)
 			}
 			verbs = append(verbs, verb)
 		}
@@ -381,14 +380,14 @@ func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string) (*c
 func (s *Service) StreamModules(ctx context.Context, req *connect.Request[consolepb.StreamModulesRequest], stream *connect.ServerStream[consolepb.StreamModulesResponse]) error {
 	err := s.sendStreamModulesResp(stream)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	events := s.schemaEventSource.Subscribe(ctx)
 	for range channels.IterContext(ctx, events) {
 		err = s.sendStreamModulesResp(stream)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	return nil
@@ -437,7 +436,7 @@ func (s *Service) sendStreamModulesResp(stream *connect.ServerStream[consolepb.S
 	// Get topology
 	sorted, err := buildengine.TopologicalSort(graph(sch))
 	if err != nil {
-		return fmt.Errorf("failed to sort modules: %w", err)
+		return errors.Wrap(err, "failed to sort modules")
 	}
 	topology := &consolepb.Topology{
 		Levels: make([]*consolepb.TopologyGroup, len(sorted)),
@@ -456,14 +455,14 @@ func (s *Service) sendStreamModulesResp(stream *connect.ServerStream[consolepb.S
 		}
 		module, err := moduleFromDeployment(deployment, sch)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		modules = append(modules, module)
 	}
 
 	builtinModule, err := moduleFromDecls(builtin.Decls, sch, builtin.Name)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	builtinModule.Name = builtin.Name
 	builtinModule.Schema = builtin.String()
@@ -475,7 +474,7 @@ func (s *Service) sendStreamModulesResp(stream *connect.ServerStream[consolepb.S
 		Topology: topology,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to send StreamModulesResponse to stream: %w", err)
+		return errors.Wrap(err, "failed to send StreamModulesResponse to stream")
 	}
 
 	return nil
@@ -514,7 +513,7 @@ func (s *Service) GetConfig(ctx context.Context, req *connect.Request[consolepb.
 		},
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config: %w", err)
+		return nil, errors.Wrap(err, "failed to get config")
 	}
 	return connect.NewResponse(&consolepb.GetConfigResponse{
 		Value: resp.Msg.Value,
@@ -530,7 +529,7 @@ func (s *Service) SetConfig(ctx context.Context, req *connect.Request[consolepb.
 		Value: req.Msg.Value,
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to set config: %w", err)
+		return nil, errors.Wrap(err, "failed to set config")
 	}
 	return connect.NewResponse(&consolepb.SetConfigResponse{}), nil
 }
@@ -543,7 +542,7 @@ func (s *Service) GetSecret(ctx context.Context, req *connect.Request[consolepb.
 		},
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get secret: %w", err)
+		return nil, errors.Wrap(err, "failed to get secret")
 	}
 	return connect.NewResponse(&consolepb.GetSecretResponse{
 		Value: resp.Msg.Value,
@@ -559,7 +558,7 @@ func (s *Service) SetSecret(ctx context.Context, req *connect.Request[consolepb.
 		Value: req.Msg.Value,
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to set secret: %w", err)
+		return nil, errors.Wrap(err, "failed to set secret")
 	}
 
 	return connect.NewResponse(&consolepb.SetSecretResponse{}), nil
@@ -568,7 +567,7 @@ func (s *Service) SetSecret(ctx context.Context, req *connect.Request[consolepb.
 func (s *Service) GetTimeline(ctx context.Context, req *connect.Request[timelinepb.GetTimelineRequest]) (*connect.Response[timelinepb.GetTimelineResponse], error) {
 	resp, err := s.timelineClient.GetTimeline(ctx, connect.NewRequest(req.Msg))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get timeline from Service: %w", err)
+		return nil, errors.Wrap(err, "failed to get timeline from service")
 	}
 	return connect.NewResponse(resp.Msg), nil
 }
@@ -576,18 +575,18 @@ func (s *Service) GetTimeline(ctx context.Context, req *connect.Request[timeline
 func (s *Service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], out *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
 	stream, err := s.timelineClient.StreamTimeline(ctx, connect.NewRequest(req.Msg))
 	if err != nil {
-		return fmt.Errorf("failed to stream timeline from Service: %w", err)
+		return errors.Wrap(err, "failed to stream timeline from service")
 	}
 	defer stream.Close()
 	for stream.Receive() {
 		msg := stream.Msg()
 		err = out.Send(msg)
 		if err != nil {
-			return fmt.Errorf("failed to send message: %w", err)
+			return errors.Wrap(err, "failed to send message")
 		}
 	}
 	if stream.Err() != nil {
-		return fmt.Errorf("error streaming timeline from Service: %w", stream.Err())
+		return errors.Wrap(stream.Err(), "error streaming timeline from service")
 	}
 	return nil
 }
@@ -595,16 +594,16 @@ func (s *Service) StreamTimeline(ctx context.Context, req *connect.Request[timel
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
 	ref, err := schema.RefFromProto(req.Msg.Verb)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse verb: %w", err)
+		return nil, errors.Wrap(err, "failed to parse verb")
 	}
 
 	if err := schema.ValidateJSONCall(req.Msg.Body, ref, s.schemaEventSource.CanonicalView()); err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
+		return nil, errors.Wrap(err, "invalid request")
 	}
 
 	resp, err := s.callClient.Call(ctx, connect.NewRequest(req.Msg))
 	if err != nil {
-		return nil, fmt.Errorf("failed to call verb: %w", err)
+		return nil, errors.Wrap(err, "failed to call verb")
 	}
 	return connect.NewResponse(resp.Msg), nil
 }
@@ -615,19 +614,19 @@ func (s *Service) StreamEngineEvents(ctx context.Context, req *connect.Request[b
 		ReplayHistory: req.Msg.ReplayHistory,
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to start build events stream: %w", err)
+		return errors.Wrap(err, "failed to start build events stream")
 	}
 
 	for engineEvents.Receive() {
 		msg := engineEvents.Msg()
 		err = stream.Send(msg)
 		if err != nil {
-			return fmt.Errorf("failed to send message: %w", err)
+			return errors.Wrap(err, "failed to send message")
 		}
 	}
 
 	if err := engineEvents.Err(); err != nil {
-		return fmt.Errorf("error streaming build events: %w", err)
+		return errors.Wrap(err, "error streaming build events")
 	}
 	return nil
 }
@@ -641,7 +640,7 @@ func (s *Service) GetInfo(ctx context.Context, _ *connect.Request[consolepb.GetI
 
 func (s *Service) ExecuteGoose(ctx context.Context, req *connect.Request[consolepb.ExecuteGooseRequest], stream *connect.ServerStream[consolepb.ExecuteGooseResponse]) error {
 	if req.Msg.Prompt == "" {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("prompt cannot be empty"))
+		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.New("prompt cannot be empty")))
 	}
 
 	logger := log.FromContext(ctx).Scope("console")
@@ -667,7 +666,7 @@ func (s *Service) ExecuteGoose(ctx context.Context, req *connect.Request[console
 		}
 	})
 	if err != nil {
-		return fmt.Errorf("failed to execute goose: %w", err)
+		return errors.Wrap(err, "failed to execute goose")
 	}
 	return nil
 }

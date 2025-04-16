@@ -3,7 +3,6 @@ package provisioner
 import (
 	"archive/tar"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/amacneil/dbmate/v2/pkg/dbmate"
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/mysql"
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"
@@ -41,20 +41,20 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 
 		db, ok := resource.(*schema.Database)
 		if !ok {
-			return nil, fmt.Errorf("expected database, got %T", resource)
+			return nil, errors.Errorf("expected database, got %T", resource)
 		}
 		for migration := range slices.FilterVariants[*schema.MetadataSQLMigration](db.Metadata) {
 			parseSHA256, err := sha256.ParseSHA256(migration.Digest)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse digest %w", err)
+				return nil, errors.Wrap(err, "failed to parse diges")
 			}
 			download, err := storage.Download(ctx, parseSHA256)
 			if err != nil {
-				return nil, fmt.Errorf("failed to download migration: %w", err)
+				return nil, errors.Wrap(err, "failed to download migration")
 			}
 			dir, err := extractTarToTempDir(download)
 			if err != nil {
-				return nil, fmt.Errorf("failed to extract tar: %w", err)
+				return nil, errors.Wrap(err, "failed to extract tar")
 			}
 			d := ""
 
@@ -65,13 +65,13 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 				defer cancel(nil)
 				host, port, err := dsn.ConnectorPGProxy(dctx, db.Runtime.Connections.Write)
 				if err != nil {
-					return nil, fmt.Errorf("failed to create postgres proxy: %w", err)
+					return nil, errors.Wrap(err, "failed to create postgres proxy")
 				}
 
 				// the correct db name needs to be in dsn for dbmate to work correctly, even if the proxy does not need it.
 				dbName, err := dsn.PostgresDBName(db.Runtime.Connections.Write)
 				if err != nil {
-					return nil, fmt.Errorf("failed to resolve postgres config: %w", err)
+					return nil, errors.Wrap(err, "failed to resolve postgres config")
 				}
 
 				d = dsn.PostgresDSN(dbName, dsn.Host(host), dsn.Port(port))
@@ -82,12 +82,12 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 				defer cancel(nil)
 				host, port, err := dsn.ConnectorMySQLProxy(dctx, db.Runtime.Connections.Write)
 				if err != nil {
-					return nil, fmt.Errorf("failed to create mysql proxy: %w", err)
+					return nil, errors.Wrap(err, "failed to create mysql proxy")
 				}
 
 				dbName, err := dsn.MySQLDBName(db.Runtime.Connections.Write)
 				if err != nil {
-					return nil, fmt.Errorf("failed to resolve mysql config: %w", err)
+					return nil, errors.Wrap(err, "failed to resolve mysql config")
 				}
 
 				d = fmt.Sprintf("mysql://%s:%d/%s", host, port, dbName)
@@ -96,7 +96,7 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 
 			u, err := url.Parse(d)
 			if err != nil {
-				return nil, fmt.Errorf("invalid DSN: %w", err)
+				return nil, errors.Wrap(err, "invalid DSN")
 			}
 
 			dbm := dbmate.New(u)
@@ -105,7 +105,7 @@ func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceP
 			dbm.MigrationsDir = []string{dir}
 			err = dbm.CreateAndMigrate()
 			if err != nil {
-				return nil, fmt.Errorf("failed to create and migrate database: %w", err)
+				return nil, errors.Wrap(err, "failed to create and migrate database")
 			}
 			logger := log.FromContext(ctx)
 			logger.Debugf("Provisioned SQL migration for: %s.%s", deployment.String(), db.Name)
@@ -118,11 +118,11 @@ func RunMySQLMigration(ctx context.Context, dsn string, moduleDir string, name s
 	// strip the tcp part
 	exp := regexp.MustCompile(`tcp\((.*?)\)`)
 	dsn = exp.ReplaceAllString(dsn, "$1")
-	return runDBMateMigration(ctx, "mysql://"+dsn, moduleDir, name, "mysql")
+	return errors.WithStack(runDBMateMigration(ctx, "mysql://"+dsn, moduleDir, name, "mysql"))
 }
 
 func RunPostgresMigration(ctx context.Context, dsn string, moduleDir string, name string) error {
-	return runDBMateMigration(ctx, dsn, moduleDir, name, "postgres")
+	return errors.WithStack(runDBMateMigration(ctx, dsn, moduleDir, name, "postgres"))
 }
 
 func runDBMateMigration(ctx context.Context, dsn string, moduleDir string, name string, engine string) error {
@@ -134,7 +134,7 @@ func runDBMateMigration(ctx context.Context, dsn string, moduleDir string, name 
 
 	u, err := url.Parse(dsn)
 	if err != nil {
-		return fmt.Errorf("invalid DSN: %w", err)
+		return errors.Wrap(err, "invalid DSN")
 	}
 
 	db := dbmate.New(u)
@@ -143,7 +143,7 @@ func runDBMateMigration(ctx context.Context, dsn string, moduleDir string, name 
 	db.MigrationsDir = []string{migrationDir}
 	err = db.CreateAndMigrate()
 	if err != nil {
-		return fmt.Errorf("failed to create and migrate database: %w", err)
+		return errors.Wrap(err, "failed to create and migrate database")
 	}
 	return nil
 }
@@ -155,7 +155,7 @@ func extractTarToTempDir(tarReader io.Reader) (tempDir string, err error) {
 	// Create a temporary directory
 	tempDir, err = os.MkdirTemp("", "extracted")
 	if err != nil {
-		return "", fmt.Errorf("failed to create temporary directory: %w", err)
+		return "", errors.Wrap(err, "failed to create temporary directory")
 	}
 
 	// Extract files from the tar archive
@@ -165,7 +165,7 @@ func extractTarToTempDir(tarReader io.Reader) (tempDir string, err error) {
 			break // End of tar archive
 		}
 		if err != nil {
-			return "", fmt.Errorf("failed to read tar header: %w", err)
+			return "", errors.Wrap(err, "failed to read tar header")
 		}
 
 		// Construct the full path for the file
@@ -174,14 +174,14 @@ func extractTarToTempDir(tarReader io.Reader) (tempDir string, err error) {
 		// Create the file
 		file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, os.FileMode(header.Mode))
 		if err != nil {
-			return "", fmt.Errorf("failed to create file: %w", err)
+			return "", errors.Wrap(err, "failed to create file")
 		}
 		defer file.Close()
 
 		// Copy the file content
 		if _, err := io.CopyN(file, tr, tenMB); err != nil {
 			if !errors.Is(err, io.EOF) {
-				return "", fmt.Errorf("failed to copy file content: %w", err)
+				return "", errors.Wrap(err, "failed to copy file content")
 			}
 		}
 	}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/go-runtime/internal"
 )
 
@@ -16,7 +18,7 @@ type MapHandle[T, U any] struct {
 func (mh *MapHandle[T, U]) Get(ctx context.Context) U {
 	value := mh.handle.Get(ctx)
 	out := internal.FromContext(ctx).CallMap(ctx, mh, value, func(ctx context.Context) (any, error) {
-		return mh.fn(ctx, value)
+		return errors.WithStack2(mh.fn(ctx, value))
 	})
 	u, ok := out.(U)
 	if !ok {

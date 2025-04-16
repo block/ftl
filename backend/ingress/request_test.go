@@ -2,13 +2,13 @@ package ingress
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/schema"
@@ -117,10 +117,10 @@ func TestBuildRequestBody(t *testing.T) {
 	}{
 		{name: "UnknownVerb",
 			verb: "unknown",
-			err:  fmt.Errorf("could not resolve reference test.unknown: %w", schema.ErrNotFound).Error()},
+			err:  errors.Wrap(schema.ErrNotFound, "could not resolve reference test.unknown").Error()},
 		{name: "UnknownModule",
 			verb: "unknown",
-			err:  fmt.Errorf("could not resolve reference test.unknown: %w", schema.ErrNotFound).Error()},
+			err:  errors.Wrap(schema.ErrNotFound, "could not resolve reference test.unknown").Error()},
 		{name: "QueryParameterDecoding",
 			verb:      "getAlias",
 			method:    "GET",

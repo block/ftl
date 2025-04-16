@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -23,7 +23,7 @@ func (k *killCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceCli
 		source.WaitForInitialSync(ctx)
 		mod, ok := source.CanonicalView().Module(k.Deployment).Get()
 		if !ok {
-			return fmt.Errorf("deployment %s not found", k.Deployment)
+			return errors.Errorf("deployment %s not found", k.Deployment)
 		}
 		dep = mod.Runtime.Deployment.DeploymentKey
 	}
@@ -34,7 +34,7 @@ func (k *killCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceCli
 		}},
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to kill deployment: %w", err)
+		return errors.Wrap(err, "failed to kill deployment")
 	}
 	return nil
 }

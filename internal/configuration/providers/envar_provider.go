@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"os"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/internal/configuration"
 )
 
@@ -35,9 +37,9 @@ func (e Envar[R]) Load(ctx context.Context, ref configuration.Ref, key *url.URL)
 
 	value, ok := os.LookupEnv(envar)
 	if ok {
-		return base64.RawURLEncoding.DecodeString(value)
+		return errors.WithStack2(base64.RawURLEncoding.DecodeString(value))
 	}
-	return nil, fmt.Errorf("environment variable %q is not set: %w", envar, configuration.ErrNotFound)
+	return nil, errors.Wrapf(configuration.ErrNotFound, "environment variable %q is not set", envar)
 }
 
 func (e Envar[R]) Delete(ctx context.Context, ref configuration.Ref) error {
@@ -79,28 +81,28 @@ func (Envar[R]) prefix() string {
 // func (e Envar[R]) entryForEnvar(env string) (Entry, error) {
 // 	parts := strings.SplitN(env, "=", 2)
 // 	if !strings.HasPrefix(parts[0], e.prefix()) {
-// 		return Entry{}, fmt.Errorf("invalid environment variable %q", parts[0])
+// 		return Entry{}, errors.Errorf("invalid environment variable %q", parts[0])
 // 	}
 // 	accessor, err := url.Parse(parts[1])
 // 	if err != nil {
-// 		return Entry{}, fmt.Errorf("invalid URL %q: %w", parts[1], err)
+// 		return Entry{},f errors.Wrap, ("invalid URL %q: %w", parts[1], err)
 // 	}
 // 	// FTL_<type>_[<module>]_<name>
 // 	nameParts := strings.SplitN(parts[0], "_", 4)
 // 	if len(nameParts) < 4 {
-// 		return Entry{}, fmt.Errorf("invalid environment variable %q", parts[0])
+// 		return Entry{}, errors.Errorf("invalid environment variable %q", parts[0])
 // 	}
 // 	var module optional.Option[string]
 // 	if nameParts[2] != "" {
 // 		decoded, err := base64.RawURLEncoding.DecodeString(nameParts[2])
 // 		if err != nil {
-// 			return Entry{}, fmt.Errorf("invalid encoded module %q: %w", nameParts[2], err)
+// 			return Entry{},f errors.Wrap, ("invalid encoded module %q: %w", nameParts[2], err)
 // 		}
 // 		module = optional.Some(string(decoded))
 // 	}
 // 	decoded, err := base64.RawURLEncoding.DecodeString(nameParts[3])
 // 	if err != nil {
-// 		return Entry{}, fmt.Errorf("invalid encoded name %q: %w", nameParts[3], err)
+// 		return Entry{},f errors.Wrap, ("invalid encoded name %q: %w", nameParts[3], err)
 // 	}
 // 	return Entry{
 // 		Ref:      Ref{module, string(decoded)},

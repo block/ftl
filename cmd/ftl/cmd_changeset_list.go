@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -18,7 +19,7 @@ type listChangesetCmd struct {
 func (g *listChangesetCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
 	resp, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-changesets-list"}))
 	if err != nil {
-		return fmt.Errorf("failed to pull schema: %w", err)
+		return errors.Wrap(err, "failed to pull schema")
 	}
 	for resp.Receive() {
 		msg := resp.Msg()
@@ -27,7 +28,7 @@ func (g *listChangesetCmd) Run(ctx context.Context, client adminpbconnect.AdminS
 			for _, cpb := range e.FullSchemaNotification.Changesets {
 				cs, err := schema.ChangesetFromProto(cpb)
 				if err != nil {
-					return fmt.Errorf("failed to parse changeset: %w", err)
+					return errors.Wrap(err, "failed to parse changeset")
 				}
 				mods := make([]string, 0, len(cs.InternalRealm().Modules))
 				for _, m := range cs.InternalRealm().Modules {
@@ -42,7 +43,7 @@ func (g *listChangesetCmd) Run(ctx context.Context, client adminpbconnect.AdminS
 
 	}
 	if err := resp.Err(); err != nil {
-		return fmt.Errorf("failed to pull schema %w", resp.Err())
+		return errors.Wrap(err, "failed to pull schema")
 	}
 	return nil
 }

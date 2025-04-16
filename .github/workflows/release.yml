@@ -78,7 +78,6 @@ jobs:
         run: just build-frontend
       - name: Publish Go Binaries
         run: |
-          just errtrace
           just build ftl # Ensure all the prerequisites are built before we use goreleaser
           just build-language-plugins
           just build-sqlc-gen-ftl

@@ -1,7 +1,6 @@
 package data
 
 import (
-	"fmt"
 	"go/ast"
 	"go/types"
 	"reflect"
@@ -9,6 +8,7 @@ import (
 	"strings"
 	"unicode"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl-golang-tools/go/analysis"
@@ -120,7 +120,7 @@ func parseTag(pass *analysis.Pass, f *ast.Field, tag *ast.BasicLit, fieldTag str
 	unquoted, err := strconv.Unquote(tag.Value)
 	if err != nil {
 		common.Wrapf(pass, f, err, "failed to unquote tag value %q", tag.Value)
-		return "", fmt.Errorf("failed to unquote tag value: %w", err)
+		return "", errors.Wrap(err, "failed to unquote tag value")
 	}
 	tagContent := reflect.StructTag(unquoted).Get(fieldTag)
 	tagParts := strings.Split(tagContent, ",")

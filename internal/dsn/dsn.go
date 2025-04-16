@@ -5,11 +5,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"embed"
-	"errors"
 	"fmt"
 	"net"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/rds/auth"
 
@@ -77,32 +77,32 @@ func ResolvePostgresDSN(ctx context.Context, connector schema.DatabaseConnector)
 	case *schema.AWSIAMAuthDatabaseConnector:
 		cfg, err := config.LoadDefaultConfig(ctx)
 		if err != nil {
-			return "", fmt.Errorf("configuration error: %w", err)
+			return "", errors.Wrap(err, "configuration error")
 		}
 
 		region, err := parseRegionFromEndpoint(c.Endpoint)
 		if err != nil {
-			return "", fmt.Errorf("failed to parse region from endpoint: %w", err)
+			return "", errors.Wrap(err, "failed to parse region from endpoint")
 		}
 
 		authenticationToken, err := auth.BuildAuthToken(ctx, c.Endpoint, region, c.Username, cfg.Credentials)
 		if err != nil {
-			return "", fmt.Errorf("failed to create authentication token: %w", err)
+			return "", errors.Wrap(err, "failed to create authentication token")
 		}
 		host, port, err := net.SplitHostPort(c.Endpoint)
 		if err != nil {
-			return "", fmt.Errorf("failed to split host and port: %w", err)
+			return "", errors.Wrap(err, "failed to split host and port")
 		}
 		return fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", host, port, c.Database, c.Username, authenticationToken), nil
 	default:
-		return "", fmt.Errorf("unexpected database connector type: %T", connector)
+		return "", errors.Errorf("unexpected database connector type: %T", connector)
 	}
 }
 
 func parseRegionFromEndpoint(endpoint string) (string, error) {
 	host, _, err := net.SplitHostPort(endpoint)
 	if err != nil {
-		return "", fmt.Errorf("failed to split host and port: %w", err)
+		return "", errors.Wrap(err, "failed to split host and port")
 	}
 	host = strings.TrimSuffix(host, ".rds.amazonaws.com")
 	parts := strings.Split(host, ".")
@@ -116,7 +116,7 @@ func MySQLDBName(connector schema.DatabaseConnector) (string, error) {
 	case *schema.AWSIAMAuthDatabaseConnector:
 		return c.Database, nil
 	default:
-		return "", fmt.Errorf("unexpected database connector type: %T", connector)
+		return "", errors.Errorf("unexpected database connector type: %T", connector)
 	}
 }
 
@@ -127,7 +127,7 @@ func PostgresDBName(connector schema.DatabaseConnector) (string, error) {
 	case *schema.AWSIAMAuthDatabaseConnector:
 		return c.Database, nil
 	default:
-		return "", fmt.Errorf("unexpected database connector type: %T", connector)
+		return "", errors.Errorf("unexpected database connector type: %T", connector)
 	}
 }
 
@@ -136,29 +136,29 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 	case *schema.DSNDatabaseConnector:
 		cfg, err := mysqlauthproxy.ParseDSN(c.DSN)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse DSN: %w", err)
+			return nil, errors.Wrap(err, "failed to parse DSN")
 		}
 		return cfg, nil
 
 	case *schema.AWSIAMAuthDatabaseConnector:
 		cfg, err := config.LoadDefaultConfig(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("configuration error: %w", err)
+			return nil, errors.Wrap(err, "configuration error")
 		}
 
 		region, err := parseRegionFromEndpoint(c.Endpoint)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse region from endpoint: %w", err)
+			return nil, errors.Wrap(err, "failed to parse region from endpoint")
 		}
 
 		authenticationToken, err := auth.BuildAuthToken(ctx, c.Endpoint, region, c.Username, cfg.Credentials)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create authentication token: %w", err)
+			return nil, errors.Wrap(err, "failed to create authentication token")
 		}
 
 		tls, err := tlsForMySQLIAMAuth(c.Endpoint, region)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create TLS config: %w", err)
+			return nil, errors.Wrap(err, "failed to create TLS config")
 		}
 
 		mcfg := mysqlauthproxy.NewConfig()
@@ -176,7 +176,7 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 
 		return mcfg, nil
 	default:
-		return nil, fmt.Errorf("unexpected database connector type: %T", connector)
+		return nil, errors.Errorf("unexpected database connector type: %T", connector)
 	}
 }
 
@@ -191,7 +191,7 @@ func ConnectorMySQLProxy(ctx context.Context, connector schema.DatabaseConnector
 	proxy := mysqlauthproxy.NewProxy("localhost", 0, func(ctx context.Context) (*mysqlauthproxy.Config, error) {
 		cfg, err := ResolveMySQLConfig(ctx, connector)
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve MySQL DSN: %w", err)
+			return nil, errors.Wrap(err, "failed to resolve MySQL DSN")
 		}
 		// TODO: the mysql proxy overwrites the client connection requests with this.
 		// We should use the config from the client to the proxy to avoid this.
@@ -210,7 +210,7 @@ func ConnectorMySQLProxy(ctx context.Context, connector schema.DatabaseConnector
 
 	select {
 	case err := <-errC:
-		return "", 0, err
+		return "", 0, errors.WithStack(err)
 	case port := <-portC:
 		logger.Debugf("Started a temporary mysql proxy on port %d", port)
 		return "127.0.0.1", port, nil
@@ -236,14 +236,14 @@ func tlsForMySQLIAMAuth(endpoint, region string) (*tls.Config, error) {
 	rootCertPool := x509.NewCertPool()
 	rdsCert, err := rdsCerts.ReadFile("certs/rds/rds-" + region + "-bundle.pem")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read RDS certificate for region %s: %w", region, err)
+		return nil, errors.Wrapf(err, "failed to read RDS certificate for region %s", region)
 	}
 	if ok := rootCertPool.AppendCertsFromPEM(rdsCert); !ok {
-		return nil, errors.New("failed to append PEM")
+		return nil, errors.WithStack(errors.New("failed to append PEM"))
 	}
 	host, _, err := net.SplitHostPort(endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("failed to split host and port: %w", err)
+		return nil, errors.Wrap(err, "failed to split host and port")
 	}
 
 	return &tls.Config{
@@ -264,7 +264,7 @@ func ConnectorPGProxy(ctx context.Context, connector schema.DatabaseConnector) (
 	proxy := pgproxy.New("127.0.0.1:0", func(ctx context.Context, params map[string]string) (string, error) {
 		dsn, err := ResolvePostgresDSN(ctx, connector)
 		if err != nil {
-			return "", fmt.Errorf("failed to resolve Postgres DSN: %w", err)
+			return "", errors.Wrap(err, "failed to resolve Postgres DSN")
 		}
 		return dsn, nil
 	})
@@ -281,7 +281,7 @@ func ConnectorPGProxy(ctx context.Context, connector schema.DatabaseConnector) (
 
 	select {
 	case err := <-errC:
-		return "", 0, err
+		return "", 0, errors.WithStack(err)
 	case started := <-started:
 		logger.Debugf("Started a temporary postgres proxy on port %d", started.Address.Port)
 		return "127.0.0.1", started.Address.Port, nil

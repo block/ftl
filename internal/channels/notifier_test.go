@@ -2,9 +2,10 @@ package channels
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
+
+	"github.com/alecthomas/errors"
 )
 
 func TestNotifier(t *testing.T) {

@@ -2,7 +2,6 @@
 package schema
 
 import (
-	"fmt"
 	"go/token"
 	"net/http"
 	"reflect"
@@ -12,12 +11,13 @@ import (
 	"strings"
 	"unicode"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/cron"
-	"github.com/block/ftl/common/errors"
+	ftlerrors "github.com/block/ftl/common/errors"
 	dc "github.com/block/ftl/common/reflect"
 	islices "github.com/block/ftl/common/slices"
 )
@@ -52,7 +52,7 @@ func MustValidate(schema *Schema) *Schema {
 
 // ValidateSchema clones, normalises and semantically validates a schema.
 func (s *Schema) Validate() (*Schema, error) {
-	return ValidateModuleInSchema(s, optional.None[*Module]())
+	return errors.WithStack2(ValidateModuleInSchema(s, optional.None[*Module]()))
 }
 
 // ValidateModuleInSchema clones and normalises a schema and semantically validates a single module within it.
@@ -157,7 +157,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 
 			// Validate all children before validating the current node.
 			if err := next(); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			switch n := n.(type) {
 			case *Ref:
@@ -287,11 +287,11 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 					switch md := md.(type) {
 					case *MetadataSQLMigration:
 						if found {
-							merr = append(merr, fmt.Errorf("database %q has multiple migration metadata", n.Name))
+							merr = append(merr, errors.Errorf("database %q has multiple migration metadata", n.Name))
 						}
 						found = true
 					default:
-						merr = append(merr, fmt.Errorf("metadata %q is not valid on databases", strings.TrimSpace(md.String())))
+						merr = append(merr, errors.Errorf("metadata %q is not valid on databases", strings.TrimSpace(md.String())))
 					}
 				}
 			case *Enum:
@@ -312,7 +312,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 						}
 					}
 				}
-				return next()
+				return errors.WithStack(next())
 
 			case
 				IngressPathComponent, Metadata, Value, Type, DatabaseConnector,
@@ -328,7 +328,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 	}
 
 	merr = cleanErrors(merr)
-	return schema, errors.Join(merr...)
+	return schema, errors.WithStack(errors.Join(merr...))
 }
 
 var validNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
@@ -379,7 +379,7 @@ func (m *Module) Validate() error {
 
 		// Validate all children before validating the current node.
 		if err := next(); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		if n, ok := n.(Decl); ok {
@@ -471,7 +471,7 @@ func (m *Module) Validate() error {
 
 	merr = cleanErrors(merr)
 	SortModuleDecls(m)
-	return errors.Join(merr...)
+	return errors.WithStack(errors.Join(merr...))
 }
 
 // SortModuleDecls sorts the declarations in a module.
@@ -635,7 +635,8 @@ func cleanErrors(merr []error) []error {
 	if len(merr) == 0 {
 		return nil
 	}
-	merr = errors.DeduplicateErrors(merr)
+	unwrapped := errors.UnwrapAllInnermost(errors.Join(merr...))
+	merr = ftlerrors.Deduplicate(unwrapped)
 	// Sort by position.
 	sort.Slice(merr, func(i, j int) bool {
 		var ipe, jpe participle.Error
@@ -691,7 +692,7 @@ func validateDependencies(schema *Schema) error {
 	// DFS to find cycles
 	for _, v := range vertexes {
 		if cycle := dfsForDependencyCycle(imports, vertexStates, v); cycle != nil {
-			return fmt.Errorf("found cycle in dependencies: %s", strings.Join(cycle, " -> "))
+			return errors.Errorf("found cycle in dependencies: %s", strings.Join(cycle, " -> "))
 		}
 	}
 
@@ -730,7 +731,7 @@ func errorf(pos interface{ Position() Position }, format string, args ...interfa
 		StartColumn: p.Column,
 		EndColumn:   p.Column,
 	}
-	return builderrors.Errorf(errPos, format, args...)
+	return errors.WithStack(builderrors.Errorf(errPos, format, args...))
 }
 
 func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error) {
@@ -928,10 +929,10 @@ func resolveValidIngressReqResp(scopes Scopes, reqOrResp string, moduleDecl opti
 	case *Ref:
 		m := scopes.Resolve(*t)
 		if m == nil {
-			return optional.None[*Data](), fmt.Errorf("unknown reference %v", t)
+			return optional.None[*Data](), errors.Errorf("unknown reference %v", t)
 		}
 		sym := m.Symbol
-		return resolveValidIngressReqResp(scopes, reqOrResp, optional.Some(m), sym, n)
+		return errors.WithStack2(resolveValidIngressReqResp(scopes, reqOrResp, optional.Some(m), sym, n))
 	case *Data:
 		md, ok := moduleDecl.Get()
 		if !ok {
@@ -954,12 +955,12 @@ func resolveValidIngressReqResp(scopes Scopes, reqOrResp string, moduleDecl opti
 
 		result, err := t.Monomorphise(ref)
 		if err != nil {
-			return optional.None[*Data](), err
+			return optional.None[*Data](), errors.WithStack(err)
 		}
 
 		return optional.Some(result), nil
 	case *TypeAlias:
-		return resolveValidIngressReqResp(scopes, reqOrResp, moduleDecl, t.Type, t)
+		return errors.WithStack2(resolveValidIngressReqResp(scopes, reqOrResp, moduleDecl, t.Type, t))
 	default:
 		return optional.None[*Data](), nil
 	}
@@ -975,21 +976,21 @@ func validateBodyPayloadType(n Node, r Type, v *Verb, reqOrResp string) error {
 				return nil
 			}
 		}
-		return validateBodyPayloadType(t.Type, r, v, reqOrResp)
+		return errors.WithStack(validateBodyPayloadType(t.Type, r, v, reqOrResp))
 	case *Enum:
 		// Type enums are valid but value enums are not.
 		if t.IsValueEnum() {
-			return errorf(r, "ingress verb %s: %s type %s must have a body of bytes, string, data structure, unit, float, int, bool, map, or array not enum %s", v.Name, reqOrResp, r, t.Name)
+			return errors.WithStack(errorf(r, "ingress verb %s: %s type %s must have a body of bytes, string, data structure, unit, float, int, bool, map, or array not enum %s", v.Name, reqOrResp, r, t.Name))
 		}
 	default:
-		return errorf(r, "ingress verb %s: %s type %s must have a body of bytes, string, data structure, unit, float, int, bool, map, or array not %s", v.Name, reqOrResp, r, n)
+		return errors.WithStack(errorf(r, "ingress verb %s: %s type %s must have a body of bytes, string, data structure, unit, float, int, bool, map, or array not %s", v.Name, reqOrResp, r, n))
 	}
 	return nil
 }
 
 func requireUnitPayloadType(n Node, r Type, v *Verb, reqOrResp string) error {
 	if _, ok := n.(*Unit); !ok {
-		return errorf(r, "ingress verb %s: GET request type %s must have a body of unit not %s", v.Name, r, n)
+		return errors.WithStack(errorf(r, "ingress verb %s: GET request type %s must have a body of unit not %s", v.Name, r, n))
 
 	}
 	return nil
@@ -1000,7 +1001,7 @@ func validatePathParamsPayloadType(n Node, r Type, v *Verb, reqOrResp string) er
 	case *String, *Data, *Unit, *Float, *Int, *Bool: // Valid HTTP param payload types.
 	case *Map:
 		if _, ok := t.Value.(*String); !ok {
-			return errorf(r, "ingress verb %s: %s type %s path params can only support maps of strings, not %v", v.Name, reqOrResp, r, n)
+			return errors.WithStack(errorf(r, "ingress verb %s: %s type %s path params can only support maps of strings, not %v", v.Name, reqOrResp, r, n))
 		}
 	case *TypeAlias:
 		// allow aliases of external types
@@ -1009,9 +1010,9 @@ func validatePathParamsPayloadType(n Node, r Type, v *Verb, reqOrResp string) er
 				return nil
 			}
 		}
-		return validatePathParamsPayloadType(t.Type, r, v, reqOrResp)
+		return errors.WithStack(validatePathParamsPayloadType(t.Type, r, v, reqOrResp))
 	default:
-		return errorf(r, "ingress verb %s: %s type %s must have a param of data structure, unit or map not %s", v.Name, reqOrResp, r, n)
+		return errors.WithStack(errorf(r, "ingress verb %s: %s type %s must have a param of data structure, unit or map not %s", v.Name, reqOrResp, r, n))
 	}
 	return nil
 }
@@ -1030,7 +1031,7 @@ func validateQueryParamsPayloadType(n Node, r Type, v *Verb, reqOrResp string) e
 				return nil
 			}
 		default:
-			return errorf(r, "ingress verb %s: %s type %s query params can only support maps of strings or string arrays, not %v", v.Name, reqOrResp, r, n)
+			return errors.WithStack(errorf(r, "ingress verb %s: %s type %s query params can only support maps of strings or string arrays, not %v", v.Name, reqOrResp, r, n))
 		}
 	case *TypeAlias:
 		// allow aliases of external types
@@ -1039,11 +1040,11 @@ func validateQueryParamsPayloadType(n Node, r Type, v *Verb, reqOrResp string) e
 				return nil
 			}
 		}
-		return validateQueryParamsPayloadType(t.Type, r, v, reqOrResp)
+		return errors.WithStack(validateQueryParamsPayloadType(t.Type, r, v, reqOrResp))
 	default:
-		return errorf(r, "ingress verb %s: %s type %s must have a param of data structure, unit or map not %s", v.Name, reqOrResp, r, n)
+		return errors.WithStack(errorf(r, "ingress verb %s: %s type %s must have a param of data structure, unit or map not %s", v.Name, reqOrResp, r, n))
 	}
-	return errorf(r, "ingress verb %s: %s type %s query params can only support maps of strings or string arrays, or data types not %v", v.Name, reqOrResp, r, n)
+	return errors.WithStack(errorf(r, "ingress verb %s: %s type %s query params can only support maps of strings or string arrays, or data types not %v", v.Name, reqOrResp, r, n))
 }
 
 func validateVerbSubscriptions(module *Module, v *Verb, md *MetadataSubscriber, scopes Scopes) (merr []error) {
@@ -1082,11 +1083,11 @@ func validateDeadLetterTopic(module *Module, v *Verb, md *MetadataSubscriber) er
 		return d.GetName() == ref.Name
 	})
 	if !exists {
-		return errorf(md, "could not find dead letter topic %q", DeadLetterNameForSubscriber(v.Name))
+		return errors.WithStack(errorf(md, "could not find dead letter topic %q", DeadLetterNameForSubscriber(v.Name)))
 	}
 	deadLetterTopic, ok := deadLetterDecl.(*Topic)
 	if !ok {
-		return errorf(md, "expected %v to be a dead letter topic but was already declared at %v", ref, deadLetterDecl.Position())
+		return errors.WithStack(errorf(md, "expected %v to be a dead letter topic but was already declared at %v", ref, deadLetterDecl.Position()))
 	}
 	eventType := &Ref{
 		Module:         "builtin",
@@ -1094,7 +1095,7 @@ func validateDeadLetterTopic(module *Module, v *Verb, md *MetadataSubscriber) er
 		TypeParameters: []Type{v.Request},
 	}
 	if deadLetterTopic.Event.String() != eventType.String() {
-		return errorf(md, "dead letter topic %v must have the same event type (%v) as the subscription request type (%v)", ref, deadLetterTopic.Event, eventType)
+		return errors.WithStack(errorf(md, "dead letter topic %v must have the same event type (%v) as the subscription request type (%v)", ref, deadLetterTopic.Event, eventType))
 	}
 	// declare that this verb publishes to the dead letter topic
 	publishMetadata, ok := islices.FindVariant[*MetadataPublisher](v.Metadata)

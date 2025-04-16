@@ -2,14 +2,13 @@ package schemaeventsource
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
-
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/must"
 	"github.com/alecthomas/types/optional"
 
@@ -222,7 +221,7 @@ func (m *mockSchemaService) Ping(context.Context, *connect.Request[ftlv1.PingReq
 func (m *mockSchemaService) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], resp *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
 	for change := range channels.IterContext(ctx, m.changes) {
 		if err := resp.Send(change); err != nil {
-			return fmt.Errorf("send change: %w", err)
+			return errors.Wrap(err, "send change")
 		}
 	}
 	return nil

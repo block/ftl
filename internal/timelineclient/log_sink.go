@@ -2,8 +2,8 @@ package timelineclient
 
 import (
 	"context"
-	"fmt"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/channels"
@@ -40,7 +40,7 @@ func (l *LogSink) Log(entry log.Entry) error {
 	case l.logQueue <- entry:
 	default:
 		// Drop log entry if queue is full
-		return fmt.Errorf("log queue is full")
+		return errors.Errorf("log queue is full")
 	}
 	return nil
 }

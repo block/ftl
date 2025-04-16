@@ -5,6 +5,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 )
 
@@ -53,7 +54,7 @@ func LogBucket(base int, num int64, optMin, optMax optional.Option[int]) string 
 }
 
 func FatalError(signalName string, err error) {
-	panic(fmt.Errorf("failed to create %q signal: %w", signalName, err))
+	panic(errors.Wrapf(err, "failed to create %q signal", signalName))
 }
 
 func TimeSinceMS(start time.Time) int64 {

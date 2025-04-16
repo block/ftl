@@ -1,8 +1,9 @@
 package cron
 
 import (
-	"fmt"
 	"time"
+
+	errors "github.com/alecthomas/errors"
 )
 
 /*
@@ -24,7 +25,7 @@ It supports the following features:
 // Next calculates the next time that matches the pattern after the current time
 // See NextAfter for more details
 func Next(pattern Pattern, allowCurrentTime bool) (time.Time, error) {
-	return NextAfter(pattern, time.Now().UTC(), allowCurrentTime)
+	return errors.WithStack2(NextAfter(pattern, time.Now().UTC(), allowCurrentTime))
 }
 
 // NextAfter calculates the next time that matches the pattern after the origin time
@@ -39,7 +40,7 @@ func NextAfter(pattern Pattern, origin time.Time, inclusive bool) (time.Time, er
 
 	next := pattern.expression.Next(origin)
 	if next.IsZero() {
-		return next, fmt.Errorf("unable to find next timeout for %s", pattern)
+		return next, errors.Errorf("unable to find next timeout for %s", pattern)
 	}
 	return next, nil
 }

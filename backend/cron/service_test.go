@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
+	"golang.org/x/sync/errgroup"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -89,7 +89,7 @@ func TestCron(t *testing.T) {
 		requests: requestsch,
 	}
 
-	wg.Go(func() error { return Start(ctx, cfg, eventSource, client, timelineClient) })
+	wg.Go(func() error { return errors.WithStack(Start(ctx, cfg, eventSource, client, timelineClient)) })
 
 	requests := make([]*ftlv1.CallRequest, 0, 2)
 

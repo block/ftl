@@ -2,14 +2,13 @@ package ftl
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"strings"
 	"sync"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"google.golang.org/protobuf/types/known/durationpb"
 
@@ -23,7 +22,7 @@ import (
 
 // ErrLeaseHeld is returned when an attempt is made to acquire a lease that is
 // already held.
-var ErrLeaseHeld = fmt.Errorf("lease already held")
+var ErrLeaseHeld = errors.Errorf("lease already held")
 
 type leaseState struct {
 	// mutex must be locked to access other fields.
@@ -46,7 +45,7 @@ func (l LeaseHandle) Err() error {
 	l.state.mutex.Lock()
 	defer l.state.mutex.Unlock()
 	if err, ok := l.state.err.Get(); ok {
-		return err //nolint:wrapcheck
+		return errors.WithStack(err) //nolint:wrapcheck
 	}
 	return nil
 }
@@ -67,11 +66,11 @@ func (l LeaseHandle) Release() error {
 	l.state.mutex.Lock()
 	defer l.state.mutex.Unlock()
 	if !l.state.open {
-		return l.Err()
+		return errors.WithStack(l.Err())
 	}
 	err := l.client.Release(context.Background(), l.key)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	l.state.open = false
 	return nil
@@ -96,10 +95,10 @@ func Lease(ctx context.Context, ttl time.Duration, key ...string) (LeaseHandle, 
 	err := client.Acquire(ctx, module, key, ttl)
 	if err != nil {
 		if errors.Is(err, ErrLeaseHeld) {
-			return LeaseHandle{}, ErrLeaseHeld
+			return LeaseHandle{}, errors.WithStack(ErrLeaseHeld)
 		}
 		logger.Warnf("Lease acquisition failed for %s: %s", leaseKeyForLogs(module, key), err)
-		return LeaseHandle{}, err
+		return LeaseHandle{}, errors.WithStack(err)
 	}
 	lease := LeaseHandle{
 		module: module,
@@ -167,9 +166,9 @@ func (c *leaseClient) Acquire(ctx context.Context, module string, key []string, 
 	req := &leasepb.AcquireLeaseRequest{Key: realKeys, Ttl: durationpb.New(ttl)}
 	if err := c.stream.Send(req); err != nil {
 		if connect.CodeOf(err) == connect.CodeResourceExhausted {
-			return ErrLeaseHeld
+			return errors.WithStack(ErrLeaseHeld)
 		}
-		return fmt.Errorf("lease acquisition failed: %w", err)
+		return errors.Wrap(err, "lease acquisition failed")
 	}
 	// Wait for response.
 	_, err := c.stream.Receive()
@@ -177,9 +176,9 @@ func (c *leaseClient) Acquire(ctx context.Context, module string, key []string, 
 		return nil
 	}
 	if connect.CodeOf(err) == connect.CodeResourceExhausted {
-		return ErrLeaseHeld
+		return errors.WithStack(ErrLeaseHeld)
 	}
-	return fmt.Errorf("lease acquisition failed: %w", err)
+	return errors.Wrap(err, "lease acquisition failed")
 }
 
 func (c *leaseClient) Heartbeat(_ context.Context, module string, key []string, ttl time.Duration) error {
@@ -193,15 +192,15 @@ func (c *leaseClient) Heartbeat(_ context.Context, module string, key []string, 
 	if errors.Is(err, io.EOF) {
 		return nil
 	}
-	return err
+	return errors.WithStack(err)
 }
 
 func (c *leaseClient) Release(_ context.Context, _ []string) error {
 	if err := c.stream.CloseRequest(); err != nil {
-		return fmt.Errorf("close lease: %w", err)
+		return errors.Wrap(err, "close lease")
 	}
 	if err := c.stream.CloseResponse(); err != nil {
-		return fmt.Errorf("close lease: %w", err)
+		return errors.Wrap(err, "close lease")
 	}
 	return nil
 }

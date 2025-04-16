@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -60,7 +61,7 @@ func (i *otelInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		attributes := getAttributes(ctx)
 		span := trace.SpanFromContext(ctx)
 		span.SetAttributes(attributes...)
-		return next(ctx, request)
+		return errors.WithStack2(next(ctx, request))
 	}
 }
 
@@ -78,6 +79,6 @@ func (i *otelInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc
 		attributes := getAttributes(ctx)
 		span := trace.SpanFromContext(ctx)
 		span.SetAttributes(attributes...)
-		return next(ctx, conn)
+		return errors.WithStack(next(ctx, conn))
 	}
 }

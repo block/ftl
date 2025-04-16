@@ -2,10 +2,10 @@ package timelineclient
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -48,12 +48,12 @@ func (i Ingress) ToEntry() (*timelinepb.CreateEventsRequest_EventEntry, error) {
 
 	reqHeaderBytes, err := json.Marshal(i.RequestHeaders)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request header: %w", err)
+		return nil, errors.Wrap(err, "failed to marshal request header")
 	}
 
 	respHeaderBytes, err := json.Marshal(i.ResponseHeaders)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal response header: %w", err)
+		return nil, errors.Wrap(err, "failed to marshal response header")
 	}
 
 	return &timelinepb.CreateEventsRequest_EventEntry{

@@ -2,8 +2,9 @@ package external
 
 import (
 	"encoding"
-	"errors"
 	"strings"
+
+	"github.com/alecthomas/errors"
 )
 
 type Root struct {

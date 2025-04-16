@@ -4,6 +4,7 @@ package echo
 import (
 	"context"
 	ftltime "ftl/time"
+
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/server"
 )

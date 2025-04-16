@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 )
 
 // Key is a unique identifier for a lease.
@@ -46,11 +48,11 @@ func (l Key) String() string {
 func (l *Key) Scan(dest any) error {
 	text, ok := dest.(string)
 	if !ok {
-		return fmt.Errorf("expected string, got %T", dest)
+		return errors.Errorf("expected string, got %T", dest)
 	}
 	lk, err := ParseLeaseKey(text)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	*l = lk
 	return nil
@@ -62,14 +64,14 @@ func (l *Key) Value() (driver.Value, error) {
 
 func ParseLeaseKey(s string) (Key, error) {
 	if !strings.HasPrefix(s, "/system/") && !strings.HasPrefix(s, "/module/") {
-		return nil, fmt.Errorf("invalid lease key: %q", s)
+		return nil, errors.Errorf("invalid lease key: %q", s)
 	}
 	parts := strings.Split(s, "/")
 	for i, part := range parts {
 		var err error
 		parts[i], err = url.PathUnescape(part)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 	return Key(parts[1:]), nil

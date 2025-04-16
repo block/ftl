@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal/log"
 )
@@ -15,7 +16,7 @@ func (k *logsSetLevelCmd) Run(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	level, err := log.LevelString(k.Level)
 	if err != nil {
-		return fmt.Errorf("invalid log level: %w", err)
+		return errors.Wrap(err, "invalid log level")
 	}
 	log.SetCurrentLevel(logger, level)
 	log.ReplayLogs(ctx)

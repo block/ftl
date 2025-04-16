@@ -3,12 +3,12 @@ package watch
 import (
 	"bytes"
 	"crypto/sha256"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/bmatcuk/doublestar/v4"
 )
 
@@ -75,11 +75,11 @@ func ComputeFileHashes(dir string, skipGitIgnoredFiles bool, patterns []string) 
 			}
 			hash, matched, err := computeFileHash(rootDir, srcPath, patterns)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			if !matched {
 				if patterns[0] == "*" {
-					return fmt.Errorf("file %s:%s does not match any: %s", rootDir, srcPath, patterns)
+					return errors.Errorf("file %s:%s does not match any: %s", rootDir, srcPath, patterns)
 				}
 				return nil
 			}
@@ -88,7 +88,7 @@ func ComputeFileHashes(dir string, skipGitIgnoredFiles bool, patterns []string) 
 		})
 
 		if err != nil {
-			return nil, fmt.Errorf("could not compute file hashes for %s: %w", rootDir, err)
+			return nil, errors.Wrapf(err, "could not compute file hashes for %s", rootDir)
 		}
 	}
 
@@ -98,12 +98,12 @@ func ComputeFileHashes(dir string, skipGitIgnoredFiles bool, patterns []string) 
 func computeFileHash(baseDir, srcPath string, patterns []string) (hash []byte, matched bool, err error) {
 	relativePath, err := filepath.Rel(baseDir, srcPath)
 	if err != nil {
-		return nil, false, fmt.Errorf("could not calculate relative path while computing filehash: %w", err)
+		return nil, false, errors.Wrap(err, "could not calculate relative path while computing filehash")
 	}
 	for _, pattern := range patterns {
 		match, err := doublestar.PathMatch(pattern, relativePath)
 		if err != nil {
-			return nil, false, err
+			return nil, false, errors.WithStack(err)
 		}
 		if !match {
 			continue
@@ -111,19 +111,19 @@ func computeFileHash(baseDir, srcPath string, patterns []string) (hash []byte, m
 
 		file, err := os.Open(srcPath)
 		if err != nil {
-			return nil, false, err
+			return nil, false, errors.WithStack(err)
 		}
 
 		hasher := sha256.New()
 		if _, err := io.Copy(hasher, file); err != nil {
 			_ = file.Close()
-			return nil, false, fmt.Errorf("could not hash file: %w", err)
+			return nil, false, errors.Wrap(err, "could not hash file")
 		}
 
 		hash := hasher.Sum(nil)
 
 		if err := file.Close(); err != nil {
-			return nil, false, fmt.Errorf("could not close file after hashing: %w", err)
+			return nil, false, errors.Wrap(err, "could not close file after hashing")
 		}
 		return hash, true, nil
 	}

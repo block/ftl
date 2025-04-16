@@ -97,10 +97,6 @@ _help:
 k8s command="_help" *args="":
   just deployment/{{command}} {{args}}
 
-# Run errtrace on Go files to add stacks
-errtrace:
-  git ls-files -z -- '*.go' | grep -zv /_ | xargs -0 errtrace -w && go mod tidy
-
 # Clean the build directory
 clean:
   rm -rf build

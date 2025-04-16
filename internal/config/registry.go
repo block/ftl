@@ -6,6 +6,8 @@ import (
 	"maps"
 	"slices"
 
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 )
 
@@ -55,11 +57,11 @@ func (r *Registry[R]) Get(ctx context.Context, projectRoot string, key ProviderK
 	factory, ok := r.factories[key.Kind()]
 	if !ok {
 		var role R
-		return nil, fmt.Errorf("%s: %s provider not found", key, role)
+		return nil, errors.Errorf("%s: %s provider not found", key, role)
 	}
 	provider, err := factory(ctx, projectRoot, key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct %s provider: %w", key, err)
+		return nil, errors.Wrapf(err, "failed to construct %s provider", key)
 	}
 
 	// If the provider is asynchronous, wrap it in a cache decorator.

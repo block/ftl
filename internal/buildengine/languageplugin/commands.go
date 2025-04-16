@@ -3,10 +3,10 @@ package languageplugin
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"reflect"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"google.golang.org/protobuf/proto"
@@ -24,9 +24,9 @@ import (
 func GetNewModuleFlags(ctx context.Context, language string) ([]*kong.Flag, error) {
 	res, err := runCommand[*langpb.GetNewModuleFlagsResponse](ctx, "GetNewModuleFlags", language, &langpb.GetNewModuleFlagsRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get create module flags from plugin: %w", err)
+		return nil, errors.Wrap(err, "failed to get create module flags from plugin")
 	}
-	return kongFlagsFromProto(res.Flags)
+	return errors.WithStack2(kongFlagsFromProto(res.Flags))
 }
 
 func kongFlagsFromProto(protoFlags []*langpb.GetNewModuleFlagsResponse_Flag) ([]*kong.Flag, error) {
@@ -49,11 +49,11 @@ func kongFlagsFromProto(protoFlags []*langpb.GetNewModuleFlagsResponse_Flag) ([]
 		}
 		if f.Short != nil && *f.Short != "" {
 			if len(*f.Short) > 1 {
-				return nil, fmt.Errorf("invalid flag declared: short flag %q for %v must be a single character", *f.Short, f.Name)
+				return nil, errors.Errorf("invalid flag declared: short flag %q for %v must be a single character", *f.Short, f.Name)
 			}
 			short := rune((*f.Short)[0])
 			if existingFullName, ok := shorts[short]; ok {
-				return nil, fmt.Errorf("multiple flags declared with the same short name: %v and %v", existingFullName, f.Name)
+				return nil, errors.Errorf("multiple flags declared with the same short name: %v and %v", existingFullName, f.Name)
 			}
 			flag.Short = short
 			shorts[short] = f.Name
@@ -75,7 +75,7 @@ func NewModule(ctx context.Context, language string, projConfig projectconfig.Co
 	}
 	flagsProto, err := structpb.NewStruct(genericFlags)
 	if err != nil {
-		return fmt.Errorf("failed to convert flags to proto: %w", err)
+		return errors.Wrap(err, "failed to convert flags to proto")
 	}
 	_, err = runCommand[*langpb.NewModuleResponse](ctx, "NewModule", language, &langpb.NewModuleRequest{
 		Name:          moduleConfig.Module,
@@ -84,7 +84,7 @@ func NewModule(ctx context.Context, language string, projConfig projectconfig.Co
 		Flags:         flagsProto,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create module: %w", err)
+		return errors.Wrap(err, "failed to create module")
 	}
 	return nil
 }
@@ -101,7 +101,7 @@ func GetModuleConfigDefaults(ctx context.Context, language string, dir string) (
 		Dir: dir,
 	})
 	if err != nil {
-		return moduleconfig.CustomDefaults{}, fmt.Errorf("failed to get module config defaults from plugin: %w", err)
+		return moduleconfig.CustomDefaults{}, errors.Wrap(err, "failed to get module config defaults from plugin")
 	}
 	return customDefaultsFromProto(result), nil
 }
@@ -121,25 +121,25 @@ func customDefaultsFromProto(proto *langpb.GetModuleConfigDefaultsResponse) modu
 func runCommand[Resp proto.Message](ctx context.Context, name string, language string, req proto.Message) (out Resp, err error) {
 	reqBytes, err := proto.Marshal(req)
 	if err != nil {
-		return out, fmt.Errorf("failed to marshal command: %w", err)
+		return out, errors.Wrap(err, "failed to marshal command")
 	}
 	cmdPath, err := cmdPathForLanguage(language)
 	if err != nil {
-		return out, err
+		return out, errors.WithStack(err)
 	}
 	cliCmd := exec.Command(ctx, log.Debug, ".", cmdPath, name)
 	cliCmd.Stdin = bytes.NewReader(reqBytes)
 	outBytes, err := cliCmd.Capture(ctx)
 	if err != nil {
-		return out, fmt.Errorf("failed to run command: %w", err)
+		return out, errors.Wrap(err, "failed to run command")
 	}
 	out, ok := reflect.New(reflect.TypeOf(out).Elem()).Interface().(Resp)
 	if !ok {
-		return out, fmt.Errorf("failed to create response type: %T", out)
+		return out, errors.Errorf("failed to create response type: %T", out)
 	}
 	err = proto.Unmarshal(outBytes, out)
 	if err != nil {
-		return out, fmt.Errorf("failed to unmarshal result: %w", err)
+		return out, errors.Wrap(err, "failed to unmarshal result")
 	}
 	return out, nil
 }
@@ -168,12 +168,12 @@ func PrepareNewCmd(ctx context.Context, projectConfig projectconfig.Config, k *k
 		return n.Name == "new"
 	})
 	if !ok {
-		return fmt.Errorf("could not find new command")
+		return errors.Errorf("could not find new command")
 	}
 
 	flags, err := GetNewModuleFlags(ctx, language)
 	if err != nil {
-		return fmt.Errorf("could not get CLI flags for %v plugin: %w", language, err)
+		return errors.Wrapf(err, "could not get CLI flags for %v plugin", language)
 	}
 
 	registry := kong.NewRegistry().RegisterDefaults()

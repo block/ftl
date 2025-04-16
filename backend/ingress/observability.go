@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -79,5 +80,5 @@ func (m *Metrics) Request(ctx context.Context, method string, path string, verb 
 }
 
 func wrapErr(signalName string, err error) error {
-	return fmt.Errorf("failed to create %q signal: %w", signalName, err)
+	return errors.Wrapf(err, "failed to create %q signal", signalName)
 }

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/once"
 	"github.com/alecthomas/types/optional"
 	"github.com/docker/docker/api/types"
@@ -30,14 +31,14 @@ import (
 const ansiResetTextColor = "\u001B[39m"
 
 var dockerClient = once.Once(func(ctx context.Context) (*client.Client, error) {
-	return client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	return errors.WithStack2(client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation()))
 })
 
 func DoesExist(ctx context.Context, name string, image optional.Option[string]) (bool, error) {
 	cli, err := dockerClient.Get(ctx)
 	logger := log.FromContext(ctx)
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 
 	containers, err := cli.ContainerList(ctx, container.ListOptions{
@@ -45,7 +46,7 @@ func DoesExist(ctx context.Context, name string, image optional.Option[string]) 
 		Filters: filters.NewArgs(filters.Arg("name", name)),
 	})
 	if err != nil {
-		return false, fmt.Errorf("failed to list containers: %w", err)
+		return false, errors.Wrap(err, "failed to list containers")
 	}
 	if len(containers) == 0 {
 		return false, nil
@@ -67,12 +68,12 @@ func DoesExist(ctx context.Context, name string, image optional.Option[string]) 
 func Pull(ctx context.Context, imageName string) error {
 	cli, err := dockerClient.Get(ctx)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	reader, err := cli.ImagePull(ctx, imageName, image.PullOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to pull %s image: %w", imageName, err)
+		return errors.Wrapf(err, "failed to pull %s image", imageName)
 	}
 	defer reader.Close()
 
@@ -80,7 +81,7 @@ func Pull(ctx context.Context, imageName string) error {
 	statusLine := sm.NewStatus("Pulling image " + imageName)
 	defer statusLine.Close()
 	if err := jsonmessage.DisplayJSONMessagesStream(reader, terminal.StatusLineAsWriter(statusLine), 0, false, nil); err != nil {
-		return fmt.Errorf("failed to display pull messages: %w", err)
+		return errors.Wrap(err, "failed to display pull messages")
 	}
 
 	return nil
@@ -90,18 +91,18 @@ func Pull(ctx context.Context, imageName string) error {
 func Run(ctx context.Context, image, name string, hostToContainerPort map[int]int, volume optional.Option[string], env ...string) error {
 	cli, err := dockerClient.Get(ctx)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	exists, err := DoesExist(ctx, name, optional.Some(image))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if !exists {
 		err = Pull(ctx, image)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
@@ -130,12 +131,12 @@ func Run(ctx context.Context, image, name string, hostToContainerPort map[int]in
 
 	created, err := cli.ContainerCreate(ctx, &config, &hostConfig, nil, nil, name)
 	if err != nil {
-		return fmt.Errorf("failed to create %s container: %w", name, err)
+		return errors.Wrapf(err, "failed to create %s container", name)
 	}
 
 	err = cli.ContainerStart(ctx, created.ID, container.StartOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to start %s container: %w", name, err)
+		return errors.Wrapf(err, "failed to start %s container", name)
 	}
 
 	return nil
@@ -169,7 +170,7 @@ func RunPostgres(ctx context.Context, name string, port int, image string) error
 			},
 		},
 	}
-	return runDB(ctx, name, image, config, hostConfig)
+	return errors.WithStack(runDB(ctx, name, image, config, hostConfig))
 }
 
 // RunMySQL runs a new detached postgres container with the given name and exposed port.
@@ -198,36 +199,36 @@ func RunMySQL(ctx context.Context, name string, port int, image string) error {
 			},
 		},
 	}
-	return runDB(ctx, name, image, config, hostConfig)
+	return errors.WithStack(runDB(ctx, name, image, config, hostConfig))
 }
 
 func runDB(ctx context.Context, name string, image string, config container.Config, hostConfig container.HostConfig) error {
 	cli, err := dockerClient.Get(ctx)
 
 	if err != nil {
-		return fmt.Errorf("failed to get docker client: %w", err)
+		return errors.Wrap(err, "failed to get docker client")
 	}
 
 	exists, err := DoesExist(ctx, name, optional.Some(image))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if !exists {
 		err = Pull(ctx, image)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
 	created, err := cli.ContainerCreate(ctx, &config, &hostConfig, nil, nil, name)
 	if err != nil {
-		return fmt.Errorf("failed to create db container: %w", err)
+		return errors.Wrap(err, "failed to create db container")
 	}
 
 	err = cli.ContainerStart(ctx, created.ID, container.StartOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to start db container: %w", err)
+		return errors.Wrap(err, "failed to start db container")
 	}
 
 	return nil
@@ -237,12 +238,12 @@ func runDB(ctx context.Context, name string, image string, config container.Conf
 func Start(ctx context.Context, name string) error {
 	cli, err := dockerClient.Get(ctx)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	err = cli.ContainerStart(ctx, name, container.StartOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to start container: %w", err)
+		return errors.Wrap(err, "failed to start container")
 	}
 
 	return nil
@@ -255,7 +256,7 @@ func Exec(ctx context.Context, name string, command ...string) error {
 
 	cli, err := dockerClient.Get(ctx)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	exec, err := cli.ContainerExecCreate(ctx, name, types.ExecConfig{
@@ -264,31 +265,31 @@ func Exec(ctx context.Context, name string, command ...string) error {
 		AttachStdout: true,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create exec: %w", err)
+		return errors.Wrap(err, "failed to create exec")
 	}
 
 	attach, err := cli.ContainerExecAttach(ctx, exec.ID, types.ExecStartCheck{})
 	if err != nil {
-		return fmt.Errorf("failed to attach exec: %w", err)
+		return errors.Wrap(err, "failed to attach exec")
 	}
 	defer attach.Close()
 
 	_, err = io.Copy(os.Stderr, attach.Reader)
 	if err != nil {
-		return fmt.Errorf("failed to stream exec: %w", err)
+		return errors.Wrap(err, "failed to stream exec")
 	}
 
 	err = cli.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
 	if err != nil {
-		return fmt.Errorf("failed to start exec: %w", err)
+		return errors.Wrap(err, "failed to start exec")
 	}
 
 	inspect, err := cli.ContainerExecInspect(ctx, exec.ID)
 	if err != nil {
-		return fmt.Errorf("failed to inspect exec: %w", err)
+		return errors.Wrap(err, "failed to inspect exec")
 	}
 	if inspect.ExitCode != 0 {
-		return fmt.Errorf("exec failed with exit code %d", inspect.ExitCode)
+		return errors.Errorf("exec failed with exit code %d", inspect.ExitCode)
 	}
 
 	return nil
@@ -298,22 +299,22 @@ func Exec(ctx context.Context, name string, command ...string) error {
 func GetContainerPort(ctx context.Context, name string, port int) (int, error) {
 	cli, err := dockerClient.Get(ctx)
 	if err != nil {
-		return 0, err
+		return 0, errors.WithStack(err)
 	}
 
 	inspect, err := cli.ContainerInspect(ctx, name)
 	if err != nil {
-		return 0, fmt.Errorf("failed to inspect container: %w", err)
+		return 0, errors.Wrap(err, "failed to inspect container")
 	}
 
 	containerPort := fmt.Sprintf("%d/tcp", port)
 	hostPort, ok := inspect.NetworkSettings.Ports[nat.Port(containerPort)]
 	if !ok {
-		return 0, fmt.Errorf("container port %q not found", containerPort)
+		return 0, errors.Errorf("container port %q not found", containerPort)
 	}
 
 	if len(hostPort) == 0 {
-		return 0, fmt.Errorf("container port %q not bound", containerPort)
+		return 0, errors.Errorf("container port %q not bound", containerPort)
 	}
 
 	return nat.Port(hostPort[0].HostPort).Int(), nil
@@ -326,7 +327,7 @@ func PollContainerHealth(ctx context.Context, containerName string, timeout time
 
 	cli, err := dockerClient.Get(ctx)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	pollCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -335,12 +336,12 @@ func PollContainerHealth(ctx context.Context, containerName string, timeout time
 	for {
 		select {
 		case <-pollCtx.Done():
-			return fmt.Errorf("timed out waiting for container to be healthy: %w", pollCtx.Err())
+			return errors.Wrap(pollCtx.Err(), "timed out waiting for container to be healthy")
 
 		case <-time.After(100 * time.Millisecond):
 			inspect, err := cli.ContainerInspect(pollCtx, containerName)
 			if err != nil {
-				return fmt.Errorf("failed to inspect container: %w", err)
+				return errors.Wrap(err, "failed to inspect container")
 			}
 
 			state := inspect.State
@@ -367,16 +368,16 @@ func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.O
 	// multiple times simultaneously for the same services.
 	projCfg, ok := projectconfig.DefaultConfigPath().Get()
 	if !ok {
-		return nil, fmt.Errorf("failed to get project config path")
+		return nil, errors.Errorf("failed to get project config path")
 	}
 	dir := filepath.Join(filepath.Dir(projCfg), ".ftl")
 	err = os.MkdirAll(dir, 0700)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create directory: %w", err)
+		return nil, errors.Wrap(err, "failed to create directory")
 	}
 	release, err := flock.Acquire(ctx, filepath.Join(dir, fmt.Sprintf(".docker.%v.lock", name)), 1*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed to acquire lock: %w", err)
+		return nil, errors.Wrap(err, "failed to acquire lock")
 	}
 	defer release() //nolint:errcheck
 
@@ -398,7 +399,7 @@ func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.O
 	cmd.Stdout = writer
 	cmd.Stderr = writer
 	if err := cmd.RunBuffered(ctx); err != nil {
-		return nil, fmt.Errorf("failed to run docker compose up: %w", err)
+		return nil, errors.Wrap(err, "failed to run docker compose up")
 	}
 	return func() error {
 		logger.Debugf("Running docker compose down")
@@ -412,7 +413,7 @@ func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.O
 		cmd.Stdout = writer
 		cmd.Stderr = writer
 		if err := cmd.RunBuffered(ctx); err != nil {
-			return fmt.Errorf("failed to run docker compose down: %w", err)
+			return errors.Wrap(err, "failed to run docker compose down")
 		}
 		return nil
 	}, nil

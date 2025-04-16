@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -205,7 +206,7 @@ func ToolFromCLI(serverCtx context.Context, k *kong.Kong, projectConfig projectc
 		for _, parser := range parsers {
 			newArgs, err := parser(request.Params.Arguments)
 			if err != nil {
-				return nil, err
+				return nil, errors.WithStack(err)
 			}
 			args = append(args, newArgs...)
 		}
@@ -219,18 +220,18 @@ func ToolFromCLI(serverCtx context.Context, k *kong.Kong, projectConfig projectc
 		read, write, err := os.Pipe()
 
 		if err != nil {
-			return nil, fmt.Errorf("could not create pipe: %w", err)
+			return nil, errors.Wrap(err, "could not create pipe")
 		}
 		os.Stdout = write
 		os.Stderr = write
 		if err := executor(serverCtx, k, args); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		write.Close()
 		var buf strings.Builder
 		_, err = io.Copy(&buf, read)
 		if err != nil {
-			return nil, fmt.Errorf("could not read output: %w", err)
+			return nil, errors.Wrap(err, "could not read output")
 		}
 		cliResult := buf.String()
 		content := []mcp.Content{
@@ -297,7 +298,7 @@ func optionForInput(value *kong.Value, description string, flag bool, config *CL
 			if ok {
 				value, ok := anyValue.(bool)
 				if !ok {
-					return nil, fmt.Errorf("expected %s to be a bool but it was %T", name, anyValue)
+					return nil, errors.Errorf("expected %s to be a bool but it was %T", name, anyValue)
 				}
 				if value {
 					return []string{"--" + name}, nil
@@ -344,7 +345,7 @@ func newStringOption(name string, flag bool, opts []mcp.PropertyOption) (mcp.Too
 		}
 		str, ok := value.(string)
 		if !ok {
-			return nil, fmt.Errorf("expected %s to be a string but it was %T", name, value)
+			return nil, errors.Errorf("expected %s to be a string but it was %T", name, value)
 		}
 		if flag {
 			return []string{"--" + name, str}, nil
@@ -361,7 +362,7 @@ func newArrayOption(name string, opts []mcp.PropertyOption) (mcp.ToolOption, inp
 		}
 		s, ok := value.([]any)
 		if !ok {
-			return nil, fmt.Errorf("did not expect %s to be %T", name, value)
+			return nil, errors.Errorf("did not expect %s to be %T", name, value)
 		}
 		return islices.Map(s, func(e any) string {
 			return fmt.Sprintf("%v", e)
@@ -374,7 +375,7 @@ func statusContent(ctx context.Context, buildEngineClient buildenginepbconnect.B
 	output, err := GetStatusOutput(ctx, buildEngineClient, adminClient)
 	if err != nil {
 		// Fallback to just returning the tool result
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	wrapper := struct {
 		Explanation string       `json:"explanation,omitempty"`
@@ -386,7 +387,7 @@ func statusContent(ctx context.Context, buildEngineClient buildenginepbconnect.B
 
 	statusJSON, err := json.Marshal(wrapper)
 	if err != nil {
-		return nil, fmt.Errorf("could not marshal status: %w", err)
+		return nil, errors.Wrap(err, "could not marshal status")
 	}
 
 	return annotateTextContent(mcp.NewTextContent(string(statusJSON)), []mcp.Role{mcp.RoleAssistant}, 1.0), nil

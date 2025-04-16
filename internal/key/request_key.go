@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 )
 
 // A Request represents an inbound request into the cluster.
@@ -14,7 +16,7 @@ func NewRequestKey(origin Origin, key string) Request {
 }
 
 func ParseRequestKey(name string) (Request, error) {
-	return parseKey[RequestKeyPayload](name)
+	return errors.WithStack2(parseKey[RequestKeyPayload](name))
 }
 
 // Origin of a request.
@@ -35,7 +37,7 @@ func ParseOrigin(origin string) (Origin, error) {
 	case "pubsub":
 		return OriginPubsub, nil
 	default:
-		return "", fmt.Errorf("unknown origin %q", origin)
+		return "", errors.Errorf("unknown origin %q", origin)
 	}
 }
 
@@ -50,11 +52,11 @@ func (r *RequestKeyPayload) Kind() string   { return "req" }
 func (r *RequestKeyPayload) String() string { return fmt.Sprintf("%s-%s", r.Origin, r.Key) }
 func (r *RequestKeyPayload) Parse(parts []string) error {
 	if len(parts) < 2 {
-		return fmt.Errorf("expected <origin>-<key> but got %q", strings.Join(parts, "-"))
+		return errors.Errorf("expected <origin>-<key> but got %q", strings.Join(parts, "-"))
 	}
 	origin, err := ParseOrigin(parts[0])
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	r.Origin = origin
 	key := strings.Join(parts[1:], "-")

@@ -1,10 +1,10 @@
 package ingress
 
 import (
-	"fmt"
 	"math/rand"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
@@ -51,7 +51,7 @@ func matchSegments(pattern, urlPath string, onMatch func(segment, value string))
 func getField(name string, ref *schema.Ref, sch *schema.Schema) (*schema.Field, error) {
 	data, err := sch.ResolveMonomorphised(ref)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	var bodyField *schema.Field
 	for _, field := range data.Fields {
@@ -62,7 +62,7 @@ func getField(name string, ref *schema.Ref, sch *schema.Schema) (*schema.Field, 
 	}
 
 	if bodyField == nil {
-		return nil, fmt.Errorf("verb %s must have a %q field", ref.Name, name)
+		return nil, errors.Errorf("verb %s must have a %q field", ref.Name, name)
 	}
 
 	return bodyField, nil

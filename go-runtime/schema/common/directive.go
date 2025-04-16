@@ -1,13 +1,13 @@
 package common
 
 import (
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
 	"strconv"
 	"strings"
 
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/participle/v2"
 
 	"github.com/block/ftl-golang-tools/go/analysis"

@@ -2,11 +2,11 @@ package buildengine_test
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/buildengine"
@@ -21,7 +21,7 @@ func TestGraph(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancelCause(log.ContextWithNewDefaultLogger(context.Background()))
 	t.Cleanup(func() {
-		cancel(fmt.Errorf("test complete: %w", context.Canceled))
+		cancel(errors.Wrap(context.Canceled, "test complete"))
 	})
 	projConfig := projectconfig.Config{
 		Path: filepath.Join(t.TempDir(), "ftl-project.toml"),

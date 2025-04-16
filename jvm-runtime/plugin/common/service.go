@@ -17,6 +17,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/beevik/etree"
@@ -32,7 +33,6 @@ import (
 	langconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
-	"github.com/block/ftl/common/errors"
 	"github.com/block/ftl/common/plugin"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
@@ -69,7 +69,7 @@ type buildContext struct {
 func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 	sch, err := schema.FromProto(proto.Schema)
 	if err != nil {
-		return buildContext{}, fmt.Errorf("could not parse schema from proto: %w", err)
+		return buildContext{}, errors.Wrap(err, "could not parse schema from proto")
 	}
 	config := langpb.ModuleConfigFromProto(proto.ModuleConfig)
 	return buildContext{
@@ -109,12 +109,12 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 	}
 	sch, err := schema.FromProto(req.Msg.Schema)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse schema from proto: %w", err)
+		return nil, errors.Wrap(err, "failed to parse schema from proto")
 	}
 	config := langpb.ModuleConfigFromProto(req.Msg.ModuleConfig)
 	_, err = s.writeGenericSchemaFiles(ctx, sch, config, false)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return connect.NewResponse(&langpb.SyncStubReferencesResponse{}), nil
 }
@@ -135,12 +135,12 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	ctx = log.ContextWithLogger(ctx, logger)
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	s.buildContext.Store(buildCtx)
 	changed, err := s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
 	if err != nil {
-		return fmt.Errorf("failed to write generic schema files: %w", err)
+		return errors.Wrap(err, "failed to write generic schema files")
 	}
 	if s.acceptsContextUpdates.Load() {
 		// Already running in dev mode, we don't need to rebuild
@@ -156,7 +156,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 
 	// Initial build
 	if err := buildAndSend(ctx, stream, buildCtx, false); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil
@@ -164,21 +164,21 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 
 func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, realm string, stream *connect.ServerStream[langpb.BuildResponse]) error {
 	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(fmt.Errorf("stopping JVM language plugin (dev): %w", context.Canceled))
+	defer cancel(errors.Wrap(context.Canceled, "stopping JVM language plugin (devw"))
 
 	s.acceptsContextUpdates.Store(true)
 	defer s.acceptsContextUpdates.Store(false)
 
 	watchPatterns, err := relativeWatchPatterns(buildCtx.Config.Dir, buildCtx.Config.Watch)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	ensureCorrectFTLVersion(ctx, buildCtx)
 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 	fileEvents := make(chan watch.WatchEventModuleChanged, 32)
 	ensureCorrectFTLVersion(ctx, buildCtx)
 	if err := watchFiles(ctx, watcher, buildCtx, fileEvents); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	firstResponseSent := &atomic.Value[bool]{}
@@ -187,7 +187,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, realm s
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("context cancelled %w", ctx.Err())
+			return errors.Wrap(ctx.Err(), "context cancelled")
 		default:
 
 		}
@@ -218,7 +218,7 @@ func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, err
 	for i, path := range watchPaths {
 		relative, err := filepath.Rel(moduleDir, path)
 		if err != nil {
-			return nil, fmt.Errorf("could create relative path for watch pattern: %w", err)
+			return nil, errors.Wrap(err, "could create relative path for watch pattern")
 		}
 		relativePaths[i] = relative
 	}
@@ -254,7 +254,7 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	logger := log.FromContext(ctx)
 	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
 	if err != nil {
-		return fmt.Errorf("could not watch for file changes: %w", err)
+		return errors.Wrap(err, "could not watch for file changes")
 	}
 	log.FromContext(ctx).Debugf("Watching for file changes: %s", buildCtx.Config.Dir)
 	watchEvents := make(chan watch.WatchEvent, 32)
@@ -265,12 +265,12 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 	case e := <-watchEvents:
 		_, ok := e.(watch.WatchEventModuleAdded)
 		if !ok {
-			return fmt.Errorf("expected module added event, got: %T", e)
+			return errors.Errorf("expected module added event, got: %T", e)
 		}
 	case <-time.After(3 * time.Second):
-		return fmt.Errorf("expected module added event, got no event")
+		return errors.Errorf("expected module added event, got no event")
 	case <-ctx.Done():
-		return fmt.Errorf("context done: %w", ctx.Err())
+		return errors.Wrap(ctx.Err(), "context done")
 	}
 	stubsDir := filepath.Join(buildCtx.Config.Dir, "src", "main", "ftl-module-schema")
 	go func() {
@@ -301,7 +301,7 @@ type buildResult struct {
 func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
 	logger := log.FromContext(parentCtx)
 	ctx, cancel := context.WithCancelCause(parentCtx)
-	defer cancel(fmt.Errorf("stopping JVM language plugin (Quarkus dev mode): %w", context.Canceled))
+	defer cancel(errors.Wrap(context.Canceled, "stopping JVM language plugin (Quarkus dev modew"))
 
 	output := &errorDetector{
 		logger: logger,
@@ -338,12 +338,12 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string,
 	defer s.updatesTopic.Unsubscribe(events)
 	release, err := flock.Acquire(ctx, s.buildContext.Load().Config.BuildLock, BuildLockTimeout)
 	if err != nil {
-		return fmt.Errorf("could not acquire build lock: %w", err)
+		return errors.Wrap(err, "could not acquire build lock")
 	}
 	defer release() //nolint:errcheck
 	address, err := plugin.AllocatePort()
 	if err != nil {
-		return fmt.Errorf("could not allocate port: %w", err)
+		return errors.Wrap(err, "could not allocate port")
 	}
 	buildCtx := s.buildContext.Load()
 	ctx = log.ContextWithLogger(ctx, logger)
@@ -358,7 +358,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string,
 	}
 	hotReloadPort, err := plugin.AllocatePort()
 	if err != nil {
-		return fmt.Errorf("could not allocate port: %w", err)
+		return errors.Wrap(err, "could not allocate port")
 	}
 	devModeBuild = fmt.Sprintf("%s -Dftl.language.port=%d", devModeBuild, hotReloadPort.Port)
 
@@ -371,7 +371,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string,
 	hotReloadEndpoint := fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
 	client, err := s.connectReloadClient(ctx, hotReloadEndpoint, output)
 	if err != nil || client == nil {
-		return err
+		return errors.WithStack(err)
 	}
 	logger.Debugf("Dev mode process started")
 	reloadEvents := make(chan *buildResult, 32)
@@ -386,19 +386,19 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string,
 		s.watchReloadEvents(ctx, reloadEvents, firstResponseSent, stream, devModeEndpoint, hotReloadEndpoint, debugPort32)
 	}()
 
-	errors := make(chan error)
+	errs := make(chan error)
 	for {
 		newKey := key.NewDeploymentKey(realm, module)
 		select {
-		case err := <-errors:
-			return fmt.Errorf("hot reload failed %w", err)
+		case err := <-errs:
+			return errors.Wrap(err, "hot reload faile")
 		case bc := <-events:
 			logger.Debugf("Build context updated")
 			go func() {
 				buildCtx = bc.buildCtx
 				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: bc.schemaChanged}))
 				if err != nil {
-					errors <- err
+					errs <- err
 					return
 				}
 				handleReloadResponse(result, newKey)
@@ -419,17 +419,16 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string,
 					},
 				})
 				if err != nil {
-					return fmt.Errorf("could not send build event: %w", err)
+					return errors.Wrap(err, "could not send build event")
 				}
 				continue
 			}
 
 			go func() {
-
 				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
 
 				if err != nil {
-					errors <- err
+					errs <- err
 					return
 				}
 				handleReloadResponse(result, newKey)
@@ -437,7 +436,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string,
 
 			}()
 		case <-ctx.Done():
-			return fmt.Errorf("context cancelled %w", ctx.Err())
+			return errors.Wrap(ctx.Err(), "context cancelled")
 		}
 	}
 }
@@ -556,10 +555,10 @@ func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, buildCt
 		err := command.Run()
 		if err != nil {
 			logger.Errorf(err, "Dev mode process exited with error")
-			cancel(fmt.Errorf("dev mode process exited with error: %w: %w", context.Canceled, err))
+			cancel(errors.Wrap(errors.Join(err, context.Canceled), "dev mode process exited with error"))
 		} else {
 			logger.Infof("Dev mode process exited")
-			cancel(fmt.Errorf("dev mode process exited: %w", context.Canceled))
+			cancel(errors.Wrap(context.Canceled, "dev mode process exited"))
 		}
 	}()
 }
@@ -575,7 +574,7 @@ func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint str
 			return nil, nil
 		default:
 		}
-		return nil, fmt.Errorf("timed out waiting for start %w", err)
+		return nil, errors.Wrap(err, "timed out waiting for star")
 	}
 	_ = output.FinalizeCapture(false)
 	return client, nil
@@ -585,13 +584,13 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 	logger := log.FromContext(ctx)
 	release, err := flock.Acquire(ctx, bctx.Config.BuildLock, BuildLockTimeout)
 	if err != nil {
-		return nil, fmt.Errorf("could not acquire build lock: %w", err)
+		return nil, errors.Wrap(err, "could not acquire build lock")
 	}
 	defer release() //nolint:errcheck
 
 	deps, err := extractDependencies(bctx.Config.Module, bctx.Config.Dir)
 	if err != nil {
-		return nil, fmt.Errorf("could not extract dependencies: %w", err)
+		return nil, errors.Wrap(err, "could not extract dependencies")
 	}
 
 	if !slices.Equal(islices.Sort(deps), islices.Sort(bctx.Dependencies)) {
@@ -631,7 +630,7 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 	buildErrs, err := loadProtoErrors(config)
 	capturedErrors := output.FinalizeCapture(false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load build errors: %w", err)
+		return nil, errors.Wrap(err, "failed to load build errors")
 	}
 	buildErrs.Errors = append(buildErrs.Errors, langpb.ErrorsToProto(capturedErrors).Errors...)
 	if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(buildErrs)) {
@@ -646,7 +645,7 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 
 	moduleProto, err := readSchema(bctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildSuccess{
@@ -681,7 +680,7 @@ func readSchema(bctx buildContext) (*schemapb.Module, error) {
 	path := filepath.Join(bctx.Config.DeployDir, SchemaFile)
 	moduleSchema, err := schema.ModuleFromProtoFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read schema for module: %s from %s %w", bctx.Config.Module, path, err)
+		return nil, errors.Wrapf(err, "failed to read schema for module: %s from %s", bctx.Config.Module, path)
 	}
 
 	moduleSchema.Runtime = &schema.ModuleRuntime{
@@ -705,16 +704,16 @@ func readSchema(bctx buildContext) (*schemapb.Module, error) {
 // event with the updated build context id with "is_automatic_rebuild" as false.
 func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[langpb.BuildContextUpdatedRequest]) (*connect.Response[langpb.BuildContextUpdatedResponse], error) {
 	if !s.acceptsContextUpdates.Load() {
-		return nil, fmt.Errorf("plugin does not accept context updates because these is no build stream allowing rebuilds")
+		return nil, errors.Errorf("plugin does not accept context updates because these is no build stream allowing rebuilds")
 	}
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s.buildContext.Store(buildCtx)
 	changed, err := s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
 	if err != nil {
-		return nil, fmt.Errorf("failed to write generic schema files: %w", err)
+		return nil, errors.Wrap(err, "failed to write generic schema files")
 	}
 
 	s.updatesTopic.Publish(buildContextUpdatedEvent{
@@ -739,7 +738,7 @@ func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.Build
 		})
 	}
 	if err = stream.Send(buildEvent); err != nil {
-		return fmt.Errorf("could not send build event: %w", err)
+		return errors.Wrap(err, "could not send build event")
 	}
 	return nil
 }
@@ -769,7 +768,7 @@ func loadJavaConfig(languageConfig any, language string) (JavaConfig, error) {
 	var javaConfig JavaConfig
 	err := mapstructure.Decode(languageConfig, &javaConfig)
 	if err != nil {
-		return JavaConfig{}, fmt.Errorf("failed to decode %s config: %w", language, err)
+		return JavaConfig{}, errors.Wrapf(err, "failed to decode %s config", language)
 	}
 	return javaConfig, nil
 }
@@ -782,7 +781,7 @@ func fileExists(filename string) bool {
 func (s *Service) GetDependencies(ctx context.Context, req *connect.Request[langpb.GetDependenciesRequest]) (*connect.Response[langpb.GetDependenciesResponse], error) {
 	modules, err := extractDependencies(req.Msg.ModuleConfig.Name, req.Msg.ModuleConfig.Dir)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return connect.NewResponse[langpb.GetDependenciesResponse](&langpb.GetDependenciesResponse{Modules: modules}), nil
 }
@@ -802,14 +801,14 @@ func extractDependencies(moduleName string, dir string) ([]string, error) {
 
 	err := filepath.WalkDir(filepath.Join(dir, "src/main/java"), func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("failed to walk directory: %w", err)
+			return errors.Wrap(err, "failed to walk directory")
 		}
 		if d.IsDir() || !(strings.HasSuffix(path, ".java")) {
 			return nil
 		}
 		file, err := os.Open(path)
 		if err != nil {
-			return fmt.Errorf("failed to open file: %w", err)
+			return errors.Wrap(err, "failed to open file")
 		}
 		defer file.Close()
 
@@ -824,12 +823,12 @@ func extractDependencies(moduleName string, dir string) ([]string, error) {
 				dependencies[module] = true
 			}
 		}
-		return scanner.Err()
+		return errors.WithStack(scanner.Err())
 	})
 
 	// We only error out if they both failed
 	if err != nil && kotlinErr != nil {
-		return nil, fmt.Errorf("%s: failed to extract dependencies from Java module: %w", moduleName, err)
+		return nil, errors.Wrapf(err, "%s: failed to extract dependencies from Java module", moduleName)
 	}
 	modules := maps.Keys(dependencies)
 	sort.Strings(modules)
@@ -842,14 +841,14 @@ func extractKotlinFTLImports(self, dir string) ([]string, error) {
 
 	err := filepath.WalkDir(filepath.Join(dir, "src/main/kotlin"), func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		if d.IsDir() || !(strings.HasSuffix(path, ".kt") || strings.HasSuffix(path, ".kts")) {
 			return nil
 		}
 		file, err := os.Open(path)
 		if err != nil {
-			return fmt.Errorf("could not open file while extracting dependencies: %w", err)
+			return errors.Wrap(err, "could not open file while extracting dependencies")
 		}
 		defer file.Close()
 
@@ -864,11 +863,11 @@ func extractKotlinFTLImports(self, dir string) ([]string, error) {
 				dependencies[module] = true
 			}
 		}
-		return scanner.Err()
+		return errors.WithStack(scanner.Err())
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to extract dependencies from Kotlin module: %w", self, err)
+		return nil, errors.Wrapf(err, "%s: failed to extract dependencies from Kotlin module", self)
 	}
 	modules := maps.Keys(dependencies)
 	sort.Strings(modules)
@@ -890,7 +889,7 @@ func setPOMProperties(ctx context.Context, baseDir string) error {
 
 	tree := etree.NewDocument()
 	if err := tree.ReadFromFile(pomFile); err != nil {
-		return fmt.Errorf("unable to read %s: %w", pomFile, err)
+		return errors.Wrapf(err, "unable to read %s", pomFile)
 	}
 	root := tree.Root()
 
@@ -913,12 +912,12 @@ func setPOMProperties(ctx context.Context, baseDir string) error {
 	err := updatePomProperties(root, pomFile, ftlVersion)
 	if err != nil && !versionSet {
 		// This is only a failure if we also did not update the parent
-		return err
+		return errors.WithStack(err)
 	}
 
 	err = tree.WriteToFile(pomFile)
 	if err != nil {
-		return fmt.Errorf("unable to write %s: %w", pomFile, err)
+		return errors.Wrapf(err, "unable to write %s", pomFile)
 	}
 	return nil
 }
@@ -926,11 +925,11 @@ func setPOMProperties(ctx context.Context, baseDir string) error {
 func updatePomProperties(root *etree.Element, pomFile string, ftlVersion string) error {
 	properties := root.SelectElement("properties")
 	if properties == nil {
-		return fmt.Errorf("unable to find <properties> in %s", pomFile)
+		return errors.Errorf("unable to find <properties> in %s", pomFile)
 	}
 	version := properties.SelectElement("ftl.version")
 	if version == nil {
-		return fmt.Errorf("unable to find <properties>/<ftl.version> in %s", pomFile)
+		return errors.Errorf("unable to find <properties>/<ftl.version> in %s", pomFile)
 	}
 	version.SetText(ftlVersion)
 	return nil
@@ -944,13 +943,13 @@ func loadProtoErrors(config moduleconfig.AbsModuleConfig) (*langpb.ErrorList, er
 
 	content, err := os.ReadFile(errorsPath)
 	if err != nil {
-		return nil, fmt.Errorf("could not load build errors file: %w", err)
+		return nil, errors.Wrap(err, "could not load build errors file")
 	}
 
 	errorspb := &langpb.ErrorList{}
 	err = proto.Unmarshal(content, errorspb)
 	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal build errors %w", err)
+		return nil, errors.Wrap(err, "could not unmarshal build error")
 	}
 	return errorspb, nil
 }
@@ -967,7 +966,7 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 	modPath := filepath.Join(config.Dir, "src", "main", "ftl-module-schema")
 	err := os.MkdirAll(modPath, 0750)
 	if err != nil {
-		return false, fmt.Errorf("failed to create directory %s: %w", modPath, err)
+		return false, errors.Wrapf(err, "failed to create directory %s", modPath)
 	}
 	changed := false
 
@@ -977,7 +976,7 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 				logger.Debugf("writing generated schema files for %s", mod.Name)
 				sw, err := s.writeGeneratedSchemaFiles(mod, modPath)
 				if err != nil {
-					return false, err
+					return false, errors.WithStack(err)
 				}
 				changed = changed || sw
 			}
@@ -989,7 +988,7 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 		}
 		data, err := schema.ModuleToBytes(mod)
 		if err != nil {
-			return false, fmt.Errorf("failed to export module schema for module %s %w", mod.Name, err)
+			return false, errors.Wrapf(err, "failed to export module schema for module %s", mod.Name)
 		}
 		schemaFile := filepath.Join(modPath, mod.Name+".pb")
 		if fileExists(schemaFile) {
@@ -1005,7 +1004,7 @@ func (s *Service) writeGenericSchemaFiles(ctx context.Context, v *schema.Schema,
 		err = os.WriteFile(schemaFile, data, 0644) // #nosec
 		logger.Debugf("writing schema files for %s to %s", mod.Name, schemaFile)
 		if err != nil {
-			return false, fmt.Errorf("failed to write schema file for module %s %w", mod.Name, err)
+			return false, errors.Wrapf(err, "failed to write schema file for module %s", mod.Name)
 		}
 	}
 	return changed, nil
@@ -1018,7 +1017,7 @@ func (s *Service) writeGeneratedSchemaFiles(m *schema.Module, schemaDir string) 
 	generatedDir := filepath.Join(schemaDir, "generated")
 	err := os.MkdirAll(generatedDir, 0750)
 	if err != nil {
-		return false, fmt.Errorf("failed to create directory %s: %w", generatedDir, err)
+		return false, errors.Wrapf(err, "failed to create directory %s", generatedDir)
 	}
 	schemaFile := filepath.Join(generatedDir, m.Name+".pb")
 
@@ -1027,7 +1026,7 @@ func (s *Service) writeGeneratedSchemaFiles(m *schema.Module, schemaDir string) 
 		if fileExists(schemaFile) {
 			err := os.Remove(schemaFile)
 			if err != nil {
-				return false, fmt.Errorf("failed to remove generated schema file for module %s %w", m.Name, err)
+				return false, errors.Wrapf(err, "failed to remove generated schema file for module %s", m.Name)
 			}
 		}
 		return false, nil
@@ -1035,7 +1034,7 @@ func (s *Service) writeGeneratedSchemaFiles(m *schema.Module, schemaDir string) 
 
 	data, err := schema.ModuleToBytes(generatedModule)
 	if err != nil {
-		return false, fmt.Errorf("failed to export generated module schema for module %s %w", m.Name, err)
+		return false, errors.Wrapf(err, "failed to export generated module schema for module %s", m.Name)
 	}
 
 	if fileExists(schemaFile) {
@@ -1050,7 +1049,7 @@ func (s *Service) writeGeneratedSchemaFiles(m *schema.Module, schemaDir string) 
 
 	err = os.WriteFile(schemaFile, data, 0644) // #nosec
 	if err != nil {
-		return false, fmt.Errorf("failed to write generated schema file for module %s %w", m.Name, err)
+		return false, errors.Wrapf(err, "failed to write generated schema file for module %s", m.Name)
 	}
 	return true, nil
 }

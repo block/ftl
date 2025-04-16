@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
@@ -52,17 +53,17 @@ func (e *ARNSecretPostgresSetup) Execute(ctx context.Context) ([]state.State, er
 
 				rootDSN, adminDSN, err := postgresAdminDSN(ctx, e.secrets, input.MasterUserSecretARN, connector)
 				if err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 
 				// we need a separate connection to create the initial database
 				if err := postgresEnsureDB(ctx, rootDSN, connector); err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 
 				// user credentials need to be set up after connecting to the new database
 				if err := postgresSetup(ctx, adminDSN, connector); err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 
 				return state.OutputPostgres{
@@ -77,7 +78,7 @@ func (e *ARNSecretPostgresSetup) Execute(ctx context.Context) ([]state.State, er
 
 	res, err := rg.Wait()
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute postgres setup: %w", err)
+		return nil, errors.Wrap(err, "failed to execute postgres setup")
 	}
 
 	return res, nil
@@ -86,16 +87,16 @@ func (e *ARNSecretPostgresSetup) Execute(ctx context.Context) ([]state.State, er
 func postgresAdminDSN(ctx context.Context, secrets *secretsmanager.Client, secretARN string, connector *schema.AWSIAMAuthDatabaseConnector) (string, string, error) {
 	adminUsername, adminPassword, err := secretARNToUsernamePassword(ctx, secrets, secretARN)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get username and password from secret ARN: %w", err)
+		return "", "", errors.Wrap(err, "failed to get username and password from secret ARN")
 	}
 
 	host, port, err := net.SplitHostPort(connector.Endpoint)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to split host and port: %w", err)
+		return "", "", errors.Wrap(err, "failed to split host and port")
 	}
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to convert port to int: %w", err)
+		return "", "", errors.Wrap(err, "failed to convert port to int")
 	}
 
 	rootDSN := dsn.PostgresDSN("postgres", dsn.Host(host), dsn.Port(portInt), dsn.Username(adminUsername), dsn.Password(adminPassword))
@@ -112,7 +113,7 @@ func postgresSetup(ctx context.Context, adminDSN string, connector *schema.AWSIA
 
 	db, err := sql.Open("pgx", adminDSN)
 	if err != nil {
-		return fmt.Errorf("failed to connect to postgres: %w", err)
+		return errors.Wrap(err, "failed to connect to postgres")
 	}
 	defer db.Close()
 
@@ -121,12 +122,12 @@ func postgresSetup(ctx context.Context, adminDSN string, connector *schema.AWSIA
 	if err != nil {
 		// Ignore if user already exists
 		if !strings.Contains(err.Error(), "already exists") {
-			return fmt.Errorf("failed to create database: %w", err)
+			return errors.Wrap(err, "failed to create database")
 		}
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		return errors.Wrap(err, "failed to get rows affected")
 	}
 	if rows > 0 {
 		logger.Debugf("postgres user created: %s", username)
@@ -144,7 +145,7 @@ func postgresSetup(ctx context.Context, adminDSN string, connector *schema.AWSIA
 				ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO %s;
 				ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO %s;
 			`, database, username, username, username, username, username, username, username)); err != nil {
-		return fmt.Errorf("failed to grant FTL user privileges: %w", err)
+		return errors.Wrap(err, "failed to grant FTL user privileges")
 	}
 	return nil
 }
@@ -155,7 +156,7 @@ func postgresEnsureDB(ctx context.Context, rootDSN string, connector *schema.AWS
 
 	db, err := sql.Open("pgx", rootDSN)
 	if err != nil {
-		return fmt.Errorf("failed to connect to postgres: %w", err)
+		return errors.Wrap(err, "failed to connect to postgres")
 	}
 	defer db.Close()
 
@@ -165,12 +166,12 @@ func postgresEnsureDB(ctx context.Context, rootDSN string, connector *schema.AWS
 	if err != nil {
 		// Ignore if database already exists
 		if !strings.Contains(err.Error(), "already exists") {
-			return fmt.Errorf("failed to create database: %w", err)
+			return errors.Wrap(err, "failed to create database")
 		}
 	} else {
 		rows, err := res.RowsAffected()
 		if err != nil {
-			return fmt.Errorf("failed to get rows affected: %w", err)
+			return errors.Wrap(err, "failed to get rows affected")
 		}
 		if rows > 0 {
 			logger.Infof("Database created: %s", database) //nolint:forbidigo
@@ -186,13 +187,13 @@ func secretARNToUsernamePassword(ctx context.Context, secrets *secretsmanager.Cl
 		SecretId: &secretARN,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get secret value: %w", err)
+		return "", "", errors.Wrap(err, "failed to get secret value")
 	}
 	secretString := *secret.SecretString
 
 	var secretData map[string]string
 	if err := json.Unmarshal([]byte(secretString), &secretData); err != nil {
-		return "", "", fmt.Errorf("failed to unmarshal secret data: %w", err)
+		return "", "", errors.Wrap(err, "failed to unmarshal secret data")
 	}
 
 	return secretData["username"], secretData["password"], nil

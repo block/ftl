@@ -7,6 +7,7 @@ import "encoding"
 import destpb "github.com/block/ftl/cmd/go2proto/testdata/testdatapb"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
+import "github.com/alecthomas/errors"
 import "github.com/alecthomas/types/optional"
 import "github.com/alecthomas/types/result"
 
@@ -211,22 +212,22 @@ func MessageFromProto(v *destpb.Message) (out *Message, err error) {
 
 	out = &Message{}
 	if out.Time, err = orZeroR(result.From(setNil(ptr(v.Time.AsTime()), v.Time), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Time: %w", err)
+		return nil, errors.Wrap(err, "Time")
 	}
 	if out.OptTime, err = orZeroR(result.From(setNil(ptr(v.OptTime.AsTime()), v.OptTime), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("OptTime: %w", err)
+		return nil, errors.Wrap(err, "OptTime")
 	}
 	if out.Duration, err = orZeroR(result.From(setNil(ptr(v.Duration.AsDuration()), v.Duration), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Duration: %w", err)
+		return nil, errors.Wrap(err, "Duration")
 	}
 	if out.Invalid, err = orZeroR(result.From(ptr(bool(v.Invalid)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Invalid: %w", err)
+		return nil, errors.Wrap(err, "Invalid")
 	}
 	if out.Nested, err = orZeroR(result.From(NestedFromProto(v.Nested))).Result(); err != nil {
-		return nil, fmt.Errorf("Nested: %w", err)
+		return nil, errors.Wrap(err, "Nested")
 	}
 	if out.RepeatedNested, err = sliceMapR(v.RepeatedNested, func(v *destpb.Nested) result.Result[Nested] { return orZeroR(result.From(NestedFromProto(v))) }).Result(); err != nil {
-		return nil, fmt.Errorf("RepeatedNested: %w", err)
+		return nil, errors.Wrap(err, "RepeatedNested")
 	}
 	if err := out.Validate(); err != nil {
 		return nil, err
@@ -250,7 +251,7 @@ func NestedFromProto(v *destpb.Nested) (out *Nested, err error) {
 
 	out = &Nested{}
 	if out.Nested, err = orZeroR(result.From(ptr(string(v.Nested)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Nested: %w", err)
+		return nil, errors.Wrap(err, "Nested")
 	}
 	return out, nil
 }
@@ -288,60 +289,60 @@ func RootFromProto(v *destpb.Root) (out *Root, err error) {
 
 	out = &Root{}
 	if out.Int, err = orZeroR(result.From(ptr(int(v.Int)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Int: %w", err)
+		return nil, errors.Wrap(err, "Int")
 	}
 	if out.String, err = orZeroR(result.From(ptr(string(v.String_)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("String: %w", err)
+		return nil, errors.Wrap(err, "String")
 	}
 	if out.MessagePtr, err = result.From(MessageFromProto(v.MessagePtr)).Result(); err != nil {
-		return nil, fmt.Errorf("MessagePtr: %w", err)
+		return nil, errors.Wrap(err, "MessagePtr")
 	}
 	if out.Enum, err = orZeroR(ptrR(result.From(EnumFromProto(v.Enum)))).Result(); err != nil {
-		return nil, fmt.Errorf("Enum: %w", err)
+		return nil, errors.Wrap(err, "Enum")
 	}
 	if out.SumType, err = orZeroR(ptrR(result.From(SumTypeFromProto(v.SumType)))).Result(); err != nil {
-		return nil, fmt.Errorf("SumType: %w", err)
+		return nil, errors.Wrap(err, "SumType")
 	}
 	if out.OptionalInt, err = orZeroR(result.From(setNil(ptr(int(orZero(v.OptionalInt))), v.OptionalInt), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("OptionalInt: %w", err)
+		return nil, errors.Wrap(err, "OptionalInt")
 	}
 	if out.OptionalIntPtr, err = result.From(setNil(ptr(int(orZero(v.OptionalIntPtr))), v.OptionalIntPtr), nil).Result(); err != nil {
-		return nil, fmt.Errorf("OptionalIntPtr: %w", err)
+		return nil, errors.Wrap(err, "OptionalIntPtr")
 	}
 	if out.OptionalMsg, err = result.From(MessageFromProto(v.OptionalMsg)).Result(); err != nil {
-		return nil, fmt.Errorf("OptionalMsg: %w", err)
+		return nil, errors.Wrap(err, "OptionalMsg")
 	}
 	if out.RepeatedInt, err = sliceMapR(v.RepeatedInt, func(v int64) result.Result[int] { return orZeroR(result.From(ptr(int(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("RepeatedInt: %w", err)
+		return nil, errors.Wrap(err, "RepeatedInt")
 	}
 	if out.RepeatedMsg, err = sliceMapR(v.RepeatedMsg, func(v *destpb.Message) result.Result[*Message] { return result.From(MessageFromProto(v)) }).Result(); err != nil {
-		return nil, fmt.Errorf("RepeatedMsg: %w", err)
+		return nil, errors.Wrap(err, "RepeatedMsg")
 	}
 	if out.URL, err = unmarshallBinary(v.Url, out.URL).Result(); err != nil {
-		return nil, fmt.Errorf("URL: %w", err)
+		return nil, errors.Wrap(err, "URL")
 	}
 	if out.OptionalWrapper, err = optionalR(result.From(setNil(ptr(string(orZero(v.OptionalWrapper))), v.OptionalWrapper), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("OptionalWrapper: %w", err)
+		return nil, errors.Wrap(err, "OptionalWrapper")
 	}
 	if out.ExternalRoot, err = orZeroR(unmarshallText([]byte(v.ExternalRoot), &out.ExternalRoot)).Result(); err != nil {
-		return nil, fmt.Errorf("ExternalRoot: %w", err)
+		return nil, errors.Wrap(err, "ExternalRoot")
 	}
 	if out.Key, err = orZeroR(unmarshallText([]byte(v.Key), &out.Key)).Result(); err != nil {
-		return nil, fmt.Errorf("Key: %w", err)
+		return nil, errors.Wrap(err, "Key")
 	}
 	if out.OptionalTime, err = optionalR(result.From(setNil(ptr(v.OptionalTime.AsTime()), v.OptionalTime), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("OptionalTime: %w", err)
+		return nil, errors.Wrap(err, "OptionalTime")
 	}
 	if out.OptionalMessage, err = optionalR(result.From(MessageFromProto(v.OptionalMessage))).Result(); err != nil {
-		return nil, fmt.Errorf("OptionalMessage: %w", err)
+		return nil, errors.Wrap(err, "OptionalMessage")
 	}
 	if out.OptionalMessagePtr, err = optionalRPtr(result.From(MessageFromProto(v.OptionalMessagePtr))).Result(); err != nil {
-		return nil, fmt.Errorf("OptionalMessagePtr: %w", err)
+		return nil, errors.Wrap(err, "OptionalMessagePtr")
 	}
 	if out.Map, err = mapValuesR(v.Map, func(v *timestamppb.Timestamp) result.Result[time.Time] {
 		return orZeroR(result.From(setNil(ptr(v.AsTime()), v), nil))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Map: %w", err)
+		return nil, errors.Wrap(err, "Map")
 	}
 	return out, nil
 }
@@ -394,7 +395,7 @@ func SubSumTypeAFromProto(v *destpb.SubSumTypeA) (out *SubSumTypeA, err error) {
 
 	out = &SubSumTypeA{}
 	if out.A, err = orZeroR(result.From(ptr(string(v.A)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("A: %w", err)
+		return nil, errors.Wrap(err, "A")
 	}
 	return out, nil
 }
@@ -415,7 +416,7 @@ func SubSumTypeBFromProto(v *destpb.SubSumTypeB) (out *SubSumTypeB, err error) {
 
 	out = &SubSumTypeB{}
 	if out.A, err = orZeroR(result.From(ptr(string(v.A)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("A: %w", err)
+		return nil, errors.Wrap(err, "A")
 	}
 	return out, nil
 }
@@ -486,7 +487,7 @@ func SumTypeAFromProto(v *destpb.SumTypeA) (out *SumTypeA, err error) {
 
 	out = &SumTypeA{}
 	if out.A, err = orZeroR(result.From(ptr(string(v.A)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("A: %w", err)
+		return nil, errors.Wrap(err, "A")
 	}
 	return out, nil
 }
@@ -507,7 +508,7 @@ func SumTypeBFromProto(v *destpb.SumTypeB) (out *SumTypeB, err error) {
 
 	out = &SumTypeB{}
 	if out.B, err = orZeroR(result.From(ptr(int(v.B)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("B: %w", err)
+		return nil, errors.Wrap(err, "B")
 	}
 	return out, nil
 }
@@ -528,7 +529,7 @@ func SumTypeCFromProto(v *destpb.SumTypeC) (out *SumTypeC, err error) {
 
 	out = &SumTypeC{}
 	if out.C, err = orZeroR(result.From(ptr(float64(v.C)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("C: %w", err)
+		return nil, errors.Wrap(err, "C")
 	}
 	return out, nil
 }

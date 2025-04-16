@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/go-viper/mapstructure/v2"
 
@@ -101,7 +102,7 @@ func LoadConfig(dir string) (UnvalidatedModuleConfig, error) {
 	raw := map[string]any{}
 	_, err := toml.DecodeFile(path, &raw)
 	if err != nil {
-		return UnvalidatedModuleConfig{}, fmt.Errorf("could not parse module toml: %w", err)
+		return UnvalidatedModuleConfig{}, errors.Wrap(err, "could not parse module toml")
 	}
 
 	// Decode the generic map into a module config
@@ -114,18 +115,18 @@ func LoadConfig(dir string) (UnvalidatedModuleConfig, error) {
 		Result:      &config,
 	})
 	if err != nil {
-		return UnvalidatedModuleConfig{}, fmt.Errorf("could not parse contents of module toml: %w", err)
+		return UnvalidatedModuleConfig{}, errors.Wrap(err, "could not parse contents of module toml")
 	}
 	err = mapDecoder.Decode(raw)
 	if err != nil {
-		return UnvalidatedModuleConfig{}, fmt.Errorf("could not parse contents of module toml: %w", err)
+		return UnvalidatedModuleConfig{}, errors.Wrap(err, "could not parse contents of module toml")
 	}
 	// Decode language config
 	rawLangConfig, ok := raw[config.Language]
 	if ok {
 		langConfig, ok := rawLangConfig.(map[string]any)
 		if !ok {
-			return UnvalidatedModuleConfig{}, fmt.Errorf("language config for %q is not a map", config.Language)
+			return UnvalidatedModuleConfig{}, errors.Errorf("language config for %q is not a map", config.Language)
 		}
 		config.LanguageConfig = langConfig
 	}
@@ -192,10 +193,10 @@ func (c UnvalidatedModuleConfig) FillDefaultsAndValidate(customDefaults CustomDe
 	}
 	valid, databases, err := ValidateSQLRoot(c.Dir, c.SQLRootDir)
 	if err != nil {
-		return ModuleConfig{}, fmt.Errorf("invalid SQL migration directory %q: %w", c.SQLRootDir, err)
+		return ModuleConfig{}, errors.Wrapf(err, "invalid SQL migration directory %q", c.SQLRootDir)
 	}
 	if !valid {
-		return ModuleConfig{}, fmt.Errorf("invalid SQL migration directory %q", c.SQLRootDir)
+		return ModuleConfig{}, errors.Errorf("invalid SQL migration directory %q", c.SQLRootDir)
 	}
 	c.SQLDatabases = databases
 
@@ -215,16 +216,16 @@ func (c UnvalidatedModuleConfig) FillDefaultsAndValidate(customDefaults CustomDe
 
 	// Validate
 	if c.DeployDir == "" {
-		return ModuleConfig{}, fmt.Errorf("no deploy directory configured")
+		return ModuleConfig{}, errors.Errorf("no deploy directory configured")
 	}
 	if c.BuildLock == "" {
-		return ModuleConfig{}, fmt.Errorf("no build lock path configured")
+		return ModuleConfig{}, errors.Errorf("no build lock path configured")
 	}
 	if !isBeneath(c.Dir, c.DeployDir) {
-		return ModuleConfig{}, fmt.Errorf("deploy-dir %s must be relative to the module directory %s", c.DeployDir, c.Dir)
+		return ModuleConfig{}, errors.Errorf("deploy-dir %s must be relative to the module directory %s", c.DeployDir, c.Dir)
 	}
 	if c.SQLRootDir != "" && !isBeneath(c.Dir, c.SQLRootDir) {
-		return ModuleConfig{}, fmt.Errorf("sql-directory %s must be relative to the module directory %s", c.SQLRootDir, c.Dir)
+		return ModuleConfig{}, errors.Errorf("sql-directory %s must be relative to the module directory %s", c.SQLRootDir, c.Dir)
 	}
 	c.Watch = slices.Sort(c.Watch)
 	return ModuleConfig(c), nil
@@ -256,16 +257,16 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 		if os.IsNotExist(err) {
 			return true, databases, nil
 		}
-		return false, databases, fmt.Errorf("failed to access SQL directory %q: %w", dir, err)
+		return false, databases, errors.Wrapf(err, "failed to access SQL directory %q", dir)
 	}
 
 	if !root.IsDir() {
-		return false, databases, fmt.Errorf("SQL directory %q is not a directory", dir)
+		return false, databases, errors.Errorf("SQL directory %q is not a directory", dir)
 	}
 
 	engineDirs, err := os.ReadDir(dir)
 	if err != nil {
-		return false, databases, fmt.Errorf("failed to read SQL migration directory %q: %w", dir, err)
+		return false, databases, errors.Wrapf(err, "failed to read SQL migration directory %q", dir)
 	}
 
 	if len(engineDirs) == 0 {
@@ -273,19 +274,19 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 	}
 
 	if len(engineDirs) > 2 {
-		return false, databases, fmt.Errorf("subdirectories of %q must be either 'mysql' or 'postgres'", dir)
+		return false, databases, errors.Errorf("subdirectories of %q must be either 'mysql' or 'postgres'", dir)
 	}
 
 	// validate engine directories
 	for _, engineDir := range engineDirs {
 		if !engineDir.IsDir() {
-			return false, databases, fmt.Errorf("engine path %q must be a directory", filepath.Join(dir, engineDir.Name()))
+			return false, databases, errors.Errorf("engine path %q must be a directory", filepath.Join(dir, engineDir.Name()))
 		}
 
 		engineName := engineDir.Name()
 		engine, err := ToEngineType(engineName)
 		if err != nil {
-			return false, databases, fmt.Errorf("invalid DB engine %q - subdirectory of %q must be either 'mysql' or 'postgres'", engineName, dir)
+			return false, databases, errors.Errorf("invalid DB engine %q - subdirectory of %q must be either 'mysql' or 'postgres'", engineName, dir)
 		}
 
 		enginePath := filepath.Join(dir, engineName)
@@ -294,7 +295,7 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 			if os.IsNotExist(err) {
 				continue
 			}
-			return false, databases, fmt.Errorf("failed to read engine directory %q: %w", engineName, err)
+			return false, databases, errors.Wrapf(err, "failed to read engine directory %q", engineName)
 		}
 
 		if len(dbDirs) == 0 {
@@ -304,7 +305,7 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 		// validate database directories
 		for _, dbDir := range dbDirs {
 			if !dbDir.IsDir() {
-				return false, databases, fmt.Errorf("database path %q must be a directory", filepath.Join(enginePath, dbDir.Name()))
+				return false, databases, errors.Errorf("database path %q must be a directory", filepath.Join(enginePath, dbDir.Name()))
 			}
 
 			dbPath := filepath.Join(enginePath, dbDir.Name())
@@ -313,20 +314,20 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 				if os.IsNotExist(err) {
 					continue
 				}
-				return false, databases, fmt.Errorf("failed to read database directory %q: %w", dbDir.Name(), err)
+				return false, databases, errors.Wrapf(err, "failed to read database directory %q", dbDir.Name())
 			}
 			if len(contentDirs) == 0 {
 				continue
 			}
 			if len(contentDirs) > 2 {
-				return false, databases, fmt.Errorf("content directories of %q must be either 'schema' or 'queries'", dbPath)
+				return false, databases, errors.Errorf("content directories of %q must be either 'schema' or 'queries'", dbPath)
 			}
 
 			schemaDir := optional.None[string]()
 			queriesDir := optional.None[string]()
 			for _, contentDir := range contentDirs {
 				if !contentDir.IsDir() {
-					return false, databases, fmt.Errorf("content path %q must be a directory", filepath.Join(dbPath, contentDir.Name()))
+					return false, databases, errors.Errorf("content path %q must be a directory", filepath.Join(dbPath, contentDir.Name()))
 				}
 				contentName := contentDir.Name()
 				switch contentName {
@@ -335,7 +336,7 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 				case "queries":
 					queriesDir = optional.Some(filepath.Join(sqlDir, engineName, dbDir.Name(), contentName))
 				default:
-					return false, databases, fmt.Errorf("invalid content directory %q", contentName)
+					return false, databases, errors.Errorf("invalid content directory %q", contentName)
 				}
 			}
 			databases[dbDir.Name()] = DatabaseContent{
@@ -356,7 +357,7 @@ func ToEngineType(engine string) (string, error) {
 	case schema.MySQLDatabaseType:
 		return EngineMySQL, nil
 	}
-	return "", fmt.Errorf("invalid engine %q", engine)
+	return "", errors.Errorf("invalid engine %q", engine)
 }
 
 func isBeneath(moduleDir, path string) bool {

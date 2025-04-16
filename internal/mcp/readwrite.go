@@ -4,13 +4,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -35,19 +35,19 @@ func ReadTool() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 		), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			path, ok := request.Params.Arguments["path"].(string)
 			if !ok {
-				return nil, fmt.Errorf("path is required")
+				return nil, errors.Errorf("path is required")
 			}
 			fileContent, err := os.ReadFile(path)
 			if err != nil {
-				return nil, fmt.Errorf("could not read file: %w", err)
+				return nil, errors.Wrap(err, "could not read file")
 			}
 			token, err := tokenForFileContent(fileContent)
 			if err != nil {
-				return nil, fmt.Errorf("could not generate verification token: %w", err)
+				return nil, errors.Wrap(err, "could not generate verification token")
 			}
 			readResult, err := newReadResult(fileContent, token, false, "")
 			if err != nil {
-				return nil, fmt.Errorf("could not create read result: %w", err)
+				return nil, errors.Wrap(err, "could not create read result")
 			}
 			readResult.Content = append(readResult.Content, annotateTextContent(mcp.NewTextContent("Read contents of "+path), []mcp.Role{mcp.RoleUser}, 0.3))
 			return readResult, nil
@@ -62,7 +62,7 @@ func newReadResult(fileContent []byte, token string, isError bool, explanation s
 	}
 	outputBytes, err := json.Marshal(readResult)
 	if err != nil {
-		return nil, fmt.Errorf("could not marshal read result: %w", err)
+		return nil, errors.Wrap(err, "could not marshal read result")
 	}
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
@@ -91,15 +91,15 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 		), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			path, ok := request.Params.Arguments["path"].(string)
 			if !ok {
-				return nil, fmt.Errorf("path is required")
+				return nil, errors.Errorf("path is required")
 			}
 			fileContent, ok := request.Params.Arguments["content"].(string)
 			if !ok {
-				return nil, fmt.Errorf("content is required")
+				return nil, errors.Errorf("content is required")
 			}
 			moduleDir, ok := detectModulePath(path).Get()
 			if !ok {
-				return nil, fmt.Errorf("this tool can only write to files within FTL modules")
+				return nil, errors.Errorf("this tool can only write to files within FTL modules")
 			}
 			originalGeneratedFiles := getGeneratedFileContent(moduleDir, path)
 
@@ -108,19 +108,19 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 				if errors.Is(err, os.ErrNotExist) {
 					originalContent = []byte{}
 				} else {
-					return nil, fmt.Errorf("could access existing file: %w", err)
+					return nil, errors.Wrap(err, "could access existing file")
 				}
 			}
 			if len(originalContent) > 0 {
 				token, err := tokenForFileContent(originalContent)
 				if err != nil {
-					return nil, fmt.Errorf("could not generate verification token: %w", err)
+					return nil, errors.Wrap(err, "could not generate verification token")
 				}
 				expectedToken, ok := request.Params.Arguments["verificationToken"].(string)
 				if !ok || expectedToken != token {
 					// File was not read (or file has changed). Return an error response with an explanation and the original content
-					return newReadResult(originalContent, token, true, `The file was not read before it was written or it has changed since it was last read.
-		The file has been read and provided here. Make sure you understand the existing content before using the Write tool so you do not accidentally alter data or code that you did not mean to change.`)
+					return errors.WithStack2(newReadResult(originalContent, token, true, `The file was not read before it was written or it has changed since it was last read.
+		The file has been read and provided here. Make sure you understand the existing content before using the Write tool so you do not accidentally alter data or code that you did not mean to change.`))
 				}
 			}
 
@@ -128,15 +128,15 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 			dir, filename := filepath.Split(path)
 			tmpFile, err := os.CreateTemp(dir, filename+"-")
 			if err != nil {
-				return nil, fmt.Errorf("could not create temp file for %s: %w", path, err)
+				return nil, errors.Wrapf(err, "could not create temp file for %s", path)
 			}
 			defer os.Remove(tmpFile.Name()) // Delete the temp file if we error.
 			defer tmpFile.Close()
 			if _, err := tmpFile.WriteString(fileContent); err != nil {
-				return nil, fmt.Errorf("could not write to tmp file for %s: %w", path, err)
+				return nil, errors.Wrapf(err, "could not write to tmp file for %s", path)
 			}
 			if err := os.Rename(tmpFile.Name(), path); err != nil {
-				return nil, fmt.Errorf("could not replace file with tmp file %s: %w", path, err)
+				return nil, errors.Wrapf(err, "could not replace file with tmp file %s", path)
 			}
 
 			var userResult mcp.TextContent
@@ -162,7 +162,7 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 			}
 			assistantResultJSON, err := json.Marshal(assistantResult)
 			if err != nil {
-				return nil, fmt.Errorf("could not marshal assistant result: %w", err)
+				return nil, errors.Wrap(err, "could not marshal assistant result")
 			}
 			content = append(content, annotateTextContent(mcp.NewTextContent(string(assistantResultJSON)), []mcp.Role{mcp.RoleAssistant}, 1.0))
 
@@ -175,7 +175,7 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 				latest.WriteVerificationToken = "" // Do not allow assistant to write to these files
 				generatedFileUpdateJSON, err := json.Marshal(latest)
 				if err != nil {
-					return nil, fmt.Errorf("could not marshal read result for generated file: %w", err)
+					return nil, errors.Wrap(err, "could not marshal read result for generated file")
 				}
 				content = append(content, annotateTextContent(mcp.NewTextContent(string(generatedFileUpdateJSON)), []mcp.Role{mcp.RoleAssistant}, 0.5))
 			}
@@ -227,7 +227,7 @@ func prettyDiff(path, original, latest string) string {
 func tokenForFileContent(content []byte) (string, error) {
 	hasher := sha256.New()
 	if _, err := hasher.Write(content); err != nil {
-		return "", fmt.Errorf("could not hash file content: %w", err)
+		return "", errors.Wrap(err, "could not hash file content")
 	}
 	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
 }

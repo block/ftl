@@ -3,11 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/akamensky/base58"
+	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
@@ -40,15 +39,15 @@ func ensureStackExists(ctx context.Context, client *cloudformation.Client, name 
 			StackName:    &name,
 			TemplateBody: &empty,
 		}); err != nil {
-			return fmt.Errorf("failed to create stack %s: %w", name, err)
+			return errors.Wrapf(err, "failed to create stack %s", name)
 		}
 
 		if err := waitStackReady(ctx, client, name); err != nil {
-			return fmt.Errorf("stack %s did not become ready: %w", name, err)
+			return errors.Wrapf(err, "stack %s did not become ready", name)
 		}
 
 	} else if err != nil {
-		return fmt.Errorf("failed to describe stack %s: %w", name, err)
+		return errors.Wrapf(err, "failed to describe stack %s", name)
 	}
 	return nil
 }
@@ -66,7 +65,7 @@ func waitChangeSetReady(ctx context.Context, client *cloudformation.Client, chan
 			StackName:     &stack,
 		})
 		if err != nil {
-			return false, fmt.Errorf("failed to describe change-set: %w", err)
+			return false, errors.Wrap(err, "failed to describe change-set")
 		}
 		if desc.Status == types.ChangeSetStatusFailed {
 			// Unfortunately, there does not seem to be a better way to do this
@@ -77,11 +76,11 @@ func waitChangeSetReady(ctx context.Context, client *cloudformation.Client, chan
 					StackName:     &stack,
 				})
 				if err != nil {
-					return false, fmt.Errorf("failed to delete change-set %s: %w", changeSet, err)
+					return false, errors.Wrapf(err, "failed to delete change-set %s", changeSet)
 				}
 				return false, nil
 			}
-			return false, errors.New(*desc.StatusReason)
+			return false, errors.WithStack(errors.New(*desc.StatusReason))
 		}
 		if desc.Status != types.ChangeSetStatusCreatePending && desc.Status != types.ChangeSetStatusCreateInProgress {
 			return true, nil
@@ -94,7 +93,7 @@ func waitChangeSetReady(ctx context.Context, client *cloudformation.Client, chan
 func createClient(ctx context.Context) (*cloudformation.Client, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load default aws config: %w", err)
+		return nil, errors.Wrap(err, "failed to load default aws config")
 	}
 
 	return cloudformation.New(
@@ -108,7 +107,7 @@ func createClient(ctx context.Context) (*cloudformation.Client, error) {
 func createSecretsClient(ctx context.Context) (*secretsmanager.Client, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load default aws config: %w", err)
+		return nil, errors.Wrap(err, "failed to load default aws config")
 	}
 	return secretsmanager.New(
 		secretsmanager.Options{
@@ -130,11 +129,11 @@ func decodeOutputKey(output types.Output) (*CloudformationOutputKey, error) {
 	rawKey := *output.OutputKey
 	bytes, err := base58.Decode(rawKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode cloudformation output key: %w", err)
+		return nil, errors.Wrap(err, "failed to decode cloudformation output key")
 	}
 	key := CloudformationOutputKey{}
 	if err := json.Unmarshal(bytes, &key); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal cloudformation output key: %w", err)
+		return nil, errors.Wrap(err, "failed to unmarshal cloudformation output key")
 	}
 	return &key, nil
 }
@@ -169,10 +168,10 @@ func waitStackReady(ctx context.Context, client *cloudformation.Client, name str
 			StackName: &name,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to describe stack: %w", err)
+			return errors.Wrap(err, "failed to describe stack")
 		}
 		if state.Stacks[0].StackStatus == types.StackStatusCreateFailed {
-			return errors.New(*state.Stacks[0].StackStatusReason)
+			return errors.WithStack(errors.New(*state.Stacks[0].StackStatusReason))
 		}
 		if state.Stacks[0].StackStatus != types.StackStatusCreateInProgress {
 			return nil
@@ -192,7 +191,7 @@ func getStackOutputs(ctx context.Context, stackID string, client *cloudformation
 			StackName: &stackID,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to describe stack: %w", err)
+			return nil, errors.Wrap(err, "failed to describe stack")
 		}
 		stack := desc.Stacks[0]
 
@@ -213,20 +212,20 @@ func getStackOutputs(ctx context.Context, stackID string, client *cloudformation
 
 		// failures
 		case types.StackStatusCreateFailed:
-			return nil, fmt.Errorf("stack creation failed: %s", *stack.StackStatusReason)
+			return nil, errors.Errorf("stack creation failed: %s", *stack.StackStatusReason)
 		case types.StackStatusRollbackInProgress:
-			return nil, fmt.Errorf("stack rollback in progress: %s", *stack.StackStatusReason)
+			return nil, errors.Errorf("stack rollback in progress: %s", *stack.StackStatusReason)
 		case types.StackStatusRollbackFailed:
-			return nil, fmt.Errorf("stack rollback failed: %s", *stack.StackStatusReason)
+			return nil, errors.Errorf("stack rollback failed: %s", *stack.StackStatusReason)
 		case types.StackStatusRollbackComplete:
-			return nil, fmt.Errorf("stack rollback complete: %s", *stack.StackStatusReason)
+			return nil, errors.Errorf("stack rollback complete: %s", *stack.StackStatusReason)
 		case types.StackStatusDeleteInProgress:
 		case types.StackStatusDeleteFailed:
-			return nil, fmt.Errorf("stack deletion failed: %s", *stack.StackStatusReason)
+			return nil, errors.Errorf("stack deletion failed: %s", *stack.StackStatusReason)
 		case types.StackStatusUpdateFailed:
-			return nil, fmt.Errorf("stack update failed: %s", *stack.StackStatusReason)
+			return nil, errors.Errorf("stack update failed: %s", *stack.StackStatusReason)
 		default:
-			return nil, fmt.Errorf("unsupported Cloudformation status code: %s", string(stack.StackStatus))
+			return nil, errors.Errorf("unsupported Cloudformation status code: %s", string(stack.StackStatus))
 		}
 
 		time.Sleep(retry.Duration())

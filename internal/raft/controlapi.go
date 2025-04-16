@@ -2,11 +2,10 @@ package raft
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/lni/dragonboat/v4"
 
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
@@ -28,7 +27,7 @@ func (c *Cluster) AddMember(ctx context.Context, req *connect.Request[raftpb.Add
 	for _, shardID := range shards {
 		ok, err := c.isMember(ctx, shardID, replicaID, address)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check if member is already in cluster: %w", err)
+			return nil, errors.Wrap(err, "failed to check if member is already in cluster")
 		}
 		if ok {
 			// already in the cluster, noop
@@ -37,18 +36,18 @@ func (c *Cluster) AddMember(ctx context.Context, req *connect.Request[raftpb.Add
 
 		if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
 			logger.Debugf("Requesting add replica to shard %d on replica %d", shardID, replicaID)
-			return c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0)
+			return errors.WithStack(c.nh.SyncRequestAddReplica(ctx, shardID, replicaID, address, 0))
 		}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
 			if errors.Is(err, dragonboat.ErrRejected) {
 				ok, err := c.isMember(ctx, shardID, replicaID, address)
 				if err != nil {
-					return nil, fmt.Errorf("failed to check if member is already in cluster: %w", err)
+					return nil, errors.Wrap(err, "failed to check if member is already in cluster")
 				}
 				if !ok {
-					return nil, fmt.Errorf("failed to add member not in cluster: %w", err)
+					return nil, errors.Wrap(err, "failed to add member not in cluster")
 				}
 			} else {
-				return nil, fmt.Errorf("failed to add member: %w", err)
+				return nil, errors.Wrap(err, "failed to add member")
 			}
 		}
 	}
@@ -62,7 +61,7 @@ func (c *Cluster) isMember(ctx context.Context, shardID uint64, replicaID uint64
 
 	membership, err := c.nh.SyncGetShardMembership(ctx, shardID)
 	if err != nil {
-		return false, fmt.Errorf("failed to get cluster info: %w", err)
+		return false, errors.Wrap(err, "failed to get cluster info")
 	}
 
 	for id, addr := range membership.Nodes {
@@ -79,7 +78,7 @@ func (c *Cluster) RemoveMember(ctx context.Context, req *connect.Request[raftpb.
 
 	for _, shardID := range req.Msg.ShardIds {
 		if err := c.removeShardMember(ctx, shardID, req.Msg.ReplicaId); err != nil {
-			return nil, fmt.Errorf("failed to remove member from shard %d: %w", shardID, err)
+			return nil, errors.Wrapf(err, "failed to remove member from shard %d", shardID)
 		}
 	}
 
@@ -99,11 +98,11 @@ func (c *Cluster) removeShardMember(ctx context.Context, shardID uint64, replica
 
 	if err := c.withRetry(ctx, shardID, replicaID, func(ctx context.Context) error {
 		logger.Debugf("Requesting delete replica from shard %d on replica %d", shardID, replicaID)
-		return c.nh.SyncRequestDeleteReplica(ctx, shardID, replicaID, 0)
+		return errors.WithStack(c.nh.SyncRequestDeleteReplica(ctx, shardID, replicaID, 0))
 	}, dragonboat.ErrShardNotReady, dragonboat.ErrTimeout); err != nil {
 		// This can happen if the cluster is shutting down and no longer has quorum.
 		logger.Warnf("Removing replica %d from shard %d failed: %s", replicaID, shardID, err)
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }

@@ -2,11 +2,10 @@ package providers
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/url"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -51,7 +50,7 @@ func (l *asmManager) sync(ctx context.Context) (map[configuration.Ref]configurat
 			},
 		})
 		if err != nil {
-			return nil, fmt.Errorf("unable to get list of secrets from ASM: %w", err)
+			return nil, errors.Wrap(err, "unable to get list of secrets from ASM")
 		}
 		activeSecrets := slices.Filter(out.SecretList, func(s types.SecretListEntry) bool {
 			return s.DeletedDate == nil
@@ -60,7 +59,7 @@ func (l *asmManager) sync(ctx context.Context) (map[configuration.Ref]configurat
 		for _, s := range activeSecrets {
 			ref, err := configuration.ParseRef(*s.Name)
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse ref from ASM secret: %w", err)
+				return nil, errors.Wrap(err, "unable to parse ref from ASM secret")
 			}
 			refsToLoad[ref] = *s.LastChangedDate
 		}
@@ -91,16 +90,16 @@ func (l *asmManager) sync(ctx context.Context) (map[configuration.Ref]configurat
 			},
 		})
 		if err != nil {
-			return nil, fmt.Errorf("unable to get batch of secret values from ASM: %w", err)
+			return nil, errors.Wrap(err, "unable to get batch of secret values from ASM")
 		}
 		for _, s := range out.SecretValues {
 			ref, err := configuration.ParseRef(*s.Name)
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse ref: %w", err)
+				return nil, errors.Wrap(err, "unable to parse ref")
 			}
 			// Expect secrets to be strings, not binary
 			if s.SecretBinary != nil {
-				return nil, fmt.Errorf("secret for %s in ASM is not a string", ref)
+				return nil, errors.Errorf("secret for %s in ASM is not a string", ref)
 			}
 			data := unwrapComments([]byte(*s.SecretString))
 			values[ref] = configuration.SyncedValue{
@@ -132,11 +131,11 @@ func (l *asmManager) store(ctx context.Context, ref configuration.Ref, value []b
 			SecretString: valueWithComments,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("unable to update secret in ASM: %w", err)
+			return nil, errors.Wrap(err, "unable to update secret in ASM")
 		}
 
 	} else if err != nil {
-		return nil, fmt.Errorf("unable to store secret in ASM: %w", err)
+		return nil, errors.Wrap(err, "unable to store secret in ASM")
 	}
 	return asmURLForRef(ref), nil
 }
@@ -148,7 +147,7 @@ func (l *asmManager) delete(ctx context.Context, ref configuration.Ref) error {
 		ForceDeleteWithoutRecovery: &t,
 	})
 	if err != nil {
-		return fmt.Errorf("unable to delete secret from ASM: %w", err)
+		return errors.Wrap(err, "unable to delete secret from ASM")
 	}
 	return nil
 }

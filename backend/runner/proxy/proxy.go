@@ -2,10 +2,10 @@ package proxy
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
 	"github.com/puzpuzpuz/xsync/v3"
@@ -66,7 +66,7 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 	moduleContext, err := r.controllerDeploymentService.GetDeploymentContext(ctx, connect.NewRequest(c.Msg))
 	logger := log.FromContext(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get module context: %w", err)
+		return errors.Wrap(err, "failed to get module context")
 	}
 	for {
 		rcv := moduleContext.Receive()
@@ -78,7 +78,7 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 
 				deployment, err := key.ParseDeploymentKey(route.Deployment)
 				if err != nil {
-					return fmt.Errorf("failed to parse deployment key: %w", err)
+					return errors.Wrap(err, "failed to parse deployment key")
 				}
 				module := deployment.Payload.Module
 				if existing, ok := r.moduleVerbService.Load(module); !ok || existing.deployment.String() != deployment.String() {
@@ -97,10 +97,10 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 			})
 			err := c2.Send(moduleContext.Msg())
 			if err != nil {
-				return fmt.Errorf("failed to send message: %w", err)
+				return errors.Wrap(err, "failed to send message")
 			}
 		} else if moduleContext.Err() != nil {
-			return fmt.Errorf("failed to receive message: %w", moduleContext.Err())
+			return errors.Wrap(moduleContext.Err(), "failed to receive message")
 		}
 	}
 
@@ -109,7 +109,7 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 func (r *Service) AcquireLease(ctx context.Context, c *connect.BidiStream[ftllease.AcquireLeaseRequest, ftllease.AcquireLeaseResponse]) error {
 	_, err := r.controllerLeaseService.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
 	if err != nil {
-		return fmt.Errorf("failed to ping lease service: %w", err)
+		return errors.Wrap(err, "failed to ping lease service")
 	}
 	lease := r.controllerLeaseService.AcquireLease(ctx)
 	defer lease.CloseResponse() //nolint:errcheck
@@ -117,19 +117,19 @@ func (r *Service) AcquireLease(ctx context.Context, c *connect.BidiStream[ftllea
 	for {
 		req, err := c.Receive()
 		if err != nil {
-			return fmt.Errorf("failed to receive message: %w", err)
+			return errors.Wrap(err, "failed to receive message")
 		}
 		err = lease.Send(req)
 		if err != nil {
-			return fmt.Errorf("failed to send message: %w", err)
+			return errors.Wrap(err, "failed to send message")
 		}
 		msg, err := lease.Receive()
 		if err != nil {
-			return connect.NewError(connect.CodeOf(err), fmt.Errorf("lease failed %w", err))
+			return errors.WithStack(connect.NewError(connect.CodeOf(err), errors.Wrap(err, "lease failed")))
 		}
 		err = c.Send(msg)
 		if err != nil {
-			return fmt.Errorf("failed to send response message: %w", err)
+			return errors.Wrap(err, "failed to send response message")
 		}
 	}
 }
@@ -143,19 +143,19 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 	verbService, ok := r.moduleVerbService.Load(req.Msg.Verb.Module)
 	if !ok {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to find deployment for module"))
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("proxy failed to route request, deployment not found"))
+		return nil, errors.WithStack(connect.NewError(connect.CodeNotFound, errors.Errorf("proxy failed to route request, deployment not found")))
 	}
 
 	callers, err := headers.GetCallers(req.Header())
 	if err != nil {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get callers"))
-		return nil, fmt.Errorf("could not get callers from headers: %w", err)
+		return nil, errors.Wrap(err, "could not get callers from headers")
 	}
 
 	requestKey, ok, err := headers.GetRequestKey(req.Header())
 	if err != nil {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get request key"))
-		return nil, fmt.Errorf("could not process headers for request key: %w", err)
+		return nil, errors.Wrap(err, "could not process headers for request key")
 	} else if !ok {
 		requestKey = key.NewRequestKey(key.OriginIngress, "grpc")
 		headers.SetRequestKey(req.Header(), requestKey)
@@ -164,7 +164,7 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 	destVerb, err := schema.RefFromProto(req.Msg.Verb)
 	if err != nil {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get verb ref"))
-		return nil, fmt.Errorf("could not get verb ref: %w", err)
+		return nil, errors.Wrap(err, "could not get verb ref")
 	}
 	callEvent := &timelineclient.Call{
 		DeploymentKey: verbService.deployment,
@@ -186,7 +186,7 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
 		r.timelineClient.Publish(ctx, callEvent)
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("verb call failed"))
-		return nil, fmt.Errorf("failed to proxy verb to %s: %w", verbService.uri, err)
+		return nil, errors.Wrapf(err, "failed to proxy verb to %s", verbService.uri)
 	}
 	resp := connect.NewResponse(originalResp.Msg)
 	callEvent.Response = result.Ok(resp.Msg)
@@ -196,13 +196,13 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 }
 
 func (r *Service) ProcessList(ctx context.Context, c *connect.Request[ftlv1.ProcessListRequest]) (*connect.Response[ftlv1.ProcessListResponse], error) {
-	return nil, fmt.Errorf("should never be called, this is temp refactoring debt")
+	return nil, errors.Errorf("should never be called, this is temp refactoring debt")
 }
 
 func (r *Service) Status(ctx context.Context, c *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error) {
-	return nil, fmt.Errorf("should never be called, this is temp refactoring debt")
+	return nil, errors.Errorf("should never be called, this is temp refactoring debt")
 }
 
 func (r *Service) RegisterRunner(ctx context.Context, c *connect.ClientStream[ftlv1.RegisterRunnerRequest]) (*connect.Response[ftlv1.RegisterRunnerResponse], error) {
-	return nil, fmt.Errorf("should never be called, this is temp refactoring debt")
+	return nil, errors.Errorf("should never be called, this is temp refactoring debt")
 }

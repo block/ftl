@@ -2,10 +2,11 @@ package ftltest
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
+
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/internal/deploymentcontext"
@@ -38,7 +39,7 @@ func (c *fakeLeaseClient) Acquire(ctx context.Context, module string, key []stri
 	k := keyForKeys(key)
 	if deadline, ok := c.deadlines[k]; ok {
 		if time.Now().Before(deadline) {
-			return ftl.ErrLeaseHeld
+			return errors.WithStack(ftl.ErrLeaseHeld)
 		}
 	}
 
@@ -53,12 +54,12 @@ func (c *fakeLeaseClient) Heartbeat(ctx context.Context, module string, key []st
 	k := keyForKeys(key)
 	if deadline, ok := c.deadlines[k]; ok {
 		if !time.Now().Before(deadline) {
-			return fmt.Errorf("could not heartbeat expired lease")
+			return errors.Errorf("could not heartbeat expired lease")
 		}
 		c.deadlines[k] = time.Now().Add(ttl)
 		return nil
 	}
-	return fmt.Errorf("could not heartbeat lease: no active lease found")
+	return errors.Errorf("could not heartbeat lease: no active lease found")
 }
 
 func (c *fakeLeaseClient) Release(ctx context.Context, key []string) error {
@@ -68,10 +69,10 @@ func (c *fakeLeaseClient) Release(ctx context.Context, key []string) error {
 	k := keyForKeys(key)
 	if deadline, ok := c.deadlines[k]; ok {
 		if !time.Now().Before(deadline) {
-			return fmt.Errorf("could not release lease after timeout")
+			return errors.Errorf("could not release lease after timeout")
 		}
 		delete(c.deadlines, k)
 		return nil
 	}
-	return fmt.Errorf("could not release lease: no active lease found")
+	return errors.Errorf("could not release lease: no active lease found")
 }

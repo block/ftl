@@ -2,11 +2,10 @@ package devstate
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -37,7 +36,7 @@ func WaitForDevState(ctx context.Context, buildEngineClient buildenginepbconnect
 		ReplayHistory: true,
 	}))
 	if err != nil {
-		return DevState{}, fmt.Errorf("failed to stream engine events: %w", err)
+		return DevState{}, errors.Wrap(err, "failed to stream engine events")
 	}
 
 	start := time.Now()
@@ -68,14 +67,14 @@ streamLoop:
 		case <-idleDeadline:
 			break streamLoop
 		case <-ctx.Done():
-			return DevState{}, fmt.Errorf("did not complete build engine update stream: %w", ctx.Err())
+			return DevState{}, errors.Wrap(ctx.Err(), "did not complete build engine update stream")
 		case event, ok := <-streamChan:
 			if !ok {
 				err = <-errChan
 				if errors.Is(err, context.Canceled) {
-					return DevState{}, ctx.Err() // nolint:wrapcheck
+					return DevState{}, errors.WithStack(ctx.Err()) // nolint:wrapcheck
 				}
-				return DevState{}, fmt.Errorf("failed to stream engine events: %w", err)
+				return DevState{}, errors.Wrap(err, "failed to stream engine events")
 			}
 
 			switch event := event.Event.(type) {
@@ -91,16 +90,16 @@ streamLoop:
 
 	engineEndedEvent, ok := engineEnded.Get()
 	if !ok {
-		return DevState{}, errors.New("engine did not end")
+		return DevState{}, errors.WithStack(errors.New("engine did not end"))
 	}
 
 	schemaResp, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
-		return DevState{}, fmt.Errorf("failed to get schema: %w", err)
+		return DevState{}, errors.Wrap(err, "failed to get schema")
 	}
 	sch, err := schema.FromProto(schemaResp.Msg.Schema)
 	if err != nil {
-		return DevState{}, fmt.Errorf("failed to parse schema when waiting for dev state: %w", err)
+		return DevState{}, errors.Wrap(err, "failed to parse schema when waiting for dev state")
 	}
 	modulesPaths := map[string]string{}
 	for _, module := range engineEndedEvent.Modules {

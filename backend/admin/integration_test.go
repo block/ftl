@@ -9,6 +9,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
+
 	in "github.com/block/ftl/internal/integration"
 )
 

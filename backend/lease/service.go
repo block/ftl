@@ -2,13 +2,12 @@ package lease
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/errors"
 
 	ftllease "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1"
 	leaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
@@ -54,19 +53,19 @@ func (s *Service) AcquireLease(ctx context.Context, stream *connect.BidiStream[f
 		msg, err := stream.Receive()
 		if err != nil {
 			logger.Errorf(err, "Could not receive lease request")
-			return fmt.Errorf("could not receive lease request: %w", err)
+			return errors.Wrap(err, "could not receive lease request")
 		}
 		if len(msg.Key) == 0 {
-			return errors.New("lease key must not be empty")
+			return errors.WithStack(errors.New("lease key must not be empty"))
 		}
 		logger.Debugf("Acquiring lease for: %v", msg.Key)
 		success := c.handleMessage(msg.Key, msg.Ttl.AsDuration())
 
 		if !success {
-			return connect.NewError(connect.CodeResourceExhausted, fmt.Errorf("lease already held"))
+			return errors.WithStack(connect.NewError(connect.CodeResourceExhausted, errors.Errorf("lease already held")))
 		}
 		if err = stream.Send(&ftllease.AcquireLeaseResponse{}); err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("could not send lease response: %w", err))
+			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "could not send lease response")))
 		}
 	}
 }

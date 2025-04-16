@@ -2,17 +2,16 @@ package ftl
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"testing"
 
-	"github.com/block/ftl/internal/log"
-	. "github.com/block/ftl/internal/testutils/modulecontext"
-
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/go-runtime/internal"
 	"github.com/block/ftl/internal/deploymentcontext"
+	"github.com/block/ftl/internal/log"
+	. "github.com/block/ftl/internal/testutils/modulecontext"
 )
 
 type intHandle int
@@ -24,7 +23,7 @@ func TestMapPanic(t *testing.T) {
 	ctx = internal.WithContext(context.Background(), internal.New(MakeDynamic(ctx, deploymentcontext.Empty("test"))))
 	n := intHandle(1)
 	once := Map(n, func(ctx context.Context, n int) (string, error) {
-		return "", fmt.Errorf("test error %d", n)
+		return "", errors.Errorf("test error %d", n)
 	})
 	assert.Panics(t, func() {
 		once.Get(ctx)

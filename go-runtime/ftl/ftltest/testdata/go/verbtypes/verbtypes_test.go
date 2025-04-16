@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/block/ftl/go-runtime/ftl/ftltest"
 	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/errors"
+
+	"github.com/block/ftl/go-runtime/ftl/ftltest"
 )
 
 func TestVerbs(t *testing.T) {
@@ -72,16 +74,16 @@ func TestContextExtension(t *testing.T) {
 func TestVerbErrors(t *testing.T) {
 	ctx := ftltest.Context(
 		ftltest.WhenVerb[VerbClient](func(ctx context.Context, req Request) (Response, error) {
-			return Response{}, fmt.Errorf("fake: %s", req.Input)
+			return Response{}, errors.Errorf("fake: %s", req.Input)
 		}),
 		ftltest.WhenSource[SourceClient](func(ctx context.Context) (Response, error) {
-			return Response{}, fmt.Errorf("fake-source")
+			return Response{}, errors.Errorf("fake-source")
 		}),
 		ftltest.WhenSink[SinkClient](func(ctx context.Context, req Request) error {
-			return fmt.Errorf("fake: %s", req.Input)
+			return errors.Errorf("fake: %s", req.Input)
 		}),
 		ftltest.WhenEmpty[EmptyClient](func(ctx context.Context) error {
-			return fmt.Errorf("fake-empty")
+			return errors.Errorf("fake-empty")
 		}),
 	)
 

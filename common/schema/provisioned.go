@@ -3,6 +3,7 @@ package schema
 import (
 	"reflect"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
@@ -91,7 +92,7 @@ func GetProvisionedResources(n Node) ResourceSet {
 		if p, ok := n.(Provisioned); ok {
 			resources = append(resources, p.GetProvisioned()...)
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 	return resources
 }
@@ -106,7 +107,7 @@ func GetProvisioned(root Node) map[string]Provisioned {
 		if p, ok := n.(Provisioned); ok {
 			result[p.ResourceID()] = p
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 	return result
 }

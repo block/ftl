@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
@@ -21,12 +21,12 @@ func (c *SandboxProvisioner) Status(ctx context.Context, req *connect.Request[pr
 	// in that case, we start a new task to query the existing stack
 	task, loaded := c.running.Load(token)
 	if !loaded {
-		return nil, connect.NewError(connect.CodeUnknown, fmt.Errorf("task %s not found", token))
+		return nil, errors.WithStack(connect.NewError(connect.CodeUnknown, errors.Errorf("task %s not found", token)))
 	}
 
 	if task.Err() != nil {
 		c.running.Delete(token)
-		return nil, connect.NewError(connect.CodeUnknown, task.Err())
+		return nil, errors.WithStack(connect.NewError(connect.CodeUnknown, task.Err()))
 	}
 
 	outputs := task.Outputs()
@@ -35,11 +35,11 @@ func (c *SandboxProvisioner) Status(ctx context.Context, req *connect.Request[pr
 
 		deploymentKey, err := key.ParseDeploymentKey(req.Msg.DesiredModule.Runtime.Deployment.DeploymentKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse deployment key: %w", err)
+			return nil, errors.Wrap(err, "failed to parse deployment key")
 		}
 		events, err := c.updateResources(deploymentKey, outputs)
 		if err != nil {
-			return nil, fmt.Errorf("failed to update resources: %w", err)
+			return nil, errors.Wrap(err, "failed to update resources")
 		}
 		return connect.NewResponse(&provisionerpb.StatusResponse{
 			Status: &provisionerpb.StatusResponse_Success{
@@ -101,7 +101,7 @@ func (c *SandboxProvisioner) updateResources(deployment key.Deployment, outputs 
 				},
 			})
 		default:
-			return nil, fmt.Errorf("unknown output type: %T", o)
+			return nil, errors.Errorf("unknown output type: %T", o)
 		}
 	}
 

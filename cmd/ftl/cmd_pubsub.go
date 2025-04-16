@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -33,7 +34,7 @@ func (t *topicInfoCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			Topic: top.ToProto(),
 		}))
 		if err != nil {
-			return fmt.Errorf("failed to get topic info: %w", err)
+			return errors.Wrap(err, "failed to get topic info")
 		}
 		resps = append(resps, resp.Msg)
 	}
@@ -69,7 +70,7 @@ func (s *subscriptionInfoCmd) Run(ctx context.Context, client adminpbconnect.Adm
 			Subscription: sub.ToProto(),
 		}))
 		if err != nil {
-			return fmt.Errorf("failed to get topic info: %w", err)
+			return errors.Wrap(err, "failed to get topic info")
 		}
 		resps = append(resps, resp.Msg)
 	}
@@ -118,7 +119,7 @@ func (s *resetSubscriptionCmd) Run(ctx context.Context, client adminpbconnect.Ad
 		Offset:       offset,
 	}))
 	if err != nil {
-		return fmt.Errorf("failed to reset subscription: %w", err)
+		return errors.Wrap(err, "failed to reset subscription")
 	}
 	fmt.Printf("Subscription %s reset\n", s.Subscription)
 	return nil

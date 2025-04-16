@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"errors"
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal/cors"
 )
@@ -29,7 +29,7 @@ func PrepareServer(ctx context.Context) error {
 func Server(ctx context.Context, timestamp time.Time, allowOrigin *url.URL) (http.Handler, error) {
 	dir, err := fs.Sub(build, "dist")
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var f fs.File

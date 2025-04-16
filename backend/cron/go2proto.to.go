@@ -7,6 +7,7 @@ import "encoding"
 import destpb "github.com/block/ftl/backend/protos/xyz/block/ftl/cron/v1"
 import "google.golang.org/protobuf/types/known/timestamppb"
 import "google.golang.org/protobuf/types/known/durationpb"
+import "github.com/alecthomas/errors"
 import "github.com/alecthomas/types/optional"
 import "github.com/alecthomas/types/result"
 
@@ -200,12 +201,12 @@ func CronStateFromProto(v *destpb.CronState) (out *CronState, err error) {
 	if out.LastExecutions, err = mapValuesR(v.LastExecutions, func(v *timestamppb.Timestamp) result.Result[time.Time] {
 		return orZeroR(result.From(setNil(ptr(v.AsTime()), v), nil))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("LastExecutions: %w", err)
+		return nil, errors.Wrap(err, "LastExecutions")
 	}
 	if out.NextExecutions, err = mapValuesR(v.NextExecutions, func(v *timestamppb.Timestamp) result.Result[time.Time] {
 		return orZeroR(result.From(setNil(ptr(v.AsTime()), v), nil))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("NextExecutions: %w", err)
+		return nil, errors.Wrap(err, "NextExecutions")
 	}
 	return out, nil
 }

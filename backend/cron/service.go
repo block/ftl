@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/backend/cron/observability"
@@ -87,7 +88,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 		var rpcOpts []rpc.Option
 		rpcOpts = append(rpcOpts, raft.RPCOption(cluster))
 		g.Go(func() error {
-			return rpc.Serve(ctx, config.Bind, rpcOpts...)
+			return errors.WithStack(rpc.Serve(ctx, config.Bind, rpcOpts...))
 		})
 	}
 
@@ -103,7 +104,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 					// Execute immediately
 					select {
 					case <-ctx.Done():
-						return fmt.Errorf("cron service stopped: %w", ctx.Err())
+						return errors.Wrap(ctx.Err(), "cron service stopped")
 					default:
 						if err := executeJob(ctx, state, client, cronQueue[0], timelineClient); err != nil {
 							logger.Errorf(err, "Failed to execute job")
@@ -119,7 +120,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 			}
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("cron service stopped: %w", ctx.Err())
+				return errors.Wrap(ctx.Err(), "cron service stopped")
 
 			case change := <-events:
 				if err := updateCronJobs(ctx, cronJobs, change, timelineClient); err != nil {
@@ -143,11 +144,11 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 	if err != nil {
 		if ctx.Err() == nil {
 			// startup failure if the context was not cancelled
-			return fmt.Errorf("failed to start cron service: %w", err)
+			return errors.Wrap(err, "failed to start cron service")
 		}
 	}
 	if ctx.Err() != nil {
-		return fmt.Errorf("cron service stopped: %w", ctx.Err())
+		return errors.Wrap(ctx.Err(), "cron service stopped")
 	}
 	return nil
 }
@@ -158,7 +159,7 @@ func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struc
 
 	view, err := state.View(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get job state: %w", err)
+		return errors.Wrap(err, "failed to get job state")
 	}
 
 	lastExec, hasLast := view.LastExecutions[job.Key()]
@@ -169,7 +170,7 @@ func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struc
 
 	nextRun, err := cron.Next(job.pattern, false)
 	if err != nil {
-		return fmt.Errorf("failed to calculate next run time: %w", err)
+		return errors.Wrap(err, "failed to calculate next run time")
 	}
 
 	event := CronEvent{
@@ -178,7 +179,7 @@ func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struc
 		NextExecution: nextRun,
 	}
 	if err := state.Publish(ctx, event); err != nil {
-		return fmt.Errorf("failed to claim job execution: %w", err)
+		return errors.Wrap(err, "failed to claim job execution")
 	}
 
 	job.next = nextRun
@@ -201,7 +202,7 @@ func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struc
 	observability.Cron.JobStarted(ctx, cronModel)
 	if err := callCronVerb(ctx, client, job); err != nil {
 		observability.Cron.JobFailed(ctx, cronModel)
-		return fmt.Errorf("failed to execute cron job: %w", err)
+		return errors.Wrap(err, "failed to execute cron job")
 	}
 	observability.Cron.JobSuccess(ctx, cronModel)
 	return nil
@@ -223,14 +224,14 @@ func callCronVerb(ctx context.Context, verbClient routing.CallClient, cronJob *c
 
 	resp, err := verbClient.Call(ctx, req)
 	if err != nil {
-		return fmt.Errorf("%s: call to cron job failed: %w", ref, err)
+		return errors.Wrapf(err, "%s: call to cron job failed", ref)
 	}
 	switch resp := resp.Msg.Response.(type) {
 	default:
 		return nil
 
 	case *ftlv1.CallResponse_Error_:
-		return fmt.Errorf("%s: cron job failed: %s", ref, resp.Error.Message)
+		return errors.Errorf("%s: cron job failed: %s", ref, resp.Error.Message)
 	}
 }
 
@@ -265,7 +266,7 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change 
 			logger.Debugf("Updated cron jobs for module %s", module.Name)
 			moduleJobs, err := extractCronJobs(module)
 			if err != nil {
-				return fmt.Errorf("failed to extract cron jobs: %w", err)
+				return errors.Wrap(err, "failed to extract cron jobs")
 			}
 			logger.Debugf("Adding %d cron jobs for module %s", len(moduleJobs), module.Name)
 			cronJobs[module.Name] = moduleJobs
@@ -283,7 +284,7 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change 
 			logger.Debugf("Updated cron jobs for module %s", module.Name)
 			moduleJobs, err := extractCronJobs(module)
 			if err != nil {
-				return fmt.Errorf("failed to extract cron jobs: %w", err)
+				return errors.Wrap(err, "failed to extract cron jobs")
 			}
 			logger.Tracef("Adding %d cron jobs for module %s", len(moduleJobs), module)
 			cronJobs[module.Name] = moduleJobs
@@ -338,11 +339,11 @@ func extractCronJobs(module *schema.Module) ([]*cronJob, error) {
 		}
 		pattern, err := cron.Parse(cronmd.Cron)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cronmd.Pos, err)
+			return nil, errors.Wrapf(err, "%s", cronmd.Pos)
 		}
 		next, err := cron.Next(pattern, false)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cronmd.Pos, err)
+			return nil, errors.Wrapf(err, "%s", cronmd.Pos)
 		}
 		cronJobs = append(cronJobs, &cronJob{
 			module:     module.Name,

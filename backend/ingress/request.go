@@ -2,13 +2,13 @@ package ingress
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
@@ -20,12 +20,12 @@ func buildRequestBody(route *ingressRoute, r *http.Request, sch *schema.Schema) 
 	verb := &schema.Verb{}
 	err := sch.ResolveToType(&schema.Ref{Name: route.verb, Module: route.module}, verb)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	request, ok := verb.Request.(*schema.Ref)
 	if !ok {
-		return nil, fmt.Errorf("verb %s input must be a data structure", verb.Name)
+		return nil, errors.Errorf("verb %s input must be a data structure", verb.Name)
 	}
 
 	var body []byte
@@ -39,12 +39,12 @@ func buildRequestBody(route *ingressRoute, r *http.Request, sch *schema.Schema) 
 		})
 		pathParameters, err := manglePathParameters(pathParametersMap, request, sch)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		httpRequestBody, err := extractHTTPRequestBody(r, request, sch)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		// Since the query and header parameters are a `map[string][]string`
@@ -61,7 +61,7 @@ func buildRequestBody(route *ingressRoute, r *http.Request, sch *schema.Schema) 
 
 		finalQueryParams, err := mangleQueryParameters(queryMap, r.URL.Query(), request, sch)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		headerMap := make(map[string]any)
 		for key, values := range r.Header {
@@ -80,12 +80,12 @@ func buildRequestBody(route *ingressRoute, r *http.Request, sch *schema.Schema) 
 		requestMap["headers"] = headerMap
 		requestMap["body"] = httpRequestBody
 	} else {
-		return nil, fmt.Errorf("no HTTP ingress metadata for verb %s", verb.Name)
+		return nil, errors.Errorf("no HTTP ingress metadata for verb %s", verb.Name)
 	}
 
 	requestMap, err = schema.TransformFromAliasedFields(sch, request, requestMap)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	var opts []schema.EncodingOption
@@ -94,12 +94,12 @@ func buildRequestBody(route *ingressRoute, r *http.Request, sch *schema.Schema) 
 	}
 	err = schema.ValidateRequestMap(request, []string{request.String()}, requestMap, sch, opts...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	body, err = json.Marshal(requestMap)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return body, nil
@@ -108,21 +108,21 @@ func buildRequestBody(route *ingressRoute, r *http.Request, sch *schema.Schema) 
 func extractHTTPRequestBody(r *http.Request, ref *schema.Ref, sch *schema.Schema) (any, error) {
 	bodyField, err := getField("body", ref, sch)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	if ref, ok := bodyField.Type.(*schema.Ref); ok {
 		if err := sch.ResolveToType(ref, &schema.Data{}); err == nil {
-			return buildRequestMap(r)
+			return errors.WithStack2(buildRequestMap(r))
 		}
 	}
 
 	bodyData, err := readRequestBody(r)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
-	return valueForData(bodyField.Type, bodyData)
+	return errors.WithStack2(valueForData(bodyField.Type, bodyData))
 }
 
 // Takes the map of path parameters and transforms them into the appropriate type
@@ -130,7 +130,7 @@ func manglePathParameters(params map[string]string, ref *schema.Ref, sch *schema
 
 	paramsField, err := getField("pathParameters", ref, sch)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	switch m := paramsField.Type.(type) {
@@ -144,15 +144,15 @@ func manglePathParameters(params map[string]string, ref *schema.Ref, sch *schema
 		data := &schema.Data{}
 		err := sch.ResolveToType(m, data)
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve path parameter type: %w", err)
+			return nil, errors.Wrap(err, "failed to resolve path parameter type")
 		}
-		return parsePathParams(params, data)
+		return errors.WithStack2(parsePathParams(params, data))
 	default:
 	}
 	// This is a scalar, there should only be a single param
 	// This is validated by the schema, we don't need extra validation here
 	for _, val := range params {
-		return parseScalar(paramsField.Type, val)
+		return errors.WithStack2(parseScalar(paramsField.Type, val))
 	}
 	// Empty map
 	return map[string]any{}, nil
@@ -165,20 +165,20 @@ func parseScalar(paramsField schema.Type, val string) (any, error) {
 	case *schema.Int:
 		parsed, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse int from path parameter: %w", err)
+			return nil, errors.Wrap(err, "failed to parse int from path parameter")
 		}
 		return parsed, nil
 	case *schema.Float:
 		float, err := strconv.ParseFloat(val, 64)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse float from path parameter: %w", err)
+			return nil, errors.Wrap(err, "failed to parse float from path parameter")
 		}
 		return float, nil
 	case *schema.Bool:
 		// TODO: is anything else considered truthy?
 		return val == "true", nil
 	default:
-		return nil, fmt.Errorf("unsupported path parameter type %T", paramsField)
+		return nil, errors.Errorf("unsupported path parameter type %T", paramsField)
 	}
 }
 
@@ -187,7 +187,7 @@ func mangleQueryParameters(params map[string]any, underlying map[string][]string
 
 	paramsField, err := getField("query", ref, sch)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	switch m := paramsField.Type.(type) {
@@ -208,15 +208,15 @@ func mangleQueryParameters(params map[string]any, underlying map[string][]string
 		data := &schema.Data{}
 		err := sch.ResolveToType(m, data)
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve query parameter type: %w", err)
+			return nil, errors.Wrap(err, "failed to resolve query parameter type")
 		}
-		return parseQueryParams(underlying, data)
+		return errors.WithStack2(parseQueryParams(underlying, data))
 	case *schema.Unit:
 		return params, nil
 	default:
 	}
 
-	return nil, fmt.Errorf("unsupported query parameter type %v", paramsField.Type)
+	return nil, errors.Errorf("unsupported query parameter type %v", paramsField.Type)
 }
 
 func valueForData(typ schema.Type, data []byte) (any, error) {
@@ -225,7 +225,7 @@ func valueForData(typ schema.Type, data []byte) (any, error) {
 		var bodyMap map[string]any
 		err := json.Unmarshal(data, &bodyMap)
 		if err != nil {
-			return nil, fmt.Errorf("HTTP request body is not valid JSON: %w", err)
+			return nil, errors.Wrap(err, "HTTP request body is not valid JSON")
 		}
 		return bodyMap, nil
 
@@ -233,7 +233,7 @@ func valueForData(typ schema.Type, data []byte) (any, error) {
 		var rawData []json.RawMessage
 		err := json.Unmarshal(data, &rawData)
 		if err != nil {
-			return nil, fmt.Errorf("HTTP request body is not a valid JSON array: %w", err)
+			return nil, errors.Wrap(err, "HTTP request body is not a valid JSON array")
 		}
 
 		arrayData := make([]any, len(rawData))
@@ -241,7 +241,7 @@ func valueForData(typ schema.Type, data []byte) (any, error) {
 			var parsedElement any
 			err := json.Unmarshal(rawElement, &parsedElement)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse array element: %w", err)
+				return nil, errors.Wrap(err, "failed to parse array element")
 			}
 			arrayData[i] = parsedElement
 		}
@@ -252,7 +252,7 @@ func valueForData(typ schema.Type, data []byte) (any, error) {
 		var bodyMap map[string]any
 		err := json.Unmarshal(data, &bodyMap)
 		if err != nil {
-			return nil, fmt.Errorf("HTTP request body is not valid JSON: %w", err)
+			return nil, errors.Wrap(err, "HTTP request body is not valid JSON")
 		}
 		return bodyMap, nil
 
@@ -265,21 +265,21 @@ func valueForData(typ schema.Type, data []byte) (any, error) {
 	case *schema.Int:
 		intVal, err := strconv.ParseInt(string(data), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse integer from request body: %w", err)
+			return nil, errors.Wrap(err, "failed to parse integer from request body")
 		}
 		return intVal, nil
 
 	case *schema.Float:
 		floatVal, err := strconv.ParseFloat(string(data), 64)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse float from request body: %w", err)
+			return nil, errors.Wrap(err, "failed to parse float from request body")
 		}
 		return floatVal, nil
 
 	case *schema.Bool:
 		boolVal, err := strconv.ParseBool(string(data))
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse boolean from request body: %w", err)
+			return nil, errors.Wrap(err, "failed to parse boolean from request body")
 		}
 		return boolVal, nil
 
@@ -287,7 +287,7 @@ func valueForData(typ schema.Type, data []byte) (any, error) {
 		return map[string]any{}, nil
 
 	default:
-		return nil, fmt.Errorf("unsupported data type %T", typ)
+		return nil, errors.Errorf("unsupported data type %T", typ)
 	}
 }
 
@@ -295,7 +295,7 @@ func readRequestBody(r *http.Request) ([]byte, error) {
 	defer r.Body.Close()
 	bodyData, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading request body: %w", err)
+		return nil, errors.Wrap(err, "error reading request body")
 	}
 	return bodyData, nil
 }
@@ -306,7 +306,7 @@ func buildRequestMap(r *http.Request) (map[string]any, error) {
 		var bodyMap map[string]any
 		err := json.NewDecoder(r.Body).Decode(&bodyMap)
 		if err != nil {
-			return nil, fmt.Errorf("HTTP request body is not valid JSON: %w", err)
+			return nil, errors.Wrap(err, "HTTP request body is not valid JSON")
 		}
 
 		return bodyMap, nil
@@ -318,19 +318,19 @@ func buildRequestMap(r *http.Request) (map[string]any, error) {
 func parseQueryParams(values map[string][]string, data *schema.Data) (map[string]any, error) {
 	if jsonStr, ok := values["@json"]; ok {
 		if len(values) > 1 {
-			return nil, fmt.Errorf("only '@json' parameter is allowed, but other parameters were found")
+			return nil, errors.Errorf("only '@json' parameter is allowed, but other parameters were found")
 		}
 		if len(jsonStr) > 1 {
-			return nil, fmt.Errorf("'@json' parameter must be provided exactly once")
+			return nil, errors.Errorf("'@json' parameter must be provided exactly once")
 		}
 
-		return decodeQueryJSON(jsonStr[0])
+		return errors.WithStack2(decodeQueryJSON(jsonStr[0]))
 	}
 
 	queryMap := make(map[string]any)
 	for key, value := range values {
 		if hasInvalidQueryChars(key) {
-			return nil, fmt.Errorf("complex key %q is not supported, use '@json=' instead", key)
+			return nil, errors.Errorf("complex key %q is not supported, use '@json=' instead", key)
 		}
 		var field *schema.Field
 		for _, f := range data.Fields {
@@ -354,7 +354,7 @@ func parseQueryParams(values map[string][]string, data *schema.Data) (map[string
 
 		val, err := valueForField(field.Type, value)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse query parameter %q: %w", key, err)
+			return nil, errors.Wrapf(err, "failed to parse query parameter %q", key)
 		}
 		if v, ok := val.Get(); ok {
 			queryMap[key] = v
@@ -381,7 +381,7 @@ func parsePathParams(values map[string]string, data *schema.Data) (map[string]an
 
 		val, err := valueForField(field.Type, []string{value})
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse path parameter %q: %w", key, err)
+			return nil, errors.Wrapf(err, "failed to parse path parameter %q", key)
 		}
 		if v, ok := val.Get(); ok {
 			pathMap[key] = v
@@ -397,29 +397,29 @@ func valueForField(typ schema.Type, value []string) (optional.Option[any], error
 
 	case *schema.Int, *schema.Float, *schema.String, *schema.Bool:
 		if len(value) > 1 {
-			return optional.None[any](), fmt.Errorf("multiple values are not supported")
+			return optional.None[any](), errors.Errorf("multiple values are not supported")
 		}
 		if hasInvalidQueryChars(value[0]) {
-			return optional.None[any](), fmt.Errorf("complex value %q is not supported, use '@json=' instead", value[0])
+			return optional.None[any](), errors.Errorf("complex value %q is not supported, use '@json=' instead", value[0])
 		}
 
 		parsed, err := parseScalar(typ, value[0])
 		if err != nil {
-			return optional.None[any](), fmt.Errorf("failed to parse int from path parameter: %w", err)
+			return optional.None[any](), errors.Wrap(err, "failed to parse int from path parameter")
 		}
 		return optional.Some[any](parsed), nil
 
 	case *schema.Array:
 		for _, v := range value {
 			if hasInvalidQueryChars(v) {
-				return optional.None[any](), fmt.Errorf("complex value %q is not supported, use '@json=' instead", v)
+				return optional.None[any](), errors.Errorf("complex value %q is not supported, use '@json=' instead", v)
 			}
 		}
 		ret := []any{}
 		for _, v := range value {
 			field, err := valueForField(t.Element, []string{v})
 			if err != nil {
-				return optional.None[any](), fmt.Errorf("failed to parse array element: %w", err)
+				return optional.None[any](), errors.Wrap(err, "failed to parse array element")
 			}
 			if unwrapped, ok := field.Get(); ok {
 				ret = append(ret, unwrapped)
@@ -429,11 +429,11 @@ func valueForField(typ schema.Type, value []string) (optional.Option[any], error
 
 	case *schema.Optional:
 		if len(value) > 0 {
-			return valueForField(t.Type, value)
+			return errors.WithStack2(valueForField(t.Type, value))
 		}
 
 	default:
-		return optional.None[any](), fmt.Errorf("unsupported type %T", typ)
+		return optional.None[any](), errors.Errorf("unsupported type %T", typ)
 	}
 
 	return optional.Some[any](value), nil
@@ -442,14 +442,14 @@ func valueForField(typ schema.Type, value []string) (optional.Option[any], error
 func decodeQueryJSON(query string) (map[string]any, error) {
 	decodedJSONStr, err := url.QueryUnescape(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode '@json' query parameter: %w", err)
+		return nil, errors.Wrap(err, "failed to decode '@json' query parameter")
 	}
 
 	// Unmarshal the JSON string into a map
 	var resultMap map[string]any
 	err = json.Unmarshal([]byte(decodedJSONStr), &resultMap)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse '@json' query parameter: %w", err)
+		return nil, errors.Wrap(err, "failed to parse '@json' query parameter")
 	}
 
 	return resultMap, nil

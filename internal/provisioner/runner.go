@@ -2,10 +2,10 @@ package provisioner
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
 	"github.com/alecthomas/atomic"
+	errors "github.com/alecthomas/errors"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/internal/key"
@@ -49,12 +49,12 @@ func (r *Runner) Run(ctx context.Context) ([]state.State, error) {
 		logger.Debugf("running stage %s", stage.Name)
 
 		if err := r.prepare(ctx, &stage); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		newStates, err := r.execute(ctx, &stage)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		r.State = newStates
@@ -75,7 +75,7 @@ func (r *Runner) prepare(ctx context.Context, stage *RunnerStage) error {
 			for _, resource := range handler.Handles {
 				if reflect.TypeOf(resource) == reflect.TypeOf(state) {
 					if err := handler.Executor.Prepare(ctx, state); err != nil {
-						return fmt.Errorf("failed to prepare executor: %w", err)
+						return errors.Wrap(err, "failed to prepare executor")
 					}
 					found = true
 					break handlerLoop
@@ -100,7 +100,7 @@ func (r *Runner) execute(ctx context.Context, stage *RunnerStage) ([]state.State
 			logger.Debugf("executing handler %T", handler.Executor)
 			outputs, err := handler.Executor.Execute(ctx)
 			if err != nil {
-				return fmt.Errorf("failed to execute handler %T: %w", handler.Executor, err)
+				return errors.Wrapf(err, "failed to execute handler %T", handler.Executor)
 			}
 			logger.Debugf("handler %T executed with %d outputs", handler.Executor, len(outputs))
 			reschan <- outputs
@@ -109,7 +109,7 @@ func (r *Runner) execute(ctx context.Context, stage *RunnerStage) ([]state.State
 	}
 
 	if err := eg.Wait(); err != nil {
-		return nil, fmt.Errorf("%T execution failed: %w", r, err)
+		return nil, errors.Wrapf(err, "%T execution failed", r)
 	}
 
 	result := r.skipped
@@ -138,7 +138,7 @@ func (t *Task) Start(oldCtx context.Context, module string, deployment key.Deplo
 
 func (t *Task) Err() error {
 	if err := t.err.Load(); err != nil {
-		return fmt.Errorf("failed to execute provisioner: %w", err)
+		return errors.Wrap(err, "failed to execute provisioner")
 	}
 	return nil
 }

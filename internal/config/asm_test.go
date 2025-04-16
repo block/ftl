@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -72,7 +73,7 @@ func (a *FakeASM) BatchGetSecretValue(ctx context.Context, input *secretsmanager
 func (a *FakeASM) CreateSecret(ctx context.Context, input *secretsmanager.CreateSecretInput, options ...func(*secretsmanager.Options)) (*secretsmanager.CreateSecretOutput, error) {
 	_, ok := a.secrets[*input.Name]
 	if ok {
-		return nil, &types.ResourceExistsException{Message: aws.String("secret already exists")}
+		return nil, errors.WithStack(&types.ResourceExistsException{Message: aws.String("secret already exists")})
 	}
 	a.secrets[*input.Name] = ASMSecret{
 		ID:        *input.Name,
@@ -86,7 +87,7 @@ func (a *FakeASM) CreateSecret(ctx context.Context, input *secretsmanager.Create
 func (a *FakeASM) DeleteSecret(ctx context.Context, input *secretsmanager.DeleteSecretInput, options ...func(*secretsmanager.Options)) (*secretsmanager.DeleteSecretOutput, error) {
 	_, ok := a.secrets[*input.SecretId]
 	if !ok {
-		return nil, &types.ResourceNotFoundException{Message: aws.String("secret not found")}
+		return nil, errors.WithStack(&types.ResourceNotFoundException{Message: aws.String("secret not found")})
 	}
 	delete(a.secrets, *input.SecretId)
 	return &secretsmanager.DeleteSecretOutput{Name: input.SecretId}, nil
@@ -107,7 +108,7 @@ func (a *FakeASM) ListSecrets(ctx context.Context, input *secretsmanager.ListSec
 func (a *FakeASM) UpdateSecret(ctx context.Context, input *secretsmanager.UpdateSecretInput, options ...func(*secretsmanager.Options)) (*secretsmanager.UpdateSecretOutput, error) {
 	existing, ok := a.secrets[*input.SecretId]
 	if !ok {
-		return nil, &types.ResourceNotFoundException{Message: aws.String("secret not found")}
+		return nil, errors.WithStack(&types.ResourceNotFoundException{Message: aws.String("secret not found")})
 	}
 	a.secrets[*input.SecretId] = ASMSecret{
 		ID:        *input.SecretId,

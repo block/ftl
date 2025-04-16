@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -35,14 +36,14 @@ func initDeploymentMetrics() (*DeploymentMetrics, error) {
 	if result.failure, err = meter.Int64Counter(
 		counter,
 		metric.WithDescription("the number of deployment failures")); err != nil {
-		return nil, wrapErr(counter, err)
+		return nil, errors.WithStack(wrapErr(counter, err))
 	}
 
 	counter = fmt.Sprintf("%s.active", deploymentMeterName)
 	if result.active, err = meter.Int64UpDownCounter(
 		counter,
 		metric.WithDescription("the number of active deployments")); err != nil {
-		return nil, wrapErr(counter, err)
+		return nil, errors.WithStack(wrapErr(counter, err))
 	}
 
 	return result, nil

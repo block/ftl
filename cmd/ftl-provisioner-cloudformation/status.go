@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
@@ -25,14 +25,14 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 	if !loaded {
 		dk, err := key.ParseDeploymentKey(token)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse deployment key: %w", err)
+			return nil, errors.Wrap(err, "failed to parse deployment key")
 		}
 		task.Start(ctx, req.Msg.DesiredModule.Name, dk)
 	}
 
 	if task.Err() != nil {
 		c.running.Delete(token)
-		return nil, connect.NewError(connect.CodeUnknown, task.Err())
+		return nil, errors.WithStack(connect.NewError(connect.CodeUnknown, task.Err()))
 	}
 
 	outputs := task.Outputs()
@@ -41,11 +41,11 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 
 		deploymentKey, err := key.ParseDeploymentKey(req.Msg.DesiredModule.Runtime.Deployment.DeploymentKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse deployment key: %w", err)
+			return nil, errors.Wrap(err, "failed to parse deployment key")
 		}
 		events, err := c.updateResources(deploymentKey, outputs)
 		if err != nil {
-			return nil, fmt.Errorf("failed to update resources: %w", err)
+			return nil, errors.Wrap(err, "failed to update resources")
 		}
 		return connect.NewResponse(&provisionerpb.StatusResponse{
 			Status: &provisionerpb.StatusResponse_Success{
@@ -70,7 +70,7 @@ func outputsByResourceID(outputs []types.Output) (map[string][]types.Output, err
 	for _, output := range outputs {
 		key, err := decodeOutputKey(output)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode output key: %w", err)
+			return nil, errors.Wrap(err, "failed to decode output key")
 		}
 		m[key.ResourceID] = append(m[key.ResourceID], output)
 	}
@@ -105,7 +105,7 @@ func (c *CloudformationProvisioner) updateResources(deployment key.Deployment, o
 				},
 			})
 		default:
-			return nil, fmt.Errorf("unknown output type: %T", o)
+			return nil, errors.Errorf("unknown output type: %T", o)
 		}
 	}
 

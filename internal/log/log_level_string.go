@@ -5,6 +5,8 @@ package log
 import (
 	"fmt"
 	"strings"
+
+	errors "github.com/alecthomas/errors"
 )
 
 const (
@@ -93,7 +95,7 @@ func LevelString(s string) (Level, error) {
 	if val, ok := _LevelNameToValueMap[strings.ToLower(s)]; ok {
 		return val, nil
 	}
-	return 0, fmt.Errorf("%s does not belong to Level values", s)
+	return 0, errors.Errorf("%s does not belong to Level values", s)
 }
 
 // LevelValues returns all values of the enum
@@ -127,5 +129,5 @@ func (i Level) MarshalText() ([]byte, error) {
 func (i *Level) UnmarshalText(text []byte) error {
 	var err error
 	*i, err = LevelString(string(text))
-	return err
+	return errors.WithStack(err)
 }

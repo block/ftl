@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -19,12 +19,12 @@ func (g *rollbackChangesetCmd) Run(ctx context.Context, client adminpbconnect.Ad
 	if g.Force {
 		_, err := client.FailChangeset(ctx, connect.NewRequest(&ftlv1.FailChangesetRequest{Changeset: g.Changeset}))
 		if err != nil {
-			return fmt.Errorf("failed to force rollback changeset: %w", err)
+			return errors.Wrap(err, "failed to force rollback changeset")
 		}
 	} else {
 		_, err := client.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: g.Changeset}))
 		if err != nil {
-			return fmt.Errorf("failed to rollback changeset: %w", err)
+			return errors.Wrap(err, "failed to rollback changeset")
 		}
 	}
 	return nil

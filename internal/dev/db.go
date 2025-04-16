@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
@@ -41,7 +42,7 @@ func CreateForDevel(ctx context.Context, dsn string, recreate bool) (*stdsql.DB,
 	logger := log.FromContext(ctx)
 	config, err := url.Parse(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse DSN: %w", err)
+		return nil, errors.Wrap(err, "failed to parse DSN")
 	}
 
 	noDBDSN := *config
@@ -57,13 +58,13 @@ func CreateForDevel(ctx context.Context, dsn string, recreate bool) (*stdsql.DB,
 		logger.Debugf("Waiting for database to be ready: %v", err)
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("ctx canclled %w", ctx.Err())
+			return nil, errors.Wrap(ctx.Err(), "ctx canclled")
 
 		case <-time.After(1 * time.Second):
 		}
 	}
 	if conn == nil {
-		return nil, fmt.Errorf("database not ready after 10 tries: %w", err)
+		return nil, errors.Wrap(err, "database not ready after 10 tries")
 	}
 
 	dbName := strings.TrimPrefix(config.Path, "/")
@@ -76,12 +77,12 @@ func CreateForDevel(ctx context.Context, dsn string, recreate bool) (*stdsql.DB,
 			WHERE datname = $1 AND pid <> pg_backend_pid()`,
 			dbName)
 		if err != nil {
-			return nil, fmt.Errorf("failed to terminate connections: %w", err)
+			return nil, errors.Wrap(err, "failed to terminate connections")
 		}
 
 		_, err = conn.ExecContext(ctx, fmt.Sprintf("DROP DATABASE IF EXISTS %q", dbName))
 		if err != nil {
-			return nil, fmt.Errorf("failed to drop database: %w", err)
+			return nil, errors.Wrap(err, "failed to drop database")
 		}
 	}
 
@@ -89,7 +90,7 @@ func CreateForDevel(ctx context.Context, dsn string, recreate bool) (*stdsql.DB,
 
 	realConn, err := observability.OpenDBAndInstrument(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, errors.Wrap(err, "failed to open database")
 	}
 	realConn.SetMaxIdleConns(20)
 	realConn.SetMaxOpenConns(20)
@@ -122,11 +123,11 @@ func SetupPostgres(ctx context.Context, image optional.Option[string], port int,
 	}
 	_, err := container.ComposeUp(ctx, "postgres", postgresDockerCompose, optional.None[string](), envars...)
 	if err != nil {
-		return fmt.Errorf("could not start postgres: %w", err)
+		return errors.Wrap(err, "could not start postgres")
 	}
 	_, err = CreateForDevel(ctx, dsn, recreate)
 	if err != nil {
-		return fmt.Errorf("failed to create database: %w", err)
+		return errors.Wrap(err, "failed to create database")
 	}
 	latestPostgresDSN = optional.Some(dsn)
 	return nil
@@ -147,7 +148,7 @@ func SetupMySQL(ctx context.Context, port int) (string, error) {
 	}
 	_, err := container.ComposeUp(ctx, "mysql", mysqlDockerCompose, optional.None[string](), envars...)
 	if err != nil {
-		return "", fmt.Errorf("could not start mysql: %w", err)
+		return "", errors.Wrap(err, "could not start mysql")
 	}
 
 	log.FromContext(ctx).Debugf("MySQL DSN: %s", dsn)

@@ -1,10 +1,10 @@
 package builderrors
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 )
 

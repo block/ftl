@@ -16,11 +16,11 @@ package configuration
 
 import (
 	"context"
-	"errors"
 	"net/url"
 	"strings"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 )
 
@@ -49,7 +49,7 @@ func NewRef(module, name string) Ref {
 func ParseRef(s string) (Ref, error) {
 	ref := Ref{}
 	err := ref.UnmarshalText([]byte(s))
-	return ref, err
+	return ref, errors.WithStack(err)
 }
 
 func (k Ref) String() string {

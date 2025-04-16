@@ -22,25 +22,31 @@ type PublishTenLocalClient func(context.Context) error
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
 			Local,
 		),
+
 		reflection.ProvideResourcesForVerb(
 			PublishOne,
 			server.TopicHandle[PubSubEvent, PartitionMapper]("publisher", "testTopic"),
 		),
+
 		reflection.ProvideResourcesForVerb(
 			PublishOneToTopic2,
 			server.TopicHandle[PubSubEvent, ftl.SinglePartitionMap[PubSubEvent]]("publisher", "topic2"),
 		),
+
 		reflection.ProvideResourcesForVerb(
 			PublishSlow,
 			server.TopicHandle[PubSubEvent, PartitionMapper]("publisher", "slowTopic"),
 		),
+
 		reflection.ProvideResourcesForVerb(
 			PublishTen,
 			server.TopicHandle[PubSubEvent, PartitionMapper]("publisher", "testTopic"),
 		),
+
 		reflection.ProvideResourcesForVerb(
 			PublishTenLocal,
 			server.TopicHandle[PubSubEvent, PartitionMapper]("publisher", "localTopic"),

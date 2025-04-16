@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	leaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
@@ -58,7 +59,7 @@ func NewUserVerbServer(projectName string, moduleName string, handlers ...Handle
 		// FTL_DEPLOYMENT is set by the FTL runtime.
 		dynamicCtx, err := deploymentcontext.NewDynamicContext(ctx, moduleContextSupplier, os.Getenv("FTL_DEPLOYMENT"))
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not get config: %w", err)
+			return nil, nil, errors.Wrap(err, "could not get config")
 		}
 
 		ctx = dynamicCtx.ApplyToContext(ctx)
@@ -66,7 +67,7 @@ func NewUserVerbServer(projectName string, moduleName string, handlers ...Handle
 
 		err = observability.Init(ctx, true, projectName, moduleName, "HEAD", uc.ObservabilityConfig)
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not initialize metrics: %w", err)
+			return nil, nil, errors.Wrap(err, "could not initialize metrics")
 		}
 		hmap := maps.FromSlice(handlers, func(h Handler) (reflection.Ref, Handler) { return h.ref, h })
 		return ctx, &moduleServer{handlers: hmap}, nil
@@ -90,22 +91,22 @@ func HandleCall[Req, Resp any](module string, verb string) Handler {
 			var req Req
 			err := encoding.Unmarshal(reqdata, &req)
 			if err != nil {
-				return nil, fmt.Errorf("invalid request to verb %s: %w", ref, err)
+				return nil, errors.Wrapf(err, "invalid request to verb %s", ref)
 			}
 			ctx = observability.AddSpanContextToLogger(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("failed to add workload identity to context: %w", err)
+				return nil, errors.Wrap(err, "failed to add workload identity to context")
 			}
 
 			// InvokeVerb Verb.
 			resp, err := InvokeVerb[Req, Resp](ref)(ctx, req)
 			if err != nil {
-				return nil, fmt.Errorf("call to verb %s failed: %w", ref, err)
+				return nil, errors.Wrapf(err, "call to verb %s failed", ref)
 			}
 
 			respdata, err := encoding.Marshal(resp)
 			if err != nil {
-				return nil, err
+				return nil, errors.WithStack(err)
 			}
 
 			return respdata, nil
@@ -133,7 +134,7 @@ func InvokeVerb[Req, Resp any](ref reflection.Ref) func(ctx context.Context, req
 
 		txID, err := maybeBeginTransaction(ctx, ref)
 		if err != nil {
-			return resp, err
+			return resp, errors.WithStack(err)
 		}
 		if txID != "" {
 			callMetadata, ok := internal.MaybeCallMetadataFromContext(ctx).Get()
@@ -147,9 +148,9 @@ func InvokeVerb[Req, Resp any](ref reflection.Ref) func(ctx context.Context, req
 		out, err := reflection.CallVerb(reflection.Ref{Module: ref.Module, Name: ref.Name})(ctx, request)
 		if err != nil {
 			if err := maybeRollbackTransaction(ctx, ref); err != nil {
-				return resp, fmt.Errorf("%s: failed to rollback transaction: %w", ref, err)
+				return resp, errors.Wrapf(err, "%s: failed to rollback transaction", ref)
 			}
-			return resp, err
+			return resp, errors.WithStack(err)
 		}
 
 		var respValue any
@@ -161,14 +162,14 @@ func InvokeVerb[Req, Resp any](ref reflection.Ref) func(ctx context.Context, req
 		resp, ok := respValue.(Resp)
 		if !ok {
 			if err := maybeRollbackTransaction(ctx, ref); err != nil {
-				return resp, fmt.Errorf("%s: failed to rollback transaction: %w", ref, err)
+				return resp, errors.Wrapf(err, "%s: failed to rollback transaction", ref)
 			}
-			return resp, fmt.Errorf("unexpected response type from verb %s: %T, expected %T", ref, resp, reflect.New(reflect.TypeFor[Resp]()).Interface())
+			return resp, errors.Errorf("unexpected response type from verb %s: %T, expected %T", ref, resp, reflect.New(reflect.TypeFor[Resp]()).Interface())
 		}
 		if err = maybeCommitTransaction(ctx, ref); err != nil {
-			return resp, fmt.Errorf("%s: failed to commit transaction: %w", ref, err)
+			return resp, errors.Wrapf(err, "%s: failed to commit transaction", ref)
 		}
-		return resp, err
+		return resp, errors.WithStack(err)
 	}
 }
 
@@ -183,7 +184,7 @@ func SinkClient[Verb, Req any]() reflection.VerbResource {
 	fnCall := call[Verb, Req, ftl.Unit]()
 	sink := func(ctx context.Context, req Req) error {
 		_, err := fnCall(ctx, req)
-		return err
+		return errors.WithStack(err)
 	}
 	return func() reflect.Value {
 		return reflect.ValueOf(sink)
@@ -193,7 +194,7 @@ func SinkClient[Verb, Req any]() reflection.VerbResource {
 func SourceClient[Verb, Resp any]() reflection.VerbResource {
 	fnCall := call[Verb, ftl.Unit, Resp]()
 	source := func(ctx context.Context) (Resp, error) {
-		return fnCall(ctx, ftl.Unit{})
+		return errors.WithStack2(fnCall(ctx, ftl.Unit{}))
 	}
 	return func() reflect.Value {
 		return reflect.ValueOf(source)
@@ -204,7 +205,7 @@ func EmptyClient[Verb any]() reflection.VerbResource {
 	fnCall := call[Verb, ftl.Unit, ftl.Unit]()
 	source := func(ctx context.Context) error {
 		_, err := fnCall(ctx, ftl.Unit{})
-		return err
+		return errors.WithStack(err)
 	}
 	return func() reflect.Value {
 		return reflect.ValueOf(source)
@@ -223,23 +224,23 @@ func call[Verb, Req, Resp any]() func(ctx context.Context, req Req) (resp Resp, 
 		moduleCtx := deploymentcontext.FromContext(ctx).CurrentContext()
 		override, err := moduleCtx.BehaviorForVerb(schema.Ref{Module: ref.Module, Name: ref.Name})
 		if err != nil {
-			return resp, fmt.Errorf("%s: %w", ref, err)
+			return resp, errors.Wrapf(err, "%s", ref)
 		}
 		if behavior, ok := override.Get(); ok {
 			uncheckedResp, err := behavior.Call(ctx, deploymentcontext.Verb(widenVerb(InvokeVerb[Req, Resp](ref))), req)
 			if err != nil {
-				return resp, fmt.Errorf("%s: %w", ref, err)
+				return resp, errors.Wrapf(err, "%s", ref)
 			}
 			if r, ok := uncheckedResp.(Resp); ok {
 				return r, nil
 			}
-			return resp, fmt.Errorf("%s: overridden verb had invalid response type %T, expected %v", ref,
+			return resp, errors.Errorf("%s: overridden verb had invalid response type %T, expected %v", ref,
 				uncheckedResp, reflect.TypeFor[Resp]())
 		}
 
 		reqData, err := encoding.Marshal(req)
 		if err != nil {
-			return resp, fmt.Errorf("%s: failed to marshal request: %w", callee, err)
+			return resp, errors.Wrapf(err, "%s: failed to marshal request", callee)
 		}
 
 		client := rpccontext.ClientFromContext[ftlv1connect.VerbServiceClient](ctx)
@@ -252,16 +253,16 @@ func call[Verb, Req, Resp any]() func(ctx context.Context, req Req) (resp Resp, 
 		}
 		cresp, err := client.Call(ctx, connect.NewRequest(callReq))
 		if err != nil {
-			return resp, fmt.Errorf("%s: failed to call Verb: %w", callee, err)
+			return resp, errors.Wrapf(err, "%s: failed to call Verb", callee)
 		}
 		switch cresp := cresp.Msg.Response.(type) {
 		case *ftlv1.CallResponse_Error_:
-			return resp, fmt.Errorf("%s: %s", callee, cresp.Error.Message)
+			return resp, errors.Errorf("%s: %s", callee, cresp.Error.Message)
 
 		case *ftlv1.CallResponse_Body:
 			err = encoding.Unmarshal(cresp.Body, &resp)
 			if err != nil {
-				return resp, fmt.Errorf("%s: failed to decode response: %w", callee, err)
+				return resp, errors.Wrapf(err, "%s: failed to decode response", callee)
 			}
 			return resp, nil
 
@@ -287,7 +288,7 @@ func (m *moduleServer) Call(ctx context.Context, req *connect.Request[ftlv1.Call
 			if rerr, ok := r.(error); ok {
 				err = rerr
 			} else {
-				err = fmt.Errorf("%v", r)
+				err = errors.Errorf("%v", r)
 			}
 			stack := string(debug.Stack())
 			logger.Errorf(err, "panic in verb %s.%s", req.Msg.Verb.Module, req.Msg.Verb.Name)
@@ -300,7 +301,7 @@ func (m *moduleServer) Call(ctx context.Context, req *connect.Request[ftlv1.Call
 
 	handler, ok := m.handlers[reflection.RefFromProto(req.Msg.Verb)]
 	if !ok {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("verb %s.%s not found", req.Msg.Verb.Module, req.Msg.Verb.Name))
+		return nil, errors.WithStack(connect.NewError(connect.CodeNotFound, errors.Errorf("verb %s.%s not found", req.Msg.Verb.Module, req.Msg.Verb.Name)))
 	}
 
 	metadata := map[internal.MetadataKey]string{}
@@ -333,8 +334,8 @@ func widenVerb[Req, Resp any](verb ftl.Verb[Req, Resp]) ftl.Verb[any, any] {
 	return func(ctx context.Context, uncheckedReq any) (any, error) {
 		req, ok := uncheckedReq.(Req)
 		if !ok {
-			return nil, fmt.Errorf("invalid request type %T for %v, expected %v", uncheckedReq, reflection.FuncRef(verb), reflect.TypeFor[Req]())
+			return nil, errors.Errorf("invalid request type %T for %v, expected %v", uncheckedReq, reflection.FuncRef(verb), reflect.TypeFor[Req]())
 		}
-		return verb(ctx, req)
+		return errors.WithStack2(verb(ctx, req))
 	}
 }

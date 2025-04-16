@@ -1,8 +1,7 @@
 package schemaservice
 
 import (
-	"fmt"
-
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
@@ -21,7 +20,7 @@ func (r *SchemaState) ActiveChangeset() optional.Option[*schema.Changeset] {
 func (r *SchemaState) GetChangeset(changeset key.Changeset) (*schema.Changeset, error) {
 	c, ok := r.changesets[changeset]
 	if !ok {
-		return nil, fmt.Errorf("changeset %s not found", changeset)
+		return nil, errors.Errorf("changeset %s not found", changeset)
 	}
 	return c, nil
 }

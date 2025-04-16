@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 
@@ -54,7 +55,7 @@ func (f *fakePubSub) publishEvent(topic *schema.Ref, event any) error {
 	f.publishWaitGroup.Add(1)
 	// tracks event subscription consumption completion
 	f.publishWaitGroup.Add(f.fetchTopicState(topic).subscriptionCount)
-	return f.globalTopic.PublishSync(publishEvent{topic: topic, content: event})
+	return errors.WithStack(f.globalTopic.PublishSync(publishEvent{topic: topic, content: event}))
 }
 
 func (f *fakePubSub) fetchTopicState(topic *schema.Ref) *topicState {

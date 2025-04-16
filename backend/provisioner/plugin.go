@@ -2,10 +2,10 @@ package provisioner
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
@@ -32,7 +32,7 @@ func NewPluginClient(client provisionerconnect.ProvisionerPluginServiceClient) P
 func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.ProvisionRequest) ([]*schemapb.RuntimeElement, error) {
 	resp, err := p.client.Provision(ctx, connect.NewRequest(req))
 	if err != nil {
-		return nil, fmt.Errorf("error provisioning: %w", err)
+		return nil, errors.Wrap(err, "error provisioning")
 	}
 
 	// call status endpoint in a loop until the status is not pending
@@ -46,7 +46,7 @@ func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.Provi
 			DesiredModule:     req.DesiredModule,
 		}))
 		if err != nil {
-			return nil, fmt.Errorf("provisioner status check failed %w", err)
+			return nil, errors.Wrap(err, "provisioner status check faile")
 		}
 
 		switch status.Msg.GetStatus().(type) {
@@ -55,7 +55,7 @@ func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.Provi
 		case *provisioner.StatusResponse_Success:
 			return status.Msg.GetSuccess().Outputs, nil
 		case *provisioner.StatusResponse_Failed:
-			return nil, fmt.Errorf("provisioning failed: %s", status.Msg.GetFailed().ErrorMessage)
+			return nil, errors.Errorf("provisioning failed: %s", status.Msg.GetFailed().ErrorMessage)
 		}
 	}
 }

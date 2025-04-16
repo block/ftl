@@ -2,12 +2,12 @@ package languageplugin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/either"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
@@ -101,7 +101,7 @@ var ErrPluginNotRunning = errors.New("language plugin no longer running")
 func New(ctx context.Context, dir, language, name string) (p *LanguagePlugin, err error) {
 	impl, err := newClientImpl(ctx, dir, language, name)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return newPluginForTesting(ctx, impl), nil
 }
@@ -145,9 +145,9 @@ type LanguagePlugin struct {
 
 // Kill stops the plugin and cleans up any resources.
 func (p *LanguagePlugin) Kill() error {
-	p.cancel(fmt.Errorf("killing language plugin: %w", context.Canceled))
+	p.cancel(errors.Wrap(context.Canceled, "killing language plugin"))
 	if err := p.client.kill(); err != nil {
-		return fmt.Errorf("failed to kill language plugin: %w", err)
+		return errors.Wrap(err, "failed to kill language plugin")
 	}
 	return nil
 }
@@ -162,13 +162,13 @@ func (p *LanguagePlugin) Updates() *pubsub.Topic[PluginEvent] {
 func (p *LanguagePlugin) GetDependencies(ctx context.Context, config moduleconfig.ModuleConfig) ([]string, error) {
 	configProto, err := langpb.ModuleConfigToProto(config.Abs())
 	if err != nil {
-		return nil, fmt.Errorf("could not convert module config to proto: %w", err)
+		return nil, errors.Wrap(err, "could not convert module config to proto")
 	}
 	resp, err := p.client.getDependencies(ctx, connect.NewRequest(&langpb.GetDependenciesRequest{
 		ModuleConfig: configProto,
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get dependencies from plugin: %w", err)
+		return nil, errors.Wrap(err, "failed to get dependencies from plugin")
 	}
 	return resp.Msg.Modules, nil
 }
@@ -178,13 +178,13 @@ func (p *LanguagePlugin) GenerateStubs(ctx context.Context, dir string, module *
 	moduleProto := module.ToProto()
 	configProto, err := langpb.ModuleConfigToProto(moduleConfig.Abs())
 	if err != nil {
-		return fmt.Errorf("could not create proto for module config: %w", err)
+		return errors.Wrap(err, "could not create proto for module config")
 	}
 	var nativeConfigProto *langpb.ModuleConfig
 	if config, ok := nativeModuleConfig.Get(); ok {
 		nativeConfigProto, err = langpb.ModuleConfigToProto(config.Abs())
 		if err != nil {
-			return fmt.Errorf("could not create proto for native module config: %w", err)
+			return errors.Wrap(err, "could not create proto for native module config")
 		}
 	}
 	_, err = p.client.generateStubs(ctx, connect.NewRequest(&langpb.GenerateStubsRequest{
@@ -194,7 +194,7 @@ func (p *LanguagePlugin) GenerateStubs(ctx context.Context, dir string, module *
 		NativeModuleConfig: nativeConfigProto,
 	}))
 	if err != nil {
-		return fmt.Errorf("plugin failed to generate stubs: %w", err)
+		return errors.Wrap(err, "plugin failed to generate stubs")
 	}
 	return nil
 }
@@ -209,7 +209,7 @@ func (p *LanguagePlugin) GenerateStubs(ctx context.Context, dir string, module *
 func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleconfig.ModuleConfig, dir string, moduleNames []string, view *schema.Schema) error {
 	configProto, err := langpb.ModuleConfigToProto(config.Abs())
 	if err != nil {
-		return fmt.Errorf("could not create proto for native module config: %w", err)
+		return errors.Wrap(err, "could not create proto for native module config")
 	}
 	_, err = p.client.syncStubReferences(ctx, connect.NewRequest(&langpb.SyncStubReferencesRequest{
 		StubsRoot:    dir,
@@ -218,7 +218,7 @@ func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleco
 		Schema:       view.ToProto(),
 	}))
 	if err != nil {
-		return fmt.Errorf("plugin failed to sync stub references: %w", err)
+		return errors.Wrap(err, "plugin failed to sync stub references")
 	}
 	return nil
 }
@@ -240,11 +240,11 @@ func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.
 	case r := <-cmd.result:
 		result, err := r.Result()
 		if err != nil {
-			return BuildResult{}, err //nolint:wrapcheck
+			return BuildResult{}, errors.WithStack(err) //nolint:wrapcheck
 		}
 		return result, nil
 	case <-ctx.Done():
-		return BuildResult{}, fmt.Errorf("error waiting for build to complete: %w", ctx.Err())
+		return BuildResult{}, errors.Wrap(ctx.Err(), "error waiting for build to complete")
 	}
 }
 
@@ -302,7 +302,7 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 			logger = log.FromContext(ctx).Scope(bctx.Config.Module)
 
 			if _, ok := activeBuildCmd.Get(); ok {
-				c.result <- result.Err[BuildResult](fmt.Errorf("build already in progress"))
+				c.result <- result.Err[BuildResult](errors.Errorf("build already in progress"))
 				continue
 			}
 			configProto, err := langpb.ModuleConfigToProto(bctx.Config.Abs())
@@ -329,7 +329,7 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 					},
 				}))
 				if err != nil {
-					c.result <- result.Err[BuildResult](fmt.Errorf("failed to send updated build context to plugin: %w", err))
+					c.result <- result.Err[BuildResult](errors.Wrap(err, "failed to send updated build context to plugin"))
 					continue
 				}
 				activeBuildCmd = optional.Some[buildCommand](c)
@@ -351,7 +351,7 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 				},
 			}))
 			if err != nil {
-				c.result <- result.Err[BuildResult](fmt.Errorf("failed to start build stream: %w", err))
+				c.result <- result.Err[BuildResult](errors.Wrap(err, "failed to start build stream"))
 				continue
 			}
 			activeBuildCmd = optional.Some[buildCommand](c)
@@ -474,10 +474,10 @@ func buildResultFromProto(result either.Either[*langpb.BuildResponse_BuildSucces
 
 		moduleSch, err := schema.ModuleFromProto(buildSuccess.Module)
 		if err != nil {
-			return BuildResult{}, fmt.Errorf("failed to unmarshal module from proto: %w", err)
+			return BuildResult{}, errors.Wrap(err, "failed to unmarshal module from proto")
 		}
 		if moduleSch.Runtime != nil && len(strings.Split(moduleSch.Runtime.Base.Image, ":")) != 1 {
-			return BuildResult{}, fmt.Errorf("image tag not supported in runtime image: %s", moduleSch.Runtime.Base.Image)
+			return BuildResult{}, errors.Errorf("image tag not supported in runtime image: %s", moduleSch.Runtime.Base.Image)
 		}
 
 		errs := langpb.ErrorsFromProto(buildSuccess.Errors)

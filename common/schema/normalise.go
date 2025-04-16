@@ -1,6 +1,8 @@
 package schema
 
 import (
+	errors "github.com/alecthomas/errors"
+
 	"github.com/block/ftl/common/reflect"
 )
 
@@ -32,7 +34,7 @@ func Normalise[T Node](n T) T {
 
 		default: // Normally we don't default for sum types, but this is just for tests and will be immediately obvious.
 		}
-		return next()
+		return errors.WithStack(next())
 	})
 	return ni //nolint:forcetypeassert
 }

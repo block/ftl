@@ -1,6 +1,6 @@
 package observability
 
-import "fmt"
+import "github.com/alecthomas/errors"
 
 var (
 	PubSub *PubSubMetrics
@@ -10,6 +10,6 @@ func init() {
 	var err error
 	PubSub, err = initPubSubMetrics()
 	if err != nil {
-		panic(fmt.Errorf("could not initialize pubsub metrics: %w", err))
+		panic(errors.Wrap(err, "could not initialize pubsub metrics"))
 	}
 }
