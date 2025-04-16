@@ -151,7 +151,9 @@ type ModuleConfig struct {
 	// These are stored in the ftl.toml file under the same key as the language (eg: "go", "java")
 	LanguageConfig *structpb.Struct `protobuf:"bytes,10,opt,name=language_config,json=languageConfig,proto3" json:"language_config,omitempty"`
 	// The root directory containing the SQL files, relative to the module directory.
-	SqlRootDir    string `protobuf:"bytes,11,opt,name=sql_root_dir,json=sqlRootDir,proto3" json:"sql_root_dir,omitempty"`
+	SqlRootDir string `protobuf:"bytes,11,opt,name=sql_root_dir,json=sqlRootDir,proto3" json:"sql_root_dir,omitempty"`
+	// The realm of the module
+	Realm         string `protobuf:"bytes,12,opt,name=realm,proto3" json:"realm,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -252,6 +254,13 @@ func (x *ModuleConfig) GetLanguageConfig() *structpb.Struct {
 func (x *ModuleConfig) GetSqlRootDir() string {
 	if x != nil {
 		return x.SqlRootDir
+	}
+	return ""
+}
+
+func (x *ModuleConfig) GetRealm() string {
+	if x != nil {
+		return x.Realm
 	}
 	return ""
 }
@@ -1424,7 +1433,7 @@ var File_xyz_block_ftl_language_v1_service_proto protoreflect.FileDescriptor
 
 const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"\n" +
-	"'xyz/block/ftl/language/v1/service.proto\x12\x19xyz.block.ftl.language.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\xeb\x02\n" +
+	"'xyz/block/ftl/language/v1/service.proto\x12\x19xyz.block.ftl.language.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\x81\x03\n" +
 	"\fModuleConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03dir\x18\x02 \x01(\tR\x03dir\x12\x1a\n" +
@@ -1439,7 +1448,8 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"\x0flanguage_config\x18\n" +
 	" \x01(\v2\x17.google.protobuf.StructR\x0elanguageConfig\x12 \n" +
 	"\fsql_root_dir\x18\v \x01(\tR\n" +
-	"sqlRootDirB\b\n" +
+	"sqlRootDir\x12\x14\n" +
+	"\x05realm\x18\f \x01(\tR\x05realmB\b\n" +
 	"\x06_buildB\x11\n" +
 	"\x0f_dev_mode_build\"d\n" +
 	"\rProjectConfig\x12\x10\n" +

@@ -4,6 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/projectconfig"
+
 	"github.com/alecthomas/assert/v2"
 	"github.com/block/scaffolder"
 
@@ -68,7 +71,7 @@ func getAbsModuleConfig(t *testing.T, moduleDir string, sqlRootDir string) modul
 		Dir:        moduleDir,
 		DeployDir:  ".ftl",
 		SQLRootDir: sqlRootDir,
-	}.FillDefaultsAndValidate(moduleconfig.CustomDefaults{})
+	}.FillDefaultsAndValidate(moduleconfig.CustomDefaults{}, projectconfig.Config{Name: "test"})
 	assert.NoError(t, err)
 	return mc.Abs()
 }

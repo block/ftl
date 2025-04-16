@@ -13,6 +13,7 @@ import (
 
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 const (
@@ -166,11 +167,10 @@ func (c ModuleConfig) Abs() AbsModuleConfig {
 // FillDefaultsAndValidate sets values for empty fields and validates the config.
 // It involves standard defaults for Real and Errors fields, and also looks at CustomDefaults for
 // defaulting other fields.
-func (c UnvalidatedModuleConfig) FillDefaultsAndValidate(customDefaults CustomDefaults) (ModuleConfig, error) {
+func (c UnvalidatedModuleConfig) FillDefaultsAndValidate(customDefaults CustomDefaults, projectConfig projectconfig.Config) (ModuleConfig, error) {
 	if c.Realm == "" {
-		c.Realm = "home"
+		c.Realm = projectConfig.Name
 	}
-
 	// Custom defaults
 	if defaultValue, ok := customDefaults.Build.Get(); ok && c.Build == "" {
 		c.Build = defaultValue

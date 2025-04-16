@@ -60,6 +60,7 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 	logger.Debugf("Creating FTL %s module %q in %s", i.Language, name, path)
 
 	moduleConfig := moduleconfig.ModuleConfig{
+		Realm:    config.Name,
 		Module:   name,
 		Language: i.Language,
 		Dir:      path,

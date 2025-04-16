@@ -5,6 +5,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 func TestDefaulting(t *testing.T) {
@@ -29,7 +30,7 @@ func TestDefaulting(t *testing.T) {
 				Watch:        []string{"a", "b", "c"},
 			},
 			expected: ModuleConfig{
-				Realm:        "home",
+				Realm:        "test",
 				Dir:          "a",
 				Module:       "nothingset",
 				Language:     "test",
@@ -62,7 +63,7 @@ func TestDefaulting(t *testing.T) {
 				Watch:        []string{"a", "b", "c"},
 			},
 			expected: ModuleConfig{
-				Realm:        "home",
+				Realm:        "test",
 				Dir:          "b",
 				Module:       "allset",
 				Language:     "test",
@@ -104,7 +105,7 @@ func TestDefaulting(t *testing.T) {
 			},
 			expected: ModuleConfig{
 				DeployDir: "deploydir",
-				Realm:     "home",
+				Realm:     "test",
 				Dir:       "b",
 				Module:    "languageconfig",
 				BuildLock: ".ftl.lock",
@@ -134,7 +135,7 @@ func TestDefaulting(t *testing.T) {
 		t.Run(tt.config.Module, func(t *testing.T) {
 			t.Parallel()
 
-			config, err := tt.config.FillDefaultsAndValidate(tt.defaults)
+			config, err := tt.config.FillDefaultsAndValidate(tt.defaults, projectconfig.Config{Name: "test"})
 			if tt.error != "" {
 				assert.EqualError(t, err, tt.error)
 				return
