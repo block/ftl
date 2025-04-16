@@ -97,6 +97,8 @@ type DeployCoordinator struct {
 	SchemaUpdates chan SchemaUpdatedEvent
 
 	logChanges bool // log changes from timeline
+
+	projectConfig projectconfig.Config
 }
 
 func NewDeployCoordinator(
@@ -106,6 +108,7 @@ func NewDeployCoordinator(
 	dependencyGrapher DependencyGrapher,
 	engineUpdates chan *buildenginepb.EngineEvent,
 	logChanges bool,
+	projectConfig projectconfig.Config,
 ) *DeployCoordinator {
 	c := &DeployCoordinator{
 		adminClient:       adminClient,
@@ -115,6 +118,7 @@ func NewDeployCoordinator(
 		deploymentQueue:   make(chan pendingDeploy, 128),
 		SchemaUpdates:     make(chan SchemaUpdatedEvent, 128),
 		logChanges:        logChanges,
+		projectConfig:     projectConfig,
 	}
 	// Start the deployment queue processor
 	go c.processEvents(ctx)
@@ -517,11 +521,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	logger := log.FromContext(ctx)
 	overridden := map[string]bool{}
 	toRemove := map[string]bool{}
-	realm := &schema.Realm{
-		Name:     "default", // TODO: implement
-		External: false,
-		Modules:  []*schema.Module{},
-	}
+	realm := &schema.Realm{Name: c.projectConfig.Name}
 	sch := &schema.Schema{
 		Realms: []*schema.Realm{realm},
 	}
