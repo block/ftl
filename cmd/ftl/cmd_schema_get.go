@@ -16,6 +16,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 type getSchemaCmd struct {
@@ -25,7 +26,7 @@ type getSchemaCmd struct {
 	Modules  []string `help:"Modules to include" type:"string" optional:""`
 }
 
-func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient) error {
+func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, projConfig projectconfig.Config) error {
 	resp, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-schema-get"}))
 	if err != nil {
 		return errors.WithStack(err)
@@ -63,9 +64,8 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			}
 			modules = append(modules, cs.InternalRealm().Modules...)
 			realm := &schema.Realm{
-				Name:     "default", // TODO: implement
-				External: false,
-				Modules:  modules,
+				Name:    projConfig.Name,
+				Modules: modules,
 			}
 			err = g.handleSchema(&schema.Schema{Realms: []*schema.Realm{realm}})
 			if err != nil {

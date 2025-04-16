@@ -380,7 +380,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 	keyChan := make(chan result.Result[key.Changeset], 1)
 	go func() {
-		err := deploy(ctx, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan)
+		err := deploy(ctx, c.projectConfig.Name, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan)
 		if err != nil {
 			// Handle deployment failure
 			for _, module := range deployment.modules {
@@ -643,7 +643,7 @@ func prepareForDeploy(ctx context.Context, modules map[string]*pendingModule, ad
 }
 
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClient, receivedKey chan result.Result[key.Changeset]) (err error) {
+func deploy(ctx context.Context, realm string, modules []*schema.Module, adminClient AdminClient, receivedKey chan result.Result[key.Changeset]) (err error) {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Deploying %v", strings.Join(slices.Map(modules, func(m *schema.Module) string { return m.Name }), ", "))
 	changesetKey := optional.Option[key.Changeset]{}
@@ -661,7 +661,7 @@ func deploy(ctx context.Context, modules []*schema.Module, adminClient AdminClie
 
 	stream, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
 		RealmChanges: []*adminpb.RealmChange{{
-			Name: "default",
+			Name: realm,
 			Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
 				return m.ToProto()
 			}),

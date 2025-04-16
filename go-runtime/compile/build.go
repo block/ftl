@@ -821,14 +821,20 @@ type mainDeploymentContextBuilder struct {
 	visited                 sets.Set[string]
 }
 
-func buildMainDeploymentContext(sch *schema.Schema, result extract.Result, goModVersion, projectName string,
-	sharedModulesPaths []string, replacements []*modfile.Replace) (mainDeploymentContext, error) {
+func buildMainDeploymentContext(
+	sch *schema.Schema,
+	result extract.Result,
+	goModVersion,
+	projectName string,
+	sharedModulesPaths []string,
+	replacements []*modfile.Replace,
+) (mainDeploymentContext, error) {
 	ftlVersion := ""
 	if ftl.IsRelease(ftl.Version) {
 		ftlVersion = ftl.Version
 	}
 	realm := &schema.Realm{
-		Name:    "default", // TODO: projectName,
+		Name:    projectName,
 		Modules: append(sch.InternalModules(), result.Module),
 	}
 	combinedSch := &schema.Schema{Realms: []*schema.Realm{realm}}
