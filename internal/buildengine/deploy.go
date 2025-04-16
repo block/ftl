@@ -168,18 +168,24 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 		c.SchemaUpdates <- SchemaUpdatedEvent{
 			schema: &schema.Schema{
 				Realms: []*schema.Realm{{
-					Name: "default", // TODO: projectName,
-					Modules: []*schema.Module{
-						schema.Builtins(),
-					},
+					Name:    c.projectConfig.Name,
+					Modules: []*schema.Module{schema.Builtins()},
 				}},
 			},
 		}
 	} else {
 		c.schemaSource.WaitForInitialSync(ctx)
-		c.SchemaUpdates <- SchemaUpdatedEvent{
-			schema: c.schemaSource.CanonicalView(),
+
+		// If there are no realms yet, initialise the internal.
+		sch := c.schemaSource.CanonicalView()
+		if len(sch.Realms) == 0 {
+			sch.Realms = []*schema.Realm{{
+				Name:    c.projectConfig.Name,
+				Modules: []*schema.Module{schema.Builtins()},
+			}}
 		}
+
+		c.SchemaUpdates <- SchemaUpdatedEvent{schema: sch}
 	}
 
 	toDeploy := []*pendingDeploy{}
@@ -484,7 +490,6 @@ func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Sche
 		newRealm := &schema.Realm{
 			Name:     realm.Name,
 			External: realm.External,
-			Modules:  []*schema.Module{},
 		}
 		sch.Realms = append(sch.Realms, newRealm)
 		for _, module := range realm.Modules {
@@ -603,7 +608,7 @@ func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, modul
 	logger.Infof("Terminating deployment %s", key) //nolint:forbidigo
 	stream, err := c.adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
 		RealmChanges: []*adminpb.RealmChange{{
-			Name:     "default",
+			Name:     c.projectConfig.Name,
 			ToRemove: []string{key.String()},
 		}},
 	}))
