@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "time",
+    srcs = [
+        "time.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/cmd/ftl/testdata/go/time",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/server",
+    ],
+)

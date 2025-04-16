@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "database",
+    srcs = [
+        "database.go",
+        "queries.ftl.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/backend/controller/sql/testdata/go/database",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/server",
+        "@com_github_alecthomas_types//tuple",
+    ],
+)
+
+go_test(
+    name = "database_test",
+    srcs = ["database_test.go"],
+    embed = [":database"],
+    deps = [
+        "//go-runtime/ftl/ftltest",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

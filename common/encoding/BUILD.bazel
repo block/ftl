@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "encoding",
+    srcs = ["encoding.go"],
+    importpath = "github.com/block/ftl/common/encoding",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//common/strcase",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

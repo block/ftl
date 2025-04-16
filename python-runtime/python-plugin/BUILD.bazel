@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "python-plugin",
+    srcs = [
+        "commands.go",
+        "service.go",
+    ],
+    importpath = "github.com/block/ftl/python-runtime/python-plugin",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/language/v1/languagepbconnect",
+        "//common/builderrors",
+        "//common/schema",
+        "//internal",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "//python-runtime",
+        "//python-runtime/compile",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_block_scaffolder//:scaffolder",
+    ],
+)

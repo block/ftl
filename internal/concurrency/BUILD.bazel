@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "concurrency",
+    srcs = ["resgroup.go"],
+    importpath = "github.com/block/ftl/internal/concurrency",
+    visibility = ["//:__subpackages__"],
+    deps = ["@com_github_alecthomas_errors//:errors"],
+)
+
+go_test(
+    name = "concurrency_test",
+    srcs = ["resgroup_test.go"],
+    embed = [":concurrency"],
+    deps = [
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "ftl-lease_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/block/ftl/cmd/ftl-lease",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//:ftl",
+        "//backend/lease",
+        "//internal/log",
+        "//internal/observability",
+        "//internal/prodinit",
+        "//internal/rpc",
+        "@com_github_alecthomas_kong//:kong",
+    ],
+)
+
+go_binary(
+    name = "ftl-lease",
+    embed = [":ftl-lease_lib"],
+    visibility = ["//visibility:public"],
+)

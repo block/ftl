@@ -1,0 +1,38 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "routers",
+    srcs = [
+        "file_router.go",
+        "projectconfig_router.go",
+    ],
+    importpath = "github.com/block/ftl/internal/configuration/routers",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/configuration",
+        "//internal/projectconfig",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@org_golang_x_exp//maps",
+    ],
+)
+
+go_test(
+    name = "routers_test",
+    srcs = [
+        "file_router_test.go",
+        "projectconfig_router_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":routers"],
+    deps = [
+        "//internal/configuration",
+        "//internal/configuration/manager",
+        "//internal/configuration/providers",
+        "//internal/log",
+        "//internal/projectconfig",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//must",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

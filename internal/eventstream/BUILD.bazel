@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "eventstream",
+    srcs = ["eventstream.go"],
+    importpath = "github.com/block/ftl/internal/eventstream",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/reflect",
+        "//internal/channels",
+        "//internal/iterops",
+        "//internal/log",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//pubsub",
+    ],
+)

@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "common",
+    srcs = [
+        "common.go",
+        "directive.go",
+        "error.go",
+        "fact.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/schema/common",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/builderrors",
+        "//common/cron",
+        "//common/schema",
+        "//common/strcase",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_participle_v2//:participle",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_block_ftl_golang_tools//go/analysis",
+        "@com_github_block_ftl_golang_tools//go/analysis/passes/inspect",
+        "@com_github_block_ftl_golang_tools//go/ast/inspector",
+        "@com_github_puzpuzpuz_xsync_v3//:xsync",
+    ],
+)

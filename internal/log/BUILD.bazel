@@ -1,0 +1,38 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "log",
+    srcs = [
+        "api.go",
+        "configure.go",
+        "debug.go",
+        "json.go",
+        "log_level_string.go",
+        "logger.go",
+        "plain.go",
+        "tee.go",
+    ],
+    importpath = "github.com/block/ftl/internal/log",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/key",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//once",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_benbjohnson_clock//:clock",
+        "@com_github_block_ftl_golang_tools//go/ssa/interp/testdata/src/sync",
+        "@com_github_mattn_go_isatty//:go-isatty",
+    ],
+)
+
+go_test(
+    name = "log_test",
+    srcs = ["logger_test.go"],
+    embed = [":log"],
+    deps = [
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_benbjohnson_clock//:clock",
+    ],
+)

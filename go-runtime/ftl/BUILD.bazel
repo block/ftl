@@ -1,0 +1,57 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "ftl",
+    srcs = [
+        "config.go",
+        "database.go",
+        "identity.go",
+        "leases.go",
+        "logging.go",
+        "map.go",
+        "option.go",
+        "pubsub.go",
+        "pubsub_external.go",
+        "secrets.go",
+        "types.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/ftl",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/lease/v1/leasepbconnect",
+        "//common/reflection",
+        "//common/schema",
+        "//go-runtime/internal",
+        "//go-runtime/server/rpccontext",
+        "//internal/deploymentcontext",
+        "//internal/log",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//once",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_go_sql_driver_mysql//:mysql",
+        "@com_github_jackc_pgx_v5//stdlib",
+        "@org_golang_google_protobuf//types/known/durationpb",
+    ],
+)
+
+go_test(
+    name = "ftl_test",
+    srcs = [
+        "config_test.go",
+        "map_test.go",
+        "option_test.go",
+        "secrets_test.go",
+    ],
+    embed = [":ftl"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/internal",
+        "//internal/deploymentcontext",
+        "//internal/log",
+        "//internal/testutils/modulecontext",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+        "@org_modernc_sqlite//:sqlite",
+    ],
+)

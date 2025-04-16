@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "providers",
+    srcs = [
+        "1password_provider.go",
+        "asm.go",
+        "asm_manager.go",
+        "comments.go",
+        "envar_provider.go",
+        "inline_provider.go",
+        "keychain_provider.go",
+        "registry.go",
+    ],
+    importpath = "github.com/block/ftl/internal/configuration/providers",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//backend/controller/leases",
+        "//common/slices",
+        "//internal/configuration",
+        "//internal/exec",
+        "//internal/log",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_aws_aws_sdk_go_v2//aws",
+        "@com_github_aws_aws_sdk_go_v2_service_secretsmanager//:secretsmanager",
+        "@com_github_aws_aws_sdk_go_v2_service_secretsmanager//types",
+        "@com_github_aws_smithy_go//:smithy-go",
+        "@com_github_kballard_go_shellquote//:go-shellquote",
+        "@com_github_zalando_go_keyring//:go-keyring",
+    ],
+)
+
+go_test(
+    name = "providers_test",
+    srcs = ["comments_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":providers"],
+    deps = ["@com_github_alecthomas_assert_v2//:assert"],
+)

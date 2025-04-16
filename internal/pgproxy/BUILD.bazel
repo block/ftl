@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "pgproxy",
+    srcs = ["pgproxy.go"],
+    importpath = "github.com/block/ftl/internal/pgproxy",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/log",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_jackc_pgx_v5//pgconn",
+        "@com_github_jackc_pgx_v5//pgproto3",
+    ],
+)
+
+go_test(
+    name = "pgproxy_test",
+    srcs = ["pgproxy_test.go"],
+    deps = [
+        ":pgproxy",
+        "//internal/dev",
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_jackc_pgx_v5//pgproto3",
+    ],
+)

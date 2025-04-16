@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "ftl-console_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/block/ftl/cmd/ftl-console",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//:ftl",
+        "//backend/console",
+        "//backend/protos/xyz/block/ftl/admin/v1/adminpbconnect",
+        "//backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect",
+        "//internal/log",
+        "//internal/observability",
+        "//internal/prodinit",
+        "//internal/routing",
+        "//internal/rpc",
+        "//internal/schema/schemaeventsource",
+        "//internal/timelineclient",
+        "@com_github_alecthomas_kong//:kong",
+    ],
+)
+
+go_binary(
+    name = "ftl-console",
+    embed = [":ftl-console_lib"],
+    visibility = ["//visibility:public"],
+)

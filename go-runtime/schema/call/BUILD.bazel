@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "call",
+    srcs = ["analyzer.go"],
+    importpath = "github.com/block/ftl/go-runtime/schema/call",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//go-runtime/schema/common",
+        "@com_github_block_ftl_golang_tools//go/analysis",
+        "@com_github_block_ftl_golang_tools//go/analysis/passes/inspect",
+        "@com_github_block_ftl_golang_tools//go/ast/inspector",
+    ],
+)

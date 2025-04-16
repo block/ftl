@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "channels",
+    srcs = [
+        "itercontext.go",
+        "notify.go",
+    ],
+    importpath = "github.com/block/ftl/internal/channels",
+    visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "channels_test",
+    srcs = [
+        "itercontext_test.go",
+        "notifier_test.go",
+    ],
+    embed = [":channels"],
+    deps = [
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

@@ -1,0 +1,45 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "routing",
+    srcs = [
+        "routing.go",
+        "verb_routing.go",
+    ],
+    importpath = "github.com/block/ftl/internal/routing",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//backend/controller/observability",
+        "//backend/protos/xyz/block/ftl/v1/ftlv1connect",
+        "//common/schema",
+        "//internal/channels",
+        "//internal/key",
+        "//internal/log",
+        "//internal/rpc",
+        "//internal/rpc/headers",
+        "//internal/schema/schemaeventsource",
+        "//internal/timelineclient",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//pubsub",
+        "@com_github_alecthomas_types//result",
+        "@com_github_puzpuzpuz_xsync_v3//:xsync",
+    ],
+)
+
+go_test(
+    name = "routing_test",
+    srcs = ["routing_test.go"],
+    embed = [":routing"],
+    deps = [
+        "//common/schema",
+        "//internal/key",
+        "//internal/log",
+        "//internal/schema/schemaeventsource",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//must",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

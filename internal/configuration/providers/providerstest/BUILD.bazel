@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "providerstest",
+    srcs = ["manual_sync_utils.go"],
+    importpath = "github.com/block/ftl/internal/configuration/providers/providerstest",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/configuration",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

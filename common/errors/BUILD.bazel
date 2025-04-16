@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "errors",
+    srcs = ["errors.go"],
+    importpath = "github.com/block/ftl/common/errors",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_alecthomas_errors//:errors",
+        "@org_golang_x_exp//maps",
+    ],
+)

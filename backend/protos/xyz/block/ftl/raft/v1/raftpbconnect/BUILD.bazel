@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "raftpbconnect",
+    srcs = ["raft.connect.go"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/raft/v1:raft",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

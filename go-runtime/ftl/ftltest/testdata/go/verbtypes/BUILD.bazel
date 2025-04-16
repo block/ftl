@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "verbtypes",
+    srcs = [
+        "types.ftl.go",
+        "verbtypes.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/ftl/ftltest/testdata/go/verbtypes",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/server",
+    ],
+)
+
+go_test(
+    name = "verbtypes_test",
+    srcs = ["verbtypes_test.go"],
+    embed = [":verbtypes"],
+    deps = [
+        "//go-runtime/ftl/ftltest",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

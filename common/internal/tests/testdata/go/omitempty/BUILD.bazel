@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "omitempty",
+    srcs = ["omitempty.go"],
+    importpath = "github.com/block/ftl/common/internal/tests/testdata/go/omitempty",
+    visibility = ["//common:__subpackages__"],
+    deps = ["//go-runtime/ftl"],
+)

@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "executor",
+    srcs = [
+        "mysql.go",
+        "postgres.go",
+        "pubsub.go",
+    ],
+    importpath = "github.com/block/ftl/internal/provisioner/executor",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/schema",
+        "//internal/concurrency",
+        "//internal/dsn",
+        "//internal/log",
+        "//internal/provisioner",
+        "//internal/provisioner/state",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_aws_aws_sdk_go_v2_service_secretsmanager//:secretsmanager",
+        "@com_github_go_sql_driver_mysql//:mysql",
+        "@com_github_ibm_sarama//:sarama",
+        "@com_github_jackc_pgx_v5//stdlib",
+    ],
+)

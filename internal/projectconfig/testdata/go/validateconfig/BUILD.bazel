@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "validateconfig",
+    srcs = [
+        "types.ftl.go",
+        "validateconfig.go",
+    ],
+    importpath = "github.com/block/ftl/internal/projectconfig/testdata/go/validateconfig",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/server",
+    ],
+)

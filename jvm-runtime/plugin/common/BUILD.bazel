@@ -1,0 +1,56 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "common",
+    srcs = [
+        "commands.go",
+        "jvm_logging.go",
+        "service.go",
+    ],
+    importpath = "github.com/block/ftl/jvm-runtime/plugin/common",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:ftl",
+        "//backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect",
+        "//backend/protos/xyz/block/ftl/language/v1/languagepbconnect",
+        "//common/builderrors",
+        "//common/plugin",
+        "//common/schema",
+        "//common/slices",
+        "//internal",
+        "//internal/channels",
+        "//internal/exec",
+        "//internal/flock",
+        "//internal/key",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "//internal/rpc",
+        "//internal/watch",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//pubsub",
+        "@com_github_beevik_etree//:etree",
+        "@com_github_block_scaffolder//:scaffolder",
+        "@com_github_go_viper_mapstructure_v2//:mapstructure",
+        "@com_github_jpillora_backoff//:backoff",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/structpb",
+        "@org_golang_x_exp//maps",
+    ],
+)
+
+go_test(
+    name = "common_test",
+    srcs = ["java_plugin_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":common"],
+    deps = [
+        "//internal/buildengine/languageplugin",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

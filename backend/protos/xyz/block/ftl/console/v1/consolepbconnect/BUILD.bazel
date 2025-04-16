@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "consolepbconnect",
+    srcs = ["console.connect.go"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1/consolepbconnect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/buildengine/v1:buildengine",
+        "//backend/protos/xyz/block/ftl/console/v1:console",
+        "//backend/protos/xyz/block/ftl/timeline/v1:timeline",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

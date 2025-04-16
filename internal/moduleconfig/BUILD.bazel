@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "moduleconfig",
+    srcs = ["moduleconfig.go"],
+    importpath = "github.com/block/ftl/internal/moduleconfig",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/schema",
+        "//common/slices",
+        "//internal/projectconfig",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_burntsushi_toml//:toml",
+        "@com_github_go_viper_mapstructure_v2//:mapstructure",
+    ],
+)
+
+go_test(
+    name = "moduleconfig_test",
+    srcs = ["moduleconfig_test.go"],
+    embed = [":moduleconfig"],
+    deps = [
+        "//internal/projectconfig",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

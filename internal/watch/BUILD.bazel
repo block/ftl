@@ -1,0 +1,39 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "watch",
+    srcs = [
+        "discover.go",
+        "filehash.go",
+        "walk.go",
+        "watch.go",
+    ],
+    importpath = "github.com/block/ftl/internal/watch",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/slices",
+        "//internal",
+        "//internal/flock",
+        "//internal/log",
+        "//internal/maps",
+        "//internal/moduleconfig",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//pubsub",
+        "@com_github_bmatcuk_doublestar_v4//:doublestar",
+    ],
+)
+
+go_test(
+    name = "watch_test",
+    srcs = [
+        "discover_test.go",
+        "filehash_test.go",
+    ],
+    embed = [":watch"],
+    deps = [
+        "//internal/log",
+        "//internal/moduleconfig",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

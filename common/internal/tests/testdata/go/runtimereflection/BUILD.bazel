@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "runtimereflection",
+    srcs = ["runtimereflection.go"],
+    importpath = "github.com/block/ftl/common/internal/tests/testdata/go/runtimereflection",
+    visibility = ["//common:__subpackages__"],
+    deps = ["//go-runtime/ftl"],
+)
+
+go_test(
+    name = "runtimereflection_test",
+    srcs = ["runtimereflection_test.go"],
+    embed = [":runtimereflection"],
+    deps = [
+        "//common/reflection",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

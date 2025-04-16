@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "state",
+    srcs = [
+        "controllerstate.go",
+        "deployment_artefacts.go",
+        "runners.go",
+    ],
+    importpath = "github.com/block/ftl/backend/controller/state",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/sha256",
+        "//internal/eventstream",
+        "//internal/key",
+        "@com_github_alecthomas_types//optional",
+    ],
+)
+
+go_test(
+    name = "state_test",
+    srcs = ["controllerstate_test.go"],
+    deps = [
+        ":state",
+        "//internal/key",
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

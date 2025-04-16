@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "java",
+    srcs = ["devel.go"],
+    importpath = "github.com/block/ftl/jvm-runtime/java",
+    visibility = ["//visibility:public"],
+    deps = ["//internal"],
+)

@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "testdata",
+    srcs = [
+        "go2proto.to.go",
+        "model.go",
+    ],
+    importpath = "github.com/block/ftl/cmd/go2proto/testdata",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/go2proto/testdata/external",
+        "//cmd/go2proto/testdata/testdatapb",
+        "//internal/key",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//result",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

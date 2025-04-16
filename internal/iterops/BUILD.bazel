@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "iterops",
+    srcs = [
+        "changes.go",
+        "coiunt.go",
+        "concat.go",
+        "const.go",
+        "contains.go",
+        "dedup.go",
+        "empty.go",
+        "filter.go",
+        "len.go",
+        "map.go",
+        "next.go",
+        "take.go",
+        "window.go",
+    ],
+    importpath = "github.com/block/ftl/internal/iterops",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//tuple",
+    ],
+)
+
+go_test(
+    name = "iterops_test",
+    srcs = ["interops_test.go"],
+    deps = [
+        ":iterops",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//tuple",
+    ],
+)

@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "console",
+    srcs = ["console.go"],
+    importpath = "github.com/block/ftl/backend/console",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:ftl",
+        "//backend/admin",
+        "//backend/goose",
+        "//backend/protos/xyz/block/ftl/admin/v1:admin",
+        "//backend/protos/xyz/block/ftl/buildengine/v1:buildengine",
+        "//backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect",
+        "//backend/protos/xyz/block/ftl/console/v1:console",
+        "//backend/protos/xyz/block/ftl/console/v1/consolepbconnect",
+        "//backend/protos/xyz/block/ftl/timeline/v1:timeline",
+        "//common/schema",
+        "//frontend/console",
+        "//internal/buildengine",
+        "//internal/channels",
+        "//internal/log",
+        "//internal/routing",
+        "//internal/rpc",
+        "//internal/schema/schemaeventsource",
+        "//internal/timelineclient",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)
+
+go_test(
+    name = "console_test",
+    srcs = ["console_test.go"],
+    embed = [":console"],
+    deps = [
+        "//common/schema",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

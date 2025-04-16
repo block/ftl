@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sql",
+    srcs = [
+        "devel.go",
+        "embed.go",
+        "sql.go",
+    ],
+    embedsrcs = ["resources/sqlc-gen-ftl.wasm"],
+    importpath = "github.com/block/ftl/internal/sql",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/schema",
+        "//common/slices",
+        "//common/strcase",
+        "//internal",
+        "//internal/exec",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@org_golang_x_text//cases",
+        "@org_golang_x_text//language",
+    ],
+)

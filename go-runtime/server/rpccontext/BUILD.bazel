@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "rpccontext",
+    srcs = ["context.go"],
+    importpath = "github.com/block/ftl/go-runtime/server/rpccontext",
+    visibility = ["//visibility:public"],
+    deps = ["@com_connectrpc_connect//:connect"],
+)

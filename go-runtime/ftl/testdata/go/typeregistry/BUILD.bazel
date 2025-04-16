@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "typeregistry",
+    srcs = [
+        "typeregistry.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/ftl/testdata/go/typeregistry",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+    ],
+)
+
+go_test(
+    name = "typeregistry_test",
+    srcs = ["typeregistry_test.go"],
+    embed = [":typeregistry"],
+    deps = [
+        "//common/encoding",
+        "//go-runtime/ftl",
+        "//go-runtime/ftl/ftltest",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

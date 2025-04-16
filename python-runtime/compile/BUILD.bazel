@@ -1,0 +1,39 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "compile",
+    srcs = [
+        "build.go",
+        "devel.go",
+        "stubs.go",
+    ],
+    importpath = "github.com/block/ftl/python-runtime/compile",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/builderrors",
+        "//common/schema",
+        "//common/strcase",
+        "//internal",
+        "//internal/exec",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_block_scaffolder//:scaffolder",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "compile_test",
+    srcs = ["build_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":compile"],
+    deps = [
+        "//common/schema",
+        "//internal/exec",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

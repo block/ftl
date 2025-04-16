@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "undefinedverb",
+    srcs = ["undefinedverb.go"],
+    importpath = "github.com/block/ftl/go-runtime/compile/testdata/go/undefinedverb",
+    visibility = ["//visibility:public"],
+    deps = ["//go-runtime/ftl"],
+)

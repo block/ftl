@@ -1,0 +1,52 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "languageplugin",
+    srcs = [
+        "commands.go",
+        "plugin.go",
+        "plugin_client.go",
+    ],
+    importpath = "github.com/block/ftl/internal/buildengine/languageplugin",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/language/v1/languagepbconnect",
+        "//common/builderrors",
+        "//common/plugin",
+        "//common/schema",
+        "//common/slices",
+        "//internal/exec",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "//internal/projectconfig",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_kong//:kong",
+        "@com_github_alecthomas_types//either",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//pubsub",
+        "@com_github_alecthomas_types//result",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/structpb",
+    ],
+)
+
+go_test(
+    name = "languageplugin_test",
+    srcs = ["plugin_test.go"],
+    embed = [":languageplugin"],
+    deps = [
+        "//common/builderrors",
+        "//common/schema",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "//internal/projectconfig",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_kong//:kong",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//result",
+    ],
+)

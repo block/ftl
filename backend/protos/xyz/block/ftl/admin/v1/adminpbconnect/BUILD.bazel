@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "adminpbconnect",
+    srcs = ["admin.connect.go"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/admin/v1:admin",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

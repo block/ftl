@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "missingqueries",
+    srcs = [
+        "missingqueries.go",
+        "queries.ftl.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/compile/testdata/go/missingqueries",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/server",
+        "@com_github_alecthomas_types//tuple",
+    ],
+)

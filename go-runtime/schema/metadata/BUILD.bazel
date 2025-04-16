@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "metadata",
+    srcs = ["analyzer.go"],
+    importpath = "github.com/block/ftl/go-runtime/schema/metadata",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflect",
+        "//common/schema",
+        "//go-runtime/schema/common",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_block_ftl_golang_tools//go/analysis",
+        "@com_github_block_ftl_golang_tools//go/analysis/passes/inspect",
+        "@com_github_block_ftl_golang_tools//go/ast/inspector",
+        "@com_github_deckarep_golang_set_v2//:golang-set",
+    ],
+)

@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "dischema",
+    srcs = [
+        "dischema.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/backend/admin/testdata/go/dischema",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/server",
+    ],
+)

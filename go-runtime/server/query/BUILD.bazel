@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "query",
+    srcs = ["client.go"],
+    importpath = "github.com/block/ftl/go-runtime/server/query",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/query/v1/querypbconnect",
+        "//backend/runner/query",
+        "//common/encoding",
+        "//go-runtime/internal",
+        "//go-runtime/server/rpccontext",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//tuple",
+    ],
+)

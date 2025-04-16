@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "internal",
+    srcs = [
+        "scaffold.go",
+        "source_root.go",
+        "zip.go",
+        "zip_relative.go",
+    ],
+    importpath = "github.com/block/ftl/internal",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/schema",
+        "//common/strcase",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_block_scaffolder//:scaffolder",
+    ],
+)

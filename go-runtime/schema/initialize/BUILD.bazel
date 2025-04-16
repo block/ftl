@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "initialize",
+    srcs = ["analyzer.go"],
+    importpath = "github.com/block/ftl/go-runtime/schema/initialize",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/slices",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_block_ftl_golang_tools//go/analysis",
+        "@com_github_block_ftl_golang_tools//go/packages",
+    ],
+)

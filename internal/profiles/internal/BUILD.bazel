@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "internal",
+    srcs = ["persistence.go"],
+    importpath = "github.com/block/ftl/internal/profiles/internal",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/sha256",
+        "//internal/config",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

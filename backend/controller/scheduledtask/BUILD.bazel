@@ -1,0 +1,31 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "scheduledtask",
+    srcs = ["scheduledtask.go"],
+    importpath = "github.com/block/ftl/backend/controller/scheduledtask",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/controller/leases",
+        "//common/slices",
+        "//internal/key",
+        "//internal/log",
+        "@com_github_benbjohnson_clock//:clock",
+        "@com_github_jpillora_backoff//:backoff",
+    ],
+)
+
+go_test(
+    name = "scheduledtask_test",
+    srcs = ["scheduledtask_test.go"],
+    embed = [":scheduledtask"],
+    deps = [
+        "//backend/controller/leases",
+        "//internal/key",
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_benbjohnson_clock//:clock",
+        "@com_github_jpillora_backoff//:backoff",
+    ],
+)

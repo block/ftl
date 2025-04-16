@@ -1,0 +1,32 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "projectconfig",
+    srcs = [
+        "projectconfig.go",
+        "url.go",
+    ],
+    importpath = "github.com/block/ftl/internal/projectconfig",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//:ftl",
+        "//internal",
+        "//internal/configuration",
+        "//internal/log",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_burntsushi_toml//:toml",
+    ],
+)
+
+go_test(
+    name = "projectconfig_test",
+    srcs = ["projectconfig_test.go"],
+    embed = [":projectconfig"],
+    deps = [
+        "//:ftl",
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "bind",
+    srcs = ["bind_allocator.go"],
+    importpath = "github.com/block/ftl/internal/bind",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

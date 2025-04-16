@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "retry",
+    srcs = ["retry.go"],
+    importpath = "github.com/block/ftl/internal/retry",
+    visibility = ["//:__subpackages__"],
+    deps = ["@com_github_jpillora_backoff//:backoff"],
+)

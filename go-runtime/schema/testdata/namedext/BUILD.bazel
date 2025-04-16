@@ -1,0 +1,11 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "namedext",
+    srcs = [
+        "namedext.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/schema/testdata/namedext",
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ftlv1connect",
+    srcs = [
+        "controller.connect.go",
+        "schemaservice.connect.go",
+        "verb.connect.go",
+    ],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect",
+    visibility = ["//visibility:public"],
+    deps = ["@com_connectrpc_connect//:connect"],
+)

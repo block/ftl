@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "plugin",
+    srcs = [
+        "serve.go",
+        "spawn.go",
+    ],
+    importpath = "github.com/block/ftl/common/plugin",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/exec",
+        "//internal/http",
+        "//internal/local",
+        "//internal/log",
+        "//internal/prodinit",
+        "//internal/rpc",
+        "@com_connectrpc_connect//:connect",
+        "@com_connectrpc_grpcreflect//:grpcreflect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_kong//:kong",
+        "@com_github_jpillora_backoff//:backoff",
+        "@org_golang_x_net//http2",
+        "@org_golang_x_net//http2/h2c",
+    ],
+)

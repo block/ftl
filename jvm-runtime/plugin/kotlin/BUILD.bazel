@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "kotlin",
+    srcs = ["kotlinplugin.go"],
+    importpath = "github.com/block/ftl/jvm-runtime/plugin/kotlin",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//jvm-runtime/kotlin",
+        "//jvm-runtime/plugin/common",
+    ],
+)

@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "testdata_lib",
+    srcs = ["type_registry_main.go"],
+    importpath = "github.com/block/ftl/internal/watch/testdata",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/v1/ftlv1connect",
+        "//common/plugin",
+        "//common/reflection",
+        "//go-runtime/schema/testdata",
+        "//go-runtime/server",
+    ],
+)
+
+go_binary(
+    name = "testdata",
+    embed = [":testdata_lib"],
+    visibility = ["//:__subpackages__"],
+)

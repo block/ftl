@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "artefacts",
+    srcs = ["oci_registry.go"],
+    importpath = "github.com/block/ftl/backend/controller/artefacts",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/sha256",
+        "//internal/log",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_aws_aws_sdk_go_v2_config//:config",
+        "@com_github_aws_aws_sdk_go_v2_service_ecr//:ecr",
+        "@com_github_google_go_containerregistry//pkg/authn",
+        "@com_github_google_go_containerregistry//pkg/name",
+        "@com_github_google_go_containerregistry//pkg/v1/remote",
+        "@com_github_opencontainers_go_digest//:go-digest",
+        "@com_github_opencontainers_image_spec//specs-go",
+        "@com_github_opencontainers_image_spec//specs-go/v1:specs-go",
+        "@land_oras_oras_go_v2//:oras-go",
+        "@land_oras_oras_go_v2//errdef",
+        "@land_oras_oras_go_v2//registry/remote",
+        "@land_oras_oras_go_v2//registry/remote/auth",
+        "@land_oras_oras_go_v2//registry/remote/retry",
+    ],
+)

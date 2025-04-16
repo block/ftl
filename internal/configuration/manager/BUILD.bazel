@@ -1,0 +1,37 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "manager",
+    srcs = [
+        "cache.go",
+        "manager.go",
+    ],
+    importpath = "github.com/block/ftl/internal/configuration/manager",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/configuration",
+        "//internal/configuration/providers",
+        "//internal/configuration/routers",
+        "//internal/log",
+        "//internal/projectconfig",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//pubsub",
+    ],
+)
+
+go_test(
+    name = "manager_test",
+    srcs = ["manager_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":manager"],
+    deps = [
+        "//internal/configuration",
+        "//internal/configuration/providers",
+        "//internal/configuration/routers",
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_zalando_go_keyring//:go-keyring",
+    ],
+)

@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "kotlin",
+    srcs = ["devel.go"],
+    importpath = "github.com/block/ftl/jvm-runtime/kotlin",
+    visibility = ["//visibility:public"],
+    deps = ["//internal"],
+)

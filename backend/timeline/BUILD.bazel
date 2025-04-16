@@ -1,0 +1,49 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "timeline",
+    srcs = [
+        "filters.go",
+        "observability.go",
+        "service.go",
+    ],
+    importpath = "github.com/block/ftl/backend/timeline",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/timeline/v1:timeline",
+        "//backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect",
+        "//common/slices",
+        "//internal/channels",
+        "//internal/log",
+        "//internal/observability",
+        "//internal/rpc",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_kong//:kong",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//result",
+        "@io_opentelemetry_go_otel//:otel",
+        "@io_opentelemetry_go_otel_metric//:metric",
+        "@io_opentelemetry_go_otel_metric//noop",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
+
+go_test(
+    name = "timeline_test",
+    srcs = [
+        "filters_test.go",
+        "service_test.go",
+    ],
+    embed = [":timeline"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/timeline/v1:timeline",
+        "//common/slices",
+        "//internal/iterops",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//result",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

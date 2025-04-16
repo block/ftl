@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "provisioner",
+    srcs = [
+        "executor.go",
+        "runner.go",
+    ],
+    importpath = "github.com/block/ftl/internal/provisioner",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/key",
+        "//internal/log",
+        "//internal/provisioner/state",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@org_golang_x_sync//errgroup",
+    ],
+)
+
+go_test(
+    name = "provisioner_test",
+    srcs = ["executor_test.go"],
+    embed = [":provisioner"],
+    deps = [
+        "//internal/log",
+        "//internal/provisioner/state",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "localscaling",
+    srcs = ["local_scaling.go"],
+    importpath = "github.com/block/ftl/backend/provisioner/scaling/localscaling",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/controller/artefacts",
+        "//backend/protos/xyz/block/ftl/v1/ftlv1connect",
+        "//backend/provisioner/scaling",
+        "//backend/runner",
+        "//common/plugin",
+        "//common/schema",
+        "//internal/channels",
+        "//internal/dev",
+        "//internal/key",
+        "//internal/localdebug",
+        "//internal/log",
+        "//internal/rpc",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_kong//:kong",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "ftlv1_proto",
+    srcs = [
+        "controller.proto",
+        "ftl.proto",
+        "schemaservice.proto",
+        "verb.proto",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//xyz/block/ftl/schema/v1:v1_proto",
+        "//xyz/block/ftl/v1:v1_proto",
+        "@com_google_protobuf//:struct_proto",
+    ],
+)
+
+go_proto_library(
+    name = "ftlv1_go_proto",
+    compilers = ["@io_bazel_rules_go//proto:go_grpc"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1",
+    proto = ":ftlv1_proto",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//xyz/block/ftl/schema/v1:schema_proto",
+        "//xyz/block/ftl/v1:ftl_proto",
+    ],
+)
+
+go_library(
+    name = "ftl",
+    srcs = ["mixins.go"],
+    embed = [":ftlv1_go_proto"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_alecthomas_types//optional"],
+)

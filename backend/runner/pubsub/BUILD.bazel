@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "pubsub",
+    srcs = [
+        "consumer.go",
+        "publisher.go",
+        "pubsub.go",
+    ],
+    importpath = "github.com/block/ftl/backend/runner/pubsub",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/controller/observability",
+        "//backend/protos/xyz/block/ftl/admin/v1:admin",
+        "//backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect",
+        "//backend/runner/pubsub/observability",
+        "//common/encoding",
+        "//common/schema",
+        "//common/slices",
+        "//internal/channels",
+        "//internal/key",
+        "//internal/log",
+        "//internal/rpc",
+        "//internal/rpc/headers",
+        "//internal/timelineclient",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//result",
+        "@com_github_ibm_sarama//:sarama",
+        "@com_github_jpillora_backoff//:backoff",
+    ],
+)

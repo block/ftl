@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "devstate",
+    srcs = ["devstate.go"],
+    importpath = "github.com/block/ftl/internal/devstate",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/admin/v1/adminpbconnect",
+        "//backend/protos/xyz/block/ftl/buildengine/v1:buildengine",
+        "//backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect",
+        "//common/builderrors",
+        "//common/schema",
+        "//common/slices",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "flock",
+    srcs = ["flock.go"],
+    importpath = "github.com/block/ftl/internal/flock",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/log",
+        "@com_github_alecthomas_errors//:errors",
+        "@org_golang_x_sys//unix",
+    ],
+)
+
+go_test(
+    name = "flock_test",
+    srcs = ["flock_test.go"],
+    embed = [":flock"],
+    deps = [
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

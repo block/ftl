@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dsn",
+    srcs = ["dsn.go"],
+    embedsrcs = [
+        "certs/rds/README.md",
+        "certs/rds/rds-us-west-2-bundle.pem",
+    ],
+    importpath = "github.com/block/ftl/internal/dsn",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/schema",
+        "//internal/log",
+        "//internal/pgproxy",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_aws_aws_sdk_go_v2_config//:config",
+        "@com_github_aws_aws_sdk_go_v2_feature_rds_auth//:auth",
+        "@com_github_block_ftl_mysql_auth_proxy//:ftl-mysql-auth-proxy",
+    ],
+)
+
+go_test(
+    name = "dsn_test",
+    srcs = ["dsn_test.go"],
+    embed = [":dsn"],
+    deps = ["@com_github_alecthomas_assert_v2//:assert"],
+)

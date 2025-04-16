@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cron",
+    srcs = [
+        "cron.go",
+        "pattern.go",
+    ],
+    importpath = "github.com/block/ftl/common/cron",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/duration",
+        "//common/slices",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_participle_v2//:participle",
+        "@com_github_alecthomas_participle_v2//lexer",
+        "@com_github_hashicorp_cronexpr//:cronexpr",
+    ],
+)
+
+go_test(
+    name = "cron_test",
+    srcs = ["cron_test.go"],
+    embed = [":cron"],
+    deps = ["@com_github_alecthomas_assert_v2//:assert"],
+)

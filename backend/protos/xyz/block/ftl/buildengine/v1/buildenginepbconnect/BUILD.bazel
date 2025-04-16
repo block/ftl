@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "buildenginepbconnect",
+    srcs = ["buildengine.connect.go"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/buildengine/v1:buildengine",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

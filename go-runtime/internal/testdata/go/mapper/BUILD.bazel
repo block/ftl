@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mapper",
+    srcs = ["mapper.go"],
+    importpath = "github.com/block/ftl/go-runtime/internal/testdata/go/mapper",
+    visibility = ["//go-runtime:__subpackages__"],
+    deps = ["//go-runtime/ftl"],
+)

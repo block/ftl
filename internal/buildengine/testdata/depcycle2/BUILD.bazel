@@ -1,0 +1,8 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "depcycle2",
+    srcs = ["depcycle2.go"],
+    importpath = "github.com/block/ftl/internal/buildengine/testdata/depcycle2",
+    visibility = ["//:__subpackages__"],
+)

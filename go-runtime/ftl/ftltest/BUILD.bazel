@@ -1,0 +1,56 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "ftltest",
+    srcs = [
+        "database.go",
+        "fake.go",
+        "ftltest.go",
+        "leases.go",
+        "pubsub.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/ftl/ftltest",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/query/v1/querypbconnect",
+        "//backend/provisioner",
+        "//backend/runner/query",
+        "//common/reflection",
+        "//common/schema",
+        "//common/slices",
+        "//go-runtime/ftl",
+        "//go-runtime/internal",
+        "//go-runtime/server",
+        "//go-runtime/server/query",
+        "//go-runtime/server/rpccontext",
+        "//internal/channels",
+        "//internal/configuration",
+        "//internal/configuration/manager",
+        "//internal/configuration/providers",
+        "//internal/deploymentcontext",
+        "//internal/log",
+        "//internal/projectconfig",
+        "//internal/testutils/modulecontext",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//pubsub",
+        "@com_github_puzpuzpuz_xsync_v3//:xsync",
+    ],
+)
+
+go_test(
+    name = "ftltest_test",
+    srcs = [
+        "ftltest_test.go",
+        "leases_test.go",
+    ],
+    embed = [":ftltest"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/internal",
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "wrapped",
+    srcs = [
+        "types.ftl.go",
+        "wrapped.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/ftl/ftltest/testdata/go/wrapped",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/server",
+    ],
+)
+
+go_test(
+    name = "wrapped_test",
+    srcs = ["wrapped_test.go"],
+    embed = [":wrapped"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/ftl/ftltest",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "leases",
+    srcs = [
+        "leases.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/backend/controller/leases/testdata/go/leases",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)
+
+go_test(
+    name = "leases_test",
+    srcs = ["leases_test.go"],
+    embed = [":leases"],
+    deps = [
+        "//go-runtime/ftl/ftltest",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@org_golang_x_sync//errgroup",
+    ],
+)

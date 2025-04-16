@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "provisionerpbconnect",
+    srcs = ["plugin.connect.go"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/provisioner/v1beta1",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

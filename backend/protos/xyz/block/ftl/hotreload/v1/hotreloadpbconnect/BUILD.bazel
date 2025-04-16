@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "hotreloadpbconnect",
+    srcs = ["hotreload.connect.go"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect",
+    visibility = ["//visibility:public"],
+    deps = ["@com_connectrpc_connect//:connect"],
+)

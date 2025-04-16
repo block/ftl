@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "ftl-controller_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/block/ftl/cmd/ftl-controller",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//:ftl",
+        "//backend/controller",
+        "//backend/protos/xyz/block/ftl/admin/v1/adminpbconnect",
+        "//backend/protos/xyz/block/ftl/lease/v1/leasepbconnect",
+        "//backend/protos/xyz/block/ftl/v1/ftlv1connect",
+        "//internal/log",
+        "//internal/observability",
+        "//internal/prodinit",
+        "//internal/rpc",
+        "@com_github_alecthomas_kong//:kong",
+    ],
+)
+
+go_binary(
+    name = "ftl-controller",
+    embed = [":ftl-controller_lib"],
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "failing",
+    srcs = ["failing.go"],
+    importpath = "github.com/block/ftl/go-runtime/schema/testdata/failing",
+    visibility = ["//visibility:public"],
+    deps = ["//go-runtime/ftl"],
+)

@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "plugintest",
+    srcs = ["plugintest.go"],
+    importpath = "github.com/block/ftl/internal/buildengine/languageplugin/testdata/go/plugintest",
+    visibility = ["//:__subpackages__"],
+    deps = ["//go-runtime/ftl"],
+)

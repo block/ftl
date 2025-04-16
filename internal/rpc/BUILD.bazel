@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "rpc",
+    srcs = [
+        "context.go",
+        "otel_interceptor.go",
+        "rpc.go",
+        "server.go",
+    ],
+    importpath = "github.com/block/ftl/internal/rpc",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//:ftl",
+        "//common/schema",
+        "//internal/authn",
+        "//internal/http",
+        "//internal/key",
+        "//internal/log",
+        "//internal/rpc/headers",
+        "@com_connectrpc_connect//:connect",
+        "@com_connectrpc_grpcreflect//:grpcreflect",
+        "@com_connectrpc_otelconnect//:otelconnect",
+        "@com_github_alecthomas_concurrency//:concurrency",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//pubsub",
+        "@com_github_alecthomas_types//result",
+        "@com_github_jpillora_backoff//:backoff",
+        "@io_opentelemetry_go_otel//attribute",
+        "@io_opentelemetry_go_otel_trace//:trace",
+        "@org_golang_x_mod//semver",
+        "@org_golang_x_net//http2",
+        "@org_golang_x_net//http2/h2c",
+    ],
+)

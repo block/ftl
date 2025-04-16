@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "observability",
+    srcs = [
+        "calls.go",
+        "controller.go",
+        "deployment.go",
+        "observability.go",
+    ],
+    importpath = "github.com/block/ftl/backend/controller/observability",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/schema",
+        "//internal/observability",
+        "@com_github_alecthomas_types//optional",
+        "@io_opentelemetry_go_otel//:otel",
+        "@io_opentelemetry_go_otel//attribute",
+        "@io_opentelemetry_go_otel_metric//:metric",
+        "@io_opentelemetry_go_otel_metric//noop",
+        "@io_opentelemetry_go_otel_trace//:trace",
+    ],
+)

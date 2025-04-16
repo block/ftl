@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "lease",
+    srcs = ["service.go"],
+    importpath = "github.com/block/ftl/backend/lease",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/lease/v1/leasepbconnect",
+        "//internal/log",
+        "//internal/rpc",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)
+
+go_test(
+    name = "lease_test",
+    srcs = ["service_test.go"],
+    embed = [":lease"],
+    deps = ["@com_github_alecthomas_assert_v2//:assert"],
+)

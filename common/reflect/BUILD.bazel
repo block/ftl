@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "reflect",
+    srcs = ["reflect.go"],
+    importpath = "github.com/block/ftl/common/reflect",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_alecthomas_errors//:errors"],
+)
+
+go_test(
+    name = "reflect_test",
+    srcs = ["reflect_test.go"],
+    embed = [":reflect"],
+    deps = ["@tools_gotest_v3//assert"],
+)

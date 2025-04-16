@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "container",
+    srcs = ["container.go"],
+    importpath = "github.com/block/ftl/internal/container",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/exec",
+        "//internal/flock",
+        "//internal/log",
+        "//internal/projectconfig",
+        "//internal/terminal",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//once",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_docker_docker//api/types",
+        "@com_github_docker_docker//api/types/container",
+        "@com_github_docker_docker//api/types/filters",
+        "@com_github_docker_docker//api/types/image",
+        "@com_github_docker_docker//client",
+        "@com_github_docker_docker//pkg/jsonmessage",
+        "@com_github_docker_go_connections//nat",
+    ],
+)

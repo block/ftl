@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "inner",
+    srcs = ["inner.go"],
+    importpath = "github.com/block/ftl/go-runtime/ftl/ftltest/testdata/go/outer/inner",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "inner_test",
+    srcs = ["inner_test.go"],
+    deps = [
+        "//common/reflection",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "ftl-sqlc_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/block/ftl/cmd/ftl-sqlc",
+    visibility = ["//visibility:private"],
+    deps = ["@com_github_sqlc_dev_sqlc//pkg/cli:go_default_library"],
+)
+
+go_binary(
+    name = "ftl-sqlc",
+    embed = [":ftl-sqlc_lib"],
+    visibility = ["//visibility:public"],
+)

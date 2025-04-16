@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "model",
+    srcs = [
+        "cron_job.go",
+        "model.go",
+    ],
+    importpath = "github.com/block/ftl/internal/model",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/schema",
+        "//common/sha256",
+        "//internal/key",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

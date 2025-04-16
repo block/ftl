@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "console",
+    srcs = ["console.go"],
+    importpath = "github.com/block/ftl/backend/console/testdata/go/console",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/console/testdata/go",
+        "//go-runtime/ftl",
+    ],
+)

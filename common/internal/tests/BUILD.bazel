@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "tests_test",
+    srcs = ["encoding_test.go"],
+    deps = [
+        "//common/encoding",
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

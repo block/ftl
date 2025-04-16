@@ -1,0 +1,59 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "config",
+    srcs = [
+        "1password.go",
+        "api.go",
+        "asm.go",
+        "cache.go",
+        "envars.go",
+        "file.go",
+        "key.go",
+        "memory.go",
+        "registry.go",
+        "remote.go",
+    ],
+    importpath = "github.com/block/ftl/internal/config",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/admin/v1:admin",
+        "//backend/protos/xyz/block/ftl/admin/v1/adminpbconnect",
+        "//common/encoding",
+        "//common/slices",
+        "//internal/exec",
+        "//internal/flock",
+        "//internal/log",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_aws_aws_sdk_go_v2//aws",
+        "@com_github_aws_aws_sdk_go_v2_service_secretsmanager//:secretsmanager",
+        "@com_github_aws_aws_sdk_go_v2_service_secretsmanager//types",
+        "@com_github_kballard_go_shellquote//:go-shellquote",
+        "@com_github_puzpuzpuz_xsync_v3//:xsync",
+    ],
+)
+
+go_test(
+    name = "config_test",
+    srcs = [
+        "asm_test.go",
+        "config_test.go",
+        "file_test.go",
+        "key_test.go",
+        "memory_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":config"],
+    deps = [
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_repr//:repr",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_aws_aws_sdk_go_v2//aws",
+        "@com_github_aws_aws_sdk_go_v2_service_secretsmanager//:secretsmanager",
+        "@com_github_aws_aws_sdk_go_v2_service_secretsmanager//types",
+    ],
+)

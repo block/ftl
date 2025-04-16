@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "raft-tester_lib",
+    srcs = [
+        "main.go",
+        "statemachine.go",
+    ],
+    importpath = "github.com/block/ftl/cmd/raft-tester",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/log",
+        "//internal/raft",
+        "//internal/statemachine",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_kong//:kong",
+        "@org_golang_x_exp//rand",
+        "@org_golang_x_sync//errgroup",
+    ],
+)
+
+go_binary(
+    name = "raft-tester",
+    embed = [":raft-tester_lib"],
+    visibility = ["//visibility:public"],
+)

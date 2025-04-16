@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "authn",
+    srcs = ["authn.go"],
+    importpath = "github.com/block/ftl/internal/authn",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/exec",
+        "//internal/log",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_zalando_go_keyring//:go-keyring",
+    ],
+)

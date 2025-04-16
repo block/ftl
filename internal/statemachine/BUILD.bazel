@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "statemachine",
+    srcs = [
+        "handle.go",
+        "statemachine.go",
+    ],
+    importpath = "github.com/block/ftl/internal/statemachine",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/channels",
+        "//internal/iterops",
+        "//internal/log",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)
+
+go_test(
+    name = "statemachine_test",
+    srcs = ["handle_test.go"],
+    embed = [":statemachine"],
+    deps = [
+        "//internal/channels",
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

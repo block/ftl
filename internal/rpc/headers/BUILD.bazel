@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "headers",
+    srcs = ["headers.go"],
+    importpath = "github.com/block/ftl/internal/rpc/headers",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/schema",
+        "//internal/key",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

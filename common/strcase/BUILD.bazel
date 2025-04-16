@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "strcase",
+    srcs = ["case.go"],
+    importpath = "github.com/block/ftl/common/strcase",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "strcase_test",
+    srcs = ["case_test.go"],
+    embed = [":strcase"],
+    deps = ["@com_github_alecthomas_assert_v2//:assert"],
+)

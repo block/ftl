@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "another",
+    srcs = [
+        "another.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/internal/watch/testdata/another",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/schema/testdata",
+    ],
+)

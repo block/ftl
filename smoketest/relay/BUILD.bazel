@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "relay",
+    srcs = [
+        "relay.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/smoketest/relay",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/server",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

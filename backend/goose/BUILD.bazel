@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "goose",
+    srcs = ["goose.go"],
+    importpath = "github.com/block/ftl/backend/goose",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal",
+        "//internal/log",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

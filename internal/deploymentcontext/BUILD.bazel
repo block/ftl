@@ -1,0 +1,42 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "deploymentcontext",
+    srcs = [
+        "database.go",
+        "from_proto.go",
+        "from_secrets.go",
+        "module_context.go",
+        "to_proto.go",
+    ],
+    importpath = "github.com/block/ftl/internal/deploymentcontext",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/v1/ftlv1connect",
+        "//common/encoding",
+        "//common/reflect",
+        "//common/reflection",
+        "//common/schema",
+        "//internal/rpc",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_jpillora_backoff//:backoff",
+        "@org_golang_x_sync//errgroup",
+    ],
+)
+
+go_test(
+    name = "deploymentcontext_test",
+    srcs = [
+        "from_secrets_test.go",
+        "module_context_test.go",
+    ],
+    embed = [":deploymentcontext"],
+    deps = [
+        "//internal/log",
+        "//internal/testutils/modulecontext",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

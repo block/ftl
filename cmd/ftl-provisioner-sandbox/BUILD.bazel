@@ -1,0 +1,37 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "ftl-provisioner-sandbox_lib",
+    srcs = [
+        "provisioner.go",
+        "status.go",
+    ],
+    importpath = "github.com/block/ftl/cmd/ftl-provisioner-sandbox",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/provisioner/v1beta1",
+        "//backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect",
+        "//common/plugin",
+        "//common/schema",
+        "//common/slices",
+        "//internal/key",
+        "//internal/log",
+        "//internal/provisioner",
+        "//internal/provisioner/executor",
+        "//internal/provisioner/state",
+        "//internal/timelineclient",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_aws_aws_sdk_go_v2_config//:config",
+        "@com_github_aws_aws_sdk_go_v2_service_secretsmanager//:secretsmanager",
+        "@com_github_google_uuid//:uuid",
+        "@com_github_puzpuzpuz_xsync_v3//:xsync",
+    ],
+)
+
+go_binary(
+    name = "ftl-provisioner-sandbox",
+    embed = [":ftl-provisioner-sandbox_lib"],
+    visibility = ["//visibility:public"],
+)

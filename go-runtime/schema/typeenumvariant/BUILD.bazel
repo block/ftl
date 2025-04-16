@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "typeenumvariant",
+    srcs = ["analyzer.go"],
+    importpath = "github.com/block/ftl/go-runtime/schema/typeenumvariant",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/schema",
+        "//common/strcase",
+        "//go-runtime/schema/common",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_block_ftl_golang_tools//go/analysis",
+        "@com_github_block_ftl_golang_tools//go/analysis/passes/inspect",
+        "@com_github_block_ftl_golang_tools//go/ast/inspector",
+    ],
+)

@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "key",
+    srcs = [
+        "changeset_key.go",
+        "controller_key.go",
+        "cron_job_key.go",
+        "deployment_key.go",
+        "hostport_mixin.go",
+        "keys.go",
+        "request_key.go",
+        "runner_key.go",
+        "subscriber_key.go",
+    ],
+    importpath = "github.com/block/ftl/internal/key",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_multiformats_go_base36//:go-base36",
+    ],
+)
+
+go_test(
+    name = "key_test",
+    srcs = [
+        "deployment_key_test.go",
+        "runner_key_test.go",
+    ],
+    embed = [":key"],
+    deps = [
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

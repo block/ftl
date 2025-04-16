@@ -1,0 +1,52 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "goplugin",
+    srcs = [
+        "commands.go",
+        "replacements.go",
+        "service.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/goplugin",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/language/v1/languagepbconnect",
+        "//common/builderrors",
+        "//common/schema",
+        "//common/slices",
+        "//go-runtime",
+        "//go-runtime/compile",
+        "//internal",
+        "//internal/channels",
+        "//internal/exec",
+        "//internal/flock",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "//internal/projectconfig",
+        "//internal/watch",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//pubsub",
+        "@com_github_block_scaffolder//:scaffolder",
+        "@org_golang_x_mod//modfile",
+    ],
+)
+
+go_test(
+    name = "goplugin_test",
+    srcs = [
+        "commands_test.go",
+        "service_test.go",
+    ],
+    embed = [":goplugin"],
+    deps = [
+        "//common/slices",
+        "//internal/moduleconfig",
+        "//internal/projectconfig",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

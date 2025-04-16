@@ -1,0 +1,8 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "subpackage",
+    srcs = ["subpackage.go"],
+    importpath = "github.com/block/ftl/go-runtime/ftl/testdata/go/typeregistry/subpackage",
+    visibility = ["//visibility:public"],
+)

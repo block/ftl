@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "external",
+    srcs = ["external.go"],
+    importpath = "github.com/block/ftl/cmd/go2proto/testdata/external",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_alecthomas_errors//:errors"],
+)

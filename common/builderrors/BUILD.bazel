@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "builderrors",
+    srcs = ["builderrors.go"],
+    importpath = "github.com/block/ftl/common/builderrors",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

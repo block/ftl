@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "state",
+    srcs = [
+        "aws.go",
+        "input.go",
+        "output.go",
+        "state.go",
+    ],
+    importpath = "github.com/block/ftl/internal/provisioner/state",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/schema",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

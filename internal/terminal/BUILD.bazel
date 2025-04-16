@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "terminal",
+    srcs = [
+        "interactive.go",
+        "noop.go",
+        "predictors.go",
+        "status.go",
+    ],
+    importpath = "github.com/block/ftl/internal/terminal",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/schema",
+        "//common/slices",
+        "//internal/log",
+        "//internal/schema/schemaeventsource",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_kong//:kong",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_chzyer_readline//:readline",
+        "@com_github_jotaen_kong_completion//:kong-completion",
+        "@com_github_kballard_go_shellquote//:go-shellquote",
+        "@com_github_posener_complete//:complete",
+        "@com_github_tidwall_pretty//:pretty",
+        "@org_golang_x_term//:term",
+    ],
+)

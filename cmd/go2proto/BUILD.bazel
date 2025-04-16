@@ -1,0 +1,39 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "go2proto_lib",
+    srcs = [
+        "main.go",
+        "pbtmpl.go",
+        "toprototmpl.go",
+    ],
+    importpath = "github.com/block/ftl/cmd/go2proto",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//common/strcase",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_kong//:kong",
+        "@org_golang_x_tools//go/packages",
+    ],
+)
+
+go_binary(
+    name = "go2proto",
+    embed = [":go2proto_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go2proto_test",
+    srcs = ["model_test.go"],
+    deps = [
+        "//cmd/go2proto/testdata",
+        "//cmd/go2proto/testdata/external",
+        "//cmd/go2proto/testdata/testdatapb",
+        "//internal/key",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//must",
+        "@com_github_alecthomas_types//optional",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

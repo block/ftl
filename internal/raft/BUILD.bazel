@@ -1,0 +1,57 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "raft",
+    srcs = [
+        "cluster.go",
+        "controlapi.go",
+        "eventview.go",
+        "statemachine.go",
+    ],
+    importpath = "github.com/block/ftl/internal/raft",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/raft/v1:raft",
+        "//backend/protos/xyz/block/ftl/raft/v1/raftpbconnect",
+        "//internal/channels",
+        "//internal/eventstream",
+        "//internal/iterops",
+        "//internal/log",
+        "//internal/retry",
+        "//internal/rpc",
+        "//internal/statemachine",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_atomic//:atomic",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_jpillora_backoff//:backoff",
+        "@com_github_lni_dragonboat_v4//:dragonboat",
+        "@com_github_lni_dragonboat_v4//client",
+        "@com_github_lni_dragonboat_v4//config",
+        "@com_github_lni_dragonboat_v4//logger",
+        "@com_github_lni_dragonboat_v4//statemachine",
+    ],
+)
+
+go_test(
+    name = "raft_test",
+    srcs = [
+        "cluster_test.go",
+        "eventview_test.go",
+    ],
+    deps = [
+        ":raft",
+        "//backend/protos/xyz/block/ftl/raft/v1:raft",
+        "//backend/protos/xyz/block/ftl/raft/v1/raftpbconnect",
+        "//internal/eventstream",
+        "//internal/iterops",
+        "//internal/local",
+        "//internal/log",
+        "//internal/retry",
+        "//internal/rpc",
+        "//internal/statemachine",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+        "@org_golang_x_sync//errgroup",
+    ],
+)

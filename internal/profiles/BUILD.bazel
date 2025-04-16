@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "profiles",
+    srcs = ["profiles.go"],
+    importpath = "github.com/block/ftl/internal/profiles",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//common/slices",
+        "//internal/config",
+        "//internal/profiles/internal",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)
+
+go_test(
+    name = "profiles_test",
+    srcs = ["profiles_test.go"],
+    deps = [
+        ":profiles",
+        "//:ftl",
+        "//internal/config",
+        "//internal/log",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//must",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

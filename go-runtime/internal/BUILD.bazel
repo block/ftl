@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "internal",
+    srcs = [
+        "api.go",
+        "impl.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/internal",
+    visibility = ["//go-runtime:__subpackages__"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect",
+        "//common/encoding",
+        "//common/reflection",
+        "//common/schema",
+        "//go-runtime/server/rpccontext",
+        "//internal/deploymentcontext",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_puzpuzpuz_xsync_v3//:xsync",
+    ],
+)

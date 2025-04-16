@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "testdatapb_proto",
+    srcs = ["model.proto"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_protobuf//:duration_proto",
+        "@com_google_protobuf//:timestamp_proto",
+    ],
+)
+
+go_proto_library(
+    name = "testdatapb_go_proto",
+    importpath = "github.com/block/ftl/cmd/go2proto/testdata/testdatapb",
+    proto = ":testdatapb_proto",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "testdatapb",
+    embed = [":testdatapb_go_proto"],
+    importpath = "github.com/block/ftl/cmd/go2proto/testdata/testdatapb",
+    visibility = ["//visibility:public"],
+)

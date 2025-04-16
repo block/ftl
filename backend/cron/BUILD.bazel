@@ -1,0 +1,58 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cron",
+    srcs = [
+        "go2proto.to.go",
+        "service.go",
+        "state.go",
+    ],
+    importpath = "github.com/block/ftl/backend/cron",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/cron/observability",
+        "//backend/protos/xyz/block/ftl/cron/v1:cron",
+        "//common/cron",
+        "//common/reflect",
+        "//common/schema",
+        "//common/slices",
+        "//internal/channels",
+        "//internal/key",
+        "//internal/log",
+        "//internal/model",
+        "//internal/raft",
+        "//internal/routing",
+        "//internal/rpc",
+        "//internal/rpc/headers",
+        "//internal/schema/schemaeventsource",
+        "//internal/statemachine",
+        "//internal/timelineclient",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//result",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+        "@org_golang_x_sync//errgroup",
+    ],
+)
+
+go_test(
+    name = "cron_test",
+    srcs = ["service_test.go"],
+    embed = [":cron"],
+    deps = [
+        "//common/schema",
+        "//internal/key",
+        "//internal/log",
+        "//internal/raft",
+        "//internal/routing",
+        "//internal/schema/schemaeventsource",
+        "//internal/timelineclient",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_errors//:errors",
+        "@org_golang_x_sync//errgroup",
+    ],
+)

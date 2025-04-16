@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mcp",
+    srcs = [
+        "cli.go",
+        "mcp.go",
+        "readwrite.go",
+        "status.go",
+        "timeline.go",
+        "utils.go",
+    ],
+    importpath = "github.com/block/ftl/internal/mcp",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//:ftl",
+        "//backend/protos/xyz/block/ftl/admin/v1/adminpbconnect",
+        "//backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect",
+        "//backend/protos/xyz/block/ftl/timeline/v1:timeline",
+        "//backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect",
+        "//common/reflect",
+        "//common/reflection",
+        "//common/schema",
+        "//common/slices",
+        "//internal/devstate",
+        "//internal/key",
+        "//internal/projectconfig",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_kong//:kong",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_mark3labs_mcp_go//mcp",
+        "@com_github_mark3labs_mcp_go//server",
+        "@com_github_sergi_go_diff//diffmatchpatch",
+    ],
+)

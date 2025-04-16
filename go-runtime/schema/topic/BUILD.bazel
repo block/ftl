@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "topic",
+    srcs = ["analyzer.go"],
+    importpath = "github.com/block/ftl/go-runtime/schema/topic",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/schema",
+        "//common/strcase",
+        "//go-runtime/schema/common",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_block_ftl_golang_tools//go/analysis",
+    ],
+)

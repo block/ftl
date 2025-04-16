@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "ftl-language-go_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/block/ftl/go-runtime/cmd/ftl-language-go",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//:ftl",
+        "//backend/protos/xyz/block/ftl/language/v1/languagepbconnect",
+        "//common/plugin",
+        "//go-runtime/goplugin",
+        "//internal/clirpc",
+        "//internal/log",
+        "@com_github_alecthomas_kong//:kong",
+    ],
+)
+
+go_binary(
+    name = "ftl-language-go",
+    embed = [":ftl-language-go_lib"],
+    visibility = ["//visibility:public"],
+)

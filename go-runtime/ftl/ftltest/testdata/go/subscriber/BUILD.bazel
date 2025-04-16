@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "subscriber",
+    srcs = [
+        "subscriber.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/ftl/ftltest/testdata/go/subscriber",
+    visibility = ["//visibility:public"],
+    deps = ["//go-runtime/ftl"],
+)
+
+go_test(
+    name = "subscriber_test",
+    srcs = ["subscriber_test.go"],
+    deps = [
+        "//go-runtime/ftl/ftltest",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

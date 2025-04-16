@@ -1,0 +1,63 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "compile",
+    srcs = [
+        "build.go",
+        "dependencies.go",
+        "devel.go",
+        "doc.go",
+        "stubs.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/compile",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:ftl",
+        "//common/builderrors",
+        "//common/reflect",
+        "//common/schema",
+        "//common/slices",
+        "//common/strcase",
+        "//go-runtime/schema",
+        "//go-runtime/schema/common",
+        "//go-runtime/schema/finalize",
+        "//internal",
+        "//internal/exec",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "//internal/projectconfig",
+        "//internal/watch",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_alecthomas_types//result",
+        "@com_github_block_scaffolder//:scaffolder",
+        "@com_github_deckarep_golang_set_v2//:golang-set",
+        "@org_golang_x_exp//maps",
+        "@org_golang_x_mod//modfile",
+        "@org_golang_x_mod//module",
+        "@org_golang_x_mod//semver",
+        "@org_golang_x_sync//errgroup",
+    ],
+)
+
+go_test(
+    name = "compile_test",
+    srcs = [
+        "build_test.go",
+        "stubs_test.go",
+    ],
+    embed = [":compile"],
+    deps = [
+        "//common/builderrors",
+        "//common/schema",
+        "//common/slices",
+        "//common/strcase",
+        "//go-runtime/schema",
+        "//go-runtime/schema/common",
+        "//internal/log",
+        "//internal/moduleconfig",
+        "//internal/watch",
+        "@com_github_alecthomas_assert_v2//:assert",
+        "@com_github_alecthomas_types//optional",
+    ],
+)

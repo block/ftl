@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "notexportedverb",
+    srcs = ["notexportedverb.go"],
+    importpath = "github.com/block/ftl/go-runtime/compile/testdata/go/notexportedverb",
+    visibility = ["//visibility:public"],
+    deps = ["//go-runtime/ftl"],
+)

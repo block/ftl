@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "pubsub",
+    srcs = [
+        "dispatch.go",
+        "kitchen.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/examples/go/pubsub",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "//go-runtime/server",
+        "@com_github_alecthomas_errors//:errors",
+        "@org_golang_x_exp//rand",
+    ],
+)

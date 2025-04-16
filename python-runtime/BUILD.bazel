@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "python-runtime",
+    srcs = ["devel.go"],
+    importpath = "github.com/block/ftl/python-runtime",
+    visibility = ["//visibility:public"],
+    deps = ["//internal"],
+)

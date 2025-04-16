@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "parent",
+    srcs = [
+        "parent.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/go-runtime/schema/testdata/parent",
+    visibility = ["//visibility:public"],
+    deps = ["//common/reflection"],
+)

@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "timelinepbconnect",
+    srcs = ["timeline.connect.go"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/timeline/v1:timeline",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

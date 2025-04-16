@@ -1,0 +1,8 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "maps",
+    srcs = ["maps.go"],
+    importpath = "github.com/block/ftl/internal/maps",
+    visibility = ["//:__subpackages__"],
+)

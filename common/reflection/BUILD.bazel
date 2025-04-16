@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "reflection",
+    srcs = [
+        "database.go",
+        "query.go",
+        "reflection.go",
+        "singleton.go",
+        "type_registry.go",
+        "types.go",
+        "verb.go",
+    ],
+    importpath = "github.com/block/ftl/common/reflection",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/schema",
+        "//common/strcase",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//once",
+        "@com_github_alecthomas_types//optional",
+    ],
+)
+
+go_test(
+    name = "reflection_test",
+    srcs = [
+        "reflection_test.go",
+        "type_registry_test.go",
+    ],
+    embed = [":reflection"],
+    deps = [
+        "//common/schema",
+        "@com_github_alecthomas_assert_v2//:assert",
+    ],
+)

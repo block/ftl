@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "leasepbconnect",
+    srcs = ["lease.connect.go"],
+    importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect",
+    visibility = ["//visibility:public"],
+    deps = ["@com_connectrpc_connect//:connect"],
+)

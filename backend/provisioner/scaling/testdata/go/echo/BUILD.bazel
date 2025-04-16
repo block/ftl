@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "echo",
+    srcs = ["echo.go"],
+    importpath = "github.com/block/ftl/backend/provisioner/scaling/testdata/go/echo",
+    visibility = ["//visibility:public"],
+    deps = ["//go-runtime/ftl"],
+)

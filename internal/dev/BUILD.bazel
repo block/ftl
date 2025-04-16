@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "dev",
+    srcs = [
+        "db.go",
+        "devendpoint.go",
+        "grafana.go",
+        "redpanda.go",
+        "registry.go",
+    ],
+    embedsrcs = [
+        "docker-compose.grafana.yml",
+        "docker-compose.mysql.yml",
+        "docker-compose.postgres.yml",
+        "docker-compose.redpanda.yml",
+        "docker-compose.registry.yml",
+    ],
+    importpath = "github.com/block/ftl/internal/dev",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/container",
+        "//internal/dsn",
+        "//internal/log",
+        "//internal/observability",
+        "@com_github_alecthomas_errors//:errors",
+        "@com_github_alecthomas_types//optional",
+        "@com_github_jackc_pgx_v5//stdlib",
+    ],
+)

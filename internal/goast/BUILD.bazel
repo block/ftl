@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "goast",
+    srcs = ["visitor.go"],
+    importpath = "github.com/block/ftl/internal/goast",
+    visibility = ["//:__subpackages__"],
+    deps = ["@com_github_alecthomas_errors//:errors"],
+)

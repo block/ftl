@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "http",
+    srcs = [
+        "pprof.go",
+        "server.go",
+    ],
+    importpath = "github.com/block/ftl/internal/http",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/log",
+        "@com_github_alecthomas_errors//:errors",
+    ],
+)

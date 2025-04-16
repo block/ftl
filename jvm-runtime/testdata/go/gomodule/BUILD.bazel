@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "gomodule",
+    srcs = [
+        "server.go",
+        "types.ftl.go",
+    ],
+    importpath = "github.com/block/ftl/jvm-runtime/testdata/go/gomodule",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/reflection",
+        "//go-runtime/ftl",
+        "@com_github_decentralized_identity_web5_go//dids/did:go_default_library",
+    ],
+)
