@@ -2,7 +2,7 @@
 package types
 
 import (
-	"github.com/block/ftl/common/reflection"
+    "github.com/block/ftl/common/reflection"
 )
 
 func init() {
