@@ -14,16 +14,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - name: Reset timestamps
+        shell: bash
+        run: git ls-files -z | xargs -0 touch -r go.mod
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
+      - name: Build Cache
+        uses: ./.github/actions/build-cache
       - name: Install Hermit Packages
         run: hermit install
       - name: Rebuild All
         run: just build-all
       - name: Download Go Dependencies
         run: go mod download -x
-      - name: Download pnpm dependencies
-        run: pnpm install
       - name: Download playwright browsers
         run: npx playwright install
       - id: find-go-build-cache
@@ -56,6 +59,13 @@ jobs:
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+      - name: Save frontend
+        id: cache-frontend
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: |
+            frontend/console/dist
+          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/console/src/**/*', 'frontend/console/*.{ts,js,html,json}') }}
       - name: Save pnpm Modules Cache
         id: cache-pnpm
         uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
