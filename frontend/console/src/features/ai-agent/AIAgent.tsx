@@ -94,7 +94,7 @@ const CodeBlock = ({ content, isDiff, previewLines = 5, language }: CodeBlockPro
   const hasMoreLines = lines.length > previewLines
 
   // Extract and format the file header if it exists
-  const fileHeaderMatch = stripAnsiCodes(lines[0]).match(/^###(.+)$/)
+  const fileHeaderMatch = stripAnsiCodes(lines[0]).match(/^###CODEBLOCK###(.+)$/)
   const fileHeader = fileHeaderMatch ? fileHeaderMatch[1].trim() : null
   const displayLines = isExpanded ? (fileHeader ? lines.slice(1) : lines) : fileHeader ? lines.slice(1, previewLines + 1) : lines.slice(0, previewLines)
 
@@ -306,7 +306,7 @@ export const AIAgent = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                 }
 
                 // Check for code block start
-                const isCodeBlockStart = cleanedForMarkers.replace(/^\s+/, '').startsWith('###')
+                const isCodeBlockStart = cleanedForMarkers.replace(/^\s+/, '').startsWith('###CODEBLOCK###')
                 if (isCodeBlockStart) {
                   setCodeBlockState({
                     isActive: true,
