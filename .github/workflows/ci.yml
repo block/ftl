@@ -139,7 +139,6 @@ jobs:
         run: just package-extension
   plugin:
     name: Intellij Plugin
-    # if: github.event_name != 'pull_request' || github.event.action == 'enqueued' || contains( github.event.pull_request.labels.*.name, 'run-all')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -156,7 +155,6 @@ jobs:
         run: just build-intellij-plugin
   build-all:
     name: Rebuild All
-    # if: github.event_name != 'pull_request' || github.event.action == 'enqueued' || contains( github.event.pull_request.labels.*.name, 'run-all')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -230,7 +228,6 @@ jobs:
           service: ${{ matrix.service }}
   console-e2e:
     name: Console e2e
-    # if: github.event_name != 'pull_request' || github.event.action == 'enqueued' || contains( github.event.pull_request.labels.*.name, 'run-all')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -257,7 +254,6 @@ jobs:
         run: just e2e-frontend
   integration-shard:
     name: Shard Integration Tests
-    # if: github.event_name != 'pull_request' || github.event.action == 'enqueued' || contains( github.event.pull_request.labels.*.name, 'run-all')
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.extract-tests.outputs.matrix }}
@@ -266,6 +262,19 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
+      - name: Build Cache
+        uses: ./.github/actions/build-cache
+      - name: Build Go Binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          just build-backend
+          just build-language-plugins
+      - name: Upload Release Binaries
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
+        with:
+          name: backend-binaries
+          path: build/release
       - name: Extract test cases
         id: extract-tests
         run: |
@@ -274,7 +283,6 @@ jobs:
           echo "matrix={\"test\":$(jq -c -n '$ARGS.positional' --args $(git grep -l '^//go:build integration' | xargs grep '^func Test' | awk '{print $2}' | cut -d'(' -f1 | paste -d '|' - - | sed 's/|*$//'))}" >> "$GITHUB_OUTPUT"
   integration-run:
     name: Integration Test
-    # if: github.event_name != 'pull_request' || github.event.action == 'enqueued' || contains( github.event.pull_request.labels.*.name, 'run-all')
     needs: integration-shard
     runs-on: ubuntu-latest
     strategy:
@@ -283,6 +291,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
@@ -297,8 +307,9 @@ jobs:
       - name: Run ${{ matrix.test }}
         run: |
           set -euo pipefail
+          chmod +x build/release/*
           # shellcheck disable=SC2046
-          echo '${{ matrix.test }}' | tr '|' ' ' | xargs -n1 just integration-tests
+          echo '${{ matrix.test }}' | tr '|' ' ' | xargs -n1 just --set USE_RELEASE_BINARIES "1" integration-tests
       - name: Archive Report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
         if: failure() # Upload the report only on failure
@@ -307,7 +318,6 @@ jobs:
           path: /tmp/ftl-test-content/
   infrastructure-shard:
     name: Shard Infrastructure Tests
-    # if: github.event_name != 'pull_request' || github.event.action == 'enqueued' || contains( github.event.pull_request.labels.*.name, 'run-all')
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.extract-tests.outputs.matrix }}
