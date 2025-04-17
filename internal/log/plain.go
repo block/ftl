@@ -59,7 +59,7 @@ var (
 	})
 	levelColours = map[Level]string{
 		Trace: "\x1b[90m", // Dark gray
-		Debug: "\x1b[34m", // Blue
+		Debug: "\x1b[94m", // Light Blue
 		Info:  "\x1b[37m", // White
 		Warn:  "\x1b[33m", // Yellow
 		Error: "\x1b[31m", // Red
