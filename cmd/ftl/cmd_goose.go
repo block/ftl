@@ -64,6 +64,15 @@ func (c *gooseChatCmd) Run(ctx context.Context, projectConfig projectconfig.Conf
 	terminal.UpdateModuleState(ctx, gooseName, terminal.BuildStateBuilding)
 	defer terminal.UpdateModuleState(ctx, gooseName, terminal.BuildStateTerminated)
 
+	// Check if ftl dev is running by attempting to get status - do this first to fail fast
+	statusObj, err := mcp.GetStatusOutput(ctx, buildEngineClient, adminClient)
+	if err != nil {
+		if strings.Contains(err.Error(), "connection refused") {
+			return errors.Errorf("ftl dev is not running. Please start ftl dev first with 'ftl dev' before using Goose")
+		}
+		return errors.Errorf("failed to connect to FTL: %v", err)
+	}
+
 	logger := log.FromContext(ctx)
 
 	logPath := logPath(projectConfig)
@@ -83,19 +92,13 @@ func (c *gooseChatCmd) Run(ctx context.Context, projectConfig projectconfig.Conf
 			docs, err = downloadDocs(ctx)
 			return errors.WithStack(err)
 		})
-		wg.Go(func() error {
-			var err error
-			statusObj, err := mcp.GetStatusOutput(ctx, buildEngineClient, adminClient)
-			if err != nil {
-				return errors.Wrap(err, "failed to get status")
-			}
-			statusBytes, err := json.Marshal(statusObj)
-			if err != nil {
-				return errors.Wrap(err, "failed to marshal status")
-			}
-			status = string(statusBytes)
-			return nil
-		})
+
+		statusBytes, err := json.Marshal(statusObj)
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal status")
+		}
+		status = string(statusBytes)
+
 		if err := wg.Wait(); err != nil {
 			return errors.WithStack(err) //nolint:wrapcheck
 		}
@@ -135,7 +138,7 @@ func (c *gooseChatCmd) Run(ctx context.Context, projectConfig projectconfig.Conf
 	out := &output{}
 	cmd.Stdout = out
 	cmd.Stderr = out
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return errors.Wrap(err, "goose failed")
 	}
