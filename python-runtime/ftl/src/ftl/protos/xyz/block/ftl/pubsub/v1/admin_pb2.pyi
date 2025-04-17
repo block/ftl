@@ -9,12 +9,14 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ResetOffsetsOfSubscriptionRequest(_message.Message):
-    __slots__ = ("subscription", "offset")
+    __slots__ = ("subscription", "offset", "partitions")
     SUBSCRIPTION_FIELD_NUMBER: _ClassVar[int]
     OFFSET_FIELD_NUMBER: _ClassVar[int]
+    PARTITIONS_FIELD_NUMBER: _ClassVar[int]
     subscription: _schema_pb2.Ref
     offset: _admin_pb2.SubscriptionOffset
-    def __init__(self, subscription: _Optional[_Union[_schema_pb2.Ref, _Mapping]] = ..., offset: _Optional[_Union[_admin_pb2.SubscriptionOffset, str]] = ...) -> None: ...
+    partitions: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, subscription: _Optional[_Union[_schema_pb2.Ref, _Mapping]] = ..., offset: _Optional[_Union[_admin_pb2.SubscriptionOffset, str]] = ..., partitions: _Optional[_Iterable[int]] = ...) -> None: ...
 
 class ResetOffsetsOfSubscriptionResponse(_message.Message):
     __slots__ = ("partitions",)

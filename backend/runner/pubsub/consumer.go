@@ -56,8 +56,9 @@ type lostPartitionEvent struct {
 func (lostPartitionEvent) partitionEvent() {}
 
 type resetOffsetsEvent struct {
-	latest bool
-	result chan result.Result[[]int]
+	latest     bool
+	partitions []int
+	result     chan result.Result[[]int]
 }
 
 func (resetOffsetsEvent) partitionEvent() {}
@@ -200,19 +201,22 @@ func (c *consumer) watchPartitions(ctx context.Context) {
 		case resetOffsetsEvent:
 			results := make(chan result.Result[int], len(activePartitions))
 			wg := &sync.WaitGroup{}
-			for _, partition := range activePartitions {
+			for _, p := range activePartitions {
+				if !slices.Contains(event.partitions, p.partition) {
+					continue
+				}
 				wg.Add(1)
 				go func() {
 					resultChan := make(chan error)
-					partition.resetOffset <- resetOffsetCommand{
+					p.resetOffset <- resetOffsetCommand{
 						latest: event.latest,
 						err:    resultChan,
 					}
 					err := <-resultChan
 					if err != nil {
-						results <- result.Err[int](errors.Wrapf(err, "could not reset offset for %v partition %v", c.verb.Name, partition.partition))
+						results <- result.Err[int](errors.Wrapf(err, "could not reset offset for %v partition %v", c.verb.Name, p.partition))
 					} else {
-						results <- result.Ok(partition.partition)
+						results <- result.Ok(p.partition)
 					}
 					wg.Done()
 				}()
@@ -481,9 +485,9 @@ func (c *consumer) publishToDeadLetterTopic(ctx context.Context, msg *sarama.Con
 	}
 }
 
-func (c *consumer) ResetOffsetsForClaimedPartitions(ctx context.Context, latest bool) (partitions []int, err error) {
+func (c *consumer) ResetOffsetsForClaimedPartitions(ctx context.Context, latest bool, requestedPartitions []int) (partitions []int, err error) {
 	resultChan := make(chan result.Result[[]int])
-	c.claimedPartitionsChan <- resetOffsetsEvent{latest: latest, result: resultChan}
+	c.claimedPartitionsChan <- resetOffsetsEvent{latest: latest, result: resultChan, partitions: requestedPartitions}
 	result, err := (<-resultChan).Result()
 	if err != nil {
 		return nil, errors.WithStack(err) //nolint:wrapcheck

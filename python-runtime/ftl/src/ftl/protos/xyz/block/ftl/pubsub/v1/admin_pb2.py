@@ -27,7 +27,7 @@ from xyz.block.ftl.schema.v1 import schema_pb2 as xyz_dot_block_dot_ftl_dot_sche
 from xyz.block.ftl.v1 import ftl_pb2 as xyz_dot_block_dot_ftl_dot_v1_dot_ftl__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#xyz/block/ftl/pubsub/v1/admin.proto\x12\x17xyz.block.ftl.pubsub.v1\x1a\"xyz/block/ftl/admin/v1/admin.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\xa9\x01\n!ResetOffsetsOfSubscriptionRequest\x12@\n\x0csubscription\x18\x01 \x01(\x0b\x32\x1c.xyz.block.ftl.schema.v1.RefR\x0csubscription\x12\x42\n\x06offset\x18\x02 \x01(\x0e\x32*.xyz.block.ftl.admin.v1.SubscriptionOffsetR\x06offset\"D\n\"ResetOffsetsOfSubscriptionResponse\x12\x1e\n\npartitions\x18\x01 \x03(\x05R\npartitions2\xf8\x01\n\x12PubSubAdminService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12\x95\x01\n\x1aResetOffsetsOfSubscription\x12:.xyz.block.ftl.pubsub.v1.ResetOffsetsOfSubscriptionRequest\x1a;.xyz.block.ftl.pubsub.v1.ResetOffsetsOfSubscriptionResponseBHP\x01ZDgithub.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1;pubsubpbb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#xyz/block/ftl/pubsub/v1/admin.proto\x12\x17xyz.block.ftl.pubsub.v1\x1a\"xyz/block/ftl/admin/v1/admin.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\xc9\x01\n!ResetOffsetsOfSubscriptionRequest\x12@\n\x0csubscription\x18\x01 \x01(\x0b\x32\x1c.xyz.block.ftl.schema.v1.RefR\x0csubscription\x12\x42\n\x06offset\x18\x02 \x01(\x0e\x32*.xyz.block.ftl.admin.v1.SubscriptionOffsetR\x06offset\x12\x1e\n\npartitions\x18\x03 \x03(\x05R\npartitions\"D\n\"ResetOffsetsOfSubscriptionResponse\x12\x1e\n\npartitions\x18\x01 \x03(\x05R\npartitions2\xf8\x01\n\x12PubSubAdminService\x12J\n\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12\x95\x01\n\x1aResetOffsetsOfSubscription\x12:.xyz.block.ftl.pubsub.v1.ResetOffsetsOfSubscriptionRequest\x1a;.xyz.block.ftl.pubsub.v1.ResetOffsetsOfSubscriptionResponseBHP\x01ZDgithub.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1;pubsubpbb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,9 +38,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PUBSUBADMINSERVICE'].methods_by_name['Ping']._loaded_options = None
   _globals['_PUBSUBADMINSERVICE'].methods_by_name['Ping']._serialized_options = b'\220\002\001'
   _globals['_RESETOFFSETSOFSUBSCRIPTIONREQUEST']._serialized_start=167
-  _globals['_RESETOFFSETSOFSUBSCRIPTIONREQUEST']._serialized_end=336
-  _globals['_RESETOFFSETSOFSUBSCRIPTIONRESPONSE']._serialized_start=338
-  _globals['_RESETOFFSETSOFSUBSCRIPTIONRESPONSE']._serialized_end=406
-  _globals['_PUBSUBADMINSERVICE']._serialized_start=409
-  _globals['_PUBSUBADMINSERVICE']._serialized_end=657
+  _globals['_RESETOFFSETSOFSUBSCRIPTIONREQUEST']._serialized_end=368
+  _globals['_RESETOFFSETSOFSUBSCRIPTIONRESPONSE']._serialized_start=370
+  _globals['_RESETOFFSETSOFSUBSCRIPTIONRESPONSE']._serialized_end=438
+  _globals['_PUBSUBADMINSERVICE']._serialized_start=441
+  _globals['_PUBSUBADMINSERVICE']._serialized_end=689
 # @@protoc_insertion_point(module_scope)

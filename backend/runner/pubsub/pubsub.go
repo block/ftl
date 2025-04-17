@@ -14,6 +14,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	sl "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
@@ -103,7 +104,8 @@ func (s *Service) ResetOffsetsOfSubscription(ctx context.Context, req *connect.R
 	if !ok {
 		return connect.NewResponse(&pubsubpb.ResetOffsetsOfSubscriptionResponse{}), nil
 	}
-	partitions, err := consumer.ResetOffsetsForClaimedPartitions(ctx, req.Msg.Offset != adminpb.SubscriptionOffset_SUBSCRIPTION_OFFSET_EARLIEST)
+	partitions, err := consumer.ResetOffsetsForClaimedPartitions(ctx, req.Msg.Offset != adminpb.SubscriptionOffset_SUBSCRIPTION_OFFSET_EARLIEST,
+		sl.Map(req.Msg.Partitions, func(i int32) int { return int(i) }))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
