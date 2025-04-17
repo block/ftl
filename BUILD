@@ -1,8 +1,20 @@
-load("@bazel_gazelle//:def.bzl", "gazelle")
+load("@bazel_gazelle//:def.bzl", "gazelle", "gazelle_binary")
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
+gazelle_binary(
+    name = "gazelle-buf",
+    languages = [
+        "@bazel_gazelle//language/proto:go_default_library",
+        "@bazel_gazelle//language/go:go_default_library",
+        "@rules_buf//gazelle/buf:buf",
+    ],
+)
+
 # gazelle:prefix github.com/block/ftl
-gazelle(name = "gazelle")
+gazelle(
+    name = "gazelle",
+    gazelle = ":gazelle-buf",
+)
 
 go_library(
     name = "ftl",

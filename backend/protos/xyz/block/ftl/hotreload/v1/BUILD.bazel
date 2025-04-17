@@ -1,15 +1,17 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_buf//buf:defs.bzl", "buf_lint_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
 proto_library(
     name = "hotreloadpb_proto",
     srcs = ["hotreload.proto"],
+    strip_import_prefix = "/backend/protos",
     visibility = ["//visibility:public"],
     deps = [
-        "//xyz/block/ftl/language/v1:v1_proto",
-        "//xyz/block/ftl/schema/v1:v1_proto",
-        "//xyz/block/ftl/v1:v1_proto",
+        "//backend/protos/xyz/block/ftl/language/v1:languagepb_proto",
+        "//backend/protos/xyz/block/ftl/v1:ftlv1_proto",
+        "//common/protos/xyz/block/ftl/schema/v1:schemapb_proto",
     ],
 )
 
@@ -20,9 +22,9 @@ go_proto_library(
     proto = ":hotreloadpb_proto",
     visibility = ["//visibility:public"],
     deps = [
-        "//xyz/block/ftl/language/v1:service_proto",
-        "//xyz/block/ftl/schema/v1:schema_proto",
-        "//xyz/block/ftl/v1:ftl_proto",
+        "//backend/protos/xyz/block/ftl/language/v1:language",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
+        "//common/protos/xyz/block/ftl/schema/v1:schema",
     ],
 )
 
@@ -31,4 +33,10 @@ go_library(
     embed = [":hotreloadpb_go_proto"],
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1",
     visibility = ["//visibility:public"],
+)
+
+buf_lint_test(
+    name = "hotreloadpb_proto_lint",
+    config = "//backend/protos:buf.yaml",
+    targets = [":hotreloadpb_proto"],
 )

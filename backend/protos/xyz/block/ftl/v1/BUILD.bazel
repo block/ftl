@@ -1,5 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_buf//buf:defs.bzl", "buf_lint_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
 proto_library(
@@ -10,10 +11,10 @@ proto_library(
         "schemaservice.proto",
         "verb.proto",
     ],
+    strip_import_prefix = "/backend/protos",
     visibility = ["//visibility:public"],
     deps = [
-        "//xyz/block/ftl/schema/v1:v1_proto",
-        "//xyz/block/ftl/v1:v1_proto",
+        "//common/protos/xyz/block/ftl/schema/v1:schemapb_proto",
         "@com_google_protobuf//:struct_proto",
     ],
 )
@@ -24,10 +25,7 @@ go_proto_library(
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1",
     proto = ":ftlv1_proto",
     visibility = ["//visibility:public"],
-    deps = [
-        "//xyz/block/ftl/schema/v1:schema_proto",
-        "//xyz/block/ftl/v1:ftl_proto",
-    ],
+    deps = ["//common/protos/xyz/block/ftl/schema/v1:schema"],
 )
 
 go_library(
@@ -37,4 +35,10 @@ go_library(
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/v1",
     visibility = ["//visibility:public"],
     deps = ["@com_github_alecthomas_types//optional"],
+)
+
+buf_lint_test(
+    name = "ftlv1_proto_lint",
+    config = "//backend/protos:buf.yaml",
+    targets = [":ftlv1_proto"],
 )

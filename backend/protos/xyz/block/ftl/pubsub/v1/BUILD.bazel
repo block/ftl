@@ -1,5 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_buf//buf:defs.bzl", "buf_lint_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
 proto_library(
@@ -8,11 +9,12 @@ proto_library(
         "admin.proto",
         "publish.proto",
     ],
+    strip_import_prefix = "/backend/protos",
     visibility = ["//visibility:public"],
     deps = [
-        "//xyz/block/ftl/admin/v1:v1_proto",
-        "//xyz/block/ftl/schema/v1:v1_proto",
-        "//xyz/block/ftl/v1:v1_proto",
+        "//backend/protos/xyz/block/ftl/admin/v1:adminpb_proto",
+        "//backend/protos/xyz/block/ftl/v1:ftlv1_proto",
+        "//common/protos/xyz/block/ftl/schema/v1:schemapb_proto",
     ],
 )
 
@@ -23,9 +25,9 @@ go_proto_library(
     proto = ":pubsubpb_proto",
     visibility = ["//visibility:public"],
     deps = [
-        "//xyz/block/ftl/admin/v1:admin_proto",
-        "//xyz/block/ftl/schema/v1:schema_proto",
-        "//xyz/block/ftl/v1:ftl_proto",
+        "//backend/protos/xyz/block/ftl/admin/v1:admin",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
+        "//common/protos/xyz/block/ftl/schema/v1:schema",
     ],
 )
 
@@ -34,4 +36,10 @@ go_library(
     embed = [":pubsubpb_go_proto"],
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1",
     visibility = ["//visibility:public"],
+)
+
+buf_lint_test(
+    name = "pubsubpb_proto_lint",
+    config = "//backend/protos:buf.yaml",
+    targets = [":pubsubpb_proto"],
 )

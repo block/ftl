@@ -1,12 +1,14 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_buf//buf:defs.bzl", "buf_lint_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
 proto_library(
     name = "raftpb_proto",
     srcs = ["raft.proto"],
+    strip_import_prefix = "/backend/protos",
     visibility = ["//visibility:public"],
-    deps = ["//xyz/block/ftl/v1:v1_proto"],
+    deps = ["//backend/protos/xyz/block/ftl/v1:ftlv1_proto"],
 )
 
 go_proto_library(
@@ -15,7 +17,7 @@ go_proto_library(
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1",
     proto = ":raftpb_proto",
     visibility = ["//visibility:public"],
-    deps = ["//xyz/block/ftl/v1:ftl_proto"],
+    deps = ["//backend/protos/xyz/block/ftl/v1:ftl"],
 )
 
 go_library(
@@ -23,4 +25,10 @@ go_library(
     embed = [":raftpb_go_proto"],
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1",
     visibility = ["//visibility:public"],
+)
+
+buf_lint_test(
+    name = "raftpb_proto_lint",
+    config = "//backend/protos:buf.yaml",
+    targets = [":raftpb_proto"],
 )

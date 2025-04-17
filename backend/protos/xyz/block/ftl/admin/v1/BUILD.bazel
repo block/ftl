@@ -1,15 +1,17 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_buf//buf:defs.bzl", "buf_lint_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
 proto_library(
     name = "adminpb_proto",
     srcs = ["admin.proto"],
+    strip_import_prefix = "/backend/protos",
     visibility = ["//visibility:public"],
     deps = [
-        "//xyz/block/ftl/schema/v1:v1_proto",
-        "//xyz/block/ftl/timeline/v1:v1_proto",
-        "//xyz/block/ftl/v1:v1_proto",
+        "//backend/protos/xyz/block/ftl/timeline/v1:timelinepb_proto",
+        "//backend/protos/xyz/block/ftl/v1:ftlv1_proto",
+        "//common/protos/xyz/block/ftl/schema/v1:schemapb_proto",
         "@com_google_protobuf//:timestamp_proto",
     ],
 )
@@ -21,11 +23,9 @@ go_proto_library(
     proto = ":adminpb_proto",
     visibility = ["//visibility:public"],
     deps = [
-        "//xyz/block/ftl/schema/v1:schema_proto",
-        "//xyz/block/ftl/timeline/v1:event_proto",
-        "//xyz/block/ftl/timeline/v1:timeline_proto",
-        "//xyz/block/ftl/v1:ftl_proto",
-        "//xyz/block/ftl/v1:schemaservice_proto",
+        "//backend/protos/xyz/block/ftl/timeline/v1:timeline",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
+        "//common/protos/xyz/block/ftl/schema/v1:schema",
     ],
 )
 
@@ -36,4 +36,10 @@ go_library(
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1",
     visibility = ["//visibility:public"],
     deps = ["//backend/controller/state"],
+)
+
+buf_lint_test(
+    name = "adminpb_proto_lint",
+    config = "//backend/protos:buf.yaml",
+    targets = [":adminpb_proto"],
 )
