@@ -339,6 +339,13 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 					return nil
 				default:
 				}
+				var connectErr *connect.Error
+				if errors.As(err, &connectErr) {
+					// Connection error, do not count as an attempt
+					// This can happen when a runner is shutting down. This should never mark the message as consumed.
+					time.Sleep(time.Second)
+					continue
+				}
 				if remainingRetries == 0 {
 					logger.Errorf(err, "Failed to consume message from %v[%v,%v]", c.verb.Name, msg.Partition, msg.Offset)
 					if !c.publishToDeadLetterTopic(ctx, msg, err) {
