@@ -5,7 +5,11 @@ alwaysApply: false
 ---
 
 - Always handle errors.
-- Always wrap errors using `fmt.Errorf("...: %w", err)`
+- For error handling:
+  - Use `errors.Wrap(err, "message")` for basic error wrapping
+  - Use `errors.Wrapf(err, "message with %s", formatString)` for wrapping with formatting
+  - Use `errors.Errorf("message with %v", value)` for creating new errors
+  - Never use `fmt.Errorf`
 - Never use pointers to represent optional values, always use `github.com/alecthomas/types/optional.Option[T]`
 - For tests, always use github.com/alecthomas/assert for assertions.
 - When using assert.Equal, the parameters are `assert.Equal(t, <expected>, <actual>)` in that order.
