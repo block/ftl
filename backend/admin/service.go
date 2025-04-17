@@ -217,7 +217,7 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ad
 	client := rpc.Dial(pubsubpbconnect.NewPubSubAdminServiceClient, module.Runtime.Runner.Endpoint, log.Error)
 	remainingPartitions := make([]int32, totalPartitions)
 	for i := range totalPartitions {
-		remainingPartitions[i] = int32(i)
+		remainingPartitions[i] = i
 	}
 	// Allowing multiple attempts to reset offsets in case runners are currently rebalancing partition claims
 	for attempt := 0; attempt < 10 && len(remainingPartitions) > 0; attempt++ {
