@@ -347,7 +347,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				if errors.As(err, &connectErr) {
 					// Connection error, do not count as an attempt
 					// This can happen when a runner is shutting down. This should never mark the message as consumed.
-					time.Sleep(time.Second)
+					time.Sleep(time.Millisecond * 500)
 					continue
 				}
 				if remainingRetries == 0 {

@@ -113,7 +113,7 @@ func TestConsumerGroupMembership(t *testing.T) {
 		// the group properly.
 		checkGroupMembership("subscriber", "consumeSlow", 1),
 		func(t testing.TB, ic in.TestContext) {
-			assert.True(t, time.Since(*deploymentKilledTime) < 10*time.Second, "make sure old deployment was removed from consumer group fast enough")
+			assert.True(t, time.Since(*deploymentKilledTime) < 3*time.Second, "make sure old deployment was removed from consumer group fast enough (%v)", time.Since(*deploymentKilledTime))
 		},
 
 		// confirm that each message was consumed successfully
