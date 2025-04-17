@@ -103,7 +103,8 @@ func (s *Service) ResetOffsetsOfSubscription(ctx context.Context, req *connect.R
 	if !ok {
 		return connect.NewResponse(&pubsubpb.ResetOffsetsOfSubscriptionResponse{}), nil
 	}
-	partitions, err := consumer.ResetOffsetsForClaimedPartitions(ctx, req.Msg.Offset != adminpb.SubscriptionOffset_SUBSCRIPTION_OFFSET_EARLIEST)
+	partitions, err := consumer.ResetOffsetsForClaimedPartitions(ctx, req.Msg.Offset != adminpb.SubscriptionOffset_SUBSCRIPTION_OFFSET_EARLIEST,
+		sl.Map(req.Msg.Partitions, func(i int32) int { return int(i) }))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

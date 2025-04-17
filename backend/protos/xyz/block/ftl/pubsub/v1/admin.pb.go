@@ -28,6 +28,7 @@ type ResetOffsetsOfSubscriptionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Subscription  *v1.Ref                `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	Offset        v11.SubscriptionOffset `protobuf:"varint,2,opt,name=offset,proto3,enum=xyz.block.ftl.admin.v1.SubscriptionOffset" json:"offset,omitempty"`
+	Partitions    []int32                `protobuf:"varint,3,rep,packed,name=partitions,proto3" json:"partitions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -74,6 +75,13 @@ func (x *ResetOffsetsOfSubscriptionRequest) GetOffset() v11.SubscriptionOffset {
 		return x.Offset
 	}
 	return v11.SubscriptionOffset(0)
+}
+
+func (x *ResetOffsetsOfSubscriptionRequest) GetPartitions() []int32 {
+	if x != nil {
+		return x.Partitions
+	}
+	return nil
 }
 
 type ResetOffsetsOfSubscriptionResponse struct {
@@ -124,10 +132,13 @@ var File_xyz_block_ftl_pubsub_v1_admin_proto protoreflect.FileDescriptor
 
 const file_xyz_block_ftl_pubsub_v1_admin_proto_rawDesc = "" +
 	"\n" +
-	"#xyz/block/ftl/pubsub/v1/admin.proto\x12\x17xyz.block.ftl.pubsub.v1\x1a\"xyz/block/ftl/admin/v1/admin.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\xa9\x01\n" +
+	"#xyz/block/ftl/pubsub/v1/admin.proto\x12\x17xyz.block.ftl.pubsub.v1\x1a\"xyz/block/ftl/admin/v1/admin.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\xc9\x01\n" +
 	"!ResetOffsetsOfSubscriptionRequest\x12@\n" +
 	"\fsubscription\x18\x01 \x01(\v2\x1c.xyz.block.ftl.schema.v1.RefR\fsubscription\x12B\n" +
-	"\x06offset\x18\x02 \x01(\x0e2*.xyz.block.ftl.admin.v1.SubscriptionOffsetR\x06offset\"D\n" +
+	"\x06offset\x18\x02 \x01(\x0e2*.xyz.block.ftl.admin.v1.SubscriptionOffsetR\x06offset\x12\x1e\n" +
+	"\n" +
+	"partitions\x18\x03 \x03(\x05R\n" +
+	"partitions\"D\n" +
 	"\"ResetOffsetsOfSubscriptionResponse\x12\x1e\n" +
 	"\n" +
 	"partitions\x18\x01 \x03(\x05R\n" +

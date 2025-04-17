@@ -22,6 +22,11 @@ export class ResetOffsetsOfSubscriptionRequest extends Message<ResetOffsetsOfSub
    */
   offset = SubscriptionOffset.UNSPECIFIED;
 
+  /**
+   * @generated from field: repeated int32 partitions = 3;
+   */
+  partitions: number[] = [];
+
   constructor(data?: PartialMessage<ResetOffsetsOfSubscriptionRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -32,6 +37,7 @@ export class ResetOffsetsOfSubscriptionRequest extends Message<ResetOffsetsOfSub
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "subscription", kind: "message", T: Ref },
     { no: 2, name: "offset", kind: "enum", T: proto3.getEnumType(SubscriptionOffset) },
+    { no: 3, name: "partitions", kind: "scalar", T: 5 /* ScalarType.INT32 */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ResetOffsetsOfSubscriptionRequest {

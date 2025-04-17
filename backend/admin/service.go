@@ -215,24 +215,29 @@ func (s *Service) ResetSubscription(ctx context.Context, req *connect.Request[ad
 	}
 
 	client := rpc.Dial(pubsubpbconnect.NewPubSubAdminServiceClient, module.Runtime.Runner.Endpoint, log.Error)
-	resp, err := client.ResetOffsetsOfSubscription(ctx, connect.NewRequest(&pubsubpb.ResetOffsetsOfSubscriptionRequest{
-		Subscription: req.Msg.Subscription,
-		Offset:       req.Msg.Offset,
-	}))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to reset subscription")
+	remainingPartitions := make([]int32, totalPartitions)
+	for i := range totalPartitions {
+		remainingPartitions[i] = i
 	}
-
-	var successfulPartitions = resp.Msg.Partitions
-	slices.Sort(successfulPartitions)
-	var failedPartitions = []int32{}
-	for p := range totalPartitions {
-		if int(p) >= len(successfulPartitions) || successfulPartitions[p] != p {
-			failedPartitions = append(failedPartitions, p)
+	// Allowing multiple attempts to reset offsets in case runners are currently rebalancing partition claims
+	for attempt := 0; attempt < 10 && len(remainingPartitions) > 0; attempt++ {
+		if attempt != 0 {
+			time.Sleep(time.Millisecond * 500)
 		}
+		resp, err := client.ResetOffsetsOfSubscription(ctx, connect.NewRequest(&pubsubpb.ResetOffsetsOfSubscriptionRequest{
+			Subscription: req.Msg.Subscription,
+			Offset:       req.Msg.Offset,
+			Partitions:   remainingPartitions,
+		}))
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to reset subscription")
+		}
+		remainingPartitions = islices.Filter(remainingPartitions, func(p int32) bool {
+			return !slices.Contains(resp.Msg.Partitions, p)
+		})
 	}
-	if len(failedPartitions) > 0 {
-		return nil, errors.Errorf("failed to reset partitions %v: no runner had partition claim", failedPartitions)
+	if len(remainingPartitions) > 0 {
+		return nil, errors.Errorf("failed to reset partitions %v: no runner had partition claim", remainingPartitions)
 	}
 	return connect.NewResponse(&adminpb.ResetSubscriptionResponse{}), nil
 }
