@@ -60,6 +60,6 @@ class Publisher {
 
     @Subscription(topic = LocalTopic::class, from = FromOffset.LATEST)
     fun local(event: PubSubEvent) {
-        Log.infof("Consuing from local %s", event.time)
+        Log.infof("Consuming from local %s", event.time)
     }
 }
