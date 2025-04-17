@@ -9,6 +9,7 @@ go_library(
     importpath = "github.com/block/ftl/common/plugin",
     visibility = ["//visibility:public"],
     deps = [
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//internal/exec",
         "//internal/http",
         "//internal/local",

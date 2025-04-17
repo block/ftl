@@ -12,6 +12,7 @@ go_library(
     importpath = "github.com/block/ftl/internal/deploymentcontext",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//backend/protos/xyz/block/ftl/v1/ftlv1connect",
         "//common/encoding",
         "//common/reflect",

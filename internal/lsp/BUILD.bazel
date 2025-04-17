@@ -43,6 +43,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//backend/protos/xyz/block/ftl/buildengine/v1:buildengine",
+        "//backend/protos/xyz/block/ftl/language/v1:language",
         "//common/builderrors",
         "//internal/log",
         "@com_github_alecthomas_errors//:errors",

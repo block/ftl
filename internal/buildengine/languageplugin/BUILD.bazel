@@ -10,7 +10,9 @@ go_library(
     importpath = "github.com/block/ftl/internal/buildengine/languageplugin",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//backend/protos/xyz/block/ftl/language/v1:language",
         "//backend/protos/xyz/block/ftl/language/v1/languagepbconnect",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//common/builderrors",
         "//common/plugin",
         "//common/schema",

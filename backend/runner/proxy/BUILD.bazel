@@ -7,7 +7,9 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//backend/controller/observability",
+        "//backend/protos/xyz/block/ftl/lease/v1:lease",
         "//backend/protos/xyz/block/ftl/lease/v1/leasepbconnect",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//backend/protos/xyz/block/ftl/v1/ftlv1connect",
         "//common/schema",
         "//internal/key",

@@ -12,6 +12,7 @@ go_library(
     deps = [
         "//backend/cron/observability",
         "//backend/protos/xyz/block/ftl/cron/v1:cron",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//common/cron",
         "//common/reflect",
         "//common/schema",

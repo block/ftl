@@ -12,6 +12,7 @@ go_library(
     deps = [
         "//backend/protos/xyz/block/ftl/timeline/v1:timeline",
         "//backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//common/slices",
         "//internal/channels",
         "//internal/log",

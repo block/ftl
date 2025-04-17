@@ -9,6 +9,7 @@ go_library(
         "//backend/protos/xyz/block/ftl/buildengine/v1:buildengine",
         "//backend/protos/xyz/block/ftl/console/v1:console",
         "//backend/protos/xyz/block/ftl/timeline/v1:timeline",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "@com_connectrpc_connect//:connect",
     ],
 )

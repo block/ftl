@@ -11,6 +11,7 @@ go_library(
     importpath = "github.com/block/ftl/backend/controller/observability",
     visibility = ["//visibility:public"],
     deps = [
+        "//common/protos/xyz/block/ftl/schema/v1:schema",
         "//common/schema",
         "//internal/observability",
         "@com_github_alecthomas_types//optional",

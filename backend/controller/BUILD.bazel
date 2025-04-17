@@ -14,6 +14,7 @@ go_library(
         "//backend/protos/xyz/block/ftl/admin/v1:admin",
         "//backend/protos/xyz/block/ftl/admin/v1/adminpbconnect",
         "//backend/protos/xyz/block/ftl/lease/v1/leasepbconnect",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//backend/protos/xyz/block/ftl/v1/ftlv1connect",
         "//common/schema",
         "//common/slices",

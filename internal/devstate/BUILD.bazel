@@ -9,6 +9,8 @@ go_library(
         "//backend/protos/xyz/block/ftl/admin/v1/adminpbconnect",
         "//backend/protos/xyz/block/ftl/buildengine/v1:buildengine",
         "//backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect",
+        "//backend/protos/xyz/block/ftl/language/v1:language",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//common/builderrors",
         "//common/schema",
         "//common/slices",

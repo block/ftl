@@ -13,6 +13,7 @@ go_library(
     deps = [
         "//backend/protos/xyz/block/ftl/raft/v1:raft",
         "//backend/protos/xyz/block/ftl/raft/v1/raftpbconnect",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//internal/channels",
         "//internal/eventstream",
         "//internal/iterops",

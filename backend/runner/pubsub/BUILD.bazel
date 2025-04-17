@@ -12,7 +12,9 @@ go_library(
     deps = [
         "//backend/controller/observability",
         "//backend/protos/xyz/block/ftl/admin/v1:admin",
+        "//backend/protos/xyz/block/ftl/pubsub/v1:pubsub",
         "//backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//backend/runner/pubsub/observability",
         "//common/encoding",
         "//common/schema",

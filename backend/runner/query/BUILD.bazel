@@ -6,7 +6,9 @@ go_library(
     importpath = "github.com/block/ftl/backend/runner/query",
     visibility = ["//visibility:public"],
     deps = [
+        "//backend/protos/xyz/block/ftl/query/v1:query",
         "//backend/protos/xyz/block/ftl/query/v1/querypbconnect",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "//common/encoding",
         "//common/schema",
         "//internal/deploymentcontext",

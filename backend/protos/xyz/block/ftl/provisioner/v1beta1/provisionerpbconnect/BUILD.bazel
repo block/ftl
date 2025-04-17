@@ -7,6 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//backend/protos/xyz/block/ftl/provisioner/v1beta1",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
         "@com_connectrpc_connect//:connect",
     ],
 )
