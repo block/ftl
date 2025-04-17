@@ -14,7 +14,6 @@ import (
 	"github.com/block/ftl/common/schema"
 	sl "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
