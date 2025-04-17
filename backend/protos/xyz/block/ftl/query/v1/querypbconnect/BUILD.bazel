@@ -5,5 +5,9 @@ go_library(
     srcs = ["query.connect.go"],
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect",
     visibility = ["//visibility:public"],
-    deps = ["@com_connectrpc_connect//:connect"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/query/v1:query",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
+        "@com_connectrpc_connect//:connect",
+    ],
 )

@@ -86,6 +86,7 @@ go_library(
         "//common/cron",
         "//common/duration",
         "//common/errors",
+        "//common/protos/xyz/block/ftl/schema/v1:schema",
         "//common/reflect",
         "//common/sha256",
         "//common/slices",

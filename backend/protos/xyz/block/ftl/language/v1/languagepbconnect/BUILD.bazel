@@ -8,5 +8,9 @@ go_library(
     ],
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect",
     visibility = ["//visibility:public"],
-    deps = ["@com_connectrpc_connect//:connect"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/language/v1:language",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
+        "@com_connectrpc_connect//:connect",
+    ],
 )

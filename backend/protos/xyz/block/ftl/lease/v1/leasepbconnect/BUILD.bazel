@@ -5,5 +5,9 @@ go_library(
     srcs = ["lease.connect.go"],
     importpath = "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect",
     visibility = ["//visibility:public"],
-    deps = ["@com_connectrpc_connect//:connect"],
+    deps = [
+        "//backend/protos/xyz/block/ftl/lease/v1:lease",
+        "//backend/protos/xyz/block/ftl/v1:ftl",
+        "@com_connectrpc_connect//:connect",
+    ],
 )
