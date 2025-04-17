@@ -19,39 +19,35 @@ import (
 )
 
 func setupPubsubTests() []in.ActionOrOption {
-
 	calls := 20
 	events := calls * 10
-	return mapValues(
+	return []in.ActionOrOption{
 		in.WithPubSub(),
 		in.CopyModule("publisher"),
 		in.CopyModule("subscriber"),
-		in.Deploy("publisher"),
 
-		// After a deployment is "ready" it can take a second before a consumer group claims partitions.
+		in.Deploy("publisher"),
+		// After a deployment is "ready" it can take a second (or two in CI...) before a consumer group claims partitions.
 		// "publisher.local" has "from=latest" so we need that group to be ready before we start publishing
 		// otherwise it will start from the latest offset after claiming partitions.
-		in.Sleep(time.Second*1),
+		in.Sleep(time.Second * 3),
 
 		// publish half the events before subscriber is deployed
-		publishToTestAndLocalTopics(calls/2),
+		publishToTestAndLocalTopics(calls / 2),
 
 		in.Deploy("subscriber"),
+		in.Sleep(time.Second * 3),
 
 		// publish the other half of the events after subscriber is deployed
-		publishToTestAndLocalTopics(calls/2),
+		publishToTestAndLocalTopics(calls / 2),
 
-		in.Sleep(time.Second*4),
+		in.Sleep(time.Second * 4),
 
 		// check that there are the right amount of consumed events, depending on "from" offset option
 		checkConsumed("publisher", "local", true, events, optional.None[string]()),
 		checkConsumed("subscriber", "consume", true, events, optional.None[string]()),
 		checkConsumed("subscriber", "consumeFromLatest", true, events/2, optional.None[string]()),
-	)
-}
-
-func mapValues(option ...in.ActionOrOption) []in.ActionOrOption {
-	return option
+	}
 }
 
 func publishToTestAndLocalTopics(calls int) in.Action {
