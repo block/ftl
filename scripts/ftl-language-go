@@ -6,6 +6,11 @@ ftldir="$(dirname "$exe")/.."
 language="${exe/*-/}"
 dirlang="${language}"
 name="ftl-language-${language}"
+
+if [ "${USE_RELEASE_BINARIES:-0}" = "1" ]; then
+  exec "${ftldir}/build/release/$name" "$@"
+fi
+
 if [ "${dirlang}" = "java" ] || [ "${dirlang}" = "kotlin" ]; then
     dirlang="jvm"
 fi

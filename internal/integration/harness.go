@@ -294,6 +294,8 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			if ver != "" {
 				err = ftlexec.Command(ctx, log.Debug, filepath.Join(rootDir, "deployment"), "just", "wait-for-version-upgrade", ver).RunBuffered(ctx)
 			}
+		} else if os.Getenv("USE_RELEASE_BINARIES") == "1" {
+			Infof("Using release binaries for integration tests")
 		} else if opts.console {
 			Infof("Building ftl with console")
 			err = ftlexec.Command(ctx, log.Debug, rootDir, "just", "build", "ftl").RunBuffered(ctx)
@@ -303,7 +305,9 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			err = ftlexec.Command(ctx, log.Debug, rootDir, "just", "build-without-frontend", "ftl").RunBuffered(ctx)
 			assert.NoError(t, err)
 		}
-		if opts.requireJava || slices.Contains(opts.languages, "java") || slices.Contains(opts.languages, "kotlin") {
+		if os.Getenv("USE_RELEASE_BINARIES") == "1" {
+			Infof("Using pre-built JARs")
+		} else if opts.requireJava || slices.Contains(opts.languages, "java") || slices.Contains(opts.languages, "kotlin") {
 			err = ftlexec.Command(ctx, log.Debug, rootDir, "just", "build-jvm", "-DskipTests", "-B").RunBuffered(ctx)
 			assert.NoError(t, err)
 		}
