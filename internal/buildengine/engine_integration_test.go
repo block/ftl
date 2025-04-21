@@ -81,3 +81,29 @@ func updateVerb(module, old, new string) in.Action {
 		in.Exec("sed", "-i.bak", "s/"+strcase.ToUpperCamel(old)+"/"+strcase.ToUpperCamel(new)+"/g", file)(t, ic)
 	}
 }
+
+// TestModuleNameMismatch tests the behavior when a module's name in ftl.toml doesn't match its source configuration
+func TestModuleNameMismatch(t *testing.T) {
+	in.Run(t,
+		in.WithDevMode(),
+		in.WithLanguages("go"),
+		in.WithTestDataDir("testdata"),
+
+		// Start with a mismatched module name
+		in.CopyModule("another"),
+		in.EditFile("another/ftl.toml", func(content []byte) []byte {
+			return []byte("module = \"wrongname\"\nlanguage = \"go\"\n")
+		}),
+		in.ExpectError(
+			in.Build("another"),
+			`could not read go.mod`,
+		),
+
+		// Fix the module name
+		in.EditFile("another/ftl.toml", func(content []byte) []byte {
+			return []byte("module = \"another\"\nlanguage = \"go\"\n")
+		}),
+		in.Wait("another"),
+		in.WaitForDev(true, "should succeed after fixing module name"),
+	)
+}

@@ -98,6 +98,7 @@ type Engine struct {
 	modulesToBuild    *xsync.MapOf[string, bool]
 	buildEnv          []string
 	startTime         optional.Option[time.Time]
+	initialBuildDone  atomic.Value[bool]
 
 	// events coming in from plugins
 	pluginEvents chan languageplugin.PluginEvent
@@ -189,7 +190,9 @@ func New(
 		EngineUpdates:    pubsub.New[*buildenginepb.EngineEvent](),
 		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
 		os:               runtime.GOOS,
+		initialBuildDone: atomic.Value[bool]{},
 	}
+	e.initialBuildDone.Store(false)
 	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges, projectConfig)
 	for _, option := range options {
 		option(e)
@@ -318,7 +321,7 @@ func (e *Engine) buildGraph(moduleName string, out map[string][]string) error {
 		}
 	}
 	if !foundModule {
-		return errors.Errorf("module %q not found", moduleName)
+		return errors.Errorf("module %q not found. If you recently changed a module name in ftl.toml, make sure it matches the module name in your source files (e.g. go.mod)", moduleName)
 	}
 	deps = slices.Unique(deps)
 	out[moduleName] = deps
@@ -398,7 +401,11 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	}()
 
 	// Build and deploy all modules first.
-	_ = e.BuildAndDeploy(ctx, optional.None[int32](), true, false) //nolint:errcheck
+	if err := e.BuildAndDeploy(ctx, optional.None[int32](), true, false); err != nil {
+		logger.Errorf(err, "Initial build and deploy failed")
+	} else {
+		e.initialBuildDone.Store(true)
+	}
 
 	// Update schema and set initial module hashes
 	for {
@@ -470,27 +477,24 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					},
 				}
 			case watch.WatchEventModuleChanged:
-				// ftl.toml file has changed
-				meta, ok := e.moduleMetas.Load(event.Config.Module)
-				if !ok {
-					logger.Warnf("Module %q not found", event.Config.Module)
+				newModuleName, err := e.handleModuleConfigChange(ctx, event)
+				if err != nil {
+					logger.Errorf(err, "Failed to handle module config change")
 					continue
 				}
 
-				updatedConfig, err := moduleconfig.LoadConfig(event.Config.Dir)
-				if err != nil {
-					logger.Errorf(err, "Could not load updated toml for %s", event.Config.Module)
-					continue
+				// If initial build failed, try to rebuild all modules
+				if !e.initialBuildDone.Load() {
+					logger.Debugf("Attempting full rebuild after configuration change")
+					if err := e.BuildAndDeploy(ctx, optional.None[int32](), true, false); err != nil {
+						logger.Errorf(err, "Rebuild after configuration change failed")
+					} else {
+						e.initialBuildDone.Store(true)
+					}
+				} else {
+					// Otherwise just rebuild the changed module
+					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, newModuleName) //nolint:errcheck
 				}
-				validConfig, err := updatedConfig.FillDefaultsAndValidate(meta.configDefaults, e.projectConfig)
-				if err != nil {
-					logger.Errorf(err, "Could not configure module config defaults for %s", event.Config.Module)
-					continue
-				}
-				meta.module.Config = validConfig
-				e.moduleMetas.Store(event.Config.Module, meta)
-
-				_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, event.Config.Module) //nolint:errcheck
 			}
 		case event := <-e.deployCoordinator.SchemaUpdates:
 			e.targetSchema.Store(event.schema)
@@ -1444,4 +1448,58 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 			return
 		}
 	}
+}
+
+// handleModuleConfigChange processes changes to a module's ftl.toml file, including module renames.
+// It returns the new module name and any error that occurred.
+func (e *Engine) handleModuleConfigChange(ctx context.Context, event watch.WatchEventModuleChanged) (string, error) {
+	logger := log.FromContext(ctx)
+	oldMeta, oldMetaExists := e.moduleMetas.Load(event.Config.Module)
+
+	updatedConfig, err := moduleconfig.LoadConfig(event.Config.Dir)
+	if err != nil {
+		return "", errors.Wrapf(err, "could not load updated toml for %s", event.Config.Module)
+	}
+
+	// If this is a module rename, we need to clean up the old module state
+	if oldMetaExists && updatedConfig.Module != event.Config.Module {
+		logger.Debugf("Module renamed from %q to %q", event.Config.Module, updatedConfig.Module)
+
+		// Clean up the old module name
+		err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module)
+		if err != nil {
+			logger.Errorf(err, "terminate %s failed", event.Config.Module)
+		}
+
+		if oldMeta.plugin != nil {
+			oldMeta.plugin.Updates().Unsubscribe(oldMeta.events)
+			err := oldMeta.plugin.Kill()
+			if err != nil {
+				logger.Errorf(err, "terminate %s plugin failed", event.Config.Module)
+			}
+		}
+
+		e.moduleMetas.Delete(event.Config.Module)
+		e.modulesToBuild.Delete(event.Config.Module)
+
+		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
+			Event: &buildenginepb.EngineEvent_ModuleRemoved{
+				ModuleRemoved: &buildenginepb.ModuleRemoved{
+					Module: event.Config.Module,
+				},
+			},
+		}
+	}
+
+	// Create new module meta with updated config
+	newMeta, err := e.newModuleMeta(ctx, updatedConfig)
+	if err != nil {
+		return "", errors.Wrapf(err, "could not create new module meta for %s", updatedConfig.Module)
+	}
+
+	e.moduleMetas.Store(updatedConfig.Module, newMeta)
+	e.modulesToBuild.Store(updatedConfig.Module, true)
+
+	return updatedConfig.Module, nil
 }
