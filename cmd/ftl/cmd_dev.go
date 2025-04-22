@@ -108,6 +108,9 @@ func (d *devCmd) Run(
 
 	opts := []buildengine.Option{buildengine.Parallelism(d.Build.Parallelism), buildengine.BuildEnv(d.Build.BuildEnv), buildengine.WithDevMode(devModeEndpointUpdates), buildengine.WithStartTime(startTime)}
 	engine, err := buildengine.New(ctx, deployClient, schemaEventSource, projConfig, d.Build.Dirs, false, opts...)
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
 	// cmdServe will notify this channel when startup commands are complete and the controller is ready
 	controllerReady := make(chan bool, 1)
@@ -138,10 +141,6 @@ func (d *devCmd) Run(
 		case <-controllerReady:
 		}
 		starting.Close()
-
-		if err != nil {
-			return errors.WithStack(err)
-		}
 
 		return errors.WithStack(engine.Dev(ctx, d.Watch))
 	})
