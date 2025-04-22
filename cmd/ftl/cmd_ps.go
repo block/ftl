@@ -29,11 +29,25 @@ func (s *psCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClien
 	// Format: deployment, N/M replicas running
 	format := "%-30s %d\n"
 	fmt.Printf("%-30s %s\n", "DEPLOYMENT", "REPLICAS")
-	for _, module := range sch.InternalModules() {
-		if module.Builtin {
-			continue
+	for _, realm := range sch.InternalRealms() {
+		for _, module := range realm.Modules {
+			if module.Builtin {
+				continue
+			}
+			fmt.Printf(format, module.GetRuntime().GetDeployment().DeploymentKey, module.GetRuntime().GetScaling().MinReplicas)
 		}
-		fmt.Printf(format, module.GetRuntime().GetDeployment().DeploymentKey, module.GetRuntime().GetScaling().MinReplicas)
+	}
+	for _, pcs := range status.Msg.Changesets {
+		cs, err := schema.ChangesetFromProto(pcs)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse changeset")
+		}
+		for _, rc := range cs.RealmChanges {
+			for _, module := range cs.OwnedModules(rc) {
+				fmt.Printf(format, module.GetRuntime().GetDeployment().DeploymentKey, module.GetRuntime().GetScaling().MinReplicas)
+			}
+		}
+
 	}
 	return nil
 }
