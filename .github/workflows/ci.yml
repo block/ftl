@@ -248,7 +248,7 @@ jobs:
           path: ~/.m2/repository
   integration-shard:
     name: Shard Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ftl
     outputs:
       matrix: ${{ steps.extract-tests.outputs.matrix }}
     steps:
@@ -264,6 +264,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export GOARCH=amd64
           just build ftl ftl-sqlc
           just build-language-plugins
       - name: Upload Release Binaries
