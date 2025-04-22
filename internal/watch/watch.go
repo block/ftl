@@ -149,12 +149,12 @@ func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []
 				flockRelease = func() error { return nil }
 			}
 			modules, err := DiscoverModules(ctx, moduleDirs)
+			if flerr := flockRelease(); flerr != nil {
+				logger.Debugf("error releasing modules lock after discovering modules: %v", flerr)
+			}
 			if err != nil {
 				logger.Tracef("error discovering modules: %v", err)
 				continue
-			}
-			if err := flockRelease(); err != nil {
-				logger.Debugf("error releasing modules lock after discovering modules: %v", err)
 			}
 
 			modulesByDir := maps.FromSlice(modules, func(config moduleconfig.UnvalidatedModuleConfig) (string, moduleconfig.UnvalidatedModuleConfig) {
