@@ -49,6 +49,8 @@ jobs:
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build Cache
         uses: ./.github/actions/build-cache
+        with:
+          enable-pnpm: 'true'
       - name: Build Go Binaries
         shell: bash
         run: |
