@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 name: Write Cache
 jobs:
-  write-cache:
+  write-os-specific-cache:
     strategy:
       matrix:
         runner: [ubuntu-latest, ftl]
@@ -42,23 +42,6 @@ jobs:
         with:
           path: ${{ runner.os == 'macOS' && '~/Library/Caches/hermit/pkg' || '~/.cache/hermit/pkg' }}
           key: ${{ runner.os }}-${{ runner.arch }}-hermit-cache-${{ steps.bin-hash.outputs.hash }}
-      - name: Save Go Module Cache
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ${{ steps.find-go-build-cache.outputs.cache }}
-          key: ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('**/go.sum') }}
-      - name: Delete Maven Snapshots
-        id: maven-delete-snapshots
-        run: |
-          find ~/.m2/repository -type d -name "*SNAPSHOT" -exec rm -rf {} +
-      - name: Save Maven Modules Cache
-        id: cache-maven
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-${{ runner.arch }}-maven-${{ hashFiles('**/pom.xml') }}
       - name: Save pnpm Modules Cache
         id: cache-pnpm
         uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
@@ -73,3 +56,43 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-${{ runner.arch }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+  write-cache:
+    name: Write Cache
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
+      - name: Install Hermit Packages
+        run: hermit install
+      - name: Rebuild All
+        run: just build-all
+      - name: Download Go Dependencies
+        run: go mod download -x
+      - id: find-go-build-cache
+        shell: bash
+        run: echo "cache=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+      - id: bin-hash
+        shell: bash
+        run: |
+          hash="$(find ./bin ! -type d | sort | xargs openssl sha256 | openssl sha256 -r | cut -d' ' -f1)"
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+      - name: Save Go Module Cache
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ${{ steps.find-go-build-cache.outputs.cache }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: Delete Maven Snapshots
+        id: maven-delete-snapshots
+        run: |
+          find ~/.m2/repository -type d -name "*SNAPSHOT" -exec rm -rf {} +
+      - name: Save Maven Modules Cache
+        id: cache-maven
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
