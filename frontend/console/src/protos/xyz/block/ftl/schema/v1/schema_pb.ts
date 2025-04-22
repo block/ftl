@@ -1537,6 +1537,88 @@ export class DeploymentRuntimeNotification extends Message<DeploymentRuntimeNoti
 }
 
 /**
+ * EgressRuntime stores the actual egress target.
+ *
+ * @generated from message xyz.block.ftl.schema.v1.EgressRuntime
+ */
+export class EgressRuntime extends Message<EgressRuntime> {
+  /**
+   * @generated from field: repeated xyz.block.ftl.schema.v1.EgressTarget targets = 1;
+   */
+  targets: EgressTarget[] = [];
+
+  constructor(data?: PartialMessage<EgressRuntime>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.EgressRuntime";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "targets", kind: "message", T: EgressTarget, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EgressRuntime {
+    return new EgressRuntime().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EgressRuntime {
+    return new EgressRuntime().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EgressRuntime {
+    return new EgressRuntime().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: EgressRuntime | PlainMessage<EgressRuntime> | undefined, b: EgressRuntime | PlainMessage<EgressRuntime> | undefined): boolean {
+    return proto3.util.equals(EgressRuntime, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.EgressTarget
+ */
+export class EgressTarget extends Message<EgressTarget> {
+  /**
+   * @generated from field: string expression = 1;
+   */
+  expression = "";
+
+  /**
+   * @generated from field: string target = 2;
+   */
+  target = "";
+
+  constructor(data?: PartialMessage<EgressTarget>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.EgressTarget";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "expression", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "target", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EgressTarget {
+    return new EgressTarget().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EgressTarget {
+    return new EgressTarget().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EgressTarget {
+    return new EgressTarget().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: EgressTarget | PlainMessage<EgressTarget> | undefined, b: EgressTarget | PlainMessage<EgressTarget> | undefined): boolean {
+    return proto3.util.equals(EgressTarget, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.Enum
  */
 export class Enum extends Message<Enum> {
@@ -2203,6 +2285,12 @@ export class Metadata extends Message<Metadata> {
     case: "databases";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.MetadataEgress egress = 22;
+     */
+    value: MetadataEgress;
+    case: "egress";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.MetadataEncoding encoding = 9;
      */
     value: MetadataEncoding;
@@ -2307,6 +2395,7 @@ export class Metadata extends Message<Metadata> {
     { no: 10, name: "config", kind: "message", T: MetadataConfig, oneof: "value" },
     { no: 3, name: "cron_job", kind: "message", T: MetadataCronJob, oneof: "value" },
     { no: 4, name: "databases", kind: "message", T: MetadataDatabases, oneof: "value" },
+    { no: 22, name: "egress", kind: "message", T: MetadataEgress, oneof: "value" },
     { no: 9, name: "encoding", kind: "message", T: MetadataEncoding, oneof: "value" },
     { no: 20, name: "fixture", kind: "message", T: MetadataFixture, oneof: "value" },
     { no: 18, name: "generated", kind: "message", T: MetadataGenerated, oneof: "value" },
@@ -2618,6 +2707,51 @@ export class MetadataDatabases extends Message<MetadataDatabases> {
 
   static equals(a: MetadataDatabases | PlainMessage<MetadataDatabases> | undefined, b: MetadataDatabases | PlainMessage<MetadataDatabases> | undefined): boolean {
     return proto3.util.equals(MetadataDatabases, a, b);
+  }
+}
+
+/**
+ * MetadataEgress identifies a verb that serves as a Egress boundary.
+ *
+ * @generated from message xyz.block.ftl.schema.v1.MetadataEgress
+ */
+export class MetadataEgress extends Message<MetadataEgress> {
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  /**
+   * @generated from field: repeated string targets = 2;
+   */
+  targets: string[] = [];
+
+  constructor(data?: PartialMessage<MetadataEgress>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.MetadataEgress";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position, opt: true },
+    { no: 2, name: "targets", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetadataEgress {
+    return new MetadataEgress().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetadataEgress {
+    return new MetadataEgress().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetadataEgress {
+    return new MetadataEgress().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetadataEgress | PlainMessage<MetadataEgress> | undefined, b: MetadataEgress | PlainMessage<MetadataEgress> | undefined): boolean {
+    return proto3.util.equals(MetadataEgress, a, b);
   }
 }
 
@@ -4131,6 +4265,12 @@ export class Runtime extends Message<Runtime> {
     case: "databaseRuntime";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.EgressRuntime egress_runtime = 7;
+     */
+    value: EgressRuntime;
+    case: "egressRuntime";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment module_runtime_deployment = 1;
      */
     value: ModuleRuntimeDeployment;
@@ -4149,16 +4289,16 @@ export class Runtime extends Message<Runtime> {
     case: "moduleRuntimeScaling";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector plaintext_kafka_subscription_connector = 8;
+     */
+    value: PlaintextKafkaSubscriptionConnector;
+    case: "plaintextKafkaSubscriptionConnector";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.TopicRuntime topic_runtime = 5;
      */
     value: TopicRuntime;
     case: "topicRuntime";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.schema.v1.VerbRuntime verb_runtime = 4;
-     */
-    value: VerbRuntime;
-    case: "verbRuntime";
   } | { case: undefined; value?: undefined } = { case: undefined };
 
   constructor(data?: PartialMessage<Runtime>) {
@@ -4170,11 +4310,12 @@ export class Runtime extends Message<Runtime> {
   static readonly typeName = "xyz.block.ftl.schema.v1.Runtime";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 6, name: "database_runtime", kind: "message", T: DatabaseRuntime, oneof: "value" },
+    { no: 7, name: "egress_runtime", kind: "message", T: EgressRuntime, oneof: "value" },
     { no: 1, name: "module_runtime_deployment", kind: "message", T: ModuleRuntimeDeployment, oneof: "value" },
     { no: 3, name: "module_runtime_runner", kind: "message", T: ModuleRuntimeRunner, oneof: "value" },
     { no: 2, name: "module_runtime_scaling", kind: "message", T: ModuleRuntimeScaling, oneof: "value" },
+    { no: 8, name: "plaintext_kafka_subscription_connector", kind: "message", T: PlaintextKafkaSubscriptionConnector, oneof: "value" },
     { no: 5, name: "topic_runtime", kind: "message", T: TopicRuntime, oneof: "value" },
-    { no: 4, name: "verb_runtime", kind: "message", T: VerbRuntime, oneof: "value" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Runtime {
@@ -4495,7 +4636,7 @@ export class SubscriptionConnector extends Message<SubscriptionConnector> {
    */
   value: {
     /**
-     * @generated from field: xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector plaintext_kafka_subscription_connector = 1;
+     * @generated from field: xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector plaintext_kafka_subscription_connector = 8;
      */
     value: PlaintextKafkaSubscriptionConnector;
     case: "plaintextKafkaSubscriptionConnector";
@@ -4509,7 +4650,7 @@ export class SubscriptionConnector extends Message<SubscriptionConnector> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.schema.v1.SubscriptionConnector";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "plaintext_kafka_subscription_connector", kind: "message", T: PlaintextKafkaSubscriptionConnector, oneof: "value" },
+    { no: 8, name: "plaintext_kafka_subscription_connector", kind: "message", T: PlaintextKafkaSubscriptionConnector, oneof: "value" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SubscriptionConnector {
@@ -5162,6 +5303,11 @@ export class VerbRuntime extends Message<VerbRuntime> {
    */
   subscriptionConnector?: SubscriptionConnector;
 
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.EgressRuntime egress_runtime = 2;
+   */
+  egressRuntime?: EgressRuntime;
+
   constructor(data?: PartialMessage<VerbRuntime>) {
     super();
     proto3.util.initPartial(data, this);
@@ -5171,6 +5317,7 @@ export class VerbRuntime extends Message<VerbRuntime> {
   static readonly typeName = "xyz.block.ftl.schema.v1.VerbRuntime";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "subscription_connector", kind: "message", T: SubscriptionConnector, opt: true },
+    { no: 2, name: "egress_runtime", kind: "message", T: EgressRuntime, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): VerbRuntime {

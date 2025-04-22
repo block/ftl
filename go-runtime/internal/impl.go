@@ -49,6 +49,10 @@ func (r *RealFTL) GetSecret(_ context.Context, name string, dest any) error {
 	return errors.WithStack(r.dmctx.CurrentContext().GetSecret(name, dest))
 }
 
+func (r *RealFTL) GetEgress(ctx context.Context, name string) (string, error) {
+	return r.dmctx.CurrentContext().GetEgress(name), nil
+}
+
 func (r *RealFTL) PublishEvent(ctx context.Context, topic *schema.Ref, event any, key string) error {
 	caller := reflection.CallingVerb()
 	if topic.Module != caller.Module {

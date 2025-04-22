@@ -188,6 +188,19 @@ func TestValidate(t *testing.T) {
 				"6:10: verb can not have multiple instances of ingress",
 			},
 		},
+		{name: "MissingEgressConfig",
+			schema: `realm foo {
+				module one {
+					data Data {}
+					export verb one(Unit) Unit
+					    +egress "${target}"
+				}
+            }
+			`,
+			errs: []string{
+				"5:10: egress target \"${target}\" references unknown config \"target\"",
+			},
+		},
 		{name: "CronOnNonEmptyVerb",
 			schema: `realm foo {
 				module one {

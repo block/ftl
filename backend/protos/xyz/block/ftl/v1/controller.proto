@@ -97,6 +97,7 @@ message GetDeploymentContextResponse {
   map<string, bytes> secrets = 4;
   repeated DSN databases = 5;
   repeated Route routes = 6;
+  map<string, string> egress = 7;
 }
 
 service ControllerService {

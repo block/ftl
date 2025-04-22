@@ -648,6 +648,11 @@ export class GetDeploymentContextResponse extends Message<GetDeploymentContextRe
    */
   routes: GetDeploymentContextResponse_Route[] = [];
 
+  /**
+   * @generated from field: map<string, string> egress = 7;
+   */
+  egress: { [key: string]: string } = {};
+
   constructor(data?: PartialMessage<GetDeploymentContextResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -662,6 +667,7 @@ export class GetDeploymentContextResponse extends Message<GetDeploymentContextRe
     { no: 4, name: "secrets", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 12 /* ScalarType.BYTES */} },
     { no: 5, name: "databases", kind: "message", T: GetDeploymentContextResponse_DSN, repeated: true },
     { no: 6, name: "routes", kind: "message", T: GetDeploymentContextResponse_Route, repeated: true },
+    { no: 7, name: "egress", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDeploymentContextResponse {

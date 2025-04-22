@@ -30,6 +30,7 @@ func (m DeploymentContext) ToProto() *ftlv1.GetDeploymentContextResponse {
 		Secrets:   m.secrets,
 		Databases: databases,
 		Routes:    routes,
+		Egress:    m.egress,
 	}
 }
 

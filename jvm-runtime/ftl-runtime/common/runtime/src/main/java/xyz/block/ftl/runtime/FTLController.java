@@ -221,4 +221,8 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
             }
         }
     }
+
+    public String getEgress(String name) {
+        return getRunnerConnection().getEgress(name);
+    }
 }

@@ -83,8 +83,9 @@ realm foo {
     verb manualFixture(Unit) Unit
       +fixture manual
 
-    verb mondays(Unit) Unit
-        +cron Mon
+  verb mondays(Unit) Unit
+      +cron Mon
+      +egress "${configValue}"
 
     verb scheduled(Unit) Unit
         +cron */10 * * 1-10,11-31 * * *
@@ -266,6 +267,7 @@ Module
     Unit
     Unit
     MetadataCronJob
+    MetadataEgress
   Verb
     Unit
     Unit
@@ -896,6 +898,7 @@ func TestParseModule(t *testing.T) {
       +cron 12h
     verb mondays(Unit) Unit
       +cron Mon
+      +egress "${configValue}"
     verb fixture(Unit) Unit
       +fixture
     verb manualFixture(Unit) Unit
@@ -1073,6 +1076,9 @@ var testSchema = MustValidate(&Schema{
 						Metadata: []Metadata{
 							&MetadataCronJob{
 								Cron: "Mon",
+							},
+							&MetadataEgress{
+								Targets: []string{"${configValue}"},
 							},
 						},
 					},

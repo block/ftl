@@ -161,11 +161,19 @@ type VerbResourceParamOrder struct {
 }
 
 type VerbResourceParam struct {
-	Ref  *schema.Ref
-	Type schema.Metadata
+	Ref          *schema.Ref
+	Type         schema.Metadata
+	EgressTarget string
 }
 
 func (*VerbResourceParamOrder) schemaFactValue() {}
+
+// EgressParams is used to map egress targets to their corresponding resource types.
+type EgressParams struct {
+	Targets map[string]string
+}
+
+func (*EgressParams) schemaFactValue() {}
 
 // MarkSchemaDecl marks the given object as having been extracted to the given schema decl.
 func MarkSchemaDecl(pass *analysis.Pass, obj types.Object, decl schema.Decl) {
@@ -234,6 +242,13 @@ func MarkIncludeNativeName(pass *analysis.Pass, obj types.Object, node schema.No
 func MarkVerbResourceParamOrder(pass *analysis.Pass, obj types.Object, resources []VerbResourceParam) {
 	fact := newFact(pass, obj)
 	fact.Add(&VerbResourceParamOrder{Resources: resources})
+	pass.ExportObjectFact(obj, fact)
+}
+
+// MarkEgressParameters marks the given object as having egress parameters.
+func MarkEgressParameters(pass *analysis.Pass, obj types.Object, params map[string]string) {
+	fact := newFact(pass, obj)
+	fact.Add(&EgressParams{Targets: params})
 	pass.ExportObjectFact(obj, fact)
 }
 

@@ -34,6 +34,8 @@ func (r resource) toMetadataType() (schema.Metadata, error) {
 		return &schema.MetadataConfig{}, nil
 	case common.VerbResourceTypeSecret:
 		return &schema.MetadataSecrets{}, nil
+	case common.VerbResourceTypeEgress:
+		return &schema.MetadataEgress{}, nil
 	default:
 		return nil, errors.Errorf("unsupported resource type")
 	}
@@ -58,10 +60,24 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 		verb.Export = md.IsExported
 		verb.Metadata = md.Metadata
 		for idx, param := range node.Type.Params.List {
-			r, err := resolveResource(pass, param.Type)
-			if err != nil {
-				common.Wrapf(pass, param, err, "")
-				continue
+			var err error
+			var r *resource
+			egress := ""
+			params := common.GetFactForObject[*common.EgressParams](pass, obj)
+			if p, ok := params.Get(); ok {
+				egress = p.Targets[param.Names[0].Name]
+				if egress != "" {
+					r = &resource{
+						typ: common.VerbResourceTypeEgress,
+					}
+				}
+			}
+			if r == nil {
+				r, err = resolveResource(pass, param.Type)
+				if err != nil {
+					common.Wrapf(pass, param, err, "")
+					continue
+				}
 			}
 
 			// if this parameter can't be resolved to a resource, it must either be the context or request parameter:
@@ -83,7 +99,9 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 				common.Errorf(pass, param, "unsupported verb parameter type")
 				continue
 			}
-			common.MarkIncludeNativeName(pass, paramObj, r.ref)
+			if r.ref != nil {
+				common.MarkIncludeNativeName(pass, paramObj, r.ref)
+			}
 			switch r.typ {
 			case common.VerbResourceTypeVerbClient:
 				if currentModule, err := common.FtlModuleFromGoPackage(pass.Pkg.Path()); err == nil && isTransaction && r.ref.Module != currentModule {
@@ -103,6 +121,8 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 				verb.AddConfig(r.ref)
 			case common.VerbResourceTypeSecret:
 				verb.AddSecret(r.ref)
+			case common.VerbResourceTypeEgress:
+				verb.AddEgress(egress)
 			default:
 				common.Errorf(pass, param, "unsupported verb parameter type in verb %s at parameter %d; verbs must have the "+
 					"signature func(Context, Request?, Resources...)", verb.Name, idx)
@@ -112,8 +132,9 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 				common.Wrapf(pass, param, err, "")
 			}
 			orderedResourceParams = append(orderedResourceParams, common.VerbResourceParam{
-				Ref:  r.ref,
-				Type: rt,
+				Ref:          r.ref,
+				Type:         rt,
+				EgressTarget: egress,
 			})
 		}
 	}) {

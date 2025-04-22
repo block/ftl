@@ -337,6 +337,12 @@ type verbClient struct {
 
 func (v verbClient) resource() {}
 
+type verbEgress struct {
+	Target string
+}
+
+func (v verbEgress) resource() {}
+
 type goDBHandle struct {
 	Type   string
 	Name   string
@@ -1245,6 +1251,9 @@ func (b *mainDeploymentContextBuilder) processVerb(verb *schema.Verb) (goVerb, e
 }
 
 func (b *mainDeploymentContextBuilder) getVerbResource(verb *schema.Verb, param common.VerbResourceParam) (verbResource, error) {
+	if param.EgressTarget != "" {
+		return verbEgress{Target: param.EgressTarget}, nil
+	}
 	ref := param.Ref
 	resolved, ok := b.sch.Resolve(ref).Get()
 	if !ok {
@@ -1668,6 +1677,12 @@ var scaffoldFuncs = scaffolder.FuncMap{
 	},
 	"getSecretHandle": func(resource verbResource) *goSecretHandle {
 		if c, ok := resource.(goSecretHandle); ok {
+			return &c
+		}
+		return nil
+	},
+	"getEgressTarget": func(resource verbResource) *verbEgress {
+		if c, ok := resource.(verbEgress); ok {
 			return &c
 		}
 		return nil

@@ -324,10 +324,8 @@ func provisionSubscription() InMemResourceProvisionerFn {
 			return &schema.RuntimeElement{
 				Name:       optional.Some(res.ResourceID()),
 				Deployment: deployment,
-				Element: &schema.VerbRuntime{
-					SubscriptionConnector: &schema.PlaintextKafkaSubscriptionConnector{
-						KafkaBrokers: redPandaBrokers,
-					},
+				Element: &schema.PlaintextKafkaSubscriptionConnector{
+					KafkaBrokers: redPandaBrokers,
 				}}, nil
 		}
 		return nil, nil

@@ -319,6 +319,20 @@ class DeploymentRuntimeNotification(_message.Message):
     changeset: str
     def __init__(self, payload: _Optional[_Union[RuntimeElement, _Mapping]] = ..., changeset: _Optional[str] = ...) -> None: ...
 
+class EgressRuntime(_message.Message):
+    __slots__ = ("targets",)
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
+    targets: _containers.RepeatedCompositeFieldContainer[EgressTarget]
+    def __init__(self, targets: _Optional[_Iterable[_Union[EgressTarget, _Mapping]]] = ...) -> None: ...
+
+class EgressTarget(_message.Message):
+    __slots__ = ("expression", "target")
+    EXPRESSION_FIELD_NUMBER: _ClassVar[int]
+    TARGET_FIELD_NUMBER: _ClassVar[int]
+    expression: str
+    target: str
+    def __init__(self, expression: _Optional[str] = ..., target: _Optional[str] = ...) -> None: ...
+
 class Enum(_message.Message):
     __slots__ = ("pos", "comments", "export", "name", "type", "variants")
     POS_FIELD_NUMBER: _ClassVar[int]
@@ -444,13 +458,14 @@ class Map(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., key: _Optional[_Union[Type, _Mapping]] = ..., value: _Optional[_Union[Type, _Mapping]] = ...) -> None: ...
 
 class Metadata(_message.Message):
-    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "databases", "encoding", "fixture", "generated", "git", "ingress", "partitions", "publisher", "retry", "sql_column", "sql_migration", "sql_query", "secrets", "subscriber", "transaction", "type_map")
+    __slots__ = ("alias", "artefact", "calls", "config", "cron_job", "databases", "egress", "encoding", "fixture", "generated", "git", "ingress", "partitions", "publisher", "retry", "sql_column", "sql_migration", "sql_query", "secrets", "subscriber", "transaction", "type_map")
     ALIAS_FIELD_NUMBER: _ClassVar[int]
     ARTEFACT_FIELD_NUMBER: _ClassVar[int]
     CALLS_FIELD_NUMBER: _ClassVar[int]
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     CRON_JOB_FIELD_NUMBER: _ClassVar[int]
     DATABASES_FIELD_NUMBER: _ClassVar[int]
+    EGRESS_FIELD_NUMBER: _ClassVar[int]
     ENCODING_FIELD_NUMBER: _ClassVar[int]
     FIXTURE_FIELD_NUMBER: _ClassVar[int]
     GENERATED_FIELD_NUMBER: _ClassVar[int]
@@ -472,6 +487,7 @@ class Metadata(_message.Message):
     config: MetadataConfig
     cron_job: MetadataCronJob
     databases: MetadataDatabases
+    egress: MetadataEgress
     encoding: MetadataEncoding
     fixture: MetadataFixture
     generated: MetadataGenerated
@@ -487,7 +503,7 @@ class Metadata(_message.Message):
     subscriber: MetadataSubscriber
     transaction: MetadataTransaction
     type_map: MetadataTypeMap
-    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., fixture: _Optional[_Union[MetadataFixture, _Mapping]] = ..., generated: _Optional[_Union[MetadataGenerated, _Mapping]] = ..., git: _Optional[_Union[MetadataGit, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., partitions: _Optional[_Union[MetadataPartitions, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_column: _Optional[_Union[MetadataSQLColumn, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., sql_query: _Optional[_Union[MetadataSQLQuery, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., transaction: _Optional[_Union[MetadataTransaction, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
+    def __init__(self, alias: _Optional[_Union[MetadataAlias, _Mapping]] = ..., artefact: _Optional[_Union[MetadataArtefact, _Mapping]] = ..., calls: _Optional[_Union[MetadataCalls, _Mapping]] = ..., config: _Optional[_Union[MetadataConfig, _Mapping]] = ..., cron_job: _Optional[_Union[MetadataCronJob, _Mapping]] = ..., databases: _Optional[_Union[MetadataDatabases, _Mapping]] = ..., egress: _Optional[_Union[MetadataEgress, _Mapping]] = ..., encoding: _Optional[_Union[MetadataEncoding, _Mapping]] = ..., fixture: _Optional[_Union[MetadataFixture, _Mapping]] = ..., generated: _Optional[_Union[MetadataGenerated, _Mapping]] = ..., git: _Optional[_Union[MetadataGit, _Mapping]] = ..., ingress: _Optional[_Union[MetadataIngress, _Mapping]] = ..., partitions: _Optional[_Union[MetadataPartitions, _Mapping]] = ..., publisher: _Optional[_Union[MetadataPublisher, _Mapping]] = ..., retry: _Optional[_Union[MetadataRetry, _Mapping]] = ..., sql_column: _Optional[_Union[MetadataSQLColumn, _Mapping]] = ..., sql_migration: _Optional[_Union[MetadataSQLMigration, _Mapping]] = ..., sql_query: _Optional[_Union[MetadataSQLQuery, _Mapping]] = ..., secrets: _Optional[_Union[MetadataSecrets, _Mapping]] = ..., subscriber: _Optional[_Union[MetadataSubscriber, _Mapping]] = ..., transaction: _Optional[_Union[MetadataTransaction, _Mapping]] = ..., type_map: _Optional[_Union[MetadataTypeMap, _Mapping]] = ...) -> None: ...
 
 class MetadataAlias(_message.Message):
     __slots__ = ("pos", "kind", "alias")
@@ -542,6 +558,14 @@ class MetadataDatabases(_message.Message):
     pos: Position
     uses: _containers.RepeatedCompositeFieldContainer[Ref]
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., uses: _Optional[_Iterable[_Union[Ref, _Mapping]]] = ...) -> None: ...
+
+class MetadataEgress(_message.Message):
+    __slots__ = ("pos", "targets")
+    POS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
+    pos: Position
+    targets: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., targets: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class MetadataEncoding(_message.Message):
     __slots__ = ("pos", "type", "lenient")
@@ -848,20 +872,22 @@ class Ref(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., module: _Optional[str] = ..., name: _Optional[str] = ..., type_parameters: _Optional[_Iterable[_Union[Type, _Mapping]]] = ...) -> None: ...
 
 class Runtime(_message.Message):
-    __slots__ = ("database_runtime", "module_runtime_deployment", "module_runtime_runner", "module_runtime_scaling", "topic_runtime", "verb_runtime")
+    __slots__ = ("database_runtime", "egress_runtime", "module_runtime_deployment", "module_runtime_runner", "module_runtime_scaling", "plaintext_kafka_subscription_connector", "topic_runtime")
     DATABASE_RUNTIME_FIELD_NUMBER: _ClassVar[int]
+    EGRESS_RUNTIME_FIELD_NUMBER: _ClassVar[int]
     MODULE_RUNTIME_DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
     MODULE_RUNTIME_RUNNER_FIELD_NUMBER: _ClassVar[int]
     MODULE_RUNTIME_SCALING_FIELD_NUMBER: _ClassVar[int]
+    PLAINTEXT_KAFKA_SUBSCRIPTION_CONNECTOR_FIELD_NUMBER: _ClassVar[int]
     TOPIC_RUNTIME_FIELD_NUMBER: _ClassVar[int]
-    VERB_RUNTIME_FIELD_NUMBER: _ClassVar[int]
     database_runtime: DatabaseRuntime
+    egress_runtime: EgressRuntime
     module_runtime_deployment: ModuleRuntimeDeployment
     module_runtime_runner: ModuleRuntimeRunner
     module_runtime_scaling: ModuleRuntimeScaling
+    plaintext_kafka_subscription_connector: PlaintextKafkaSubscriptionConnector
     topic_runtime: TopicRuntime
-    verb_runtime: VerbRuntime
-    def __init__(self, database_runtime: _Optional[_Union[DatabaseRuntime, _Mapping]] = ..., module_runtime_deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ..., module_runtime_runner: _Optional[_Union[ModuleRuntimeRunner, _Mapping]] = ..., module_runtime_scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., topic_runtime: _Optional[_Union[TopicRuntime, _Mapping]] = ..., verb_runtime: _Optional[_Union[VerbRuntime, _Mapping]] = ...) -> None: ...
+    def __init__(self, database_runtime: _Optional[_Union[DatabaseRuntime, _Mapping]] = ..., egress_runtime: _Optional[_Union[EgressRuntime, _Mapping]] = ..., module_runtime_deployment: _Optional[_Union[ModuleRuntimeDeployment, _Mapping]] = ..., module_runtime_runner: _Optional[_Union[ModuleRuntimeRunner, _Mapping]] = ..., module_runtime_scaling: _Optional[_Union[ModuleRuntimeScaling, _Mapping]] = ..., plaintext_kafka_subscription_connector: _Optional[_Union[PlaintextKafkaSubscriptionConnector, _Mapping]] = ..., topic_runtime: _Optional[_Union[TopicRuntime, _Mapping]] = ...) -> None: ...
 
 class RuntimeElement(_message.Message):
     __slots__ = ("element", "deployment", "name")
@@ -1062,7 +1088,9 @@ class Verb(_message.Message):
     def __init__(self, pos: _Optional[_Union[Position, _Mapping]] = ..., comments: _Optional[_Iterable[str]] = ..., export: bool = ..., name: _Optional[str] = ..., request: _Optional[_Union[Type, _Mapping]] = ..., response: _Optional[_Union[Type, _Mapping]] = ..., metadata: _Optional[_Iterable[_Union[Metadata, _Mapping]]] = ..., runtime: _Optional[_Union[VerbRuntime, _Mapping]] = ...) -> None: ...
 
 class VerbRuntime(_message.Message):
-    __slots__ = ("subscription_connector",)
+    __slots__ = ("subscription_connector", "egress_runtime")
     SUBSCRIPTION_CONNECTOR_FIELD_NUMBER: _ClassVar[int]
+    EGRESS_RUNTIME_FIELD_NUMBER: _ClassVar[int]
     subscription_connector: SubscriptionConnector
-    def __init__(self, subscription_connector: _Optional[_Union[SubscriptionConnector, _Mapping]] = ...) -> None: ...
+    egress_runtime: EgressRuntime
+    def __init__(self, subscription_connector: _Optional[_Union[SubscriptionConnector, _Mapping]] = ..., egress_runtime: _Optional[_Union[EgressRuntime, _Mapping]] = ...) -> None: ...
