@@ -397,8 +397,16 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 		cancel(errors.Wrap(context.Canceled, "watch stopped"))
 	}()
 
-	// Build and deploy all modules first.
-	_ = e.BuildAndDeploy(ctx, optional.None[int32](), true, false) //nolint:errcheck
+	// Build all modules first but don't deploy them
+	initialBuildErr := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, e.Modules()...)
+	if initialBuildErr != nil {
+		logger.Errorf(initialBuildErr, "Failed to build modules")
+		// Update module states to failed for modules that had errors
+		e.moduleMetas.Range(func(name string, meta moduleMeta) bool {
+			e.reportBuildErrors(logger, meta, name, initialBuildErr)
+			return true
+		})
+	}
 
 	// Update schema and set initial module hashes
 	for {
@@ -418,6 +426,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 		}
 		moduleHashes[sch.Name] = hash
 	}
+
+	// Track modules that need retry due to name fixes
+	modulesToRetry := make(map[string]bool)
 
 	for {
 		select {
@@ -448,6 +459,14 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					logger.Debugf("calling build and deploy %q", event.Config.Module)
 					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module) //nolint:errcheck
 				}
+
+				// Check if this module was waiting for a retry
+				if modulesToRetry[config.Module] {
+					delete(modulesToRetry, config.Module)
+					logger.Debugf("Retrying build for fixed module %s", config.Module)
+					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module) //nolint:errcheck
+				}
+
 			case watch.WatchEventModuleRemoved:
 				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module)
 				if err != nil {
@@ -487,6 +506,43 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					logger.Errorf(err, "Could not configure module config defaults for %s", event.Config.Module)
 					continue
 				}
+
+				// Check if module name was fixed
+				if validConfig.Module != meta.module.Config.Module {
+					// Get all modules that depend on this module
+					dependentModuleNames := e.getDependentModuleNames(validConfig.Module)
+					logger.Debugf("Module name fixed from %s to %s, retrying dependent modules: %s", meta.module.Config.Module, validConfig.Module, strings.Join(dependentModuleNames, ", "))
+
+					// Store the old module name to clean it up later
+					oldModuleName := meta.module.Config.Module
+
+					// Update the module meta with new config
+					meta.module.Config = validConfig
+					e.moduleMetas.Store(validConfig.Module, meta)
+
+					// Remove the old module name entry
+					e.moduleMetas.Delete(oldModuleName)
+
+					// Build the fixed module first
+					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, validConfig.Module) //nolint:errcheck
+
+					// Get all modules that might need rebuilding
+					var modulesToRebuild []string
+					e.moduleMetas.Range(func(name string, _ moduleMeta) bool {
+						if name != validConfig.Module { // Skip the module we just fixed
+							modulesToRebuild = append(modulesToRebuild, name)
+						}
+						return true
+					})
+
+					// Then build all other modules as they might have been waiting on this module
+					if len(modulesToRebuild) > 0 {
+						logger.Debugf("Rebuilding all modules after fixing module name from %s to %s", oldModuleName, validConfig.Module)
+						_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, modulesToRebuild...) //nolint:errcheck
+					}
+					continue
+				}
+
 				meta.module.Config = validConfig
 				e.moduleMetas.Store(event.Config.Module, meta)
 
@@ -853,6 +909,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 		}
 		return nil
 	}, moduleNames...)
+
 	if buildErr != nil {
 		return errors.WithStack(buildErr)
 	}
@@ -1442,6 +1499,39 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 				return true
 			})
 			return
+		}
+	}
+}
+
+// reportBuildErrors checks for build errors in a module and reports them to the engine updates channel
+func (e *Engine) reportBuildErrors(logger *log.Logger, meta moduleMeta, name string, initialBuildErr error) {
+	// Check for any type of build error
+	var buildErrors *langpb.ErrorList
+	if meta.module.SQLError != nil {
+		buildErrors = &langpb.ErrorList{
+			Errors: errorToLangError(meta.module.SQLError),
+		}
+	} else if initialBuildErr != nil {
+		// If we have a build error but no SQL error, it's likely a dependency or plugin error
+		buildErrors = &langpb.ErrorList{
+			Errors: errorToLangError(initialBuildErr),
+		}
+	}
+
+	if buildErrors != nil && len(buildErrors.Errors) > 0 {
+		configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
+		if err != nil {
+			logger.Errorf(err, "failed to marshal module config for %s", name)
+			return
+		}
+		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
+			Event: &buildenginepb.EngineEvent_ModuleBuildFailed{
+				ModuleBuildFailed: &buildenginepb.ModuleBuildFailed{
+					Config: configProto,
+					Errors: buildErrors,
+				},
+			},
 		}
 	}
 }
