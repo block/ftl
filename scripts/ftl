@@ -7,16 +7,21 @@ unset GOARCH
 unset GOOS
 export CGO_ENABLED=0
 
-FTL_DIR="$(dirname "$(readlink -f "$0")")/.."
-export FTL_DIR
+ftldir="$(dirname "$(readlink -f "$0")")/.."
 
-if [ ! "${HERMIT_ENV}" -ef "${FTL_DIR}" ]; then
+if [ ! "${HERMIT_ENV}" -ef "${ftldir}" ]; then
   # shellcheck disable=SC1091
-  . "${FTL_DIR}/bin/activate-hermit"
+  . "${ftldir}/bin/activate-hermit"
 fi
 
 name="$(basename "$0")"
-dest="${FTL_DIR}/build/devel"
+
+if [ "${USE_RELEASE_BINARIES:-0}" = "1" ]; then
+  exec "${ftldir}/build/release/$name" "$@"
+fi
+
+dest="${ftldir}/build/devel"
 src="./cmd/${name}"
 mkdir -p "$dest"
-"${FTL_DIR}/bin/go" build -C "${FTL_DIR}/${src}" -ldflags="-s -w -buildid=" -o "$dest/${name}" . && exec "$dest/${name}" "$@"
+
+"${ftldir}/bin/go" build -C "${ftldir}/${src}" -ldflags="-s -w -buildid=" -o "$dest/${name}" . && exec "$dest/${name}" "$@"
