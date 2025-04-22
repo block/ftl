@@ -37,6 +37,28 @@ jobs:
         uses: ./.github/actions/save-docker-image
         with:
           service: ${{ matrix.service }}
+
+  build-jvm-artifacts:
+    name: Build JVM Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
+      - name: Build Cache
+        uses: ./.github/actions/build-cache
+        with:
+          enable-maven: 'true'
+      - name: Build JVM Artifacts
+        shell: bash
+        run: |
+          just build-jvm
+      - name: Upload JVM Jars
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
+        with:
+          name: infra-maven-repo
+          path: ~/.m2/repository
   infrastructure-shard:
     name: Shard Infrastructure Tests
     runs-on: ubuntu-latest
@@ -74,6 +96,7 @@ jobs:
     needs:
       - infrastructure-shard
       - build-docker-images
+      - build-jvm-artifacts
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -114,6 +137,11 @@ jobs:
         with:
           name: infra-backend-binaries
           path: build/release
+      - name: Download JVM Binaries
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # ratchet:actions/download-artifact@v4
+        with:
+          name: infra-maven-repo
+          path: ~/.m2/repository
       - name: Run ${{ matrix.test }}
         run: |
           set -euo pipefail
