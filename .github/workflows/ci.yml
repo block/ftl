@@ -86,6 +86,8 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
+        with:
+          enable-pnpm: 'true'
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Console pnpm install
@@ -124,6 +126,8 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
+        with:
+          enable-pnpm: 'true'
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: VSCode extension pnpm install
@@ -142,6 +146,8 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
+        with:
+          enable-maven: 'true'
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Install Java
@@ -157,6 +163,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
+        with:
+          enable-pnpm: 'true'
+          enable-maven: 'true'
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Rebuild All
@@ -228,6 +237,8 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
+        with:
+          enable-pnpm: 'true'
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Restore playwright browser cache
@@ -274,6 +285,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Build Cache
         uses: ./.github/actions/build-cache
+        with:
+          enable-pnpm: 'true'
+          enable-maven: 'true'
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Download Go Modules
@@ -347,6 +361,9 @@ jobs:
           done
       - name: Build Cache
         uses: ./.github/actions/build-cache
+        with:
+          enable-pnpm: 'true'
+          enable-maven: 'true'
       - name: Download Go Modules
         run: go mod download
       - name: Build Language Plugins

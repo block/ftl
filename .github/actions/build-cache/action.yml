@@ -1,5 +1,14 @@
 name: Build Cache
 description: Cache builds
+inputs:
+  enable-pnpm:
+    description: Enable pnpm cache
+    required: false
+    default: 'false'
+  enable-maven:
+    description: Enable maven cache
+    required: false
+    default: 'false'
 runs:
   using: "composite"
   # Make sure to keep these cache entries in sync with those in writecache.yml
@@ -35,6 +44,7 @@ runs:
           ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           ${{ runner.os }}-
     - name: Restore Maven Modules Cache
+      if: ${{ inputs.enable-maven == 'true' }}
       id: cache-maven
       uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4
       with:
@@ -46,6 +56,7 @@ runs:
           ${{ runner.os }}-maven-
     - name: Restore pnpm Cache
       id: cache-pnpm
+      if: ${{ inputs.enable-pnpm == 'true' }}
       uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4
       with:
         path: |
