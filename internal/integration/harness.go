@@ -287,7 +287,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			// We create the client before, as kube itself is up, we are just waiting for the deployments
 			err = ftlexec.Command(ctx, log.Debug, filepath.Join(rootDir, "deployment"), "just", "wait-for-kube").RunBuffered(ctx)
 			if err != nil {
-				dumpKubePods(ctx, optional.Ptr(kubeClient), kubeNamespace)
+				dumpKubePods(ctx, nil, optional.Ptr(kubeClient), kubeNamespace)
 			}
 			assert.NoError(t, err)
 			ver := os.Getenv("OLD_FTL_VERSION")
@@ -390,7 +390,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				kubeClient:    optional.Ptr(kubeClient),
 			}
 			defer dumpTestContents(ctx, ic)
-			defer dumpKubePods(ctx, ic.kubeClient, ic.kubeNamespace)
+			defer dumpKubePods(ctx, t, ic.kubeClient, ic.kubeNamespace)
 			if opts.startController || opts.kube {
 				ic.Admin = admin
 				ic.Schema = schema
@@ -652,7 +652,11 @@ func dumpTestContents(ctx context.Context, ic TestContext) {
 
 }
 
-func dumpKubePods(ctx context.Context, kubeClient optional.Option[kubernetes.Clientset], defaultNs string) {
+func dumpKubePods(ctx context.Context, t *testing.T, kubeClient optional.Option[kubernetes.Clientset], defaultNs string) {
+	if t != nil && !t.Failed() {
+		Infof("Skipping dump, test did not fail")
+		return
+	}
 
 	if client, ok := kubeClient.Get(); ok {
 		_ = os.RemoveAll(dumpPath) // #nosec
