@@ -33,6 +33,9 @@ jobs:
         uses: cashapp/activate-hermit@e49f5cb4dd64ff0b0b659d1d8df499595451155a # ratchet:cashapp/activate-hermit@v1
       - name: Build Cache
         uses: ./.github/actions/build-cache
+        with:
+          enable-pnpm: 'true'
+          enable-maven: 'true'
       - name: Download Go Modules
         run: go mod download
       - name: Set up a kube cluster with the tagged release dockerhub image
