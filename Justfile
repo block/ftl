@@ -395,7 +395,6 @@ build-docker name:
     just build-docker runner
     # Build the language-specific runner
     docker build \
-      --platform linux/amd64 \
       -t ftl0/ftl-{{name}}:latest \
       -t ftl0/ftl-{{name}}:"${GITHUB_SHA:-$(git rev-parse HEAD)}" \
       -f Dockerfile.runner-${runtime} .
@@ -414,7 +413,6 @@ build-docker name:
 
     # Build regular service
     docker build \
-      --platform linux/amd64 \
       -t ftl0/ftl-{{name}}:latest \
       -t ftl0/ftl-{{name}}:"${GITHUB_SHA:-$(git rev-parse HEAD)}" \
       --build-arg SERVICE={{name}} \

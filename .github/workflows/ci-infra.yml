@@ -8,7 +8,7 @@ concurrency:
 jobs:
   docker-shard:
     name: Shard Docker Builds
-    runs-on: ubuntu-latest
+    runs-on: ftl
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -21,7 +21,7 @@ jobs:
   build-docker-images:
     name: Build ${{ matrix.service }} Docker Image
     needs: docker-shard
-    runs-on: ubuntu-latest
+    runs-on: ftl
     strategy:
       matrix:
         service: ${{ fromJson(needs.docker-shard.outputs.matrix) }}
@@ -39,7 +39,7 @@ jobs:
           service: ${{ matrix.service }}
   infrastructure-shard:
     name: Shard Infrastructure Tests
-    runs-on: ubuntu-latest
+    runs-on: ftl
     outputs:
       matrix: ${{ steps.extract-tests.outputs.matrix }}
     steps:
@@ -74,7 +74,7 @@ jobs:
     needs:
       - infrastructure-shard
       - build-docker-images
-    runs-on: ubuntu-latest
+    runs-on: ftl
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.infrastructure-shard.outputs.matrix)}}
@@ -137,7 +137,7 @@ jobs:
   docker-success:
     name: Docker Success
     needs: [build-docker-images]
-    runs-on: ubuntu-latest
+    runs-on: ftl
     if: ${{ always() }}
     steps:
       - name: Check docker builds result
@@ -151,7 +151,7 @@ jobs:
   infrastructure-success:
     name: Infrastructure Success
     needs: [infrastructure-run]
-    runs-on: ubuntu-latest
+    runs-on: ftl
     if: ${{ always() }}
     steps:
       - name: Check infrastructure tests result
