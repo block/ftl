@@ -306,8 +306,12 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			assert.NoError(t, err)
 		}
 		if opts.requireJava || slices.Contains(opts.languages, "java") || slices.Contains(opts.languages, "kotlin") {
-			err = ftlexec.Command(ctx, log.Debug, rootDir, "just", "build-jvm", "-DskipTests", "-B").RunBuffered(ctx)
-			assert.NoError(t, err)
+			if os.Getenv("USE_RELEASE_BINARIES") == "1" {
+				Infof("Using release binaries for JVM Artifacts")
+			} else {
+				err = ftlexec.Command(ctx, log.Debug, rootDir, "just", "build-jvm", "-DskipTests", "-B").RunBuffered(ctx)
+				assert.NoError(t, err)
+			}
 		}
 		if opts.localstack {
 			err = ftlexec.Command(ctx, log.Debug, rootDir, "just", "localstack").RunBuffered(ctx)
