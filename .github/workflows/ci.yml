@@ -296,14 +296,12 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
-          enable-pnpm: 'true'
           enable-maven: 'true'
-      - name: Init Hermit
-        uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
-      - name: Download Go Modules
-        run: go mod download
-      - name: Build Language Plugins
-        run: just build-language-plugins
+      - name: Download Release Binaries
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # ratchet:actions/download-artifact@v4
+        with:
+          name: backend-binaries
+          path: build/release
       - name: Run ${{ matrix.test }}
         run: |
           set -euo pipefail
