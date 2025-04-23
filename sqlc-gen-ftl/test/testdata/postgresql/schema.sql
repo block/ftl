@@ -31,3 +31,8 @@ CREATE TABLE all_types (
     -- JSON type
     some_json JSON NOT NULL
 );
+
+CREATE TABLE requests (
+    id SERIAL PRIMARY KEY,
+    data TEXT NOT NULL
+);

@@ -198,4 +198,51 @@ pub struct GetInfoResponse {
     #[prost(string, tag="4")]
     pub build_time: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteGooseRequest {
+    #[prost(string, tag="1")]
+    pub prompt: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteGooseResponse {
+    #[prost(string, tag="1")]
+    pub response: ::prost::alloc::string::String,
+    #[prost(enumeration="execute_goose_response::Source", tag="2")]
+    pub source: i32,
+}
+/// Nested message and enum types in `ExecuteGooseResponse`.
+pub mod execute_goose_response {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum Source {
+        Unspecified = 0,
+        Stdout = 1,
+        Stderr = 2,
+        Completion = 3,
+    }
+    impl Source {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "SOURCE_UNSPECIFIED",
+                Self::Stdout => "SOURCE_STDOUT",
+                Self::Stderr => "SOURCE_STDERR",
+                Self::Completion => "SOURCE_COMPLETION",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "SOURCE_UNSPECIFIED" => Some(Self::Unspecified),
+                "SOURCE_STDOUT" => Some(Self::Stdout),
+                "SOURCE_STDERR" => Some(Self::Stderr),
+                "SOURCE_COMPLETION" => Some(Self::Completion),
+                _ => None,
+            }
+        }
+    }
+}
 // @@protoc_insertion_point(module)

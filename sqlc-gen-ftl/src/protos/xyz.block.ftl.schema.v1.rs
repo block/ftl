@@ -40,14 +40,10 @@ pub struct Changeset {
     #[prost(message, optional, tag="2")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, repeated, tag="3")]
-    pub modules: ::prost::alloc::vec::Vec<Module>,
-    #[prost(string, repeated, tag="4")]
-    pub to_remove: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, repeated, tag="5")]
-    pub removing_modules: ::prost::alloc::vec::Vec<Module>,
-    #[prost(enumeration="ChangesetState", tag="6")]
+    pub realm_changes: ::prost::alloc::vec::Vec<RealmChange>,
+    #[prost(enumeration="ChangesetState", tag="4")]
     pub state: i32,
-    #[prost(string, optional, tag="7")]
+    #[prost(string, optional, tag="5")]
     pub error: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -248,6 +244,19 @@ pub struct DeploymentRuntimeNotification {
     #[prost(string, tag="2")]
     pub changeset: ::prost::alloc::string::String,
 }
+/// EgressRuntime stores the actual egress target.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EgressRuntime {
+    #[prost(message, repeated, tag="1")]
+    pub targets: ::prost::alloc::vec::Vec<EgressTarget>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EgressTarget {
+    #[prost(string, tag="1")]
+    pub expression: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub target: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Enum {
     #[prost(message, optional, tag="1")]
@@ -258,8 +267,8 @@ pub struct Enum {
     pub export: bool,
     #[prost(string, tag="4")]
     pub name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="5")]
-    pub r#type: ::core::option::Option<Type>,
+    #[prost(message, optional, boxed, tag="5")]
+    pub r#type: ::core::option::Option<::prost::alloc::boxed::Box<Type>>,
     #[prost(message, repeated, tag="6")]
     pub variants: ::prost::alloc::vec::Vec<EnumVariant>,
 }
@@ -379,7 +388,7 @@ pub struct Map {
 /// Metadata represents a metadata Node in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Metadata {
-    #[prost(oneof="metadata::Value", tags="5, 14, 1, 10, 3, 4, 9, 20, 18, 19, 2, 15, 12, 6, 17, 13, 16, 11, 7, 21, 8")]
+    #[prost(oneof="metadata::Value", tags="5, 14, 1, 10, 3, 4, 22, 9, 20, 18, 19, 2, 15, 12, 6, 17, 13, 16, 11, 7, 21, 8")]
     pub value: ::core::option::Option<metadata::Value>,
 }
 /// Nested message and enum types in `Metadata`.
@@ -398,6 +407,8 @@ pub mod metadata {
         CronJob(super::MetadataCronJob),
         #[prost(message, tag="4")]
         Databases(super::MetadataDatabases),
+        #[prost(message, tag="22")]
+        Egress(super::MetadataEgress),
         #[prost(message, tag="9")]
         Encoding(super::MetadataEncoding),
         #[prost(message, tag="20")]
@@ -479,6 +490,14 @@ pub struct MetadataDatabases {
     pub pos: ::core::option::Option<Position>,
     #[prost(message, repeated, tag="2")]
     pub uses: ::prost::alloc::vec::Vec<Ref>,
+}
+/// MetadataEgress identifies a verb that serves as a Egress boundary.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetadataEgress {
+    #[prost(message, optional, tag="1")]
+    pub pos: ::core::option::Option<Position>,
+    #[prost(string, repeated, tag="2")]
+    pub targets: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataEncoding {
@@ -669,6 +688,8 @@ pub struct ModuleRuntimeDeployment {
 pub struct ModuleRuntimeRunner {
     #[prost(string, tag="1")]
     pub endpoint: ::prost::alloc::string::String,
+    #[prost(bool, tag="2")]
+    pub runner_not_required: bool,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ModuleRuntimeScaling {
@@ -738,6 +759,26 @@ pub struct Realm {
     #[prost(message, repeated, tag="4")]
     pub modules: ::prost::alloc::vec::Vec<Module>,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RealmChange {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(bool, tag="2")]
+    pub external: bool,
+    #[prost(message, repeated, tag="3")]
+    pub modules: ::prost::alloc::vec::Vec<Module>,
+    #[prost(string, repeated, tag="4")]
+    pub to_remove: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="5")]
+    pub removing_modules: ::prost::alloc::vec::Vec<Module>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RealmState {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(bool, tag="2")]
+    pub external: bool,
+}
 /// Ref is an untyped reference to a symbol.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Ref {
@@ -752,7 +793,7 @@ pub struct Ref {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Runtime {
-    #[prost(oneof="runtime::Value", tags="6, 1, 3, 2, 5, 4")]
+    #[prost(oneof="runtime::Value", tags="6, 7, 1, 3, 2, 8, 5")]
     pub value: ::core::option::Option<runtime::Value>,
 }
 /// Nested message and enum types in `Runtime`.
@@ -761,16 +802,18 @@ pub mod runtime {
     pub enum Value {
         #[prost(message, tag="6")]
         DatabaseRuntime(super::DatabaseRuntime),
+        #[prost(message, tag="7")]
+        EgressRuntime(super::EgressRuntime),
         #[prost(message, tag="1")]
         ModuleRuntimeDeployment(super::ModuleRuntimeDeployment),
         #[prost(message, tag="3")]
         ModuleRuntimeRunner(super::ModuleRuntimeRunner),
         #[prost(message, tag="2")]
         ModuleRuntimeScaling(super::ModuleRuntimeScaling),
+        #[prost(message, tag="8")]
+        PlaintextKafkaSubscriptionConnector(super::PlaintextKafkaSubscriptionConnector),
         #[prost(message, tag="5")]
         TopicRuntime(super::TopicRuntime),
-        #[prost(message, tag="4")]
-        VerbRuntime(super::VerbRuntime),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -800,6 +843,8 @@ pub struct SchemaState {
     pub changeset_events: ::prost::alloc::vec::Vec<DeploymentRuntimeEvent>,
     #[prost(message, repeated, tag="4")]
     pub deployment_events: ::prost::alloc::vec::Vec<DeploymentRuntimeEvent>,
+    #[prost(message, repeated, tag="5")]
+    pub realms: ::prost::alloc::vec::Vec<RealmState>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Secret {
@@ -827,14 +872,14 @@ pub struct StringValue {
 /// SubscriptionConnector is a connector to subscribe to a topic.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubscriptionConnector {
-    #[prost(oneof="subscription_connector::Value", tags="1")]
+    #[prost(oneof="subscription_connector::Value", tags="8")]
     pub value: ::core::option::Option<subscription_connector::Value>,
 }
 /// Nested message and enum types in `SubscriptionConnector`.
 pub mod subscription_connector {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Value {
-        #[prost(message, tag="1")]
+        #[prost(message, tag="8")]
         PlaintextKafkaSubscriptionConnector(super::PlaintextKafkaSubscriptionConnector),
     }
 }
@@ -870,7 +915,7 @@ pub struct TopicRuntime {
 /// Type represents a Type Node in the schema grammar.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Type {
-    #[prost(oneof="r#type::Value", tags="9, 7, 5, 4, 2, 1, 8, 12, 11, 3, 6, 10")]
+    #[prost(oneof="r#type::Value", tags="9, 7, 5, 4, 13, 14, 2, 1, 8, 12, 11, 3, 6, 16, 10")]
     pub value: ::core::option::Option<r#type::Value>,
 }
 /// Nested message and enum types in `Type`.
@@ -885,6 +930,10 @@ pub mod r#type {
         Bool(super::Bool),
         #[prost(message, tag="4")]
         Bytes(super::Bytes),
+        #[prost(message, tag="13")]
+        Data(super::Data),
+        #[prost(message, tag="14")]
+        Enum(::prost::alloc::boxed::Box<super::Enum>),
         #[prost(message, tag="2")]
         Float(super::Float),
         #[prost(message, tag="1")]
@@ -899,6 +948,8 @@ pub mod r#type {
         String(super::String),
         #[prost(message, tag="6")]
         Time(super::Time),
+        #[prost(message, tag="16")]
+        TypeAlias(::prost::alloc::boxed::Box<super::TypeAlias>),
         #[prost(message, tag="10")]
         Unit(super::Unit),
     }
@@ -913,8 +964,8 @@ pub struct TypeAlias {
     pub export: bool,
     #[prost(string, tag="4")]
     pub name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="5")]
-    pub r#type: ::core::option::Option<Type>,
+    #[prost(message, optional, boxed, tag="5")]
+    pub r#type: ::core::option::Option<::prost::alloc::boxed::Box<Type>>,
     #[prost(message, repeated, tag="6")]
     pub metadata: ::prost::alloc::vec::Vec<Metadata>,
 }
@@ -978,6 +1029,8 @@ pub struct Verb {
 pub struct VerbRuntime {
     #[prost(message, optional, tag="1")]
     pub subscription_connector: ::core::option::Option<SubscriptionConnector>,
+    #[prost(message, optional, tag="2")]
+    pub egress_runtime: ::core::option::Option<EgressRuntime>,
 }
 /// AliasKind is the kind of alias.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

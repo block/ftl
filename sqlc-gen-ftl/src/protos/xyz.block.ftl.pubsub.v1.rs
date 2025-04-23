@@ -6,6 +6,8 @@ pub struct ResetOffsetsOfSubscriptionRequest {
     pub subscription: ::core::option::Option<super::super::schema::v1::Ref>,
     #[prost(enumeration="super::super::admin::v1::SubscriptionOffset", tag="2")]
     pub offset: i32,
+    #[prost(int32, repeated, tag="3")]
+    pub partitions: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResetOffsetsOfSubscriptionResponse {
