@@ -38,7 +38,7 @@ func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig projectconfig
 	s.AddTool(mcp.StatusTool(ctx, buildEngineClient, adminClient))
 	s.AddTool(mcp.TimelineTool(ctx, timelineClient))
 	s.AddTool(mcp.ReadTool())
-	s.AddTool(mcp.WriteTool(ctx, buildEngineClient, adminClient))
+	s.AddTool(mcp.WriteTool(ctx, projectConfig, buildEngineClient, adminClient))
 
 	s.AddTool(mcp.ToolFromCLI(ctx, k, projectConfig, buildEngineClient, adminClient, executor, "NewModule", []string{"module", "new"},
 		mcp.IncludeOptional("dir"), mcp.Pattern("name", optional.Some(mcp.ModuleRegex)),
