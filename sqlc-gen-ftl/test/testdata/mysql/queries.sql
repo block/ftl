@@ -21,3 +21,6 @@ SELECT id, some_text, some_bool FROM all_types WHERE id = ?;
 
 -- name: GetAllTypesMany :many
 SELECT * FROM all_types LIMIT 10;
+
+-- name: CreateConcatRequest :exec
+INSERT INTO requests (data) VALUES (CONCAT(LOWER(?), LOWER(?)));

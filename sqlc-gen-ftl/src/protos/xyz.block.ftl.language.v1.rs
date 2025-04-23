@@ -34,6 +34,9 @@ pub struct ModuleConfig {
     /// The root directory containing the SQL files, relative to the module directory.
     #[prost(string, tag="11")]
     pub sql_root_dir: ::prost::alloc::string::String,
+    /// The realm of the module
+    #[prost(string, tag="12")]
+    pub realm: ::prost::alloc::string::String,
 }
 /// ProjectConfig contains the configuration for a project, found in the ftl-project.toml file.
 #[derive(Clone, PartialEq, ::prost::Message)]

@@ -10,6 +10,7 @@ use prost::Message;
 use std::io;
 use std::collections::HashMap;
 use self::inflection::singularize_pascal;
+use std::collections::HashSet;
 
 pub struct Plugin;
 
@@ -245,6 +246,7 @@ fn to_request_type(
     }
     
     let upper_camel_name = to_upper_camel(&query.name);
+    let mut used_field_names = HashSet::new();
     Some(schemapb::Decl {
         value: Some(
             schemapb::decl::Value::Data(schemapb::Data {
@@ -254,11 +256,19 @@ fn to_request_type(
                 fields: query.params
                     .iter()
                     .map(|param| {
-                        let name = if let Some(col) = &param.column {
+                        let base_name = if let Some(col) = &param.column {
                             col.name.clone()
                         } else {
                             format!("arg{}", param.number)
                         };
+
+                        // Find a unique name by adding numbers if needed
+                        let mut name = base_name.clone();
+                        let mut counter = param.number;
+                        while !used_field_names.insert(name.clone()) {
+                            name = format!("{}{}", base_name, counter);
+                            counter += 1;
+                        }
 
                         let sql_type = param.column.as_ref().and_then(|col| col.r#type.as_ref());
                         to_schema_field(name, param.column.as_ref(), sql_type, request)

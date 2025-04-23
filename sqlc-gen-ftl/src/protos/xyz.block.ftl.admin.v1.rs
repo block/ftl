@@ -150,13 +150,20 @@ pub struct ResetSubscriptionRequest {
 pub struct ResetSubscriptionResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ApplyChangesetRequest {
+pub struct RealmChange {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
     /// The modules to add or update.
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag="2")]
     pub modules: ::prost::alloc::vec::Vec<super::super::schema::v1::Module>,
     /// The deployments to remove.
-    #[prost(string, repeated, tag="2")]
+    #[prost(string, repeated, tag="3")]
     pub to_remove: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyChangesetRequest {
+    #[prost(message, repeated, tag="1")]
+    pub realm_changes: ::prost::alloc::vec::Vec<RealmChange>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ApplyChangesetResponse {

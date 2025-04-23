@@ -152,6 +152,8 @@ pub struct GetDeploymentContextResponse {
     pub databases: ::prost::alloc::vec::Vec<get_deployment_context_response::Dsn>,
     #[prost(message, repeated, tag="6")]
     pub routes: ::prost::alloc::vec::Vec<get_deployment_context_response::Route>,
+    #[prost(map="string, string", tag="7")]
+    pub egress: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
 }
 /// Nested message and enum types in `GetDeploymentContextResponse`.
 pub mod get_deployment_context_response {
@@ -240,13 +242,20 @@ pub struct GetDeploymentsResponse {
     pub schema: ::prost::alloc::vec::Vec<DeployedSchema>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CreateChangesetRequest {
+pub struct RealmChange {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
     /// The modules to add or update.
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag="2")]
     pub modules: ::prost::alloc::vec::Vec<super::schema::v1::Module>,
     /// The deployments to remove.
-    #[prost(string, repeated, tag="2")]
+    #[prost(string, repeated, tag="3")]
     pub to_remove: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateChangesetRequest {
+    #[prost(message, repeated, tag="1")]
+    pub realm_changes: ::prost::alloc::vec::Vec<RealmChange>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateChangesetResponse {

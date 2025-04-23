@@ -33,6 +33,7 @@ fn get_test_queries(engine: &str) -> Vec<String> {
             "SELECT id, some_text, some_bool FROM all_types WHERE id = ?".to_string(),
             "SELECT id, big_int, small_int, some_decimal, some_numeric, some_float, some_double, some_varchar, some_text, some_char, nullable_text, some_bool, nullable_bool, some_date, some_time, some_timestamp, some_blob, some_json FROM all_types LIMIT 10".to_string(),
             "INSERT INTO all_types ( big_int, small_int, some_decimal, some_numeric, some_float, some_double, some_varchar, some_text, some_char, nullable_text, some_bool, nullable_bool, some_date, some_time, some_timestamp, some_blob, some_json ) VALUES ( @big_int, @small_int, @some_decimal, @some_numeric, @some_float, @some_double, @some_varchar, @some_text, @some_char, @nullable_text, @some_bool, @nullable_bool, @some_date, @some_time, @some_timestamp, @some_blob, @some_json )".to_string(),
+            "INSERT INTO requests (data) VALUES (CONCAT(LOWER(?), LOWER(?)))".to_string(),
         ],
         "postgresql" => vec![
             "SELECT id, big_int, small_int, some_decimal, some_numeric, some_float, some_double, some_varchar, some_text, some_char, nullable_text, some_bool, nullable_bool, some_date, some_time, some_timestamp, some_blob, some_json FROM all_types WHERE id = $1".to_string(),
@@ -41,6 +42,7 @@ fn get_test_queries(engine: &str) -> Vec<String> {
             "SELECT id, some_text, some_bool FROM all_types WHERE id = $1".to_string(),
             "SELECT id, big_int, small_int, some_decimal, some_numeric, some_float, some_double, some_varchar, some_text, some_char, nullable_text, some_bool, nullable_bool, some_date, some_time, some_timestamp, some_blob, some_json FROM all_types LIMIT 10".to_string(),
             "INSERT INTO all_types ( big_int, small_int, some_decimal, some_numeric, some_float, some_double, some_varchar, some_text, some_char, nullable_text, some_bool, nullable_bool, some_date, some_time, some_timestamp, some_blob, some_json ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17 )".to_string(),
+            "INSERT INTO requests (data) VALUES (CONCAT(LOWER($1), LOWER($2)))".to_string(),
         ],
         _ => vec![],
     }
@@ -422,6 +424,77 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                             pos: None,
                             command: "many".to_string(),
                             query: queries[4].clone(),
+                        })),
+                    }, schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Databases(schemapb::MetadataDatabases {
+                            pos: None,
+                            uses: vec![schemapb::Ref {
+                                pos: None,
+                                module: "echo".to_string(),
+                                name: "testdb".to_string(),
+                                type_parameters: vec![],
+                            }],
+                        })),
+                    }, schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Generated(schemapb::MetadataGenerated { pos: None })),
+                    }],
+                })),
+            },
+            schemapb::Decl {
+                value: Some(schemapb::decl::Value::Data(schemapb::Data {
+                    name: "CreateConcatRequestQuery".to_string(),
+                    export: false,
+                    type_parameters: vec![],
+                    fields: vec![
+                        schemapb::Field {
+                            name: "lower".to_string(),
+                            r#type: Some(schemapb::Type {
+                                value: Some(schemapb::r#type::Value::String(schemapb::String { pos: None }))
+                            }),
+                            pos: None,
+                            comments: vec![],
+                            metadata: vec![],
+                        },
+                        schemapb::Field {
+                            name: "lower2".to_string(),
+                            r#type: Some(schemapb::Type {
+                                value: Some(schemapb::r#type::Value::String(schemapb::String { pos: None }))
+                            }),
+                            pos: None,
+                            comments: vec![],
+                            metadata: vec![],
+                        },
+                    ],
+                    pos: None,
+                    comments: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::Generated(schemapb::MetadataGenerated { pos: None })),
+                    }],
+                })),
+            },
+            schemapb::Decl {
+                value: Some(schemapb::decl::Value::Verb(schemapb::Verb {
+                    name: "createConcatRequest".to_string(),
+                    export: false,
+                    runtime: None,
+                    request: Some(schemapb::Type {
+                        value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
+                            module: "echo".to_string(),
+                            name: "CreateConcatRequestQuery".to_string(),
+                            pos: None,
+                            type_parameters: vec![],
+                        }))
+                    }),
+                    response: Some(schemapb::Type {
+                        value: Some(schemapb::r#type::Value::Unit(schemapb::Unit { pos: None }))
+                    }),
+                    pos: None,
+                    comments: vec![],
+                    metadata: vec![schemapb::Metadata {
+                        value: Some(schemapb::metadata::Value::SqlQuery(schemapb::MetadataSqlQuery {
+                            pos: None,
+                            command: "exec".to_string(),
+                            query: queries[6].clone(),
                         })),
                     }, schemapb::Metadata {
                         value: Some(schemapb::metadata::Value::Databases(schemapb::MetadataDatabases {
