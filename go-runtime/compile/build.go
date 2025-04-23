@@ -645,6 +645,18 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	logger.Debugf("Compiling")
 	buildErrors = compile(ctx, mainDir, buildEnv, devMode)
 	buildErrors = append(buildErrors, extractResult.Errors...)
+
+	stubsDir := filepath.Join(stubsRoot, extractResult.Module.Name)
+	err = GenerateStubs(ctx, stubsDir, extractResult.Module, config, optional.None[moduleconfig.AbsModuleConfig]())
+	if err != nil {
+		buildErrors = append(buildErrors, buildErrorFromError(err))
+	}
+
+	err = SyncGeneratedStubReferences(ctx, config, stubsDir, []string{extractResult.Module.Name})
+	if err != nil {
+		buildErrors = append(buildErrors, buildErrorFromError(err))
+	}
+
 	return optional.Some(extractResult.Module), false, buildErrors
 }
 

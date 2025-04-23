@@ -377,7 +377,502 @@ func (e *Engine) Modules() []string {
 
 // Dev builds and deploys all local modules and watches for changes, redeploying as necessary.
 func (e *Engine) Dev(ctx context.Context, period time.Duration) error {
-	return errors.WithStack(e.watchForModuleChanges(ctx, period))
+	return errors.WithStack(e.devBuildLoop(ctx, period))
+	// return errors.WithStack(e.watchForModuleChanges(ctx, period))
+}
+
+// Create a type to track module build state
+type moduleBuildState struct {
+	name         string
+	dependencies []string
+	isWaiting    bool
+}
+
+func (e *Engine) devBuildLoop(ctx context.Context, period time.Duration) error {
+	logger := log.FromContext(ctx)
+	logger.Debugf("newWatchForModuleChanges")
+
+	// Setup watch channels and initial state
+	watchEvents, cleanup, err := e.setupModuleWatcher(ctx, period)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer cleanup()
+
+	// Track modules waiting to build and their dependencies
+	waitingModules := xsync.NewMapOf[string, moduleBuildState]()
+	readyToBuild := make(chan string, 128) // Using string to pass module names
+
+	// Create a new errgroup with parallelism limit
+	buildGroup, buildCtx := errgroup.WithContext(ctx)
+	buildGroup.SetLimit(e.parallelism)
+
+	// Track which modules have been built successfully
+	builtModules := xsync.NewMapOf[string, *schema.Module]()
+	builtModules.Store("builtin", schema.Builtins())
+
+	// Update schema and set initial module hashes
+	for {
+		select {
+		case event := <-e.deployCoordinator.SchemaUpdates:
+			e.targetSchema.Store(event.schema)
+			continue
+		default:
+		}
+		break
+	}
+
+	moduleHashes := map[string][]byte{}
+	for _, sch := range e.targetSchema.Load().InternalModules() {
+		hash, err := computeModuleHash(sch)
+		if err != nil {
+			return errors.Wrapf(err, "compute hash for %s failed", sch.Name)
+		}
+		moduleHashes[sch.Name] = hash
+	}
+
+	go func() {
+		for {
+			select {
+			case <-buildCtx.Done():
+				return
+			case moduleName := <-readyToBuild:
+				buildGroup.Go(func() error {
+					return errors.WithStack(e.buildAndDeploy(ctx, moduleName, builtModules, waitingModules, readyToBuild))
+				})
+			}
+		}
+	}()
+
+	// Main event loop
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.WithStack(ctx.Err())
+		case event := <-watchEvents:
+			if err := e.handleWatchEvent(ctx, event, waitingModules, readyToBuild); err != nil {
+				logger.Errorf(err, "Error handling watch event")
+			}
+
+		case event := <-e.deployCoordinator.SchemaUpdates:
+			if err := e.handleSchemaUpdate(ctx, event, waitingModules, readyToBuild, moduleHashes); err != nil {
+				logger.Errorf(err, "Error handling schema update")
+			}
+
+		case event := <-e.rebuildEvents:
+			if err := e.handleRebuildEvent(ctx, event, waitingModules, readyToBuild, builtModules); err != nil {
+				logger.Errorf(err, "Error handling rebuild event")
+			}
+		}
+	}
+}
+
+func (e *Engine) buildAndDeploy(ctx context.Context, moduleName string, builtModules *xsync.MapOf[string, *schema.Module], waitingModules *xsync.MapOf[string, moduleBuildState], readyToBuild chan<- string) error {
+	logger := log.FromContext(ctx)
+
+	// Build the module
+	if err := e.buildModule(ctx, moduleName, builtModules); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// Store schema after successful build
+	if sch, ok := e.GetModuleSchema(moduleName); ok {
+		builtModules.Store(moduleName, sch)
+	}
+
+	// Deploy the module
+	if err := e.deployModule(ctx, moduleName); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// Check for dependent modules that are now ready to build
+	waitingModules.Range(func(name string, state moduleBuildState) bool {
+		if !state.isWaiting {
+			return true // Skip modules that are not waiting
+		}
+
+		// Check if all dependencies for this module are now built
+		allDepsBuilt := true
+		for _, dep := range state.dependencies {
+			if dep == "builtin" {
+				continue
+			}
+			if _, ok := builtModules.Load(dep); !ok {
+				allDepsBuilt = false
+				break
+			}
+		}
+
+		if allDepsBuilt {
+			logger.Debugf("Module %s dependencies satisfied, moving to ready", name)
+			state.isWaiting = false
+			waitingModules.Store(name, state)
+			readyToBuild <- name
+		}
+		return true
+	})
+
+	return nil
+}
+
+func (e *Engine) buildModule(ctx context.Context, moduleName string, builtModules *xsync.MapOf[string, *schema.Module]) error {
+	logger := log.FromContext(ctx)
+
+	meta, ok := e.moduleMetas.Load(moduleName)
+	if !ok {
+		return errors.Errorf("module %q not found", moduleName)
+	}
+
+	proto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal module config")
+	}
+
+	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+		Timestamp: timestamppb.Now(),
+		Event: &buildenginepb.EngineEvent_ModuleBuildStarted{
+			ModuleBuildStarted: &buildenginepb.ModuleBuildStarted{
+				Config:        proto,
+				IsAutoRebuild: false,
+			},
+		},
+	}
+
+	// Create metasMap from moduleMetas
+	metasMap := map[string]moduleMeta{}
+
+	e.moduleMetas.Range(func(name string, meta moduleMeta) bool {
+		metasMap[name] = meta
+		return true
+	})
+
+	//TODO: would it be better to only include the modules that this module depends on?
+	modules := make(map[string]*schema.Module)
+	builtModules.Range(func(name string, schema *schema.Module) bool {
+		modules[name] = schema
+		return true
+	})
+
+	err = GenerateStubs(ctx, e.projectConfig.Root(), maps.Values(modules), metasMap)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(modules)}}}
+	builtSchema, deploy, err := build(ctx, e.projectConfig, meta.module, meta.plugin, languageplugin.BuildContext{
+		Config:       meta.module.Config,
+		Schema:       sch,
+		Dependencies: meta.module.Dependencies(Raw),
+		BuildEnv:     e.buildEnv,
+		Os:           e.os,
+		Arch:         e.arch,
+	}, e.devMode, e.devModeEndpointUpdates)
+	if err != nil {
+		logger.Errorf(err, "failed to build module %s", moduleName)
+		return errors.Wrapf(err, "failed to build module %s", moduleName)
+	}
+
+	e.moduleMetas.Compute(moduleName, func(meta moduleMeta, exists bool) (out moduleMeta, shouldDelete bool) {
+		if !exists {
+			return moduleMeta{}, true
+		}
+		meta.module = meta.module.CopyWithDeploy(deploy)
+		return meta, false
+	})
+
+	builtModules.Store(moduleName, builtSchema)
+
+	err = SyncStubReferences(ctx, e.projectConfig.Root(), maps.Keys(modules), metasMap, sch)
+	if err != nil {
+		logger.Errorf(err, "failed to sync stub references for module %s", moduleName)
+		return errors.Wrapf(err, "failed to sync stub references for module %s", moduleName)
+	}
+
+	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+		Timestamp: timestamppb.Now(),
+		Event: &buildenginepb.EngineEvent_ModuleBuildSuccess{
+			ModuleBuildSuccess: &buildenginepb.ModuleBuildSuccess{
+				Config:        proto,
+				IsAutoRebuild: false,
+			},
+		},
+	}
+
+	return nil
+}
+
+func (e *Engine) deployModule(ctx context.Context, moduleName string) error {
+	moduleToDeploy, ok := e.moduleMetas.Load(moduleName)
+	if !ok {
+		return errors.Errorf("module %s not found", moduleName)
+	}
+
+	err := e.deployCoordinator.deploy(ctx, e.projectConfig, []Module{moduleToDeploy.module}, optional.None[int32]())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (e *Engine) handleWatchEvent(ctx context.Context, event watch.WatchEvent, waitingModules *xsync.MapOf[string, moduleBuildState], readyToBuild chan<- string) error {
+	logger := log.FromContext(ctx)
+
+	switch event := event.(type) {
+	case watch.WatchEventModuleAdded:
+		logger.Debugf("Module %q added", event.Config.Module)
+		config := event.Config
+
+		needsBuild := false
+		var metaData moduleMeta
+
+		// Get or create module metadata
+		if meta, ok := e.moduleMetas.Load(config.Module); ok {
+			metaData = meta
+			// Module exists but might need to be built
+			if shouldBuild, ok := e.modulesToBuild.Load(config.Module); ok && shouldBuild {
+				needsBuild = true
+				logger.Debugf("Module %q exists but needs building", config.Module)
+			}
+		} else {
+			// New module
+			meta, err := e.newModuleMeta(ctx, config)
+			if err != nil {
+				return errors.Wrapf(err, "could not add module %s", config.Module)
+			}
+			metaData = meta
+			e.moduleMetas.Store(config.Module, metaData)
+			needsBuild = true
+
+			e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+				Timestamp: timestamppb.Now(),
+				Event: &buildenginepb.EngineEvent_ModuleAdded{
+					ModuleAdded: &buildenginepb.ModuleAdded{
+						Module: config.Module,
+					},
+				},
+			}
+		}
+
+		if needsBuild {
+			logger.Debugf("Queuing build for module %q", config.Module)
+			deps := metaData.module.Dependencies(AlwaysIncludeBuiltin)
+			state := moduleBuildState{
+				name:         config.Module,
+				dependencies: deps,
+				isWaiting:    true,
+			}
+
+			if e.canBuildModule(deps) {
+				state.isWaiting = false
+				readyToBuild <- config.Module
+			}
+			waitingModules.Store(config.Module, state)
+		}
+	case watch.WatchEventModuleChanged:
+		logger.Tracef("Module %q changed", event.Config.Module)
+		meta, ok := e.moduleMetas.Load(event.Config.Module)
+		if !ok {
+			return errors.Errorf("module %q not found", event.Config.Module)
+		}
+
+		// Update the module's configuration
+		updatedConfig, err := moduleconfig.LoadConfig(event.Config.Dir)
+		if err != nil {
+			return errors.Wrapf(err, "could not load updated toml for %s", event.Config.Module)
+		}
+		validConfig, err := updatedConfig.FillDefaultsAndValidate(meta.configDefaults, e.projectConfig)
+		if err != nil {
+			return errors.Wrapf(err, "could not configure module config defaults for %s", event.Config.Module)
+		}
+
+		// Update the module's metadata with new config
+		meta.module.Config = validConfig
+		meta, err = copyMetaWithUpdatedDependencies(ctx, meta)
+		if err != nil {
+			return errors.Wrapf(err, "could not update dependencies for %s", event.Config.Module)
+		}
+		e.moduleMetas.Store(event.Config.Module, meta)
+
+		// Get the module's dependencies
+		deps := meta.module.Dependencies(AlwaysIncludeBuiltin)
+		state := moduleBuildState{
+			name:         event.Config.Module,
+			dependencies: deps,
+			isWaiting:    true,
+		}
+
+		// Check if we can build it now or need to wait
+		if e.canBuildModule(deps) {
+			state.isWaiting = false
+			readyToBuild <- event.Config.Module
+		} else {
+			logger.Debugf("Module %s waiting for dependencies after change", event.Config.Module)
+		}
+		waitingModules.Store(event.Config.Module, state)
+	case watch.WatchEventModuleRemoved:
+		logger.Warnf("watch event: %v", event)
+	default:
+		return errors.Errorf("unknown watch event type: %T", event)
+	}
+
+	return nil
+}
+
+func (e *Engine) handleSchemaUpdate(ctx context.Context, event SchemaUpdatedEvent, waitingModules *xsync.MapOf[string, moduleBuildState], readyToBuild chan<- string, moduleHashes map[string][]byte) error {
+	logger := log.FromContext(ctx)
+
+	logger.Debugf("schema update: %v", event.updatedModules)
+	e.targetSchema.Store(event.schema)
+	for _, module := range event.schema.InternalModules() {
+		if !event.updatedModules[module.Name] {
+			continue
+		}
+		existingHash, ok := moduleHashes[module.Name]
+		if !ok {
+			existingHash = []byte{}
+		}
+
+		hash, err := computeModuleHash(module)
+		if err != nil {
+			logger.Errorf(err, "compute hash for %s failed", module.Name)
+			continue
+		}
+
+		if bytes.Equal(hash, existingHash) {
+			logger.Tracef("schema for %s has not changed", module.Name)
+			continue
+		}
+
+		moduleHashes[module.Name] = hash
+
+		// Find modules that depend on the changed module
+		dependentModuleNames := e.getDependentModuleNames(module.Name)
+		dependentModuleNames = slices.Filter(dependentModuleNames, func(name string) bool {
+			// We don't update if this was already part of the same changeset
+			return !event.updatedModules[name]
+		})
+
+		e.queueDependentModules(ctx, dependentModuleNames, waitingModules, readyToBuild)
+	}
+
+	return nil
+}
+
+func (e *Engine) handleRebuildEvent(ctx context.Context, event rebuildEvent, waitingModules *xsync.MapOf[string, moduleBuildState], readyToBuild chan<- string, builtModules *xsync.MapOf[string, *schema.Module]) error {
+	logger := log.FromContext(ctx)
+	logger.Debugf("rebuild event: %v", event)
+
+	switch event := event.(type) {
+	case rebuildRequestEvent:
+		meta, ok := e.moduleMetas.Load(event.module)
+		if !ok {
+			logger.Warnf("module %s not found for rebuild request", event.module)
+			return nil
+		}
+
+		deps := meta.module.Dependencies(AlwaysIncludeBuiltin)
+		state := moduleBuildState{
+			name:         event.module,
+			dependencies: deps,
+			isWaiting:    true,
+		}
+
+		if e.canBuildModule(deps) {
+			state.isWaiting = false
+			readyToBuild <- event.module
+		}
+		waitingModules.Store(event.module, state)
+
+	case autoRebuildCompletedEvent:
+		logger.Debugf("autoRebuildCompletedEvent: %v", event)
+		// Store schema after successful build
+		if sch, ok := e.GetModuleSchema(event.module); ok {
+			builtModules.Store(event.module, sch)
+		}
+
+		// Deploy the module
+		if err := e.deployModule(ctx, event.module); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	return nil
+}
+
+func (e *Engine) queueDependentModules(ctx context.Context, dependentModuleNames []string, waitingModules *xsync.MapOf[string, moduleBuildState], readyToBuild chan<- string) []string {
+	logger := log.FromContext(ctx)
+
+	// For each dependent module, create a build state and queue it for building
+	for _, dependentModule := range dependentModuleNames {
+		meta, ok := e.moduleMetas.Load(dependentModule)
+		if !ok {
+			logger.Warnf("dependent module %s not found", dependentModule)
+			continue
+		}
+
+		deps := meta.module.Dependencies(AlwaysIncludeBuiltin)
+
+		// Check if module is already being processed
+		if existingState, exists := waitingModules.Load(dependentModule); exists {
+			if !existingState.isWaiting {
+				// If it's actively building, skip it
+				if _, ok := e.GetModuleSchema(dependentModule); !ok {
+					logger.Debugf("Module %s is currently building, skipping", dependentModule)
+					continue
+				}
+				// Otherwise it's done building and should be rebuilt due to dependency change
+				logger.Debugf("Module %s needs rebuild due to dependency change", dependentModule)
+			} else {
+				logger.Debugf("Module %s is waiting, checking if it can build now", dependentModule)
+			}
+		}
+
+		state := moduleBuildState{
+			name:         dependentModule,
+			dependencies: deps,
+			isWaiting:    false, // Set to false to force rebuild
+		}
+
+		// Queue for rebuild
+		readyToBuild <- dependentModule
+		waitingModules.Store(dependentModule, state)
+	}
+
+	return dependentModuleNames
+}
+
+// canBuildModule checks if a module's dependencies are satisfied
+func (e *Engine) canBuildModule(dependencies []string) bool {
+	for _, dep := range dependencies {
+		if dep == "builtin" {
+			continue // builtin is always available
+		}
+
+		// Check if dependency is built by looking for its schema
+		if _, ok := e.GetModuleSchema(dep); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (e *Engine) setupModuleWatcher(ctx context.Context, period time.Duration) (chan watch.WatchEvent, func(), error) {
+	watchEvents := make(chan watch.WatchEvent, 128)
+	ctx, cancel := context.WithCancelCause(ctx)
+
+	topic, err := e.watcher.Watch(ctx, period, e.moduleDirs)
+	if err != nil {
+		cancel(errors.Wrap(errors.Join(err, context.Canceled), "watch failed"))
+		return nil, nil, errors.WithStack(err)
+	}
+	topic.Subscribe(watchEvents)
+
+	cleanup := func() {
+		cancel(errors.Wrap(context.Canceled, "watch stopped"))
+	}
+
+	return watchEvents, cleanup, nil
 }
 
 // watchForModuleChanges watches for changes and all build start and event state changes.
@@ -470,7 +965,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					},
 				}
 			case watch.WatchEventModuleChanged:
-				// ftl.toml file has changed
+				// ftl.toml file has changed other updates are handled by rebuild events
 				meta, ok := e.moduleMetas.Load(event.Config.Module)
 				if !ok {
 					logger.Warnf("Module %q not found", event.Config.Module)
@@ -1112,7 +1607,7 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 
 	for _, dep := range meta.module.Dependencies(Raw) {
 		if _, ok := builtModules[dep]; !ok {
-			logger.Warnf("build skipped because dependency %q failed to build", dep)
+			logger.Debugf("build skipped because dependency %q failed to build", dep)
 			return nil
 		}
 	}
