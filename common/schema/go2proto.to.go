@@ -1063,7 +1063,7 @@ func EgressRuntimeFromProto(v *destpb.EgressRuntime) (out *EgressRuntime, err er
 	if out.Targets, err = sliceMapR(v.Targets, func(v *destpb.EgressTarget) result.Result[EgressTarget] {
 		return orZeroR(result.From(EgressTargetFromProto(v)))
 	}).Result(); err != nil {
-		return nil, fmt.Errorf("Targets: %w", err)
+		return nil, errors.Wrap(err, "Targets")
 	}
 	return out, nil
 }
@@ -1085,10 +1085,10 @@ func EgressTargetFromProto(v *destpb.EgressTarget) (out *EgressTarget, err error
 
 	out = &EgressTarget{}
 	if out.Expression, err = orZeroR(result.From(ptr(string(v.Expression)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Expression: %w", err)
+		return nil, errors.Wrap(err, "Expression")
 	}
 	if out.Target, err = orZeroR(result.From(ptr(string(v.Target)), nil)).Result(); err != nil {
-		return nil, fmt.Errorf("Target: %w", err)
+		return nil, errors.Wrap(err, "Target")
 	}
 	return out, nil
 }
@@ -1817,10 +1817,10 @@ func MetadataEgressFromProto(v *destpb.MetadataEgress) (out *MetadataEgress, err
 
 	out = &MetadataEgress{}
 	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
-		return nil, fmt.Errorf("Pos: %w", err)
+		return nil, errors.Wrap(err, "Pos")
 	}
 	if out.Targets, err = sliceMapR(v.Targets, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
-		return nil, fmt.Errorf("Targets: %w", err)
+		return nil, errors.Wrap(err, "Targets")
 	}
 	return out, nil
 }
@@ -3410,7 +3410,7 @@ func VerbRuntimeFromProto(v *destpb.VerbRuntime) (out *VerbRuntime, err error) {
 		return nil, errors.Wrap(err, "SubscriptionConnector")
 	}
 	if out.EgressRuntime, err = result.From(EgressRuntimeFromProto(v.EgressRuntime)).Result(); err != nil {
-		return nil, fmt.Errorf("EgressRuntime: %w", err)
+		return nil, errors.Wrap(err, "EgressRuntime")
 	}
 	return out, nil
 }

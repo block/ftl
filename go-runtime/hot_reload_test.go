@@ -49,7 +49,7 @@ DROP TABLE users;`)
 		in.CreateFile("users", `-- name: CreateUser :exec
 INSERT INTO users (name) VALUES (?);
 `, "db/mysql/userdb/queries/queries.sql"),
-		in.Sleep(time.Second*5),
+		in.Sleep(time.Second*7),
 		// Test initial schema works
 		in.Call("users", "createUser", "Alice", func(t testing.TB, response map[string]interface{}) {
 
