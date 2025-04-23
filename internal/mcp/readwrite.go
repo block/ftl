@@ -10,10 +10,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/block/ftl/internal/log"
-
-	sl "github.com/block/ftl/common/slices"
-
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -22,7 +18,9 @@ import (
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
+	sl "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
 )
@@ -292,7 +290,7 @@ func readResultForUpdatedSQLInterfaces(originalInterfaces map[string]string, lat
 		}
 	}
 	removedInterfaceNames := []string{}
-	for name, _ := range originalInterfaces {
+	for name := range originalInterfaces {
 		if _, ok := latestInterfaces[name]; !ok {
 			removedInterfaceNames = append(removedInterfaceNames, name)
 		}
