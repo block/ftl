@@ -9,6 +9,7 @@ import java.util.Map;
 import jakarta.inject.Singleton;
 
 import org.jboss.jandex.AnnotationInstance;
+import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.AnnotationValue;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
@@ -29,6 +30,7 @@ import io.quarkus.gizmo.ClassOutput;
 import io.quarkus.gizmo.MethodDescriptor;
 import io.quarkus.gizmo.ResultHandle;
 import xyz.block.ftl.SQLQueryClient;
+import xyz.block.ftl.Verb;
 import xyz.block.ftl.VerbClient;
 import xyz.block.ftl.runtime.VerbClientHelper;
 import xyz.block.ftl.schema.v1.Metadata;
@@ -149,6 +151,115 @@ public class VerbProcessor {
                 clients.put(iface.name(), new VerbClientBuildItem.DiscoveredClients(name, module, cc.getClassName()));
             }
         }
+
+        // Self injection of type based clients
+
+        clientDefinitions = index.getComputingIndex().getAnnotations(Verb.class);
+        log.debugf("Processing %d verb types as clients", clientDefinitions.size());
+        for (var clientDefinition : clientDefinitions) {
+            if (clientDefinition.target().kind() != AnnotationTarget.Kind.CLASS) {
+                continue;
+            }
+
+            //MethodInfo callMethod = clientDefinition.target().asMethod();
+            ClassInfo verbClass = clientDefinition.target().asClass();
+            var info = VerbUtil.getVerbInfo(index.getIndex(), verbClass);
+            if (info == null) {
+                continue;
+            }
+
+            //String name = callMethod.name();
+            AnnotationValue moduleValue = clientDefinition.value("module");
+            String module = moduleNameBuildItem.getModuleName();
+            ClassOutput classOutput;
+            if (launchModeBuildItem.isTest()) {
+                //when running in tests we actually make these beans, so they can be injected into the tests
+                //the @TestResource qualifier is used so they can only be injected into test code
+                //TODO: is this the best way of handling this? revisit later
+                classOutput = new GeneratedBeanGizmoAdaptor(generatedBeanBuildItemBuildProducer);
+            } else {
+                classOutput = new GeneratedClassGizmoAdaptor(generatedClients, true);
+            }
+            var callMethod = info.method();
+            Type returnType = callMethod.returnType();
+            Type paramType = callMethod.parametersCount() > 0 ? callMethod.parameterType(0) : null;
+            try (ClassCreator cc = new ClassCreator(classOutput, verbClass.name().toString() + "_fit_verbclient", null,
+                    verbClass.name().toString())) {
+                if (launchModeBuildItem.isTest()) {
+                    cc.addAnnotation(TEST_ANNOTATION);
+                    cc.addAnnotation(Singleton.class);
+                }
+                switch (VerbType.of(callMethod)) {
+                    case VERB:
+                        LinkedHashSet<Map.Entry<String, String>> signatures = new LinkedHashSet<>();
+                        signatures.add(Map.entry(returnType.name().toString(), paramType.name().toString()));
+                        signatures.add(Map.entry(Object.class.getName(), Object.class.getName()));
+                        for (var sig : signatures) {
+                            var publish = cc.getMethodCreator(callMethod.name(), sig.getKey(), sig.getValue());
+                            var helper = publish.invokeStaticMethod(
+                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
+                            var results = publish.invokeVirtualMethod(
+                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
+                                            String.class, Object.class, Class.class, boolean.class, boolean.class),
+                                    helper, publish.load(info.name()), publish.load(module), publish.getMethodParam(0),
+                                    publish.loadClass(returnType.name().toString()), publish.load(false),
+                                    publish.load(false));
+                            publish.returnValue(results);
+                        }
+                        break;
+
+                    case SINK:
+                        LinkedHashSet<String> sinkSignatures = new LinkedHashSet<>();
+                        sinkSignatures.add(paramType.name().toString());
+                        sinkSignatures.add(Object.class.getName());
+                        for (var sig : sinkSignatures) {
+                            var publish = cc.getMethodCreator(callMethod.name(), void.class, sig);
+                            var helper = publish.invokeStaticMethod(
+                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
+                            publish.invokeVirtualMethod(
+                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
+                                            String.class, Object.class, Class.class, boolean.class, boolean.class),
+                                    helper, publish.load(info.name()), publish.load(module), publish.getMethodParam(0),
+                                    publish.loadClass(Void.class), publish.load(false), publish.load(false));
+                            publish.returnVoid();
+                        }
+                        break;
+
+                    case SOURCE:
+                        LinkedHashSet<String> sourceSignatures = new LinkedHashSet<>();
+                        sourceSignatures.add(returnType.name().toString());
+                        sourceSignatures.add(Object.class.getName());
+                        for (var sig : sourceSignatures) {
+                            var publish = cc.getMethodCreator(callMethod.name(), sig);
+                            var helper = publish.invokeStaticMethod(
+                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
+                            var results = publish.invokeVirtualMethod(
+                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
+                                            String.class, Object.class, Class.class, boolean.class, boolean.class),
+                                    helper, publish.load(info.name()), publish.load(module), publish.loadNull(),
+                                    publish.loadClass(returnType.name().toString()), publish.load(false),
+                                    publish.load(false));
+                            publish.returnValue(results);
+                        }
+                        break;
+
+                    case EMPTY:
+                        var publish = cc.getMethodCreator(callMethod.name(), void.class);
+                        var helper = publish.invokeStaticMethod(
+                                MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
+                        publish.invokeVirtualMethod(
+                                MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
+                                        String.class, Object.class, Class.class, boolean.class, boolean.class),
+                                helper, publish.load(info.name()), publish.load(module), publish.loadNull(),
+                                publish.loadClass(Void.class), publish.load(false), publish.load(false));
+                        publish.returnVoid();
+                        break;
+                }
+                clients.put(verbClass.name(),
+                        new VerbClientBuildItem.DiscoveredClients(info.name(), module, cc.getClassName()));
+            }
+        }
+
         return new VerbClientBuildItem(clients);
     }
 
@@ -340,16 +451,25 @@ public class VerbProcessor {
 
         for (var verb : verbAnnotations) {
             boolean exported = verb.target().hasAnnotation(FTLDotNames.EXPORT);
-            var method = verb.target().asMethod();
-            if (method.hasAnnotation(FTLDotNames.CRON) || method.hasAnnotation(FTLDotNames.SUBSCRIPTION)
-                    || method.hasAnnotation(FTLDotNames.FIXTURE)) {
-                throw new RuntimeException("Method " + method + " cannot have both @Verb and @Cron, @Fixture or @Subscription");
+            if (verb.target().kind() == AnnotationTarget.Kind.METHOD) {
+                var method = verb.target().asMethod();
+                if (method.hasAnnotation(FTLDotNames.CRON) || method.hasAnnotation(FTLDotNames.SUBSCRIPTION)
+                        || method.hasAnnotation(FTLDotNames.FIXTURE)) {
+                    throw new RuntimeException(
+                            "Method " + method + " cannot have both @Verb and @Cron, @Fixture or @Subscription");
+                }
+                String className = method.declaringClass().name().toString();
+                beans.addBeanClass(className);
+                var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
+                schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
+                        .registerVerbMethod(method, className, visibility, false, ModuleBuilder.BodyType.ALLOWED)));
+            } else {
+                var type = verb.target().asClass();
+                String className = type.name().toString();
+                beans.addBeanClass(className);
+                schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
+                        .registerVerbType(type, exported, false, ModuleBuilder.BodyType.ALLOWED)));
             }
-            String className = method.declaringClass().name().toString();
-            beans.addBeanClass(className);
-            var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
-            schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                    .registerVerbMethod(method, className, visibility, false, ModuleBuilder.BodyType.ALLOWED)));
         }
 
         Collection<AnnotationInstance> transactionAnnotations = index.getIndex().getAnnotations(FTLDotNames.TRANSACTIONAL);
