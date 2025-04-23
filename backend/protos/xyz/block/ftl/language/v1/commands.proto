@@ -77,6 +77,18 @@ message GetModuleConfigDefaultsResponse {
   string sql_root_dir = 8;
 }
 
+message GetSQLInterfacesRequest {
+  ModuleConfig config = 1;
+}
+
+message GetSQLInterfacesResponse {
+  message Interface {
+    string name = 1;
+    string interface = 2;
+  }
+  repeated Interface interfaces = 1;
+}
+
 // LanguageCommandService models commands that can be sent to a language plugin over the CLI interface.
 service LanguageCommandService {
   // Get language specific flags that can be used to create a new module.
@@ -87,4 +99,7 @@ service LanguageCommandService {
 
   // Provide default values for ModuleConfig for values that are not configured in the ftl.toml file.
   rpc GetModuleConfigDefaults(GetModuleConfigDefaultsRequest) returns (GetModuleConfigDefaultsResponse);
+
+  // Get generated language-specific interface for SQL verbs and types.
+  rpc GetSQLInterfaces(GetSQLInterfacesRequest) returns (GetSQLInterfacesResponse);
 }

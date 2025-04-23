@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -137,4 +138,39 @@ func (CmdService) GetModuleConfigDefaults(ctx context.Context, req *connect.Requ
 		DeployDir:  deployDir,
 		SqlRootDir: "db",
 	}), nil
+}
+
+var interfacesRegex = regexp.MustCompile(`type ([a-zA-Z0-9_]+) ((struct \{(.|\n)*?\n\})|(func\(.* error\)?))`)
+
+func (CmdService) GetSQLInterfaces(ctx context.Context, req *connect.Request[langpb.GetSQLInterfacesRequest]) (*connect.Response[langpb.GetSQLInterfacesResponse], error) {
+	config := langpb.ModuleConfigFromProto(req.Msg.Config)
+	interfaces, err := sqlInterfaces(config.Dir)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse queries.ftl.go")
+	}
+	return connect.NewResponse(&langpb.GetSQLInterfacesResponse{
+		Interfaces: interfaces,
+	}), nil
+}
+
+func sqlInterfaces(moduleDir string) ([]*langpb.GetSQLInterfacesResponse_Interface, error) {
+	queriesFile, err := os.ReadFile(filepath.Join(moduleDir, "queries.ftl.go"))
+	if errors.Is(err, os.ErrNotExist) {
+		return []*langpb.GetSQLInterfacesResponse_Interface{}, nil
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read queries.ftl.go")
+	}
+
+	interfaces := []*langpb.GetSQLInterfacesResponse_Interface{}
+	for _, match := range interfacesRegex.FindAllStringSubmatch(string(queriesFile), -1) {
+		if len(match) <= 1 {
+			return nil, errors.New("unexpected components in interface regex result")
+		}
+		interfaces = append(interfaces, &langpb.GetSQLInterfacesResponse_Interface{
+			Name:      match[1],
+			Interface: match[0],
+		})
+	}
+	return interfaces, nil
 }

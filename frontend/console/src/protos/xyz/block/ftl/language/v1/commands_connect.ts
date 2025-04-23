@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetModuleConfigDefaultsRequest, GetModuleConfigDefaultsResponse, GetNewModuleFlagsRequest, GetNewModuleFlagsResponse, NewModuleRequest, NewModuleResponse } from "./commands_pb.js";
+import { GetModuleConfigDefaultsRequest, GetModuleConfigDefaultsResponse, GetNewModuleFlagsRequest, GetNewModuleFlagsResponse, GetSQLInterfacesRequest, GetSQLInterfacesResponse, NewModuleRequest, NewModuleResponse } from "./commands_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -45,6 +45,17 @@ export const LanguageCommandService = {
       name: "GetModuleConfigDefaults",
       I: GetModuleConfigDefaultsRequest,
       O: GetModuleConfigDefaultsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get generated language-specific interface for SQL verbs and types.
+     *
+     * @generated from rpc xyz.block.ftl.language.v1.LanguageCommandService.GetSQLInterfaces
+     */
+    getSQLInterfaces: {
+      name: "GetSQLInterfaces",
+      I: GetSQLInterfacesRequest,
+      O: GetSQLInterfacesResponse,
       kind: MethodKind.Unary,
     },
   }

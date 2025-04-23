@@ -10,6 +10,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/block/ftl/internal/log"
+
+	sl "github.com/block/ftl/common/slices"
+
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -18,6 +22,9 @@ import (
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
+	"github.com/block/ftl/internal/buildengine/languageplugin"
+	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 type readResult struct {
@@ -79,7 +86,7 @@ type writeResult struct {
 	NewVerificationToken string       `json:"newVerificationToken"`
 }
 
-func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+func WriteTool(serverCtx context.Context, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient) (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool(
 			"Write",
@@ -89,6 +96,7 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 			mcp.WithString("content", mcp.Description("Data to write to the file")),
 			mcp.WithString("verificationToken", mcp.Description(`Obtained by the Read tool to verify that the existing content of the file has been read and understood before being replaced. Not required for new files.`)),
 		), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			logger := log.FromContext(ctx)
 			path, ok := request.Params.Arguments["path"].(string)
 			if !ok {
 				return nil, errors.Errorf("path is required")
@@ -101,7 +109,21 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 			if !ok {
 				return nil, errors.Errorf("this tool can only write to files within FTL modules")
 			}
-			originalGeneratedFiles := getGeneratedFileContent(moduleDir, path)
+
+			var config optional.Option[moduleconfig.AbsModuleConfig]
+			if strings.HasSuffix(path, ".sql") {
+				config = loadConfigIfPossible(serverCtx, projectConfig, moduleDir)
+			}
+
+			var originalSQLInterfaces map[string]string
+			if config, ok := config.Get(); ok && strings.HasSuffix(path, ".sql") {
+				sqlInterfaces, err := languageplugin.GetSQLInterfaces(ctx, config)
+				if err != nil {
+					logger.Warnf("could not get SQL interfaces: %v", err)
+				} else {
+					originalSQLInterfaces = sqlInterfaces
+				}
+			}
 
 			originalContent, err := os.ReadFile(path)
 			if err != nil {
@@ -166,24 +188,41 @@ func WriteTool(serverCtx context.Context, buildEngineClient buildenginepbconnect
 			}
 			content = append(content, annotateTextContent(mcp.NewTextContent(string(assistantResultJSON)), []mcp.Role{mcp.RoleAssistant}, 1.0))
 
-			latestGeneratedFiles := getGeneratedFileContent(moduleDir, path)
-			for path, latest := range latestGeneratedFiles {
-				original, ok := originalGeneratedFiles[path]
-				if ok && original.WriteVerificationToken == latest.WriteVerificationToken {
-					continue
-				}
-				latest.WriteVerificationToken = "" // Do not allow assistant to write to these files
-				generatedFileUpdateJSON, err := json.Marshal(latest)
+			// Check if any SQL interfaces have changed
+			if config, ok := config.Get(); ok && strings.HasSuffix(path, ".sql") {
+				latestSQLInterfaces, err := languageplugin.GetSQLInterfaces(ctx, config)
 				if err != nil {
-					return nil, errors.Wrap(err, "could not marshal read result for generated file")
+					logger.Warnf("could not get SQL interfaces: %v", err)
+				} else if sqlInterfaceUpdates, ok := readResultForUpdatedSQLInterfaces(originalSQLInterfaces, latestSQLInterfaces).Get(); ok {
+					generatedFileUpdateJSON, err := json.Marshal(sqlInterfaceUpdates)
+					if err != nil {
+						return nil, errors.Wrap(err, "could not marshal read result for generated file")
+					}
+					content = append(content, annotateTextContent(mcp.NewTextContent(string(generatedFileUpdateJSON)), []mcp.Role{mcp.RoleAssistant}, 0.1))
 				}
-				content = append(content, annotateTextContent(mcp.NewTextContent(string(generatedFileUpdateJSON)), []mcp.Role{mcp.RoleAssistant}, 0.5))
 			}
+
 			return &mcp.CallToolResult{
 				Content: content,
 				IsError: false,
 			}, nil
 		}
+}
+
+func loadConfigIfPossible(ctx context.Context, projectConfig projectconfig.Config, moduleDir string) optional.Option[moduleconfig.AbsModuleConfig] {
+	c, err := moduleconfig.LoadConfig(moduleDir)
+	if err != nil {
+		return optional.None[moduleconfig.AbsModuleConfig]()
+	}
+	defaults, err := languageplugin.GetModuleConfigDefaults(ctx, c.Language, moduleDir)
+	if err != nil {
+		return optional.None[moduleconfig.AbsModuleConfig]()
+	}
+	cf, err := c.FillDefaultsAndValidate(defaults, projectConfig)
+	if err != nil {
+		return optional.None[moduleconfig.AbsModuleConfig]()
+	}
+	return optional.Some(cf.Abs())
 }
 
 func prettyDiff(path, original, latest string) string {
@@ -245,31 +284,34 @@ func detectModulePath(path string) optional.Option[string] {
 	return optional.None[string]()
 }
 
-// getGeneratedFileContent returns the content of generated files that are relevant to the file being written.
-//
-// Currently this is hardcoded to only support `*.sql` -> `queries.ftl.go`.
-func getGeneratedFileContent(moduleDir string, writePath string) map[string]*readResult {
-	// TODO: make this generic with language plugin support
-	generatedPaths := []string{}
-	if strings.HasSuffix(writePath, ".sql") {
-		generatedPaths = append(generatedPaths, "queries.ftl.go")
-	}
-	out := map[string]*readResult{}
-	for _, path := range generatedPaths {
-		path = filepath.Join(moduleDir, path)
-		fileContent, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		token, err := tokenForFileContent(fileContent)
-		if err != nil {
-			continue
-		}
-		out[path] = &readResult{
-			FileContent:            string(fileContent),
-			WriteVerificationToken: token,
-			Explanation:            fmt.Sprintf("Generated file has changed at %s", path),
+func readResultForUpdatedSQLInterfaces(originalInterfaces map[string]string, latestInterfaces map[string]string) optional.Option[*readResult] {
+	updatedInterfaces := []string{}
+	for name, latest := range latestInterfaces {
+		if latest != originalInterfaces[name] {
+			updatedInterfaces = append(updatedInterfaces, latest)
 		}
 	}
-	return out
+	removedInterfaceNames := []string{}
+	for name, _ := range originalInterfaces {
+		if _, ok := latestInterfaces[name]; !ok {
+			removedInterfaceNames = append(removedInterfaceNames, name)
+		}
+	}
+	if len(updatedInterfaces) == 0 && len(removedInterfaceNames) == 0 {
+		return optional.None[*readResult]()
+	}
+	output := ""
+	if len(updatedInterfaces) > 0 {
+		output += "These declarations have been added or updated:\n\n" + strings.Join(updatedInterfaces, "\n\n")
+	}
+	if len(removedInterfaceNames) > 0 {
+		if len(output) > 0 {
+			output += "\n\n"
+		}
+		output += "These declarations have been removed:\n\n" + strings.Join(sl.Map(removedInterfaceNames, func(s string) string { return "- " + s }), "\n")
+	}
+	return optional.Some(&readResult{
+		FileContent: output,
+		Explanation: fmt.Sprintf("Updated generated declarations for SQL queries"),
+	})
 }

@@ -207,6 +207,10 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc(String.join("\n", data.getCommentsList()));
 
+        if (data.getMetadataList().stream().anyMatch(m -> m.hasGenerated())) {
+            dataBuilder.addJavadoc("Generated data type for use with SQL query verbs");
+        }
+
         // if data is part of a type enum, generate the interface methods for each variant
         DeclRef key = new DeclRef(module.getName(), data.getName());
         if (enumVariantInfoMap.containsKey(key)) {

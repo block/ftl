@@ -371,6 +371,94 @@ func (x *GetModuleConfigDefaultsResponse) GetSqlRootDir() string {
 	return ""
 }
 
+type GetSQLInterfacesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Config        *ModuleConfig          `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSQLInterfacesRequest) Reset() {
+	*x = GetSQLInterfacesRequest{}
+	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSQLInterfacesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSQLInterfacesRequest) ProtoMessage() {}
+
+func (x *GetSQLInterfacesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSQLInterfacesRequest.ProtoReflect.Descriptor instead.
+func (*GetSQLInterfacesRequest) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_language_v1_commands_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetSQLInterfacesRequest) GetConfig() *ModuleConfig {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+type GetSQLInterfacesResponse struct {
+	state         protoimpl.MessageState                `protogen:"open.v1"`
+	Interfaces    []*GetSQLInterfacesResponse_Interface `protobuf:"bytes,1,rep,name=interfaces,proto3" json:"interfaces,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSQLInterfacesResponse) Reset() {
+	*x = GetSQLInterfacesResponse{}
+	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSQLInterfacesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSQLInterfacesResponse) ProtoMessage() {}
+
+func (x *GetSQLInterfacesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSQLInterfacesResponse.ProtoReflect.Descriptor instead.
+func (*GetSQLInterfacesResponse) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_language_v1_commands_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetSQLInterfacesResponse) GetInterfaces() []*GetSQLInterfacesResponse_Interface {
+	if x != nil {
+		return x.Interfaces
+	}
+	return nil
+}
+
 type GetNewModuleFlagsResponse_Flag struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -386,7 +474,7 @@ type GetNewModuleFlagsResponse_Flag struct {
 
 func (x *GetNewModuleFlagsResponse_Flag) Reset() {
 	*x = GetNewModuleFlagsResponse_Flag{}
-	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[6]
+	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -398,7 +486,7 @@ func (x *GetNewModuleFlagsResponse_Flag) String() string {
 func (*GetNewModuleFlagsResponse_Flag) ProtoMessage() {}
 
 func (x *GetNewModuleFlagsResponse_Flag) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[6]
+	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -456,6 +544,58 @@ func (x *GetNewModuleFlagsResponse_Flag) GetDefault() string {
 	return ""
 }
 
+type GetSQLInterfacesResponse_Interface struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Interface     string                 `protobuf:"bytes,2,opt,name=interface,proto3" json:"interface,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSQLInterfacesResponse_Interface) Reset() {
+	*x = GetSQLInterfacesResponse_Interface{}
+	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSQLInterfacesResponse_Interface) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSQLInterfacesResponse_Interface) ProtoMessage() {}
+
+func (x *GetSQLInterfacesResponse_Interface) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_language_v1_commands_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSQLInterfacesResponse_Interface.ProtoReflect.Descriptor instead.
+func (*GetSQLInterfacesResponse_Interface) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_language_v1_commands_proto_rawDescGZIP(), []int{7, 0}
+}
+
+func (x *GetSQLInterfacesResponse_Interface) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetSQLInterfacesResponse_Interface) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
 var File_xyz_block_ftl_language_v1_commands_proto protoreflect.FileDescriptor
 
 const file_xyz_block_ftl_language_v1_commands_proto_rawDesc = "" +
@@ -498,11 +638,21 @@ const file_xyz_block_ftl_language_v1_commands_proto_rawDesc = "" +
 	"sqlRootDirB\b\n" +
 	"\x06_buildB\x11\n" +
 	"\x0f_dev_mode_buildB\r\n" +
-	"\v_build_lock2\x93\x03\n" +
+	"\v_build_lock\"Z\n" +
+	"\x17GetSQLInterfacesRequest\x12?\n" +
+	"\x06config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\x06config\"\xb8\x01\n" +
+	"\x18GetSQLInterfacesResponse\x12]\n" +
+	"\n" +
+	"interfaces\x18\x01 \x03(\v2=.xyz.block.ftl.language.v1.GetSQLInterfacesResponse.InterfaceR\n" +
+	"interfaces\x1a=\n" +
+	"\tInterface\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
+	"\tinterface\x18\x02 \x01(\tR\tinterface2\x90\x04\n" +
 	"\x16LanguageCommandService\x12~\n" +
 	"\x11GetNewModuleFlags\x123.xyz.block.ftl.language.v1.GetNewModuleFlagsRequest\x1a4.xyz.block.ftl.language.v1.GetNewModuleFlagsResponse\x12f\n" +
 	"\tNewModule\x12+.xyz.block.ftl.language.v1.NewModuleRequest\x1a,.xyz.block.ftl.language.v1.NewModuleResponse\x12\x90\x01\n" +
-	"\x17GetModuleConfigDefaults\x129.xyz.block.ftl.language.v1.GetModuleConfigDefaultsRequest\x1a:.xyz.block.ftl.language.v1.GetModuleConfigDefaultsResponseBLP\x01ZHgithub.com/block/ftl/backend/protos/xyz/block/ftl/language/v1;languagepbb\x06proto3"
+	"\x17GetModuleConfigDefaults\x129.xyz.block.ftl.language.v1.GetModuleConfigDefaultsRequest\x1a:.xyz.block.ftl.language.v1.GetModuleConfigDefaultsResponse\x12{\n" +
+	"\x10GetSQLInterfaces\x122.xyz.block.ftl.language.v1.GetSQLInterfacesRequest\x1a3.xyz.block.ftl.language.v1.GetSQLInterfacesResponseBLP\x01ZHgithub.com/block/ftl/backend/protos/xyz/block/ftl/language/v1;languagepbb\x06proto3"
 
 var (
 	file_xyz_block_ftl_language_v1_commands_proto_rawDescOnce sync.Once
@@ -516,34 +666,42 @@ func file_xyz_block_ftl_language_v1_commands_proto_rawDescGZIP() []byte {
 	return file_xyz_block_ftl_language_v1_commands_proto_rawDescData
 }
 
-var file_xyz_block_ftl_language_v1_commands_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_xyz_block_ftl_language_v1_commands_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_xyz_block_ftl_language_v1_commands_proto_goTypes = []any{
-	(*GetNewModuleFlagsRequest)(nil),        // 0: xyz.block.ftl.language.v1.GetNewModuleFlagsRequest
-	(*GetNewModuleFlagsResponse)(nil),       // 1: xyz.block.ftl.language.v1.GetNewModuleFlagsResponse
-	(*NewModuleRequest)(nil),                // 2: xyz.block.ftl.language.v1.NewModuleRequest
-	(*NewModuleResponse)(nil),               // 3: xyz.block.ftl.language.v1.NewModuleResponse
-	(*GetModuleConfigDefaultsRequest)(nil),  // 4: xyz.block.ftl.language.v1.GetModuleConfigDefaultsRequest
-	(*GetModuleConfigDefaultsResponse)(nil), // 5: xyz.block.ftl.language.v1.GetModuleConfigDefaultsResponse
-	(*GetNewModuleFlagsResponse_Flag)(nil),  // 6: xyz.block.ftl.language.v1.GetNewModuleFlagsResponse.Flag
-	(*ProjectConfig)(nil),                   // 7: xyz.block.ftl.language.v1.ProjectConfig
-	(*structpb.Struct)(nil),                 // 8: google.protobuf.Struct
+	(*GetNewModuleFlagsRequest)(nil),           // 0: xyz.block.ftl.language.v1.GetNewModuleFlagsRequest
+	(*GetNewModuleFlagsResponse)(nil),          // 1: xyz.block.ftl.language.v1.GetNewModuleFlagsResponse
+	(*NewModuleRequest)(nil),                   // 2: xyz.block.ftl.language.v1.NewModuleRequest
+	(*NewModuleResponse)(nil),                  // 3: xyz.block.ftl.language.v1.NewModuleResponse
+	(*GetModuleConfigDefaultsRequest)(nil),     // 4: xyz.block.ftl.language.v1.GetModuleConfigDefaultsRequest
+	(*GetModuleConfigDefaultsResponse)(nil),    // 5: xyz.block.ftl.language.v1.GetModuleConfigDefaultsResponse
+	(*GetSQLInterfacesRequest)(nil),            // 6: xyz.block.ftl.language.v1.GetSQLInterfacesRequest
+	(*GetSQLInterfacesResponse)(nil),           // 7: xyz.block.ftl.language.v1.GetSQLInterfacesResponse
+	(*GetNewModuleFlagsResponse_Flag)(nil),     // 8: xyz.block.ftl.language.v1.GetNewModuleFlagsResponse.Flag
+	(*GetSQLInterfacesResponse_Interface)(nil), // 9: xyz.block.ftl.language.v1.GetSQLInterfacesResponse.Interface
+	(*ProjectConfig)(nil),                      // 10: xyz.block.ftl.language.v1.ProjectConfig
+	(*structpb.Struct)(nil),                    // 11: google.protobuf.Struct
+	(*ModuleConfig)(nil),                       // 12: xyz.block.ftl.language.v1.ModuleConfig
 }
 var file_xyz_block_ftl_language_v1_commands_proto_depIdxs = []int32{
-	6, // 0: xyz.block.ftl.language.v1.GetNewModuleFlagsResponse.flags:type_name -> xyz.block.ftl.language.v1.GetNewModuleFlagsResponse.Flag
-	7, // 1: xyz.block.ftl.language.v1.NewModuleRequest.project_config:type_name -> xyz.block.ftl.language.v1.ProjectConfig
-	8, // 2: xyz.block.ftl.language.v1.NewModuleRequest.flags:type_name -> google.protobuf.Struct
-	8, // 3: xyz.block.ftl.language.v1.GetModuleConfigDefaultsResponse.language_config:type_name -> google.protobuf.Struct
-	0, // 4: xyz.block.ftl.language.v1.LanguageCommandService.GetNewModuleFlags:input_type -> xyz.block.ftl.language.v1.GetNewModuleFlagsRequest
-	2, // 5: xyz.block.ftl.language.v1.LanguageCommandService.NewModule:input_type -> xyz.block.ftl.language.v1.NewModuleRequest
-	4, // 6: xyz.block.ftl.language.v1.LanguageCommandService.GetModuleConfigDefaults:input_type -> xyz.block.ftl.language.v1.GetModuleConfigDefaultsRequest
-	1, // 7: xyz.block.ftl.language.v1.LanguageCommandService.GetNewModuleFlags:output_type -> xyz.block.ftl.language.v1.GetNewModuleFlagsResponse
-	3, // 8: xyz.block.ftl.language.v1.LanguageCommandService.NewModule:output_type -> xyz.block.ftl.language.v1.NewModuleResponse
-	5, // 9: xyz.block.ftl.language.v1.LanguageCommandService.GetModuleConfigDefaults:output_type -> xyz.block.ftl.language.v1.GetModuleConfigDefaultsResponse
-	7, // [7:10] is the sub-list for method output_type
-	4, // [4:7] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	8,  // 0: xyz.block.ftl.language.v1.GetNewModuleFlagsResponse.flags:type_name -> xyz.block.ftl.language.v1.GetNewModuleFlagsResponse.Flag
+	10, // 1: xyz.block.ftl.language.v1.NewModuleRequest.project_config:type_name -> xyz.block.ftl.language.v1.ProjectConfig
+	11, // 2: xyz.block.ftl.language.v1.NewModuleRequest.flags:type_name -> google.protobuf.Struct
+	11, // 3: xyz.block.ftl.language.v1.GetModuleConfigDefaultsResponse.language_config:type_name -> google.protobuf.Struct
+	12, // 4: xyz.block.ftl.language.v1.GetSQLInterfacesRequest.config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
+	9,  // 5: xyz.block.ftl.language.v1.GetSQLInterfacesResponse.interfaces:type_name -> xyz.block.ftl.language.v1.GetSQLInterfacesResponse.Interface
+	0,  // 6: xyz.block.ftl.language.v1.LanguageCommandService.GetNewModuleFlags:input_type -> xyz.block.ftl.language.v1.GetNewModuleFlagsRequest
+	2,  // 7: xyz.block.ftl.language.v1.LanguageCommandService.NewModule:input_type -> xyz.block.ftl.language.v1.NewModuleRequest
+	4,  // 8: xyz.block.ftl.language.v1.LanguageCommandService.GetModuleConfigDefaults:input_type -> xyz.block.ftl.language.v1.GetModuleConfigDefaultsRequest
+	6,  // 9: xyz.block.ftl.language.v1.LanguageCommandService.GetSQLInterfaces:input_type -> xyz.block.ftl.language.v1.GetSQLInterfacesRequest
+	1,  // 10: xyz.block.ftl.language.v1.LanguageCommandService.GetNewModuleFlags:output_type -> xyz.block.ftl.language.v1.GetNewModuleFlagsResponse
+	3,  // 11: xyz.block.ftl.language.v1.LanguageCommandService.NewModule:output_type -> xyz.block.ftl.language.v1.NewModuleResponse
+	5,  // 12: xyz.block.ftl.language.v1.LanguageCommandService.GetModuleConfigDefaults:output_type -> xyz.block.ftl.language.v1.GetModuleConfigDefaultsResponse
+	7,  // 13: xyz.block.ftl.language.v1.LanguageCommandService.GetSQLInterfaces:output_type -> xyz.block.ftl.language.v1.GetSQLInterfacesResponse
+	10, // [10:14] is the sub-list for method output_type
+	6,  // [6:10] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_language_v1_commands_proto_init() }
@@ -553,14 +711,14 @@ func file_xyz_block_ftl_language_v1_commands_proto_init() {
 	}
 	file_xyz_block_ftl_language_v1_service_proto_init()
 	file_xyz_block_ftl_language_v1_commands_proto_msgTypes[5].OneofWrappers = []any{}
-	file_xyz_block_ftl_language_v1_commands_proto_msgTypes[6].OneofWrappers = []any{}
+	file_xyz_block_ftl_language_v1_commands_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xyz_block_ftl_language_v1_commands_proto_rawDesc), len(file_xyz_block_ftl_language_v1_commands_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

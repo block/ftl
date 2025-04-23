@@ -118,6 +118,24 @@ func customDefaultsFromProto(proto *langpb.GetModuleConfigDefaultsResponse) modu
 	}
 }
 
+func GetSQLInterfaces(ctx context.Context, config moduleconfig.AbsModuleConfig) (map[string]string, error) {
+	configProto, err := langpb.ModuleConfigToProto(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert module config to proto")
+	}
+	result, err := runCommand[*langpb.GetSQLInterfacesResponse](ctx, "GetSQLInterfaces", config.Language, &langpb.GetSQLInterfacesRequest{
+		Config: configProto,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get SQL interfaces from plugin")
+	}
+	out := map[string]string{}
+	for _, sqlInterface := range result.Interfaces {
+		out[sqlInterface.Name] = sqlInterface.Interface
+	}
+	return out, nil
+}
+
 func runCommand[Resp proto.Message](ctx context.Context, name string, language string, req proto.Message) (out Resp, err error) {
 	reqBytes, err := proto.Marshal(req)
 	if err != nil {

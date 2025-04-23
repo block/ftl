@@ -42,6 +42,9 @@ const (
 	// LanguageCommandServiceGetModuleConfigDefaultsProcedure is the fully-qualified name of the
 	// LanguageCommandService's GetModuleConfigDefaults RPC.
 	LanguageCommandServiceGetModuleConfigDefaultsProcedure = "/xyz.block.ftl.language.v1.LanguageCommandService/GetModuleConfigDefaults"
+	// LanguageCommandServiceGetSQLInterfacesProcedure is the fully-qualified name of the
+	// LanguageCommandService's GetSQLInterfaces RPC.
+	LanguageCommandServiceGetSQLInterfacesProcedure = "/xyz.block.ftl.language.v1.LanguageCommandService/GetSQLInterfaces"
 )
 
 // LanguageCommandServiceClient is a client for the xyz.block.ftl.language.v1.LanguageCommandService
@@ -53,6 +56,8 @@ type LanguageCommandServiceClient interface {
 	NewModule(context.Context, *connect.Request[v1.NewModuleRequest]) (*connect.Response[v1.NewModuleResponse], error)
 	// Provide default values for ModuleConfig for values that are not configured in the ftl.toml file.
 	GetModuleConfigDefaults(context.Context, *connect.Request[v1.GetModuleConfigDefaultsRequest]) (*connect.Response[v1.GetModuleConfigDefaultsResponse], error)
+	// Get generated language-specific interface for SQL verbs and types.
+	GetSQLInterfaces(context.Context, *connect.Request[v1.GetSQLInterfacesRequest]) (*connect.Response[v1.GetSQLInterfacesResponse], error)
 }
 
 // NewLanguageCommandServiceClient constructs a client for the
@@ -85,6 +90,12 @@ func NewLanguageCommandServiceClient(httpClient connect.HTTPClient, baseURL stri
 			connect.WithSchema(languageCommandServiceMethods.ByName("GetModuleConfigDefaults")),
 			connect.WithClientOptions(opts...),
 		),
+		getSQLInterfaces: connect.NewClient[v1.GetSQLInterfacesRequest, v1.GetSQLInterfacesResponse](
+			httpClient,
+			baseURL+LanguageCommandServiceGetSQLInterfacesProcedure,
+			connect.WithSchema(languageCommandServiceMethods.ByName("GetSQLInterfaces")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -93,6 +104,7 @@ type languageCommandServiceClient struct {
 	getNewModuleFlags       *connect.Client[v1.GetNewModuleFlagsRequest, v1.GetNewModuleFlagsResponse]
 	newModule               *connect.Client[v1.NewModuleRequest, v1.NewModuleResponse]
 	getModuleConfigDefaults *connect.Client[v1.GetModuleConfigDefaultsRequest, v1.GetModuleConfigDefaultsResponse]
+	getSQLInterfaces        *connect.Client[v1.GetSQLInterfacesRequest, v1.GetSQLInterfacesResponse]
 }
 
 // GetNewModuleFlags calls xyz.block.ftl.language.v1.LanguageCommandService.GetNewModuleFlags.
@@ -111,6 +123,11 @@ func (c *languageCommandServiceClient) GetModuleConfigDefaults(ctx context.Conte
 	return c.getModuleConfigDefaults.CallUnary(ctx, req)
 }
 
+// GetSQLInterfaces calls xyz.block.ftl.language.v1.LanguageCommandService.GetSQLInterfaces.
+func (c *languageCommandServiceClient) GetSQLInterfaces(ctx context.Context, req *connect.Request[v1.GetSQLInterfacesRequest]) (*connect.Response[v1.GetSQLInterfacesResponse], error) {
+	return c.getSQLInterfaces.CallUnary(ctx, req)
+}
+
 // LanguageCommandServiceHandler is an implementation of the
 // xyz.block.ftl.language.v1.LanguageCommandService service.
 type LanguageCommandServiceHandler interface {
@@ -120,6 +137,8 @@ type LanguageCommandServiceHandler interface {
 	NewModule(context.Context, *connect.Request[v1.NewModuleRequest]) (*connect.Response[v1.NewModuleResponse], error)
 	// Provide default values for ModuleConfig for values that are not configured in the ftl.toml file.
 	GetModuleConfigDefaults(context.Context, *connect.Request[v1.GetModuleConfigDefaultsRequest]) (*connect.Response[v1.GetModuleConfigDefaultsResponse], error)
+	// Get generated language-specific interface for SQL verbs and types.
+	GetSQLInterfaces(context.Context, *connect.Request[v1.GetSQLInterfacesRequest]) (*connect.Response[v1.GetSQLInterfacesResponse], error)
 }
 
 // NewLanguageCommandServiceHandler builds an HTTP handler from the service implementation. It
@@ -147,6 +166,12 @@ func NewLanguageCommandServiceHandler(svc LanguageCommandServiceHandler, opts ..
 		connect.WithSchema(languageCommandServiceMethods.ByName("GetModuleConfigDefaults")),
 		connect.WithHandlerOptions(opts...),
 	)
+	languageCommandServiceGetSQLInterfacesHandler := connect.NewUnaryHandler(
+		LanguageCommandServiceGetSQLInterfacesProcedure,
+		svc.GetSQLInterfaces,
+		connect.WithSchema(languageCommandServiceMethods.ByName("GetSQLInterfaces")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/xyz.block.ftl.language.v1.LanguageCommandService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LanguageCommandServiceGetNewModuleFlagsProcedure:
@@ -155,6 +180,8 @@ func NewLanguageCommandServiceHandler(svc LanguageCommandServiceHandler, opts ..
 			languageCommandServiceNewModuleHandler.ServeHTTP(w, r)
 		case LanguageCommandServiceGetModuleConfigDefaultsProcedure:
 			languageCommandServiceGetModuleConfigDefaultsHandler.ServeHTTP(w, r)
+		case LanguageCommandServiceGetSQLInterfacesProcedure:
+			languageCommandServiceGetSQLInterfacesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -174,4 +201,8 @@ func (UnimplementedLanguageCommandServiceHandler) NewModule(context.Context, *co
 
 func (UnimplementedLanguageCommandServiceHandler) GetModuleConfigDefaults(context.Context, *connect.Request[v1.GetModuleConfigDefaultsRequest]) (*connect.Response[v1.GetModuleConfigDefaultsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.language.v1.LanguageCommandService.GetModuleConfigDefaults is not implemented"))
+}
+
+func (UnimplementedLanguageCommandServiceHandler) GetSQLInterfaces(context.Context, *connect.Request[v1.GetSQLInterfacesRequest]) (*connect.Response[v1.GetSQLInterfacesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.language.v1.LanguageCommandService.GetSQLInterfaces is not implemented"))
 }
