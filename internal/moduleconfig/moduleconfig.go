@@ -268,11 +268,12 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 	if err != nil {
 		return false, databases, errors.Wrapf(err, "failed to read SQL migration directory %q", dir)
 	}
-
+	engineDirs = slices.Filter(engineDirs, func(d os.DirEntry) bool {
+		return !strings.HasPrefix(d.Name(), ".")
+	})
 	if len(engineDirs) == 0 {
 		return true, databases, nil
 	}
-
 	if len(engineDirs) > 2 {
 		return false, databases, errors.Errorf("subdirectories of %q must be either 'mysql' or 'postgres'", dir)
 	}
