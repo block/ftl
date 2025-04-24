@@ -109,7 +109,9 @@ func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []
 	logger.Debugf("Starting watch %v", moduleDirs)
 
 	go func() {
-		wait := topic.Wait()
+		ctx, cancel := context.WithCancelCause(ctx)
+		defer cancel(errors.Wrap(context.Canceled, "watch stopped"))
+		defer topic.Close()
 
 		isFirstLoop := true
 		for {
@@ -125,11 +127,7 @@ func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []
 			select {
 			case <-delayChan:
 
-			case <-wait:
-				return
-
 			case <-ctx.Done():
-				_ = topic.Close()
 				return
 			}
 
@@ -153,8 +151,12 @@ func (w *Watcher) Watch(ctx context.Context, period time.Duration, moduleDirs []
 				logger.Debugf("error releasing modules lock after discovering modules: %v", flerr)
 			}
 			if err != nil {
-				logger.Tracef("error discovering modules: %v", err)
-				continue
+				// If discovery fails (e.g., directory removed), log the error, cancel the context,
+				// close the topic, and stop watching.
+				err = errors.Wrap(err, "Error discovering modules, stopping watch")
+				logger.Errorf(err, "")
+				cancel(err)
+				return
 			}
 
 			modulesByDir := maps.FromSlice(modules, func(config moduleconfig.UnvalidatedModuleConfig) (string, moduleconfig.UnvalidatedModuleConfig) {
