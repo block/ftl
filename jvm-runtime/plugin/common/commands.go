@@ -3,7 +3,10 @@ package common
 import (
 	"archive/zip"
 	"context"
+	"io/fs"
+	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -14,8 +17,10 @@ import (
 	"github.com/block/ftl"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/watch"
 )
 
 type CmdService struct {
@@ -119,4 +124,103 @@ func (CmdService) GetModuleConfigDefaults(ctx context.Context, req *connect.Requ
 	}
 
 	return connect.NewResponse(defaults), nil
+}
+
+func (CmdService) GetSQLInterfaces(ctx context.Context, req *connect.Request[langpb.GetSQLInterfacesRequest]) (*connect.Response[langpb.GetSQLInterfacesResponse], error) {
+	config := langpb.ModuleConfigFromProto(req.Msg.Config)
+
+	interfaces, err := interfacesForGeneratedFiles(config.Dir, config.Module)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get interfaces for generated files")
+	}
+	return connect.NewResponse(&langpb.GetSQLInterfacesResponse{
+		Interfaces: interfaces,
+	}), nil
+}
+
+func interfacesForGeneratedFiles(moduleDir, name string) ([]*langpb.GetSQLInterfacesResponse_Interface, error) {
+	interfaces := []*langpb.GetSQLInterfacesResponse_Interface{}
+	generatedDir := filepath.Join(moduleDir, "target", "generated-sources", "ftl-clients", "ftl", name)
+	err := watch.WalkDir(generatedDir, false, func(path string, d os.DirEntry) error {
+		if d.IsDir() {
+			return nil
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read generated file at %s", path)
+		}
+		_, filename := filepath.Split(path)
+		newInterfaces, err := interfacesForGeneratedFile(filename, string(content))
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse generated file at %s", path)
+		}
+		interfaces = append(interfaces, newInterfaces...)
+		return nil
+	})
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, errors.Wrap(err, "failed to walk generated directory")
+	}
+	return interfaces, nil
+}
+
+var kotlinVerbInterfaceRegex = regexp.MustCompile(`SQL query verb(\n|.)*?(public fun interface ([a-zA-Z0-9_]+) {\n)(.|\n)*?( *public fun .*\n})`)
+var kotlinDataInterfaceRegex = regexp.MustCompile(`Generated data type for use with SQL query verbs(\n|.)*?(public data class ([a-zA-Z0-9_]+)\(\n(.|\n)*?\n\))`)
+var javaVerbInterfaceRegex = regexp.MustCompile(`SQL query verb(\n|.)*?(public interface ([a-zA-Z0-9_]+) {)\n\s*@SQLQueryClient(.|\n)*?(\n\s*\)\n.*\n})`)
+var javaDataInterfaceRegex = regexp.MustCompile(`SQL query verbs(.|\n)*?public class ([a-zA-Z_]+) {((.|\n)*?)\n}`)
+var javaDataFuncInterfaceRegex = regexp.MustCompile(`(public [^\n]*?) {\n`)
+
+func interfacesForGeneratedFile(filename, fileContent string) ([]*langpb.GetSQLInterfacesResponse_Interface, error) {
+	interfaces := []*langpb.GetSQLInterfacesResponse_Interface{}
+	if strings.HasSuffix(filename, ".kt") {
+		for _, match := range kotlinVerbInterfaceRegex.FindAllStringSubmatch(fileContent, -1) {
+			if len(match) < 6 {
+				return nil, errors.New("unexpected components in verb interface regex result")
+			}
+			interfaces = append(interfaces, &langpb.GetSQLInterfacesResponse_Interface{
+				Name:      match[3],
+				Interface: match[2] + match[5],
+			})
+		}
+		for _, match := range kotlinDataInterfaceRegex.FindAllStringSubmatch(fileContent, -1) {
+			if len(match) < 5 {
+				return nil, errors.Errorf("unexpected components in data interface regex result")
+			}
+			interfaces = append(interfaces, &langpb.GetSQLInterfacesResponse_Interface{
+				Name:      match[3],
+				Interface: match[2],
+			})
+		}
+	} else if strings.HasSuffix(filename, ".java") {
+		for _, match := range javaVerbInterfaceRegex.FindAllStringSubmatch(fileContent, -1) {
+			if len(match) < 6 {
+				return nil, errors.New("unexpected components in verb interface regex result")
+			}
+			interfaces = append(interfaces, &langpb.GetSQLInterfacesResponse_Interface{
+				Name:      match[3],
+				Interface: match[2] + match[5],
+			})
+		}
+		for _, match := range javaDataInterfaceRegex.FindAllStringSubmatch(fileContent, -1) {
+			if len(match) < 5 {
+				return nil, errors.New("unexpected components in data interface regex result")
+			}
+			name := match[2]
+
+			funcs := []string{}
+			for _, match := range javaDataFuncInterfaceRegex.FindAllStringSubmatch(match[3], -1) {
+				if len(match) < 2 {
+					return nil, errors.New("unexpected components in data accessor interface regex result")
+				}
+				funcs = append(funcs, match[1])
+			}
+
+			finalInterface := "public class " + name + " {" + strings.Join(slices.Map(funcs, func(f string) string { return "\n  " + f + ";" }), "") + "\n}"
+
+			interfaces = append(interfaces, &langpb.GetSQLInterfacesResponse_Interface{
+				Name:      name,
+				Interface: finalInterface,
+			})
+		}
+	}
+	return interfaces, nil
 }

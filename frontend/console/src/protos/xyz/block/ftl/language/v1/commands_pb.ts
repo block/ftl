@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, Struct } from "@bufbuild/protobuf";
-import { ProjectConfig } from "./service_pb.js";
+import { ModuleConfig, ProjectConfig } from "./service_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.language.v1.GetNewModuleFlagsRequest
@@ -377,6 +377,123 @@ export class GetModuleConfigDefaultsResponse extends Message<GetModuleConfigDefa
 
   static equals(a: GetModuleConfigDefaultsResponse | PlainMessage<GetModuleConfigDefaultsResponse> | undefined, b: GetModuleConfigDefaultsResponse | PlainMessage<GetModuleConfigDefaultsResponse> | undefined): boolean {
     return proto3.util.equals(GetModuleConfigDefaultsResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.language.v1.GetSQLInterfacesRequest
+ */
+export class GetSQLInterfacesRequest extends Message<GetSQLInterfacesRequest> {
+  /**
+   * @generated from field: xyz.block.ftl.language.v1.ModuleConfig config = 1;
+   */
+  config?: ModuleConfig;
+
+  constructor(data?: PartialMessage<GetSQLInterfacesRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.language.v1.GetSQLInterfacesRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "config", kind: "message", T: ModuleConfig },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSQLInterfacesRequest {
+    return new GetSQLInterfacesRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSQLInterfacesRequest {
+    return new GetSQLInterfacesRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSQLInterfacesRequest {
+    return new GetSQLInterfacesRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSQLInterfacesRequest | PlainMessage<GetSQLInterfacesRequest> | undefined, b: GetSQLInterfacesRequest | PlainMessage<GetSQLInterfacesRequest> | undefined): boolean {
+    return proto3.util.equals(GetSQLInterfacesRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.language.v1.GetSQLInterfacesResponse
+ */
+export class GetSQLInterfacesResponse extends Message<GetSQLInterfacesResponse> {
+  /**
+   * @generated from field: repeated xyz.block.ftl.language.v1.GetSQLInterfacesResponse.Interface interfaces = 1;
+   */
+  interfaces: GetSQLInterfacesResponse_Interface[] = [];
+
+  constructor(data?: PartialMessage<GetSQLInterfacesResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.language.v1.GetSQLInterfacesResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "interfaces", kind: "message", T: GetSQLInterfacesResponse_Interface, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSQLInterfacesResponse {
+    return new GetSQLInterfacesResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSQLInterfacesResponse {
+    return new GetSQLInterfacesResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSQLInterfacesResponse {
+    return new GetSQLInterfacesResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSQLInterfacesResponse | PlainMessage<GetSQLInterfacesResponse> | undefined, b: GetSQLInterfacesResponse | PlainMessage<GetSQLInterfacesResponse> | undefined): boolean {
+    return proto3.util.equals(GetSQLInterfacesResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.language.v1.GetSQLInterfacesResponse.Interface
+ */
+export class GetSQLInterfacesResponse_Interface extends Message<GetSQLInterfacesResponse_Interface> {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string interface = 2;
+   */
+  interface = "";
+
+  constructor(data?: PartialMessage<GetSQLInterfacesResponse_Interface>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.language.v1.GetSQLInterfacesResponse.Interface";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "interface", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSQLInterfacesResponse_Interface {
+    return new GetSQLInterfacesResponse_Interface().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSQLInterfacesResponse_Interface {
+    return new GetSQLInterfacesResponse_Interface().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSQLInterfacesResponse_Interface {
+    return new GetSQLInterfacesResponse_Interface().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSQLInterfacesResponse_Interface | PlainMessage<GetSQLInterfacesResponse_Interface> | undefined, b: GetSQLInterfacesResponse_Interface | PlainMessage<GetSQLInterfacesResponse_Interface> | undefined): boolean {
+    return proto3.util.equals(GetSQLInterfacesResponse_Interface, a, b);
   }
 }
 

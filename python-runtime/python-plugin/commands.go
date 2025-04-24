@@ -55,3 +55,7 @@ func (CmdService) GetModuleConfigDefaults(ctx context.Context, req *connect.Requ
 		DeployDir: ".ftl",
 	}), nil
 }
+
+func (CmdService) GetSQLInterfaces(ctx context.Context, req *connect.Request[langpb.GetSQLInterfacesRequest]) (*connect.Response[langpb.GetSQLInterfacesResponse], error) {
+	return nil, errors.New("not implemented")
+}

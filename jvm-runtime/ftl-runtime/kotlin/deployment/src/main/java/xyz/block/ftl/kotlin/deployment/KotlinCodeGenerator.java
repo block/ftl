@@ -221,6 +221,10 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
             dataBuilder.addModifiers(KModifier.DATA);
         }
 
+        if (data.getMetadataList().stream().anyMatch(m -> m.hasGenerated())) {
+            dataBuilder.addKdoc("Generated data type for use with SQL query verbs");
+        }
+
         for (var param : data.getTypeParametersList()) {
             dataBuilder.addTypeVariable(TypeVariableName.get(param.getName()));
         }

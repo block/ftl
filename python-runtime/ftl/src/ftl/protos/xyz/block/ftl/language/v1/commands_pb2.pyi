@@ -73,3 +73,22 @@ class GetModuleConfigDefaultsResponse(_message.Message):
     language_config: _struct_pb2.Struct
     sql_root_dir: str
     def __init__(self, deploy_dir: _Optional[str] = ..., build: _Optional[str] = ..., dev_mode_build: _Optional[str] = ..., build_lock: _Optional[str] = ..., watch: _Optional[_Iterable[str]] = ..., language_config: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., sql_root_dir: _Optional[str] = ...) -> None: ...
+
+class GetSQLInterfacesRequest(_message.Message):
+    __slots__ = ("config",)
+    CONFIG_FIELD_NUMBER: _ClassVar[int]
+    config: _service_pb2.ModuleConfig
+    def __init__(self, config: _Optional[_Union[_service_pb2.ModuleConfig, _Mapping]] = ...) -> None: ...
+
+class GetSQLInterfacesResponse(_message.Message):
+    __slots__ = ("interfaces",)
+    class Interface(_message.Message):
+        __slots__ = ("name", "interface")
+        NAME_FIELD_NUMBER: _ClassVar[int]
+        INTERFACE_FIELD_NUMBER: _ClassVar[int]
+        name: str
+        interface: str
+        def __init__(self, name: _Optional[str] = ..., interface: _Optional[str] = ...) -> None: ...
+    INTERFACES_FIELD_NUMBER: _ClassVar[int]
+    interfaces: _containers.RepeatedCompositeFieldContainer[GetSQLInterfacesResponse.Interface]
+    def __init__(self, interfaces: _Optional[_Iterable[_Union[GetSQLInterfacesResponse.Interface, _Mapping]]] = ...) -> None: ...
