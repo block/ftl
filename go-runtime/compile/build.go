@@ -775,27 +775,49 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 	wg.Go(func() error {
 		if !importsChanged {
 			log.FromContext(ctx).Debugf("Skipped go mod tidy (module dir)")
-			return nil
+			// Even if imports didn't change, we might need to format if scaffolding happened.
+		} else {
+			if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "mod", "tidy").RunStderrError(wgctx); err != nil {
+				return errors.Wrapf(err, "%s: failed to tidy go.mod", config.Dir)
+			}
 		}
-		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "mod", "tidy").RunStderrError(wgctx); err != nil {
-			return errors.Wrapf(err, "%s: failed to tidy go.mod", config.Dir)
+
+		// Always run go fmt on potentially scaffolded files if they exist.
+		fmtFiles := []string{}
+		typesFilePath := filepath.Join(config.Dir, ftlTypesFilename)
+		queriesFilePath := filepath.Join(config.Dir, ftlQueriesFilename)
+
+		if _, err := os.Stat(typesFilePath); err == nil {
+			fmtFiles = append(fmtFiles, ftlTypesFilename)
 		}
-		fmtFiles := []string{ftlTypesFilename}
-		if _, err := os.Stat(filepath.Join(config.Dir, ftlQueriesFilename)); err == nil {
+		if _, err := os.Stat(queriesFilePath); err == nil {
 			fmtFiles = append(fmtFiles, ftlQueriesFilename)
 		}
-		args := []string{"fmt"}
-		args = append(args, fmtFiles...)
-		if err := exec.Command(wgctx, log.Debug, config.Dir, "go", args...).RunStderrError(wgctx); err != nil {
-			return errors.Wrapf(err, "%s: failed to format module dir", config.Dir)
+
+		if len(fmtFiles) > 0 {
+			log.FromContext(ctx).Debugf("Formatting scaffolded files: %v", fmtFiles)
+			args := []string{"fmt"}
+			args = append(args, fmtFiles...)
+			if err := exec.Command(wgctx, log.Debug, config.Dir, "go", args...).RunStderrError(wgctx); err != nil {
+				return errors.Wrapf(err, "%s: failed to format module dir files: %v", config.Dir, fmtFiles)
+			}
 		}
-		updatedFiles := []string{filepath.Join(config.Dir, "go.mod"), filepath.Join(config.Dir, "go.sum")}
-		for _, file := range fmtFiles {
+
+		// Mark files as modified if tidy or format might have run
+		// This is slightly broader but ensures transaction catches changes.
+		updatedFiles := []string{}
+		if importsChanged {
+			updatedFiles = append(updatedFiles, filepath.Join(config.Dir, "go.mod"), filepath.Join(config.Dir, "go.sum"))
+		}
+		for _, file := range fmtFiles { // Add formatted files
 			updatedFiles = append(updatedFiles, filepath.Join(config.Dir, file))
 		}
-		if err := filesTransaction.ModifiedFiles(updatedFiles...); err != nil {
-			return errors.Wrap(err, "could not files as modified after tidying module package")
+		if len(updatedFiles) > 0 {
+			if err := filesTransaction.ModifiedFiles(updatedFiles...); err != nil {
+				return errors.Wrap(err, "could not mark files as modified after tidying/formatting module package")
+			}
 		}
+
 		return nil
 	})
 	wg.Go(func() error {
