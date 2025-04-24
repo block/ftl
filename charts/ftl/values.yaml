@@ -190,7 +190,7 @@ ingress:
   env: null
 
   ports:
-    - name: ingress
+    - name: http2
       containerPort: 8891
       protocol: TCP
       port: 8891

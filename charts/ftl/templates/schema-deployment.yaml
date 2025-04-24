@@ -79,7 +79,7 @@ spec:
             - name: RAFT_CONTROL_ADDRESS
               value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
           ports:
-            - name: http
+            - name: http2
               containerPort: {{ .Values.schema.services.schema.port }}
               protocol: "TCP"
             - name: raft
