@@ -3,7 +3,6 @@ package common
 import (
 	"archive/zip"
 	"context"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -184,7 +183,7 @@ func interfacesForGeneratedFile(filename, fileContent string) ([]*langpb.GetSQLI
 		}
 		for _, match := range kotlinDataInterfaceRegex.FindAllStringSubmatch(fileContent, -1) {
 			if len(match) < 5 {
-				return nil, fmt.Errorf("unexpected components in data interface regex result")
+				return nil, errors.Errorf("unexpected components in data interface regex result")
 			}
 			interfaces = append(interfaces, &langpb.GetSQLInterfacesResponse_Interface{
 				Name:      match[3],
