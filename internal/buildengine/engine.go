@@ -321,13 +321,14 @@ func (e *Engine) buildGraph(moduleName string, out map[string][]string) error {
 		}
 	}
 	if !foundModule {
-		return errors.Errorf("module %q not found", moduleName)
+		return errors.Errorf("module %q not found. does the module exist and is the ftl.toml file correct?", moduleName)
 	}
 	deps = slices.Unique(deps)
 	out[moduleName] = deps
-	for _, dep := range deps {
+	for i := range deps {
+		dep := deps[i]
 		if err := e.buildGraph(dep, out); err != nil {
-			return errors.WithStack(err)
+			return errors.Wrapf(err, "module %q requires dependency %q", moduleName, dep)
 		}
 	}
 	return nil
