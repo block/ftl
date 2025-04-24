@@ -176,7 +176,7 @@ func WriteTool(ctx context.Context, projectConfig projectconfig.Config, buildEng
 				assistantResult.TokenExplanation = "The file has been updated. A new verification token is provided if you need to update the file again."
 			}
 
-			if status, err := GetStatusOutput(ctx, buildEngineClient, adminClient); err == nil {
+			if status, err := GetStatusOutput(ctx, buildEngineClient, adminClient, true); err == nil {
 				assistantResult.StatusExplanation = "The FTL status after the change is also provided."
 				assistantResult.Status = status
 			}

@@ -77,6 +77,8 @@ message ModuleDeploySuccess {
   string module = 1;
 }
 
+message ReachedEndOfHistory {}
+
 // EngineEvent is an event published by the engine as modules get built and deployed.
 message EngineEvent {
   google.protobuf.Timestamp timestamp = 1;
@@ -93,6 +95,8 @@ message EngineEvent {
     ModuleDeployStarted module_deploy_started = 11;
     ModuleDeployFailed module_deploy_failed = 12;
     ModuleDeploySuccess module_deploy_success = 13;
+
+    ReachedEndOfHistory reached_end_of_history = 14;
   }
 }
 

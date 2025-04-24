@@ -342,7 +342,7 @@ func WaitForDev(noErrors bool, msgAndArgs ...any) Action {
 		} else {
 			Infof("Waiting for FTL Dev state with errors")
 		}
-		result, err := devstate.WaitForDevState(ic.Context, ic.BuildEngine, ic.Admin)
+		result, err := devstate.WaitForDevState(ic.Context, ic.BuildEngine, ic.Admin, true)
 		assert.NoError(t, err, "failed to wait for dev state")
 
 		var errs []builderrors.Error

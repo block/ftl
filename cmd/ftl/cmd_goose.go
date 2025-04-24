@@ -65,7 +65,7 @@ func (c *gooseChatCmd) Run(ctx context.Context, projectConfig projectconfig.Conf
 	defer terminal.UpdateModuleState(ctx, gooseName, terminal.BuildStateTerminated)
 
 	// Check if ftl dev is running by attempting to get status - do this first to fail fast
-	statusObj, err := mcp.GetStatusOutput(ctx, buildEngineClient, adminClient)
+	statusObj, err := mcp.GetStatusOutput(ctx, buildEngineClient, adminClient, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
 			return errors.Errorf("ftl dev is not running. Please start ftl dev first with 'ftl dev' before using Goose")
