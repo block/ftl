@@ -402,7 +402,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	}()
 
 	// Build and deploy all modules first.
-	_ = e.BuildAndDeploy(ctx, optional.None[int32](), true, false) //nolint:errcheck
+	if err := e.BuildAndDeploy(ctx, optional.None[int32](), true, false); err != nil {
+		logger.Errorf(err, "Initial build and deploy failed")
+	}
 
 	// Update schema and set initial module hashes
 	for {
@@ -450,7 +452,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 						},
 					}
 					logger.Debugf("calling build and deploy %q", event.Config.Module)
-					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module) //nolint:errcheck
+					if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module); err != nil {
+						logger.Errorf(err, "Build and deploy failed for added module %s", config.Module)
+					}
 				}
 			case watch.WatchEventModuleRemoved:
 				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module)
@@ -465,6 +469,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					}
 				}
 				e.moduleMetas.Delete(event.Config.Module)
+				e.modulesToBuild.Delete(event.Config.Module)
 				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 					Timestamp: timestamppb.Now(),
 					Event: &buildenginepb.EngineEvent_ModuleRemoved{
@@ -494,7 +499,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				meta.module.Config = validConfig
 				e.moduleMetas.Store(event.Config.Module, meta)
 
-				_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, event.Config.Module) //nolint:errcheck
+				if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, event.Config.Module); err != nil {
+					logger.Errorf(err, "Build and deploy failed for updated module %s", event.Config.Module)
+				}
 			}
 		case event := <-e.deployCoordinator.SchemaUpdates:
 			e.targetSchema.Store(event.schema)
@@ -527,7 +534,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				})
 				if len(dependentModuleNames) > 0 {
 					logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", ")) //nolint:forbidigo
-					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, dependentModuleNames...)                  //nolint:errcheck
+					if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, dependentModuleNames...); err != nil {
+						logger.Errorf(err, "Build and deploy failed for dependent modules of %s", module.Name)
+					}
 				}
 			}
 
@@ -594,7 +603,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				modulesToBuild[event.module] = true
 			}
 			if len(modulesToBuild) > 0 {
-				_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, maps.Keys(modulesToBuild)...) //nolint
+				if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, maps.Keys(modulesToBuild)...); err != nil {
+					logger.Errorf(err, "Build and deploy failed for rebuild requested modules")
+				}
 			}
 		}
 	}
