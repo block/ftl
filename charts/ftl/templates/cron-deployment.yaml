@@ -45,7 +45,7 @@ spec:
           - name: cron-raft-storage
             mountPath: /data/raft
           ports:
-            - name: http
+            - name: http2
               containerPort: {{ .Values.cron.services.cron.containerPort }}
               protocol: TCP
             - name: raft
