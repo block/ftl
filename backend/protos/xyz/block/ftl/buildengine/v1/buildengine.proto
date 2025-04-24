@@ -77,8 +77,7 @@ message ModuleDeploySuccess {
   string module = 1;
 }
 
-message ReachedEndOfHistory {
-}
+message ReachedEndOfHistory {}
 
 // EngineEvent is an event published by the engine as modules get built and deployed.
 message EngineEvent {
