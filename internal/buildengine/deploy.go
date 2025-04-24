@@ -49,11 +49,26 @@ type DependencyGrapher interface {
 }
 
 type pendingModule struct {
-	name   string
 	module Module
+
+	deployPaths  []string
+	tmpDeployDir string
 
 	schemaPath string
 	schema     *schema.Module
+}
+
+func newPendingModule(module Module, tmpDeployDir string, deployPaths []string, schemaPath string) *pendingModule {
+	return &pendingModule{
+		module:       module,
+		deployPaths:  deployPaths,
+		tmpDeployDir: tmpDeployDir,
+		schemaPath:   schemaPath,
+	}
+}
+
+func (p *pendingModule) moduleName() string {
+	return p.module.Config.Module
 }
 
 type pendingDeploy struct {
@@ -126,23 +141,26 @@ func NewDeployCoordinator(
 	return c
 }
 
-func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig.Config, modules []Module, replicas optional.Option[int32]) error {
+func (c *DeployCoordinator) deploy(ctx context.Context, modules []*pendingModule, replicas optional.Option[int32]) error {
+	logger := log.FromContext(ctx)
 	for _, module := range modules {
 		c.engineUpdates <- &buildenginepb.EngineEvent{
 			Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
 				ModuleDeployWaiting: &buildenginepb.ModuleDeployWaiting{
-					Module: module.Config.Module,
+					Module: module.module.Config.Module,
 				},
 			},
 		}
 	}
 	pendingModules := make(map[string]*pendingModule, len(modules))
 	for _, m := range modules {
-		pendingModules[m.Config.Module] = &pendingModule{
-			name:       m.Config.Module,
-			module:     m,
-			schemaPath: projConfig.SchemaPath(m.Config.Module),
-		}
+		pendingModules[m.moduleName()] = m
+
+		defer func() {
+			if err := os.RemoveAll(m.tmpDeployDir); err != nil {
+				logger.Errorf(err, "failed to remove tmp deploy dir %s", m.tmpDeployDir)
+			}
+		}()
 	}
 
 	errChan := make(chan error, 1)
@@ -154,6 +172,9 @@ func (c *DeployCoordinator) deploy(ctx context.Context, projConfig projectconfig
 	case <-ctx.Done():
 		return errors.WithStack(ctx.Err()) //nolint:wrapcheck
 	case err := <-errChan:
+		if err != nil {
+			logger.Errorf(err, "Failed to deploy %s", strings.Join(slices.Map(modules, func(m *pendingModule) string { return m.moduleName() }), ", "))
+		}
 		return errors.WithStack(err)
 	}
 }
@@ -208,7 +229,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 			// Check if there are older deployments that are superceded by this one or can be joined with this one
 			for _, existing := range toDeploy {
 				for _, mod := range existing.modules {
-					if _, ok := deployment.modules[mod.name]; ok {
+					if _, ok := deployment.modules[mod.moduleName()]; ok {
 						existing.superseded = true
 					}
 				}
@@ -326,6 +347,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 }
 
 func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *pendingDeploy, toDeploy []*pendingDeploy, depGraph map[string][]string) bool {
+	logger := log.FromContext(ctx)
 	if len(deployment.waitingForModules) > 0 {
 		return false
 	}
@@ -333,8 +355,8 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 	modules := map[string]bool{}
 	depModules := map[string]bool{}
 	for _, module := range deployment.modules {
-		modules[module.name] = true
-		for _, dep := range depGraph[module.name] {
+		modules[module.moduleName()] = true
+		for _, dep := range depGraph[module.moduleName()] {
 			depModules[dep] = true
 		}
 	}
@@ -352,28 +374,24 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 		for _, mod := range queued.modules {
 			// We only check for dependencies here, as we already have de-duped modules
 			// And we have not been removed from toDeploy at this point so we would find ourself
-			if depModules[mod.name] {
+			if depModules[mod.moduleName()] {
 				return false
 			}
 		}
 	}
 
 	// No conflicts, lets deploy
-
-	var moduleNames []string
-
-	// Deploy all collected modules
+	moduleNames := slices.Sort(slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) string { return m.moduleName() }))
+	logger.Debugf("Deploying %s", strings.Join(moduleNames, ","))
 	for _, module := range deployment.modules {
-		moduleNames = append(moduleNames, module.name)
 		c.engineUpdates <- &buildenginepb.EngineEvent{
 			Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
 				ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
-					Module: module.name,
+					Module: module.moduleName(),
 				},
 			},
 		}
 		if repo, ok := deployment.replicas.Get(); ok {
-			log.FromContext(ctx).Infof("Deploying %s with %d replicas", module.name, repo) //nolint:forbidigo
 			module.schema.ModRuntime().ModScaling().MinReplicas = repo
 		}
 	}
@@ -387,7 +405,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 				c.engineUpdates <- &buildenginepb.EngineEvent{
 					Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
 						ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
-							Module: module.name,
+							Module: module.moduleName(),
 							Errors: &langpb.ErrorList{
 								Errors: errorToLangError(err),
 							},
@@ -401,7 +419,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 				c.engineUpdates <- &buildenginepb.EngineEvent{
 					Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
 						ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
-							Module: module.name,
+							Module: module.moduleName(),
 						},
 					},
 				}
@@ -464,11 +482,11 @@ func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendin
 	out := reflect.DeepCopy(d)
 	addedModules := []string{}
 	for _, module := range old.modules {
-		if _, exists := d.modules[module.name]; exists {
+		if _, exists := d.modules[module.moduleName()]; exists {
 			continue
 		}
-		out.modules[module.name] = old.modules[module.name]
-		addedModules = append(addedModules, module.name)
+		out.modules[module.moduleName()] = old.modules[module.moduleName()]
+		addedModules = append(addedModules, module.moduleName())
 	}
 	if len(addedModules) > 0 {
 		if invalid := c.invalidModulesForDeployment(c.schemaSource.CanonicalView(), out, addedModules); len(invalid) > 0 {
@@ -535,10 +553,10 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 			continue
 		}
 		for _, mod := range d.modules {
-			if _, ok := overridden[mod.name]; ok {
+			if _, ok := overridden[mod.moduleName()]; ok {
 				continue
 			}
-			overridden[mod.name] = true
+			overridden[mod.moduleName()] = true
 			realm.Modules = append(realm.Modules, mod.schema)
 		}
 		for mod := range d.waitingForModules {
@@ -651,9 +669,6 @@ func deploy(ctx context.Context, realm string, modules []*schema.Module, adminCl
 		if !changesetKey.Ok() {
 			receivedKey <- result.Err[key.Changeset](err)
 		}
-		if err != nil {
-			logger.Errorf(err, "Failed to deploy %s", strings.Join(slices.Map(modules, func(m *schema.Module) string { return m.Name }), ", "))
-		}
 	}()
 
 	ctx, closeStream := context.WithCancelCause(ctx)
@@ -694,18 +709,11 @@ type deploymentArtefact struct {
 }
 
 func uploadArtefacts(ctx context.Context, module *pendingModule, client AdminClient) (*schema.Module, error) {
-	logger := log.FromContext(ctx).Module(module.name).Scope("deploy")
+	logger := log.FromContext(ctx).Module(module.moduleName()).Scope("deploy")
 	ctx = log.ContextWithLogger(ctx, logger)
-	logger.Debugf("Deploying module")
 
 	moduleConfig := module.module.Config.Abs()
-	files, err := findFilesToDeploy(moduleConfig, module.module.Deploy)
-	if err != nil {
-		logger.Errorf(err, "failed to find files in %s", moduleConfig)
-		return nil, errors.WithStack(err)
-	}
-
-	filesByHash, err := hashFiles(moduleConfig.DeployDir, files)
+	filesByHash, err := hashFiles(module.tmpDeployDir, module.deployPaths)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -720,7 +728,7 @@ func uploadArtefacts(ctx context.Context, module *pendingModule, client AdminCli
 		return nil, errors.WithStack(err)
 	}
 
-	logger.Debugf("Uploading %d/%d files", len(gadResp.Msg.MissingDigests), len(files))
+	logger.Debugf("Uploading %d/%d files", len(gadResp.Msg.MissingDigests), len(module.deployPaths))
 	for _, missing := range gadResp.Msg.MissingDigests {
 		file := filesByHash[missing]
 		if err := uploadDeploymentArtefact(ctx, client, file); err != nil {
@@ -816,51 +824,12 @@ func loadProtoSchema(config moduleconfig.AbsModuleConfig, schPath string) (*sche
 	return module, nil
 }
 
-// findFilesToDeploy returns a list of files to deploy for the given module.
-func findFilesToDeploy(config moduleconfig.AbsModuleConfig, deploy []string) ([]string, error) {
-	var out []string
-	for _, f := range deploy {
-		file := filepath.Clean(filepath.Join(config.DeployDir, f))
-		if !strings.HasPrefix(file, config.DeployDir) {
-			return nil, errors.Errorf("deploy path %q is not beneath deploy directory %q", file, config.DeployDir)
-		}
-		info, err := os.Stat(file)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		if info.IsDir() {
-			dirFiles, err := findFilesInDir(file)
-			if err != nil {
-				return nil, errors.WithStack(err)
-			}
-			out = append(out, dirFiles...)
-		} else {
-			out = append(out, file)
-		}
-	}
-	return out, nil
-}
-
-func findFilesInDir(dir string) ([]string, error) {
-	var out []string
-	return out, errors.WithStack(filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if info.IsDir() {
-			return nil
-		}
-		out = append(out, path)
-		return nil
-	}))
-}
-
 func hashFiles(base string, files []string) (filesByHash map[string]deploymentArtefact, err error) {
 	filesByHash = map[string]deploymentArtefact{}
 	for _, file := range files {
 		r, err := os.Open(file)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errors.Wrapf(err, "could not open %q", file)
 		}
 		defer r.Close() //nolint:gosec
 		hash, err := sha256.SumReader(r)

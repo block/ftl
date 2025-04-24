@@ -30,6 +30,7 @@ import (
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/log"
+	imaps "github.com/block/ftl/internal/maps"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/rpc"
@@ -78,8 +79,10 @@ func (rebuildRequestEvent) rebuildEvent() {}
 // rebuildRequiredEvent is published when a module needs to be rebuilt when a module
 // failed to build due to a change in dependencies.
 type autoRebuildCompletedEvent struct {
-	module string
-	schema *schema.Module
+	module       string
+	schema       *schema.Module
+	tmpDeployDir string
+	deployPaths  []string
 }
 
 func (autoRebuildCompletedEvent) rebuildEvent() {}
@@ -541,41 +544,42 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 			// Batch generate stubs for all auto rebuilds
 			//
 			// This is normally part of each group in the build topology, but auto rebuilds do not go through that flow
-			builtModules := map[string]*schema.Module{}
+			builtModuleEvents := map[string]autoRebuildCompletedEvent{}
 			for _, event := range events {
 				event, ok := event.(autoRebuildCompletedEvent)
 				if !ok {
 					continue
 				}
-				builtModules[event.module] = event.schema
+				builtModuleEvents[event.module] = event
 			}
-			if len(builtModules) > 0 {
+			if len(builtModuleEvents) > 0 {
 				metasMap := map[string]moduleMeta{}
 				e.moduleMetas.Range(func(name string, meta moduleMeta) bool {
 					metasMap[name] = meta
 					return true
 				})
-				err = GenerateStubs(ctx, e.projectConfig.Root(), maps.Values(builtModules), metasMap)
+				builtSchemas := imaps.MapValues(builtModuleEvents, func(_ string, e autoRebuildCompletedEvent) *schema.Module { return e.schema })
+				err = GenerateStubs(ctx, e.projectConfig.Root(), maps.Values(builtSchemas), metasMap)
 				if err != nil {
 					logger.Errorf(err, "Failed to generate stubs")
 				}
 
 				// Sync references to stubs if needed by the runtime
-				err = e.syncNewStubReferences(ctx, builtModules, metasMap)
+				err = e.syncNewStubReferences(ctx, builtSchemas, metasMap)
 				if err != nil {
 					logger.Errorf(err, "Failed to sync stub references")
 				}
 
 				// Deploy modules
-				var modulesToDeploy = []Module{}
-				for _, module := range builtModules {
-					moduleToDeploy, ok := e.moduleMetas.Load(module.Name)
+				var modulesToDeploy = []*pendingModule{}
+				for _, event := range builtModuleEvents {
+					moduleToDeploy, ok := e.moduleMetas.Load(event.module)
 					if ok {
-						modulesToDeploy = append(modulesToDeploy, moduleToDeploy.module)
+						modulesToDeploy = append(modulesToDeploy, newPendingModule(moduleToDeploy.module, event.tmpDeployDir, event.deployPaths, e.projectConfig.SchemaPath(event.module)))
 					}
 				}
 				go func() {
-					_ = e.deployCoordinator.deploy(ctx, e.projectConfig, modulesToDeploy, optional.None[int32]()) //nolint:errcheck
+					_ = e.deployCoordinator.deploy(ctx, modulesToDeploy, optional.None[int32]()) //nolint:errcheck
 				}()
 			}
 
@@ -830,8 +834,8 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 		}
 	}()
 
-	modulesToDeploy := []Module{}
-	buildErr := e.buildWithCallback(ctx, func(buildCtx context.Context, module Module) error {
+	modulesToDeploy := [](*pendingModule){}
+	buildErr := e.buildWithCallback(ctx, func(buildCtx context.Context, module Module, tmpDeployDir string, deployPaths []string) error {
 		e.modulesToBuild.Store(module.Config.Module, false)
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 			Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
@@ -840,13 +844,14 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 				},
 			},
 		}
+		pendingDeployModule := newPendingModule(module, tmpDeployDir, deployPaths, e.projectConfig.SchemaPath(module.Config.Module))
 		if singleChangeset {
-			modulesToDeploy = append(modulesToDeploy, module)
+			modulesToDeploy = append(modulesToDeploy, pendingDeployModule)
 			return nil
 		}
 		deployErr := make(chan error, 1)
 		go func() {
-			deployErr <- e.deployCoordinator.deploy(ctx, e.projectConfig, []Module{module}, replicas)
+			deployErr <- e.deployCoordinator.deploy(ctx, []*pendingModule{pendingDeployModule}, replicas)
 		}()
 		if waitForDeployOnline {
 			return errors.WithStack(<-deployErr)
@@ -862,7 +867,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 		// Wait for all build attempts to complete
 		if singleChangeset {
 			// Queue the modules for deployment instead of deploying directly
-			return errors.WithStack(e.deployCoordinator.deploy(ctx, e.projectConfig, modulesToDeploy, replicas))
+			return errors.WithStack(e.deployCoordinator.deploy(ctx, modulesToDeploy, replicas))
 		}
 		return nil
 	})
@@ -873,7 +878,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 	return nil
 }
 
-type buildCallback func(ctx context.Context, module Module) error
+type buildCallback func(ctx context.Context, module Module, tmpDeployDir string, deployPaths []string) error
 
 func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, moduleNames ...string) error {
 	logger := log.FromContext(ctx)
@@ -1090,7 +1095,7 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 					Comments: []string{"Dependency not built yet due to dependency cycle"},
 				}
 			}
-			_ = e.build(ctx, module, fakeDeps, ignoredSchemas) //nolint:errcheck
+			_, _, _ = e.build(ctx, module, fakeDeps, ignoredSchemas) //nolint:errcheck
 			close(ignoredSchemas)
 		}()
 	}
@@ -1131,14 +1136,14 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 		},
 	}
 
-	err = e.build(ctx, moduleName, builtModules, schemas)
+	tmpDeployDir, deployPaths, err := e.build(ctx, moduleName, builtModules, schemas)
 	if err == nil && callback != nil {
 		// load latest meta as it may have been updated
 		meta, ok = e.moduleMetas.Load(moduleName)
 		if !ok {
 			return errors.Errorf("module %q not found", moduleName)
 		}
-		return errors.WithStack(callback(ctx, meta.module))
+		return errors.WithStack(callback(ctx, meta.module, tmpDeployDir, deployPaths))
 	}
 
 	return errors.WithStack(err)
@@ -1150,29 +1155,30 @@ func (e *Engine) mustSchema(ctx context.Context, moduleName string, builtModules
 		schemas <- sch
 		return nil
 	}
-	return errors.WithStack(e.build(ctx, moduleName, builtModules, schemas))
+	_, _, err := e.build(ctx, moduleName, builtModules, schemas)
+	return errors.WithStack(err)
 }
 
 // Build a module and publish its schema.
 //
 // Assumes that all dependencies have been built and are available in "built".
-func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[string]*schema.Module, schemas chan<- *schema.Module) error {
+func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[string]*schema.Module, schemas chan<- *schema.Module) (tmpDeployDir string, deployPaths []string, err error) {
 	meta, ok := e.moduleMetas.Load(moduleName)
 	if !ok {
-		return errors.Errorf("module %q not found", moduleName)
+		return "", nil, errors.Errorf("module %q not found", moduleName)
 	}
 
 	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(builtModules)}}} //nolint:exptostd
 
 	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal module config")
+		return "", nil, errors.Wrap(err, "failed to marshal module config")
 	}
 	if meta.module.SQLError != nil {
 		meta.module = meta.module.CopyWithSQLErrors(nil)
 		e.moduleMetas.Store(moduleName, meta)
 	}
-	moduleSchema, deploy, err := build(ctx, e.projectConfig, meta.module, meta.plugin, languageplugin.BuildContext{
+	moduleSchema, tmpDeployDir, deployPaths, err := build(ctx, e.projectConfig, meta.module, meta.plugin, languageplugin.BuildContext{
 		Config:       meta.module.Config,
 		Schema:       sch,
 		Dependencies: meta.module.Dependencies(Raw),
@@ -1199,7 +1205,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 			// Do not start a build directly as we are already building out a graph of modules.
 			// Instead we send to a chan so that it can be processed after.
 			e.rebuildEvents <- rebuildRequestEvent{module: moduleName}
-			return errors.WithStack(err)
+			return "", nil, errors.WithStack(err)
 		}
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 			Timestamp: timestamppb.Now(),
@@ -1213,7 +1219,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 				},
 			},
 		}
-		return errors.WithStack(err)
+		return "", nil, errors.WithStack(err)
 	}
 
 	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
@@ -1226,16 +1232,8 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 		},
 	}
 
-	// update files to deploy
-	e.moduleMetas.Compute(moduleName, func(meta moduleMeta, exists bool) (out moduleMeta, shouldDelete bool) {
-		if !exists {
-			return moduleMeta{}, true
-		}
-		meta.module = meta.module.CopyWithDeploy(deploy)
-		return meta, false
-	})
 	schemas <- moduleSchema
-	return nil
+	return tmpDeployDir, deployPaths, nil
 }
 
 // Construct a combined schema for a module and its transitive dependencies.
@@ -1364,7 +1362,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 					}
 
 				case languageplugin.AutoRebuildEndedEvent:
-					moduleSch, deploy, err := handleBuildResult(ctx, e.projectConfig, meta.module, event.Result, e.devMode, e.devModeEndpointUpdates)
+					moduleSch, tmpDeployDir, deployPaths, err := handleBuildResult(ctx, e.projectConfig, meta.module, event.Result, e.devMode, e.devModeEndpointUpdates)
 					if err != nil {
 						if errors.Is(err, errInvalidateDependencies) {
 							e.rawEngineUpdates <- &buildenginepb.EngineEvent{
@@ -1395,8 +1393,6 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 						}
 						continue
 					}
-					meta.module.Deploy = deploy
-					e.moduleMetas.Store(event.ModuleName(), meta)
 
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 						Timestamp: timestamppb.Now(),
@@ -1407,7 +1403,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 							},
 						},
 					}
-					e.rebuildEvents <- autoRebuildCompletedEvent{module: event.ModuleName(), schema: moduleSch}
+					e.rebuildEvents <- autoRebuildCompletedEvent{module: event.ModuleName(), schema: moduleSch, tmpDeployDir: tmpDeployDir, deployPaths: deployPaths}
 				}
 			case languageplugin.PluginDiedEvent:
 				e.moduleMetas.Range(func(name string, meta moduleMeta) bool {

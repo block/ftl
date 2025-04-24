@@ -30,36 +30,40 @@ var errSQLError = errors.New("failed to add queries to schema")
 // Plugins must use a lock file to ensure that only one build is running at a time.
 //
 // Returns invalidateDependenciesError if the build failed due to a change in dependencies.
-func build(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
+func build(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
 	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
 
 	err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
 	if err != nil {
-		return nil, nil, errors.WithStack(errors.Join(errSQLError, err))
+		return nil, "", nil, errors.WithStack(errors.Join(errSQLError, err))
 	}
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
-	return errors.WithStack3(handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints))
+	moduleSchema, tmpDeployDir, deployPaths, err = handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints)
+	if err != nil {
+		return nil, "", nil, errors.WithStack(err)
+	}
+	return moduleSchema, tmpDeployDir, deployPaths, nil
 }
 
 // handleBuildResult processes the result of a build
-func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, m Module, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, deploy []string, err error) {
+func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, m Module, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
 	logger := log.FromContext(ctx)
 	config := m.Config.Abs()
 
 	result, err := eitherResult.Result()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to build module")
+		return nil, "", nil, errors.Wrap(err, "failed to build module")
 	}
 
 	if result.InvalidateDependencies {
-		return nil, nil, errors.WithStack(errInvalidateDependencies)
+		return nil, "", nil, errors.WithStack(errInvalidateDependencies)
 	}
 
 	if m.SQLError != nil {
 		// Plugin has rebuilt automatically even though a SQL error occurred.
 		// The build needs to fail with the current sql error
-		return nil, nil, errors.WithStack(m.SQLError)
+		return nil, "", nil, errors.WithStack(m.SQLError)
 	}
 
 	var errs []error
@@ -72,17 +76,22 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	}
 
 	if len(errs) > 0 {
-		return nil, nil, errors.WithStack(errors.Join(errs...))
+		return nil, "", nil, errors.WithStack(errors.Join(errs...))
 	}
 
 	logger.Infof("Module built (%.2fs)", time.Since(result.StartTime).Seconds())
 
 	migrationFiles, err := handleDatabaseMigrations(ctx, config, result.Schema)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to extract migration")
+		return nil, "", nil, errors.Wrap(err, "failed to extract migration")
 	}
 	result.Deploy = append(result.Deploy, migrationFiles...)
 	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLRootDir)
+
+	tmpDeployDir, deployPaths, err = copyArtifacts(ctx, config.Module, config.DeployDir, result.Deploy)
+	if err != nil {
+		return nil, "", nil, errors.Wrap(err, "failed to copy deploy artifacts")
+	}
 
 	err = handleGitCommit(ctx, config.Dir, result.Schema)
 	if !devMode {
@@ -100,17 +109,17 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	// write schema proto to deploy directory
 	schemaBytes, err := proto.Marshal(result.Schema.ToProto())
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to marshal schema")
+		return nil, "", nil, errors.Wrap(err, "failed to marshal schema")
 	}
 	schemaPath := projectConfig.SchemaPath(config.Module)
 	err = os.MkdirAll(filepath.Dir(schemaPath), 0700)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to create schema directory")
+		return nil, "", nil, errors.Wrap(err, "failed to create schema directory")
 	}
 	if err := os.WriteFile(schemaPath, schemaBytes, 0600); err != nil {
-		return nil, nil, errors.Wrap(err, "failed to write schema")
+		return nil, "", nil, errors.Wrap(err, "failed to write schema")
 	}
-	return result.Schema, result.Deploy, nil
+	return result.Schema, tmpDeployDir, deployPaths, nil
 }
 
 // cleanFixtures removes fixtures from the schema, it is invoked for non-dev mode builds
@@ -142,4 +151,74 @@ func handleGitCommit(ctx context.Context, dir string, module *schema.Module) err
 	}
 	module.Metadata = append(module.Metadata, &schema.MetadataGit{Repository: strings.TrimSpace(string(origin)), Commit: strings.TrimSpace(string(commit)), Dirty: strings.TrimSpace(string(status)) != ""})
 	return nil
+}
+
+func copyArtifacts(ctx context.Context, moduleName, root string, pathPatterns []string) (tmpDeployDir string, deployFiles []string, err error) {
+	tmpDir, err := os.MkdirTemp("", "ftl-"+moduleName+"-artifacts")
+	if err != nil {
+		return "", nil, errors.Wrap(err, "failed to create temporary directory")
+	}
+
+	paths, err := findFilesToDeploy(root, pathPatterns)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "failed to find files to deploy")
+	}
+	absPaths := make([]string, 0, len(paths))
+	for _, srcPath := range paths {
+		relSrcPath, err := filepath.Rel(root, srcPath)
+		if err != nil {
+			return "", nil, errors.Wrapf(err, "failed to get relative path for deploy artifact at %s", srcPath)
+		}
+		dstPath := filepath.Join(tmpDir, relSrcPath)
+
+		err = os.MkdirAll(filepath.Dir(dstPath), 0700)
+		if err != nil {
+			return "", nil, errors.Wrapf(err, "failed to create directory for %s", dstPath)
+		}
+		// Use cp -p to preserve permissions
+		if err = exec.Command(ctx, log.Debug, ".", "cp", "-p", srcPath, dstPath).RunStderrError(ctx); err != nil {
+			return "", nil, errors.Wrapf(err, "failed to copy file from %s to %s", srcPath, dstPath)
+		}
+		absPaths = append(absPaths, dstPath)
+	}
+	return tmpDir, absPaths, nil
+}
+
+// findFilesToDeploy returns a list of files to deploy for the given module.
+func findFilesToDeploy(root string, deploy []string) ([]string, error) {
+	var out []string
+	for _, f := range deploy {
+		file := filepath.Clean(filepath.Join(root, f))
+		if !strings.HasPrefix(file, root) {
+			return nil, errors.Errorf("deploy path %q is not beneath deploy directory %q", file, root)
+		}
+		info, err := os.Stat(file)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if info.IsDir() {
+			dirFiles, err := findFilesInDir(file)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			out = append(out, dirFiles...)
+		} else {
+			out = append(out, file)
+		}
+	}
+	return out, nil
+}
+
+func findFilesInDir(dir string) ([]string, error) {
+	var out []string
+	return out, errors.WithStack(filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if info.IsDir() {
+			return nil
+		}
+		out = append(out, path)
+		return nil
+	}))
 }
