@@ -253,7 +253,9 @@ data "aws_iam_policy_document" "assume_runner_role_policy" {
     condition {
       test     = "StringLike"
       variable = "${replace(data.aws_eks_cluster.eks.identity[0].oidc[0].issuer, "https://", "")}:sub"
-      values   = ["system:serviceaccount:${var.kube_namespace}:*"]
+      // This is bad, as it allows everything in the cluster to assume the runner role
+      // We need to provision this dynamically
+      values   = ["system:serviceaccount:*:*"]
     }
   }
 }
