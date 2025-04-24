@@ -12,10 +12,9 @@ data:
       name: "(replaced)"
     spec:
       ports:
-        - name: verbs
+        - name: http2
           protocol: TCP
           port: 8892
-          appProtocol: http
           targetPort: {{ .Values.runner.port }}
       type: ClusterIP
   deploymentTemplate: |-
