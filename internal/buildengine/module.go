@@ -8,8 +8,6 @@ import (
 // Module represents an FTL module in the build engine
 type Module struct {
 	Config moduleconfig.ModuleConfig
-	// paths to deploy, relative to ModuleConfig.DeployDir
-	Deploy []string
 
 	// SQLErrors are errors that occurred during SQL build which overrule any errors from the language plugin
 	SQLError error
@@ -23,12 +21,6 @@ func newModule(config moduleconfig.ModuleConfig) Module {
 		Config:       config,
 		dependencies: []string{},
 	}
-}
-
-func (m Module) CopyWithDeploy(files []string) Module {
-	module := reflect.DeepCopy(m)
-	module.Deploy = files
-	return module
 }
 
 func (m Module) CopyWithDependencies(dependencies []string) Module {
