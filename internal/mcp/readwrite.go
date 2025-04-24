@@ -27,8 +27,8 @@ import (
 
 type readResult struct {
 	Explanation            string `json:"explanation,omitempty"`
-	FileContent            string `json:"fileContent"`
-	WriteVerificationToken string `json:"writeVerificationToken"`
+	FileContent            string `json:"fileContent,omitempty"`
+	WriteVerificationToken string `json:"writeVerificationToken,omitempty"`
 }
 
 func ReadTool() (tool mcp.Tool, handler server.ToolHandlerFunc) {
@@ -84,7 +84,7 @@ type writeResult struct {
 	NewVerificationToken string       `json:"newVerificationToken"`
 }
 
-func WriteTool(serverCtx context.Context, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+func WriteTool(ctx context.Context, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient) (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool(
 			"Write",
@@ -93,7 +93,7 @@ func WriteTool(serverCtx context.Context, projectConfig projectconfig.Config, bu
 			mcp.WithString("path", mcp.Description("Path to the file to write")),
 			mcp.WithString("content", mcp.Description("Data to write to the file")),
 			mcp.WithString("verificationToken", mcp.Description(`Obtained by the Read tool to verify that the existing content of the file has been read and understood before being replaced. Not required for new files.`)),
-		), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		), func(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			logger := log.FromContext(ctx)
 			path, ok := request.Params.Arguments["path"].(string)
 			if !ok {
@@ -110,7 +110,7 @@ func WriteTool(serverCtx context.Context, projectConfig projectconfig.Config, bu
 
 			var config optional.Option[moduleconfig.AbsModuleConfig]
 			if strings.HasSuffix(path, ".sql") {
-				config = loadConfigIfPossible(serverCtx, projectConfig, moduleDir)
+				config = loadConfigIfPossible(ctx, projectConfig, moduleDir)
 			}
 
 			var originalSQLInterfaces map[string]string
@@ -176,7 +176,7 @@ func WriteTool(serverCtx context.Context, projectConfig projectconfig.Config, bu
 				assistantResult.TokenExplanation = "The file has been updated. A new verification token is provided if you need to update the file again."
 			}
 
-			if status, err := GetStatusOutput(serverCtx, buildEngineClient, adminClient); err == nil {
+			if status, err := GetStatusOutput(ctx, buildEngineClient, adminClient); err == nil {
 				assistantResult.StatusExplanation = "The FTL status after the change is also provided."
 				assistantResult.Status = status
 			}
@@ -191,7 +191,7 @@ func WriteTool(serverCtx context.Context, projectConfig projectconfig.Config, bu
 				latestSQLInterfaces, err := languageplugin.GetSQLInterfaces(ctx, config)
 				if err != nil {
 					logger.Warnf("could not get SQL interfaces: %v", err)
-				} else if sqlInterfaceUpdates, ok := readResultForUpdatedSQLInterfaces(originalSQLInterfaces, latestSQLInterfaces).Get(); ok {
+				} else if sqlInterfaceUpdates, ok := readResultForUpdatedSQLInterfaces(config.Language, originalSQLInterfaces, latestSQLInterfaces).Get(); ok {
 					generatedFileUpdateJSON, err := json.Marshal(sqlInterfaceUpdates)
 					if err != nil {
 						return nil, errors.Wrap(err, "could not marshal read result for generated file")
@@ -282,7 +282,7 @@ func detectModulePath(path string) optional.Option[string] {
 	return optional.None[string]()
 }
 
-func readResultForUpdatedSQLInterfaces(originalInterfaces map[string]string, latestInterfaces map[string]string) optional.Option[*readResult] {
+func readResultForUpdatedSQLInterfaces(language string, originalInterfaces map[string]string, latestInterfaces map[string]string) optional.Option[*readResult] {
 	updatedInterfaces := []string{}
 	for name, latest := range latestInterfaces {
 		if latest != originalInterfaces[name] {
@@ -298,10 +298,7 @@ func readResultForUpdatedSQLInterfaces(originalInterfaces map[string]string, lat
 	if len(updatedInterfaces) == 0 && len(removedInterfaceNames) == 0 {
 		return optional.None[*readResult]()
 	}
-	output := ""
-	if len(updatedInterfaces) > 0 {
-		output += "These declarations have been added or updated:\n\n" + strings.Join(updatedInterfaces, "\n\n")
-	}
+	output := strings.Join(updatedInterfaces, "\n\n")
 	if len(removedInterfaceNames) > 0 {
 		if len(output) > 0 {
 			output += "\n\n"
@@ -310,6 +307,6 @@ func readResultForUpdatedSQLInterfaces(originalInterfaces map[string]string, lat
 	}
 	return optional.Some(&readResult{
 		FileContent: output,
-		Explanation: fmt.Sprintf("Updated generated declarations for SQL queries"),
+		Explanation: "The generated " + language + " declarations for SQL queries have been updated:\n\n",
 	})
 }
