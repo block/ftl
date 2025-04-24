@@ -597,6 +597,42 @@ func (x *ModuleDeploySuccess) GetModule() string {
 	return ""
 }
 
+type ReachedEndOfHistory struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReachedEndOfHistory) Reset() {
+	*x = ReachedEndOfHistory{}
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReachedEndOfHistory) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReachedEndOfHistory) ProtoMessage() {}
+
+func (x *ReachedEndOfHistory) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReachedEndOfHistory.ProtoReflect.Descriptor instead.
+func (*ReachedEndOfHistory) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDescGZIP(), []int{12}
+}
+
 // EngineEvent is an event published by the engine as modules get built and deployed.
 type EngineEvent struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
@@ -615,6 +651,7 @@ type EngineEvent struct {
 	//	*EngineEvent_ModuleDeployStarted
 	//	*EngineEvent_ModuleDeployFailed
 	//	*EngineEvent_ModuleDeploySuccess
+	//	*EngineEvent_ReachedEndOfHistory
 	Event         isEngineEvent_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -622,7 +659,7 @@ type EngineEvent struct {
 
 func (x *EngineEvent) Reset() {
 	*x = EngineEvent{}
-	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[12]
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -634,7 +671,7 @@ func (x *EngineEvent) String() string {
 func (*EngineEvent) ProtoMessage() {}
 
 func (x *EngineEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[12]
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -647,7 +684,7 @@ func (x *EngineEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EngineEvent.ProtoReflect.Descriptor instead.
 func (*EngineEvent) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDescGZIP(), []int{12}
+	return file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *EngineEvent) GetTimestamp() *timestamppb.Timestamp {
@@ -772,6 +809,15 @@ func (x *EngineEvent) GetModuleDeploySuccess() *ModuleDeploySuccess {
 	return nil
 }
 
+func (x *EngineEvent) GetReachedEndOfHistory() *ReachedEndOfHistory {
+	if x != nil {
+		if x, ok := x.Event.(*EngineEvent_ReachedEndOfHistory); ok {
+			return x.ReachedEndOfHistory
+		}
+	}
+	return nil
+}
+
 type isEngineEvent_Event interface {
 	isEngineEvent_Event()
 }
@@ -824,6 +870,10 @@ type EngineEvent_ModuleDeploySuccess struct {
 	ModuleDeploySuccess *ModuleDeploySuccess `protobuf:"bytes,13,opt,name=module_deploy_success,json=moduleDeploySuccess,proto3,oneof"`
 }
 
+type EngineEvent_ReachedEndOfHistory struct {
+	ReachedEndOfHistory *ReachedEndOfHistory `protobuf:"bytes,14,opt,name=reached_end_of_history,json=reachedEndOfHistory,proto3,oneof"`
+}
+
 func (*EngineEvent_EngineStarted) isEngineEvent_Event() {}
 
 func (*EngineEvent_EngineEnded) isEngineEvent_Event() {}
@@ -848,6 +898,8 @@ func (*EngineEvent_ModuleDeployFailed) isEngineEvent_Event() {}
 
 func (*EngineEvent_ModuleDeploySuccess) isEngineEvent_Event() {}
 
+func (*EngineEvent_ReachedEndOfHistory) isEngineEvent_Event() {}
+
 type StreamEngineEventsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// If true, cached events will be replayed before streaming new events.
@@ -859,7 +911,7 @@ type StreamEngineEventsRequest struct {
 
 func (x *StreamEngineEventsRequest) Reset() {
 	*x = StreamEngineEventsRequest{}
-	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[13]
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -871,7 +923,7 @@ func (x *StreamEngineEventsRequest) String() string {
 func (*StreamEngineEventsRequest) ProtoMessage() {}
 
 func (x *StreamEngineEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[13]
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -884,7 +936,7 @@ func (x *StreamEngineEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamEngineEventsRequest.ProtoReflect.Descriptor instead.
 func (*StreamEngineEventsRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDescGZIP(), []int{13}
+	return file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *StreamEngineEventsRequest) GetReplayHistory() bool {
@@ -903,7 +955,7 @@ type StreamEngineEventsResponse struct {
 
 func (x *StreamEngineEventsResponse) Reset() {
 	*x = StreamEngineEventsResponse{}
-	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[14]
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -915,7 +967,7 @@ func (x *StreamEngineEventsResponse) String() string {
 func (*StreamEngineEventsResponse) ProtoMessage() {}
 
 func (x *StreamEngineEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[14]
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -928,7 +980,7 @@ func (x *StreamEngineEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamEngineEventsResponse.ProtoReflect.Descriptor instead.
 func (*StreamEngineEventsResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDescGZIP(), []int{14}
+	return file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *StreamEngineEventsResponse) GetEvent() *EngineEvent {
@@ -949,7 +1001,7 @@ type EngineEnded_Module struct {
 
 func (x *EngineEnded_Module) Reset() {
 	*x = EngineEnded_Module{}
-	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[15]
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -961,7 +1013,7 @@ func (x *EngineEnded_Module) String() string {
 func (*EngineEnded_Module) ProtoMessage() {}
 
 func (x *EngineEnded_Module) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[15]
+	mi := &file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1035,7 +1087,9 @@ const file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDesc = "" +
 	"\x06module\x18\x01 \x01(\tR\x06module\x12<\n" +
 	"\x06errors\x18\x02 \x01(\v2$.xyz.block.ftl.language.v1.ErrorListR\x06errors\"-\n" +
 	"\x13ModuleDeploySuccess\x12\x16\n" +
-	"\x06module\x18\x01 \x01(\tR\x06module\"\xd2\t\n" +
+	"\x06module\x18\x01 \x01(\tR\x06module\"\x15\n" +
+	"\x13ReachedEndOfHistory\"\xbc\n" +
+	"\n" +
 	"\vEngineEvent\x128\n" +
 	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12T\n" +
 	"\x0eengine_started\x18\x02 \x01(\v2+.xyz.block.ftl.buildengine.v1.EngineStartedH\x00R\rengineStarted\x12N\n" +
@@ -1050,7 +1104,8 @@ const file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDesc = "" +
 	" \x01(\v21.xyz.block.ftl.buildengine.v1.ModuleDeployWaitingH\x00R\x13moduleDeployWaiting\x12g\n" +
 	"\x15module_deploy_started\x18\v \x01(\v21.xyz.block.ftl.buildengine.v1.ModuleDeployStartedH\x00R\x13moduleDeployStarted\x12d\n" +
 	"\x14module_deploy_failed\x18\f \x01(\v20.xyz.block.ftl.buildengine.v1.ModuleDeployFailedH\x00R\x12moduleDeployFailed\x12g\n" +
-	"\x15module_deploy_success\x18\r \x01(\v21.xyz.block.ftl.buildengine.v1.ModuleDeploySuccessH\x00R\x13moduleDeploySuccessB\a\n" +
+	"\x15module_deploy_success\x18\r \x01(\v21.xyz.block.ftl.buildengine.v1.ModuleDeploySuccessH\x00R\x13moduleDeploySuccess\x12h\n" +
+	"\x16reached_end_of_history\x18\x0e \x01(\v21.xyz.block.ftl.buildengine.v1.ReachedEndOfHistoryH\x00R\x13reachedEndOfHistoryB\a\n" +
 	"\x05event\"B\n" +
 	"\x19StreamEngineEventsRequest\x12%\n" +
 	"\x0ereplay_history\x18\x01 \x01(\bR\rreplayHistory\"]\n" +
@@ -1072,7 +1127,7 @@ func file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDescGZIP() []byte {
 	return file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDescData
 }
 
-var file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_xyz_block_ftl_buildengine_v1_buildengine_proto_goTypes = []any{
 	(*EngineStarted)(nil),              // 0: xyz.block.ftl.buildengine.v1.EngineStarted
 	(*EngineEnded)(nil),                // 1: xyz.block.ftl.buildengine.v1.EngineEnded
@@ -1086,25 +1141,26 @@ var file_xyz_block_ftl_buildengine_v1_buildengine_proto_goTypes = []any{
 	(*ModuleDeployStarted)(nil),        // 9: xyz.block.ftl.buildengine.v1.ModuleDeployStarted
 	(*ModuleDeployFailed)(nil),         // 10: xyz.block.ftl.buildengine.v1.ModuleDeployFailed
 	(*ModuleDeploySuccess)(nil),        // 11: xyz.block.ftl.buildengine.v1.ModuleDeploySuccess
-	(*EngineEvent)(nil),                // 12: xyz.block.ftl.buildengine.v1.EngineEvent
-	(*StreamEngineEventsRequest)(nil),  // 13: xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
-	(*StreamEngineEventsResponse)(nil), // 14: xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
-	(*EngineEnded_Module)(nil),         // 15: xyz.block.ftl.buildengine.v1.EngineEnded.Module
-	(*v1.ModuleConfig)(nil),            // 16: xyz.block.ftl.language.v1.ModuleConfig
-	(*v1.ErrorList)(nil),               // 17: xyz.block.ftl.language.v1.ErrorList
-	(*timestamppb.Timestamp)(nil),      // 18: google.protobuf.Timestamp
-	(*v11.PingRequest)(nil),            // 19: xyz.block.ftl.v1.PingRequest
-	(*v11.PingResponse)(nil),           // 20: xyz.block.ftl.v1.PingResponse
+	(*ReachedEndOfHistory)(nil),        // 12: xyz.block.ftl.buildengine.v1.ReachedEndOfHistory
+	(*EngineEvent)(nil),                // 13: xyz.block.ftl.buildengine.v1.EngineEvent
+	(*StreamEngineEventsRequest)(nil),  // 14: xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
+	(*StreamEngineEventsResponse)(nil), // 15: xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
+	(*EngineEnded_Module)(nil),         // 16: xyz.block.ftl.buildengine.v1.EngineEnded.Module
+	(*v1.ModuleConfig)(nil),            // 17: xyz.block.ftl.language.v1.ModuleConfig
+	(*v1.ErrorList)(nil),               // 18: xyz.block.ftl.language.v1.ErrorList
+	(*timestamppb.Timestamp)(nil),      // 19: google.protobuf.Timestamp
+	(*v11.PingRequest)(nil),            // 20: xyz.block.ftl.v1.PingRequest
+	(*v11.PingResponse)(nil),           // 21: xyz.block.ftl.v1.PingResponse
 }
 var file_xyz_block_ftl_buildengine_v1_buildengine_proto_depIdxs = []int32{
-	15, // 0: xyz.block.ftl.buildengine.v1.EngineEnded.modules:type_name -> xyz.block.ftl.buildengine.v1.EngineEnded.Module
-	16, // 1: xyz.block.ftl.buildengine.v1.ModuleBuildWaiting.config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
-	16, // 2: xyz.block.ftl.buildengine.v1.ModuleBuildStarted.config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
-	16, // 3: xyz.block.ftl.buildengine.v1.ModuleBuildFailed.config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
-	17, // 4: xyz.block.ftl.buildengine.v1.ModuleBuildFailed.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
-	16, // 5: xyz.block.ftl.buildengine.v1.ModuleBuildSuccess.config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
-	17, // 6: xyz.block.ftl.buildengine.v1.ModuleDeployFailed.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
-	18, // 7: xyz.block.ftl.buildengine.v1.EngineEvent.timestamp:type_name -> google.protobuf.Timestamp
+	16, // 0: xyz.block.ftl.buildengine.v1.EngineEnded.modules:type_name -> xyz.block.ftl.buildengine.v1.EngineEnded.Module
+	17, // 1: xyz.block.ftl.buildengine.v1.ModuleBuildWaiting.config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
+	17, // 2: xyz.block.ftl.buildengine.v1.ModuleBuildStarted.config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
+	17, // 3: xyz.block.ftl.buildengine.v1.ModuleBuildFailed.config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
+	18, // 4: xyz.block.ftl.buildengine.v1.ModuleBuildFailed.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
+	17, // 5: xyz.block.ftl.buildengine.v1.ModuleBuildSuccess.config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
+	18, // 6: xyz.block.ftl.buildengine.v1.ModuleDeployFailed.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
+	19, // 7: xyz.block.ftl.buildengine.v1.EngineEvent.timestamp:type_name -> google.protobuf.Timestamp
 	0,  // 8: xyz.block.ftl.buildengine.v1.EngineEvent.engine_started:type_name -> xyz.block.ftl.buildengine.v1.EngineStarted
 	1,  // 9: xyz.block.ftl.buildengine.v1.EngineEvent.engine_ended:type_name -> xyz.block.ftl.buildengine.v1.EngineEnded
 	2,  // 10: xyz.block.ftl.buildengine.v1.EngineEvent.module_added:type_name -> xyz.block.ftl.buildengine.v1.ModuleAdded
@@ -1117,17 +1173,18 @@ var file_xyz_block_ftl_buildengine_v1_buildengine_proto_depIdxs = []int32{
 	9,  // 17: xyz.block.ftl.buildengine.v1.EngineEvent.module_deploy_started:type_name -> xyz.block.ftl.buildengine.v1.ModuleDeployStarted
 	10, // 18: xyz.block.ftl.buildengine.v1.EngineEvent.module_deploy_failed:type_name -> xyz.block.ftl.buildengine.v1.ModuleDeployFailed
 	11, // 19: xyz.block.ftl.buildengine.v1.EngineEvent.module_deploy_success:type_name -> xyz.block.ftl.buildengine.v1.ModuleDeploySuccess
-	12, // 20: xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse.event:type_name -> xyz.block.ftl.buildengine.v1.EngineEvent
-	17, // 21: xyz.block.ftl.buildengine.v1.EngineEnded.Module.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
-	19, // 22: xyz.block.ftl.buildengine.v1.BuildEngineService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
-	13, // 23: xyz.block.ftl.buildengine.v1.BuildEngineService.StreamEngineEvents:input_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
-	20, // 24: xyz.block.ftl.buildengine.v1.BuildEngineService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	14, // 25: xyz.block.ftl.buildengine.v1.BuildEngineService.StreamEngineEvents:output_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
-	24, // [24:26] is the sub-list for method output_type
-	22, // [22:24] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	12, // 20: xyz.block.ftl.buildengine.v1.EngineEvent.reached_end_of_history:type_name -> xyz.block.ftl.buildengine.v1.ReachedEndOfHistory
+	13, // 21: xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse.event:type_name -> xyz.block.ftl.buildengine.v1.EngineEvent
+	18, // 22: xyz.block.ftl.buildengine.v1.EngineEnded.Module.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
+	20, // 23: xyz.block.ftl.buildengine.v1.BuildEngineService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	14, // 24: xyz.block.ftl.buildengine.v1.BuildEngineService.StreamEngineEvents:input_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
+	21, // 25: xyz.block.ftl.buildengine.v1.BuildEngineService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	15, // 26: xyz.block.ftl.buildengine.v1.BuildEngineService.StreamEngineEvents:output_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
+	25, // [25:27] is the sub-list for method output_type
+	23, // [23:25] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_buildengine_v1_buildengine_proto_init() }
@@ -1135,7 +1192,7 @@ func file_xyz_block_ftl_buildengine_v1_buildengine_proto_init() {
 	if File_xyz_block_ftl_buildengine_v1_buildengine_proto != nil {
 		return
 	}
-	file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[12].OneofWrappers = []any{
+	file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[13].OneofWrappers = []any{
 		(*EngineEvent_EngineStarted)(nil),
 		(*EngineEvent_EngineEnded)(nil),
 		(*EngineEvent_ModuleAdded)(nil),
@@ -1148,15 +1205,16 @@ func file_xyz_block_ftl_buildengine_v1_buildengine_proto_init() {
 		(*EngineEvent_ModuleDeployStarted)(nil),
 		(*EngineEvent_ModuleDeployFailed)(nil),
 		(*EngineEvent_ModuleDeploySuccess)(nil),
+		(*EngineEvent_ReachedEndOfHistory)(nil),
 	}
-	file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[15].OneofWrappers = []any{}
+	file_xyz_block_ftl_buildengine_v1_buildengine_proto_msgTypes[16].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDesc), len(file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

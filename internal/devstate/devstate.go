@@ -31,7 +31,7 @@ type ModuleState struct {
 
 // WaitForDevState waits for the engine to finish and prints a summary of the current module (paths and errors) and schema.
 // It is useful for synchronizing with FTL dev as it accommodates delays in detecting code changes, building and deploying.
-func WaitForDevState(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, schemaClient adminpbconnect.AdminServiceClient) (DevState, error) {
+func WaitForDevState(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, schemaClient adminpbconnect.AdminServiceClient, waitForBuildsToStart bool) (DevState, error) {
 	stream, err := buildEngineClient.StreamEngineEvents(ctx, connect.NewRequest(&buildenginepb.StreamEngineEventsRequest{
 		ReplayHistory: true,
 	}))
@@ -40,8 +40,12 @@ func WaitForDevState(ctx context.Context, buildEngineClient buildenginepbconnect
 	}
 
 	start := time.Now()
-	idleDuration := 1500 * time.Millisecond
+	var idleDuration time.Duration
+	if waitForBuildsToStart {
+		idleDuration = 1_300 * time.Millisecond
+	}
 	engineEnded := optional.Some(&buildenginepb.EngineEnded{})
+	endOfHistoryEvent := optional.None[*buildenginepb.EngineEvent]()
 
 	streamChan := make(chan *buildenginepb.EngineEvent)
 	errChan := make(chan error)
@@ -60,15 +64,15 @@ streamLoop:
 		// We want to wait for code changes in the module to be detected and for builds to start.
 		// So we wait for the engine to be idle after idleDuration.
 		var idleDeadline <-chan time.Time
-		if engineEnded.Ok() {
-			idleDeadline = time.After(idleDuration - time.Since(start))
+		if engineEnded.Ok() && endOfHistoryEvent.Ok() {
+			idleDeadline = time.After(max(idleDuration-time.Since(start), time.Millisecond*100-time.Since(endOfHistoryEvent.MustGet().Timestamp.AsTime())))
 		}
 		select {
 		case <-idleDeadline:
 			break streamLoop
 		case <-ctx.Done():
 			return DevState{}, errors.Wrap(ctx.Err(), "did not complete build engine update stream")
-		case event, ok := <-streamChan:
+		case e, ok := <-streamChan:
 			if !ok {
 				err = <-errChan
 				if errors.Is(err, context.Canceled) {
@@ -77,7 +81,9 @@ streamLoop:
 				return DevState{}, errors.Wrap(err, "failed to stream engine events")
 			}
 
-			switch event := event.Event.(type) {
+			switch event := e.Event.(type) {
+			case *buildenginepb.EngineEvent_ReachedEndOfHistory:
+				endOfHistoryEvent = optional.Some(e)
 			case *buildenginepb.EngineEvent_EngineStarted:
 				engineEnded = optional.None[*buildenginepb.EngineEnded]()
 			case *buildenginepb.EngineEvent_EngineEnded:

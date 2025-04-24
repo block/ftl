@@ -372,7 +372,7 @@ func newArrayOption(name string, opts []mcp.PropertyOption) (mcp.ToolOption, inp
 
 // statusContent returns the status of the FTL after the tool was run.
 func statusContent(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) (mcp.Content, error) {
-	output, err := GetStatusOutput(ctx, buildEngineClient, adminClient)
+	output, err := GetStatusOutput(ctx, buildEngineClient, adminClient, true)
 	if err != nil {
 		// Fallback to just returning the tool result
 		return nil, errors.WithStack(err)

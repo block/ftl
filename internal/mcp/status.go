@@ -26,7 +26,7 @@ type StatusOutput struct {
 
 func statusToolHandler(serverCtx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		output, err := GetStatusOutput(serverCtx, buildEngineClient, adminClient)
+		output, err := GetStatusOutput(serverCtx, buildEngineClient, adminClient, true)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -38,8 +38,8 @@ func statusToolHandler(serverCtx context.Context, buildEngineClient buildenginep
 	}
 }
 
-func GetStatusOutput(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient) (StatusOutput, error) {
-	result, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient)
+func GetStatusOutput(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient, waitForBuildsToStart bool) (StatusOutput, error) {
+	result, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient, waitForBuildsToStart)
 	if err != nil {
 		return StatusOutput{}, errors.Wrap(err, "could not get status")
 	}

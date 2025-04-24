@@ -550,6 +550,37 @@ export class ModuleDeploySuccess extends Message<ModuleDeploySuccess> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.buildengine.v1.ReachedEndOfHistory
+ */
+export class ReachedEndOfHistory extends Message<ReachedEndOfHistory> {
+  constructor(data?: PartialMessage<ReachedEndOfHistory>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.buildengine.v1.ReachedEndOfHistory";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReachedEndOfHistory {
+    return new ReachedEndOfHistory().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ReachedEndOfHistory {
+    return new ReachedEndOfHistory().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ReachedEndOfHistory {
+    return new ReachedEndOfHistory().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ReachedEndOfHistory | PlainMessage<ReachedEndOfHistory> | undefined, b: ReachedEndOfHistory | PlainMessage<ReachedEndOfHistory> | undefined): boolean {
+    return proto3.util.equals(ReachedEndOfHistory, a, b);
+  }
+}
+
+/**
  * EngineEvent is an event published by the engine as modules get built and deployed.
  *
  * @generated from message xyz.block.ftl.buildengine.v1.EngineEvent
@@ -635,6 +666,12 @@ export class EngineEvent extends Message<EngineEvent> {
      */
     value: ModuleDeploySuccess;
     case: "moduleDeploySuccess";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.buildengine.v1.ReachedEndOfHistory reached_end_of_history = 14;
+     */
+    value: ReachedEndOfHistory;
+    case: "reachedEndOfHistory";
   } | { case: undefined; value?: undefined } = { case: undefined };
 
   constructor(data?: PartialMessage<EngineEvent>) {
@@ -658,6 +695,7 @@ export class EngineEvent extends Message<EngineEvent> {
     { no: 11, name: "module_deploy_started", kind: "message", T: ModuleDeployStarted, oneof: "event" },
     { no: 12, name: "module_deploy_failed", kind: "message", T: ModuleDeployFailed, oneof: "event" },
     { no: 13, name: "module_deploy_success", kind: "message", T: ModuleDeploySuccess, oneof: "event" },
+    { no: 14, name: "reached_end_of_history", kind: "message", T: ReachedEndOfHistory, oneof: "event" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EngineEvent {

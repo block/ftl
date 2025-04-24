@@ -612,11 +612,11 @@ const (
 	moduleStateFailed
 )
 
-func isIdle(moduleStates map[string]moduleState) bool {
+func (e *Engine) isIdle(moduleStates map[string]moduleState) bool {
 	if len(moduleStates) == 0 {
 		return true
 	}
-	for _, state := range moduleStates {
+	for module, state := range moduleStates {
 		switch state {
 		case moduleStateExplicitlyBuilding,
 			moduleStateAutoRebuilding,
@@ -625,9 +625,21 @@ func isIdle(moduleStates map[string]moduleState) bool {
 
 		case moduleStateFailed,
 			moduleStateDeployed,
-			moduleStateBuildWaiting, // Modules can stay in this state if dependant modules fail to build
 			moduleStateDeployWaiting,
 			moduleStateBuilt:
+
+		case moduleStateBuildWaiting:
+			// If no deps have failed then this module is waiting to start building
+			deps := e.getDependentModuleNames(module)
+			failedDeps := slices.Filter(deps, func(dep string) bool {
+				if depState, ok := moduleStates[dep]; ok && depState == moduleStateFailed {
+					return true
+				}
+				return false
+			})
+			if len(failedDeps) == 0 {
+				return false
+			}
 		}
 	}
 	return true
@@ -659,7 +671,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 
 		case <-becomeIdleTimer:
 			becomeIdleTimer = nil
-			if !isIdle(moduleStates) {
+			if !e.isIdle(moduleStates) {
 				continue
 			}
 			idle = true
@@ -777,9 +789,9 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 			addTimestamp(evt)
 			e.EngineUpdates.Publish(evt)
 		}
-		if !idle && isIdle(moduleStates) {
+		if !idle && e.isIdle(moduleStates) {
 			endTime = time.Now()
-			becomeIdleTimer = time.After(time.Millisecond * 500)
+			becomeIdleTimer = time.After(time.Millisecond * 200)
 		}
 	}
 }

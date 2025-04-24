@@ -120,6 +120,18 @@ func (u *updatesService) StreamEngineEvents(ctx context.Context, req *connect.Re
 			}
 		}
 		u.lock.RUnlock()
+
+		err = stream.Send(&buildenginepb.StreamEngineEventsResponse{
+			Event: &buildenginepb.EngineEvent{
+				Timestamp: timestamppb.Now(),
+				Event: &buildenginepb.EngineEvent_ReachedEndOfHistory{
+					ReachedEndOfHistory: &buildenginepb.ReachedEndOfHistory{},
+				},
+			},
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to send event to indicate the end of historical events")
+		}
 	}
 
 	// Process new events
