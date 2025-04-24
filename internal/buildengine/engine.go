@@ -401,7 +401,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	}()
 
 	// Build and deploy all modules first.
-	_ = e.BuildAndDeploy(ctx, optional.None[int32](), true, false) //nolint:errcheck
+	if err := e.BuildAndDeploy(ctx, optional.None[int32](), true, false); err != nil {
+		logger.Errorf(err, "Initial build and deploy failed")
+	}
 
 	// Update schema and set initial module hashes
 	for {
@@ -449,7 +451,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 						},
 					}
 					logger.Debugf("calling build and deploy %q", event.Config.Module)
-					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module) //nolint:errcheck
+					if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, config.Module); err != nil {
+						logger.Errorf(err, "Build and deploy failed for added module %s", config.Module)
+					}
 				}
 			case watch.WatchEventModuleRemoved:
 				err := e.deployCoordinator.terminateModuleDeployment(ctx, event.Config.Module)
@@ -464,6 +468,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 					}
 				}
 				e.moduleMetas.Delete(event.Config.Module)
+				e.modulesToBuild.Delete(event.Config.Module)
 				e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 					Timestamp: timestamppb.Now(),
 					Event: &buildenginepb.EngineEvent_ModuleRemoved{
@@ -474,26 +479,84 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				}
 			case watch.WatchEventModuleChanged:
 				// ftl.toml file has changed
-				meta, ok := e.moduleMetas.Load(event.Config.Module)
+				oldModuleName := event.Config.Module // Module name *before* the change
+				oldMeta, ok := e.moduleMetas.Load(oldModuleName)
 				if !ok {
-					logger.Warnf("Module %q not found", event.Config.Module)
+					// This might happen if the module was added and immediately changed before processing fully.
+					logger.Warnf("Module %q metadata not found for config change event, attempting load anyway.", oldModuleName)
+				}
+
+				logger.Debugf("Configuration file changed for module directory %s, reloading...", event.Config.Dir)
+
+				// Kill old plugin and unsubscribe events if it existed
+				if ok {
+					oldMeta.plugin.Updates().Unsubscribe(oldMeta.events)
+					if err := oldMeta.plugin.Kill(); err != nil {
+						logger.Warnf("Failed to kill old plugin for %s: %v", oldModuleName, err)
+					}
+				}
+
+				// Load the new configuration from disk
+				updatedUnvalidatedConfig, err := moduleconfig.LoadConfig(event.Config.Dir)
+				if err != nil {
+					logger.Errorf(err, "Could not load updated ftl.toml from %s", event.Config.Dir)
+					continue
+				}
+				newModuleName := updatedUnvalidatedConfig.Module // Module name *after* the change
+
+				// Remove the old entry from the map if the name changed
+				if oldModuleName != newModuleName {
+					logger.Debugf("Module in %s renamed from %q to %q", event.Config.Dir, oldModuleName, newModuleName)
+					e.moduleMetas.Delete(oldModuleName)
+					e.modulesToBuild.Delete(oldModuleName)
+					// Signal that the old module name is gone
+					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
+						Event: &buildenginepb.EngineEvent_ModuleRemoved{
+							ModuleRemoved: &buildenginepb.ModuleRemoved{
+								Module: oldModuleName,
+							},
+						},
+					}
+				}
+
+				// Create a completely new module meta using the *new* config
+				newMeta, err := e.newModuleMeta(ctx, updatedUnvalidatedConfig)
+				if err != nil {
+					logger.Errorf(err, "Could not create new module metadata for %s (module %s) after config change", event.Config.Dir, newModuleName)
 					continue
 				}
 
-				updatedConfig, err := moduleconfig.LoadConfig(event.Config.Dir)
+				// Update dependencies for the new meta
+				newMetaWithDeps, err := copyMetaWithUpdatedDependencies(ctx, newMeta)
 				if err != nil {
-					logger.Errorf(err, "Could not load updated toml for %s", event.Config.Module)
+					logger.Errorf(err, "Could not update dependencies for %s (module %s) after config change", event.Config.Dir, newModuleName)
+					// Kill the newly created plugin as it's likely in a bad state
+					if killErr := newMeta.plugin.Kill(); killErr != nil {
+						logger.Warnf("Also failed to kill new plugin for %s after dependency update error: %v", newModuleName, killErr)
+					}
 					continue
 				}
-				validConfig, err := updatedConfig.FillDefaultsAndValidate(meta.configDefaults, e.projectConfig)
-				if err != nil {
-					logger.Errorf(err, "Could not configure module config defaults for %s", event.Config.Module)
-					continue
-				}
-				meta.module.Config = validConfig
-				e.moduleMetas.Store(event.Config.Module, meta)
 
-				_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, event.Config.Module) //nolint:errcheck
+				e.moduleMetas.Store(newModuleName, newMetaWithDeps)
+
+				// Collect modules that definitely need a build attempt:
+				// - The module whose config just changed.
+				// - Any modules still marked as needing an initial build.
+				modulesToAttempt := map[string]bool{newModuleName: true}
+				e.modulesToBuild.Range(func(name string, needsBuild bool) bool {
+					if needsBuild {
+						modulesToAttempt[name] = true
+					}
+					return true
+				})
+				moduleNamesToAttempt := maps.Keys(modulesToAttempt)
+				logger.Debugf("Triggering build for specific modules after config change: %v", moduleNamesToAttempt)
+
+				// Attempt to build and deploy the specific set of modules.
+				if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, moduleNamesToAttempt...); err != nil {
+					logger.Errorf(err, "Build and deploy failed after config change in %s (module %s)", event.Config.Dir, newModuleName)
+				}
 			}
 		case event := <-e.deployCoordinator.SchemaUpdates:
 			e.targetSchema.Store(event.schema)
@@ -526,7 +589,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				})
 				if len(dependentModuleNames) > 0 {
 					logger.Infof("%s's schema changed; processing %s", module.Name, strings.Join(dependentModuleNames, ", ")) //nolint:forbidigo
-					_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, dependentModuleNames...)                  //nolint:errcheck
+					if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, dependentModuleNames...); err != nil {
+						logger.Errorf(err, "Build and deploy failed for dependent modules of %s", module.Name)
+					}
 				}
 			}
 
@@ -593,7 +658,9 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				modulesToBuild[event.module] = true
 			}
 			if len(modulesToBuild) > 0 {
-				_ = e.BuildAndDeploy(ctx, optional.None[int32](), false, false, maps.Keys(modulesToBuild)...) //nolint
+				if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, maps.Keys(modulesToBuild)...); err != nil { //nolint
+					logger.Errorf(err, "Build and deploy failed for rebuild requested modules")
+				}
 			}
 		}
 	}
