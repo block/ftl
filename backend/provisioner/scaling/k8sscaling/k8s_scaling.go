@@ -177,15 +177,16 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 	endpoint := r.GetEndpointForDeployment(dk)
 	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, endpoint.String(), log.Error)
 	timeout := time.After(1 * time.Minute)
+	var connectErr error
 	for {
 		select {
 		case <-ctx.Done():
 			return url.URL{}, errors.Wrap(ctx.Err(), "context cancelled")
 		case <-timeout:
-			return url.URL{}, errors.Errorf("timed out waiting for runner to be ready")
+			return url.URL{}, errors.Wrap(connectErr, "timed out waiting for runner to be ready")
 		case <-time.After(time.Millisecond * 100):
-			_, err := client.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
-			if err == nil {
+			_, connectErr = client.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
+			if connectErr == nil {
 				return endpoint, nil
 			}
 		}
