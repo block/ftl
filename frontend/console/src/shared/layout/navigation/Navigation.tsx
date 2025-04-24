@@ -20,6 +20,8 @@ export const Navigation = ({ version }: { version?: string }) => {
   const [isCommandPalleteOpen, setIsCommandPalleteOpen] = useState(false)
   const [isAIAgentOpen, setIsAIAgentOpen] = useState(false)
 
+  const isDevMode = version?.includes('dev')
+
   return (
     <nav className='bg-indigo-600'>
       <div className='mx-auto px-4'>
@@ -57,7 +59,7 @@ export const Navigation = ({ version }: { version?: string }) => {
           <div className='flex items-center'>
             <div className='flex items-center mr-4'>
               <SearchInput onFocus={() => setIsCommandPalleteOpen(true)} />
-              <AIInput isOpen={isAIAgentOpen} onToggle={() => setIsAIAgentOpen(!isAIAgentOpen)} />
+              {isDevMode && <AIInput isOpen={isAIAgentOpen} onToggle={() => setIsAIAgentOpen(!isAIAgentOpen)} />}
             </div>
             <div className='flex items-center space-x-4'>
               <Version version={version} />
