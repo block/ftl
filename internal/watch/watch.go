@@ -181,6 +181,10 @@ func (w *Watcher) detectChanges(ctx context.Context, topic *pubsub.Topic[WatchEv
 		existingConfig := existingModule.Config
 		if _, haveModule := modulesByDir[existingConfig.Dir]; !haveModule {
 			logger.Debugf("removed %q", existingModule.Config.Module)
+			// Check context before publishing
+			if ctx.Err() != nil {
+				return
+			}
 			topic.Publish(WatchEventModuleRemoved{Config: existingModule.Config})
 			delete(w.existingModules, existingConfig.Dir)
 		}
@@ -199,20 +203,31 @@ func (w *Watcher) detectChanges(ctx context.Context, topic *pubsub.Topic[WatchEv
 			continue
 		}
 
-		if haveExistingModule {
-			changes := CompareFileHashes(existingModule.Hashes, hashes)
-			if len(changes) == 0 {
-				continue
+		if !haveExistingModule {
+			logger.Debugf("added %q", config.Module)
+			w.existingModules[config.Dir] = moduleHashes{Hashes: hashes, Config: config}
+			// Check context before publishing
+			if ctx.Err() != nil {
+				return
 			}
-			event := WatchEventModuleChanged{Config: existingModule.Config, Changes: changes, Time: time.Now()}
-			logger.Debugf("changed %q: %s", config.Module, event)
-			topic.Publish(event)
-			w.existingModules[config.Dir] = moduleHashes{Hashes: hashes, Config: existingModule.Config}
-			continue
+			topic.Publish(WatchEventModuleAdded{Config: config})
+		} else {
+			// Compare hashes
+			changes := CompareFileHashes(existingModule.Hashes, hashes)
+			if len(changes) > 0 {
+				logger.Debugf("changed %q: %s", config.Module, WatchEventModuleChanged{Config: config, Changes: changes})
+				w.existingModules[config.Dir] = moduleHashes{Hashes: hashes, Config: config}
+				// Check context before publishing
+				if ctx.Err() != nil {
+					return
+				}
+				topic.Publish(WatchEventModuleChanged{
+					Config:  config,
+					Changes: changes,
+					Time:    time.Now(),
+				})
+			}
 		}
-		logger.Debugf("added %q", config.Module)
-		topic.Publish(WatchEventModuleAdded{Config: config})
-		w.existingModules[config.Dir] = moduleHashes{Hashes: hashes, Config: config}
 	}
 }
 
