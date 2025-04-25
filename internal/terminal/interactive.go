@@ -92,6 +92,7 @@ func (r *interactiveConsole) run(ctx context.Context, executor CommandExecutor) 
 	ok := false
 	if tsm, ok = sm.(*terminalStatusManager); ok {
 		tsm.statusLock.Lock()
+		_, _ = fmt.Fprintln(tsm.old) //nolint:errcheck
 		tsm.clearStatusMessages()
 		tsm.consoleRefresh = r.l.Refresh
 		tsm.recalculateLines()
