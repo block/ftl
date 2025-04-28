@@ -38,22 +38,37 @@ type Exportable interface {
 	IsExported() bool
 }
 
+type Export struct {
+	Pos token.Pos
+
+	IsExported      bool `parser:"@'export'"`
+	IsRealmExported bool `parser:"(':' @'realm')?"`
+}
+
+func (d Export) String() string {
+	sb := &strings.Builder{}
+	if d.IsExported {
+		sb.WriteString("export")
+		if d.IsRealmExported {
+			sb.WriteString(":realm")
+		}
+	}
+	return sb.String()
+}
+
 type DirectiveVerb struct {
 	Pos token.Pos
 
-	Verb   bool `parser:"@'verb'"`
-	Export bool `parser:"@'export'?"`
+	Verb   bool   `parser:"@'verb'"`
+	Export Export `parser:"@@?"`
 }
 
 func (*DirectiveVerb) directive() {}
 func (d *DirectiveVerb) String() string {
-	if d.Export {
-		return "ftl:verb export"
-	}
-	return "ftl:verb"
+	return fmt.Sprintf("ftl:verb%s", d.Export.String())
 }
 func (d *DirectiveVerb) IsExported() bool {
-	return d.Export
+	return d.Export.IsExported
 }
 func (*DirectiveVerb) GetTypeName() string { return "verb" }
 func (d *DirectiveVerb) SetPosition(pos token.Pos) {
