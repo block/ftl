@@ -389,17 +389,11 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 	logger := log.FromContext(ctx)
 
 	watchEvents := make(chan watch.WatchEvent, 128)
-	ctx, cancel := context.WithCancelCause(ctx)
 	topic, err := e.watcher.Watch(ctx, period, e.moduleDirs)
 	if err != nil {
-		cancel(errors.Wrap(errors.Join(err, context.Canceled), "watch failed"))
-		return errors.WithStack(err)
+		return errors.Wrap(err, "failed to start watcher")
 	}
 	topic.Subscribe(watchEvents)
-	defer func() {
-		// Cancel will close the topic and channel
-		cancel(errors.Wrap(context.Canceled, "watch stopped"))
-	}()
 
 	// Build and deploy all modules first.
 	if err := e.BuildAndDeploy(ctx, optional.None[int32](), true, false); err != nil {
@@ -430,7 +424,15 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 		case <-ctx.Done():
 			return errors.WithStack(ctx.Err())
 
-		case event := <-watchEvents:
+		case event, ok := <-watchEvents:
+			if !ok {
+				// Watcher stopped unexpectedly (channel closed).
+				logger.Debugf("Watch event channel closed, watcher likely stopped.")
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					return errors.Wrap(ctxErr, "watcher stopped")
+				}
+				return errors.New("watcher stopped unexpectedly")
+			}
 			switch event := event.(type) {
 			case watch.WatchEventModuleAdded:
 				logger.Debugf("Module %q added", event.Config.Module)

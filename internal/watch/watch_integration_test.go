@@ -21,13 +21,12 @@ const pollFrequency = time.Millisecond * 500
 
 func TestWatch(t *testing.T) {
 	var events chan WatchEvent
-	var topic *pubsub.Topic[WatchEvent]
 	var one, two moduleconfig.UnvalidatedModuleConfig
 
 	w := NewWatcher(optional.None[string](), "**/*.go", "go.mod", "go.sum")
 	in.Run(t,
 		func(tb testing.TB, ic in.TestContext) {
-			events, topic = startWatching(ic, t, w, ic.WorkingDir())
+			events, _ = startWatching(ic, t, w, ic.WorkingDir())
 		},
 		// Add modules
 		in.FtlNew("go", "one"),
@@ -57,23 +56,17 @@ func TestWatch(t *testing.T) {
 				WatchEventModuleRemoved{Config: two},
 			})
 		},
-
-		// Cleanup
-		func(tb testing.TB, ic in.TestContext) {
-			topic.Close()
-		},
 	)
 }
 
 func TestWatchWithBuildModifyingFiles(t *testing.T) {
 	var events chan WatchEvent
-	var topic *pubsub.Topic[WatchEvent]
 	var transaction ModifyFilesTransaction
 	w := NewWatcher(optional.None[string](), "**/*.go", "go.mod", "go.sum")
 
 	in.Run(t,
 		func(tb testing.TB, ic in.TestContext) {
-			events, topic = startWatching(ic, t, w, ic.WorkingDir())
+			events, _ = startWatching(ic, t, w, ic.WorkingDir())
 		},
 
 		in.FtlNew("go", "one"),
@@ -96,20 +89,18 @@ func TestWatchWithBuildModifyingFiles(t *testing.T) {
 		},
 		func(tb testing.TB, ic in.TestContext) {
 			waitForEvents(t, events, []WatchEvent{})
-			topic.Close()
 		},
 	)
 }
 
 func TestWatchWithBuildAndUserModifyingFiles(t *testing.T) {
 	var events chan WatchEvent
-	var topic *pubsub.Topic[WatchEvent]
 	var transaction ModifyFilesTransaction
 	w := NewWatcher(optional.None[string](), "**/*.go", "go.mod", "go.sum")
 
 	in.Run(t,
 		func(tb testing.TB, ic in.TestContext) {
-			events, topic = startWatching(ic, t, w, ic.WorkingDir())
+			events, _ = startWatching(ic, t, w, ic.WorkingDir())
 		},
 
 		in.FtlNew("go", "one"),
@@ -137,7 +128,6 @@ func TestWatchWithBuildAndUserModifyingFiles(t *testing.T) {
 			waitForEvents(t, events, []WatchEvent{
 				WatchEventModuleChanged{Config: loadModule(t, ic.WorkingDir(), "one")},
 			})
-			topic.Close()
 		},
 	)
 }
