@@ -226,7 +226,7 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 
 	err = s.publishEvent(ctx, &schema.ChangesetCreatedEvent{Changeset: changeset})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not create changese")
+		return nil, errors.Wrap(err, "could not create changeset")
 	}
 
 	return connect.NewResponse(&ftlv1.CreateChangesetResponse{Changeset: changeset.Key.String()}), nil
@@ -240,7 +240,7 @@ func (s *Service) PrepareChangeset(ctx context.Context, req *connect.Request[ftl
 	}
 	err = s.publishEvent(ctx, &schema.ChangesetPreparedEvent{Key: changesetKey})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not prepare changese")
+		return nil, errors.Wrap(err, "could not prepare changeset")
 	}
 	return connect.NewResponse(&ftlv1.PrepareChangesetResponse{}), nil
 }
@@ -253,7 +253,7 @@ func (s *Service) CommitChangeset(ctx context.Context, req *connect.Request[ftlv
 	}
 	err = s.publishEvent(ctx, &schema.ChangesetCommittedEvent{Key: changesetKey})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not commit changese")
+		return nil, errors.Wrap(err, "could not commit changeset")
 	}
 	v, err := s.State.View(ctx)
 	if err != nil {
@@ -271,7 +271,7 @@ func (s *Service) DrainChangeset(ctx context.Context, req *connect.Request[ftlv1
 	}
 	err = s.publishEvent(ctx, &schema.ChangesetDrainedEvent{Key: changesetKey})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not drain changese")
+		return nil, errors.Wrap(err, "could not drain changeset")
 	}
 	return connect.NewResponse(&ftlv1.DrainChangesetResponse{}), nil
 }
@@ -283,7 +283,7 @@ func (s *Service) FinalizeChangeset(ctx context.Context, req *connect.Request[ft
 	}
 	err = s.publishEvent(ctx, &schema.ChangesetFinalizedEvent{Key: changesetKey})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not de-provision changese")
+		return nil, errors.Wrap(err, "could not de-provision changeset")
 	}
 	return connect.NewResponse(&ftlv1.FinalizeChangesetResponse{}), nil
 }
@@ -300,7 +300,7 @@ func (s *Service) RollbackChangeset(ctx context.Context, req *connect.Request[ft
 		Error: req.Msg.Error,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not fail changese")
+		return nil, errors.Wrap(err, "could not fail changeset")
 	}
 	return connect.NewResponse(&ftlv1.RollbackChangesetResponse{}), nil
 }
@@ -315,7 +315,7 @@ func (s *Service) FailChangeset(ctx context.Context, req *connect.Request[ftlv1.
 	logger.Infof("Failing changeset %s", changesetKey)
 	err = s.publishEvent(ctx, &schema.ChangesetFailedEvent{Key: changesetKey})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not fail changese")
+		return nil, errors.Wrap(err, "could not fail changeset")
 	}
 	return connect.NewResponse(&ftlv1.FailChangesetResponse{}), nil
 }
