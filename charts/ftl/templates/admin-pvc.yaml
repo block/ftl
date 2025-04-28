@@ -1,0 +1,17 @@
+{{- if .Values.admin.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ftl.fullname" . }}-admin
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.admin.persistence.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.admin.persistence.size | quote }}
+  {{- if .Values.admin.persistence.storageClass }}
+  storageClassName: {{ .Values.admin.persistence.storageClass | quote }}
+  {{- end }}
+{{- end }}

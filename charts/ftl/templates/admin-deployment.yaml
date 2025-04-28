@@ -36,8 +36,8 @@ spec:
             {{- end }}
           {{- end }}
           env:
-            - name: FTL_CONFIG #TODO: make this configurable, and add a PVC to make it persistent
-              value: /config.json
+            - name: FTL_CONFIG
+              value: /data/config.json
             - name: FTL_SECRETS
               value: /secrets.json
             - name: MY_POD_IP
@@ -82,5 +82,16 @@ spec:
           {{- include "ftl.resources" .Values.admin | nindent 10 }}
           {{- include "ftl.healthProbes" .Values.admin | nindent 10 }}
           {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
+          {{- if .Values.admin.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          {{- end }}
       {{- include "ftl.commonPodConfig" .Values.admin | nindent 6 }}
+      {{- if .Values.admin.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "ftl.fullname" . }}-admin
+      {{- end }}
 
