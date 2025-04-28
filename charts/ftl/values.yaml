@@ -396,6 +396,12 @@ admin:
   replicas: 1
   revisionHistoryLimit: 0
 
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 50Mi
+    # storageClass: "" # Optional: leave empty to use default storage class
+
   image:
     repository: null
     tag: null
