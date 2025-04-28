@@ -8,6 +8,10 @@ metadata:
 spec:
   replicas: {{ .Values.admin.replicas }}
   revisionHistoryLimit: {{ .Values.admin.revisionHistoryLimit }}
+  {{- if .Values.admin.persistence.enabled }}
+  strategy:
+    type: Recreate
+  {{- end }}
   selector:
     matchLabels:
       {{- include "ftl-admin.selectorLabels" . | nindent 6 }}
