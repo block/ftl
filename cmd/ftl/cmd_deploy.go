@@ -29,6 +29,10 @@ func (d *deployCmd) Run(
 	schemaSource *schemaeventsource.EventSource,
 ) error {
 	logger := log.FromContext(ctx)
+
+	if !schemaSource.WaitForInitialSync(ctx) {
+		return errors.Errorf("timed out waiting for schema sync from server")
+	}
 	// Cancel build engine context to ensure all language plugins are killed.
 	if d.Timeout > 0 {
 		var cancel context.CancelFunc //nolint: forbidigo
