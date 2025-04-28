@@ -18,6 +18,8 @@ type HttpClient func(context.Context, ftlbuiltin.HttpRequest[ftl.Unit, ftl.Unit,
 
 type NothingClient func(context.Context) error
 
+type RealmPublicClient func(context.Context) error
+
 type SinkClient func(context.Context, SinkReq) error
 
 type SourceClient func(context.Context) (SourceResp, error)
@@ -72,6 +74,10 @@ func init() {
 
 		reflection.ProvideResourcesForVerb(
 			Nothing,
+		),
+
+		reflection.ProvideResourcesForVerb(
+			RealmPublic,
 		),
 
 		reflection.ProvideResourcesForVerb(
