@@ -5,9 +5,9 @@ import { Button } from '../../shared/components/Button'
 import { HoverPopup } from '../../shared/components/HoverPopup'
 import { Multiselect, sortMultiselectOpts } from '../../shared/components/Multiselect'
 import type { MultiselectOpt } from '../../shared/components/Multiselect'
-import { StatusIndicator } from '../../shared/components/StatusIndicator'
 import { classNames } from '../../shared/utils'
-import { getEventText, getModuleStatus } from '../engine/engine.utils'
+import { BuildStatusIndicator } from '../engine/BuildStatusIndicator'
+import { getEventText } from '../engine/engine.utils'
 import { useEngineStatus } from '../engine/hooks/use-engine-status'
 import type { DeclInfo, ModuleTreeItem } from './module.utils'
 import {
@@ -105,7 +105,6 @@ const ModuleSection = ({
 
   const { modules } = useEngineStatus()
   const moduleEvent = modules[module.name]
-  const status = getModuleStatus(moduleEvent)
 
   return (
     <li key={module.name} id={`module-tree-module-${module.name}`} className='mb-2'>
@@ -120,7 +119,7 @@ const ModuleSection = ({
       >
         <ArrowRight01Icon aria-hidden='true' className={`size-4 shrink-0 ${isExpanded ? 'rotate-90 text-gray-500' : ''}`} />
         <HoverPopup popupContent={getEventText(moduleEvent)}>
-          <StatusIndicator state={status} />
+          <BuildStatusIndicator eventCase={moduleEvent?.event?.case} />
         </HoverPopup>
         {module.name}
         <Link

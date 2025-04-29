@@ -23,8 +23,6 @@ export const getModuleName = (event: EngineEvent): string | undefined => {
   }
 }
 
-export type ModuleStatus = 'success' | 'error' | 'busy' | 'idle'
-
 export const getEventText = (event: EngineEvent | undefined): string => {
   if (!event?.event) return 'Idle'
 
@@ -55,30 +53,11 @@ export const getEventText = (event: EngineEvent | undefined): string => {
       return 'Deploy succeeded'
     case 'moduleDeployWaiting':
       return 'Deploy waiting'
-    default:
-      return `Unknown event ${event.event.case}`
-  }
-}
-
-export const getModuleStatus = (event: EngineEvent | undefined): ModuleStatus => {
-  if (!event) return 'idle'
-
-  // Terminal states should take precedence
-  switch (event.event.case) {
-    case 'moduleBuildFailed':
-    case 'moduleDeployFailed':
-      return 'error'
-    case 'moduleDeploySuccess':
-      return 'success'
-    case 'moduleBuildSuccess':
-      // Only show success if we're not in the middle of deploying
-      return 'success'
-    case 'moduleBuildStarted':
-    case 'moduleBuildWaiting':
-    case 'moduleDeployStarted':
-    case 'moduleDeployWaiting':
-      return 'busy'
-    default:
-      return 'idle'
+    case 'reachedEndOfHistory':
+      return 'End of event history'
+    default: {
+      const unknownCase: string = event.event.case ?? 'undefined'
+      return `Unknown event type: ${unknownCase}`
+    }
   }
 }
