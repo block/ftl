@@ -67,7 +67,7 @@ type SharedCLI struct {
 	Goose     gooseCmd     `cmd:"" help:"Run a goose command."`
 	Mysql     mySQLCmd     `cmd:"" help:"Manage MySQL databases."`
 	Postgres  postgresCmd  `cmd:"" help:"Manage PostgreSQL databases."`
-	Open      openCmd      `cmd:"" help:"Open a file in the editor at the location of a schema declaration."`
+	Open      openCmd      `cmd:"" help:"Open a declaration in an IDE."`
 }
 
 type BuildAndDeploy struct {
