@@ -43,10 +43,10 @@ func (i openCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect
 	odecl, _ := state.Schema.ResolveWithModule(&schema.Ref{Module: i.Ref.Module, Name: i.Ref.Name})
 	decl, ok := odecl.Get()
 	if !ok {
-		return fmt.Errorf("could not find %q", i.Ref)
+		return errors.Errorf("could not find %q", i.Ref)
 	}
 	if decl.Position().Filename == "" {
-		return fmt.Errorf("could not find file of %q", i.Ref)
+		return errors.Errorf("could not find file of %q", i.Ref)
 	}
 
 	if i.Editor == autodetect {
@@ -55,7 +55,7 @@ func (i openCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect
 		} else if strings.Contains(i.TerminalEmulator, "JetBrains") {
 			i.Editor = intellij
 		} else {
-			return fmt.Errorf("could not auto choose default editor, expected one of %s", strings.Join([]string{vscode, intellij}, ", "))
+			return errors.Errorf("could not auto choose default editor, expected one of %s", strings.Join([]string{vscode, intellij}, ", "))
 		}
 	}
 	switch i.Editor {
@@ -64,7 +64,7 @@ func (i openCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect
 	case intellij:
 		return openIntelliJ(ctx, decl.Position(), pc.Root())
 	default:
-		return fmt.Errorf("unsupported editor %q, expected one of %s", i.Editor, strings.Join([]string{vscode, intellij}, ", "))
+		return errors.Errorf("unsupported editor %q, expected one of %s", i.Editor, strings.Join([]string{vscode, intellij}, ", "))
 	}
 }
 
