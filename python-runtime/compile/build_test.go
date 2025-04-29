@@ -20,7 +20,12 @@ func TestBuild(t *testing.T) {
 	assert.NoError(t, err)
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 	assert.NoError(t, os.RemoveAll(filepath.Join(moduleDir, ".venv")))
-	assert.NoError(t, exec.Command(ctx, log.Debug, moduleDir, "uv", "sync").Run())
+	env := os.Getenv("PYTHON_REPOSITORY")
+	args := []string{"sync"}
+	if env != "" {
+		args = append(args, "--index", env, "--native-tls")
+	}
+	assert.NoError(t, exec.Command(ctx, log.Debug, moduleDir, "uv", args...).Run())
 
 	t.Run("schema extraction", func(t *testing.T) {
 		config := moduleconfig.AbsModuleConfig{

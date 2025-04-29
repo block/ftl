@@ -239,6 +239,15 @@ ${FTL_HOME}/build/release/ftl dev
 ```
 where `FTL_HOME` is the root of this repository.
 
+## Building Python with a custom artifact repository
+
+In order to run the tests with a custom python artifact repository you need to run:
+
+`export PYTHON_REPOSITORY=<your-private-repo>`
+
+The tests on `compile/build_test.go` will use this to run `uv --index $PYTHON_REPOSITORY --native-tls` which
+should get the tests to pass.
+
 ## Useful links
 
 - [VSCode extension samples](https://github.com/microsoft/vscode-extension-samples)
