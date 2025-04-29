@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"strings"
 
-	"connectrpc.com/connect"
 	"github.com/alecthomas/kong"
 
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/devstate"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
@@ -26,24 +26,23 @@ type openCmd struct {
 	TerminalEmulator string `help:"Terminal emulator can influence 'auto' editor" env:"TERMINAL_EMULATOR" hidden:""`
 }
 
-func (i openCmd) Run(ctx context.Context, ktctx *kong.Context, client ftlv1connect.AdminServiceClient, pc projectconfig.Config) error {
-	ref := i.Ref.ToSchema()
-	resp, err := client.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
+func (i openCmd) Run(ctx context.Context, ktctx *kong.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient, pc projectconfig.Config) error {
+	// Currently dev state is the easiest way to get schema and module paths
+	// We should use admin client to get schema directly when we have a single directory for modules in a project
+	state, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient, false)
 	if err != nil {
-		return fmt.Errorf("could not get schema: %w", err)
+		return fmt.Errorf("could not get dev state: %w", err)
 	}
-	// merge changesets into schema so we get the latest decl positions
-	sch, err := mergedSchemaFromResp(resp.Msg)
-	if err != nil {
-		return err
-	}
-	decl, ok := sch.Resolve(ref).Get()
+
+	odecl, _ := state.Schema.ResolveWithModule(&schema.Ref{Module: i.Ref.Module, Name: i.Ref.Name})
+	decl, ok := odecl.Get()
 	if !ok {
-		return fmt.Errorf("could not find %q", ref)
+		return fmt.Errorf("could not find %q", i.Ref)
 	}
 	if decl.Position().Filename == "" {
-		return fmt.Errorf("could not find location of %q", ref)
+		return fmt.Errorf("could not find file of %q", i.Ref)
 	}
+
 	if i.Editor == "auto" {
 		if i.TerminalProgram == "vscode" {
 			i.Editor = "vscode"
@@ -66,41 +65,7 @@ func (i openCmd) Run(ctx context.Context, ktctx *kong.Context, client ftlv1conne
 	}
 }
 
-// mergedSchemaFromResp parses the schema from the response and applies any changesets.
-// modules that are removed by a changeset stay in the schema.
-func mergedSchemaFromResp(resp *ftlv1.GetSchemaResponse) (*schema.Schema, error) {
-	sch, err := schema.FromProto(resp.Schema)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse schema: %w", err)
-	}
-	for _, cs := range resp.Changesets {
-		fmt.Printf("Considering changeset %q\n", cs.Key)
-
-		for _, module := range cs.Modules {
-			moduleSch, err := schema.ModuleFromProto(module)
-			if err != nil {
-				return nil, fmt.Errorf("could not parse module: %w", err)
-			}
-
-			var found bool
-			for i, m := range sch.Modules {
-				if m.Name != module.Name {
-					continue
-				}
-				sch.Modules[i] = moduleSch
-				found = true
-				break
-			}
-			if !found {
-				sch.Modules = append(sch.Modules, moduleSch)
-			}
-		}
-	}
-	return sch, nil
-}
-
 func openVisualStudioCode(ctx context.Context, pos schema.Position, projectRoot string) error {
-	// TODO: schema filepath is has a root of `ftl/modulename`. Replace it with module root
 	path := pos.Filename + ":" + fmt.Sprint(pos.Line)
 	if pos.Column > 0 {
 		path += ":" + fmt.Sprint(pos.Column)
@@ -113,15 +78,10 @@ func openVisualStudioCode(ctx context.Context, pos schema.Position, projectRoot 
 }
 
 func openIntelliJ(ctx context.Context, pos schema.Position, projectRoot string) error {
-	// TODO: schema filepath is has a root of `ftl/modulename`. Replace it with module root
-	// TODO: if idea is not available, explain how to activate it
+	// TODO: if `idea` is not available, explain how to activate it in IntelliJ
 	err := exec.Command(ctx, log.Debug, ".", "idea", projectRoot, "--line", strconv.Itoa(pos.Line), "--column", strconv.Itoa(pos.Column), pos.Filename).RunBuffered(ctx)
 	if err != nil {
 		return fmt.Errorf("could not open IntelliJ IDEA: %w", err)
 	}
 	return nil
-}
-
-func filePathForPosition(pos schema.Position, modulePath string) string {
-	// TODO: implement
 }
