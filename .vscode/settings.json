@@ -13,9 +13,6 @@
       "source.organizeImports": "explicit"
     }
   },
-  "python.analysis.extraPaths": [
-    "./python-runtime/ftl/src"
-  ],
   "npm.packageManager": "pnpm",
   "go.testFlags": [
     "-race"

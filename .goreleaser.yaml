@@ -30,10 +30,6 @@ builds:
     dir: ./jvm-runtime/cmd/ftl-language-kotlin
     binary: ftl-language-kotlin
     <<: *settings
-  - id: ftl-language-python
-    dir: ./python-runtime/cmd/ftl-language-python
-    binary: ftl-language-python
-    <<: *settings
 
 archives:
   - format: tar.gz
