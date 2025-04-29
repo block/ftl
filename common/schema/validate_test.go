@@ -282,6 +282,14 @@ func TestValidate(t *testing.T) {
 			}`,
 			errs: []string{"4:7: enum variant \"A\" of type Int cannot have a value of type \"String\""},
 		},
+		{name: "TypeEnumNoTypes",
+			schema: `realm foo {
+				module one {
+					enum Enum {}
+				}
+			}`,
+			errs: []string{"3:6: enum \"Enum\" must have at least one variant"},
+		},
 		{name: "NonSubscriberVerbsWithRetry",
 			schema: `realm foo {
 				module one {

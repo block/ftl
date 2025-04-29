@@ -305,6 +305,9 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 						}
 					}
 				} else {
+					if len(n.Variants) == 0 {
+						merr = append(merr, errorf(n, "enum %q must have at least one variant", n.Name))
+					}
 					for _, v := range n.Variants {
 						if _, ok := v.Value.(*TypeValue); !ok {
 							merr = append(merr, errorf(v, "type enum variant %q value must be a type, was %T",
