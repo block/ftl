@@ -69,7 +69,7 @@ type k8sScaling struct {
 	httpIngressServiceAccount string
 }
 
-type NamespaceMapper func(module string, systemNamespace string) string
+type NamespaceMapper func(module string, realm string, systemNamespace string) string
 
 func NewK8sScaling(disableIstio bool, controllerURL string, instanceName string, mapper NamespaceMapper, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
 	return &k8sScaling{disableIstio: disableIstio, controller: controllerURL, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount}
@@ -120,7 +120,11 @@ func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string,
 	logger = logger.Module(module)
 	ctx = log.ContextWithLogger(ctx, logger)
 	logger.Debugf("Updating deployment for %s", deploymentKey)
-	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(sch.Name, r.systemNamespace))
+	dk, err := key.ParseDeploymentKey(deploymentKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse deployment key")
+	}
+	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(sch.Name, dk.Payload.Realm, r.systemNamespace))
 	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to get deployment %s for update", deploymentKey)
@@ -138,7 +142,7 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 		return url.URL{}, errors.Wrap(err, "failed to parse deployment key")
 	}
 	logger.Debugf("Creating deployment for %s", deploymentKey)
-	namespace, err := r.ensureNamespace(ctx, sch)
+	namespace, err := r.ensureNamespace(ctx, dk.Payload.Realm, sch)
 	if err != nil {
 		return url.URL{}, errors.Wrap(err, "failed to ensure namespace")
 	}
@@ -161,7 +165,7 @@ func (r *k8sScaling) StartDeployment(ctx context.Context, deploymentKey string, 
 		return r.GetEndpointForDeployment(dk), errors.WithStack(err)
 
 	}
-	err = r.handleNewDeployment(ctx, module, deploymentKey, sch, hasCron, hasIngress)
+	err = r.handleNewDeployment(ctx, dk.Payload.Realm, module, deploymentKey, sch, hasCron, hasIngress)
 	if err != nil {
 		return url.URL{}, errors.WithStack(err)
 	}
@@ -200,7 +204,7 @@ func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey stri
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse deployment key %s", deploymentKey)
 	}
-	serviceClient := r.client.CoreV1().Services(r.namespaceMapper(dk.Payload.Module, r.systemNamespace))
+	serviceClient := r.client.CoreV1().Services(r.namespaceMapper(dk.Payload.Module, dk.Payload.Realm, r.systemNamespace))
 	err = serviceClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
@@ -252,7 +256,7 @@ func getKubeConfig() (*rest.Config, error) {
 func (r *k8sScaling) GetEndpointForDeployment(deployment key.Deployment) url.URL {
 
 	return url.URL{Scheme: "http",
-		Host: fmt.Sprintf("%s.%s:8892", deployment.String(), r.namespaceMapper(deployment.Payload.Module, r.systemNamespace))}
+		Host: fmt.Sprintf("%s.%s:8892", deployment.String(), r.namespaceMapper(deployment.Payload.Module, deployment.Payload.Realm, r.systemNamespace))}
 
 }
 
@@ -316,9 +320,9 @@ func (r *k8sScaling) thisContainerImage(ctx context.Context) (string, error) {
 	return thisDeployment.Spec.Template.Spec.Containers[0].Image, nil
 }
 
-func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, name string, sch *schema.Module, cron bool, ingress bool) error {
+func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, module string, name string, sch *schema.Module, cron bool, ingress bool) error {
 	logger := log.FromContext(ctx)
-	userNamespace := r.namespaceMapper(module, r.systemNamespace)
+	userNamespace := r.namespaceMapper(module, realm, r.systemNamespace)
 	cm, err := r.client.CoreV1().ConfigMaps(r.systemNamespace).Get(ctx, configMapName, v1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to get configMap %s", configMapName)
@@ -389,7 +393,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, module string, nam
 
 	// Sync the istio policy if applicable
 	if sec, ok := r.istioSecurity.Get(); ok {
-		err = r.syncIstioPolicy(ctx, sec, userNamespace, module, name, service, provisionerDeployment, sch, cron, ingress)
+		err = r.syncIstioPolicy(ctx, sec, userNamespace, realm, module, name, service, provisionerDeployment, sch, cron, ingress)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -579,7 +583,7 @@ func (r *k8sScaling) updateEnvVar(deployment *kubeapps.Deployment, envVerName st
 	return changes
 }
 
-func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, namespace string, module string, name string, service *kubecore.Service, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
+func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Clientset, namespace string, realm string, module string, name string, service *kubecore.Service, provisionerDeployment *kubeapps.Deployment, sch *schema.Module, hasCron bool, hasIngress bool) error {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Creating new istio policy for %s", name)
 
@@ -646,7 +650,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 		}
 		logger.Debugf("Processing callable module %s", callableModule)
 		policyName := module + "-" + callableModule
-		callableModuleNamespace := r.namespaceMapper(callableModule, r.systemNamespace)
+		callableModuleNamespace := r.namespaceMapper(callableModule, realm, r.systemNamespace)
 		err := r.createOrUpdateIstioPolicy(ctx, sec, callableModuleNamespace, policyName, func(policy *istiosec.AuthorizationPolicy) {
 
 			targetServiceAccount, err := r.client.CoreV1().ServiceAccounts(callableModuleNamespace).Get(ctx, callableModule, v1.GetOptions{})
@@ -667,7 +671,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 					From: []*istiosecmodel.Rule_From{
 						{
 							Source: &istiosecmodel.Source{
-								Principals: []string{"cluster.local/ns/" + r.namespaceMapper(module, r.systemNamespace) + "/sa/" + module},
+								Principals: []string{"cluster.local/ns/" + r.namespaceMapper(module, realm, r.systemNamespace) + "/sa/" + module},
 							},
 						},
 					},
@@ -790,8 +794,8 @@ func (r *k8sScaling) findPodLogs(ctx context.Context, key string, podClient v3.P
 	return ret
 }
 
-func (r *k8sScaling) ensureNamespace(ctx context.Context, sch *schema.Module) (string, error) {
-	namespace := r.namespaceMapper(sch.Name, r.systemNamespace)
+func (r *k8sScaling) ensureNamespace(ctx context.Context, realm string, sch *schema.Module) (string, error) {
+	namespace := r.namespaceMapper(sch.Name, realm, r.systemNamespace)
 	if namespace == r.systemNamespace {
 		return namespace, nil
 	}
