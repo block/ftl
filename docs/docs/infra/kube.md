@@ -24,7 +24,7 @@ By default, FTL will be deployed in the `ftl` namespace. The following deploymen
 *StatefulSet with 3 replicas and Persistent Volumes
 
 End user deployments will generally be deployed into either a separate shared namespace, or to a namespace per module
-of the form <module>-<realm>. 
+of the form `<module>-<realm>`. 
 
 
 ## Provisioning User Deployments
