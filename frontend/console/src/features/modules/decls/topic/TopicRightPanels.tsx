@@ -3,6 +3,7 @@ import type { ExpandablePanelProps } from '../../../../shared/components/Expanda
 import { RightPanelAttribute } from '../../../../shared/components/RightPanelAttribute'
 import { DeclDefaultPanels } from '../DeclDefaultPanels'
 import { DeclGraphPane } from '../DeclGraphPane'
+import { DeclLink } from '../DeclLink'
 
 export const topicPanels = (moduleName: string, topic: Topic, showGraph = true) => {
   const panels: ExpandablePanelProps[] = [
@@ -11,7 +12,16 @@ export const topicPanels = (moduleName: string, topic: Topic, showGraph = true) 
       expanded: true,
       children: [
         <RightPanelAttribute key='name' name='Name' value={topic.topic?.name} />,
-        <RightPanelAttribute key='export' name='Event' value={topic.topic?.event?.value.case} />,
+        <div key='event' className='flex justify-between space-x-2 items-center text-sm'>
+          <span className='text-gray-500 dark:text-gray-400'>Event</span>
+          <span className='flex-1 min-w-0 text-right'>
+            {topic.topic?.event?.value.case === 'ref' ? (
+              <DeclLink moduleName={topic.topic.event.value.value.module} declName={topic.topic.event.value.value.name} />
+            ) : (
+              <pre className='whitespace-pre-wrap overflow-auto'>{topic.topic?.event?.value.case}</pre>
+            )}
+          </span>
+        </div>,
       ],
     },
     ...DeclDefaultPanels(moduleName, topic.schema, topic.edges),
