@@ -54,9 +54,9 @@ func init() {
 	buildColors = map[BuildState]string{
 		BuildStateWaiting:       "\u001B[38;5;244m", // Dimmed gray for waiting
 		BuildStateBuilding:      "\u001B[38;5;33m",  // Bright blue for building
-		BuildStateBuilt:         "\u001B[38;5;40m",  // Bright green for success
+		BuildStateBuilt:         "\u001B[38;5;33m",  // Bright blue for success
 		BuildStateDeployWaiting: "\u001B[38;5;244m", // Dimmed gray for waiting
-		BuildStateDeploying:     "\u001B[38;5;33m",  // Bright blue for deploying
+		BuildStateDeploying:     "\u001B[38;5;40m",  // Bright green for deploying
 		BuildStateDeployed:      "\u001B[38;5;40m",  // Bright green for success
 		BuildStateFailed:        "\u001B[38;5;196m", // Bright red for failure
 	}
@@ -514,16 +514,28 @@ func countLines(s string, width int) int {
 	}
 	lines := 0
 	curLength := 0
-	// TODO: count unicode characters properly
-	for i := range s {
-		if s[i] == '\n' {
+	inANSI := false
+	for _, r := range s {
+		if inANSI {
+			if r == 'm' {
+				inANSI = false
+			}
+			continue
+		}
+		if r == '\u001B' { // Check for ANSI escape sequence start
+			inANSI = true
+			continue
+		}
+		if r == '\n' {
 			lines++
 			curLength = 0
 		} else {
+			// Assume most runes have width 1 for simplicity here.
+			// TODO: count unicode characters properly, probably using a library
 			curLength++
-			if curLength == width {
+			if curLength > width {
 				lines++
-				curLength = 0
+				curLength = 1
 			}
 		}
 	}
