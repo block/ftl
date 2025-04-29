@@ -23,7 +23,6 @@ components:
 
   go-runtime: { in: go-runtime/** }
   jvm-runtime: { in: jvm-runtime/** }
-  python-runtime: { in: python-runtime/** }
 
   runner: { in: backend/runner/** }
 
@@ -88,11 +87,6 @@ deps:
   go-runtime:
     mayDependOn:
       - go-runtime
-      - internal
-      - backend-protos
-  python-runtime:
-    mayDependOn:
-      - python-runtime
       - internal
       - backend-protos
   jvm-runtime:

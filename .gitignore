@@ -49,9 +49,3 @@ docker-build/
 **/.ftl
 charts/**/charts/
 charts/**/output/
-
-# Python specific
-__pycache__/
-*.pyc
-*.pyo
-.venv/

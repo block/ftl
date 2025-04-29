@@ -16,9 +16,6 @@ ZIP_DIRS := "go-runtime/compile/build-template " + \
             "go-runtime/scaffolding " + \
             "jvm-runtime/java/scaffolding " + \
             "jvm-runtime/kotlin/scaffolding " + \
-            "python-runtime/compile/build-template " + \
-            "python-runtime/compile/external-module-template " + \
-            "python-runtime/scaffolding " + \
             "internal/sql/template"
 CONSOLE_ROOT := "frontend/console"
 FRONTEND_OUT := CONSOLE_ROOT + "/dist/index.html"
@@ -107,7 +104,6 @@ clean:
   rm -rf docs/node_modules
   rm -rf frontend/console/dist
   rm -rf frontend/console/node_modules
-  rm -rf python-runtime/ftl/.venv
   find . -name '*.zip' -exec rm {} \;
   mvn -f jvm-runtime/ftl-runtime clean
   cd sqlc-gen-ftl && cargo clean
@@ -175,7 +171,6 @@ build-jvm *args:
 # Builds all language plugins
 build-language-plugins: build-zips build-protos
   @just _build-go-binary-fast ./go-runtime/cmd/ftl-language-go ftl-language-go
-  @just _build-go-binary-fast ./python-runtime/cmd/ftl-language-python ftl-language-python
   @just _build-go-binary-fast ./jvm-runtime/cmd/ftl-language-java ftl-language-java
   @just _build-go-binary-fast ./jvm-runtime/cmd/ftl-language-kotlin ftl-language-kotlin
 
