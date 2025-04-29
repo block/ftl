@@ -55,15 +55,15 @@ func main() {
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.ProvisionerConfig.SchemaEndpoint.String(), log.Error)
 	var mapper k8sscaling.NamespaceMapper
 	if cli.ModulePerNamespace {
-		mapper = func(module string, systemNamespace string) string {
-			return module + "-ftl"
+		mapper = func(module string, realm string, systemNamespace string) string {
+			return module + "-" + realm
 		}
 	} else if cli.UserNamespace != "" {
-		mapper = func(module string, systemNamespace string) string {
+		mapper = func(module string, realm string, systemNamespace string) string {
 			return cli.UserNamespace
 		}
 	} else {
-		mapper = func(module string, systemNamespace string) string {
+		mapper = func(module string, realm string, systemNamespace string) string {
 			return systemNamespace
 		}
 	}

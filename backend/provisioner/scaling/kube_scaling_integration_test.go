@@ -23,7 +23,7 @@ func TestKubeScalingUserNamespace(t *testing.T) {
 }
 func TestKubeScalingDeploymentPerNamespace(t *testing.T) {
 	runTest(t, func(dep string) string {
-		return dep + "-ftl"
+		return dep + "-integration"
 	}, "--set", "ftl.provisioner.modulePerNamespace=true")
 }
 
