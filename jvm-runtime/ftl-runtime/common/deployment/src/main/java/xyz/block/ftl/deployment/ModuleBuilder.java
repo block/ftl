@@ -1,6 +1,11 @@
 package xyz.block.ftl.deployment;
 
+import static org.jboss.jandex.PrimitiveType.Primitive.BYTE;
+import static org.jboss.jandex.PrimitiveType.Primitive.INT;
+import static org.jboss.jandex.PrimitiveType.Primitive.LONG;
+import static org.jboss.jandex.PrimitiveType.Primitive.SHORT;
 import static xyz.block.ftl.deployment.FTLDotNames.ENUM;
+import static xyz.block.ftl.deployment.FTLDotNames.ENUM_HOLDER;
 import static xyz.block.ftl.deployment.FTLDotNames.EXPORT;
 import static xyz.block.ftl.deployment.FTLDotNames.GENERATED_REF;
 import static xyz.block.ftl.deployment.PositionUtils.forClass;
@@ -31,6 +36,7 @@ import org.jboss.jandex.ArrayType;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.ClassType;
 import org.jboss.jandex.DotName;
+import org.jboss.jandex.FieldInfo;
 import org.jboss.jandex.IndexView;
 import org.jboss.jandex.MethodInfo;
 import org.jboss.jandex.PrimitiveType;
@@ -61,9 +67,11 @@ import xyz.block.ftl.schema.v1.Bool;
 import xyz.block.ftl.schema.v1.Bytes;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Decl;
+import xyz.block.ftl.schema.v1.EnumVariant;
 import xyz.block.ftl.schema.v1.Field;
 import xyz.block.ftl.schema.v1.Float;
 import xyz.block.ftl.schema.v1.Int;
+import xyz.block.ftl.schema.v1.IntValue;
 import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataAlias;
 import xyz.block.ftl.schema.v1.MetadataCalls;
@@ -76,10 +84,13 @@ import xyz.block.ftl.schema.v1.MetadataTypeMap;
 import xyz.block.ftl.schema.v1.Module;
 import xyz.block.ftl.schema.v1.Position;
 import xyz.block.ftl.schema.v1.Ref;
+import xyz.block.ftl.schema.v1.StringValue;
 import xyz.block.ftl.schema.v1.Time;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.TypeAlias;
+import xyz.block.ftl.schema.v1.TypeValue;
 import xyz.block.ftl.schema.v1.Unit;
+import xyz.block.ftl.schema.v1.Value;
 import xyz.block.ftl.schema.v1.Verb;
 import xyz.block.ftl.schema.v1.Visibility;
 
@@ -93,6 +104,7 @@ public class ModuleBuilder {
     public static final DotName NULLABLE = DotName.createSimple(Nullable.class);
     public static final DotName JSON_NODE = DotName.createSimple(JsonNode.class.getName());
     public static final DotName OFFSET_DATE_TIME = DotName.createSimple(OffsetDateTime.class.getName());
+    public static final Set<PrimitiveType.Primitive> INT_TYPES = Set.of(INT, LONG, BYTE, SHORT);
 
     private static final Pattern NAME_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
 
@@ -761,10 +773,7 @@ public class ModuleBuilder {
 
                 if (info != null && (info.isEnum() || info.hasAnnotation(ENUM))) {
                     // Set only the name and export here. EnumProcessor will fill in the rest
-                    xyz.block.ftl.schema.v1.Enum.Builder ennum = xyz.block.ftl.schema.v1.Enum.newBuilder()
-                            .setName(name)
-                            .setVisibility(VisibilityUtil.getVisibility(info));
-                    addDecls(Decl.newBuilder().setEnum(ennum.build()).build());
+                    handleEnum(info, VisibilityUtil.highest(visibility, VisibilityUtil.getVisibility(info)));
                     return handleNullabilityAnnotations(ref, nullability);
                 } else {
                     // If this data was processed already, skip early
@@ -1145,4 +1154,130 @@ public class ModuleBuilder {
             return this;
         }
     }
+
+    private void handleEnum(ClassInfo classInfo, Visibility visibility) {
+
+        try {
+            Class<?> clazz = Class.forName(classInfo.name().toString(), false,
+                    Thread.currentThread().getContextClassLoader());
+            var isLocalToModule = !classInfo.hasDeclaredAnnotation(GENERATED_REF);
+            if (classInfo.isEnum()) {
+                // Value enum
+                recorder.registerEnum(clazz);
+                if (isLocalToModule) {
+                    addDecls(extractValueEnum(classInfo, clazz, visibility));
+                }
+            } else {
+                var typeEnum = extractTypeEnum(classInfo, visibility);
+                recorder.registerEnum(clazz, typeEnum.variantClasses);
+                if (isLocalToModule) {
+                    addDecls(typeEnum.decl);
+                }
+            }
+        } catch (Exception e) {
+            validationFailures
+                    .add(new ValidationFailure(toError(PositionUtils.forClass(classInfo.name().toString())), e.getMessage()));
+        }
+    }
+
+    /**
+     * Value enums are Java language enums with a single field 'value'
+     */
+    private Decl extractValueEnum(ClassInfo classInfo, Class<?> clazz, Visibility visibility)
+            throws NoSuchFieldException, IllegalAccessException {
+        String name = classInfo.simpleName();
+        xyz.block.ftl.schema.v1.Enum.Builder enumBuilder = xyz.block.ftl.schema.v1.Enum.newBuilder()
+                .setName(name)
+                .setPos(PositionUtils.forClass(classInfo.name().toString()))
+                .setVisibility(visibility)
+                .addAllComments(comments.getComments(name));
+        FieldInfo valueField = classInfo.field("value");
+        if (valueField == null) {
+            throw new RuntimeException("Enum must have a 'value' field: " + classInfo.name());
+        }
+        org.jboss.jandex.Type type = valueField.type();
+        xyz.block.ftl.schema.v1.Type.Builder typeBuilder = xyz.block.ftl.schema.v1.Type.newBuilder();
+        if (isInt(type)) {
+            typeBuilder.setInt(Int.newBuilder().build()).build();
+        } else if (type.name().equals(DotName.STRING_NAME)) {
+            typeBuilder.setString(xyz.block.ftl.schema.v1.String.newBuilder().build());
+        } else {
+            throw new RuntimeException(
+                    "Enum value type must be String, int, long, short, or byte: " + classInfo.name());
+        }
+        enumBuilder.setType(typeBuilder.build());
+
+        for (var constant : clazz.getEnumConstants()) {
+            java.lang.reflect.Field value = constant.getClass().getDeclaredField("value");
+            value.setAccessible(true);
+            Value.Builder valueBuilder = Value.newBuilder();
+            if (isInt(type)) {
+                long aLong = value.getLong(constant);
+                valueBuilder.setIntValue(IntValue.newBuilder().setValue(aLong).build());
+            } else {
+                String aString = (String) value.get(constant);
+                valueBuilder.setStringValue(StringValue.newBuilder().setValue(aString).build());
+            }
+            EnumVariant variant = EnumVariant.newBuilder()
+                    .setName(constant.toString())
+                    .setValue(valueBuilder)
+                    .build();
+            enumBuilder.addVariants(variant);
+        }
+        return Decl.newBuilder().setEnum(enumBuilder).build();
+    }
+
+    private record TypeEnum(Decl decl, List<Class<?>> variantClasses) {
+    }
+
+    /**
+     * Type Enums are an interface with 1+ implementing classes. The classes may be: </br>
+     * - a wrapper for a FTL native type e.g. string, [string]. Has @EnumHolder annotation </br>
+     * - a class with arbitrary fields </br>
+     */
+    private TypeEnum extractTypeEnum(ClassInfo classInfo, Visibility visibility) throws ClassNotFoundException {
+        String name = classInfo.simpleName();
+        xyz.block.ftl.schema.v1.Enum.Builder enumBuilder = xyz.block.ftl.schema.v1.Enum.newBuilder()
+                .setName(name)
+                .setPos(PositionUtils.forClass(classInfo.name().toString()))
+                .setVisibility(visibility)
+                .addAllComments(comments.getComments(name));
+        var variants = index.getAllKnownImplementors(classInfo.name());
+        if (variants.isEmpty()) {
+            throw new RuntimeException("No variants found for enum: " + enumBuilder.getName());
+        }
+        var variantClasses = new ArrayList<Class<?>>();
+        for (var variant : variants) {
+            org.jboss.jandex.Type variantType;
+            if (variant.hasAnnotation(ENUM_HOLDER)) {
+                // Enum value holder class
+                FieldInfo valueField = variant.field("value");
+                if (valueField == null) {
+                    throw new RuntimeException("Enum variant must have a 'value' field: " + variant.name());
+                }
+                variantType = valueField.type();
+                // TODO add to variantClasses; write serialization code for holder classes
+            } else {
+                // Class is the enum variant type
+                variantType = ClassType.builder(variant.name()).build();
+                Class<?> variantClazz = Class.forName(variantType.name().toString(), false,
+                        Thread.currentThread().getContextClassLoader());
+                variantClasses.add(variantClazz);
+            }
+            xyz.block.ftl.schema.v1.Type declType = buildType(variantType, visibility,
+                    Nullability.NOT_NULL);
+            TypeValue typeValue = TypeValue.newBuilder().setValue(declType).build();
+
+            EnumVariant.Builder variantBuilder = EnumVariant.newBuilder()
+                    .setName(variant.simpleName())
+                    .setValue(Value.newBuilder().setTypeValue(typeValue).build());
+            enumBuilder.addVariants(variantBuilder.build());
+        }
+        return new TypeEnum(Decl.newBuilder().setEnum(enumBuilder).build(), variantClasses);
+    }
+
+    private boolean isInt(org.jboss.jandex.Type type) {
+        return type.kind() == org.jboss.jandex.Type.Kind.PRIMITIVE && INT_TYPES.contains(type.asPrimitiveType().primitive());
+    }
+
 }
