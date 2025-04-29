@@ -18,7 +18,7 @@ type Data struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
 	Comments       []string         `parser:"@Comment*" protobuf:"2"`
-	Export         bool             `parser:"@'export'?" protobuf:"3"`
+	Visibility     Visibility       `parser:"@@?" protobuf:"3"`
 	Name           string           `parser:"'data' @Ident" protobuf:"4"`
 	TypeParameters []*TypeParameter `parser:"( '<' @@ (',' @@)* '>' )? '{'" protobuf:"5"`
 	Metadata       []Metadata       `parser:"@@*" protobuf:"7"`
@@ -178,7 +178,7 @@ func (d *Data) schemaChildren() []Node {
 }
 
 func (d *Data) GetName() string  { return d.Name }
-func (d *Data) IsExported() bool { return d.Export }
+func (d *Data) IsExported() bool { return d.Visibility.Exported() }
 
 func (d *Data) IsGenerated() bool {
 	_, found := slices.FindVariant[*MetadataGenerated](d.Metadata)
@@ -199,10 +199,14 @@ func (d *Data) String() string {
 		}
 		typeParameters += ">"
 	}
-	if d.Export {
-		fmt.Fprint(w, "export ")
-	}
-	fmt.Fprintf(w, "data %s%s {\n", d.Name, typeParameters)
+
+	formatTokens(w,
+		d.Visibility.String(),
+		"data",
+		fmt.Sprintf("%s%s", d.Name, typeParameters),
+		"{\n",
+	)
+
 	for _, metadata := range d.Metadata {
 		fmt.Fprintln(w, indent(metadata.String()))
 	}

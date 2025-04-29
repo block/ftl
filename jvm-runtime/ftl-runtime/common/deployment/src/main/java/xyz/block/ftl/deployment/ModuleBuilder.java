@@ -81,6 +81,7 @@ import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.TypeAlias;
 import xyz.block.ftl.schema.v1.Unit;
 import xyz.block.ftl.schema.v1.Verb;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class ModuleBuilder {
 
@@ -342,8 +343,9 @@ public class ModuleBuilder {
                         Class.forName(className, false, Thread.currentThread().getContextClassLoader()), paramMappers,
                         method.returnType() == VoidType.VOID, transaction);
             }
+            var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
             verbBuilder.setName(verbName)
-                    .setExport(exported)
+                    .setVisibility(visibility)
                     .setPos(methodPos)
                     .setRequest(
                             customization.requestType.apply(buildType(bodyParamType, exported, bodyParamNullability)))
@@ -581,20 +583,24 @@ public class ModuleBuilder {
 
                 if (info != null && (info.isEnum() || info.hasAnnotation(ENUM))) {
                     // Set only the name and export here. EnumProcessor will fill in the rest
+                    var visibility = type.hasAnnotation(EXPORT) || export ? Visibility.VISIBILITY_SCOPE_MODULE
+                            : Visibility.VISIBILITY_SCOPE_NONE;
                     xyz.block.ftl.schema.v1.Enum.Builder ennum = xyz.block.ftl.schema.v1.Enum.newBuilder()
                             .setName(name)
-                            .setExport(type.hasAnnotation(EXPORT) || export);
+                            .setVisibility(visibility);
                     addDecls(Decl.newBuilder().setEnum(ennum.build()).build());
                     return handleNullabilityAnnotations(ref, nullability);
                 } else {
                     // If this data was processed already, skip early
-                    if (setDeclExport(name, type.hasAnnotation(EXPORT) || export)) {
+                    var visibility = type.hasAnnotation(EXPORT) || export ? Visibility.VISIBILITY_SCOPE_MODULE
+                            : Visibility.VISIBILITY_SCOPE_NONE;
+                    if (setDeclExport(name, visibility)) {
                         return handleNullabilityAnnotations(ref, nullability);
                     }
                     Data.Builder data = Data.newBuilder()
                             .setPos(forClass(clazz.name().toString()))
                             .setName(name)
-                            .setExport(type.hasAnnotation(EXPORT) || export)
+                            .setVisibility(visibility)
                             .addAllComments(comments.getComments(name));
                     buildDataElement(data, clazz.name());
                     addDecls(Decl.newBuilder().setData(data).build());
@@ -664,8 +670,9 @@ public class ModuleBuilder {
         // TODO: handle getters and setters properly, also Jackson annotations etc
         for (var field : clazz.fields()) {
             if (!Modifier.isStatic(field.flags())) {
+                var exported = data.getVisibility() != Visibility.VISIBILITY_SCOPE_NONE;
                 Field.Builder builder = Field.newBuilder().setName(field.name())
-                        .setType(buildType(field.type(), data.getExport(), field));
+                        .setType(buildType(field.type(), exported, field));
                 if (field.hasAnnotation(JsonAlias.class)) {
                     var aliases = field.annotation(JsonAlias.class);
                     if (aliases.value() != null) {
@@ -686,7 +693,7 @@ public class ModuleBuilder {
     public ModuleBuilder addDecls(Decl decl) {
         if (decl.hasData()) {
             Data data = decl.getData();
-            if (!setDeclExport(data.getName(), data.getExport())) {
+            if (!setDeclExport(data.getName(), data.getVisibility())) {
                 addDecl(decl, data.getPos(), data.getName());
             }
         } else if (decl.hasEnum()) {
@@ -785,6 +792,10 @@ public class ModuleBuilder {
         decls.put(name, decl);
     }
 
+    private Visibility higherVisibility(Visibility v1, Visibility v2) {
+        return v1.getNumber() > v2.getNumber() ? v1 : v2;
+    }
+
     /**
      * Check if an enum with the given name already exists in the module. If it
      * does, merge fields from both into one
@@ -797,18 +808,19 @@ public class ModuleBuilder {
             }
             var moreComplete = decl.getEnum().getVariantsCount() > 0 ? decl : existing;
             var lessComplete = decl.getEnum().getVariantsCount() > 0 ? existing : decl;
-            boolean export = lessComplete.getEnum().getExport() || existing.getEnum().getExport();
+            var visibility = higherVisibility(lessComplete.getEnum().getVisibility(), existing.getEnum().getVisibility());
+
             var merged = moreComplete.getEnum().toBuilder()
-                    .setExport(export)
+                    .setVisibility(visibility)
                     .build();
             decls.put(name, Decl.newBuilder().setEnum(merged).build());
-            if (export) {
+            if (visibility != Visibility.VISIBILITY_SCOPE_NONE) {
                 // Need to update export on variants too
                 for (var childDecl : merged.getVariantsList()) {
                     if (childDecl.getValue().hasTypeValue()
                             && childDecl.getValue().getTypeValue().getValue().hasRef()) {
                         var ref = childDecl.getValue().getTypeValue().getValue().getRef();
-                        setDeclExport(ref.getName(), true);
+                        setDeclExport(ref.getName(), visibility);
                     }
                 }
             }
@@ -821,14 +833,16 @@ public class ModuleBuilder {
      * Set a Decl's export field to <code>export</code>. Return true iff the Decl
      * exists
      */
-    private boolean setDeclExport(String name, boolean export) {
+    private boolean setDeclExport(String name, Visibility visibility) {
         var existing = decls.get(name);
         if (existing != null) {
             if (existing.hasData()) {
-                var merged = existing.getData().toBuilder().setExport(export || existing.getData().getExport()).build();
+                var merged = existing.getData().toBuilder()
+                        .setVisibility(higherVisibility(visibility, existing.getData().getVisibility())).build();
                 decls.put(name, Decl.newBuilder().setData(merged).build());
             } else if (existing.hasTypeAlias()) {
-                var merged = existing.getTypeAlias().toBuilder().setExport(export || existing.getData().getExport())
+                var merged = existing.getTypeAlias().toBuilder()
+                        .setVisibility(higherVisibility(visibility, existing.getData().getVisibility()))
                         .build();
                 decls.put(name, Decl.newBuilder().setTypeAlias(merged).build());
             }

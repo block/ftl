@@ -439,18 +439,19 @@ func updateTransitiveVisibility(d schema.Decl, module *schema.Module) {
 			return errors.WithStack(next())
 		}
 
+		//TODO: Handle realm visibility
 		if decl, ok := resolved.Symbol.(schema.Decl); ok {
 			switch t := decl.(type) {
 			case *schema.Data:
-				t.Export = true
+				t.Visibility = schema.VisibilityScopeModule
 			case *schema.Enum:
-				t.Export = true
+				t.Visibility = schema.VisibilityScopeModule
 			case *schema.TypeAlias:
-				t.Export = true
+				t.Visibility = schema.VisibilityScopeModule
 			case *schema.Topic:
 				t.Export = true
 			case *schema.Verb:
-				t.Export = true
+				t.Visibility = schema.VisibilityScopeModule
 			case *schema.Database, *schema.Config, *schema.Secret:
 			}
 			updateTransitiveVisibility(decl, module)

@@ -24,7 +24,7 @@ func Extract(pass *analysis.Pass, node *ast.TypeSpec, obj types.Object) optional
 	var hasGoTypeMapping bool
 	common.ApplyMetadata[*schema.TypeAlias](pass, obj, func(md *common.ExtractedMetadata) {
 		alias.Comments = md.Comments
-		alias.Export = md.IsExported
+		alias.Visibility = schema.Visibility(md.Visibility)
 		alias.Metadata = md.Metadata
 
 		if len(md.Metadata) > 0 {

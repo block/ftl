@@ -217,7 +217,9 @@ func (m *Module) AddDecl(decl Decl) {
 func (m *Module) AddData(data *Data) int {
 	for i, d := range m.Decls {
 		if d, ok := d.(*Data); ok && d.Name == data.Name {
-			d.Export = d.Export || data.Export
+			if data.Visibility > d.Visibility {
+				d.Visibility = data.Visibility
+			}
 			return i
 		}
 	}

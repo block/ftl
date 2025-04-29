@@ -1,7 +1,14 @@
 import { JSONSchemaFaker } from 'json-schema-faker'
 import type { JsonValue } from 'type-fest/source/basic'
 import type { Module, Verb } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { MetadataCronJob, MetadataIngress, MetadataSQLQuery, MetadataSubscriber, Ref } from '../../../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import {
+  type MetadataCronJob,
+  type MetadataIngress,
+  type MetadataSQLQuery,
+  type MetadataSubscriber,
+  type Ref,
+  Visibility,
+} from '../../../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import { defaultForType } from '../../type.utils'
 
 const basePath = `${window.location.protocol}//${window.location.hostname}:8891/`
@@ -182,7 +189,8 @@ export const isCron = (verb?: Verb) => {
 }
 
 export const isExported = (verb?: Verb) => {
-  return verb?.verb?.export === true
+  const visibility = verb?.verb?.visibility
+  return visibility === Visibility.SCOPE_MODULE || visibility === Visibility.SCOPE_REALM
 }
 
 export const createVerbRequest = (path: string, verb?: Verb, editorText?: string, headers?: string) => {

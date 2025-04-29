@@ -12,11 +12,11 @@ import (
 type Enum struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
-	Comments []string       `parser:"@Comment*" protobuf:"2"`
-	Export   bool           `parser:"@'export'?" protobuf:"3"`
-	Name     string         `parser:"'enum' @Ident" protobuf:"4"`
-	Type     Type           `parser:"(':' @@)?" protobuf:"5,optional"`
-	Variants []*EnumVariant `parser:"'{' @@* '}'" protobuf:"6"`
+	Comments   []string       `parser:"@Comment*" protobuf:"2"`
+	Visibility Visibility     `parser:"@@?" protobuf:"3"`
+	Name       string         `parser:"'enum' @Ident" protobuf:"4"`
+	Type       Type           `parser:"(':' @@)?" protobuf:"5,optional"`
+	Variants   []*EnumVariant `parser:"'{' @@* '}'" protobuf:"6"`
 }
 
 var _ Type = (*Enum)(nil)
@@ -49,10 +49,11 @@ func (e *Enum) schemaType() {}
 func (e *Enum) String() string {
 	w := &strings.Builder{}
 	fmt.Fprint(w, EncodeComments(e.Comments))
-	if e.Export {
-		fmt.Fprint(w, "export ")
-	}
-	fmt.Fprintf(w, "enum %s", e.Name)
+	formatTokens(w,
+		e.Visibility.String(),
+		"enum",
+		e.Name,
+	)
 	if e.Type != nil {
 		fmt.Fprintf(w, ": %s", e.Type)
 	}
@@ -77,7 +78,7 @@ func (e *Enum) schemaChildren() []Node {
 	return children
 }
 func (e *Enum) GetName() string   { return e.Name }
-func (e *Enum) IsExported() bool  { return e.Export }
+func (e *Enum) IsExported() bool  { return e.Visibility.Exported() }
 func (e *Enum) IsGenerated() bool { return false }
 
 // IsValueEnum determines whether this is a type or value enum using `e.Type` alone

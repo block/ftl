@@ -35,6 +35,7 @@ import xyz.block.ftl.schema.v1.IntValue;
 import xyz.block.ftl.schema.v1.StringValue;
 import xyz.block.ftl.schema.v1.TypeValue;
 import xyz.block.ftl.schema.v1.Value;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class EnumProcessor {
 
@@ -100,10 +101,11 @@ public class EnumProcessor {
     private Decl extractValueEnum(ClassInfo classInfo, Class<?> clazz, boolean exported, CommentsBuildItem commentsBuildItem)
             throws NoSuchFieldException, IllegalAccessException {
         String name = classInfo.simpleName();
+        var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
         Enum.Builder enumBuilder = Enum.newBuilder()
                 .setName(name)
                 .setPos(PositionUtils.forClass(classInfo.name().toString()))
-                .setExport(exported)
+                .setVisibility(visibility)
                 .addAllComments(commentsBuildItem.getComments(name));
         FieldInfo valueField = classInfo.field("value");
         if (valueField == null) {
@@ -152,10 +154,11 @@ public class EnumProcessor {
     private TypeEnum extractTypeEnum(CombinedIndexBuildItem index, ModuleBuilder moduleBuilder,
             ClassInfo classInfo, boolean exported, CommentsBuildItem commentsBuildItem) throws ClassNotFoundException {
         String name = classInfo.simpleName();
+        var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
         Enum.Builder enumBuilder = Enum.newBuilder()
                 .setName(name)
                 .setPos(PositionUtils.forClass(classInfo.name().toString()))
-                .setExport(exported)
+                .setVisibility(visibility)
                 .addAllComments(commentsBuildItem.getComments(name));
         var variants = index.getComputingIndex().getAllKnownImplementors(classInfo.name());
         if (variants.isEmpty()) {

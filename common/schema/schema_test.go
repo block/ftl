@@ -439,10 +439,10 @@ realm foo {
 							&Data{Name: "EchoRequest", Fields: []*Field{{Name: "name", Type: &Optional{Type: &String{}}}}},
 							&Data{Name: "EchoResponse", Fields: []*Field{{Name: "message", Type: &String{}}}},
 							&Verb{
-								Name:     "echo",
-								Export:   true,
-								Request:  &Ref{Module: "builtin", Name: "HttpRequest", TypeParameters: []Type{&Unit{}, &Unit{}, &Ref{Module: "echo", Name: "EchoRequest"}}},
-								Response: &Ref{Module: "builtin", Name: "HttpResponse", TypeParameters: []Type{&Ref{Module: "echo", Name: "EchoResponse"}, &String{}}},
+								Name:       "echo",
+								Visibility: VisibilityScopeModule,
+								Request:    &Ref{Module: "builtin", Name: "HttpRequest", TypeParameters: []Type{&Unit{}, &Unit{}, &Ref{Module: "echo", Name: "EchoRequest"}}},
+								Response:   &Ref{Module: "builtin", Name: "HttpResponse", TypeParameters: []Type{&Ref{Module: "echo", Name: "EchoResponse"}, &String{}}},
 								Metadata: []Metadata{
 									&MetadataIngress{Type: "http", Method: "GET", Path: []IngressPathComponent{&IngressPathLiteral{Text: "echo"}}},
 									&MetadataCalls{Calls: []*Ref{{Module: "time", Name: "time"}}},
@@ -455,10 +455,10 @@ realm foo {
 							&Data{Name: "TimeRequest"},
 							&Data{Name: "TimeResponse", Fields: []*Field{{Name: "time", Type: &Time{}}}},
 							&Verb{
-								Name:     "time",
-								Export:   true,
-								Request:  &Ref{Module: "builtin", Name: "HttpRequest", TypeParameters: []Type{&Unit{}, &Unit{}, &Unit{}}},
-								Response: &Ref{Module: "builtin", Name: "HttpResponse", TypeParameters: []Type{&Ref{Module: "time", Name: "TimeResponse"}, &String{}}},
+								Name:       "time",
+								Visibility: VisibilityScopeModule,
+								Request:    &Ref{Module: "builtin", Name: "HttpRequest", TypeParameters: []Type{&Unit{}, &Unit{}, &Unit{}}},
+								Response:   &Ref{Module: "builtin", Name: "HttpResponse", TypeParameters: []Type{&Ref{Module: "time", Name: "TimeResponse"}, &String{}}},
 								Metadata: []Metadata{
 									&MetadataIngress{Type: "http", Method: "GET", Path: []IngressPathComponent{&IngressPathLiteral{Text: "time"}}},
 								},
@@ -599,8 +599,8 @@ realm foo {
 								},
 							},
 							&Data{
-								Export: true,
-								Name:   "eventA",
+								Visibility: VisibilityScopeModule,
+								Name:       "eventA",
 							},
 							&Data{
 								Name: "eventB",
@@ -991,15 +991,15 @@ var testSchema = MustValidate(&Schema{
 						Metadata: []Metadata{&MetadataGenerated{}},
 					},
 					&Data{
-						Name:   "CreateRequest",
-						Export: true,
+						Name:       "CreateRequest",
+						Visibility: VisibilityScopeModule,
 						Fields: []*Field{
 							{Name: "name", Type: &Optional{Type: &Map{Key: &String{}, Value: &String{}}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rqn"}}},
 						},
 					},
 					&Data{
-						Name:   "CreateResponse",
-						Export: true,
+						Name:       "CreateResponse",
+						Visibility: VisibilityScopeModule,
 						Fields: []*Field{
 							{Name: "name", Type: &Array{Element: &String{}}, Metadata: []Metadata{&MetadataAlias{Kind: AliasKindJSON, Alias: "rsn"}}},
 						},
@@ -1027,9 +1027,9 @@ var testSchema = MustValidate(&Schema{
 						},
 					},
 					&Verb{Name: "create",
-						Export:   true,
-						Request:  &Ref{Module: "todo", Name: "CreateRequest"},
-						Response: &Ref{Module: "todo", Name: "CreateResponse"},
+						Visibility: VisibilityScopeModule,
+						Request:    &Ref{Module: "todo", Name: "CreateRequest"},
+						Response:   &Ref{Module: "todo", Name: "CreateResponse"},
 						Metadata: []Metadata{
 							&MetadataCalls{Calls: []*Ref{{Module: "todo", Name: "destroy"}}},
 							&MetadataSecrets{Secrets: []*Ref{{Module: "todo", Name: "secretValue"}}},
@@ -1037,9 +1037,9 @@ var testSchema = MustValidate(&Schema{
 						},
 					},
 					&Verb{Name: "destroy",
-						Export:   true,
-						Request:  &Ref{Module: "builtin", Name: "HttpRequest", TypeParameters: []Type{&Unit{}, &Ref{Module: "todo", Name: "DestroyRequest"}, &Unit{}}},
-						Response: &Ref{Module: "builtin", Name: "HttpResponse", TypeParameters: []Type{&Ref{Module: "todo", Name: "DestroyResponse"}, &String{}}},
+						Visibility: VisibilityScopeModule,
+						Request:    &Ref{Module: "builtin", Name: "HttpRequest", TypeParameters: []Type{&Unit{}, &Ref{Module: "todo", Name: "DestroyRequest"}, &Unit{}}},
+						Response:   &Ref{Module: "builtin", Name: "HttpResponse", TypeParameters: []Type{&Ref{Module: "todo", Name: "DestroyResponse"}, &String{}}},
 						Metadata: []Metadata{
 							&MetadataIngress{
 								Type:   "http",
@@ -1120,9 +1120,9 @@ var testSchema = MustValidate(&Schema{
 						},
 					},
 					&Enum{
-						Name:   "ColorInt",
-						Type:   &Int{},
-						Export: true,
+						Name:       "ColorInt",
+						Type:       &Int{},
+						Visibility: VisibilityScopeModule,
 						Variants: []*EnumVariant{
 							{Name: "Red", Value: &IntValue{Value: 0}},
 							{Name: "Blue", Value: &IntValue{Value: 1}},
@@ -1246,4 +1246,73 @@ realm foo {
 	assert.Equal(t, slices.Sort([]string{"b", "c"}), slices.Sort(maps.Keys(actual.ModuleDependencies("a"))))
 	assert.Equal(t, []string{"c"}, maps.Keys(actual.ModuleDependencies("b")))
 	assert.Equal(t, []string{}, maps.Keys(actual.ModuleDependencies("c")))
+}
+
+func TestExports(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected *Module
+	}{{
+		name: "module exported verb",
+		input: `module exports {
+			export verb m(Unit) Unit
+		}`,
+		expected: &Module{
+			Name: "exports",
+			Decls: []Decl{
+				&Verb{Name: "m", Request: &Unit{Unit: true}, Response: &Unit{Unit: true}, Visibility: VisibilityScopeModule},
+			},
+		},
+	}, {
+		name: "realm exported verb",
+		input: `module exports {
+			export realm verb m(Unit) Unit
+		}`,
+		expected: &Module{
+			Name: "exports",
+			Decls: []Decl{
+				&Verb{Name: "m", Request: &Unit{Unit: true}, Response: &Unit{Unit: true}, Visibility: VisibilityScopeRealm},
+			},
+		},
+	}, {
+		name: "module exported data",
+		input: `module exports {
+			export realm data Data {
+				name String
+			}
+		}`,
+		expected: &Module{
+			Name: "exports",
+			Decls: []Decl{
+				&Data{Name: "Data", Visibility: VisibilityScopeRealm, Fields: []*Field{{Name: "name", Type: &String{}}}},
+			},
+		},
+	}, {
+		name: "module exported enum",
+		input: `module exports {
+			export enum Color: Int {
+				Red = 0
+				Blue = 1
+				Green = 2
+			}
+		}`,
+		expected: &Module{
+			Name: "exports",
+			Decls: []Decl{&Enum{Name: "Color", Visibility: VisibilityScopeModule, Type: &Int{}, Variants: []*EnumVariant{
+				{Name: "Red", Value: &IntValue{Value: 0}},
+				{Name: "Blue", Value: &IntValue{Value: 1}},
+				{Name: "Green", Value: &IntValue{Value: 2}},
+			}}},
+		},
+	},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := ParseModuleString("", tt.input)
+			assert.NoError(t, err)
+			actual = Normalise(actual)
+			assert.Equal(t, tt.expected, actual, assert.Exclude[Position]())
+		})
+	}
 }

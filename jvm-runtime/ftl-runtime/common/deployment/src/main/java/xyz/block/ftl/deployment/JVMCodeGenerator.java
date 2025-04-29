@@ -1,9 +1,12 @@
 package xyz.block.ftl.deployment;
 
 import java.io.IOException;
+import java.lang.String;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.eclipse.microprofile.config.Config;
@@ -13,17 +16,9 @@ import io.quarkus.bootstrap.prebuild.CodeGenException;
 import io.quarkus.deployment.CodeGenContext;
 import io.quarkus.deployment.CodeGenProvider;
 import xyz.block.ftl.hotreload.CodeGenNotification;
-import xyz.block.ftl.schema.v1.Data;
+import xyz.block.ftl.schema.v1.*;
 import xyz.block.ftl.schema.v1.Enum;
-import xyz.block.ftl.schema.v1.EnumVariant;
-import xyz.block.ftl.schema.v1.MetadataSQLColumn;
-import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
-import xyz.block.ftl.schema.v1.Ref;
-import xyz.block.ftl.schema.v1.Topic;
-import xyz.block.ftl.schema.v1.Type;
-import xyz.block.ftl.schema.v1.TypeAlias;
-import xyz.block.ftl.schema.v1.Verb;
 
 public abstract class JVMCodeGenerator implements CodeGenProvider {
 
@@ -120,7 +115,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                     for (var decl : module.getDeclsList()) {
                         if (decl.hasVerb()) {
                             var verb = decl.getVerb();
-                            if (!verb.getExport()) {
+                            if (verb.getVisibility() == Visibility.VISIBILITY_SCOPE_NONE) {
                                 continue;
                             }
 
@@ -128,7 +123,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                             generateVerb(module, verb, packageName, typeAliasMap, nativeTypeAliasMap, output);
                         } else if (decl.hasData()) {
                             var data = decl.getData();
-                            if (!data.getExport()) {
+                            if (data.getVisibility() == Visibility.VISIBILITY_SCOPE_NONE) {
                                 continue;
                             }
                             log.debugf("Generating data %s", data.getName());
@@ -137,7 +132,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
 
                         } else if (decl.hasEnum()) {
                             var data = decl.getEnum();
-                            if (!data.getExport()) {
+                            if (data.getVisibility() == Visibility.VISIBILITY_SCOPE_NONE) {
                                 continue;
                             }
                             log.debugf("Generating enum %s", data.getName());

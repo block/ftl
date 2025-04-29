@@ -9,6 +9,7 @@ import (
 
 	"github.com/alecthomas/errors"
 	"github.com/alecthomas/participle/v2"
+	"github.com/alecthomas/participle/v2/lexer"
 
 	"github.com/block/ftl-golang-tools/go/analysis"
 	"github.com/block/ftl/common/cron"
@@ -35,40 +36,61 @@ type Directive interface {
 }
 
 type Exportable interface {
-	IsExported() bool
+	GetVisibility() Visibility
 }
 
-type Export struct {
-	Pos token.Pos
+type Visibility schema.Visibility
 
-	IsExported      bool `parser:"@'export'"`
-	IsRealmExported bool `parser:"(':' @'realm')?"`
-}
-
-func (d Export) String() string {
-	sb := &strings.Builder{}
-	if d.IsExported {
-		sb.WriteString("export")
-		if d.IsRealmExported {
-			sb.WriteString(":realm")
-		}
+func (d Visibility) String() string {
+	switch schema.Visibility(d) {
+	case schema.VisibilityScopeModule:
+		return "export"
+	case schema.VisibilityScopeRealm:
+		return "export:realm"
+	default:
+		return ""
 	}
-	return sb.String()
+}
+
+func (d *Visibility) Parse(lex *lexer.PeekingLexer) error {
+	type export struct {
+		Exported      bool `parser:"@'export'"`
+		RealmExported bool `parser:"(':' @'realm')?"`
+	}
+	parser := participle.MustBuild[export]()
+	r, err := parser.ParseFromLexer(lex, participle.AllowTrailing(true))
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse visibility")
+	}
+	if r.RealmExported {
+		*d = Visibility(schema.VisibilityScopeRealm)
+	} else if r.Exported {
+		*d = Visibility(schema.VisibilityScopeModule)
+	} else {
+		*d = Visibility(schema.VisibilityScopeNone)
+	}
+	return nil
 }
 
 type DirectiveVerb struct {
 	Pos token.Pos
 
-	Verb   bool   `parser:"@'verb'"`
-	Export Export `parser:"@@?"`
+	Verb       bool       `parser:"@'verb'"`
+	Visibility Visibility `parser:"@@?"`
 }
 
 func (*DirectiveVerb) directive() {}
 func (d *DirectiveVerb) String() string {
-	return fmt.Sprintf("ftl:verb%s", d.Export.String())
+	sb := &strings.Builder{}
+	sb.WriteString("ftl:verb")
+	if d.Visibility != Visibility(schema.VisibilityScopeNone) {
+		sb.WriteString(" ")
+		sb.WriteString(d.Visibility.String())
+	}
+	return sb.String()
 }
-func (d *DirectiveVerb) IsExported() bool {
-	return d.Export.IsExported
+func (d *DirectiveVerb) GetVisibility() Visibility {
+	return d.Visibility
 }
 func (*DirectiveVerb) GetTypeName() string { return "verb" }
 func (d *DirectiveVerb) SetPosition(pos token.Pos) {
@@ -93,8 +115,11 @@ func (d *DirectiveData) String() string {
 	}
 	return "ftl:data"
 }
-func (d *DirectiveData) IsExported() bool {
-	return d.Export
+func (d *DirectiveData) GetVisibility() Visibility {
+	if d.Export {
+		return Visibility(schema.VisibilityScopeModule)
+	}
+	return Visibility(schema.VisibilityScopeNone)
 }
 func (*DirectiveData) GetTypeName() string { return "data" }
 func (d *DirectiveData) SetPosition(pos token.Pos) {
@@ -119,8 +144,11 @@ func (d *DirectiveEnum) String() string {
 	}
 	return "ftl:enum"
 }
-func (d *DirectiveEnum) IsExported() bool {
-	return d.Export
+func (d *DirectiveEnum) GetVisibility() Visibility {
+	if d.Export {
+		return Visibility(schema.VisibilityScopeModule)
+	}
+	return Visibility(schema.VisibilityScopeNone)
 }
 func (*DirectiveEnum) GetTypeName() string { return "enum" }
 func (d *DirectiveEnum) SetPosition(pos token.Pos) {
@@ -145,8 +173,11 @@ func (d *DirectiveTypeAlias) String() string {
 	}
 	return "ftl:typealias"
 }
-func (d *DirectiveTypeAlias) IsExported() bool {
-	return d.Export
+func (d *DirectiveTypeAlias) GetVisibility() Visibility {
+	if d.Export {
+		return Visibility(schema.VisibilityScopeModule)
+	}
+	return Visibility(schema.VisibilityScopeNone)
 }
 func (*DirectiveTypeAlias) GetTypeName() string { return "typealias" }
 func (d *DirectiveTypeAlias) SetPosition(pos token.Pos) {
@@ -176,8 +207,8 @@ func (d *DirectiveIngress) String() string {
 	}
 	return w.String()
 }
-func (d *DirectiveIngress) IsExported() bool {
-	return true
+func (d *DirectiveIngress) GetVisibility() Visibility {
+	return Visibility(schema.VisibilityScopeModule)
 }
 func (*DirectiveIngress) GetTypeName() string { return "ingress" }
 func (d *DirectiveIngress) SetPosition(pos token.Pos) {
@@ -201,8 +232,8 @@ func (*DirectiveCronJob) directive() {}
 func (d *DirectiveCronJob) String() string {
 	return fmt.Sprintf("cron %s", d.Cron)
 }
-func (d *DirectiveCronJob) IsExported() bool {
-	return false
+func (d *DirectiveCronJob) GetVisibility() Visibility {
+	return Visibility(schema.VisibilityScopeNone)
 }
 func (*DirectiveCronJob) GetTypeName() string { return "cron" }
 func (d *DirectiveCronJob) SetPosition(pos token.Pos) {
@@ -229,8 +260,8 @@ func (d *DirectiveFixture) String() string {
 	}
 	return "fixture"
 }
-func (d *DirectiveFixture) IsExported() bool {
-	return false
+func (d *DirectiveFixture) GetVisibility() Visibility {
+	return Visibility(schema.VisibilityScopeNone)
 }
 func (*DirectiveFixture) GetTypeName() string { return "fixture" }
 func (d *DirectiveFixture) SetPosition(pos token.Pos) {
@@ -309,8 +340,11 @@ func (*DirectiveTopic) MustAnnotate() []ast.Node {
 	return []ast.Node{&ast.FuncDecl{}, &ast.GenDecl{}}
 }
 
-func (d *DirectiveTopic) IsExported() bool {
-	return d.Export
+func (d *DirectiveTopic) GetVisibility() Visibility {
+	if d.Export {
+		return Visibility(schema.VisibilityScopeModule)
+	}
+	return Visibility(schema.VisibilityScopeNone)
 }
 
 // DirectiveSubscriber is used to subscribe a sink to a subscription
@@ -363,8 +397,11 @@ func (d *DirectiveExport) GetPosition() token.Pos {
 	return d.Pos
 }
 func (*DirectiveExport) MustAnnotate() []ast.Node { return []ast.Node{&ast.GenDecl{}} }
-func (d *DirectiveExport) IsExported() bool {
-	return d.Export
+func (d *DirectiveExport) GetVisibility() Visibility {
+	if d.Export {
+		return Visibility(schema.VisibilityScopeModule)
+	}
+	return Visibility(schema.VisibilityScopeNone)
 }
 
 // DirectiveTypeMap is used to declare a native type to deserialize to in a given runtime.
@@ -451,8 +488,8 @@ func (*DirectiveTransaction) directive() {}
 func (d *DirectiveTransaction) String() string {
 	return "transaction"
 }
-func (d *DirectiveTransaction) IsExported() bool {
-	return false
+func (d *DirectiveTransaction) GetVisibility() Visibility {
+	return Visibility(schema.VisibilityScopeNone)
 }
 func (*DirectiveTransaction) GetTypeName() string { return "transaction" }
 func (d *DirectiveTransaction) SetPosition(pos token.Pos) {
@@ -481,8 +518,8 @@ func (*DirectiveEgress) directive() {}
 func (d *DirectiveEgress) String() string {
 	return "egress"
 }
-func (d *DirectiveEgress) IsExported() bool {
-	return false
+func (d *DirectiveEgress) GetVisibility() Visibility {
+	return Visibility(schema.VisibilityScopeNone)
 }
 func (*DirectiveEgress) GetTypeName() string { return "egress" }
 func (d *DirectiveEgress) SetPosition(pos token.Pos) {
