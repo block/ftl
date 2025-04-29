@@ -270,6 +270,9 @@ func (Dog) animal() {}
 Sum types aren't directly supported by Kotlin, however they can be approximated with the use of [sealed interfaces](https://kotlinlang.org/docs/sealed-classes.html):
 
 ```kotlin
+import xyz.block.ftl.Enum
+import xyz.block.ftl.EnumHolder
+
 @Enum
 sealed interface Animal
 
@@ -345,6 +348,8 @@ const (
   <TabItem value="kotlin" label="Kotlin">
 
 ```kotlin
+import xyz.block.ftl.Enum
+
 @Enum
 public enum class Colour(
   public final val `value`: String,
@@ -370,6 +375,8 @@ public enum class Status(
   <TabItem value="java" label="Java">
 
 ```java
+import xyz.block.ftl.Enum;
+
 @Enum
 public enum Colour {
   Red("red"),
