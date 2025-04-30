@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import jakarta.inject.Singleton;
 
@@ -15,6 +16,9 @@ import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Type;
 import org.jboss.logging.Logger;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.GeneratedBeanBuildItem;
@@ -22,13 +26,8 @@ import io.quarkus.arc.deployment.GeneratedBeanGizmoAdaptor;
 import io.quarkus.deployment.GeneratedClassGizmoAdaptor;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
-import io.quarkus.deployment.builditem.GeneratedClassBuildItem;
-import io.quarkus.deployment.builditem.LaunchModeBuildItem;
-import io.quarkus.gizmo.ClassCreator;
-import io.quarkus.gizmo.ClassOutput;
-import io.quarkus.gizmo.MethodDescriptor;
-import io.quarkus.gizmo.ResultHandle;
+import io.quarkus.deployment.builditem.*;
+import io.quarkus.gizmo.*;
 import xyz.block.ftl.EmptyVerb;
 import xyz.block.ftl.FunctionVerb;
 import xyz.block.ftl.SQLQueryClient;
@@ -55,6 +54,7 @@ public class VerbProcessor {
     VerbClientBuildItem handleVerbClients(CombinedIndexBuildItem index,
             BuildProducer<GeneratedClassBuildItem> generatedClients,
             BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
+            BuildProducer<BytecodeTransformerBuildItem> bytecodeTransformerBuildItemBuildProducer,
             ModuleNameBuildItem moduleNameBuildItem,
             LaunchModeBuildItem launchModeBuildItem) {
         var clientDefinitions = index.getComputingIndex().getAnnotations(VerbClient.class);
@@ -248,6 +248,47 @@ public class VerbProcessor {
                 continue;
             }
 
+            boolean hasNoArgCtor = false;
+            for (var method : verbClass.methods()) {
+                if (method.name().equals("<init>")) {
+                    if (method.parameters().isEmpty()) {
+                        hasNoArgCtor = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasNoArgCtor) {
+                bytecodeTransformerBuildItemBuildProducer
+                        .produce(new BytecodeTransformerBuildItem(verbClass.name().toString(),
+                                new BiFunction<String, ClassVisitor, ClassVisitor>() {
+                                    @Override
+                                    public ClassVisitor apply(String className, ClassVisitor classVisitor) {
+                                        ClassVisitor cv = new ClassVisitor(Gizmo.ASM_API_VERSION, classVisitor) {
+
+                                            @Override
+                                            public void visit(int version, int access, String name, String signature,
+                                                    String superName,
+                                                    String[] interfaces) {
+                                                super.visit(version, access, name, signature, superName, interfaces);
+                                                MethodVisitor ctor = visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC,
+                                                        "<init>",
+                                                        "()V", null,
+                                                        null);
+                                                ctor.visitCode();
+                                                ctor.visitVarInsn(Opcodes.ALOAD, 0);
+                                                ctor.visitMethodInsn(Opcodes.INVOKESPECIAL,
+                                                        verbClass.superName().toString().replaceAll("\\.", "/"), "<init>",
+                                                        "()V", false);
+                                                ctor.visitInsn(Opcodes.RETURN);
+                                                ctor.visitMaxs(1, 1);
+                                                ctor.visitEnd();
+                                            }
+                                        };
+                                        return cv;
+                                    }
+                                }));
+            }
             //String name = callMethod.name();
             AnnotationValue moduleValue = clientDefinition.value("module");
             String module = moduleNameBuildItem.getModuleName();
@@ -533,9 +574,10 @@ public class VerbProcessor {
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
                         .registerVerbMethod(method, className, visibility, false, ModuleBuilder.BodyType.ALLOWED)));
             } else {
+                var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
                 var type = verb.target().asClass();
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                        .registerVerbType(type, exported, false, ModuleBuilder.BodyType.ALLOWED)));
+                        .registerVerbType(type, visibility, false, ModuleBuilder.BodyType.ALLOWED)));
             }
         }
 

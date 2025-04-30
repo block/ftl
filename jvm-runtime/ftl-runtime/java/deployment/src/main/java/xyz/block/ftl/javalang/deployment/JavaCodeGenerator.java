@@ -302,7 +302,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
             clientBuilder.addSuperinterface(ParameterizedTypeName.get(ClassName.get(SourceVerb.class),
                     toJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap, true)));
             clientBuilder.addMethod(MethodSpec.methodBuilder("call")
-                    .returns(toAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap))
+                    .returns(toBoxedAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap))
                     .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
                     .addJavadoc(comments)
                     .build());
@@ -311,7 +311,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                     toJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap, true)));
             clientBuilder.addMethod(MethodSpec.methodBuilder("call")
                     .returns(TypeName.VOID)
-                    .addParameter(toAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap), "value")
+                    .addParameter(toBoxedAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap), "value")
                     .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
                     .addJavadoc(comments)
                     .build());
@@ -320,8 +320,8 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                     toJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap, true),
                     toJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap, true)));
             clientBuilder.addMethod(MethodSpec.methodBuilder("call")
-                    .returns(toAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap))
-                    .addParameter(toAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap), "value")
+                    .returns(toBoxedAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap))
+                    .addParameter(toBoxedAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap), "value")
                     .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
                     .addJavadoc(comments)
                     .build());
@@ -383,6 +383,16 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
     private TypeName toAnnotatedJavaTypeName(Type type, Map<DeclRef, Type> typeAliasMap,
             Map<DeclRef, String> nativeTypeAliasMap) {
         var results = toJavaTypeName(type, typeAliasMap, nativeTypeAliasMap, false);
+        if (type.hasRef() || type.hasArray() || type.hasBytes() || type.hasString() || type.hasMap()
+                || type.hasTime()) {
+            return results.annotated(AnnotationSpec.builder(NotNull.class).build());
+        }
+        return results;
+    }
+
+    private TypeName toBoxedAnnotatedJavaTypeName(Type type, Map<DeclRef, Type> typeAliasMap,
+            Map<DeclRef, String> nativeTypeAliasMap) {
+        var results = toJavaTypeName(type, typeAliasMap, nativeTypeAliasMap, true);
         if (type.hasRef() || type.hasArray() || type.hasBytes() || type.hasString() || type.hasMap()
                 || type.hasTime()) {
             return results.annotated(AnnotationSpec.builder(NotNull.class).build());

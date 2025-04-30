@@ -19,7 +19,17 @@ class Time (val internal: TimeInternal) : SourceVerb<TimeResponse> {
 
 
 @Verb
-class TimeInternal : SourceVerb<TimeResponse> {
+class TimeInternal(val t2: TimeInternal2) : SourceVerb<TimeResponse> {
+
+  override fun call(): TimeResponse {
+    return t2.call();
+  }
+
+}
+
+
+@Verb
+class TimeInternal2 : SourceVerb<TimeResponse> {
 
   override fun call(): TimeResponse {
     return TimeResponse(time = OffsetDateTime.now())

@@ -8,6 +8,6 @@ import ftl.echo.EchoClient
 
 @Verb
 fun proxy(message: String, client: EchoClient): String {
-  return client.echo(message)
+  return client.call(message)
 
 }

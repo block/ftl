@@ -13,79 +13,79 @@ import java.time.ZonedDateTime
 @Export
 @Verb
 fun emptyVerb(client: EmptyVerbClient) {
-  client.emptyVerb()
+  client.call()
 }
 
 @Export
 @Verb
 fun sinkVerb(input: String, client: SinkVerbClient) {
-  client.sinkVerb(input)
+  client.call(input)
 }
 
 @Export
 @Verb
 fun sourceVerb(client: SourceVerbClient): String {
-  return client.sourceVerb()
+  return client.call()
 }
 
 @Export
 @Verb
 fun errorEmptyVerb(client: ErrorEmptyVerbClient) {
-  client.errorEmptyVerb()
+  client.call()
 }
 
 @Export
 @Verb
 fun intVerb(payload: Long, client: IntVerbClient): Long {
-  return client.intVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun floatVerb(payload: Double, client: FloatVerbClient): Double {
-  return client.floatVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun stringVerb(payload: String, client: StringVerbClient): String {
-  return client.stringVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun bytesVerb(payload: ByteArray, client: BytesVerbClient): ByteArray {
-  return client.bytesVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun boolVerb(payload: Boolean, client: BoolVerbClient): Boolean {
-  return client.boolVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun stringArrayVerb(payload: List<String>, client: StringArrayVerbClient): List<String> {
-  return client.stringArrayVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun stringMapVerb(payload: Map<String, String>, client: StringMapVerbClient): Map<String, String> {
-  return client.stringMapVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @xyz.block.ftl.Verb
 fun objectMapVerb(`val`: Map<String, TestObject>, client: ObjectMapVerbClient): Map<String, TestObject> {
-  return client.objectMapVerb(`val`)
+  return client.call(`val`)
 }
 
 @Export
 @xyz.block.ftl.Verb
 fun objectArrayVerb(`val`: List<TestObject>, client: ObjectArrayVerbClient): List<TestObject> {
-  return client.objectArrayVerb(`val`)
+  return client.call(`val`)
 }
 
 @Export
@@ -94,19 +94,19 @@ fun parameterizedObjectVerb(
   `val`: ParameterizedType<String>,
   client: ParameterizedObjectVerbClient
 ): ParameterizedType<String> {
-  return client.parameterizedObjectVerb(`val`)
+  return client.call(`val`)
 }
 
 @Export
 @Verb
 fun timeVerb(instant: ZonedDateTime, client: TimeVerbClient): ZonedDateTime {
-  return client.timeVerb(instant)
+  return client.call(instant)
 }
 
 @Export
 @Verb
 fun testObjectVerb(payload: TestObject, client: TestObjectVerbClient): TestObject {
-  return client.testObjectVerb(payload)
+  return client.call(payload)
 }
 
 @Export
@@ -115,68 +115,68 @@ fun testObjectOptionalFieldsVerb(
   payload: TestObjectOptionalFields,
   client: TestObjectOptionalFieldsVerbClient
 ): TestObjectOptionalFields {
-  return client.testObjectOptionalFieldsVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun testGenericType(payload: FailedEvent<TestObject>, client: TestGenericTypeClient): FailedEvent<TestObject> {
-  return client.testGenericType(payload)
+  return client.call(payload)
 }
 
 // now the same again but with option return / input types
 @Export
 @Verb
 fun optionalIntVerb(payload: Long?, client: OptionalIntVerbClient): Long? {
-  return client.optionalIntVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun optionalFloatVerb(payload: Double?, client: OptionalFloatVerbClient): Double? {
-  return client.optionalFloatVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun optionalStringVerb(payload: String?, client: OptionalStringVerbClient): String? {
-  return client.optionalStringVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun optionalBytesVerb(payload: ByteArray?, client: OptionalBytesVerbClient): ByteArray? {
-  return client.optionalBytesVerb(payload!!)
+  return client.call(payload!!)
 }
 
 @Export
 @Verb
 fun optionalBoolVerb(payload: Boolean?, client: OptionalBoolVerbClient): Boolean? {
-  return client.optionalBoolVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun optionalStringArrayVerb(payload: List<String>?, client: OptionalStringArrayVerbClient): List<String>? {
-  return client.optionalStringArrayVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun optionalStringMapVerb(payload: Map<String, String>?, client: OptionalStringMapVerbClient): Map<String, String>? {
-  return client.optionalStringMapVerb(payload)
+  return client.call(payload)
 }
 
 @Export
 @Verb
 fun optionalTimeVerb(instant: ZonedDateTime?, client: OptionalTimeVerbClient): ZonedDateTime? {
-  return client.optionalTimeVerb(instant!!)
+  return client.call(instant!!)
 }
 
 @Export
 @Verb
 fun optionalTestObjectVerb(payload: TestObject?, client: OptionalTestObjectVerbClient): TestObject? {
-  return client.optionalTestObjectVerb(payload!!)
+  return client.call(payload!!)
 }
 
 @Export
@@ -185,13 +185,13 @@ fun optionalTestObjectOptionalFieldsVerb(
   payload: TestObjectOptionalFields?,
   client: OptionalTestObjectOptionalFieldsVerbClient
 ): TestObjectOptionalFields? {
-  return client.optionalTestObjectOptionalFieldsVerb(payload!!)
+  return client.call(payload!!)
 }
 
 @Export
 @Verb
 fun externalTypeVerb(did: Did, client: ExternalTypeVerbClient): Did {
-  return client.externalTypeVerb(did)
+  return client.call(did)
 }
 
 @Export
@@ -210,31 +210,31 @@ fun anyAliasedType(type: AnySerializedType): AnySerializedType {
 @Verb
 fun typeEnumVerb(wrapper: AnimalWrapper, client: TypeEnumVerbClient): AnimalWrapper {
   return if (wrapper.animal.isCat()) {
-    client.typeEnumVerb(AnimalWrapper(wrapper.animal.getCat()))
+    client.call(AnimalWrapper(wrapper.animal.getCat()))
   } else {
-    client.typeEnumVerb(AnimalWrapper(wrapper.animal.getDog()))
+    client.call(AnimalWrapper(wrapper.animal.getDog()))
   }
 }
 
 @Export
 @Verb
 fun valueEnumVerb(color: ColorWrapper, client: ValueEnumVerbClient): ColorWrapper {
-  return client.valueEnumVerb(color)
+  return client.call(color)
 }
 
 @Export
 @Verb
 fun stringEnumVerb(shape: ShapeWrapper, client: StringEnumVerbClient): ShapeWrapper {
-  return client.stringEnumVerb(shape)
+  return client.call(shape)
 }
 
 @Export
 @Verb
 fun typeWrapperEnumVerb(wrapper: TypeEnumWrapper, client: TypeWrapperEnumVerbClient): TypeEnumWrapper {
   return if (wrapper.type.isScalar()) {
-    client.typeWrapperEnumVerb(TypeEnumWrapper(StringList(listOf("a", "b", "c"))))
+    client.call(TypeEnumWrapper(StringList(listOf("a", "b", "c"))))
   } else if (wrapper.type.isStringList()) {
-    client.typeWrapperEnumVerb(TypeEnumWrapper(Scalar("scalar")))
+    client.call(TypeEnumWrapper(Scalar("scalar")))
   } else {
     throw IllegalArgumentException("unexpected value")
   }

@@ -284,7 +284,7 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
             typeBuilder.addSuperinterface(className(EmptyVerb.class), CodeBlock.of(""))
                     .addKdoc(comments);
             typeBuilder.addFunction(FunSpec.builder("call")
-                    .addModifiers(KModifier.ABSTRACT, KModifier.PUBLIC)
+                    .addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE, KModifier.ABSTRACT)
                     .addKdoc(comments)
                     .build());
         } else if (verb.getRequest().hasUnit()) {
@@ -293,7 +293,6 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
             typeBuilder.addFunction(FunSpec.builder("call")
                     .returns(toKotlinTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap))
                     .addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE, KModifier.ABSTRACT)
-                    .addModifiers(KModifier.PUBLIC, KModifier.ABSTRACT)
                     .addKdoc(comments)
                     .build());
         } else if (verb.getResponse().hasUnit()) {
@@ -301,7 +300,6 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
                     toKotlinTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap)), CodeBlock.of(""));
             typeBuilder.addFunction(FunSpec.builder("call")
                     .addModifiers(KModifier.OVERRIDE, KModifier.ABSTRACT)
-                    .addModifiers(KModifier.ABSTRACT)
                     .addParameter("value", toKotlinTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap))
                     .addKdoc(comments)
                     .build());
@@ -313,7 +311,6 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
                     .returns(toKotlinTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap))
                     .addParameter("value", toKotlinTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap))
                     .addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE, KModifier.ABSTRACT)
-                    .addModifiers(KModifier.PUBLIC, KModifier.ABSTRACT)
                     .addKdoc(comments)
                     .build());
         }

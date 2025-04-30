@@ -373,12 +373,12 @@ public class ModuleBuilder {
     }
 
     public void registerVerbType(ClassInfo clazz,
-            boolean exported, boolean transaction, BodyType bodyType) {
-        registerVerbType(clazz, exported, transaction, bodyType, new VerbCustomization());
+            Visibility visibility, boolean transaction, BodyType bodyType) {
+        registerVerbType(clazz, visibility, transaction, bodyType, new VerbCustomization());
     }
 
     public void registerVerbType(ClassInfo clazz,
-            boolean exported, boolean transaction, BodyType bodyType, VerbCustomization customization) {
+            Visibility visibility, boolean transaction, BodyType bodyType, VerbCustomization customization) {
 
         List<Class<?>> bodyParameterTypes = new ArrayList<>();
         List<Class<?>> constructorParameterTypes = new ArrayList<>();
@@ -443,7 +443,7 @@ public class ModuleBuilder {
                         if (!knownSecrets.contains(name)) {
                             xyz.block.ftl.schema.v1.Secret.Builder secretBuilder = xyz.block.ftl.schema.v1.Secret
                                     .newBuilder().setPos(methodPos)
-                                    .setType(buildType(param.type(), false, param))
+                                    .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                     .setName(name)
                                     .addAllComments(comments.getComments(name));
                             addDecls(Decl.newBuilder().setSecret(secretBuilder).build());
@@ -456,7 +456,7 @@ public class ModuleBuilder {
                         if (!knownConfig.contains(name)) {
                             xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
                                     .newBuilder().setPos(methodPos)
-                                    .setType(buildType(param.type(), false, param))
+                                    .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                     .setName(name)
                                     .addAllComments(comments.getComments(name));
                             addDecls(Decl.newBuilder().setConfig(configBuilder).build());
@@ -512,13 +512,13 @@ public class ModuleBuilder {
                     result.method().returnType() == VoidType.VOID, transaction);
 
             verbBuilder.setName(verbName)
-                    .setExport(exported)
+                    .setVisibility(visibility)
                     .setPos(methodPos)
                     .setRequest(
                             customization.requestType
-                                    .apply(buildType(result.bodyParamType(), exported, result.bodyParamNullability())))
+                                    .apply(buildType(result.bodyParamType(), visibility, result.bodyParamNullability())))
                     .setResponse(customization.responseType
-                            .apply(buildType(result.method().returnType(), exported, result.method())))
+                            .apply(buildType(result.method().returnType(), visibility, result.method())))
                     .addAllComments(comments.getComments(verbName));
             if (customization.metadataCallback != null) {
                 customization.metadataCallback.accept(verbBuilder);

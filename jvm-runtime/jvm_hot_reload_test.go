@@ -166,7 +166,7 @@ data class GreetingResponse(val message: String)
 @Export
 @Verb
 fun greet(req: GreetingRequest, echo: EchoClient): GreetingResponse {
-  val response = echo.echo(req.name)
+  val response = echo.call(req.name)
   return GreetingResponse(message = "Greetings, ${response.message}")
 }
 `)
