@@ -10,7 +10,8 @@ class TimeTest {
   fun `time test`() {
     val start = OffsetDateTime.now()
     Thread.sleep(10)
-    val time = time()
+
+    val time = Time(TimeInternal()).call()
     Thread.sleep(10)
     Assertions.assertTrue(time.time.isBefore(OffsetDateTime.now()))
     Assertions.assertTrue(time.time.isAfter(start))

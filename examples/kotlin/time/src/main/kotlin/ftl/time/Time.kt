@@ -1,7 +1,6 @@
 package ftl.time
 
 import xyz.block.ftl.Export
-import xyz.block.ftl.FunctionVerb
 import xyz.block.ftl.SourceVerb
 import xyz.block.ftl.Verb
 import java.time.OffsetDateTime

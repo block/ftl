@@ -29,7 +29,11 @@ import io.quarkus.gizmo.ClassCreator;
 import io.quarkus.gizmo.ClassOutput;
 import io.quarkus.gizmo.MethodDescriptor;
 import io.quarkus.gizmo.ResultHandle;
+import xyz.block.ftl.EmptyVerb;
+import xyz.block.ftl.FunctionVerb;
 import xyz.block.ftl.SQLQueryClient;
+import xyz.block.ftl.SinkVerb;
+import xyz.block.ftl.SourceVerb;
 import xyz.block.ftl.Verb;
 import xyz.block.ftl.VerbClient;
 import xyz.block.ftl.runtime.VerbClientHelper;
@@ -40,6 +44,10 @@ import xyz.block.ftl.schema.v1.Visibility;
 
 public class VerbProcessor {
 
+    public static final DotName VERB_CLIENT = DotName.createSimple(FunctionVerb.class);
+    public static final DotName VERB_CLIENT_SINK = DotName.createSimple(SinkVerb.class);
+    public static final DotName VERB_CLIENT_SOURCE = DotName.createSimple(SourceVerb.class);
+    public static final DotName VERB_CLIENT_EMPTY = DotName.createSimple(EmptyVerb.class);
     public static final String TEST_ANNOTATION = "xyz.block.ftl.java.test.FTLManaged";
     private static final Logger log = Logger.getLogger(VerbProcessor.class);
 
@@ -53,14 +61,13 @@ public class VerbProcessor {
         log.debugf("Processing %d verb clients", clientDefinitions.size());
         Map<DotName, VerbClientBuildItem.DiscoveredClients> clients = new HashMap<>();
         for (var clientDefinition : clientDefinitions) {
-            var callMethod = clientDefinition.target().asMethod();
-            ClassInfo iface = callMethod.declaringClass();
+            ClassInfo iface = clientDefinition.target().asClass();
             if (!iface.isInterface()) {
                 throw new RuntimeException(
                         "@VerbClient can only be applied to interfaces and " + iface.name() + " is not an interface");
             }
-            String name = callMethod.name();
             AnnotationValue moduleValue = clientDefinition.value("module");
+            var name = clientDefinition.value("name").asString();
             String module = moduleValue == null || moduleValue.asString().isEmpty() ? moduleNameBuildItem.getModuleName()
                     : moduleValue.asString();
             ClassOutput classOutput;
@@ -73,71 +80,139 @@ public class VerbProcessor {
             } else {
                 classOutput = new GeneratedClassGizmoAdaptor(generatedClients, true);
             }
+            var found = false;
             //TODO: map and list return types
-            Type returnType = callMethod.returnType();
-            Type paramType = callMethod.parametersCount() > 0 ? callMethod.parameterType(0) : null;
-            try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
-                    Object.class.getName(), iface.name().toString())) {
-                if (launchModeBuildItem.isTest()) {
-                    cc.addAnnotation(TEST_ANNOTATION);
-                    cc.addAnnotation(Singleton.class);
-                }
-                switch (VerbType.of(callMethod)) {
-                    case VERB:
-                        LinkedHashSet<Map.Entry<String, String>> signatures = new LinkedHashSet<>();
-                        signatures.add(Map.entry(returnType.name().toString(), paramType.name().toString()));
-                        signatures.add(Map.entry(Object.class.getName(), Object.class.getName()));
-                        for (var sig : signatures) {
-                            var publish = cc.getMethodCreator(name, sig.getKey(), sig.getValue());
-                            var helper = publish.invokeStaticMethod(
-                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
-                            var results = publish.invokeVirtualMethod(
-                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
-                                            String.class, Object.class, Class.class, boolean.class, boolean.class),
-                                    helper, publish.load(name), publish.load(module), publish.getMethodParam(0),
-                                    publish.loadClass(returnType.name().toString()), publish.load(false),
-                                    publish.load(false));
-                            publish.returnValue(results);
-                        }
-                        break;
+            for (var i : iface.interfaceTypes()) {
+                if (i.name().equals(VERB_CLIENT)) {
+                    if (i.kind() == Type.Kind.PARAMETERIZED_TYPE) {
+                        var returnType = i.asParameterizedType().arguments().get(1);
+                        var paramType = i.asParameterizedType().arguments().get(0);
+                        try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
+                                Object.class.getName(), iface.name().toString())) {
+                            if (launchModeBuildItem.isTest()) {
+                                cc.addAnnotation(TEST_ANNOTATION);
+                                cc.addAnnotation(Singleton.class);
+                            }
+                            LinkedHashSet<Map.Entry<String, String>> signatures = new LinkedHashSet<>();
+                            signatures.add(Map.entry(returnType.name().toString(), paramType.name().toString()));
+                            signatures.add(Map.entry(Object.class.getName(), Object.class.getName()));
+                            for (var method : iface.methods()) {
+                                if (method.name().equals("call") && method.parameters().size() == 1) {
+                                    signatures.add(Map.entry(method.returnType().name().toString(),
+                                            method.parameters().get(0).type().name().toString()));
+                                }
+                            }
+                            for (var sig : signatures) {
 
-                    case SINK:
-                        LinkedHashSet<String> sinkSignatures = new LinkedHashSet<>();
-                        sinkSignatures.add(paramType.name().toString());
-                        sinkSignatures.add(Object.class.getName());
-                        for (var sig : sinkSignatures) {
-                            var publish = cc.getMethodCreator(name, void.class, sig);
-                            var helper = publish.invokeStaticMethod(
-                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
-                            publish.invokeVirtualMethod(
-                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
-                                            String.class, Object.class, Class.class, boolean.class, boolean.class),
-                                    helper, publish.load(name), publish.load(module), publish.getMethodParam(0),
-                                    publish.loadClass(Void.class), publish.load(false), publish.load(false));
-                            publish.returnVoid();
-                        }
-                        break;
+                                var publish = cc.getMethodCreator("call", sig.getKey(),
+                                        sig.getValue());
+                                var helper = publish.invokeStaticMethod(
+                                        MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
+                                var results = publish.invokeVirtualMethod(
+                                        MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
+                                                String.class, Object.class, Class.class, boolean.class, boolean.class),
+                                        helper, publish.load(name), publish.load(module), publish.getMethodParam(0),
+                                        publish.loadClass(returnType.name().toString()), publish.load(false),
+                                        publish.load(false));
+                                publish.returnValue(results);
+                            }
 
-                    case SOURCE:
-                        LinkedHashSet<String> sourceSignatures = new LinkedHashSet<>();
-                        sourceSignatures.add(returnType.name().toString());
-                        sourceSignatures.add(Object.class.getName());
-                        for (var sig : sourceSignatures) {
-                            var publish = cc.getMethodCreator(name, sig);
-                            var helper = publish.invokeStaticMethod(
-                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
-                            var results = publish.invokeVirtualMethod(
-                                    MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
-                                            String.class, Object.class, Class.class, boolean.class, boolean.class),
-                                    helper, publish.load(name), publish.load(module), publish.loadNull(),
-                                    publish.loadClass(returnType.name().toString()), publish.load(false),
-                                    publish.load(false));
-                            publish.returnValue(results);
+                            clients.put(iface.name(),
+                                    new VerbClientBuildItem.DiscoveredClients(name, module, cc.getClassName()));
                         }
+                        found = true;
                         break;
+                    } else {
+                        throw new RuntimeException(
+                                "@VerbClientDefinition can only be applied to interfaces that directly extend a verb client type with concrete type parameters and "
+                                        + iface.name() + " does not have concrete type parameters");
+                    }
+                } else if (i.name().equals(VERB_CLIENT_SINK)) {
+                    if (i.kind() == Type.Kind.PARAMETERIZED_TYPE) {
+                        var paramType = i.asParameterizedType().arguments().get(0);
+                        try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
+                                Object.class.getName(), iface.name().toString())) {
+                            if (launchModeBuildItem.isTest()) {
+                                cc.addAnnotation(TEST_ANNOTATION);
+                                cc.addAnnotation(Singleton.class);
+                            }
+                            LinkedHashSet<String> signatures = new LinkedHashSet<>();
+                            signatures.add(paramType.name().toString());
+                            signatures.add(Object.class.getName());
+                            for (var method : iface.methods()) {
+                                if (method.name().equals("call") && method.parameters().size() == 1) {
+                                    signatures.add(method.parameters().get(0).type().name().toString());
+                                }
+                            }
+                            for (var sig : signatures) {
+                                var publish = cc.getMethodCreator("call", void.class, sig);
+                                var helper = publish.invokeStaticMethod(
+                                        MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
+                                publish.invokeVirtualMethod(
+                                        MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
+                                                String.class, Object.class, Class.class, boolean.class, boolean.class),
+                                        helper, publish.load(name), publish.load(module), publish.getMethodParam(0),
+                                        publish.loadClass(Void.class), publish.load(false), publish.load(false));
+                                publish.returnVoid();
+                            }
+                            clients.put(iface.name(),
+                                    new VerbClientBuildItem.DiscoveredClients(name, module, cc.getClassName()));
+                        }
+                        found = true;
+                        break;
+                    } else {
+                        throw new RuntimeException(
+                                "@VerbClientDefinition can only be applied to interfaces that directly extend a verb client type with concrete type parameters and "
+                                        + iface.name() + " does not have concrete type parameters");
+                    }
+                } else if (i.name().equals(VERB_CLIENT_SOURCE)) {
+                    if (i.kind() == Type.Kind.PARAMETERIZED_TYPE) {
+                        var returnType = i.asParameterizedType().arguments().get(0);
+                        try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
+                                Object.class.getName(), iface.name().toString())) {
+                            if (launchModeBuildItem.isTest()) {
+                                cc.addAnnotation(TEST_ANNOTATION);
+                                cc.addAnnotation(Singleton.class);
+                            }
+                            LinkedHashSet<String> signatures = new LinkedHashSet<>();
+                            signatures.add(returnType.name().toString());
+                            signatures.add(Object.class.getName());
+                            for (var method : iface.methods()) {
+                                if (method.name().equals("call") && method.parameters().size() == 0) {
+                                    signatures.add(method.returnType().name().toString());
+                                }
+                            }
+                            for (var sig : signatures) {
+                                var publish = cc.getMethodCreator("call", sig);
+                                var helper = publish.invokeStaticMethod(
+                                        MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
+                                var results = publish.invokeVirtualMethod(
+                                        MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
+                                                String.class, Object.class, Class.class, boolean.class, boolean.class),
+                                        helper, publish.load(name), publish.load(module), publish.loadNull(),
+                                        publish.loadClass(returnType.name().toString()), publish.load(false),
+                                        publish.load(false));
+                                publish.returnValue(results);
+                            }
 
-                    case EMPTY:
-                        var publish = cc.getMethodCreator(name, void.class);
+                            clients.put(iface.name(),
+                                    new VerbClientBuildItem.DiscoveredClients(name, module, cc.getClassName()));
+                        }
+                        found = true;
+                        break;
+                    } else {
+                        throw new RuntimeException(
+                                "@VerbClientDefinition can only be applied to interfaces that directly extend a verb client type with concrete type parameters and "
+                                        + iface.name() + " does not have concrete type parameters");
+                    }
+                } else if (i.name().equals(VERB_CLIENT_EMPTY)) {
+                    try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
+                            Object.class.getName(), iface.name().toString())) {
+                        if (launchModeBuildItem.isTest()) {
+                            cc.addAnnotation(TEST_ANNOTATION);
+                            cc.addAnnotation(Singleton.class);
+                        }
+                        var publish = cc.getMethodCreator("call", void.class);
                         var helper = publish.invokeStaticMethod(
                                 MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
                         publish.invokeVirtualMethod(
@@ -146,9 +221,16 @@ public class VerbProcessor {
                                 helper, publish.load(name), publish.load(module), publish.loadNull(),
                                 publish.loadClass(Void.class), publish.load(false), publish.load(false));
                         publish.returnVoid();
-                        break;
+                        clients.put(iface.name(), new VerbClientBuildItem.DiscoveredClients(name, module, cc.getClassName()));
+                    }
+                    found = true;
+                    break;
                 }
-                clients.put(iface.name(), new VerbClientBuildItem.DiscoveredClients(name, module, cc.getClassName()));
+            }
+            if (!found) {
+                throw new RuntimeException(
+                        "@VerbClientDefinition can only be applied to interfaces that directly extend a verb client type with concrete type parameters and "
+                                + iface.name() + " does not extend a verb client type");
             }
         }
 
