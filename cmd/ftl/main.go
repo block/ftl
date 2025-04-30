@@ -228,7 +228,7 @@ func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
 			if sm, ok := csm.statusManager.Get(); ok {
 				sm.Close()
 			}
-			signal.Ignore(syscall.SIGINT) // We don't want to die with the process group, as that prevents os.Exit from executing.
+			signal.Ignore(syscall.SIGINT)                       // We don't want to die with the process group, as that prevents os.Exit from executing.
 			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
 			os.Exit(code)
 		},
