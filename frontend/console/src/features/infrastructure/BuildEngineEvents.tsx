@@ -2,8 +2,8 @@ import { useState } from 'react'
 import type { EngineEvent } from '../../protos/xyz/block/ftl/buildengine/v1/buildengine_pb'
 import type { Error as BuildError } from '../../protos/xyz/block/ftl/language/v1/service_pb'
 import { List } from '../../shared/components/List'
-import { StatusIndicator } from '../../shared/components/StatusIndicator'
 import { formatTimestampShort } from '../../shared/utils'
+import { BuildStatusIndicator } from '../engine/BuildStatusIndicator'
 import { getEventText } from '../engine/engine.utils'
 
 interface BuildEngineEventsProps {
@@ -60,23 +60,6 @@ const EventContent = ({ event }: { event: EngineEvent }) => {
     }
   })()
 
-  const getEventStatus = () => {
-    switch (event.event.case) {
-      case 'moduleBuildSuccess':
-      case 'moduleDeploySuccess':
-        return 'success'
-      case 'moduleBuildFailed':
-      case 'moduleDeployFailed':
-        return 'error'
-      case 'engineEnded': {
-        const hasErrors = event.event.value.modules.some((module) => (module.errors?.errors?.length ?? 0) > 0)
-        return hasErrors ? 'error' : 'success'
-      }
-      default:
-        return 'new'
-    }
-  }
-
   const getErrors = () => {
     switch (event.event.case) {
       case 'engineEnded':
@@ -96,7 +79,7 @@ const EventContent = ({ event }: { event: EngineEvent }) => {
             <span className='text-gray-400 text-xs'>{timestamp}</span>
           </div>
           <div className='mt-1'>
-            <StatusIndicator state={getEventStatus()} text={getEventText(event)} />
+            <BuildStatusIndicator eventCase={event.event.case} text={getEventText(event)} />
             <ErrorDisplay errors={getErrors()} />
           </div>
         </div>
