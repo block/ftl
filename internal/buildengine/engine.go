@@ -1295,7 +1295,7 @@ func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[strin
 			realm.Modules = maps.Values(newModules)
 		}
 
-		for _, module := range realm.Modules {
+		for _, module := range r.Modules {
 			if _, ok := newModules[module.Name]; !ok || realm.External {
 				realm.Modules = append(realm.Modules, module)
 			}
