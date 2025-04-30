@@ -23,7 +23,6 @@ export const ModuleGraph = ({ module, onTapped }: ModuleGraphProps) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
   const { nodes, edges } = useMemo(() => {
-    // Create a single-module data structure that matches what getGraphData expects
     const moduleData = {
       modules: [module],
       topology: new Topology({ levels: [] }),
@@ -40,7 +39,9 @@ export const ModuleGraph = ({ module, onTapped }: ModuleGraphProps) => {
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
     if (!nodes.length) return { nodes: [], edges: [] }
-    return getModuleLayoutedElements(nodes, edges)
+
+    const nodesWithoutParent = nodes.map((node) => ({ ...node, parentId: undefined }))
+    return getModuleLayoutedElements(nodesWithoutParent, edges)
   }, [nodes, edges])
 
   const onNodeClick = useCallback(
