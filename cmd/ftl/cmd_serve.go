@@ -275,7 +275,7 @@ func (s *serveCommonConfig) run(
 				ID:          "migration",
 			},
 			{
-				Provisioner: provisioner.NewRunnerScalingProvisioner(runnerScaling),
+				Provisioner: provisioner.NewRunnerScalingProvisioner(runnerScaling, true),
 				Types:       []schema.ResourceType{schema.ResourceTypeRunner},
 				ID:          "runner",
 			},
