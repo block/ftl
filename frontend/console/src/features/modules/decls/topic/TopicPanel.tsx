@@ -6,7 +6,6 @@ import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'
 import { topicPanels } from './TopicRightPanels'
 
-
 export const TopicPanel = ({ topic, moduleName, declName }: { topic: Topic; moduleName: string; declName: string }) => {
   if (!topic) {
     return
