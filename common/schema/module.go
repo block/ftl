@@ -176,7 +176,7 @@ func (m *Module) AddDecls(decls []Decl) {
 	for _, newDecl := range decls {
 		tqName := typeQualifiedName(newDecl)
 		if existingDecl, ok := existingDecls[tqName]; ok {
-			if newDecl.IsExported() && !existingDecl.IsExported() {
+			if newDecl.GetVisibility().Exported() && !existingDecl.GetVisibility().Exported() {
 				existingDecls[tqName] = newDecl
 			}
 			continue

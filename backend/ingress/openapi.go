@@ -299,7 +299,7 @@ func addDefinitions(swagger *spec.Swagger, sch *schema.Schema) {
 			}
 
 			// Skip non-exported data types
-			if !data.IsExported() {
+			if !data.GetVisibility().Exported() {
 				continue
 			}
 

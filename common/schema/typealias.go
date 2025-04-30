@@ -48,9 +48,9 @@ func (t *TypeAlias) schemaChildren() []Node {
 	return children
 }
 
-func (t *TypeAlias) GetName() string   { return t.Name }
-func (t *TypeAlias) IsExported() bool  { return t.Visibility.Exported() }
-func (t *TypeAlias) IsGenerated() bool { return false }
+func (t *TypeAlias) GetName() string           { return t.Name }
+func (t *TypeAlias) GetVisibility() Visibility { return t.Visibility }
+func (t *TypeAlias) IsGenerated() bool         { return false }
 func (t *TypeAlias) Equal(other Type) bool {
 	o, ok := other.(*TypeAlias)
 	if !ok {

@@ -38,7 +38,7 @@ func VisitWithParents(n Node, parents []Node, visit func(n Node, parents []Node,
 func VisitExcludingMetadataChildren(n Node, visit func(n Node, next func() error) error) error {
 	return errors.WithStack(visit(n, func() error {
 		if d, ok := n.(Decl); ok {
-			if !d.IsExported() {
+			if !d.GetVisibility().Exported() {
 				// Skip non-exported nodes
 				return nil
 			}

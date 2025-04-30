@@ -80,8 +80,8 @@ func (v *Verb) schemaChildren() []Node {
 	return children
 }
 
-func (v *Verb) GetName() string  { return v.Name }
-func (v *Verb) IsExported() bool { return v.Visibility.Exported() }
+func (v *Verb) GetName() string           { return v.Name }
+func (v *Verb) GetVisibility() Visibility { return v.Visibility }
 
 func (v *Verb) IsGenerated() bool {
 	_, found := slices.FindVariant[*MetadataGenerated](v.Metadata)

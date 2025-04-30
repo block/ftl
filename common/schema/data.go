@@ -177,8 +177,8 @@ func (d *Data) schemaChildren() []Node {
 	return children
 }
 
-func (d *Data) GetName() string  { return d.Name }
-func (d *Data) IsExported() bool { return d.Visibility.Exported() }
+func (d *Data) GetName() string           { return d.Name }
+func (d *Data) GetVisibility() Visibility { return d.Visibility }
 
 func (d *Data) IsGenerated() bool {
 	_, found := slices.FindVariant[*MetadataGenerated](d.Metadata)

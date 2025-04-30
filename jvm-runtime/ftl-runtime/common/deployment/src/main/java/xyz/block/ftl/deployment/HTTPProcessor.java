@@ -1,10 +1,10 @@
 package xyz.block.ftl.deployment;
 
-import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.deployment.annotations.ExecutionTime;
-import io.quarkus.deployment.annotations.Record;
-import io.quarkus.resteasy.reactive.server.deployment.ResteasyReactiveResourceMethodEntriesBuildItem;
-import io.quarkus.resteasy.reactive.server.spi.MethodScannerBuildItem;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.ArrayType;
 import org.jboss.jandex.DotName;
@@ -17,6 +17,12 @@ import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
 import org.jboss.resteasy.reactive.server.mapping.URITemplate;
 import org.jboss.resteasy.reactive.server.processor.scanning.MethodScanner;
 import org.jetbrains.annotations.NotNull;
+
+import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.annotations.ExecutionTime;
+import io.quarkus.deployment.annotations.Record;
+import io.quarkus.resteasy.reactive.server.deployment.ResteasyReactiveResourceMethodEntriesBuildItem;
+import io.quarkus.resteasy.reactive.server.spi.MethodScannerBuildItem;
 import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.runtime.VerbRegistry;
 import xyz.block.ftl.runtime.builtin.HttpRequest;
@@ -32,11 +38,6 @@ import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.Unit;
 import xyz.block.ftl.schema.v1.Visibility;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
 
 public class HTTPProcessor {
 

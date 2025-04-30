@@ -17,10 +17,10 @@ type Secret struct {
 var _ Decl = (*Secret)(nil)
 var _ Symbol = (*Secret)(nil)
 
-func (s *Secret) GetName() string    { return s.Name }
-func (s *Secret) IsExported() bool   { return false }
-func (s *Secret) IsGenerated() bool  { return false }
-func (s *Secret) Position() Position { return s.Pos }
+func (s *Secret) GetName() string           { return s.Name }
+func (s *Secret) GetVisibility() Visibility { return VisibilityScopeNone }
+func (s *Secret) IsGenerated() bool         { return false }
+func (s *Secret) Position() Position        { return s.Pos }
 func (s *Secret) String() string {
 	w := &strings.Builder{}
 
