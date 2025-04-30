@@ -10,7 +10,6 @@ import (
 	"runtime/trace"
 	"strconv"
 	"syscall"
-	"time"
 
 	"github.com/alecthomas/atomic"
 	errors "github.com/alecthomas/errors"
@@ -229,24 +228,12 @@ func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
 			if sm, ok := csm.statusManager.Get(); ok {
 				sm.Close()
 			}
+			signal.Ignore(syscall.SIGINT) // We don't want to die with the process group, as that prevents os.Exit from executing.
 			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
-			<-time.After(time.Second)                           // Wait for the app to exit.
+			os.Exit(code)
 		},
 		))
 	return app
-}
-
-func addToExit(k *kong.Kong, cleanup func(code int)) {
-	originalExit := k.Exit
-	k.Exit = func(code int) {
-		cleanup(code)
-		if originalExit == nil {
-			// Should not happen, but no harm being cautious
-			_ = syscall.Kill(-syscall.Getpid(), syscall.SIGINT) //nolint:forcetypeassert,errcheck // best effort
-			os.Exit(code)
-		}
-		originalExit(code)
-	}
 }
 
 func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *currentStatusManager) KongContextBinder {
