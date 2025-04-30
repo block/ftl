@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"runtime/trace"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/alecthomas/atomic"
@@ -29,6 +30,7 @@ import (
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
+	"github.com/block/ftl/internal/editor"
 	"github.com/block/ftl/internal/log"
 	_ "github.com/block/ftl/internal/prodinit" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/profiles"
@@ -66,6 +68,7 @@ type SharedCLI struct {
 	Goose     gooseCmd     `cmd:"" help:"Run a goose command."`
 	Mysql     mySQLCmd     `cmd:"" help:"Manage MySQL databases."`
 	Postgres  postgresCmd  `cmd:"" help:"Manage PostgreSQL databases."`
+	Edit      editCmd      `cmd:"" help:"Edit a declaration in an IDE."`
 }
 
 type BuildAndDeploy struct {
@@ -218,11 +221,12 @@ func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
 			return &kong.Group{Key: node.Name, Title: "Command flags:"}
 		}),
 		kong.Vars{
-			"version": ftl.FormattedVersion,
-			"os":      runtime.GOOS,
-			"arch":    runtime.GOARCH,
-			"numcpu":  strconv.Itoa(runtime.NumCPU()),
-			"gitroot": gitRoot,
+			"version":          ftl.FormattedVersion,
+			"os":               runtime.GOOS,
+			"arch":             runtime.GOARCH,
+			"numcpu":           strconv.Itoa(runtime.NumCPU()),
+			"gitroot":          gitRoot,
+			"supportedEditors": strings.Join(editor.SupportedEditors, ","),
 		},
 		kong.Exit(func(code int) {
 			if sm, ok := csm.statusManager.Get(); ok {
