@@ -101,7 +101,7 @@ public class ModuleBuilder {
     private final IndexView index;
     private final Module.Builder protoModuleBuilder;
     private final Map<String, Decl> decls = new HashMap<>();
-    private final Map<String, Ref> externalRefs = new HashMap<>();
+    private final Map<String, Ref> existingRefs = new HashMap<>();
     private final String moduleName;
     private final Set<String> knownSecrets = new HashSet<>();
     private final Set<String> knownConfig = new HashSet<>();
@@ -575,12 +575,20 @@ public class ModuleBuilder {
                 }
 
                 String name = clazz.name().local();
-                if (externalRefs.containsKey(name)) {
+                if (existingRefs.containsKey(name)) {
                     // Ref is to another module. Don't need a Decl
-                    return Type.newBuilder().setRef(externalRefs.get(name)).build();
+                    // But we might need to export it
+                    Ref ref = existingRefs.get(name);
+                    if (ref.getModule().equals(moduleName) && visibility != Visibility.VISIBILITY_SCOPE_NONE) {
+                        setDeclExport(name, visibility);
+                    }
+                    return Type.newBuilder().setRef(ref).build();
                 }
                 var ref = Type.newBuilder().setRef(
                         Ref.newBuilder().setName(name).setModule(moduleName).build()).build();
+                // Add to the existing refs so we don't create duplicates
+                // Add this early to prevent infinite recursion if types reference each other
+                existingRefs.put(name, ref.getRef());
 
                 if (info != null && (info.isEnum() || info.hasAnnotation(ENUM))) {
                     // Set only the name and export here. EnumProcessor will fill in the rest
@@ -780,7 +788,7 @@ public class ModuleBuilder {
                 .setModule(module)
                 .setName(name)
                 .build();
-        externalRefs.put(name, ref);
+        existingRefs.put(name, ref);
     }
 
     public void registerValidationFailure(Position position, String message) {
