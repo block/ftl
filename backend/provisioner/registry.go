@@ -88,7 +88,7 @@ func provisionerIDToProvisioner(ctx context.Context, id string, workingDir strin
 	switch id {
 	case "kubernetes":
 		// TODO: move this into a plugin
-		return NewRunnerScalingProvisioner(scaling), nil
+		return NewRunnerScalingProvisioner(scaling, false), nil
 	case "simple-egress":
 		// TODO: move this into a plugin
 		return NewEgressProvisioner(adminClient), nil

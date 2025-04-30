@@ -89,7 +89,7 @@ func main() {
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
 		return slices.Contains(binding.Types, schema.ResourceTypeRunner)
 	}); !ok {
-		runnerProvisioner := provisioner.NewRunnerScalingProvisioner(scaling)
+		runnerProvisioner := provisioner.NewRunnerScalingProvisioner(scaling, false)
 		runnerBinding := registry.Register("kubernetes", runnerProvisioner, schema.ResourceTypeRunner)
 		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
 	}
