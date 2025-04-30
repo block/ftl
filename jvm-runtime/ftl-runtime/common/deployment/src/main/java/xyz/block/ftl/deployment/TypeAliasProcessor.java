@@ -14,6 +14,7 @@ import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class TypeAliasProcessor {
 
@@ -88,8 +89,9 @@ public class TypeAliasProcessor {
                                 lang.asNested().value("type").asString());
                     }
                 }
+                var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                        .registerTypeAlias(name, finalT, finalS, exported, languageMappings)));
+                        .registerTypeAlias(name, finalT, finalS, visibility, languageMappings)));
             } else {
                 // If the 'module' field of the annotation is non-empty, we have a mapper for a type alias defined in
                 // another module. Don't need a Decl

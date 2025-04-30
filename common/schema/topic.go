@@ -10,11 +10,11 @@ type Topic struct {
 	Pos     Position      `parser:"" protobuf:"1,optional"`
 	Runtime *TopicRuntime `parser:"" protobuf:"31634,optional"`
 
-	Comments []string   `parser:"@Comment*" protobuf:"2"`
-	Export   bool       `parser:"@'export'?" protobuf:"3"`
-	Name     string     `parser:"'topic' @Ident" protobuf:"4"`
-	Event    Type       `parser:"@@" protobuf:"5"`
-	Metadata []Metadata `parser:"@@*" protobuf:"6"`
+	Comments   []string   `parser:"@Comment*" protobuf:"2"`
+	Visibility Visibility `parser:"@@?" protobuf:"3"`
+	Name       string     `parser:"'topic' @Ident" protobuf:"4"`
+	Event      Type       `parser:"@@" protobuf:"5"`
+	Metadata   []Metadata `parser:"@@*" protobuf:"6"`
 }
 
 var _ Decl = (*Topic)(nil)
@@ -37,16 +37,18 @@ func (t *Topic) schemaChildren() []Node {
 }
 
 func (t *Topic) GetName() string   { return t.Name }
-func (t *Topic) IsExported() bool  { return t.Export }
+func (t *Topic) IsExported() bool  { return t.Visibility.Exported() }
 func (t *Topic) IsGenerated() bool { return false }
 
 func (t *Topic) String() string {
 	w := &strings.Builder{}
 	fmt.Fprint(w, EncodeComments(t.Comments))
-	if t.Export {
-		fmt.Fprint(w, "export ")
-	}
-	fmt.Fprintf(w, "topic %s %s", t.Name, t.Event)
+	formatTokens(w,
+		t.Visibility.String(),
+		"topic",
+		t.Name,
+		t.Event.String(),
+	)
 	fmt.Fprint(w, indent(encodeMetadata(t.Metadata)))
 	return w.String()
 }

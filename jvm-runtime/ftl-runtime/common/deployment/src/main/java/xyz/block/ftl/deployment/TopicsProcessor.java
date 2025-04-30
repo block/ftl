@@ -26,6 +26,7 @@ import xyz.block.ftl.runtime.TopicHelper;
 import xyz.block.ftl.schema.v1.Decl;
 import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataPartitions;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class TopicsProcessor {
 
@@ -125,11 +126,12 @@ public class TopicsProcessor {
             @Override
             public void accept(ModuleBuilder moduleBuilder) {
                 for (var topic : topics.getTopics().values()) {
+                    var visibility = topic.exported() ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
                     moduleBuilder.addDecls(Decl.newBuilder().setTopic(xyz.block.ftl.schema.v1.Topic.newBuilder()
-                            .setExport(topic.exported())
+                            .setVisibility(visibility)
                             .setPos(PositionUtils.forClass(topic.interfaceName()))
                             .setName(topic.topicName())
-                            .setEvent(moduleBuilder.buildType(topic.eventType(), topic.exported(), Nullability.NOT_NULL))
+                            .setEvent(moduleBuilder.buildType(topic.eventType(), visibility, Nullability.NOT_NULL))
                             .addMetadata(Metadata.newBuilder()
                                     .setPartitions(MetadataPartitions.newBuilder()
                                             .setPartitions(topic.partitions()).build())

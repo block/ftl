@@ -9,6 +9,7 @@ import org.jboss.jandex.ClassType;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class TypeProcessor {
 
@@ -22,8 +23,10 @@ public class TypeProcessor {
             if (an.target().kind() != org.jboss.jandex.AnnotationTarget.Kind.CLASS) {
                 continue;
             }
+            var exported = an.target().hasAnnotation(FTLDotNames.EXPORT);
+            var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
             schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                    .buildType(ClassType.create(an.target().asClass().name()), an.target().hasAnnotation(FTLDotNames.EXPORT),
+                    .buildType(ClassType.create(an.target().asClass().name()), visibility,
                             an.target())));
         }
     }

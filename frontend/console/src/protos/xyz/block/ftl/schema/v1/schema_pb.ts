@@ -4755,9 +4755,9 @@ export class Topic extends Message<Topic> {
   comments: string[] = [];
 
   /**
-   * @generated from field: bool export = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.Visibility visibility = 3;
    */
-  export = false;
+  visibility = Visibility.SCOPE_NONE;
 
   /**
    * @generated from field: string name = 4;
@@ -4785,7 +4785,7 @@ export class Topic extends Message<Topic> {
     { no: 1, name: "pos", kind: "message", T: Position, opt: true },
     { no: 31634, name: "runtime", kind: "message", T: TopicRuntime, opt: true },
     { no: 2, name: "comments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: "export", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "visibility", kind: "enum", T: proto3.getEnumType(Visibility) },
     { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "event", kind: "message", T: Type },
     { no: 6, name: "metadata", kind: "message", T: Metadata, repeated: true },

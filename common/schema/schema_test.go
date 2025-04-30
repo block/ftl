@@ -579,8 +579,8 @@ realm foo {
 								},
 							},
 							&Topic{
-								Export: true,
-								Name:   "topicA",
+								Visibility: VisibilityScopeModule,
+								Name:       "topicA",
 								Event: &Ref{
 									Module: "test",
 									Name:   "eventA",

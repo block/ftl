@@ -3010,13 +3010,13 @@ func (x *Topic) ToProto() *destpb.Topic {
 		return nil
 	}
 	return &destpb.Topic{
-		Pos:      x.Pos.ToProto(),
-		Runtime:  x.Runtime.ToProto(),
-		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Export:   orZero(ptr(bool(x.Export))),
-		Name:     orZero(ptr(string(x.Name))),
-		Event:    TypeToProto(x.Event),
-		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
+		Pos:        x.Pos.ToProto(),
+		Runtime:    x.Runtime.ToProto(),
+		Comments:   sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Visibility: orZero(ptr(x.Visibility.ToProto())),
+		Name:       orZero(ptr(string(x.Name))),
+		Event:      TypeToProto(x.Event),
+		Metadata:   sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
 	}
 }
 
@@ -3035,8 +3035,8 @@ func TopicFromProto(v *destpb.Topic) (out *Topic, err error) {
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Comments")
 	}
-	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, errors.Wrap(err, "Export")
+	if out.Visibility, err = orZeroR(ptrR(result.From(VisibilityFromProto(v.Visibility)))).Result(); err != nil {
+		return nil, errors.Wrap(err, "Visibility")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Name")

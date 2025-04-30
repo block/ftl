@@ -44,7 +44,7 @@ func Extract(pass *analysis.Pass, obj types.Object, node *ast.TypeSpec) optional
 	partitions := 1
 	if md, ok := common.GetFactForObject[*common.ExtractedMetadata](pass, obj).Get(); ok {
 		topic.Comments = md.Comments
-		topic.Export = schema.Visibility(md.Visibility).Exported()
+		topic.Visibility = schema.Visibility(md.Visibility)
 
 		for _, c := range md.Metadata {
 			if pm, ok := c.(*schema.MetadataPartitions); ok {

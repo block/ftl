@@ -449,7 +449,7 @@ func updateTransitiveVisibility(d schema.Decl, module *schema.Module) {
 			case *schema.TypeAlias:
 				t.Visibility = schema.VisibilityScopeModule
 			case *schema.Topic:
-				t.Export = true
+				t.Visibility = schema.VisibilityScopeModule
 			case *schema.Verb:
 				t.Visibility = schema.VisibilityScopeModule
 			case *schema.Database, *schema.Config, *schema.Secret:

@@ -1,22 +1,22 @@
 package xyz.block.ftl.deployment;
 
+import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.deployment.annotations.BuildProducer;
+import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.AnnotationValue;
 import org.jboss.jandex.IndexView;
 import org.jboss.jandex.MethodInfo;
 import org.jboss.logging.Logger;
-
-import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
-import io.quarkus.deployment.annotations.BuildProducer;
-import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import xyz.block.ftl.FromOffset;
 import xyz.block.ftl.Retry;
 import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataRetry;
 import xyz.block.ftl.schema.v1.MetadataSubscriber;
 import xyz.block.ftl.schema.v1.Ref;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class SubscriptionProcessor {
 
@@ -44,7 +44,8 @@ public class SubscriptionProcessor {
 
     private SchemaContributorBuildItem generateSubscription(MethodInfo method, String className, SubscriptionAnnotation info) {
         return new SchemaContributorBuildItem(moduleBuilder -> {
-            moduleBuilder.registerVerbMethod(method, className, false, false, ModuleBuilder.BodyType.REQUIRED,
+            moduleBuilder.registerVerbMethod(method, className, Visibility.VISIBILITY_SCOPE_NONE, false,
+                    ModuleBuilder.BodyType.REQUIRED,
                     new ModuleBuilder.VerbCustomization().setMetadataCallback(builder -> {
 
                         builder.addMetadata(Metadata.newBuilder().setSubscriber(MetadataSubscriber.newBuilder()

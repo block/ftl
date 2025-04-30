@@ -619,7 +619,7 @@ message Topic {
   optional Position pos = 1;
   optional TopicRuntime runtime = 31634;
   repeated string comments = 2;
-  bool export = 3;
+  Visibility visibility = 3;
   string name = 4;
   Type event = 5;
   repeated Metadata metadata = 6;

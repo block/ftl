@@ -6292,7 +6292,7 @@ type Topic struct {
 	Pos           *Position              `protobuf:"bytes,1,opt,name=pos,proto3,oneof" json:"pos,omitempty"`
 	Runtime       *TopicRuntime          `protobuf:"bytes,31634,opt,name=runtime,proto3,oneof" json:"runtime,omitempty"`
 	Comments      []string               `protobuf:"bytes,2,rep,name=comments,proto3" json:"comments,omitempty"`
-	Export        bool                   `protobuf:"varint,3,opt,name=export,proto3" json:"export,omitempty"`
+	Visibility    Visibility             `protobuf:"varint,3,opt,name=visibility,proto3,enum=xyz.block.ftl.schema.v1.Visibility" json:"visibility,omitempty"`
 	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	Event         *Type                  `protobuf:"bytes,5,opt,name=event,proto3" json:"event,omitempty"`
 	Metadata      []*Metadata            `protobuf:"bytes,6,rep,name=metadata,proto3" json:"metadata,omitempty"`
@@ -6351,11 +6351,11 @@ func (x *Topic) GetComments() []string {
 	return nil
 }
 
-func (x *Topic) GetExport() bool {
+func (x *Topic) GetVisibility() Visibility {
 	if x != nil {
-		return x.Export
+		return x.Visibility
 	}
-	return false
+	return Visibility_VISIBILITY_SCOPE_NONE
 }
 
 func (x *Topic) GetName() string {
@@ -7676,12 +7676,14 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"\x05value\"H\n" +
 	"\x04Time\x128\n" +
 	"\x03pos\x18\x01 \x01(\v2!.xyz.block.ftl.schema.v1.PositionH\x00R\x03pos\x88\x01\x01B\x06\n" +
-	"\x04_pos\"\xd9\x02\n" +
+	"\x04_pos\"\x86\x03\n" +
 	"\x05Topic\x128\n" +
 	"\x03pos\x18\x01 \x01(\v2!.xyz.block.ftl.schema.v1.PositionH\x00R\x03pos\x88\x01\x01\x12F\n" +
 	"\aruntime\x18\x92\xf7\x01 \x01(\v2%.xyz.block.ftl.schema.v1.TopicRuntimeH\x01R\aruntime\x88\x01\x01\x12\x1a\n" +
-	"\bcomments\x18\x02 \x03(\tR\bcomments\x12\x16\n" +
-	"\x06export\x18\x03 \x01(\bR\x06export\x12\x12\n" +
+	"\bcomments\x18\x02 \x03(\tR\bcomments\x12C\n" +
+	"\n" +
+	"visibility\x18\x03 \x01(\x0e2#.xyz.block.ftl.schema.v1.VisibilityR\n" +
+	"visibility\x12\x12\n" +
 	"\x04name\x18\x04 \x01(\tR\x04name\x123\n" +
 	"\x05event\x18\x05 \x01(\v2\x1d.xyz.block.ftl.schema.v1.TypeR\x05event\x12=\n" +
 	"\bmetadata\x18\x06 \x03(\v2!.xyz.block.ftl.schema.v1.MetadataR\bmetadataB\x06\n" +
@@ -8087,47 +8089,48 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	81,  // 172: xyz.block.ftl.schema.v1.Time.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	81,  // 173: xyz.block.ftl.schema.v1.Topic.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	96,  // 174: xyz.block.ftl.schema.v1.Topic.runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
-	97,  // 175: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 176: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	6,   // 177: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
-	7,   // 178: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
-	8,   // 179: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
-	9,   // 180: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
-	27,  // 181: xyz.block.ftl.schema.v1.Type.data:type_name -> xyz.block.ftl.schema.v1.Data
-	37,  // 182: xyz.block.ftl.schema.v1.Type.enum:type_name -> xyz.block.ftl.schema.v1.Enum
-	41,  // 183: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
-	46,  // 184: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
-	48,  // 185: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
-	79,  // 186: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
-	85,  // 187: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
-	91,  // 188: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
-	94,  // 189: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
-	98,  // 190: xyz.block.ftl.schema.v1.Type.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
-	101, // 191: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
-	81,  // 192: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	4,   // 193: xyz.block.ftl.schema.v1.TypeAlias.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	97,  // 194: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 195: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	81,  // 196: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 197: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	97,  // 198: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
-	81,  // 199: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	47,  // 200: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
-	92,  // 201: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
-	100, // 202: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
-	81,  // 203: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	4,   // 204: xyz.block.ftl.schema.v1.Verb.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	97,  // 205: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
-	97,  // 206: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 207: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	104, // 208: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
-	93,  // 209: xyz.block.ftl.schema.v1.VerbRuntime.subscription_connector:type_name -> xyz.block.ftl.schema.v1.SubscriptionConnector
-	35,  // 210: xyz.block.ftl.schema.v1.VerbRuntime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
-	211, // [211:211] is the sub-list for method output_type
-	211, // [211:211] is the sub-list for method input_type
-	211, // [211:211] is the sub-list for extension type_name
-	211, // [211:211] is the sub-list for extension extendee
-	0,   // [0:211] is the sub-list for field type_name
+	4,   // 175: xyz.block.ftl.schema.v1.Topic.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	97,  // 176: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 177: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	6,   // 178: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
+	7,   // 179: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
+	8,   // 180: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
+	9,   // 181: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
+	27,  // 182: xyz.block.ftl.schema.v1.Type.data:type_name -> xyz.block.ftl.schema.v1.Data
+	37,  // 183: xyz.block.ftl.schema.v1.Type.enum:type_name -> xyz.block.ftl.schema.v1.Enum
+	41,  // 184: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
+	46,  // 185: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
+	48,  // 186: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
+	79,  // 187: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
+	85,  // 188: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
+	91,  // 189: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
+	94,  // 190: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
+	98,  // 191: xyz.block.ftl.schema.v1.Type.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
+	101, // 192: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
+	81,  // 193: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	4,   // 194: xyz.block.ftl.schema.v1.TypeAlias.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	97,  // 195: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 196: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	81,  // 197: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 198: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	97,  // 199: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
+	81,  // 200: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	47,  // 201: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
+	92,  // 202: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
+	100, // 203: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
+	81,  // 204: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	4,   // 205: xyz.block.ftl.schema.v1.Verb.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	97,  // 206: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
+	97,  // 207: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 208: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	104, // 209: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
+	93,  // 210: xyz.block.ftl.schema.v1.VerbRuntime.subscription_connector:type_name -> xyz.block.ftl.schema.v1.SubscriptionConnector
+	35,  // 211: xyz.block.ftl.schema.v1.VerbRuntime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
+	212, // [212:212] is the sub-list for method output_type
+	212, // [212:212] is the sub-list for method input_type
+	212, // [212:212] is the sub-list for extension type_name
+	212, // [212:212] is the sub-list for extension extendee
+	0,   // [0:212] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_schema_v1_schema_proto_init() }

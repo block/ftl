@@ -1,24 +1,33 @@
 package xyz.block.ftl.deployment;
 
-import java.io.IOException;
-import java.lang.String;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Stream;
-
-import org.eclipse.microprofile.config.Config;
-import org.jboss.logging.Logger;
-
 import io.quarkus.bootstrap.prebuild.CodeGenException;
 import io.quarkus.deployment.CodeGenContext;
 import io.quarkus.deployment.CodeGenProvider;
+import org.eclipse.microprofile.config.Config;
+import org.jboss.logging.Logger;
 import xyz.block.ftl.hotreload.CodeGenNotification;
-import xyz.block.ftl.schema.v1.*;
+import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
+import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.MetadataSQLColumn;
+import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
+import xyz.block.ftl.schema.v1.Ref;
+import xyz.block.ftl.schema.v1.Topic;
+import xyz.block.ftl.schema.v1.Type;
+import xyz.block.ftl.schema.v1.TypeAlias;
+import xyz.block.ftl.schema.v1.Verb;
+import xyz.block.ftl.schema.v1.Visibility;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public abstract class JVMCodeGenerator implements CodeGenProvider {
 
@@ -140,7 +149,7 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                                     output);
                         } else if (decl.hasTopic()) {
                             var data = decl.getTopic();
-                            if (!data.getExport()) {
+                            if (data.getVisibility() == Visibility.VISIBILITY_SCOPE_NONE) {
                                 continue;
                             }
                             log.debugf("Generating topic %s", data.getName());

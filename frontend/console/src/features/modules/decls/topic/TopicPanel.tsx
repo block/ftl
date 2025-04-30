@@ -1,9 +1,11 @@
 import type { Topic } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
+import { Visibility } from '../../../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import { ResizablePanels } from '../../../../shared/components/ResizablePanels'
 import { declIcon } from '../../module.utils'
 import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'
 import { topicPanels } from './TopicRightPanels'
+
 
 export const TopicPanel = ({ topic, moduleName, declName }: { topic: Topic; moduleName: string; declName: string }) => {
   if (!topic) {
@@ -20,7 +22,12 @@ export const TopicPanel = ({ topic, moduleName, declName }: { topic: Topic; modu
       <ResizablePanels
         mainContent={
           <div className='p-4'>
-            <PanelHeader title='Topic' declRef={`${moduleName}.${declName}`} exported={decl.export} comments={decl.comments} />
+            <PanelHeader
+              title='Topic'
+              declRef={`${moduleName}.${declName}`}
+              exported={decl.visibility === Visibility.SCOPE_MODULE || decl.visibility === Visibility.SCOPE_REALM}
+              comments={decl.comments}
+            />
           </div>
         }
         rightPanelHeader={<RightPanelHeader Icon={declIcon('topic', decl)} title={declName} />}
