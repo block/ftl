@@ -46,7 +46,7 @@ func extractData(pass *analysis.Pass, node *ast.TypeSpec, named *types.Named) op
 	}
 	common.ApplyMetadata[*schema.Data](pass, named.Obj(), func(md *common.ExtractedMetadata) {
 		out.Comments = md.Comments
-		out.Export = md.IsExported
+		out.Visibility = schema.Visibility(md.Visibility)
 	})
 	for i := range named.TypeParams().Len() {
 		param := named.TypeParams().At(i)

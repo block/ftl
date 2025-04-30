@@ -35,6 +35,7 @@ import xyz.block.ftl.schema.v1.IntValue;
 import xyz.block.ftl.schema.v1.StringValue;
 import xyz.block.ftl.schema.v1.TypeValue;
 import xyz.block.ftl.schema.v1.Value;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class EnumProcessor {
 
@@ -84,7 +85,8 @@ public class EnumProcessor {
                     decls.add(extractValueEnum(classInfo, clazz, exported, commentsBuildItem));
                 }
             } else {
-                var typeEnum = extractTypeEnum(index, moduleBuilder, classInfo, exported, commentsBuildItem);
+                var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
+                var typeEnum = extractTypeEnum(index, moduleBuilder, classInfo, visibility, commentsBuildItem);
                 recorder.registerEnum(clazz, typeEnum.variantClasses);
                 if (isLocalToModule) {
                     decls.add(typeEnum.decl);
@@ -100,10 +102,11 @@ public class EnumProcessor {
     private Decl extractValueEnum(ClassInfo classInfo, Class<?> clazz, boolean exported, CommentsBuildItem commentsBuildItem)
             throws NoSuchFieldException, IllegalAccessException {
         String name = classInfo.simpleName();
+        var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
         Enum.Builder enumBuilder = Enum.newBuilder()
                 .setName(name)
                 .setPos(PositionUtils.forClass(classInfo.name().toString()))
-                .setExport(exported)
+                .setVisibility(visibility)
                 .addAllComments(commentsBuildItem.getComments(name));
         FieldInfo valueField = classInfo.field("value");
         if (valueField == null) {
@@ -150,12 +153,12 @@ public class EnumProcessor {
      * - a class with arbitrary fields </br>
      */
     private TypeEnum extractTypeEnum(CombinedIndexBuildItem index, ModuleBuilder moduleBuilder,
-            ClassInfo classInfo, boolean exported, CommentsBuildItem commentsBuildItem) throws ClassNotFoundException {
+            ClassInfo classInfo, Visibility visibility, CommentsBuildItem commentsBuildItem) throws ClassNotFoundException {
         String name = classInfo.simpleName();
         Enum.Builder enumBuilder = Enum.newBuilder()
                 .setName(name)
                 .setPos(PositionUtils.forClass(classInfo.name().toString()))
-                .setExport(exported)
+                .setVisibility(visibility)
                 .addAllComments(commentsBuildItem.getComments(name));
         var variants = index.getComputingIndex().getAllKnownImplementors(classInfo.name());
         if (variants.isEmpty()) {
@@ -179,7 +182,7 @@ public class EnumProcessor {
                         Thread.currentThread().getContextClassLoader());
                 variantClasses.add(variantClazz);
             }
-            xyz.block.ftl.schema.v1.Type declType = moduleBuilder.buildType(variantType, exported,
+            xyz.block.ftl.schema.v1.Type declType = moduleBuilder.buildType(variantType, visibility,
                     Nullability.NOT_NULL);
             TypeValue typeValue = TypeValue.newBuilder().setValue(declType).build();
 

@@ -14,12 +14,12 @@ import (
 type Verb struct {
 	Pos Position `parser:"" protobuf:"1,optional"`
 
-	Comments []string   `parser:"@Comment*" protobuf:"2"`
-	Export   bool       `parser:"@'export'?" protobuf:"3"`
-	Name     string     `parser:"'verb' @Ident" protobuf:"4"`
-	Request  Type       `parser:"'(' @@ ')'" protobuf:"5"`
-	Response Type       `parser:"@@" protobuf:"6"`
-	Metadata []Metadata `parser:"@@*" protobuf:"7"`
+	Comments   []string   `parser:"@Comment*" protobuf:"2"`
+	Visibility Visibility `parser:"@@?" protobuf:"3"`
+	Name       string     `parser:"'verb' @Ident" protobuf:"4"`
+	Request    Type       `parser:"'(' @@ ')'" protobuf:"5"`
+	Response   Type       `parser:"@@" protobuf:"6"`
+	Metadata   []Metadata `parser:"@@*" protobuf:"7"`
 
 	Runtime *VerbRuntime `protobuf:"31634,optional" parser:""`
 }
@@ -80,8 +80,8 @@ func (v *Verb) schemaChildren() []Node {
 	return children
 }
 
-func (v *Verb) GetName() string  { return v.Name }
-func (v *Verb) IsExported() bool { return v.Export }
+func (v *Verb) GetName() string           { return v.Name }
+func (v *Verb) GetVisibility() Visibility { return v.Visibility }
 
 func (v *Verb) IsGenerated() bool {
 	_, found := slices.FindVariant[*MetadataGenerated](v.Metadata)
@@ -101,10 +101,12 @@ func (v *Verb) IsQuery() bool {
 func (v *Verb) String() string {
 	w := &strings.Builder{}
 	fmt.Fprint(w, EncodeComments(v.Comments))
-	if v.Export {
-		fmt.Fprint(w, "export ")
-	}
-	fmt.Fprintf(w, "verb %s(%s) %s", v.Name, v.Request, v.Response)
+	formatTokens(w,
+		v.Visibility.String(),
+		"verb",
+		fmt.Sprintf("%s(%s)", v.Name, v.Request),
+		v.Response.String(),
+	)
 	fmt.Fprint(w, indent(encodeMetadata(v.Metadata)))
 	return w.String()
 }

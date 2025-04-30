@@ -17,10 +17,10 @@ type Config struct {
 var _ Decl = (*Config)(nil)
 var _ Symbol = (*Config)(nil)
 
-func (s *Config) GetName() string    { return s.Name }
-func (s *Config) IsExported() bool   { return false }
-func (s *Config) IsGenerated() bool  { return false }
-func (s *Config) Position() Position { return s.Pos }
+func (s *Config) GetName() string           { return s.Name }
+func (s *Config) GetVisibility() Visibility { return VisibilityScopeNone }
+func (s *Config) IsGenerated() bool         { return false }
+func (s *Config) Position() Position        { return s.Pos }
 func (s *Config) String() string {
 	w := &strings.Builder{}
 

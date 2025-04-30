@@ -17,6 +17,7 @@ import {
 import type { Module } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { Verb as ConsoleVerb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { Config, Data, Database, Decl, Enum, Verb as SchemaVerb, Secret, Topic, TypeAlias } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import { Visibility } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
 
 export type DeclSumType = Config | Data | Database | Enum | Topic | TypeAlias | Secret | SchemaVerb
 
@@ -65,10 +66,11 @@ export const moduleTreeFromStream = (modules: Module[]) => {
   )
 }
 
-type WithExport = { export?: boolean }
+type WithVisibility = { visibility?: Visibility }
 
 export const declSumTypeIsExported = (d: DeclSumType) => {
-  return (d as WithExport).export === true
+  const visibility = (d as WithVisibility).visibility
+  return visibility === Visibility.SCOPE_MODULE || visibility === Visibility.SCOPE_REALM
 }
 
 export const declFromModules = (moduleName: string, declCase: string, declName: string, modules?: Module[]) => {

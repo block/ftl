@@ -173,7 +173,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 						n.Module = mod.Name
 					}
 
-					if n.Module != module.Name && !decl.IsExported() {
+					if n.Module != module.Name && !decl.GetVisibility().Exported() {
 						merr = append(merr, errorf(n, "%s %q must be exported", typeName(decl), n.String()))
 					}
 
@@ -182,7 +182,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 							merr = append(merr, errorf(n, "reference to data structure %s has %d type parameters, but %d were expected",
 								n.Name, len(n.TypeParameters), len(dataDecl.TypeParameters)))
 						}
-					} else if len(n.TypeParameters) != 0 && !decl.IsExported() {
+					} else if len(n.TypeParameters) != 0 && !decl.GetVisibility().Exported() {
 						merr = append(merr, errorf(n, "reference to %s %q cannot have type parameters", typeName(decl), n.Name))
 					}
 				} else {

@@ -287,8 +287,8 @@ func (cd *combinedData) errorDirectVerbInvocations() {
 // updateDeclVisibility traverses the module schema via refs and updates visibility as needed.
 func (cd *combinedData) updateDeclVisibility() {
 	for _, d := range cd.module.Decls {
-		if d.IsExported() {
-			updateTransitiveVisibility(d, cd.module)
+		if d.GetVisibility().Exported() {
+			updateTransitiveVisibility(d, cd.module, d.GetVisibility())
 		}
 	}
 }
@@ -422,8 +422,8 @@ func combineAllPackageResults(sch *schema.Schema, finalizeResults []finalize.Res
 }
 
 // updateTransitiveVisibility updates any decls that are transitively visible from d.
-func updateTransitiveVisibility(d schema.Decl, module *schema.Module) {
-	if !d.IsExported() {
+func updateTransitiveVisibility(d schema.Decl, module *schema.Module, to schema.Visibility) {
+	if !d.GetVisibility().Exported() {
 		return
 	}
 
@@ -440,20 +440,22 @@ func updateTransitiveVisibility(d schema.Decl, module *schema.Module) {
 		}
 
 		if decl, ok := resolved.Symbol.(schema.Decl); ok {
-			switch t := decl.(type) {
-			case *schema.Data:
-				t.Export = true
-			case *schema.Enum:
-				t.Export = true
-			case *schema.TypeAlias:
-				t.Export = true
-			case *schema.Topic:
-				t.Export = true
-			case *schema.Verb:
-				t.Export = true
-			case *schema.Database, *schema.Config, *schema.Secret:
+			if decl.GetVisibility() < to {
+				switch t := decl.(type) {
+				case *schema.Data:
+					t.Visibility = to
+				case *schema.Enum:
+					t.Visibility = to
+				case *schema.TypeAlias:
+					t.Visibility = to
+				case *schema.Topic:
+					t.Visibility = to
+				case *schema.Verb:
+					t.Visibility = to
+				case *schema.Database, *schema.Config, *schema.Secret:
+				}
 			}
-			updateTransitiveVisibility(decl, module)
+			updateTransitiveVisibility(decl, module, to)
 		}
 		return errors.WithStack(next())
 	})

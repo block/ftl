@@ -81,6 +81,7 @@ import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.TypeAlias;
 import xyz.block.ftl.schema.v1.Unit;
 import xyz.block.ftl.schema.v1.Verb;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class ModuleBuilder {
 
@@ -197,12 +198,12 @@ public class ModuleBuilder {
     }
 
     public void registerVerbMethod(MethodInfo method, String className,
-            boolean exported, boolean transaction, BodyType bodyType) {
-        registerVerbMethod(method, className, exported, transaction, bodyType, new VerbCustomization());
+            Visibility visibility, boolean transaction, BodyType bodyType) {
+        registerVerbMethod(method, className, visibility, transaction, bodyType, new VerbCustomization());
     }
 
     public void registerVerbMethod(MethodInfo method, String className,
-            boolean exported, boolean transaction, BodyType bodyType, VerbCustomization customization) {
+            Visibility visibility, boolean transaction, BodyType bodyType, VerbCustomization customization) {
         Position methodPos = forMethod(method);
         try {
             List<Class<?>> parameterTypes = new ArrayList<>();
@@ -231,7 +232,7 @@ public class ModuleBuilder {
                     if (!knownSecrets.contains(name)) {
                         xyz.block.ftl.schema.v1.Secret.Builder secretBuilder = xyz.block.ftl.schema.v1.Secret
                                 .newBuilder().setPos(methodPos)
-                                .setType(buildType(param.type(), false, param))
+                                .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                 .setName(name)
                                 .addAllComments(comments.getComments(name));
                         addDecls(Decl.newBuilder().setSecret(secretBuilder).build());
@@ -246,7 +247,7 @@ public class ModuleBuilder {
                     if (!knownConfig.contains(name)) {
                         xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
                                 .newBuilder().setPos(methodPos)
-                                .setType(buildType(param.type(), false, param))
+                                .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                 .setName(name)
                                 .addAllComments(comments.getComments(name));
                         addDecls(Decl.newBuilder().setConfig(configBuilder).build());
@@ -263,7 +264,7 @@ public class ModuleBuilder {
                         if (!knownConfig.contains(config)) {
                             xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
                                     .newBuilder()
-                                    .setType(buildType(param.type(), false, param))
+                                    .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                     .setName(config);
                             addDecls(Decl.newBuilder().setConfig(configBuilder).build());
                             knownConfig.add(config);
@@ -343,11 +344,11 @@ public class ModuleBuilder {
                         method.returnType() == VoidType.VOID, transaction);
             }
             verbBuilder.setName(verbName)
-                    .setExport(exported)
+                    .setVisibility(visibility)
                     .setPos(methodPos)
                     .setRequest(
-                            customization.requestType.apply(buildType(bodyParamType, exported, bodyParamNullability)))
-                    .setResponse(customization.responseType.apply(buildType(method.returnType(), exported, method)))
+                            customization.requestType.apply(buildType(bodyParamType, visibility, bodyParamNullability)))
+                    .setResponse(customization.responseType.apply(buildType(method.returnType(), visibility, method)))
                     .addAllComments(comments.getComments(verbName));
             if (customization.metadataCallback != null) {
                 customization.metadataCallback.accept(verbBuilder);
@@ -478,11 +479,11 @@ public class ModuleBuilder {
         return res;
     }
 
-    public Type buildType(org.jboss.jandex.Type type, boolean export, AnnotationTarget target) {
-        return buildType(type, export, nullability(target));
+    public Type buildType(org.jboss.jandex.Type type, Visibility visibility, AnnotationTarget target) {
+        return buildType(type, visibility, nullability(target));
     }
 
-    public Type buildType(org.jboss.jandex.Type type, boolean export, Nullability nullability) {
+    public Type buildType(org.jboss.jandex.Type type, Visibility visibility, Nullability nullability) {
         switch (type.kind()) {
             case PRIMITIVE -> {
                 var prim = type.asPrimitiveType();
@@ -514,7 +515,7 @@ public class ModuleBuilder {
                 }
                 return handleNullabilityAnnotations(Type.newBuilder()
                         .setArray(Array.newBuilder()
-                                .setElement(buildType(arrayType.componentType(), export, Nullability.NOT_NULL)).build())
+                                .setElement(buildType(arrayType.componentType(), visibility, Nullability.NOT_NULL)).build())
                         .build(), nullability);
             }
             case CLASS -> {
@@ -532,7 +533,7 @@ public class ModuleBuilder {
 
                 PrimitiveType unboxed = PrimitiveType.unbox(clazz);
                 if (unboxed != null) {
-                    Type primitive = buildType(unboxed, export, Nullability.NOT_NULL);
+                    Type primitive = buildType(unboxed, visibility, Nullability.NOT_NULL);
                     if (nullability == Nullability.NOT_NULL) {
                         return primitive;
                     }
@@ -546,6 +547,8 @@ public class ModuleBuilder {
                     String module = ref.value("module").asString();
                     // Validate that we are not attempting to modify the 'export' status of a
                     // generated type
+                    var export = visibility == Visibility.VISIBILITY_SCOPE_MODULE
+                            || visibility == Visibility.VISIBILITY_SCOPE_REALM;
                     if (Objects.equals(module, this.moduleName) && !info.hasAnnotation(EXPORT) && export) {
                         validationFailures.add(new ValidationFailure(toError(forClass(clazz.name().toString())),
                                 "Generated type " + clazz.name()
@@ -581,20 +584,28 @@ public class ModuleBuilder {
 
                 if (info != null && (info.isEnum() || info.hasAnnotation(ENUM))) {
                     // Set only the name and export here. EnumProcessor will fill in the rest
+                    var updatedVisibility = visibility;
+                    if (updatedVisibility == Visibility.VISIBILITY_SCOPE_NONE && type.hasAnnotation(EXPORT)) {
+                        updatedVisibility = Visibility.VISIBILITY_SCOPE_MODULE;
+                    }
                     xyz.block.ftl.schema.v1.Enum.Builder ennum = xyz.block.ftl.schema.v1.Enum.newBuilder()
                             .setName(name)
-                            .setExport(type.hasAnnotation(EXPORT) || export);
+                            .setVisibility(updatedVisibility);
                     addDecls(Decl.newBuilder().setEnum(ennum.build()).build());
                     return handleNullabilityAnnotations(ref, nullability);
                 } else {
                     // If this data was processed already, skip early
-                    if (setDeclExport(name, type.hasAnnotation(EXPORT) || export)) {
+                    var updatedVisibility = visibility;
+                    if (updatedVisibility == Visibility.VISIBILITY_SCOPE_NONE && type.hasAnnotation(EXPORT)) {
+                        updatedVisibility = Visibility.VISIBILITY_SCOPE_MODULE;
+                    }
+                    if (setDeclExport(name, updatedVisibility)) {
                         return handleNullabilityAnnotations(ref, nullability);
                     }
                     Data.Builder data = Data.newBuilder()
                             .setPos(forClass(clazz.name().toString()))
                             .setName(name)
-                            .setExport(type.hasAnnotation(EXPORT) || export)
+                            .setVisibility(updatedVisibility)
                             .addAllComments(comments.getComments(name));
                     buildDataElement(data, clazz.name());
                     addDecls(Decl.newBuilder().setData(data).build());
@@ -606,42 +617,42 @@ public class ModuleBuilder {
                 if (paramType.name().equals(DotName.createSimple(List.class))) {
                     return handleNullabilityAnnotations(Type.newBuilder()
                             .setArray(Array.newBuilder()
-                                    .setElement(buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL)))
+                                    .setElement(buildType(paramType.arguments().get(0), visibility, Nullability.NOT_NULL)))
                             .build(), nullability);
                 } else if (paramType.name().equals(DotName.createSimple(Map.class))) {
                     return handleNullabilityAnnotations(Type.newBuilder()
                             .setMap(xyz.block.ftl.schema.v1.Map.newBuilder()
-                                    .setKey(buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL))
-                                    .setValue(buildType(paramType.arguments().get(1), export, Nullability.NOT_NULL)))
+                                    .setKey(buildType(paramType.arguments().get(0), visibility, Nullability.NOT_NULL))
+                                    .setValue(buildType(paramType.arguments().get(1), visibility, Nullability.NOT_NULL)))
                             .build(), nullability);
                 } else if (paramType.name().equals(DotNames.OPTIONAL)) {
                     // TODO: optional kinda sucks
                     return Type.newBuilder().setOptional(xyz.block.ftl.schema.v1.Optional.newBuilder()
-                            .setType(buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL)))
+                            .setType(buildType(paramType.arguments().get(0), visibility, Nullability.NOT_NULL)))
                             .build();
                 } else if (paramType.name().equals(DotName.createSimple(HttpRequest.class))) {
                     return Type.newBuilder()
                             .setRef(Ref.newBuilder().setModule(BUILTIN).setName(HttpRequest.class.getSimpleName())
                                     .addTypeParameters(
-                                            buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL)))
+                                            buildType(paramType.arguments().get(0), visibility, Nullability.NOT_NULL)))
                             .build();
                 } else if (paramType.name().equals(DotName.createSimple(HttpResponse.class))) {
                     return Type.newBuilder()
                             .setRef(Ref.newBuilder().setModule(BUILTIN).setName(HttpResponse.class.getSimpleName())
                                     .addTypeParameters(
-                                            buildType(paramType.arguments().get(0), export, Nullability.NOT_NULL))
+                                            buildType(paramType.arguments().get(0), visibility, Nullability.NOT_NULL))
                                     .addTypeParameters(Type.newBuilder().setUnit(Unit.newBuilder().build())))
                             .build();
                 } else {
                     ClassInfo classByName = index.getClassByName(paramType.name());
                     validateName(classByName.name().toString(), classByName.name().local());
                     var cb = ClassType.builder(classByName.name());
-                    var main = buildType(cb.build(), export, Nullability.NOT_NULL);
+                    var main = buildType(cb.build(), visibility, Nullability.NOT_NULL);
                     var builder = main.toBuilder();
                     var refBuilder = builder.getRef().toBuilder();
 
                     for (var arg : paramType.arguments()) {
-                        refBuilder.addTypeParameters(buildType(arg, export, Nullability.NOT_NULL));
+                        refBuilder.addTypeParameters(buildType(arg, visibility, Nullability.NOT_NULL));
                     }
 
                     builder.setRef(refBuilder);
@@ -665,7 +676,7 @@ public class ModuleBuilder {
         for (var field : clazz.fields()) {
             if (!Modifier.isStatic(field.flags())) {
                 Field.Builder builder = Field.newBuilder().setName(field.name())
-                        .setType(buildType(field.type(), data.getExport(), field));
+                        .setType(buildType(field.type(), data.getVisibility(), field));
                 if (field.hasAnnotation(JsonAlias.class)) {
                     var aliases = field.annotation(JsonAlias.class);
                     if (aliases.value() != null) {
@@ -686,7 +697,7 @@ public class ModuleBuilder {
     public ModuleBuilder addDecls(Decl decl) {
         if (decl.hasData()) {
             Data data = decl.getData();
-            if (!setDeclExport(data.getName(), data.getExport())) {
+            if (!setDeclExport(data.getName(), data.getVisibility())) {
                 addDecl(decl, data.getPos(), data.getName());
             }
         } else if (decl.hasEnum()) {
@@ -740,11 +751,11 @@ public class ModuleBuilder {
     }
 
     public void registerTypeAlias(String name, org.jboss.jandex.Type finalT, org.jboss.jandex.Type finalS,
-            boolean exported,
+            Visibility visibility,
             Map<String, String> languageMappings) {
         validateName(finalT.name().toString(), name);
         TypeAlias.Builder typeAlias = TypeAlias.newBuilder()
-                .setType(buildType(finalS, exported, Nullability.NOT_NULL))
+                .setType(buildType(finalS, visibility, Nullability.NOT_NULL))
                 .setName(name)
                 .addAllComments(comments.getComments(name))
                 .addMetadata(Metadata.newBuilder()
@@ -785,6 +796,10 @@ public class ModuleBuilder {
         decls.put(name, decl);
     }
 
+    private Visibility higherVisibility(Visibility v1, Visibility v2) {
+        return v1.getNumber() > v2.getNumber() ? v1 : v2;
+    }
+
     /**
      * Check if an enum with the given name already exists in the module. If it
      * does, merge fields from both into one
@@ -797,18 +812,19 @@ public class ModuleBuilder {
             }
             var moreComplete = decl.getEnum().getVariantsCount() > 0 ? decl : existing;
             var lessComplete = decl.getEnum().getVariantsCount() > 0 ? existing : decl;
-            boolean export = lessComplete.getEnum().getExport() || existing.getEnum().getExport();
+            var visibility = higherVisibility(lessComplete.getEnum().getVisibility(), existing.getEnum().getVisibility());
+
             var merged = moreComplete.getEnum().toBuilder()
-                    .setExport(export)
+                    .setVisibility(visibility)
                     .build();
             decls.put(name, Decl.newBuilder().setEnum(merged).build());
-            if (export) {
+            if (visibility != Visibility.VISIBILITY_SCOPE_NONE) {
                 // Need to update export on variants too
                 for (var childDecl : merged.getVariantsList()) {
                     if (childDecl.getValue().hasTypeValue()
                             && childDecl.getValue().getTypeValue().getValue().hasRef()) {
                         var ref = childDecl.getValue().getTypeValue().getValue().getRef();
-                        setDeclExport(ref.getName(), true);
+                        setDeclExport(ref.getName(), visibility);
                     }
                 }
             }
@@ -821,14 +837,16 @@ public class ModuleBuilder {
      * Set a Decl's export field to <code>export</code>. Return true iff the Decl
      * exists
      */
-    private boolean setDeclExport(String name, boolean export) {
+    private boolean setDeclExport(String name, Visibility visibility) {
         var existing = decls.get(name);
         if (existing != null) {
             if (existing.hasData()) {
-                var merged = existing.getData().toBuilder().setExport(export || existing.getData().getExport()).build();
+                var merged = existing.getData().toBuilder()
+                        .setVisibility(higherVisibility(visibility, existing.getData().getVisibility())).build();
                 decls.put(name, Decl.newBuilder().setData(merged).build());
             } else if (existing.hasTypeAlias()) {
-                var merged = existing.getTypeAlias().toBuilder().setExport(export || existing.getData().getExport())
+                var merged = existing.getTypeAlias().toBuilder()
+                        .setVisibility(higherVisibility(visibility, existing.getData().getVisibility()))
                         .build();
                 decls.put(name, Decl.newBuilder().setTypeAlias(merged).build());
             }

@@ -68,7 +68,7 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 	}
 	directives := common.ParseDirectives(pass, node, doc)
 	found := sets.NewSet[string]()
-	exported := isExported(directives)
+	visibility := findVisibility(directives)
 	var declType schema.Decl
 	var metadata []schema.Metadata
 	for _, dir := range directives {
@@ -107,7 +107,7 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 			})
 		case *common.DirectiveCronJob:
 			newSchType = &schema.Verb{}
-			if exported {
+			if schema.Visibility(visibility).Exported() {
 				common.NoEndColumnErrorf(pass, dt.GetPosition(), "ftl:cron cannot be attached to exported verbs")
 				continue
 			}
@@ -117,7 +117,7 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 			})
 		case *common.DirectiveFixture:
 			newSchType = &schema.Verb{}
-			if exported {
+			if schema.Visibility(visibility).Exported() {
 				common.NoEndColumnErrorf(pass, dt.GetPosition(), "ftl:fixture cannot be attached to exported verbs")
 				continue
 			}
@@ -212,7 +212,7 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 	md := &common.ExtractedMetadata{
 		Type:       declType,
 		Metadata:   metadata,
-		IsExported: exported,
+		Visibility: visibility,
 		Comments:   common.ExtractComments(doc),
 	}
 	validateMetadata(pass, node, md)
@@ -267,13 +267,13 @@ func updateDeclType(pass *analysis.Pass, pos token.Pos, a schema.Decl, b schema.
 	return b
 }
 
-func isExported(directives []common.Directive) bool {
+func findVisibility(directives []common.Directive) common.Visibility {
 	for _, d := range directives {
 		if exportable, ok := d.(common.Exportable); ok {
-			return exportable.IsExported()
+			return exportable.GetVisibility()
 		}
 	}
-	return false
+	return common.Visibility(schema.VisibilityScopeNone)
 }
 
 func isAnnotatingValidGoNode(dir common.Directive, node ast.Node) bool {

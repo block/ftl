@@ -34,6 +34,7 @@ import xyz.block.ftl.runtime.VerbClientHelper;
 import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataCronJob;
 import xyz.block.ftl.schema.v1.MetadataFixture;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class VerbProcessor {
 
@@ -346,8 +347,9 @@ public class VerbProcessor {
             }
             String className = method.declaringClass().name().toString();
             beans.addBeanClass(className);
+            var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
             schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                    .registerVerbMethod(method, className, exported, false, ModuleBuilder.BodyType.ALLOWED)));
+                    .registerVerbMethod(method, className, visibility, false, ModuleBuilder.BodyType.ALLOWED)));
         }
 
         Collection<AnnotationInstance> transactionAnnotations = index.getIndex().getAnnotations(FTLDotNames.TRANSACTIONAL);
@@ -362,8 +364,9 @@ public class VerbProcessor {
             }
             String className = method.declaringClass().name().toString();
             beans.addBeanClass(className);
+            var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
             schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                    .registerVerbMethod(method, className, exported, true, ModuleBuilder.BodyType.ALLOWED)));
+                    .registerVerbMethod(method, className, visibility, true, ModuleBuilder.BodyType.ALLOWED)));
         }
 
         Collection<AnnotationInstance> cronAnnotations = index.getIndex().getAnnotations(FTLDotNames.CRON);
@@ -377,7 +380,8 @@ public class VerbProcessor {
             beans.addBeanClass(className);
 
             schemaContributorBuildItemBuildProducer.produce(
-                    new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className, false,
+                    new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
+                            Visibility.VISIBILITY_SCOPE_NONE,
                             false, ModuleBuilder.BodyType.DISALLOWED,
                             new ModuleBuilder.VerbCustomization()
                                     .setMetadataCallback(builder -> builder.addMetadata(Metadata.newBuilder()
@@ -400,7 +404,7 @@ public class VerbProcessor {
 
             schemaContributorBuildItemBuildProducer.produce(
                     new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
-                            false, false, ModuleBuilder.BodyType.DISALLOWED,
+                            Visibility.VISIBILITY_SCOPE_NONE, false, ModuleBuilder.BodyType.DISALLOWED,
                             new ModuleBuilder.VerbCustomization()
                                     .setMetadataCallback(builder -> builder.addMetadata(Metadata.newBuilder()
                                             .setFixture(MetadataFixture.newBuilder().setManual(manual))

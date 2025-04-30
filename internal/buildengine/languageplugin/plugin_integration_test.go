@@ -231,8 +231,8 @@ func generateInitialSchema(t *testing.T) *schema.Schema {
 					Name: "dependable",
 					Decls: []schema.Decl{
 						&schema.Data{
-							Name:   "Data",
-							Export: true,
+							Name:       "Data",
+							Visibility: schema.VisibilityScopeModule,
 						},
 					},
 				},

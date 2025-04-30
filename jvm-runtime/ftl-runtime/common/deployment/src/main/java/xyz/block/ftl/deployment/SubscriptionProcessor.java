@@ -17,6 +17,7 @@ import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataRetry;
 import xyz.block.ftl.schema.v1.MetadataSubscriber;
 import xyz.block.ftl.schema.v1.Ref;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class SubscriptionProcessor {
 
@@ -44,7 +45,8 @@ public class SubscriptionProcessor {
 
     private SchemaContributorBuildItem generateSubscription(MethodInfo method, String className, SubscriptionAnnotation info) {
         return new SchemaContributorBuildItem(moduleBuilder -> {
-            moduleBuilder.registerVerbMethod(method, className, false, false, ModuleBuilder.BodyType.REQUIRED,
+            moduleBuilder.registerVerbMethod(method, className, Visibility.VISIBILITY_SCOPE_NONE, false,
+                    ModuleBuilder.BodyType.REQUIRED,
                     new ModuleBuilder.VerbCustomization().setMetadataCallback(builder -> {
 
                         builder.addMetadata(Metadata.newBuilder().setSubscriber(MetadataSubscriber.newBuilder()

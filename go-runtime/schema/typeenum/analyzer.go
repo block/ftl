@@ -50,7 +50,7 @@ func Extract(pass *analysis.Pass) (interface{}, error) {
 		}
 		common.ApplyMetadata[*schema.Enum](pass, obj, func(md *common.ExtractedMetadata) {
 			enum.Comments = md.Comments
-			enum.Export = md.IsExported
+			enum.Visibility = schema.Visibility(md.Visibility)
 
 			if _, ok := md.Type.(*schema.Enum); ok {
 				if iType.NumMethods() == 0 {

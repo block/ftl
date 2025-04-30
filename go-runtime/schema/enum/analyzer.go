@@ -59,7 +59,7 @@ func Extract(pass *analysis.Pass, node *ast.TypeSpec, obj types.Object) optional
 	}
 	common.ApplyMetadata[*schema.Enum](pass, obj, func(md *common.ExtractedMetadata) {
 		e.Comments = md.Comments
-		e.Export = md.IsExported
+		e.Visibility = schema.Visibility(md.Visibility)
 	})
 	return optional.Some(e)
 

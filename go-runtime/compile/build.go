@@ -1650,7 +1650,7 @@ var scaffoldFuncs = scaffolder.FuncMap{
 			switch d := d.(type) {
 			// Type enums (i.e. sum types) are all the non-value enums
 			case *schema.Enum:
-				if !d.IsValueEnum() && d.IsExported() {
+				if !d.IsValueEnum() && d.GetVisibility().Exported() {
 					out = append(out, d)
 				}
 			default:
@@ -2001,12 +2001,12 @@ func imports(m *schema.Module, aliasesMustBeExported bool) map[string]string {
 			imports["github.com/block/ftl/go-runtime/ftl"] = "ftl"
 
 		case *schema.Topic:
-			if n.IsExported() {
+			if n.GetVisibility().Exported() {
 				imports["github.com/block/ftl/go-runtime/ftl"] = "ftl"
 			}
 
 		case *schema.TypeAlias:
-			if aliasesMustBeExported && !n.IsExported() {
+			if aliasesMustBeExported && !n.GetVisibility().Exported() {
 				return errors.WithStack(next())
 			}
 			if nt, ok := nativeTypeForWidenedType(n); ok {

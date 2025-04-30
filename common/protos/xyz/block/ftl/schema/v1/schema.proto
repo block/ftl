@@ -133,7 +133,7 @@ message DSNDatabaseConnector {
 message Data {
   optional Position pos = 1;
   repeated string comments = 2;
-  bool export = 3;
+  Visibility visibility = 3;
   string name = 4;
   repeated TypeParameter type_parameters = 5;
   repeated Metadata metadata = 7;
@@ -214,7 +214,7 @@ message EgressTarget {
 message Enum {
   optional Position pos = 1;
   repeated string comments = 2;
-  bool export = 3;
+  Visibility visibility = 3;
   string name = 4;
   optional Type type = 5;
   repeated EnumVariant variants = 6;
@@ -619,7 +619,7 @@ message Topic {
   optional Position pos = 1;
   optional TopicRuntime runtime = 31634;
   repeated string comments = 2;
-  bool export = 3;
+  Visibility visibility = 3;
   string name = 4;
   Type event = 5;
   repeated Metadata metadata = 6;
@@ -654,7 +654,7 @@ message Type {
 message TypeAlias {
   optional Position pos = 1;
   repeated string comments = 2;
-  bool export = 3;
+  Visibility visibility = 3;
   string name = 4;
   Type type = 5;
   repeated Metadata metadata = 6;
@@ -686,7 +686,7 @@ message Value {
 message Verb {
   optional Position pos = 1;
   repeated string comments = 2;
-  bool export = 3;
+  Visibility visibility = 3;
   string name = 4;
   Type request = 5;
   Type response = 6;
@@ -697,4 +697,11 @@ message Verb {
 message VerbRuntime {
   optional SubscriptionConnector subscription_connector = 1;
   optional EgressRuntime egress_runtime = 2;
+}
+
+// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+enum Visibility {
+  VISIBILITY_SCOPE_NONE = 0;
+  VISIBILITY_SCOPE_MODULE = 1;
+  VISIBILITY_SCOPE_REALM = 2;
 }

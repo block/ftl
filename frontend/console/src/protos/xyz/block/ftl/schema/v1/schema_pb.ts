@@ -175,6 +175,34 @@ proto3.util.setEnumType(FromOffset, "xyz.block.ftl.schema.v1.FromOffset", [
 ]);
 
 /**
+ * buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+ *
+ * @generated from enum xyz.block.ftl.schema.v1.Visibility
+ */
+export enum Visibility {
+  /**
+   * @generated from enum value: VISIBILITY_SCOPE_NONE = 0;
+   */
+  SCOPE_NONE = 0,
+
+  /**
+   * @generated from enum value: VISIBILITY_SCOPE_MODULE = 1;
+   */
+  SCOPE_MODULE = 1,
+
+  /**
+   * @generated from enum value: VISIBILITY_SCOPE_REALM = 2;
+   */
+  SCOPE_REALM = 2,
+}
+// Retrieve enum metadata with: proto3.getEnumType(Visibility)
+proto3.util.setEnumType(Visibility, "xyz.block.ftl.schema.v1.Visibility", [
+  { no: 0, name: "VISIBILITY_SCOPE_NONE" },
+  { no: 1, name: "VISIBILITY_SCOPE_MODULE" },
+  { no: 2, name: "VISIBILITY_SCOPE_REALM" },
+]);
+
+/**
  * @generated from message xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector
  */
 export class AWSIAMAuthDatabaseConnector extends Message<AWSIAMAuthDatabaseConnector> {
@@ -1101,9 +1129,9 @@ export class Data extends Message<Data> {
   comments: string[] = [];
 
   /**
-   * @generated from field: bool export = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.Visibility visibility = 3;
    */
-  export = false;
+  visibility = Visibility.SCOPE_NONE;
 
   /**
    * @generated from field: string name = 4;
@@ -1135,7 +1163,7 @@ export class Data extends Message<Data> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "pos", kind: "message", T: Position, opt: true },
     { no: 2, name: "comments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: "export", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "visibility", kind: "enum", T: proto3.getEnumType(Visibility) },
     { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "type_parameters", kind: "message", T: TypeParameter, repeated: true },
     { no: 7, name: "metadata", kind: "message", T: Metadata, repeated: true },
@@ -1633,9 +1661,9 @@ export class Enum extends Message<Enum> {
   comments: string[] = [];
 
   /**
-   * @generated from field: bool export = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.Visibility visibility = 3;
    */
-  export = false;
+  visibility = Visibility.SCOPE_NONE;
 
   /**
    * @generated from field: string name = 4;
@@ -1662,7 +1690,7 @@ export class Enum extends Message<Enum> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "pos", kind: "message", T: Position, opt: true },
     { no: 2, name: "comments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: "export", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "visibility", kind: "enum", T: proto3.getEnumType(Visibility) },
     { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "type", kind: "message", T: Type, opt: true },
     { no: 6, name: "variants", kind: "message", T: EnumVariant, repeated: true },
@@ -4727,9 +4755,9 @@ export class Topic extends Message<Topic> {
   comments: string[] = [];
 
   /**
-   * @generated from field: bool export = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.Visibility visibility = 3;
    */
-  export = false;
+  visibility = Visibility.SCOPE_NONE;
 
   /**
    * @generated from field: string name = 4;
@@ -4757,7 +4785,7 @@ export class Topic extends Message<Topic> {
     { no: 1, name: "pos", kind: "message", T: Position, opt: true },
     { no: 31634, name: "runtime", kind: "message", T: TopicRuntime, opt: true },
     { no: 2, name: "comments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: "export", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "visibility", kind: "enum", T: proto3.getEnumType(Visibility) },
     { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "event", kind: "message", T: Type },
     { no: 6, name: "metadata", kind: "message", T: Metadata, repeated: true },
@@ -4981,9 +5009,9 @@ export class TypeAlias extends Message<TypeAlias> {
   comments: string[] = [];
 
   /**
-   * @generated from field: bool export = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.Visibility visibility = 3;
    */
-  export = false;
+  visibility = Visibility.SCOPE_NONE;
 
   /**
    * @generated from field: string name = 4;
@@ -5010,7 +5038,7 @@ export class TypeAlias extends Message<TypeAlias> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "pos", kind: "message", T: Position, opt: true },
     { no: 2, name: "comments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: "export", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "visibility", kind: "enum", T: proto3.getEnumType(Visibility) },
     { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "type", kind: "message", T: Type },
     { no: 6, name: "metadata", kind: "message", T: Metadata, repeated: true },
@@ -5230,9 +5258,9 @@ export class Verb extends Message<Verb> {
   comments: string[] = [];
 
   /**
-   * @generated from field: bool export = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.Visibility visibility = 3;
    */
-  export = false;
+  visibility = Visibility.SCOPE_NONE;
 
   /**
    * @generated from field: string name = 4;
@@ -5269,7 +5297,7 @@ export class Verb extends Message<Verb> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "pos", kind: "message", T: Position, opt: true },
     { no: 2, name: "comments", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: "export", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "visibility", kind: "enum", T: proto3.getEnumType(Visibility) },
     { no: 4, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "request", kind: "message", T: Type },
     { no: 6, name: "response", kind: "message", T: Type },

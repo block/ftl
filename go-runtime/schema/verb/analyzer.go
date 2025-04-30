@@ -57,7 +57,7 @@ func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional
 	if !common.ApplyMetadata[*schema.Verb](pass, obj, func(md *common.ExtractedMetadata) {
 		_, isTransaction := slices.FindVariant[*schema.MetadataTransaction](md.Metadata)
 		verb.Comments = md.Comments
-		verb.Export = md.IsExported
+		verb.Visibility = schema.Visibility(md.Visibility)
 		verb.Metadata = md.Metadata
 		for idx, param := range node.Type.Params.List {
 			var err error

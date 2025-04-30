@@ -752,7 +752,7 @@ func (x *Data) ToProto() *destpb.Data {
 	return &destpb.Data{
 		Pos:            x.Pos.ToProto(),
 		Comments:       sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Export:         orZero(ptr(bool(x.Export))),
+		Visibility:     orZero(ptr(x.Visibility.ToProto())),
 		Name:           orZero(ptr(string(x.Name))),
 		TypeParameters: sliceMap(x.TypeParameters, func(v *TypeParameter) *destpb.TypeParameter { return v.ToProto() }),
 		Metadata:       sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
@@ -772,8 +772,8 @@ func DataFromProto(v *destpb.Data) (out *Data, err error) {
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Comments")
 	}
-	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, errors.Wrap(err, "Export")
+	if out.Visibility, err = orZeroR(ptrR(result.From(VisibilityFromProto(v.Visibility)))).Result(); err != nil {
+		return nil, errors.Wrap(err, "Visibility")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Name")
@@ -1098,12 +1098,12 @@ func (x *Enum) ToProto() *destpb.Enum {
 		return nil
 	}
 	return &destpb.Enum{
-		Pos:      x.Pos.ToProto(),
-		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Export:   orZero(ptr(bool(x.Export))),
-		Name:     orZero(ptr(string(x.Name))),
-		Type:     TypeToProto(x.Type),
-		Variants: sliceMap(x.Variants, func(v *EnumVariant) *destpb.EnumVariant { return v.ToProto() }),
+		Pos:        x.Pos.ToProto(),
+		Comments:   sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Visibility: orZero(ptr(x.Visibility.ToProto())),
+		Name:       orZero(ptr(string(x.Name))),
+		Type:       TypeToProto(x.Type),
+		Variants:   sliceMap(x.Variants, func(v *EnumVariant) *destpb.EnumVariant { return v.ToProto() }),
 	}
 }
 
@@ -1119,8 +1119,8 @@ func EnumFromProto(v *destpb.Enum) (out *Enum, err error) {
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Comments")
 	}
-	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, errors.Wrap(err, "Export")
+	if out.Visibility, err = orZeroR(ptrR(result.From(VisibilityFromProto(v.Visibility)))).Result(); err != nil {
+		return nil, errors.Wrap(err, "Visibility")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Name")
@@ -3010,13 +3010,13 @@ func (x *Topic) ToProto() *destpb.Topic {
 		return nil
 	}
 	return &destpb.Topic{
-		Pos:      x.Pos.ToProto(),
-		Runtime:  x.Runtime.ToProto(),
-		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Export:   orZero(ptr(bool(x.Export))),
-		Name:     orZero(ptr(string(x.Name))),
-		Event:    TypeToProto(x.Event),
-		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
+		Pos:        x.Pos.ToProto(),
+		Runtime:    x.Runtime.ToProto(),
+		Comments:   sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Visibility: orZero(ptr(x.Visibility.ToProto())),
+		Name:       orZero(ptr(string(x.Name))),
+		Event:      TypeToProto(x.Event),
+		Metadata:   sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
 	}
 }
 
@@ -3035,8 +3035,8 @@ func TopicFromProto(v *destpb.Topic) (out *Topic, err error) {
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Comments")
 	}
-	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, errors.Wrap(err, "Export")
+	if out.Visibility, err = orZeroR(ptrR(result.From(VisibilityFromProto(v.Visibility)))).Result(); err != nil {
+		return nil, errors.Wrap(err, "Visibility")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Name")
@@ -3192,12 +3192,12 @@ func (x *TypeAlias) ToProto() *destpb.TypeAlias {
 		return nil
 	}
 	return &destpb.TypeAlias{
-		Pos:      x.Pos.ToProto(),
-		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Export:   orZero(ptr(bool(x.Export))),
-		Name:     orZero(ptr(string(x.Name))),
-		Type:     TypeToProto(x.Type),
-		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
+		Pos:        x.Pos.ToProto(),
+		Comments:   sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Visibility: orZero(ptr(x.Visibility.ToProto())),
+		Name:       orZero(ptr(string(x.Name))),
+		Type:       TypeToProto(x.Type),
+		Metadata:   sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
 	}
 }
 
@@ -3213,8 +3213,8 @@ func TypeAliasFromProto(v *destpb.TypeAlias) (out *TypeAlias, err error) {
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Comments")
 	}
-	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, errors.Wrap(err, "Export")
+	if out.Visibility, err = orZeroR(ptrR(result.From(VisibilityFromProto(v.Visibility)))).Result(); err != nil {
+		return nil, errors.Wrap(err, "Visibility")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Name")
@@ -3344,14 +3344,14 @@ func (x *Verb) ToProto() *destpb.Verb {
 		return nil
 	}
 	return &destpb.Verb{
-		Pos:      x.Pos.ToProto(),
-		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Export:   orZero(ptr(bool(x.Export))),
-		Name:     orZero(ptr(string(x.Name))),
-		Request:  TypeToProto(x.Request),
-		Response: TypeToProto(x.Response),
-		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
-		Runtime:  x.Runtime.ToProto(),
+		Pos:        x.Pos.ToProto(),
+		Comments:   sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Visibility: orZero(ptr(x.Visibility.ToProto())),
+		Name:       orZero(ptr(string(x.Name))),
+		Request:    TypeToProto(x.Request),
+		Response:   TypeToProto(x.Response),
+		Metadata:   sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
+		Runtime:    x.Runtime.ToProto(),
 	}
 }
 
@@ -3367,8 +3367,8 @@ func VerbFromProto(v *destpb.Verb) (out *Verb, err error) {
 	if out.Comments, err = sliceMapR(v.Comments, func(v string) result.Result[string] { return orZeroR(result.From(ptr(string(v)), nil)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Comments")
 	}
-	if out.Export, err = orZeroR(result.From(ptr(bool(v.Export)), nil)).Result(); err != nil {
-		return nil, errors.Wrap(err, "Export")
+	if out.Visibility, err = orZeroR(ptrR(result.From(VisibilityFromProto(v.Visibility)))).Result(); err != nil {
+		return nil, errors.Wrap(err, "Visibility")
 	}
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Name")
@@ -3413,4 +3413,13 @@ func VerbRuntimeFromProto(v *destpb.VerbRuntime) (out *VerbRuntime, err error) {
 		return nil, errors.Wrap(err, "EgressRuntime")
 	}
 	return out, nil
+}
+
+func (x Visibility) ToProto() destpb.Visibility {
+	return destpb.Visibility(x)
+}
+
+func VisibilityFromProto(v destpb.Visibility) (Visibility, error) {
+	// TODO: Check if the value is valid.
+	return Visibility(v), nil
 }

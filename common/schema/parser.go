@@ -214,9 +214,9 @@ type Named interface {
 type Decl interface {
 	Symbol
 	GetName() string
-	IsExported() bool
 	// IsGenerated returns true if the Decl is in the schema but not in the source code.
 	IsGenerated() bool
+	GetVisibility() Visibility
 	schemaDecl()
 }
 

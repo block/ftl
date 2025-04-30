@@ -80,7 +80,7 @@ func (*MaybeValueEnumVariant) schemaFactValue() {}
 // ExtractedMetadata is a fact for associating an object with extracted schema metadata.
 type ExtractedMetadata struct {
 	Type       schema.Decl
-	IsExported bool
+	Visibility Visibility
 	Metadata   []schema.Metadata
 	Comments   []string
 }

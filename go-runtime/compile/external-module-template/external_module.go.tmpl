@@ -17,7 +17,7 @@ import (
 var _ = context.Background
 
 {{- range .Module.Decls }}
-{{- if .IsExported}}
+{{- if .GetVisibility.Exported}}
 {{if .Comments}}
 {{.Comments|comment -}}
 //

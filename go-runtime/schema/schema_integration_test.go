@@ -199,7 +199,7 @@ func testExtractModuleSchema(t *testing.T) {
 
   export verb nothing(Unit) Unit
 
-  export verb realmPublic(Unit) Unit
+  export realm verb realmPublic(Unit) Unit
 
   verb sink(one.SinkReq) Unit
 
@@ -475,7 +475,7 @@ func testParsedirectives(t *testing.T) {
 		expected common.Directive
 	}{
 		{name: "Verb", input: "ftl:verb", expected: &common.DirectiveVerb{Verb: true}},
-		{name: "Verb export", input: "ftl:verb export", expected: &common.DirectiveVerb{Verb: true, Export: common.Export{IsExported: true}}},
+		{name: "Verb export", input: "ftl:verb export", expected: &common.DirectiveVerb{Verb: true, Visibility: common.Visibility(schema.VisibilityScopeModule)}},
 		{name: "Data", input: "ftl:data", expected: &common.DirectiveData{Data: true}},
 		{name: "Data export", input: "ftl:data export", expected: &common.DirectiveData{Data: true, Export: true}},
 		{name: "Enum", input: "ftl:enum", expected: &common.DirectiveEnum{Enum: true}},

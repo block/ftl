@@ -37,6 +37,7 @@ import xyz.block.ftl.schema.v1.Position;
 import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.Unit;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public class HTTPProcessor {
 
@@ -204,7 +205,7 @@ public class HTTPProcessor {
                             });
 
                     moduleBuilder.registerVerbMethod(endpoint.getMethodInfo(), endpoint.getActualClassInfo().name().toString(),
-                            false, false, ModuleBuilder.BodyType.ALLOWED, verbCustomization);
+                            Visibility.VISIBILITY_SCOPE_NONE, false, ModuleBuilder.BodyType.ALLOWED, verbCustomization);
                 }
             }
         });

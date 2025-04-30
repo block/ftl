@@ -51,9 +51,9 @@ func TestVerbSchemaString(t *testing.T) {
 						},
 					},
 					&schema.Enum{
-						Name:   "Color",
-						Export: true,
-						Type:   &schema.String{},
+						Name:       "Color",
+						Visibility: schema.VisibilityScopeModule,
+						Type:       &schema.String{},
 						Variants: []*schema.EnumVariant{
 							{Name: "Red", Value: &schema.StringValue{Value: "Red"}},
 							{Name: "Blue", Value: &schema.StringValue{Value: "Blue"}},
@@ -65,8 +65,8 @@ func TestVerbSchemaString(t *testing.T) {
 					verb,
 					ingressVerb,
 					&schema.Data{
-						Name:   "BarData",
-						Export: true,
+						Name:       "BarData",
+						Visibility: schema.VisibilityScopeModule,
 						Fields: []*schema.Field{
 							{Name: "Name", Type: &schema.String{}},
 						},

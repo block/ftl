@@ -46,8 +46,8 @@ func (d *Database) String() string {
 	return w.String()
 }
 
-func (d *Database) GetName() string  { return d.Name }
-func (d *Database) IsExported() bool { return false }
+func (d *Database) GetName() string           { return d.Name }
+func (d *Database) GetVisibility() Visibility { return VisibilityScopeNone }
 
 func (d *Database) GetProvisioned() ResourceSet {
 	kind := ResourceTypeMysql
