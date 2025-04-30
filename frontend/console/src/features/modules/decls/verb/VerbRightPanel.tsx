@@ -23,7 +23,7 @@ export const verbPanels = (moduleName: string, verb?: Verb, showGraph = true) =>
     })
   }
 
-  panels.push(...DeclDefaultPanels(moduleName, verb?.schema, verb?.edges))
+  panels.push(...DeclDefaultPanels(moduleName, verb?.schema, verb?.edges, verb?.verb?.pos))
 
   if (showGraph) {
     panels.push({

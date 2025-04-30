@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { Config as Config$1, Data as Data$1, Database as Database$1, Enum as Enum$1, ModuleRuntime, Ref, Secret as Secret$1, Topic as Topic$1, TypeAlias as TypeAlias$1, Verb as Verb$1 } from "../../schema/v1/schema_pb.js";
+import { Config as Config$1, Data as Data$1, Database as Database$1, Enum as Enum$1, Module as Module$1, ModuleRuntime, Ref, Secret as Secret$1, Topic as Topic$1, TypeAlias as TypeAlias$1, Verb as Verb$1 } from "../../schema/v1/schema_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.console.v1.Edges
@@ -507,6 +507,11 @@ export class Module extends Message<Module> {
    */
   typealiases: TypeAlias[] = [];
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.Module module = 12;
+   */
+  module?: Module$1;
+
   constructor(data?: PartialMessage<Module>) {
     super();
     proto3.util.initPartial(data, this);
@@ -526,6 +531,7 @@ export class Module extends Message<Module> {
     { no: 9, name: "enums", kind: "message", T: Enum, repeated: true },
     { no: 10, name: "topics", kind: "message", T: Topic, repeated: true },
     { no: 11, name: "typealiases", kind: "message", T: TypeAlias, repeated: true },
+    { no: 12, name: "module", kind: "message", T: Module$1 },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Module {
@@ -1284,4 +1290,90 @@ proto3.util.setEnumType(ExecuteGooseResponse_Source, "xyz.block.ftl.console.v1.E
   { no: 2, name: "SOURCE_STDERR" },
   { no: 3, name: "SOURCE_COMPLETION" },
 ]);
+
+/**
+ * @generated from message xyz.block.ftl.console.v1.OpenFileInEditorRequest
+ */
+export class OpenFileInEditorRequest extends Message<OpenFileInEditorRequest> {
+  /**
+   * @generated from field: string editor = 1;
+   */
+  editor = "";
+
+  /**
+   * @generated from field: string path = 2;
+   */
+  path = "";
+
+  /**
+   * @generated from field: int32 line = 3;
+   */
+  line = 0;
+
+  /**
+   * @generated from field: int32 column = 4;
+   */
+  column = 0;
+
+  constructor(data?: PartialMessage<OpenFileInEditorRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.console.v1.OpenFileInEditorRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "editor", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "line", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "column", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): OpenFileInEditorRequest {
+    return new OpenFileInEditorRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): OpenFileInEditorRequest {
+    return new OpenFileInEditorRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): OpenFileInEditorRequest {
+    return new OpenFileInEditorRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: OpenFileInEditorRequest | PlainMessage<OpenFileInEditorRequest> | undefined, b: OpenFileInEditorRequest | PlainMessage<OpenFileInEditorRequest> | undefined): boolean {
+    return proto3.util.equals(OpenFileInEditorRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.console.v1.OpenFileInEditorResponse
+ */
+export class OpenFileInEditorResponse extends Message<OpenFileInEditorResponse> {
+  constructor(data?: PartialMessage<OpenFileInEditorResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.console.v1.OpenFileInEditorResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): OpenFileInEditorResponse {
+    return new OpenFileInEditorResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): OpenFileInEditorResponse {
+    return new OpenFileInEditorResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): OpenFileInEditorResponse {
+    return new OpenFileInEditorResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: OpenFileInEditorResponse | PlainMessage<OpenFileInEditorResponse> | undefined, b: OpenFileInEditorResponse | PlainMessage<OpenFileInEditorResponse> | undefined): boolean {
+    return proto3.util.equals(OpenFileInEditorResponse, a, b);
+  }
+}
 

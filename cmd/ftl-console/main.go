@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
+	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/console"
@@ -14,6 +15,7 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -48,7 +50,7 @@ func main() {
 
 	routeManager := routing.NewVerbRouter(ctx, eventSource, timelineClient)
 
-	svc := console.New(eventSource, timelineClient, adminClient, routeManager, buildEngineClient, cli.Bind, cli.ConsoleConfig)
+	svc := console.New(eventSource, timelineClient, adminClient, routeManager, buildEngineClient, cli.Bind, cli.ConsoleConfig, optional.None[projectconfig.Config]())
 	err = rpc.Serve(ctx, cli.Bind, rpc.WithServices(svc))
 	kctx.FatalIfErrorf(err, "failed to start console service")
 }

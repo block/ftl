@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/errors"
+	"github.com/alecthomas/types/optional"
 
 	ftlversion "github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
@@ -24,7 +25,9 @@ import (
 	frontend "github.com/block/ftl/frontend/console"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/editor"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -43,6 +46,7 @@ type Service struct {
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient
 	bind              *url.URL
 	config            Config
+	pc                optional.Option[projectconfig.Config]
 }
 
 var _ consolepbconnect.ConsoleServiceHandler = (*Service)(nil)
@@ -54,7 +58,9 @@ func New(
 	client routing.CallClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	bind *url.URL,
-	config Config) *Service {
+	config Config,
+	pc optional.Option[projectconfig.Config],
+) *Service {
 
 	return &Service{
 		schemaEventSource: eventSource,
@@ -64,6 +70,7 @@ func New(
 		buildEngineClient: buildEngineClient,
 		bind:              bind,
 		config:            config,
+		pc:                pc,
 	}
 }
 
@@ -161,6 +168,7 @@ func (s *Service) GetModules(ctx context.Context, req *connect.Request[consolepb
 
 		modules = append(modules, &consolepb.Module{
 			Name:    mod.Name,
+			Module:  mod.ToProto(),
 			Runtime: mod.Runtime.ToProto(),
 			Verbs:   verbs,
 			Data:    data,
@@ -669,4 +677,25 @@ func (s *Service) ExecuteGoose(ctx context.Context, req *connect.Request[console
 		return errors.Wrap(err, "failed to execute goose")
 	}
 	return nil
+}
+
+// OpenFileInEditor opens the specified file path at the given position in the selected editor.
+func (s *Service) OpenFileInEditor(ctx context.Context, req *connect.Request[consolepb.OpenFileInEditorRequest]) (*connect.Response[consolepb.OpenFileInEditorResponse], error) {
+	pc, ok := s.pc.Get()
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("opening files in editor requires a project context (ftl-project.toml)"))
+	}
+
+	msg := req.Msg
+	pos := schema.Position{
+		Filename: msg.Path,
+		Line:     int(msg.Line),
+		Column:   int(msg.Column),
+	}
+
+	err := editor.OpenFileInEditor(ctx, msg.Editor, pos, pc.Root())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to open %q in %s", pos.Filename, msg.Editor)
+	}
+	return connect.NewResponse(&consolepb.OpenFileInEditorResponse{}), nil
 }
