@@ -160,8 +160,6 @@ public class VerbProcessor {
             if (clientDefinition.target().kind() != AnnotationTarget.Kind.CLASS) {
                 continue;
             }
-
-            //MethodInfo callMethod = clientDefinition.target().asMethod();
             ClassInfo verbClass = clientDefinition.target().asClass();
             var info = VerbUtil.getVerbInfo(index.getIndex(), verbClass);
             if (info == null) {
@@ -172,23 +170,12 @@ public class VerbProcessor {
             AnnotationValue moduleValue = clientDefinition.value("module");
             String module = moduleNameBuildItem.getModuleName();
             ClassOutput classOutput;
-            if (launchModeBuildItem.isTest()) {
-                //when running in tests we actually make these beans, so they can be injected into the tests
-                //the @TestResource qualifier is used so they can only be injected into test code
-                //TODO: is this the best way of handling this? revisit later
-                classOutput = new GeneratedBeanGizmoAdaptor(generatedBeanBuildItemBuildProducer);
-            } else {
-                classOutput = new GeneratedClassGizmoAdaptor(generatedClients, true);
-            }
+            classOutput = new GeneratedClassGizmoAdaptor(generatedClients, true);
             var callMethod = info.method();
             Type returnType = callMethod.returnType();
             Type paramType = callMethod.parametersCount() > 0 ? callMethod.parameterType(0) : null;
             try (ClassCreator cc = new ClassCreator(classOutput, verbClass.name().toString() + "_fit_verbclient", null,
                     verbClass.name().toString())) {
-                if (launchModeBuildItem.isTest()) {
-                    cc.addAnnotation(TEST_ANNOTATION);
-                    cc.addAnnotation(Singleton.class);
-                }
                 switch (VerbType.of(callMethod)) {
                     case VERB:
                         LinkedHashSet<Map.Entry<String, String>> signatures = new LinkedHashSet<>();
@@ -465,8 +452,6 @@ public class VerbProcessor {
                         .registerVerbMethod(method, className, visibility, false, ModuleBuilder.BodyType.ALLOWED)));
             } else {
                 var type = verb.target().asClass();
-                String className = type.name().toString();
-                beans.addBeanClass(className);
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
                         .registerVerbType(type, exported, false, ModuleBuilder.BodyType.ALLOWED)));
             }
