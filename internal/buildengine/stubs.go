@@ -2,11 +2,11 @@ package buildengine
 
 import (
 	"context"
+	"github.com/block/ftl/internal/buildengine/module"
 	"os"
 	"path/filepath"
 
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/common/schema"
@@ -19,7 +19,7 @@ var buildDirName = ".ftl"
 // GenerateStubs generates stubs for the given modules.
 //
 // Currently, only Go stubs are supported. Kotlin and other language stubs can be added in the future.
-func GenerateStubs(ctx context.Context, projectRoot string, modules []*schema.Module, metas map[string]moduleMeta) error {
+func GenerateStubs(ctx context.Context, projectRoot string, modules []*schema.Module, metas map[string]module.EngineModule) error {
 	err := generateStubsForEachLanguage(ctx, projectRoot, modules, metas)
 	if err != nil {
 		return errors.WithStack(err)
@@ -59,15 +59,11 @@ func CleanStubs(ctx context.Context, projectRoot string, configs []moduleconfig.
 // SyncStubReferences syncs the references in the generated stubs.
 //
 // For Go, this means updating all the go.work files to include all known modules in the shared stubbed modules directory.
-func SyncStubReferences(ctx context.Context, projectRoot string, moduleNames []string, metas map[string]moduleMeta, view *schema.Schema) error {
+func SyncStubReferences(ctx context.Context, projectRoot string, moduleNames []string, metas map[string]module.EngineModule, view *schema.Schema) error {
 	wg, wgctx := errgroup.WithContext(ctx)
 	for _, meta := range metas {
 		wg.Go(func() error {
-			stubsRoot := stubsLanguageDir(projectRoot, meta.module.Config.Language)
-			if err := meta.plugin.SyncStubReferences(wgctx, meta.module.Config, stubsRoot, moduleNames, view); err != nil {
-				return errors.Wrapf(err, "failed to sync go stub references for %s", meta.module.Config.Module)
-			}
-			return nil
+			return meta.SyncStubReferences(wgctx, projectRoot, moduleNames, view)
 		})
 	}
 	err := wg.Wait()
@@ -77,36 +73,23 @@ func SyncStubReferences(ctx context.Context, projectRoot string, moduleNames []s
 	return nil
 }
 
-func stubsLanguageDir(projectRoot, language string) string {
-	return filepath.Join(projectRoot, buildDirName, language, "modules")
-}
-
-func stubsModuleDir(projectRoot, language, module string) string {
-	return filepath.Join(stubsLanguageDir(projectRoot, language), module)
-}
-
-func generateStubsForEachLanguage(ctx context.Context, projectRoot string, modules []*schema.Module, metas map[string]moduleMeta) error {
+func generateStubsForEachLanguage(ctx context.Context, projectRoot string, modules []*schema.Module, metas map[string]module.EngineModule) error {
 	modulesByName := map[string]*schema.Module{}
 	for _, module := range modules {
 		modulesByName[module.Name] = module
 	}
-	metasByLanguage := map[string][]moduleMeta{}
+	metasByLanguage := map[string][]module.EngineModule{}
 	for _, meta := range metas {
-		metasByLanguage[meta.module.Config.Language] = append(metasByLanguage[meta.module.Config.Language], meta)
+		metasByLanguage[meta.Language()] = append(metasByLanguage[meta.Language()], meta)
 	}
 	wg, wgctx := errgroup.WithContext(ctx)
-	for language, metasForLang := range metasByLanguage {
+	for _, metasForLang := range metasByLanguage {
 		for idx, module := range modules {
 			// spread the load across plugins
 			assignedMeta := metasForLang[idx%len(metasForLang)]
-			config := metas[module.Name].module.Config
+			meta := metas[module.Name]
 			wg.Go(func() error {
-				path := stubsModuleDir(projectRoot, language, module.Name)
-				var nativeConfig optional.Option[moduleconfig.ModuleConfig]
-				if config.Module == "builtin" || config.Language != language {
-					nativeConfig = optional.Some(assignedMeta.module.Config)
-				}
-				if err := assignedMeta.plugin.GenerateStubs(wgctx, path, module, config, nativeConfig); err != nil {
+				if err := assignedMeta.GenerateStubs(wgctx, projectRoot, &meta, module); err != nil {
 					return errors.WithStack(err) //nolint:wrapcheck
 				}
 				return nil

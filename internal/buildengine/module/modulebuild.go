@@ -1,16 +1,9 @@
-package buildengine
+package module
 
 import (
 	"context"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
-
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/result"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -20,31 +13,18 @@ import (
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/sql"
+	"google.golang.org/protobuf/proto"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
-var errInvalidateDependencies = errors.New("dependencies need to be updated")
+var buildDirName = ".ftl"
+
 var errSQLError = errors.New("failed to add queries to schema")
 
-// Build a module in the given directory given the schema and module config.
-//
-// Plugins must use a lock file to ensure that only one build is running at a time.
-//
-// Returns invalidateDependenciesError if the build failed due to a change in dependencies.
-func build(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
-	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
-	ctx = log.ContextWithLogger(ctx, logger)
-
-	err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
-	if err != nil {
-		return nil, "", nil, errors.WithStack(errors.Join(errSQLError, err))
-	}
-	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
-	moduleSchema, tmpDeployDir, deployPaths, err = handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints)
-	if err != nil {
-		return nil, "", nil, errors.WithStack(err)
-	}
-	return moduleSchema, tmpDeployDir, deployPaths, nil
-}
+var ErrInvalidateDependencies = errors.New("dependencies need to be updated")
 
 // handleBuildResult processes the result of a build
 func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, m Module, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
@@ -53,11 +33,11 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 
 	result, err := eitherResult.Result()
 	if err != nil {
-		return nil, "", nil, errors.Wrap(err, "failed to build module")
+		return nil, "", nil, errors.Wrap(err, "failed to build Module")
 	}
 
 	if result.InvalidateDependencies {
-		return nil, "", nil, errors.WithStack(errInvalidateDependencies)
+		return nil, "", nil, errors.WithStack(ErrInvalidateDependencies)
 	}
 
 	if m.SQLError != nil {
@@ -184,7 +164,7 @@ func copyArtifacts(ctx context.Context, moduleName, root string, pathPatterns []
 	return tmpDir, absPaths, nil
 }
 
-// findFilesToDeploy returns a list of files to deploy for the given module.
+// findFilesToDeploy returns a list of files to deploy for the given Module.
 func findFilesToDeploy(root string, deploy []string) ([]string, error) {
 	var out []string
 	for _, f := range deploy {
@@ -221,4 +201,33 @@ func findFilesInDir(dir string) ([]string, error) {
 		out = append(out, path)
 		return nil
 	}))
+}
+
+// Build a Module in the given directory given the schema and Module config.
+//
+// Plugins must use a lock file to ensure that only one build is running at a time.
+//
+// Returns invalidateDependenciesError if the build failed due to a change in dependencies.
+func build(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
+	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
+	ctx = log.ContextWithLogger(ctx, logger)
+
+	err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
+	if err != nil {
+		return nil, "", nil, errors.WithStack(errors.Join(errSQLError, err))
+	}
+	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
+	moduleSchema, tmpDeployDir, deployPaths, err = handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints)
+	if err != nil {
+		return nil, "", nil, errors.WithStack(err)
+	}
+	return moduleSchema, tmpDeployDir, deployPaths, nil
+}
+
+func stubsLanguageDir(projectRoot, language string) string {
+	return filepath.Join(projectRoot, buildDirName, language, "modules")
+}
+
+func stubsModuleDir(projectRoot, language, module string) string {
+	return filepath.Join(stubsLanguageDir(projectRoot, language), module)
 }

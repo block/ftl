@@ -3,6 +3,7 @@ package buildengine
 import (
 	"context"
 	"encoding/hex"
+	module2 "github.com/block/ftl/internal/buildengine/module"
 	"io"
 	"maps"
 	"os"
@@ -49,7 +50,7 @@ type DependencyGrapher interface {
 }
 
 type pendingModule struct {
-	module Module
+	module module2.Module
 
 	deployPaths  []string
 	tmpDeployDir string
@@ -58,7 +59,7 @@ type pendingModule struct {
 	schema     *schema.Module
 }
 
-func newPendingModule(module Module, tmpDeployDir string, deployPaths []string, schemaPath string) *pendingModule {
+func newPendingModule(module module2.Module, tmpDeployDir string, deployPaths []string, schemaPath string) *pendingModule {
 	return &pendingModule{
 		module:       module,
 		deployPaths:  deployPaths,

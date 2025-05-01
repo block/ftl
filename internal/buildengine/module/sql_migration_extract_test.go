@@ -1,4 +1,4 @@
-package buildengine
+package module
 
 import (
 	"path/filepath"
