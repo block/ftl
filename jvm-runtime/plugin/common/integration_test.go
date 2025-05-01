@@ -28,14 +28,14 @@ func TestJVMSQLInterfaces(t *testing.T) {
 					"Demo": `public data class Demo(
   public val id: Long,
   public val requiredString: String,
-  public val optionalString: String?,
+  public val optionalString: String? = null,
   public val numberValue: Long,
   public val timestampValue: ZonedDateTime,
   public val floatValue: Double,
 )`,
 					"CreateDemoRowQuery": `public data class CreateDemoRowQuery(
   public val requiredString: String,
-  public val optionalString: String?,
+  public val optionalString: String? = null,
   public val numberValue: Long,
   public val timestampValue: ZonedDateTime,
   public val floatValue: Double,
