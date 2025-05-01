@@ -11,6 +11,7 @@ import (
 
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
+	"golang.org/x/exp/maps"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/internal/key"
@@ -237,6 +238,15 @@ func (s *Schema) InternalRealms() []*Realm {
 	return out
 }
 
+func (s *Schema) FirstInternalRealm() optional.Option[*Realm] {
+	for _, r := range s.Realms {
+		if !r.External {
+			return optional.Some(r)
+		}
+	}
+	return optional.None[*Realm]()
+}
+
 func (s *Schema) InternalModules() []*Module {
 	var out []*Module
 	for _, r := range s.InternalRealms() {
@@ -261,6 +271,35 @@ func (s *Schema) IncludeBuiltins() *Schema {
 		}
 	}
 	return s
+}
+
+// FilterModules returns a new schema with only the modules in the given list of references.
+// Returns the filtered schema and any refs that were not found in the original schema.
+func (s *Schema) FilterModules(modules []RefKey) (*Schema, []RefKey) {
+	filtered := &Schema{}
+	moduleNames := make(map[RefKey]bool)
+	missing := make(map[RefKey]bool)
+	for _, module := range modules {
+		moduleNames[module.ModuleOnly()] = true
+		missing[module.ModuleOnly()] = true
+	}
+	for _, realm := range s.Realms {
+		filteredRealm := &Realm{
+			Name:     realm.Name,
+			External: realm.External,
+		}
+		for _, module := range realm.Modules {
+			ref := RefKey{Module: module.Name}
+			if moduleNames[ref] {
+				filteredRealm.Modules = append(filteredRealm.Modules, module)
+				delete(missing, ref)
+			}
+		}
+		if len(filteredRealm.Modules) > 0 {
+			filtered.Realms = append(filtered.Realms, filteredRealm)
+		}
+	}
+	return filtered, maps.Keys(missing)
 }
 
 // SchemaState is the schema service state as persisted in Raft

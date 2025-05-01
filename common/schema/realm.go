@@ -178,3 +178,11 @@ func (r *Realm) ModuleDependencies(module string) map[string]*Module {
 	delete(deps, module)
 	return deps
 }
+
+func (r *Realm) ModuleNames() []string {
+	names := make([]string, len(r.Modules))
+	for i, m := range r.Modules {
+		names[i] = m.Name
+	}
+	return names
+}

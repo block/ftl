@@ -28,6 +28,10 @@ func (r *RefKey) Scan(src any) error {
 	return nil
 }
 
+func (r RefKey) ModuleOnly() RefKey {
+	return RefKey{Module: r.Module}
+}
+
 // Ref is an untyped reference to a symbol.
 //
 //protobuf:11

@@ -4,18 +4,16 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"slices"
 
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
-	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/projectconfig"
 )
 
@@ -43,31 +41,31 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 	}
 	for resp.Receive() {
 		msg := resp.Msg()
-		switch e := msg.Event.Value.(type) {
-		case *schemapb.Notification_FullSchemaNotification:
-			sch, err := schema.SchemaFromProto(e.FullSchemaNotification.Schema)
-			if err != nil {
-				return errors.Wrap(err, "invalid schema")
-			}
-			err = g.handleSchema(sch)
+		notification, err := schema.NotificationFromProto(msg.Event)
+		if err != nil {
+			return errors.Wrap(err, "invalid notification")
+		}
+		sch := &schema.Schema{}
+		switch e := notification.(type) {
+		case *schema.FullSchemaNotification:
+			sch, _ = e.Schema.FilterModules(moduleNamesToRefKeys(g.Modules))
+			err = g.displaySchema(sch)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 			if !g.Watch {
 				return nil
 			}
-		case *schemapb.Notification_ChangesetCommittedNotification:
+		case *schema.ChangesetCommittedNotification:
 			var modules []*schema.Module
-			cs, err := schema.ChangesetFromProto(e.ChangesetCommittedNotification.Changeset)
-			if err != nil {
-				return errors.Wrap(err, "invalid changeset")
-			}
-			modules = append(modules, cs.InternalRealm().Modules...)
+			modules = append(modules, e.Changeset.InternalRealm().Modules...)
 			realm := &schema.Realm{
 				Name:    projConfig.Name,
 				Modules: modules,
 			}
-			err = g.handleSchema(&schema.Schema{Realms: []*schema.Realm{realm}})
+			sch.Realms = append(sch.Realms, realm)
+			sch, _ = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
+			err = g.displaySchema(sch)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -82,55 +80,47 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 	return nil
 }
 
-func (g *getSchemaCmd) handleSchema(sch *schema.Schema) error {
+func (g *getSchemaCmd) displaySchema(sch *schema.Schema) error {
 	for _, realm := range sch.Realms {
 		fmt.Println(realm)
 	}
 	return nil
 }
 
-func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) error {
-	remainingNames := make(map[string]bool)
-	for _, name := range g.Modules {
-		remainingNames[name] = true
-	}
-
-	schema := &schemapb.Schema{}
-msgloop:
+func fullSchemaFromStream(resp *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) (*schema.Schema, error) {
 	for resp.Receive() {
 		msg := resp.Msg()
+		notification, err := schema.NotificationFromProto(msg.Event)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid notification")
+		}
 
-		switch e := msg.Event.Value.(type) {
-		case *schemapb.Notification_FullSchemaNotification:
-			for _, realm := range e.FullSchemaNotification.Schema.Realms {
-				protoRealm := &schemapb.Realm{
-					Name:     realm.Name,
-					External: realm.External,
-				}
-				for _, module := range realm.Modules {
-					if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
-						protoRealm.Modules = append(protoRealm.Modules, module)
-						delete(remainingNames, module.Name)
-					}
-				}
-				if len(protoRealm.Modules) > 0 {
-					schema.Realms = append(schema.Realms, protoRealm)
-				}
-			}
-			break msgloop
+		switch e := notification.(type) {
+		case *schema.FullSchemaNotification:
+			return e.Schema, nil
 		default:
 			// Ignore for now
 		}
 	}
 	if err := resp.Err(); err != nil {
+		return nil, errors.Wrap(err, "error receiving schema")
+	}
+	return nil, errors.New("no FullSchemaNotification received")
+}
+
+func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) error {
+	sch, err := fullSchemaFromStream(resp)
+	if err != nil {
 		return errors.Wrap(err, "error receiving schema")
 	}
-	data, err := protojson.Marshal(schema)
+	sch, missing := sch.FilterModules(slices.Map(g.Modules, func(m string) schema.RefKey { return schema.RefKey{Module: m} }))
+
+	data, err := protojson.Marshal(sch.ToProto())
 	if err != nil {
 		return errors.Wrap(err, "error marshaling schema")
 	}
 	fmt.Printf("%s\n", data)
-	missingNames := maps.Keys(remainingNames)
+	missingNames := slices.Map(missing, func(m schema.RefKey) string { return m.Module })
 	slices.Sort(missingNames)
 	if len(missingNames) > 0 {
 		return errors.Errorf("missing modules: %v", missingNames)
@@ -139,39 +129,12 @@ msgloop:
 }
 
 func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) error {
-	remainingNames := make(map[string]bool)
-	for _, name := range g.Modules {
-		remainingNames[name] = true
+	sch, err := fullSchemaFromStream(resp)
+	if err != nil {
+		return errors.Wrap(err, "error receiving schema")
 	}
-	schema := &schemapb.Schema{Realms: []*schemapb.Realm{{}}}
-	for resp.Receive() {
-		msg := resp.Msg()
-
-		switch e := msg.Event.Value.(type) {
-		case *schemapb.Notification_FullSchemaNotification:
-			for _, realm := range e.FullSchemaNotification.Schema.Realms {
-				protoRealm := &schemapb.Realm{
-					Name:     realm.Name,
-					External: realm.External,
-				}
-				for _, module := range realm.Modules {
-					if len(g.Modules) == 0 || slices.Contains(g.Modules, module.Name) {
-						protoRealm.Modules = append(protoRealm.Modules, module)
-						delete(remainingNames, module.Name)
-					}
-				}
-				if len(protoRealm.Modules) > 0 {
-					schema.Realms = append(schema.Realms, protoRealm)
-				}
-			}
-		default:
-			// Ignore for now
-		}
-	}
-	if err := resp.Err(); err != nil {
-		return errors.WithStack(err)
-	}
-	pb, err := proto.Marshal(schema)
+	sch, missing := sch.FilterModules(moduleNamesToRefKeys(g.Modules))
+	pb, err := proto.Marshal(sch.ToProto())
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -179,10 +142,14 @@ func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.P
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	missingNames := maps.Keys(remainingNames)
+	missingNames := slices.Map(missing, func(m schema.RefKey) string { return m.Module })
 	slices.Sort(missingNames)
 	if len(missingNames) > 0 {
 		return errors.Errorf("missing modules: %v", missingNames)
 	}
 	return nil
+}
+
+func moduleNamesToRefKeys(modules []string) []schema.RefKey {
+	return slices.Map(modules, func(m string) schema.RefKey { return schema.RefKey{Module: m} })
 }
