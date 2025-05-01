@@ -681,7 +681,7 @@ public class ModuleBuilder {
             return;
         }
         // TODO: handle getters and setters properly, also Jackson annotations etc
-        for (var field : clazz.fields()) {
+        for (var field : clazz.fieldsInDeclarationOrder()) {
             if (!Modifier.isStatic(field.flags())) {
                 Field.Builder builder = Field.newBuilder().setName(field.name())
                         .setType(buildType(field.type(), data.getVisibility(), field));
