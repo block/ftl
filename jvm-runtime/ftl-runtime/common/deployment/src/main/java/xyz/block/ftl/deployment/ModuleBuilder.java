@@ -717,9 +717,8 @@ public class ModuleBuilder {
                     String module = ref.value("module").asString();
                     // Validate that we are not attempting to modify the 'export' status of a
                     // generated type
-                    var export = visibility == Visibility.VISIBILITY_SCOPE_MODULE
-                            || visibility == Visibility.VISIBILITY_SCOPE_REALM;
-                    if (Objects.equals(module, this.moduleName) && !info.hasAnnotation(EXPORT) && export) {
+
+                    if (Objects.equals(module, this.moduleName) && !visibility.equals(VisibilityUtil.getVisibility(info))) {
                         validationFailures.add(new ValidationFailure(toError(forClass(clazz.name().toString())),
                                 "Generated type " + clazz.name()
                                         + " cannot be implicitly exported as part of the signature of a verb as it is a generated type, define a new type instead"));
@@ -762,28 +761,22 @@ public class ModuleBuilder {
 
                 if (info != null && (info.isEnum() || info.hasAnnotation(ENUM))) {
                     // Set only the name and export here. EnumProcessor will fill in the rest
-                    var updatedVisibility = visibility;
-                    if (updatedVisibility == Visibility.VISIBILITY_SCOPE_NONE && type.hasAnnotation(EXPORT)) {
-                        updatedVisibility = Visibility.VISIBILITY_SCOPE_MODULE;
-                    }
                     xyz.block.ftl.schema.v1.Enum.Builder ennum = xyz.block.ftl.schema.v1.Enum.newBuilder()
                             .setName(name)
-                            .setVisibility(updatedVisibility);
+                            .setVisibility(VisibilityUtil.getVisibility(type.annotation(EXPORT)));
                     addDecls(Decl.newBuilder().setEnum(ennum.build()).build());
                     return handleNullabilityAnnotations(ref, nullability);
                 } else {
                     // If this data was processed already, skip early
-                    var updatedVisibility = visibility;
-                    if (updatedVisibility == Visibility.VISIBILITY_SCOPE_NONE && type.hasAnnotation(EXPORT)) {
-                        updatedVisibility = Visibility.VISIBILITY_SCOPE_MODULE;
-                    }
-                    if (setDeclExport(name, updatedVisibility)) {
+                    if (setDeclExport(name,
+                            VisibilityUtil.highest(visibility, VisibilityUtil.getVisibility(clazz.annotation(EXPORT))))) {
                         return handleNullabilityAnnotations(ref, nullability);
                     }
                     Data.Builder data = Data.newBuilder()
                             .setPos(forClass(clazz.name().toString()))
                             .setName(name)
-                            .setVisibility(updatedVisibility)
+                            .setVisibility(
+                                    VisibilityUtil.highest(visibility, VisibilityUtil.getVisibility(type.annotation(EXPORT))))
                             .addAllComments(comments.getComments(name));
                     buildDataElement(data, clazz.name());
                     addDecls(Decl.newBuilder().setData(data).build());

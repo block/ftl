@@ -73,4 +73,5 @@ public class VerbUtil {
         }
         return new VerbInfo(name, type, method, bodyParamType, bodyParamNullability);
     }
+
 }

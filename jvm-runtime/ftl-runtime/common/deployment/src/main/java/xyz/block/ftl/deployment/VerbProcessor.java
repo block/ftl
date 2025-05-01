@@ -560,7 +560,6 @@ public class VerbProcessor {
         var beans = AdditionalBeanBuildItem.builder().setUnremovable();
 
         for (var verb : verbAnnotations) {
-            boolean exported = verb.target().hasAnnotation(FTLDotNames.EXPORT);
             if (verb.target().kind() == AnnotationTarget.Kind.METHOD) {
                 var method = verb.target().asMethod();
                 if (method.hasAnnotation(FTLDotNames.CRON) || method.hasAnnotation(FTLDotNames.SUBSCRIPTION)
@@ -570,20 +569,19 @@ public class VerbProcessor {
                 }
                 String className = method.declaringClass().name().toString();
                 beans.addBeanClass(className);
-                var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                        .registerVerbMethod(method, className, visibility, false, ModuleBuilder.BodyType.ALLOWED)));
+                        .registerVerbMethod(method, className, VisibilityUtil.getVisibility(method), false,
+                                ModuleBuilder.BodyType.ALLOWED)));
             } else {
-                var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
                 var type = verb.target().asClass();
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                        .registerVerbType(type, visibility, false, ModuleBuilder.BodyType.ALLOWED)));
+                        .registerVerbType(type, VisibilityUtil.getVisibility(verb.target()), false,
+                                ModuleBuilder.BodyType.ALLOWED)));
             }
         }
 
         Collection<AnnotationInstance> transactionAnnotations = index.getIndex().getAnnotations(FTLDotNames.TRANSACTIONAL);
         for (var txn : transactionAnnotations) {
-            boolean exported = txn.target().hasAnnotation(FTLDotNames.EXPORT);
             var method = txn.target().asMethod();
             if (method.hasAnnotation(FTLDotNames.VERB) || method.hasAnnotation(FTLDotNames.CRON)
                     || method.hasAnnotation(FTLDotNames.SUBSCRIPTION)
@@ -593,9 +591,9 @@ public class VerbProcessor {
             }
             String className = method.declaringClass().name().toString();
             beans.addBeanClass(className);
-            var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
             schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                    .registerVerbMethod(method, className, visibility, true, ModuleBuilder.BodyType.ALLOWED)));
+                    .registerVerbMethod(method, className, VisibilityUtil.getVisibility(method), true,
+                            ModuleBuilder.BodyType.ALLOWED)));
         }
 
         Collection<AnnotationInstance> cronAnnotations = index.getIndex().getAnnotations(FTLDotNames.CRON);
