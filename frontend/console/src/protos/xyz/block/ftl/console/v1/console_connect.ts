@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ExecuteGooseRequest, ExecuteGooseResponse, GetConfigRequest, GetConfigResponse, GetInfoRequest, GetInfoResponse, GetModulesRequest, GetModulesResponse, GetSecretRequest, GetSecretResponse, SetConfigRequest, SetConfigResponse, SetSecretRequest, SetSecretResponse, StreamModulesRequest, StreamModulesResponse } from "./console_pb.js";
+import { ExecuteGooseRequest, ExecuteGooseResponse, GetConfigRequest, GetConfigResponse, GetInfoRequest, GetInfoResponse, GetModulesRequest, GetModulesResponse, GetSecretRequest, GetSecretResponse, OpenFileInEditorRequest, OpenFileInEditorResponse, SetConfigRequest, SetConfigResponse, SetSecretRequest, SetSecretResponse, StreamModulesRequest, StreamModulesResponse } from "./console_pb.js";
 import { GetTimelineRequest, GetTimelineResponse, StreamTimelineRequest, StreamTimelineResponse } from "../../timeline/v1/timeline_pb.js";
 import { CallRequest, CallResponse } from "../../v1/verb_pb.js";
 import { StreamEngineEventsRequest, StreamEngineEventsResponse } from "../../buildengine/v1/buildengine_pb.js";
@@ -135,6 +135,15 @@ export const ConsoleService = {
       I: ExecuteGooseRequest,
       O: ExecuteGooseResponse,
       kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * @generated from rpc xyz.block.ftl.console.v1.ConsoleService.OpenFileInEditor
+     */
+    openFileInEditor: {
+      name: "OpenFileInEditor",
+      I: OpenFileInEditorRequest,
+      O: OpenFileInEditorResponse,
+      kind: MethodKind.Unary,
     },
   }
 } as const;

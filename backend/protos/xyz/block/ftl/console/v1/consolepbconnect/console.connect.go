@@ -72,6 +72,9 @@ const (
 	// ConsoleServiceExecuteGooseProcedure is the fully-qualified name of the ConsoleService's
 	// ExecuteGoose RPC.
 	ConsoleServiceExecuteGooseProcedure = "/xyz.block.ftl.console.v1.ConsoleService/ExecuteGoose"
+	// ConsoleServiceOpenFileInEditorProcedure is the fully-qualified name of the ConsoleService's
+	// OpenFileInEditor RPC.
+	ConsoleServiceOpenFileInEditorProcedure = "/xyz.block.ftl.console.v1.ConsoleService/OpenFileInEditor"
 )
 
 // ConsoleServiceClient is a client for the xyz.block.ftl.console.v1.ConsoleService service.
@@ -90,6 +93,7 @@ type ConsoleServiceClient interface {
 	StreamEngineEvents(context.Context, *connect.Request[v13.StreamEngineEventsRequest]) (*connect.ServerStreamForClient[v13.StreamEngineEventsResponse], error)
 	GetInfo(context.Context, *connect.Request[v11.GetInfoRequest]) (*connect.Response[v11.GetInfoResponse], error)
 	ExecuteGoose(context.Context, *connect.Request[v11.ExecuteGooseRequest]) (*connect.ServerStreamForClient[v11.ExecuteGooseResponse], error)
+	OpenFileInEditor(context.Context, *connect.Request[v11.OpenFileInEditorRequest]) (*connect.Response[v11.OpenFileInEditorResponse], error)
 }
 
 // NewConsoleServiceClient constructs a client for the xyz.block.ftl.console.v1.ConsoleService
@@ -182,6 +186,12 @@ func NewConsoleServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(consoleServiceMethods.ByName("ExecuteGoose")),
 			connect.WithClientOptions(opts...),
 		),
+		openFileInEditor: connect.NewClient[v11.OpenFileInEditorRequest, v11.OpenFileInEditorResponse](
+			httpClient,
+			baseURL+ConsoleServiceOpenFileInEditorProcedure,
+			connect.WithSchema(consoleServiceMethods.ByName("OpenFileInEditor")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -200,6 +210,7 @@ type consoleServiceClient struct {
 	streamEngineEvents *connect.Client[v13.StreamEngineEventsRequest, v13.StreamEngineEventsResponse]
 	getInfo            *connect.Client[v11.GetInfoRequest, v11.GetInfoResponse]
 	executeGoose       *connect.Client[v11.ExecuteGooseRequest, v11.ExecuteGooseResponse]
+	openFileInEditor   *connect.Client[v11.OpenFileInEditorRequest, v11.OpenFileInEditorResponse]
 }
 
 // Ping calls xyz.block.ftl.console.v1.ConsoleService.Ping.
@@ -267,6 +278,11 @@ func (c *consoleServiceClient) ExecuteGoose(ctx context.Context, req *connect.Re
 	return c.executeGoose.CallServerStream(ctx, req)
 }
 
+// OpenFileInEditor calls xyz.block.ftl.console.v1.ConsoleService.OpenFileInEditor.
+func (c *consoleServiceClient) OpenFileInEditor(ctx context.Context, req *connect.Request[v11.OpenFileInEditorRequest]) (*connect.Response[v11.OpenFileInEditorResponse], error) {
+	return c.openFileInEditor.CallUnary(ctx, req)
+}
+
 // ConsoleServiceHandler is an implementation of the xyz.block.ftl.console.v1.ConsoleService
 // service.
 type ConsoleServiceHandler interface {
@@ -284,6 +300,7 @@ type ConsoleServiceHandler interface {
 	StreamEngineEvents(context.Context, *connect.Request[v13.StreamEngineEventsRequest], *connect.ServerStream[v13.StreamEngineEventsResponse]) error
 	GetInfo(context.Context, *connect.Request[v11.GetInfoRequest]) (*connect.Response[v11.GetInfoResponse], error)
 	ExecuteGoose(context.Context, *connect.Request[v11.ExecuteGooseRequest], *connect.ServerStream[v11.ExecuteGooseResponse]) error
+	OpenFileInEditor(context.Context, *connect.Request[v11.OpenFileInEditorRequest]) (*connect.Response[v11.OpenFileInEditorResponse], error)
 }
 
 // NewConsoleServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -372,6 +389,12 @@ func NewConsoleServiceHandler(svc ConsoleServiceHandler, opts ...connect.Handler
 		connect.WithSchema(consoleServiceMethods.ByName("ExecuteGoose")),
 		connect.WithHandlerOptions(opts...),
 	)
+	consoleServiceOpenFileInEditorHandler := connect.NewUnaryHandler(
+		ConsoleServiceOpenFileInEditorProcedure,
+		svc.OpenFileInEditor,
+		connect.WithSchema(consoleServiceMethods.ByName("OpenFileInEditor")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/xyz.block.ftl.console.v1.ConsoleService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ConsoleServicePingProcedure:
@@ -400,6 +423,8 @@ func NewConsoleServiceHandler(svc ConsoleServiceHandler, opts ...connect.Handler
 			consoleServiceGetInfoHandler.ServeHTTP(w, r)
 		case ConsoleServiceExecuteGooseProcedure:
 			consoleServiceExecuteGooseHandler.ServeHTTP(w, r)
+		case ConsoleServiceOpenFileInEditorProcedure:
+			consoleServiceOpenFileInEditorHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -459,4 +484,8 @@ func (UnimplementedConsoleServiceHandler) GetInfo(context.Context, *connect.Requ
 
 func (UnimplementedConsoleServiceHandler) ExecuteGoose(context.Context, *connect.Request[v11.ExecuteGooseRequest], *connect.ServerStream[v11.ExecuteGooseResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.console.v1.ConsoleService.ExecuteGoose is not implemented"))
+}
+
+func (UnimplementedConsoleServiceHandler) OpenFileInEditor(context.Context, *connect.Request[v11.OpenFileInEditorRequest]) (*connect.Response[v11.OpenFileInEditorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.console.v1.ConsoleService.OpenFileInEditor is not implemented"))
 }

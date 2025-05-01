@@ -5,7 +5,7 @@ import { DeclDefaultPanels } from '../modules/decls/DeclDefaultPanels'
 export const modulePanels = (module: Module): ExpandablePanelProps[] => {
   const panels = []
 
-  panels.push(...DeclDefaultPanels(module.name, module.schema))
+  panels.push(...DeclDefaultPanels(module.name, module.schema, undefined, module.module?.pos))
 
   return panels
 }

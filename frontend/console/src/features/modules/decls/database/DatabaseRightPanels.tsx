@@ -14,7 +14,7 @@ export const databasePanels = (moduleName: string, database: Database, showGraph
         <RightPanelAttribute key='type' name='Type' value={database.database?.type} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, database.schema, database.edges),
+    ...DeclDefaultPanels(moduleName, database.schema, database.edges, database.database?.pos),
   ]
 
   if (showGraph) {
