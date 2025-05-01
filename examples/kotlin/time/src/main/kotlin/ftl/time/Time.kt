@@ -11,3 +11,7 @@ data class TimeResponse(val time: OffsetDateTime)
 fun time(): TimeResponse {
   return TimeResponse(time = OffsetDateTime.now())
 }
+
+fun time2(f : TimeResponse.TestFTLClient): TimeResponse {
+  return TimeResponse(time = OffsetDateTime.now())
+}

@@ -17,5 +17,6 @@
         <module>deployment</module>
         <module>runtime</module>
         <module>build-parent</module>
+        <module>compiler-plugin</module>
     </modules>
 </project>

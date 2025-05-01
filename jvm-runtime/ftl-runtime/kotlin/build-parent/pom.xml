@@ -20,6 +20,11 @@
             <groupId>xyz.block.ftl</groupId>
             <artifactId>ftl-kotlin-runtime</artifactId>
         </dependency>
+        <dependency>
+            <groupId>xyz.block.ftl</groupId>
+            <artifactId>ftl-kotlin-compiler-plugin</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -89,6 +94,9 @@
                         <option>all-open:annotation=jakarta.persistence.Entity</option>
                         <option>all-open:annotation=io.quarkus.test.junit.QuarkusTest</option>
                     </pluginOptions>
+                    <args>
+                        <arg>-Xplugin=${settings.localRepository}/xyz/block/ftl/ftl-kotlin-compiler-plugin/${project.version}/ftl-kotlin-compiler-plugin-${project.version}.jar</arg>
+                    </args>
                 </configuration>
             </plugin>
         </plugins>

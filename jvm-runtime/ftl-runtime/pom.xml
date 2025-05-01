@@ -47,6 +47,7 @@
     </modules>
 
     <properties>
+        <kotlin.version>2.1.20</kotlin.version>
         <compiler-plugin.version>3.14.0</compiler-plugin.version>
         <failsafe-plugin.version>${surefire-plugin.version}</failsafe-plugin.version>
         <maven.compiler.release>21</maven.compiler.release>
@@ -99,6 +100,11 @@
             </dependency>
             <dependency>
                 <groupId>xyz.block.ftl</groupId>
+                <artifactId>ftl-kotlin-compiler-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>xyz.block.ftl</groupId>
                 <artifactId>ftl-jvm-runtime-deployment</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -115,6 +121,11 @@
                 <scope>import</scope>
             </dependency>
 
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-compiler</artifactId>
+                <version>${kotlin.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.squareup</groupId>
                 <artifactId>javapoet</artifactId>
