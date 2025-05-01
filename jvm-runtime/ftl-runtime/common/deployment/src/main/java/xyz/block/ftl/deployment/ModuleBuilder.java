@@ -781,17 +781,18 @@ public class ModuleBuilder {
                     if (info != null) {
                         explicit = VisibilityUtil.getVisibility(info);
                     }
+                    Visibility highest = VisibilityUtil.highest(visibility, explicit);
                     if (setDeclExport(name,
-                            VisibilityUtil.highest(visibility, explicit))) {
+                            highest)) {
                         return handleNullabilityAnnotations(ref, nullability);
                     }
                     Data.Builder data = Data.newBuilder()
                             .setPos(forClass(clazz.name().toString()))
                             .setName(name)
                             .setVisibility(
-                                    VisibilityUtil.highest(visibility, explicit))
+                                    highest)
                             .addAllComments(comments.getComments(name));
-                    buildDataElement(data, clazz.name());
+                    buildDataElement(data, clazz.name(), highest);
                     addDecls(Decl.newBuilder().setData(data).build());
                     return handleNullabilityAnnotations(ref, nullability);
                 }
@@ -848,7 +849,7 @@ public class ModuleBuilder {
         throw new RuntimeException("NOT YET IMPLEMENTED");
     }
 
-    private void buildDataElement(Data.Builder data, DotName className) {
+    private void buildDataElement(Data.Builder data, DotName className, Visibility visibility) {
         if (className == null || className.equals(DotName.OBJECT_NAME)) {
             return;
         }
@@ -860,7 +861,7 @@ public class ModuleBuilder {
         for (var field : clazz.fieldsInDeclarationOrder()) {
             if (!Modifier.isStatic(field.flags())) {
                 Field.Builder builder = Field.newBuilder().setName(field.name())
-                        .setType(buildType(field.type(), data.getVisibility(), field));
+                        .setType(buildType(field.type(), visibility, field));
                 if (field.hasAnnotation(JsonAlias.class)) {
                     var aliases = field.annotation(JsonAlias.class);
                     if (aliases.value() != null) {
@@ -875,7 +876,7 @@ public class ModuleBuilder {
                 data.addFields(builder.build());
             }
         }
-        buildDataElement(data, clazz.superName());
+        buildDataElement(data, clazz.superName(), visibility);
     }
 
     public ModuleBuilder addDecls(Decl decl) {
@@ -1028,6 +1029,14 @@ public class ModuleBuilder {
                 var merged = existing.getData().toBuilder()
                         .setVisibility(higherVisibility(visibility, existing.getData().getVisibility())).build();
                 decls.put(name, Decl.newBuilder().setData(merged).build());
+                for (var field : merged.getFieldsList()) {
+                    if (field.getType().hasRef()) {
+                        var ref = field.getType().getRef();
+                        if (ref.getModule().equals(moduleName)) {
+                            setDeclExport(ref.getName(), visibility);
+                        }
+                    }
+                }
             } else if (existing.hasTypeAlias()) {
                 var merged = existing.getTypeAlias().toBuilder()
                         .setVisibility(higherVisibility(visibility, existing.getData().getVisibility()))
