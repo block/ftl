@@ -64,7 +64,7 @@ func Graph(s *Schema) map[RefKey]GraphNode {
 	return result
 }
 
-// OutboundEdgesutboundEdges returns all the outbound edges of a node.
+// OutboundEdges returns all the outbound edges of a node.
 func OutboundEdges(n Node, ignoredRefs map[RefKey]bool) []RefKey {
 	out := map[RefKey]bool{}
 	if r, ok := n.(*Ref); ok {

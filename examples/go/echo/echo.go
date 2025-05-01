@@ -24,7 +24,7 @@ type EchoResponse struct {
 
 // Echo returns a greeting with the current time.
 //
-//ftl:verb export:realm
+//ftl:verb export
 func Echo(ctx context.Context, req EchoRequest, tc time.TimeClient, defaultName Default) (EchoResponse, error) {
 	tresp, err := tc(ctx, time.TimeRequest{})
 	if err != nil {

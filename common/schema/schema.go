@@ -314,6 +314,27 @@ func (s *Schema) External() *Schema {
 			)
 		}
 	}
+	// strip any runtime
+	for _, realm := range filtered.Realms {
+		for _, module := range realm.Modules {
+			module.Runtime = nil
+			for _, decl := range module.Decls {
+				switch d := decl.(type) {
+				case *Verb:
+					d.Runtime = nil
+				case *Database:
+					d.Runtime = nil
+				case *Topic:
+					d.Runtime = nil
+				case *Data:
+				case *TypeAlias:
+				case *Config:
+				case *Enum:
+				case *Secret:
+				}
+			}
+		}
+	}
 	return filtered
 }
 

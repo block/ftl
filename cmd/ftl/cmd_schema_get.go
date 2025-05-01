@@ -71,7 +71,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 				Modules: modules,
 			}
 			sch.Realms = append(sch.Realms, realm)
-			sch, _ := g.applyFilters(sch)
+			sch, _ = g.applyFilters(sch)
 			err = g.displaySchema(sch)
 			if err != nil {
 				return errors.WithStack(err)
