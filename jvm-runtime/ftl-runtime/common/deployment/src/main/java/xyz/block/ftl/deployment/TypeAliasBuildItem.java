@@ -3,6 +3,7 @@ package xyz.block.ftl.deployment;
 import org.jboss.jandex.Type;
 
 import io.quarkus.builder.item.MultiBuildItem;
+import xyz.block.ftl.schema.v1.Visibility;
 
 public final class TypeAliasBuildItem extends MultiBuildItem {
 
@@ -10,14 +11,14 @@ public final class TypeAliasBuildItem extends MultiBuildItem {
     final String module;
     final Type localType;
     final Type serializedType;
-    final boolean exported;
+    final Visibility visibility;
 
-    public TypeAliasBuildItem(String name, String module, Type localType, Type serializedType, boolean exported) {
+    public TypeAliasBuildItem(String name, String module, Type localType, Type serializedType, Visibility exported) {
         this.name = name;
         this.module = module;
         this.localType = localType;
         this.serializedType = serializedType;
-        this.exported = exported;
+        this.visibility = exported;
     }
 
     public String getName() {
@@ -36,7 +37,7 @@ public final class TypeAliasBuildItem extends MultiBuildItem {
         return serializedType;
     }
 
-    public boolean isExported() {
-        return exported;
+    public Visibility getVisibility() {
+        return visibility;
     }
 }

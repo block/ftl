@@ -29,7 +29,6 @@ public class TypeAliasProcessor {
         log.debugf("Processing %d type alias annotations into decls", typeAliasAnnotations.size());
         var beans = new AdditionalBeanBuildItem.Builder().setUnremovable();
         for (var mapper : typeAliasAnnotations) {
-            boolean exported = mapper.target().hasAnnotation(FTLDotNames.EXPORT);
             // This may or may not be the actual mapper, it may be a subclass
 
             var mapperClass = mapper.target().asClass();
@@ -79,7 +78,8 @@ public class TypeAliasProcessor {
             var finalS = s;
             String module = mapper.value("module") == null ? "" : mapper.value("module").asString();
             String name = mapper.value("name").asString();
-            typeAliasBuildItemBuildProducer.produce(new TypeAliasBuildItem(name, module, t, s, exported));
+            Visibility visibility = VisibilityUtil.getVisibility(mapper.target());
+            typeAliasBuildItemBuildProducer.produce(new TypeAliasBuildItem(name, module, t, s, visibility));
             if (module.isEmpty()) {
                 Map<String, String> languageMappings = new HashMap<>();
                 AnnotationValue languageTypeMappingsValue = mapper.value("languageTypeMappings");
@@ -89,7 +89,6 @@ public class TypeAliasProcessor {
                                 lang.asNested().value("type").asString());
                     }
                 }
-                var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
                         .registerTypeAlias(name, finalT, finalS, visibility, languageMappings)));
             } else {

@@ -58,6 +58,7 @@ public class EnumProcessor {
                 }
             } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException e) {
                 throw new RuntimeException(e);
+
             }
         });
     }
@@ -72,20 +73,19 @@ public class EnumProcessor {
             throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
         List<Decl> decls = new ArrayList<>();
         for (var enumAnnotation : enumAnnotations) {
-            boolean exported = enumAnnotation.target().hasAnnotation(FTLDotNames.EXPORT);
             ClassInfo classInfo = enumAnnotation.target().asClass();
             Class<?> clazz = Class.forName(classInfo.name().toString(), false,
                     Thread.currentThread().getContextClassLoader());
             var isLocalToModule = !classInfo.hasDeclaredAnnotation(GENERATED_REF);
 
+            Visibility visibility = VisibilityUtil.getVisibility(enumAnnotation.target());
             if (classInfo.isEnum()) {
                 // Value enum
                 recorder.registerEnum(clazz);
                 if (isLocalToModule) {
-                    decls.add(extractValueEnum(classInfo, clazz, exported, commentsBuildItem));
+                    decls.add(extractValueEnum(classInfo, clazz, visibility, commentsBuildItem));
                 }
             } else {
-                var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
                 var typeEnum = extractTypeEnum(index, moduleBuilder, classInfo, visibility, commentsBuildItem);
                 recorder.registerEnum(clazz, typeEnum.variantClasses);
                 if (isLocalToModule) {
@@ -99,10 +99,10 @@ public class EnumProcessor {
     /**
      * Value enums are Java language enums with a single field 'value'
      */
-    private Decl extractValueEnum(ClassInfo classInfo, Class<?> clazz, boolean exported, CommentsBuildItem commentsBuildItem)
+    private Decl extractValueEnum(ClassInfo classInfo, Class<?> clazz, Visibility visibility,
+            CommentsBuildItem commentsBuildItem)
             throws NoSuchFieldException, IllegalAccessException {
         String name = classInfo.simpleName();
-        var visibility = exported ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
         Enum.Builder enumBuilder = Enum.newBuilder()
                 .setName(name)
                 .setPos(PositionUtils.forClass(classInfo.name().toString()))

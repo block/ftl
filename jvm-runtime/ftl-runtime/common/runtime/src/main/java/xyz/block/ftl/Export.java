@@ -11,4 +11,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE, ElementType.PARAMETER })
 public @interface Export {
+
+    ExportVisibility value() default ExportVisibility.MODULE;
 }
