@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	osexec "os/exec" //nolint:depguard
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -91,21 +92,24 @@ func formatPathWithPosition(pos schema.Position, includeColumn bool) string {
 // It determines the git repository root, remote origin URL, commit hash, and relative file path
 // to construct the appropriate GitHub blob URL.
 func buildGitHubLinkCommand(ctx context.Context, pos schema.Position) (executable string, args []string, workDir string, err error) {
-	repoRootCmd := exec.Command(ctx, log.Debug, filepath.Dir(pos.Filename), "git", "rev-parse", "--show-toplevel")
+	repoRootCmd := osexec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
+	repoRootCmd.Dir = filepath.Dir(pos.Filename)
 	repoRootBytes, err := repoRootCmd.Output()
 	if err != nil {
-		return "", nil, "", errors.Wrap(err, "failed to get git repo root: ensure you are in a git repository")
+		return "", nil, "", errors.Wrap(err, "failed to get git repo root: ensure you are in a git repository and git is installed")
 	}
 	repoRoot := strings.TrimSpace(string(repoRootBytes))
 
-	remoteURLCmd := exec.Command(ctx, log.Debug, repoRoot, "git", "config", "--get", "remote.origin.url")
+	remoteURLCmd := osexec.CommandContext(ctx, "git", "config", "--get", "remote.origin.url")
+	remoteURLCmd.Dir = repoRoot
 	remoteURLBytes, err := remoteURLCmd.Output()
 	if err != nil {
 		return "", nil, "", errors.Wrap(err, "failed to get git remote origin URL: ensure 'origin' remote is configured")
 	}
 	remoteURL := strings.TrimSpace(string(remoteURLBytes))
 
-	commitHashCmd := exec.Command(ctx, log.Debug, repoRoot, "git", "rev-parse", "HEAD")
+	commitHashCmd := osexec.CommandContext(ctx, "git", "rev-parse", "HEAD")
+	commitHashCmd.Dir = repoRoot
 	commitHashBytes, err := commitHashCmd.Output()
 	if err != nil {
 		return "", nil, "", errors.Wrap(err, "failed to get git commit hash")
