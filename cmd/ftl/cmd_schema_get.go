@@ -48,7 +48,10 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 		sch := &schema.Schema{}
 		switch e := notification.(type) {
 		case *schema.FullSchemaNotification:
-			sch, _ = e.Schema.FilterModules(moduleNamesToRefKeys(g.Modules))
+			sch = e.Schema
+			if len(g.Modules) > 0 {
+				sch, _ = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
+			}
 			err = g.displaySchema(sch)
 			if err != nil {
 				return errors.WithStack(err)
@@ -64,7 +67,9 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 				Modules: modules,
 			}
 			sch.Realms = append(sch.Realms, realm)
-			sch, _ = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
+			if len(g.Modules) > 0 {
+				sch, _ = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
+			}
 			err = g.displaySchema(sch)
 			if err != nil {
 				return errors.WithStack(err)
@@ -113,7 +118,10 @@ func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.Pu
 	if err != nil {
 		return errors.Wrap(err, "error receiving schema")
 	}
-	sch, missing := sch.FilterModules(slices.Map(g.Modules, func(m string) schema.RefKey { return schema.RefKey{Module: m} }))
+	var missing []schema.RefKey
+	if len(g.Modules) > 0 {
+		sch, missing = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
+	}
 
 	data, err := protojson.Marshal(sch.ToProto())
 	if err != nil {
@@ -133,7 +141,10 @@ func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.P
 	if err != nil {
 		return errors.Wrap(err, "error receiving schema")
 	}
-	sch, missing := sch.FilterModules(moduleNamesToRefKeys(g.Modules))
+	var missing []schema.RefKey
+	if len(g.Modules) > 0 {
+		sch, missing = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
+	}
 	pb, err := proto.Marshal(sch.ToProto())
 	if err != nil {
 		return errors.WithStack(err)
