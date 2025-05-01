@@ -342,3 +342,12 @@ func (m *Module) ModRuntime() *ModuleRuntime {
 	}
 	return m.Runtime
 }
+
+func (m *Module) GetByName(name string) optional.Option[Decl] {
+	for _, d := range m.Decls {
+		if d.GetName() == name {
+			return optional.Some(d)
+		}
+	}
+	return optional.None[Decl]()
+}

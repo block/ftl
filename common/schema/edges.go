@@ -37,7 +37,7 @@ func Graph(s *Schema) map[RefKey]GraphNode {
 
 			result[RefKey{Module: module.Name, Name: d.GetName()}] = GraphNode{
 				Decl: d,
-				Out:  outboundEdges(d, ignoredRefs),
+				Out:  OutboundEdges(d, ignoredRefs),
 				In:   []RefKey{},
 			}
 			return errors.WithStack(next())
@@ -64,8 +64,8 @@ func Graph(s *Schema) map[RefKey]GraphNode {
 	return result
 }
 
-// outboundEdges returns all the outbound edges of a node.
-func outboundEdges(n Node, ignoredRefs map[RefKey]bool) []RefKey {
+// OutboundEdges returns all the outbound edges of a node.
+func OutboundEdges(n Node, ignoredRefs map[RefKey]bool) []RefKey {
 	out := map[RefKey]bool{}
 	if r, ok := n.(*Ref); ok {
 		out[r.ToRefKey()] = true

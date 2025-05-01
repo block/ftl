@@ -302,6 +302,42 @@ func (s *Schema) FilterModules(modules []RefKey) (*Schema, []RefKey) {
 	return filtered, maps.Keys(missing)
 }
 
+// External returns the subset of the schema exported by internal realms.
+// This schema can be used as external schema in other clusters.
+func (s *Schema) External() *Schema {
+	filtered := &Schema{}
+	for _, realm := range s.Realms {
+		if !realm.External {
+			filtered.Realms = append(
+				filtered.Realms,
+				realm.FilterByVisibility(VisibilityScopeRealm),
+			)
+		}
+	}
+	// strip any runtime
+	for _, realm := range filtered.Realms {
+		for _, module := range realm.Modules {
+			module.Runtime = nil
+			for _, decl := range module.Decls {
+				switch d := decl.(type) {
+				case *Verb:
+					d.Runtime = nil
+				case *Database:
+					d.Runtime = nil
+				case *Topic:
+					d.Runtime = nil
+				case *Data:
+				case *TypeAlias:
+				case *Config:
+				case *Enum:
+				case *Secret:
+				}
+			}
+		}
+	}
+	return filtered
+}
+
 // SchemaState is the schema service state as persisted in Raft
 //
 //protobuf:export

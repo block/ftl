@@ -2,12 +2,15 @@ package schema
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
+	"slices"
 	"strings"
 
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
+	sliceop "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
 )
 
@@ -185,4 +188,57 @@ func (r *Realm) ModuleNames() []string {
 		names[i] = m.Name
 	}
 	return names
+}
+
+// FilterByVisibility returns a new realm with only the elements that match the given visibility scope
+// or above, or are referred to by such elements.
+func (r *Realm) FilterByVisibility(scope Visibility) *Realm {
+	var refs []RefKey
+	visited := make(map[RefKey]bool)
+
+	result := make(map[string]*Module)
+	modules := make(map[string]*Module)
+	for _, module := range r.Modules {
+		result[module.Name] = &Module{
+			Pos:      module.Pos,
+			Name:     module.Name,
+			Comments: module.Comments,
+			Metadata: module.Metadata,
+			Builtin:  module.Builtin,
+			Runtime:  module.Runtime,
+		}
+		modules[module.Name] = module
+	}
+	// Collect roots
+	for _, module := range r.Modules {
+		for _, decl := range module.Decls {
+			if decl.GetVisibility() < scope {
+				continue
+			}
+			refs = append(refs, RefKey{Module: module.Name, Name: decl.GetName()})
+		}
+	}
+	// Traverse
+	for len(refs) > 0 {
+		ref := refs[len(refs)-1]
+		refs = refs[:len(refs)-1]
+		if visited[ref] {
+			continue
+		}
+		visited[ref] = true
+		decl, ok := modules[ref.Module].GetByName(ref.Name).Get()
+		if !ok {
+			continue
+		}
+		result[ref.Module].Decls = append(result[ref.Module].Decls, decl)
+		out := OutboundEdges(decl, nil)
+		refs = append(refs, out...)
+	}
+	return &Realm{
+		Name:     r.Name,
+		External: r.External,
+		Modules: sliceop.Filter(slices.Collect(maps.Values(result)), func(m *Module) bool {
+			return len(m.Decls) > 0
+		}),
+	}
 }

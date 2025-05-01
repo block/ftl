@@ -22,6 +22,7 @@ type getSchemaCmd struct {
 	Protobuf bool     `help:"Output the schema as binary protobuf." xor:"format"`
 	JSON     bool     `help:"Output the schema as JSON." xor:"format"`
 	Modules  []string `help:"Modules to include" type:"string" optional:""`
+	Exported bool     `help:"Outputs the externally exported part of the schema"`
 }
 
 func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, projConfig projectconfig.Config) error {
@@ -52,6 +53,9 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			if len(g.Modules) > 0 {
 				sch, _ = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
 			}
+			if g.Exported {
+				sch = sch.External()
+			}
 			err = g.displaySchema(sch)
 			if err != nil {
 				return errors.WithStack(err)
@@ -67,9 +71,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 				Modules: modules,
 			}
 			sch.Realms = append(sch.Realms, realm)
-			if len(g.Modules) > 0 {
-				sch, _ = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
-			}
+			sch, _ = g.applyFilters(sch)
 			err = g.displaySchema(sch)
 			if err != nil {
 				return errors.WithStack(err)
@@ -118,10 +120,7 @@ func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.Pu
 	if err != nil {
 		return errors.Wrap(err, "error receiving schema")
 	}
-	var missing []schema.RefKey
-	if len(g.Modules) > 0 {
-		sch, missing = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
-	}
+	sch, missing := g.applyFilters(sch)
 
 	data, err := protojson.Marshal(sch.ToProto())
 	if err != nil {
@@ -141,10 +140,7 @@ func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.P
 	if err != nil {
 		return errors.Wrap(err, "error receiving schema")
 	}
-	var missing []schema.RefKey
-	if len(g.Modules) > 0 {
-		sch, missing = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
-	}
+	sch, missing := g.applyFilters(sch)
 	pb, err := proto.Marshal(sch.ToProto())
 	if err != nil {
 		return errors.WithStack(err)
@@ -159,6 +155,17 @@ func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.P
 		return errors.Errorf("missing modules: %v", missingNames)
 	}
 	return nil
+}
+
+func (g *getSchemaCmd) applyFilters(sch *schema.Schema) (*schema.Schema, []schema.RefKey) {
+	var missing []schema.RefKey
+	if len(g.Modules) > 0 {
+		sch, missing = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
+	}
+	if g.Exported {
+		sch = sch.External()
+	}
+	return sch, missing
 }
 
 func moduleNamesToRefKeys(modules []string) []schema.RefKey {
