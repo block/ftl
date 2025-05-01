@@ -69,7 +69,23 @@ public class PositionUtils {
                 if (idx != -1) {
                     packagePart = className.substring(0, idx).replaceAll("\\.", "/") + "/";
                 }
-                builder.setFilename(packagePart + clNode.sourceFile);
+
+                // Construct the relative path first
+                String relativePath = packagePart + clNode.sourceFile;
+                String finalPath = relativePath; // Default to relative path
+
+                // Try to resolve the absolute path using Quarkus Dev Mode source dirs
+                if (RuntimeUpdatesProcessor.INSTANCE != null) {
+                    for (var updates : RuntimeUpdatesProcessor.INSTANCE.getSourcesDir()) {
+                        Path resolved = updates.resolve(relativePath);
+                        if (Files.exists(resolved)) {
+                            finalPath = resolved.toAbsolutePath().toString();
+                            break; // Found the absolute path
+                        }
+                    }
+                }
+                builder.setFilename(finalPath);
+
                 if (method != null) {
                     var descriptor = DescriptorUtils.methodSignatureToDescriptor(method.returnType().descriptor(),
                             method.parameters().stream().map(p -> p.type().descriptor()).toArray(String[]::new));
