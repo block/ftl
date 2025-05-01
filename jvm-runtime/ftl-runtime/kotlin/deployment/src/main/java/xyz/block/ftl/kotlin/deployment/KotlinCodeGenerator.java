@@ -21,6 +21,7 @@ import com.squareup.kotlinpoet.CodeBlock;
 import com.squareup.kotlinpoet.FileSpec;
 import com.squareup.kotlinpoet.FunSpec;
 import com.squareup.kotlinpoet.KModifier;
+import com.squareup.kotlinpoet.ParameterSpec;
 import com.squareup.kotlinpoet.ParameterizedTypeName;
 import com.squareup.kotlinpoet.PropertySpec;
 import com.squareup.kotlinpoet.TypeName;
@@ -254,7 +255,11 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
             TypeName dataType = toKotlinTypeName(i.getType(), typeAliasMap, nativeTypeAliasMap);
             String name = i.getName();
             var fieldName = toJavaName(name);
-            constructorBuilder.addParameter(fieldName, dataType);
+            var ctorBuilder = ParameterSpec.builder(fieldName, dataType);
+            if (dataType.isNullable()) {
+                ctorBuilder.defaultValue("null");
+            }
+            constructorBuilder.addParameter(ctorBuilder.build());
             dataBuilder.addProperty(PropertySpec.builder(fieldName, dataType, KModifier.PUBLIC)
                     .initializer(fieldName).build());
         }
