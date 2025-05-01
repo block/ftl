@@ -149,3 +149,19 @@ func Contains[T comparable](slice []T, value T) bool {
 	}
 	return false
 }
+
+// RemoveAll removes all elements in a slice that are in another slice.
+func RemoveAll[T comparable](slice []T, values []T) []T {
+	seen := make(map[T]struct{})
+	for _, v := range values {
+		seen[v] = struct{}{}
+	}
+
+	result := make([]T, 0, len(slice))
+	for _, v := range slice {
+		if _, ok := seen[v]; !ok {
+			result = append(result, v)
+		}
+	}
+	return result
+}
