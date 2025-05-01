@@ -31,4 +31,8 @@ public class FTLDotNames {
     public static final DotName SINGLE_PARTITION_MAPPER = DotName.createSimple(SinglePartitionMapper.class);
     public static final DotName TRANSACTIONAL = DotName.createSimple(Transactional.class);
     public static final DotName KOTLIN_UNIT = DotName.createSimple("kotlin.Unit");
+    public static final DotName EMPTY_VERB = DotName.createSimple(EmptyVerb.class);
+    public static final DotName SOURCE_VERB = DotName.createSimple(SourceVerb.class);
+    public static final DotName SINK_VERB = DotName.createSimple(SinkVerb.class);
+    public static final DotName FUNCTION_VERB = DotName.createSimple(FunctionVerb.class);
 }

@@ -135,6 +135,14 @@ public class ModuleBuilder {
         return method.name();
     }
 
+    public static @NotNull String classToName(ClassInfo clazz) {
+        String simple = clazz.simpleName();
+        if (simple.contains("$")) {
+            simple = simple.substring(simple.lastIndexOf("$") + 1, simple.length() - 1);
+        }
+        return simple.substring(0, 1).toLowerCase() + simple.substring(1);
+    }
+
     public String getModuleName() {
         return moduleName;
     }
@@ -364,6 +372,168 @@ public class ModuleBuilder {
         }
     }
 
+    public void registerVerbType(ClassInfo clazz,
+            Visibility visibility, boolean transaction, BodyType bodyType) {
+        registerVerbType(clazz, visibility, transaction, bodyType, new VerbCustomization());
+    }
+
+    public void registerVerbType(ClassInfo clazz,
+            Visibility visibility, boolean transaction, BodyType bodyType, VerbCustomization customization) {
+
+        List<Class<?>> bodyParameterTypes = new ArrayList<>();
+        List<Class<?>> constructorParameterTypes = new ArrayList<>();
+        List<VerbRegistry.ParameterSupplier> bodySuppliers = new ArrayList<>();
+        List<VerbRegistry.ParameterSupplier> constructorSuppliers = new ArrayList<>();
+        try {
+            //TODO: both the interface and method search need to recurse into super classes
+            MethodInfo method = null;
+            MethodInfo constructor = null;
+            VerbInfo result = VerbUtil.getVerbInfo(index, clazz);
+            if (result == null) {
+                this.validationFailures.add(new ValidationFailure(xyz.block.ftl.language.v1.Position.newBuilder().build(),
+                        "Verb Class must extend FunctionVerb, SinkVerb, SourceVerb or EmptyVerb: " + clazz.name()));
+                return;
+            }
+            if (result.type() == VerbType.SINK || result.type() == VerbType.VERB) {
+                bodySuppliers.add(new VerbRegistry.BodySupplier(0));
+                bodyParameterTypes.add(ModuleBuilder.loadClass(result.bodyParamType()));
+            }
+            Set<MethodInfo> constructors = new HashSet<>();
+            for (MethodInfo methodInfo : clazz.methods()) {
+                if (methodInfo.name().equals("<init>")) {
+                    if (methodInfo.hasAnnotation(DotNames.INJECT)) {
+                        constructor = methodInfo;
+                        break;
+                    } else {
+                        constructors.add(methodInfo);
+                    }
+                }
+            }
+            if (constructor == null) {
+                if (constructors.size() == 1) {
+                    constructor = constructors.iterator().next();
+                } else if (constructors.size() > 1) {
+                    this.validationFailures.add(new ValidationFailure(xyz.block.ftl.language.v1.Position.newBuilder().build(),
+                            "Could not determine constructor for "
+                                    + clazz.name() + " use @Inject to annotate the appropriate constructor"));
+                    return;
+                }
+            }
+
+            Position methodPos = forMethod(result.method());
+
+            xyz.block.ftl.schema.v1.Verb.Builder verbBuilder = xyz.block.ftl.schema.v1.Verb.newBuilder();
+            String verbName = validateName(result.method(), ModuleBuilder.classToName(clazz));
+            MetadataCalls.Builder callsMetadata = MetadataCalls.newBuilder();
+            MetadataConfig.Builder configMetadata = MetadataConfig.newBuilder();
+            MetadataSecrets.Builder secretMetadata = MetadataSecrets.newBuilder();
+            MetadataPublisher.Builder publisherMetadata = MetadataPublisher.newBuilder();
+            var pos = -1;
+            if (constructor != null) {
+                for (var param : constructor.parameters()) {
+                    pos++;
+                    if (customization.ignoreParameter.apply(pos)) {
+                        continue;
+                    }
+                    Class<?> paramType = ModuleBuilder.loadClass(param.type());
+                    constructorParameterTypes.add(paramType);
+                    if (param.hasAnnotation(Secret.class)) {
+                        String name = param.annotation(Secret.class).value().asString();
+                        constructorSuppliers.add(new VerbRegistry.SecretSupplier(name, paramType));
+                        if (!knownSecrets.contains(name)) {
+                            xyz.block.ftl.schema.v1.Secret.Builder secretBuilder = xyz.block.ftl.schema.v1.Secret
+                                    .newBuilder().setPos(methodPos)
+                                    .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
+                                    .setName(name)
+                                    .addAllComments(comments.getComments(name));
+                            addDecls(Decl.newBuilder().setSecret(secretBuilder).build());
+                            knownSecrets.add(name);
+                        }
+                        secretMetadata.addSecrets(Ref.newBuilder().setName(name).setModule(moduleName).build());
+                    } else if (param.hasAnnotation(Config.class)) {
+                        String name = param.annotation(Config.class).value().asString();
+                        constructorSuppliers.add(new VerbRegistry.ConfigSupplier(name, paramType));
+                        if (!knownConfig.contains(name)) {
+                            xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
+                                    .newBuilder().setPos(methodPos)
+                                    .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
+                                    .setName(name)
+                                    .addAllComments(comments.getComments(name));
+                            addDecls(Decl.newBuilder().setConfig(configBuilder).build());
+                            knownConfig.add(name);
+                        }
+                        configMetadata.addConfig(Ref.newBuilder().setName(name).setModule(moduleName).build());
+                    } else if (knownTopics.containsKey(param.type().name())) {
+                        var topic = knownTopics.get(param.type().name());
+                        constructorSuppliers.add(recorder.topicSupplier(topic.generatedProducer(), verbName));
+                        publisherMetadata
+                                .addTopics(Ref.newBuilder().setPos(methodPos).setName(topic.topicName()).setModule(moduleName)
+                                        .build());
+                    } else if (verbClients.containsKey(param.type().name())) {
+                        var client = verbClients.get(param.type().name());
+                        constructorSuppliers.add(recorder.verbClientSupplier(client.generatedClient()));
+                        callsMetadata.addCalls(
+                                Ref.newBuilder().setPos(methodPos).setName(client.name()).setModule(client.module()).build());
+                    } else if (sqlQueryClients.containsKey(param.type().name())) {
+                        var client = sqlQueryClients.get(param.type().name());
+                        constructorSuppliers.add(recorder.verbClientSupplier(client.generatedClient()));
+                        callsMetadata.addCalls(
+                                Ref.newBuilder().setPos(methodPos).setName(client.name()).setModule(client.module()).build());
+                    } else if (FTLDotNames.LEASE_CLIENT.equals(param.type().name())) {
+                        constructorSuppliers.add(recorder.leaseClientSupplier());
+                    } else if (FTLDotNames.WORKLOAD_IDENTITY.equals(param.type().name())) {
+                        constructorSuppliers.add(recorder.workloadIdentitySupplier());
+                    } else {
+                        this.validationFailures.add(new ValidationFailure(toError(methodPos),
+                                "Invalid parameter " + param.name() + " in verb constructor " + verbName));
+                        return;
+                    }
+                }
+            }
+            if (callsMetadata.getCallsCount() > 0) {
+                verbBuilder.addMetadata(Metadata.newBuilder().setCalls(callsMetadata));
+            }
+            if (secretMetadata.getSecretsCount() > 0) {
+                verbBuilder.addMetadata(Metadata.newBuilder().setSecrets(secretMetadata));
+            }
+            if (configMetadata.getConfigCount() > 0) {
+                verbBuilder.addMetadata(Metadata.newBuilder().setConfig(configMetadata));
+            }
+            if (publisherMetadata.getTopicsCount() > 0) {
+                verbBuilder.addMetadata(Metadata.newBuilder().setPublisher(publisherMetadata));
+            }
+            if (transaction) {
+                verbBuilder.addMetadata(Metadata.newBuilder().setTransaction(MetadataTransaction.newBuilder().build()));
+            }
+
+            recorder.registerTypeVerb(moduleName, verbName, result.method().name(), loadClass(ClassType.create(clazz.name())),
+                    bodyParameterTypes,
+                    bodySuppliers, constructorParameterTypes, constructorSuppliers,
+                    result.method().returnType() == VoidType.VOID, transaction);
+
+            verbBuilder.setName(verbName)
+                    .setVisibility(visibility)
+                    .setPos(methodPos)
+                    .setRequest(
+                            customization.requestType
+                                    .apply(buildType(result.bodyParamType(), visibility, result.bodyParamNullability())))
+                    .setResponse(customization.responseType
+                            .apply(buildType(result.method().returnType(), visibility, result.method())))
+                    .addAllComments(comments.getComments(verbName));
+            if (customization.metadataCallback != null) {
+                customization.metadataCallback.accept(verbBuilder);
+            }
+            addDecls(Decl.newBuilder().setVerb(verbBuilder)
+                    .build());
+
+        } catch (Exception e) {
+            log.errorf(e, "Failed to process FTL verb class %s", clazz.name());
+            validationFailures.add(new ValidationFailure(toError(PositionUtils.forClass(clazz.name().toString())),
+                    "Failed to process FTL class " + clazz.name() + " "
+                            + e.getMessage()));
+        }
+    }
+
     private List<String> extractVars(String target) {
 
         List<String> ret = new ArrayList<>();
@@ -459,7 +629,7 @@ public class ModuleBuilder {
         }
     }
 
-    private Nullability nullability(org.jboss.jandex.AnnotationTarget type) {
+    public static Nullability nullability(org.jboss.jandex.AnnotationTarget type) {
         if (type.hasDeclaredAnnotation(NULLABLE)) {
             return Nullability.NULLABLE;
         } else if (type.hasDeclaredAnnotation(NOT_NULL)) {

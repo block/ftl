@@ -10,6 +10,7 @@ import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.arc.Arc;
+import io.quarkus.arc.InstanceHandle;
 import io.quarkus.runtime.annotations.Recorder;
 import xyz.block.ftl.runtime.http.FTLHttpHandler;
 import xyz.block.ftl.runtime.http.HTTPVerbInvoker;
@@ -30,6 +31,29 @@ public class FTLRecorder {
             method.setAccessible(true);
             var handlerInstance = Arc.container().instance(verbHandlerClass);
             Arc.container().instance(VerbRegistry.class).get().register(module, verbName, handlerInstance, method,
+                    paramMappers, allowNullReturn, isTransaction);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void registerTypeVerb(String module, String verbName, String methodName,
+            Class<?> verbHandlerClass,
+            List<Class<?>> parameterTypes, List<VerbRegistry.ParameterSupplier> paramMappers,
+            List<Class<?>> ctorTypes, List<VerbRegistry.ParameterSupplier> ctorParamMappers,
+            boolean allowNullReturn, boolean isTransaction) {
+        try {
+            var method = verbHandlerClass.getDeclaredMethod(methodName, parameterTypes.toArray(new Class[0]));
+            method.setAccessible(true);
+            var obj = Arc.container().instance(ObjectMapper.class).get();
+            var ctor = verbHandlerClass.getDeclaredConstructor(ctorTypes.toArray(new Class[0]));
+            var instance = ctor.newInstance(ctorParamMappers.stream().map(s -> s.apply(obj, null)).toArray());
+            Arc.container().instance(VerbRegistry.class).get().register(module, verbName, new InstanceHandle<Object>() {
+                @Override
+                public Object get() {
+                    return instance;
+                }
+            }, method,
                     paramMappers, allowNullReturn, isTransaction);
         } catch (Exception e) {
             throw new RuntimeException(e);

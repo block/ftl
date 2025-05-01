@@ -28,9 +28,13 @@ import com.squareup.javapoet.TypeVariableName;
 import com.squareup.javapoet.WildcardTypeName;
 
 import xyz.block.ftl.ConsumableTopic;
+import xyz.block.ftl.EmptyVerb;
 import xyz.block.ftl.EnumHolder;
+import xyz.block.ftl.FunctionVerb;
 import xyz.block.ftl.GeneratedRef;
 import xyz.block.ftl.SQLQueryClient;
+import xyz.block.ftl.SinkVerb;
+import xyz.block.ftl.SourceVerb;
 import xyz.block.ftl.TypeAlias;
 import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.VerbClient;
@@ -283,26 +287,45 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
         String verbName = verb.getName();
         TypeSpec.Builder clientBuilder = TypeSpec.interfaceBuilder(className(verbName) + CLIENT)
                 .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("A client for the $L.$L verb", module.getName(), verbName);
-
-        var methodName = verbName;
-        if (JAVA_KEYWORDS.contains(verbName)) {
-            methodName = verbName + "_";
-        }
-        MethodSpec.Builder callMethod = MethodSpec.methodBuilder(methodName)
-                .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                .addJavadoc("A client for the $L.$L verb", module.getName(), verbName)
                 .addAnnotation(AnnotationSpec.builder(VerbClient.class)
                         .addMember("module", "\"" + module.getName() + "\"")
-                        .build())
-                .addJavadoc(String.join("\n", verb.getCommentsList()));
-        VerbType verbType = VerbType.of(verb);
-        if (verbType == VerbType.SOURCE || verbType == VerbType.VERB) {
-            callMethod.returns(toAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap));
+                        .addMember("name", "\"" + verb.getName() + "\"")
+                        .build());
+        var comments = String.join("\n", verb.getCommentsList());
+        if (verb.getRequest().hasUnit() && verb.getResponse().hasUnit()) {
+            clientBuilder.addSuperinterface(ClassName.get(EmptyVerb.class));
+            clientBuilder.addMethod(MethodSpec.methodBuilder("call")
+                    .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC).build())
+                    .addJavadoc(comments);
+        } else if (verb.getRequest().hasUnit()) {
+            clientBuilder.addSuperinterface(ParameterizedTypeName.get(ClassName.get(SourceVerb.class),
+                    toJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap, true)));
+            clientBuilder.addMethod(MethodSpec.methodBuilder("call")
+                    .returns(toBoxedAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap))
+                    .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                    .addJavadoc(comments)
+                    .build());
+        } else if (verb.getResponse().hasUnit()) {
+            clientBuilder.addSuperinterface(ParameterizedTypeName.get(ClassName.get(SinkVerb.class),
+                    toJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap, true)));
+            clientBuilder.addMethod(MethodSpec.methodBuilder("call")
+                    .returns(TypeName.VOID)
+                    .addParameter(toBoxedAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap), "value")
+                    .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                    .addJavadoc(comments)
+                    .build());
+        } else {
+            clientBuilder.addSuperinterface(ParameterizedTypeName.get(ClassName.get(FunctionVerb.class),
+                    toJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap, true),
+                    toJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap, true)));
+            clientBuilder.addMethod(MethodSpec.methodBuilder("call")
+                    .returns(toBoxedAnnotatedJavaTypeName(verb.getResponse(), typeAliasMap, nativeTypeAliasMap))
+                    .addParameter(toBoxedAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap), "value")
+                    .addModifiers(Modifier.ABSTRACT, Modifier.PUBLIC)
+                    .addJavadoc(comments)
+                    .build());
         }
-        if (verbType == VerbType.SINK || verbType == VerbType.VERB) {
-            callMethod.addParameter(toAnnotatedJavaTypeName(verb.getRequest(), typeAliasMap, nativeTypeAliasMap), "value");
-        }
-        clientBuilder.addMethod(callMethod.build());
         JavaFile javaFile = JavaFile.builder(packageName, clientBuilder.build()).build();
         javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
     }
@@ -360,6 +383,16 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
     private TypeName toAnnotatedJavaTypeName(Type type, Map<DeclRef, Type> typeAliasMap,
             Map<DeclRef, String> nativeTypeAliasMap) {
         var results = toJavaTypeName(type, typeAliasMap, nativeTypeAliasMap, false);
+        if (type.hasRef() || type.hasArray() || type.hasBytes() || type.hasString() || type.hasMap()
+                || type.hasTime()) {
+            return results.annotated(AnnotationSpec.builder(NotNull.class).build());
+        }
+        return results;
+    }
+
+    private TypeName toBoxedAnnotatedJavaTypeName(Type type, Map<DeclRef, Type> typeAliasMap,
+            Map<DeclRef, String> nativeTypeAliasMap) {
+        var results = toJavaTypeName(type, typeAliasMap, nativeTypeAliasMap, true);
         if (type.hasRef() || type.hasArray() || type.hasBytes() || type.hasString() || type.hasMap()
                 || type.hasTime()) {
             return results.annotated(AnnotationSpec.builder(NotNull.class).build());

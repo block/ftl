@@ -1,21 +1,22 @@
 package ftl.time;
 
-import java.time.OffsetDateTime;
-
 import xyz.block.ftl.Export;
+import xyz.block.ftl.SourceVerb;
 import xyz.block.ftl.Verb;
 
-public class Time {
+@Verb
+@Export
+public class Time implements SourceVerb<TimeResponse> {
 
-    @Export
-    @Verb
-    public TimeResponse time() {
-        return new TimeResponse(OffsetDateTime.now().plusDays(1));
+    final InternalTime internal;
+
+    public Time(InternalTime internal) {
+        this.internal = internal;
     }
 
-    @Export
-    @Verb
-    public TimeResponse time2() {
-        return new TimeResponse(OffsetDateTime.now().plusDays(3));
+    @Override
+    public TimeResponse call() {
+        return internal.call();
     }
+
 }
