@@ -78,7 +78,7 @@ public class EnumProcessor {
                     Thread.currentThread().getContextClassLoader());
             var isLocalToModule = !classInfo.hasDeclaredAnnotation(GENERATED_REF);
 
-            Visibility visibility = VisibilityUtil.getVisibility(enumAnnotation.target());
+            Visibility visibility = VisibilityUtil.getVisibility(classInfo);
             if (classInfo.isEnum()) {
                 // Value enum
                 recorder.registerEnum(clazz);

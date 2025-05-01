@@ -763,20 +763,24 @@ public class ModuleBuilder {
                     // Set only the name and export here. EnumProcessor will fill in the rest
                     xyz.block.ftl.schema.v1.Enum.Builder ennum = xyz.block.ftl.schema.v1.Enum.newBuilder()
                             .setName(name)
-                            .setVisibility(VisibilityUtil.getVisibility(type.annotation(EXPORT)));
+                            .setVisibility(VisibilityUtil.getVisibility(info));
                     addDecls(Decl.newBuilder().setEnum(ennum.build()).build());
                     return handleNullabilityAnnotations(ref, nullability);
                 } else {
                     // If this data was processed already, skip early
+                    Visibility explicit = VisibilityUtil.getVisibility(clazz.annotation(EXPORT));
+                    if (info != null) {
+                        explicit = VisibilityUtil.getVisibility(info);
+                    }
                     if (setDeclExport(name,
-                            VisibilityUtil.highest(visibility, VisibilityUtil.getVisibility(clazz.annotation(EXPORT))))) {
+                            VisibilityUtil.highest(visibility, explicit))) {
                         return handleNullabilityAnnotations(ref, nullability);
                     }
                     Data.Builder data = Data.newBuilder()
                             .setPos(forClass(clazz.name().toString()))
                             .setName(name)
                             .setVisibility(
-                                    VisibilityUtil.highest(visibility, VisibilityUtil.getVisibility(type.annotation(EXPORT))))
+                                    VisibilityUtil.highest(visibility, explicit))
                             .addAllComments(comments.getComments(name));
                     buildDataElement(data, clazz.name());
                     addDecls(Decl.newBuilder().setData(data).build());
