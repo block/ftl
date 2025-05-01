@@ -9,8 +9,8 @@ import (
 
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
-	sliceop "github.com/block/ftl/common/slices"
 
+	sliceop "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
 )
 
