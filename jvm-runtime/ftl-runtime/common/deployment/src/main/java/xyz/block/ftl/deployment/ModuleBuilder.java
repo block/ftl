@@ -797,16 +797,16 @@ public class ModuleBuilder {
                     if (info != null) {
                         explicit = VisibilityUtil.getVisibility(info);
                     }
-                    Visibility actual = VisibilityUtil.highest(visibility, explicit);
-                    if (setDeclExport(name, actual)) {
+                    Visibility highest = VisibilityUtil.highest(visibility, explicit);
+                    if (setDeclExport(name, highest)) {
                         return handleNullabilityAnnotations(ref, nullability);
                     }
                     Data.Builder data = Data.newBuilder()
                             .setPos(forClass(projectRoot, clazz.name().toString()))
                             .setName(name)
-                            .setVisibility(actual)
+                            .setVisibility(highest)
                             .addAllComments(comments.getComments(name));
-                    buildDataElement(data, clazz.name(), actual);
+                    buildDataElement(data, clazz.name(), highest);
                     addDecls(Decl.newBuilder().setData(data).build());
                     return handleNullabilityAnnotations(ref, nullability);
                 }
