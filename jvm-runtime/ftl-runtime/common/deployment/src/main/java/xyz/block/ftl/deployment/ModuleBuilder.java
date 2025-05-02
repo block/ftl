@@ -997,19 +997,19 @@ public class ModuleBuilder {
             }
             var moreComplete = decl.getEnum().getVariantsCount() > 0 ? decl : existing;
             var lessComplete = decl.getEnum().getVariantsCount() > 0 ? existing : decl;
-            var visibility = higherVisibility(lessComplete.getEnum().getVisibility(), existing.getEnum().getVisibility());
+            var updated = higherVisibility(lessComplete.getEnum().getVisibility(), existing.getEnum().getVisibility());
 
             var merged = moreComplete.getEnum().toBuilder()
-                    .setVisibility(visibility)
+                    .setVisibility(updated)
                     .build();
             decls.put(name, Decl.newBuilder().setEnum(merged).build());
-            if (visibility != Visibility.VISIBILITY_SCOPE_NONE) {
+            if (updated != Visibility.VISIBILITY_SCOPE_NONE) {
                 // Need to update export on variants too
                 for (var childDecl : merged.getVariantsList()) {
                     if (childDecl.getValue().hasTypeValue()
                             && childDecl.getValue().getTypeValue().getValue().hasRef()) {
                         var ref = childDecl.getValue().getTypeValue().getValue().getRef();
-                        setDeclExport(ref.getName(), visibility);
+                        setDeclExport(ref.getName(), updated);
                     }
                 }
             }
@@ -1042,8 +1042,22 @@ public class ModuleBuilder {
                         .setVisibility(higherVisibility(visibility, existing.getData().getVisibility()))
                         .build();
                 decls.put(name, Decl.newBuilder().setTypeAlias(merged).build());
+            } else if (existing.hasEnum()) {
+                xyz.block.ftl.schema.v1.Enum existingEnum = existing.getEnum();
+                var merged = existingEnum.toBuilder()
+                        .setVisibility(higherVisibility(visibility, existing.getData().getVisibility()))
+                        .build();
+                decls.put(name, Decl.newBuilder().setEnum(merged).build());
+                for (var variant : merged.getVariantsList()) {
+                    if (variant.getValue().hasTypeValue()
+                            && variant.getValue().getTypeValue().getValue().hasRef()) {
+                        var ref = variant.getValue().getTypeValue().getValue().getRef();
+                        if (ref.getModule().equals(moduleName)) {
+                            setDeclExport(ref.getName(), visibility);
+                        }
+                    }
+                }
             }
-
         }
         return existing != null;
     }
@@ -1165,7 +1179,6 @@ public class ModuleBuilder {
     }
 
     private void handleEnum(ClassInfo classInfo, Visibility visibility) {
-
         try {
             Class<?> clazz = Class.forName(classInfo.name().toString(), false,
                     Thread.currentThread().getContextClassLoader());
@@ -1174,13 +1187,17 @@ public class ModuleBuilder {
                 // Value enum
                 recorder.registerEnum(clazz);
                 if (isLocalToModule) {
-                    addDecls(extractValueEnum(classInfo, clazz, visibility));
+                    if (!setDeclExport(classToName(classInfo), visibility)) {
+                        addDecls(extractValueEnum(classInfo, clazz, visibility));
+                    }
                 }
             } else {
                 var typeEnum = extractTypeEnum(classInfo, visibility);
                 recorder.registerEnum(clazz, typeEnum.variantClasses);
                 if (isLocalToModule) {
-                    addDecls(typeEnum.decl);
+                    if (!setDeclExport(typeEnum.decl.getEnum().getName(), visibility)) {
+                        addDecls(typeEnum.decl);
+                    }
                 }
             }
         } catch (Exception e) {
