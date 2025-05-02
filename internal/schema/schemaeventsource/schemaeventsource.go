@@ -38,7 +38,7 @@ type currentState struct {
 }
 
 // GetCanonical returns the current canonical schema (ie: without any changes applied from active changesets)
-func (v *View) GetCanonical() *schema.Schema { return v.eventSource.view.Load().schema }
+func (v *View) GetCanonical() *schema.Schema { return v.eventSource.view.Load().schema.WithBuiltins() }
 
 // NewUnattached creates a new EventSource that is not attached to a SchemaService.
 func NewUnattached() *EventSource {
@@ -109,7 +109,7 @@ func (e *EventSource) WaitForInitialSync(ctx context.Context) bool {
 }
 
 // CanonicalView is the materialised view of the schema from "Events".
-func (e *EventSource) CanonicalView() *schema.Schema { return e.view.Load().schema }
+func (e *EventSource) CanonicalView() *schema.Schema { return e.view.Load().schema.WithBuiltins() }
 
 func (e *EventSource) ActiveChangesets() map[key.Changeset]*schema.Changeset {
 	return e.view.Load().activeChangesets

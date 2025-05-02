@@ -1318,3 +1318,37 @@ func TestExports(t *testing.T) {
 		})
 	}
 }
+
+func TestWithBuiltins(t *testing.T) {
+	module := &Module{
+		Name: "bar",
+		Decls: []Decl{
+			&Verb{Name: "m", Request: &Unit{Unit: true}, Response: &Unit{Unit: true}, Visibility: VisibilityScopeModule},
+		},
+	}
+	schema := &Schema{
+		Realms: []*Realm{{
+			Name:    "foo",
+			Modules: []*Module{module},
+		},
+		},
+	}
+
+	t.Run("add builtins", func(t *testing.T) {
+		assert.Equal(t, &Schema{
+			Realms: []*Realm{{
+				Name:    "foo",
+				Modules: []*Module{Builtins(), module},
+			}},
+		}, schema.WithBuiltins())
+		assert.Equal(t, &Schema{
+			Realms: []*Realm{{
+				Name:    "foo",
+				Modules: []*Module{module},
+			}},
+		}, schema)
+	})
+	t.Run("does not add builtins if already present", func(t *testing.T) {
+		assert.Equal(t, schema.WithBuiltins(), schema.WithBuiltins().WithBuiltins())
+	})
+}

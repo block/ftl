@@ -147,7 +147,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time1, echo1}}}}, changes.CanonicalView())
+		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{schema.Builtins(), time1, echo1}}}}, changes.CanonicalView())
 	})
 
 	t.Run("Mutation", func(t *testing.T) {
@@ -174,7 +174,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2, echo1}}}}, changes.CanonicalView())
+		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{schema.Builtins(), time2, echo1}}}}, changes.CanonicalView())
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -203,7 +203,7 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time2}}}}, changes.CanonicalView())
+		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{schema.Builtins(), time2}}}}, changes.CanonicalView())
 	})
 }
 

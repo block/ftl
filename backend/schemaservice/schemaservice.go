@@ -127,7 +127,7 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 	)
 
 	return connect.NewResponse(&ftlv1.GetSchemaResponse{
-		Schema:     view.GetCanonicalSchema().WithBuiltins().ToProto(),
+		Schema:     view.GetCanonicalSchema().ToProto(),
 		Changesets: changesets,
 	}), nil
 }
@@ -412,7 +412,7 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 	}
 
 	notification := &schema.FullSchemaNotification{
-		Schema:     view.GetCanonicalSchema().WithBuiltins(),
+		Schema:     view.GetCanonicalSchema(),
 		Changesets: gslices.Collect(maps.Values(view.GetChangesets())),
 	}
 	err = sendChange(&ftlv1.PullSchemaResponse{
