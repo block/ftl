@@ -255,9 +255,13 @@ func (s *Schema) InternalModules() []*Module {
 	return out
 }
 
-func (s *Schema) IncludeBuiltins() *Schema {
+// WithBuiltins returns a new schema with the builtins module added to each internal realm.
+func (s *Schema) WithBuiltins() *Schema {
+	c := new(Schema)
+	*c = *s
+
 	builtins := Builtins()
-	for _, r := range s.Realms {
+	for i, r := range c.Realms {
 		if !r.External {
 			hasBuiltin := false
 			for _, m := range r.Modules {
@@ -266,11 +270,14 @@ func (s *Schema) IncludeBuiltins() *Schema {
 				}
 			}
 			if !hasBuiltin {
-				r.Modules = append([]*Module{builtins}, r.Modules...)
+				rc := new(Realm)
+				*rc = *r
+				rc.Modules = append([]*Module{builtins}, r.Modules...)
+				c.Realms[i] = rc
 			}
 		}
 	}
-	return s
+	return c
 }
 
 // FilterModules returns a new schema with only the modules in the given list of references.
