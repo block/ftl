@@ -33,6 +33,9 @@ func TestRealm_FilterByVisibility(t *testing.T) {
 		realm := &Realm{
 			Name: "test",
 			Modules: []*Module{{
+				Name:  "other",
+				Decls: []Decl{&Verb{Name: "test2", Visibility: VisibilityScopeNone}},
+			}, {
 				Name: "test",
 				Decls: []Decl{&Verb{
 					Name:       "test",
@@ -41,9 +44,6 @@ func TestRealm_FilterByVisibility(t *testing.T) {
 						&MetadataCalls{Calls: []*Ref{{Module: "other", Name: "test2"}}},
 					},
 				}},
-			}, {
-				Name:  "other",
-				Decls: []Decl{&Verb{Name: "test2", Visibility: VisibilityScopeNone}},
 			}},
 		}
 		filtered := realm.FilterByVisibility(VisibilityScopeModule)

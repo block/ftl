@@ -77,7 +77,7 @@ func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification 
 		// Initial sync is complete, we send an initial Full schema event
 		state := e.view.Load()
 		subscribe <- &schema.FullSchemaNotification{
-			Schema:     state.schema.IncludeBuiltins(),
+			Schema:     state.schema.WithBuiltins(),
 			Changesets: maps.Values(state.activeChangesets),
 		}
 	default:

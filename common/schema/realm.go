@@ -5,6 +5,7 @@ import (
 	"maps"
 	"reflect"
 	"slices"
+	"sort"
 	"strings"
 
 	errors "github.com/alecthomas/errors"
@@ -234,11 +235,15 @@ func (r *Realm) FilterByVisibility(scope Visibility) *Realm {
 		out := OutboundEdges(decl, nil)
 		refs = append(refs, out...)
 	}
+	newModules := sliceop.Filter(slices.Collect(maps.Values(result)), func(m *Module) bool {
+		return len(m.Decls) > 0
+	})
+	sort.Slice(newModules, func(i, j int) bool {
+		return newModules[i].Name < newModules[j].Name
+	})
 	return &Realm{
 		Name:     r.Name,
 		External: r.External,
-		Modules: sliceop.Filter(slices.Collect(maps.Values(result)), func(m *Module) bool {
-			return len(m.Decls) > 0
-		}),
+		Modules:  newModules,
 	}
 }
