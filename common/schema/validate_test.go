@@ -157,7 +157,7 @@ func TestValidate(t *testing.T) {
 		{name: "Array",
 			schema: `realm foo {
 				module one {
-					data Data {}
+					export data Data {}
 					export verb one(builtin.HttpRequest<[one.Data], Unit, Unit>) builtin.HttpResponse<[one.Data], builtin.Empty>
 						+ingress http POST /one
 				}
@@ -178,7 +178,7 @@ func TestValidate(t *testing.T) {
 		{name: "DoubleIngress",
 			schema: `realm foo {
 				module one {
-					data Data {}
+					export data Data {}
 					export verb one(builtin.HttpRequest<[one.Data], Unit, Unit>) builtin.HttpResponse<[one.Data], builtin.Empty>
 					    +ingress http POST /one
 					    +ingress http POST /two
@@ -505,6 +505,45 @@ func TestValidate(t *testing.T) {
 		}`,
 			errs: []string{
 				`2:4: module name "map" is invalid`,
+			},
+		},
+		{
+			name: "ChildRefsCanNotReduceVisibility",
+			schema: `realm main {
+				module parent {
+			 		export data One {
+						field Unit
+					}
+					export data Two {
+						field Unit
+					}
+					export data Three {
+						field Unit
+					}
+				}
+				module child {
+					export realm data Data {
+						one parent.One
+						two parent.Two?
+						three child.Associated<parent.Three>?
+					}
+
+					export realm data Associated<Inner> {
+    					method Inner
+  					}
+
+					enum PrivateEnum: String {
+						Value = "private"
+					}
+
+					export typealias ExportedAlias PrivateEnum
+				}
+			}`,
+			errs: []string{
+				`24:6: enum "PrivateEnum" must have visibility of "export" due to child.ExportedAlias`,
+				`3:7: data "One" must have visibility of "export realm" due to child.Data`,
+				`6:6: data "Two" must have visibility of "export realm" due to child.Data`,
+				`9:6: data "Three" must have visibility of "export realm" due to child.Data`,
 			},
 		},
 	}
