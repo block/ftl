@@ -13,14 +13,18 @@ import (
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/pgproxy"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 func TestPgProxy(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 	client, proxy := net.Pipe()
 
+	project, err := projectconfig.Load(ctx, optional.None[string]())
+	assert.NoError(t, err)
+
 	dsn := dev.PostgresDSN(ctx, 0)
-	err := dev.SetupPostgres(ctx, optional.None[string](), 0, false)
+	err = dev.SetupPostgres(ctx, project, optional.None[string](), 0, false)
 	assert.NoError(t, err)
 
 	frontend := pgproto3.NewFrontend(client, client)

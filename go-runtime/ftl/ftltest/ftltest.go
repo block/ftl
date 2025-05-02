@@ -5,9 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
-	"sort"
 	"strings"
 
 	errors "github.com/alecthomas/errors"
@@ -28,7 +26,7 @@ import (
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/log"
-	pc "github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/projectconfig"
 	mcu "github.com/block/ftl/internal/testutils/modulecontext"
 )
 
@@ -36,6 +34,8 @@ import (
 var moduleGetter = reflection.Module
 
 type OptionsState struct {
+	projectConfigPath       optional.Option[string]
+	project                 projectconfig.Config
 	databases               map[string]deploymentcontext.Database
 	mockVerbs               map[schema.RefKey]deploymentcontext.Verb
 	allowDirectVerbBehavior bool
@@ -44,15 +44,7 @@ type OptionsState struct {
 
 type optionRank int
 
-const (
-	profile optionRank = iota
-	other
-)
-
-type Option struct {
-	rank  optionRank
-	apply func(context.Context, *OptionsState) error
-}
+type Option func(context.Context, *OptionsState) error
 
 // Context suitable for use in testing FTL verbs with provided options
 func Context(options ...Option) context.Context {
@@ -69,16 +61,18 @@ func newContext(ctx context.Context, module string, options ...Option) context.C
 
 	ctx = contextWithFakeFTL(ctx, options...)
 
-	sort.Slice(options, func(i, j int) bool {
-		return options[i].rank < options[j].rank
-	})
-
 	for _, option := range options {
-		err := option.apply(ctx, state)
+		err := option(ctx, state)
 		if err != nil {
 			panic(fmt.Sprintf("error applying option: %v", err))
 		}
 	}
+
+	project, err := loadProjectConfig(ctx, state.projectConfigPath)
+	if err != nil {
+		panic(fmt.Sprintf("error loading project config: %v", err))
+	}
+	state.project = project
 
 	if state.allowDirectSQLVerbs {
 		querySvc, err := query.New(ctx, &schema.Module{Name: module}, xsync.NewMapOf[string, string]())
@@ -131,61 +125,47 @@ func WithDefaultProjectFile() Option {
 //		// ... other options
 //	)
 func WithProjectFile(path string) Option {
-	// Convert to absolute path immediately in case working directory changes
-	var preprocessingErr error
-	if path == "" {
-		var ok bool
-		path, ok = pc.DefaultConfigPath().Get()
-		if !ok {
-			preprocessingErr = errors.Errorf("could not find default project file in $FTL_CONFIG or git")
+	return func(ctx context.Context, state *OptionsState) error {
+		state.projectConfigPath = optional.Some(path)
+		return nil
+	}
+}
+
+func loadProjectConfig(ctx context.Context, path optional.Option[string]) (projectconfig.Config, error) {
+	projectConfig, err := projectconfig.Load(ctx, path)
+	if err != nil {
+		return projectconfig.Config{}, errors.Wrap(err, "project")
+	}
+	cm, err := cf.NewDefaultConfigurationManagerFromConfig(ctx, providers.NewDefaultConfigRegistry(), projectConfig)
+	if err != nil {
+		return projectconfig.Config{}, errors.Wrap(err, "could not set up configs")
+	}
+	configs, err := cm.MapForModule(ctx, moduleGetter())
+	if err != nil {
+		return projectconfig.Config{}, errors.Wrap(err, "could not read configs")
+	}
+
+	fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
+	for name, data := range configs {
+		if err := fftl.setConfig(name, json.RawMessage(data)); err != nil {
+			return projectconfig.Config{}, errors.WithStack(err)
 		}
 	}
-	return Option{
-		rank: profile,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			if preprocessingErr != nil {
-				return errors.WithStack(preprocessingErr)
-			}
-			if _, err := os.Stat(path); err != nil {
-				return errors.Wrap(err, "error accessing project file")
-			}
-			projectConfig, err := pc.Load(ctx, optional.Some(path))
-			if err != nil {
-				return errors.Wrap(err, "project")
-			}
-			cm, err := cf.NewDefaultConfigurationManagerFromConfig(ctx, providers.NewDefaultConfigRegistry(), projectConfig)
-			if err != nil {
-				return errors.Wrap(err, "could not set up configs")
-			}
-			configs, err := cm.MapForModule(ctx, moduleGetter())
-			if err != nil {
-				return errors.Wrap(err, "could not read configs")
-			}
 
-			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
-			for name, data := range configs {
-				if err := fftl.setConfig(name, json.RawMessage(data)); err != nil {
-					return errors.WithStack(err)
-				}
-			}
-
-			sm, err := cf.NewDefaultSecretsManagerFromConfig(ctx, providers.NewDefaultSecretsRegistry(), projectConfig)
-			if err != nil {
-				return errors.Wrap(err, "could not set up secrets")
-			}
-			secrets, err := sm.MapForModule(ctx, moduleGetter())
-			if err != nil {
-				return errors.Wrap(err, "could not read secrets")
-			}
-			for name, data := range secrets {
-				if err := fftl.setSecret(name, json.RawMessage(data)); err != nil {
-					return errors.WithStack(err)
-				}
-			}
-			return nil
-		},
+	sm, err := cf.NewDefaultSecretsManagerFromConfig(ctx, providers.NewDefaultSecretsRegistry(), projectConfig)
+	if err != nil {
+		return projectconfig.Config{}, errors.Wrap(err, "could not set up secrets")
 	}
-
+	secrets, err := sm.MapForModule(ctx, moduleGetter())
+	if err != nil {
+		return projectconfig.Config{}, errors.Wrap(err, "could not read secrets")
+	}
+	for name, data := range secrets {
+		if err := fftl.setSecret(name, json.RawMessage(data)); err != nil {
+			return projectconfig.Config{}, errors.WithStack(err)
+		}
+	}
+	return projectConfig, nil
 }
 
 // WithConfig sets a configuration for the current module
@@ -197,18 +177,15 @@ func WithProjectFile(path string) Option {
 //		// ... other options
 //	)
 func WithConfig[T ftl.ConfigType](config ftl.Config[T], value T) Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			if config.Module != moduleGetter() {
-				return errors.Errorf("config %v does not match current module %s", config.Module, moduleGetter())
-			}
-			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
-			if err := fftl.setConfig(config.Name, value); err != nil {
-				return errors.WithStack(err)
-			}
-			return nil
-		},
+	return func(ctx context.Context, state *OptionsState) error {
+		if config.Module != moduleGetter() {
+			return errors.Errorf("config %v does not match current module %s", config.Module, moduleGetter())
+		}
+		fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
+		if err := fftl.setConfig(config.Name, value); err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
 	}
 }
 
@@ -221,18 +198,15 @@ func WithConfig[T ftl.ConfigType](config ftl.Config[T], value T) Option {
 //		// ... other options
 //	)
 func WithSecret[T ftl.SecretType](secret ftl.Secret[T], value T) Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			if secret.Module != moduleGetter() {
-				return errors.Errorf("secret %v does not match current module %s", secret.Module, moduleGetter())
-			}
-			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
-			if err := fftl.setSecret(secret.Name, value); err != nil {
-				return errors.WithStack(err)
-			}
-			return nil
-		},
+	return func(ctx context.Context, state *OptionsState) error {
+		if secret.Module != moduleGetter() {
+			return errors.Errorf("secret %v does not match current module %s", secret.Module, moduleGetter())
+		}
+		fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
+		if err := fftl.setSecret(secret.Name, value); err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
 	}
 }
 
@@ -247,19 +221,16 @@ func WithSecret[T ftl.SecretType](secret ftl.Secret[T], value T) Option {
 //		// ... other options
 //	)
 func WhenVerb[VerbClient, Req, Resp any](fake ftl.Verb[Req, Resp]) Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			ref := reflection.ClientRef[VerbClient]()
-			state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
-				request, ok := req.(Req)
-				if !ok {
-					return nil, errors.Errorf("invalid request type %T for %v, expected %v", req, ref, reflect.TypeFor[Req]())
-				}
-				return errors.WithStack2(fake(ctx, request))
+	return func(ctx context.Context, state *OptionsState) error {
+		ref := reflection.ClientRef[VerbClient]()
+		state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
+			request, ok := req.(Req)
+			if !ok {
+				return nil, errors.Errorf("invalid request type %T for %v, expected %v", req, ref, reflect.TypeFor[Req]())
 			}
-			return nil
-		},
+			return errors.WithStack2(fake(ctx, request))
+		}
+		return nil
 	}
 }
 
@@ -274,15 +245,12 @@ func WhenVerb[VerbClient, Req, Resp any](fake ftl.Verb[Req, Resp]) Option {
 //		// ... other options
 //	)
 func WhenSource[SourceClient, Resp any](fake ftl.Source[Resp]) Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			ref := reflection.ClientRef[SourceClient]()
-			state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
-				return errors.WithStack2(fake(ctx))
-			}
-			return nil
-		},
+	return func(ctx context.Context, state *OptionsState) error {
+		ref := reflection.ClientRef[SourceClient]()
+		state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
+			return errors.WithStack2(fake(ctx))
+		}
+		return nil
 	}
 }
 
@@ -297,19 +265,16 @@ func WhenSource[SourceClient, Resp any](fake ftl.Source[Resp]) Option {
 //		// ... other options
 //	)
 func WhenSink[SinkClient, Req any](fake ftl.Sink[Req]) Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			ref := reflection.ClientRef[SinkClient]()
-			state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
-				request, ok := req.(Req)
-				if !ok {
-					return nil, errors.Errorf("invalid request type %T for %v, expected %v", req, ref, reflect.TypeFor[Req]())
-				}
-				return ftl.Unit{}, errors.WithStack(fake(ctx, request))
+	return func(ctx context.Context, state *OptionsState) error {
+		ref := reflection.ClientRef[SinkClient]()
+		state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
+			request, ok := req.(Req)
+			if !ok {
+				return nil, errors.Errorf("invalid request type %T for %v, expected %v", req, ref, reflect.TypeFor[Req]())
 			}
-			return nil
-		},
+			return ftl.Unit{}, errors.WithStack(fake(ctx, request))
+		}
+		return nil
 	}
 }
 
@@ -323,15 +288,12 @@ func WhenSink[SinkClient, Req any](fake ftl.Sink[Req]) Option {
 //		}),
 //	)
 func WhenEmpty[EmptyClient any](fake ftl.Empty) Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			ref := reflection.ClientRef[EmptyClient]()
-			state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
-				return ftl.Unit{}, errors.WithStack(fake(ctx))
-			}
-			return nil
-		},
+	return func(ctx context.Context, state *OptionsState) error {
+		ref := reflection.ClientRef[EmptyClient]()
+		state.mockVerbs[schema.RefKey(ref)] = func(ctx context.Context, req any) (resp any, err error) {
+			return ftl.Unit{}, errors.WithStack(fake(ctx))
+		}
+		return nil
 	}
 }
 
@@ -339,12 +301,9 @@ func WhenEmpty[EmptyClient any](fake ftl.Empty) Option {
 //
 // Any overrides provided by calling WhenVerb(...) will take precedence
 func WithCallsAllowedWithinModule() Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			state.allowDirectVerbBehavior = true
-			return nil
-		},
+	return func(ctx context.Context, state *OptionsState) error {
+		state.allowDirectVerbBehavior = true
+		return nil
 	}
 }
 
@@ -359,13 +318,10 @@ func WithCallsAllowedWithinModule() Option {
 //		// ... other options
 //	)
 func WhenMap[T, U any](mapper *ftl.MapHandle[T, U], fake func(context.Context) (U, error)) Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
-			addMapMock(fftl, mapper, fake)
-			return nil
-		},
+	return func(ctx context.Context, state *OptionsState) error {
+		fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
+		addMapMock(fftl, mapper, fake)
+		return nil
 	}
 }
 
@@ -374,13 +330,10 @@ func WhenMap[T, U any](mapper *ftl.MapHandle[T, U], fake func(context.Context) (
 //
 // Any overrides provided by calling WhenMap(...) will take precedence.
 func WithMapsAllowed() Option {
-	return Option{
-		rank: other,
-		apply: func(ctx context.Context, state *OptionsState) error {
-			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
-			fftl.startAllowingMapCalls()
-			return nil
-		},
+	return func(ctx context.Context, state *OptionsState) error {
+		fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
+		fftl.startAllowingMapCalls()
+		return nil
 	}
 }
 

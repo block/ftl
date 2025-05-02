@@ -84,7 +84,7 @@ func (c *Cmd) RunStderrError(ctx context.Context) error {
 	c.Cmd.Stderr = errorBuffer.WriterAt(ctx, c.level)
 
 	if err := c.Run(); err != nil {
-		return errors.WithStack(errors.New(strings.TrimSpace(string(errorBuffer.Bytes()))))
+		return errors.Wrap(err, c.String()+": "+strings.TrimSpace(string(errorBuffer.Bytes())))
 	}
 
 	return nil
@@ -99,7 +99,7 @@ func (c *Cmd) Capture(ctx context.Context) ([]byte, error) {
 	c.Stderr = errorBuffer.WriterAt(ctx, c.level)
 
 	if err := c.Run(); err != nil {
-		return nil, errors.WithStack(errors.New(strings.TrimSpace(string(errorBuffer.Bytes()))))
+		return nil, errors.Wrap(err, c.String()+": "+strings.TrimSpace(string(errorBuffer.Bytes())))
 	}
 
 	return outBuffer.Bytes(), nil
@@ -112,3 +112,5 @@ func (c *Cmd) Kill(signal syscall.Signal) error {
 	}
 	return errors.WithStack(syscall.Kill(c.Process.Pid, signal))
 }
+
+func (c *Cmd) String() string { return shellquote.Join(c.Args...) }

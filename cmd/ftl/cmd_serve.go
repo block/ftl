@@ -161,7 +161,7 @@ func (s *serveCommonConfig) run(
 	}
 
 	if s.EnableGrafana && !bool(s.ObservabilityConfig.ExportOTEL) {
-		if err := dev.SetupGrafana(ctx, s.GrafanaImage); err != nil {
+		if err := dev.SetupGrafana(ctx, projConfig, s.GrafanaImage); err != nil {
 			logger.Errorf(err, "Failed to setup grafana image")
 		} else {
 			logger.Infof("Grafana started at http://localhost:3000")
@@ -174,7 +174,7 @@ func (s *serveCommonConfig) run(
 		return errors.Wrap(err, "observability init failed")
 	}
 	// Bring up the image registry we use to store deployment content
-	if err := dev.SetupRegistry(ctx, s.RegistryImage, s.RegistryPort); err != nil {
+	if err := dev.SetupRegistry(ctx, projConfig, s.RegistryImage, s.RegistryPort); err != nil {
 		return errors.Wrap(err, "registry init failed")
 	}
 	storage, err := artefacts.NewOCIRegistryStorage(ctx, artefacts.RegistryConfig{
@@ -253,7 +253,7 @@ func (s *serveCommonConfig) run(
 	provisionerRegistry := &provisioner.ProvisionerRegistry{
 		Bindings: []*provisioner.ProvisionerBinding{
 			{
-				Provisioner: provisioner.NewDevProvisioner(s.DBPort, s.MysqlPort, s.Recreate),
+				Provisioner: provisioner.NewDevProvisioner(projConfig, s.DBPort, s.MysqlPort, s.Recreate),
 				Types: []schema.ResourceType{
 					schema.ResourceTypeMysql,
 					schema.ResourceTypePostgres,

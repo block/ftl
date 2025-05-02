@@ -17,6 +17,7 @@ import (
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/provisioner/executor"
 	"github.com/block/ftl/internal/provisioner/state"
 )
@@ -24,15 +25,16 @@ import (
 var redPandaBrokers = []string{"127.0.0.1:19092"}
 
 // NewDevProvisioner creates a new provisioner that provisions resources locally when running FTL in dev mode
-func NewDevProvisioner(postgresPort int, mysqlPort int, recreate bool) *InMemProvisioner {
+func NewDevProvisioner(project projectconfig.Config, postgresPort int, mysqlPort int, recreate bool) *InMemProvisioner {
 	return NewEmbeddedProvisioner(map[schema.ResourceType]InMemResourceProvisionerFn{
-		schema.ResourceTypePostgres:     provisionPostgres(postgresPort, recreate),
-		schema.ResourceTypeMysql:        provisionMysql(mysqlPort, recreate),
-		schema.ResourceTypeTopic:        provisionTopic(),
+		schema.ResourceTypePostgres:     provisionPostgres(project, postgresPort, recreate),
+		schema.ResourceTypeMysql:        provisionMysql(project, mysqlPort, recreate),
+		schema.ResourceTypeTopic:        provisionTopic(project),
 		schema.ResourceTypeSubscription: provisionSubscription(),
 	}, map[schema.ResourceType]InMemResourceProvisionerFn{})
 }
-func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
+
+func provisionMysql(project projectconfig.Config, mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx).Deployment(deployment)
 
@@ -50,7 +52,7 @@ func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 		}
 
 		// We assume that the DB hsas already been started when running in dev mode
-		mysqlDSN, err := dev.SetupMySQL(ctx, mysqlPort)
+		mysqlDSN, err := dev.SetupMySQL(ctx, project, mysqlPort)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to wait for mysql to be ready")
 		}
@@ -146,9 +148,9 @@ func establishMySQLDB(ctx context.Context, mysqlDSN string, dbName string, mysql
 	}, nil
 }
 
-func ProvisionPostgresForTest(ctx context.Context, realm, module, id string) (string, error) {
+func ProvisionPostgresForTest(ctx context.Context, project projectconfig.Config, realm, module, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionPostgres(15432, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(realm, module), node, nil)
+	event, err := provisionPostgres(project, 15432, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(realm, module), node, nil)
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
@@ -156,9 +158,9 @@ func ProvisionPostgresForTest(ctx context.Context, realm, module, id string) (st
 	return event.Element.(*schema.DatabaseRuntime).Connections.Write.(*schema.DSNDatabaseConnector).DSN, nil //nolint:forcetypeassert
 }
 
-func ProvisionMySQLForTest(ctx context.Context, realm, module, id string) (string, error) {
+func ProvisionMySQLForTest(ctx context.Context, project projectconfig.Config, realm, module, id string) (string, error) {
 	node := &schema.Database{Name: id + "_test"}
-	event, err := provisionMysql(13306, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(realm, module), node, nil)
+	event, err := provisionMysql(project, 13306, true)(ctx, key.NewChangesetKey(), key.NewDeploymentKey(realm, module), node, nil)
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
@@ -166,7 +168,7 @@ func ProvisionMySQLForTest(ctx context.Context, realm, module, id string) (strin
 
 }
 
-func provisionPostgres(postgresPort int, alwaysRecreate bool) InMemResourceProvisionerFn {
+func provisionPostgres(project projectconfig.Config, postgresPort int, alwaysRecreate bool) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		recreate := alwaysRecreate
 		logger := log.FromContext(ctx).Deployment(deployment)
@@ -180,7 +182,7 @@ func provisionPostgres(postgresPort int, alwaysRecreate bool) InMemResourceProvi
 
 		// We assume that the DB has already been started when running in dev mode
 		postgresDSN := dsn.PostgresDSN("ftl", dsn.Port(postgresPort))
-		err := dev.SetupPostgres(ctx, optional.None[string](), postgresPort, recreate)
+		err := dev.SetupPostgres(ctx, project, optional.None[string](), postgresPort, recreate)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to wait for postgres to be ready")
 		}
@@ -265,9 +267,9 @@ func provisionPostgres(postgresPort int, alwaysRecreate bool) InMemResourceProvi
 
 }
 
-func provisionTopic() InMemResourceProvisionerFn {
+func provisionTopic(project projectconfig.Config) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
-		if err := dev.SetUpRedPanda(ctx); err != nil {
+		if err := dev.SetUpRedPanda(ctx, project); err != nil {
 			return nil, errors.Wrap(err, "could not set up redpanda")
 		}
 

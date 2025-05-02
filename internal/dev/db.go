@@ -19,6 +19,7 @@ import (
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 //go:embed docker-compose.mysql.yml
@@ -105,7 +106,7 @@ func PostgresDSN(ctx context.Context, port int) string {
 	return dsn.PostgresDSN("ftl", dsn.Port(port))
 }
 
-func SetupPostgres(ctx context.Context, image optional.Option[string], port int, recreate bool) error {
+func SetupPostgres(ctx context.Context, project projectconfig.Config, image optional.Option[string], port int, recreate bool) error {
 	postgresLock.Lock()
 	defer postgresLock.Unlock()
 
@@ -121,7 +122,7 @@ func SetupPostgres(ctx context.Context, image optional.Option[string], port int,
 	if imaneName, ok := image.Get(); ok {
 		envars = append(envars, "FTL_DATABASE_IMAGE="+imaneName)
 	}
-	_, err := container.ComposeUp(ctx, "postgres", postgresDockerCompose, optional.None[string](), envars...)
+	_, err := container.ComposeUp(ctx, project, "postgres", postgresDockerCompose, optional.None[string](), envars...)
 	if err != nil {
 		return errors.Wrap(err, "could not start postgres")
 	}
@@ -133,7 +134,7 @@ func SetupPostgres(ctx context.Context, image optional.Option[string], port int,
 	return nil
 }
 
-func SetupMySQL(ctx context.Context, port int) (string, error) {
+func SetupMySQL(ctx context.Context, project projectconfig.Config, port int) (string, error) {
 	mysqlLock.Lock()
 	defer mysqlLock.Unlock()
 
@@ -146,7 +147,7 @@ func SetupMySQL(ctx context.Context, port int) (string, error) {
 	if port != 0 {
 		envars = append(envars, "MYSQL_PORT="+strconv.Itoa(port))
 	}
-	_, err := container.ComposeUp(ctx, "mysql", mysqlDockerCompose, optional.None[string](), envars...)
+	_, err := container.ComposeUp(ctx, project, "mysql", mysqlDockerCompose, optional.None[string](), envars...)
 	if err != nil {
 		return "", errors.Wrap(err, "could not start mysql")
 	}

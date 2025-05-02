@@ -15,28 +15,7 @@ import (
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/configuration/routers"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/projectconfig"
 )
-
-func TestSet(t *testing.T) {
-	defaultPath, ok := projectconfig.DefaultConfigPath().Get()
-	assert.True(t, ok)
-	origConfigBytes, err := os.ReadFile(defaultPath)
-	assert.NoError(t, err)
-
-	config := filepath.Join(t.TempDir(), "ftl-project.toml")
-	existing, err := os.ReadFile("testdata/ftl-project.toml")
-	assert.NoError(t, err)
-	err = os.WriteFile(config, existing, 0600)
-	assert.NoError(t, err)
-
-	setAndAssert(t, "echo", config)
-	setAndAssert(t, "echooo", config)
-
-	// Restore the original config file.
-	err = os.WriteFile(defaultPath, origConfigBytes, 0600)
-	assert.NoError(t, err)
-}
 
 func TestGetGlobal(t *testing.T) {
 	config := filepath.Join(t.TempDir(), "ftl-project.toml")

@@ -10,6 +10,7 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/container"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 //go:embed docker-compose.redpanda.yml
@@ -19,7 +20,7 @@ var redpandaDockerCompose string
 var redPandaLock = &sync.Mutex{}
 var redPandaRunning bool
 
-func SetUpRedPanda(ctx context.Context) error {
+func SetUpRedPanda(ctx context.Context, project projectconfig.Config) error {
 	redPandaLock.Lock()
 	defer redPandaLock.Unlock()
 
@@ -31,7 +32,7 @@ func SetUpRedPanda(ctx context.Context) error {
 		// include console except in CI
 		profile = optional.Some[string]("console")
 	}
-	_, err := container.ComposeUp(ctx, "redpanda", redpandaDockerCompose, profile)
+	_, err := container.ComposeUp(ctx, project, "redpanda", redpandaDockerCompose, profile)
 	if err != nil {
 		return errors.Wrap(err, "could not start redpanda")
 	}
