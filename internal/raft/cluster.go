@@ -247,13 +247,14 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 	result := make(chan R, 64)
 	logger := log.FromContext(ctx).Scope("raft")
 
+	notificationCh := s.notifier.Subscribe(ctx)
+
 	previous, err := s.Query(ctx, query)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	result <- previous
-	notificationCh := s.notifier.Subscribe(ctx)
 
 	go func() {
 		for {
