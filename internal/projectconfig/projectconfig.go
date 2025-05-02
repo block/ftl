@@ -96,12 +96,12 @@ func (c Config) AbsModuleDirs() []string {
 	return absDirs
 }
 
-// DefaultConfigPath returns the absolute default path for the project config file, if possible.
+// defaultConfigPath returns the absolute default path for the project config file, if possible.
 //
 // The default path is determined by the FTL_CONFIG environment variable, if set, or by the presence of a Git
 // repository. If the Git repository is found, the default path is the root of the repository with the filename
 // "ftl-project.toml".
-func DefaultConfigPath() optional.Option[string] {
+func defaultConfigPath() optional.Option[string] {
 	if envar, ok := os.LookupEnv("FTL_CONFIG"); ok {
 		absPath, err := filepath.Abs(envar)
 		if err != nil {
@@ -156,11 +156,13 @@ func Create(ctx context.Context, config Config, dir string) error {
 }
 
 // Load project config from a file.
+//
+// Will return an empty Config if a path is not provided and a default config cannot be found.
 func Load(ctx context.Context, configPath optional.Option[string]) (Config, error) {
 	var path string
 	var ok bool
 	if path, ok = configPath.Get(); !ok {
-		maybePath, ok := DefaultConfigPath().Get()
+		maybePath, ok := defaultConfigPath().Get()
 		if !ok {
 			return Config{}, nil
 		}

@@ -274,7 +274,6 @@ test-integration *test:
 # Run integration test(s)
 integration-tests *test:
   #!/bin/bash
-  echo "$PATH"
   retry 3 /bin/bash -c "go test -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
 
 # Alias for infrastructure-tests

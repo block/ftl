@@ -53,6 +53,10 @@ github.com/alecthomas/concurrency v0.0.2 h1:Q3kGPtLbleMbH9lHX5OBFvJygfyFw29bXZKB
 github.com/alecthomas/concurrency v0.0.2/go.mod h1:GmuQb/iHX7mbNtPlC/WDzEFxDMB0HYFer2Qda9QTs7w=
 github.com/alecthomas/errors v0.7.0 h1:lBKNV+t5Qrx+k6WUg6xz0yRfXvbj6ZF2vLzdIIZ5sFM=
 github.com/alecthomas/errors v0.7.0/go.mod h1:0DQf6/xQp3f9rv+k72g2NmeTW2lC74kXA6b/8dN9BwY=
+github.com/alecthomas/errors v0.8.1 h1:6b47u4swYkHMB1IsyR5hH80nlN1lPA/FXx2vJtfIHN0=
+github.com/alecthomas/errors v0.8.1/go.mod h1:0DQf6/xQp3f9rv+k72g2NmeTW2lC74kXA6b/8dN9BwY=
+github.com/alecthomas/errors v0.8.2 h1:PLif19+0yYe+MRyCNjphmSzD3uAXnmdDzHIdlP2xkrg=
+github.com/alecthomas/errors v0.8.2/go.mod h1:0DQf6/xQp3f9rv+k72g2NmeTW2lC74kXA6b/8dN9BwY=
 github.com/alecthomas/kong v1.10.0 h1:8K4rGDpT7Iu+jEXCIJUeKqvpwZHbsFRoebLbnzlmrpw=
 github.com/alecthomas/kong v1.10.0/go.mod h1:p2vqieVMeTAnaC83txKtXe8FLke2X07aruPWXyMPQrU=
 github.com/alecthomas/kong-toml v0.2.0 h1:RmUe7ajGUvGD1ew8tGkbLzIYZ0YrUxsYdF/7hfTaYV0=

@@ -169,14 +169,6 @@ func main() {
 	// Set some envars for child processes.
 	os.Setenv("LOG_LEVEL", cli.LogConfig.Level.String())
 
-	configPath := cli.ConfigFlag
-	if configPath == "" {
-		var ok bool
-		configPath, ok = projectconfig.DefaultConfigPath().Get()
-		if !ok {
-			kctx.Fatalf("could not determine default config path, either place an ftl-project.toml file in the root of your project, use --config=FILE, or set the FTL_CONFIG envar")
-		}
-	}
 	if terminal.IsANSITerminal(ctx) {
 		cli.LogConfig.Color = true
 	}
@@ -188,8 +180,6 @@ func main() {
 	if cli.Insecure {
 		logger.Warnf("--insecure skips TLS certificate verification")
 	}
-
-	os.Setenv("FTL_CONFIG", configPath)
 
 	bindContext := makeBindContext(logger, cancel, csm)
 	ctx = bindContext(ctx, kctx)
@@ -218,6 +208,7 @@ func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
 			if !ok {
 				return nil
 			}
+
 			return &kong.Group{Key: node.Name, Title: "Command flags:"}
 		}),
 		kong.Vars{
@@ -248,6 +239,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return config, errors.WithStack(err)
 			}
+			os.Setenv("FTL_CONFIG", config.Path)
 			return config, nil
 		})
 		kctx.FatalIfErrorf(err)
