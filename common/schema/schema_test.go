@@ -44,12 +44,12 @@ realm foo {
       name [String] +alias json "rsn"
     }
 
-    data DestroyRequest {
+    export data DestroyRequest {
       // A comment
       name String
     }
 
-    data DestroyResponse {
+    export data DestroyResponse {
       name String
       when Time
     }
