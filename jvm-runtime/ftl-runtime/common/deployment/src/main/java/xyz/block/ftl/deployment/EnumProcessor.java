@@ -5,10 +5,7 @@ import org.jboss.jandex.ClassType;
 import org.jboss.logging.Logger;
 
 import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.deployment.annotations.ExecutionTime;
-import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
-import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.schema.v1.Visibility;
 
 public class EnumProcessor {
@@ -16,11 +13,7 @@ public class EnumProcessor {
     private static final Logger log = Logger.getLogger(EnumProcessor.class);
 
     @BuildStep
-    @Record(ExecutionTime.RUNTIME_INIT)
-    SchemaContributorBuildItem handleEnums(
-            CombinedIndexBuildItem index,
-            FTLRecorder recorder,
-            CommentsBuildItem commentsBuildItem) {
+    SchemaContributorBuildItem handleEnums(CombinedIndexBuildItem index) {
         var enumAnnotations = index.getIndex().getAnnotations(FTLDotNames.ENUM);
         log.debugf("Processing %d enum annotations into decls", enumAnnotations.size());
         return new SchemaContributorBuildItem(moduleBuilder -> {

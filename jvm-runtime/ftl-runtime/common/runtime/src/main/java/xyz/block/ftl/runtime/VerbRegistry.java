@@ -33,13 +33,7 @@ public class VerbRegistry {
 
     private static final Logger log = Logger.getLogger(VerbRegistry.class);
 
-    final ObjectMapper mapper;
-
     private final Map<Key, VerbInvoker> verbs = new ConcurrentHashMap<>();
-
-    public VerbRegistry(ObjectMapper mapper) {
-        this.mapper = mapper;
-    }
 
     public void register(String module, String name, InstanceHandle<?> verbHandlerClass, Method method,
             List<ParameterSupplier> paramMappers, boolean allowNullReturn, boolean isTransaction) {
@@ -60,7 +54,7 @@ public class VerbRegistry {
         ((AnnotatedEndpointHandler) registeredVerb).addDatasource(databaseUses.get(0));
     }
 
-    public CallResponse invoke(CallRequest request) {
+    public CallResponse invoke(CallRequest request, ObjectMapper mapper) {
         VerbInvoker handler = verbs.get(new Key(request.getVerb().getModule(), request.getVerb().getName()));
         if (handler == null) {
             return CallResponse.newBuilder().setError(CallResponse.Error.newBuilder().setMessage("Verb not found").build())
@@ -70,7 +64,7 @@ public class VerbRegistry {
             if (request.hasMetadata()) {
                 CurrentTransaction.setCurrentIdFromMetadata(request.getMetadata());
             }
-            return handler.handle(request);
+            return handler.handle(request, mapper);
         } finally {
             CurrentTransaction.clearCurrent();
         }
@@ -103,7 +97,7 @@ public class VerbRegistry {
             }
         }
 
-        public CallResponse handle(CallRequest in) {
+        public CallResponse handle(CallRequest in, ObjectMapper mapper) {
             String transactionId = null;
             try {
                 if (isTransaction) {

@@ -50,7 +50,7 @@ public class SQLQueryVerbInvoker implements VerbInvoker {
     }
 
     @Override
-    public CallResponse handle(CallRequest request) {
+    public CallResponse handle(CallRequest request, ObjectMapper mapper) {
         try {
             String transactionId = null;
             for (var pair : request.getMetadata().getValuesList()) {
