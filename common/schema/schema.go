@@ -11,6 +11,7 @@ import (
 
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
+	ftlreflect "github.com/block/ftl/common/reflect"
 	"golang.org/x/exp/maps"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -255,13 +256,13 @@ func (s *Schema) InternalModules() []*Module {
 	return out
 }
 
-// WithBuiltins returns a new schema with the builtins module added to each internal realm.
+// WithBuiltins returns a new deep copy schema with the builtins module added to each internal realm.
+// Note: you should use this sparingly, as deep copy can be expensive.
 func (s *Schema) WithBuiltins() *Schema {
-	c := new(Schema)
-	*c = *s
+	c := ftlreflect.DeepCopy(s)
 
 	builtins := Builtins()
-	for i, r := range c.Realms {
+	for _, r := range c.Realms {
 		if !r.External {
 			hasBuiltin := false
 			for _, m := range r.Modules {
@@ -270,10 +271,7 @@ func (s *Schema) WithBuiltins() *Schema {
 				}
 			}
 			if !hasBuiltin {
-				rc := new(Realm)
-				*rc = *r
-				rc.Modules = append([]*Module{builtins}, r.Modules...)
-				c.Realms[i] = rc
+				r.Modules = append([]*Module{builtins}, r.Modules...)
 			}
 		}
 	}
