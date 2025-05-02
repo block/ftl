@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/atomic"
 	errors "github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 	"github.com/lni/dragonboat/v4"
@@ -97,11 +96,14 @@ func AddShard[Q any, R any, E sm.Marshallable, EPtr sm.Unmarshallable[E]](
 	shardID uint64,
 	statemachine sm.Snapshotting[Q, R, E],
 ) sm.Handle[Q, R, E] {
-	to.shards[shardID] = newStateMachineShim[Q, R, E, EPtr](statemachine)
+	nsm := newNotifyingStateMachine(ctx, statemachine)
+	to.shards[shardID] = newStateMachineShim[Q, R, E, EPtr](nsm)
 
 	handle := &ShardHandle[Q, R, E]{
-		shardID: shardID,
+		shardID:  shardID,
+		notifier: nsm.Notifier,
 	}
+
 	to.handles = append(to.handles, (*ShardHandle[any, any, sm.Marshallable])(handle))
 	return handle
 }
@@ -149,9 +151,10 @@ func (b *Builder) Build(ctx context.Context) *Cluster {
 // Q is the query type.
 // R is the query response type.
 type ShardHandle[Q any, R any, E sm.Marshallable] struct {
-	shardID uint64
-	cluster *Cluster
-	session *client.Session
+	shardID  uint64
+	cluster  *Cluster
+	session  *client.Session
+	notifier *channels.Notifier
 
 	mu sync.Mutex
 }
@@ -244,27 +247,15 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 	result := make(chan R, 64)
 	logger := log.FromContext(ctx).Scope("raft")
 
-	// get the last known index as the starting point
-	last, err := s.getLastIndex()
-	if err != nil {
-		logger.Errorf(err, "Failed to get last index")
-	}
-
-	lastKnownIndex := atomic.Value[uint64]{}
-	lastKnownIndex.Store(last)
-
 	previous, err := s.Query(ctx, query)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	result <- previous
+	notificationCh := s.notifier.Subscribe(ctx)
 
 	go func() {
-		// poll, as dragoboat does not have a way to listen to changes directly
-		timer := time.NewTicker(s.cluster.config.ChangesInterval)
-		defer timer.Stop()
-
 		for {
 			select {
 			case <-ctx.Done():
@@ -274,23 +265,13 @@ func (s *ShardHandle[Q, R, E]) StateIter(ctx context.Context, query Q) (iter.Seq
 				logger.Infof("Changes channel closed")
 				close(result)
 				return
-			case <-timer.C:
-				last, err := s.getLastIndex()
+			case <-notificationCh:
+				res, err := s.Query(ctx, query)
 				if err != nil {
-					logger.Warnf("Failed to get last index: %s", err)
-				} else if last > lastKnownIndex.Load() {
-					logger.Debugf("Changes detected, index: %d -> %d on (%d, %d)", lastKnownIndex.Load(), last, s.shardID, s.cluster.runtimeReplicaID)
-
-					lastKnownIndex.Store(last)
-
-					res, err := s.Query(ctx, query)
-
-					if err != nil {
-						logger.Errorf(err, "failed to query shard")
-					} else {
-						logger.Debugf("Publishing to state iterator on (%d, %d)", s.shardID, s.cluster.runtimeReplicaID)
-						result <- res
-					}
+					logger.Errorf(err, "failed to query shard")
+				} else {
+					logger.Debugf("Publishing to state iterator on (%d, %d)", s.shardID, s.cluster.runtimeReplicaID)
+					result <- res
 				}
 			}
 		}
