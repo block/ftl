@@ -48,6 +48,7 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
 
     final List<Class> valueEnums = new ArrayList<>();
     final List<TypeEnumDefn> typeEnums = new ArrayList<>();
+    private volatile boolean initialized = false;
 
     @Inject
     public JsonSerializationConfig(Instance<TypeAliasMapper<?, ?>> instances) {
@@ -60,6 +61,7 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
 
     @Override
     public void customize(ObjectMapper mapper) {
+        initialized = true;
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         SimpleModule module = new SimpleModule("ByteArraySerializer", new Version(1, 0, 0, ""));
         module.addSerializer(byte[].class, new ByteArraySerializer());
@@ -85,10 +87,16 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
     }
 
     public <T extends Enum<T>> void registerValueEnum(Class enumClass) {
+        if (initialized) {
+            throw new RuntimeException("Cannot register type enum after mapper is created");
+        }
         valueEnums.add(enumClass);
     }
 
     public <T> void registerTypeEnum(Class<?> type, Map<String, Class<?>> variants) {
+        if (initialized) {
+            throw new RuntimeException("Cannot register type enum after mapper is created");
+        }
         typeEnums.add(new TypeEnumDefn<>(type, variants));
     }
 

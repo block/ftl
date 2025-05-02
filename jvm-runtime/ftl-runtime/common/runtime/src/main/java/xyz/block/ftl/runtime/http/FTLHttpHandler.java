@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
 
@@ -47,7 +48,7 @@ import xyz.block.ftl.v1.CallResponse;
 public class FTLHttpHandler {
 
     public static final String CONTENT_TYPE = "Content-Type";
-    final ObjectMapper mapper;
+    final Instance<ObjectMapper> mapper;
     private static final Logger log = Logger.getLogger("quarkus.amazon.lambda.http");
 
     private static final int BUFFER_SIZE = 8096;
@@ -60,13 +61,13 @@ public class FTLHttpHandler {
     // multiple headers
     private static final Set<String> COMMA_HEADERS = Set.of("access-control-request-headers");
 
-    public FTLHttpHandler(ObjectMapper mapper) {
+    public FTLHttpHandler(Instance<ObjectMapper> mapper) {
         this.mapper = mapper;
     }
 
     public CallResponse handle(CallRequest in, boolean base64Encoded) {
         try {
-            var body = mapper.createParser(in.getBody().newInput())
+            var body = mapper.get().createParser(in.getBody().newInput())
                     .readValueAs(xyz.block.ftl.runtime.builtin.HttpRequest.class);
             body.getHeaders().put(FTLRecorder.X_FTL_VERB, List.of(in.getVerb().getName()));
             var ret = handleRequest(body, base64Encoded);
@@ -75,7 +76,7 @@ public class FTLHttpHandler {
             }
             ret.setHeaders(new HashMap<>(ret.getHeaders()));
             ret.getHeaders().remove("content-length");
-            var mappedResponse = mapper.writer().writeValueAsBytes(ret);
+            var mappedResponse = mapper.get().writer().writeValueAsBytes(ret);
             return CallResponse.newBuilder().setBody(ByteString.copyFrom(mappedResponse)).build();
         } catch (Exception e) {
             return CallResponse.newBuilder()
@@ -170,9 +171,9 @@ public class FTLHttpHandler {
                             responseBuilder.setBody(baos.toString(StandardCharsets.UTF_8));
                         } else if (base64Encoded) {
                             responseBuilder.setBody(
-                                    mapper.writer().writeValueAsString(Base64.getEncoder().encodeToString(baos.toByteArray())));
+                                    mapper.get().writer().writeValueAsString(Base64.getEncoder().encodeToString(baos.toByteArray())));
                         } else {
-                            responseBuilder.setBody(mapper.writer().writeValueAsString(baos.toString(StandardCharsets.UTF_8)));
+                            responseBuilder.setBody(mapper.get().writer().writeValueAsString(baos.toString(StandardCharsets.UTF_8)));
                         }
                         List<String> ct = responseBuilder.getHeaders().get(CONTENT_TYPE);
                         if (ct == null || ct.isEmpty()) {
