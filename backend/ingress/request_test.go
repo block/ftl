@@ -53,19 +53,19 @@ func TestBuildRequestBody(t *testing.T) {
 	sch, err := schema.ParseString("test", `
 	realm test {
 		module test {
-			data AliasRequest {
+			export data AliasRequest {
 				aliased String +alias json "alias"
 			}
 
-			data QueryParameterRequest {
+			export data QueryParameterRequest {
 				foo String?
 			}
 
-			data PathParameterRequest {
+			export data PathParameterRequest {
 				username String
 			}
 
-			data MissingTypes {
+			export data MissingTypes {
 				optional String?
 				array [String]
 				map {String: String}
@@ -73,7 +73,7 @@ func TestBuildRequestBody(t *testing.T) {
 				unit Unit
 			}
 
-			data JsonPayload {
+			export data JsonPayload {
 				foo String
 			}
 

@@ -401,11 +401,11 @@ realm foo {
     +artefact "echo" "1e2a2d3ba82b0c2e2b9634f3de4bac59373c7e0a472be8f1616aab1e4c8a9167"
     +git "https://github.com/foo/bar" "ea32388e08498e94cfcb9d567e8a2a07296a4fd4" dirty
 
-    data EchoRequest {
+    export data EchoRequest {
       name String?
     }
 
-    data EchoResponse {
+    export data EchoResponse {
       message String
     }
 
@@ -415,10 +415,10 @@ realm foo {
   }
 
   module time {
-    data TimeRequest {
+    export data TimeRequest {
     }
 
-    data TimeResponse {
+    export data TimeResponse {
       time Time
     }
 
@@ -436,8 +436,8 @@ realm foo {
 							&MetadataGit{Repository: "https://github.com/foo/bar", Commit: "ea32388e08498e94cfcb9d567e8a2a07296a4fd4", Dirty: true},
 						},
 						Decls: []Decl{
-							&Data{Name: "EchoRequest", Fields: []*Field{{Name: "name", Type: &Optional{Type: &String{}}}}},
-							&Data{Name: "EchoResponse", Fields: []*Field{{Name: "message", Type: &String{}}}},
+							&Data{Name: "EchoRequest", Fields: []*Field{{Name: "name", Type: &Optional{Type: &String{}}}}, Visibility: VisibilityScopeModule},
+							&Data{Name: "EchoResponse", Fields: []*Field{{Name: "message", Type: &String{}}}, Visibility: VisibilityScopeModule},
 							&Verb{
 								Name:       "echo",
 								Visibility: VisibilityScopeModule,
@@ -452,8 +452,8 @@ realm foo {
 					}, {
 						Name: "time",
 						Decls: []Decl{
-							&Data{Name: "TimeRequest"},
-							&Data{Name: "TimeResponse", Fields: []*Field{{Name: "time", Type: &Time{}}}},
+							&Data{Name: "TimeRequest", Visibility: VisibilityScopeModule},
+							&Data{Name: "TimeResponse", Fields: []*Field{{Name: "time", Type: &Time{}}}, Visibility: VisibilityScopeModule},
 							&Verb{
 								Name:       "time",
 								Visibility: VisibilityScopeModule,
@@ -878,11 +878,11 @@ func TestParseModule(t *testing.T) {
       +generated
       name [String] +sql column requests.name_list
     }
-    data DestroyRequest {
+    export data DestroyRequest {
       // A comment
       name String
     }
-    data DestroyResponse {
+    export data DestroyResponse {
       name String
       when Time
     }
