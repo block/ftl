@@ -22,7 +22,7 @@ type getSchemaCmd struct {
 	Protobuf bool     `help:"Output the schema as binary protobuf." xor:"format"`
 	JSON     bool     `help:"Output the schema as JSON." xor:"format"`
 	Modules  []string `help:"Modules to include" type:"string" optional:""`
-	Exported bool     `help:"Outputs the externally exported part of the schema"`
+	External bool     `help:"Outputs the externally exported part of the schema"`
 }
 
 func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, projConfig projectconfig.Config) error {
@@ -53,7 +53,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			if len(g.Modules) > 0 {
 				sch, _ = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
 			}
-			if g.Exported {
+			if g.External {
 				sch = sch.External()
 			}
 			err = g.displaySchema(sch)
@@ -162,7 +162,7 @@ func (g *getSchemaCmd) applyFilters(sch *schema.Schema) (*schema.Schema, []schem
 	if len(g.Modules) > 0 {
 		sch, missing = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
 	}
-	if g.Exported {
+	if g.External {
 		sch = sch.External()
 	}
 	return sch, missing
