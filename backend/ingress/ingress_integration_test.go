@@ -173,7 +173,16 @@ func TestHttpIngress(t *testing.T) {
 				assert.Equal(t, 201, resp.Status)
 			})},
 		)),
+
+		in.IfLanguage("java", in.SubTests(
+			// Double, Int etc work in java with JSON encoding, but test/plain is not implemented yet
+			in.SubTest{Name: "JavaVerbClient", Action: in.HttpCall(http.MethodGet, "/client", nil, nil, func(t testing.TB, resp *in.HTTPResponse) {
+				assert.Equal(t, 200, resp.Status)
+				assert.Equal(t, []byte("Hello"), resp.BodyBytes)
+			})},
+		)),
 	)
+
 }
 
 func expectContentType(t testing.TB, resp *in.HTTPResponse, expected string) {
