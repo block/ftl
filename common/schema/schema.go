@@ -11,10 +11,10 @@ import (
 
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
-	ftlreflect "github.com/block/ftl/common/reflect"
 	"golang.org/x/exp/maps"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	ftlreflect "github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/internal/key"
 )
 
