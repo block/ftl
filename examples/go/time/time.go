@@ -32,9 +32,3 @@ func Time(ctx context.Context, req TimeRequest, ic InternalClient) (TimeResponse
 func Internal(ctx context.Context, req TimeRequest) (TimeResponse, error) {
 	return TimeResponse{Time: time.Now()}, nil
 }
-
-//ftl:verb export
-//ftl:egress url="example.com"
-func Hello(ctx context.Context, req string, url ftl.EgressTarget) (string, error) {
-	return req + " " + url.GetString(ctx), nil
-}

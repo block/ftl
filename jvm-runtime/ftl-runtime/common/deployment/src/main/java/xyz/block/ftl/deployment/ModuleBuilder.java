@@ -761,10 +761,13 @@ public class ModuleBuilder {
 
                 if (info != null && (info.isEnum() || info.hasAnnotation(ENUM))) {
                     // Set only the name and export here. EnumProcessor will fill in the rest
-                    xyz.block.ftl.schema.v1.Enum.Builder ennum = xyz.block.ftl.schema.v1.Enum.newBuilder()
-                            .setName(name)
-                            .setVisibility(VisibilityUtil.getVisibility(info));
-                    addDecls(Decl.newBuilder().setEnum(ennum.build()).build());
+                    Visibility thisVis = VisibilityUtil.highest(VisibilityUtil.getVisibility(info), visibility);
+                    if (!setDeclExport(name, thisVis)) {
+                        xyz.block.ftl.schema.v1.Enum.Builder ennum = xyz.block.ftl.schema.v1.Enum.newBuilder()
+                                .setName(name)
+                                .setVisibility(thisVis);
+                        addDecls(Decl.newBuilder().setEnum(ennum.build()).build());
+                    }
                     return handleNullabilityAnnotations(ref, nullability);
                 } else {
                     // If this data was processed already, skip early
@@ -772,17 +775,16 @@ public class ModuleBuilder {
                     if (info != null) {
                         explicit = VisibilityUtil.getVisibility(info);
                     }
-                    if (setDeclExport(name,
-                            VisibilityUtil.highest(visibility, explicit))) {
+                    Visibility actual = VisibilityUtil.highest(visibility, explicit);
+                    if (setDeclExport(name, actual)) {
                         return handleNullabilityAnnotations(ref, nullability);
                     }
                     Data.Builder data = Data.newBuilder()
                             .setPos(forClass(clazz.name().toString()))
                             .setName(name)
-                            .setVisibility(
-                                    VisibilityUtil.highest(visibility, explicit))
+                            .setVisibility(actual)
                             .addAllComments(comments.getComments(name));
-                    buildDataElement(data, clazz.name());
+                    buildDataElement(data, clazz.name(), actual);
                     addDecls(Decl.newBuilder().setData(data).build());
                     return handleNullabilityAnnotations(ref, nullability);
                 }
@@ -839,7 +841,7 @@ public class ModuleBuilder {
         throw new RuntimeException("NOT YET IMPLEMENTED");
     }
 
-    private void buildDataElement(Data.Builder data, DotName className) {
+    private void buildDataElement(Data.Builder data, DotName className, Visibility visibility) {
         if (className == null || className.equals(DotName.OBJECT_NAME)) {
             return;
         }
@@ -851,7 +853,7 @@ public class ModuleBuilder {
         for (var field : clazz.fieldsInDeclarationOrder()) {
             if (!Modifier.isStatic(field.flags())) {
                 Field.Builder builder = Field.newBuilder().setName(field.name())
-                        .setType(buildType(field.type(), data.getVisibility(), field));
+                        .setType(buildType(field.type(), visibility, field));
                 if (field.hasAnnotation(JsonAlias.class)) {
                     var aliases = field.annotation(JsonAlias.class);
                     if (aliases.value() != null) {
@@ -866,7 +868,7 @@ public class ModuleBuilder {
                 data.addFields(builder.build());
             }
         }
-        buildDataElement(data, clazz.superName());
+        buildDataElement(data, clazz.superName(), visibility);
     }
 
     public ModuleBuilder addDecls(Decl decl) {
@@ -1016,14 +1018,40 @@ public class ModuleBuilder {
         var existing = decls.get(name);
         if (existing != null) {
             if (existing.hasData()) {
-                var merged = existing.getData().toBuilder()
-                        .setVisibility(higherVisibility(visibility, existing.getData().getVisibility())).build();
-                decls.put(name, Decl.newBuilder().setData(merged).build());
+                Visibility value = higherVisibility(visibility, existing.getData().getVisibility());
+                if (!value.equals(existing.getData().getVisibility())) {
+                    var merged = existing.getData().toBuilder()
+                            .setVisibility(value).build();
+                    decls.put(name, Decl.newBuilder().setData(merged).build());
+                    for (var field : existing.getData().getFieldsList()) {
+                        if (field.getType().hasRef()) {
+                            var ref = field.getType().getRef();
+                            setDeclExport(ref.getName(), value);
+                        }
+                    }
+                }
             } else if (existing.hasTypeAlias()) {
                 var merged = existing.getTypeAlias().toBuilder()
-                        .setVisibility(higherVisibility(visibility, existing.getData().getVisibility()))
+                        .setVisibility(higherVisibility(visibility, existing.getTypeAlias().getVisibility()))
                         .build();
                 decls.put(name, Decl.newBuilder().setTypeAlias(merged).build());
+            } else if (existing.hasEnum()) {
+                Visibility newVis = higherVisibility(visibility, existing.getEnum().getVisibility());
+                if (!newVis.equals(existing.getEnum().getVisibility())) {
+
+                    var merged = existing.getEnum().toBuilder()
+                            .setVisibility(newVis)
+                            .build();
+                    decls.put(name, Decl.newBuilder().setEnum(merged).build());
+                    for (var field : existing.getEnum().getVariantsList()) {
+                        if (field.getValue().hasTypeValue()) {
+                            if (field.getValue().getTypeValue().getValue().hasRef()) {
+                                var ref = field.getValue().getTypeValue().getValue().getRef();
+                                setDeclExport(ref.getName(), newVis);
+                            }
+                        }
+                    }
+                }
             }
 
         }
