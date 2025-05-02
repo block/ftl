@@ -77,7 +77,7 @@ func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification 
 		// Initial sync is complete, we send an initial Full schema event
 		state := e.view.Load()
 		subscribe <- &schema.FullSchemaNotification{
-			Schema:     state.schema.WithBuiltins(),
+			Schema:     state.schema,
 			Changesets: maps.Values(state.activeChangesets),
 		}
 	default:
@@ -134,7 +134,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 		for _, cs := range event.Changesets {
 			changesets[cs.Key] = cs
 		}
-		e.view.Store(&currentState{schema: event.Schema, activeChangesets: changesets})
+		e.view.Store(&currentState{schema: event.Schema.WithBuiltins(), activeChangesets: changesets})
 		if !e.initialSync {
 			e.initialSync = true
 			close(e.initialSyncComplete)
