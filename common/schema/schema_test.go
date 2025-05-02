@@ -1009,6 +1009,7 @@ var testSchema = MustValidate(&Schema{
 						Fields: []*Field{
 							{Name: "name", Comments: []string{"A comment"}, Type: &String{}},
 						},
+						Visibility: VisibilityScopeModule,
 					},
 					&Data{
 						Name: "DestroyResponse",
@@ -1016,6 +1017,7 @@ var testSchema = MustValidate(&Schema{
 							{Name: "name", Type: &String{}},
 							{Name: "when", Type: &Time{}},
 						},
+						Visibility: VisibilityScopeModule,
 					},
 					&Verb{Name: "insert",
 						Request:  &Ref{Module: "todo", Name: "InsertRequest"},

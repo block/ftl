@@ -251,6 +251,8 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit, *MetadataFixture,
 						*MetadataTransaction, *MetadataEgress:
 					}
+
+					merr = append(merr, validateVisibility(scopes, n.Visibility, RefKey{Module: module.Name, Name: n.GetName()}, n.Request, n.Response)...)
 				}
 				if isSQLQuery {
 					dbSet := n.ResolveDatabaseUses(schema, module.Name)
@@ -322,6 +324,12 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 				*Module, *Optional, *Schema, *TypeAlias, *String, *Time, *Unit, *Any, *TypeParameter,
 				*EnumVariant, *Config, *Secret, *Topic, *DatabaseRuntime, *DatabaseRuntimeConnections,
 				*Data, *Field, *MetadataPartitions, *MetadataSQLQuery, *MetadataSQLColumn, *Realm:
+			}
+			// Declared types must have all child refs maintain at least the same level of visibility.
+			if n, ok := n.(Type); ok {
+				if n, ok := n.(Decl); ok {
+					merr = append(merr, validateVisibility(scopes, n.GetVisibility(), RefKey{Module: module.Name, Name: n.GetName()}, n.schemaChildren()...)...)
+				}
 			}
 			return nil
 		})
@@ -739,6 +747,34 @@ func errorf(pos interface{ Position() Position }, format string, args ...interfa
 		EndColumn:   p.Column,
 	}
 	return errors.WithStack(builderrors.Errorf(errPos, format, args...))
+}
+
+// validateVisibility checks that child nodes do not have less visibility than their parent.
+func validateVisibility(scopes Scopes, requiredVisibility Visibility, parent RefKey, nodes ...Node) (merr []error) {
+	if requiredVisibility == VisibilityScopeNone {
+		return nil
+	}
+	for _, n := range nodes {
+		switch n := n.(type) {
+		case *Ref:
+			mdecl := scopes.Resolve(*n)
+			if mdecl == nil {
+				continue
+			}
+			if t, ok := mdecl.Symbol.(Type); ok {
+				ts := append([]Node{t}, islices.Map(n.TypeParameters, func(t Type) Node { return t })...)
+				merr = append(merr, validateVisibility(scopes, requiredVisibility, parent, ts...)...)
+			}
+		case Decl:
+			if n.GetVisibility() < requiredVisibility {
+				merr = append(merr, errorf(n, "%s %q must have visibility of %q due to %s", typeName(n), n.GetName(), requiredVisibility.String(), parent))
+			}
+		default:
+			// For built in types, validate their children
+			merr = append(merr, validateVisibility(scopes, requiredVisibility, parent, n.schemaChildren()...)...)
+		}
+	}
+	return merr
 }
 
 func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error) {
