@@ -34,14 +34,21 @@ type SchemaState struct {
 }
 
 func NewSchemaState(canonicalRealm string) SchemaState {
-	return SchemaState{
+	state := SchemaState{
 		deployments:        map[string]*schema.Module{},
 		changesets:         map[key.Changeset]*schema.Changeset{},
 		deploymentEvents:   map[string][]*schema.DeploymentRuntimeEvent{},
 		changesetEvents:    map[key.Changeset][]*schema.DeploymentRuntimeEvent{},
 		archivedChangesets: []*schema.Changeset{},
-		realms:             map[string]*schema.RealmState{canonicalRealm: {Name: canonicalRealm, External: false}},
+		realms:             map[string]*schema.RealmState{},
 	}
+	if canonicalRealm != "" {
+		state.realms[canonicalRealm] = &schema.RealmState{
+			Name:     canonicalRealm,
+			External: false,
+		}
+	}
+	return state
 }
 
 func newStateMachine(ctx context.Context, realm string) *schemaStateMachine {

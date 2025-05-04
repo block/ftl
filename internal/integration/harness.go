@@ -502,7 +502,7 @@ func initWorkDir(t testing.TB, cwd string, opts options) string {
 		}
 
 	} else {
-		err := os.WriteFile(filepath.Join(tmpDir, "ftl-project.toml"), []byte(`name = "integration"`), 0644)
+		err := os.WriteFile(filepath.Join(tmpDir, "ftl-project.toml"), []byte(`name = "ftl"`), 0644)
 		assert.NoError(t, err)
 	}
 	return tmpDir
