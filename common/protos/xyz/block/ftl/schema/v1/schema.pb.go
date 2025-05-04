@@ -5943,6 +5943,7 @@ type SchemaState struct {
 	ChangesetEvents  []*DeploymentRuntimeEvent `protobuf:"bytes,3,rep,name=changeset_events,json=changesetEvents,proto3" json:"changeset_events,omitempty"`
 	DeploymentEvents []*DeploymentRuntimeEvent `protobuf:"bytes,4,rep,name=deployment_events,json=deploymentEvents,proto3" json:"deployment_events,omitempty"`
 	Realms           []*RealmState             `protobuf:"bytes,5,rep,name=realms,proto3" json:"realms,omitempty"`
+	InternalRealm    string                    `protobuf:"bytes,6,opt,name=internal_realm,json=internalRealm,proto3" json:"internal_realm,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -6010,6 +6011,13 @@ func (x *SchemaState) GetRealms() []*RealmState {
 		return x.Realms
 	}
 	return nil
+}
+
+func (x *SchemaState) GetInternalRealm() string {
+	if x != nil {
+		return x.InternalRealm
+	}
+	return ""
 }
 
 type Secret struct {
@@ -7649,7 +7657,7 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"\x06Schema\x128\n" +
 	"\x03pos\x18\x01 \x01(\v2!.xyz.block.ftl.schema.v1.PositionH\x00R\x03pos\x88\x01\x01\x126\n" +
 	"\x06realms\x18\x02 \x03(\v2\x1e.xyz.block.ftl.schema.v1.RealmR\x06realmsB\x06\n" +
-	"\x04_pos\"\x83\x03\n" +
+	"\x04_pos\"\xaa\x03\n" +
 	"\vSchemaState\x129\n" +
 	"\amodules\x18\x01 \x03(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\amodules\x12B\n" +
 	"\n" +
@@ -7657,7 +7665,8 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"changesets\x12Z\n" +
 	"\x10changeset_events\x18\x03 \x03(\v2/.xyz.block.ftl.schema.v1.DeploymentRuntimeEventR\x0fchangesetEvents\x12\\\n" +
 	"\x11deployment_events\x18\x04 \x03(\v2/.xyz.block.ftl.schema.v1.DeploymentRuntimeEventR\x10deploymentEvents\x12;\n" +
-	"\x06realms\x18\x05 \x03(\v2#.xyz.block.ftl.schema.v1.RealmStateR\x06realms\"\xad\x01\n" +
+	"\x06realms\x18\x05 \x03(\v2#.xyz.block.ftl.schema.v1.RealmStateR\x06realms\x12%\n" +
+	"\x0einternal_realm\x18\x06 \x01(\tR\rinternalRealm\"\xad\x01\n" +
 	"\x06Secret\x128\n" +
 	"\x03pos\x18\x01 \x01(\v2!.xyz.block.ftl.schema.v1.PositionH\x00R\x03pos\x88\x01\x01\x12\x1a\n" +
 	"\bcomments\x18\x02 \x03(\tR\bcomments\x12\x12\n" +

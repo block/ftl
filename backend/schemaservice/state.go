@@ -31,9 +31,10 @@ type SchemaState struct {
 	deploymentEvents   map[string][]*schema.DeploymentRuntimeEvent
 	archivedChangesets []*schema.Changeset
 	realms             map[string]*schema.RealmState
+	internalRealm      string
 }
 
-func NewSchemaState() SchemaState {
+func NewSchemaState(canonicalRealm string) SchemaState {
 	return SchemaState{
 		deployments:        map[string]*schema.Module{},
 		changesets:         map[key.Changeset]*schema.Changeset{},
@@ -41,20 +42,16 @@ func NewSchemaState() SchemaState {
 		changesetEvents:    map[key.Changeset][]*schema.DeploymentRuntimeEvent{},
 		archivedChangesets: []*schema.Changeset{},
 		realms:             map[string]*schema.RealmState{},
+		internalRealm:      canonicalRealm,
 	}
 }
 
-func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper] {
-	handle := statemachine.NewLocalHandle(newStateMachine(ctx))
-	return statemachine.NewSingleQueryHandle(handle, struct{}{})
-}
-
-func newStateMachine(ctx context.Context) *schemaStateMachine {
+func newStateMachine(ctx context.Context, realm string) *schemaStateMachine {
 	notifier := channels.NewNotifier(ctx)
 	return &schemaStateMachine{
 		notifier:   notifier,
 		runningCtx: ctx,
-		state:      NewSchemaState(),
+		state:      NewSchemaState(realm),
 	}
 }
 
@@ -97,6 +94,13 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 	state, err := schema.SchemaStateFromProto(stateProto)
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal schema state")
+	}
+	if r.internalRealm != "" {
+		if state.InternalRealm != r.internalRealm {
+			// This only happens if the realm name is changed at runtime, e.g. re-deplying on kube with a new realm name
+			// This is a fatal error, and needs to be fixed by the operator
+			panic(errors.Errorf("canonical realm %s does not match %s, the realm name has been changed for an existing deployment, please restart with the original realm name.", r.internalRealm, state.InternalRealm))
+		}
 	}
 	activeDeployments := map[key.Deployment]bool{}
 	for _, module := range state.Modules {

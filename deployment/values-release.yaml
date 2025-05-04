@@ -1,4 +1,3 @@
-fullnameOverride: "ftl"
 
 ingress:
   enabled: true

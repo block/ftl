@@ -4486,6 +4486,11 @@ export class SchemaState extends Message<SchemaState> {
    */
   realms: RealmState[] = [];
 
+  /**
+   * @generated from field: string internal_realm = 6;
+   */
+  internalRealm = "";
+
   constructor(data?: PartialMessage<SchemaState>) {
     super();
     proto3.util.initPartial(data, this);
@@ -4499,6 +4504,7 @@ export class SchemaState extends Message<SchemaState> {
     { no: 3, name: "changeset_events", kind: "message", T: DeploymentRuntimeEvent, repeated: true },
     { no: 4, name: "deployment_events", kind: "message", T: DeploymentRuntimeEvent, repeated: true },
     { no: 5, name: "realms", kind: "message", T: RealmState, repeated: true },
+    { no: 6, name: "internal_realm", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SchemaState {

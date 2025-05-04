@@ -350,6 +350,7 @@ type SchemaState struct {
 	ChangesetEvents  []*DeploymentRuntimeEvent `protobuf:"3"`
 	DeploymentEvents []*DeploymentRuntimeEvent `protobuf:"4"`
 	Realms           []*RealmState             `protobuf:"5"`
+	InternalRealm    string                    `protobuf:"6"`
 }
 
 type RealmState struct {
