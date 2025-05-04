@@ -31,7 +31,6 @@ type SchemaState struct {
 	deploymentEvents   map[string][]*schema.DeploymentRuntimeEvent
 	archivedChangesets []*schema.Changeset
 	realms             map[string]*schema.RealmState
-	internalRealm      string
 }
 
 func NewSchemaState(canonicalRealm string) SchemaState {
@@ -41,8 +40,7 @@ func NewSchemaState(canonicalRealm string) SchemaState {
 		deploymentEvents:   map[string][]*schema.DeploymentRuntimeEvent{},
 		changesetEvents:    map[key.Changeset][]*schema.DeploymentRuntimeEvent{},
 		archivedChangesets: []*schema.Changeset{},
-		realms:             map[string]*schema.RealmState{},
-		internalRealm:      canonicalRealm,
+		realms:             map[string]*schema.RealmState{canonicalRealm: {Name: canonicalRealm, External: false}},
 	}
 }
 
@@ -94,13 +92,6 @@ func (r *SchemaState) Unmarshal(data []byte) error {
 	state, err := schema.SchemaStateFromProto(stateProto)
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal schema state")
-	}
-	if r.internalRealm != "" {
-		if state.InternalRealm != r.internalRealm {
-			// This only happens if the realm name is changed at runtime, e.g. re-deplying on kube with a new realm name
-			// This is a fatal error, and needs to be fixed by the operator
-			panic(errors.Errorf("canonical realm %s does not match %s, the realm name has been changed for an existing deployment, please restart with the original realm name.", r.internalRealm, state.InternalRealm))
-		}
 	}
 	activeDeployments := map[key.Deployment]bool{}
 	for _, module := range state.Modules {

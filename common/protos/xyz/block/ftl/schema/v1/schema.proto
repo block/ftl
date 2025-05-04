@@ -586,7 +586,6 @@ message SchemaState {
   repeated DeploymentRuntimeEvent changeset_events = 3;
   repeated DeploymentRuntimeEvent deployment_events = 4;
   repeated RealmState realms = 5;
-  string internal_realm = 6;
 }
 
 message Secret {

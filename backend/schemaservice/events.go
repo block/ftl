@@ -149,9 +149,6 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 			if sr.Name != rc.Name {
 				return errors.Errorf("internal realm must be called %s, got %s", sr.Name, rc.Name)
 			}
-			if t.internalRealm != "" && rc.Name != t.internalRealm {
-				return errors.Errorf("internal realm must be called %s, got %s", t.internalRealm, rc.Name)
-			}
 		}
 	}
 

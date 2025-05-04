@@ -2848,7 +2848,6 @@ func (x *SchemaState) ToProto() *destpb.SchemaState {
 		ChangesetEvents:  sliceMap(x.ChangesetEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
 		DeploymentEvents: sliceMap(x.DeploymentEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
 		Realms:           sliceMap(x.Realms, func(v *RealmState) *destpb.RealmState { return v.ToProto() }),
-		InternalRealm:    orZero(ptr(string(x.InternalRealm))),
 	}
 }
 
@@ -2876,9 +2875,6 @@ func SchemaStateFromProto(v *destpb.SchemaState) (out *SchemaState, err error) {
 	}
 	if out.Realms, err = sliceMapR(v.Realms, func(v *destpb.RealmState) result.Result[*RealmState] { return result.From(RealmStateFromProto(v)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Realms")
-	}
-	if out.InternalRealm, err = orZeroR(result.From(ptr(string(v.InternalRealm)), nil)).Result(); err != nil {
-		return nil, errors.Wrap(err, "InternalRealm")
 	}
 	return out, nil
 }
