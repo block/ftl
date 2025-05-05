@@ -4,6 +4,9 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -117,6 +120,9 @@ public class AnnotationProcessor implements Processor {
                                     boolean ok = true;
                                     if (elem.asType().getKind() == TypeKind.DECLARED) {
                                         DeclaredType declaredType = (DeclaredType) elem.asType();
+                                        if (declaredType.toString().contains("error.NonExistentClass")) {
+                                            continue;
+                                        }
                                         if (declaredType.asElement().getAnnotation(Topic.class) != null) {
                                             ok = false;
                                         }
@@ -151,24 +157,53 @@ public class AnnotationProcessor implements Processor {
                                 }
                             }
 
-                            var file = processingEnv.getFiler().createSourceFile("client." + className + "Client");
-                            var template = """
-                                    package client;
+                            if (!paramName.isEmpty()) {
+                                paramName = "val: " + paramName;
+                            }
+                            String kotlinDir = processingEnv.getOptions().get("kapt.kotlin.generated");
 
-                                    import xyz.block.ftl.VerbClient;
+                            if (kotlinDir != null) {
+                                var path = Paths.get(kotlinDir, "client").normalize();
+                                Files.createDirectories(path);
 
-                                    @VerbClient(name="$VERBNAME")
-                                    public interface $CLASSNAMEClient extends $IFACE {
-                                        $RETURN call($PARAM cal);
-                                    }
-                                    """;
-                            template = template.replace("$CLASSNAME", className);
-                            template = template.replace("$RETURN", returnType);
-                            template = template.replace("$VERBNAME", verbName);
-                            template = template.replace("$PARAM", paramName);
-                            template = template.replace("$IFACE", iface);
-                            try (var writer = file.openWriter()) {
-                                writer.append(template);
+                                var file = path.resolve(className + "Client.kt");
+                                var template = """
+                                        package client;
+
+                                        import xyz.block.ftl.VerbClient
+
+                                        @VerbClient(name="$VERBNAME")
+                                        public interface $CLASSNAMEClient: $IFACE {
+                                            override fun call($PARAM):$RETURN
+                                        }
+                                        """;
+                                template = template.replace("$CLASSNAME", className);
+                                template = template.replace("$RETURN", returnType);
+                                template = template.replace("$VERBNAME", verbName);
+                                template = template.replace("$PARAM", paramName);
+                                template = template.replace("$IFACE", iface);
+                                Files.writeString(file, template);
+                            } else {
+
+                                var file = processingEnv.getFiler().createSourceFile("client." + className + "Client");
+                                var template = """
+                                        package client;
+
+                                        import xyz.block.ftl.VerbClient;
+
+                                        @VerbClient(name="$VERBNAME")
+                                        public interface $CLASSNAMEClient extends $IFACE {
+                                            $RETURN call($PARAM);
+                                        }
+                                        """;
+                                template = template.replace("$CLASSNAME", className);
+                                template = template.replace("$RETURN", returnType);
+                                template = template.replace("$VERBNAME", verbName);
+                                template = template.replace("$PARAM", paramName);
+                                template = template.replace("$IFACE", iface);
+                                try (var writer = file.openWriter()) {
+                                    writer.append(template);
+                                }
                             }
                             processedLocalVerbs.add(verbName);
                         } catch (IgnoreException e) {

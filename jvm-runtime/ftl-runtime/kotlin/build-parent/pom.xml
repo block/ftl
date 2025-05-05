@@ -29,12 +29,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>default-compile</id>
-                        <phase>none</phase>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
@@ -55,6 +49,9 @@
                                     <version>${project.version}</version>
                                 </annotationProcessorPath>
                             </annotationProcessorPaths>
+                            <args>
+                                <arg>-Xuse-k2-kapt</arg>
+                            </args>
                         </configuration>
                     </execution>
                     <execution>

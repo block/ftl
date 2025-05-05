@@ -1,5 +1,5 @@
 package ftl.time
-
+import client.*
 import xyz.block.ftl.Export
 import xyz.block.ftl.SourceVerb
 import xyz.block.ftl.Verb
@@ -9,30 +9,31 @@ data class TimeResponse(val time: OffsetDateTime)
 
 @Verb
 @Export
-class Time (val internal: TimeInternal) : SourceVerb<TimeResponse> {
-
-  override fun call(): TimeResponse {
-    return internal.call();
-  }
-
+fun time(internal: Time2Client): TimeResponse {
+  return internal.call();
 }
 
 
 @Verb
-class TimeInternal(val t2: TimeInternal2) : SourceVerb<TimeResponse> {
-
-  override fun call(): TimeResponse {
-    return t2.call();
-  }
-
+fun time2(t2: TimeInternal2Client): TimeResponse {
+  return t2.call();
 }
 
 
 @Verb
-class TimeInternal2 : SourceVerb<TimeResponse> {
-
-  override fun call(): TimeResponse {
-    return TimeResponse(time = OffsetDateTime.now())
-  }
-
+fun timeInternal2(): TimeResponse {
+  return TimeResponse(time = OffsetDateTime.now())
 }
+@Verb
+fun timeInternal3(): TimeResponse {
+  return TimeResponse(time = OffsetDateTime.now())
+}
+
+
+
+
+@Verb
+fun timeInternal4(): TimeResponse {
+  return TimeResponse(time = OffsetDateTime.now())
+}
+
