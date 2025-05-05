@@ -43,6 +43,7 @@ import (
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/watch"
 )
@@ -148,19 +149,21 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		return nil
 	}
 
+	projectConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
+
 	if req.Msg.RebuildAutomatically {
-		return s.runDevMode(ctx, buildCtx, stream)
+		return s.runDevMode(ctx, projectConfig, buildCtx, stream)
 	}
 
 	// Initial build
-	if err := buildAndSend(ctx, stream, buildCtx, false); err != nil {
+	if err := buildAndSend(ctx, stream, projectConfig, buildCtx, false); err != nil {
 		return errors.WithStack(err)
 	}
 
 	return nil
 }
 
-func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream *connect.ServerStream[langpb.BuildResponse]) error {
+func (s *Service) runDevMode(ctx context.Context, projectConfig projectconfig.Config, buildCtx buildContext, stream *connect.ServerStream[langpb.BuildResponse]) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(errors.Wrap(context.Canceled, "stopping JVM language plugin (devw"))
 
@@ -196,7 +199,7 @@ func (s *Service) runDevMode(ctx context.Context, buildCtx buildContext, stream 
 			}
 		}
 
-		err := s.runQuarkusDev(ctx, buildCtx.Config.Realm, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
+		err := s.runQuarkusDev(ctx, projectConfig, buildCtx.Config.Realm, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
 		if err != nil {
 			logger.Errorf(err, "Dev mode process exited")
 		}
@@ -296,7 +299,7 @@ type buildResult struct {
 	failed              bool
 }
 
-func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
+func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
 	logger := log.FromContext(parentCtx)
 	ctx, cancel := context.WithCancelCause(parentCtx)
 	defer cancel(errors.Wrap(context.Canceled, "stopping JVM language plugin (Quarkus dev modew"))
@@ -363,7 +366,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, realm, module string,
 	if os.Getenv("FTL_SUSPEND") == "true" {
 		devModeBuild += " -Dsuspend "
 	}
-	launchQuarkusProcessAsync(ctx, devModeBuild, buildCtx, bind, output, cancel)
+	launchQuarkusProcessAsync(ctx, devModeBuild, projectConfig, buildCtx, bind, output, cancel)
 
 	// Wait for the plugin to start.
 	hotReloadEndpoint := fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
@@ -539,7 +542,7 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 	}
 }
 
-func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, buildCtx buildContext, bind string, stdout io.Writer, cancel context.CancelCauseFunc) {
+func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, bind string, stdout io.Writer, cancel context.CancelCauseFunc) {
 	go func() {
 		logger := log.FromContext(ctx)
 		logger.Infof("Using dev mode build command '%s'", devModeBuild)
@@ -547,7 +550,7 @@ func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, buildCt
 		if os.Getenv("MAVEN_OPTS") == "" {
 			command.Env = append(command.Env, "MAVEN_OPTS=-Xmx2048m")
 		}
-		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind), "FTL_MODULE_NAME="+buildCtx.Config.Module)
+		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind), "FTL_MODULE_NAME="+buildCtx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root())
 		command.Stdout = stdout
 		command.Stderr = os.Stderr
 		err := command.Run()
@@ -578,7 +581,7 @@ func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint str
 	return client, nil
 }
 
-func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.BuildResponse, error) {
+func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildContext, autoRebuild bool) (*langpb.BuildResponse, error) {
 	logger := log.FromContext(ctx)
 	release, err := flock.Acquire(ctx, bctx.Config.BuildLock, BuildLockTimeout)
 	if err != nil {
@@ -608,7 +611,7 @@ func build(ctx context.Context, bctx buildContext, autoRebuild bool) (*langpb.Bu
 	config := bctx.Config
 	logger.Infof("Using build command '%s'", config.Build)
 	command := exec.Command(ctx, log.Debug, config.Dir, "bash", "-c", config.Build)
-	command.Env = append(command.Env, "FTL_MODULE_NAME="+bctx.Config.Module)
+	command.Env = append(command.Env, "FTL_MODULE_NAME="+bctx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root())
 	command.Stdout = output
 	command.Stderr = os.Stderr
 	err = command.Run()
@@ -726,8 +729,8 @@ func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[
 //
 // Build errors are sent over the stream as a BuildFailure event.
 // This function only returns an error if events could not be send over the stream.
-func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.BuildResponse], buildCtx buildContext, isAutomaticRebuild bool) error {
-	buildEvent, err := build(ctx, buildCtx, isAutomaticRebuild)
+func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.BuildResponse], projectConfig projectconfig.Config, buildCtx buildContext, isAutomaticRebuild bool) error {
+	buildEvent, err := build(ctx, projectConfig, buildCtx, isAutomaticRebuild)
 	if err != nil {
 		buildEvent = buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
 			Type:  builderrors.FTL,

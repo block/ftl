@@ -713,6 +713,9 @@ func ConfigFromProto(v *destpb.Config) (out *Config, err error) {
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
 		return nil, errors.Wrap(err, "Type")
 	}
+	if err := out.Validate(); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -2908,6 +2911,9 @@ func SecretFromProto(v *destpb.Secret) (out *Secret, err error) {
 	}
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
 		return nil, errors.Wrap(err, "Type")
+	}
+	if err := out.Validate(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

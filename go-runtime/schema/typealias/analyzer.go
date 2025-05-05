@@ -18,7 +18,7 @@ var Extractor = common.NewDeclExtractor[*schema.TypeAlias, *ast.TypeSpec]("typea
 
 func Extract(pass *analysis.Pass, node *ast.TypeSpec, obj types.Object) optional.Option[*schema.TypeAlias] {
 	alias := &schema.TypeAlias{
-		Pos:  common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+		Pos:  common.GoPosToSchemaPos(pass, node.Pos()),
 		Name: strcase.ToUpperCamel(obj.Name()),
 	}
 	var hasGoTypeMapping bool
@@ -55,7 +55,7 @@ func Extract(pass *analysis.Pass, node *ast.TypeSpec, obj types.Object) optional
 		alias.Type = &schema.Any{}
 		if !hasGoTypeMapping {
 			alias.Metadata = append(alias.Metadata, &schema.MetadataTypeMap{
-				Pos:        common.GoPosToSchemaPos(pass.Fset, obj.Pos()),
+				Pos:        common.GoPosToSchemaPos(pass, obj.Pos()),
 				Runtime:    "go",
 				NativeName: nn,
 			})

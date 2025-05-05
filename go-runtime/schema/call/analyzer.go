@@ -40,7 +40,7 @@ func Extract(pass *analysis.Pass) (interface{}, error) {
 			if fn == nil {
 				return
 			}
-			common.MarkFunctionCall(pass, parentFuncObj, fn, common.GoPosToSchemaPos(pass.Fset, node.Pos()))
+			common.MarkFunctionCall(pass, parentFuncObj, fn, common.GoPosToSchemaPos(pass, node.Pos()))
 		}
 	})
 	return common.NewExtractorResult(pass), nil

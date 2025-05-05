@@ -1,10 +1,12 @@
 package common
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -37,6 +39,9 @@ var (
 	FtlSinglePartitionMapPath = "github.com/block/ftl/go-runtime/ftl.SinglePartitionMap[E any]"
 
 	extractorRegistery = xsync.NewMapOf[reflect.Type, ExtractDeclFunc[schema.Decl, ast.Node]]()
+
+	ProjectRootFlagName = "project_root"
+	projectRootFlag     string
 )
 
 // NewExtractor creates a new schema element extractor.
@@ -44,6 +49,8 @@ func NewExtractor(name string, factType analysis.Fact, run func(*analysis.Pass) 
 	if !reflect.TypeOf(factType).Implements(reflect.TypeOf((*SchemaFact)(nil)).Elem()) {
 		panic(fmt.Sprintf("factType %T does not implement SchemaFact", factType))
 	}
+	fs := flag.FlagSet{}
+	fs.StringVar(&projectRootFlag, ProjectRootFlagName, "", "FTL project path for analyzer use")
 	return &analysis.Analyzer{
 		Name:             name,
 		Doc:              fmt.Sprintf("extracts %s schema elements to the module", name),
@@ -51,6 +58,7 @@ func NewExtractor(name string, factType analysis.Fact, run func(*analysis.Pass) 
 		ResultType:       reflect.TypeFor[ExtractorResult](),
 		RunDespiteErrors: true,
 		FactTypes:        []analysis.Fact{factType},
+		Flags:            fs,
 	}
 }
 
@@ -192,9 +200,18 @@ func ExtractFuncForDecl(t schema.Decl) (ExtractDeclFunc[schema.Decl, ast.Node], 
 }
 
 // GoPosToSchemaPos converts a Go token.Pos to a schema.Position.
-func GoPosToSchemaPos(fset *token.FileSet, pos token.Pos) schema.Position {
-	p := fset.Position(pos)
-	return schema.Position{Filename: p.Filename, Line: p.Line, Column: p.Column, Offset: p.Offset}
+func GoPosToSchemaPos(pass *analysis.Pass, pos token.Pos) schema.Position {
+	p := pass.Fset.Position(pos)
+	filename := p.Filename
+	flag := pass.Analyzer.Flags.Lookup(ProjectRootFlagName)
+	if flag != nil {
+		projectRoot := flag.Value.String()
+		rel, err := filepath.Rel(projectRoot, filename)
+		if err == nil && rel != "" && rel != "." {
+			filename = rel
+		}
+	}
+	return schema.Position{Filename: filename, Line: p.Line, Column: p.Column, Offset: p.Offset}
 }
 
 // FtlModuleFromGoPackage returns the FTL module name from the given Go package path.
@@ -240,7 +257,7 @@ func ExtractSimpleRefWithCasing(pass *analysis.Pass, node ast.Expr, applyCasing 
 		return optional.None[*schema.Ref]()
 	}
 	ref := &schema.Ref{
-		Pos:    GoPosToSchemaPos(pass.Fset, node.Pos()),
+		Pos:    GoPosToSchemaPos(pass, node.Pos()),
 		Module: module,
 		Name:   applyCasing(obj.Name()),
 	}
@@ -285,7 +302,7 @@ func extractType(pass *analysis.Pass, node ast.Node) optional.Option[schema.Type
 			return optional.None[schema.Type]()
 		}
 		if iType.Underlying().String() == "any" {
-			return optional.Some[schema.Type](&schema.Any{Pos: GoPosToSchemaPos(pass.Fset, node.Pos())})
+			return optional.Some[schema.Type](&schema.Any{Pos: GoPosToSchemaPos(pass, node.Pos())})
 		}
 		if _, ok := t.(*types.Named); ok {
 			return extractRef(pass, node)
@@ -304,7 +321,7 @@ func extractType(pass *analysis.Pass, node ast.Node) optional.Option[schema.Type
 	case *ast.Ident:
 		if t, ok := tnode.Get(); ok {
 			if tparam, ok := t.(*types.TypeParam); ok {
-				return optional.Some[schema.Type](&schema.Ref{Pos: GoPosToSchemaPos(pass.Fset, node.Pos()), Name: tparam.Obj().Id()})
+				return optional.Some[schema.Type](&schema.Ref{Pos: GoPosToSchemaPos(pass, node.Pos()), Name: tparam.Obj().Id()})
 			}
 			switch underlying := t.Underlying().(type) {
 			case *types.Basic:
@@ -317,7 +334,7 @@ func extractType(pass *analysis.Pass, node ast.Node) optional.Option[schema.Type
 				return extractBasicType(pass, node.Pos(), underlying)
 			case *types.Interface:
 				if underlying.String() == "any" {
-					return optional.Some[schema.Type](&schema.Any{Pos: GoPosToSchemaPos(pass.Fset, node.Pos())})
+					return optional.Some[schema.Type](&schema.Any{Pos: GoPosToSchemaPos(pass, node.Pos())})
 				}
 				if _, ok := t.(*types.Named); ok {
 					return extractRef(pass, node)
@@ -404,7 +421,7 @@ func extractSelectorType(pass *analysis.Pass, node ast.Node, typ *ast.SelectorEx
 				return optional.Some[schema.Type](&schema.Unit{})
 			case FtlOptionTypePath:
 				return optional.Some[schema.Type](&schema.Optional{
-					Pos: GoPosToSchemaPos(pass.Fset, node.Pos()),
+					Pos: GoPosToSchemaPos(pass, node.Pos()),
 				})
 			case FtlTopicHandlePath:
 				t, ok := extractRef(pass, node).Get()
@@ -436,7 +453,7 @@ func extractSelectorType(pass *analysis.Pass, node ast.Node, typ *ast.SelectorEx
 					return optional.None[schema.Type]()
 				}
 				return optional.Some[schema.Type](&schema.Ref{
-					Pos:    GoPosToSchemaPos(pass.Fset, node.Pos()),
+					Pos:    GoPosToSchemaPos(pass, node.Pos()),
 					Module: externalModuleName,
 					Name:   typ.Sel.Name,
 				})
@@ -471,7 +488,7 @@ func extractExternalType(pass *analysis.Pass, node ast.Node) optional.Option[sch
 		IsExternalType(underlying.Obj().Pkg().Path()) { // alias— e.g. type MyType = foo.OtherType
 		MarkNeedsExtraction(pass, obj)
 		return optional.Some[schema.Type](&schema.Ref{
-			Pos:    GoPosToSchemaPos(pass.Fset, node.Pos()),
+			Pos:    GoPosToSchemaPos(pass, node.Pos()),
 			Module: moduleName,
 			Name:   strcase.ToUpperCamel(obj.Name()),
 		})
@@ -482,16 +499,16 @@ func extractExternalType(pass *analysis.Pass, node ast.Node) optional.Option[sch
 func extractBasicType(pass *analysis.Pass, pos token.Pos, basic *types.Basic) optional.Option[schema.Type] {
 	switch basic.Kind() {
 	case types.String:
-		return optional.Some[schema.Type](&schema.String{Pos: GoPosToSchemaPos(pass.Fset, pos)})
+		return optional.Some[schema.Type](&schema.String{Pos: GoPosToSchemaPos(pass, pos)})
 
 	case types.Int:
-		return optional.Some[schema.Type](&schema.Int{Pos: GoPosToSchemaPos(pass.Fset, pos)})
+		return optional.Some[schema.Type](&schema.Int{Pos: GoPosToSchemaPos(pass, pos)})
 
 	case types.Bool:
-		return optional.Some[schema.Type](&schema.Bool{Pos: GoPosToSchemaPos(pass.Fset, pos)})
+		return optional.Some[schema.Type](&schema.Bool{Pos: GoPosToSchemaPos(pass, pos)})
 
 	case types.Float64:
-		return optional.Some[schema.Type](&schema.Float{Pos: GoPosToSchemaPos(pass.Fset, pos)})
+		return optional.Some[schema.Type](&schema.Float{Pos: GoPosToSchemaPos(pass, pos)})
 
 	default:
 		return optional.None[schema.Type]()
@@ -521,7 +538,7 @@ func extractRef(pass *analysis.Pass, node ast.Node) optional.Option[schema.Type]
 	}
 
 	ref := &schema.Ref{
-		Pos:    GoPosToSchemaPos(pass.Fset, node.Pos()),
+		Pos:    GoPosToSchemaPos(pass, node.Pos()),
 		Module: moduleName,
 	}
 	if t, ok := node.(*ast.TypeSpec); ok {
@@ -573,7 +590,7 @@ func extractMap(pass *analysis.Pass, node *ast.MapType) optional.Option[schema.T
 		return optional.None[schema.Type]()
 	}
 
-	return optional.Some[schema.Type](&schema.Map{Pos: GoPosToSchemaPos(pass.Fset, node.Pos()), Key: key, Value: value})
+	return optional.Some[schema.Type](&schema.Map{Pos: GoPosToSchemaPos(pass, node.Pos()), Key: key, Value: value})
 }
 
 func extractSlice(pass *analysis.Pass, node *ast.ArrayType) optional.Option[schema.Type] {
@@ -587,7 +604,7 @@ func extractSlice(pass *analysis.Pass, node *ast.ArrayType) optional.Option[sche
 	}
 	// If it's a []byte, treat it as a Bytes type.
 	if basic, ok := tnode.Elem().Underlying().(*types.Basic); ok && basic.Kind() == types.Byte {
-		return optional.Some[schema.Type](&schema.Bytes{Pos: GoPosToSchemaPos(pass.Fset, node.Pos())})
+		return optional.Some[schema.Type](&schema.Bytes{Pos: GoPosToSchemaPos(pass, node.Pos())})
 	}
 
 	value, ok := ExtractType(pass, node.Elt).Get()
@@ -596,7 +613,7 @@ func extractSlice(pass *analysis.Pass, node *ast.ArrayType) optional.Option[sche
 	}
 
 	return optional.Some[schema.Type](&schema.Array{
-		Pos:     GoPosToSchemaPos(pass.Fset, node.Pos()),
+		Pos:     GoPosToSchemaPos(pass, node.Pos()),
 		Element: value,
 	})
 }

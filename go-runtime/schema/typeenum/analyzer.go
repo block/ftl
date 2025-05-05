@@ -45,7 +45,7 @@ func Extract(pass *analysis.Pass) (interface{}, error) {
 		}
 
 		enum := &schema.Enum{
-			Pos:  common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+			Pos:  common.GoPosToSchemaPos(pass, node.Pos()),
 			Name: strcase.ToUpperCamel(node.Name.Name),
 		}
 		common.ApplyMetadata[*schema.Enum](pass, obj, func(md *common.ExtractedMetadata) {

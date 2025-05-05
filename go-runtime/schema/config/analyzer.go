@@ -35,7 +35,7 @@ func Extract(pass *analysis.Pass, obj types.Object, node *ast.TypeSpec) optional
 	}
 
 	cfg := &schema.Config{
-		Pos:  common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+		Pos:  common.GoPosToSchemaPos(pass, node.Pos()),
 		Name: name,
 		Type: typ,
 	}

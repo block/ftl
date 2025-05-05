@@ -85,7 +85,7 @@ func extractEnumVariant(pass *analysis.Pass, node *ast.ValueSpec) {
 	}
 	name = strcase.ToUpperCamel(name)
 	variant := &schema.EnumVariant{
-		Pos:   common.GoPosToSchemaPos(pass.Fset, c.Pos()),
+		Pos:   common.GoPosToSchemaPos(pass, c.Pos()),
 		Name:  name,
 		Value: value,
 	}
@@ -106,7 +106,7 @@ func extractValue(pass *analysis.Pass, cnode *types.Const) optional.Option[schem
 				return optional.None[schema.Value]()
 			}
 			return optional.Some[schema.Value](&schema.StringValue{
-				Pos:   common.GoPosToSchemaPos(pass.Fset, cnode.Pos()),
+				Pos:   common.GoPosToSchemaPos(pass, cnode.Pos()),
 				Value: value,
 			})
 
@@ -116,7 +116,7 @@ func extractValue(pass *analysis.Pass, cnode *types.Const) optional.Option[schem
 				return optional.None[schema.Value]()
 			}
 			return optional.Some[schema.Value](&schema.IntValue{
-				Pos:   common.GoPosToSchemaPos(pass.Fset, cnode.Pos()),
+				Pos:   common.GoPosToSchemaPos(pass, cnode.Pos()),
 				Value: int(value),
 			})
 

@@ -76,7 +76,7 @@ func Run(pass *analysis.Pass) (interface{}, error) {
 		case *common.ExtractedDecl:
 			if existing, ok := declKeys[f.Decl.String()]; ok && existing != obj && obj.Pkg().Path() == pass.Pkg.Path() {
 				common.NoEndColumnErrorf(pass, obj.Pos(), "duplicate %s declaration for %q; already declared at %q",
-					common.GetDeclTypeName(f.Decl), moduleName+"."+f.Decl.GetName(), common.GoPosToSchemaPos(pass.Fset, existing.Pos()))
+					common.GetDeclTypeName(f.Decl), moduleName+"."+f.Decl.GetName(), common.GoPosToSchemaPos(pass, existing.Pos()))
 				continue
 			}
 			if f.Decl != nil && pass.Pkg.Path() == obj.Pkg().Path() {

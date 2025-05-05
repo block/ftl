@@ -100,7 +100,7 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 				typ = "http"
 			}
 			metadata = append(metadata, &schema.MetadataIngress{
-				Pos:    common.GoPosToSchemaPos(pass.Fset, dt.GetPosition()),
+				Pos:    common.GoPosToSchemaPos(pass, dt.GetPosition()),
 				Type:   typ,
 				Method: dt.Method,
 				Path:   dt.Path,
@@ -112,7 +112,7 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 				continue
 			}
 			metadata = append(metadata, &schema.MetadataCronJob{
-				Pos:  common.GoPosToSchemaPos(pass.Fset, dt.Pos),
+				Pos:  common.GoPosToSchemaPos(pass, dt.Pos),
 				Cron: dt.Cron.String(),
 			})
 		case *common.DirectiveFixture:
@@ -122,11 +122,11 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 				continue
 			}
 			metadata = append(metadata, &schema.MetadataFixture{
-				Pos:    common.GoPosToSchemaPos(pass.Fset, dt.Pos),
+				Pos:    common.GoPosToSchemaPos(pass, dt.Pos),
 				Manual: dt.Manual,
 			})
 		case *common.DirectiveRetry:
-			pos := common.GoPosToSchemaPos(pass.Fset, dt.Pos)
+			pos := common.GoPosToSchemaPos(pass, dt.Pos)
 			var catch *schema.Ref
 			if dt.Catch != nil {
 				catch = &schema.Ref{
@@ -145,12 +145,12 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 		case *common.DirectiveTopic:
 			newSchType = &schema.Topic{}
 			metadata = append(metadata, &schema.MetadataPartitions{
-				Pos:        common.GoPosToSchemaPos(pass.Fset, dt.Pos),
+				Pos:        common.GoPosToSchemaPos(pass, dt.Pos),
 				Partitions: dt.Partitions,
 			})
 		case *common.DirectiveSubscriber:
 			newSchType = &schema.Verb{}
-			pos := common.GoPosToSchemaPos(pass.Fset, dt.Pos)
+			pos := common.GoPosToSchemaPos(pass, dt.Pos)
 			metadata = append(metadata, &schema.MetadataSubscriber{
 				Pos: pos,
 				Topic: &schema.Ref{
@@ -164,19 +164,19 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 		case *common.DirectiveTypeMap:
 			newSchType = &schema.TypeAlias{}
 			metadata = append(metadata, &schema.MetadataTypeMap{
-				Pos:        common.GoPosToSchemaPos(pass.Fset, dt.GetPosition()),
+				Pos:        common.GoPosToSchemaPos(pass, dt.GetPosition()),
 				Runtime:    dt.Runtime,
 				NativeName: dt.NativeName,
 			})
 		case *common.DirectiveEncoding:
 			metadata = append(metadata, &schema.MetadataEncoding{
-				Pos:     common.GoPosToSchemaPos(pass.Fset, dt.GetPosition()),
+				Pos:     common.GoPosToSchemaPos(pass, dt.GetPosition()),
 				Lenient: dt.Lenient,
 			})
 		case *common.DirectiveTransaction:
 			requireOnlyDirective(pass, node, directives, dt.GetTypeName())
 			metadata = append(metadata, &schema.MetadataTransaction{
-				Pos: common.GoPosToSchemaPos(pass.Fset, dt.GetPosition()),
+				Pos: common.GoPosToSchemaPos(pass, dt.GetPosition()),
 			})
 			newSchType = &schema.Verb{}
 		case *common.DirectiveEgress:
@@ -187,7 +187,7 @@ func extractMetadata(pass *analysis.Pass, node ast.Node, doc *ast.CommentGroup, 
 				params[t.Name] = t.Target
 			}
 			metadata = append(metadata, &schema.MetadataEgress{
-				Pos:     common.GoPosToSchemaPos(pass.Fset, dt.GetPosition()),
+				Pos:     common.GoPosToSchemaPos(pass, dt.GetPosition()),
 				Targets: targets,
 			})
 			common.MarkEgressParameters(pass, obj, params)

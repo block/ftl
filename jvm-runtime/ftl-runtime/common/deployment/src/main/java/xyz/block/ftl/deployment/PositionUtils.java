@@ -3,6 +3,7 @@ package xyz.block.ftl.deployment;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.jboss.jandex.MethodInfo;
 import org.jboss.logging.Logger;
@@ -38,15 +39,15 @@ public class PositionUtils {
                 .setLine(position.getLine()).build();
     }
 
-    public static Position forMethod(MethodInfo method) {
-        return getLineNumber(method.declaringClass().name().toString(), method);
+    public static Position forMethod(String projectRoot, MethodInfo method) {
+        return getLineNumber(projectRoot, method.declaringClass().name().toString(), method);
     }
 
-    public static Position forClass(String className) {
-        return getLineNumber(className, null);
+    public static Position forClass(String projectRoot, String className) {
+        return getLineNumber(projectRoot, className, null);
     }
 
-    static Position getLineNumber(String className, MethodInfo method) {
+    static Position getLineNumber(String projectRoot, String className, MethodInfo method) {
         Position.Builder builder = Position.newBuilder();
         try {
 
@@ -84,6 +85,26 @@ public class PositionUtils {
                         }
                     }
                 }
+
+                if (projectRoot != null && !projectRoot.isEmpty()) {
+                    Path projectRootPath = Paths.get(projectRoot);
+                    Path potentialPath = projectRootPath.resolve(finalPath);
+                    Path absoluteSourcePath = Files.exists(potentialPath) ? potentialPath.toAbsolutePath() : null;
+                    if (absoluteSourcePath != null) {
+                        try {
+                            finalPath = projectRootPath.toAbsolutePath().relativize(absoluteSourcePath).toString();
+                        } catch (IllegalArgumentException e) {
+                            LOG.debugf(
+                                    "Could not relativize path %s against project root %s. Using absolute path. Error: %s",
+                                    absoluteSourcePath, projectRootPath.toAbsolutePath(), e.getMessage());
+                            finalPath = absoluteSourcePath.toString();
+                        }
+                    } else {
+                        LOG.debugf("Could not resolve source file %s relative to project root %s or dev sources.",
+                                relativePath, projectRoot);
+                    }
+                }
+
                 builder.setFilename(finalPath);
 
                 if (method != null) {
@@ -93,8 +114,10 @@ public class PositionUtils {
                         if (mNode.name.equals(method.name()) && mNode.desc.equals(descriptor)) {
                             for (AbstractInsnNode inNode : mNode.instructions) {
                                 if (inNode instanceof LineNumberNode) {
-                                    // We know the method won't be on the very first line, we subtract 2 to 'guess' the correct line
-                                    // This should line up with either the declaration annotation or the method itself
+                                    // We know the method won't be on the very first line, we subtract 2 to 'guess'
+                                    // the correct line
+                                    // This should line up with either the declaration annotation or the method
+                                    // itself
                                     builder.setLine(Math.max(1, ((LineNumberNode) inNode).line - 2));
                                     return builder.build();
                                 }

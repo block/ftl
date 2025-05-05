@@ -120,7 +120,8 @@ public class TopicsProcessor {
     }
 
     @BuildStep
-    public SchemaContributorBuildItem topicSchema(TopicsBuildItem topics) {
+    public SchemaContributorBuildItem topicSchema(TopicsBuildItem topics, ProjectRootBuildItem projectRootBuildItem) {
+        String projectRoot = projectRootBuildItem.getProjectRoot();
         //register all the topics we are defining in the module definition
         return new SchemaContributorBuildItem(new Consumer<ModuleBuilder>() {
             @Override
@@ -129,9 +130,9 @@ public class TopicsProcessor {
                     var visibility = topic.exported() ? Visibility.VISIBILITY_SCOPE_MODULE : Visibility.VISIBILITY_SCOPE_NONE;
                     moduleBuilder.addDecls(Decl.newBuilder().setTopic(xyz.block.ftl.schema.v1.Topic.newBuilder()
                             .setVisibility(visibility)
-                            .setPos(PositionUtils.forClass(topic.interfaceName()))
+                            .setPos(PositionUtils.forClass(projectRoot, topic.interfaceName()))
                             .setName(topic.topicName())
-                            .setEvent(moduleBuilder.buildType(topic.eventType(), visibility, Nullability.NOT_NULL))
+                            .setEvent(moduleBuilder.buildType(projectRoot, topic.eventType(), visibility, Nullability.NOT_NULL))
                             .addMetadata(Metadata.newBuilder()
                                     .setPartitions(MetadataPartitions.newBuilder()
                                             .setPartitions(topic.partitions()).build())
