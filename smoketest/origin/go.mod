@@ -3,8 +3,8 @@ module ftl/origin
 go 1.24.0
 
 require (
-	github.com/alecthomas/errors v0.7.0
-	github.com/block/ftl v0.476.1
+	github.com/alecthomas/errors v0.8.2
+	github.com/block/ftl v0.484.1
 )
 
 require (
