@@ -178,3 +178,8 @@ func (s Scopes) Resolve(ref Ref) *ModuleDecl {
 	}
 	return nil
 }
+
+// DeclResolver optionally resolves a [Ref] to a [Decl].
+type DeclResolver interface {
+	ResolveWithModule(ref *Ref) (optional.Option[Decl], optional.Option[*Module])
+}

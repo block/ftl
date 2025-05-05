@@ -218,7 +218,7 @@ func (v *Verb) GetQuery() (*MetadataSQLQuery, bool) {
 }
 
 // ResolveDatabaseUses resolves all datasources accessed by a verb, explicitly or implicitly.
-func (v *Verb) ResolveDatabaseUses(schema *Schema, module string) sets.Set[RefKey] {
+func (v *Verb) ResolveDatabaseUses(resolver DeclResolver, module string) sets.Set[RefKey] {
 	dbs := sets.NewSet[RefKey]()
 	for _, md := range v.Metadata {
 		switch md := md.(type) {
@@ -231,7 +231,8 @@ func (v *Verb) ResolveDatabaseUses(schema *Schema, module string) sets.Set[RefKe
 				if call.Module == module && call.Name == v.Name {
 					continue
 				}
-				resolved, ok := schema.Resolve(call).Get()
+				ropt, _ := resolver.ResolveWithModule(call)
+				resolved, ok := ropt.Get()
 				if !ok {
 					continue
 				}
@@ -239,7 +240,7 @@ func (v *Verb) ResolveDatabaseUses(schema *Schema, module string) sets.Set[RefKe
 				if !ok {
 					continue
 				}
-				dbs = dbs.Union(callee.ResolveDatabaseUses(schema, module))
+				dbs = dbs.Union(callee.ResolveDatabaseUses(resolver, module))
 			}
 		default:
 		}
@@ -248,7 +249,7 @@ func (v *Verb) ResolveDatabaseUses(schema *Schema, module string) sets.Set[RefKe
 }
 
 // ResolveCalls resolves all verbs called by a verb, explicitly or implicitly.
-func (v *Verb) ResolveCalls(schema *Schema, module string) sets.Set[RefKey] {
+func (v *Verb) ResolveCalls(resolver DeclResolver, module string) sets.Set[RefKey] {
 	verbs := sets.NewSet[RefKey]()
 	visited := sets.NewSet[RefKey]()
 	for _, md := range v.Metadata {
@@ -262,7 +263,8 @@ func (v *Verb) ResolveCalls(schema *Schema, module string) sets.Set[RefKey] {
 					continue
 				}
 				visited.Add(call.ToRefKey())
-				resolved, ok := schema.Resolve(call).Get()
+				ropt, _ := resolver.ResolveWithModule(call)
+				resolved, ok := ropt.Get()
 				if !ok {
 					continue
 				}
@@ -270,7 +272,7 @@ func (v *Verb) ResolveCalls(schema *Schema, module string) sets.Set[RefKey] {
 				if !ok {
 					continue
 				}
-				verbs = verbs.Union(callee.ResolveCalls(schema, module))
+				verbs = verbs.Union(callee.ResolveCalls(resolver, module))
 			}
 		default:
 		}

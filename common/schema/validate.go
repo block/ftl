@@ -66,9 +66,14 @@ func (r *Realm) Validate() (*Realm, error) {
 func ValidateModuleInSchema(original *Schema, m optional.Option[*Module]) (*Schema, error) {
 	schema := &Schema{Pos: original.Pos}
 
+	realms := map[string]bool{}
 	merr := []error{}
 	moduleAdded := false
 	for _, realm := range original.Realms {
+		if _, ok := realms[realm.Name]; ok {
+			merr = append(merr, errorf(realm, "duplicate realm %q", realm.Name))
+		}
+		realms[realm.Name] = true
 		var mod optional.Option[*Module]
 		if !moduleAdded && !realm.External {
 			if v, ok := m.Get(); ok {
@@ -230,7 +235,7 @@ func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, er
 						ingress[key] = n
 
 					case *MetadataRetry:
-						validateRetries(module, md, optional.Some(n.Request), scopes, optional.None[*Schema]())
+						validateRetries(module, md, optional.Some(n.Request), scopes, true)
 
 					case *MetadataSQLQuery:
 						isSQLQuery = true
@@ -260,7 +265,7 @@ func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, er
 					merr = append(merr, validateVisibility(scopes, n.Visibility, RefKey{Module: module.Name, Name: n.GetName()}, n.Request, n.Response)...)
 				}
 				if isSQLQuery {
-					dbSet := n.ResolveDatabaseUses(nil, module.Name)
+					dbSet := n.ResolveDatabaseUses(realm, module.Name)
 					numDbs := dbSet.Cardinality()
 					if isSQLQuery && numDbs == 0 {
 						merr = append(merr, errorf(n, "query verb must specify a corresponding datasource"))
@@ -270,7 +275,7 @@ func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, er
 					}
 				}
 				if n.IsTransaction() {
-					dbSet := n.ResolveDatabaseUses(nil, module.Name)
+					dbSet := n.ResolveDatabaseUses(realm, module.Name)
 					numDbs := dbSet.Cardinality()
 					if numDbs == 0 {
 						merr = append(merr, errorf(n, "transaction verbs must access a datasource"))
@@ -281,7 +286,7 @@ func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, er
 					if injectsTransactions {
 						merr = append(merr, errorf(n, "transaction verbs cannot inject nested transactions"))
 					}
-					for _, verbRef := range n.ResolveCalls(nil, module.Name).ToSlice() {
+					for _, verbRef := range n.ResolveCalls(realm, module.Name).ToSlice() {
 						if verbRef.Module != module.Name {
 							merr = append(merr, errorf(n, "transaction verbs cannot call verbs in external modules; %s.%s calls %s.%s", module.Name, n.Name, verbRef.Module, verbRef.Name))
 						}
@@ -304,8 +309,8 @@ func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, er
 			case *Enum:
 				if n.IsValueEnum() {
 					for _, v := range n.Variants {
-						expected := resolveType(nil, v.Value.schemaValueType())
-						actual := resolveType(nil, n.Type)
+						expected := resolveType(realm, v.Value.schemaValueType())
+						actual := resolveType(realm, n.Type)
 						if reflect.TypeOf(expected) != reflect.TypeOf(actual) {
 							merr = append(merr, errorf(v, "enum variant %q of type %s cannot have a value of "+
 								"type %q", v.Name, n.Type, v.Value.schemaValueType()))
@@ -866,7 +871,7 @@ func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error)
 				return
 			}
 
-			subErrs := validateRetries(module, md, optional.Some(n.Request), scopes, optional.None[*Schema]())
+			subErrs := validateRetries(module, md, optional.Some(n.Request), scopes, false)
 			merr = append(merr, subErrs...)
 
 		case *MetadataSubscriber:
@@ -1212,7 +1217,7 @@ func generateDeadLetterTopics(module *Module) {
 	}
 }
 
-func validateRetries(module *Module, retry *MetadataRetry, requestType optional.Option[Type], scopes Scopes, schema optional.Option[*Schema]) (merr []error) {
+func validateRetries(module *Module, retry *MetadataRetry, requestType optional.Option[Type], scopes Scopes, fullSchema bool) (merr []error) {
 	// Validate count
 	if retry.Count != nil && *retry.Count < 0 {
 		merr = append(merr, errorf(retry, "retry count can not be negative"))
@@ -1242,7 +1247,7 @@ func validateRetries(module *Module, retry *MetadataRetry, requestType optional.
 	}
 	catchDecl := scopes.Resolve(*retry.Catch)
 	if catchDecl == nil {
-		if retry.Catch.Module != "" && retry.Catch.Module != module.Name && !schema.Ok() {
+		if retry.Catch.Module != "" && retry.Catch.Module != module.Name && !fullSchema {
 			// can not validate catch ref from external modules until we have the whole schema
 			return
 		}
@@ -1281,12 +1286,13 @@ func typeName(v any) string {
 	return strings.ToLower(reflect.Indirect(reflect.ValueOf(v)).Type().Name())
 }
 
-func resolveType(sch *Schema, typ Type) Type {
+func resolveType(resolver DeclResolver, typ Type) Type {
 	ref, ok := typ.(*Ref)
 	if !ok {
 		return typ
 	}
-	resolved, ok := sch.Resolve(ref).Get()
+	ropt, _ := resolver.ResolveWithModule(ref)
+	resolved, ok := ropt.Get()
 	if !ok {
 		return typ
 	}
@@ -1294,5 +1300,5 @@ func resolveType(sch *Schema, typ Type) Type {
 	if !ok {
 		return typ
 	}
-	return resolveType(sch, ta.Type)
+	return resolveType(resolver, ta.Type)
 }
