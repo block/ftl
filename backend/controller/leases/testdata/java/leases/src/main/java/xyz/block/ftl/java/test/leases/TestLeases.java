@@ -1,11 +1,11 @@
 package xyz.block.ftl.java.test.leases;
 
+import java.time.Duration;
+
 import io.quarkus.logging.Log;
 import xyz.block.ftl.Export;
 import xyz.block.ftl.LeaseClient;
 import xyz.block.ftl.Verb;
-
-import java.time.Duration;
 
 public class TestLeases {
 
