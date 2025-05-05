@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Singleton;
 
 import org.jboss.jandex.AnnotationInstance;
@@ -52,7 +53,6 @@ public class VerbProcessor {
 
     @BuildStep
     VerbClientBuildItem handleVerbClients(CombinedIndexBuildItem index,
-            BuildProducer<GeneratedClassBuildItem> generatedClients,
             BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
             BuildProducer<BytecodeTransformerBuildItem> bytecodeTransformerBuildItemBuildProducer,
             ModuleNameBuildItem moduleNameBuildItem,
@@ -71,15 +71,7 @@ public class VerbProcessor {
             String module = moduleValue == null || moduleValue.asString().isEmpty() ? moduleNameBuildItem.getModuleName()
                     : moduleValue.asString();
             ClassOutput classOutput;
-            if (launchModeBuildItem.isTest()) {
-                //when running in tests we actually make these beans, so they can be injected into the tests
-                //the @TestResource qualifier is used so they can only be injected into test code
-                //TODO: is this the best way of handling this? revisit later
-
-                classOutput = new GeneratedBeanGizmoAdaptor(generatedBeanBuildItemBuildProducer);
-            } else {
-                classOutput = new GeneratedClassGizmoAdaptor(generatedClients, true);
-            }
+            classOutput = new GeneratedBeanGizmoAdaptor(generatedBeanBuildItemBuildProducer);
             var found = false;
             //TODO: map and list return types
             for (var i : iface.interfaceTypes()) {
@@ -290,15 +282,15 @@ public class VerbProcessor {
                                 }));
             }
             //String name = callMethod.name();
-            AnnotationValue moduleValue = clientDefinition.value("module");
             String module = moduleNameBuildItem.getModuleName();
             ClassOutput classOutput;
-            classOutput = new GeneratedClassGizmoAdaptor(generatedClients, true);
+            classOutput = new GeneratedBeanGizmoAdaptor(generatedBeanBuildItemBuildProducer);
             var callMethod = info.method();
             Type returnType = callMethod.returnType();
             Type paramType = callMethod.parametersCount() > 0 ? callMethod.parameterType(0) : null;
             try (ClassCreator cc = new ClassCreator(classOutput, verbClass.name().toString() + "_fit_verbclient", null,
                     verbClass.name().toString())) {
+                cc.addAnnotation(RequestScoped.class);
                 switch (VerbType.of(callMethod)) {
                     case VERB:
                         LinkedHashSet<Map.Entry<String, String>> signatures = new LinkedHashSet<>();

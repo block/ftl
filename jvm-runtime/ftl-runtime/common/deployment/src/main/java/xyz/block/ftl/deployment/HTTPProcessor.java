@@ -50,6 +50,9 @@ public class HTTPProcessor {
             public ParameterExtractor handleCustomParameter(org.jboss.jandex.Type type,
                     Map<DotName, AnnotationInstance> annotations, boolean field, Map<String, Object> methodContext) {
                 try {
+                    if (field) {
+                        return null;
+                    }
 
                     if (annotations.containsKey(FTLDotNames.SECRET)) {
                         Class<?> paramType = ModuleBuilder.loadClass(type);
