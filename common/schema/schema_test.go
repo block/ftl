@@ -1352,3 +1352,42 @@ func TestWithBuiltins(t *testing.T) {
 		assert.Equal(t, schema.WithBuiltins(), schema.WithBuiltins().WithBuiltins())
 	})
 }
+
+func TestExternal(t *testing.T) {
+	t.Run("does not include referred configs", func(t *testing.T) {
+		schema := &Schema{
+			Realms: []*Realm{{
+				Name: "foo",
+				Modules: []*Module{{
+					Name: "bar",
+					Decls: []Decl{
+						&Config{Name: "config", Type: &String{}},
+						&Verb{
+							Name:       "m",
+							Request:    &Unit{Unit: true},
+							Response:   &Unit{Unit: true},
+							Metadata:   []Metadata{&MetadataConfig{Config: []*Ref{{Module: "bar", Name: "config"}}}},
+							Visibility: VisibilityScopeRealm,
+						},
+					},
+				}},
+			}},
+		}
+		assert.Equal(t, &Schema{
+			Realms: []*Realm{{
+				Name: "foo",
+				Modules: []*Module{{
+					Name: "bar",
+					Decls: []Decl{
+						&Verb{
+							Name:       "m",
+							Request:    &Unit{Unit: true},
+							Response:   &Unit{Unit: true},
+							Visibility: VisibilityScopeRealm,
+						},
+					},
+				}},
+			}},
+		}, schema.External())
+	})
+}

@@ -310,32 +310,59 @@ func (s *Schema) FilterModules(modules []RefKey) (*Schema, []RefKey) {
 func (s *Schema) External() *Schema {
 	filtered := &Schema{}
 	for _, realm := range s.Realms {
-		if !realm.External {
+		realmCopy := ftlreflect.DeepCopy(realm)
+		if !realmCopy.External {
 			filtered.Realms = append(
 				filtered.Realms,
-				realm.FilterByVisibility(VisibilityScopeRealm),
+				realmCopy.FilterByVisibility(VisibilityScopeRealm),
 			)
 		}
 	}
-	// strip any runtime
+	// strip any runtime, and unsupported decls
 	for _, realm := range filtered.Realms {
 		for _, module := range realm.Modules {
 			module.Runtime = nil
+			var filteredDecls []Decl
 			for _, decl := range module.Decls {
 				switch d := decl.(type) {
 				case *Verb:
 					d.Runtime = nil
+					d.Metadata = filterExternalMetadata(d.Metadata)
+					filteredDecls = append(filteredDecls, d)
 				case *Database:
 					d.Runtime = nil
+					d.Metadata = filterExternalMetadata(d.Metadata)
+					filteredDecls = append(filteredDecls, d)
 				case *Topic:
 					d.Runtime = nil
+					d.Metadata = filterExternalMetadata(d.Metadata)
+					filteredDecls = append(filteredDecls, d)
 				case *Data:
+					d.Metadata = filterExternalMetadata(d.Metadata)
+					filteredDecls = append(filteredDecls, d)
 				case *TypeAlias:
-				case *Config:
+					d.Metadata = filterExternalMetadata(d.Metadata)
+					filteredDecls = append(filteredDecls, d)
 				case *Enum:
+					filteredDecls = append(filteredDecls, d)
+				case *Config:
 				case *Secret:
 				}
+				module.Decls = filteredDecls
 			}
+		}
+	}
+	return filtered
+}
+
+func filterExternalMetadata(metadata []Metadata) []Metadata {
+	var filtered []Metadata
+	for _, m := range metadata {
+		switch m := m.(type) {
+		case *MetadataConfig:
+		case *MetadataSecrets:
+		default:
+			filtered = append(filtered, m)
 		}
 	}
 	return filtered
