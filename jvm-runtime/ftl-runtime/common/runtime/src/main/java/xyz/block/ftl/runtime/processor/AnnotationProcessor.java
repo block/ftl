@@ -132,10 +132,24 @@ public class AnnotationProcessor implements Processor {
                                     if (!ok) {
                                         continue;
                                     }
-                                    paramName = typeMirrorToString(elem.asType()) + " val";
+                                    paramName = typeMirrorToString(elem.asType());
                                 }
                             }
                             var returnType = typeMirrorToString(executableElement.getReturnType());
+                            String iface;
+                            if (returnType.equals("void")) {
+                                if (paramName.isEmpty()) {
+                                    iface = "xyz.block.ftl.EmptyVerb";
+                                } else {
+                                    iface = "xyz.block.ftl.SinkVerb<" + paramName + ">";
+                                }
+                            } else {
+                                if (paramName.isEmpty()) {
+                                    iface = "xyz.block.ftl.SourceVerb<" + returnType + ">";
+                                } else {
+                                    iface = "xyz.block.ftl.FunctionVerb<" + paramName + "," + returnType + ">";
+                                }
+                            }
 
                             var file = processingEnv.getFiler().createSourceFile("client." + className + "Client");
                             var template = """
@@ -143,15 +157,16 @@ public class AnnotationProcessor implements Processor {
 
                                     import xyz.block.ftl.VerbClient;
 
-                                    public interface $CLASSNAMEClient {
-                                        @VerbClient
-                                        $RETURN $VERBNAME ($PARAM);
+                                    @VerbClient(name="$VERBNAME")
+                                    public interface $CLASSNAMEClient extends $IFACE {
+                                        $RETURN call($PARAM cal);
                                     }
                                     """;
                             template = template.replace("$CLASSNAME", className);
                             template = template.replace("$RETURN", returnType);
                             template = template.replace("$VERBNAME", verbName);
                             template = template.replace("$PARAM", paramName);
+                            template = template.replace("$IFACE", iface);
                             try (var writer = file.openWriter()) {
                                 writer.append(template);
                             }

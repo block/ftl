@@ -75,7 +75,6 @@ public class VerbProcessor {
                 //when running in tests we actually make these beans, so they can be injected into the tests
                 //the @TestResource qualifier is used so they can only be injected into test code
                 //TODO: is this the best way of handling this? revisit later
-
                 classOutput = new GeneratedBeanGizmoAdaptor(generatedBeanBuildItemBuildProducer);
             } else {
                 classOutput = new GeneratedClassGizmoAdaptor(generatedClients, true);
