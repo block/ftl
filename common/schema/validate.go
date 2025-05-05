@@ -51,74 +51,79 @@ func MustValidate(schema *Schema) *Schema {
 	return clone
 }
 
-// ValidateSchema clones, normalises and semantically validates a schema.
+// Validate Schema clones, normalises and semantically validates a schema.
 func (s *Schema) Validate() (*Schema, error) {
 	return errors.WithStack2(ValidateModuleInSchema(s, optional.None[*Module]()))
 }
 
-// ValidateModuleInSchema clones and normalises a schema and semantically validates a single module within it.
-// If no module is provided, all modules in the schema are validated.
-// m can be a new or updated module that will be added to the schema before validation.
-//
-//nolint:maintidx
-func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema, error) {
-	schema = dc.DeepCopy(schema)
+// Validate Realm clones, normalises and semantically validates a realm.
+func (r *Realm) Validate() (*Realm, error) {
+	return errors.WithStack2(ValidateModuleInRealm(r, optional.None[*Module]()))
+}
+
+// ValidateModuleInSchema clones and normalises a schema and semantically validates a single module in it's internal realm.
+// m can be a new or updated module that will be added to the schema before validation (in the internal realm).
+func ValidateModuleInSchema(original *Schema, m optional.Option[*Module]) (*Schema, error) {
+	schema := &Schema{Pos: original.Pos}
+
+	merr := []error{}
+	moduleAdded := false
+	for _, realm := range original.Realms {
+		var mod optional.Option[*Module]
+		if !moduleAdded && !realm.External {
+			if v, ok := m.Get(); ok {
+				mod = optional.Some(v)
+				moduleAdded = true
+			}
+		}
+		validatedRealm, err := ValidateModuleInRealm(realm, mod)
+		if err != nil {
+			merr = append(merr, err)
+		}
+		schema.Realms = append(schema.Realms, validatedRealm)
+	}
+	return schema, errors.WithStack(errors.Join(merr...))
+}
+
+// ValidateModuleInRealm clones and normalises a realm and semantically validates a single module within it.
+// If no module is provided, all modules in the realm are validated.
+// m can be a new or updated module that will be added to the realm before validation.
+func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, error) { //nolint:maintidx
+	realm = dc.DeepCopy(realm)
 
 	if m, ok := m.Get(); ok {
 		// Replace original version of module with new version in case they differ
 		var found bool
-		for _, realm := range schema.Realms {
-			if realm.External {
-				continue
-			}
-			for i, module := range realm.Modules {
-				if module.Name == m.Name {
-					realm.Modules[i] = m
-					found = true
-				}
+		for i, module := range realm.Modules {
+			if module.Name == m.Name {
+				realm.Modules[i] = m
+				found = true
 			}
 		}
 		if !found {
-			// place the new mudule to the internal realm
-			for _, realm := range schema.Realms {
-				if realm.External {
-					continue
-				}
-				realm.Modules = append(realm.Modules, m)
-				break
-			}
+			realm.Modules = append(realm.Modules, m)
 		}
 	}
 
 	modules := map[string]bool{}
-	realms := map[string]bool{}
 	merr := []error{}
 	ingress := map[string]*Verb{}
 
 	// Inject builtins.
 	builtins := Builtins()
-	for _, realm := range schema.Realms {
-		if realms[realm.Name] {
-			merr = append(merr, errorf(realm, "duplicate realm %q", realm.Name))
-		}
-		realms[realm.Name] = true
-		if realm.External {
-			continue
-		}
-		// Move builtins to the front of the list.
-		realm.Modules = slices.DeleteFunc(realm.Modules, func(m *Module) bool { return m.Name == builtins.Name })
-		realm.Modules = append([]*Module{builtins}, realm.Modules...)
-	}
+	// Move builtins to the front of the list.
+	realm.Modules = slices.DeleteFunc(realm.Modules, func(m *Module) bool { return m.Name == builtins.Name })
+	realm.Modules = append([]*Module{builtins}, realm.Modules...)
 
 	scopes := NewScopes()
 
-	// Validate dependencies
-	if err := validateDependencies(schema); err != nil {
+	// Validate dependencies (adapted for a single realm)
+	if err := validateRealmDependencies(realm); err != nil {
 		merr = append(merr, err)
 	}
 
 	// First pass, add all the modules.
-	for _, module := range schema.InternalModules() {
+	for _, module := range realm.Modules {
 		if module == builtins {
 			continue
 		}
@@ -128,7 +133,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 	}
 
 	// Validate modules.
-	for _, module := range schema.InternalModules() {
+	for _, module := range realm.Modules {
 		// Skip builtin module, it's already been validated.
 		if module.Name == "builtin" {
 			continue
@@ -225,7 +230,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 						ingress[key] = n
 
 					case *MetadataRetry:
-						validateRetries(module, md, optional.Some(n.Request), scopes, optional.Some(schema))
+						validateRetries(module, md, optional.Some(n.Request), scopes, optional.None[*Schema]())
 
 					case *MetadataSQLQuery:
 						isSQLQuery = true
@@ -248,14 +253,14 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 						}
 					case *MetadataCronJob, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap,
 						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact,
-						*MetadataPartitions, *MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit, *MetadataFixture,
-						*MetadataTransaction, *MetadataEgress:
+						*MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit, *MetadataFixture,
+						*MetadataTransaction, *MetadataEgress, *MetadataPartitions:
 					}
 
 					merr = append(merr, validateVisibility(scopes, n.Visibility, RefKey{Module: module.Name, Name: n.GetName()}, n.Request, n.Response)...)
 				}
 				if isSQLQuery {
-					dbSet := n.ResolveDatabaseUses(schema, module.Name)
+					dbSet := n.ResolveDatabaseUses(nil, module.Name)
 					numDbs := dbSet.Cardinality()
 					if isSQLQuery && numDbs == 0 {
 						merr = append(merr, errorf(n, "query verb must specify a corresponding datasource"))
@@ -265,7 +270,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 					}
 				}
 				if n.IsTransaction() {
-					dbSet := n.ResolveDatabaseUses(schema, module.Name)
+					dbSet := n.ResolveDatabaseUses(nil, module.Name)
 					numDbs := dbSet.Cardinality()
 					if numDbs == 0 {
 						merr = append(merr, errorf(n, "transaction verbs must access a datasource"))
@@ -276,7 +281,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 					if injectsTransactions {
 						merr = append(merr, errorf(n, "transaction verbs cannot inject nested transactions"))
 					}
-					for _, verbRef := range n.ResolveCalls(schema, module.Name).ToSlice() {
+					for _, verbRef := range n.ResolveCalls(nil, module.Name).ToSlice() {
 						if verbRef.Module != module.Name {
 							merr = append(merr, errorf(n, "transaction verbs cannot call verbs in external modules; %s.%s calls %s.%s", module.Name, n.Name, verbRef.Module, verbRef.Name))
 						}
@@ -299,8 +304,8 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 			case *Enum:
 				if n.IsValueEnum() {
 					for _, v := range n.Variants {
-						expected := resolveType(schema, v.Value.schemaValueType())
-						actual := resolveType(schema, n.Type)
+						expected := resolveType(nil, v.Value.schemaValueType())
+						actual := resolveType(nil, n.Type)
 						if reflect.TypeOf(expected) != reflect.TypeOf(actual) {
 							merr = append(merr, errorf(v, "enum variant %q of type %s cannot have a value of "+
 								"type %q", v.Name, n.Type, v.Value.schemaValueType()))
@@ -319,11 +324,11 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 				}
 				return errors.WithStack(next())
 
-			case
-				IngressPathComponent, Metadata, Value, Type, DatabaseConnector,
+			case IngressPathComponent, Metadata, Value, Type, DatabaseConnector,
 				*Module, *Optional, *Schema, *TypeAlias, *String, *Time, *Unit, *Any, *TypeParameter,
 				*EnumVariant, *Config, *Secret, *Topic, *DatabaseRuntime, *DatabaseRuntimeConnections,
 				*Data, *Field, *MetadataPartitions, *MetadataSQLQuery, *MetadataSQLColumn, *Realm:
+				// no-op
 			}
 			// Declared types must have all child refs maintain at least the same level of visibility.
 			if n, ok := n.(Type); ok {
@@ -339,7 +344,7 @@ func ValidateModuleInSchema(schema *Schema, m optional.Option[*Module]) (*Schema
 	}
 
 	merr = cleanErrors(merr)
-	return schema, errors.WithStack(errors.Join(merr...))
+	return realm, errors.WithStack(errors.Join(merr...))
 }
 
 var validNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
@@ -677,7 +682,7 @@ const (
 	fullyExplored
 )
 
-func validateDependencies(schema *Schema) error {
+func validateRealmDependencies(realm *Realm) error {
 	// go through schema's modules, find cycles in modules' dependencies
 
 	// First pass, set up direct imports and vertex states for each module
@@ -686,7 +691,7 @@ func validateDependencies(schema *Schema) error {
 	vertexes := []dependencyVertex{}
 	vertexStates := map[dependencyVertex]dependencyVertexState{}
 
-	for _, module := range schema.InternalModules() {
+	for _, module := range realm.Modules {
 		currentImports := module.Imports()
 		sort.Strings(currentImports)
 		imports[module.Name] = currentImports
