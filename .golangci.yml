@@ -90,6 +90,11 @@ linters:
       threshold: 100
     errcheck:
       check-blank: true
+    exhaustruct:
+      include:
+        - 'github\.com/block/ftl/common/schema\.Schema'
+        - 'github\.com/block/ftl/common/schema\.Realm'
+        - 'github\.com/block/ftl/common/schema\.Module'
     exhaustive:
       default-signifies-exhaustive: true
     forbidigo:

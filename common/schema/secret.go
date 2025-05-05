@@ -17,6 +17,15 @@ type Secret struct {
 var _ Decl = (*Secret)(nil)
 var _ Symbol = (*Secret)(nil)
 
+func (s *Secret) Validate() error {
+	if s.Name == "" {
+		return errorf(s, "secret name cannot be empty")
+	}
+	if s.Type == nil {
+		return errorf(s, "%s: missing secret type", s.Name)
+	}
+	return nil
+}
 func (s *Secret) GetName() string           { return s.Name }
 func (s *Secret) GetVisibility() Visibility { return VisibilityScopeNone }
 func (s *Secret) IsGenerated() bool         { return false }

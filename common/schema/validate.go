@@ -18,7 +18,7 @@ import (
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/cron"
 	ftlerrors "github.com/block/ftl/common/errors"
-	dc "github.com/block/ftl/common/reflect"
+	ftlreflect "github.com/block/ftl/common/reflect"
 	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/egress"
 )
@@ -39,6 +39,11 @@ var (
 		"Any":    ModuleDecl{Symbol: &Any{}},
 	}
 )
+
+type ValidatedNode interface {
+	Node
+	Validate() error
+}
 
 // MustValidate panics if a schema is invalid.
 //
@@ -94,7 +99,7 @@ func ValidateModuleInSchema(original *Schema, m optional.Option[*Module]) (*Sche
 // If no module is provided, all modules in the realm are validated.
 // m can be a new or updated module that will be added to the realm before validation.
 func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, error) { //nolint:maintidx
-	realm = dc.DeepCopy(realm)
+	realm = ftlreflect.DeepCopy(realm)
 
 	if m, ok := m.Get(); ok {
 		// Replace original version of module with new version in case they differ
@@ -170,6 +175,13 @@ func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, er
 			if err := next(); err != nil {
 				return errors.WithStack(err)
 			}
+
+			if n, ok := n.(ValidatedNode); ok {
+				if err := n.Validate(); err != nil {
+					merr = append(merr, err)
+				}
+			}
+
 			switch n := n.(type) {
 			case *Ref:
 				mdecl := scopes.Resolve(*n)
@@ -748,7 +760,7 @@ func dfsForDependencyCycle(imports map[string][]string, vertexStates map[depende
 	return nil
 }
 
-func errorf(pos interface{ Position() Position }, format string, args ...interface{}) error {
+func errorf(pos interface{ Position() Position }, format string, args ...any) error {
 	p := pos.Position()
 	errPos := builderrors.Position{
 		Filename:    p.Filename,

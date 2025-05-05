@@ -61,7 +61,11 @@ func (e Error) Error() string {
 }
 
 func makeError(level ErrorLevel, pos Position, format string, args ...any) Error {
-	return Error{Type: FTL, Msg: fmt.Sprintf(format, args...), Pos: optional.Some(pos), Level: level}
+	var opos optional.Option[Position]
+	if pos != (Position{}) {
+		opos = optional.Some(pos)
+	}
+	return Error{Type: FTL, Msg: fmt.Sprintf(format, args...), Pos: opos, Level: level}
 }
 
 func Infof(pos Position, format string, args ...any) Error {

@@ -9,6 +9,9 @@ import (
 // Visit all nodes in the schema.
 func Visit(n Node, visit func(n Node, next func() error) error) error {
 	return errors.WithStack(visit(n, func() error {
+		if n == nil {
+			return nil
+		}
 		for _, child := range n.schemaChildren() {
 			if err := Visit(child, visit); err != nil {
 				return errors.WithStack(err)

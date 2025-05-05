@@ -17,6 +17,16 @@ type Config struct {
 var _ Decl = (*Config)(nil)
 var _ Symbol = (*Config)(nil)
 
+func (s *Config) Validate() error {
+	if !ValidateName(s.Name) {
+		return errorf(s, "invalid config name %q", s.Name)
+	}
+	if s.Type == nil {
+		return errorf(s, "%s: missing config type", s.Name)
+	}
+	return nil
+}
+
 func (s *Config) GetName() string           { return s.Name }
 func (s *Config) GetVisibility() Visibility { return VisibilityScopeNone }
 func (s *Config) IsGenerated() bool         { return false }
