@@ -5,7 +5,7 @@ go 1.24.0
 replace github.com/block/ftl => ../../..
 
 require (
-	github.com/alecthomas/errors v0.7.0
+	github.com/alecthomas/errors v0.8.2
 	github.com/block/ftl v0.0.0-00010101000000-000000000000
 )
 

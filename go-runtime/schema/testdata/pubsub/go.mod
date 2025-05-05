@@ -3,7 +3,7 @@ module ftl/pubsub
 go 1.24.0
 
 require (
-	github.com/alecthomas/errors v0.7.0
+	github.com/alecthomas/errors v0.8.2
 	github.com/block/ftl v0.430.1
 )
 
