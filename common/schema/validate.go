@@ -56,16 +56,6 @@ func MustValidate(schema *Schema) *Schema {
 	return clone
 }
 
-// Validate Schema clones, normalises and semantically validates a schema.
-func (s *Schema) Validate() (*Schema, error) {
-	return errors.WithStack2(ValidateModuleInSchema(s, optional.None[*Module]()))
-}
-
-// Validate Realm clones, normalises and semantically validates a realm.
-func (r *Realm) Validate() (*Realm, error) {
-	return errors.WithStack2(ValidateModuleInRealm(r, optional.None[*Module]()))
-}
-
 // ValidateModuleInSchema clones and normalises a schema and semantically validates a single module in it's internal realm.
 // m can be a new or updated module that will be added to the schema before validation (in the internal realm).
 func ValidateModuleInSchema(original *Schema, m optional.Option[*Module]) (*Schema, error) {
@@ -404,6 +394,9 @@ func (m *Module) Validate() error {
 	duplicateDecls := map[string]Decl{}
 
 	_ = Visit(m, func(n Node, next func() error) error { //nolint:errcheck
+		if m == n {
+			return next()
+		}
 		if scoped, ok := n.(Scoped); ok {
 			pop := scopes
 			scopes = scopes.PushScope(scoped.Scope())
@@ -413,6 +406,13 @@ func (m *Module) Validate() error {
 		// Validate all children before validating the current node.
 		if err := next(); err != nil {
 			return errors.WithStack(err)
+		}
+
+		if n, ok := n.(ValidatedNode); ok && n != m {
+			if err := n.Validate(); err != nil {
+				merr = append(merr, err)
+				return nil
+			}
 		}
 
 		if n, ok := n.(Decl); ok {

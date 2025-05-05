@@ -8,6 +8,7 @@ import (
 	"github.com/alecthomas/assert/v2"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
@@ -18,9 +19,8 @@ func TestSyncView(t *testing.T) {
 	source := schemaeventsource.NewUnattached()
 	view := syncView(ctx, source)
 
-	assert.NoError(t, source.PublishModuleForTest(&schema.Module{
-		Name: "time",
-		Decls: []schema.Decl{
+	timeModule := builder.Module("time").
+		Decl(
 			&schema.Verb{
 				Name: "time",
 				Metadata: []schema.Metadata{
@@ -33,9 +33,13 @@ func TestSyncView(t *testing.T) {
 						},
 					},
 				},
+				Request:  &schema.Ref{Module: "builtin", Name: "HttpRequest", TypeParameters: []schema.Type{&schema.Unit{}, &schema.Map{Key: &schema.String{}, Value: &schema.String{}}, &schema.Unit{}}},
+				Response: &schema.Ref{Module: "builtin", Name: "HttpResponse", TypeParameters: []schema.Type{&schema.Unit{}, &schema.Unit{}}},
 			},
-		},
-	}))
+		).
+		MustBuild()
+
+	assert.NoError(t, source.PublishModuleForTest(timeModule))
 
 	time.Sleep(time.Millisecond * 100)
 

@@ -9,10 +9,7 @@ import (
 )
 
 func TestBuildSchemaError(t *testing.T) {
-	builder := Schema().
-		Realm(
-			Realm("myrealm").
-				Module(Module("service").Decl(&schema.Config{Name: "user"}).MustBuild()).MustBuild())
+	builder := Module("service").Decl(&schema.Config{Name: "user"})
 	_, err := builder.Build()
 	assert.EqualError(t, err, "user: missing config type")
 }
@@ -47,8 +44,4 @@ func TestBuildSchema(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expected, actual)
-}
-
-func TestBuildModule(t *testing.T) {
-
 }
