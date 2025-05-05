@@ -688,6 +688,14 @@ realm foo {
 									Unit: true,
 								},
 								Metadata: []Metadata{
+									&MetadataPublisher{
+										Topics: []*Ref{
+											{
+												Module: "test",
+												Name:   "consumesB1Failed",
+											},
+										},
+									},
 									&MetadataSubscriber{
 										Topic: &Ref{
 											Module: "test",
@@ -704,14 +712,6 @@ realm foo {
 											Name:   "catchesB",
 										},
 									},
-									&MetadataPublisher{
-										Topics: []*Ref{
-											{
-												Module: "test",
-												Name:   "consumesB1Failed",
-											},
-										},
-									},
 								},
 							},
 							&Verb{
@@ -724,6 +724,14 @@ realm foo {
 									Unit: true,
 								},
 								Metadata: []Metadata{
+									&MetadataPublisher{
+										Topics: []*Ref{
+											{
+												Module: "test",
+												Name:   "consumesBothASubsFailed",
+											},
+										},
+									},
 									&MetadataSubscriber{
 										Topic: &Ref{
 											Module: "test",
@@ -737,14 +745,6 @@ realm foo {
 										Catch: &Ref{
 											Module: "test",
 											Name:   "catchesA",
-										},
-									},
-									&MetadataPublisher{
-										Topics: []*Ref{
-											{
-												Module: "test",
-												Name:   "consumesBothASubsFailed",
-											},
 										},
 									},
 								},

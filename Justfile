@@ -275,7 +275,7 @@ test-integration *test:
 integration-tests *test:
   #!/bin/bash
   echo "$PATH"
-  retry 3 /bin/bash -c "go test -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
+  retry 3 /bin/bash -c "go test -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
 
 # Alias for infrastructure-tests
 test-infrastructure *test:
@@ -283,7 +283,7 @@ test-infrastructure *test:
 
 # Run integration test(s)
 infrastructure-tests *test:
-  retry 3 /bin/bash -c "go test -fullpath -count 1 -v -tags infrastructure -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build infrastructure' | xargs -I {} dirname './{}' | tr '\n' ' ')"
+  retry 3 /bin/bash -c "go test -count 1 -v -tags infrastructure -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build infrastructure' | xargs -I {} dirname './{}' | tr '\n' ' ')"
 
 # Run README doc tests
 test-readme *args:
@@ -296,11 +296,11 @@ tidy:
 
 # Run backend tests
 test-backend: test-go2proto
-  @gotestsum --hide-summary skipped --format-hide-empty-pkg -- -short -fullpath ./...
+  @gotestsum --hide-summary skipped --format-hide-empty-pkg -- -short ./...
 
 # Run go2proto tests
 test-go2proto: build-go2proto-testdata
-  @gotestsum --hide-summary skipped --format-hide-empty-pkg -- -short -fullpath ./cmd/go2proto/testdata
+  @gotestsum --hide-summary skipped --format-hide-empty-pkg -- -short ./cmd/go2proto/testdata
 
 # Test the frontend
 test-frontend: build-frontend
