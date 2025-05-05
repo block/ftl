@@ -99,6 +99,7 @@ func Start(
 		go func() {
 			switch e := event.(type) {
 			case *schema.ChangesetCreatedNotification:
+				logger.Debugf("Received ChangesetCreatedNotification %s", e.Changeset.Key)
 				err := svc.HandleChangesetPreparing(ctx, e.Changeset)
 				if err != nil {
 					logger.Errorf(err, "Error provisioning changeset")
@@ -108,27 +109,32 @@ func Start(
 					}
 				}
 			case *schema.ChangesetPreparedNotification:
+				logger.Debugf("Received ChangesetPreparedNotification %s", e.Key)
 				err := svc.HandleChangesetPrepared(ctx, e.Key)
 				if err != nil {
 					_, err := svc.schemaClient.RollbackChangeset(ctx, connect.NewRequest(&ftlv1.RollbackChangesetRequest{Changeset: e.Key.String(), Error: err.Error()}))
 					logger.Errorf(err, "Error provisioning changeset")
 				}
 			case *schema.ChangesetCommittedNotification:
+				logger.Debugf("Received ChangesetCommittedNotification %s", e.Changeset.Key)
 				err := svc.HandleChangesetCommitted(ctx, e.Changeset)
 				if err != nil {
 					logger.Errorf(err, "Error provisioning changeset")
 				}
 			case *schema.ChangesetDrainedNotification:
+				logger.Debugf("Received ChangesetDrainedNotification %s", e.Key)
 				err := svc.HandleChangesetDrained(ctx, e.Key)
 				if err != nil {
 					logger.Errorf(err, "Error de-provisioning changeset")
 				}
 			case *schema.ChangesetRollingBackNotification:
+				logger.Debugf("Received ChangesetRollingBackNotification %s", e.Changeset.Key)
 				err := svc.HandleChangesetRollingBack(ctx, e.Changeset)
 				if err != nil {
 					logger.Errorf(err, "Error de-provisioning changeset")
 				}
 			case *schema.DeploymentRuntimeNotification:
+				logger.Debugf("Received DeploymentRuntimeNotification %s", e.Payload.Deployment)
 				if e.Changeset == nil || e.Changeset.IsZero() {
 					// This is updated outside of a changeset, so we need to handle it
 					switch element := e.Payload.Element.(type) {
@@ -291,7 +297,7 @@ func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*
 			if err := deployment.Run(ctx); err != nil {
 				return errors.Wrap(err, "error running deployment")
 			}
-			logger.Debugf("Finished deployment for module %s", moduleName)
+			logger.Debugf("Finished de-provisioning for module %s", moduleName)
 			return nil
 		})
 
