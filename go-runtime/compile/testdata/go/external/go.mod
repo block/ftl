@@ -5,7 +5,7 @@ go 1.24.0
 require github.com/block/ftl v0.206.1
 
 require (
-	github.com/alecthomas/errors v0.7.0 // indirect
+	github.com/alecthomas/errors v0.8.2 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/alecthomas/types v0.19.0 // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect

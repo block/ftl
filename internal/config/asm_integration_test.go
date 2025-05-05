@@ -15,6 +15,7 @@ import (
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/container"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 //go:embed testdata/docker-compose.yml
@@ -22,7 +23,9 @@ var composeYAML string
 
 func TestASMIntegration(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.TODO())
-	down, err := container.ComposeUp(ctx, "asm", composeYAML, optional.None[string]())
+	project, err := projectconfig.Load(ctx, optional.None[string]())
+	assert.NoError(t, err)
+	down, err := container.ComposeUp(ctx, project, "asm", composeYAML, optional.None[string]())
 	assert.NoError(t, err)
 	t.Cleanup(func() { assert.NoError(t, down()) })
 

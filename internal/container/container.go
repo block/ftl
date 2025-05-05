@@ -360,17 +360,11 @@ func PollContainerHealth(ctx context.Context, containerName string, timeout time
 // reading from disk. The project file will not be included in the release build.
 //
 // The "down" function can be optionally called to stop the containers.
-func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.Option[string], envars ...string) (down func() error, err error) {
+func ComposeUp(ctx context.Context, project projectconfig.Config, name, composeYAML string, profile optional.Option[string], envars ...string) (down func() error, err error) {
 	logger := log.FromContext(ctx).Scope(name)
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	// A flock is used to provent Docker compose getting confused, which happens when we call `docker compose up`
-	// multiple times simultaneously for the same services.
-	projCfg, ok := projectconfig.DefaultConfigPath().Get()
-	if !ok {
-		return nil, errors.Errorf("failed to get project config path")
-	}
-	dir := filepath.Join(filepath.Dir(projCfg), ".ftl")
+	dir := filepath.Join(project.Root(), ".ftl")
 	err = os.MkdirAll(dir, 0700)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create directory")

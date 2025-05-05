@@ -12,13 +12,14 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/container"
+	"github.com/block/ftl/internal/projectconfig"
 )
 
 //go:embed docker-compose.registry.yml
 var registryDockerCompose string
 
-func SetupRegistry(ctx context.Context, image string, port int) error {
-	_, err := container.ComposeUp(ctx, "registry", registryDockerCompose, optional.None[string](),
+func SetupRegistry(ctx context.Context, project projectconfig.Config, image string, port int) error {
+	_, err := container.ComposeUp(ctx, project, "registry", registryDockerCompose, optional.None[string](),
 		"FTL_REGISTRY_IMAGE="+image,
 		"FTL_REGISTRY_PORT="+strconv.Itoa(port))
 	if err != nil {

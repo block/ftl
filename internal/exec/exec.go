@@ -3,6 +3,7 @@ package exec
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"os/exec" //nolint:depguard
 	"strings"
@@ -61,8 +62,8 @@ func CommandWithEnv(ctx context.Context, level log.Level, dir string, env []stri
 func (c *Cmd) RunBuffered(ctx context.Context) error {
 	outputBuffer := NewCircularBuffer(100)
 	output := outputBuffer.WriterAt(ctx, c.level)
-	c.Cmd.Stdout = output
-	c.Cmd.Stderr = output
+	c.Stdout = output
+	c.Stderr = output
 
 	err := c.Run()
 	if err != nil {
@@ -79,12 +80,13 @@ func (c *Cmd) RunBuffered(ctx context.Context) error {
 // RunStderrError runs the command and captures stderr. If the command fails, the stderr is returned as the error message.
 func (c *Cmd) RunStderrError(ctx context.Context) error {
 	errorBuffer := NewCircularBuffer(100)
+	output := errorBuffer.WriterAt(ctx, c.level)
 
-	c.Cmd.Stdout = nil
-	c.Cmd.Stderr = errorBuffer.WriterAt(ctx, c.level)
+	c.Stdout = output
+	c.Stderr = output
 
 	if err := c.Run(); err != nil {
-		return errors.WithStack(errors.New(strings.TrimSpace(string(errorBuffer.Bytes()))))
+		return errors.Wrap(err, c.String()+": "+strings.TrimSpace(string(errorBuffer.Bytes())))
 	}
 
 	return nil
@@ -99,7 +101,7 @@ func (c *Cmd) Capture(ctx context.Context) ([]byte, error) {
 	c.Stderr = errorBuffer.WriterAt(ctx, c.level)
 
 	if err := c.Run(); err != nil {
-		return nil, errors.WithStack(errors.New(strings.TrimSpace(string(errorBuffer.Bytes()))))
+		return nil, errors.Wrap(err, c.String()+": "+strings.TrimSpace(string(errorBuffer.Bytes())))
 	}
 
 	return outBuffer.Bytes(), nil
@@ -112,3 +114,5 @@ func (c *Cmd) Kill(signal syscall.Signal) error {
 	}
 	return errors.WithStack(syscall.Kill(c.Process.Pid, signal))
 }
+
+func (c *Cmd) String() string { return fmt.Sprintf("cd %s && %s", c.Dir, shellquote.Join(c.Args...)) }

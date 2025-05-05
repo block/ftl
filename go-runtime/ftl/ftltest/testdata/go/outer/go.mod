@@ -10,7 +10,7 @@ require (
 )
 
 require (
-	github.com/alecthomas/errors v0.7.0 // indirect
+	github.com/alecthomas/errors v0.8.2 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
 	github.com/alecthomas/types v0.19.0 // indirect
