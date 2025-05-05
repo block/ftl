@@ -10,3 +10,8 @@ module-dirs = ["a/b/c", "d"]
 
 [commands]
   startup = ["echo 'Executing global pre-build command'"]
+
+[external-realms.foo]
+  git-repo = "git@github.com:block/ftl.git"
+  git-branch = "main"
+  git-commit = "04d1eb9286891a292f50aa8553896e78a4811b4a"

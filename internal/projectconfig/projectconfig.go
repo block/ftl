@@ -25,23 +25,30 @@ type ConfigAndSecrets struct {
 	Secrets map[string]*URL `toml:"secrets"`
 }
 
+type ExternalRealmConfig struct {
+	GitRepo   string `toml:"git-repo,omitempty"`
+	GitBranch string `toml:"git-branch,omitempty"`
+	GitCommit string `toml:"git-commit,omitempty"`
+}
+
 type Config struct {
 	// Path to the config file populated on load.
 	Path string `toml:"-"`
 
-	Name                       string                      `toml:"name,omitempty"`
-	Global                     ConfigAndSecrets            `toml:"global,omitempty"`
-	SecretsProvider            configuration.ProviderKey   `toml:"secrets-provider,omitempty"`
-	ConfigProvider             configuration.ProviderKey   `toml:"config-provider,omitempty"`
-	Modules                    map[string]ConfigAndSecrets `toml:"modules,omitempty"`
-	ModuleDirs                 []string                    `toml:"module-dirs,omitempty"`
-	Commands                   Commands                    `toml:"commands,omitempty"`
-	FTLMinVersion              string                      `toml:"ftl-min-version,omitempty"`
-	Hermit                     bool                        `toml:"hermit,omitempty"`
-	NoGit                      bool                        `toml:"no-git,omitempty"`
-	DisableIDEIntegration      bool                        `toml:"disable-ide-integration,omitempty"`
-	DisableVSCodeIntegration   bool                        `toml:"disable-vscode-integration,omitempty"`
-	DisableIntellijIntegration bool                        `toml:"disable-intellij-integration,omitempty"`
+	Name                       string                         `toml:"name,omitempty"`
+	Global                     ConfigAndSecrets               `toml:"global,omitempty"`
+	SecretsProvider            configuration.ProviderKey      `toml:"secrets-provider,omitempty"`
+	ConfigProvider             configuration.ProviderKey      `toml:"config-provider,omitempty"`
+	Modules                    map[string]ConfigAndSecrets    `toml:"modules,omitempty"`
+	ModuleDirs                 []string                       `toml:"module-dirs,omitempty"`
+	Commands                   Commands                       `toml:"commands,omitempty"`
+	FTLMinVersion              string                         `toml:"ftl-min-version,omitempty"`
+	Hermit                     bool                           `toml:"hermit,omitempty"`
+	NoGit                      bool                           `toml:"no-git,omitempty"`
+	DisableIDEIntegration      bool                           `toml:"disable-ide-integration,omitempty"`
+	DisableVSCodeIntegration   bool                           `toml:"disable-vscode-integration,omitempty"`
+	DisableIntellijIntegration bool                           `toml:"disable-intellij-integration,omitempty"`
+	ExternalRealms             map[string]ExternalRealmConfig `toml:"external-realms,omitempty"`
 }
 
 // Root directory of the project.
